@@ -1,0 +1,12 @@
+<!DOCTYPE idea-plugin PUBLIC "Plugin/DTD" "https://plugins.jetbrains.com/plugin.dtd">
+<idea-plugin url="https://github.com/Vektah/CodeGlance" xmlns:xi="http://www.w3.org/2001/XInclude">
+  <id>com.jetbrains.bigdatatools.sftp</id>
+  <name>Kafka</name>
+  <vendor>JetBrains</vendor>
+
+  <description>
+    Adds support of Kafka monitoring for Big Data Tools.
+  </description>
+
+  <xi:include href="bdide-kafka.xml" xpointer="xpointer(/idea-plugin/*)"/>
+</idea-plugin>
