@@ -9,6 +9,7 @@ import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import com.jetbrains.bigdatatools.settings.connections.ConnectionConfigurable
 import com.jetbrains.bigdatatools.settings.connections.ConnectionTesting
 import com.jetbrains.bigdatatools.settings.defaultui.ConnectionError
+import com.jetbrains.bigdatatools.settings.defaultui.ConnectionStatus
 import com.jetbrains.bigdatatools.settings.defaultui.ConnectionSuccessful
 import com.jetbrains.bigdatatools.util.toPresentableText
 
@@ -17,8 +18,9 @@ class KafkaConnectionConfigurable(connectionData: KafkaConnectionData, project: 
 
   override fun createConnectionTesting(): ConnectionTesting<KafkaConnectionData> = object : ConnectionTesting<KafkaConnectionData> {
     override fun testConnection(conn: KafkaConnectionData,
-                                callback: (com.jetbrains.bigdatatools.settings.defaultui.ConnectionStatus) -> Unit) {
-      val error = KafkaConnectionChecker.checkConnection(conn)
+                                testDisposable: Disposable,
+                                callback: (ConnectionStatus) -> Unit) {
+      val error = KafkaConnectionChecker.checkConnection(conn, testDisposable)
       if (error == null) {
         callback(ConnectionSuccessful(null, KafkaMessagesBundle.message("connection.success")))
       }
