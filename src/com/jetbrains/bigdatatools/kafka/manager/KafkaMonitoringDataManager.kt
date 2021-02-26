@@ -26,4 +26,6 @@ class KafkaMonitoringDataManager(project: Project?,
   }
 
   override fun getRealUrl(): String = connectionData.uri
+
+  fun getTopicsList() = client.getTopics(true)
 }

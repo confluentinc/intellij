@@ -1,5 +1,6 @@
 package com.jetbrains.bigdatatools.kafka
 
+import com.intellij.openapi.util.Disposer
 import com.intellij.testFramework.UsefulTestCase
 import com.jetbrains.bigdatatools.kafka.manager.KafkaClient
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaConnectionData
@@ -11,20 +12,33 @@ class KafkaClientTest : UsefulTestCase() {
   private val nonExistsUrl = "127.0.0.2:9091"
 
   fun testCheckConnectionSuccess() {
-    val conn = KafkaConnectionData().also {
-      it.uri = url
-    }
-    val kafkaClient = KafkaClient(conn)
+    val kafkaClient = createClient(url)
     val connectionResult = kafkaClient.checkConnection()
     TestCase.assertNull(connectionResult)
   }
 
   fun testCheckConnectionError() {
-    val conn = KafkaConnectionData().also {
-      it.uri = nonExistsUrl
-    }
-    val kafkaClient = KafkaClient(conn)
+    val kafkaClient = createClient(nonExistsUrl)
     val connectionResult = kafkaClient.checkConnection()
     TestCase.assertNotNull(connectionResult)
+  }
+
+  fun testGetAllTopics() {
+    val kafkaClient = createClient(url)
+    val allTopics = kafkaClient.getTopics(true)
+    assert(allTopics.size > 5)
+    val notInternalTopics = kafkaClient.getTopics(false)
+    assertNotEmpty(notInternalTopics)
+    assert(allTopics.size > notInternalTopics.size)
+  }
+
+  private fun createClient(url: String): KafkaClient {
+    val conn = KafkaConnectionData().also {
+      it.uri = url
+    }
+
+    return KafkaClient(conn).also {
+      Disposer.register(testRootDisposable, it)
+    }
   }
 }
