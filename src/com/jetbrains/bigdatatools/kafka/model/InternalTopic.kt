@@ -10,6 +10,4 @@ data class InternalTopic(
   val partitionCount: Int = 0,
   val inSyncReplicas: Int = 0,
   val replicationFactor: Int = 0,
-  val underReplicatedPartitions: Int = 0,
-  val segmentSize: Long = 0,
-  val segmentCount: Long = 0)
+  val underReplicatedPartitions: Int = 0)
