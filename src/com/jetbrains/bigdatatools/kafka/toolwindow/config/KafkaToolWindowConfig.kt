@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.toolwindow
+package com.jetbrains.bigdatatools.kafka.toolwindow.config
 
 import com.intellij.openapi.components.PersistentStateComponent
 import com.intellij.openapi.components.ServiceManager
@@ -9,7 +9,7 @@ import com.jetbrains.bigdatatools.connection.updater.IntervalUpdateSettings
 
 
 @State(name = "KafkaSettings", storages = [Storage(file = "kafka.xml")])
-class KafkaToolWindowSettings : PersistentStateComponent<KafkaToolWindowSettings>, IntervalUpdateSettings {
+class KafkaToolWindowConfig : PersistentStateComponent<KafkaToolWindowConfig>, IntervalUpdateSettings {
 
   //
   //var applicationColumns = arrayListOf("id", "user", "name", "applicationType", "queue", "state", "finalStatus", "progress", "trackingUrl",
@@ -36,17 +36,24 @@ class KafkaToolWindowSettings : PersistentStateComponent<KafkaToolWindowSettings
   //var nodeStates = HashSet<NodeState>().apply { addAll(NodeState.values()) }
   //var applicationStates = HashSet<YarnApplicationState>().apply { addAll(YarnApplicationState.values()) }
 
+  var selectedConnectionId: String? = null
+  val configs: MutableMap<String, KafkaClusterConfig> = mutableMapOf()
+
   override var dataUpdateIntervalMillis: Int = 30000
 
-  override fun getState(): KafkaToolWindowSettings {
+  override fun getState(): KafkaToolWindowConfig {
     return this
   }
 
-  override fun loadState(state: KafkaToolWindowSettings) {
+  override fun loadState(state: KafkaToolWindowConfig) {
     XmlSerializerUtil.copyBean(state, this)
   }
 
+  fun setTopicsSplitterProportion(connectionId: String, proportion: Float) {
+    TODO("Not yet implemented")
+  }
+
   companion object {
-    fun getInstance(): KafkaToolWindowSettings = ServiceManager.getService(KafkaToolWindowSettings::class.java)
+    fun getInstance(): KafkaToolWindowConfig = ServiceManager.getService(KafkaToolWindowConfig::class.java)
   }
 }

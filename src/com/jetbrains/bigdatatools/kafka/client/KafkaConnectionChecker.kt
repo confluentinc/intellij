@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.manager
+package com.jetbrains.bigdatatools.kafka.client
 
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.util.Disposer

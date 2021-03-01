@@ -2,7 +2,7 @@ package com.jetbrains.bigdatatools.kafka.settings
 
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.project.Project
-import com.jetbrains.bigdatatools.kafka.manager.KafkaConnectionChecker
+import com.jetbrains.bigdatatools.kafka.client.KafkaConnectionChecker
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaConnectionData
 import com.jetbrains.bigdatatools.kafka.util.KafkaIcons
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle

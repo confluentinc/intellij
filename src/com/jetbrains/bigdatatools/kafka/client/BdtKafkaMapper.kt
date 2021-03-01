@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.manager
+package com.jetbrains.bigdatatools.kafka.client
 
 import com.jetbrains.bigdatatools.kafka.model.InternalPartition
 import com.jetbrains.bigdatatools.kafka.model.InternalReplica
