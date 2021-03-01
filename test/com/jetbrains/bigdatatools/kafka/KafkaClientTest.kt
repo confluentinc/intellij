@@ -2,7 +2,7 @@ package com.jetbrains.bigdatatools.kafka
 
 import com.intellij.openapi.util.Disposer
 import com.intellij.testFramework.UsefulTestCase
-import com.jetbrains.bigdatatools.kafka.manager.KafkaClient
+import com.jetbrains.bigdatatools.kafka.client.KafkaClient
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaConnectionData
 import junit.framework.TestCase
 
