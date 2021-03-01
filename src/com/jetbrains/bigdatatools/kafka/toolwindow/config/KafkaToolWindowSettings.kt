@@ -6,10 +6,12 @@ import com.intellij.openapi.components.State
 import com.intellij.openapi.components.Storage
 import com.intellij.util.xmlb.XmlSerializerUtil
 import com.jetbrains.bigdatatools.connection.updater.IntervalUpdateSettings
+import com.jetbrains.bigdatatools.kafka.model.TopicPresentable
+import com.jetbrains.bigdatatools.settings.ColumnVisibilitySettings
 
 
 @State(name = "KafkaSettings", storages = [Storage(file = "kafka.xml")])
-class KafkaToolWindowConfig : PersistentStateComponent<KafkaToolWindowConfig>, IntervalUpdateSettings {
+class KafkaToolWindowSettings : PersistentStateComponent<KafkaToolWindowSettings>, IntervalUpdateSettings {
 
   //
   //var applicationColumns = arrayListOf("id", "user", "name", "applicationType", "queue", "state", "finalStatus", "progress", "trackingUrl",
@@ -36,16 +38,19 @@ class KafkaToolWindowConfig : PersistentStateComponent<KafkaToolWindowConfig>, I
   //var nodeStates = HashSet<NodeState>().apply { addAll(NodeState.values()) }
   //var applicationStates = HashSet<YarnApplicationState>().apply { addAll(YarnApplicationState.values()) }
 
+  private val topicTableColumns = TopicPresentable.renderableColumns.map { it.name }.toMutableList()
+  val topicColumnSettings = ColumnVisibilitySettings(topicTableColumns)
+
   var selectedConnectionId: String? = null
   val configs: MutableMap<String, KafkaClusterConfig> = mutableMapOf()
 
   override var dataUpdateIntervalMillis: Int = 30000
 
-  override fun getState(): KafkaToolWindowConfig {
+  override fun getState(): KafkaToolWindowSettings {
     return this
   }
 
-  override fun loadState(state: KafkaToolWindowConfig) {
+  override fun loadState(state: KafkaToolWindowSettings) {
     XmlSerializerUtil.copyBean(state, this)
   }
 
@@ -54,6 +59,6 @@ class KafkaToolWindowConfig : PersistentStateComponent<KafkaToolWindowConfig>, I
   }
 
   companion object {
-    fun getInstance(): KafkaToolWindowConfig = ServiceManager.getService(KafkaToolWindowConfig::class.java)
+    fun getInstance(): KafkaToolWindowSettings = ServiceManager.getService(KafkaToolWindowSettings::class.java)
   }
 }

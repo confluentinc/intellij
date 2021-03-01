@@ -24,7 +24,7 @@ import com.intellij.util.ui.StatusText
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaConnectionData
 import com.jetbrains.bigdatatools.kafka.settings.KafkaConnectionGroup
-import com.jetbrains.bigdatatools.kafka.toolwindow.config.KafkaToolWindowConfig
+import com.jetbrains.bigdatatools.kafka.toolwindow.config.KafkaToolWindowSettings
 import com.jetbrains.bigdatatools.kafka.toolwindow.controllers.ClusterPageController
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import com.jetbrains.bigdatatools.monitoring.toolwindow.MonitoringToolWindowController
@@ -121,7 +121,7 @@ class KafkaMonitoringToolWindowController(private val project: Project) : Monito
 
     val autorefresh = AutorefreshPopupComponent()
     autorefresh.isOpaque = false
-    autorefresh.value = KafkaToolWindowConfig.getInstance().dataUpdateIntervalMillis
+    autorefresh.value = KafkaToolWindowSettings.getInstance().dataUpdateIntervalMillis
     autorefresh.border = BorderFactory.createEmptyBorder(2, 2, 2, 2)
 
     autorefresh.onRefreshIntervalChanged = { value ->
@@ -164,13 +164,13 @@ class KafkaMonitoringToolWindowController(private val project: Project) : Monito
 
     // Cleanup settings for missing connections.
     val connectionIds = connections.map { it.innerId }
-    val storedConfigs = KafkaToolWindowConfig.getInstance().configs
+    val storedConfigs = KafkaToolWindowSettings.getInstance().configs
     val deprecatedConfigIds = storedConfigs.keys.minus(connectionIds)
     storedConfigs -= deprecatedConfigIds
     storedConfigs.entries.removeIf { !connectionIds.contains(it.key) }
 
     // Restore current page from settings.
-    val found = contentManager.contents.find { it.getUserData(CONNECTION_ID) == KafkaToolWindowConfig.getInstance().selectedConnectionId }
+    val found = contentManager.contents.find { it.getUserData(CONNECTION_ID) == KafkaToolWindowSettings.getInstance().selectedConnectionId }
     found?.let { contentManager.setSelectedContent(it) }
 
     // Subscribe to "Current page change" for saving to settings.
@@ -180,7 +180,7 @@ class KafkaMonitoringToolWindowController(private val project: Project) : Monito
       override fun contentRemoved(event: ContentManagerEvent) {}
 
       override fun selectionChanged(event: ContentManagerEvent) {
-        KafkaToolWindowConfig.getInstance().selectedConnectionId = event.content.getUserData(CONNECTION_ID) ?: ""
+        KafkaToolWindowSettings.getInstance().selectedConnectionId = event.content.getUserData(CONNECTION_ID) ?: ""
       }
     })
   }
@@ -200,7 +200,7 @@ class KafkaMonitoringToolWindowController(private val project: Project) : Monito
   }
 
   private fun onRefreshIntervalChanged(newInterval: Int) {
-    KafkaToolWindowConfig.getInstance().dataUpdateIntervalMillis = newInterval
+    KafkaToolWindowSettings.getInstance().dataUpdateIntervalMillis = newInterval
     getEnabledConnectionSettings().forEach {
       val manager = KafkaDataManager.getInstance(it.innerId, project)?.autoUpdaterManager ?: return@forEach
 
@@ -221,7 +221,7 @@ class KafkaMonitoringToolWindowController(private val project: Project) : Monito
       return
 
     invokeLater {
-      val clusterPageController = ClusterPageController(project, connectionData.innerId)
+      val clusterPageController = ClusterPageController(project, connectionData)
       val content = contentManager.factory.createContent(clusterPageController.getComponent(), connectionData.name, false)
       content.putUserData(CONNECTION_ID, connectionData.innerId)
       content.putUserData(PAGE_CONTROLLER_ID, clusterPageController)
