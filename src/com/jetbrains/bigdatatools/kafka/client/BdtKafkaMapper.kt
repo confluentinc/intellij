@@ -1,15 +1,28 @@
 package com.jetbrains.bigdatatools.kafka.client
 
-import com.jetbrains.bigdatatools.kafka.model.InternalPartition
-import com.jetbrains.bigdatatools.kafka.model.InternalReplica
-import com.jetbrains.bigdatatools.kafka.model.InternalTopicConfig
-import com.jetbrains.bigdatatools.kafka.model.TopicPresentable
+import com.jetbrains.bigdatatools.kafka.model.*
 import org.apache.kafka.clients.admin.ConfigEntry
+import org.apache.kafka.clients.admin.ConsumerGroupDescription
 import org.apache.kafka.clients.admin.TopicDescription
 import org.apache.kafka.common.TopicPartitionInfo
 
 
 object BdtKafkaMapper {
+  fun mapToConsumerGroup(detailedGroup: ConsumerGroupDescription): ConsumerGroupPresentable {
+    val topicsToPartitions = detailedGroup.members().flatMap {
+      it.assignment().topicPartitions().map { topicPartition -> topicPartition.topic() to topicPartition.partition() }
+    }.distinct()
+
+    val numTopics = topicsToPartitions.map { it.first }.distinct().size
+    val numTopicPartitions = topicsToPartitions.size
+
+    return ConsumerGroupPresentable(state = detailedGroup.state(),
+                                    consumerGroupName = detailedGroup.groupId(),
+                                    numConsumers = detailedGroup.members().size,
+                                    numTopics = numTopics,
+                                    numTopicPartitions = numTopicPartitions)
+  }
+
   fun mapToInternalTopic(topicDescription: TopicDescription): TopicPresentable {
     val partitions: List<InternalPartition> = topicDescription.partitions().map { partition: TopicPartitionInfo ->
       val replicas: List<InternalReplica> = partition.replicas().map {

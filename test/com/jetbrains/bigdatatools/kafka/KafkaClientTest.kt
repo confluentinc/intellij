@@ -32,6 +32,12 @@ class KafkaClientTest : UsefulTestCase() {
     assert(allTopics.size > notInternalTopics.size)
   }
 
+  fun testGetAllConsumerGroups() {
+    val kafkaClient = createClient(url)
+    val allTopics = kafkaClient.getConsumerGroups()
+    assert(allTopics.size >= 3)
+  }
+
   private fun createClient(url: String): KafkaClient {
     val conn = KafkaConnectionData().also {
       it.uri = url

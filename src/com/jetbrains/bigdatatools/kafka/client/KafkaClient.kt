@@ -1,6 +1,7 @@
 package com.jetbrains.bigdatatools.kafka.client
 
 import com.intellij.openapi.project.Project
+import com.jetbrains.bigdatatools.kafka.model.ConsumerGroupPresentable
 import com.jetbrains.bigdatatools.kafka.model.InternalTopicConfig
 import com.jetbrains.bigdatatools.kafka.model.TopicPresentable
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaConnectionData
@@ -25,6 +26,16 @@ class KafkaClient(project: Project?, private val connectionData: KafkaConnection
 
   override fun connectInner() {
     checkConnectionInner()
+  }
+
+  fun getConsumerGroups(): List<ConsumerGroupPresentable> {
+    val consumerGroupsIds: List<String> = kafkaAdmin.listConsumerGroups().all().get().map {
+      it.groupId()
+    }
+    val detailedGroups = kafkaAdmin.describeConsumerGroups(consumerGroupsIds).all().get()
+    return detailedGroups.map { (_, detailedGroup) ->
+      BdtKafkaMapper.mapToConsumerGroup(detailedGroup)
+    }
   }
 
   fun getTopics(listInternal: Boolean): List<TopicPresentable> {

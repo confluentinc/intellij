@@ -67,6 +67,7 @@ class ClusterPageController(project: Project, connectionData: KafkaConnectionDat
 
     list.cellRenderer = ClusterControllerTypeListRenderer()
 
+    showDetails(ClusterControllerType.TOPIC)
     return JPanel(BorderLayout()).apply {
       add(JBScrollPane(list), BorderLayout.LINE_START)
       add(details, BorderLayout.CENTER)

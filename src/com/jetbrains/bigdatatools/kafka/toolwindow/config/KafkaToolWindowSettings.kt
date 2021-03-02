@@ -6,6 +6,7 @@ import com.intellij.openapi.components.State
 import com.intellij.openapi.components.Storage
 import com.intellij.util.xmlb.XmlSerializerUtil
 import com.jetbrains.bigdatatools.connection.updater.IntervalUpdateSettings
+import com.jetbrains.bigdatatools.kafka.model.ConsumerGroupPresentable
 import com.jetbrains.bigdatatools.settings.ColumnVisibilitySettings
 
 
@@ -14,6 +15,9 @@ class KafkaToolWindowSettings : PersistentStateComponent<KafkaToolWindowSettings
   private val topicTableColumns = mutableListOf("name", "internal", "replicas", "partitionCount", "inSyncReplicas", "replicationFactor",
                                                 "underReplicatedPartitions")
   val topicColumnSettings = ColumnVisibilitySettings(topicTableColumns)
+
+  private val consumerGroupsTableColumns = ConsumerGroupPresentable.renderableColumns.map { it.name }.toMutableList()
+  val consumerGroupsColumnSettings = ColumnVisibilitySettings(consumerGroupsTableColumns)
 
   var selectedConnectionId: String? = null
   var showInternalTopics: Boolean = false

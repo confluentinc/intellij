@@ -1,27 +1,28 @@
 package com.jetbrains.bigdatatools.kafka.toolwindow.controllers
 
 import com.intellij.openapi.Disposable
+import com.intellij.openapi.ui.SimpleToolWindowPanel
 import com.intellij.openapi.util.Disposer
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
-import com.jetbrains.bigdatatools.kafka.model.TopicPresentable
+import com.jetbrains.bigdatatools.kafka.model.ConsumerGroupPresentable
 import com.jetbrains.bigdatatools.kafka.toolwindow.config.KafkaToolWindowSettings
 import com.jetbrains.bigdatatools.monitoring.table.DataTableCreator
 import com.jetbrains.bigdatatools.monitoring.table.extension.TableExtensionType
 import com.jetbrains.bigdatatools.monitoring.table.model.DataTableColumnModel
 import com.jetbrains.bigdatatools.monitoring.table.model.DataTableModel
+import com.jetbrains.bigdatatools.table.MaterialJBScrollPane
 import java.util.*
 import javax.swing.JComponent
-import javax.swing.JLabel
 
 class ConsumerGroupsController(dataManager: KafkaDataManager) : Disposable {
   private val component: JComponent
 
   init {
-    val dataModel = dataManager.topicModel
+    val dataModel = dataManager.consumerGroupsModel
 
-    val columnSettings = KafkaToolWindowSettings.getInstance().topicColumnSettings
+    val columnSettings = KafkaToolWindowSettings.getInstance().consumerGroupsColumnSettings
 
-    val columnModel = DataTableColumnModel(TopicPresentable.renderableColumns, columnSettings)
+    val columnModel = DataTableColumnModel(ConsumerGroupPresentable.renderableColumns, columnSettings)
     val tableModel = DataTableModel(dataModel, columnModel)
 
     val table = DataTableCreator.create(tableModel, EnumSet.of(TableExtensionType.SPEED_SEARCH,
@@ -32,9 +33,9 @@ class ConsumerGroupsController(dataManager: KafkaDataManager) : Disposable {
                                                                TableExtensionType.LOADING_INDICATOR))
     Disposer.register(this, table)
 
-
-    //component = MaterialJBScrollPane(table)
-    component = JLabel("STUB")
+    component = SimpleToolWindowPanel(false, true).apply {
+      setContent(MaterialJBScrollPane(table))
+    }
   }
 
   override fun dispose() {}
