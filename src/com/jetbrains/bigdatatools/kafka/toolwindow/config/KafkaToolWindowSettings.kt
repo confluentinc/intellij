@@ -16,6 +16,7 @@ class KafkaToolWindowSettings : PersistentStateComponent<KafkaToolWindowSettings
   val topicColumnSettings = ColumnVisibilitySettings(topicTableColumns)
 
   var selectedConnectionId: String? = null
+  var showInternalTopics: Boolean = false
   val configs: MutableMap<String, KafkaClusterConfig> = mutableMapOf()
 
   override var dataUpdateIntervalMillis: Int = 30000

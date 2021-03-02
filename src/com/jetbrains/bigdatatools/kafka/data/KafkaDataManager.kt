@@ -7,6 +7,7 @@ import com.jetbrains.bigdatatools.kafka.client.KafkaClient
 import com.jetbrains.bigdatatools.kafka.model.TopicPresentable
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaConnectionData
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaDriver
+import com.jetbrains.bigdatatools.kafka.toolwindow.config.KafkaToolWindowSettings
 import com.jetbrains.bigdatatools.monitoring.data.MonitoringDataManager
 import com.jetbrains.bigdatatools.monitoring.data.model.ObjectDataModel
 import com.jetbrains.bigdatatools.rfs.driver.manager.DriverManager
@@ -32,7 +33,7 @@ class KafkaDataManager(project: Project?,
     val topicDataModel = object : ObjectDataModel<TopicPresentable>(TopicPresentable::class) {}
 
     addDataModelUpdater(topicDataModel, "Cannot request topic model") {
-      val topics = client.getTopics(true)
+      val topics = client.getTopics(KafkaToolWindowSettings.getInstance().showInternalTopics)
       topicDataModel.setData(topics)
     }
 

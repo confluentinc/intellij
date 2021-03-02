@@ -1,14 +1,18 @@
 package com.jetbrains.bigdatatools.kafka.toolwindow.controllers
 
+import com.intellij.icons.AllIcons
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.ActionPlaces
+import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.DefaultActionGroup
+import com.intellij.openapi.project.DumbAwareToggleAction
 import com.intellij.openapi.ui.SimpleToolWindowPanel
 import com.intellij.openapi.util.Disposer
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.model.TopicPresentable
 import com.jetbrains.bigdatatools.kafka.toolwindow.config.KafkaToolWindowSettings
+import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import com.jetbrains.bigdatatools.monitoring.table.DataTableCreator
 import com.jetbrains.bigdatatools.monitoring.table.extension.TableExtensionType
 import com.jetbrains.bigdatatools.monitoring.table.model.DataTableColumnModel
@@ -18,13 +22,12 @@ import com.jetbrains.bigdatatools.table.MaterialJBScrollPane
 import java.util.*
 import javax.swing.JComponent
 
-class TopicsController(dataManager: KafkaDataManager) : Disposable {
+class TopicsController(private val dataManager: KafkaDataManager) : Disposable {
   private val component: JComponent
 
+  private val dataModel = dataManager.topicModel
 
   init {
-    val dataModel = dataManager.topicModel
-
     val columnSettings = KafkaToolWindowSettings.getInstance().topicColumnSettings
     val columnModel = DataTableColumnModel(TopicPresentable.renderableColumns, columnSettings)
     val tableModel = DataTableModel(dataModel, columnModel)
@@ -53,8 +56,23 @@ class TopicsController(dataManager: KafkaDataManager) : Disposable {
 
     val actions = DefaultActionGroup()
 
+    val showInternalTopicsAction = object : DumbAwareToggleAction(KafkaMessagesBundle.message("show.internal.topic"),
+                                                                  KafkaMessagesBundle.message("show.internal.topic.hint"),
+                                                                  AllIcons.Actions.ShowHiddens) {
+      override fun isSelected(e: AnActionEvent) = settings.showInternalTopics
+      override fun displayTextInToolbar() = false
+      override fun setSelected(e: AnActionEvent, state: Boolean) {
+        settings.showInternalTopics = state
+        dataManager.autoUpdaterManager.reloadAsync(dataModel)
+
+      }
+    }
+
     val configStoragesColumnsAction = ColumnVisibilitySettings.createAction(columnModel.allColumns.map { it.name },
                                                                             settings.topicColumnSettings)
+
+
+    actions.add(showInternalTopicsAction)
     actions.add(configStoragesColumnsAction)
 
     return ActionManager.getInstance().createActionToolbar(ActionPlaces.UNKNOWN, actions, false).component
