@@ -16,7 +16,7 @@ class KafkaDataManager(project: Project?,
                        settings: IntervalUpdateSettings) : MonitoringDataManager(project, settings) {
   override val client = KafkaClient(project, connectionData)
 
-  private val topicModel = createTopicsDataModel()
+  val topicModel = createTopicsDataModel()
 
   init {
     Disposer.register(this, client)
@@ -27,7 +27,6 @@ class KafkaDataManager(project: Project?,
 
   override fun disposeInvalidatedData() {}
 
-  fun getTopicModel() = topicModel
 
   private fun createTopicsDataModel(): ObjectDataModel<TopicPresentable> {
     val topicDataModel = object : ObjectDataModel<TopicPresentable>(TopicPresentable::class) {}
