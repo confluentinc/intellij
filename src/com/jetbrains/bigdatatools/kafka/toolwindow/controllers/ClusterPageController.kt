@@ -8,6 +8,7 @@ import com.intellij.ui.components.JBScrollPane
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaConnectionData
 import java.awt.BorderLayout
+import java.awt.Component
 import javax.swing.*
 
 /**
@@ -64,6 +65,8 @@ class ClusterPageController(project: Project, connectionData: KafkaConnectionDat
       }
     }
 
+    list.cellRenderer = ClusterControllerTypeListRenderer()
+
     return JPanel(BorderLayout()).apply {
       add(JBScrollPane(list), BorderLayout.LINE_START)
       add(details, BorderLayout.CENTER)
@@ -71,7 +74,18 @@ class ClusterPageController(project: Project, connectionData: KafkaConnectionDat
   }
 
 
-  private enum class ClusterControllerType {
-    TOPIC, CONSUMER_GROUP
+  private enum class ClusterControllerType(val value: String) {
+    TOPIC("Topics"), CONSUMER_GROUP("Consumers")
+  }
+
+  private class ClusterControllerTypeListRenderer : DefaultListCellRenderer() {
+    override fun getListCellRendererComponent(list: JList<*>?,
+                                              value: Any?,
+                                              index: Int,
+                                              isSelected: Boolean,
+                                              cellHasFocus: Boolean): Component =
+      super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus).apply {
+        (value as? ClusterControllerType)?.let { text = it.value }
+      }
   }
 }

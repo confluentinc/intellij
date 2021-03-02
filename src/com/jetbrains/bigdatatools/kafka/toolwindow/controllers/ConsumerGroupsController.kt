@@ -17,7 +17,7 @@ class ConsumerGroupsController(dataManager: KafkaDataManager) : Disposable {
   private val component: JComponent
 
   init {
-    val dataModel = dataManager.getTopicModel()
+    val dataModel = dataManager.topicModel
 
     val columnSettings = KafkaToolWindowSettings.getInstance().topicColumnSettings
 

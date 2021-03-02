@@ -18,7 +18,7 @@ class TopicsController(dataManager: KafkaDataManager) : Disposable {
 
 
   init {
-    val dataModel = dataManager.getTopicModel()
+    val dataModel = dataManager.topicModel
 
     val columnSettings = KafkaToolWindowSettings.getInstance().topicColumnSettings
     val columnModel = DataTableColumnModel(TopicPresentable.renderableColumns, columnSettings)
