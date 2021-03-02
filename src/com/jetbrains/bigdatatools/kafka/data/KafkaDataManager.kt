@@ -9,40 +9,40 @@ import com.jetbrains.bigdatatools.kafka.rfs.KafkaConnectionData
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaDriver
 import com.jetbrains.bigdatatools.monitoring.data.MonitoringDataManager
 import com.jetbrains.bigdatatools.monitoring.data.model.ObjectDataModel
-import com.jetbrains.bigdatatools.rfs.driver.DriverConnectionStatus
 import com.jetbrains.bigdatatools.rfs.driver.manager.DriverManager
 
 class KafkaDataManager(project: Project?,
-                       private val connectionData: KafkaConnectionData,
+                       connectionData: KafkaConnectionData,
                        settings: IntervalUpdateSettings) : MonitoringDataManager(project, settings) {
-  private val client = KafkaClient(connectionData)
+  override val client = KafkaClient(project, connectionData)
 
-  private val topicModel = object : ObjectDataModel<TopicPresentable>(TopicPresentable::class) {}
+  private val topicModel = createTopicsDataModel()
 
   init {
-    topicModel.setData(client.getTopics(true))
-
     Disposer.register(this, client)
     Disposer.register(this, topicModel)
   }
 
   override fun dispose() {}
 
-  override fun connect() = checkConnection()
+  override fun disposeInvalidatedData() {}
 
-  override fun checkConnection(): DriverConnectionStatus {
-    val error = client.checkConnection()
-    return error?.let { DriverConnectionStatus.FAILED } ?: DriverConnectionStatus.CONNECTED
+  fun getTopicModel() = topicModel
+
+  private fun createTopicsDataModel(): ObjectDataModel<TopicPresentable> {
+    val topicDataModel = object : ObjectDataModel<TopicPresentable>(TopicPresentable::class) {}
+
+    addDataModelUpdater(topicDataModel, "Cannot request topic model") {
+      val topics = client.getTopics(true)
+      topicDataModel.setData(topics)
+    }
+
+    return topicDataModel
   }
 
-  override fun getRealUrl(): String = connectionData.uri
-
-  fun getTopicsList() = client.getTopics(true)
-  fun getTopicModel() = topicModel
 
   companion object {
     fun getInstance(connectionId: String, project: Project): KafkaDataManager? =
       (DriverManager.getDriverById(project, connectionId) as? KafkaDriver)?.dataManager
   }
-
 }

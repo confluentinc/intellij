@@ -1,9 +1,10 @@
 package com.jetbrains.bigdatatools.kafka.client
 
-import com.intellij.openapi.Disposable
+import com.intellij.openapi.project.Project
 import com.jetbrains.bigdatatools.kafka.model.InternalTopicConfig
 import com.jetbrains.bigdatatools.kafka.model.TopicPresentable
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaConnectionData
+import com.jetbrains.bigdatatools.monitoring.connection.MonitoringClient
 import org.apache.kafka.clients.admin.AdminClient
 import org.apache.kafka.clients.admin.KafkaAdminClient
 import org.apache.kafka.clients.admin.ListTopicsOptions
@@ -11,19 +12,19 @@ import org.apache.kafka.clients.admin.TopicDescription
 import org.apache.kafka.common.config.ConfigResource
 import java.util.*
 
-class KafkaClient(connectionData: KafkaConnectionData) : Disposable {
+class KafkaClient(project: Project?, private val connectionData: KafkaConnectionData) : MonitoringClient(project) {
   private val kafkaAdmin: AdminClient = KafkaAdminClient.create(getKafkaProps(connectionData))
 
-  override fun dispose() {
-    kafkaAdmin.close()
+  override fun dispose() = kafkaAdmin.close()
+
+  override fun getRealUri() = connectionData.uri
+
+  override fun checkConnectionInner() {
+    kafkaAdmin.describeCluster().controller().get()
   }
 
-  fun checkConnection(): Throwable? = try {
-    kafkaAdmin.describeCluster().controller().get()
-    null
-  }
-  catch (t: Throwable) {
-    t
+  override fun connectInner() {
+    checkConnectionInner()
   }
 
   fun getTopics(listInternal: Boolean): List<TopicPresentable> {
