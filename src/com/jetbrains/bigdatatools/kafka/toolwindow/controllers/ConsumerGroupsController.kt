@@ -9,18 +9,18 @@ import com.jetbrains.bigdatatools.monitoring.table.DataTableCreator
 import com.jetbrains.bigdatatools.monitoring.table.extension.TableExtensionType
 import com.jetbrains.bigdatatools.monitoring.table.model.DataTableColumnModel
 import com.jetbrains.bigdatatools.monitoring.table.model.DataTableModel
-import com.jetbrains.bigdatatools.table.MaterialJBScrollPane
 import java.util.*
 import javax.swing.JComponent
+import javax.swing.JLabel
 
-class TopicsController(dataManager: KafkaDataManager) : Disposable {
+class ConsumerGroupsController(dataManager: KafkaDataManager) : Disposable {
   private val component: JComponent
-
 
   init {
     val dataModel = dataManager.getTopicModel()
 
     val columnSettings = KafkaToolWindowSettings.getInstance().topicColumnSettings
+
     val columnModel = DataTableColumnModel(TopicPresentable.renderableColumns, columnSettings)
     val tableModel = DataTableModel(dataModel, columnModel)
 
@@ -33,7 +33,8 @@ class TopicsController(dataManager: KafkaDataManager) : Disposable {
     Disposer.register(this, table)
 
 
-    component = MaterialJBScrollPane(table)
+    //component = MaterialJBScrollPane(table)
+    component = JLabel("STUB")
   }
 
   override fun dispose() {}
