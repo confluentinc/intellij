@@ -12,22 +12,39 @@ import com.jetbrains.bigdatatools.settings.ColumnVisibilitySettings
 
 @State(name = "KafkaSettings", storages = [Storage(file = "kafka.xml")])
 class KafkaToolWindowSettings : PersistentStateComponent<KafkaToolWindowSettings>, IntervalUpdateSettings {
-  private val topicTableColumns = mutableListOf("name", "internal", "replicas", "partitionCount", "inSyncReplicas", "replicationFactor",
-                                                "underReplicatedPartitions")
+  var selectedConnectionId: String? = null
+
+  private val topicConfigsTableColumns = mutableListOf("name", "value")
+  val topicConfigsColumnSettings = ColumnVisibilitySettings(topicConfigsTableColumns)
+
+  private val topicTableColumns = mutableListOf("name", "internal", "replicas", "partitionCount",
+                                                "inSyncReplicas", "replicationFactor", "underReplicatedPartitions")
   val topicColumnSettings = ColumnVisibilitySettings(topicTableColumns)
+
+  var showInternalTopics: Boolean = false
 
   private val consumerGroupsTableColumns = ConsumerGroupPresentable.renderableColumns.map { it.name }.toMutableList()
   val consumerGroupsColumnSettings = ColumnVisibilitySettings(consumerGroupsTableColumns)
 
-  var selectedConnectionId: String? = null
-  var showInternalTopics: Boolean = false
   val configs: MutableMap<String, KafkaClusterConfig> = mutableMapOf()
 
   override var dataUpdateIntervalMillis: Int = 30000
 
-  override fun getState(): KafkaToolWindowSettings {
-    return this
+  fun setSelectedTopicName(connectionId: String, selectedTopic: String) {
+    getOrCreateSparkConfig(connectionId).selectedTopic = selectedTopic
   }
+
+  private fun getOrCreateSparkConfig(connectionId: String): KafkaClusterConfig {
+    var config = configs[connectionId]
+    if (config == null) {
+      config = KafkaClusterConfig()
+      configs[connectionId] = config
+    }
+    return config
+  }
+
+
+  override fun getState(): KafkaToolWindowSettings = this
 
   override fun loadState(state: KafkaToolWindowSettings) {
     XmlSerializerUtil.copyBean(state, this)

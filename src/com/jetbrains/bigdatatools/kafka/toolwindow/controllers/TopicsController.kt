@@ -9,10 +9,12 @@ import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.project.DumbAwareToggleAction
 import com.intellij.openapi.ui.SimpleToolWindowPanel
 import com.intellij.openapi.util.Disposer
+import com.intellij.ui.OnePixelSplitter
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.model.TopicPresentable
 import com.jetbrains.bigdatatools.kafka.toolwindow.config.KafkaToolWindowSettings
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import com.jetbrains.bigdatatools.monitoring.table.DataTable
 import com.jetbrains.bigdatatools.monitoring.table.DataTableCreator
 import com.jetbrains.bigdatatools.monitoring.table.extension.TableExtensionType
 import com.jetbrains.bigdatatools.monitoring.table.model.DataTableColumnModel
@@ -21,35 +23,54 @@ import com.jetbrains.bigdatatools.settings.ColumnVisibilitySettings
 import com.jetbrains.bigdatatools.table.MaterialJBScrollPane
 import java.util.*
 import javax.swing.JComponent
+import javax.swing.event.ListSelectionEvent
+import javax.swing.event.ListSelectionListener
 
 class TopicsController(private val dataManager: KafkaDataManager) : Disposable {
-  private val component: JComponent
+  private val detailsSplitter: OnePixelSplitter = OnePixelSplitter()
 
   private val dataModel = dataManager.topicModel
+  private val topicTable: DataTable<TopicPresentable>
+
+  private val topicDetailsController = TopicDetailsController(dataManager).also {
+    Disposer.register(this, it)
+  }
+
+  private val topicSelectionListener = object : ListSelectionListener {
+    override fun valueChanged(e: ListSelectionEvent) {
+      if (e.valueIsAdjusting)
+        return
+      showTopicDetails()
+    }
+  }
+
 
   init {
     val columnSettings = KafkaToolWindowSettings.getInstance().topicColumnSettings
     val columnModel = DataTableColumnModel(TopicPresentable.renderableColumns, columnSettings)
     val tableModel = DataTableModel(dataModel, columnModel)
 
-    val table = DataTableCreator.create(tableModel, EnumSet.of(TableExtensionType.SPEED_SEARCH,
-                                                               TableExtensionType.RENDERERS_SETTER,
-                                                               TableExtensionType.COLUMNS_FITTER,
-                                                               TableExtensionType.ERROR_HANDLER,
-                                                               TableExtensionType.SELECTION_PRESERVER,
-                                                               TableExtensionType.LOADING_INDICATOR))
-    Disposer.register(this, table)
+
+    topicTable = DataTableCreator.create(tableModel, EnumSet.of(TableExtensionType.SPEED_SEARCH,
+                                                                TableExtensionType.RENDERERS_SETTER,
+                                                                TableExtensionType.COLUMNS_FITTER,
+                                                                TableExtensionType.ERROR_HANDLER,
+                                                                TableExtensionType.SELECTION_PRESERVER,
+                                                                TableExtensionType.LOADING_INDICATOR))
+    topicTable.selectionModel.addListSelectionListener(topicSelectionListener)
+    Disposer.register(this, topicTable)
 
 
-    component = SimpleToolWindowPanel(false, true).apply {
-      setContent(MaterialJBScrollPane(table))
+    detailsSplitter.firstComponent = SimpleToolWindowPanel(false, true).apply {
+      setContent(MaterialJBScrollPane(topicTable))
       toolbar = createToolbar(columnModel)
     }
+    detailsSplitter.secondComponent = topicDetailsController.getComponent()
   }
 
   override fun dispose() {}
 
-  fun getComponent() = component
+  fun getComponent() = detailsSplitter
 
   private fun createToolbar(columnModel: DataTableColumnModel<TopicPresentable>): JComponent {
     val settings = KafkaToolWindowSettings.getInstance()
@@ -76,5 +97,18 @@ class TopicsController(private val dataManager: KafkaDataManager) : Disposable {
     actions.add(configStoragesColumnsAction)
 
     return ActionManager.getInstance().createActionToolbar(ActionPlaces.UNKNOWN, actions, false).component
+  }
+
+  private fun showTopicDetails() {
+    if (topicTable.selectedRow == -1) {
+      return
+    }
+    val modelIndex = topicTable.convertRowIndexToModel(topicTable.selectedRow)
+    val selectedTopicName = topicTable.tableModel.getInfoAt(modelIndex)?.name ?: return
+
+    topicDetailsController.setTopicId(selectedTopicName)
+
+    val settings = KafkaToolWindowSettings.getInstance()
+    settings.setSelectedTopicName(dataManager.connectionId, selectedTopicName)
   }
 }

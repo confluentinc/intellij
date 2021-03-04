@@ -5,6 +5,7 @@ import com.intellij.openapi.util.Disposer
 import com.jetbrains.bigdatatools.connection.updater.IntervalUpdateSettings
 import com.jetbrains.bigdatatools.kafka.client.KafkaClient
 import com.jetbrains.bigdatatools.kafka.model.ConsumerGroupPresentable
+import com.jetbrains.bigdatatools.kafka.model.TopicConfigPresentable
 import com.jetbrains.bigdatatools.kafka.model.TopicPresentable
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaConnectionData
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaDriver
@@ -16,6 +17,7 @@ import com.jetbrains.bigdatatools.rfs.driver.manager.DriverManager
 class KafkaDataManager(project: Project?,
                        connectionData: KafkaConnectionData,
                        settings: IntervalUpdateSettings) : MonitoringDataManager(project, settings) {
+  val connectionId = connectionData.innerId
   override val client = KafkaClient(project, connectionData)
 
   val topicModel = createTopicsDataModel()
@@ -54,6 +56,16 @@ class KafkaDataManager(project: Project?,
     return topicDataModel
   }
 
+  fun getTopicConfigsModel(topicId: String): ObjectDataModel<TopicConfigPresentable> {
+    val topicConfigsDataModel = object : ObjectDataModel<TopicConfigPresentable>(TopicConfigPresentable::class) {}
+    val topic = topicModel.entries.find { it.name == topicId }
+    val topicConfigs = topic?.topicConfigs
+    topicConfigs?.let {
+      topicConfigsDataModel.setData(it)
+    }
+
+    return topicConfigsDataModel
+  }
 
   companion object {
     fun getInstance(connectionId: String, project: Project): KafkaDataManager? =
