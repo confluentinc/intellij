@@ -1,83 +1,36 @@
 package com.jetbrains.bigdatatools.kafka.toolwindow.controllers
 
+import com.intellij.execution.ui.layout.impl.JBRunnerTabs
 import com.intellij.openapi.Disposable
-import com.intellij.openapi.ui.SimpleToolWindowPanel
+import com.intellij.openapi.actionSystem.ActionManager
+import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
-import com.intellij.ui.components.JBScrollPane
+import com.intellij.openapi.wm.IdeFocusManager
+import com.intellij.ui.tabs.TabInfo
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
-import com.jetbrains.bigdatatools.kafka.model.TopicConfigPresentable
-import com.jetbrains.bigdatatools.kafka.toolwindow.config.KafkaToolWindowSettings
-import com.jetbrains.bigdatatools.monitoring.table.DataTable
-import com.jetbrains.bigdatatools.monitoring.table.DataTableCreator
-import com.jetbrains.bigdatatools.monitoring.table.extension.TableExtensionType
-import com.jetbrains.bigdatatools.monitoring.table.extension.TableHeightFitter
-import com.jetbrains.bigdatatools.monitoring.table.extension.TableLoadingDecorator
-import com.jetbrains.bigdatatools.monitoring.table.model.DataTableColumnModel
-import com.jetbrains.bigdatatools.monitoring.table.model.DataTableModel
-import java.awt.BorderLayout
-import java.util.*
-import javax.swing.BorderFactory
-import javax.swing.BoxLayout
-import javax.swing.JComponent
-import javax.swing.JPanel
+import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import com.jetbrains.bigdatatools.ui.JBRunnerTabsBorderless
 
-class TopicDetailsController(private val dataManager: KafkaDataManager) : Disposable {
-  private val scrollPane: JBScrollPane
+class TopicDetailsController(project: Project, dataManager: KafkaDataManager) : Disposable {
+  private val tabs: JBRunnerTabs = JBRunnerTabsBorderless(project,
+                                                          ActionManager.getInstance(),
+                                                          IdeFocusManager.getInstance(project),
+                                                          this)
 
-  private var topicId: String? = null
-
-  private lateinit var topicConfigTable: DataTable<TopicConfigPresentable>
-  private lateinit var topicConfigTableScrollPane: JBScrollPane
+  private val configsController = TopicConfigsController(dataManager)
 
   init {
-    val panel = JPanel()
-    panel.layout = BoxLayout(panel, BoxLayout.Y_AXIS)
-    panel.add(createTopicConfigs())
+    Disposer.register(this, configsController)
 
-    val parentPanel = JPanel(BorderLayout(0, 10))
-    parentPanel.add(panel, BorderLayout.NORTH)
-    scrollPane = JBScrollPane(parentPanel)
-    scrollPane.border = BorderFactory.createEmptyBorder()
+    val configTab: TabInfo = TabInfo(configsController.getComponent()).apply { text = KafkaMessagesBundle.message("topic.tab.configs") }
+    tabs.addTab(configTab)
   }
 
   fun setTopicId(topicId: String) {
-    this.topicId = topicId
-
-    val topicConfigModel = dataManager.getTopicConfigsModel(topicId)
-    topicConfigTable.tableModel.setDataModel(topicConfigModel)
-    if (topicConfigModel.size > 0) {
-      TableHeightFitter.fitSize(topicConfigTableScrollPane, topicConfigTable)
-    }
-
-    TableLoadingDecorator.installOn(topicConfigTable)
+    configsController.setTopicId(topicId)
   }
 
-  fun getComponent() = scrollPane
-
-  private fun createTopicConfigs(): JComponent {
-    val tasksColumnSettings = KafkaToolWindowSettings.getInstance().topicConfigsColumnSettings
-
-    val columnModel = DataTableColumnModel(TopicConfigPresentable.renderableColumns, tasksColumnSettings)
-    val tableModel = DataTableModel(null, columnModel)
-
-    topicConfigTable = DataTableCreator.create(tableModel, EnumSet.of(TableExtensionType.SPEED_SEARCH,
-                                                                      TableExtensionType.RENDERERS_SETTER,
-                                                                      TableExtensionType.ERROR_HANDLER,
-                                                                      TableExtensionType.LOADING_INDICATOR,
-                                                                      TableExtensionType.COLUMNS_FITTER))
-    Disposer.register(this, topicConfigTable)
-
-    topicConfigTableScrollPane = JBScrollPane(topicConfigTable)
-    topicConfigTableScrollPane.border = BorderFactory.createEmptyBorder()
-
-    TableHeightFitter.installOn(topicConfigTableScrollPane, topicConfigTable)
-
-
-    return SimpleToolWindowPanel(false, true).apply {
-      setContent(topicConfigTableScrollPane)
-    }
-  }
-
+  fun getComponent() = tabs.component
 
   override fun dispose() {}
 }

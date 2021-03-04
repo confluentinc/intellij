@@ -18,7 +18,7 @@ import javax.swing.*
 class ClusterPageController(project: Project, connectionData: KafkaConnectionData) : Disposable {
   private val dataManager = KafkaDataManager.getInstance(connectionData.innerId, project) ?: error("Data Manager is not initialized")
 
-  private val topicsController = TopicsController(dataManager)
+  private val topicsController = TopicsController(project, dataManager)
   private val consumerGroupsController = ConsumerGroupsController(dataManager)
 
   private val details = JPanel(BorderLayout())

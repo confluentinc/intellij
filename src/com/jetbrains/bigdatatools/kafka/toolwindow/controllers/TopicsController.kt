@@ -7,6 +7,7 @@ import com.intellij.openapi.actionSystem.ActionPlaces
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.project.DumbAwareToggleAction
+import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.SimpleToolWindowPanel
 import com.intellij.openapi.util.Disposer
 import com.intellij.ui.OnePixelSplitter
@@ -26,13 +27,13 @@ import javax.swing.JComponent
 import javax.swing.event.ListSelectionEvent
 import javax.swing.event.ListSelectionListener
 
-class TopicsController(private val dataManager: KafkaDataManager) : Disposable {
+class TopicsController(project: Project, private val dataManager: KafkaDataManager) : Disposable {
   private val detailsSplitter: OnePixelSplitter = OnePixelSplitter()
 
   private val dataModel = dataManager.topicModel
   private val topicTable: DataTable<TopicPresentable>
 
-  private val topicDetailsController = TopicDetailsController(dataManager).also {
+  private val topicDetailsController = TopicDetailsController(project, dataManager).also {
     Disposer.register(this, it)
   }
 
