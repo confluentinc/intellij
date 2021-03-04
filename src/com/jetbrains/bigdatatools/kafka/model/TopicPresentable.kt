@@ -12,7 +12,7 @@ data class TopicPresentable(val name: String = "",
                             @field:NoRendering
                             val partitions: Map<Int, InternalPartition> = mapOf(),
                             @field:NoRendering
-                            val topicConfigs: List<InternalTopicConfig> = listOf(),
+                            val topicConfigs: List<TopicConfigPresentable> = listOf(),
                             val replicas: Int = 0,
                             val partitionCount: Int = 0,
                             val inSyncReplicas: Int = 0,

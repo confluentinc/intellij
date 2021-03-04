@@ -1,3 +1,5 @@
 package com.jetbrains.bigdatatools.kafka.toolwindow.config
 
-class KafkaClusterConfig
+class KafkaClusterConfig {
+  var selectedTopic: String? = null
+}

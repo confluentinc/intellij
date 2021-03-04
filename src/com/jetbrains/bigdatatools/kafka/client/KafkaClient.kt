@@ -2,7 +2,7 @@ package com.jetbrains.bigdatatools.kafka.client
 
 import com.intellij.openapi.project.Project
 import com.jetbrains.bigdatatools.kafka.model.ConsumerGroupPresentable
-import com.jetbrains.bigdatatools.kafka.model.InternalTopicConfig
+import com.jetbrains.bigdatatools.kafka.model.TopicConfigPresentable
 import com.jetbrains.bigdatatools.kafka.model.TopicPresentable
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaConnectionData
 import com.jetbrains.bigdatatools.monitoring.connection.MonitoringClient
@@ -48,7 +48,7 @@ class KafkaClient(project: Project?, private val connectionData: KafkaConnection
     return BdtKafkaMapper.mergeWithConfigs(internalTopics, loadedTopicConfig).values.toList()
   }
 
-  private fun loadTopicConfigs(topicNames: List<String>): Map<String, List<InternalTopicConfig>> {
+  private fun loadTopicConfigs(topicNames: List<String>): Map<String, List<TopicConfigPresentable>> {
     val resources = topicNames.map {
       ConfigResource(ConfigResource.Type.TOPIC, it)
     }
