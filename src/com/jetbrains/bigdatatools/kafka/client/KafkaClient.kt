@@ -6,17 +6,21 @@ import com.jetbrains.bigdatatools.kafka.model.TopicConfigPresentable
 import com.jetbrains.bigdatatools.kafka.model.TopicPresentable
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaConnectionData
 import com.jetbrains.bigdatatools.monitoring.connection.MonitoringClient
+import com.jetbrains.bigdatatools.util.executeOnPooledThread
 import org.apache.kafka.clients.admin.AdminClient
 import org.apache.kafka.clients.admin.KafkaAdminClient
 import org.apache.kafka.clients.admin.ListTopicsOptions
 import org.apache.kafka.clients.admin.TopicDescription
 import org.apache.kafka.common.config.ConfigResource
 import java.util.*
+import java.util.concurrent.TimeUnit
 
 class KafkaClient(project: Project?, private val connectionData: KafkaConnectionData) : MonitoringClient(project) {
   private val kafkaAdmin: AdminClient = KafkaAdminClient.create(getKafkaProps(connectionData))
 
-  override fun dispose() = kafkaAdmin.close()
+  override fun dispose() = executeOnPooledThread {
+    kafkaAdmin.close(10, TimeUnit.SECONDS)
+  }
 
   override fun getRealUri() = connectionData.uri
 
