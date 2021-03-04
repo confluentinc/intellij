@@ -1,5 +1,6 @@
 package com.jetbrains.bigdatatools.kafka.data
 
+import com.intellij.openapi.Disposable
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.jetbrains.bigdatatools.connection.updater.IntervalUpdateSettings
@@ -10,7 +11,9 @@ import com.jetbrains.bigdatatools.kafka.model.TopicPresentable
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaConnectionData
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaDriver
 import com.jetbrains.bigdatatools.kafka.toolwindow.config.KafkaToolWindowSettings
+import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import com.jetbrains.bigdatatools.monitoring.data.MonitoringDataManager
+import com.jetbrains.bigdatatools.monitoring.data.listener.DataModelListener
 import com.jetbrains.bigdatatools.monitoring.data.model.ObjectDataModel
 import com.jetbrains.bigdatatools.rfs.driver.manager.DriverManager
 
@@ -22,6 +25,8 @@ class KafkaDataManager(project: Project?,
 
   val topicModel = createTopicsDataModel()
   val consumerGroupsModel = createConsumerGroupsDataModel()
+
+  private var topicConfigsModels = mapOf<String, ObjectDataModel<TopicConfigPresentable>>()
 
   init {
     Disposer.register(this, client)
@@ -35,7 +40,7 @@ class KafkaDataManager(project: Project?,
 
 
   private fun createTopicsDataModel(): ObjectDataModel<TopicPresentable> {
-    val topicDataModel = object : ObjectDataModel<TopicPresentable>(TopicPresentable::class) {}
+    val topicDataModel = ObjectDataModel(TopicPresentable::class)
 
     addDataModelUpdater(topicDataModel, "Cannot request topic model") {
       val topics = client.getTopics(KafkaToolWindowSettings.getInstance().showInternalTopics)
@@ -46,7 +51,7 @@ class KafkaDataManager(project: Project?,
   }
 
   private fun createConsumerGroupsDataModel(): ObjectDataModel<ConsumerGroupPresentable> {
-    val topicDataModel = object : ObjectDataModel<ConsumerGroupPresentable>(ConsumerGroupPresentable::class) {}
+    val topicDataModel = ObjectDataModel(ConsumerGroupPresentable::class)
 
     addDataModelUpdater(topicDataModel, "Cannot request topic model") {
       val data = client.getConsumerGroups()
@@ -56,15 +61,41 @@ class KafkaDataManager(project: Project?,
     return topicDataModel
   }
 
-  fun getTopicConfigsModel(topicId: String): ObjectDataModel<TopicConfigPresentable> {
-    val topicConfigsDataModel = object : ObjectDataModel<TopicConfigPresentable>(TopicConfigPresentable::class) {}
-    val topic = topicModel.entries.find { it.name == topicId }
-    val topicConfigs = topic?.topicConfigs
-    topicConfigs?.let {
-      topicConfigsDataModel.setData(it)
+  fun getTopicConfigsModel(topicName: String): ObjectDataModel<TopicConfigPresentable> {
+    topicConfigsModels[topicName]?.let {
+      return it
     }
 
-    return topicConfigsDataModel
+    val dataModel = object : ObjectDataModel<TopicConfigPresentable>(TopicConfigPresentable::class) {
+      init {
+        updateData()
+      }
+
+      fun updateData() {
+        val topic = topicModel.entries.find { it.name == topicName } ?: let {
+          setError(KafkaMessagesBundle.message("topic.not.found", topicName))
+          return
+        }
+        setData(topic.topicConfigs)
+      }
+
+    }
+    Disposer.register(this, dataModel)
+
+
+    val topicModelListener = object : DataModelListener {
+      override fun onChanged() = dataModel.updateData()
+      override fun onError(msg: String, e: Throwable?) = dataModel.setError(msg, e)
+    }
+
+    topicModel.addListener(topicModelListener)
+    Disposer.register(dataModel, Disposable {
+      topicModel.removeListener(topicModelListener)
+    })
+
+    topicConfigsModels = topicConfigsModels + (topicName to dataModel)
+
+    return dataModel
   }
 
   companion object {
