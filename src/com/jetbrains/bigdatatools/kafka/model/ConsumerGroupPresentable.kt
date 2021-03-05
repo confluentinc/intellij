@@ -8,10 +8,10 @@ import kotlin.reflect.full.declaredMemberProperties
 import kotlin.reflect.jvm.javaField
 
 data class ConsumerGroupPresentable(val state: ConsumerGroupState,
-                                    val consumerGroupName: String,
-                                    val numConsumers: Int,
-                                    val numTopics: Int,
-                                    val numTopicPartitions: Int) : RemoteInfo {
+                                    val consumerGroup: String,
+                                    val consumers: Int,
+                                    val topics: Int,
+                                    val partitions: Int) : RemoteInfo {
   companion object {
     val renderableColumns: List<KProperty1<ConsumerGroupPresentable, *>> by lazy {
       ConsumerGroupPresentable::class.declaredMemberProperties.filter { DataRenderingUtil.shouldRenderFrom(it.javaField?.annotations) }

@@ -17,10 +17,10 @@ object BdtKafkaMapper {
     val numTopicPartitions = topicsToPartitions.size
 
     return ConsumerGroupPresentable(state = detailedGroup.state(),
-                                    consumerGroupName = detailedGroup.groupId(),
-                                    numConsumers = detailedGroup.members().size,
-                                    numTopics = numTopics,
-                                    numTopicPartitions = numTopicPartitions)
+                                    consumerGroup = detailedGroup.groupId().ifBlank { "(blank)" },
+                                    consumers = detailedGroup.members().size,
+                                    topics = numTopics,
+                                    partitions = numTopicPartitions)
   }
 
   fun mapToInternalTopic(topicDescription: TopicDescription): TopicPresentable {
