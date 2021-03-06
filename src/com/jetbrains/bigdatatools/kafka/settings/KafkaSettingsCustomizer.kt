@@ -17,11 +17,10 @@ class KafkaSettingsCustomizer(project: Project,
   private val properties = PropertiesField(KafkaConnectionData::props, KafkaSettingsKeys.PROPERTIES_KEY, connectionData)
 
   override fun getDefaultFields(conn: KafkaConnectionData): List<WrappedComponent<in KafkaConnectionData>> =
-    listOf(nameField, properties, tunnelField)
+    listOf(nameField, url, properties, tunnelField)
 
   override fun getDefaultComponent(fields: List<WrappedComponent<in KafkaConnectionData>>, conn: KafkaConnectionData) = MigPanel().apply {
     row(nameField.labelComponent, nameField.getComponent())
-    row(url.labelComponent, url.getComponent())
     row(url.labelComponent, url.getComponent())
 
 

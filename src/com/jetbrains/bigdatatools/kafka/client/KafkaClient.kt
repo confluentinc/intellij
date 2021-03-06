@@ -1,25 +1,32 @@
 package com.jetbrains.bigdatatools.kafka.client
 
+import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
 import com.jetbrains.bigdatatools.kafka.model.ConsumerGroupPresentable
 import com.jetbrains.bigdatatools.kafka.model.TopicConfigPresentable
 import com.jetbrains.bigdatatools.kafka.model.TopicPresentable
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaConnectionData
 import com.jetbrains.bigdatatools.monitoring.connection.MonitoringClient
+import com.jetbrains.bigdatatools.settings.connections.Property
 import com.jetbrains.bigdatatools.util.executeOnPooledThread
 import org.apache.kafka.clients.admin.AdminClient
 import org.apache.kafka.clients.admin.KafkaAdminClient
 import org.apache.kafka.clients.admin.ListTopicsOptions
 import org.apache.kafka.clients.admin.TopicDescription
 import org.apache.kafka.common.config.ConfigResource
+import java.time.Duration
 import java.util.*
-import java.util.concurrent.TimeUnit
 
 class KafkaClient(project: Project?, private val connectionData: KafkaConnectionData) : MonitoringClient(project) {
-  private val kafkaAdmin: AdminClient = KafkaAdminClient.create(getKafkaProps(connectionData))
+  private val kafkaAdmin: AdminClient by lazy { KafkaAdminClient.create(getKafkaProps(connectionData)) }
 
   override fun dispose() = executeOnPooledThread {
-    kafkaAdmin.close(10, TimeUnit.SECONDS)
+    try {
+      kafkaAdmin.close(Duration.ofSeconds(10))
+    }
+    catch (t: Throwable) {
+      logger.warn("Cannot close kafka client", t)
+    }
   }
 
   override fun getRealUri() = connectionData.uri
@@ -79,12 +86,28 @@ class KafkaClient(project: Project?, private val connectionData: KafkaConnection
   }
 
   private fun getKafkaProps(connectionData: KafkaConnectionData): Properties {
+    val defaultProps = listOf(
+      Property("bootstrap.servers", connectionData.uri),
+      Property("connections.max.idle.ms", 10000.toString()),
+      Property("default.api.timeout.ms", 5000.toString()),
+      Property("request.timeout.ms", 5000.toString()),
+      Property("retry.backoff.ms", 60000.toString())
+    )
+
     val props = Properties()
-    props["bootstrap.servers"] = connectionData.uri
-    props["connections.max.idle.ms"] = 10000
-    props["default.api.timeout.ms"] = 5000
-    props["request.timeout.ms"] = 5000
-    props["retry.backoff.ms"] = 60000
+
+    defaultProps.forEach {
+      props[it.name] = it.value
+    }
+
+    connectionData.props.forEach {
+      props[it.name] = it.value
+    }
+
     return props
+  }
+
+  companion object {
+    val logger = Logger.getInstance(this::class.java)
   }
 }
