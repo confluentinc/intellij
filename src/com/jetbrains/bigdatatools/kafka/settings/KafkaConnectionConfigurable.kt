@@ -15,6 +15,7 @@ import com.jetbrains.bigdatatools.util.toPresentableText
 
 class KafkaConnectionConfigurable(connectionData: KafkaConnectionData, project: Project, uiDisposable: Disposable) :
   ConnectionConfigurable<KafkaConnectionData>(connectionData, project, uiDisposable, KafkaIcons.MAIN_ICON) {
+  override fun createSettingsCustomizer(uiDisposable: Disposable) = KafkaSettingsCustomizer(project, connectionData, uiDisposable)
 
   override fun createConnectionTesting(): ConnectionTesting<KafkaConnectionData> = object : ConnectionTesting<KafkaConnectionData> {
     override fun testConnection(conn: KafkaConnectionData,

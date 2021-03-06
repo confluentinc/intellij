@@ -6,8 +6,9 @@ import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ToolWindowFactory
 
 class KafkaToolWindowFactory : ToolWindowFactory, DumbAware {
-  override fun createToolWindowContent(project: Project, toolWindow: ToolWindow) =
-    KafkaMonitoringToolWindowController.getInstance(project).setUp(toolWindow)
+  override fun createToolWindowContent(project: Project, toolWindow: ToolWindow) {
+    KafkaMonitoringToolWindowController.getInstance(project)?.setUp(toolWindow)
+  }
 
   override fun init(toolWindow: ToolWindow) {
     toolWindow.stripeTitle = "Kafka"

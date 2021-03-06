@@ -3,10 +3,10 @@ package com.jetbrains.bigdatatools.kafka.rfs
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
+import com.jetbrains.bigdatatools.kafka.toolwindow.KafkaMonitoringToolWindowController
 import com.jetbrains.bigdatatools.kafka.toolwindow.config.KafkaToolWindowSettings
 import com.jetbrains.bigdatatools.kafka.util.KafkaIcons
 import com.jetbrains.bigdatatools.monitoring.rfs.MonitoringDriver
-import com.jetbrains.bigdatatools.monitoring.toolwindow.MonitoringToolWindowController
 import javax.swing.Icon
 
 class KafkaDriver(override val connectionData: KafkaConnectionData, project: Project?) : MonitoringDriver(project) {
@@ -21,7 +21,5 @@ class KafkaDriver(override val connectionData: KafkaConnectionData, project: Pro
 
   override fun dispose() {}
 
-  override fun getController(project: Project): MonitoringToolWindowController {
-    TODO("Not yet implemented")
-  }
+  override fun getController(project: Project) = KafkaMonitoringToolWindowController.getInstance(project)
 }

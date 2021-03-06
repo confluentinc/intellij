@@ -248,9 +248,8 @@ class KafkaMonitoringToolWindowController(private val project: Project) : Monito
     RfsConnectionDataManager.instance?.getTyped<KafkaConnectionData>(project)?.filter { it.isEnabled } ?: emptyList()
 
   companion object {
-    fun getInstance(project: Project): KafkaMonitoringToolWindowController {
-      return project.getService(KafkaMonitoringToolWindowController::class.java)
-    }
+    fun getInstance(project: Project): KafkaMonitoringToolWindowController? =
+      project.getService(KafkaMonitoringToolWindowController::class.java)
 
     const val TOOL_WINDOW_ID = "KafkaToolWindow"
 
