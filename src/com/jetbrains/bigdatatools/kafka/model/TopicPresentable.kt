@@ -10,7 +10,7 @@ import kotlin.reflect.jvm.javaField
 data class TopicPresentable(val name: String = "",
                             val internal: Boolean = false,
                             @field:NoRendering
-                            val partitions: Map<Int, InternalPartition> = mapOf(),
+                            val partitions: List<TopicPartition> = listOf(),
                             @field:NoRendering
                             val topicConfigs: List<TopicConfigPresentable> = listOf(),
                             val replicas: Int = 0,

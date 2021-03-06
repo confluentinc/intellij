@@ -7,6 +7,7 @@ import com.jetbrains.bigdatatools.connection.updater.IntervalUpdateSettings
 import com.jetbrains.bigdatatools.kafka.client.KafkaClient
 import com.jetbrains.bigdatatools.kafka.model.ConsumerGroupPresentable
 import com.jetbrains.bigdatatools.kafka.model.TopicConfigPresentable
+import com.jetbrains.bigdatatools.kafka.model.TopicPartition
 import com.jetbrains.bigdatatools.kafka.model.TopicPresentable
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaConnectionData
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaDriver
@@ -15,6 +16,7 @@ import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import com.jetbrains.bigdatatools.monitoring.data.MonitoringDataManager
 import com.jetbrains.bigdatatools.monitoring.data.listener.DataModelListener
 import com.jetbrains.bigdatatools.monitoring.data.model.ObjectDataModel
+import com.jetbrains.bigdatatools.monitoring.data.model.RemoteInfo
 import com.jetbrains.bigdatatools.rfs.driver.manager.DriverManager
 
 class KafkaDataManager(project: Project?,
@@ -27,6 +29,7 @@ class KafkaDataManager(project: Project?,
   val consumerGroupsModel = createConsumerGroupsDataModel()
 
   private var topicConfigsModels = mapOf<String, ObjectDataModel<TopicConfigPresentable>>()
+  private var topicPartitionsModels = mapOf<String, ObjectDataModel<TopicPartition>>()
 
   init {
     Disposer.register(this, client)
@@ -38,6 +41,38 @@ class KafkaDataManager(project: Project?,
 
   override fun disposeInvalidatedData() {}
 
+  @Suppress("DuplicatedCode")
+  fun getTopicPartitionsModel(topicName: String): ObjectDataModel<TopicPartition> {
+    topicPartitionsModels[topicName]?.let {
+      return it
+    }
+
+    val dataModel = getTopicProjectorModel {
+      val topic = topicModel.entries.find { it.name == topicName } ?: error(KafkaMessagesBundle.message("topic.not.found", topicName))
+      topic.partitions
+    }
+
+    topicPartitionsModels = topicPartitionsModels + (topicName to dataModel)
+
+    return dataModel
+  }
+
+
+  @Suppress("DuplicatedCode")
+  fun getTopicConfigsModel(topicName: String): ObjectDataModel<TopicConfigPresentable> {
+    topicConfigsModels[topicName]?.let {
+      return it
+    }
+
+    val dataModel = getTopicProjectorModel {
+      val topic = topicModel.entries.find { it.name == topicName } ?: error(KafkaMessagesBundle.message("topic.not.found", topicName))
+      topic.topicConfigs
+    }
+
+    topicConfigsModels = topicConfigsModels + (topicName to dataModel)
+
+    return dataModel
+  }
 
   private fun createTopicsDataModel(): ObjectDataModel<TopicPresentable> {
     val topicDataModel = ObjectDataModel(TopicPresentable::class)
@@ -61,22 +96,23 @@ class KafkaDataManager(project: Project?,
     return topicDataModel
   }
 
-  fun getTopicConfigsModel(topicName: String): ObjectDataModel<TopicConfigPresentable> {
-    topicConfigsModels[topicName]?.let {
-      return it
-    }
 
-    val dataModel = object : ObjectDataModel<TopicConfigPresentable>(TopicConfigPresentable::class) {
+  private inline fun <reified T : RemoteInfo> getTopicProjectorModel(crossinline getData: () -> List<T>): ObjectDataModel<T> {
+    val dataModel = object : ObjectDataModel<T>(T::class) {
       init {
         updateData()
       }
 
       fun updateData() {
-        val topic = topicModel.entries.find { it.name == topicName } ?: let {
-          setError(KafkaMessagesBundle.message("topic.not.found", topicName))
+        val newData = try {
+          getData()
+        }
+        catch (t: Throwable) {
+          setError("Update Error", t)
           return
         }
-        setData(topic.topicConfigs)
+        if (newData != data)
+          setData(newData)
       }
 
     }
@@ -92,8 +128,6 @@ class KafkaDataManager(project: Project?,
     Disposer.register(dataModel, Disposable {
       topicModel.removeListener(topicModelListener)
     })
-
-    topicConfigsModels = topicConfigsModels + (topicName to dataModel)
 
     return dataModel
   }

@@ -18,9 +18,15 @@ class TopicDetailsController(project: Project, dataManager: KafkaDataManager) : 
                                                           this)
 
   private val configsController = TopicConfigsController(dataManager)
+  private val partitionsController = TopicPartitionsController(dataManager)
 
   init {
     Disposer.register(this, configsController)
+
+    val partitionsTab: TabInfo = TabInfo(partitionsController.getComponent()).apply {
+      text = KafkaMessagesBundle.message("topic.tab.partitions")
+    }
+    tabs.addTab(partitionsTab)
 
     val configTab: TabInfo = TabInfo(configsController.getComponent()).apply { text = KafkaMessagesBundle.message("topic.tab.configs") }
     tabs.addTab(configTab)
@@ -28,6 +34,7 @@ class TopicDetailsController(project: Project, dataManager: KafkaDataManager) : 
 
   fun setTopicId(topicId: String) {
     configsController.setTopicId(topicId)
+    partitionsController.setTopicId(topicId)
   }
 
   fun getComponent() = tabs.component
