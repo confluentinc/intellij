@@ -7,7 +7,7 @@ import com.jetbrains.bigdatatools.kafka.rfs.KafkaConnectionData
 object KafkaConnectionChecker {
   fun checkConnection(connectionData: KafkaConnectionData, testDisposable: Disposable): Throwable? {
     val client = try {
-      KafkaClient(null, connectionData)
+      KafkaClient(null, connectionData, testConnection = true)
     }
     catch (t: Throwable) {
       return t

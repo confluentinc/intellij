@@ -21,7 +21,7 @@ class KafkaDataManager(project: Project?,
                        connectionData: KafkaConnectionData,
                        settings: IntervalUpdateSettings) : MonitoringDataManager(project, settings) {
   val connectionId = connectionData.innerId
-  override val client = KafkaClient(project, connectionData)
+  override val client = KafkaClient(project, connectionData, false)
 
   val topicModel = createTopicsDataModel()
   val consumerGroupsModel = createConsumerGroupsDataModel()

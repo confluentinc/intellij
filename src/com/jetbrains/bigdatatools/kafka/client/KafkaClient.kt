@@ -2,6 +2,9 @@ package com.jetbrains.bigdatatools.kafka.client
 
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
+import com.jetbrains.bigdatatools.connection.tunnel.BdtSshTunnelConnectionUtils
+import com.jetbrains.bigdatatools.connection.tunnel.BdtSshTunnelService
+import com.jetbrains.bigdatatools.connection.tunnel.model.getTunnelDataOrNull
 import com.jetbrains.bigdatatools.kafka.model.ConsumerGroupPresentable
 import com.jetbrains.bigdatatools.kafka.model.TopicConfigPresentable
 import com.jetbrains.bigdatatools.kafka.model.TopicPresentable
@@ -17,8 +20,11 @@ import org.apache.kafka.common.config.ConfigResource
 import java.time.Duration
 import java.util.*
 
-class KafkaClient(project: Project?, private val connectionData: KafkaConnectionData) : MonitoringClient(project) {
-  private val kafkaAdmin: AdminClient by lazy { KafkaAdminClient.create(getKafkaProps(connectionData)) }
+class KafkaClient(project: Project?,
+                  private val connectionData: KafkaConnectionData,
+                  val testConnection: Boolean) : MonitoringClient(project) {
+  private val kafkaProps = getKafkaProps(connectionData)
+  private val kafkaAdmin: AdminClient by lazy { KafkaAdminClient.create(kafkaProps) }
 
   override fun dispose() = executeOnPooledThread {
     try {
@@ -27,15 +33,23 @@ class KafkaClient(project: Project?, private val connectionData: KafkaConnection
     catch (t: Throwable) {
       logger.warn("Cannot close kafka client", t)
     }
+
+    BdtSshTunnelService.deleteIfExists(project, connectionData.innerId, connectionData.getTunnelDataOrNull(), testConnection)
   }
 
-  override fun getRealUri() = connectionData.uri
+  override fun getRealUri(): String = kafkaProps.getProperty(SERVER_URL) ?: "<NOT_FOUND>"
 
   override fun checkConnectionInner() {
     kafkaAdmin.describeCluster().controller().get()
   }
 
   override fun connectInner() {
+    val localPort = BdtSshTunnelService.createIfRequired(project, connectionData.innerId, connectionData.getTunnelData(), testConnection)
+    if (localPort != null) {
+      val urlForTunnel = BdtSshTunnelConnectionUtils.getUrlForTunnel(connectionData.uri, localPort)
+      kafkaProps.setProperty(SERVER_URL, urlForTunnel)
+    }
+
     checkConnectionInner()
   }
 
@@ -87,7 +101,7 @@ class KafkaClient(project: Project?, private val connectionData: KafkaConnection
 
   private fun getKafkaProps(connectionData: KafkaConnectionData): Properties {
     val defaultProps = listOf(
-      Property("bootstrap.servers", connectionData.uri),
+      Property(SERVER_URL, connectionData.uri),
       Property("connections.max.idle.ms", 10000.toString()),
       Property("default.api.timeout.ms", 5000.toString()),
       Property("request.timeout.ms", 5000.toString()),
@@ -108,6 +122,7 @@ class KafkaClient(project: Project?, private val connectionData: KafkaConnection
   }
 
   companion object {
-    val logger = Logger.getInstance(this::class.java)
+    private val logger = Logger.getInstance(this::class.java)
+    private const val SERVER_URL = "bootstrap.servers"
   }
 }

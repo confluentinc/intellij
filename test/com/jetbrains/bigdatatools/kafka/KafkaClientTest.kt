@@ -43,7 +43,7 @@ class KafkaClientTest : UsefulTestCase() {
       it.uri = url
     }
 
-    return KafkaClient(null, conn).also {
+    return KafkaClient(null, conn, false).also {
       Disposer.register(testRootDisposable, it)
     }
   }
