@@ -5,7 +5,7 @@ import com.intellij.openapi.project.Project
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaConnectionData
 import com.jetbrains.bigdatatools.monitoring.TunnableSettingsCustomizer
 import com.jetbrains.bigdatatools.settings.ModificationKey
-import com.jetbrains.bigdatatools.settings.fields.StringListField
+import com.jetbrains.bigdatatools.settings.fields.PropertiesField
 import com.jetbrains.bigdatatools.settings.fields.WrappedComponent
 import com.jetbrains.bigdatatools.ui.MigPanel
 
@@ -14,7 +14,7 @@ class KafkaSettingsCustomizer(project: Project,
                               uiDisposable: Disposable) : TunnableSettingsCustomizer<KafkaConnectionData>(connectionData,
                                                                                                           project,
                                                                                                           uiDisposable) {
-  private val properties = StringListField(KafkaConnectionData::properties, KafkaSettingsKeys.PROPERTIES_KEY, connectionData)
+  private val properties = PropertiesField(KafkaConnectionData::props, KafkaSettingsKeys.PROPERTIES_KEY, connectionData)
 
   override fun getDefaultFields(conn: KafkaConnectionData): List<WrappedComponent<in KafkaConnectionData>> =
     listOf(nameField, properties, tunnelField)
