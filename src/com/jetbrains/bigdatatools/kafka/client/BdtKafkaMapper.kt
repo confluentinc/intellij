@@ -52,11 +52,11 @@ object BdtKafkaMapper {
   }
 
 
-  fun mapToInternalTopicConfig(configEntry: ConfigEntry): TopicConfigPresentable =
-    TopicConfigPresentable(name = configEntry.name(), value = configEntry.value())
+  fun mapToInternalTopicConfig(configEntry: ConfigEntry): TopicConfig =
+    TopicConfig(name = configEntry.name(), value = configEntry.value())
 
   fun mergeWithConfigs(topics: List<TopicPresentable>,
-                       configs: Map<String, List<TopicConfigPresentable>>): Map<String, TopicPresentable> {
+                       configs: Map<String, List<TopicConfig>>): Map<String, TopicPresentable> {
     return topics.map { t: TopicPresentable ->
       t.copy(topicConfigs = (configs[t.name] ?: emptyList()))
     }.associateBy { it.name }

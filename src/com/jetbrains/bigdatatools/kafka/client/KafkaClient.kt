@@ -6,7 +6,7 @@ import com.jetbrains.bigdatatools.connection.tunnel.BdtSshTunnelConnectionUtils
 import com.jetbrains.bigdatatools.connection.tunnel.BdtSshTunnelService
 import com.jetbrains.bigdatatools.connection.tunnel.model.getTunnelDataOrNull
 import com.jetbrains.bigdatatools.kafka.model.ConsumerGroupPresentable
-import com.jetbrains.bigdatatools.kafka.model.TopicConfigPresentable
+import com.jetbrains.bigdatatools.kafka.model.TopicConfig
 import com.jetbrains.bigdatatools.kafka.model.TopicPresentable
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaConnectionData
 import com.jetbrains.bigdatatools.monitoring.connection.MonitoringClient
@@ -73,7 +73,7 @@ class KafkaClient(project: Project?,
     return BdtKafkaMapper.mergeWithConfigs(internalTopics, loadedTopicConfig).values.toList()
   }
 
-  private fun loadTopicConfigs(topicNames: List<String>): Map<String, List<TopicConfigPresentable>> {
+  private fun loadTopicConfigs(topicNames: List<String>): Map<String, List<TopicConfig>> {
     val resources = topicNames.map {
       ConfigResource(ConfigResource.Type.TOPIC, it)
     }

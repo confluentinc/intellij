@@ -6,7 +6,7 @@ import com.intellij.openapi.util.Disposer
 import com.jetbrains.bigdatatools.connection.updater.IntervalUpdateSettings
 import com.jetbrains.bigdatatools.kafka.client.KafkaClient
 import com.jetbrains.bigdatatools.kafka.model.ConsumerGroupPresentable
-import com.jetbrains.bigdatatools.kafka.model.TopicConfigPresentable
+import com.jetbrains.bigdatatools.kafka.model.TopicConfig
 import com.jetbrains.bigdatatools.kafka.model.TopicPartition
 import com.jetbrains.bigdatatools.kafka.model.TopicPresentable
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaConnectionData
@@ -28,7 +28,7 @@ class KafkaDataManager(project: Project?,
   val topicModel = createTopicsDataModel()
   val consumerGroupsModel = createConsumerGroupsDataModel()
 
-  private var topicConfigsModels = mapOf<String, ObjectDataModel<TopicConfigPresentable>>()
+  private var topicConfigsModels = mapOf<String, ObjectDataModel<TopicConfig>>()
   private var topicPartitionsModels = mapOf<String, ObjectDataModel<TopicPartition>>()
 
   init {
@@ -59,7 +59,7 @@ class KafkaDataManager(project: Project?,
 
 
   @Suppress("DuplicatedCode")
-  fun getTopicConfigsModel(topicName: String): ObjectDataModel<TopicConfigPresentable> {
+  fun getTopicConfigsModel(topicName: String): ObjectDataModel<TopicConfig> {
     topicConfigsModels[topicName]?.let {
       return it
     }
