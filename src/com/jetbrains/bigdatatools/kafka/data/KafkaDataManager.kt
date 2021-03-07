@@ -47,7 +47,7 @@ class KafkaDataManager(project: Project?,
       return it
     }
 
-    val dataModel = getTopicProjectorModel {
+    val dataModel = getTopicProjectorModel("partition") {
       val topic = topicModel.entries.find { it.name == topicName } ?: error(KafkaMessagesBundle.message("topic.not.found", topicName))
       topic.partitions
     }
@@ -64,7 +64,7 @@ class KafkaDataManager(project: Project?,
       return it
     }
 
-    val dataModel = getTopicProjectorModel {
+    val dataModel = getTopicProjectorModel("name") {
       val topic = topicModel.entries.find { it.name == topicName } ?: error(KafkaMessagesBundle.message("topic.not.found", topicName))
       topic.topicConfigs
     }
@@ -75,7 +75,9 @@ class KafkaDataManager(project: Project?,
   }
 
   private fun createTopicsDataModel(): ObjectDataModel<TopicPresentable> {
-    val topicDataModel = ObjectDataModel(TopicPresentable::class)
+    val topicDataModel = object : ObjectDataModel<TopicPresentable>(TopicPresentable::class) {
+      override val idFieldName: String = "name"
+    }
 
     addDataModelUpdater(topicDataModel, "Cannot request topic model") {
       val topics = client.getTopics(KafkaToolWindowSettings.getInstance().showInternalTopics)
@@ -97,11 +99,14 @@ class KafkaDataManager(project: Project?,
   }
 
 
-  private inline fun <reified T : RemoteInfo> getTopicProjectorModel(crossinline getData: () -> List<T>): ObjectDataModel<T> {
+  private inline fun <reified T : RemoteInfo> getTopicProjectorModel(idField: String,
+                                                                     crossinline getData: () -> List<T>): ObjectDataModel<T> {
     val dataModel = object : ObjectDataModel<T>(T::class) {
       init {
         updateData()
       }
+
+      override val idFieldName: String = idField
 
       fun updateData() {
         val newData = try {

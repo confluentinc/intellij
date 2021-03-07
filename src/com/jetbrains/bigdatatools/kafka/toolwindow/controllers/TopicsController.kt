@@ -18,6 +18,7 @@ import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import com.jetbrains.bigdatatools.monitoring.table.DataTable
 import com.jetbrains.bigdatatools.monitoring.table.DataTableCreator
 import com.jetbrains.bigdatatools.monitoring.table.extension.TableExtensionType
+import com.jetbrains.bigdatatools.monitoring.table.extension.TableSelectionPreserver
 import com.jetbrains.bigdatatools.monitoring.table.model.DataTableColumnModel
 import com.jetbrains.bigdatatools.monitoring.table.model.DataTableModel
 import com.jetbrains.bigdatatools.settings.ColumnVisibilitySettings
@@ -51,13 +52,13 @@ class TopicsController(project: Project, private val dataManager: KafkaDataManag
     val columnModel = DataTableColumnModel(TopicPresentable.renderableColumns, columnSettings)
     val tableModel = DataTableModel(dataModel, columnModel)
 
-
     topicTable = DataTableCreator.create(tableModel, EnumSet.of(TableExtensionType.SPEED_SEARCH,
                                                                 TableExtensionType.RENDERERS_SETTER,
                                                                 TableExtensionType.COLUMNS_FITTER,
                                                                 TableExtensionType.ERROR_HANDLER,
                                                                 TableExtensionType.SELECTION_PRESERVER,
                                                                 TableExtensionType.LOADING_INDICATOR))
+    TableSelectionPreserver.installOn(topicTable, null)
     topicTable.selectionModel.addListSelectionListener(topicSelectionListener)
     Disposer.register(this, topicTable)
 
