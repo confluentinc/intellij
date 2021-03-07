@@ -14,7 +14,7 @@ import com.jetbrains.bigdatatools.settings.ColumnVisibilitySettings
 class KafkaToolWindowSettings : PersistentStateComponent<KafkaToolWindowSettings>, IntervalUpdateSettings {
   var selectedConnectionId: String? = null
 
-  private val topicConfigsTableColumns = mutableListOf("name", "value")
+  private val topicConfigsTableColumns = mutableListOf("name", "value", "defaultValue")
   val topicConfigsColumnSettings = ColumnVisibilitySettings(topicConfigsTableColumns)
 
 
