@@ -1,6 +1,9 @@
 package com.jetbrains.bigdatatools.kafka.toolwindow.controllers
 
 import com.intellij.openapi.Disposable
+import com.intellij.openapi.actionSystem.ActionManager
+import com.intellij.openapi.actionSystem.ActionPlaces
+import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.ui.SimpleToolWindowPanel
 import com.intellij.openapi.util.Disposer
 import com.intellij.ui.components.JBScrollPane
@@ -19,16 +22,18 @@ import java.awt.BorderLayout
 import java.util.*
 import javax.swing.BorderFactory
 import javax.swing.BoxLayout
+import javax.swing.JComponent
 import javax.swing.JPanel
 import kotlin.reflect.KProperty1
 
 abstract class AbstractTopicDetailController<T : RemoteInfo> : Disposable {
-  private val scrollPane: JBScrollPane
-
+  private val columnModel: DataTableColumnModel<T>
   private var table: DataTable<T>
   private var tableScrollPane: JBScrollPane
+  private val scrollPane: JBScrollPane
 
   init {
+    columnModel = createColumnModel()
     table = createTable()
     tableScrollPane = createTableScrollPane()
     scrollPane = createComponent()
@@ -57,9 +62,6 @@ abstract class AbstractTopicDetailController<T : RemoteInfo> : Disposable {
   protected abstract fun getModel(topicId: String): ObjectDataModel<T>
 
   private fun createTable(): DataTable<T> {
-    val tasksColumnSettings = getColumnSettings()
-
-    val columnModel = DataTableColumnModel(getRenderableColumns(), tasksColumnSettings)
     val tableModel = DataTableModel(null, columnModel)
     val table = DataTableCreator.create(tableModel, EnumSet.of(TableExtensionType.SPEED_SEARCH,
                                                                TableExtensionType.RENDERERS_SETTER,
@@ -74,26 +76,46 @@ abstract class AbstractTopicDetailController<T : RemoteInfo> : Disposable {
     return table
   }
 
-  private fun createComponent(): JBScrollPane {
-    val createdPanel = SimpleToolWindowPanel(false, true).apply {
-      setContent(tableScrollPane)
-    }
-
-    val panel = JPanel()
-    panel.layout = BoxLayout(panel, BoxLayout.Y_AXIS)
-    panel.add(createdPanel)
-
-    val parentPanel = JPanel(BorderLayout(0, 10))
-    parentPanel.add(panel, BorderLayout.NORTH)
-    val scrollPane = JBScrollPane(parentPanel)
-    scrollPane.border = BorderFactory.createEmptyBorder()
-    return scrollPane
+  private fun createColumnModel(): DataTableColumnModel<T> {
+    val tasksColumnSettings = getColumnSettings()
+    val renderableColumns = getRenderableColumns()
+    return DataTableColumnModel(renderableColumns, tasksColumnSettings)
   }
+
+  private fun createToolbar(columnModel: DataTableColumnModel<T>): JComponent {
+    val actions = DefaultActionGroup()
+
+    val configStoragesColumnsAction = ColumnVisibilitySettings.createAction(columnModel.allColumns.map { it.name },
+                                                                            getColumnSettings())
+
+
+    actions.add(configStoragesColumnsAction)
+
+    return ActionManager.getInstance().createActionToolbar(ActionPlaces.UNKNOWN, actions, false).component
+  }
+
 
   private fun createTableScrollPane(): JBScrollPane {
     val tableScrollPane = JBScrollPane(table)
     tableScrollPane.border = BorderFactory.createEmptyBorder()
     TableHeightFitter.installOn(tableScrollPane, table)
     return tableScrollPane
+  }
+
+  private fun createComponent(): JBScrollPane {
+    val childPanel = SimpleToolWindowPanel(false, true).apply {
+      setContent(tableScrollPane)
+      toolbar = createToolbar(columnModel)
+    }
+
+    val panel = JPanel()
+    panel.layout = BoxLayout(panel, BoxLayout.Y_AXIS)
+    panel.add(childPanel)
+
+    val parentPanel = JPanel(BorderLayout(0, 10))
+    parentPanel.add(panel, BorderLayout.NORTH)
+    val scrollPane = JBScrollPane(parentPanel)
+    scrollPane.border = BorderFactory.createEmptyBorder()
+    return scrollPane
   }
 }
