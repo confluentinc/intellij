@@ -5,6 +5,7 @@ import org.apache.kafka.clients.admin.ConfigEntry
 import org.apache.kafka.clients.admin.ConsumerGroupDescription
 import org.apache.kafka.clients.admin.TopicDescription
 import org.apache.kafka.common.TopicPartitionInfo
+import org.apache.kafka.common.config.TopicConfig.MESSAGE_FORMAT_VERSION_CONFIG
 
 
 object BdtKafkaMapper {
@@ -52,8 +53,14 @@ object BdtKafkaMapper {
   }
 
 
-  fun mapToInternalTopicConfig(configEntry: ConfigEntry): TopicConfig =
-    TopicConfig(name = configEntry.name(), value = configEntry.value())
+  fun mapToInternalTopicConfig(configEntry: ConfigEntry): TopicConfig {
+    val defaultValue = if (configEntry.name() == MESSAGE_FORMAT_VERSION_CONFIG)
+      configEntry.value()
+    else
+      KafkaConstants.TOPIC_DEFAULT_CONFIGS[configEntry.name()]
+
+    return TopicConfig(name = configEntry.name(), value = configEntry.value(), defaultValue = defaultValue ?: "")
+  }
 
   fun mergeWithConfigs(topics: List<TopicPresentable>,
                        configs: Map<String, List<TopicConfig>>): Map<String, TopicPresentable> {
