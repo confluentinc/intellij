@@ -17,12 +17,15 @@ class TopicDetailsController(project: Project, dataManager: KafkaDataManager) : 
                                                           IdeFocusManager.getInstance(project),
                                                           this)
 
-  private val configsController = TopicConfigsController(dataManager)
-  private val partitionsController = TopicPartitionsController(dataManager)
+  private val configsController = TopicConfigsController(dataManager).also {
+    Disposer.register(this, it)
+  }
+
+  private val partitionsController = TopicPartitionsController(dataManager).also {
+    Disposer.register(this, it)
+  }
 
   init {
-    Disposer.register(this, configsController)
-
     val partitionsTab: TabInfo = TabInfo(partitionsController.getComponent()).apply {
       text = KafkaMessagesBundle.message("topic.tab.partitions")
     }

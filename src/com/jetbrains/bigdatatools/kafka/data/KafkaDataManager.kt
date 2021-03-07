@@ -39,7 +39,10 @@ class KafkaDataManager(project: Project?,
 
   override fun dispose() {}
 
-  override fun disposeInvalidatedData() {}
+  override fun disposeInvalidatedData() {
+    topicConfigsModels = topicConfigsModels - disposeInvalidatedValues(topicConfigsModels).keys
+    topicPartitionsModels = topicPartitionsModels - disposeInvalidatedValues(topicPartitionsModels).keys
+  }
 
   @Suppress("DuplicatedCode")
   fun getTopicPartitionsModel(topicName: String): ObjectDataModel<TopicPartition> {
