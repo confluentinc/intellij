@@ -3,6 +3,7 @@ package com.jetbrains.bigdatatools.kafka.toolwindow.controllers
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.ActionPlaces
+import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.ui.SimpleToolWindowPanel
 import com.intellij.openapi.util.Disposer
@@ -32,6 +33,8 @@ abstract class AbstractTopicDetailController<T : RemoteInfo> : Disposable {
   private var tableScrollPane: JBScrollPane
   private val scrollPane: JBScrollPane
 
+  protected var selectedId: String? = null
+
   init {
     columnModel = createColumnModel()
     table = createTable()
@@ -40,6 +43,8 @@ abstract class AbstractTopicDetailController<T : RemoteInfo> : Disposable {
   }
 
   fun setTopicId(topicId: String) {
+    selectedId = topicId
+
     val model = getModel(topicId)
     table.tableModel.setDataModel(model)
     if (model.size > 0) {
@@ -47,8 +52,6 @@ abstract class AbstractTopicDetailController<T : RemoteInfo> : Disposable {
     }
 
     TableLoadingDecorator.installOn(table)
-    tableScrollPane.revalidate()
-    tableScrollPane.repaint()
   }
 
   fun getComponent() = scrollPane
@@ -60,6 +63,8 @@ abstract class AbstractTopicDetailController<T : RemoteInfo> : Disposable {
   protected abstract fun getRenderableColumns(): List<KProperty1<T, *>>
 
   protected abstract fun getModel(topicId: String): ObjectDataModel<T>
+
+  protected open fun getAdditionalActions(): List<AnAction> = emptyList()
 
   private fun createTable(): DataTable<T> {
     val tableModel = DataTableModel(null, columnModel)
@@ -87,9 +92,12 @@ abstract class AbstractTopicDetailController<T : RemoteInfo> : Disposable {
 
     val configStoragesColumnsAction = ColumnVisibilitySettings.createAction(columnModel.allColumns.map { it.name },
                                                                             getColumnSettings())
-
-
     actions.add(configStoragesColumnsAction)
+
+    val additionalActions = getAdditionalActions()
+    additionalActions.forEach {
+      actions.add(it)
+    }
 
     return ActionManager.getInstance().createActionToolbar(ActionPlaces.UNKNOWN, actions, false).component
   }
