@@ -1,8 +1,13 @@
 package com.jetbrains.bigdatatools.kafka.toolwindow.controllers
 
+import com.intellij.icons.AllIcons
+import com.intellij.openapi.actionSystem.AnAction
+import com.intellij.openapi.actionSystem.AnActionEvent
+import com.intellij.openapi.project.DumbAwareToggleAction
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.model.TopicConfig
 import com.jetbrains.bigdatatools.kafka.toolwindow.config.KafkaToolWindowSettings
+import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 
 class TopicConfigsController(private val dataManager: KafkaDataManager) : AbstractTopicDetailController<TopicConfig>() {
   override fun getColumnSettings() = KafkaToolWindowSettings.getInstance().topicConfigsColumnSettings
@@ -10,4 +15,30 @@ class TopicConfigsController(private val dataManager: KafkaDataManager) : Abstra
   override fun getRenderableColumns() = TopicConfig.renderableColumns
 
   override fun getModel(topicId: String) = dataManager.getTopicConfigsModel(topicId)
+
+  override fun getAdditionalActions(): List<AnAction> {
+    val settings = KafkaToolWindowSettings.getInstance()
+
+    val showFullConfig = object : DumbAwareToggleAction(KafkaMessagesBundle.message("show.full.topic.config"),
+                                                        KafkaMessagesBundle.message("show.full.topic.config.hint"),
+                                                        AllIcons.Actions.ShowHiddens) {
+      override fun isSelected(e: AnActionEvent) = settings.showFullTopicConfig
+
+      override fun displayTextInToolbar() = false
+
+      override fun setSelected(e: AnActionEvent, state: Boolean) {
+        settings.showFullTopicConfig = state
+
+        //Create if disposed
+        selectedId?.let { dataManager.getTopicConfigsModel(it) }
+
+        //Revalidate for all stored models
+        dataManager.topicConfigsModels.values.forEach {
+          it.updateData()
+        }
+      }
+    }
+
+    return listOf(showFullConfig)
+  }
 }

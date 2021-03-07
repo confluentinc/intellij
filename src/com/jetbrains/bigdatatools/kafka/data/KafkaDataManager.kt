@@ -28,8 +28,9 @@ class KafkaDataManager(project: Project?,
   val topicModel = createTopicsDataModel()
   val consumerGroupsModel = createConsumerGroupsDataModel()
 
-  private var topicConfigsModels = mapOf<String, ObjectDataModel<TopicConfig>>()
-  private var topicPartitionsModels = mapOf<String, ObjectDataModel<TopicPartition>>()
+  var topicConfigsModels = mapOf<String, ProjectionObjectDataModel<TopicConfig>>()
+    private set
+  private var topicPartitionsModels = mapOf<String, ProjectionObjectDataModel<TopicPartition>>()
 
   init {
     Disposer.register(this, client)
@@ -62,14 +63,19 @@ class KafkaDataManager(project: Project?,
 
 
   @Suppress("DuplicatedCode")
-  fun getTopicConfigsModel(topicName: String): ObjectDataModel<TopicConfig> {
+  fun getTopicConfigsModel(topicName: String): ProjectionObjectDataModel<TopicConfig> {
     topicConfigsModels[topicName]?.let {
       return it
     }
 
     val dataModel = getTopicProjectorModel("name") {
       val topic = topicModel.entries.find { it.name == topicName } ?: error(KafkaMessagesBundle.message("topic.not.found", topicName))
-      topic.topicConfigs
+      val showFullTopicConfig = KafkaToolWindowSettings.getInstance().showFullTopicConfig
+
+      if (showFullTopicConfig)
+        topic.topicConfigs
+      else
+        topic.topicConfigs.filter { it.value != it.defaultValue }
     }
 
     topicConfigsModels = topicConfigsModels + (topicName to dataModel)
@@ -105,29 +111,9 @@ class KafkaDataManager(project: Project?,
 
 
   private inline fun <reified T : RemoteInfo> getTopicProjectorModel(idField: String,
-                                                                     crossinline getData: () -> List<T>): ObjectDataModel<T> {
-    val dataModel = object : ObjectDataModel<T>(T::class) {
-      init {
-        updateData()
-      }
-
-      override val idFieldName: String = idField
-
-      fun updateData() {
-        val newData = try {
-          getData()
-        }
-        catch (t: Throwable) {
-          setError("Update Error", t)
-          return
-        }
-        if (newData != data)
-          setData(newData)
-      }
-
-    }
+                                                                     noinline getData: () -> List<T>): ProjectionObjectDataModel<T> {
+    val dataModel = ProjectionObjectDataModel(T::class, idField, getData)
     Disposer.register(this, dataModel)
-
 
     val topicModelListener = object : DataModelListener {
       override fun onChanged() = dataModel.updateData()
