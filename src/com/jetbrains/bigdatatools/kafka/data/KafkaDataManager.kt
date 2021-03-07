@@ -88,9 +88,11 @@ class KafkaDataManager(project: Project?,
   }
 
   private fun createConsumerGroupsDataModel(): ObjectDataModel<ConsumerGroupPresentable> {
-    val topicDataModel = ObjectDataModel(ConsumerGroupPresentable::class)
+    val topicDataModel = object : ObjectDataModel<ConsumerGroupPresentable>(ConsumerGroupPresentable::class) {
+      override val idFieldName: String = "consumerGroup"
+    }
 
-    addDataModelUpdater(topicDataModel, "Cannot request topic model") {
+    addDataModelUpdater(topicDataModel, "Cannot request consumer groups") {
       val data = client.getConsumerGroups()
       topicDataModel.setData(data)
     }

@@ -8,6 +8,7 @@ import com.jetbrains.bigdatatools.kafka.model.ConsumerGroupPresentable
 import com.jetbrains.bigdatatools.kafka.toolwindow.config.KafkaToolWindowSettings
 import com.jetbrains.bigdatatools.monitoring.table.DataTableCreator
 import com.jetbrains.bigdatatools.monitoring.table.extension.TableExtensionType
+import com.jetbrains.bigdatatools.monitoring.table.extension.TableSelectionPreserver
 import com.jetbrains.bigdatatools.monitoring.table.model.DataTableColumnModel
 import com.jetbrains.bigdatatools.monitoring.table.model.DataTableModel
 import com.jetbrains.bigdatatools.table.MaterialJBScrollPane
@@ -31,6 +32,8 @@ class ConsumerGroupsController(dataManager: KafkaDataManager) : Disposable {
                                                                TableExtensionType.ERROR_HANDLER,
                                                                TableExtensionType.SELECTION_PRESERVER,
                                                                TableExtensionType.LOADING_INDICATOR))
+    TableSelectionPreserver.installOn(table, null)
+
     Disposer.register(this, table)
 
     component = SimpleToolWindowPanel(false, true).apply {
