@@ -11,6 +11,7 @@ import com.jetbrains.bigdatatools.monitoring.table.DataTableCreator
 import com.jetbrains.bigdatatools.monitoring.table.extension.TableExtensionType
 import com.jetbrains.bigdatatools.monitoring.table.extension.TableHeightFitter
 import com.jetbrains.bigdatatools.monitoring.table.extension.TableLoadingDecorator
+import com.jetbrains.bigdatatools.monitoring.table.extension.TableSelectionPreserver
 import com.jetbrains.bigdatatools.monitoring.table.model.DataTableColumnModel
 import com.jetbrains.bigdatatools.monitoring.table.model.DataTableModel
 import com.jetbrains.bigdatatools.settings.ColumnVisibilitySettings
@@ -47,23 +48,6 @@ abstract class AbstractTopicDetailController<T : RemoteInfo> : Disposable {
 
   fun getComponent() = scrollPane
 
-  private fun createTable(): DataTable<T> {
-    val tasksColumnSettings = getColumnSettings()
-
-    val columnModel = DataTableColumnModel(getRenderableColumns(), tasksColumnSettings)
-    val tableModel = DataTableModel(null, columnModel)
-
-    val table = DataTableCreator.create(tableModel, EnumSet.of(TableExtensionType.SPEED_SEARCH,
-                                                               TableExtensionType.RENDERERS_SETTER,
-                                                               TableExtensionType.ERROR_HANDLER,
-                                                               TableExtensionType.LOADING_INDICATOR,
-                                                               TableExtensionType.COLUMNS_FITTER))
-    Disposer.register(this, table)
-    Disposer.register(table, columnModel)
-    Disposer.register(table, tableModel)
-    return table
-  }
-
   override fun dispose() {}
 
   protected abstract fun getColumnSettings(): ColumnVisibilitySettings
@@ -71,6 +55,24 @@ abstract class AbstractTopicDetailController<T : RemoteInfo> : Disposable {
   protected abstract fun getRenderableColumns(): List<KProperty1<T, *>>
 
   protected abstract fun getModel(topicId: String): ObjectDataModel<T>
+
+  private fun createTable(): DataTable<T> {
+    val tasksColumnSettings = getColumnSettings()
+
+    val columnModel = DataTableColumnModel(getRenderableColumns(), tasksColumnSettings)
+    val tableModel = DataTableModel(null, columnModel)
+    val table = DataTableCreator.create(tableModel, EnumSet.of(TableExtensionType.SPEED_SEARCH,
+                                                               TableExtensionType.RENDERERS_SETTER,
+                                                               TableExtensionType.ERROR_HANDLER,
+                                                               TableExtensionType.LOADING_INDICATOR,
+                                                               TableExtensionType.COLUMNS_FITTER))
+
+    TableSelectionPreserver.installOn(table, null)
+    Disposer.register(this, table)
+    Disposer.register(table, columnModel)
+    Disposer.register(table, tableModel)
+    return table
+  }
 
   private fun createComponent(): JBScrollPane {
     val createdPanel = SimpleToolWindowPanel(false, true).apply {
