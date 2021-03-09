@@ -52,6 +52,8 @@ abstract class AbstractTopicDetailController<T : RemoteInfo> : Disposable {
     }
 
     TableLoadingDecorator.installOn(table)
+    scrollPane.revalidate()
+    scrollPane.repaint()
   }
 
   fun getComponent() = scrollPane
