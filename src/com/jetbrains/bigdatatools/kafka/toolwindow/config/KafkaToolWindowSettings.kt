@@ -6,7 +6,6 @@ import com.intellij.openapi.components.State
 import com.intellij.openapi.components.Storage
 import com.intellij.util.xmlb.XmlSerializerUtil
 import com.jetbrains.bigdatatools.connection.updater.IntervalUpdateSettings
-import com.jetbrains.bigdatatools.kafka.model.ConsumerGroupPresentable
 import com.jetbrains.bigdatatools.settings.ColumnVisibilitySettings
 
 
@@ -29,13 +28,13 @@ class KafkaToolWindowSettings : PersistentStateComponent<KafkaToolWindowSettings
                                                           "segmentSize")
   val topicPartitionsColumnSettings = ColumnVisibilitySettings(topicPartitionsTableColumns)
 
-  private val topicTableColumns = mutableListOf("name", "internal", "replicas", "partitions",
+  private val topicTableColumns = mutableListOf("name", "replicas", "partitions",
                                                 "inSyncReplicas", "replicationFactor", "underReplicatedPartitions")
   val topicColumnSettings = ColumnVisibilitySettings(topicTableColumns)
 
   var showInternalTopics: Boolean = false
 
-  private val consumerGroupsTableColumns = ConsumerGroupPresentable.renderableColumns.map { it.name }.toMutableList()
+  private val consumerGroupsTableColumns = mutableListOf("consumerGroup", "state", "consumers", "topics", "partitions")
   val consumerGroupsColumnSettings = ColumnVisibilitySettings(consumerGroupsTableColumns)
 
   val configs: MutableMap<String, KafkaClusterConfig> = mutableMapOf()
