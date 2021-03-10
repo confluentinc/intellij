@@ -30,7 +30,7 @@ object BdtKafkaMapper {
         InternalReplica(it.id(), partition.leader().id() != it.id(), partition.isr().contains(it))
       }
       TopicPartition(leader = partition.leader()?.id(),
-                     partition = partition.partition(),
+                     partitionId = partition.partition(),
                      inSyncReplicasCount = partition.isr().size,
                      replicasCount = partition.replicas().size,
                      replicas = replicas)
