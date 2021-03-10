@@ -7,18 +7,18 @@ import kotlin.reflect.KProperty1
 import kotlin.reflect.full.declaredMemberProperties
 import kotlin.reflect.jvm.javaField
 
-data class TopicPresentable(val name: String = "",
+data class TopicPresentable(val name: String,
                             @field:NoRendering
-                            val internal: Boolean = false,
+                            val internal: Boolean,
                             @field:NoRendering
-                            val partitionList: List<TopicPartition> = listOf(),
+                            val partitionList: List<TopicPartition>,
                             @field:NoRendering
-                            val topicConfigs: List<TopicConfig> = listOf(),
-                            val replicas: Int = 0,
-                            val partitions: Int = 0,
-                            val inSyncReplicas: Int = 0,
-                            val replicationFactor: Int = 0,
-                            val underReplicatedPartitions: Int = 0) : RemoteInfo {
+                            val topicConfigs: List<TopicConfig>,
+                            val replicas: Int,
+                            val partitions: Int,
+                            val inSyncReplicas: Int,
+                            val replicationFactor: Int,
+                            val underReplicatedPartitions: Int) : RemoteInfo {
   companion object {
     val renderableColumns: List<KProperty1<TopicPresentable, *>> by lazy {
       TopicPresentable::class.declaredMemberProperties.filter { DataRenderingUtil.shouldRenderFrom(it.javaField?.annotations) }

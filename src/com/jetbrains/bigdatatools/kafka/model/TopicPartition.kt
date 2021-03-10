@@ -8,16 +8,12 @@ import kotlin.reflect.full.declaredMemberProperties
 import kotlin.reflect.jvm.javaField
 
 @Suppress("unused")
-class TopicPartition(val partitionId: Int = 0,
-                     val leader: Int? = null,
+class TopicPartition(val partitionId: Int,
+                     val leader: Int?,
                      @field:NoRendering
-                     val replicas: List<InternalReplica> = emptyList(),
-                     val inSyncReplicasCount: Int = 0,
-                     val replicasCount: Int = 0,
-                     val offsetMin: Long = 0,
-                     val offsetMax: Long = 0,
-                     val segmentSize: Long = 0,
-                     val segmentCount: Long = 0) : RemoteInfo {
+                     val replicas: List<InternalReplica>,
+                     val inSyncReplicasCount: Int,
+                     val replicasCount: Int) : RemoteInfo {
   companion object {
     val renderableColumns: List<KProperty1<TopicPartition, *>> by lazy {
       TopicPartition::class.declaredMemberProperties.filter { DataRenderingUtil.shouldRenderFrom(it.javaField?.annotations) }

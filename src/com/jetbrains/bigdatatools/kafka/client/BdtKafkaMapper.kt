@@ -49,7 +49,9 @@ object BdtKafkaMapper {
                             partitions = topicDescription.partitions().size,
                             inSyncReplicas = inSyncReplicasCount,
                             replicationFactor = replicationFactor,
-                            underReplicatedPartitions = underReplicatedPartitionsCount)
+                            underReplicatedPartitions = underReplicatedPartitionsCount,
+                            topicConfigs = emptyList()
+    )
   }
 
 
