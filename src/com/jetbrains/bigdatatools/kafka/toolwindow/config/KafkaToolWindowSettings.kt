@@ -19,7 +19,7 @@ class KafkaToolWindowSettings : PersistentStateComponent<KafkaToolWindowSettings
   val topicConfigsColumnSettings = ColumnVisibilitySettings(topicConfigsTableColumns)
 
 
-  private val topicPartitionsTableColumns = mutableListOf("partition",
+  private val topicPartitionsTableColumns = mutableListOf("partitionId",
                                                           "leader",
                                                           "offsetMin",
                                                           "offsetMax",
@@ -29,7 +29,7 @@ class KafkaToolWindowSettings : PersistentStateComponent<KafkaToolWindowSettings
                                                           "segmentSize")
   val topicPartitionsColumnSettings = ColumnVisibilitySettings(topicPartitionsTableColumns)
 
-  private val topicTableColumns = mutableListOf("name", "internal", "replicas", "partitionCount",
+  private val topicTableColumns = mutableListOf("name", "internal", "replicas", "partitions",
                                                 "inSyncReplicas", "replicationFactor", "underReplicatedPartitions")
   val topicColumnSettings = ColumnVisibilitySettings(topicTableColumns)
 

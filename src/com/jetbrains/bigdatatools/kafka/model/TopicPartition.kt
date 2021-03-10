@@ -7,7 +7,8 @@ import kotlin.reflect.KProperty1
 import kotlin.reflect.full.declaredMemberProperties
 import kotlin.reflect.jvm.javaField
 
-class TopicPartition(val partition: Int = 0,
+@Suppress("unused")
+class TopicPartition(val partitionId: Int = 0,
                      val leader: Int? = null,
                      @field:NoRendering
                      val replicas: List<InternalReplica> = emptyList(),
