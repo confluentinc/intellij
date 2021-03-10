@@ -53,7 +53,7 @@ class KafkaDataManager(project: Project?,
 
     val dataModel = getTopicProjectorModel("partition") {
       val topic = topicModel.entries.find { it.name == topicName } ?: error(KafkaMessagesBundle.message("topic.not.found", topicName))
-      topic.partitions
+      topic.partitionList
     }
 
     topicPartitionsModels = topicPartitionsModels + (topicName to dataModel)

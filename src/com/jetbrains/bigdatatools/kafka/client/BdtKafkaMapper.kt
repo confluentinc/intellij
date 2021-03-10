@@ -44,9 +44,9 @@ object BdtKafkaMapper {
 
     return TopicPresentable(internal = topicDescription.isInternal,
                             name = topicDescription.name(),
-                            partitions = partitions,
+                            partitionList = partitions,
                             replicas = replicasCount,
-                            partitionCount = topicDescription.partitions().size,
+                            partitions = topicDescription.partitions().size,
                             inSyncReplicas = inSyncReplicasCount,
                             replicationFactor = replicationFactor,
                             underReplicatedPartitions = underReplicatedPartitionsCount)

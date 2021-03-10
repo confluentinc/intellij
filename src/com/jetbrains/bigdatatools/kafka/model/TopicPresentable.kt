@@ -8,13 +8,14 @@ import kotlin.reflect.full.declaredMemberProperties
 import kotlin.reflect.jvm.javaField
 
 data class TopicPresentable(val name: String = "",
+                            @field:NoRendering
                             val internal: Boolean = false,
                             @field:NoRendering
-                            val partitions: List<TopicPartition> = listOf(),
+                            val partitionList: List<TopicPartition> = listOf(),
                             @field:NoRendering
                             val topicConfigs: List<TopicConfig> = listOf(),
                             val replicas: Int = 0,
-                            val partitionCount: Int = 0,
+                            val partitions: Int = 0,
                             val inSyncReplicas: Int = 0,
                             val replicationFactor: Int = 0,
                             val underReplicatedPartitions: Int = 0) : RemoteInfo {
