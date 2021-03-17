@@ -1,6 +1,6 @@
 <!DOCTYPE idea-plugin PUBLIC "Plugin/DTD" "https://plugins.jetbrains.com/plugin.dtd">
 <idea-plugin url="https://github.com/Vektah/CodeGlance" xmlns:xi="http://www.w3.org/2001/XInclude">
-  <id>com.jetbrains.bigdatatools.sftp</id>
+  <id>com.jetbrains.bigdatatools.kafka</id>
   <name>Kafka</name>
   <vendor>JetBrains</vendor>
 
