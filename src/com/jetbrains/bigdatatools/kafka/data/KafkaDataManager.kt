@@ -16,6 +16,7 @@ import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import com.jetbrains.bigdatatools.monitoring.data.MonitoringDataManager
 import com.jetbrains.bigdatatools.monitoring.data.listener.DataModelListener
 import com.jetbrains.bigdatatools.monitoring.data.model.ObjectDataModel
+import com.jetbrains.bigdatatools.monitoring.data.model.ProjectionObjectDataModel
 import com.jetbrains.bigdatatools.monitoring.data.model.RemoteInfo
 import com.jetbrains.bigdatatools.rfs.driver.manager.DriverManager
 
