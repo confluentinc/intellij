@@ -108,7 +108,7 @@ class TopicsController(project: Project, private val dataManager: KafkaDataManag
     val modelIndex = topicTable.convertRowIndexToModel(topicTable.selectedRow)
     val selectedTopicName = topicTable.tableModel.getInfoAt(modelIndex)?.name ?: return
 
-    topicDetailsController.setTopicId(selectedTopicName)
+    topicDetailsController.setDetailsId(selectedTopicName)
 
     val settings = KafkaToolWindowSettings.getInstance()
     settings.setSelectedTopicName(dataManager.connectionId, selectedTopicName)
