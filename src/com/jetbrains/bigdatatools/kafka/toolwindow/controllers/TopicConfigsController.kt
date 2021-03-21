@@ -8,13 +8,18 @@ import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.model.TopicConfig
 import com.jetbrains.bigdatatools.kafka.toolwindow.config.KafkaToolWindowSettings
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import com.jetbrains.bigdatatools.monitoring.toolwindow.DetailsTableMonitoringController
 
-class TopicConfigsController(private val dataManager: KafkaDataManager) : AbstractTopicDetailController<TopicConfig>() {
+class TopicConfigsController(private val dataManager: KafkaDataManager) : DetailsTableMonitoringController<TopicConfig>() {
+  init {
+    init()
+  }
+
   override fun getColumnSettings() = KafkaToolWindowSettings.getInstance().topicConfigsColumnSettings
 
   override fun getRenderableColumns() = TopicConfig.renderableColumns
 
-  override fun getModel(topicId: String) = dataManager.getTopicConfigsModel(topicId)
+  override fun getDataModel() = selectedId?.let { dataManager.getTopicConfigsModel(it) }
 
   override fun getAdditionalActions(): List<AnAction> {
     val settings = KafkaToolWindowSettings.getInstance()

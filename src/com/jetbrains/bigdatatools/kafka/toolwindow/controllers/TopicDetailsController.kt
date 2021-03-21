@@ -36,8 +36,8 @@ class TopicDetailsController(project: Project, dataManager: KafkaDataManager) : 
   }
 
   fun setTopicId(topicId: String) {
-    configsController.setTopicId(topicId)
-    partitionsController.setTopicId(topicId)
+    configsController.setDetailsId(topicId)
+    partitionsController.setDetailsId(topicId)
   }
 
   fun getComponent() = tabs.component
