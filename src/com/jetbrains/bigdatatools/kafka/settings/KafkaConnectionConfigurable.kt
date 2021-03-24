@@ -26,7 +26,7 @@ class KafkaConnectionConfigurable(connectionData: KafkaConnectionData, project: 
         callback(ConnectionSuccessful(null, KafkaMessagesBundle.message("connection.success")))
       }
       else {
-        callback(ConnectionError(error.toPresentableText(), "Connection error"))
+        callback(ConnectionError((error.cause?: error).toPresentableText(), "Connection error"))
       }
     }
   }
