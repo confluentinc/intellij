@@ -1,13 +1,17 @@
 package com.jetbrains.bigdatatools.kafka.settings
 
+import com.intellij.icons.AllIcons
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.ui.Messages
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaConnectionData
+import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import com.jetbrains.bigdatatools.monitoring.TunnableSettingsCustomizer
 import com.jetbrains.bigdatatools.settings.ModificationKey
 import com.jetbrains.bigdatatools.settings.fields.PropertiesField
 import com.jetbrains.bigdatatools.settings.fields.WrappedComponent
 import com.jetbrains.bigdatatools.ui.MigPanel
+import javax.swing.JLabel
 
 class KafkaSettingsCustomizer(project: Project,
                               connectionData: KafkaConnectionData,
@@ -27,6 +31,9 @@ class KafkaSettingsCustomizer(project: Project,
     val panel = MigPanel().apply {
       block(properties.getComponent())
       block(tunnelField.getComponent())
+      val notice = JLabel(KafkaMessagesBundle.message("kafka.support.is.limited"))
+      notice.icon = AllIcons.General.Information
+      row(notice)
     }
 
     block(panel)
