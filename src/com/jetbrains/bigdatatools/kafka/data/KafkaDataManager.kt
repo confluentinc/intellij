@@ -126,6 +126,9 @@ class KafkaDataManager(project: Project?,
       topicModel.removeListener(topicModelListener)
     })
 
+    dataModel.updateData()
+    topicModel.error?.let { dataModel.setError(it.msg, it.e) }
+
     return dataModel
   }
 
