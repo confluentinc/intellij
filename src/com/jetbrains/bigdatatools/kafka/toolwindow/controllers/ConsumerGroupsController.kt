@@ -1,6 +1,9 @@
 package com.jetbrains.bigdatatools.kafka.toolwindow.controllers
 
 import com.intellij.openapi.Disposable
+import com.intellij.openapi.actionSystem.ActionManager
+import com.intellij.openapi.actionSystem.ActionPlaces
+import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.ui.SimpleToolWindowPanel
 import com.intellij.openapi.util.Disposer
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
@@ -11,6 +14,7 @@ import com.jetbrains.bigdatatools.monitoring.table.extension.TableExtensionType
 import com.jetbrains.bigdatatools.monitoring.table.extension.TableSelectionPreserver
 import com.jetbrains.bigdatatools.monitoring.table.model.DataTableColumnModel
 import com.jetbrains.bigdatatools.monitoring.table.model.DataTableModel
+import com.jetbrains.bigdatatools.settings.ColumnVisibilitySettings
 import com.jetbrains.bigdatatools.table.MaterialJBScrollPane
 import java.util.*
 import javax.swing.JComponent
@@ -38,7 +42,16 @@ class ConsumerGroupsController(dataManager: KafkaDataManager) : Disposable {
 
     component = SimpleToolWindowPanel(false, true).apply {
       setContent(MaterialJBScrollPane(table))
+      toolbar = createToolbar(columnModel, columnSettings)
     }
+  }
+
+  private fun createToolbar(columnModel: DataTableColumnModel<ConsumerGroupPresentable>,
+                            columnSettings: ColumnVisibilitySettings): JComponent {
+
+    val actions = DefaultActionGroup()
+    actions.add(ColumnVisibilitySettings.createAction(columnModel.allColumns.map { it.name }, columnSettings))
+    return ActionManager.getInstance().createActionToolbar(ActionPlaces.UNKNOWN, actions, false).component
   }
 
   override fun dispose() {}
