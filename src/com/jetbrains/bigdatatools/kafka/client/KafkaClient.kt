@@ -11,9 +11,9 @@ import com.jetbrains.bigdatatools.kafka.model.TopicPresentable
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaConnectionData
 import com.jetbrains.bigdatatools.monitoring.connection.MonitoringClient
 import com.jetbrains.bigdatatools.settings.connections.Property
+import com.jetbrains.bigdatatools.settings.fields.PropertiesFieldComponent
 import com.jetbrains.bigdatatools.util.executeOnPooledThread
 import org.apache.kafka.clients.admin.AdminClient
-import org.apache.kafka.clients.admin.KafkaAdminClient
 import org.apache.kafka.clients.admin.ListTopicsOptions
 import org.apache.kafka.clients.admin.TopicDescription
 import org.apache.kafka.common.config.ConfigResource
@@ -24,11 +24,14 @@ class KafkaClient(project: Project?,
                   private val connectionData: KafkaConnectionData,
                   val testConnection: Boolean) : MonitoringClient(project) {
   private val kafkaProps = getKafkaProps(connectionData)
-  private val kafkaAdmin: AdminClient by lazy { KafkaAdminClient.create(kafkaProps) }
+  private var kafkaAdmin: AdminClient? = null
+  private val kafkaAdminNotNull: AdminClient
+    get() = kafkaAdmin ?: error("Kafka Admin Client is not inited")
+
 
   override fun dispose() = executeOnPooledThread {
     try {
-      kafkaAdmin.close(Duration.ofSeconds(10))
+      kafkaAdmin?.close(Duration.ofSeconds(10))
     }
     catch (t: Throwable) {
       logger.warn("Cannot close kafka client", t)
@@ -40,6 +43,7 @@ class KafkaClient(project: Project?,
   override fun getRealUri(): String = kafkaProps.getProperty(SERVER_URL) ?: "<NOT_FOUND>"
 
   override fun checkConnectionInner() {
+    val kafkaAdmin = kafkaAdmin ?: error("Admin Client is not initialized")
     kafkaAdmin.describeCluster().controller().get()
   }
 
@@ -49,15 +53,15 @@ class KafkaClient(project: Project?,
       val urlForTunnel = BdtSshTunnelConnectionUtils.getUrlForTunnel(connectionData.uri, localPort)
       kafkaProps.setProperty(SERVER_URL, urlForTunnel)
     }
-
+    kafkaAdmin = AdminClient.create(kafkaProps)
     checkConnectionInner()
   }
 
   fun getConsumerGroups(): List<ConsumerGroupPresentable> {
-    val consumerGroupsIds: List<String> = kafkaAdmin.listConsumerGroups().all().get().map {
+    val consumerGroupsIds: List<String> = kafkaAdminNotNull. listConsumerGroups ().all().get().map {
       it.groupId()
     }
-    val detailedGroups = kafkaAdmin.describeConsumerGroups(consumerGroupsIds).all().get()
+    val detailedGroups = kafkaAdminNotNull.describeConsumerGroups(consumerGroupsIds).all().get()
     return detailedGroups.map { (_, detailedGroup) ->
       BdtKafkaMapper.mapToConsumerGroup(detailedGroup)
     }
@@ -77,7 +81,7 @@ class KafkaClient(project: Project?,
     val resources = topicNames.map {
       ConfigResource(ConfigResource.Type.TOPIC, it)
     }
-    val describedConfigs = kafkaAdmin.describeConfigs(resources).all().get()
+    val describedConfigs = kafkaAdminNotNull.describeConfigs(resources).all().get()
     return describedConfigs.map { config ->
       val configEntry = config.value.entries()
       val internalConfigs = configEntry.map { BdtKafkaMapper.mapToInternalTopicConfig(it) }
@@ -90,9 +94,9 @@ class KafkaClient(project: Project?,
     val listTopicsOptions = ListTopicsOptions().also {
       it.listInternal(listInternal)
     }
-    val names = kafkaAdmin.listTopics(listTopicsOptions).names().get()
+    val names = kafkaAdminNotNull.listTopics(listTopicsOptions).names().get()
 
-    val describedTopics = kafkaAdmin.describeTopics(names).all().get().map { it.value }
+    val describedTopics = kafkaAdminNotNull.describeTopics(names).all().get().map { it.value }
     return if (listInternal)
       describedTopics
     else
@@ -114,7 +118,7 @@ class KafkaClient(project: Project?,
       props[it.name] = it.value
     }
 
-    connectionData.props.forEach {
+    PropertiesFieldComponent.parseProperties(connectionData.properties).forEach {
       props[it.name] = it.value
     }
 

@@ -12,11 +12,10 @@ import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import com.jetbrains.bigdatatools.rfs.driver.Driver
 import com.jetbrains.bigdatatools.rfs.settings.RemoteFsDriverProvider
 import com.jetbrains.bigdatatools.settings.connections.ConnectionGroup
-import com.jetbrains.bigdatatools.settings.connections.Property
 import javax.swing.Icon
 
 class KafkaConnectionData : RemoteFsDriverProvider(KafkaMessagesBundle.message("config.name.default")), TunnelableData {
-  var props: List<Property> = emptyList()
+  var properties: String = ""
 
   override fun getIcon(): Icon = KafkaIcons.MAIN_ICON
   override fun createDriverImpl(project: Project?, safe: Boolean): Driver = KafkaDriver(this, project)
