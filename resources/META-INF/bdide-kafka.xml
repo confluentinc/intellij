@@ -7,7 +7,7 @@
     <projectService serviceImplementation="com.jetbrains.bigdatatools.kafka.toolwindow.KafkaMonitoringToolWindowController"/>
 
     <toolWindow id="KafkaToolWindow" anchor="bottom" canCloseContents="true"
-                icon="/icons/kafka.svg"
+                icon="/icons/kafkaToolWindow.svg"
                 factoryClass="com.jetbrains.bigdatatools.kafka.toolwindow.KafkaToolWindowFactory"/>
   </extensions>
 </idea-plugin>
