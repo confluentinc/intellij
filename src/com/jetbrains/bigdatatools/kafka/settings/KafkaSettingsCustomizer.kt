@@ -11,12 +11,11 @@ import com.jetbrains.bigdatatools.settings.fields.PropertiesFieldComponent
 import com.jetbrains.bigdatatools.settings.fields.WrappedComponent
 import com.jetbrains.bigdatatools.ui.MigPanel
 import javax.swing.JLabel
+import javax.swing.SwingConstants
 
-class KafkaSettingsCustomizer(project: Project,
-                              connectionData: KafkaConnectionData,
-                              uiDisposable: Disposable) : TunnableSettingsCustomizer<KafkaConnectionData>(connectionData,
-                                                                                                          project,
-                                                                                                          uiDisposable) {
+class KafkaSettingsCustomizer(project: Project, connectionData: KafkaConnectionData, uiDisposable: Disposable) :
+  TunnableSettingsCustomizer<KafkaConnectionData>(connectionData, project, uiDisposable) {
+
   private val properties = PropertiesFieldComponent.create(KafkaConnectionData::properties,
                                                            KafkaSettingsKeys.PROPERTIES_KEY,
                                                            connectionData, uiDisposable)
@@ -27,20 +26,12 @@ class KafkaSettingsCustomizer(project: Project,
   override fun getDefaultComponent(fields: List<WrappedComponent<in KafkaConnectionData>>, conn: KafkaConnectionData) = MigPanel().apply {
     row(nameField.labelComponent, nameField.getComponent())
     row(url.labelComponent, url.getComponent())
+    row(properties.labelComponent, properties.getComponent())
+    block(tunnelField.getComponent())
+    block(JLabel(KafkaMessagesBundle.message("kafka.support.is.limited"), AllIcons.General.Information, SwingConstants.LEADING))
+  }
 
-    val panel = MigPanel().apply {
-      block(properties.getComponent())
-      block(tunnelField.getComponent())
-      val notice = JLabel(KafkaMessagesBundle.message("kafka.support.is.limited"))
-      notice.icon = AllIcons.General.Information
-      row(notice)
-    }
-
-    block(panel)
+  object KafkaSettingsKeys {
+    val PROPERTIES_KEY = ModificationKey(KafkaMessagesBundle.message("settings.properties"))
   }
 }
-
-object KafkaSettingsKeys {
-  val PROPERTIES_KEY = ModificationKey("Properties:")
-}
-
