@@ -56,8 +56,8 @@ class ClusterPageController(project: Project, connectionData: KafkaConnectionDat
     }
 
     val list = JBList(model).apply {
+      cellRenderer = ClusterControllerTypeListRenderer()
       selectionMode = DefaultListSelectionModel.SINGLE_SELECTION
-
       selectedIndex = 0
 
       addListSelectionListener { e ->
