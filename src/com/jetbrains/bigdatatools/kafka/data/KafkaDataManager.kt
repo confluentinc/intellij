@@ -1,6 +1,5 @@
 package com.jetbrains.bigdatatools.kafka.data
 
-import com.intellij.openapi.Disposable
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.jetbrains.bigdatatools.connection.updater.IntervalUpdateSettings
@@ -14,7 +13,6 @@ import com.jetbrains.bigdatatools.kafka.rfs.KafkaDriver
 import com.jetbrains.bigdatatools.kafka.toolwindow.config.KafkaToolWindowSettings
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import com.jetbrains.bigdatatools.monitoring.data.MonitoringDataManager
-import com.jetbrains.bigdatatools.monitoring.data.listener.DataModelListener
 import com.jetbrains.bigdatatools.monitoring.data.model.ObjectDataModel
 import com.jetbrains.bigdatatools.monitoring.data.model.ProjectionObjectDataModel
 import com.jetbrains.bigdatatools.monitoring.data.model.RemoteInfo
@@ -29,9 +27,9 @@ class KafkaDataManager(project: Project?,
   val topicModel = createTopicsDataModel()
   val consumerGroupsModel = createConsumerGroupsDataModel()
 
-  var topicConfigsModels = mapOf<String, ProjectionObjectDataModel<TopicConfig>>()
+  var topicConfigsModels = mapOf<String, ProjectionObjectDataModel<TopicConfig, TopicPresentable>>()
     private set
-  private var topicPartitionsModels = mapOf<String, ProjectionObjectDataModel<TopicPartition>>()
+  private var topicPartitionsModels = mapOf<String, ProjectionObjectDataModel<TopicPartition, TopicPresentable>>()
 
   init {
     Disposer.register(this, client)
@@ -52,8 +50,8 @@ class KafkaDataManager(project: Project?,
       return it
     }
 
-    val dataModel = getTopicProjectorModel("partition") {
-      val topic = topicModel.entries.find { it.name == topicName } ?: error(KafkaMessagesBundle.message("topic.not.found", topicName))
+    val dataModel = getTopicProjectorModel(TopicPartition::partitionId.name) { topics ->
+      val topic = topics.find { it.name == topicName } ?: error(KafkaMessagesBundle.message("topic.not.found", topicName))
       topic.partitionList
     }
 
@@ -64,13 +62,13 @@ class KafkaDataManager(project: Project?,
 
 
   @Suppress("DuplicatedCode")
-  fun getTopicConfigsModel(topicName: String): ProjectionObjectDataModel<TopicConfig> {
+  fun getTopicConfigsModel(topicName: String): ProjectionObjectDataModel<TopicConfig, TopicPresentable> {
     topicConfigsModels[topicName]?.let {
       return it
     }
 
-    val dataModel = getTopicProjectorModel("name") {
-      val topic = topicModel.entries.find { it.name == topicName } ?: error(KafkaMessagesBundle.message("topic.not.found", topicName))
+    val dataModel = getTopicProjectorModel(TopicConfig::name.name) { topics ->
+      val topic = topics.find { it.name == topicName } ?: error(KafkaMessagesBundle.message("topic.not.found", topicName))
       val showFullTopicConfig = KafkaToolWindowSettings.getInstance().showFullTopicConfig
 
       if (showFullTopicConfig)
@@ -111,23 +109,12 @@ class KafkaDataManager(project: Project?,
   }
 
 
-  private inline fun <reified T : RemoteInfo> getTopicProjectorModel(idField: String,
-                                                                     noinline getData: () -> List<T>): ProjectionObjectDataModel<T> {
-    val dataModel = ProjectionObjectDataModel(T::class, idField, getData)
+  private inline fun <reified T : RemoteInfo> getTopicProjectorModel(
+    idField: String,
+    noinline dataTransform: (List<TopicPresentable>) -> List<T>): ProjectionObjectDataModel<T, TopicPresentable> {
+
+    val dataModel = ProjectionObjectDataModel(T::class, idField, topicModel, dataTransform)
     Disposer.register(this, dataModel)
-
-    val topicModelListener = object : DataModelListener {
-      override fun onChanged() = dataModel.updateData()
-      override fun onError(msg: String, e: Throwable?) = dataModel.setError(msg, e)
-    }
-
-    topicModel.addListener(topicModelListener)
-    Disposer.register(dataModel, Disposable {
-      topicModel.removeListener(topicModelListener)
-    })
-
-    dataModel.updateData()
-    topicModel.error?.let { dataModel.setError(it.msg, it.e) }
 
     return dataModel
   }
