@@ -213,12 +213,13 @@ class KafkaMonitoringToolWindowController(private val project: Project) : Monito
 
   /** Add a single tab for connection-application or multiple tabs if connection has several applications. */
   private fun addToolWindow(connectionData: KafkaConnectionData) {
-    // Removing empty state.
-    val contentToRemove = contentManager.contents.filter { it.getUserData(CONNECTION_ID) == null }
-    contentToRemove.forEach { contentManager.removeContent(it, true) }
 
     if (!connectionData.isEnabled)
       return
+
+    // Removing empty state.
+    val contentToRemove = contentManager.contents.filter { it.getUserData(CONNECTION_ID) == null }
+    contentToRemove.forEach { contentManager.removeContent(it, true) }
 
     invokeLater {
       val clusterPageController = ClusterPageController(project, connectionData)
