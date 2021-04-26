@@ -28,6 +28,7 @@ import com.jetbrains.bigdatatools.kafka.toolwindow.config.KafkaToolWindowSetting
 import com.jetbrains.bigdatatools.kafka.toolwindow.controllers.ClusterPageController
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import com.jetbrains.bigdatatools.monitoring.toolwindow.MonitoringToolWindowController
+import com.jetbrains.bigdatatools.settings.ConnectionSettings
 import com.jetbrains.bigdatatools.settings.ConnectionSettingsListener
 import com.jetbrains.bigdatatools.settings.ConnectionsConfigurable
 import com.jetbrains.bigdatatools.settings.ModificationKey
@@ -78,15 +79,8 @@ class KafkaMonitoringToolWindowController(private val project: Project) : Monito
 
 
   private fun createEmptyContent(project: Project): Content {
-    val settingsOpener: (ActionEvent) -> Unit = { _: ActionEvent ->
-      val commonConf = ConnectionsConfigurable(project)
-      ShowSettingsUtil.getInstance().editConfigurable(project,
-                                                      commonConf,
-                                                      Runnable {
-                                                        val connectionGroup = KafkaConnectionGroup()
-                                                        val connectionData = KafkaConnectionGroup().createBlankData()
-                                                        commonConf.myUi.createNewConnectionFor(connectionGroup, connectionData)
-                                                      })
+    val settingsOpener: (ActionEvent) -> Unit = {
+      ConnectionSettings.create(project, KafkaConnectionGroup())
     }
 
     val panel = JBPanelWithEmptyText()
