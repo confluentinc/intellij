@@ -139,7 +139,7 @@ class KafkaMonitoringToolWindowController(private val project: Project) : Monito
     actionsGroup.addSeparator()
     actionsGroup.add(CustomComponentActionImpl(autorefresh))
 
-    (toolWindow as? ToolWindowEx)?.setTitleActions(actionsGroup)
+    (toolWindow as? ToolWindowEx)?.setTitleActions(listOf(actionsGroup))
 
     val connectionSettingsManager = RfsConnectionDataManager.instance
     val connections = connectionSettingsManager?.getTyped<KafkaConnectionData>(project) ?: emptyList()
