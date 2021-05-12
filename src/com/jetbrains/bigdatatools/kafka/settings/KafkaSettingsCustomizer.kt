@@ -13,6 +13,7 @@ import com.jetbrains.bigdatatools.settings.fields.PropertiesFieldComponent
 import com.jetbrains.bigdatatools.settings.fields.WrappedComponent
 import com.jetbrains.bigdatatools.ui.MigPanel
 import javax.swing.JLabel
+import javax.swing.JPanel
 import javax.swing.SwingConstants
 
 class KafkaSettingsCustomizer(project: Project, connectionData: KafkaConnectionData, uiDisposable: Disposable) :
@@ -29,9 +30,13 @@ class KafkaSettingsCustomizer(project: Project, connectionData: KafkaConnectionD
     row(nameField.labelComponent, nameField.getComponent())
     row(url.labelComponent, url.getComponent())
     row(properties.labelComponent, properties.getComponent())
-    block(tunnelField.getComponent())
-    add(JLabel(KafkaMessagesBundle.message("kafka.support.is.limited"), AllIcons.General.Information, SwingConstants.LEADING))
-    add(ContextHelpLabel.create(KafkaMessagesBundle.message("kafka.support.is.limited.helper")), UiUtil.spanXWrap)
+    add(tunnelField.getComponent(), UiUtil.spanXWrap)
+
+    val warningPanel = JPanel().apply {
+      add(JLabel(KafkaMessagesBundle.message("kafka.support.is.limited"), AllIcons.General.Warning, SwingConstants.LEADING))
+      add(ContextHelpLabel.create(KafkaMessagesBundle.message("kafka.support.is.limited.helper")))
+    }
+    add(warningPanel, UiUtil.spanXWrap)
   }
 
   object KafkaSettingsKeys {
