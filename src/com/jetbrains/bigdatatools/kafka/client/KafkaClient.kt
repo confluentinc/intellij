@@ -108,8 +108,7 @@ class KafkaClient(project: Project?,
       Property(SERVER_URL, connectionData.uri.removeSuffix("/")),
       Property("connections.max.idle.ms", 10000.toString()),
       Property("default.api.timeout.ms", 5000.toString()),
-      Property("request.timeout.ms", 5000.toString()),
-      Property("retry.backoff.ms", 60000.toString())
+      Property("request.timeout.ms", 5000.toString())
     )
 
     val props = Properties()
