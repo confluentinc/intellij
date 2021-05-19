@@ -2,7 +2,6 @@ package com.jetbrains.bigdatatools.kafka.toolwindow.controllers
 
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.ActionManager
-import com.intellij.openapi.actionSystem.ActionPlaces
 import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.ui.SimpleToolWindowPanel
 import com.intellij.openapi.util.Disposer
@@ -51,7 +50,7 @@ class ConsumerGroupsController(dataManager: KafkaDataManager) : Disposable {
 
     val actions = DefaultActionGroup()
     actions.add(ColumnVisibilitySettings.createAction(columnModel.allColumns.map { it.name }, columnSettings))
-    return ActionManager.getInstance().createActionToolbar(ActionPlaces.UNKNOWN, actions, false).component
+    return ActionManager.getInstance().createActionToolbar("BDTKafkaConsumerGroups", actions, false).component
   }
 
   override fun dispose() {}

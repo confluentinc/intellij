@@ -3,7 +3,6 @@ package com.jetbrains.bigdatatools.kafka.toolwindow.controllers
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.ActionManager
-import com.intellij.openapi.actionSystem.ActionPlaces
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.project.DumbAwareToggleAction
@@ -98,7 +97,7 @@ class TopicsController(project: Project, private val dataManager: KafkaDataManag
     actions.add(showInternalTopicsAction)
     actions.add(configStoragesColumnsAction)
 
-    return ActionManager.getInstance().createActionToolbar(ActionPlaces.UNKNOWN, actions, false).component
+    return ActionManager.getInstance().createActionToolbar("BDTKafkaTopics", actions, false).component
   }
 
   private fun showTopicDetails() {
