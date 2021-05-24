@@ -13,9 +13,9 @@ import com.jetbrains.bigdatatools.settings.defaultui.ConnectionStatus
 import com.jetbrains.bigdatatools.settings.defaultui.ConnectionSuccessful
 import com.jetbrains.bigdatatools.util.toPresentableText
 
-class KafkaConnectionConfigurable(connectionData: KafkaConnectionData, project: Project, uiDisposable: Disposable) :
-  ConnectionConfigurable<KafkaConnectionData>(connectionData, project, uiDisposable, KafkaIcons.MAIN_ICON) {
-  override fun createSettingsCustomizer(uiDisposable: Disposable) = KafkaSettingsCustomizer(project, connectionData, uiDisposable)
+class KafkaConnectionConfigurable(connectionData: KafkaConnectionData, project: Project) :
+  ConnectionConfigurable<KafkaConnectionData>(connectionData, project, KafkaIcons.MAIN_ICON) {
+  override fun createSettingsCustomizer() = KafkaSettingsCustomizer(project, connectionData, disposable)
 
   override fun createConnectionTesting(): ConnectionTesting<KafkaConnectionData> = object : ConnectionTesting<KafkaConnectionData> {
     override fun testConnection(conn: KafkaConnectionData,
@@ -26,7 +26,7 @@ class KafkaConnectionConfigurable(connectionData: KafkaConnectionData, project: 
         callback(ConnectionSuccessful(null, KafkaMessagesBundle.message("connection.success")))
       }
       else {
-        callback(ConnectionError((error.cause?: error).toPresentableText(), "Connection error"))
+        callback(ConnectionError((error.cause ?: error).toPresentableText(), "Connection error"))
       }
     }
   }

@@ -1,6 +1,5 @@
 package com.jetbrains.bigdatatools.kafka.rfs
 
-import com.intellij.openapi.Disposable
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
 import com.jetbrains.bigdatatools.connection.tunnel.BdtSshTunnelConnectionUtils
@@ -21,9 +20,7 @@ class KafkaConnectionData : RemoteFsDriverProvider(KafkaMessagesBundle.message("
   override fun createDriverImpl(project: Project?, safe: Boolean): Driver = KafkaDriver(this, project)
   override fun rfsDriverType() = TYPE_ID
 
-  override fun createConfigurable(project: Project,
-                                  parentGroup: ConnectionGroup,
-                                  uiDisposable: Disposable) = KafkaConnectionConfigurable(this, project, uiDisposable)
+  override fun createConfigurable(project: Project, parentGroup: ConnectionGroup) = KafkaConnectionConfigurable(this, project)
 
   override var tunnel = ConnectionSshTunnelInfo.DEFAULT
 
