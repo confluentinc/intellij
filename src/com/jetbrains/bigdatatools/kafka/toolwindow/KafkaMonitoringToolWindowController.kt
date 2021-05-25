@@ -6,7 +6,6 @@ import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.DataProvider
 import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.actionSystem.PlatformDataKeys
-import com.intellij.openapi.options.ShowSettingsUtil
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
@@ -30,7 +29,6 @@ import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import com.jetbrains.bigdatatools.monitoring.toolwindow.MonitoringToolWindowController
 import com.jetbrains.bigdatatools.settings.ConnectionSettings
 import com.jetbrains.bigdatatools.settings.ConnectionSettingsListener
-import com.jetbrains.bigdatatools.settings.ConnectionsConfigurable
 import com.jetbrains.bigdatatools.settings.ModificationKey
 import com.jetbrains.bigdatatools.settings.connections.ConnectionData
 import com.jetbrains.bigdatatools.settings.manager.RfsConnectionDataManager
@@ -132,8 +130,7 @@ class KafkaMonitoringToolWindowController(private val project: Project) : Monito
       override fun displayTextInToolbar(): Boolean = true
 
       override fun actionPerformed(e: AnActionEvent) {
-        val connectionId = contentManager.selectedContent?.getUserData(CONNECTION_ID)
-        openConnectionSettings(project, connectionId)
+        ConnectionSettings.open(project, contentManager.selectedContent?.getUserData(CONNECTION_ID))
       }
     })
     actionsGroup.addSeparator()
@@ -260,15 +257,5 @@ class KafkaMonitoringToolWindowController(private val project: Project) : Monito
 
     /** Interval in milliseconds defines how often we can press refresh button. */
     private const val AUTOREFRESH_CLICK_INTERVAL = 3000
-
-    fun openConnectionSettings(project: Project, connectionId: String? = null) {
-      if (connectionId == null) {
-        ShowSettingsUtil.getInstance().showSettingsDialog(project, ConnectionsConfigurable::class.java)
-      }
-      else {
-        val callback = { conf: ConnectionsConfigurable -> conf.myUi.setFirstSelectedNodeConnId(connectionId) }
-        ShowSettingsUtil.getInstance().showSettingsDialog(project, ConnectionsConfigurable::class.java, callback)
-      }
-    }
   }
 }
