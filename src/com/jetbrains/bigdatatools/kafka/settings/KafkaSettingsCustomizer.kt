@@ -23,8 +23,7 @@ class KafkaSettingsCustomizer(project: Project, connectionData: KafkaConnectionD
                                                            KafkaSettingsKeys.PROPERTIES_KEY,
                                                            connectionData, uiDisposable)
 
-  override fun getDefaultFields(conn: KafkaConnectionData): List<WrappedComponent<in KafkaConnectionData>> =
-    listOf(nameField, url, properties, tunnelField)
+  override fun getDefaultFields(): List<WrappedComponent<in KafkaConnectionData>> = listOf(nameField, url, properties, tunnelField)
 
   override fun getDefaultComponent(fields: List<WrappedComponent<in KafkaConnectionData>>, conn: KafkaConnectionData) = MigPanel().apply {
     row(nameField.labelComponent, nameField.getComponent())
