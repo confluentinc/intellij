@@ -23,7 +23,10 @@ import java.util.*
 class KafkaClient(project: Project?,
                   private val connectionData: KafkaConnectionData,
                   val testConnection: Boolean) : MonitoringClient(project) {
-  private val kafkaProps = getKafkaProps(connectionData)
+  private val kafkaProps by lazy {
+    getKafkaProps(connectionData)
+  }
+
   private var kafkaAdmin: AdminClient? = null
   private val kafkaAdminNotNull: AdminClient
     get() = kafkaAdmin ?: error("Kafka Admin Client is not inited")
@@ -58,7 +61,7 @@ class KafkaClient(project: Project?,
   }
 
   fun getConsumerGroups(): List<ConsumerGroupPresentable> {
-    val consumerGroupsIds: List<String> = kafkaAdminNotNull. listConsumerGroups ().all().get().map {
+    val consumerGroupsIds: List<String> = kafkaAdminNotNull.listConsumerGroups().all().get().map {
       it.groupId()
     }
     val detailedGroups = kafkaAdminNotNull.describeConsumerGroups(consumerGroupsIds).all().get()

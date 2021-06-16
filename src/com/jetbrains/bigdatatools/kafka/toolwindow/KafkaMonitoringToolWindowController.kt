@@ -213,6 +213,8 @@ class KafkaMonitoringToolWindowController(private val project: Project) : Monito
     contentToRemove.forEach { contentManager.removeContent(it, true) }
 
     invokeLater {
+      KafkaDataManager.getInstance(connectionData.innerId, project) ?: return@invokeLater
+
       val clusterPageController = ClusterPageController(project, connectionData)
       val content = contentManager.factory.createContent(clusterPageController.getComponent(), connectionData.name, false)
       content.putUserData(CONNECTION_ID, connectionData.innerId)
