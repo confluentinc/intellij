@@ -56,7 +56,16 @@ class KafkaClient(project: Project?,
       val urlForTunnel = BdtSshTunnelConnectionUtils.getUrlForTunnel(connectionData.uri, localPort)
       kafkaProps.setProperty(SERVER_URL, urlForTunnel)
     }
-    kafkaAdmin = AdminClient.create(kafkaProps)
+
+    val contextCL = Thread.currentThread().contextClassLoader
+    try {
+      Thread.currentThread().contextClassLoader = this::class.java.classLoader
+      kafkaAdmin = AdminClient.create(kafkaProps)
+    }
+    finally {
+      Thread.currentThread().contextClassLoader = contextCL
+    }
+
     checkConnectionInner()
   }
 
