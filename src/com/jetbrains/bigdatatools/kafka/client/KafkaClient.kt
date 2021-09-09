@@ -20,10 +20,11 @@ import org.apache.kafka.common.config.ConfigResource
 import java.time.Duration
 import java.util.*
 
+
 class KafkaClient(project: Project?,
                   private val connectionData: KafkaConnectionData,
                   val testConnection: Boolean) : MonitoringClient(project) {
-  private val kafkaProps by lazy {
+  internal val kafkaProps by lazy {
     getKafkaProps(connectionData)
   }
 
@@ -31,6 +32,7 @@ class KafkaClient(project: Project?,
   private val kafkaAdminNotNull: AdminClient
     get() = kafkaAdmin ?: error("Kafka Admin Client is not inited")
 
+  fun createProducerClient() = KafkaProducerClient(client = this)
 
   override fun dispose() = executeOnPooledThread {
     try {
