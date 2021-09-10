@@ -7,7 +7,6 @@ import com.jetbrains.bigdatatools.kafka.rfs.KafkaConnectionData
 import com.jetbrains.bigdatatools.rfs.driver.ConnectedConnectionStatus
 import com.jetbrains.bigdatatools.rfs.driver.FailedConnectionStatus
 import junit.framework.TestCase
-import org.apache.kafka.clients.producer.RecordMetadata
 
 
 class KafkaClientTest : LightPlatformTestCase() {
@@ -46,7 +45,7 @@ class KafkaClientTest : LightPlatformTestCase() {
     val sendMessageCount = 5
     val time = System.currentTimeMillis()
     for (index in time until time + sendMessageCount) {
-      val metadata: RecordMetadata = producerClient.sentMessage(testTopic.name, index.toString(), "Hello Mom $index")
+      val result = producerClient.sentMessage(testTopic.name, index.toString(), "Hello Mom $index")
     }
   }
 

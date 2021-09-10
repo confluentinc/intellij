@@ -7,7 +7,7 @@ import com.jetbrains.bigdatatools.monitoring.toolwindow.DetailsMonitoringControl
 import com.jetbrains.bigdatatools.monitoring.toolwindow.TabbedDetailsMonitoringController
 
 class TopicDetailsController(project: Project, dataManager: KafkaDataManager) : TabbedDetailsMonitoringController(project) {
-  private val configsController = TopicConfigsController(dataManager)
+  private val configsController = TopicConfigsController(project, dataManager)
   private val partitionsController = TopicPartitionsController(dataManager)
 
   override val tabsControllers: List<Pair<String, DetailsMonitoringController>> = listOf(
