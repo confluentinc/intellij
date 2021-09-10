@@ -5,6 +5,7 @@ import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.DefaultActionGroup
+import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.DumbAwareToggleAction
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.SimpleToolWindowPanel
@@ -13,6 +14,7 @@ import com.intellij.ui.OnePixelSplitter
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.model.TopicPresentable
 import com.jetbrains.bigdatatools.kafka.toolwindow.config.KafkaToolWindowSettings
+import com.jetbrains.bigdatatools.kafka.ui.KafkaProducerDialog
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import com.jetbrains.bigdatatools.monitoring.table.DataTable
 import com.jetbrains.bigdatatools.monitoring.table.DataTableCreator
@@ -27,7 +29,7 @@ import javax.swing.JComponent
 import javax.swing.event.ListSelectionEvent
 import javax.swing.event.ListSelectionListener
 
-class TopicsController(project: Project, private val dataManager: KafkaDataManager) : Disposable {
+class TopicsController(private val project: Project, private val dataManager: KafkaDataManager) : Disposable {
   private val detailsSplitter: OnePixelSplitter = OnePixelSplitter()
 
   private val dataModel = dataManager.topicModel
@@ -93,9 +95,17 @@ class TopicsController(project: Project, private val dataManager: KafkaDataManag
     val configStoragesColumnsAction = ColumnVisibilitySettings.createAction(columnModel.allColumns.map { it.name },
                                                                             settings.topicColumnSettings)
 
+    val createProducer = object : DumbAwareAction(KafkaMessagesBundle.message("create.producer.action.title"),
+                                                  null,
+                                                  AllIcons.Actions.Upload) {
+      override fun actionPerformed(e: AnActionEvent) {
+        KafkaProducerDialog(project, dataManager).showAndGet()
+      }
+    }
 
     actions.add(showInternalTopicsAction)
     actions.add(configStoragesColumnsAction)
+    actions.add(createProducer)
 
     return ActionManager.getInstance().createActionToolbar("BDTKafkaTopics", actions, false).component
   }

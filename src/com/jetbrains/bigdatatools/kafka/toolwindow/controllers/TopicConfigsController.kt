@@ -4,13 +4,15 @@ import com.intellij.icons.AllIcons
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.project.DumbAwareToggleAction
+import com.intellij.openapi.project.Project
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.model.TopicConfig
 import com.jetbrains.bigdatatools.kafka.toolwindow.config.KafkaToolWindowSettings
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import com.jetbrains.bigdatatools.monitoring.toolwindow.DetailsTableMonitoringController
 
-class TopicConfigsController(private val dataManager: KafkaDataManager) : DetailsTableMonitoringController<TopicConfig>() {
+class TopicConfigsController(val project: Project,
+                             private val dataManager: KafkaDataManager) : DetailsTableMonitoringController<TopicConfig>() {
   init {
     init()
   }
@@ -43,6 +45,7 @@ class TopicConfigsController(private val dataManager: KafkaDataManager) : Detail
         }
       }
     }
+
 
     return listOf(showFullConfig)
   }

@@ -60,6 +60,7 @@ class KafkaDataManager(project: Project?,
     return dataModel
   }
 
+  fun getTopics() = topicModel.data ?: emptyList()
 
   @Suppress("DuplicatedCode")
   fun getTopicConfigsModel(topicName: String): ProjectionObjectDataModel<TopicConfig, TopicPresentable> {
