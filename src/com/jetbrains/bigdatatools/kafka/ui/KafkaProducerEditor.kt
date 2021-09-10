@@ -1,9 +1,13 @@
 package com.jetbrains.bigdatatools.kafka.ui
 
+
 import com.intellij.json.JsonLanguage
+import com.intellij.openapi.fileEditor.FileEditor
+import com.intellij.openapi.fileEditor.FileEditorLocation
+import com.intellij.openapi.fileEditor.FileEditorState
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.ComboBox
-import com.intellij.openapi.ui.DialogWrapper
+import com.intellij.openapi.util.UserDataHolderBase
 import com.intellij.ui.EditorCustomization
 import com.intellij.ui.EditorTextFieldProvider
 import com.intellij.ui.MonospaceEditorCustomization
@@ -12,13 +16,14 @@ import com.intellij.ui.components.fields.IntegerField
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.ui.MigPanel
 import net.miginfocom.layout.CC
+import java.beans.PropertyChangeListener
 import javax.swing.DefaultListModel
 import javax.swing.JButton
+import javax.swing.JComponent
 import javax.swing.JTextField
 
-class KafkaProducerDialog(project: Project, kafkaManager: KafkaDataManager) : DialogWrapper(kafkaManager.project,
-                                                                                            true,
-                                                                                            IdeModalityType.PROJECT) {
+class KafkaProducerEditor(project: Project, kafkaManager: KafkaDataManager) : FileEditor, UserDataHolderBase() {
+
   private val producerClient = kafkaManager.client.createProducerClient()
   val topics = kafkaManager.getTopics()
 
@@ -84,16 +89,13 @@ class KafkaProducerDialog(project: Project, kafkaManager: KafkaDataManager) : Di
     FieldType.NULL -> null
   }
 
+  private val mainComponent = createCenterPanel()
 
   init {
-    init()
     updateVisibility()
-
-    okAction.isEnabled = false
-    cancelAction.isEnabled = false
   }
 
-  override fun createCenterPanel() = MigPanel().apply {
+  private fun createCenterPanel() = MigPanel().apply {
     row("Topics:", topicComboBox)
 
     row("Key:", keyComboBox)
@@ -166,6 +168,26 @@ class KafkaProducerDialog(project: Project, kafkaManager: KafkaDataManager) : Di
       }
     }
   }
+
+
+  override fun getComponent(): JComponent = mainComponent
+
+  override fun getPreferredFocusedComponent(): JComponent = mainComponent
+
+  override fun getName(): String = "Produce to Topic"
+
+  override fun setState(state: FileEditorState) {
+  }
+
+  override fun isModified(): Boolean = false
+
+  override fun isValid(): Boolean = true
+
+  override fun addPropertyChangeListener(listener: PropertyChangeListener) {}
+
+  override fun removePropertyChangeListener(listener: PropertyChangeListener) {}
+
+  override fun getCurrentLocation(): FileEditorLocation? = null
+
+  override fun dispose() {}
 }
-
-

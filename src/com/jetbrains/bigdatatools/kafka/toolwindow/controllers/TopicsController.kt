@@ -5,16 +5,18 @@ import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.DefaultActionGroup
+import com.intellij.openapi.fileEditor.ex.FileEditorManagerEx
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.DumbAwareToggleAction
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.SimpleToolWindowPanel
 import com.intellij.openapi.util.Disposer
+import com.intellij.testFramework.LightVirtualFile
 import com.intellij.ui.OnePixelSplitter
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.model.TopicPresentable
 import com.jetbrains.bigdatatools.kafka.toolwindow.config.KafkaToolWindowSettings
-import com.jetbrains.bigdatatools.kafka.ui.KafkaProducerDialog
+import com.jetbrains.bigdatatools.kafka.ui.KafkaProducerEditorProvider
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import com.jetbrains.bigdatatools.monitoring.table.DataTable
 import com.jetbrains.bigdatatools.monitoring.table.DataTableCreator
@@ -99,7 +101,9 @@ class TopicsController(private val project: Project, private val dataManager: Ka
                                                   null,
                                                   AllIcons.Actions.Upload) {
       override fun actionPerformed(e: AnActionEvent) {
-        KafkaProducerDialog(project, dataManager).showAndGet()
+        val file = LightVirtualFile("Kafka Producer.kafkaProducer")
+        file.putUserData(KafkaProducerEditorProvider.KAFKA_MANAGER_KEY, dataManager)
+        FileEditorManagerEx.getInstance(project).openFile(file, true)
       }
     }
 
