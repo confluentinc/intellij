@@ -50,12 +50,14 @@ class KafkaProducerEditor(project: Project,
   }
   private val keyComboBox = ComboBox(FieldType.values()).apply {
     renderer = FieldTypeRenderer()
+    selectedItem = FieldType.STRING
     addItemListener {
       updateVisibility()
     }
   }
   private val valueComboBox = ComboBox(FieldType.values()).apply {
     renderer = FieldTypeRenderer()
+    selectedItem = FieldType.STRING
     addItemListener {
       updateVisibility()
     }
@@ -209,7 +211,7 @@ class KafkaProducerEditor(project: Project,
     FieldType.NULL -> null
   }
 
-  override fun getName(): String = "Produce to Topic"
+  override fun getName(): String = KafkaMessagesBundle.message("produce.to.topic")
   override fun getComponent(): JComponent = mainComponent
   override fun getPreferredFocusedComponent(): JComponent = mainComponent
   override fun getFile(): VirtualFile = file
