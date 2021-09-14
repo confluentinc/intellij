@@ -16,7 +16,8 @@ class KafkaProducerClient(val client: KafkaClient) {
                   headers: List<Property> = emptyList(),
                   recordCompression: RecordCompression = RecordCompression.NONE,
                   acks: AcksType = AcksType.NONE,
-                  enableIdempotence: Boolean = false): ProducerResultMessage {
+                  enableIdempotence: Boolean = false,
+                  forcePartition: Int = -1): ProducerResultMessage {
     val props = client.kafkaProps.clone() as Properties
     props[ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG] = chooseSerializer(key.type)::class.java
     props[ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG] = chooseSerializer(value.type)::class.java
@@ -32,10 +33,12 @@ class KafkaProducerClient(val client: KafkaClient) {
     val producer = KafkaProducer<Serializable, Serializable>(props)
 
     return try {
-      val record = ProducerRecord(topic, key.value, value.value)
+      val record = ProducerRecord(topic, if (forcePartition >= 0) forcePartition else null, key.value, value.value)
       headers.forEach {
         record.headers().add(it.name, it.value.toByteArray())
       }
+
+      record.partition()
 
       val start = System.currentTimeMillis()
       val metaInfo = producer.send(record).get()

@@ -73,6 +73,11 @@ class KafkaProducerEditor(project: Project,
   private val keyStringField = JTextField()
   private val valueStringField = JTextField()
 
+  private val forcePartitionField = IntegerField().apply {
+    isCanBeEmpty = true
+    defaultValue = -1
+  }
+
 
   private val outputModel = DefaultListModel<ProducerResultMessage>()
   private val outputList = JBList(outputModel).apply {
@@ -91,7 +96,8 @@ class KafkaProducerEditor(project: Project,
                                               propertiesComponent.getProperties(),
                                               compressionComboBox.item,
                                               acksComboBox.item,
-                                              idempotenceCheckBox.isSelected)
+                                              idempotenceCheckBox.isSelected,
+                                              forcePartitionField.value)
       outputModel.addElement(result)
     }
   }
@@ -117,6 +123,7 @@ class KafkaProducerEditor(project: Project,
     add(valueDoubleField, CC().spanX().growX().wrap())
     add(valueStringField, CC().spanX().growX().wrap())
 
+    row("Force partition:", forcePartitionField)
     row(propertiesComponent.label, propertiesComponent.getComponent())
 
     row("Compression:", compressionComboBox)
