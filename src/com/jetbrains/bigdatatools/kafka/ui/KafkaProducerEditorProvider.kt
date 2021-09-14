@@ -14,7 +14,7 @@ class KafkaProducerEditorProvider : WeighedFileEditorProvider(), DumbAware {
   override fun accept(project: Project, file: VirtualFile): Boolean = file.extension == "kafkaProducer"
   override fun createEditor(project: Project, file: VirtualFile): FileEditor {
     val manager = file.getUserData(KAFKA_MANAGER_KEY) ?: error("Kafka manager is not found")
-    return KafkaProducerEditor(project, manager)
+    return KafkaProducerEditor(project, manager, file)
   }
 
   override fun getEditorTypeId(): String = PROVIDER_ID

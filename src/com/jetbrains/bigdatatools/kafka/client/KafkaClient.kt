@@ -10,8 +10,8 @@ import com.jetbrains.bigdatatools.kafka.model.TopicConfig
 import com.jetbrains.bigdatatools.kafka.model.TopicPresentable
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaConnectionData
 import com.jetbrains.bigdatatools.monitoring.connection.MonitoringClient
+import com.jetbrains.bigdatatools.settings.components.BdtPropertyComponent
 import com.jetbrains.bigdatatools.settings.connections.Property
-import com.jetbrains.bigdatatools.settings.fields.PropertiesFieldComponent
 import com.jetbrains.bigdatatools.util.executeOnPooledThread
 import org.apache.kafka.clients.admin.AdminClient
 import org.apache.kafka.clients.admin.ListTopicsOptions
@@ -22,7 +22,7 @@ import java.util.*
 
 
 class KafkaClient(project: Project?,
-                  private val connectionData: KafkaConnectionData,
+                  val connectionData: KafkaConnectionData,
                   val testConnection: Boolean) : MonitoringClient(project) {
   internal val kafkaProps by lazy {
     getKafkaProps(connectionData)
@@ -131,7 +131,7 @@ class KafkaClient(project: Project?,
       props[it.name] = it.value
     }
 
-    PropertiesFieldComponent.parseProperties(connectionData.properties).forEach {
+    BdtPropertyComponent.parseProperties(connectionData.properties).forEach {
       props[it.name] = it.value
     }
 

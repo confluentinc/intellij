@@ -8,6 +8,7 @@ import com.intellij.openapi.fileEditor.FileEditorState
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.util.UserDataHolderBase
+import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.ui.EditorCustomization
 import com.intellij.ui.EditorTextFieldProvider
 import com.intellij.ui.MonospaceEditorCustomization
@@ -15,6 +16,7 @@ import com.intellij.ui.components.JBList
 import com.intellij.ui.components.fields.IntegerField
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import com.jetbrains.bigdatatools.settings.components.BdtPropertyComponent
 import com.jetbrains.bigdatatools.ui.MigPanel
 import net.miginfocom.layout.CC
 import java.beans.PropertyChangeListener
@@ -23,10 +25,13 @@ import javax.swing.JButton
 import javax.swing.JComponent
 import javax.swing.JTextField
 
-class KafkaProducerEditor(project: Project, kafkaManager: KafkaDataManager) : FileEditor, UserDataHolderBase() {
-
+class KafkaProducerEditor(project: Project,
+                          kafkaManager: KafkaDataManager,
+                          private val file: VirtualFile) : FileEditor, UserDataHolderBase() {
   private val producerClient = kafkaManager.client.createProducerClient()
   val topics = kafkaManager.getTopics()
+
+  private val propertiesComponent = BdtPropertyComponent("", label = KafkaMessagesBundle.message("record.headers.label"))
 
   private val topicComboBox = ComboBox(topics.toTypedArray()).apply { renderer = TopicRenderer() }
   private val keyComboBox = ComboBox(FieldType.values()).apply {
@@ -65,29 +70,9 @@ class KafkaProducerEditor(project: Project, kafkaManager: KafkaDataManager) : Fi
       val selectedTopic = topicComboBox.item?.name ?: error("Topic is not selected")
       val key = KafkaField(keyComboBox.item!!, getKey())
       val value = KafkaField(valueComboBox.item!!, getValue())
-      val result = producerClient.sentMessage(selectedTopic, key, value)
+      val result = producerClient.sentMessage(selectedTopic, key, value, propertiesComponent.getProperties())
       outputModel.addElement(result)
     }
-  }
-
-  private fun getKey() = when (keyComboBox.item!!) {
-    FieldType.JSON -> keyJson.text
-    FieldType.STRING -> keyStringField.text
-    FieldType.LONG -> keyIntegerField.text
-    FieldType.DOUBLE -> keyDoubleField.text
-    FieldType.FLOAT -> keyDoubleField.text
-    FieldType.BASE64 -> keyStringField.text
-    FieldType.NULL -> null
-  }
-
-  private fun getValue() = when (valueComboBox.item!!) {
-    FieldType.JSON -> valueJson.text
-    FieldType.STRING -> valueStringField.text
-    FieldType.LONG -> valueIntegerField.text
-    FieldType.DOUBLE -> valueDoubleField.text
-    FieldType.FLOAT -> valueDoubleField.text
-    FieldType.BASE64 -> valueStringField.text
-    FieldType.NULL -> null
   }
 
   private val mainComponent = createCenterPanel()
@@ -110,6 +95,9 @@ class KafkaProducerEditor(project: Project, kafkaManager: KafkaDataManager) : Fi
     add(valueIntegerField, CC().spanX().growX().wrap())
     add(valueDoubleField, CC().spanX().growX().wrap())
     add(valueStringField, CC().spanX().growX().wrap())
+
+    row(propertiesComponent.label, propertiesComponent.getComponent())
+
     add(produceButton, CC().spanX().growX().wrap())
     add(outputList, CC().spanX().growX().wrap())
   }
@@ -170,25 +158,35 @@ class KafkaProducerEditor(project: Project, kafkaManager: KafkaDataManager) : Fi
     }
   }
 
-
-  override fun getComponent(): JComponent = mainComponent
-
-  override fun getPreferredFocusedComponent(): JComponent = mainComponent
-
-  override fun getName(): String = "Produce to Topic"
-
-  override fun setState(state: FileEditorState) {
+  private fun getKey() = when (keyComboBox.item!!) {
+    FieldType.JSON -> keyJson.text
+    FieldType.STRING -> keyStringField.text
+    FieldType.LONG -> keyIntegerField.text
+    FieldType.DOUBLE -> keyDoubleField.text
+    FieldType.FLOAT -> keyDoubleField.text
+    FieldType.BASE64 -> keyStringField.text
+    FieldType.NULL -> null
   }
 
+  private fun getValue() = when (valueComboBox.item!!) {
+    FieldType.JSON -> valueJson.text
+    FieldType.STRING -> valueStringField.text
+    FieldType.LONG -> valueIntegerField.text
+    FieldType.DOUBLE -> valueDoubleField.text
+    FieldType.FLOAT -> valueDoubleField.text
+    FieldType.BASE64 -> valueStringField.text
+    FieldType.NULL -> null
+  }
+
+  override fun getName(): String = "Produce to Topic"
+  override fun getComponent(): JComponent = mainComponent
+  override fun getPreferredFocusedComponent(): JComponent = mainComponent
+  override fun getFile(): VirtualFile = file
+  override fun setState(state: FileEditorState) = Unit
   override fun isModified(): Boolean = false
-
   override fun isValid(): Boolean = true
-
   override fun addPropertyChangeListener(listener: PropertyChangeListener) {}
-
   override fun removePropertyChangeListener(listener: PropertyChangeListener) {}
-
   override fun getCurrentLocation(): FileEditorLocation? = null
-
   override fun dispose() {}
 }

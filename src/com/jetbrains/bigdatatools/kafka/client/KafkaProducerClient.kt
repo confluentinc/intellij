@@ -3,6 +3,7 @@ package com.jetbrains.bigdatatools.kafka.client
 import com.jetbrains.bigdatatools.kafka.ui.FieldType
 import com.jetbrains.bigdatatools.kafka.ui.KafkaField
 import com.jetbrains.bigdatatools.kafka.ui.ProducerResultMessage
+import com.jetbrains.bigdatatools.settings.connections.Property
 import org.apache.kafka.clients.producer.KafkaProducer
 import org.apache.kafka.clients.producer.ProducerConfig
 import org.apache.kafka.clients.producer.ProducerRecord
@@ -11,7 +12,9 @@ import java.io.Serializable
 import java.util.*
 
 class KafkaProducerClient(val client: KafkaClient) {
-  fun sentMessage(topic: String, key: KafkaField, value: KafkaField): ProducerResultMessage {
+  val connectionData = client.connectionData
+
+  fun sentMessage(topic: String, key: KafkaField, value: KafkaField, headers: List<Property> = emptyList()): ProducerResultMessage {
     val props = client.kafkaProps.clone() as Properties
     props[ProducerConfig.CLIENT_ID_CONFIG] = "KafkaExampleProducer"
     props[ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG] = chooseSerializer(key.type)::class.java
@@ -20,6 +23,10 @@ class KafkaProducerClient(val client: KafkaClient) {
 
     return try {
       val record = ProducerRecord(topic, key.value, value.value)
+      headers.forEach {
+        record.headers().add(it.name, it.value.toByteArray())
+      }
+
       val start = System.currentTimeMillis()
       val metaInfo = producer.send(record).get()
       val end = System.currentTimeMillis()
