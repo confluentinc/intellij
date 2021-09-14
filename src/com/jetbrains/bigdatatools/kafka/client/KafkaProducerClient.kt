@@ -1,17 +1,25 @@
 package com.jetbrains.bigdatatools.kafka.client
 
+import com.jetbrains.bigdatatools.kafka.ui.FieldType
+import com.jetbrains.bigdatatools.kafka.ui.KafkaField
 import com.jetbrains.bigdatatools.kafka.ui.ProducerResultMessage
 import org.apache.kafka.clients.producer.KafkaProducer
 import org.apache.kafka.clients.producer.ProducerConfig
 import org.apache.kafka.clients.producer.ProducerRecord
-import org.apache.kafka.common.serialization.StringSerializer
+import org.apache.kafka.common.serialization.*
+import java.io.Serializable
 import java.util.*
 
 class KafkaProducerClient(val client: KafkaClient) {
-  fun sentMessage(topic: String, key: String, value: String): ProducerResultMessage {
-    val producer = createProducer()
+  fun sentMessage(topic: String, key: KafkaField, value: KafkaField): ProducerResultMessage {
+    val props = client.kafkaProps.clone() as Properties
+    props[ProducerConfig.CLIENT_ID_CONFIG] = "KafkaExampleProducer"
+    props[ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG] = chooseSerializer(key.type)::class.java
+    props[ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG] = chooseSerializer(value.type)::class.java
+    val producer = KafkaProducer<Serializable, Serializable>(props)
+
     return try {
-      val record = ProducerRecord(topic, key, value)
+      val record = ProducerRecord(topic, key.value, value.value)
       val start = System.currentTimeMillis()
       val metaInfo = producer.send(record).get()
       val end = System.currentTimeMillis()
@@ -27,14 +35,13 @@ class KafkaProducerClient(val client: KafkaClient) {
     }
   }
 
-  private fun createProducer(): KafkaProducer<String, String> {
-    val props = client.kafkaProps.clone() as Properties
-    //props[ProducerConfig.BOOTSTRAP_SERVERS_CONFIG] = BOOTSTRAP_SERVERS
-    props[ProducerConfig.CLIENT_ID_CONFIG] = "KafkaExampleProducer"
-    props[ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG] = StringSerializer::class.java
-    props[ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG] = StringSerializer::class.java
-    return KafkaProducer(props)
+  private fun chooseSerializer(type: FieldType) = when (type) {
+    FieldType.STRING -> StringSerializer()
+    FieldType.JSON -> StringSerializer()
+    FieldType.LONG -> LongSerializer()
+    FieldType.DOUBLE -> DoubleSerializer()
+    FieldType.FLOAT -> FloatSerializer()
+    FieldType.BASE64 -> BytesSerializer()
+    FieldType.NULL -> VoidSerializer()
   }
-
-
 }

@@ -14,6 +14,7 @@ import com.intellij.ui.MonospaceEditorCustomization
 import com.intellij.ui.components.JBList
 import com.intellij.ui.components.fields.IntegerField
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
+import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import com.jetbrains.bigdatatools.ui.MigPanel
 import net.miginfocom.layout.CC
 import java.beans.PropertyChangeListener
@@ -59,12 +60,12 @@ class KafkaProducerEditor(project: Project, kafkaManager: KafkaDataManager) : Fi
     setCellRenderer(ProducerOutputRender())
   }
 
-  private val produceButton = JButton("Produce").also {
+  private val produceButton = JButton(KafkaMessagesBundle.message("kafka.producer.action,produce.title")).also {
     it.addActionListener {
       val selectedTopic = topicComboBox.item?.name ?: error("Topic is not selected")
-      val key = getKey()
-      val value = getValue()
-      val result = producerClient.sentMessage(selectedTopic, key.toString(), value.toString())
+      val key = KafkaField(keyComboBox.item!!, getKey())
+      val value = KafkaField(valueComboBox.item!!, getValue())
+      val result = producerClient.sentMessage(selectedTopic, key, value)
       outputModel.addElement(result)
     }
   }
