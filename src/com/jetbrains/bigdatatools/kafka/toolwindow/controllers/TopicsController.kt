@@ -109,7 +109,7 @@ class TopicsController(private val project: Project, private val dataManager: Ka
 
     actions.add(showInternalTopicsAction)
     actions.add(configStoragesColumnsAction)
-    actions.add(createProducer)
+    //actions.add(createProducer)
 
     return ActionManager.getInstance().createActionToolbar("BDTKafkaTopics", actions, false).component
   }
