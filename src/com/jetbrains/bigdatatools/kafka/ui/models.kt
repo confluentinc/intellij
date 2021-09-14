@@ -27,3 +27,7 @@ data class KafkaField(val type: FieldType, val text: String?) {
 enum class RecordCompression {
   NONE, GZIP, SNAPPY, LZ4, ZSTD
 }
+
+enum class AcksType(val value: Int) {
+  NONE(0), LEADER(1), ALL(-1)
+}

@@ -34,6 +34,10 @@ class KafkaProducerEditor(project: Project,
   private val propertiesComponent = BdtPropertyComponent("", label = KafkaMessagesBundle.message("record.headers.label"))
 
   private val topicComboBox = ComboBox(topics.toTypedArray()).apply { renderer = TopicRenderer() }
+  private val acksComboBox = ComboBox(AcksType.values()).apply {
+    renderer = AcksRenderer()
+    item = AcksType.NONE
+  }
 
   private val compressionComboBox = ComboBox(RecordCompression.values()).apply {
     renderer = RecordCompressionRenderer()
@@ -78,7 +82,10 @@ class KafkaProducerEditor(project: Project,
       val key = KafkaField(keyComboBox.item!!, getKey())
       val value = KafkaField(valueComboBox.item!!, getValue())
 
-      val result = producerClient.sentMessage(selectedTopicName, key, value, propertiesComponent.getProperties(), compressionComboBox.item)
+      val result = producerClient.sentMessage(selectedTopicName, key, value,
+                                              propertiesComponent.getProperties(),
+                                              compressionComboBox.item,
+                                              acksComboBox.item)
       outputModel.addElement(result)
     }
   }
@@ -106,7 +113,8 @@ class KafkaProducerEditor(project: Project,
 
     row(propertiesComponent.label, propertiesComponent.getComponent())
 
-    row("Compression type:", compressionComboBox)
+    row("Compression:", compressionComboBox)
+    row("Acks:", acksComboBox)
     add(produceButton, CC().spanX().growX().wrap())
     add(outputList, CC().spanX().growX().wrap())
   }
