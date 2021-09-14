@@ -15,12 +15,20 @@ class KafkaProducerClient(val client: KafkaClient) {
   fun sentMessage(topic: String, key: KafkaField, value: KafkaField,
                   headers: List<Property> = emptyList(),
                   recordCompression: RecordCompression = RecordCompression.NONE,
-                  acks: AcksType = AcksType.NONE): ProducerResultMessage {
+                  acks: AcksType = AcksType.NONE,
+                  enableIdempotence: Boolean = false): ProducerResultMessage {
     val props = client.kafkaProps.clone() as Properties
     props[ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG] = chooseSerializer(key.type)::class.java
     props[ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG] = chooseSerializer(value.type)::class.java
     props[ProducerConfig.COMPRESSION_TYPE_CONFIG] = recordCompression.name.toLowerCase()
-    props[ProducerConfig.ACKS_CONFIG] = acks.value.toString()
+
+    if (enableIdempotence) {
+      props[ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG] = enableIdempotence
+    }
+    else {
+      props[ProducerConfig.ACKS_CONFIG] = acks.value.toString()
+    }
+
     val producer = KafkaProducer<Serializable, Serializable>(props)
 
     return try {

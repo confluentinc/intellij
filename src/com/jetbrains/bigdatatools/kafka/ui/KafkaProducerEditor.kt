@@ -12,6 +12,7 @@ import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.ui.EditorCustomization
 import com.intellij.ui.EditorTextFieldProvider
 import com.intellij.ui.MonospaceEditorCustomization
+import com.intellij.ui.components.CheckBox
 import com.intellij.ui.components.JBList
 import com.intellij.ui.components.fields.IntegerField
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
@@ -38,7 +39,11 @@ class KafkaProducerEditor(project: Project,
     renderer = AcksRenderer()
     item = AcksType.NONE
   }
-
+  private val idempotenceCheckBox = CheckBox(KafkaMessagesBundle.message("producer.idempotence.label")).apply {
+    addChangeListener {
+      acksComboBox.isEnabled = !isSelected
+    }
+  }
   private val compressionComboBox = ComboBox(RecordCompression.values()).apply {
     renderer = RecordCompressionRenderer()
     selectedIndex = 0
@@ -85,7 +90,8 @@ class KafkaProducerEditor(project: Project,
       val result = producerClient.sentMessage(selectedTopicName, key, value,
                                               propertiesComponent.getProperties(),
                                               compressionComboBox.item,
-                                              acksComboBox.item)
+                                              acksComboBox.item,
+                                              idempotenceCheckBox.isSelected)
       outputModel.addElement(result)
     }
   }
@@ -115,6 +121,7 @@ class KafkaProducerEditor(project: Project,
 
     row("Compression:", compressionComboBox)
     row("Acks:", acksComboBox)
+    add(idempotenceCheckBox, CC().spanX().growX().wrap())
     add(produceButton, CC().spanX().growX().wrap())
     add(outputList, CC().spanX().growX().wrap())
   }
