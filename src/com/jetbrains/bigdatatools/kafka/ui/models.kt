@@ -23,3 +23,7 @@ data class KafkaField(val type: FieldType, val text: String?) {
     FieldType.NULL -> null
   }
 }
+
+enum class RecordCompression {
+  NONE, GZIP, SNAPPY, LZ4, ZSTD
+}

@@ -34,6 +34,11 @@ class KafkaProducerEditor(project: Project,
   private val propertiesComponent = BdtPropertyComponent("", label = KafkaMessagesBundle.message("record.headers.label"))
 
   private val topicComboBox = ComboBox(topics.toTypedArray()).apply { renderer = TopicRenderer() }
+
+  private val compressionComboBox = ComboBox(RecordCompression.values()).apply {
+    renderer = RecordCompressionRenderer()
+    selectedIndex = 0
+  }
   private val keyComboBox = ComboBox(FieldType.values()).apply {
     renderer = FieldTypeRenderer()
     addItemListener {
@@ -67,10 +72,13 @@ class KafkaProducerEditor(project: Project,
 
   private val produceButton = JButton(KafkaMessagesBundle.message("kafka.producer.action,produce.title")).also {
     it.addActionListener {
-      val selectedTopic = topicComboBox.item?.name ?: error("Topic is not selected")
+      val topic = topicComboBox.item ?: error("Topic is not selected")
+      val selectedTopicName = topic.name
+
       val key = KafkaField(keyComboBox.item!!, getKey())
       val value = KafkaField(valueComboBox.item!!, getValue())
-      val result = producerClient.sentMessage(selectedTopic, key, value, propertiesComponent.getProperties())
+
+      val result = producerClient.sentMessage(selectedTopicName, key, value, propertiesComponent.getProperties(), compressionComboBox.item)
       outputModel.addElement(result)
     }
   }
@@ -98,6 +106,7 @@ class KafkaProducerEditor(project: Project,
 
     row(propertiesComponent.label, propertiesComponent.getComponent())
 
+    row("Compression type:", compressionComboBox)
     add(produceButton, CC().spanX().growX().wrap())
     add(outputList, CC().spanX().growX().wrap())
   }

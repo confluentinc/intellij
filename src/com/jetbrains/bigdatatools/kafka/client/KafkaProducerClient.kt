@@ -3,6 +3,7 @@ package com.jetbrains.bigdatatools.kafka.client
 import com.jetbrains.bigdatatools.kafka.ui.FieldType
 import com.jetbrains.bigdatatools.kafka.ui.KafkaField
 import com.jetbrains.bigdatatools.kafka.ui.ProducerResultMessage
+import com.jetbrains.bigdatatools.kafka.ui.RecordCompression
 import com.jetbrains.bigdatatools.settings.connections.Property
 import org.apache.kafka.clients.producer.KafkaProducer
 import org.apache.kafka.clients.producer.ProducerConfig
@@ -14,11 +15,13 @@ import java.util.*
 class KafkaProducerClient(val client: KafkaClient) {
   val connectionData = client.connectionData
 
-  fun sentMessage(topic: String, key: KafkaField, value: KafkaField, headers: List<Property> = emptyList()): ProducerResultMessage {
+  fun sentMessage(topic: String, key: KafkaField, value: KafkaField,
+                  headers: List<Property> = emptyList(),
+                  recordCompression: RecordCompression = RecordCompression.NONE): ProducerResultMessage {
     val props = client.kafkaProps.clone() as Properties
-    props[ProducerConfig.CLIENT_ID_CONFIG] = "KafkaExampleProducer"
     props[ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG] = chooseSerializer(key.type)::class.java
     props[ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG] = chooseSerializer(value.type)::class.java
+    props[ProducerConfig.COMPRESSION_TYPE_CONFIG] = recordCompression.name.toLowerCase()
     val producer = KafkaProducer<Serializable, Serializable>(props)
 
     return try {
