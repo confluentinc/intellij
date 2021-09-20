@@ -21,12 +21,15 @@ class KafkaConsumerClient(val client: KafkaClient) : Disposable {
 
   fun start(topic: String, consume: (ConsumerRecord<Serializable, Serializable>) -> Unit) {
     val props = client.kafkaProps.clone() as Properties
-    props[ConsumerConfig.GROUP_ID_CONFIG] = "BigDataTools"
+    props[ConsumerConfig.GROUP_ID_CONFIG] = "BigDataTools" + UUID.randomUUID()
     props[ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG] = StringDeserializer::class.java
     props[ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG] = StringDeserializer::class.java
     val consumer = KafkaConsumer<Serializable, Serializable>(props)
+
     runConsumer = consumer
-    consumer.subscribe(listOf(topic))
+    //consumer.offsetsForTimes()
+    //consumer.(listOf(topic))
+
     isRunning.set(true)
     executeOnPooledThread {
       consumer.use {

@@ -16,7 +16,8 @@ import com.intellij.ui.OnePixelSplitter
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.model.TopicPresentable
 import com.jetbrains.bigdatatools.kafka.toolwindow.config.KafkaToolWindowSettings
-import com.jetbrains.bigdatatools.kafka.ui.KafkaProducerEditorProvider
+import com.jetbrains.bigdatatools.kafka.ui.KafkaEditorProvider
+import com.jetbrains.bigdatatools.kafka.ui.KafkaEditorType
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import com.jetbrains.bigdatatools.monitoring.table.DataTable
 import com.jetbrains.bigdatatools.monitoring.table.DataTableCreator
@@ -101,8 +102,20 @@ class TopicsController(private val project: Project, private val dataManager: Ka
                                                   null,
                                                   AllIcons.Actions.Upload) {
       override fun actionPerformed(e: AnActionEvent) {
-        val file = LightVirtualFile("Kafka Producer.kafkaProducer")
-        file.putUserData(KafkaProducerEditorProvider.KAFKA_MANAGER_KEY, dataManager)
+        val file = LightVirtualFile("Kafka Producer")
+        file.putUserData(KafkaEditorProvider.KAFKA_MANAGER_KEY, dataManager)
+        file.putUserData(KafkaEditorProvider.KAFKA_EDITOR_TYPE, KafkaEditorType.PRODUCER)
+        FileEditorManagerEx.getInstance(project).openFile(file, true)
+      }
+    }
+
+    val createConsumer = object : DumbAwareAction(KafkaMessagesBundle.message("create.producer.action.title"),
+                                                  null,
+                                                  AllIcons.Actions.Download) {
+      override fun actionPerformed(e: AnActionEvent) {
+        val file = LightVirtualFile("Kafka Consumer")
+        file.putUserData(KafkaEditorProvider.KAFKA_MANAGER_KEY, dataManager)
+        file.putUserData(KafkaEditorProvider.KAFKA_EDITOR_TYPE, KafkaEditorType.CONSUMER)
         FileEditorManagerEx.getInstance(project).openFile(file, true)
       }
     }
@@ -110,6 +123,7 @@ class TopicsController(private val project: Project, private val dataManager: Ka
     actions.add(showInternalTopicsAction)
     actions.add(configStoragesColumnsAction)
     //actions.add(createProducer)
+    //actions.add(createConsumer)
 
     return ActionManager.getInstance().createActionToolbar("BDTKafkaTopics", actions, false).component
   }
