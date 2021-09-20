@@ -31,3 +31,7 @@ enum class RecordCompression {
 enum class AcksType(val value: Int) {
   NONE(0), LEADER(1), ALL(-1)
 }
+
+enum class KafkaEditorType {
+  CONSUMER, PRODUCER
+}
