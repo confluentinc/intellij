@@ -86,7 +86,7 @@ class KafkaProducerEditor(project: Project,
     setCellRenderer(ProducerOutputRender())
   }
 
-  private val produceButton = JButton(KafkaMessagesBundle.message("kafka.producer.action,produce.title")).also {
+  private val produceButton = JButton(KafkaMessagesBundle.message("kafka.producer.action.produce.title")).also {
     it.addActionListener {
       val topic = topicComboBox.item ?: error("Topic is not selected")
       val selectedTopicName = topic.name

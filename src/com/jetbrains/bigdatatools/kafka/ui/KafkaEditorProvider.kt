@@ -10,11 +10,16 @@ import com.intellij.openapi.vfs.VirtualFile
 import com.jetbrains.bigdatatools.data.StructuredFilesUtil
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 
-class KafkaProducerEditorProvider : WeighedFileEditorProvider(), DumbAware {
-  override fun accept(project: Project, file: VirtualFile): Boolean = file.extension == "kafkaProducer"
+class KafkaEditorProvider : WeighedFileEditorProvider(), DumbAware {
+  override fun accept(project: Project, file: VirtualFile): Boolean = file.getUserData(KAFKA_EDITOR_TYPE) != null
+
   override fun createEditor(project: Project, file: VirtualFile): FileEditor {
     val manager = file.getUserData(KAFKA_MANAGER_KEY) ?: error("Kafka manager is not found")
-    return KafkaProducerEditor(project, manager, file)
+    val type = file.getUserData(KAFKA_EDITOR_TYPE) ?: error("Kafka editor type is not found")
+    return when (type) {
+      KafkaEditorType.CONSUMER -> KafkaConsumerEditor(project, manager, file)
+      KafkaEditorType.PRODUCER -> KafkaProducerEditor(project, manager, file)
+    }
   }
 
   override fun getEditorTypeId(): String = PROVIDER_ID
@@ -24,6 +29,8 @@ class KafkaProducerEditorProvider : WeighedFileEditorProvider(), DumbAware {
   companion object {
     private const val PROVIDER_ID = "kafka-producer"
 
-    val KAFKA_MANAGER_KEY = Key<KafkaDataManager>("KAFKA_MANAGER_KEY")
+    val KAFKA_MANAGER_KEY = Key<KafkaDataManager>("KAFKA_MANAGER")
+    val KAFKA_EDITOR_TYPE = Key<KafkaEditorType>("KAFKA_EDITOR_TYPE")
   }
 }
+

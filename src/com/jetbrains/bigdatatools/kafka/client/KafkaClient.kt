@@ -33,6 +33,7 @@ class KafkaClient(project: Project?,
     get() = kafkaAdmin ?: error("Kafka Admin Client is not inited")
 
   fun createProducerClient() = KafkaProducerClient(client = this)
+  fun createConsumerClient() = KafkaConsumerClient(client = this)
 
   override fun dispose() = executeOnPooledThread {
     try {

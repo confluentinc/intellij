@@ -2,7 +2,7 @@ package com.jetbrains.bigdatatools.kafka.ui
 
 import java.util.*
 
-data class ProducerResultMessage(val key: String,
+data class ConsumerResultMessage(val key: String,
                                  val value: String,
                                  val timestamp: Date,
                                  val offset: Long,
