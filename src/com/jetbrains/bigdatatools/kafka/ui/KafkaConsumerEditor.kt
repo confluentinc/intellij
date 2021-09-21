@@ -10,13 +10,16 @@ import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.UserDataHolderBase
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.ui.components.JBList
+import com.intellij.ui.components.JBTextField
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import com.jetbrains.bigdatatools.ui.MigPanel
+import com.michaelbaranov.microba.calendar.DatePicker
 import net.miginfocom.layout.CC
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import java.beans.PropertyChangeListener
 import java.io.Serializable
+import java.util.*
 import javax.swing.DefaultListModel
 import javax.swing.JButton
 import javax.swing.JComponent
@@ -27,8 +30,19 @@ class KafkaConsumerEditor(project: Project,
   private val consumerClient = kafkaManager.client.createConsumerClient()
   val topics = kafkaManager.getTopics()
 
+  private val startSpecificDate = DatePicker()
+  private val startOffset = JBTextField()
+  private val startFromComboBox = ComboBox(ConsumerStartFrom.values()).apply {
+    renderer = StartFromRenderer()
+    item = ConsumerStartFrom.NOW
+    addItemListener {
+      updateStartWith()
+    }
+  }
+
   init {
     Disposer.register(this, consumerClient)
+    updateStartWith()
   }
 
   private val topicComboBox = ComboBox(topics.toTypedArray()).apply { renderer = TopicRenderer() }
@@ -81,6 +95,9 @@ class KafkaConsumerEditor(project: Project,
     row("Topics:", topicComboBox)
     row("Key:", keyComboBox)
     row("Value:", valueComboBox)
+    row("Start from:", startFromComboBox)
+    add(startSpecificDate, CC().spanX().growX().wrap())
+    add(startOffset, CC().spanX().growX().wrap())
     add(consumeButton, CC().spanX().growX().wrap())
     add(outputList, CC().spanX().growX().wrap())
   }
@@ -88,7 +105,41 @@ class KafkaConsumerEditor(project: Project,
   private fun startConsume() {
     val topic = topicComboBox.item ?: error("Topic is not selected")
 
-    consumerClient.start(topic.name) { record: ConsumerRecord<Serializable, Serializable> ->
+    val startOffset: Long? = when (startFromComboBox.selectedItem) {
+      ConsumerStartFrom.OFFSET -> startOffset.text.ifBlank { null }?.toLongOrNull()
+      ConsumerStartFrom.LATEST_OFFSET_MINUS_X -> startOffset.text.ifBlank { null }?.toLongOrNull()?.times(-1)
+      ConsumerStartFrom.THE_BEGINNING -> 0
+      else -> startOffset.text.ifBlank { null }?.toLongOrNull()
+    }
+
+    val calendar = Calendar.getInstance()
+    calendar.time = Date()
+
+    val startTime = when (startFromComboBox.selectedItem) {
+      ConsumerStartFrom.NOW -> calendar.time
+      ConsumerStartFrom.LAST_HOUR -> {
+        calendar.add(Calendar.HOUR_OF_DAY, -1)
+        calendar.time
+      }
+      ConsumerStartFrom.TODAY -> {
+        calendar.set(Calendar.HOUR_OF_DAY, 0)
+        calendar.set(Calendar.MINUTE, 0)
+        calendar.set(Calendar.SECOND, 0)
+        calendar.time
+      }
+      ConsumerStartFrom.YESTERDAY -> {
+        calendar.set(Calendar.HOUR_OF_DAY, 0)
+        calendar.set(Calendar.MINUTE, 0)
+        calendar.set(Calendar.SECOND, 0)
+        calendar.add(Calendar.DAY_OF_YEAR, -1)
+        calendar.time
+      }
+
+      ConsumerStartFrom.SPECIFIC_DATE -> startSpecificDate.date
+      else -> null
+    }
+
+    consumerClient.start(topic.name, startOffset = startOffset, startTimeMs = startTime?.time) { record ->
       outputModel.addElement(record)
     }
   }
@@ -98,7 +149,19 @@ class KafkaConsumerEditor(project: Project,
     topicComboBox.isEnabled = isEnabled
     keyComboBox.isEnabled = isEnabled
     valueComboBox.isEnabled = isEnabled
+    startSpecificDate.isEnabled = isEnabled
+    startOffset.isEnabled = isEnabled
   }
+
+  private fun updateStartWith() {
+    startSpecificDate.isVisible = false
+    startOffset.isVisible = false
+    when (startFromComboBox.selectedItem) {
+      ConsumerStartFrom.SPECIFIC_DATE -> startSpecificDate.isVisible = true
+      ConsumerStartFrom.OFFSET, ConsumerStartFrom.LATEST_OFFSET_MINUS_X -> startOffset.isVisible = true
+    }
+  }
+
 
   override fun getName(): String = KafkaMessagesBundle.message("consume.from.topic")
   override fun getComponent(): JComponent = mainComponent
