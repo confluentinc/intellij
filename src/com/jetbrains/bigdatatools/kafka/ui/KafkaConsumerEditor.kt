@@ -49,6 +49,19 @@ class KafkaConsumerEditor(kafkaManager: KafkaDataManager,
     }
   }
 
+  private val filterComboBox = ComboBox(ConsumerFilter.values()).apply {
+    renderer = FilterRenderer()
+    item = ConsumerFilter.NONE
+    addItemListener {
+      updateFilter()
+    }
+  }
+
+  private val filterKeyField = JBTextField()
+  private val filterValueField = JBTextField()
+  private val filterHeadKeyField = JBTextField()
+  private val filterHeadValueField = JBTextField()
+
   private val topicComboBox = ComboBox(topics.toTypedArray()).apply { renderer = TopicRenderer() }
 
   private val keyComboBox = ComboBox(FieldType.values()).apply {
@@ -90,6 +103,13 @@ class KafkaConsumerEditor(kafkaManager: KafkaDataManager,
 
   }
 
+  private val filterPanel = MigPanel().apply {
+    row("Filter key:", filterKeyField)
+    row("Filter value:", filterValueField)
+    row("Filter head key:", filterHeadKeyField)
+    row("Filter head value:", filterHeadValueField)
+  }
+
   private val mainComponent = createCenterPanel()
 
   init {
@@ -97,6 +117,7 @@ class KafkaConsumerEditor(kafkaManager: KafkaDataManager,
     updateVisibility()
     updateLimit()
     updateStartWith()
+    updateFilter()
   }
 
   private fun createCenterPanel() = MigPanel().apply {
@@ -111,6 +132,9 @@ class KafkaConsumerEditor(kafkaManager: KafkaDataManager,
     row("Limit:", limitComboBox)
     add(limitSpecificDate, CC().spanX().growX().wrap())
     add(limitOffset, CC().spanX().growX().wrap())
+
+    row("Filter:", filterComboBox)
+    add(filterPanel, CC().spanX().growX().wrap())
 
     add(consumeButton, CC().spanX().growX().wrap())
 
@@ -161,20 +185,37 @@ class KafkaConsumerEditor(kafkaManager: KafkaDataManager,
                          partitionLimitSize = getLimitPartitionsSize(),
                          topicLimitSize = getLimitTopicSize(),
                          topicLimitCount = getLimitTopicCount(),
-                         partitionLimitCount = getLimitPartitionCount()) { record ->
+                         partitionLimitCount = getLimitPartitionCount(),
+                         filterType = filterComboBox.item,
+                         filterKey = filterKeyField.text.ifBlank { null },
+                         filterValue = filterValueField.text.ifBlank { null },
+                         filterHeadKey = filterHeadKeyField.text.ifBlank { null },
+                         filterHeadValue = filterHeadValueField.text.ifBlank { null }) { record ->
       outputModel.addElement(record)
     }
   }
 
   private fun updateVisibility() {
     val isEnabled = !consumerClient.isRunning()
+
     topicComboBox.isEnabled = isEnabled
+
     keyComboBox.isEnabled = isEnabled
     valueComboBox.isEnabled = isEnabled
+
+    startFromComboBox.isEnabled = isEnabled
     startSpecificDate.isEnabled = isEnabled
     startOffset.isEnabled = isEnabled
+
+    limitComboBox.isEnabled = isEnabled
     limitOffset.isEnabled = isEnabled
     limitSpecificDate.isEnabled = isEnabled
+
+    filterComboBox.isEnabled = isEnabled
+    filterKeyField.isEnabled = isEnabled
+    filterValueField.isEnabled = isEnabled
+    filterHeadKeyField.isEnabled = isEnabled
+    filterHeadValueField.isEnabled = isEnabled
   }
 
   private fun updateStartWith() {
@@ -185,6 +226,16 @@ class KafkaConsumerEditor(kafkaManager: KafkaDataManager,
       ConsumerStartFrom.OFFSET, ConsumerStartFrom.LATEST_OFFSET_MINUS_X -> startOffset.isVisible = true
     }
   }
+
+  private fun updateFilter() {
+    val value = filterComboBox.selectedItem != ConsumerFilter.NONE
+    filterPanel.isVisible = value
+    filterKeyField.isVisible = value
+    filterValueField.isVisible = value
+    filterHeadKeyField.isVisible = value
+    filterHeadValueField.isVisible = value
+  }
+
 
   private fun updateLimit() {
     limitSpecificDate.isVisible = false
