@@ -81,8 +81,9 @@ class KafkaConsumerClient(val client: KafkaClient) : Disposable {
 
             val isPassAllFilters = isPassFilter(record.key()?.toString(), filterKey, filterType) &&
                                    isPassFilter(record.value()?.toString(), filterValue, filterType) &&
-                                   record.headers().any { isPassFilter(it.key(), filterHeadKey, filterType) } &&
-                                   record.headers().any { isPassFilter(it.value()?.decodeToString(), filterHeadValue, filterType) }
+                                   isPassFilterHeaders(record.headers().map { it.key() }, filterHeadKey, filterType) &&
+                                   isPassFilterHeaders(record.headers().map { it.value().decodeToString() }, filterHeadValue, filterType)
+
             if (!isPassAllFilters)
               return@forEach
 
@@ -163,5 +164,21 @@ class KafkaConsumerClient(val client: KafkaClient) : Disposable {
       ConsumerFilter.REGEX -> value?.contains(Regex(filterValue)) == false
     }
   }
+
+  private fun isPassFilterHeaders(value: List<String>, filterValue: String?, filterType: ConsumerFilter): Boolean {
+    if (filterValue == null)
+      return true
+
+    return when (filterType) {
+      ConsumerFilter.NONE -> true
+      ConsumerFilter.CONTAINS -> value.any { it.contains(filterValue) }
+      ConsumerFilter.DOES_NOT_CONTAINS -> value.all { !it.contains(filterValue) }
+      ConsumerFilter.REGEX -> value.any {
+        val regex = Regex(filterValue)
+        regex.matches(it)
+      }
+    }
+  }
+
 }
 

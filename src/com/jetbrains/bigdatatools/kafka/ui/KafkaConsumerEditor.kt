@@ -177,7 +177,7 @@ class KafkaConsumerEditor(kafkaManager: KafkaDataManager,
     calendar.time = Date()
 
     val startTime = when (startFromComboBox.selectedItem) {
-      ConsumerStartFrom.NOW -> calendar.time
+      ConsumerStartFrom.NOW -> null
       ConsumerStartFrom.LAST_HOUR -> {
         calendar.add(Calendar.HOUR_OF_DAY, -1)
         calendar.time
