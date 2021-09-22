@@ -23,6 +23,11 @@ class KafkaConsumerClient(val client: KafkaClient) : Disposable {
             startOffset: Long? = null,
             startTimeMs: Long? = null,
             partitionFilter: List<Int>? = null,
+            topicLimitCount: Long? = null,
+            partitionLimitCount: Long? = null,
+            limitTime: Long? = null,
+            topicLimitSize: Long? = null,
+            partitionLimitSize: Long? = null,
             consume: (ConsumerRecord<Serializable, Serializable>) -> Unit) {
     val props = client.kafkaProps.clone() as Properties
     props[ConsumerConfig.GROUP_ID_CONFIG] = "BigDataTools" + UUID.randomUUID()
@@ -48,11 +53,61 @@ class KafkaConsumerClient(val client: KafkaClient) : Disposable {
 
     isRunning.set(true)
 
+    @Suppress("CanBeVal")
+    var needToReadTopicCount = topicLimitCount
+    val needToReadPartitionCount = partitionLimitCount?.let { limit ->
+      partitions.associate { it.partition() to limit }.toMutableMap()
+    }
+
+    var needToReadTopicSize = topicLimitSize
+    val needToReadPartitionSize = partitionLimitSize?.let { limit ->
+      partitions.associate { it.partition() to limit }.toMutableMap()
+    }
+
     executeOnPooledThread {
       consumer.use {
         while (isRunning.get()) {
           val records = it.poll(Duration.ofMillis(500))
+
           records.forEach { record ->
+            if (limitTime != null && record.timestamp() > limitTime)
+              return@executeOnPooledThread
+
+            val recordSize = record.serializedValueSize() + record.serializedKeySize()
+
+            if (needToReadTopicSize != null && needToReadTopicSize!! <= 0L)
+              return@executeOnPooledThread
+            needToReadTopicSize = needToReadTopicSize?.minus(recordSize)
+
+            if (needToReadPartitionSize != null) {
+              if (needToReadPartitionSize.isEmpty())
+                return@executeOnPooledThread
+
+              val left = needToReadPartitionSize[record.partition()]
+              when {
+                left == null -> return@forEach
+                left > 0 -> needToReadPartitionSize[record.partition()] = left - 1
+                else -> needToReadPartitionSize.remove(record.partition())
+              }
+            }
+
+
+            if (needToReadTopicCount == 0L)
+              return@executeOnPooledThread
+            needToReadTopicCount = needToReadTopicCount?.minus(1)
+
+            if (needToReadPartitionCount != null) {
+              if (needToReadPartitionCount.isEmpty())
+                return@executeOnPooledThread
+
+              val left = needToReadPartitionCount[record.partition()]
+              when {
+                left == null -> return@forEach
+                left > 0 -> needToReadPartitionCount[record.partition()] = left - 1
+                else -> needToReadPartitionCount.remove(record.partition())
+              }
+            }
+
             consume(record)
           }
         }
