@@ -1,6 +1,7 @@
 package com.jetbrains.bigdatatools.kafka.client
 
 import com.intellij.openapi.Disposable
+import com.jetbrains.bigdatatools.kafka.ui.ConsumerFilter
 import com.jetbrains.bigdatatools.util.executeOnPooledThread
 import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.clients.consumer.ConsumerRecord
@@ -28,6 +29,11 @@ class KafkaConsumerClient(val client: KafkaClient) : Disposable {
             limitTime: Long? = null,
             topicLimitSize: Long? = null,
             partitionLimitSize: Long? = null,
+            filterType: ConsumerFilter,
+            filterKey: String? = null,
+            filterValue: String? = null,
+            filterHeadKey: String? = null,
+            filterHeadValue: String? = null,
             consume: (ConsumerRecord<Serializable, Serializable>) -> Unit) {
     val props = client.kafkaProps.clone() as Properties
     props[ConsumerConfig.GROUP_ID_CONFIG] = "BigDataTools" + UUID.randomUUID()
@@ -65,13 +71,20 @@ class KafkaConsumerClient(val client: KafkaClient) : Disposable {
     }
 
     executeOnPooledThread {
-      consumer.use {
+      consumer.use { consumer ->
         while (isRunning.get()) {
-          val records = it.poll(Duration.ofMillis(500))
+          val records = consumer.poll(Duration.ofMillis(500))
 
           records.forEach { record ->
             if (limitTime != null && record.timestamp() > limitTime)
               return@executeOnPooledThread
+
+            val isPassAllFilters = isPassFilter(record.key()?.toString(), filterKey, filterType) &&
+                                   isPassFilter(record.value()?.toString(), filterValue, filterType) &&
+                                   record.headers().any { isPassFilter(it.key(), filterHeadKey, filterType) } &&
+                                   record.headers().any { isPassFilter(it.value()?.decodeToString(), filterHeadValue, filterType) }
+            if (!isPassAllFilters)
+              return@forEach
 
             val recordSize = record.serializedValueSize() + record.serializedKeySize()
 
@@ -124,7 +137,6 @@ class KafkaConsumerClient(val client: KafkaClient) : Disposable {
     consumer.beginningOffsets(partitions).map { it.key to (it.value + offset) }.toMap()
   }
 
-
   fun stop() {
     //runConsumer?.close()
     isRunning.set(false)
@@ -138,6 +150,18 @@ class KafkaConsumerClient(val client: KafkaClient) : Disposable {
     val timestampsToSearch = partitions.associateWith { startTime }
     val offsetsForTimes = consumer.offsetsForTimes(timestampsToSearch)
     return offsetsForTimes?.map { it.key to it.value?.offset() }?.toMap()
+  }
+
+  private fun isPassFilter(value: String?, filterValue: String?, filterType: ConsumerFilter): Boolean {
+    if (filterValue == null)
+      return true
+
+    return when (filterType) {
+      ConsumerFilter.NONE -> true
+      ConsumerFilter.CONTAINS -> value?.contains(filterValue) == true
+      ConsumerFilter.DOES_NOT_CONTAINS -> value?.contains(filterValue) == false
+      ConsumerFilter.REGEX -> value?.contains(Regex(filterValue)) == false
+    }
   }
 }
 
