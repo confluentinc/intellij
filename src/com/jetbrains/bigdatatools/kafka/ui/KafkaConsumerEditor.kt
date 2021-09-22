@@ -62,6 +62,8 @@ class KafkaConsumerEditor(kafkaManager: KafkaDataManager,
   private val filterHeadKeyField = JBTextField()
   private val filterHeadValueField = JBTextField()
 
+  private val partitionField = JBTextField()
+
   private val topicComboBox = ComboBox(topics.toTypedArray()).apply { renderer = TopicRenderer() }
 
   private val keyComboBox = ComboBox(FieldType.values()).apply {
@@ -135,6 +137,7 @@ class KafkaConsumerEditor(kafkaManager: KafkaDataManager,
 
     row("Filter:", filterComboBox)
     add(filterPanel, CC().spanX().growX().wrap())
+    row("Partitions:", partitionField)
 
     add(consumeButton, CC().spanX().growX().wrap())
 
@@ -178,19 +181,36 @@ class KafkaConsumerEditor(kafkaManager: KafkaDataManager,
       else -> null
     }
 
+    val partitionsStrings = partitionField.text.split(",").map { it.trim() }.filter { it.isNotBlank() }
+    val partitions = partitionsStrings.flatMap { p ->
+      if (!p.contains("-"))
+        listOfNotNull(p.toIntOrNull())
+      else {
+        val range = p.split("-").map { it.trim() }
+        val start = range.first().trim().toIntOrNull() ?: return@flatMap emptyList<Int>()
+        val end = range.last().trim().toIntOrNull() ?: return@flatMap emptyList<Int>()
+        start..end
+      }
+    }
     consumerClient.start(topic = topic.name,
                          startOffset = startOffset,
                          startTimeMs = startTime?.time,
                          limitTime = getLimitTime(),
+                         partitionFilter = partitions.ifEmpty { null },
                          partitionLimitSize = getLimitPartitionsSize(),
                          topicLimitSize = getLimitTopicSize(),
                          topicLimitCount = getLimitTopicCount(),
                          partitionLimitCount = getLimitPartitionCount(),
                          filterType = filterComboBox.item,
-                         filterKey = filterKeyField.text.ifBlank { null },
-                         filterValue = filterValueField.text.ifBlank { null },
-                         filterHeadKey = filterHeadKeyField.text.ifBlank { null },
-                         filterHeadValue = filterHeadValueField.text.ifBlank { null }) { record ->
+                         filterKey = filterKeyField.text.ifBlank
+                         { null },
+                         filterValue = filterValueField.text.ifBlank
+                         { null },
+                         filterHeadKey = filterHeadKeyField.text.ifBlank
+                         { null },
+                         filterHeadValue = filterHeadValueField.text.ifBlank
+                         { null })
+    { record ->
       outputModel.addElement(record)
     }
   }
@@ -199,6 +219,8 @@ class KafkaConsumerEditor(kafkaManager: KafkaDataManager,
     val isEnabled = !consumerClient.isRunning()
 
     topicComboBox.isEnabled = isEnabled
+
+    partitionField.isEnabled = isEnabled
 
     keyComboBox.isEnabled = isEnabled
     valueComboBox.isEnabled = isEnabled
