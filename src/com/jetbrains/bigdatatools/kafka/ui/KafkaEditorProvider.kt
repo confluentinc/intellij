@@ -17,7 +17,7 @@ class KafkaEditorProvider : WeighedFileEditorProvider(), DumbAware {
     val manager = file.getUserData(KAFKA_MANAGER_KEY) ?: error("Kafka manager is not found")
     val type = file.getUserData(KAFKA_EDITOR_TYPE) ?: error("Kafka editor type is not found")
     return when (type) {
-      KafkaEditorType.CONSUMER -> KafkaConsumerEditor(project, manager, file)
+      KafkaEditorType.CONSUMER -> KafkaConsumerEditor(manager, file)
       KafkaEditorType.PRODUCER -> KafkaProducerEditor(project, manager, file)
     }
   }

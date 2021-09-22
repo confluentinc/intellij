@@ -4,7 +4,6 @@ package com.jetbrains.bigdatatools.kafka.ui
 import com.intellij.openapi.fileEditor.FileEditor
 import com.intellij.openapi.fileEditor.FileEditorLocation
 import com.intellij.openapi.fileEditor.FileEditorState
-import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.UserDataHolderBase
@@ -24,13 +23,15 @@ import javax.swing.DefaultListModel
 import javax.swing.JButton
 import javax.swing.JComponent
 
-class KafkaConsumerEditor(project: Project,
-                          kafkaManager: KafkaDataManager,
+class KafkaConsumerEditor(kafkaManager: KafkaDataManager,
                           private val file: VirtualFile) : FileEditor, UserDataHolderBase() {
   private val consumerClient = kafkaManager.client.createConsumerClient()
   val topics = kafkaManager.getTopics()
 
   private val startSpecificDate = DatePicker()
+  private val limitSpecificDate = DatePicker()
+  private val limitOffset = JBTextField()
+
   private val startOffset = JBTextField()
   private val startFromComboBox = ComboBox(ConsumerStartFrom.values()).apply {
     renderer = StartFromRenderer()
@@ -40,12 +41,16 @@ class KafkaConsumerEditor(project: Project,
     }
   }
 
-  init {
-    Disposer.register(this, consumerClient)
-    updateStartWith()
+  private val limitComboBox = ComboBox(ConsumerLimit.values()).apply {
+    renderer = LimitRenderer()
+    item = ConsumerLimit.NONE
+    addItemListener {
+      updateLimit()
+    }
   }
 
   private val topicComboBox = ComboBox(topics.toTypedArray()).apply { renderer = TopicRenderer() }
+
   private val keyComboBox = ComboBox(FieldType.values()).apply {
     renderer = FieldTypeRenderer()
     selectedItem = FieldType.STRING
@@ -88,17 +93,27 @@ class KafkaConsumerEditor(project: Project,
   private val mainComponent = createCenterPanel()
 
   init {
+    Disposer.register(this, consumerClient)
     updateVisibility()
+    updateLimit()
+    updateStartWith()
   }
 
   private fun createCenterPanel() = MigPanel().apply {
     row("Topics:", topicComboBox)
     row("Key:", keyComboBox)
     row("Value:", valueComboBox)
+
     row("Start from:", startFromComboBox)
     add(startSpecificDate, CC().spanX().growX().wrap())
     add(startOffset, CC().spanX().growX().wrap())
+
+    row("Limit:", limitComboBox)
+    add(limitSpecificDate, CC().spanX().growX().wrap())
+    add(limitOffset, CC().spanX().growX().wrap())
+
     add(consumeButton, CC().spanX().growX().wrap())
+
     add(outputList, CC().spanX().growX().wrap())
   }
 
@@ -139,7 +154,14 @@ class KafkaConsumerEditor(project: Project,
       else -> null
     }
 
-    consumerClient.start(topic.name, startOffset = startOffset, startTimeMs = startTime?.time) { record ->
+    consumerClient.start(topic = topic.name,
+                         startOffset = startOffset,
+                         startTimeMs = startTime?.time,
+                         limitTime = getLimitTime(),
+                         partitionLimitSize = getLimitPartitionsSize(),
+                         topicLimitSize = getLimitTopicSize(),
+                         topicLimitCount = getLimitTopicCount(),
+                         partitionLimitCount = getLimitPartitionCount()) { record ->
       outputModel.addElement(record)
     }
   }
@@ -151,6 +173,8 @@ class KafkaConsumerEditor(project: Project,
     valueComboBox.isEnabled = isEnabled
     startSpecificDate.isEnabled = isEnabled
     startOffset.isEnabled = isEnabled
+    limitOffset.isEnabled = isEnabled
+    limitSpecificDate.isEnabled = isEnabled
   }
 
   private fun updateStartWith() {
@@ -161,6 +185,45 @@ class KafkaConsumerEditor(project: Project,
       ConsumerStartFrom.OFFSET, ConsumerStartFrom.LATEST_OFFSET_MINUS_X -> startOffset.isVisible = true
     }
   }
+
+  private fun updateLimit() {
+    limitSpecificDate.isVisible = false
+    limitOffset.isVisible = false
+
+    when (limitComboBox.selectedItem) {
+      ConsumerLimit.DATE -> limitSpecificDate.isVisible = true
+      ConsumerLimit.TOPIC_NUMBER_RECORDS,
+      ConsumerLimit.PARTITION_NUMBER_RECORDS,
+      ConsumerLimit.PARTITION_MAX_SIZE,
+      ConsumerLimit.TOPIC_MAX_SIZE -> limitOffset.isVisible = true
+    }
+  }
+
+
+  private fun getLimitTime() = if (limitComboBox.selectedItem == ConsumerLimit.DATE)
+    limitSpecificDate.date.time
+  else
+    null
+
+  private fun getLimitTopicCount() = if (limitComboBox.selectedItem == ConsumerLimit.TOPIC_NUMBER_RECORDS)
+    limitOffset.text?.toLongOrNull()
+  else
+    null
+
+  private fun getLimitTopicSize() = if (limitComboBox.selectedItem == ConsumerLimit.TOPIC_MAX_SIZE)
+    limitOffset.text?.toLongOrNull()
+  else
+    null
+
+  private fun getLimitPartitionCount() = if (limitComboBox.selectedItem == ConsumerLimit.PARTITION_NUMBER_RECORDS)
+    limitOffset.text?.toLongOrNull()
+  else
+    null
+
+  private fun getLimitPartitionsSize() = if (limitComboBox.selectedItem == ConsumerLimit.PARTITION_MAX_SIZE)
+    limitOffset.text?.toLongOrNull()
+  else
+    null
 
 
   override fun getName(): String = KafkaMessagesBundle.message("consume.from.topic")
