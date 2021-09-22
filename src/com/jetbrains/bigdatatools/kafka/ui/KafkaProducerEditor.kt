@@ -1,30 +1,33 @@
 package com.jetbrains.bigdatatools.kafka.ui
 
-
 import com.intellij.json.JsonLanguage
 import com.intellij.openapi.fileEditor.FileEditor
 import com.intellij.openapi.fileEditor.FileEditorLocation
 import com.intellij.openapi.fileEditor.FileEditorState
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.ComboBox
+import com.intellij.openapi.ui.Splitter
 import com.intellij.openapi.util.UserDataHolderBase
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.ui.EditorCustomization
 import com.intellij.ui.EditorTextFieldProvider
 import com.intellij.ui.MonospaceEditorCustomization
+import com.intellij.ui.OnePixelSplitter
 import com.intellij.ui.components.CheckBox
 import com.intellij.ui.components.JBList
+import com.intellij.ui.components.JBScrollPane
+import com.intellij.ui.components.JBTextField
 import com.intellij.ui.components.fields.IntegerField
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import com.jetbrains.bigdatatools.settings.components.BdtPropertyComponent
+import com.jetbrains.bigdatatools.settings.defaultui.UiUtil
 import com.jetbrains.bigdatatools.ui.MigPanel
-import net.miginfocom.layout.CC
+import net.miginfocom.layout.LC
 import java.beans.PropertyChangeListener
 import javax.swing.DefaultListModel
 import javax.swing.JButton
 import javax.swing.JComponent
-import javax.swing.JTextField
 
 class KafkaProducerEditor(project: Project,
                           kafkaManager: KafkaDataManager,
@@ -66,20 +69,19 @@ class KafkaProducerEditor(project: Project,
   private val keyJson = createJsonTextArea(project)
   private val valueJson = createJsonTextArea(project)
 
-  private val keyIntegerField = IntegerField()
-  private val valueIntegerField = IntegerField()
+  private val keyIntegerField = IntegerField().apply { emptyText.text = "Optional" }
+  private val valueIntegerField = IntegerField().apply { emptyText.text = "Optional" }
 
-  private val keyDoubleField = doubleField()
-  private val valueDoubleField = doubleField()
+  private val keyDoubleField = doubleField().apply { emptyText.text = "Optional" }
+  private val valueDoubleField = doubleField().apply { emptyText.text = "Optional" }
 
-  private val keyStringField = JTextField()
-  private val valueStringField = JTextField()
+  private val keyStringField = JBTextField().apply { emptyText.text = "Optional" }
+  private val valueStringField = JBTextField().apply { emptyText.text = "Optional" }
 
   private val forcePartitionField = IntegerField().apply {
     isCanBeEmpty = true
     defaultValue = -1
   }
-
 
   private val outputModel = DefaultListModel<ProducerResultMessage>()
   private val outputList = JBList(outputModel).apply {
@@ -110,29 +112,45 @@ class KafkaProducerEditor(project: Project,
     updateVisibility()
   }
 
-  private fun createCenterPanel() = MigPanel().apply {
-    row("Topics:", topicComboBox)
+  private fun createCenterPanel() = OnePixelSplitter().apply {
 
-    row("Key:", keyComboBox)
-    add(keyJson, CC().spanX().growX().wrap())
-    add(keyIntegerField, CC().spanX().growX().wrap())
-    add(keyDoubleField, CC().spanX().growX().wrap())
-    add(keyStringField, CC().spanX().growX().wrap())
+    val leftPanel = MigPanel(LC().insets("10").fillX().hideMode(3)).apply {
 
-    row("Value:", valueComboBox)
-    add(valueJson, CC().spanX().growX().wrap())
-    add(valueIntegerField, CC().spanX().growX().wrap())
-    add(valueDoubleField, CC().spanX().growX().wrap())
-    add(valueStringField, CC().spanX().growX().wrap())
+      gapLeft = true
+      title("Data")
+      row("Topics:", topicComboBox)
+      row("Key:", keyComboBox)
+      add(keyJson, UiUtil.growXSpanXWrap)
+      add(keyIntegerField, UiUtil.growXSpanXWrap)
+      add(keyDoubleField, UiUtil.growXSpanXWrap)
+      add(keyStringField, UiUtil.growXSpanXWrap)
 
-    row("Force partition:", forcePartitionField)
-    row(propertiesComponent.label, propertiesComponent.getComponent())
+      row("Value:", valueComboBox)
+      add(valueJson, UiUtil.growXSpanXWrap)
+      add(valueIntegerField, UiUtil.growXSpanXWrap)
+      add(valueDoubleField, UiUtil.growXSpanXWrap)
+      add(valueStringField, UiUtil.growXSpanXWrap)
 
-    row("Compression:", compressionComboBox)
-    row("Acks:", acksComboBox)
-    add(idempotenceCheckBox, CC().spanX().growX().wrap())
-    add(produceButton, CC().spanX().growX().wrap())
-    add(outputList, CC().spanX().growX().wrap())
+      title("Options")
+      row("Force partition:", forcePartitionField)
+      row(propertiesComponent.label, propertiesComponent.getComponent())
+
+      row("Compression:", compressionComboBox)
+      row("Acks:", acksComboBox)
+      add(idempotenceCheckBox, UiUtil.gapLeftSpanXWrap)
+
+      gapLeft = false
+
+      add(produceButton, UiUtil.growXSpanXWrap)
+    }
+
+    dividerPositionStrategy = Splitter.DividerPositionStrategy.KEEP_FIRST_SIZE
+    lackOfSpaceStrategy = Splitter.LackOfSpaceStrategy.HONOR_THE_FIRST_MIN_SIZE
+
+    firstComponent = leftPanel
+    secondComponent = JBScrollPane(outputList)
+
+    proportion = 0.1f
   }
 
   private fun createJsonTextArea(project: Project) = EditorTextFieldProvider
@@ -174,8 +192,7 @@ class KafkaProducerEditor(project: Project,
       FieldType.DOUBLE -> keyDoubleField.isVisible = true
       FieldType.FLOAT -> keyDoubleField.isVisible = true
       FieldType.BASE64 -> keyStringField.isVisible = true
-      FieldType.NULL -> {
-      }
+      FieldType.NULL -> Unit
     }
 
     @Suppress("DuplicatedCode")
@@ -186,8 +203,7 @@ class KafkaProducerEditor(project: Project,
       FieldType.DOUBLE -> valueDoubleField.isVisible = true
       FieldType.FLOAT -> valueDoubleField.isVisible = true
       FieldType.BASE64 -> valueStringField.isVisible = true
-      FieldType.NULL -> {
-      }
+      FieldType.NULL -> Unit
     }
   }
 
