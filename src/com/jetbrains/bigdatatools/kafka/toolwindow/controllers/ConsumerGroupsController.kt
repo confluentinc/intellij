@@ -1,7 +1,6 @@
 package com.jetbrains.bigdatatools.kafka.toolwindow.controllers
 
 import com.intellij.openapi.Disposable
-import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.ActionToolbar
 import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.ui.SimpleToolWindowPanel
@@ -51,13 +50,11 @@ class ConsumerGroupsController(dataManager: KafkaDataManager) : Disposable {
 
   private fun createToolbar(columnModel: DataTableColumnModel<ConsumerGroupPresentable>,
                             columnSettings: ColumnVisibilitySettings): ActionToolbar {
-
-    val actions = DefaultActionGroup()
-    actions.add(ColumnVisibilitySettings.createAction(columnModel.allColumns.map { it.name }, columnSettings))
+    val actions = DefaultActionGroup(ColumnVisibilitySettings.createAction(columnModel.allColumns.map { it.name }, columnSettings))
     return createActionToolbar("BDTKafkaConsumerGroups", actions, false)
   }
 
-  override fun dispose() {}
+  override fun dispose() = Unit
 
   fun getComponent() = component
 }
