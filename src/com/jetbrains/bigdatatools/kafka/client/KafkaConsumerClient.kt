@@ -43,9 +43,11 @@ class KafkaConsumerClient(val client: KafkaClient, val onStop: () -> Unit) : Dis
     runConsumer = consumer
 
 
-    val partitions = consumer.partitionsFor(topic).map { TopicPartition(it.topic(), it.partition()) }.toMutableList()
-    partitionFilter?.forEach {
-      partitions.removeAt(it)
+    var partitions = consumer.partitionsFor(topic).map { TopicPartition(it.topic(), it.partition()) }
+
+    if (partitionFilter != null) {
+      val allPartitions = partitions.map { it.partition() }.toSet()
+      partitions = partitionFilter.toSet().intersect(allPartitions).map { TopicPartition(topic, it) }
     }
 
     consumer.assign(partitions)
@@ -148,7 +150,7 @@ class KafkaConsumerClient(val client: KafkaClient, val onStop: () -> Unit) : Dis
   fun isRunning() = isRunning.get()
 
   private fun partitionOffsetsForStartOffset(consumer: KafkaConsumer<Serializable, Serializable>,
-                                             partitions: MutableList<TopicPartition>,
+                                             partitions: List<TopicPartition>,
                                              offset: Long) = if (offset < 0) {
     consumer.endOffsets(partitions).map { it.key to (it.value + offset).coerceAtLeast(0) }.toMap()
   }
@@ -157,7 +159,7 @@ class KafkaConsumerClient(val client: KafkaClient, val onStop: () -> Unit) : Dis
   }
 
   private fun partitionOffsetsForStartDate(startTime: Long,
-                                           partitions: MutableList<TopicPartition>,
+                                           partitions: List<TopicPartition>,
                                            consumer: KafkaConsumer<Serializable, Serializable>): Map<TopicPartition, Long?>? {
     val timestampsToSearch = partitions.associateWith { startTime }
     val offsetsForTimes = consumer.offsetsForTimes(timestampsToSearch)
