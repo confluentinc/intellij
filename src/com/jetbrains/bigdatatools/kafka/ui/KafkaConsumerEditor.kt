@@ -41,9 +41,9 @@ class KafkaConsumerEditor(private val kafkaManager: KafkaDataManager,
   private val limitOffset = JBTextField()
 
   private val startOffset = JBTextField()
-  private val startFromComboBox = ComboBox(ConsumerStartFrom.values()).apply {
+  private val startFromComboBox = ComboBox(ConsumerStartType.values()).apply {
     renderer = StartFromRenderer()
-    item = ConsumerStartFrom.NOW
+    item = ConsumerStartType.NOW
     addItemListener {
       updateStartWith()
     }
@@ -178,9 +178,9 @@ class KafkaConsumerEditor(private val kafkaManager: KafkaDataManager,
     val topic = topicComboBox.item ?: error("Topic is not selected")
 
     val startOffset: Long? = when (startFromComboBox.selectedItem) {
-      ConsumerStartFrom.OFFSET -> startOffset.text.ifBlank { null }?.toLongOrNull()
-      ConsumerStartFrom.LATEST_OFFSET_MINUS_X -> startOffset.text.ifBlank { null }?.toLongOrNull()?.times(-1)
-      ConsumerStartFrom.THE_BEGINNING -> 0
+      ConsumerStartType.OFFSET -> startOffset.text.ifBlank { null }?.toLongOrNull()
+      ConsumerStartType.LATEST_OFFSET_MINUS_X -> startOffset.text.ifBlank { null }?.toLongOrNull()?.times(-1)
+      ConsumerStartType.THE_BEGINNING -> 0
       else -> startOffset.text.ifBlank { null }?.toLongOrNull()
     }
 
@@ -188,18 +188,18 @@ class KafkaConsumerEditor(private val kafkaManager: KafkaDataManager,
     calendar.time = Date()
 
     val startTime = when (startFromComboBox.selectedItem) {
-      ConsumerStartFrom.NOW -> null
-      ConsumerStartFrom.LAST_HOUR -> {
+      ConsumerStartType.NOW -> null
+      ConsumerStartType.LAST_HOUR -> {
         calendar.add(Calendar.HOUR_OF_DAY, -1)
         calendar.time
       }
-      ConsumerStartFrom.TODAY -> {
+      ConsumerStartType.TODAY -> {
         calendar.set(Calendar.HOUR_OF_DAY, 0)
         calendar.set(Calendar.MINUTE, 0)
         calendar.set(Calendar.SECOND, 0)
         calendar.time
       }
-      ConsumerStartFrom.YESTERDAY -> {
+      ConsumerStartType.YESTERDAY -> {
         calendar.set(Calendar.HOUR_OF_DAY, 0)
         calendar.set(Calendar.MINUTE, 0)
         calendar.set(Calendar.SECOND, 0)
@@ -207,7 +207,7 @@ class KafkaConsumerEditor(private val kafkaManager: KafkaDataManager,
         calendar.time
       }
 
-      ConsumerStartFrom.SPECIFIC_DATE -> startSpecificDate.date
+      ConsumerStartType.SPECIFIC_DATE -> startSpecificDate.date
       else -> null
     }
 
@@ -231,16 +231,16 @@ class KafkaConsumerEditor(private val kafkaManager: KafkaDataManager,
       filterHeadValue = filterHeadValueField.text.ifBlank { null },
     )
 
+    val startWith = ConsumerStartWith(offset = startOffset, time = startTime?.time)
     consumerClient.start(topic = topic.name,
-                         startOffset = startOffset,
-                         startTimeMs = startTime?.time,
-                         limitTime = getLimitTime(),
                          partitionFilter = partitions.ifEmpty { null },
-                         partitionLimitSize = getLimitPartitionsSize(),
-                         topicLimitSize = getLimitTopicSize(),
                          topicLimitCount = getLimitTopicCount(),
                          partitionLimitCount = getLimitPartitionCount(),
-                         filter = filter)
+                         limitTime = getLimitTime(),
+                         topicLimitSize = getLimitTopicSize(),
+                         partitionLimitSize = getLimitPartitionsSize(),
+                         filter = filter,
+                         startWith = startWith)
     { record ->
       outputModel.addElement(record)
     }
@@ -275,8 +275,8 @@ class KafkaConsumerEditor(private val kafkaManager: KafkaDataManager,
     startSpecificDate.isVisible = false
     startOffset.isVisible = false
     when (startFromComboBox.selectedItem) {
-      ConsumerStartFrom.SPECIFIC_DATE -> startSpecificDate.isVisible = true
-      ConsumerStartFrom.OFFSET, ConsumerStartFrom.LATEST_OFFSET_MINUS_X -> startOffset.isVisible = true
+      ConsumerStartType.SPECIFIC_DATE -> startSpecificDate.isVisible = true
+      ConsumerStartType.OFFSET, ConsumerStartType.LATEST_OFFSET_MINUS_X -> startOffset.isVisible = true
     }
   }
 

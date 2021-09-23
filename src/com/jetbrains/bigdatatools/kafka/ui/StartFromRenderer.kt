@@ -1,6 +1,6 @@
 package com.jetbrains.bigdatatools.kafka.ui
 
-import com.jetbrains.bigdatatools.kafka.consumer.ConsumerStartFrom
+import com.jetbrains.bigdatatools.kafka.consumer.ConsumerStartType
 import javax.swing.DefaultListCellRenderer
 import javax.swing.JList
 
@@ -9,6 +9,6 @@ class StartFromRenderer : DefaultListCellRenderer() {
                                             isSelected: Boolean, cellHasFocus: Boolean) =
     super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus).apply {
       @Suppress("HardCodedStringLiteral")
-      text = (value as? ConsumerStartFrom)?.name
+      text = (value as? ConsumerStartType)?.name
     }
 }

@@ -1,6 +1,9 @@
 package com.jetbrains.bigdatatools.kafka.consumer
 
-enum class ConsumerStartFrom {
+
+data class ConsumerStartWith(val offset: Long?, val time: Long?)
+
+enum class ConsumerStartType {
   NOW, LAST_HOUR, TODAY, YESTERDAY, SPECIFIC_DATE,
   THE_BEGINNING, CONSUMER_GROUP, LATEST_OFFSET_MINUS_X, OFFSET
 }

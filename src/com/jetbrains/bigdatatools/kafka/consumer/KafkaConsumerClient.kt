@@ -22,8 +22,6 @@ class KafkaConsumerClient(val client: KafkaClient,
   override fun dispose() = stop()
 
   fun start(topic: String,
-            startOffset: Long? = null,
-            startTimeMs: Long? = null,
             partitionFilter: List<Int>? = null,
             topicLimitCount: Long? = null,
             partitionLimitCount: Long? = null,
@@ -31,46 +29,30 @@ class KafkaConsumerClient(val client: KafkaClient,
             topicLimitSize: Long? = null,
             partitionLimitSize: Long? = null,
             filter: ConsumerFilter,
+            startWith: ConsumerStartWith,
             consume: (ConsumerRecord<Serializable, Serializable>) -> Unit) {
-    val props = client.kafkaProps.clone() as Properties
-    props[ConsumerConfig.GROUP_ID_CONFIG] = "BigDataTools" + UUID.randomUUID()
-    props[ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG] = StringDeserializer::class.java
-    props[ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG] = StringDeserializer::class.java
-    val consumer = KafkaConsumer<Serializable, Serializable>(props)
+    val consumer = createConsumer()
     runConsumer = consumer
 
-
-    var partitions = consumer.partitionsFor(topic).map { TopicPartition(it.topic(), it.partition()) }
-
-    if (partitionFilter != null) {
-      val allPartitions = partitions.map { it.partition() }.toSet()
-      partitions = partitionFilter.toSet().intersect(allPartitions).map { TopicPartition(topic, it) }
-    }
-
+    val partitions = calculatePartitions(consumer, topic, partitionFilter)
     consumer.assign(partitions)
-
-    val startFromOffsetSeek = startOffset?.let { partitionOffsetsForStartOffset(consumer, partitions, it) }
-    val startFromDateSeek = startTimeMs?.let { partitionOffsetsForStartDate(it, partitions, consumer) }
-    val startFromSeek = startFromOffsetSeek ?: startFromDateSeek
-    startFromSeek?.forEach {
-      it.value?.let { offset -> consumer.seek(it.key, offset) }
-    }
+    seekPartitions(consumer, partitions, startWith)
 
     isRunning.set(true)
 
-    @Suppress("CanBeVal")
-    var needToReadTopicCount = topicLimitCount
-    val needToReadPartitionCount = partitionLimitCount?.let { limit ->
-      partitions.associate { it.partition() to limit }.toMutableMap()
-    }
-
-    var needToReadTopicSize = topicLimitSize
-    val needToReadPartitionSize = partitionLimitSize?.let { limit ->
-      partitions.associate { it.partition() to limit }.toMutableMap()
-    }
-
     executeOnPooledThread {
       try {
+        @Suppress("CanBeVal")
+        var needToReadTopicCount = topicLimitCount
+        val needToReadPartitionCount = partitionLimitCount?.let { limit ->
+          partitions.associate { it.partition() to limit }.toMutableMap()
+        }
+
+        var needToReadTopicSize = topicLimitSize
+        val needToReadPartitionSize = partitionLimitSize?.let { limit ->
+          partitions.associate { it.partition() to limit }.toMutableMap()
+        }
+
         consumer.use { consumer ->
           while (isRunning.get()) {
             val records = consumer.poll(Duration.ofMillis(500))
@@ -134,6 +116,38 @@ class KafkaConsumerClient(val client: KafkaClient,
     }
   }
 
+  private fun seekPartitions(consumer: KafkaConsumer<Serializable, Serializable>,
+                             partitions: List<TopicPartition>,
+                             startWith: ConsumerStartWith) {
+    val startFromOffsetSeek = startWith.offset?.let { partitionOffsetsForStartOffset(consumer, partitions, it) }
+    val startFromDateSeek = startWith.time?.let { partitionOffsetsForStartDate(it, partitions, consumer) }
+    val startFromSeek = startFromOffsetSeek ?: startFromDateSeek
+    startFromSeek?.forEach {
+      it.value?.let { offset -> consumer.seek(it.key, offset) }
+    }
+  }
+
+  private fun createConsumer(): KafkaConsumer<Serializable, Serializable> {
+    val props = client.kafkaProps.clone() as Properties
+    props[ConsumerConfig.GROUP_ID_CONFIG] = "BigDataTools" + UUID.randomUUID()
+    props[ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG] = StringDeserializer::class.java
+    props[ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG] = StringDeserializer::class.java
+    val consumer = KafkaConsumer<Serializable, Serializable>(props)
+    return consumer
+  }
+
+  private fun calculatePartitions(consumer: KafkaConsumer<Serializable, Serializable>,
+                                  topic: String,
+                                  partitionFilter: List<Int>?): List<TopicPartition> {
+    var partitions = consumer.partitionsFor(topic).map { TopicPartition(it.topic(), it.partition()) }
+
+    if (partitionFilter != null) {
+      val allPartitions = partitions.map { it.partition() }.toSet()
+      partitions = partitionFilter.toSet().intersect(allPartitions).map { TopicPartition(topic, it) }
+    }
+    return partitions
+  }
+
   fun stop() {
     //runConsumer?.close()
     isRunning.set(false)
@@ -157,8 +171,5 @@ class KafkaConsumerClient(val client: KafkaClient,
     val offsetsForTimes = consumer.offsetsForTimes(timestampsToSearch)
     return offsetsForTimes?.map { it.key to it.value?.offset() }?.toMap()
   }
-
-
-
 }
 
