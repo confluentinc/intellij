@@ -1,0 +1,14 @@
+package com.jetbrains.bigdatatools.kafka.consumer
+
+enum class ConsumerStartFrom {
+  NOW, LAST_HOUR, TODAY, YESTERDAY, SPECIFIC_DATE,
+  THE_BEGINNING, CONSUMER_GROUP, LATEST_OFFSET_MINUS_X, OFFSET
+}
+
+enum class ConsumerLimit {
+  NONE, TOPIC_NUMBER_RECORDS, DATE, TOPIC_MAX_SIZE, PARTITION_NUMBER_RECORDS, PARTITION_MAX_SIZE
+}
+
+enum class ConsumerFilterType {
+  NONE, CONTAINS, DOES_NOT_CONTAINS, REGEX
+}

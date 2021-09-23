@@ -1,5 +1,6 @@
 package com.jetbrains.bigdatatools.kafka.ui
 
+import com.jetbrains.bigdatatools.kafka.consumer.ConsumerLimit
 import javax.swing.DefaultListCellRenderer
 import javax.swing.JList
 

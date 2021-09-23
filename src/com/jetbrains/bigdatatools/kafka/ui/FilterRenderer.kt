@@ -1,5 +1,6 @@
 package com.jetbrains.bigdatatools.kafka.ui
 
+import com.jetbrains.bigdatatools.kafka.consumer.ConsumerFilterType
 import javax.swing.DefaultListCellRenderer
 import javax.swing.JList
 
@@ -8,6 +9,6 @@ class FilterRenderer : DefaultListCellRenderer() {
                                             isSelected: Boolean, cellHasFocus: Boolean) =
     super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus).apply {
       @Suppress("HardCodedStringLiteral")
-      text = (value as? ConsumerFilter)?.name
+      text = (value as? ConsumerFilterType)?.name
     }
 }

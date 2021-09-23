@@ -1,7 +1,7 @@
-package com.jetbrains.bigdatatools.kafka.client
+package com.jetbrains.bigdatatools.kafka.consumer
 
 import com.intellij.openapi.Disposable
-import com.jetbrains.bigdatatools.kafka.ui.ConsumerFilter
+import com.jetbrains.bigdatatools.kafka.client.KafkaClient
 import com.jetbrains.bigdatatools.util.executeOnPooledThread
 import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.clients.consumer.ConsumerRecord
@@ -13,7 +13,8 @@ import java.time.Duration
 import java.util.*
 import java.util.concurrent.atomic.AtomicBoolean
 
-class KafkaConsumerClient(val client: KafkaClient, val onStop: () -> Unit) : Disposable {
+class KafkaConsumerClient(val client: KafkaClient,
+                          val onStop: () -> Unit) : Disposable {
   val connectionData = client.connectionData
   private val isRunning = AtomicBoolean(false)
   private var runConsumer: KafkaConsumer<Serializable, Serializable>? = null
@@ -29,11 +30,7 @@ class KafkaConsumerClient(val client: KafkaClient, val onStop: () -> Unit) : Dis
             limitTime: Long? = null,
             topicLimitSize: Long? = null,
             partitionLimitSize: Long? = null,
-            filterType: ConsumerFilter,
-            filterKey: String? = null,
-            filterValue: String? = null,
-            filterHeadKey: String? = null,
-            filterHeadValue: String? = null,
+            filter: ConsumerFilter,
             consume: (ConsumerRecord<Serializable, Serializable>) -> Unit) {
     val props = client.kafkaProps.clone() as Properties
     props[ConsumerConfig.GROUP_ID_CONFIG] = "BigDataTools" + UUID.randomUUID()
@@ -83,12 +80,7 @@ class KafkaConsumerClient(val client: KafkaClient, val onStop: () -> Unit) : Dis
                 return@executeOnPooledThread
               }
 
-              val isPassAllFilters = isPassFilter(record.key()?.toString(), filterKey, filterType) &&
-                                     isPassFilter(record.value()?.toString(), filterValue, filterType) &&
-                                     isPassFilterHeaders(record.headers().map { it.key() }, filterHeadKey, filterType) &&
-                                     isPassFilterHeaders(record.headers().map { it.value().decodeToString() }, filterHeadValue, filterType)
-
-              if (!isPassAllFilters)
+              if (!filter.isRecordPassFilter(record))
                 return@forEach
 
               val recordSize = record.serializedValueSize() + record.serializedKeySize()
@@ -166,31 +158,7 @@ class KafkaConsumerClient(val client: KafkaClient, val onStop: () -> Unit) : Dis
     return offsetsForTimes?.map { it.key to it.value?.offset() }?.toMap()
   }
 
-  private fun isPassFilter(value: String?, filterValue: String?, filterType: ConsumerFilter): Boolean {
-    if (filterValue == null)
-      return true
 
-    return when (filterType) {
-      ConsumerFilter.NONE -> true
-      ConsumerFilter.CONTAINS -> value?.contains(filterValue) == true
-      ConsumerFilter.DOES_NOT_CONTAINS -> value?.contains(filterValue) == false
-      ConsumerFilter.REGEX -> value?.contains(Regex(filterValue)) == false
-    }
-  }
 
-  private fun isPassFilterHeaders(value: List<String>, filterValue: String?, filterType: ConsumerFilter): Boolean {
-    if (filterValue == null)
-      return true
-
-    return when (filterType) {
-      ConsumerFilter.NONE -> true
-      ConsumerFilter.CONTAINS -> value.any { it.contains(filterValue) }
-      ConsumerFilter.DOES_NOT_CONTAINS -> value.all { !it.contains(filterValue) }
-      ConsumerFilter.REGEX -> value.any {
-        val regex = Regex(filterValue)
-        regex.matches(it)
-      }
-    }
-  }
 }
 
