@@ -13,6 +13,7 @@ import com.intellij.ui.OnePixelSplitter
 import com.intellij.ui.components.JBList
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.components.JBTextField
+import com.jetbrains.bigdatatools.kafka.consumer.*
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import com.jetbrains.bigdatatools.settings.defaultui.UiUtil
@@ -27,12 +28,12 @@ import javax.swing.DefaultListModel
 import javax.swing.JButton
 import javax.swing.JComponent
 
-class KafkaConsumerEditor(kafkaManager: KafkaDataManager,
+class KafkaConsumerEditor(private val kafkaManager: KafkaDataManager,
                           private val file: VirtualFile) : FileEditor, UserDataHolderBase() {
-  private val consumerClient = kafkaManager.client.createConsumerClient {
-    onStopConsume()
-  }
-
+  private var consumerClient = KafkaConsumerClient(client = kafkaManager.client,
+                                                   onStop = {
+                                                     onStopConsume()
+                                                   })
   val topics = kafkaManager.getTopics()
 
   private val startSpecificDate = DatePicker()
@@ -56,9 +57,9 @@ class KafkaConsumerEditor(kafkaManager: KafkaDataManager,
     }
   }
 
-  private val filterComboBox = ComboBox(ConsumerFilter.values()).apply {
+  private val filterComboBox = ComboBox(ConsumerFilterType.values()).apply {
     renderer = FilterRenderer()
-    item = ConsumerFilter.NONE
+    item = ConsumerFilterType.NONE
     addItemListener {
       updateFilter()
     }
@@ -221,6 +222,15 @@ class KafkaConsumerEditor(kafkaManager: KafkaDataManager,
         start..end
       }
     }
+
+    val filter = ConsumerFilter(
+      type = filterComboBox.item,
+      filterKey = filterKeyField.text.ifBlank { null },
+      filterValue = filterValueField.text.ifBlank { null },
+      filterHeadKey = filterHeadKeyField.text.ifBlank { null },
+      filterHeadValue = filterHeadValueField.text.ifBlank { null },
+    )
+
     consumerClient.start(topic = topic.name,
                          startOffset = startOffset,
                          startTimeMs = startTime?.time,
@@ -230,15 +240,7 @@ class KafkaConsumerEditor(kafkaManager: KafkaDataManager,
                          topicLimitSize = getLimitTopicSize(),
                          topicLimitCount = getLimitTopicCount(),
                          partitionLimitCount = getLimitPartitionCount(),
-                         filterType = filterComboBox.item,
-                         filterKey = filterKeyField.text.ifBlank
-                         { null },
-                         filterValue = filterValueField.text.ifBlank
-                         { null },
-                         filterHeadKey = filterHeadKeyField.text.ifBlank
-                         { null },
-                         filterHeadValue = filterHeadValueField.text.ifBlank
-                         { null })
+                         filter = filter)
     { record ->
       outputModel.addElement(record)
     }
@@ -279,7 +281,7 @@ class KafkaConsumerEditor(kafkaManager: KafkaDataManager,
   }
 
   private fun updateFilter() {
-    val value = filterComboBox.selectedItem != ConsumerFilter.NONE
+    val value = filterComboBox.selectedItem != ConsumerFilterType.NONE
     filterPanel.isVisible = value
     filterKeyField.isVisible = value
     filterValueField.isVisible = value
