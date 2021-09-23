@@ -106,6 +106,12 @@ class KafkaProducerEditor(project: Project,
     }
   }
 
+  private val clearButton = JButton(KafkaMessagesBundle.message("action.clear.output")).apply {
+    addActionListener {
+      outputModel.clear()
+    }
+  }
+
   private val mainComponent = createCenterPanel()
 
   init {
@@ -142,6 +148,7 @@ class KafkaProducerEditor(project: Project,
       gapLeft = false
 
       add(produceButton, UiUtil.growXSpanXWrap)
+      add(clearButton, UiUtil.growXSpanXWrap)
     }
 
     dividerPositionStrategy = Splitter.DividerPositionStrategy.KEEP_FIRST_SIZE
