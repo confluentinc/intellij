@@ -179,6 +179,5 @@ class KafkaConsumerClient(val client: KafkaClient) : Disposable {
       }
     }
   }
-
 }
 
