@@ -13,7 +13,7 @@ import java.time.Duration
 import java.util.*
 import java.util.concurrent.atomic.AtomicBoolean
 
-class KafkaConsumerClient(val client: KafkaClient) : Disposable {
+class KafkaConsumerClient(val client: KafkaClient, val onStop: () -> Unit) : Disposable {
   val connectionData = client.connectionData
   private val isRunning = AtomicBoolean(false)
   private var runConsumer: KafkaConsumer<Serializable, Serializable>? = null
@@ -71,71 +71,73 @@ class KafkaConsumerClient(val client: KafkaClient) : Disposable {
     }
 
     executeOnPooledThread {
-      consumer.use { consumer ->
-        while (isRunning.get()) {
-          val records = consumer.poll(Duration.ofMillis(500))
+      try {
+        consumer.use { consumer ->
+          while (isRunning.get()) {
+            val records = consumer.poll(Duration.ofMillis(500))
 
-          records.forEach { record ->
-            if (limitTime != null && record.timestamp() > limitTime)
-              return@executeOnPooledThread
-
-            val isPassAllFilters = isPassFilter(record.key()?.toString(), filterKey, filterType) &&
-                                   isPassFilter(record.value()?.toString(), filterValue, filterType) &&
-                                   isPassFilterHeaders(record.headers().map { it.key() }, filterHeadKey, filterType) &&
-                                   isPassFilterHeaders(record.headers().map { it.value().decodeToString() }, filterHeadValue, filterType)
-
-            if (!isPassAllFilters)
-              return@forEach
-
-            val recordSize = record.serializedValueSize() + record.serializedKeySize()
-
-            if (needToReadTopicSize != null && needToReadTopicSize!! <= 0L)
-              return@executeOnPooledThread
-            needToReadTopicSize = needToReadTopicSize?.minus(recordSize)
-
-            if (needToReadPartitionSize != null) {
-              if (needToReadPartitionSize.isEmpty())
+            records.forEach { record ->
+              if (limitTime != null && record.timestamp() > limitTime) {
                 return@executeOnPooledThread
-
-              val left = needToReadPartitionSize[record.partition()]
-              when {
-                left == null -> return@forEach
-                left > 0 -> needToReadPartitionSize[record.partition()] = left - 1
-                else -> needToReadPartitionSize.remove(record.partition())
               }
-            }
 
+              val isPassAllFilters = isPassFilter(record.key()?.toString(), filterKey, filterType) &&
+                                     isPassFilter(record.value()?.toString(), filterValue, filterType) &&
+                                     isPassFilterHeaders(record.headers().map { it.key() }, filterHeadKey, filterType) &&
+                                     isPassFilterHeaders(record.headers().map { it.value().decodeToString() }, filterHeadValue, filterType)
 
-            if (needToReadTopicCount == 0L)
-              return@executeOnPooledThread
-            needToReadTopicCount = needToReadTopicCount?.minus(1)
+              if (!isPassAllFilters)
+                return@forEach
 
-            if (needToReadPartitionCount != null) {
-              if (needToReadPartitionCount.isEmpty())
+              val recordSize = record.serializedValueSize() + record.serializedKeySize()
+
+              if (needToReadTopicSize != null && needToReadTopicSize!! <= 0L) {
                 return@executeOnPooledThread
-
-              val left = needToReadPartitionCount[record.partition()]
-              when {
-                left == null -> return@forEach
-                left > 0 -> needToReadPartitionCount[record.partition()] = left - 1
-                else -> needToReadPartitionCount.remove(record.partition())
               }
-            }
+              needToReadTopicSize = needToReadTopicSize?.minus(recordSize)
 
-            consume(record)
+              if (needToReadPartitionSize != null) {
+                if (needToReadPartitionSize.isEmpty()) {
+                  return@executeOnPooledThread
+                }
+
+                val left = needToReadPartitionSize[record.partition()]
+                when {
+                  left == null -> return@forEach
+                  left > 0 -> needToReadPartitionSize[record.partition()] = left - 1
+                  else -> needToReadPartitionSize.remove(record.partition())
+                }
+              }
+
+
+              if (needToReadTopicCount == 0L) {
+                return@executeOnPooledThread
+              }
+              needToReadTopicCount = needToReadTopicCount?.minus(1)
+
+              if (needToReadPartitionCount != null) {
+                if (needToReadPartitionCount.isEmpty()) {
+                  return@executeOnPooledThread
+                }
+
+                val left = needToReadPartitionCount[record.partition()]
+                when {
+                  left == null -> return@forEach
+                  left > 1 -> needToReadPartitionCount[record.partition()] = left - 1
+                  else -> needToReadPartitionCount.remove(record.partition())
+                }
+              }
+
+              consume(record)
+            }
           }
         }
       }
+      finally {
+        stop()
+        onStop()
+      }
     }
-  }
-
-  private fun partitionOffsetsForStartOffset(consumer: KafkaConsumer<Serializable, Serializable>,
-                                             partitions: MutableList<TopicPartition>,
-                                             offset: Long) = if (offset <= 0) {
-    consumer.endOffsets(partitions).map { it.key to (it.value + offset).coerceAtLeast(0) }.toMap()
-  }
-  else {
-    consumer.beginningOffsets(partitions).map { it.key to (it.value + offset) }.toMap()
   }
 
   fun stop() {
@@ -144,6 +146,15 @@ class KafkaConsumerClient(val client: KafkaClient) : Disposable {
   }
 
   fun isRunning() = isRunning.get()
+
+  private fun partitionOffsetsForStartOffset(consumer: KafkaConsumer<Serializable, Serializable>,
+                                             partitions: MutableList<TopicPartition>,
+                                             offset: Long) = if (offset < 0) {
+    consumer.endOffsets(partitions).map { it.key to (it.value + offset).coerceAtLeast(0) }.toMap()
+  }
+  else {
+    consumer.beginningOffsets(partitions).map { it.key to (it.value + offset) }.toMap()
+  }
 
   private fun partitionOffsetsForStartDate(startTime: Long,
                                            partitions: MutableList<TopicPartition>,

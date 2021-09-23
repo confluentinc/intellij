@@ -29,7 +29,10 @@ import javax.swing.JComponent
 
 class KafkaConsumerEditor(kafkaManager: KafkaDataManager,
                           private val file: VirtualFile) : FileEditor, UserDataHolderBase() {
-  private val consumerClient = kafkaManager.client.createConsumerClient()
+  private val consumerClient = kafkaManager.client.createConsumerClient {
+    onStopConsume()
+  }
+
   val topics = kafkaManager.getTopics()
 
   private val startSpecificDate = DatePicker()
@@ -108,6 +111,12 @@ class KafkaConsumerEditor(kafkaManager: KafkaDataManager,
     }
   }
 
+  private val clearButton = JButton(KafkaMessagesBundle.message("action.clear.output")).apply {
+    addActionListener {
+      outputModel.clear()
+    }
+  }
+
   private val filterPanel = MigPanel().apply {
     row("Filter key:", filterKeyField)
     row("Filter value:", filterValueField)
@@ -127,7 +136,7 @@ class KafkaConsumerEditor(kafkaManager: KafkaDataManager,
 
   private fun createCenterPanel() = OnePixelSplitter().apply {
 
-    val leftPanel = MigPanel( LC().insets("10").fillX().hideMode(3)).apply {
+    val leftPanel = MigPanel(LC().insets("10").fillX().hideMode(3)).apply {
 
       row("Topics:", topicComboBox)
 
@@ -152,13 +161,14 @@ class KafkaConsumerEditor(kafkaManager: KafkaDataManager,
       row("Partitions:", partitionField)
       gapLeft = false
       add(consumeButton, UiUtil.growXSpanXWrap)
+      add(clearButton, UiUtil.growXSpanXWrap)
     }
 
     dividerPositionStrategy = Splitter.DividerPositionStrategy.KEEP_FIRST_SIZE
     lackOfSpaceStrategy = Splitter.LackOfSpaceStrategy.HONOR_THE_FIRST_MIN_SIZE
 
     firstComponent = leftPanel
-    secondComponent =  JBScrollPane(outputList)
+    secondComponent = JBScrollPane(outputList)
 
     proportion = 0.1f
   }
@@ -315,6 +325,11 @@ class KafkaConsumerEditor(kafkaManager: KafkaDataManager,
   else
     null
 
+  private fun onStopConsume() {
+    consumeButton.text = KafkaMessagesBundle.message("action.consume.start.title")
+    updateVisibility()
+  }
+
   override fun getName(): String = KafkaMessagesBundle.message("consume.from.topic")
   override fun getComponent(): JComponent = mainComponent
   override fun getPreferredFocusedComponent(): JComponent = mainComponent
@@ -326,4 +341,6 @@ class KafkaConsumerEditor(kafkaManager: KafkaDataManager,
   override fun removePropertyChangeListener(listener: PropertyChangeListener) {}
   override fun getCurrentLocation(): FileEditorLocation? = null
   override fun dispose() {}
+
+
 }
