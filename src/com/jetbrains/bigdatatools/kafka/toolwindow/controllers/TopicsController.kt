@@ -3,6 +3,7 @@ package com.jetbrains.bigdatatools.kafka.toolwindow.controllers
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.ActionManager
+import com.intellij.openapi.actionSystem.ActionToolbar
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.fileEditor.ex.FileEditorManagerEx
@@ -27,6 +28,7 @@ import com.jetbrains.bigdatatools.monitoring.table.model.DataTableColumnModel
 import com.jetbrains.bigdatatools.monitoring.table.model.DataTableModel
 import com.jetbrains.bigdatatools.settings.ColumnVisibilitySettings
 import com.jetbrains.bigdatatools.table.MaterialJBScrollPane
+import com.jetbrains.bigdatatools.util.createActionToolbar
 import java.util.*
 import javax.swing.JComponent
 import javax.swing.event.ListSelectionEvent
@@ -69,7 +71,9 @@ class TopicsController(private val project: Project, private val dataManager: Ka
 
     detailsSplitter.firstComponent = SimpleToolWindowPanel(false, true).apply {
       setContent(MaterialJBScrollPane(topicTable))
-      toolbar = createToolbar(columnModel)
+      val actionToolbar = createToolbar(columnModel)
+      actionToolbar.setTargetComponent(this)
+      toolbar = actionToolbar.component
     }
     detailsSplitter.secondComponent = topicDetailsController.getComponent()
   }
@@ -78,7 +82,7 @@ class TopicsController(private val project: Project, private val dataManager: Ka
 
   fun getComponent() = detailsSplitter
 
-  private fun createToolbar(columnModel: DataTableColumnModel<TopicPresentable>): JComponent {
+  private fun createToolbar(columnModel: DataTableColumnModel<TopicPresentable>): ActionToolbar {
     val settings = KafkaToolWindowSettings.getInstance()
 
     val actions = DefaultActionGroup()
@@ -125,7 +129,7 @@ class TopicsController(private val project: Project, private val dataManager: Ka
     //actions.add(createProducer)
     //actions.add(createConsumer)
 
-    return ActionManager.getInstance().createActionToolbar("BDTKafkaTopics", actions, false).component
+    return createActionToolbar("BDTKafkaTopics", actions, false)
   }
 
   private fun showTopicDetails() {
