@@ -1,15 +1,15 @@
-package com.jetbrains.bigdatatools.kafka.ui
+package com.jetbrains.bigdatatools.kafka.producer.editor.renders
 
-import com.jetbrains.bigdatatools.kafka.model.TopicPresentable
+import com.jetbrains.bigdatatools.kafka.producer.models.RecordCompression
 import javax.swing.DefaultListCellRenderer
 import javax.swing.JList
 
-class TopicRenderer : DefaultListCellRenderer() {
+class RecordCompressionRenderer : DefaultListCellRenderer() {
   override fun getListCellRendererComponent(list: JList<*>?, value: Any?, index: Int,
                                             isSelected: Boolean, cellHasFocus: Boolean) =
     super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus).apply {
-      val topicPresentable = value as? TopicPresentable ?: return@apply
+      val recordCompression = value as? RecordCompression ?: return@apply
       @Suppress("HardCodedStringLiteral")
-      text = topicPresentable.name
+      text = recordCompression.name.toLowerCase()
     }
 }

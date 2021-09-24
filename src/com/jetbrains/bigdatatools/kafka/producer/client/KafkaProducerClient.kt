@@ -1,6 +1,11 @@
-package com.jetbrains.bigdatatools.kafka.client
+package com.jetbrains.bigdatatools.kafka.producer.client
 
-import com.jetbrains.bigdatatools.kafka.ui.*
+import com.jetbrains.bigdatatools.kafka.client.KafkaClient
+import com.jetbrains.bigdatatools.kafka.common.models.FieldType
+import com.jetbrains.bigdatatools.kafka.common.models.KafkaField
+import com.jetbrains.bigdatatools.kafka.producer.models.AcksType
+import com.jetbrains.bigdatatools.kafka.producer.models.ProducerResultMessage
+import com.jetbrains.bigdatatools.kafka.producer.models.RecordCompression
 import com.jetbrains.bigdatatools.settings.connections.Property
 import org.apache.kafka.clients.producer.KafkaProducer
 import org.apache.kafka.clients.producer.ProducerConfig

@@ -3,9 +3,9 @@ package com.jetbrains.bigdatatools.kafka
 import com.intellij.openapi.util.Disposer
 import com.intellij.testFramework.LightPlatformTestCase
 import com.jetbrains.bigdatatools.kafka.client.KafkaClient
+import com.jetbrains.bigdatatools.kafka.common.models.FieldType
+import com.jetbrains.bigdatatools.kafka.common.models.KafkaField
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaConnectionData
-import com.jetbrains.bigdatatools.kafka.ui.FieldType
-import com.jetbrains.bigdatatools.kafka.ui.KafkaField
 import com.jetbrains.bigdatatools.rfs.driver.ConnectedConnectionStatus
 import com.jetbrains.bigdatatools.rfs.driver.FailedConnectionStatus
 import junit.framework.TestCase
