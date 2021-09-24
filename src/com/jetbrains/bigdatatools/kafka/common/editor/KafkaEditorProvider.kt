@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.editor
+package com.jetbrains.bigdatatools.kafka.common.editor
 
 import com.intellij.openapi.fileEditor.FileEditor
 import com.intellij.openapi.fileEditor.FileEditorPolicy
@@ -8,10 +8,10 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Key
 import com.intellij.openapi.vfs.VirtualFile
 import com.jetbrains.bigdatatools.data.StructuredFilesUtil
+import com.jetbrains.bigdatatools.kafka.common.models.KafkaEditorType
 import com.jetbrains.bigdatatools.kafka.consumer.editor.KafkaConsumerEditor
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
-import com.jetbrains.bigdatatools.kafka.ui.KafkaEditorType
-import com.jetbrains.bigdatatools.kafka.ui.KafkaProducerEditor
+import com.jetbrains.bigdatatools.kafka.producer.editor.KafkaProducerEditor
 
 class KafkaEditorProvider : WeighedFileEditorProvider(), DumbAware {
   override fun accept(project: Project, file: VirtualFile): Boolean = file.getUserData(KAFKA_EDITOR_TYPE) != null

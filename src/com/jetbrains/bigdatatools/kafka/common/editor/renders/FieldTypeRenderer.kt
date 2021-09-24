@@ -1,5 +1,6 @@
-package com.jetbrains.bigdatatools.kafka.ui
+package com.jetbrains.bigdatatools.kafka.common.editor.renders
 
+import com.jetbrains.bigdatatools.kafka.common.models.FieldType
 import java.awt.Component
 import javax.swing.DefaultListCellRenderer
 import javax.swing.JList

@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.ui
+package com.jetbrains.bigdatatools.kafka.producer.editor
 
 import com.intellij.json.JsonLanguage
 import com.intellij.openapi.fileEditor.FileEditor
@@ -18,7 +18,17 @@ import com.intellij.ui.components.JBList
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.components.JBTextField
 import com.intellij.ui.components.fields.IntegerField
+import com.jetbrains.bigdatatools.kafka.common.editor.renders.FieldTypeRenderer
+import com.jetbrains.bigdatatools.kafka.common.editor.renders.TopicRenderer
+import com.jetbrains.bigdatatools.kafka.common.models.FieldType
+import com.jetbrains.bigdatatools.kafka.common.models.KafkaField
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
+import com.jetbrains.bigdatatools.kafka.producer.editor.renders.AcksRenderer
+import com.jetbrains.bigdatatools.kafka.producer.editor.renders.ProducerOutputRender
+import com.jetbrains.bigdatatools.kafka.producer.editor.renders.RecordCompressionRenderer
+import com.jetbrains.bigdatatools.kafka.producer.models.AcksType
+import com.jetbrains.bigdatatools.kafka.producer.models.ProducerResultMessage
+import com.jetbrains.bigdatatools.kafka.producer.models.RecordCompression
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import com.jetbrains.bigdatatools.settings.components.BdtPropertyComponent
 import com.jetbrains.bigdatatools.settings.defaultui.UiUtil
