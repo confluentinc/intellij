@@ -26,6 +26,7 @@ import com.jetbrains.bigdatatools.kafka.producer.editor.renders.ConsumerOutputRe
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import com.jetbrains.bigdatatools.settings.defaultui.UiUtil
 import com.jetbrains.bigdatatools.ui.MigPanel
+import com.jetbrains.bigdatatools.util.toPresentableText
 import com.michaelbaranov.microba.calendar.DatePicker
 import net.miginfocom.layout.LC
 import org.apache.kafka.clients.consumer.ConsumerRecord
@@ -35,7 +36,7 @@ import javax.swing.DefaultListModel
 import javax.swing.JButton
 import javax.swing.JComponent
 
-class KafkaConsumerEditor(private val kafkaManager: KafkaDataManager,
+class KafkaConsumerEditor(kafkaManager: KafkaDataManager,
                           private val file: VirtualFile) : FileEditor, UserDataHolderBase() {
   private var consumerClient = KafkaConsumerClient(client = kafkaManager.client,
                                                    onStop = {
@@ -142,6 +143,32 @@ class KafkaConsumerEditor(private val kafkaManager: KafkaDataManager,
     updateFilter()
   }
 
+  private fun startConsume() {
+    val topic = topicComboBox.item ?: error("Topic is not selected")
+    val startWith = ConsumerEditorUtils.getStartWith(startFromComboBox.selectedItem as ConsumerStartType,
+                                                     startOffset.text,
+                                                     startSpecificDate.date)
+    val partitions = ConsumerEditorUtils.parsePartitionsText(partitionField.text)
+    val filter = getFilter()
+
+    val consumerLimit = ConsumerLimit(limitComboBox.selectedItem as ConsumerLimitType, limitOffset.text, limitSpecificDate.date.time)
+    val runConfig = RunConsumerConfig(topic = topic.name,
+                                      keyType = keyComboBox.item as FieldType,
+                                      valueType = valueComboBox.item as FieldType,
+                                      partitions = partitions.ifEmpty { null },
+                                      limit = consumerLimit,
+                                      filter = filter,
+                                      startWith = startWith)
+
+    consumerClient.start(runConfig,
+                         consume = { record ->
+                           outputModel.addElement(record)
+                         },
+                         consumeError = {
+                           println(it.toPresentableText())
+                         })
+  }
+
   private fun createCenterPanel() = OnePixelSplitter().apply {
 
     val leftPanel = MigPanel(LC().insets("10").fillX().hideMode(3)).apply {
@@ -181,25 +208,6 @@ class KafkaConsumerEditor(private val kafkaManager: KafkaDataManager,
     proportion = 0.1f
   }
 
-  private fun startConsume() {
-    val topic = topicComboBox.item ?: error("Topic is not selected")
-    val startWith = ConsumerEditorUtils.getStartWith(startFromComboBox.selectedItem as ConsumerStartType,
-                                                     startOffset.text,
-                                                     startSpecificDate.date)
-    val partitions = ConsumerEditorUtils.parsePartitionsText(partitionField.text)
-    val filter = getFilter()
-
-    val consumerLimit = ConsumerLimit(limitComboBox.selectedItem as ConsumerLimitType, limitOffset.text, limitSpecificDate.date.time)
-    val runConfig = RunConsumerConfig(topic = topic.name,
-                                      partitions = partitions.ifEmpty { null },
-                                      limit = consumerLimit,
-                                      filter = filter,
-                                      startWith = startWith)
-
-    consumerClient.start(runConfig) { record ->
-      outputModel.addElement(record)
-    }
-  }
 
   private fun getFilter() = ConsumerFilter(
     type = filterComboBox.item,

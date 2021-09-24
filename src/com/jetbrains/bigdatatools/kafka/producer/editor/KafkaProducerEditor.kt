@@ -21,7 +21,7 @@ import com.intellij.ui.components.fields.IntegerField
 import com.jetbrains.bigdatatools.kafka.common.editor.renders.FieldTypeRenderer
 import com.jetbrains.bigdatatools.kafka.common.editor.renders.TopicRenderer
 import com.jetbrains.bigdatatools.kafka.common.models.FieldType
-import com.jetbrains.bigdatatools.kafka.common.models.KafkaField
+import com.jetbrains.bigdatatools.kafka.common.models.ProducerField
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.producer.editor.renders.AcksRenderer
 import com.jetbrains.bigdatatools.kafka.producer.editor.renders.ProducerOutputRender
@@ -103,8 +103,8 @@ class KafkaProducerEditor(project: Project,
       val topic = topicComboBox.item ?: error("Topic is not selected")
       val selectedTopicName = topic.name
 
-      val key = KafkaField(keyComboBox.item!!, getKey())
-      val value = KafkaField(valueComboBox.item!!, getValue())
+      val key = ProducerField(keyComboBox.item!!, getKey())
+      val value = ProducerField(valueComboBox.item!!, getValue())
 
       val result = producerClient.sentMessage(selectedTopicName, key, value,
                                               propertiesComponent.getProperties(),

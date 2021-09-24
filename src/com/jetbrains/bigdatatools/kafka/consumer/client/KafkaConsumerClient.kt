@@ -2,6 +2,7 @@ package com.jetbrains.bigdatatools.kafka.consumer.client
 
 import com.intellij.openapi.Disposable
 import com.jetbrains.bigdatatools.kafka.client.KafkaClient
+import com.jetbrains.bigdatatools.kafka.common.models.FieldType
 import com.jetbrains.bigdatatools.kafka.consumer.models.ConsumerStartWith
 import com.jetbrains.bigdatatools.kafka.consumer.models.RunConsumerConfig
 import com.jetbrains.bigdatatools.util.executeOnPooledThread
@@ -9,7 +10,6 @@ import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.clients.consumer.KafkaConsumer
 import org.apache.kafka.common.TopicPartition
-import org.apache.kafka.common.serialization.StringDeserializer
 import java.io.Serializable
 import java.time.Duration
 import java.util.*
@@ -24,8 +24,9 @@ class KafkaConsumerClient(val client: KafkaClient,
   override fun dispose() = stop()
 
   fun start(config: RunConsumerConfig,
-            consume: (ConsumerRecord<Serializable, Serializable>) -> Unit) {
-    val consumer = createConsumer()
+            consume: (ConsumerRecord<Serializable, Serializable>) -> Unit,
+            consumeError: (Throwable) -> Unit) {
+    val consumer = createConsumer(config.keyType, config.valueType)
     runConsumer = consumer
 
     val partitions = calculatePartitions(consumer, config.topic, config.partitions)
@@ -49,7 +50,14 @@ class KafkaConsumerClient(val client: KafkaClient,
 
         consumer.use { consumer ->
           while (isRunning.get()) {
-            val records = consumer.poll(Duration.ofMillis(500))
+
+            val records = try {
+              consumer.poll(Duration.ofMillis(500))
+            }
+            catch (t: Throwable) {
+              consumeError(t)
+              return@executeOnPooledThread
+            }
 
             records.forEach { record ->
               if (config.limit.time != null && record.timestamp() > config.limit.time) {
@@ -121,13 +129,12 @@ class KafkaConsumerClient(val client: KafkaClient,
     }
   }
 
-  private fun createConsumer(): KafkaConsumer<Serializable, Serializable> {
+  private fun createConsumer(keyType: FieldType, valueType: FieldType): KafkaConsumer<Serializable, Serializable> {
     val props = client.kafkaProps.clone() as Properties
     props[ConsumerConfig.GROUP_ID_CONFIG] = "BigDataTools" + UUID.randomUUID()
-    props[ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG] = StringDeserializer::class.java
-    props[ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG] = StringDeserializer::class.java
-    val consumer = KafkaConsumer<Serializable, Serializable>(props)
-    return consumer
+    props[ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG] = keyType.getDeserializationClass()::class.java
+    props[ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG] = valueType.getDeserializationClass()::class.java
+    return KafkaConsumer(props)
   }
 
   private fun calculatePartitions(consumer: KafkaConsumer<Serializable, Serializable>,
@@ -166,4 +173,3 @@ class KafkaConsumerClient(val client: KafkaClient,
     return offsetsForTimes?.map { it.key to it.value?.offset() }?.toMap()
   }
 }
-

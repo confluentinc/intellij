@@ -2,7 +2,7 @@ package com.jetbrains.bigdatatools.kafka.common.models
 
 import com.intellij.util.Base64
 
-data class KafkaField(val type: FieldType, val text: String?) {
+data class ProducerField(val type: FieldType, val text: String?) {
   val value = when (type) {
     FieldType.JSON -> text
     FieldType.STRING -> text

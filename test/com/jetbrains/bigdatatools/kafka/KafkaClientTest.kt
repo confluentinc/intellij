@@ -4,7 +4,7 @@ import com.intellij.openapi.util.Disposer
 import com.intellij.testFramework.LightPlatformTestCase
 import com.jetbrains.bigdatatools.kafka.client.KafkaClient
 import com.jetbrains.bigdatatools.kafka.common.models.FieldType
-import com.jetbrains.bigdatatools.kafka.common.models.KafkaField
+import com.jetbrains.bigdatatools.kafka.common.models.ProducerField
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaConnectionData
 import com.jetbrains.bigdatatools.rfs.driver.ConnectedConnectionStatus
 import com.jetbrains.bigdatatools.rfs.driver.FailedConnectionStatus
@@ -48,8 +48,8 @@ class KafkaClientTest : LightPlatformTestCase() {
     val time = System.currentTimeMillis()
     for (index in time until time + sendMessageCount) {
       producerClient.sentMessage(testTopic.name,
-                                 KafkaField(FieldType.STRING, index.toString()),
-                                 KafkaField(FieldType.STRING, "Hello Mom $index"))
+                                 ProducerField(FieldType.STRING, index.toString()),
+                                 ProducerField(FieldType.STRING, "Hello Mom $index"))
     }
   }
 
