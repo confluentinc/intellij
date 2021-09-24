@@ -1,14 +1,14 @@
-package com.jetbrains.bigdatatools.kafka.ui
+package com.jetbrains.bigdatatools.kafka.consumer.editor.renders
 
-import com.jetbrains.bigdatatools.kafka.consumer.ConsumerFilterType
+import com.jetbrains.bigdatatools.kafka.consumer.models.ConsumerLimitType
 import javax.swing.DefaultListCellRenderer
 import javax.swing.JList
 
-class FilterRenderer : DefaultListCellRenderer() {
+class LimitRenderer : DefaultListCellRenderer() {
   override fun getListCellRendererComponent(list: JList<*>?, value: Any?, index: Int,
                                             isSelected: Boolean, cellHasFocus: Boolean) =
     super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus).apply {
       @Suppress("HardCodedStringLiteral")
-      text = (value as? ConsumerFilterType)?.name
+      text = (value as? ConsumerLimitType)?.name
     }
 }

@@ -10,6 +10,6 @@
                 icon="/icons/kafkaToolWindow.svg"
                 factoryClass="com.jetbrains.bigdatatools.kafka.toolwindow.KafkaToolWindowFactory"/>
 
-    <fileEditorProvider implementation="com.jetbrains.bigdatatools.kafka.ui.KafkaEditorProvider"/>
+    <fileEditorProvider implementation="com.jetbrains.bigdatatools.kafka.editor.KafkaEditorProvider"/>
   </extensions>
 </idea-plugin>

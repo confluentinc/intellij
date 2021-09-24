@@ -1,7 +1,9 @@
-package com.jetbrains.bigdatatools.kafka.consumer
+package com.jetbrains.bigdatatools.kafka.consumer.client
 
 import com.intellij.openapi.Disposable
 import com.jetbrains.bigdatatools.kafka.client.KafkaClient
+import com.jetbrains.bigdatatools.kafka.consumer.models.ConsumerStartWith
+import com.jetbrains.bigdatatools.kafka.consumer.models.RunConsumerConfig
 import com.jetbrains.bigdatatools.util.executeOnPooledThread
 import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.clients.consumer.ConsumerRecord
@@ -21,35 +23,27 @@ class KafkaConsumerClient(val client: KafkaClient,
 
   override fun dispose() = stop()
 
-  fun start(topic: String,
-            partitionFilter: List<Int>? = null,
-            topicLimitCount: Long? = null,
-            partitionLimitCount: Long? = null,
-            limitTime: Long? = null,
-            topicLimitSize: Long? = null,
-            partitionLimitSize: Long? = null,
-            filter: ConsumerFilter,
-            startWith: ConsumerStartWith,
+  fun start(config: RunConsumerConfig,
             consume: (ConsumerRecord<Serializable, Serializable>) -> Unit) {
     val consumer = createConsumer()
     runConsumer = consumer
 
-    val partitions = calculatePartitions(consumer, topic, partitionFilter)
+    val partitions = calculatePartitions(consumer, config.topic, config.partitions)
     consumer.assign(partitions)
-    seekPartitions(consumer, partitions, startWith)
+    seekPartitions(consumer, partitions, config.startWith)
 
     isRunning.set(true)
 
     executeOnPooledThread {
       try {
         @Suppress("CanBeVal")
-        var needToReadTopicCount = topicLimitCount
-        val needToReadPartitionCount = partitionLimitCount?.let { limit ->
+        var needToReadTopicCount = config.limit.topicRecordsCount
+        val needToReadPartitionCount = config.limit.partitionRecordsCount?.let { limit ->
           partitions.associate { it.partition() to limit }.toMutableMap()
         }
 
-        var needToReadTopicSize = topicLimitSize
-        val needToReadPartitionSize = partitionLimitSize?.let { limit ->
+        var needToReadTopicSize = config.limit.topicRecordsSize
+        val needToReadPartitionSize = config.limit.partitionRecordsSize?.let { limit ->
           partitions.associate { it.partition() to limit }.toMutableMap()
         }
 
@@ -58,11 +52,11 @@ class KafkaConsumerClient(val client: KafkaClient,
             val records = consumer.poll(Duration.ofMillis(500))
 
             records.forEach { record ->
-              if (limitTime != null && record.timestamp() > limitTime) {
+              if (config.limit.time != null && record.timestamp() > config.limit.time) {
                 return@executeOnPooledThread
               }
 
-              if (!filter.isRecordPassFilter(record))
+              if (!config.filter.isRecordPassFilter(record))
                 return@forEach
 
               val recordSize = record.serializedValueSize() + record.serializedKeySize()

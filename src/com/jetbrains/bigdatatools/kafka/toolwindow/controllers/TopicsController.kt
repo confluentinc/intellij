@@ -2,7 +2,6 @@ package com.jetbrains.bigdatatools.kafka.toolwindow.controllers
 
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.Disposable
-import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.ActionToolbar
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.DefaultActionGroup
@@ -15,9 +14,9 @@ import com.intellij.openapi.util.Disposer
 import com.intellij.testFramework.LightVirtualFile
 import com.intellij.ui.OnePixelSplitter
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
+import com.jetbrains.bigdatatools.kafka.editor.KafkaEditorProvider
 import com.jetbrains.bigdatatools.kafka.model.TopicPresentable
 import com.jetbrains.bigdatatools.kafka.toolwindow.config.KafkaToolWindowSettings
-import com.jetbrains.bigdatatools.kafka.ui.KafkaEditorProvider
 import com.jetbrains.bigdatatools.kafka.ui.KafkaEditorType
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import com.jetbrains.bigdatatools.monitoring.table.DataTable
@@ -30,7 +29,6 @@ import com.jetbrains.bigdatatools.settings.ColumnVisibilitySettings
 import com.jetbrains.bigdatatools.table.MaterialJBScrollPane
 import com.jetbrains.bigdatatools.util.createActionToolbar
 import java.util.*
-import javax.swing.JComponent
 import javax.swing.event.ListSelectionEvent
 import javax.swing.event.ListSelectionListener
 

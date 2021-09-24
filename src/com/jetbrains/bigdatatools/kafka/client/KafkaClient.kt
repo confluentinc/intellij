@@ -5,7 +5,7 @@ import com.intellij.openapi.project.Project
 import com.jetbrains.bigdatatools.connection.tunnel.BdtSshTunnelConnectionUtils
 import com.jetbrains.bigdatatools.connection.tunnel.BdtSshTunnelService
 import com.jetbrains.bigdatatools.connection.tunnel.model.getTunnelDataOrNull
-import com.jetbrains.bigdatatools.kafka.consumer.KafkaConsumerClient
+import com.jetbrains.bigdatatools.kafka.consumer.client.KafkaConsumerClient
 import com.jetbrains.bigdatatools.kafka.model.ConsumerGroupPresentable
 import com.jetbrains.bigdatatools.kafka.model.TopicConfig
 import com.jetbrains.bigdatatools.kafka.model.TopicPresentable

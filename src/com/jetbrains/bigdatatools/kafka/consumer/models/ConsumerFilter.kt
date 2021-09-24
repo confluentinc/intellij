@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.consumer
+package com.jetbrains.bigdatatools.kafka.consumer.models
 
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import java.io.Serializable

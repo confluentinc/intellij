@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.ui
+package com.jetbrains.bigdatatools.kafka.consumer.editor
 
 
 import com.intellij.openapi.fileEditor.FileEditor
@@ -13,8 +13,16 @@ import com.intellij.ui.OnePixelSplitter
 import com.intellij.ui.components.JBList
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.components.JBTextField
-import com.jetbrains.bigdatatools.kafka.consumer.*
+import com.jetbrains.bigdatatools.kafka.consumer.client.KafkaConsumerClient
+import com.jetbrains.bigdatatools.kafka.consumer.editor.renders.FilterRenderer
+import com.jetbrains.bigdatatools.kafka.consumer.editor.renders.LimitRenderer
+import com.jetbrains.bigdatatools.kafka.consumer.editor.renders.StartFromRenderer
+import com.jetbrains.bigdatatools.kafka.consumer.models.*
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
+import com.jetbrains.bigdatatools.kafka.ui.ConsumerOutputRender
+import com.jetbrains.bigdatatools.kafka.ui.FieldType
+import com.jetbrains.bigdatatools.kafka.ui.FieldTypeRenderer
+import com.jetbrains.bigdatatools.kafka.ui.TopicRenderer
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import com.jetbrains.bigdatatools.settings.defaultui.UiUtil
 import com.jetbrains.bigdatatools.ui.MigPanel
@@ -23,7 +31,6 @@ import net.miginfocom.layout.LC
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import java.beans.PropertyChangeListener
 import java.io.Serializable
-import java.util.*
 import javax.swing.DefaultListModel
 import javax.swing.JButton
 import javax.swing.JComponent
@@ -49,9 +56,9 @@ class KafkaConsumerEditor(private val kafkaManager: KafkaDataManager,
     }
   }
 
-  private val limitComboBox = ComboBox(ConsumerLimit.values()).apply {
+  private val limitComboBox = ComboBox(ConsumerLimitType.values()).apply {
     renderer = LimitRenderer()
-    item = ConsumerLimit.NONE
+    item = ConsumerLimitType.NONE
     addItemListener {
       updateLimit()
     }
@@ -176,75 +183,32 @@ class KafkaConsumerEditor(private val kafkaManager: KafkaDataManager,
 
   private fun startConsume() {
     val topic = topicComboBox.item ?: error("Topic is not selected")
+    val startWith = ConsumerEditorUtils.getStartWith(startFromComboBox.selectedItem as ConsumerStartType,
+                                                     startOffset.text,
+                                                     startSpecificDate.date)
+    val partitions = ConsumerEditorUtils.parsePartitionsText(partitionField.text)
+    val filter = getFilter()
 
-    val startOffset: Long? = when (startFromComboBox.selectedItem) {
-      ConsumerStartType.OFFSET -> startOffset.text.ifBlank { null }?.toLongOrNull()
-      ConsumerStartType.LATEST_OFFSET_MINUS_X -> startOffset.text.ifBlank { null }?.toLongOrNull()?.times(-1)
-      ConsumerStartType.THE_BEGINNING -> 0
-      else -> startOffset.text.ifBlank { null }?.toLongOrNull()
-    }
+    val consumerLimit = ConsumerLimit(limitComboBox.selectedItem as ConsumerLimitType, limitOffset.text, limitSpecificDate.date.time)
+    val runConfig = RunConsumerConfig(topic = topic.name,
+                                      partitions = partitions.ifEmpty { null },
+                                      limit = consumerLimit,
+                                      filter = filter,
+                                      startWith = startWith)
 
-    val calendar = Calendar.getInstance()
-    calendar.time = Date()
-
-    val startTime = when (startFromComboBox.selectedItem) {
-      ConsumerStartType.NOW -> null
-      ConsumerStartType.LAST_HOUR -> {
-        calendar.add(Calendar.HOUR_OF_DAY, -1)
-        calendar.time
-      }
-      ConsumerStartType.TODAY -> {
-        calendar.set(Calendar.HOUR_OF_DAY, 0)
-        calendar.set(Calendar.MINUTE, 0)
-        calendar.set(Calendar.SECOND, 0)
-        calendar.time
-      }
-      ConsumerStartType.YESTERDAY -> {
-        calendar.set(Calendar.HOUR_OF_DAY, 0)
-        calendar.set(Calendar.MINUTE, 0)
-        calendar.set(Calendar.SECOND, 0)
-        calendar.add(Calendar.DAY_OF_YEAR, -1)
-        calendar.time
-      }
-
-      ConsumerStartType.SPECIFIC_DATE -> startSpecificDate.date
-      else -> null
-    }
-
-    val partitionsStrings = partitionField.text.split(",").map { it.trim() }.filter { it.isNotBlank() }
-    val partitions = partitionsStrings.flatMap { p ->
-      if (!p.contains("-"))
-        listOfNotNull(p.toIntOrNull())
-      else {
-        val range = p.split("-").map { it.trim() }
-        val start = range.first().trim().toIntOrNull() ?: return@flatMap emptyList<Int>()
-        val end = range.last().trim().toIntOrNull() ?: return@flatMap emptyList<Int>()
-        start..end
-      }
-    }
-
-    val filter = ConsumerFilter(
-      type = filterComboBox.item,
-      filterKey = filterKeyField.text.ifBlank { null },
-      filterValue = filterValueField.text.ifBlank { null },
-      filterHeadKey = filterHeadKeyField.text.ifBlank { null },
-      filterHeadValue = filterHeadValueField.text.ifBlank { null },
-    )
-
-    val startWith = ConsumerStartWith(offset = startOffset, time = startTime?.time)
-    consumerClient.start(topic = topic.name,
-                         partitionFilter = partitions.ifEmpty { null },
-                         topicLimitCount = getLimitTopicCount(),
-                         partitionLimitCount = getLimitPartitionCount(),
-                         limitTime = getLimitTime(),
-                         topicLimitSize = getLimitTopicSize(),
-                         partitionLimitSize = getLimitPartitionsSize(),
-                         filter = filter,
-                         startWith = startWith)
-    { record ->
+    consumerClient.start(runConfig) { record ->
       outputModel.addElement(record)
     }
   }
+
+  private fun getFilter() = ConsumerFilter(
+    type = filterComboBox.item,
+    filterKey = filterKeyField.text.ifBlank { null },
+    filterValue = filterValueField.text.ifBlank { null },
+    filterHeadKey = filterHeadKeyField.text.ifBlank { null },
+    filterHeadValue = filterHeadValueField.text.ifBlank { null },
+  )
+
 
   private fun updateVisibility() {
     val isEnabled = !consumerClient.isRunning()
@@ -294,38 +258,13 @@ class KafkaConsumerEditor(private val kafkaManager: KafkaDataManager,
     limitOffset.isVisible = false
 
     when (limitComboBox.selectedItem) {
-      ConsumerLimit.DATE -> limitSpecificDate.isVisible = true
-      ConsumerLimit.TOPIC_NUMBER_RECORDS,
-      ConsumerLimit.PARTITION_NUMBER_RECORDS,
-      ConsumerLimit.PARTITION_MAX_SIZE,
-      ConsumerLimit.TOPIC_MAX_SIZE -> limitOffset.isVisible = true
+      ConsumerLimitType.DATE -> limitSpecificDate.isVisible = true
+      ConsumerLimitType.TOPIC_NUMBER_RECORDS,
+      ConsumerLimitType.PARTITION_NUMBER_RECORDS,
+      ConsumerLimitType.PARTITION_MAX_SIZE,
+      ConsumerLimitType.TOPIC_MAX_SIZE -> limitOffset.isVisible = true
     }
   }
-
-  private fun getLimitTime() = if (limitComboBox.selectedItem == ConsumerLimit.DATE)
-    limitSpecificDate.date.time
-  else
-    null
-
-  private fun getLimitTopicCount() = if (limitComboBox.selectedItem == ConsumerLimit.TOPIC_NUMBER_RECORDS)
-    limitOffset.text?.toLongOrNull()
-  else
-    null
-
-  private fun getLimitTopicSize() = if (limitComboBox.selectedItem == ConsumerLimit.TOPIC_MAX_SIZE)
-    limitOffset.text?.toLongOrNull()
-  else
-    null
-
-  private fun getLimitPartitionCount() = if (limitComboBox.selectedItem == ConsumerLimit.PARTITION_NUMBER_RECORDS)
-    limitOffset.text?.toLongOrNull()
-  else
-    null
-
-  private fun getLimitPartitionsSize() = if (limitComboBox.selectedItem == ConsumerLimit.PARTITION_MAX_SIZE)
-    limitOffset.text?.toLongOrNull()
-  else
-    null
 
   private fun onStopConsume() {
     consumeButton.text = KafkaMessagesBundle.message("action.consume.start.title")
@@ -343,6 +282,4 @@ class KafkaConsumerEditor(private val kafkaManager: KafkaDataManager,
   override fun removePropertyChangeListener(listener: PropertyChangeListener) {}
   override fun getCurrentLocation(): FileEditorLocation? = null
   override fun dispose() {}
-
-
 }
