@@ -1,10 +1,12 @@
 package com.jetbrains.bigdatatools.kafka.consumer.editor
 
 
+import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.fileEditor.FileEditor
 import com.intellij.openapi.fileEditor.FileEditorLocation
 import com.intellij.openapi.fileEditor.FileEditorState
 import com.intellij.openapi.ui.ComboBox
+import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.ui.Splitter
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.UserDataHolderBase
@@ -165,7 +167,9 @@ class KafkaConsumerEditor(kafkaManager: KafkaDataManager,
                            outputModel.addElement(record)
                          },
                          consumeError = {
-                           println(it.toPresentableText())
+                           invokeLater {
+                             Messages.showErrorDialog(it.toPresentableText(), "Produce error")
+                           }
                          })
   }
 
