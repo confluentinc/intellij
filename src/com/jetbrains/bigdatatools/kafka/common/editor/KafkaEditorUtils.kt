@@ -6,13 +6,15 @@ import com.intellij.openapi.util.Disposer
 import com.jetbrains.bigdatatools.kafka.common.editor.renders.TopicRenderer
 import com.jetbrains.bigdatatools.kafka.common.models.TopicInEditor
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
+import com.jetbrains.bigdatatools.kafka.producer.models.RecordCompression
 import com.jetbrains.bigdatatools.monitoring.data.listener.DataModelListener
+import com.jetbrains.bigdatatools.ui.CustomListCellRenderer
 
 object KafkaEditorUtils {
   fun createTopicComboBox(rootDisposable: Disposable, kafkaManager: KafkaDataManager): ComboBox<TopicInEditor> {
     val topics = kafkaManager.getTopics()
     val topicComboBox = ComboBox(topics.map { it.toEditorTopic() }.toTypedArray())
-    topicComboBox.renderer = TopicRenderer()
+    topicComboBox.renderer = CustomListCellRenderer<TopicInEditor> { value -> value.name }
 
     val listener = object : DataModelListener {
       override fun onChanged() {

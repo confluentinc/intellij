@@ -23,15 +23,13 @@ import com.jetbrains.bigdatatools.kafka.common.editor.renders.FieldTypeRenderer
 import com.jetbrains.bigdatatools.kafka.common.models.FieldType
 import com.jetbrains.bigdatatools.kafka.common.models.ProducerField
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
-import com.jetbrains.bigdatatools.kafka.producer.editor.renders.AcksRenderer
 import com.jetbrains.bigdatatools.kafka.producer.editor.renders.ProducerOutputRender
-import com.jetbrains.bigdatatools.kafka.producer.editor.renders.RecordCompressionRenderer
 import com.jetbrains.bigdatatools.kafka.producer.models.AcksType
 import com.jetbrains.bigdatatools.kafka.producer.models.ProducerResultMessage
 import com.jetbrains.bigdatatools.kafka.producer.models.RecordCompression
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
-import com.jetbrains.bigdatatools.settings.components.BdtPropertyComponent
 import com.jetbrains.bigdatatools.settings.defaultui.UiUtil
+import com.jetbrains.bigdatatools.ui.CustomListCellRenderer
 import com.jetbrains.bigdatatools.ui.MigPanel
 import net.miginfocom.layout.LC
 import java.beans.PropertyChangeListener
@@ -45,12 +43,12 @@ class KafkaProducerEditor(project: Project,
   private val producerClient = kafkaManager.client.createProducerClient()
   val topics = kafkaManager.getTopics()
 
-  private val propertiesComponent = BdtPropertyComponent("", label = KafkaMessagesBundle.message("record.headers.label"))
+  private val propertiesComponent = PropertiesTable("")
 
   private val topicComboBox = KafkaEditorUtils.createTopicComboBox(this, kafkaManager)
 
   private val acksComboBox = ComboBox(AcksType.values()).apply {
-    renderer = AcksRenderer()
+    renderer = CustomListCellRenderer<AcksType> { value -> value.name.toLowerCase() }
     item = AcksType.NONE
   }
   private val idempotenceCheckBox = CheckBox(KafkaMessagesBundle.message("producer.idempotence.label")).apply {
@@ -59,7 +57,7 @@ class KafkaProducerEditor(project: Project,
     }
   }
   private val compressionComboBox = ComboBox(RecordCompression.values()).apply {
-    renderer = RecordCompressionRenderer()
+    renderer = CustomListCellRenderer<RecordCompression> { value -> value.name.toLowerCase() }
     selectedIndex = 0
   }
   private val keyComboBox = ComboBox(FieldType.values()).apply {
@@ -150,7 +148,8 @@ class KafkaProducerEditor(project: Project,
 
       title("Options")
       row("Force partition:", forcePartitionField)
-      row(propertiesComponent.label, propertiesComponent.getComponent())
+      row(KafkaMessagesBundle.message("record.headers.label"))
+      block(propertiesComponent.getComponent())
 
       row("Compression:", compressionComboBox)
       row("Acks:", acksComboBox)

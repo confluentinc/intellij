@@ -8,6 +8,11 @@ import java.text.SimpleDateFormat
 import javax.swing.*
 
 class ProducerOutputRender : JPanel(null), ListCellRenderer<ProducerResultMessage> {
+
+  companion object {
+    val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss")
+  }
+
   private val time = JBLabel()
   private val duration = JLabel()
   private val body = JLabel()
@@ -23,13 +28,12 @@ class ProducerOutputRender : JPanel(null), ListCellRenderer<ProducerResultMessag
     add(offset)
   }
 
-
   override fun getListCellRendererComponent(list: JList<out ProducerResultMessage>,
                                             value: ProducerResultMessage,
                                             index: Int,
                                             isSelected: Boolean,
                                             cellHasFocus: Boolean): Component {
-    val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss")
+
     val formattedTimeStamp = dateFormat.format(value.timestamp)
 
     time.text = "Date: $formattedTimeStamp"

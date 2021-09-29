@@ -1,6 +1,5 @@
 package com.jetbrains.bigdatatools.kafka.consumer.editor
 
-
 import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.fileEditor.FileEditor
 import com.intellij.openapi.fileEditor.FileEditorLocation
@@ -19,14 +18,12 @@ import com.jetbrains.bigdatatools.kafka.common.editor.KafkaEditorUtils
 import com.jetbrains.bigdatatools.kafka.common.editor.renders.FieldTypeRenderer
 import com.jetbrains.bigdatatools.kafka.common.models.FieldType
 import com.jetbrains.bigdatatools.kafka.consumer.client.KafkaConsumerClient
-import com.jetbrains.bigdatatools.kafka.consumer.editor.renders.FilterRenderer
-import com.jetbrains.bigdatatools.kafka.consumer.editor.renders.LimitRenderer
-import com.jetbrains.bigdatatools.kafka.consumer.editor.renders.StartFromRenderer
 import com.jetbrains.bigdatatools.kafka.consumer.models.*
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.producer.editor.renders.ConsumerOutputRender
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import com.jetbrains.bigdatatools.settings.defaultui.UiUtil
+import com.jetbrains.bigdatatools.ui.CustomListCellRenderer
 import com.jetbrains.bigdatatools.ui.MigPanel
 import com.jetbrains.bigdatatools.util.toPresentableText
 import com.michaelbaranov.microba.calendar.DatePicker
@@ -50,7 +47,7 @@ class KafkaConsumerEditor(kafkaManager: KafkaDataManager,
 
   private val startOffset = JBTextField()
   private val startFromComboBox = ComboBox(ConsumerStartType.values()).apply {
-    renderer = StartFromRenderer()
+    renderer = CustomListCellRenderer<ConsumerStartType> { value -> value.name.toLowerCase() }
     item = ConsumerStartType.NOW
     addItemListener {
       updateStartWith()
@@ -58,7 +55,7 @@ class KafkaConsumerEditor(kafkaManager: KafkaDataManager,
   }
 
   private val limitComboBox = ComboBox(ConsumerLimitType.values()).apply {
-    renderer = LimitRenderer()
+    renderer = CustomListCellRenderer<ConsumerLimitType> { value -> value.name.toLowerCase() }
     item = ConsumerLimitType.NONE
     addItemListener {
       updateLimit()
@@ -66,7 +63,7 @@ class KafkaConsumerEditor(kafkaManager: KafkaDataManager,
   }
 
   private val filterComboBox = ComboBox(ConsumerFilterType.values()).apply {
-    renderer = FilterRenderer()
+    renderer = CustomListCellRenderer<ConsumerFilterType> { value -> value.name.toLowerCase() }
     item = ConsumerFilterType.NONE
     addItemListener {
       updateFilter()
@@ -112,7 +109,6 @@ class KafkaConsumerEditor(kafkaManager: KafkaDataManager,
       else {
         startConsume()
         text = KafkaMessagesBundle.message("action.consume.stop.title")
-
       }
       updateVisibility()
       invalidate()
@@ -211,7 +207,6 @@ class KafkaConsumerEditor(kafkaManager: KafkaDataManager,
     proportion = 0.1f
   }
 
-
   private fun getFilter() = ConsumerFilter(
     type = filterComboBox.item,
     filterKey = filterKeyField.text.ifBlank { null },
@@ -219,7 +214,6 @@ class KafkaConsumerEditor(kafkaManager: KafkaDataManager,
     filterHeadKey = filterHeadKeyField.text.ifBlank { null },
     filterHeadValue = filterHeadValueField.text.ifBlank { null },
   )
-
 
   private fun updateVisibility() {
     val isEnabled = !consumerClient.isRunning()

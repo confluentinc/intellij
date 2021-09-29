@@ -9,6 +9,11 @@ import java.text.SimpleDateFormat
 import javax.swing.*
 
 class ConsumerOutputRender : JPanel(null), ListCellRenderer<ConsumerRecord<Serializable, Serializable>> {
+
+  companion object {
+    val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss")
+  }
+
   private val time = JBLabel()
   private val body = JLabel()
   private val offset = JLabel()
@@ -22,13 +27,11 @@ class ConsumerOutputRender : JPanel(null), ListCellRenderer<ConsumerRecord<Seria
     add(offset)
   }
 
-
   override fun getListCellRendererComponent(list: JList<out ConsumerRecord<Serializable, Serializable>>,
                                             value: ConsumerRecord<Serializable, Serializable>,
                                             index: Int,
                                             isSelected: Boolean,
                                             cellHasFocus: Boolean): Component {
-    val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss")
     val formattedTimeStamp = dateFormat.format(value.timestamp())
     time.text = "Date: $formattedTimeStamp"
     offset.text = "Offset: ${value.offset()}"
