@@ -32,7 +32,7 @@ class ConsumerOutputRender : JPanel(null), ListCellRenderer<ConsumerRecord<Seria
     val formattedTimeStamp = dateFormat.format(value.timestamp())
     time.text = "Date: $formattedTimeStamp"
     offset.text = "Offset: ${value.offset()}"
-    body.text = value.key().toString() + ": " + value.value()
+    body.text = (value.key() ?: "null").toString() + ": " + (value.value() ?: "null")
     return this
   }
 }
