@@ -15,6 +15,7 @@ import com.jetbrains.bigdatatools.monitoring.connection.MonitoringClient
 import com.jetbrains.bigdatatools.settings.components.BdtPropertyComponent
 import com.jetbrains.bigdatatools.settings.connections.Property
 import com.jetbrains.bigdatatools.util.executeOnPooledThread
+import org.apache.kafka.clients.CommonClientConfigs
 import org.apache.kafka.clients.admin.AdminClient
 import org.apache.kafka.clients.admin.ListTopicsOptions
 import org.apache.kafka.clients.admin.TopicDescription
@@ -123,9 +124,8 @@ class KafkaClient(project: Project?,
   private fun getKafkaProps(connectionData: KafkaConnectionData): Properties {
     val defaultProps = listOf(
       Property(SERVER_URL, connectionData.uri.removeSuffix("/")),
-      Property("connections.max.idle.ms", 10000.toString()),
-      Property("default.api.timeout.ms", 5000.toString()),
-      Property("request.timeout.ms", 5000.toString())
+      Property(CommonClientConfigs.CONNECTIONS_MAX_IDLE_MS_CONFIG, 10000.toString()),
+      Property(CommonClientConfigs.REQUEST_TIMEOUT_MS_CONFIG, 30000.toString())
     )
 
     val props = Properties()
