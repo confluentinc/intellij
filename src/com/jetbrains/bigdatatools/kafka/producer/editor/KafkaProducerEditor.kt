@@ -18,8 +18,8 @@ import com.intellij.ui.components.JBList
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.components.JBTextField
 import com.intellij.ui.components.fields.IntegerField
+import com.jetbrains.bigdatatools.kafka.common.editor.KafkaEditorUtils
 import com.jetbrains.bigdatatools.kafka.common.editor.renders.FieldTypeRenderer
-import com.jetbrains.bigdatatools.kafka.common.editor.renders.TopicRenderer
 import com.jetbrains.bigdatatools.kafka.common.models.FieldType
 import com.jetbrains.bigdatatools.kafka.common.models.ProducerField
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
@@ -47,7 +47,8 @@ class KafkaProducerEditor(project: Project,
 
   private val propertiesComponent = BdtPropertyComponent("", label = KafkaMessagesBundle.message("record.headers.label"))
 
-  private val topicComboBox = ComboBox(topics.toTypedArray()).apply { renderer = TopicRenderer() }
+  private val topicComboBox = KafkaEditorUtils.createTopicComboBox(this, kafkaManager)
+
   private val acksComboBox = ComboBox(AcksType.values()).apply {
     renderer = AcksRenderer()
     item = AcksType.NONE

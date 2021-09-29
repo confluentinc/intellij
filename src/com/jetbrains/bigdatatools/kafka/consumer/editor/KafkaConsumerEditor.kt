@@ -15,8 +15,8 @@ import com.intellij.ui.OnePixelSplitter
 import com.intellij.ui.components.JBList
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.components.JBTextField
+import com.jetbrains.bigdatatools.kafka.common.editor.KafkaEditorUtils
 import com.jetbrains.bigdatatools.kafka.common.editor.renders.FieldTypeRenderer
-import com.jetbrains.bigdatatools.kafka.common.editor.renders.TopicRenderer
 import com.jetbrains.bigdatatools.kafka.common.models.FieldType
 import com.jetbrains.bigdatatools.kafka.consumer.client.KafkaConsumerClient
 import com.jetbrains.bigdatatools.kafka.consumer.editor.renders.FilterRenderer
@@ -44,8 +44,6 @@ class KafkaConsumerEditor(kafkaManager: KafkaDataManager,
                                                    onStop = {
                                                      onStopConsume()
                                                    })
-  val topics = kafkaManager.getTopics()
-
   private val startSpecificDate = DatePicker()
   private val limitSpecificDate = DatePicker()
   private val limitOffset = JBTextField()
@@ -82,7 +80,7 @@ class KafkaConsumerEditor(kafkaManager: KafkaDataManager,
 
   private val partitionField = JBTextField()
 
-  private val topicComboBox = ComboBox(topics.toTypedArray()).apply { renderer = TopicRenderer() }
+  private val topicComboBox = KafkaEditorUtils.createTopicComboBox(this, kafkaManager)
 
   private val keyComboBox = ComboBox(FieldType.values()).apply {
     renderer = FieldTypeRenderer()
@@ -139,6 +137,7 @@ class KafkaConsumerEditor(kafkaManager: KafkaDataManager,
 
   init {
     Disposer.register(this, consumerClient)
+
     updateVisibility()
     updateLimit()
     updateStartWith()

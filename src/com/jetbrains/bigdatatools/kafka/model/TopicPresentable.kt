@@ -1,5 +1,6 @@
 package com.jetbrains.bigdatatools.kafka.model
 
+import com.jetbrains.bigdatatools.kafka.common.models.TopicInEditor
 import com.jetbrains.bigdatatools.monitoring.data.model.RemoteInfo
 import com.jetbrains.bigdatatools.table.renderers.DataRenderingUtil
 import com.jetbrains.bigdatatools.table.renderers.NoRendering
@@ -19,6 +20,8 @@ data class TopicPresentable(val name: String,
                             val inSyncReplicas: Int,
                             val replicationFactor: Int,
                             val underReplicatedPartitions: Int) : RemoteInfo {
+  fun toEditorTopic() = TopicInEditor(name)
+
   companion object {
     val renderableColumns: List<KProperty1<TopicPresentable, *>> by lazy {
       TopicPresentable::class.declaredMemberProperties.filter { DataRenderingUtil.shouldRenderFrom(it.javaField?.annotations) }
