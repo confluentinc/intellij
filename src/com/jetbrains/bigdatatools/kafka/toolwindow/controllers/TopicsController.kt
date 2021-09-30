@@ -27,6 +27,7 @@ import com.jetbrains.bigdatatools.monitoring.table.model.DataTableColumnModel
 import com.jetbrains.bigdatatools.monitoring.table.model.DataTableModel
 import com.jetbrains.bigdatatools.settings.ColumnVisibilitySettings
 import com.jetbrains.bigdatatools.table.MaterialJBScrollPane
+import com.jetbrains.bigdatatools.util.BdIdeRegistryUtil
 import com.jetbrains.bigdatatools.util.createActionToolbar
 import java.util.*
 import javax.swing.event.ListSelectionEvent
@@ -124,8 +125,11 @@ class TopicsController(private val project: Project, private val dataManager: Ka
 
     actions.add(showInternalTopicsAction)
     actions.add(configStoragesColumnsAction)
-    //actions.add(createProducer)
-    //actions.add(createConsumer)
+
+    if (BdIdeRegistryUtil.isInternalFeaturesAvailable()) {
+      actions.add(createProducer)
+      actions.add(createConsumer)
+    }
 
     return createActionToolbar("BDTKafkaTopics", actions, false)
   }
