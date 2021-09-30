@@ -41,7 +41,7 @@ import javax.swing.JComponent
 class KafkaProducerEditor(project: Project,
                           kafkaManager: KafkaDataManager,
                           private val file: VirtualFile) : FileEditor, UserDataHolderBase() {
-  var isRestoring = false
+  private var isRestoring = false
 
   private val producerClient = kafkaManager.client.createProducerClient()
   val topics = kafkaManager.getTopics()
@@ -316,7 +316,7 @@ class KafkaProducerEditor(project: Project,
     }
 
     acksComboBox.item = config.acks
-    propertiesComponent.getTextComponent().text = config.properties.joinToString(separator = "\n") { it.name + "=" + it.value }
+    propertiesComponent.setProperties(config.properties)
     compressionComboBox.item = config.compression
     idempotenceCheckBox.isSelected = config.idempotence
     forcePartitionField.value = config.forcePartition

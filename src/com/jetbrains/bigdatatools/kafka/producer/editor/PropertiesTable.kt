@@ -26,6 +26,16 @@ class PropertiesTable(data: String) {
     }
   }.createPanel()
 
+  fun setProperties(new: List<Property>) {
+    val oldSize = tableModel.properties.size
+    repeat(oldSize) {
+      tableModel.removeRow(0)
+    }
+    new.forEach {
+      tableModel.addRow(it)
+    }
+  }
+
   fun getComponent() = component
   fun getProperties(): List<Property> = tableModel.properties
 }
