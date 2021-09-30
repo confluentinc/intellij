@@ -8,6 +8,7 @@ import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.ui.Splitter
 import com.intellij.openapi.util.Disposer
+import com.intellij.openapi.util.Key
 import com.intellij.openapi.util.UserDataHolderBase
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.ui.OnePixelSplitter
@@ -17,6 +18,7 @@ import com.intellij.ui.components.JBTextField
 import com.jetbrains.bigdatatools.kafka.common.editor.KafkaEditorUtils
 import com.jetbrains.bigdatatools.kafka.common.editor.renders.FieldTypeRenderer
 import com.jetbrains.bigdatatools.kafka.common.models.FieldType
+import com.jetbrains.bigdatatools.kafka.common.models.TopicInEditor
 import com.jetbrains.bigdatatools.kafka.consumer.client.KafkaConsumerClient
 import com.jetbrains.bigdatatools.kafka.consumer.models.*
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
@@ -31,6 +33,7 @@ import net.miginfocom.layout.LC
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import java.beans.PropertyChangeListener
 import java.io.Serializable
+import java.util.*
 import javax.swing.DefaultListModel
 import javax.swing.JButton
 import javax.swing.JComponent
@@ -51,6 +54,7 @@ class KafkaConsumerEditor(kafkaManager: KafkaDataManager,
     item = ConsumerStartType.NOW
     addItemListener {
       updateStartWith()
+      storeToFile()
     }
   }
 
@@ -59,6 +63,7 @@ class KafkaConsumerEditor(kafkaManager: KafkaDataManager,
     item = ConsumerLimitType.NONE
     addItemListener {
       updateLimit()
+      storeToFile()
     }
   }
 
@@ -67,6 +72,7 @@ class KafkaConsumerEditor(kafkaManager: KafkaDataManager,
     item = ConsumerFilterType.NONE
     addItemListener {
       updateFilter()
+      storeToFile()
     }
   }
 
@@ -84,6 +90,7 @@ class KafkaConsumerEditor(kafkaManager: KafkaDataManager,
     selectedItem = FieldType.STRING
     addItemListener {
       updateVisibility()
+      storeToFile()
     }
   }
 
@@ -92,6 +99,7 @@ class KafkaConsumerEditor(kafkaManager: KafkaDataManager,
     selectedItem = FieldType.STRING
     addItemListener {
       updateVisibility()
+      storeToFile()
     }
   }
 
@@ -111,6 +119,8 @@ class KafkaConsumerEditor(kafkaManager: KafkaDataManager,
         text = KafkaMessagesBundle.message("action.consume.stop.title")
       }
       updateVisibility()
+      storeToFile()
+
       invalidate()
       repaint()
     }
@@ -134,29 +144,21 @@ class KafkaConsumerEditor(kafkaManager: KafkaDataManager,
   init {
     Disposer.register(this, consumerClient)
 
+    restoreFromFile()
     updateVisibility()
     updateLimit()
     updateStartWith()
     updateFilter()
+
+    storeToFile()
+  }
+
+  override fun dispose() {
+    storeToFile()
   }
 
   private fun startConsume() {
-    val topic = topicComboBox.item ?: error("Topic is not selected")
-    val startWith = ConsumerEditorUtils.getStartWith(startFromComboBox.selectedItem as ConsumerStartType,
-                                                     startOffset.text,
-                                                     startSpecificDate.date)
-    val partitions = ConsumerEditorUtils.parsePartitionsText(partitionField.text)
-    val filter = getFilter()
-
-    val consumerLimit = ConsumerLimit(limitComboBox.selectedItem as ConsumerLimitType, limitOffset.text, limitSpecificDate.date.time)
-    val runConfig = RunConsumerConfig(topic = topic.name,
-                                      keyType = keyComboBox.item as FieldType,
-                                      valueType = valueComboBox.item as FieldType,
-                                      partitions = partitions.ifEmpty { null },
-                                      limit = consumerLimit,
-                                      filter = filter,
-                                      startWith = startWith)
-
+    val runConfig = getRunConfig()
     consumerClient.start(runConfig,
                          consume = { record ->
                            outputModel.addElement(record)
@@ -168,8 +170,25 @@ class KafkaConsumerEditor(kafkaManager: KafkaDataManager,
                          })
   }
 
-  private fun createCenterPanel() = OnePixelSplitter().apply {
+  private fun getRunConfig(): RunConsumerConfig {
+    val topicName = topicComboBox.item?.name ?: ""
+    val startWith = ConsumerEditorUtils.getStartWith(startFromComboBox.selectedItem as ConsumerStartType,
+                                                     startOffset.text,
+                                                     startSpecificDate.date)
+    val filter = getFilter()
 
+    val consumerLimit = ConsumerLimit(limitComboBox.selectedItem as ConsumerLimitType, limitOffset.text, limitSpecificDate.date?.time)
+
+    return RunConsumerConfig(topic = topicName,
+                             keyType = keyComboBox.item as FieldType,
+                             valueType = valueComboBox.item as FieldType,
+                             partitions = partitionField.text,
+                             limit = consumerLimit,
+                             filter = filter,
+                             startWith = startWith)
+  }
+
+  private fun createCenterPanel() = OnePixelSplitter().apply {
     val leftPanel = MigPanel(LC().insets("10").fillX().hideMode(3)).apply {
 
       row("Topics:", topicComboBox)
@@ -274,6 +293,47 @@ class KafkaConsumerEditor(kafkaManager: KafkaDataManager,
   private fun onStopConsume() {
     consumeButton.text = KafkaMessagesBundle.message("action.consume.start.title")
     updateVisibility()
+
+    storeToFile()
+  }
+
+  var isRestoring = false
+  private fun storeToFile() {
+    if (isRestoring)
+      return
+    file.putUserData(STATE_KEY, ConsumerEditorState(outputModel.elements().toList(), getRunConfig()))
+  }
+
+  private fun restoreFromFile() {
+    try {
+      isRestoring = true
+
+      val state = file.getUserData(STATE_KEY) ?: return
+      outputModel.clear()
+      state.output.forEach {
+        outputModel.addElement(it)
+      }
+      val config = state.config
+
+      topicComboBox.item = TopicInEditor(config.topic)
+      keyComboBox.item = config.keyType
+      valueComboBox.item = config.valueType
+
+      limitComboBox.item = config.limit.type
+      limitOffset.text = config.limit.value
+      limitSpecificDate.date = config.limit.time?.let { Date(it) }
+
+      filterComboBox.item = config.filter.type
+      filterKeyField.text = config.filter.filterKey
+      filterValueField.text = config.filter.filterValue
+      filterHeadKeyField.text = config.filter.filterHeadKey
+      filterHeadValueField.text = config.filter.filterHeadValue
+
+      partitionField.text = config.partitions
+    }
+    finally {
+      isRestoring = false
+    }
   }
 
   override fun getName(): String = KafkaMessagesBundle.message("consume.from.topic")
@@ -286,5 +346,8 @@ class KafkaConsumerEditor(kafkaManager: KafkaDataManager,
   override fun addPropertyChangeListener(listener: PropertyChangeListener) {}
   override fun removePropertyChangeListener(listener: PropertyChangeListener) {}
   override fun getCurrentLocation(): FileEditorLocation? = null
-  override fun dispose() {}
+
+  companion object {
+    val STATE_KEY = Key<ConsumerEditorState>("STATE")
+  }
 }

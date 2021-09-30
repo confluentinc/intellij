@@ -7,5 +7,5 @@ data class RunConsumerConfig(val topic: String,
                              val valueType: FieldType,
                              val filter: ConsumerFilter,
                              val limit: ConsumerLimit,
-                             val partitions: List<Int>?,
+                             val partitions: String,
                              val startWith: ConsumerStartWith)
