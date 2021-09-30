@@ -132,27 +132,27 @@ class KafkaProducerEditor(project: Project,
     val leftPanel = MigPanel(LC().insets("10").fillX().hideMode(3)).apply {
 
       gapLeft = true
-      title("Data")
-      row("Topics:", topicComboBox)
-      row("Key:", keyComboBox)
+      title(KafkaMessagesBundle.message("producer.title.data"))
+      row(KafkaMessagesBundle.message("producer.topics"), topicComboBox)
+      row(KafkaMessagesBundle.message("producer.key"), keyComboBox)
       add(keyJson, UiUtil.growXSpanXWrap)
       add(keyIntegerField, UiUtil.growXSpanXWrap)
       add(keyDoubleField, UiUtil.growXSpanXWrap)
       add(keyStringField, UiUtil.growXSpanXWrap)
 
-      row("Value:", valueComboBox)
+      row(KafkaMessagesBundle.message("producer.value"), valueComboBox)
       add(valueJson, UiUtil.growXSpanXWrap)
       add(valueIntegerField, UiUtil.growXSpanXWrap)
       add(valueDoubleField, UiUtil.growXSpanXWrap)
       add(valueStringField, UiUtil.growXSpanXWrap)
 
-      title("Options")
-      row("Force partition:", forcePartitionField)
+      title(KafkaMessagesBundle.message("producer.title.options"))
+      row(KafkaMessagesBundle.message("producer.forcePartition"), forcePartitionField)
       row(KafkaMessagesBundle.message("record.headers.label"))
       block(propertiesComponent.getComponent())
 
-      row("Compression:", compressionComboBox)
-      row("Acks:", acksComboBox)
+      row(KafkaMessagesBundle.message("producer.compression"), compressionComboBox)
+      row(KafkaMessagesBundle.message("producer.asks"), acksComboBox)
       add(idempotenceCheckBox, UiUtil.gapLeftSpanXWrap)
 
       gapLeft = false
