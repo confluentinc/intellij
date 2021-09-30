@@ -7,6 +7,7 @@ import com.intellij.openapi.fileEditor.FileEditorState
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.Splitter
+import com.intellij.openapi.util.Key
 import com.intellij.openapi.util.UserDataHolderBase
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.ui.EditorCustomization
@@ -22,11 +23,10 @@ import com.jetbrains.bigdatatools.kafka.common.editor.KafkaEditorUtils
 import com.jetbrains.bigdatatools.kafka.common.editor.renders.FieldTypeRenderer
 import com.jetbrains.bigdatatools.kafka.common.models.FieldType
 import com.jetbrains.bigdatatools.kafka.common.models.ProducerField
+import com.jetbrains.bigdatatools.kafka.common.models.TopicInEditor
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.producer.editor.renders.ProducerOutputRender
-import com.jetbrains.bigdatatools.kafka.producer.models.AcksType
-import com.jetbrains.bigdatatools.kafka.producer.models.ProducerResultMessage
-import com.jetbrains.bigdatatools.kafka.producer.models.RecordCompression
+import com.jetbrains.bigdatatools.kafka.producer.models.*
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import com.jetbrains.bigdatatools.settings.defaultui.UiUtil
 import com.jetbrains.bigdatatools.ui.CustomListCellRenderer
@@ -37,9 +37,12 @@ import javax.swing.DefaultListModel
 import javax.swing.JButton
 import javax.swing.JComponent
 
+@Suppress("DuplicatedCode")
 class KafkaProducerEditor(project: Project,
                           kafkaManager: KafkaDataManager,
                           private val file: VirtualFile) : FileEditor, UserDataHolderBase() {
+  var isRestoring = false
+
   private val producerClient = kafkaManager.client.createProducerClient()
   val topics = kafkaManager.getTopics()
 
@@ -105,6 +108,8 @@ class KafkaProducerEditor(project: Project,
       val key = ProducerField(keyComboBox.item!!, getKey())
       val value = ProducerField(valueComboBox.item!!, getValue())
 
+      getConfig()
+
       val result = producerClient.sentMessage(selectedTopicName, key, value,
                                               propertiesComponent.getProperties(),
                                               compressionComboBox.item,
@@ -114,6 +119,16 @@ class KafkaProducerEditor(project: Project,
       outputModel.addElement(result)
     }
   }
+
+  private fun getConfig() = RunProducerConfig(topicComboBox.item.name,
+                                              keyType = keyComboBox.item, key = getKey(),
+                                              valueType = valueComboBox.item, value = getValue(),
+                                              properties = propertiesComponent.getProperties(),
+                                              compression = compressionComboBox.item,
+                                              acks = acksComboBox.item,
+                                              idempotence = idempotenceCheckBox.isSelected,
+                                              forcePartition = forcePartitionField.value)
+
 
   private val clearButton = JButton(KafkaMessagesBundle.message("action.clear.output")).apply {
     addActionListener {
@@ -125,6 +140,11 @@ class KafkaProducerEditor(project: Project,
 
   init {
     updateVisibility()
+    restoreFromFile()
+  }
+
+  override fun dispose() {
+    storeToFile()
   }
 
   private fun createCenterPanel() = OnePixelSplitter().apply {
@@ -231,7 +251,7 @@ class KafkaProducerEditor(project: Project,
     FieldType.DOUBLE -> keyDoubleField.text
     FieldType.FLOAT -> keyDoubleField.text
     FieldType.BASE64 -> keyStringField.text
-    FieldType.NULL -> null
+    FieldType.NULL -> ""
   }
 
   private fun getValue() = when (valueComboBox.item!!) {
@@ -241,8 +261,67 @@ class KafkaProducerEditor(project: Project,
     FieldType.DOUBLE -> valueDoubleField.text
     FieldType.FLOAT -> valueDoubleField.text
     FieldType.BASE64 -> valueStringField.text
-    FieldType.NULL -> null
+    FieldType.NULL -> ""
   }
+
+  private fun storeToFile() {
+    if (isRestoring)
+      return
+    file.putUserData(STATE_KEY, ProducerEditorState(outputModel.elements().toList(), getConfig()))
+  }
+
+
+  private fun restoreFromFile() {
+    try {
+      isRestoring = true
+
+      val state = file.getUserData(STATE_KEY) ?: return
+      outputModel.clear()
+      state.output.forEach {
+        outputModel.addElement(it)
+      }
+      applyConfig(state.config)
+    }
+    finally {
+      isRestoring = false
+    }
+  }
+
+
+  private fun applyConfig(config: RunProducerConfig) {
+    topicComboBox.item = TopicInEditor(config.topic)
+    keyComboBox.item = config.keyType
+
+    when (config.keyType) {
+      FieldType.JSON -> keyJson.text = config.key
+      FieldType.STRING -> keyStringField.text = config.key
+      FieldType.LONG -> keyIntegerField.text = config.key
+      FieldType.DOUBLE -> keyDoubleField.text = config.key
+      FieldType.FLOAT -> keyDoubleField.text = config.key
+      FieldType.BASE64 -> keyStringField.text = config.key
+      FieldType.NULL -> {
+      }
+    }
+    valueComboBox.item = config.valueType
+
+    when (config.valueType) {
+      FieldType.JSON -> valueJson.text = config.value
+      FieldType.STRING -> valueStringField.text = config.value
+      FieldType.LONG -> valueIntegerField.text = config.value
+      FieldType.DOUBLE -> valueDoubleField.text = config.value
+      FieldType.FLOAT -> valueDoubleField.text = config.value
+      FieldType.BASE64 -> valueStringField.text = config.value
+      FieldType.NULL -> {
+      }
+    }
+
+    acksComboBox.item = config.acks
+    propertiesComponent.getTextComponent().text = config.properties.joinToString(separator = "\n") { it.name + "=" + it.value }
+    compressionComboBox.item = config.compression
+    idempotenceCheckBox.isSelected = config.idempotence
+    forcePartitionField.value = config.forcePartition
+  }
+
 
   override fun getName(): String = KafkaMessagesBundle.message("produce.to.topic")
   override fun getComponent(): JComponent = mainComponent
@@ -254,5 +333,9 @@ class KafkaProducerEditor(project: Project,
   override fun addPropertyChangeListener(listener: PropertyChangeListener) {}
   override fun removePropertyChangeListener(listener: PropertyChangeListener) {}
   override fun getCurrentLocation(): FileEditorLocation? = null
-  override fun dispose() {}
+
+  companion object {
+    val STATE_KEY = Key<ProducerEditorState>("PRODUCER_STATE")
+  }
+
 }
