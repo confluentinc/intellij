@@ -3,8 +3,10 @@ package com.jetbrains.bigdatatools.kafka.consumer.client
 import com.intellij.openapi.Disposable
 import com.jetbrains.bigdatatools.kafka.client.KafkaClient
 import com.jetbrains.bigdatatools.kafka.common.models.FieldType
+import com.jetbrains.bigdatatools.kafka.consumer.editor.ConsumerEditorUtils
 import com.jetbrains.bigdatatools.kafka.consumer.models.ConsumerStartWith
 import com.jetbrains.bigdatatools.kafka.consumer.models.RunConsumerConfig
+import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import com.jetbrains.bigdatatools.util.executeOnPooledThread
 import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.clients.consumer.ConsumerRecord
@@ -26,10 +28,15 @@ class KafkaConsumerClient(val client: KafkaClient,
   fun start(config: RunConsumerConfig,
             consume: (ConsumerRecord<Serializable, Serializable>) -> Unit,
             consumeError: (Throwable) -> Unit) {
+    if (config.topic.isBlank()) {
+      error(KafkaMessagesBundle.message("consumer.error.topic.empty"))
+    }
+
     val consumer = createConsumer(config.keyType, config.valueType)
     runConsumer = consumer
 
-    val partitions = calculatePartitions(consumer, config.topic, config.partitions)
+    val parsedPartitionFilter = ConsumerEditorUtils.parsePartitionsText(config.partitions).ifEmpty { null }
+    val partitions = calculatePartitions(consumer, config.topic, parsedPartitionFilter)
     consumer.assign(partitions)
     seekPartitions(consumer, partitions, config.startWith)
 
