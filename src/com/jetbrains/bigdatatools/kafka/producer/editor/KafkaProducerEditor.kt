@@ -120,7 +120,7 @@ class KafkaProducerEditor(project: Project,
     }
   }
 
-  private fun getConfig() = RunProducerConfig(topicComboBox.item.name,
+  private fun getConfig() = RunProducerConfig(topicComboBox.item?.name ?: "",
                                               keyType = keyComboBox.item, key = getKey(),
                                               valueType = valueComboBox.item, value = getValue(),
                                               properties = propertiesComponent.getProperties(),
