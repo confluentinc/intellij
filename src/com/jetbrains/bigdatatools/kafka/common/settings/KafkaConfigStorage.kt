@@ -23,10 +23,16 @@ class KafkaConfigStorage : PersistentStateComponent<KafkaConfigStorage> {
     consumerRunConfigs = list.map { StorageConsumerConfig.toStorage(it) }
   }
 
+  fun addConsumerConfig(config: RunConsumerConfig) = saveConsumerConfigs(loadConsumerConfigs() + config)
+  fun removeConsumerConfig(config: RunConsumerConfig) = saveConsumerConfigs(loadConsumerConfigs().filter { it != config })
+
   fun loadProducerConfigs() = producerRunConfigs.map { it.fromStorage() }
   fun saveProducerConfigs(list: List<RunProducerConfig>) {
     producerRunConfigs = list.map { StorageProducerConfig.toStorage(it) }
   }
+
+  fun addProducerConfig(config: RunProducerConfig) = saveProducerConfigs(loadProducerConfigs() + config)
+  fun removeProducerConfig(config: RunProducerConfig) = saveProducerConfigs(loadProducerConfigs().filter { it != config })
 
   companion object {
     val instance: KafkaConfigStorage = ServiceManager.getService(KafkaConfigStorage::class.java)

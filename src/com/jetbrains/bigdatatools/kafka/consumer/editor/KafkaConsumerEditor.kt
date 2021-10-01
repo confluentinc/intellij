@@ -1,24 +1,27 @@
 package com.jetbrains.bigdatatools.kafka.consumer.editor
 
+import com.intellij.icons.AllIcons
 import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.fileEditor.FileEditor
 import com.intellij.openapi.fileEditor.FileEditorLocation
 import com.intellij.openapi.fileEditor.FileEditorState
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.Messages
-import com.intellij.openapi.ui.Splitter
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.Key
 import com.intellij.openapi.util.UserDataHolderBase
 import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.ui.IdeBorderFactory
 import com.intellij.ui.OnePixelSplitter
+import com.intellij.ui.SideBorder
 import com.intellij.ui.components.JBList
-import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.components.JBTextField
 import com.jetbrains.bigdatatools.kafka.common.editor.KafkaEditorUtils
 import com.jetbrains.bigdatatools.kafka.common.editor.renders.FieldTypeRenderer
 import com.jetbrains.bigdatatools.kafka.common.models.FieldType
 import com.jetbrains.bigdatatools.kafka.common.models.TopicInEditor
+import com.jetbrains.bigdatatools.kafka.common.settings.KafkaConfigStorage
+import com.jetbrains.bigdatatools.kafka.common.settings.StorageConsumerConfig
 import com.jetbrains.bigdatatools.kafka.consumer.client.KafkaConsumerClient
 import com.jetbrains.bigdatatools.kafka.consumer.models.*
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
@@ -31,12 +34,11 @@ import com.jetbrains.bigdatatools.util.toPresentableText
 import com.michaelbaranov.microba.calendar.DatePicker
 import net.miginfocom.layout.LC
 import org.apache.kafka.clients.consumer.ConsumerRecord
+import java.awt.BorderLayout
 import java.beans.PropertyChangeListener
 import java.io.Serializable
 import java.util.*
-import javax.swing.DefaultListModel
-import javax.swing.JButton
-import javax.swing.JComponent
+import javax.swing.*
 
 class KafkaConsumerEditor(kafkaManager: KafkaDataManager,
                           private val file: VirtualFile) : FileEditor, UserDataHolderBase() {
@@ -132,11 +134,111 @@ class KafkaConsumerEditor(kafkaManager: KafkaDataManager,
     }
   }
 
+  private val savePresetButton = JButton(KafkaMessagesBundle.message("action.save.preset")).apply {
+    addActionListener {
+      KafkaConfigStorage.instance.addConsumerConfig(getRunConfig())
+    }
+  }
+
   private val filterPanel = MigPanel().apply {
-    row("Filter key:", filterKeyField)
-    row("Filter value:", filterValueField)
-    row("Filter head key:", filterHeadKeyField)
-    row("Filter head value:", filterHeadValueField)
+    row(KafkaMessagesBundle.message("label.filter.key"), filterKeyField)
+    row(KafkaMessagesBundle.message("label.filter.value"), filterValueField)
+    row(KafkaMessagesBundle.message("label.filter.head.key"), filterHeadKeyField)
+    row(KafkaMessagesBundle.message("label.filter.head.value"), filterHeadValueField)
+  }
+
+  private val detailsPanel = JPanel(null).apply {
+    layout = BoxLayout(this, BoxLayout.Y_AXIS)
+    add(JLabel(KafkaMessagesBundle.message("details.data")))
+    add(JTextField())
+    add(JTextArea())
+    add(JLabel(KafkaMessagesBundle.message("details.headers")))
+    add(JLabel(KafkaMessagesBundle.message("details.metadata")))
+  }
+
+  private val settingsPanel = MigPanel(LC().insets("10").fillX().hideMode(3)).apply {
+
+    row(KafkaMessagesBundle.message("settings.label.topics"), topicComboBox)
+
+    title(KafkaMessagesBundle.message("settings.title.format"))
+    gapLeft = true
+    row(KafkaMessagesBundle.message("settings.format.key"), keyComboBox)
+    row(KafkaMessagesBundle.message("settings.format.value"), valueComboBox)
+
+    title(KafkaMessagesBundle.message("settings.title.range.filters"))
+    row(KafkaMessagesBundle.message("settings.filters.from"), startFromComboBox)
+    add(startSpecificDate, UiUtil.growXSpanXWrap)
+    add(startOffset, UiUtil.growXSpanXWrap)
+
+    row(KafkaMessagesBundle.message("settings.filters.limit"), limitComboBox)
+    add(limitSpecificDate, UiUtil.growXSpanXWrap)
+    add(limitOffset, UiUtil.growXSpanXWrap)
+
+    row(KafkaMessagesBundle.message("settings.filter"), filterComboBox)
+    add(filterPanel, UiUtil.growXSpanXWrap)
+
+    title(KafkaMessagesBundle.message("settings.title.partitions"))
+    row(KafkaMessagesBundle.message("settings.partitions"), partitionField)
+    gapLeft = false
+    add(consumeButton, UiUtil.growXSpanXWrap)
+    add(clearButton, UiUtil.growXSpanXWrap)
+    add(savePresetButton, UiUtil.growXSpanXWrap)
+  }
+
+  private val presetsPanel = JBList<Any>()
+
+  private var showPresets = false
+    set(value) {
+      if (field != value) {
+        field = value
+        if (field) {
+          presetsSplitter.firstComponent = presetsPanel
+        }
+        else {
+          presetsSplitter.firstComponent = null
+        }
+      }
+    }
+
+  private var showSettings = true
+    set(value) {
+      if (field != value) {
+        field = value
+        if (field) {
+          settingsSplitter.firstComponent = settingsPanel
+        }
+        else {
+          settingsSplitter.firstComponent = null
+        }
+      }
+    }
+
+  private var showDetails = false
+    set(value) {
+      if (field != value) {
+        field = value
+        if (field) {
+          resultsSplitter.secondComponent = detailsPanel
+        }
+        else {
+          resultsSplitter.secondComponent = null
+        }
+      }
+    }
+
+  private val resultsSplitter = OnePixelSplitter().apply {
+    firstComponent = outputList
+    secondComponent = if (showDetails) detailsPanel else null
+  }
+
+  private val settingsSplitter = OnePixelSplitter().apply {
+    firstComponent = if (showSettings) settingsPanel else null
+    secondComponent = resultsSplitter
+  }
+
+  private val presetsSplitter = OnePixelSplitter().apply {
+    firstComponent = if (showPresets) presetsPanel else null
+    secondComponent = settingsSplitter
   }
 
   private val mainComponent = createCenterPanel()
@@ -188,42 +290,30 @@ class KafkaConsumerEditor(kafkaManager: KafkaDataManager,
                              startWith = startWith)
   }
 
-  private fun createCenterPanel() = OnePixelSplitter().apply {
-    val leftPanel = MigPanel(LC().insets("10").fillX().hideMode(3)).apply {
+  private fun createCenterPanel(): JComponent {
 
-      row("Topics:", topicComboBox)
+    val stripe = JPanel(null).apply {
+      layout = BoxLayout(this, BoxLayout.Y_AXIS)
+      add(VerticalButton(KafkaMessagesBundle.message("toggle.presets"), AllIcons.Toolwindows.ToolWindowFavorites, false).apply {
+        isSelected = showPresets
+        addActionListener { showPresets = isSelected }
+      })
+      add(VerticalButton(KafkaMessagesBundle.message("toggle.settings"), AllIcons.General.Settings, false).apply {
+        isSelected = showSettings
+        addActionListener { showSettings = isSelected }
+      })
+      add(VerticalButton(KafkaMessagesBundle.message("toggle.details"), AllIcons.Actions.SplitVertically, false).apply {
+        isSelected = showDetails
+        addActionListener { showDetails = isSelected }
+      })
 
-      title("Format")
-      gapLeft = true
-      row("Key:", keyComboBox)
-      row("Value:", valueComboBox)
-
-      title("Range and Filters")
-      row("Start from:", startFromComboBox)
-      add(startSpecificDate, UiUtil.growXSpanXWrap)
-      add(startOffset, UiUtil.growXSpanXWrap)
-
-      row("Limit:", limitComboBox)
-      add(limitSpecificDate, UiUtil.growXSpanXWrap)
-      add(limitOffset, UiUtil.growXSpanXWrap)
-
-      row("Filter:", filterComboBox)
-      add(filterPanel, UiUtil.growXSpanXWrap)
-
-      title("Partitions")
-      row("Partitions:", partitionField)
-      gapLeft = false
-      add(consumeButton, UiUtil.growXSpanXWrap)
-      add(clearButton, UiUtil.growXSpanXWrap)
+      border = IdeBorderFactory.createBorder(SideBorder.RIGHT)
     }
 
-    dividerPositionStrategy = Splitter.DividerPositionStrategy.KEEP_FIRST_SIZE
-    lackOfSpaceStrategy = Splitter.LackOfSpaceStrategy.HONOR_THE_FIRST_MIN_SIZE
-
-    firstComponent = leftPanel
-    secondComponent = JBScrollPane(outputList)
-
-    proportion = 0.1f
+    return JPanel(BorderLayout()).apply {
+      add(presetsSplitter, BorderLayout.CENTER)
+      add(stripe, BorderLayout.LINE_START)
+    }
   }
 
   private fun getFilter() = ConsumerFilter(
@@ -293,7 +383,6 @@ class KafkaConsumerEditor(kafkaManager: KafkaDataManager,
   private fun onStopConsume() {
     consumeButton.text = KafkaMessagesBundle.message("action.consume.start.title")
     updateVisibility()
-
     storeToFile()
   }
 

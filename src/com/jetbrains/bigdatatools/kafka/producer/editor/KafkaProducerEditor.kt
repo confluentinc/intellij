@@ -1,22 +1,18 @@
 package com.jetbrains.bigdatatools.kafka.producer.editor
 
+import com.intellij.icons.AllIcons
 import com.intellij.json.JsonLanguage
 import com.intellij.openapi.fileEditor.FileEditor
 import com.intellij.openapi.fileEditor.FileEditorLocation
 import com.intellij.openapi.fileEditor.FileEditorState
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.ComboBox
-import com.intellij.openapi.ui.Splitter
 import com.intellij.openapi.util.Key
 import com.intellij.openapi.util.UserDataHolderBase
 import com.intellij.openapi.vfs.VirtualFile
-import com.intellij.ui.EditorCustomization
-import com.intellij.ui.EditorTextFieldProvider
-import com.intellij.ui.MonospaceEditorCustomization
-import com.intellij.ui.OnePixelSplitter
+import com.intellij.ui.*
 import com.intellij.ui.components.CheckBox
 import com.intellij.ui.components.JBList
-import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.components.JBTextField
 import com.intellij.ui.components.fields.IntegerField
 import com.jetbrains.bigdatatools.kafka.common.editor.KafkaEditorUtils
@@ -24,6 +20,8 @@ import com.jetbrains.bigdatatools.kafka.common.editor.renders.FieldTypeRenderer
 import com.jetbrains.bigdatatools.kafka.common.models.FieldType
 import com.jetbrains.bigdatatools.kafka.common.models.ProducerField
 import com.jetbrains.bigdatatools.kafka.common.models.TopicInEditor
+import com.jetbrains.bigdatatools.kafka.common.settings.KafkaConfigStorage
+import com.jetbrains.bigdatatools.kafka.consumer.editor.VerticalButton
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.producer.editor.renders.ProducerOutputRender
 import com.jetbrains.bigdatatools.kafka.producer.models.*
@@ -32,10 +30,9 @@ import com.jetbrains.bigdatatools.settings.defaultui.UiUtil
 import com.jetbrains.bigdatatools.ui.CustomListCellRenderer
 import com.jetbrains.bigdatatools.ui.MigPanel
 import net.miginfocom.layout.LC
+import java.awt.BorderLayout
 import java.beans.PropertyChangeListener
-import javax.swing.DefaultListModel
-import javax.swing.JButton
-import javax.swing.JComponent
+import javax.swing.*
 
 @Suppress("DuplicatedCode")
 class KafkaProducerEditor(project: Project,
@@ -120,6 +117,12 @@ class KafkaProducerEditor(project: Project,
     }
   }
 
+  private val savePresetButton = JButton(KafkaMessagesBundle.message("action.save.preset")).apply {
+    addActionListener {
+      KafkaConfigStorage.instance.addProducerConfig(getConfig())
+    }
+  }
+
   private fun getConfig() = RunProducerConfig(topicComboBox.item?.name ?: "",
                                               keyType = keyComboBox.item, key = getKey(),
                                               valueType = valueComboBox.item, value = getValue(),
@@ -129,11 +132,81 @@ class KafkaProducerEditor(project: Project,
                                               idempotence = idempotenceCheckBox.isSelected,
                                               forcePartition = forcePartitionField.value)
 
-
   private val clearButton = JButton(KafkaMessagesBundle.message("action.clear.output")).apply {
     addActionListener {
       outputModel.clear()
     }
+  }
+
+  private val presetsPanel = JBList<Any>()
+
+  private val settingsPanel = MigPanel(LC().insets("10").fillX().hideMode(3)).apply {
+
+    gapLeft = true
+    title(KafkaMessagesBundle.message("producer.title.data"))
+    row(KafkaMessagesBundle.message("producer.topics"), topicComboBox)
+    row(KafkaMessagesBundle.message("producer.key"), keyComboBox)
+    add(keyJson, UiUtil.growXSpanXWrap)
+    add(keyIntegerField, UiUtil.growXSpanXWrap)
+    add(keyDoubleField, UiUtil.growXSpanXWrap)
+    add(keyStringField, UiUtil.growXSpanXWrap)
+
+    row(KafkaMessagesBundle.message("producer.value"), valueComboBox)
+    add(valueJson, UiUtil.growXSpanXWrap)
+    add(valueIntegerField, UiUtil.growXSpanXWrap)
+    add(valueDoubleField, UiUtil.growXSpanXWrap)
+    add(valueStringField, UiUtil.growXSpanXWrap)
+
+    title(KafkaMessagesBundle.message("producer.title.options"))
+    row(KafkaMessagesBundle.message("producer.forcePartition"), forcePartitionField)
+    row(KafkaMessagesBundle.message("record.headers.label"))
+    block(propertiesComponent.getComponent())
+
+    row(KafkaMessagesBundle.message("producer.compression"), compressionComboBox)
+    row(KafkaMessagesBundle.message("producer.asks"), acksComboBox)
+    add(idempotenceCheckBox, UiUtil.gapLeftSpanXWrap)
+
+    gapLeft = false
+
+    add(produceButton, UiUtil.growXSpanXWrap)
+    add(clearButton, UiUtil.growXSpanXWrap)
+    add(savePresetButton, UiUtil.growXSpanXWrap)
+  }
+
+  private var showPresets = false
+    set(value) {
+      if (field != value) {
+        field = value
+        if (field) {
+          presetsSplitter.firstComponent = presetsPanel
+        }
+        else {
+          presetsSplitter.firstComponent = null
+        }
+      }
+    }
+
+  private var showSettings = true
+    set(value) {
+      if (field != value) {
+        field = value
+        if (field) {
+          settingsSplitter.firstComponent = settingsPanel
+        }
+        else {
+          settingsSplitter.firstComponent = null
+        }
+      }
+    }
+
+  private val settingsSplitter = OnePixelSplitter().apply {
+    firstComponent = if (showSettings) settingsPanel else null
+    secondComponent = outputList
+  }
+
+  private val presetsSplitter = OnePixelSplitter().apply {
+    firstComponent = if (showPresets) presetsPanel else null
+    secondComponent = settingsSplitter
   }
 
   private val mainComponent = createCenterPanel()
@@ -147,47 +220,24 @@ class KafkaProducerEditor(project: Project,
     storeToFile()
   }
 
-  private fun createCenterPanel() = OnePixelSplitter().apply {
-
-    val leftPanel = MigPanel(LC().insets("10").fillX().hideMode(3)).apply {
-
-      gapLeft = true
-      title(KafkaMessagesBundle.message("producer.title.data"))
-      row(KafkaMessagesBundle.message("producer.topics"), topicComboBox)
-      row(KafkaMessagesBundle.message("producer.key"), keyComboBox)
-      add(keyJson, UiUtil.growXSpanXWrap)
-      add(keyIntegerField, UiUtil.growXSpanXWrap)
-      add(keyDoubleField, UiUtil.growXSpanXWrap)
-      add(keyStringField, UiUtil.growXSpanXWrap)
-
-      row(KafkaMessagesBundle.message("producer.value"), valueComboBox)
-      add(valueJson, UiUtil.growXSpanXWrap)
-      add(valueIntegerField, UiUtil.growXSpanXWrap)
-      add(valueDoubleField, UiUtil.growXSpanXWrap)
-      add(valueStringField, UiUtil.growXSpanXWrap)
-
-      title(KafkaMessagesBundle.message("producer.title.options"))
-      row(KafkaMessagesBundle.message("producer.forcePartition"), forcePartitionField)
-      row(KafkaMessagesBundle.message("record.headers.label"))
-      block(propertiesComponent.getComponent())
-
-      row(KafkaMessagesBundle.message("producer.compression"), compressionComboBox)
-      row(KafkaMessagesBundle.message("producer.asks"), acksComboBox)
-      add(idempotenceCheckBox, UiUtil.gapLeftSpanXWrap)
-
-      gapLeft = false
-
-      add(produceButton, UiUtil.growXSpanXWrap)
-      add(clearButton, UiUtil.growXSpanXWrap)
+  private fun createCenterPanel(): JComponent {
+    val stripe = JPanel(null).apply {
+      layout = BoxLayout(this, BoxLayout.Y_AXIS)
+      add(VerticalButton(KafkaMessagesBundle.message("toggle.presets"), AllIcons.Toolwindows.ToolWindowFavorites, false).apply {
+        isSelected = showPresets
+        addActionListener { showPresets = isSelected }
+      })
+      add(VerticalButton(KafkaMessagesBundle.message("toggle.settings"), AllIcons.General.Settings, false).apply {
+        isSelected = showSettings
+        addActionListener { showSettings = isSelected }
+      })
+      border = IdeBorderFactory.createBorder(SideBorder.RIGHT)
     }
 
-    dividerPositionStrategy = Splitter.DividerPositionStrategy.KEEP_FIRST_SIZE
-    lackOfSpaceStrategy = Splitter.LackOfSpaceStrategy.HONOR_THE_FIRST_MIN_SIZE
-
-    firstComponent = leftPanel
-    secondComponent = JBScrollPane(outputList)
-
-    proportion = 0.1f
+    return JPanel(BorderLayout()).apply {
+      add(presetsSplitter, BorderLayout.CENTER)
+      add(stripe, BorderLayout.LINE_START)
+    }
   }
 
   private fun createJsonTextArea(project: Project) = EditorTextFieldProvider
@@ -270,7 +320,6 @@ class KafkaProducerEditor(project: Project,
     file.putUserData(STATE_KEY, ProducerEditorState(outputModel.elements().toList(), getConfig()))
   }
 
-
   private fun restoreFromFile() {
     try {
       isRestoring = true
@@ -286,7 +335,6 @@ class KafkaProducerEditor(project: Project,
       isRestoring = false
     }
   }
-
 
   private fun applyConfig(config: RunProducerConfig) {
     topicComboBox.item = TopicInEditor(config.topic)
@@ -322,7 +370,6 @@ class KafkaProducerEditor(project: Project,
     forcePartitionField.value = config.forcePartition
   }
 
-
   override fun getName(): String = KafkaMessagesBundle.message("produce.to.topic")
   override fun getComponent(): JComponent = mainComponent
   override fun getPreferredFocusedComponent(): JComponent = mainComponent
@@ -337,5 +384,4 @@ class KafkaProducerEditor(project: Project,
   companion object {
     val STATE_KEY = Key<ProducerEditorState>("PRODUCER_STATE")
   }
-
 }
