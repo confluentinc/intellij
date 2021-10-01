@@ -1,5 +1,7 @@
 <idea-plugin>
   <extensions defaultExtensionNs="com.intellij">
+    <applicationService serviceImplementation="com.jetbrains.bigdatatools.kafka.common.settings.KafkaConfigStorage"/>
+
     <applicationService serviceImplementation="com.jetbrains.bigdatatools.kafka.toolwindow.config.KafkaToolWindowSettings"/>
     <bigdatatools.bdiConnectionSettingProvider implementation="com.jetbrains.bigdatatools.kafka.settings.KafkaSettingsProvider"/>
 
