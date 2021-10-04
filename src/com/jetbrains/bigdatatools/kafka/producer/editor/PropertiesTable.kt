@@ -18,7 +18,6 @@ class PropertiesTable(data: String) {
     table.setRowSelectionInterval(tableIndex, tableIndex)
     table.editCellAt(tableIndex, 0)
     TableUtil.scrollSelectionToVisible(table)
-
   }.setRemoveAction {
     if (table.selectedRow != -1) {
       val modelIndex = table.convertRowIndexToModel(table.selectedRow)

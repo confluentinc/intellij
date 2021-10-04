@@ -101,35 +101,8 @@ class TopicsController(private val project: Project, private val dataManager: Ka
     val configStoragesColumnsAction = ColumnVisibilitySettings.createAction(columnModel.allColumns.map { it.name },
                                                                             settings.topicColumnSettings)
 
-    val createProducer = object : DumbAwareAction(KafkaMessagesBundle.message("create.producer.action.title"),
-                                                  null,
-                                                  AllIcons.Actions.Upload) {
-      override fun actionPerformed(e: AnActionEvent) {
-        val file = LightVirtualFile("Kafka Producer")
-        file.putUserData(KafkaEditorProvider.KAFKA_MANAGER_KEY, dataManager)
-        file.putUserData(KafkaEditorProvider.KAFKA_EDITOR_TYPE, KafkaEditorType.PRODUCER)
-        FileEditorManagerEx.getInstance(project).openFile(file, true)
-      }
-    }
-
-    val createConsumer = object : DumbAwareAction(KafkaMessagesBundle.message("create.producer.action.title"),
-                                                  null,
-                                                  AllIcons.Actions.Download) {
-      override fun actionPerformed(e: AnActionEvent) {
-        val file = LightVirtualFile("Kafka Consumer")
-        file.putUserData(KafkaEditorProvider.KAFKA_MANAGER_KEY, dataManager)
-        file.putUserData(KafkaEditorProvider.KAFKA_EDITOR_TYPE, KafkaEditorType.CONSUMER)
-        FileEditorManagerEx.getInstance(project).openFile(file, true)
-      }
-    }
-
     actions.add(showInternalTopicsAction)
     actions.add(configStoragesColumnsAction)
-
-    if (BdIdeRegistryUtil.isInternalFeaturesAvailable()) {
-      actions.add(createProducer)
-      actions.add(createConsumer)
-    }
 
     return createActionToolbar("BDTKafkaTopics", actions, false)
   }

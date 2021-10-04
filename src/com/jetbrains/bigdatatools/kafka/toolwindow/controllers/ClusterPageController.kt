@@ -1,21 +1,31 @@
 package com.jetbrains.bigdatatools.kafka.toolwindow.controllers
 
 import com.intellij.openapi.Disposable
+import com.intellij.openapi.fileEditor.ex.FileEditorManagerEx
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.ui.Splitter
 import com.intellij.openapi.util.Disposer
+import com.intellij.testFramework.LightVirtualFile
+import com.intellij.ui.IdeBorderFactory
+import com.intellij.ui.OnePixelSplitter
+import com.intellij.ui.SideBorder
 import com.intellij.ui.components.JBList
 import com.intellij.ui.components.JBScrollPane
+import com.jetbrains.bigdatatools.kafka.common.editor.KafkaEditorProvider
+import com.jetbrains.bigdatatools.kafka.common.models.KafkaEditorType
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaConnectionData
+import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import com.jetbrains.bigdatatools.ui.CustomListCellRenderer
+import com.jetbrains.bigdatatools.util.BdIdeRegistryUtil
 import java.awt.BorderLayout
-import java.awt.Component
 import javax.swing.*
 
 /**
  * Main controller for Kafka Cluster.
  * Contains page control for Topics / ConsumerGroups / etc.
  */
-class ClusterPageController(project: Project, connectionData: KafkaConnectionData) : Disposable {
+class ClusterPageController(private val project: Project, connectionData: KafkaConnectionData) : Disposable {
   private val dataManager = KafkaDataManager.getInstance(connectionData.innerId, project) ?: error("Data Manager is not initialized")
 
   private val topicsController = TopicsController(project, dataManager)
@@ -23,7 +33,6 @@ class ClusterPageController(project: Project, connectionData: KafkaConnectionDat
 
   private val details = JPanel(BorderLayout())
   private val panel = createPanel()
-
 
   init {
     Disposer.register(this, topicsController)
@@ -56,7 +65,7 @@ class ClusterPageController(project: Project, connectionData: KafkaConnectionDat
     }
 
     val list = JBList(model).apply {
-      cellRenderer = ClusterControllerTypeListRenderer()
+      cellRenderer = CustomListCellRenderer<ClusterControllerType> { value -> value.value }
       selectionMode = DefaultListSelectionModel.SINGLE_SELECTION
       selectedIndex = 0
 
@@ -70,25 +79,51 @@ class ClusterPageController(project: Project, connectionData: KafkaConnectionDat
     list.selectedIndex = 0
     showDetails(ClusterControllerType.TOPIC)
 
-    return JPanel(BorderLayout()).apply {
-      add(JBScrollPane(list), BorderLayout.LINE_START)
-      add(details, BorderLayout.CENTER)
+    val createProducer = JButton(KafkaMessagesBundle.message("create.producer.action.title")).apply {
+      addActionListener {
+        val file = LightVirtualFile("Kafka Producer")
+        file.putUserData(KafkaEditorProvider.KAFKA_MANAGER_KEY, dataManager)
+        file.putUserData(KafkaEditorProvider.KAFKA_EDITOR_TYPE, KafkaEditorType.PRODUCER)
+        FileEditorManagerEx.getInstance(project).openFile(file, true)
+      }
+    }
+
+    val createConsumer = JButton(KafkaMessagesBundle.message("create.consumer.action.title")).apply {
+      addActionListener {
+        val file = LightVirtualFile("Kafka Consumer")
+        file.putUserData(KafkaEditorProvider.KAFKA_MANAGER_KEY, dataManager)
+        file.putUserData(KafkaEditorProvider.KAFKA_EDITOR_TYPE, KafkaEditorType.CONSUMER)
+        FileEditorManagerEx.getInstance(project).openFile(file, true)
+      }
+    }
+
+    val scroll = JBScrollPane(list).apply {
+      border = IdeBorderFactory.createBorder(SideBorder.BOTTOM)
+    }
+
+    val leftPanel = if (BdIdeRegistryUtil.isInternalFeaturesAvailable()) {
+      JPanel(BorderLayout()).apply {
+        add(scroll, BorderLayout.CENTER)
+        add(JPanel(null).apply {
+          this.layout = BoxLayout(this, BoxLayout.Y_AXIS)
+          add(createProducer)
+          add(createConsumer)
+        }, BorderLayout.SOUTH)
+      }
+    }
+    else {
+      scroll
+    }
+
+    return OnePixelSplitter().apply {
+      proportion = 0.01f
+      dividerPositionStrategy = Splitter.DividerPositionStrategy.KEEP_FIRST_SIZE
+      firstComponent = leftPanel
+      secondComponent = details
     }
   }
 
-
   private enum class ClusterControllerType(val value: String) {
     TOPIC("Topics"), CONSUMER_GROUP("Consumers")
-  }
-
-  private class ClusterControllerTypeListRenderer : DefaultListCellRenderer() {
-    override fun getListCellRendererComponent(list: JList<*>?,
-                                              value: Any?,
-                                              index: Int,
-                                              isSelected: Boolean,
-                                              cellHasFocus: Boolean): Component =
-      super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus).apply {
-        (value as? ClusterControllerType)?.let { text = it.value }
-      }
   }
 }
