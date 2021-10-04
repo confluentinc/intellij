@@ -1,10 +1,10 @@
 package com.jetbrains.bigdatatools.kafka.consumer.editor
 
 import com.intellij.icons.AllIcons
-import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.fileEditor.FileEditor
 import com.intellij.openapi.fileEditor.FileEditorLocation
 import com.intellij.openapi.fileEditor.FileEditorState
+import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.util.Disposer
@@ -21,7 +21,6 @@ import com.jetbrains.bigdatatools.kafka.common.editor.renders.FieldTypeRenderer
 import com.jetbrains.bigdatatools.kafka.common.models.FieldType
 import com.jetbrains.bigdatatools.kafka.common.models.TopicInEditor
 import com.jetbrains.bigdatatools.kafka.common.settings.KafkaConfigStorage
-import com.jetbrains.bigdatatools.kafka.common.settings.StorageConsumerConfig
 import com.jetbrains.bigdatatools.kafka.consumer.client.KafkaConsumerClient
 import com.jetbrains.bigdatatools.kafka.consumer.models.*
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
@@ -30,7 +29,6 @@ import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import com.jetbrains.bigdatatools.settings.defaultui.UiUtil
 import com.jetbrains.bigdatatools.ui.CustomListCellRenderer
 import com.jetbrains.bigdatatools.ui.MigPanel
-import com.jetbrains.bigdatatools.util.toPresentableText
 import com.michaelbaranov.microba.calendar.DatePicker
 import net.miginfocom.layout.LC
 import org.apache.kafka.clients.consumer.ConsumerRecord
@@ -40,7 +38,8 @@ import java.io.Serializable
 import java.util.*
 import javax.swing.*
 
-class KafkaConsumerEditor(kafkaManager: KafkaDataManager,
+class KafkaConsumerEditor(val project: Project,
+                          kafkaManager: KafkaDataManager,
                           private val file: VirtualFile) : FileEditor, UserDataHolderBase() {
   private var consumerClient = KafkaConsumerClient(client = kafkaManager.client,
                                                    onStop = {
@@ -105,7 +104,7 @@ class KafkaConsumerEditor(kafkaManager: KafkaDataManager,
     }
   }
 
-  private val outputModel = DefaultListModel<ConsumerRecord<Serializable, Serializable>>()
+  private val outputModel = DefaultListModel<Result<ConsumerRecord<Serializable, Serializable>>>()
   private val outputList = JBList(outputModel).apply {
     setCellRenderer(ConsumerOutputRender())
   }
@@ -261,14 +260,17 @@ class KafkaConsumerEditor(kafkaManager: KafkaDataManager,
 
   private fun startConsume() {
     val runConfig = getRunConfig()
+    if (runConfig.topic.isBlank()) {
+      Messages.showErrorDialog(project, "Topic is empty", "Consumer error")
+      return
+    }
     consumerClient.start(runConfig,
                          consume = { record ->
-                           outputModel.addElement(record)
+                           val success: Result<ConsumerRecord<Serializable, Serializable>> = Result.success(record)
+                           outputModel.addElement(success)
                          },
                          consumeError = {
-                           invokeLater {
-                             Messages.showErrorDialog(it.toPresentableText(), "Produce error")
-                           }
+                           outputModel.addElement(Result.failure(it))
                          })
   }
 
