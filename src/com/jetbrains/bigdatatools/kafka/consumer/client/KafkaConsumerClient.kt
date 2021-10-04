@@ -12,6 +12,7 @@ import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.clients.consumer.KafkaConsumer
 import org.apache.kafka.common.TopicPartition
+import org.apache.kafka.common.errors.SerializationException
 import java.io.Serializable
 import java.time.Duration
 import java.util.*
@@ -60,6 +61,21 @@ class KafkaConsumerClient(val client: KafkaClient,
 
             val records = try {
               consumer.poll(Duration.ofMillis(500))
+            }
+            catch (t: SerializationException) {
+              val shortMessage = t.message?.removePrefix("Error deserializing key/value for partition ")
+                                   ?.removeSuffix(". If needed, please seek past the record to continue consumption.") ?: ""
+              val offset = shortMessage.substringAfterLast(" ", "").toLongOrNull()
+              val topicPartitionPart = shortMessage.substringBeforeLast(" at offset", "")
+              val topic = topicPartitionPart.substringBeforeLast("-").ifBlank { null }
+              val partition = topicPartitionPart.substringAfterLast("-").toIntOrNull()
+              if (offset == null || topic == null || partition == null) {
+                consumeError(t)
+                return@executeOnPooledThread
+              }
+              consumer.seek(TopicPartition(topic, partition), offset + 1)
+              consumeError(t)
+              emptyList()
             }
             catch (t: Throwable) {
               consumeError(t)
