@@ -51,15 +51,18 @@ class KafkaProducerEditor(project: Project,
     renderer = CustomListCellRenderer<AcksType> { value -> value.name.toLowerCase() }
     item = AcksType.NONE
   }
+
   private val idempotenceCheckBox = CheckBox(KafkaMessagesBundle.message("producer.idempotence.label")).apply {
     addChangeListener {
       acksComboBox.isEnabled = !isSelected
     }
   }
+
   private val compressionComboBox = ComboBox(RecordCompression.values()).apply {
     renderer = CustomListCellRenderer<RecordCompression> { value -> value.name.toLowerCase() }
     selectedIndex = 0
   }
+
   private val keyComboBox = ComboBox(FieldType.values()).apply {
     renderer = FieldTypeRenderer()
     selectedItem = FieldType.STRING
@@ -67,6 +70,7 @@ class KafkaProducerEditor(project: Project,
       updateVisibility()
     }
   }
+
   private val valueComboBox = ComboBox(FieldType.values()).apply {
     renderer = FieldTypeRenderer()
     selectedItem = FieldType.STRING

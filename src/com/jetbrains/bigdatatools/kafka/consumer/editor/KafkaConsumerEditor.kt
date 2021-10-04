@@ -15,6 +15,7 @@ import com.intellij.ui.IdeBorderFactory
 import com.intellij.ui.OnePixelSplitter
 import com.intellij.ui.SideBorder
 import com.intellij.ui.components.JBList
+import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.components.JBTextField
 import com.jetbrains.bigdatatools.kafka.common.editor.KafkaEditorUtils
 import com.jetbrains.bigdatatools.kafka.common.editor.renders.FieldTypeRenderer
@@ -24,9 +25,9 @@ import com.jetbrains.bigdatatools.kafka.common.settings.KafkaConfigStorage
 import com.jetbrains.bigdatatools.kafka.consumer.client.KafkaConsumerClient
 import com.jetbrains.bigdatatools.kafka.consumer.models.*
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
-import com.jetbrains.bigdatatools.kafka.producer.editor.renders.ConsumerOutputRender
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import com.jetbrains.bigdatatools.settings.defaultui.UiUtil
+import com.jetbrains.bigdatatools.table.MaterialTable
 import com.jetbrains.bigdatatools.ui.CustomListCellRenderer
 import com.jetbrains.bigdatatools.ui.MigPanel
 import com.michaelbaranov.microba.calendar.DatePicker
@@ -36,7 +37,10 @@ import java.awt.BorderLayout
 import java.beans.PropertyChangeListener
 import java.io.Serializable
 import java.util.*
-import javax.swing.*
+import javax.swing.BoxLayout
+import javax.swing.JButton
+import javax.swing.JComponent
+import javax.swing.JPanel
 
 class KafkaConsumerEditor(val project: Project,
                           kafkaManager: KafkaDataManager,
@@ -104,10 +108,17 @@ class KafkaConsumerEditor(val project: Project,
     }
   }
 
-  private val outputModel = DefaultListModel<Result<ConsumerRecord<Serializable, Serializable>>>()
-  private val outputList = JBList(outputModel).apply {
-    setCellRenderer(ConsumerOutputRender())
+  private val outputModel = ConsumerTableModel(ArrayList<Result<ConsumerRecord<Serializable, Serializable>>>(),
+                                               listOf("partition", "offset", "timestamp", "value")) { data, index ->
+    when (index) {
+      0 -> data.getOrNull()?.partition() ?: ""
+      1 -> data.getOrNull()?.offset() ?: ""
+      2 -> data.getOrNull()?.timestamp() ?: ""
+      3 -> data.getOrNull()?.value() ?: ""
+      else -> ""
+    }
   }
+  private val outputList = MaterialTable(outputModel, outputModel.columnModel)
 
   private val consumeButton = JButton(KafkaMessagesBundle.message("action.consume.start.title")).apply {
     addActionListener {
@@ -146,14 +157,7 @@ class KafkaConsumerEditor(val project: Project,
     row(KafkaMessagesBundle.message("label.filter.head.value"), filterHeadValueField)
   }
 
-  private val detailsPanel = JPanel(null).apply {
-    layout = BoxLayout(this, BoxLayout.Y_AXIS)
-    add(JLabel(KafkaMessagesBundle.message("details.data")))
-    add(JTextField())
-    add(JTextArea())
-    add(JLabel(KafkaMessagesBundle.message("details.headers")))
-    add(JLabel(KafkaMessagesBundle.message("details.metadata")))
-  }
+  private var detailsPanel: ConsumerRecordDetails? = null
 
   private val settingsPanel = MigPanel(LC().insets("10").fillX().hideMode(3)).apply {
 
@@ -217,17 +221,25 @@ class KafkaConsumerEditor(val project: Project,
       if (field != value) {
         field = value
         if (field) {
-          resultsSplitter.secondComponent = detailsPanel
+          val detailsPanel = ConsumerRecordDetails()
+          resultsSplitter.secondComponent = detailsPanel.component
+          this.detailsPanel = detailsPanel
         }
         else {
+          detailsPanel = null
           resultsSplitter.secondComponent = null
         }
       }
     }
 
   private val resultsSplitter = OnePixelSplitter().apply {
-    firstComponent = outputList
-    secondComponent = if (showDetails) detailsPanel else null
+    firstComponent = JBScrollPane(outputList)
+    secondComponent = if (showDetails) {
+      val detailsPanel = ConsumerRecordDetails()
+      this@KafkaConsumerEditor.detailsPanel = detailsPanel
+      detailsPanel.component
+    }
+    else null
   }
 
   private val settingsSplitter = OnePixelSplitter().apply {
@@ -252,6 +264,12 @@ class KafkaConsumerEditor(val project: Project,
     updateFilter()
 
     storeToFile()
+
+    outputList.selectionModel.addListSelectionListener { event ->
+      if (!event.valueIsAdjusting) {
+        detailsPanel?.record = outputModel.getValueAt(outputList.selectedRow)?.getOrNull()
+      }
+    }
   }
 
   override fun dispose() {
