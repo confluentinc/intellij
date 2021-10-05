@@ -55,7 +55,7 @@ class KafkaConsumerEditor(val project: Project,
 
   private val startOffset = JBTextField()
   private val startFromComboBox = ComboBox(ConsumerStartType.values()).apply {
-    renderer = CustomListCellRenderer<ConsumerStartType> { value -> value.name.toLowerCase() }
+    renderer = CustomListCellRenderer<ConsumerStartType> { it.title }
     item = ConsumerStartType.NOW
     addItemListener {
       updateStartWith()
@@ -64,7 +64,7 @@ class KafkaConsumerEditor(val project: Project,
   }
 
   private val limitComboBox = ComboBox(ConsumerLimitType.values()).apply {
-    renderer = CustomListCellRenderer<ConsumerLimitType> { value -> value.name.toLowerCase() }
+    renderer = CustomListCellRenderer<ConsumerLimitType> { it.title }
     item = ConsumerLimitType.NONE
     addItemListener {
       updateLimit()
@@ -73,7 +73,7 @@ class KafkaConsumerEditor(val project: Project,
   }
 
   private val filterComboBox = ComboBox(ConsumerFilterType.values()).apply {
-    renderer = CustomListCellRenderer<ConsumerFilterType> { value -> value.name.toLowerCase() }
+    renderer = CustomListCellRenderer<ConsumerFilterType> { it.title }
     item = ConsumerFilterType.NONE
     addItemListener {
       updateFilter()
