@@ -257,7 +257,8 @@ class KafkaConsumerEditor(val project: Project,
   init {
     Disposer.register(this, consumerClient)
 
-    restoreFromFile()
+   file.getUserData(STATE_KEY)?.let{ restoreFromFile(it)}
+
     updateVisibility()
     updateLimit()
     updateStartWith()
@@ -413,11 +414,10 @@ class KafkaConsumerEditor(val project: Project,
     file.putUserData(STATE_KEY, ConsumerEditorState(outputModel.elements().toList(), getRunConfig()))
   }
 
-  private fun restoreFromFile() {
+  private fun restoreFromFile(state : ConsumerEditorState) {
     try {
       isRestoring = true
 
-      val state = file.getUserData(STATE_KEY) ?: return
       outputModel.clear()
       state.output.forEach {
         outputModel.addElement(it)
