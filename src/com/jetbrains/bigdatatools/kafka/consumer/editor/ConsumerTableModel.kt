@@ -24,7 +24,7 @@ class ConsumerTableModel<T>(private val data: MutableList<T>,
 
   fun clear() {
     data.clear()
-    fireTableRowsDeleted(0, data.size - 1)
+    fireTableDataChanged()
   }
 
   fun addElement(element: T) {
