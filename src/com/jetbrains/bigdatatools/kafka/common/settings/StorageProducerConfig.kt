@@ -6,16 +6,16 @@ import com.jetbrains.bigdatatools.kafka.producer.models.RecordCompression
 import com.jetbrains.bigdatatools.kafka.producer.models.RunProducerConfig
 import com.jetbrains.bigdatatools.settings.connections.Property
 
-data class StorageProducerConfig(var topic: String,
-                                 var keyType: String,
-                                 var key: String,
-                                 var valueType: String,
-                                 var value: String,
-                                 var properties: List<Property>,
-                                 var compression: String,
-                                 var acks: String,
-                                 var idempotence: Boolean,
-                                 var forcePartition: Int) {
+data class StorageProducerConfig(var topic: String = "",
+                                 var keyType: String = "",
+                                 var key: String = "",
+                                 var valueType: String = "",
+                                 var value: String = "",
+                                 var properties: List<Property> = emptyList(),
+                                 var compression: String = "",
+                                 var acks: String = "",
+                                 var idempotence: Boolean = false,
+                                 var forcePartition: Int = -1) {
   fun fromStorage() = RunProducerConfig(
     topic = topic,
     keyType = FieldType.values().find { it.name == keyType } ?: FieldType.STRING,

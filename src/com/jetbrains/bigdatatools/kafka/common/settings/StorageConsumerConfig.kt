@@ -3,13 +3,13 @@ package com.jetbrains.bigdatatools.kafka.common.settings
 import com.jetbrains.bigdatatools.kafka.common.models.FieldType
 import com.jetbrains.bigdatatools.kafka.consumer.models.*
 
-data class StorageConsumerConfig(var topic: String,
-                                 var keyType: String,
-                                 var valueType: String,
-                                 var filter: Map<String, String>,
-                                 var limit: Map<String, String>,
-                                 var partitions: String,
-                                 var startWith: Map<String, String>) {
+data class StorageConsumerConfig(var topic: String = "",
+                                 var keyType: String = "",
+                                 var valueType: String = "",
+                                 var filter: Map<String, String> = emptyMap(),
+                                 var limit: Map<String, String> = emptyMap(),
+                                 var partitions: String = "",
+                                 var startWith: Map<String, String> = emptyMap()) {
   fun fromStorage(): RunConsumerConfig {
     val limit = ConsumerLimit(
       type = ConsumerLimitType.values().find { it.name == filter["type"] } ?: ConsumerLimitType.NONE,
