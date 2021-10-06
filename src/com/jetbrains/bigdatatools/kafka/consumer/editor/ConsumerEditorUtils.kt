@@ -7,7 +7,7 @@ import java.util.*
 object ConsumerEditorUtils {
   fun parsePartitionsText(partitionText: String): List<Int> {
     val partitionsStrings = partitionText.split(",").map { it.trim() }.filter { it.isNotBlank() }
-    val partitions = partitionsStrings.flatMap { p ->
+    return partitionsStrings.flatMap { p ->
       if (!p.contains("-"))
         listOfNotNull(p.toIntOrNull())
       else {
@@ -17,7 +17,6 @@ object ConsumerEditorUtils {
         start..end
       }
     }
-    return partitions
   }
 
   fun getStartWith(startWithType: ConsumerStartType,

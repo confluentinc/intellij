@@ -1,6 +1,6 @@
 package com.jetbrains.bigdatatools.kafka.consumer.editor
 
-import com.jetbrains.bigdatatools.kafka.producer.editor.PropertiesTable
+import com.jetbrains.bigdatatools.kafka.common.editor.PropertiesTable
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import com.jetbrains.bigdatatools.settings.connections.Property
 import com.jetbrains.bigdatatools.settings.defaultui.UiUtil

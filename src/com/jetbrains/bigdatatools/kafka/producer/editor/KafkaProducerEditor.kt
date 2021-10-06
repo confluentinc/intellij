@@ -1,38 +1,49 @@
 package com.jetbrains.bigdatatools.kafka.producer.editor
 
-import com.intellij.icons.AllIcons
+import com.intellij.ide.util.PropertiesComponent
 import com.intellij.json.JsonLanguage
 import com.intellij.openapi.fileEditor.FileEditor
 import com.intellij.openapi.fileEditor.FileEditorLocation
 import com.intellij.openapi.fileEditor.FileEditorState
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.ComboBox
+import com.intellij.openapi.ui.Splitter
 import com.intellij.openapi.util.Key
 import com.intellij.openapi.util.UserDataHolderBase
 import com.intellij.openapi.vfs.VirtualFile
-import com.intellij.ui.*
+import com.intellij.ui.EditorCustomization
+import com.intellij.ui.EditorTextFieldProvider
+import com.intellij.ui.MonospaceEditorCustomization
+import com.intellij.ui.OnePixelSplitter
 import com.intellij.ui.components.CheckBox
-import com.intellij.ui.components.JBList
+import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.components.JBTextField
 import com.intellij.ui.components.fields.IntegerField
+import com.intellij.util.ui.JBUI
 import com.jetbrains.bigdatatools.kafka.common.editor.KafkaEditorUtils
+import com.jetbrains.bigdatatools.kafka.common.editor.ListTableModel
+import com.jetbrains.bigdatatools.kafka.common.editor.PropertiesTable
 import com.jetbrains.bigdatatools.kafka.common.editor.renders.FieldTypeRenderer
 import com.jetbrains.bigdatatools.kafka.common.models.FieldType
 import com.jetbrains.bigdatatools.kafka.common.models.ProducerField
 import com.jetbrains.bigdatatools.kafka.common.models.TopicInEditor
 import com.jetbrains.bigdatatools.kafka.common.settings.KafkaConfigStorage
-import com.jetbrains.bigdatatools.ui.VerticalButton
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
-import com.jetbrains.bigdatatools.kafka.producer.editor.renders.ProducerOutputRender
 import com.jetbrains.bigdatatools.kafka.producer.models.*
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import com.jetbrains.bigdatatools.settings.defaultui.UiUtil
+import com.jetbrains.bigdatatools.table.MaterialTable
+import com.jetbrains.bigdatatools.table.TableResizeController
+import com.jetbrains.bigdatatools.table.renderers.DateRenderer
+import com.jetbrains.bigdatatools.table.renderers.DurationRenderer
 import com.jetbrains.bigdatatools.ui.CustomListCellRenderer
+import com.jetbrains.bigdatatools.ui.ExpansionPanel
 import com.jetbrains.bigdatatools.ui.MigPanel
 import net.miginfocom.layout.LC
-import java.awt.BorderLayout
 import java.beans.PropertyChangeListener
-import javax.swing.*
+import javax.swing.BorderFactory
+import javax.swing.JButton
+import javax.swing.JComponent
 
 @Suppress("DuplicatedCode")
 class KafkaProducerEditor(project: Project,
@@ -96,10 +107,38 @@ class KafkaProducerEditor(project: Project,
     defaultValue = -1
   }
 
-  private val outputModel = DefaultListModel<ProducerResultMessage>()
-  private val outputList = JBList(outputModel).apply {
-    setCellRenderer(ProducerOutputRender())
+  private val outputModel = ListTableModel(ArrayList<ProducerResultMessage>(),
+                                           listOf("key", "value", "timestamp", "offset", "partition", "duration")) { data, index ->
+    when (index) {
+      0 -> data.key
+      1 -> data.value
+      2 -> data.timestamp
+      3 -> data.offset
+      4 -> data.partition
+      5 -> data.duration
+      else -> ""
+    }
   }
+
+  private val outputTableDelegate = lazy {
+    MaterialTable(outputModel, outputModel.columnModel).apply {
+      TableResizeController.installOn(this).apply {
+        setResizePriorityList("value")
+        mode = TableResizeController.Mode.PRIOR_COLUMNS_LIST
+      }
+
+      tableHeader.border = JBUI.Borders.empty()
+      outputModel.columnModel.columns.asIterator().forEach {
+        if (it.headerValue == "timestamp") {
+          it.cellRenderer = DateRenderer()
+        }
+        else if (it.headerValue == "duration") {
+          it.cellRenderer = DurationRenderer()
+        }
+      }
+    }
+  }
+  private val outputTable: MaterialTable by outputTableDelegate
 
   private val produceButton = JButton(KafkaMessagesBundle.message("kafka.producer.action.produce.title")).also {
     it.addActionListener {
@@ -142,80 +181,83 @@ class KafkaProducerEditor(project: Project,
     }
   }
 
-  private val presetsPanel = JBList<Any>()
+  private val presetsDelegate = lazy { ProducerPresets() }
+  private val presets: ProducerPresets by presetsDelegate
 
-  private val settingsPanel = MigPanel(LC().insets("10").fillX().hideMode(3)).apply {
+  private val settingsPanelDelegate = lazy {
+    MigPanel(LC().insets("10").fillX().hideMode(3)).apply {
+      gapLeft = true
+      //  title(KafkaMessagesBundle.message("producer.title.data"))
+      row(KafkaMessagesBundle.message("producer.topics"), topicComboBox)
+      row(KafkaMessagesBundle.message("producer.key"), keyComboBox)
+      add(keyJson, UiUtil.growXSpanXWrap)
+      add(keyIntegerField, UiUtil.growXSpanXWrap)
+      add(keyDoubleField, UiUtil.growXSpanXWrap)
+      add(keyStringField, UiUtil.growXSpanXWrap)
 
-    gapLeft = true
-    title(KafkaMessagesBundle.message("producer.title.data"))
-    row(KafkaMessagesBundle.message("producer.topics"), topicComboBox)
-    row(KafkaMessagesBundle.message("producer.key"), keyComboBox)
-    add(keyJson, UiUtil.growXSpanXWrap)
-    add(keyIntegerField, UiUtil.growXSpanXWrap)
-    add(keyDoubleField, UiUtil.growXSpanXWrap)
-    add(keyStringField, UiUtil.growXSpanXWrap)
+      row(KafkaMessagesBundle.message("producer.value"), valueComboBox)
+      add(valueJson, UiUtil.growXSpanXWrap)
+      add(valueIntegerField, UiUtil.growXSpanXWrap)
+      add(valueDoubleField, UiUtil.growXSpanXWrap)
+      add(valueStringField, UiUtil.growXSpanXWrap)
 
-    row(KafkaMessagesBundle.message("producer.value"), valueComboBox)
-    add(valueJson, UiUtil.growXSpanXWrap)
-    add(valueIntegerField, UiUtil.growXSpanXWrap)
-    add(valueDoubleField, UiUtil.growXSpanXWrap)
-    add(valueStringField, UiUtil.growXSpanXWrap)
+      title(KafkaMessagesBundle.message("producer.title.options"))
+      row(KafkaMessagesBundle.message("producer.forcePartition"), forcePartitionField)
+      row(KafkaMessagesBundle.message("record.headers.label"))
+      block(propertiesComponent.getComponent())
 
-    title(KafkaMessagesBundle.message("producer.title.options"))
-    row(KafkaMessagesBundle.message("producer.forcePartition"), forcePartitionField)
-    row(KafkaMessagesBundle.message("record.headers.label"))
-    block(propertiesComponent.getComponent())
+      row(KafkaMessagesBundle.message("producer.compression"), compressionComboBox)
+      row(KafkaMessagesBundle.message("producer.asks"), acksComboBox)
+      add(idempotenceCheckBox, UiUtil.gapLeftSpanXWrap)
 
-    row(KafkaMessagesBundle.message("producer.compression"), compressionComboBox)
-    row(KafkaMessagesBundle.message("producer.asks"), acksComboBox)
-    add(idempotenceCheckBox, UiUtil.gapLeftSpanXWrap)
+      gapLeft = false
 
-    gapLeft = false
-
-    add(produceButton, UiUtil.growXSpanXWrap)
-    add(clearButton, UiUtil.growXSpanXWrap)
-    add(savePresetButton, UiUtil.growXSpanXWrap)
+      add(produceButton, UiUtil.growXSpanXWrap)
+      add(clearButton, UiUtil.growXSpanXWrap)
+      add(savePresetButton, UiUtil.growXSpanXWrap)
+    }
   }
-
-  private var showPresets = false
-    set(value) {
-      if (field != value) {
-        field = value
-        if (field) {
-          presetsSplitter.firstComponent = presetsPanel
-        }
-        else {
-          presetsSplitter.firstComponent = null
-        }
-      }
-    }
-
-  private var showSettings = true
-    set(value) {
-      if (field != value) {
-        field = value
-        if (field) {
-          settingsSplitter.firstComponent = settingsPanel
-        }
-        else {
-          settingsSplitter.firstComponent = null
-        }
-      }
-    }
+  private val settingsPanel: MigPanel by settingsPanelDelegate
 
   private val settingsSplitter = OnePixelSplitter().apply {
-    firstComponent = if (showSettings) settingsPanel else null
-    secondComponent = outputList
+    lackOfSpaceStrategy = Splitter.LackOfSpaceStrategy.HONOR_THE_FIRST_MIN_SIZE
+    dividerPositionStrategy = Splitter.DividerPositionStrategy.KEEP_FIRST_SIZE
+    proportion = 0.0001f
   }
 
   private val presetsSplitter = OnePixelSplitter().apply {
-    firstComponent = if (showPresets) presetsPanel else null
+    lackOfSpaceStrategy = Splitter.LackOfSpaceStrategy.HONOR_THE_FIRST_MIN_SIZE
+    dividerPositionStrategy = Splitter.DividerPositionStrategy.KEEP_FIRST_SIZE
+    proportion = 0.0001f
+
     secondComponent = settingsSplitter
   }
 
   private val mainComponent = createCenterPanel()
 
   init {
+    settingsSplitter.firstComponent = ExpansionPanel(KafkaMessagesBundle.message("toggle.settings"), { settingsPanel },
+                                                     PropertiesComponent.getInstance().getBoolean(SETTINGS_SHOW_ID, true)).apply {
+      addChangeListener {
+        settingsSplitter.proportion = 0.0001f
+      }
+    }
+
+    val outputTableScroll = JBScrollPane(outputTable).apply { border = BorderFactory.createEmptyBorder() }
+    settingsSplitter.secondComponent = ExpansionPanel(KafkaMessagesBundle.message("toggle.data"), { outputTableScroll },
+                                                      PropertiesComponent.getInstance().getBoolean(DATA_SHOW_ID, true)).apply {
+      addChangeListener {
+        settingsSplitter.proportion = 0.0001f
+      }
+    }
+
+    presetsSplitter.firstComponent = ExpansionPanel(KafkaMessagesBundle.message("toggle.presets"), { presets.component },
+                                                    PropertiesComponent.getInstance().getBoolean(PRESETS_SHOW_ID, false)).apply {
+      addChangeListener {
+        presetsSplitter.proportion = 0.0001f
+      }
+    }
+
     updateVisibility()
     restoreFromFile()
   }
@@ -224,25 +266,7 @@ class KafkaProducerEditor(project: Project,
     storeToFile()
   }
 
-  private fun createCenterPanel(): JComponent {
-    val stripe = JPanel(null).apply {
-      layout = BoxLayout(this, BoxLayout.Y_AXIS)
-      add(VerticalButton(KafkaMessagesBundle.message("toggle.presets"), AllIcons.Toolwindows.ToolWindowFavorites, false).apply {
-        isSelected = showPresets
-        addActionListener { showPresets = isSelected }
-      })
-      add(VerticalButton(KafkaMessagesBundle.message("toggle.settings"), AllIcons.General.Settings, false).apply {
-        isSelected = showSettings
-        addActionListener { showSettings = isSelected }
-      })
-      border = IdeBorderFactory.createBorder(SideBorder.RIGHT)
-    }
-
-    return JPanel(BorderLayout()).apply {
-      add(presetsSplitter, BorderLayout.CENTER)
-      add(stripe, BorderLayout.LINE_START)
-    }
-  }
+  private fun createCenterPanel(): JComponent = presetsSplitter
 
   private fun createJsonTextArea(project: Project) = EditorTextFieldProvider
     .getInstance()
@@ -319,8 +343,9 @@ class KafkaProducerEditor(project: Project,
   }
 
   private fun storeToFile() {
-    if (isRestoring)
+    if (isRestoring) {
       return
+    }
     file.putUserData(STATE_KEY, ProducerEditorState(outputModel.elements().toList(), getConfig()))
   }
 
@@ -387,5 +412,9 @@ class KafkaProducerEditor(project: Project,
 
   companion object {
     val STATE_KEY = Key<ProducerEditorState>("PRODUCER_STATE")
+
+    private const val DATA_SHOW_ID = "com.jetbrains.bigdatatools.kafka.producer.data.show"
+    private const val SETTINGS_SHOW_ID = "com.jetbrains.bigdatatools.kafka.producer.settings.show"
+    private const val PRESETS_SHOW_ID = "com.jetbrains.bigdatatools.kafka.producer.presets.show"
   }
 }

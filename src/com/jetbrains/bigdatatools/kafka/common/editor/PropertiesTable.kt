@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.producer.editor
+package com.jetbrains.bigdatatools.kafka.common.editor
 
 import com.intellij.ui.TableUtil
 import com.intellij.ui.ToolbarDecorator
