@@ -7,10 +7,19 @@ import com.jetbrains.bigdatatools.settings.connections.Property
 import com.jetbrains.bigdatatools.table.MaterialTable
 import javax.swing.JTable
 
-class PropertiesTable(data: String) {
-  private val tableModel = PropertiesTableModel(BdtPropertyComponent.parseProperties(data).toMutableList())
+class PropertiesTable(data: List<Property>) {
+
+  constructor(data: String) : this(BdtPropertyComponent.parseProperties(data))
+
+  private val tableModel = PropertiesTableModel(data.toMutableList())
   private val table = MaterialTable(tableModel, tableModel.columnModel).apply { autoResizeMode = JTable.AUTO_RESIZE_ALL_COLUMNS }
   private val component = createDecoratedTable()
+
+  var properties: MutableList<Property>
+    get() = tableModel.properties
+    set(value) {
+      tableModel.properties = value
+    }
 
   private fun createDecoratedTable() = ToolbarDecorator.createDecorator(table).setAddAction {
     tableModel.addRow(Property("", ""))
@@ -25,16 +34,9 @@ class PropertiesTable(data: String) {
     }
   }.createPanel()
 
-  fun setProperties(new: List<Property>) {
-    val oldSize = tableModel.properties.size
-    repeat(oldSize) {
-      tableModel.removeRow(0)
-    }
-    new.forEach {
-      tableModel.addRow(it)
-    }
+  fun clear() {
+    tableModel.clear()
   }
 
   fun getComponent() = component
-  fun getProperties(): List<Property> = tableModel.properties
 }

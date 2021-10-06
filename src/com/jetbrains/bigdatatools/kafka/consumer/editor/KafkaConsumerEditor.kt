@@ -1,12 +1,13 @@
 package com.jetbrains.bigdatatools.kafka.consumer.editor
 
-import com.intellij.icons.AllIcons
+import com.intellij.ide.util.PropertiesComponent
 import com.intellij.openapi.fileEditor.FileEditor
 import com.intellij.openapi.fileEditor.FileEditorLocation
 import com.intellij.openapi.fileEditor.FileEditorState
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.Messages
+import com.intellij.openapi.ui.Splitter
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.Key
 import com.intellij.openapi.util.UserDataHolderBase
@@ -14,9 +15,9 @@ import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.ui.IdeBorderFactory
 import com.intellij.ui.OnePixelSplitter
 import com.intellij.ui.SideBorder
-import com.intellij.ui.components.JBList
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.components.JBTextField
+import com.intellij.util.ui.JBUI
 import com.jetbrains.bigdatatools.kafka.common.editor.KafkaEditorUtils
 import com.jetbrains.bigdatatools.kafka.common.editor.renders.FieldTypeRenderer
 import com.jetbrains.bigdatatools.kafka.common.models.FieldType
@@ -28,19 +29,19 @@ import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import com.jetbrains.bigdatatools.settings.defaultui.UiUtil
 import com.jetbrains.bigdatatools.table.MaterialTable
+import com.jetbrains.bigdatatools.table.TableResizeController
 import com.jetbrains.bigdatatools.ui.CustomListCellRenderer
+import com.jetbrains.bigdatatools.ui.ExpansionPanel
 import com.jetbrains.bigdatatools.ui.MigPanel
 import com.michaelbaranov.microba.calendar.DatePicker
 import net.miginfocom.layout.LC
 import org.apache.kafka.clients.consumer.ConsumerRecord
-import java.awt.BorderLayout
 import java.beans.PropertyChangeListener
 import java.io.Serializable
 import java.util.*
-import javax.swing.BoxLayout
+import javax.swing.BorderFactory
 import javax.swing.JButton
 import javax.swing.JComponent
-import javax.swing.JPanel
 
 class KafkaConsumerEditor(val project: Project,
                           kafkaManager: KafkaDataManager,
@@ -118,7 +119,12 @@ class KafkaConsumerEditor(val project: Project,
       else -> ""
     }
   }
-  private val outputList = MaterialTable(outputModel, outputModel.columnModel)
+
+  private val outputTableDelegate = lazy { MaterialTable(outputModel, outputModel.columnModel).apply {
+    TableResizeController.installOn(this)
+    tableHeader.border = JBUI.Borders.empty()
+  } }
+  private val outputTable: MaterialTable by outputTableDelegate
 
   private val consumeButton = JButton(KafkaMessagesBundle.message("action.consume.start.title")).apply {
     addActionListener {
@@ -157,99 +163,61 @@ class KafkaConsumerEditor(val project: Project,
     row(KafkaMessagesBundle.message("label.filter.head.value"), filterHeadValueField)
   }
 
-  private var detailsPanel: ConsumerRecordDetails? = null
+  private val detailsDelegate = lazy { ConsumerRecordDetails() }
+  private val details: ConsumerRecordDetails by detailsDelegate
 
-  private val settingsPanel = MigPanel(LC().insets("10").fillX().hideMode(3)).apply {
+  private val settingsPanelDelegate = lazy {
+    MigPanel(LC().insets("10").fillX().hideMode(3)).apply {
 
-    row(KafkaMessagesBundle.message("settings.label.topics"), topicComboBox)
+      row(KafkaMessagesBundle.message("settings.label.topics"), topicComboBox)
 
-    title(KafkaMessagesBundle.message("settings.title.format"))
-    gapLeft = true
-    row(KafkaMessagesBundle.message("settings.format.key"), keyComboBox)
-    row(KafkaMessagesBundle.message("settings.format.value"), valueComboBox)
+      title(KafkaMessagesBundle.message("settings.title.format"))
+      gapLeft = true
+      row(KafkaMessagesBundle.message("settings.format.key"), keyComboBox)
+      row(KafkaMessagesBundle.message("settings.format.value"), valueComboBox)
 
-    title(KafkaMessagesBundle.message("settings.title.range.filters"))
-    row(KafkaMessagesBundle.message("settings.filters.from"), startFromComboBox)
-    add(startSpecificDate, UiUtil.growXSpanXWrap)
-    add(startOffset, UiUtil.growXSpanXWrap)
+      title(KafkaMessagesBundle.message("settings.title.range.filters"))
+      row(KafkaMessagesBundle.message("settings.filters.from"), startFromComboBox)
+      add(startSpecificDate, UiUtil.growXSpanXWrap)
+      add(startOffset, UiUtil.growXSpanXWrap)
 
-    row(KafkaMessagesBundle.message("settings.filters.limit"), limitComboBox)
-    add(limitSpecificDate, UiUtil.growXSpanXWrap)
-    add(limitOffset, UiUtil.growXSpanXWrap)
+      row(KafkaMessagesBundle.message("settings.filters.limit"), limitComboBox)
+      add(limitSpecificDate, UiUtil.growXSpanXWrap)
+      add(limitOffset, UiUtil.growXSpanXWrap)
 
-    row(KafkaMessagesBundle.message("settings.filter"), filterComboBox)
-    add(filterPanel, UiUtil.growXSpanXWrap)
+      row(KafkaMessagesBundle.message("settings.filter"), filterComboBox)
+      add(filterPanel, UiUtil.growXSpanXWrap)
 
-    title(KafkaMessagesBundle.message("settings.title.partitions"))
-    row(KafkaMessagesBundle.message("settings.partitions"), partitionField)
-    gapLeft = false
-    add(consumeButton, UiUtil.growXSpanXWrap)
-    add(clearButton, UiUtil.growXSpanXWrap)
-    add(savePresetButton, UiUtil.growXSpanXWrap)
+      title(KafkaMessagesBundle.message("settings.title.partitions"))
+      row(KafkaMessagesBundle.message("settings.partitions"), partitionField)
+      gapLeft = false
+      add(consumeButton, UiUtil.growXSpanXWrap)
+      add(clearButton, UiUtil.growXSpanXWrap)
+      add(savePresetButton, UiUtil.growXSpanXWrap)
+    }
   }
+  private val settingsPanel: MigPanel by settingsPanelDelegate
 
-  private val presetsPanel = JBList<Any>()
-
-  private var showPresets = false
-    set(value) {
-      if (field != value) {
-        field = value
-        if (field) {
-          presetsSplitter.firstComponent = presetsPanel
-        }
-        else {
-          presetsSplitter.firstComponent = null
-        }
-      }
-    }
-
-  private var showSettings = true
-    set(value) {
-      if (field != value) {
-        field = value
-        if (field) {
-          settingsSplitter.firstComponent = settingsPanel
-        }
-        else {
-          settingsSplitter.firstComponent = null
-        }
-      }
-    }
-
-  private var showDetails = false
-    set(value) {
-      if (field != value) {
-        field = value
-        if (field) {
-          val detailsPanel = ConsumerRecordDetails()
-          resultsSplitter.secondComponent = detailsPanel.component
-          this.detailsPanel = detailsPanel
-        }
-        else {
-          detailsPanel = null
-          resultsSplitter.secondComponent = null
-        }
-      }
-    }
+  private val presetsDelegate = lazy { ConsumerPresets() }
+  private val presets: ConsumerPresets by presetsDelegate
 
   private val resultsSplitter = OnePixelSplitter().apply {
-    firstComponent = JBScrollPane(outputList)
-    secondComponent = if (showDetails) {
-      val detailsPanel = ConsumerRecordDetails()
-      this@KafkaConsumerEditor.detailsPanel = detailsPanel
-      detailsPanel.component
-    }
-    else null
+    lackOfSpaceStrategy = Splitter.LackOfSpaceStrategy.HONOR_THE_SECOND_MIN_SIZE
+    dividerPositionStrategy = Splitter.DividerPositionStrategy.KEEP_SECOND_SIZE
   }
 
   private val settingsSplitter = OnePixelSplitter().apply {
-    firstComponent = if (showSettings) settingsPanel else null
+    lackOfSpaceStrategy = Splitter.LackOfSpaceStrategy.HONOR_THE_FIRST_MIN_SIZE
+    dividerPositionStrategy = Splitter.DividerPositionStrategy.KEEP_FIRST_SIZE
     secondComponent = resultsSplitter
+    proportion = 0.0001f
   }
 
   private val presetsSplitter = OnePixelSplitter().apply {
-    firstComponent = if (showPresets) presetsPanel else null
+    lackOfSpaceStrategy = Splitter.LackOfSpaceStrategy.HONOR_THE_FIRST_MIN_SIZE
+    dividerPositionStrategy = Splitter.DividerPositionStrategy.KEEP_FIRST_SIZE
     secondComponent = settingsSplitter
+    proportion = 0.0001f
   }
 
   private val mainComponent = createCenterPanel()
@@ -257,7 +225,39 @@ class KafkaConsumerEditor(val project: Project,
   init {
     Disposer.register(this, consumerClient)
 
-   file.getUserData(STATE_KEY)?.let{ restoreFromFile(it)}
+    file.getUserData(STATE_KEY)?.let { restoreFromFile(it) }
+
+    resultsSplitter.firstComponent = ExpansionPanel(KafkaMessagesBundle.message("toggle.data"), {
+      JBScrollPane(outputTable).apply {
+        border = BorderFactory.createEmptyBorder()
+      }
+    }, PropertiesComponent.getInstance().getBoolean(DATA_SHOW_ID, true)).apply {
+      addChangeListener {
+        resultsSplitter.proportion = if (this.expanded) 1f else 0.0001f
+      }
+    }
+    resultsSplitter.secondComponent = ExpansionPanel(KafkaMessagesBundle.message("toggle.details"), { details.component },
+                                                     PropertiesComponent.getInstance().getBoolean(DETAILS_SHOW_ID, false)).apply {
+      addChangeListener {
+        resultsSplitter.proportion = 1f
+      }
+    }
+
+    resultsSplitter.proportion = if (PropertiesComponent.getInstance().getBoolean(DATA_SHOW_ID, true)) 1f else 0.0001f
+
+    settingsSplitter.firstComponent = ExpansionPanel(KafkaMessagesBundle.message("toggle.settings"), { settingsPanel },
+                                                     PropertiesComponent.getInstance().getBoolean(SETTINGS_SHOW_ID, true)).apply {
+      addChangeListener {
+        settingsSplitter.proportion = 0.0001f
+      }
+    }
+
+    presetsSplitter.firstComponent = ExpansionPanel(KafkaMessagesBundle.message("toggle.presets"), { presets.component },
+                                                    PropertiesComponent.getInstance().getBoolean(PRESETS_SHOW_ID, false)).apply {
+      addChangeListener {
+        presetsSplitter.proportion = 0.0001f
+      }
+    }
 
     updateVisibility()
     updateLimit()
@@ -266,9 +266,11 @@ class KafkaConsumerEditor(val project: Project,
 
     storeToFile()
 
-    outputList.selectionModel.addListSelectionListener { event ->
+    outputTable.selectionModel.addListSelectionListener { event ->
       if (!event.valueIsAdjusting) {
-        detailsPanel?.record = outputModel.getValueAt(outputList.selectedRow)?.getOrNull()
+        if (detailsDelegate.isInitialized()) {
+          details.record = outputModel.getValueAt(outputTable.selectedRow)?.getOrNull()
+        }
       }
     }
   }
@@ -312,29 +314,46 @@ class KafkaConsumerEditor(val project: Project,
   }
 
   private fun createCenterPanel(): JComponent {
+    //
+    //val stripe = JPanel(null).apply {
+    //  layout = BoxLayout(this, BoxLayout.Y_AXIS)
+    //  add(VerticalButton(KafkaMessagesBundle.message("toggle.presets"), AllIcons.Toolwindows.ToolWindowFavorites, false).apply {
+    //    isSelected = showPresets
+    //    addActionListener { showPresets = isSelected }
+    //  })
+    //  add(VerticalButton(KafkaMessagesBundle.message("toggle.settings"), AllIcons.General.Settings, false).apply {
+    //    isSelected = showSettings
+    //    addActionListener { showSettings = isSelected }
+    //  })
+    //  add(VerticalButton(KafkaMessagesBundle.message("toggle.details"), AllIcons.Actions.SplitVertically, false).apply {
+    //    isSelected = showDetails
+    //    addActionListener { showDetails = isSelected }
+    //  })
+    //
+    //  border = IdeBorderFactory.createBorder(SideBorder.RIGHT)
+    //}
+    //
+    //return JPanel(BorderLayout()).apply {
+    //  add(presetsSplitter, BorderLayout.CENTER)
+    //  add(stripe, BorderLayout.LINE_START)
+    //}
 
-    val stripe = JPanel(null).apply {
-      layout = BoxLayout(this, BoxLayout.Y_AXIS)
-      add(VerticalButton(KafkaMessagesBundle.message("toggle.presets"), AllIcons.Toolwindows.ToolWindowFavorites, false).apply {
-        isSelected = showPresets
-        addActionListener { showPresets = isSelected }
-      })
-      add(VerticalButton(KafkaMessagesBundle.message("toggle.settings"), AllIcons.General.Settings, false).apply {
-        isSelected = showSettings
-        addActionListener { showSettings = isSelected }
-      })
-      add(VerticalButton(KafkaMessagesBundle.message("toggle.details"), AllIcons.Actions.SplitVertically, false).apply {
-        isSelected = showDetails
-        addActionListener { showDetails = isSelected }
-      })
+    //return MigPanel().apply {
+    //  add(ExpansionPanel(KafkaMessagesBundle.message("toggle.presets"), { presets.component },
+    //                     PropertiesComponent.getInstance().getBoolean(PRESETS_SHOW_ID, false)), CC().growY().pushY())
+    //  add(ComponentDivider(), CC().growY().pushY())
+    //  add(ExpansionPanel(KafkaMessagesBundle.message("toggle.settings"), { settingsPanel },
+    //                     PropertiesComponent.getInstance().getBoolean(SETTINGS_SHOW_ID, true)), CC().growY().pushY())
+    //  add(ComponentDivider(), CC().growY().pushY())
+    //  add(ExpansionPanel(KafkaMessagesBundle.message("toggle.data"), { outputList },
+    //                     PropertiesComponent.getInstance().getBoolean(DATA_SHOW_ID, true)), CC().grow().push())
+    //  add(ComponentDivider(), CC().growY().pushY())
+    //  add(ExpansionPanel(KafkaMessagesBundle.message("toggle.details"), { details.component },
+    //                     PropertiesComponent.getInstance().getBoolean(DETAILS_SHOW_ID, false)), CC().growY().pushY())
+    //}
 
-      border = IdeBorderFactory.createBorder(SideBorder.RIGHT)
-    }
 
-    return JPanel(BorderLayout()).apply {
-      add(presetsSplitter, BorderLayout.CENTER)
-      add(stripe, BorderLayout.LINE_START)
-    }
+    return presetsSplitter
   }
 
   private fun getFilter() = ConsumerFilter(
@@ -414,7 +433,7 @@ class KafkaConsumerEditor(val project: Project,
     file.putUserData(STATE_KEY, ConsumerEditorState(outputModel.elements().toList(), getRunConfig()))
   }
 
-  private fun restoreFromFile(state : ConsumerEditorState) {
+  private fun restoreFromFile(state: ConsumerEditorState) {
     try {
       isRestoring = true
 
@@ -458,5 +477,10 @@ class KafkaConsumerEditor(val project: Project,
 
   companion object {
     val STATE_KEY = Key<ConsumerEditorState>("STATE")
+
+    private const val DATA_SHOW_ID = "com.jetbrains.bigdatatools.kafka.consumer.data.show"
+    private const val DETAILS_SHOW_ID = "com.jetbrains.bigdatatools.kafka.consumer.details.show"
+    private const val SETTINGS_SHOW_ID = "com.jetbrains.bigdatatools.kafka.consumer.settings.show"
+    private const val PRESETS_SHOW_ID = "com.jetbrains.bigdatatools.kafka.consumer.presets.show"
   }
 }

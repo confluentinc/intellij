@@ -21,7 +21,7 @@ import com.jetbrains.bigdatatools.kafka.common.models.FieldType
 import com.jetbrains.bigdatatools.kafka.common.models.ProducerField
 import com.jetbrains.bigdatatools.kafka.common.models.TopicInEditor
 import com.jetbrains.bigdatatools.kafka.common.settings.KafkaConfigStorage
-import com.jetbrains.bigdatatools.kafka.consumer.editor.VerticalButton
+import com.jetbrains.bigdatatools.ui.VerticalButton
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.producer.editor.renders.ProducerOutputRender
 import com.jetbrains.bigdatatools.kafka.producer.models.*
@@ -112,7 +112,7 @@ class KafkaProducerEditor(project: Project,
       getConfig()
 
       val result = producerClient.sentMessage(selectedTopicName, key, value,
-                                              propertiesComponent.getProperties(),
+                                              propertiesComponent.properties,
                                               compressionComboBox.item,
                                               acksComboBox.item,
                                               idempotenceCheckBox.isSelected,
@@ -130,7 +130,7 @@ class KafkaProducerEditor(project: Project,
   private fun getConfig() = RunProducerConfig(topicComboBox.item?.name ?: "",
                                               keyType = keyComboBox.item, key = getKey(),
                                               valueType = valueComboBox.item, value = getValue(),
-                                              properties = propertiesComponent.getProperties(),
+                                              properties = propertiesComponent.properties,
                                               compression = compressionComboBox.item,
                                               acks = acksComboBox.item,
                                               idempotence = idempotenceCheckBox.isSelected,
@@ -368,7 +368,7 @@ class KafkaProducerEditor(project: Project,
     }
 
     acksComboBox.item = config.acks
-    propertiesComponent.setProperties(config.properties)
+    propertiesComponent.properties = config.properties.toMutableList()
     compressionComboBox.item = config.compression
     idempotenceCheckBox.isSelected = config.idempotence
     forcePartitionField.value = config.forcePartition
