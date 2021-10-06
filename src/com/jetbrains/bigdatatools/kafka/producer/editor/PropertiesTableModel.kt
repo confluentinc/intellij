@@ -5,7 +5,13 @@ import javax.swing.table.AbstractTableModel
 import javax.swing.table.DefaultTableColumnModel
 import javax.swing.table.TableColumn
 
-class PropertiesTableModel(val properties: MutableList<Property>) : AbstractTableModel() {
+class PropertiesTableModel(properties: MutableList<Property>) : AbstractTableModel() {
+
+  var properties: MutableList<Property> = properties
+    set(value) {
+      field = value
+      fireTableDataChanged()
+    }
 
   val columnModel = DefaultTableColumnModel().apply {
     addColumn(TableColumn(0).apply { headerValue = "Key" })
@@ -21,6 +27,11 @@ class PropertiesTableModel(val properties: MutableList<Property>) : AbstractTabl
   override fun getColumnName(column: Int): String = columnModel.getColumn(column).headerValue.toString()
 
   override fun isCellEditable(rowIndex: Int, columnIndex: Int) = true
+
+  fun clear() {
+    properties.clear()
+    fireTableDataChanged()
+  }
 
   fun addRow(property: Property) {
     properties.add(property)
