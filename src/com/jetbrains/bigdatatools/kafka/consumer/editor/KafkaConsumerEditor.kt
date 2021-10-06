@@ -17,6 +17,7 @@ import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.components.JBTextField
 import com.intellij.util.ui.JBUI
 import com.jetbrains.bigdatatools.kafka.common.editor.KafkaEditorUtils
+import com.jetbrains.bigdatatools.kafka.common.editor.ListTableModel
 import com.jetbrains.bigdatatools.kafka.common.editor.renders.FieldTypeRenderer
 import com.jetbrains.bigdatatools.kafka.common.models.FieldType
 import com.jetbrains.bigdatatools.kafka.common.models.TopicInEditor
@@ -233,11 +234,9 @@ class KafkaConsumerEditor(val project: Project,
 
     file.getUserData(STATE_KEY)?.let { restoreFromFile(it) }
 
-    resultsSplitter.firstComponent = ExpansionPanel(KafkaMessagesBundle.message("toggle.data"), {
-      JBScrollPane(outputTable).apply {
-        border = BorderFactory.createEmptyBorder()
-      }
-    }, PropertiesComponent.getInstance().getBoolean(DATA_SHOW_ID, true)).apply {
+    val outputTableScroll = JBScrollPane(outputTable).apply { border = BorderFactory.createEmptyBorder() }
+    resultsSplitter.firstComponent = ExpansionPanel(KafkaMessagesBundle.message("toggle.data"), { outputTableScroll },
+                                                    PropertiesComponent.getInstance().getBoolean(DATA_SHOW_ID, true)).apply {
       addChangeListener {
         resultsSplitter.proportion = if (this.expanded) 1f else 0.0001f
       }
@@ -319,48 +318,7 @@ class KafkaConsumerEditor(val project: Project,
                              startWith = startWith)
   }
 
-  private fun createCenterPanel(): JComponent {
-    //
-    //val stripe = JPanel(null).apply {
-    //  layout = BoxLayout(this, BoxLayout.Y_AXIS)
-    //  add(VerticalButton(KafkaMessagesBundle.message("toggle.presets"), AllIcons.Toolwindows.ToolWindowFavorites, false).apply {
-    //    isSelected = showPresets
-    //    addActionListener { showPresets = isSelected }
-    //  })
-    //  add(VerticalButton(KafkaMessagesBundle.message("toggle.settings"), AllIcons.General.Settings, false).apply {
-    //    isSelected = showSettings
-    //    addActionListener { showSettings = isSelected }
-    //  })
-    //  add(VerticalButton(KafkaMessagesBundle.message("toggle.details"), AllIcons.Actions.SplitVertically, false).apply {
-    //    isSelected = showDetails
-    //    addActionListener { showDetails = isSelected }
-    //  })
-    //
-    //  border = IdeBorderFactory.createBorder(SideBorder.RIGHT)
-    //}
-    //
-    //return JPanel(BorderLayout()).apply {
-    //  add(presetsSplitter, BorderLayout.CENTER)
-    //  add(stripe, BorderLayout.LINE_START)
-    //}
-
-    //return MigPanel().apply {
-    //  add(ExpansionPanel(KafkaMessagesBundle.message("toggle.presets"), { presets.component },
-    //                     PropertiesComponent.getInstance().getBoolean(PRESETS_SHOW_ID, false)), CC().growY().pushY())
-    //  add(ComponentDivider(), CC().growY().pushY())
-    //  add(ExpansionPanel(KafkaMessagesBundle.message("toggle.settings"), { settingsPanel },
-    //                     PropertiesComponent.getInstance().getBoolean(SETTINGS_SHOW_ID, true)), CC().growY().pushY())
-    //  add(ComponentDivider(), CC().growY().pushY())
-    //  add(ExpansionPanel(KafkaMessagesBundle.message("toggle.data"), { outputList },
-    //                     PropertiesComponent.getInstance().getBoolean(DATA_SHOW_ID, true)), CC().grow().push())
-    //  add(ComponentDivider(), CC().growY().pushY())
-    //  add(ExpansionPanel(KafkaMessagesBundle.message("toggle.details"), { details.component },
-    //                     PropertiesComponent.getInstance().getBoolean(DETAILS_SHOW_ID, false)), CC().growY().pushY())
-    //}
-
-
-    return presetsSplitter
-  }
+  private fun createCenterPanel(): JComponent = presetsSplitter
 
   private fun getFilter() = ConsumerFilter(
     type = filterComboBox.item,

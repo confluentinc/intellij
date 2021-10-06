@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.producer.editor
+package com.jetbrains.bigdatatools.kafka.common.editor
 
 import com.jetbrains.bigdatatools.settings.connections.Property
 import javax.swing.table.AbstractTableModel
