@@ -12,9 +12,7 @@ import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.Key
 import com.intellij.openapi.util.UserDataHolderBase
 import com.intellij.openapi.vfs.VirtualFile
-import com.intellij.ui.IdeBorderFactory
 import com.intellij.ui.OnePixelSplitter
-import com.intellij.ui.SideBorder
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.components.JBTextField
 import com.intellij.util.ui.JBUI
@@ -30,6 +28,7 @@ import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import com.jetbrains.bigdatatools.settings.defaultui.UiUtil
 import com.jetbrains.bigdatatools.table.MaterialTable
 import com.jetbrains.bigdatatools.table.TableResizeController
+import com.jetbrains.bigdatatools.table.renderers.DateRenderer
 import com.jetbrains.bigdatatools.ui.CustomListCellRenderer
 import com.jetbrains.bigdatatools.ui.ExpansionPanel
 import com.jetbrains.bigdatatools.ui.MigPanel
@@ -109,8 +108,8 @@ class KafkaConsumerEditor(val project: Project,
     }
   }
 
-  private val outputModel = ConsumerTableModel(ArrayList<Result<ConsumerRecord<Serializable, Serializable>>>(),
-                                               listOf("partition", "offset", "timestamp", "value")) { data, index ->
+  private val outputModel = ListTableModel(ArrayList<Result<ConsumerRecord<Serializable, Serializable>>>(),
+                                           listOf("partition", "offset", "timestamp", "value")) { data, index ->
     when (index) {
       0 -> data.getOrNull()?.partition() ?: ""
       1 -> data.getOrNull()?.offset() ?: ""
@@ -120,10 +119,17 @@ class KafkaConsumerEditor(val project: Project,
     }
   }
 
-  private val outputTableDelegate = lazy { MaterialTable(outputModel, outputModel.columnModel).apply {
-    TableResizeController.installOn(this)
-    tableHeader.border = JBUI.Borders.empty()
-  } }
+  private val outputTableDelegate = lazy {
+    MaterialTable(outputModel, outputModel.columnModel).apply {
+      TableResizeController.installOn(this)
+      tableHeader.border = JBUI.Borders.empty()
+      outputModel.columnModel.columns.asIterator().forEach {
+        if (it.headerValue == "timestamp") {
+          it.cellRenderer = DateRenderer()
+        }
+      }
+    }
+  }
   private val outputTable: MaterialTable by outputTableDelegate
 
   private val consumeButton = JButton(KafkaMessagesBundle.message("action.consume.start.title")).apply {

@@ -5,9 +5,9 @@ import javax.swing.table.DefaultTableColumnModel
 import javax.swing.table.TableColumn
 import javax.swing.table.TableColumnModel
 
-class ConsumerTableModel<T>(private val data: MutableList<T>,
-                            private val columnNames: List<String>,
-                            private val columnMapper: (T, Int) -> Any) : AbstractTableModel() {
+class ListTableModel<T>(private val data: MutableList<T>,
+                        private val columnNames: List<String>,
+                        private val columnMapper: (T, Int) -> Any) : AbstractTableModel() {
 
   val columnModel: TableColumnModel by lazy {
     DefaultTableColumnModel().apply {
