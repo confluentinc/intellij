@@ -125,7 +125,9 @@ class KafkaClient(project: Project?,
     val defaultProps = listOf(
       Property(SERVER_URL, connectionData.uri.removeSuffix("/")),
       Property(CommonClientConfigs.CONNECTIONS_MAX_IDLE_MS_CONFIG, 10000.toString()),
-      Property(CommonClientConfigs.REQUEST_TIMEOUT_MS_CONFIG, 30000.toString())
+      Property(CommonClientConfigs.REQUEST_TIMEOUT_MS_CONFIG, 30000.toString()),
+      Property(CommonClientConfigs.RETRY_BACKOFF_MS_CONFIG, 30000.toString()),
+      Property(CommonClientConfigs.METADATA_MAX_AGE_CONFIG, 30000.toString())
     )
 
     val props = Properties()
