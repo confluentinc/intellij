@@ -36,12 +36,15 @@ import com.jetbrains.bigdatatools.ui.MigPanel
 import com.michaelbaranov.microba.calendar.DatePicker
 import net.miginfocom.layout.LC
 import org.apache.kafka.clients.consumer.ConsumerRecord
+import java.awt.Dimension
 import java.beans.PropertyChangeListener
 import java.io.Serializable
 import java.util.*
 import javax.swing.BorderFactory
 import javax.swing.JButton
 import javax.swing.JComponent
+import javax.swing.JScrollPane
+import kotlin.math.max
 
 class KafkaConsumerEditor(val project: Project,
                           kafkaManager: KafkaDataManager,
@@ -234,15 +237,19 @@ class KafkaConsumerEditor(val project: Project,
 
     file.getUserData(STATE_KEY)?.let { restoreFromFile(it) }
 
-    val outputTableScroll = JBScrollPane(outputTable).apply { border = BorderFactory.createEmptyBorder() }
-    resultsSplitter.firstComponent = ExpansionPanel(KafkaMessagesBundle.message("toggle.data"), { outputTableScroll },
+    resultsSplitter.firstComponent = ExpansionPanel(KafkaMessagesBundle.message("toggle.data"),
+                                                    { JBScrollPane(outputTable).apply { border = BorderFactory.createEmptyBorder() } },
                                                     PropertiesComponent.getInstance().getBoolean(DATA_SHOW_ID, true)).apply {
       addChangeListener {
         resultsSplitter.proportion = if (this.expanded) 1f else 0.0001f
       }
     }
-    resultsSplitter.secondComponent = ExpansionPanel(KafkaMessagesBundle.message("toggle.details"), { details.component },
-                                                     PropertiesComponent.getInstance().getBoolean(DETAILS_SHOW_ID, false)).apply {
+    resultsSplitter.secondComponent = ExpansionPanel(KafkaMessagesBundle.message("toggle.details"), {
+      JBScrollPane(details.component, JScrollPane.VERTICAL_SCROLLBAR_ALWAYS, JScrollPane.HORIZONTAL_SCROLLBAR_NEVER).apply {
+        minimumSize = Dimension(max(details.component.minimumSize.width, 200), minimumSize.height)
+        border = BorderFactory.createEmptyBorder()
+      }
+    }, PropertiesComponent.getInstance().getBoolean(DETAILS_SHOW_ID, false)).apply {
       addChangeListener {
         resultsSplitter.proportion = 1f
       }
@@ -250,15 +257,21 @@ class KafkaConsumerEditor(val project: Project,
 
     resultsSplitter.proportion = if (PropertiesComponent.getInstance().getBoolean(DATA_SHOW_ID, true)) 1f else 0.0001f
 
-    settingsSplitter.firstComponent = ExpansionPanel(KafkaMessagesBundle.message("toggle.settings"), { settingsPanel },
-                                                     PropertiesComponent.getInstance().getBoolean(SETTINGS_SHOW_ID, true)).apply {
+    settingsSplitter.firstComponent = ExpansionPanel(KafkaMessagesBundle.message("toggle.settings"), {
+      JBScrollPane(settingsPanel, JScrollPane.VERTICAL_SCROLLBAR_ALWAYS, JScrollPane.HORIZONTAL_SCROLLBAR_NEVER).apply {
+        minimumSize = Dimension(settingsPanel.minimumSize.width, minimumSize.height)
+      }
+    }, PropertiesComponent.getInstance().getBoolean(SETTINGS_SHOW_ID, true)).apply {
       addChangeListener {
         settingsSplitter.proportion = 0.0001f
       }
     }
 
-    presetsSplitter.firstComponent = ExpansionPanel(KafkaMessagesBundle.message("toggle.presets"), { presets.component },
-                                                    PropertiesComponent.getInstance().getBoolean(PRESETS_SHOW_ID, false)).apply {
+    presetsSplitter.firstComponent = ExpansionPanel(KafkaMessagesBundle.message("toggle.presets"), {
+      presets.component.apply {
+        minimumSize = Dimension(max(minimumSize.width, 200), minimumSize.height)
+      }
+    }, PropertiesComponent.getInstance().getBoolean(PRESETS_SHOW_ID, false)).apply {
       addChangeListener {
         presetsSplitter.proportion = 0.0001f
       }

@@ -40,10 +40,13 @@ import com.jetbrains.bigdatatools.ui.CustomListCellRenderer
 import com.jetbrains.bigdatatools.ui.ExpansionPanel
 import com.jetbrains.bigdatatools.ui.MigPanel
 import net.miginfocom.layout.LC
+import java.awt.Dimension
 import java.beans.PropertyChangeListener
 import javax.swing.BorderFactory
 import javax.swing.JButton
 import javax.swing.JComponent
+import javax.swing.JScrollPane
+import kotlin.math.max
 
 @Suppress("DuplicatedCode")
 class KafkaProducerEditor(project: Project,
@@ -187,7 +190,6 @@ class KafkaProducerEditor(project: Project,
   private val settingsPanelDelegate = lazy {
     MigPanel(LC().insets("10").fillX().hideMode(3)).apply {
       gapLeft = true
-      //  title(KafkaMessagesBundle.message("producer.title.data"))
       row(KafkaMessagesBundle.message("producer.topics"), topicComboBox)
       row(KafkaMessagesBundle.message("producer.key"), keyComboBox)
       add(keyJson, UiUtil.growXSpanXWrap)
@@ -236,8 +238,11 @@ class KafkaProducerEditor(project: Project,
   private val mainComponent = createCenterPanel()
 
   init {
-    settingsSplitter.firstComponent = ExpansionPanel(KafkaMessagesBundle.message("toggle.settings"), { settingsPanel },
-                                                     PropertiesComponent.getInstance().getBoolean(SETTINGS_SHOW_ID, true)).apply {
+    settingsSplitter.firstComponent = ExpansionPanel(KafkaMessagesBundle.message("toggle.settings"), {
+      JBScrollPane(settingsPanel, JScrollPane.VERTICAL_SCROLLBAR_ALWAYS, JScrollPane.HORIZONTAL_SCROLLBAR_NEVER).apply {
+        minimumSize = Dimension(settingsPanel.minimumSize.width, minimumSize.height)
+      }
+    }, PropertiesComponent.getInstance().getBoolean(SETTINGS_SHOW_ID, true)).apply {
       addChangeListener {
         settingsSplitter.proportion = 0.0001f
       }
@@ -251,8 +256,11 @@ class KafkaProducerEditor(project: Project,
       }
     }
 
-    presetsSplitter.firstComponent = ExpansionPanel(KafkaMessagesBundle.message("toggle.presets"), { presets.component },
-                                                    PropertiesComponent.getInstance().getBoolean(PRESETS_SHOW_ID, false)).apply {
+    presetsSplitter.firstComponent = ExpansionPanel(KafkaMessagesBundle.message("toggle.presets"), {
+      presets.component.apply {
+        minimumSize = Dimension(max(minimumSize.width, 200), minimumSize.height)
+      }
+    }, PropertiesComponent.getInstance().getBoolean(PRESETS_SHOW_ID, false)).apply {
       addChangeListener {
         presetsSplitter.proportion = 0.0001f
       }

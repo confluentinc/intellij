@@ -1,5 +1,7 @@
 package com.jetbrains.bigdatatools.kafka.consumer.editor
 
+import com.intellij.ui.IdeBorderFactory
+import com.intellij.ui.SideBorder
 import com.jetbrains.bigdatatools.kafka.common.editor.PropertiesTable
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import com.jetbrains.bigdatatools.settings.connections.Property
@@ -19,7 +21,10 @@ import javax.swing.JTextField
 class ConsumerRecordDetails {
   private val topicField = JTextField(10)
   private val keyField = JTextField(10)
-  private val valueField = JTextArea().apply { wrapStyleWord = true }
+  private val valueField = JTextArea().apply {
+    border = IdeBorderFactory.createBorder()
+    wrapStyleWord = true
+  }
   private val headers = PropertiesTable(emptyList())
 
   private val partition = JTextField(10)
