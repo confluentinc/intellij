@@ -17,6 +17,7 @@ import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaConnectionData
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import com.jetbrains.bigdatatools.ui.CustomListCellRenderer
+import com.jetbrains.bigdatatools.ui.MigPanel
 import com.jetbrains.bigdatatools.util.BdIdeRegistryUtil
 import java.awt.BorderLayout
 import javax.swing.*
@@ -104,10 +105,9 @@ class ClusterPageController(private val project: Project, connectionData: KafkaC
     val leftPanel = if (BdIdeRegistryUtil.isInternalFeaturesAvailable()) {
       JPanel(BorderLayout()).apply {
         add(scroll, BorderLayout.CENTER)
-        add(JPanel(null).apply {
-          this.layout = BoxLayout(this, BoxLayout.Y_AXIS)
-          add(createProducer)
-          add(createConsumer)
+        add(MigPanel().apply {
+          row(createProducer)
+          row(createConsumer)
         }, BorderLayout.SOUTH)
       }
     }
