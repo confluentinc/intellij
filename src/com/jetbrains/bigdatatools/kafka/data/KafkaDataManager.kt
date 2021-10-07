@@ -4,6 +4,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.jetbrains.bigdatatools.connection.updater.IntervalUpdateSettings
 import com.jetbrains.bigdatatools.kafka.client.KafkaClient
+import com.jetbrains.bigdatatools.kafka.consumer.editor.KafkaConsumerPanelStorage
 import com.jetbrains.bigdatatools.kafka.model.ConsumerGroupPresentable
 import com.jetbrains.bigdatatools.kafka.model.TopicConfig
 import com.jetbrains.bigdatatools.kafka.model.TopicPartition
@@ -29,9 +30,13 @@ class KafkaDataManager(project: Project?,
 
   var topicConfigsModels = mapOf<String, ProjectionObjectDataModel<TopicConfig, TopicPresentable>>()
     private set
+
   private var topicPartitionsModels = mapOf<String, ProjectionObjectDataModel<TopicPartition, TopicPresentable>>()
 
+  val consumerPanelStorage = KafkaConsumerPanelStorage(this)
+
   init {
+    Disposer.register(this, consumerPanelStorage)
     Disposer.register(this, client)
     Disposer.register(this, topicModel)
     Disposer.register(this, consumerGroupsModel)
