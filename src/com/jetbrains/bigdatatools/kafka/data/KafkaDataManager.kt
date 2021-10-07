@@ -40,6 +40,8 @@ class KafkaDataManager(project: Project?,
     Disposer.register(this, client)
     Disposer.register(this, topicModel)
     Disposer.register(this, consumerGroupsModel)
+
+    init()
   }
 
   override fun dispose() {}
