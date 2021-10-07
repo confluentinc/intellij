@@ -7,6 +7,7 @@ import com.intellij.openapi.fileEditor.FileEditorLocation
 import com.intellij.openapi.fileEditor.FileEditorState
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.ComboBox
+import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.ui.Splitter
 import com.intellij.openapi.util.Key
 import com.intellij.openapi.util.UserDataHolderBase
@@ -145,7 +146,11 @@ class KafkaProducerEditor(project: Project,
 
   private val produceButton = JButton(KafkaMessagesBundle.message("kafka.producer.action.produce.title")).also {
     it.addActionListener {
-      val topic = topicComboBox.item ?: error("Topic is not selected")
+      val topic = topicComboBox.item
+      if (topic == null || topic.name.isBlank()) {
+        Messages.showErrorDialog(kafkaManager.project, "Topic is empty", "Consumer error")
+        return@addActionListener
+      }
       val selectedTopicName = topic.name
 
       val key = ProducerField(keyComboBox.item!!, getKey())
@@ -153,12 +158,8 @@ class KafkaProducerEditor(project: Project,
 
       getConfig()
 
-      val result = producerClient.sentMessage(selectedTopicName, key, value,
-                                              propertiesComponent.properties,
-                                              compressionComboBox.item,
-                                              acksComboBox.item,
-                                              idempotenceCheckBox.isSelected,
-                                              forcePartitionField.value)
+      val result = producerClient.sentMessage(selectedTopicName, key, value, propertiesComponent.properties, compressionComboBox.item,
+                                              acksComboBox.item, idempotenceCheckBox.isSelected, forcePartitionField.value)
       outputModel.addElement(result)
     }
   }
@@ -169,13 +170,10 @@ class KafkaProducerEditor(project: Project,
     }
   }
 
-  private fun getConfig() = RunProducerConfig(topicComboBox.item?.name ?: "",
-                                              keyType = keyComboBox.item, key = getKey(),
+  private fun getConfig() = RunProducerConfig(topicComboBox.item?.name ?: "", keyType = keyComboBox.item, key = getKey(),
                                               valueType = valueComboBox.item, value = getValue(),
-                                              properties = propertiesComponent.properties,
-                                              compression = compressionComboBox.item,
-                                              acks = acksComboBox.item,
-                                              idempotence = idempotenceCheckBox.isSelected,
+                                              properties = propertiesComponent.properties, compression = compressionComboBox.item,
+                                              acks = acksComboBox.item, idempotence = idempotenceCheckBox.isSelected,
                                               forcePartition = forcePartitionField.value)
 
   private val clearButton = JButton(KafkaMessagesBundle.message("action.clear.output")).apply {
@@ -276,21 +274,20 @@ class KafkaProducerEditor(project: Project,
 
   private fun createCenterPanel(): JComponent = presetsSplitter
 
-  private fun createJsonTextArea(project: Project) = EditorTextFieldProvider
-    .getInstance()
-    .getEditorField(JsonLanguage.INSTANCE, project,
-                    listOf(EditorCustomization {
-                      it.settings.apply {
-                        isLineNumbersShown = false
-                        isLineMarkerAreaShown = false
-                        isFoldingOutlineShown = false
-                        isRightMarginShown = false
-                        additionalLinesCount = 5
-                        additionalColumnsCount = 5
-                        isAdditionalPageAtBottom = false
-                        isShowIntentionBulb = false
-                      }
-                    }, MonospaceEditorCustomization.getInstance()))
+  private fun createJsonTextArea(project: Project) = EditorTextFieldProvider.getInstance().getEditorField(JsonLanguage.INSTANCE, project,
+                                                                                                          listOf(EditorCustomization {
+                                                                                                            it.settings.apply {
+                                                                                                              isLineNumbersShown = false
+                                                                                                              isLineMarkerAreaShown = false
+                                                                                                              isFoldingOutlineShown = false
+                                                                                                              isRightMarginShown = false
+                                                                                                              additionalLinesCount = 5
+                                                                                                              additionalColumnsCount = 5
+                                                                                                              isAdditionalPageAtBottom = false
+                                                                                                              isShowIntentionBulb = false
+                                                                                                            }
+                                                                                                          },
+                                                                                                                 MonospaceEditorCustomization.getInstance()))
 
   private fun doubleField() = IntegerField()
 
@@ -307,8 +304,7 @@ class KafkaProducerEditor(project: Project,
     keyDoubleField.isVisible = false
     valueDoubleField.isVisible = false
 
-    @Suppress("DuplicatedCode")
-    when (keyComboBox.item!!) {
+    @Suppress("DuplicatedCode") when (keyComboBox.item!!) {
       FieldType.JSON -> keyJson.isVisible = true
       FieldType.STRING -> keyStringField.isVisible = true
       FieldType.LONG -> keyIntegerField.isVisible = true
@@ -318,8 +314,7 @@ class KafkaProducerEditor(project: Project,
       FieldType.NULL -> Unit
     }
 
-    @Suppress("DuplicatedCode")
-    when (valueComboBox.item!!) {
+    @Suppress("DuplicatedCode") when (valueComboBox.item!!) {
       FieldType.JSON -> valueJson.isVisible = true
       FieldType.STRING -> valueStringField.isVisible = true
       FieldType.LONG -> valueIntegerField.isVisible = true
