@@ -50,6 +50,9 @@ class KafkaConsumerEditor(val project: Project,
                           kafkaManager: KafkaDataManager,
                           private val file: VirtualFile) : FileEditor, UserDataHolderBase() {
   private var consumerClient = KafkaConsumerClient(client = kafkaManager.client,
+                                                   onStart = {
+                                                     onStartConsume()
+                                                   },
                                                    onStop = {
                                                      onStopConsume()
                                                    })
@@ -140,11 +143,9 @@ class KafkaConsumerEditor(val project: Project,
     addActionListener {
       if (consumerClient.isRunning()) {
         consumerClient.stop()
-        text = KafkaMessagesBundle.message("action.consume.start.title")
       }
       else {
         startConsume()
-        text = KafkaMessagesBundle.message("action.consume.stop.title")
       }
       updateVisibility()
       storeToFile()
@@ -400,8 +401,13 @@ class KafkaConsumerEditor(val project: Project,
   private fun onStopConsume() {
     consumeButton.text = KafkaMessagesBundle.message("action.consume.start.title")
     updateVisibility()
-    storeToFile()
   }
+
+  private fun onStartConsume() {
+    consumeButton.text = KafkaMessagesBundle.message("action.consume.stop.title")
+    updateVisibility()
+  }
+
 
   var isRestoring = false
   private fun storeToFile() {

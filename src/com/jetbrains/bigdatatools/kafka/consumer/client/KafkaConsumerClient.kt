@@ -19,6 +19,7 @@ import java.util.*
 import java.util.concurrent.atomic.AtomicBoolean
 
 class KafkaConsumerClient(val client: KafkaClient,
+                          val onStart: () -> Unit,
                           val onStop: () -> Unit) : Disposable {
   val connectionData = client.connectionData
   private val isRunning = AtomicBoolean(false)
@@ -42,7 +43,7 @@ class KafkaConsumerClient(val client: KafkaClient,
     seekPartitions(consumer, partitions, config.startWith)
 
     isRunning.set(true)
-
+    onStart()
     executeOnPooledThread {
       try {
         @Suppress("CanBeVal")
@@ -136,7 +137,6 @@ class KafkaConsumerClient(val client: KafkaClient,
       }
       finally {
         stop()
-        onStop()
       }
     }
   }
@@ -154,7 +154,7 @@ class KafkaConsumerClient(val client: KafkaClient,
 
   private fun createConsumer(keyType: FieldType, valueType: FieldType): KafkaConsumer<Serializable, Serializable> {
     val props = client.kafkaProps.clone() as Properties
-    props[ConsumerConfig.GROUP_ID_CONFIG] = "BigDataTools" + UUID.randomUUID()
+    props[ConsumerConfig.GROUP_ID_CONFIG] = "BigDataTools"
     props[ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG] = keyType.getDeserializationClass()::class.java
     props[ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG] = valueType.getDeserializationClass()::class.java
     return KafkaConsumer(props)
@@ -173,8 +173,8 @@ class KafkaConsumerClient(val client: KafkaClient,
   }
 
   fun stop() {
-    //runConsumer?.close()
     isRunning.set(false)
+    onStop()
   }
 
   fun isRunning() = isRunning.get()
