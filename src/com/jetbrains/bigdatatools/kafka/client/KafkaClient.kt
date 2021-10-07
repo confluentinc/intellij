@@ -5,7 +5,6 @@ import com.intellij.openapi.project.Project
 import com.jetbrains.bigdatatools.connection.tunnel.BdtSshTunnelConnectionUtils
 import com.jetbrains.bigdatatools.connection.tunnel.BdtSshTunnelService
 import com.jetbrains.bigdatatools.connection.tunnel.model.getTunnelDataOrNull
-import com.jetbrains.bigdatatools.kafka.consumer.client.KafkaConsumerClient
 import com.jetbrains.bigdatatools.kafka.model.ConsumerGroupPresentable
 import com.jetbrains.bigdatatools.kafka.model.TopicConfig
 import com.jetbrains.bigdatatools.kafka.model.TopicPresentable
@@ -14,9 +13,11 @@ import com.jetbrains.bigdatatools.kafka.rfs.KafkaConnectionData
 import com.jetbrains.bigdatatools.monitoring.connection.MonitoringClient
 import com.jetbrains.bigdatatools.settings.components.BdtPropertyComponent
 import com.jetbrains.bigdatatools.settings.connections.Property
+import com.jetbrains.bigdatatools.util.BdIdeRegistryUtil
 import com.jetbrains.bigdatatools.util.executeOnPooledThread
 import org.apache.kafka.clients.CommonClientConfigs
 import org.apache.kafka.clients.admin.AdminClient
+import org.apache.kafka.clients.admin.DescribeClusterOptions
 import org.apache.kafka.clients.admin.ListTopicsOptions
 import org.apache.kafka.clients.admin.TopicDescription
 import org.apache.kafka.common.config.ConfigResource
@@ -52,7 +53,8 @@ class KafkaClient(project: Project?,
 
   override fun checkConnectionInner() {
     val kafkaAdmin = kafkaAdmin ?: error("Admin Client is not initialized")
-    kafkaAdmin.describeCluster().controller().get()
+    val clusterOptions = DescribeClusterOptions().timeoutMs(BdIdeRegistryUtil.RFS_DEFAULT_TIMEOUT)
+    kafkaAdmin.describeCluster(clusterOptions).clusterId().get()
   }
 
   override fun connectInner() {
@@ -62,13 +64,15 @@ class KafkaClient(project: Project?,
       kafkaProps.setProperty(SERVER_URL, urlForTunnel)
     }
 
-    val contextCL = Thread.currentThread().contextClassLoader
-    try {
-      Thread.currentThread().contextClassLoader = this::class.java.classLoader
-      kafkaAdmin = AdminClient.create(kafkaProps)
-    }
-    finally {
-      Thread.currentThread().contextClassLoader = contextCL
+    if (kafkaAdmin == null) {
+      val contextCL = Thread.currentThread().contextClassLoader
+      try {
+        Thread.currentThread().contextClassLoader = this::class.java.classLoader
+        kafkaAdmin = AdminClient.create(kafkaProps)
+      }
+      finally {
+        Thread.currentThread().contextClassLoader = contextCL
+      }
     }
 
     checkConnectionInner()
@@ -124,9 +128,9 @@ class KafkaClient(project: Project?,
     val defaultProps = listOf(
       Property(SERVER_URL, connectionData.uri.removeSuffix("/")),
       Property(CommonClientConfigs.CONNECTIONS_MAX_IDLE_MS_CONFIG, 10000.toString()),
-      Property(CommonClientConfigs.REQUEST_TIMEOUT_MS_CONFIG, 30000.toString()),
+      Property(CommonClientConfigs.REQUEST_TIMEOUT_MS_CONFIG, BdIdeRegistryUtil.RFS_DEFAULT_TIMEOUT.toString()),
       Property(CommonClientConfigs.RETRY_BACKOFF_MS_CONFIG, 30000.toString()),
-      Property(CommonClientConfigs.METADATA_MAX_AGE_CONFIG, 30000.toString())
+      Property(CommonClientConfigs.METADATA_MAX_AGE_CONFIG, 60000.toString())
     )
 
     val props = Properties()
