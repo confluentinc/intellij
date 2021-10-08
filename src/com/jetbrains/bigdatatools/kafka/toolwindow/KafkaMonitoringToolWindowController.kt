@@ -38,10 +38,7 @@ import com.jetbrains.bigdatatools.util.invokeLater
 import java.awt.event.ActionEvent
 import javax.swing.BorderFactory
 
-class KafkaMonitoringToolWindowController(private val project: Project) : MonitoringToolWindowController {
-  /** When user pressed autorefresh button. Used for prevent autorefresh button spam.*/
-  private var lastAutoRefreshTimestamp = 0L
-
+class KafkaMonitoringToolWindowController(private val project: Project) : MonitoringToolWindowController() {
   private lateinit var contentManager: ContentManager
 
   private val settingsListener = object : ConnectionSettingsListener {
