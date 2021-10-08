@@ -39,8 +39,6 @@ class KafkaProducerClient(val client: KafkaClient) {
         record.headers().add(it.name, it.value.toByteArray())
       }
 
-      record.partition()
-
       val start = System.currentTimeMillis()
       val metaInfo = producer.send(record).get()
       val end = System.currentTimeMillis()
