@@ -1,6 +1,5 @@
 package com.jetbrains.bigdatatools.kafka.toolwindow.controllers
 
-import com.intellij.openapi.Disposable
 import com.intellij.openapi.fileEditor.ex.FileEditorManagerEx
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.Splitter
@@ -16,18 +15,22 @@ import com.jetbrains.bigdatatools.kafka.common.models.KafkaEditorType
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaConnectionData
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import com.jetbrains.bigdatatools.monitoring.toolwindow.ComponentController
 import com.jetbrains.bigdatatools.ui.CustomListCellRenderer
 import com.jetbrains.bigdatatools.ui.MigPanel
 import com.jetbrains.bigdatatools.util.BdIdeRegistryUtil
 import net.miginfocom.layout.LC
 import java.awt.BorderLayout
-import javax.swing.*
+import javax.swing.DefaultListModel
+import javax.swing.DefaultListSelectionModel
+import javax.swing.JButton
+import javax.swing.JPanel
 
 /**
  * Main controller for Kafka Cluster.
  * Contains page control for Topics / ConsumerGroups / etc.
  */
-class ClusterPageController(private val project: Project, connectionData: KafkaConnectionData) : Disposable {
+class ClusterPageController(private val project: Project, connectionData: KafkaConnectionData) : ComponentController {
   private val dataManager = KafkaDataManager.getInstance(connectionData.innerId, project) ?: error("Data Manager is not initialized")
 
   private val topicsController = TopicsController(project, dataManager)
@@ -43,7 +46,7 @@ class ClusterPageController(private val project: Project, connectionData: KafkaC
 
   override fun dispose() {}
 
-  fun getComponent() = panel
+  override fun getComponent() = panel
 
   private fun showDetails(selectedValue: ClusterControllerType) {
     details.removeAll()
