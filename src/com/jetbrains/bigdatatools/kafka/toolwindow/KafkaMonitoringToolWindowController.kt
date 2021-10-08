@@ -33,12 +33,11 @@ import com.jetbrains.bigdatatools.settings.connections.ConnectionData
 import com.jetbrains.bigdatatools.settings.manager.RfsConnectionDataManager
 import com.jetbrains.bigdatatools.ui.AutorefreshPopupComponent
 import com.jetbrains.bigdatatools.ui.CustomComponentActionImpl
-import com.jetbrains.bigdatatools.util.executeOnPooledThread
 import com.jetbrains.bigdatatools.util.invokeLater
 import java.awt.event.ActionEvent
 import javax.swing.BorderFactory
 
-class KafkaMonitoringToolWindowController(private val project: Project) : MonitoringToolWindowController() {
+class KafkaMonitoringToolWindowController(project: Project) : MonitoringToolWindowController(project) {
   private lateinit var contentManager: ContentManager
 
   private val settingsListener = object : ConnectionSettingsListener {
@@ -173,20 +172,6 @@ class KafkaMonitoringToolWindowController(private val project: Project) : Monito
     })
   }
 
-  private fun onRefreshAction() {
-    if (System.currentTimeMillis() - lastAutoRefreshTimestamp < AUTOREFRESH_CLICK_INTERVAL)
-      return
-    lastAutoRefreshTimestamp = System.currentTimeMillis()
-
-    getEnabledConnectionSettings().forEach {
-      executeOnPooledThread {
-        val dataManager = KafkaDataManager.getInstance(it.innerId, project) ?: return@executeOnPooledThread
-        val autoUpdaterManager = dataManager.autoUpdaterManager
-        autoUpdaterManager.reloadAll(false)
-      }
-    }
-  }
-
   private fun onRefreshIntervalChanged(newInterval: Int) {
     KafkaToolWindowSettings.getInstance().dataUpdateIntervalMillis = newInterval
     getEnabledConnectionSettings().forEach {
@@ -234,7 +219,7 @@ class KafkaMonitoringToolWindowController(private val project: Project) : Monito
     }
   }
 
-  private fun getEnabledConnectionSettings(): List<KafkaConnectionData> =
+  override fun getEnabledConnectionSettings(): List<KafkaConnectionData> =
     RfsConnectionDataManager.instance?.getTyped<KafkaConnectionData>(project)?.filter { it.isEnabled } ?: emptyList()
 
   companion object {
