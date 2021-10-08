@@ -3,10 +3,8 @@ package com.jetbrains.bigdatatools.kafka.common.editor
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.util.Disposer
-import com.jetbrains.bigdatatools.kafka.common.editor.renders.TopicRenderer
 import com.jetbrains.bigdatatools.kafka.common.models.TopicInEditor
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
-import com.jetbrains.bigdatatools.kafka.producer.models.RecordCompression
 import com.jetbrains.bigdatatools.monitoring.data.listener.DataModelListener
 import com.jetbrains.bigdatatools.ui.CustomListCellRenderer
 
@@ -14,16 +12,12 @@ object KafkaEditorUtils {
   fun createTopicComboBox(rootDisposable: Disposable, kafkaManager: KafkaDataManager): ComboBox<TopicInEditor> {
     val topics = kafkaManager.getTopics()
     val topicComboBox = ComboBox(topics.map { it.toEditorTopic() }.toTypedArray())
+    topicComboBox.prototypeDisplayValue = TopicInEditor("Topic sample name") // Field is set for limiting combobox size.
     topicComboBox.renderer = CustomListCellRenderer<TopicInEditor> { value -> value.name }
 
     val listener = object : DataModelListener {
-      override fun onChanged() {
-        updateComboBox()
-      }
-
-      override fun onError(msg: String, e: Throwable?) {
-        updateComboBox()
-      }
+      override fun onChanged() = updateComboBox()
+      override fun onError(msg: String, e: Throwable?) = updateComboBox()
 
       private fun updateComboBox() {
         val selectedItem = topicComboBox.item
@@ -48,9 +42,9 @@ object KafkaEditorUtils {
       }
     }
     kafkaManager.topicModel.addListener(listener)
-    Disposer.register(rootDisposable, Disposable {
+    Disposer.register(rootDisposable) {
       kafkaManager.topicModel.removeListener(listener)
-    })
+    }
 
     return topicComboBox
   }

@@ -12,10 +12,7 @@ import com.intellij.openapi.ui.Splitter
 import com.intellij.openapi.util.Key
 import com.intellij.openapi.util.UserDataHolderBase
 import com.intellij.openapi.vfs.VirtualFile
-import com.intellij.ui.EditorCustomization
-import com.intellij.ui.EditorTextFieldProvider
-import com.intellij.ui.MonospaceEditorCustomization
-import com.intellij.ui.OnePixelSplitter
+import com.intellij.ui.*
 import com.intellij.ui.components.CheckBox
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.components.JBTextField
@@ -35,6 +32,7 @@ import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import com.jetbrains.bigdatatools.settings.defaultui.UiUtil
 import com.jetbrains.bigdatatools.table.MaterialTable
 import com.jetbrains.bigdatatools.table.TableResizeController
+import com.jetbrains.bigdatatools.table.filters.TableFilterHeader
 import com.jetbrains.bigdatatools.table.renderers.DateRenderer
 import com.jetbrains.bigdatatools.table.renderers.DurationRenderer
 import com.jetbrains.bigdatatools.ui.CustomListCellRenderer
@@ -83,6 +81,7 @@ class KafkaProducerEditor(project: Project,
     selectedItem = FieldType.STRING
     addItemListener {
       updateVisibility()
+      mainComponent.revalidate()
     }
   }
 
@@ -91,6 +90,7 @@ class KafkaProducerEditor(project: Project,
     selectedItem = FieldType.STRING
     addItemListener {
       updateVisibility()
+      mainComponent.revalidate()
     }
   }
 
@@ -111,13 +111,14 @@ class KafkaProducerEditor(project: Project,
     defaultValue = -1
   }
 
+  //ToDo "offset" temporary removed because always -1
   private val outputModel = ListTableModel(ArrayList<ProducerResultMessage>(),
-                                           listOf("key", "value", "timestamp", "offset", "partition", "duration")) { data, index ->
+                                           listOf("key", "value", "timestamp", "partition", "duration")) { data, index ->
     when (index) {
       0 -> data.key
       1 -> data.value
       2 -> data.timestamp
-      3 -> data.offset
+      //  3 -> data.offset
       4 -> data.partition
       5 -> data.duration
       else -> ""
@@ -140,6 +141,7 @@ class KafkaProducerEditor(project: Project,
           it.cellRenderer = DurationRenderer()
         }
       }
+      TableFilterHeader(this)
     }
   }
   private val outputTable: MaterialTable by outputTableDelegate
@@ -274,20 +276,22 @@ class KafkaProducerEditor(project: Project,
 
   private fun createCenterPanel(): JComponent = presetsSplitter
 
-  private fun createJsonTextArea(project: Project) = EditorTextFieldProvider.getInstance().getEditorField(JsonLanguage.INSTANCE, project,
-                                                                                                          listOf(EditorCustomization {
-                                                                                                            it.settings.apply {
-                                                                                                              isLineNumbersShown = false
-                                                                                                              isLineMarkerAreaShown = false
-                                                                                                              isFoldingOutlineShown = false
-                                                                                                              isRightMarginShown = false
-                                                                                                              additionalLinesCount = 5
-                                                                                                              additionalColumnsCount = 5
-                                                                                                              isAdditionalPageAtBottom = false
-                                                                                                              isShowIntentionBulb = false
-                                                                                                            }
-                                                                                                          },
-                                                                                                                 MonospaceEditorCustomization.getInstance()))
+  private fun createJsonTextArea(project: Project) = EditorTextFieldProvider.getInstance()
+    .getEditorField(JsonLanguage.INSTANCE, project,
+                    listOf(EditorCustomization {
+                      it.settings.apply {
+                        isLineNumbersShown = false
+                        isLineMarkerAreaShown = false
+                        isFoldingOutlineShown = false
+                        isRightMarginShown = false
+                        additionalLinesCount = 5
+                        additionalColumnsCount = 5
+                        isAdditionalPageAtBottom = false
+                        isShowIntentionBulb = false
+                      }
+                    }, MonospaceEditorCustomization.getInstance())).apply {
+      border = IdeBorderFactory.createBorder()
+    }
 
   private fun doubleField() = IntegerField()
 

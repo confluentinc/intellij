@@ -15,7 +15,7 @@ class KafkaConsumerEditor(val project: Project,
                           private val kafkaManager: KafkaDataManager,
                           private val file: VirtualFile) : FileEditor, UserDataHolderBase() {
   private val customizable = kafkaManager.consumerPanelStorage.getOrCreate(file)
-  private val mainComponent = customizable.createPanel()
+  private val mainComponent = customizable.getComponent()
 
   override fun dispose() {
     kafkaManager.consumerPanelStorage.unsubscribe(file)

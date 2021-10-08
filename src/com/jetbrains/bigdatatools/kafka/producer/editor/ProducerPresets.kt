@@ -6,37 +6,46 @@ import com.intellij.util.ui.JBUI
 import com.jetbrains.bigdatatools.kafka.common.settings.KafkaConfigStorage
 import com.jetbrains.bigdatatools.kafka.producer.models.RunProducerConfig
 import com.jetbrains.bigdatatools.ui.MigPanel
-import java.awt.BorderLayout
 import java.awt.Component
 import javax.swing.*
 
 class RunProducerConfigCellRenderer : ListCellRenderer<RunProducerConfig> {
-
-  private val title = JLabel("Untitled")
-  private val topic = JLabel()
+  private val topicLabel = JLabel()
+  private val keyLabel = JLabel()
+  private val valueLabel = JLabel()
 
   private val component = MigPanel().apply {
-    add(title)
-    add(topic)
+    row(topicLabel)
+    row(keyLabel)
+    row(valueLabel)
+    row(JSeparator())
   }
 
-  override fun getListCellRendererComponent(list: JList<out RunProducerConfig>?,
+  override fun getListCellRendererComponent(list: JList<out RunProducerConfig>,
                                             value: RunProducerConfig?,
                                             index: Int,
                                             isSelected: Boolean,
                                             cellHasFocus: Boolean): Component {
-
     if (isSelected) {
-      component.background = list!!.selectionBackground
-      topic.foreground = list.selectionForeground
+      component.background = list.selectionBackground
+      topicLabel.foreground = list.selectionForeground
+      keyLabel.foreground = list.selectionForeground
+      valueLabel.foreground = list.selectionForeground
     }
     else {
-      component.background = list!!.background
-      topic.foreground = list.foreground
+      component.background = list.background
+      topicLabel.foreground = list.foreground
+      keyLabel.foreground = list.foreground
+      valueLabel.foreground = list.foreground
     }
 
     @Suppress("HardCodedStringLiteral")
-    topic.text = if (value?.topic.isNullOrEmpty()) "No topic" else value?.topic
+    topicLabel.text = "Topic: ${if (value?.topic.isNullOrEmpty()) "No topic" else value?.topic}"
+    @Suppress("HardCodedStringLiteral")
+    keyLabel.text = "Key [${value?.keyType?.value ?: "none"}]:  ${if (value?.key.isNullOrEmpty()) "No key" else value?.key}"
+    @Suppress("HardCodedStringLiteral")
+    valueLabel.text = "Value [${value?.valueType?.value ?: "none"}]:  ${if (value?.value.isNullOrEmpty()) "No key" else value?.value}"
+
     return component
   }
 }
