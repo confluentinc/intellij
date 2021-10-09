@@ -13,7 +13,6 @@ import com.jetbrains.bigdatatools.settings.connections.ConnectionGroup
 import com.jetbrains.bigdatatools.settings.manager.RfsConnectionDataManager
 
 class KafkaMonitoringToolWindowController(project: Project) : MonitoringToolWindowController(project) {
-
   override val helpTopicId: String = "big.data.tools.kafka"
 
   override val settings = KafkaToolWindowSettings.getInstance()
@@ -24,7 +23,6 @@ class KafkaMonitoringToolWindowController(project: Project) : MonitoringToolWind
 
   override fun createMainController(connectionData: ConnectionData): ComponentController = ClusterPageController(project,
                                                                                                                  connectionData as KafkaConnectionData)
-
   override fun focusOn(connectionId: String) {
     val toolWindow = ToolWindowManager.getInstance(project).getToolWindow(TOOL_WINDOW_ID) ?: return
 
@@ -39,15 +37,6 @@ class KafkaMonitoringToolWindowController(project: Project) : MonitoringToolWind
   override fun getEnabledConnectionSettings(): List<KafkaConnectionData> =
     RfsConnectionDataManager.instance?.getTyped<KafkaConnectionData>(project)
       ?.filter { it.isEnabled } ?: emptyList()
-
-  override fun cleanUpSettingsForMissedConnections(connections: List<ConnectionData>) {
-    val connectionIds = connections.map { it.innerId }
-    val storedConfigs = settings.configs
-    val deprecatedConfigIds = storedConfigs.keys.minus(connectionIds.toSet())
-    storedConfigs -= deprecatedConfigIds
-    storedConfigs.entries.removeIf { !connectionIds.contains(it.key) }
-  }
-
 
   companion object {
     fun getInstance(project: Project): KafkaMonitoringToolWindowController? = project.getService(

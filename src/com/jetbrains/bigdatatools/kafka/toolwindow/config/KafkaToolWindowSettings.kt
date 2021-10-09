@@ -37,7 +37,7 @@ class KafkaToolWindowSettings : PersistentStateComponent<KafkaToolWindowSettings
   private val consumerGroupsTableColumns = mutableListOf("consumerGroup", "state", "consumers", "topics", "partitions")
   val consumerGroupsColumnSettings = ColumnVisibilitySettings(consumerGroupsTableColumns)
 
-  val configs: MutableMap<String, KafkaClusterConfig> = mutableMapOf()
+  override val configs: MutableMap<String, KafkaClusterConfig> = mutableMapOf()
 
   override var dataUpdateIntervalMillis: Int = 30000
 
