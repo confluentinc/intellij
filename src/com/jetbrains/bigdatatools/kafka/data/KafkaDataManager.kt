@@ -19,9 +19,8 @@ import com.jetbrains.bigdatatools.monitoring.data.model.ProjectionObjectDataMode
 import com.jetbrains.bigdatatools.monitoring.data.model.RemoteInfo
 import com.jetbrains.bigdatatools.rfs.driver.manager.DriverManager
 
-class KafkaDataManager(project: Project?,
-                       connectionData: KafkaConnectionData,
-                       settings: IntervalUpdateSettings) : MonitoringDataManager(project, settings) {
+class KafkaDataManager(project: Project?, connectionData: KafkaConnectionData, settings: IntervalUpdateSettings) : MonitoringDataManager(
+  project, settings) {
   val connectionId = connectionData.innerId
   override val client = KafkaClient(project, connectionData, false)
 
@@ -79,10 +78,8 @@ class KafkaDataManager(project: Project?,
       val topic = topics.find { it.name == topicName } ?: error(KafkaMessagesBundle.message("topic.not.found", topicName))
       val showFullTopicConfig = KafkaToolWindowSettings.getInstance().showFullTopicConfig
 
-      if (showFullTopicConfig)
-        topic.topicConfigs
-      else
-        topic.topicConfigs.filter { it.value != it.defaultValue }
+      if (showFullTopicConfig) topic.topicConfigs
+      else topic.topicConfigs.filter { it.value != it.defaultValue }
     }
 
     topicConfigsModels = topicConfigsModels + (topicName to dataModel)
@@ -117,9 +114,8 @@ class KafkaDataManager(project: Project?,
   }
 
 
-  private inline fun <reified T : RemoteInfo> getTopicProjectorModel(
-    idField: String,
-    noinline dataTransform: (List<TopicPresentable>) -> List<T>): ProjectionObjectDataModel<T, TopicPresentable> {
+  private inline fun <reified T : RemoteInfo> getTopicProjectorModel(idField: String,
+                                                                     noinline dataTransform: (List<TopicPresentable>) -> List<T>): ProjectionObjectDataModel<T, TopicPresentable> {
 
     val dataModel = ProjectionObjectDataModel(T::class, idField, topicModel, dataTransform)
     Disposer.register(this, dataModel)
@@ -128,7 +124,7 @@ class KafkaDataManager(project: Project?,
   }
 
   companion object {
-    fun getInstance(connectionId: String, project: Project): KafkaDataManager? =
-      (DriverManager.getDriverById(project, connectionId) as? KafkaDriver)?.dataManager
+    fun getInstance(connectionId: String, project: Project): KafkaDataManager? = (DriverManager.getDriverById(project,
+                                                                                                              connectionId) as? KafkaDriver)?.dataManager
   }
 }
