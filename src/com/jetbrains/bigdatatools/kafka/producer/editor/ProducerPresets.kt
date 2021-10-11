@@ -1,8 +1,10 @@
 package com.jetbrains.bigdatatools.kafka.producer.editor
 
+import com.intellij.openapi.Disposable
 import com.intellij.ui.ToolbarDecorator
 import com.intellij.ui.components.JBList
 import com.intellij.util.ui.JBUI
+import com.jetbrains.bigdatatools.kafka.common.settings.ConfigChangeListener
 import com.jetbrains.bigdatatools.kafka.common.settings.KafkaConfigStorage
 import com.jetbrains.bigdatatools.kafka.producer.models.RunProducerConfig
 import com.jetbrains.bigdatatools.ui.MigPanel
@@ -50,19 +52,37 @@ class RunProducerConfigCellRenderer : ListCellRenderer<RunProducerConfig> {
   }
 }
 
-class ProducerPresets {
+class ProducerPresets : ConfigChangeListener<RunProducerConfig>, Disposable {
   private val model = DefaultListModel<RunProducerConfig>()
   private val presetsPanel = JBList(model).apply {
     cellRenderer = RunProducerConfigCellRenderer()
   }
 
-  val component = ToolbarDecorator.createDecorator(presetsPanel).setRemoveAction {
+  var onApply: ((RunProducerConfig) -> Unit)? = null
 
-  }.createPanel().apply {
-    border = JBUI.Borders.empty()
-  }
+  val component = ToolbarDecorator.createDecorator(presetsPanel)
+    .setMoveDownAction(null)
+    .setMoveUpAction(null)
+    .setEditAction {
+      presetsPanel.selectedValue?.let { onApply?.invoke(it) }
+    }
+    .setRemoveAction {
+      presetsPanel.selectedValue?.let { KafkaConfigStorage.instance.removeProducerConfig(it) }
+    }.createPanel().apply {
+      border = JBUI.Borders.empty()
+    }
 
   init {
     model.addAll(KafkaConfigStorage.instance.loadProducerConfigs())
+    KafkaConfigStorage.instance.addProducerChangeListener(this)
+  }
+
+  override fun dispose() {
+    KafkaConfigStorage.instance.removeProducerChangeListener(this)
+  }
+
+  override fun configAdded(config: RunProducerConfig) = model.addElement(config)
+  override fun configRemoved(config: RunProducerConfig) {
+    model.removeElement(config)
   }
 }

@@ -9,6 +9,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.ui.Splitter
+import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.Key
 import com.intellij.openapi.util.UserDataHolderBase
 import com.intellij.openapi.vfs.VirtualFile
@@ -184,7 +185,12 @@ class KafkaProducerEditor(project: Project,
     }
   }
 
-  private val presetsDelegate = lazy { ProducerPresets() }
+  private val presetsDelegate = lazy {
+    val presets = ProducerPresets()
+    Disposer.register(this, presets)
+    presets.onApply = { applyConfig(it) }
+    presets
+  }
   private val presets: ProducerPresets by presetsDelegate
 
   private val settingsPanelDelegate = lazy {

@@ -224,7 +224,12 @@ class KafkaConsumerPanel(private val kafkaManager: KafkaDataManager,
 
   private val settingsPanel: MigPanel by settingsPanelDelegate
 
-  private val presetsDelegate = lazy { ConsumerPresets() }
+  private val presetsDelegate = lazy {
+    val presets = ConsumerPresets()
+    Disposer.register(this, presets)
+    presets.onApply = { applyConfig(it) }
+    presets
+  }
   private val presets: ConsumerPresets by presetsDelegate
 
   private val resultsSplitter = OnePixelSplitter().apply {
@@ -249,7 +254,7 @@ class KafkaConsumerPanel(private val kafkaManager: KafkaDataManager,
   init {
     Disposer.register(this, consumerClient)
 
-    file.getUserData(STATE_KEY)?.let { restoreFromFile(it) }
+    restoreFromFile()
 
     resultsSplitter.firstComponent = ExpansionPanel(KafkaMessagesBundle.message("toggle.data"),
                                                     { JBScrollPane(outputTable).apply { border = BorderFactory.createEmptyBorder() } },
@@ -329,16 +334,16 @@ class KafkaConsumerPanel(private val kafkaManager: KafkaDataManager,
 
   private fun getRunConfig(): RunConsumerConfig {
     val topicName = topicComboBox.item?.name ?: ""
-    val startWith = ConsumerEditorUtils.getStartWith(startFromComboBox.selectedItem as ConsumerStartType,
+    val startWith = ConsumerEditorUtils.getStartWith(startFromComboBox.item,
                                                      startOffset.text,
                                                      startSpecificDate.date)
     val filter = getFilter()
 
-    val consumerLimit = ConsumerLimit(limitComboBox.selectedItem as ConsumerLimitType, limitOffset.text, limitSpecificDate.date?.time)
+    val consumerLimit = ConsumerLimit(limitComboBox.item, limitOffset.text, limitSpecificDate.date?.time)
 
     return RunConsumerConfig(topic = topicName,
-                             keyType = keyComboBox.item as FieldType,
-                             valueType = valueComboBox.item as FieldType,
+                             keyType = keyComboBox.item,
+                             valueType = valueComboBox.item,
                              partitions = partitionField.text,
                              limit = consumerLimit,
                              filter = filter,
@@ -430,35 +435,38 @@ class KafkaConsumerPanel(private val kafkaManager: KafkaDataManager,
     file.putUserData(STATE_KEY, ConsumerEditorState(outputModel.elements().toList(), getRunConfig()))
   }
 
-  private fun restoreFromFile(state: ConsumerEditorState) {
+  private fun restoreFromFile() {
     try {
       isRestoring = true
 
+      val state = file.getUserData(STATE_KEY) ?: return
       outputModel.clear()
       state.output.forEach {
         outputModel.addElement(it)
       }
-      val config = state.config
-
-      topicComboBox.item = TopicInEditor(config.topic)
-      keyComboBox.item = config.keyType
-      valueComboBox.item = config.valueType
-
-      limitComboBox.item = config.limit.type
-      limitOffset.text = config.limit.value
-      limitSpecificDate.date = config.limit.time?.let { Date(it) }
-
-      filterComboBox.item = config.filter.type
-      filterKeyField.text = config.filter.filterKey
-      filterValueField.text = config.filter.filterValue
-      filterHeadKeyField.text = config.filter.filterHeadKey
-      filterHeadValueField.text = config.filter.filterHeadValue
-
-      partitionField.text = config.partitions
+      applyConfig(state.config)
     }
     finally {
       isRestoring = false
     }
+  }
+
+  private fun applyConfig(config: RunConsumerConfig) {
+    topicComboBox.item = TopicInEditor(config.topic)
+    keyComboBox.item = config.keyType
+    valueComboBox.item = config.valueType
+
+    limitComboBox.item = config.limit.type
+    limitOffset.text = config.limit.value
+    limitSpecificDate.date = config.limit.time?.let { Date(it) }
+
+    filterComboBox.item = config.filter.type
+    filterKeyField.text = config.filter.filterKey
+    filterValueField.text = config.filter.filterValue
+    filterHeadKeyField.text = config.filter.filterHeadKey
+    filterHeadValueField.text = config.filter.filterHeadValue
+
+    partitionField.text = config.partitions
   }
 
   companion object {
