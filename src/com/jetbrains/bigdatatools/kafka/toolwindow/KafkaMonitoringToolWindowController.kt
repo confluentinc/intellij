@@ -1,7 +1,6 @@
 package com.jetbrains.bigdatatools.kafka.toolwindow
 
 import com.intellij.icons.AllIcons
-import com.intellij.ide.DataManager
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.DataProvider
 import com.intellij.openapi.actionSystem.DefaultActionGroup
@@ -110,6 +109,7 @@ class KafkaMonitoringToolWindowController(private val project: Project) : Monito
 
   fun setUp(toolWindow: ToolWindow) {
     contentManager = toolWindow.contentManager
+    contentManager.addDataProvider(helpIdProvider)
 
     val autorefresh = AutorefreshPopupComponent()
     autorefresh.isOpaque = false
@@ -222,7 +222,6 @@ class KafkaMonitoringToolWindowController(private val project: Project) : Monito
       content.isCloseable = false
       contentManager.addContent(content)
       contentManager.setSelectedContent(content)
-      content.component.putClientProperty(DataManager.CLIENT_PROPERTY_DATA_PROVIDER, helpIdProvider)
       Disposer.register(content, clusterPageController)
     }
   }
@@ -247,10 +246,8 @@ class KafkaMonitoringToolWindowController(private val project: Project) : Monito
 
     const val TOOL_WINDOW_ID = "KafkaToolWindow"
 
-    private const val HELP_TOPIC_ID = "big.data.tools.kafka"
-
     private val helpIdProvider = DataProvider { dataId: String? ->
-      if (PlatformDataKeys.HELP_ID.`is`(dataId)) HELP_TOPIC_ID else null
+      if (PlatformDataKeys.HELP_ID.`is`(dataId)) "big.data.tools.kafka" else null
     }
 
     /** Key which will be added to every content in tool window to properly update tabs when connection settings will be changed.*/
