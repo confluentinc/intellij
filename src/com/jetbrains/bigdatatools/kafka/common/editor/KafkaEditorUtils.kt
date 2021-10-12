@@ -5,15 +5,61 @@ import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.util.Disposer
 import com.jetbrains.bigdatatools.kafka.common.models.TopicInEditor
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
+import com.jetbrains.bigdatatools.kafka.model.ConsumerGroupPresentable
 import com.jetbrains.bigdatatools.monitoring.data.listener.DataModelListener
 import com.jetbrains.bigdatatools.ui.CustomListCellRenderer
+import org.apache.kafka.common.ConsumerGroupState
 
 object KafkaEditorUtils {
+  fun createConsumerGroups(rootDisposable: Disposable, kafkaManager: KafkaDataManager): ComboBox<ConsumerGroupPresentable> {
+    val groups = kafkaManager.consumerGroupsModel
+    val comboBox = ComboBox(groups.data?.map { it }?.toTypedArray() ?: emptyArray())
+    comboBox.prototypeDisplayValue = ConsumerGroupPresentable(state = ConsumerGroupState.UNKNOWN,
+                                                              consumerGroup = "Group sample name",
+                                                              consumers = 0,
+                                                              topics = 0,
+                                                              partitions = 0) // Field is set for limiting combobox width.
+    comboBox.renderer = CustomListCellRenderer<ConsumerGroupPresentable> { it.consumerGroup }
+
+    val listener = object : DataModelListener {
+      override fun onChanged() = updateComboBox()
+      override fun onError(msg: String, e: Throwable?) = updateComboBox()
+
+      private fun updateComboBox() {
+        val selectedItem = comboBox.item
+        val oldTopics = (0 until comboBox.model.size).map {
+          comboBox.model.getElementAt(it)
+        }
+        val newTopics = kafkaManager.consumerGroupsModel.data?.map { it }
+        if (oldTopics == newTopics)
+          return
+        comboBox.removeAllItems()
+        newTopics?.forEach {
+          comboBox.addItem(it)
+        }
+
+        comboBox.item = if (newTopics?.contains(selectedItem) == true)
+          selectedItem
+        else
+          null
+
+        comboBox.invalidate()
+        comboBox.repaint()
+      }
+    }
+    kafkaManager.consumerGroupsModel.addListener(listener)
+    Disposer.register(rootDisposable) {
+      kafkaManager.consumerGroupsModel.removeListener(listener)
+    }
+
+    return comboBox
+  }
+
   fun createTopicComboBox(rootDisposable: Disposable, kafkaManager: KafkaDataManager): ComboBox<TopicInEditor> {
     val topics = kafkaManager.getTopics()
     val topicComboBox = ComboBox(topics.map { it.toEditorTopic() }.toTypedArray())
-    topicComboBox.prototypeDisplayValue = TopicInEditor("Topic sample name") // Field is set for limiting combobox size.
-    topicComboBox.renderer = CustomListCellRenderer<TopicInEditor> { value -> value.name }
+    topicComboBox.prototypeDisplayValue = TopicInEditor("Topic sample name") // Field is set for limiting combobox width.
+    topicComboBox.renderer = CustomListCellRenderer<TopicInEditor> { it.name }
 
     val listener = object : DataModelListener {
       override fun onChanged() = updateComboBox()

@@ -42,17 +42,14 @@ import kotlin.math.max
 class KafkaConsumerPanel(private val kafkaManager: KafkaDataManager,
                          private val file: VirtualFile) : Disposable {
   private var consumerClient = KafkaConsumerClient(client = kafkaManager.client,
-                                                   onStart = {
-                                                     onStartConsume()
-                                                   },
-                                                   onStop = {
-                                                     onStopConsume()
-                                                   })
+                                                   onStart = ::onStartConsume,
+                                                   onStop = ::onStopConsume)
   private val startSpecificDate = DatePicker()
   private val limitSpecificDate = DatePicker()
   private val limitOffset = JBTextField()
 
   private val startOffset = JBTextField()
+  private val startConsumerGroup = KafkaEditorUtils.createConsumerGroups(this, kafkaManager)
   private val startFromComboBox = ComboBox(ConsumerStartType.values()).apply {
     renderer = CustomListCellRenderer<ConsumerStartType> { it.title }
     item = ConsumerStartType.NOW
@@ -62,6 +59,7 @@ class KafkaConsumerPanel(private val kafkaManager: KafkaDataManager,
       getComponent().revalidate()
     }
   }
+
 
   private val limitComboBox = ComboBox(ConsumerLimitType.values()).apply {
     renderer = CustomListCellRenderer<ConsumerLimitType> { it.title }
@@ -175,6 +173,8 @@ class KafkaConsumerPanel(private val kafkaManager: KafkaDataManager,
 
   private lateinit var startSpecificDateBlock: MigBlock
   private lateinit var startOffsetBlock: MigBlock
+  private lateinit var startConsumerGroupBlock: MigBlock
+
   private lateinit var limitSpecificDateBlock: MigBlock
   private lateinit var limitOffsetBlock: MigBlock
   private lateinit var filterPanelBlock: MigBlock
@@ -197,6 +197,9 @@ class KafkaConsumerPanel(private val kafkaManager: KafkaDataManager,
       }
       startOffsetBlock = MigBlock(this).apply {
         row(EmptyCell(), startOffset)
+      }
+      startConsumerGroupBlock = MigBlock(this).apply {
+        row(EmptyCell(), startConsumerGroup)
       }
 
       row(KafkaMessagesBundle.message("settings.filters.limit"), limitComboBox)
@@ -336,7 +339,8 @@ class KafkaConsumerPanel(private val kafkaManager: KafkaDataManager,
     val topicName = topicComboBox.item?.name ?: ""
     val startWith = ConsumerEditorUtils.getStartWith(startFromComboBox.item,
                                                      startOffset.text,
-                                                     startSpecificDate.date)
+                                                     startSpecificDate.date,
+                                                     startConsumerGroup.item?.consumerGroup)
     val filter = getFilter()
 
     val consumerLimit = ConsumerLimit(limitComboBox.item, limitOffset.text, limitSpecificDate.date?.time)
@@ -389,20 +393,11 @@ class KafkaConsumerPanel(private val kafkaManager: KafkaDataManager,
     startSpecificDateBlock.isVisible = startFromComboBox.selectedItem == ConsumerStartType.SPECIFIC_DATE
     startOffsetBlock.isVisible = startFromComboBox.selectedItem == ConsumerStartType.OFFSET ||
                                  startFromComboBox.selectedItem == ConsumerStartType.LATEST_OFFSET_MINUS_X
-    //when (startFromComboBox.selectedItem) {
-    //  ConsumerStartType.SPECIFIC_DATE -> startSpecificDate.isVisible = true
-    //  ConsumerStartType.OFFSET, ConsumerStartType.LATEST_OFFSET_MINUS_X -> startOffset.isVisible = true
-    //}
+    startConsumerGroupBlock.isVisible = startFromComboBox.selectedItem == ConsumerStartType.CONSUMER_GROUP
   }
 
   private fun updateFilter() {
-    //    val value = filterComboBox.selectedItem != ConsumerFilterType.NONE
     filterPanelBlock.isVisible = filterComboBox.selectedItem != ConsumerFilterType.NONE
-    //filterPanel.isVisible = value
-    //filterKeyField.isVisible = value
-    //filterValueField.isVisible = value
-    //filterHeadKeyField.isVisible = value
-    //filterHeadValueField.isVisible = value
   }
 
   private fun updateLimit() {

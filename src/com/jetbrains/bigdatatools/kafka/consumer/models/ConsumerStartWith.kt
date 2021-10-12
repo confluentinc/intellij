@@ -1,3 +1,6 @@
 package com.jetbrains.bigdatatools.kafka.consumer.models
 
-data class ConsumerStartWith(val offset: Long?, val time: Long?)
+/**
+ * Depending of type
+ */
+data class ConsumerStartWith(val type: ConsumerStartType, val time: Long?, val offset: Long?, val consumerGroup: String?)
