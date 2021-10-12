@@ -21,43 +21,18 @@ object ConsumerEditorUtils {
 
   fun getStartWith(startWithType: ConsumerStartType,
                    startOffsetText: String,
-                   startDate: Date?): ConsumerStartWith {
+                   startDate: Date?,
+                   consumerGroup: String?): ConsumerStartWith {
     val startOffset: Long? = when (startWithType) {
       ConsumerStartType.OFFSET -> startOffsetText.ifBlank { null }?.toLongOrNull()
       ConsumerStartType.LATEST_OFFSET_MINUS_X -> startOffsetText.ifBlank { null }?.toLongOrNull()?.times(-1)
-      ConsumerStartType.THE_BEGINNING -> 0
       else -> startOffsetText.ifBlank { null }?.toLongOrNull()
     }
 
-    val calendar = Calendar.getInstance()
-    calendar.time = Date()
-
     val startTime = when (startWithType) {
-      ConsumerStartType.NOW -> null
-      ConsumerStartType.LAST_HOUR -> {
-        calendar.add(Calendar.HOUR_OF_DAY, -1)
-        calendar.time
-      }
-      ConsumerStartType.TODAY -> {
-        calendar.set(Calendar.HOUR_OF_DAY, 0)
-        calendar.set(Calendar.MINUTE, 0)
-        calendar.set(Calendar.SECOND, 0)
-        calendar.time
-      }
-      ConsumerStartType.YESTERDAY -> {
-        calendar.set(Calendar.HOUR_OF_DAY, 0)
-        calendar.set(Calendar.MINUTE, 0)
-        calendar.set(Calendar.SECOND, 0)
-        calendar.add(Calendar.DAY_OF_YEAR, -1)
-        calendar.time
-      }
-
-      ConsumerStartType.SPECIFIC_DATE -> {
-
-        startDate
-      }
+      ConsumerStartType.SPECIFIC_DATE -> startDate
       else -> null
     }
-    return ConsumerStartWith(offset = startOffset, time = startTime?.time)
+    return ConsumerStartWith(startWithType, time = startTime?.time, offset = startOffset, consumerGroup)
   }
 }

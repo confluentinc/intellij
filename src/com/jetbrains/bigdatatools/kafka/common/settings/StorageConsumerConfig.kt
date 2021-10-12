@@ -12,24 +12,25 @@ data class StorageConsumerConfig(var topic: String = "",
                                  var startWith: Map<String, String> = emptyMap()) {
   fun fromStorage(): RunConsumerConfig {
     val limit = ConsumerLimit(
-      type = ConsumerLimitType.values().find { it.name == filter["type"] } ?: ConsumerLimitType.NONE,
+      type = ConsumerLimitType.values().firstOrNull { it.name == filter["type"] } ?: ConsumerLimitType.NONE,
       value = filter["value"] ?: "",
       time = filter["time"]?.toLongOrNull(),
     )
 
     val filter = ConsumerFilter(
-      type = ConsumerFilterType.values().find { it.name == filter["type"] } ?: ConsumerFilterType.NONE,
+      type = ConsumerFilterType.values().firstOrNull { it.name == filter["type"] } ?: ConsumerFilterType.NONE,
       filterKey = filter["key"] ?: "",
       filterValue = filter["value"] ?: "",
       filterHeadKey = filter["headKey"] ?: "",
       filterHeadValue = filter["headValue"] ?: "")
-    val startWith = ConsumerStartWith(
-      startWith["offset"]?.toLongOrNull(),
-      startWith["time"]?.toLongOrNull())
+    val startWith = ConsumerStartWith(ConsumerStartType.values().firstOrNull { it.name == startWith["type"] } ?: ConsumerStartType.NOW,
+                                      startWith["time"]?.toLongOrNull(),
+                                      startWith["offset"]?.toLongOrNull(),
+                                      startWith["consumerGroup"])
     return RunConsumerConfig(
       topic = topic,
-      keyType = FieldType.values().find { it.name == keyType } ?: FieldType.STRING,
-      valueType = FieldType.values().find { it.name == valueType } ?: FieldType.STRING,
+      keyType = FieldType.values().firstOrNull { it.name == keyType } ?: FieldType.STRING,
+      valueType = FieldType.values().firstOrNull { it.name == valueType } ?: FieldType.STRING,
       filter, limit, partitions, startWith
     )
   }
@@ -53,8 +54,10 @@ data class StorageConsumerConfig(var topic: String = "",
       ),
       config.partitions,
       mapOf(
-        "offset" to (config.startWith.offset?.toString() ?: ""),
+        "type" to (config.startWith.type.toString()),
         "time" to (config.startWith.time?.toString() ?: ""),
+        "offset" to (config.startWith.offset?.toString() ?: ""),
+        "consumerGroup" to (config.startWith.consumerGroup ?: "")
       )
     )
   }
