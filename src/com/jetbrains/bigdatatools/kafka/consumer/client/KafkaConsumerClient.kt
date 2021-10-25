@@ -11,6 +11,7 @@ import com.jetbrains.bigdatatools.util.executeOnPooledThread
 import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.clients.consumer.KafkaConsumer
+import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.errors.SerializationException
 import java.io.Serializable
@@ -145,8 +146,12 @@ class KafkaConsumerClient(val client: KafkaClient,
                              partitions: List<TopicPartition>,
                              startWith: ConsumerStartWith) {
     val startFromOffsetSeek = startWith.offset?.let { partitionOffsetsForStartOffset(consumer, partitions, it) }
-    val startFromDateSeek = startWith.time?.let { partitionOffsetsForStartDate(it, partitions, consumer) }
-    val startFromSeek = startFromOffsetSeek ?: startFromDateSeek
+    val startFromDateSeek: Map<TopicPartition, Long?>? = startWith.time?.let { partitionOffsetsForStartDate(it, partitions, consumer) }
+    val startFromConsumerGroupSeek = startWith.consumerGroup?.let { consumerGroupId ->
+      val offsets: Map<TopicPartition, OffsetAndMetadata> = client.getConsumerGroupOffsets(consumerGroupId)
+      offsets.filter { it.key in partitions }.map { it.key to it.value.offset() }.toMap()
+    }
+    val startFromSeek = startFromOffsetSeek ?: startFromDateSeek ?: startFromConsumerGroupSeek
     startFromSeek?.forEach {
       it.value?.let { offset -> consumer.seek(it.key, offset) }
     }
