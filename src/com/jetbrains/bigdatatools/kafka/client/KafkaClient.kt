@@ -88,6 +88,9 @@ class KafkaClient(project: Project?,
     }
   }
 
+  fun getConsumerGroupOffsets(consumerGroup: String) =
+    kafkaAdminNotNull.listConsumerGroupOffsets(consumerGroup).partitionsToOffsetAndMetadata().get()?.toMap() ?: mapOf()
+
   fun getTopics(listInternal: Boolean): List<TopicPresentable> {
     val detailedTopics = listTopicsDetailedInfo(listInternal)
     val topicNames = detailedTopics.map { it.name() }
