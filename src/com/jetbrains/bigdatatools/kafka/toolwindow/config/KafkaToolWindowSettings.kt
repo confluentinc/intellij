@@ -1,5 +1,6 @@
 package com.jetbrains.bigdatatools.kafka.toolwindow.config
 
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.PersistentStateComponent
 import com.intellij.openapi.components.ServiceManager
 import com.intellij.openapi.components.State
@@ -62,6 +63,6 @@ class KafkaToolWindowSettings : PersistentStateComponent<KafkaToolWindowSettings
   }
 
   companion object {
-    fun getInstance(): KafkaToolWindowSettings = ServiceManager.getService(KafkaToolWindowSettings::class.java)
+    fun getInstance(): KafkaToolWindowSettings = ApplicationManager.getApplication().getService(KafkaToolWindowSettings::class.java)
   }
 }

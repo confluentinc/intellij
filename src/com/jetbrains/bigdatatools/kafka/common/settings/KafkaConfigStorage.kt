@@ -1,5 +1,6 @@
 package com.jetbrains.bigdatatools.kafka.common.settings
 
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.PersistentStateComponent
 import com.intellij.openapi.components.ServiceManager
 import com.intellij.openapi.components.State
@@ -63,6 +64,6 @@ class KafkaConfigStorage : PersistentStateComponent<KafkaConfigStorage> {
   fun removeProducerChangeListener(listener: ConfigChangeListener<RunProducerConfig>) = producerChangeListeners.remove(listener)
 
   companion object {
-    val instance: KafkaConfigStorage = ServiceManager.getService(KafkaConfigStorage::class.java)
+    val instance: KafkaConfigStorage = ApplicationManager.getApplication().getService(KafkaConfigStorage::class.java)
   }
 }
