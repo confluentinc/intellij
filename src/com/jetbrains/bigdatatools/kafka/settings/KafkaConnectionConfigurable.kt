@@ -5,13 +5,11 @@ import com.intellij.openapi.project.Project
 import com.jetbrains.bigdatatools.kafka.client.KafkaConnectionChecker
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaConnectionData
 import com.jetbrains.bigdatatools.kafka.util.KafkaIcons
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import com.jetbrains.bigdatatools.settings.connections.ConnectionConfigurable
 import com.jetbrains.bigdatatools.settings.connections.ConnectionTesting
 import com.jetbrains.bigdatatools.settings.defaultui.ConnectionError
 import com.jetbrains.bigdatatools.settings.defaultui.ConnectionStatus
 import com.jetbrains.bigdatatools.settings.defaultui.ConnectionSuccessful
-import com.jetbrains.bigdatatools.util.toPresentableText
 
 class KafkaConnectionConfigurable(connectionData: KafkaConnectionData, project: Project) :
   ConnectionConfigurable<KafkaConnectionData>(connectionData, project, KafkaIcons.MAIN_ICON) {
@@ -23,10 +21,10 @@ class KafkaConnectionConfigurable(connectionData: KafkaConnectionData, project: 
                                 callback: (ConnectionStatus) -> Unit) {
       val error = KafkaConnectionChecker.checkConnection(conn, testDisposable)
       if (error == null) {
-        callback(ConnectionSuccessful(null, KafkaMessagesBundle.message("connection.success")))
+        callback(ConnectionSuccessful())
       }
       else {
-        callback(ConnectionError((error.cause ?: error).toPresentableText(), "Connection error"))
+        callback(ConnectionError(error.cause ?: error))
       }
     }
   }
