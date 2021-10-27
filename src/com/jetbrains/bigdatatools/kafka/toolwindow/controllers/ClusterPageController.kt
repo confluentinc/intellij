@@ -18,6 +18,7 @@ import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import com.jetbrains.bigdatatools.monitoring.toolwindow.ComponentController
 import com.jetbrains.bigdatatools.ui.CustomListCellRenderer
 import com.jetbrains.bigdatatools.ui.MigPanel
+import com.jetbrains.bigdatatools.ui.MouseAwarePanel
 import com.jetbrains.bigdatatools.util.BdIdeRegistryUtil
 import net.miginfocom.layout.LC
 import java.awt.BorderLayout
@@ -37,7 +38,7 @@ class ClusterPageController(private val project: Project, connectionData: KafkaC
   private val consumerGroupsController = ConsumerGroupsController(dataManager)
 
   private val details = JPanel(BorderLayout())
-  private val panel = createPanel()
+  private val panel = MouseAwarePanel.wrap(createPanel())
 
   init {
     Disposer.register(this, topicsController)
