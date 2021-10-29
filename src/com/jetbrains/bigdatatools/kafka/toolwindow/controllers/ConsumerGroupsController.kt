@@ -43,7 +43,7 @@ class ConsumerGroupsController(dataManager: KafkaDataManager) : Disposable {
     component = SimpleToolWindowPanel(false, true).apply {
       setContent(MaterialJBScrollPane(table))
       val actionToolbar = createToolbar(columnModel, columnSettings)
-      actionToolbar.setTargetComponent(this)
+      actionToolbar.targetComponent = this
       toolbar = actionToolbar.component
     }
   }

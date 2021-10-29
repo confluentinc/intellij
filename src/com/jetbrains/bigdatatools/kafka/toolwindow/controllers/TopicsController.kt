@@ -5,16 +5,11 @@ import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.ActionToolbar
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.DefaultActionGroup
-import com.intellij.openapi.fileEditor.ex.FileEditorManagerEx
-import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.DumbAwareToggleAction
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.SimpleToolWindowPanel
 import com.intellij.openapi.util.Disposer
-import com.intellij.testFramework.LightVirtualFile
 import com.intellij.ui.OnePixelSplitter
-import com.jetbrains.bigdatatools.kafka.common.editor.KafkaEditorProvider
-import com.jetbrains.bigdatatools.kafka.common.models.KafkaEditorType
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.model.TopicPresentable
 import com.jetbrains.bigdatatools.kafka.toolwindow.config.KafkaToolWindowSettings
@@ -27,7 +22,6 @@ import com.jetbrains.bigdatatools.monitoring.table.model.DataTableColumnModel
 import com.jetbrains.bigdatatools.monitoring.table.model.DataTableModel
 import com.jetbrains.bigdatatools.settings.ColumnVisibilitySettings
 import com.jetbrains.bigdatatools.table.MaterialJBScrollPane
-import com.jetbrains.bigdatatools.util.BdIdeRegistryUtil
 import com.jetbrains.bigdatatools.util.createActionToolbar
 import java.util.*
 import javax.swing.event.ListSelectionEvent
@@ -71,7 +65,7 @@ class TopicsController(private val project: Project, private val dataManager: Ka
     detailsSplitter.firstComponent = SimpleToolWindowPanel(false, true).apply {
       setContent(MaterialJBScrollPane(topicTable))
       val actionToolbar = createToolbar(columnModel)
-      actionToolbar.setTargetComponent(this)
+      actionToolbar.targetComponent = this
       toolbar = actionToolbar.component
     }
     detailsSplitter.secondComponent = topicDetailsController.getComponent()
