@@ -15,7 +15,7 @@ import com.jetbrains.bigdatatools.monitoring.table.model.DataTableColumnModel
 import com.jetbrains.bigdatatools.monitoring.table.model.DataTableModel
 import com.jetbrains.bigdatatools.settings.ColumnVisibilitySettings
 import com.jetbrains.bigdatatools.table.MaterialJBScrollPane
-import com.jetbrains.bigdatatools.util.createActionToolbar
+import com.jetbrains.bigdatatools.util.ToolbarUtils
 import java.util.*
 import javax.swing.JComponent
 
@@ -31,11 +31,11 @@ class ConsumerGroupsController(dataManager: KafkaDataManager) : Disposable {
     val tableModel = DataTableModel(dataModel, columnModel)
 
     val table = DataTableCreator.create(tableModel, EnumSet.of(TableExtensionType.SPEED_SEARCH,
-                                                               TableExtensionType.RENDERERS_SETTER,
-                                                               TableExtensionType.COLUMNS_FITTER,
-                                                               TableExtensionType.ERROR_HANDLER,
-                                                               TableExtensionType.SELECTION_PRESERVER,
-                                                               TableExtensionType.LOADING_INDICATOR))
+      TableExtensionType.RENDERERS_SETTER,
+      TableExtensionType.COLUMNS_FITTER,
+      TableExtensionType.ERROR_HANDLER,
+      TableExtensionType.SELECTION_PRESERVER,
+      TableExtensionType.LOADING_INDICATOR))
     TableSelectionPreserver.installOn(table, null)
 
     Disposer.register(this, table)
@@ -51,7 +51,7 @@ class ConsumerGroupsController(dataManager: KafkaDataManager) : Disposable {
   private fun createToolbar(columnModel: DataTableColumnModel<ConsumerGroupPresentable>,
                             columnSettings: ColumnVisibilitySettings): ActionToolbar {
     val actions = DefaultActionGroup(ColumnVisibilitySettings.createAction(columnModel.allColumns.map { it.name }, columnSettings))
-    return createActionToolbar("BDTKafkaConsumerGroups", actions, false)
+    return ToolbarUtils.createActionToolbar("BDTKafkaConsumerGroups", actions, false)
   }
 
   override fun dispose() = Unit
