@@ -26,9 +26,9 @@ class KafkaSettingsCustomizer(project: Project, connectionData: KafkaConnectionD
   override fun getDefaultFields(): List<WrappedComponent<in KafkaConnectionData>> = listOf(nameField, url, properties, tunnelField)
 
   override fun getDefaultComponent(fields: List<WrappedComponent<in KafkaConnectionData>>, conn: KafkaConnectionData) = MigPanel().apply {
-    row(nameField.labelComponent, nameField.getComponent())
-    row(url.labelComponent, url.getComponent())
-    row(properties.labelComponent, properties.getComponent())
+    row(nameField)
+    row(url)
+    row(properties)
     add(tunnelField.getComponent(), UiUtil.spanXWrap)
 
     val warningPanel = JPanel().apply {
