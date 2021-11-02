@@ -65,7 +65,7 @@ class TopicsController(private val project: Project, private val dataManager: Ka
     detailsSplitter.firstComponent = SimpleToolWindowPanel(false, true).apply {
       setContent(MaterialJBScrollPane(topicTable))
       val actionToolbar = createToolbar(columnModel)
-      actionToolbar.setTargetComponent(this)
+      actionToolbar.targetComponent = this
       toolbar = actionToolbar.component
     }
     detailsSplitter.secondComponent = topicDetailsController.getComponent()
