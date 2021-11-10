@@ -1,14 +1,20 @@
 package com.jetbrains.bigdatatools.kafka.producer.editor
 
+import com.intellij.icons.AllIcons
 import com.intellij.openapi.Disposable
+import com.intellij.openapi.actionSystem.AnActionEvent
+import com.intellij.ui.AnActionButton
 import com.intellij.ui.ToolbarDecorator
 import com.intellij.ui.components.JBList
 import com.intellij.util.ui.JBUI
 import com.jetbrains.bigdatatools.kafka.common.settings.ConfigChangeListener
 import com.jetbrains.bigdatatools.kafka.common.settings.KafkaConfigStorage
 import com.jetbrains.bigdatatools.kafka.producer.models.RunProducerConfig
+import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import com.jetbrains.bigdatatools.ui.MigPanel
 import java.awt.Component
+import java.awt.event.MouseAdapter
+import java.awt.event.MouseEvent
 import javax.swing.*
 
 class RunProducerConfigCellRenderer : ListCellRenderer<RunProducerConfig> {
@@ -54,25 +60,45 @@ class RunProducerConfigCellRenderer : ListCellRenderer<RunProducerConfig> {
 
 class ProducerPresets : ConfigChangeListener<RunProducerConfig>, Disposable {
   private val model = DefaultListModel<RunProducerConfig>()
-  private val presetsPanel = JBList(model).apply {
+  private val presetsList = JBList(model).apply {
     cellRenderer = RunProducerConfigCellRenderer()
   }
 
   var onApply: ((RunProducerConfig) -> Unit)? = null
 
-  val component = ToolbarDecorator.createDecorator(presetsPanel)
-    .setMoveDownAction(null)
-    .setMoveUpAction(null)
-    .setEditAction {
-      presetsPanel.selectedValue?.let { onApply?.invoke(it) }
-    }
-    .setRemoveAction {
-      presetsPanel.selectedValue?.let { KafkaConfigStorage.instance.removeProducerConfig(it) }
-    }.createPanel().apply {
-      border = JBUI.Borders.empty()
-    }
+  val component: JPanel
 
   init {
+    component = ToolbarDecorator.createDecorator(presetsList)
+      .setMoveDownAction(null)
+      .setMoveUpAction(null)
+      .addExtraAction(object : AnActionButton(KafkaMessagesBundle.message("producer.preset.apply"), AllIcons.Actions.Commit) {
+
+        override fun updateButton(e: AnActionEvent) {
+          e.presentation.isEnabled = presetsList.selectedIndex != -1
+        }
+
+        override fun actionPerformed(e: AnActionEvent) {
+          presetsList.selectedValue?.let { onApply?.invoke(it) }
+        }
+      })
+      .setRemoveAction {
+        presetsList.selectedValue?.let { KafkaConfigStorage.instance.removeProducerConfig(it) }
+      }.createPanel().apply {
+        border = JBUI.Borders.empty()
+      }
+
+    presetsList.addMouseListener(object : MouseAdapter() {
+      override fun mouseClicked(mouseEvent: MouseEvent) {
+        if (mouseEvent.clickCount == 2) {
+          val index = presetsList.locationToIndex(mouseEvent.point)
+          if (index >= 0) {
+            onApply?.invoke(presetsList.model.getElementAt(index))
+          }
+        }
+      }
+    })
+
     model.addAll(KafkaConfigStorage.instance.loadProducerConfigs())
     KafkaConfigStorage.instance.addProducerChangeListener(this)
   }
