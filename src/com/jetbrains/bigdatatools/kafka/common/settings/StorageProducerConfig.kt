@@ -15,8 +15,9 @@ data class StorageProducerConfig(var topic: String = "",
                                  var compression: String = "",
                                  var acks: String = "",
                                  var idempotence: Boolean = false,
-                                 var forcePartition: Int = -1) {
-  fun fromStorage() = RunProducerConfig(
+                                 var forcePartition: Int = -1) : StorageConfig {
+
+  override fun fromStorage() = RunProducerConfig(
     topic = topic,
     keyType = FieldType.values().find { it.name == keyType } ?: FieldType.STRING,
     valueType = FieldType.values().find { it.name == valueType } ?: FieldType.STRING,
@@ -28,19 +29,4 @@ data class StorageProducerConfig(var topic: String = "",
     compression = RecordCompression.values().find { it.name == compression } ?: RecordCompression.NONE,
     acks = AcksType.values().find { it.name == acks } ?: AcksType.NONE
   )
-
-  companion object {
-    fun toStorage(config: RunProducerConfig) = StorageProducerConfig(
-      topic = config.topic,
-      keyType = config.keyType.name,
-      valueType = config.valueType.name,
-      key = config.key,
-      value = config.value,
-      acks = config.acks.name,
-      compression = config.compression.name,
-      forcePartition = config.forcePartition,
-      idempotence = config.idempotence,
-      properties = config.properties
-    )
-  }
 }

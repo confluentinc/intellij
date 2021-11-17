@@ -1,10 +1,6 @@
 package com.jetbrains.bigdatatools.kafka.consumer.editor
 
-import com.intellij.openapi.Disposable
-import com.intellij.ui.ToolbarDecorator
-import com.intellij.ui.components.JBList
-import com.intellij.util.ui.JBUI
-import com.jetbrains.bigdatatools.kafka.common.settings.ConfigChangeListener
+import com.jetbrains.bigdatatools.kafka.common.editor.Presets
 import com.jetbrains.bigdatatools.kafka.common.settings.KafkaConfigStorage
 import com.jetbrains.bigdatatools.kafka.consumer.models.ConsumerFilterType
 import com.jetbrains.bigdatatools.kafka.consumer.models.ConsumerLimitType
@@ -12,7 +8,10 @@ import com.jetbrains.bigdatatools.kafka.consumer.models.RunConsumerConfig
 import com.jetbrains.bigdatatools.ui.MigPanel
 import java.awt.Component
 import java.text.SimpleDateFormat
-import javax.swing.*
+import javax.swing.JLabel
+import javax.swing.JList
+import javax.swing.JSeparator
+import javax.swing.ListCellRenderer
 
 class RunConsumerConfigCellRenderer : ListCellRenderer<RunConsumerConfig> {
 
@@ -32,7 +31,7 @@ class RunConsumerConfigCellRenderer : ListCellRenderer<RunConsumerConfig> {
   private val filterHeaderValueLabel = JLabel()
 
   private val labels = listOf(topicLabel, keyLabel, valueLabel, startFromLabel, limitLabel, filterLabel, filterKeyLabel, filterValueLabel,
-                              filterHeaderKeyLabel, filterHeaderValueLabel)
+    filterHeaderKeyLabel, filterHeaderValueLabel)
 
   private val component = MigPanel().apply {
     labels.forEach { row(it) }
@@ -96,37 +95,4 @@ class RunConsumerConfigCellRenderer : ListCellRenderer<RunConsumerConfig> {
   }
 }
 
-class ConsumerPresets : ConfigChangeListener<RunConsumerConfig>, Disposable {
-  private val model = DefaultListModel<RunConsumerConfig>()
-  private val presetsPanel = JBList(model).apply {
-    cellRenderer = RunConsumerConfigCellRenderer()
-  }
-
-  var onApply: ((RunConsumerConfig) -> Unit)? = null
-
-  val component = ToolbarDecorator.createDecorator(presetsPanel)
-    .setMoveDownAction(null)
-    .setMoveUpAction(null)
-    .setEditAction {
-      presetsPanel.selectedValue?.let { onApply?.invoke(it) }
-    }
-    .setRemoveAction {
-      presetsPanel.selectedValue?.let { KafkaConfigStorage.instance.removeConsumerConfig(it) }
-    }.createPanel().apply {
-      border = JBUI.Borders.empty()
-    }
-
-  init {
-    model.addAll(KafkaConfigStorage.instance.loadConsumerConfigs())
-    KafkaConfigStorage.instance.addConsumerChangeListener(this)
-  }
-
-  override fun dispose() {
-    KafkaConfigStorage.instance.removeConsumerChangeListener(this)
-  }
-
-  override fun configAdded(config: RunConsumerConfig) = model.addElement(config)
-  override fun configRemoved(config: RunConsumerConfig) {
-    model.removeElement(config)
-  }
-}
+class ConsumerPresets : Presets<RunConsumerConfig>(KafkaConfigStorage.instance.consumerConfig, RunConsumerConfigCellRenderer())

@@ -157,7 +157,7 @@ class KafkaConsumerPanel(private val kafkaManager: KafkaDataManager,
 
   private val savePresetButton = JButton(KafkaMessagesBundle.message("action.save.preset")).apply {
     addActionListener {
-      KafkaConfigStorage.instance.addConsumerConfig(getRunConfig())
+      KafkaConfigStorage.instance.consumerConfig.addConfig(getRunConfig())
     }
   }
 

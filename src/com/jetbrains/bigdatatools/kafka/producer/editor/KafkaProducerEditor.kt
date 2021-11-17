@@ -169,7 +169,7 @@ class KafkaProducerEditor(project: Project,
 
   private val savePresetButton = JButton(KafkaMessagesBundle.message("action.save.preset")).apply {
     addActionListener {
-      KafkaConfigStorage.instance.addProducerConfig(getConfig())
+      KafkaConfigStorage.instance.producerConfig.addConfig(getConfig())
     }
   }
 
