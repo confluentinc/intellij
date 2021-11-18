@@ -1,5 +1,6 @@
 package com.jetbrains.bigdatatools.kafka.consumer.editor
 
+import com.intellij.icons.AllIcons
 import com.intellij.ide.util.PropertiesComponent
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.ui.ComboBox
@@ -30,20 +31,18 @@ import com.jetbrains.bigdatatools.ui.*
 import com.michaelbaranov.microba.calendar.DatePicker
 import net.miginfocom.layout.LC
 import org.apache.kafka.clients.consumer.ConsumerRecord
+import java.awt.BorderLayout
 import java.awt.Dimension
 import java.io.Serializable
 import java.util.*
-import javax.swing.BorderFactory
-import javax.swing.JButton
-import javax.swing.JComponent
-import javax.swing.JScrollPane
+import javax.swing.*
 import kotlin.math.max
 
 class KafkaConsumerPanel(private val kafkaManager: KafkaDataManager,
                          private val file: VirtualFile) : Disposable {
   private var consumerClient = KafkaConsumerClient(client = kafkaManager.client,
-                                                   onStart = ::onStartConsume,
-                                                   onStop = ::onStopConsume)
+    onStart = ::onStartConsume,
+    onStop = ::onStopConsume)
   private val startSpecificDate = DatePicker()
   private val limitSpecificDate = DatePicker()
   private val limitOffset = JBTextField()
@@ -59,7 +58,6 @@ class KafkaConsumerPanel(private val kafkaManager: KafkaDataManager,
       getComponent().revalidate()
     }
   }
-
 
   private val limitComboBox = ComboBox(ConsumerLimitType.values()).apply {
     renderer = CustomListCellRenderer<ConsumerLimitType> { it.title }
@@ -109,7 +107,7 @@ class KafkaConsumerPanel(private val kafkaManager: KafkaDataManager,
   }
 
   private val outputModel = ListTableModel(ArrayList<Result<ConsumerRecord<Serializable, Serializable>>>(),
-                                           listOf("partition", "offset", "timestamp", "value")) { data, index ->
+    listOf("partition", "offset", "timestamp", "value")) { data, index ->
     when (index) {
       0 -> data.getOrNull()?.partition() ?: ""
       1 -> data.getOrNull()?.offset() ?: ""
@@ -133,7 +131,7 @@ class KafkaConsumerPanel(private val kafkaManager: KafkaDataManager,
   }
   private val outputTable: MaterialTable by outputTableDelegate
 
-  private val consumeButton = JButton(KafkaMessagesBundle.message("action.consume.start.title")).apply {
+  private val consumeButton = JButton(KafkaMessagesBundle.message("action.consume.start.title"), AllIcons.Actions.Execute).apply {
     addActionListener {
       if (consumerClient.isRunning()) {
         consumerClient.stop()
@@ -180,7 +178,7 @@ class KafkaConsumerPanel(private val kafkaManager: KafkaDataManager,
   private lateinit var filterPanelBlock: MigBlock
 
   private val settingsPanelDelegate = lazy {
-    MigPanel(LC().insets("10").fillX().hideMode(3)).apply {
+    val panel = MigPanel(LC().insets("10").fillX().hideMode(3)).apply {
 
       row(KafkaMessagesBundle.message("settings.label.topics"), topicComboBox)
 
@@ -219,13 +217,26 @@ class KafkaConsumerPanel(private val kafkaManager: KafkaDataManager,
       row(KafkaMessagesBundle.message("settings.partitions"), partitionField)
 
       gapLeft = false
-      row(consumeButton)
-      row(clearButton)
-      row(savePresetButton)
+    }
+
+    val scroll = JBScrollPane(panel, JScrollPane.VERTICAL_SCROLLBAR_ALWAYS, JScrollPane.HORIZONTAL_SCROLLBAR_NEVER).apply {
+      minimumSize = Dimension(panel.minimumSize.width, minimumSize.height)
+      border = BorderFactory.createEmptyBorder()
+    }
+
+    val bottomPanel = JPanel().apply {
+      add(clearButton)
+      add(consumeButton)
+      add(savePresetButton)
+    }
+
+    JPanel(BorderLayout()).apply {
+      add(scroll, BorderLayout.CENTER)
+      add(bottomPanel, BorderLayout.SOUTH)
     }
   }
 
-  private val settingsPanel: MigPanel by settingsPanelDelegate
+  private val settingsPanel: JPanel by settingsPanelDelegate
 
   private val presetsDelegate = lazy {
     val presets = ConsumerPresets()
@@ -260,10 +271,11 @@ class KafkaConsumerPanel(private val kafkaManager: KafkaDataManager,
     restoreFromFile()
 
     resultsSplitter.firstComponent = ExpansionPanel(KafkaMessagesBundle.message("toggle.data"),
-                                                    { JBScrollPane(outputTable).apply { border = BorderFactory.createEmptyBorder() } },
-                                                    PropertiesComponent.getInstance().getBoolean(DATA_SHOW_ID, true)).apply {
+      { JBScrollPane(outputTable).apply { border = BorderFactory.createEmptyBorder() } },
+      PropertiesComponent.getInstance().getBoolean(DATA_SHOW_ID, true)).apply {
       addChangeListener {
         resultsSplitter.proportion = if (this.expanded) 1f else 0.0001f
+        resultsSplitter.setResizeEnabled(this.expanded)
       }
     }
     resultsSplitter.secondComponent = ExpansionPanel(KafkaMessagesBundle.message("toggle.details"), {
@@ -280,12 +292,11 @@ class KafkaConsumerPanel(private val kafkaManager: KafkaDataManager,
     resultsSplitter.proportion = if (PropertiesComponent.getInstance().getBoolean(DATA_SHOW_ID, true)) 1f else 0.0001f
 
     settingsSplitter.firstComponent = ExpansionPanel(KafkaMessagesBundle.message("toggle.settings"), {
-      JBScrollPane(settingsPanel, JScrollPane.VERTICAL_SCROLLBAR_ALWAYS, JScrollPane.HORIZONTAL_SCROLLBAR_NEVER).apply {
-        minimumSize = Dimension(settingsPanel.minimumSize.width, minimumSize.height)
-      }
+      settingsPanel
     }, PropertiesComponent.getInstance().getBoolean(SETTINGS_SHOW_ID, true)).apply {
       addChangeListener {
         settingsSplitter.proportion = 0.0001f
+        settingsSplitter.setResizeEnabled(this.expanded)
       }
     }
 
@@ -296,6 +307,7 @@ class KafkaConsumerPanel(private val kafkaManager: KafkaDataManager,
     }, PropertiesComponent.getInstance().getBoolean(PRESETS_SHOW_ID, false)).apply {
       addChangeListener {
         presetsSplitter.proportion = 0.0001f
+        presetsSplitter.setResizeEnabled(this.expanded)
       }
     }
 
@@ -322,36 +334,38 @@ class KafkaConsumerPanel(private val kafkaManager: KafkaDataManager,
   private fun startConsume() {
     val runConfig = getRunConfig()
     if (runConfig.topic.isBlank()) {
-      Messages.showErrorDialog(kafkaManager.project, "Topic is empty", "Consumer error")
+      Messages.showErrorDialog(kafkaManager.project,
+        KafkaMessagesBundle.message("consumer.error.topic.empty"),
+        KafkaMessagesBundle.message("consumer.error.topic.empty.title"))
       return
     }
     consumerClient.start(runConfig,
-                         consume = { record ->
-                           val success: Result<ConsumerRecord<Serializable, Serializable>> = Result.success(record)
-                           outputModel.addElement(success)
-                         },
-                         consumeError = {
-                           outputModel.addElement(Result.failure(it))
-                         })
+      consume = { record ->
+        val success: Result<ConsumerRecord<Serializable, Serializable>> = Result.success(record)
+        outputModel.addElement(success)
+      },
+      consumeError = {
+        outputModel.addElement(Result.failure(it))
+      })
   }
 
   private fun getRunConfig(): RunConsumerConfig {
     val topicName = topicComboBox.item?.name ?: ""
     val startWith = ConsumerEditorUtils.getStartWith(startFromComboBox.item,
-                                                     startOffset.text,
-                                                     startSpecificDate.date,
-                                                     startConsumerGroup.item?.consumerGroup)
+      startOffset.text,
+      startSpecificDate.date,
+      startConsumerGroup.item?.consumerGroup)
     val filter = getFilter()
 
     val consumerLimit = ConsumerLimit(limitComboBox.item, limitOffset.text, limitSpecificDate.date?.time)
 
     return RunConsumerConfig(topic = topicName,
-                             keyType = keyComboBox.item,
-                             valueType = valueComboBox.item,
-                             partitions = partitionField.text,
-                             limit = consumerLimit,
-                             filter = filter,
-                             startWith = startWith)
+      keyType = keyComboBox.item,
+      valueType = valueComboBox.item,
+      partitions = partitionField.text,
+      limit = consumerLimit,
+      filter = filter,
+      startWith = startWith)
   }
 
   fun getComponent(): JComponent = presetsSplitter

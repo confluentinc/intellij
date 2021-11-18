@@ -1,5 +1,6 @@
 package com.jetbrains.bigdatatools.kafka.producer.editor
 
+import com.intellij.icons.AllIcons
 import com.intellij.ide.util.PropertiesComponent
 import com.intellij.json.JsonLanguage
 import com.intellij.openapi.fileEditor.FileEditor
@@ -40,12 +41,10 @@ import com.jetbrains.bigdatatools.ui.CustomListCellRenderer
 import com.jetbrains.bigdatatools.ui.ExpansionPanel
 import com.jetbrains.bigdatatools.ui.MigPanel
 import net.miginfocom.layout.LC
+import java.awt.BorderLayout
 import java.awt.Dimension
 import java.beans.PropertyChangeListener
-import javax.swing.BorderFactory
-import javax.swing.JButton
-import javax.swing.JComponent
-import javax.swing.JScrollPane
+import javax.swing.*
 import kotlin.math.max
 
 @Suppress("DuplicatedCode")
@@ -114,7 +113,7 @@ class KafkaProducerEditor(project: Project,
 
   //ToDo "offset" temporary removed because always -1
   private val outputModel = ListTableModel(ArrayList<ProducerResultMessage>(),
-                                           listOf("key", "value", "timestamp", "partition", "duration")) { data, index ->
+    listOf("key", "value", "timestamp", "partition", "duration")) { data, index ->
     when (index) {
       0 -> data.key
       1 -> data.value
@@ -147,11 +146,13 @@ class KafkaProducerEditor(project: Project,
   }
   private val outputTable: MaterialTable by outputTableDelegate
 
-  private val produceButton = JButton(KafkaMessagesBundle.message("kafka.producer.action.produce.title")).also {
+  private val produceButton = JButton(KafkaMessagesBundle.message("kafka.producer.action.produce.title"), AllIcons.Actions.Execute).also {
     it.addActionListener {
       val topic = topicComboBox.item
       if (topic == null || topic.name.isBlank()) {
-        Messages.showErrorDialog(kafkaManager.project, "Topic is empty", "Consumer error")
+        Messages.showErrorDialog(kafkaManager.project,
+          KafkaMessagesBundle.message("producer.error.topic.empty"),
+          KafkaMessagesBundle.message("producer.error.topic.empty.title"))
         return@addActionListener
       }
       val selectedTopicName = topic.name
@@ -162,7 +163,7 @@ class KafkaProducerEditor(project: Project,
       getConfig()
 
       val result = producerClient.sentMessage(selectedTopicName, key, value, propertiesComponent.properties, compressionComboBox.item,
-                                              acksComboBox.item, idempotenceCheckBox.isSelected, forcePartitionField.value)
+        acksComboBox.item, idempotenceCheckBox.isSelected, forcePartitionField.value)
       outputModel.addElement(result)
     }
   }
@@ -174,10 +175,10 @@ class KafkaProducerEditor(project: Project,
   }
 
   private fun getConfig() = RunProducerConfig(topicComboBox.item?.name ?: "", keyType = keyComboBox.item, key = getKey(),
-                                              valueType = valueComboBox.item, value = getValue(),
-                                              properties = propertiesComponent.properties, compression = compressionComboBox.item,
-                                              acks = acksComboBox.item, idempotence = idempotenceCheckBox.isSelected,
-                                              forcePartition = forcePartitionField.value)
+    valueType = valueComboBox.item, value = getValue(),
+    properties = propertiesComponent.properties, compression = compressionComboBox.item,
+    acks = acksComboBox.item, idempotence = idempotenceCheckBox.isSelected,
+    forcePartition = forcePartitionField.value)
 
   private val clearButton = JButton(KafkaMessagesBundle.message("action.clear.output")).apply {
     addActionListener {
@@ -194,7 +195,7 @@ class KafkaProducerEditor(project: Project,
   private val presets: ProducerPresets by presetsDelegate
 
   private val settingsPanelDelegate = lazy {
-    MigPanel(LC().insets("10").fillX().hideMode(3)).apply {
+    val panel = MigPanel(LC().insets("10").fillX().hideMode(3)).apply {
       gapLeft = true
       row(KafkaMessagesBundle.message("producer.topics"), topicComboBox)
       row(KafkaMessagesBundle.message("producer.key"), keyComboBox)
@@ -219,13 +220,25 @@ class KafkaProducerEditor(project: Project,
       add(idempotenceCheckBox, UiUtil.gapLeftSpanXWrap)
 
       gapLeft = false
+    }
 
-      add(produceButton, UiUtil.growXSpanXWrap)
-      add(clearButton, UiUtil.growXSpanXWrap)
-      add(savePresetButton, UiUtil.growXSpanXWrap)
+    val scroll = JBScrollPane(panel, JScrollPane.VERTICAL_SCROLLBAR_ALWAYS, JScrollPane.HORIZONTAL_SCROLLBAR_NEVER).apply {
+      minimumSize = Dimension(panel.minimumSize.width, minimumSize.height)
+      border = BorderFactory.createEmptyBorder()
+    }
+
+    val bottomPanel = JPanel().apply {
+      add(clearButton)
+      add(produceButton)
+      add(savePresetButton)
+    }
+
+    JPanel(BorderLayout()).apply {
+      add(scroll, BorderLayout.CENTER)
+      add(bottomPanel, BorderLayout.SOUTH)
     }
   }
-  private val settingsPanel: MigPanel by settingsPanelDelegate
+  private val settingsPanel: JPanel by settingsPanelDelegate
 
   private val settingsSplitter = OnePixelSplitter().apply {
     lackOfSpaceStrategy = Splitter.LackOfSpaceStrategy.HONOR_THE_FIRST_MIN_SIZE
@@ -244,19 +257,17 @@ class KafkaProducerEditor(project: Project,
   private val mainComponent = createCenterPanel()
 
   init {
-    settingsSplitter.firstComponent = ExpansionPanel(KafkaMessagesBundle.message("toggle.settings"), {
-      JBScrollPane(settingsPanel, JScrollPane.VERTICAL_SCROLLBAR_ALWAYS, JScrollPane.HORIZONTAL_SCROLLBAR_NEVER).apply {
-        minimumSize = Dimension(settingsPanel.minimumSize.width, minimumSize.height)
-      }
-    }, PropertiesComponent.getInstance().getBoolean(SETTINGS_SHOW_ID, true)).apply {
+    settingsSplitter.firstComponent = ExpansionPanel(KafkaMessagesBundle.message("toggle.settings"), { settingsPanel },
+      PropertiesComponent.getInstance().getBoolean(SETTINGS_SHOW_ID, true)).apply {
       addChangeListener {
         settingsSplitter.proportion = 0.0001f
+        settingsSplitter.setResizeEnabled(this.expanded)
       }
     }
 
     val outputTableScroll = JBScrollPane(outputTable).apply { border = BorderFactory.createEmptyBorder() }
     settingsSplitter.secondComponent = ExpansionPanel(KafkaMessagesBundle.message("toggle.data"), { outputTableScroll },
-                                                      PropertiesComponent.getInstance().getBoolean(DATA_SHOW_ID, true)).apply {
+      PropertiesComponent.getInstance().getBoolean(DATA_SHOW_ID, true)).apply {
       addChangeListener {
         settingsSplitter.proportion = 0.0001f
       }
@@ -269,6 +280,7 @@ class KafkaProducerEditor(project: Project,
     }, PropertiesComponent.getInstance().getBoolean(PRESETS_SHOW_ID, false)).apply {
       addChangeListener {
         presetsSplitter.proportion = 0.0001f
+        presetsSplitter.setResizeEnabled(this.expanded)
       }
     }
 
@@ -284,18 +296,18 @@ class KafkaProducerEditor(project: Project,
 
   private fun createJsonTextArea(project: Project) = EditorTextFieldProvider.getInstance()
     .getEditorField(JsonLanguage.INSTANCE, project,
-                    listOf(EditorCustomization {
-                      it.settings.apply {
-                        isLineNumbersShown = false
-                        isLineMarkerAreaShown = false
-                        isFoldingOutlineShown = false
-                        isRightMarginShown = false
-                        additionalLinesCount = 5
-                        additionalColumnsCount = 5
-                        isAdditionalPageAtBottom = false
-                        isShowIntentionBulb = false
-                      }
-                    }, MonospaceEditorCustomization.getInstance())).apply {
+      listOf(EditorCustomization {
+        it.settings.apply {
+          isLineNumbersShown = false
+          isLineMarkerAreaShown = false
+          isFoldingOutlineShown = false
+          isRightMarginShown = false
+          additionalLinesCount = 5
+          additionalColumnsCount = 5
+          isAdditionalPageAtBottom = false
+          isShowIntentionBulb = false
+        }
+      }, MonospaceEditorCustomization.getInstance())).apply {
       border = IdeBorderFactory.createBorder()
     }
 
