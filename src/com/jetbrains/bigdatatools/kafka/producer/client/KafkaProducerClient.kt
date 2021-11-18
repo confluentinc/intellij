@@ -24,7 +24,7 @@ class KafkaProducerClient(val client: KafkaClient) {
     val props = client.kafkaProps.clone() as Properties
     props[ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG] = key.type.getSerializer()::class.java
     props[ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG] = value.type.getSerializer()::class.java
-    props[ProducerConfig.COMPRESSION_TYPE_CONFIG] = recordCompression.name.toLowerCase()
+    props[ProducerConfig.COMPRESSION_TYPE_CONFIG] = recordCompression.name.lowercase()
 
     if (enableIdempotence)
       props[ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG] = enableIdempotence

@@ -62,7 +62,7 @@ class KafkaProducerEditor(project: Project,
   private val topicComboBox = KafkaEditorUtils.createTopicComboBox(this, kafkaManager)
 
   private val acksComboBox = ComboBox(AcksType.values()).apply {
-    renderer = CustomListCellRenderer<AcksType> { it.name.toLowerCase() }
+    renderer = CustomListCellRenderer<AcksType> { it.name.lowercase() }
     item = AcksType.NONE
   }
 
@@ -73,7 +73,7 @@ class KafkaProducerEditor(project: Project,
   }
 
   private val compressionComboBox = ComboBox(RecordCompression.values()).apply {
-    renderer = CustomListCellRenderer<RecordCompression> { it.name.toLowerCase() }
+    renderer = CustomListCellRenderer<RecordCompression> { it.name.lowercase() }
     selectedIndex = 0
   }
 

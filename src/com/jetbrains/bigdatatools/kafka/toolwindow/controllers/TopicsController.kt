@@ -27,7 +27,7 @@ import java.util.*
 import javax.swing.event.ListSelectionEvent
 import javax.swing.event.ListSelectionListener
 
-class TopicsController(private val project: Project, private val dataManager: KafkaDataManager) : Disposable {
+class TopicsController(project: Project, private val dataManager: KafkaDataManager) : Disposable {
   private val detailsSplitter: OnePixelSplitter = OnePixelSplitter()
 
   private val dataModel = dataManager.topicModel
@@ -44,7 +44,6 @@ class TopicsController(private val project: Project, private val dataManager: Ka
       showTopicDetails()
     }
   }
-
 
   init {
     val columnSettings = KafkaToolWindowSettings.getInstance().topicColumnSettings
@@ -88,7 +87,6 @@ class TopicsController(private val project: Project, private val dataManager: Ka
       override fun setSelected(e: AnActionEvent, state: Boolean) {
         settings.showInternalTopics = state
         dataManager.autoUpdaterManager.reloadAsync(dataModel)
-
       }
     }
 
