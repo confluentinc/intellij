@@ -15,6 +15,8 @@ import javax.swing.Icon
 
 class KafkaConnectionData : RemoteFsDriverProvider(KafkaMessagesBundle.message("config.name.default")), TunnelableData {
   var properties: String = ""
+  var propertySource: KafkaPropertySource = KafkaPropertySource.DIRECT
+  var propertyFilePath: String = ""
 
   override fun getIcon(): Icon = KafkaIcons.MAIN_ICON
   override fun createDriverImpl(project: Project?, isTest: Boolean): Driver = KafkaDriver(this, project)
