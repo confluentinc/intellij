@@ -2,6 +2,7 @@ package com.jetbrains.bigdatatools.kafka.client
 
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.vfs.VirtualFileManager
 import com.jetbrains.bigdatatools.connection.tunnel.BdtSshTunnelConnectionUtils
 import com.jetbrains.bigdatatools.connection.tunnel.BdtSshTunnelService
 import com.jetbrains.bigdatatools.connection.tunnel.model.getTunnelDataOrNull
@@ -10,6 +11,8 @@ import com.jetbrains.bigdatatools.kafka.model.TopicConfig
 import com.jetbrains.bigdatatools.kafka.model.TopicPresentable
 import com.jetbrains.bigdatatools.kafka.producer.client.KafkaProducerClient
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaConnectionData
+import com.jetbrains.bigdatatools.kafka.rfs.KafkaPropertySource
+import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import com.jetbrains.bigdatatools.monitoring.connection.MonitoringClient
 import com.jetbrains.bigdatatools.settings.components.BdtPropertyComponent
 import com.jetbrains.bigdatatools.settings.connections.Property
@@ -21,6 +24,7 @@ import org.apache.kafka.clients.admin.DescribeClusterOptions
 import org.apache.kafka.clients.admin.ListTopicsOptions
 import org.apache.kafka.clients.admin.TopicDescription
 import org.apache.kafka.common.config.ConfigResource
+import java.io.File
 import java.time.Duration
 import java.util.*
 
@@ -142,7 +146,16 @@ class KafkaClient(project: Project?,
       props[it.name] = it.value
     }
 
-    BdtPropertyComponent.parseProperties(connectionData.properties).forEach {
+    val properties = when (connectionData.propertySource) {
+      KafkaPropertySource.DIRECT -> connectionData.properties
+      KafkaPropertySource.FILE -> {
+        val filePath = File(connectionData.propertyFilePath).toPath()
+        val vf = VirtualFileManager.getInstance().findFileByNioPath(filePath) ?: error(
+          KafkaMessagesBundle.message("property.file.is.not.found", filePath))
+        vf.inputStream.bufferedReader().readText()
+      }
+    }
+    BdtPropertyComponent.parseProperties(properties).forEach {
       props[it.name] = it.value
     }
 
