@@ -12,18 +12,20 @@ data class StorageConsumerConfig(var topic: String = "",
                                  var startWith: Map<String, String> = emptyMap()) : StorageConfig {
 
   override fun fromStorage(): RunConsumerConfig {
+
+    val consumerLimitType = ConsumerLimitType.values().firstOrNull { it.name == filter["type"] } ?: ConsumerLimitType.NONE
+
     val limit = ConsumerLimit(
-      type = ConsumerLimitType.values().firstOrNull { it.name == filter["type"] } ?: ConsumerLimitType.NONE,
+      type = consumerLimitType,
       value = filter["value"] ?: "",
-      time = filter["time"]?.toLongOrNull(),
-    )
+      time = if (consumerLimitType == ConsumerLimitType.DATE) filter["time"]?.toLongOrNull() else null)
 
     val filter = ConsumerFilter(
       type = ConsumerFilterType.values().firstOrNull { it.name == filter["type"] } ?: ConsumerFilterType.NONE,
-      filterKey = filter["key"] ?: "",
-      filterValue = filter["value"] ?: "",
-      filterHeadKey = filter["headKey"] ?: "",
-      filterHeadValue = filter["headValue"] ?: "")
+      filterKey = filter["key"],
+      filterValue = filter["value"],
+      filterHeadKey = filter["headKey"],
+      filterHeadValue = filter["headValue"])
 
     val startWith = ConsumerStartWith(ConsumerStartType.values().firstOrNull { it.name == startWith["type"] } ?: ConsumerStartType.NOW,
       startWith["time"]?.toLongOrNull(),

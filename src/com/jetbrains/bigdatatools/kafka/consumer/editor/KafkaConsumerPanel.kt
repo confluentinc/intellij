@@ -3,6 +3,8 @@ package com.jetbrains.bigdatatools.kafka.consumer.editor
 import com.intellij.icons.AllIcons
 import com.intellij.ide.util.PropertiesComponent
 import com.intellij.openapi.Disposable
+import com.intellij.openapi.actionSystem.AnActionEvent
+import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.ui.Splitter
@@ -15,6 +17,7 @@ import com.intellij.ui.components.JBTextField
 import com.intellij.util.ui.JBUI
 import com.jetbrains.bigdatatools.kafka.common.editor.KafkaEditorUtils
 import com.jetbrains.bigdatatools.kafka.common.editor.ListTableModel
+import com.jetbrains.bigdatatools.kafka.common.editor.SavePresetButton
 import com.jetbrains.bigdatatools.kafka.common.editor.renders.FieldTypeRenderer
 import com.jetbrains.bigdatatools.kafka.common.models.FieldType
 import com.jetbrains.bigdatatools.kafka.common.models.TopicInEditor
@@ -147,18 +150,6 @@ class KafkaConsumerPanel(private val kafkaManager: KafkaDataManager,
     }
   }
 
-  private val clearButton = JButton(KafkaMessagesBundle.message("action.clear.output")).apply {
-    addActionListener {
-      outputModel.clear()
-    }
-  }
-
-  private val savePresetButton = JButton(KafkaMessagesBundle.message("action.save.preset")).apply {
-    addActionListener {
-      KafkaConfigStorage.instance.consumerConfig.addConfig(getRunConfig())
-    }
-  }
-
   private val filterPanel = MigPanel().apply {
     row(KafkaMessagesBundle.message("label.filter.key"), filterKeyField)
     row(KafkaMessagesBundle.message("label.filter.value"), filterValueField)
@@ -224,10 +215,8 @@ class KafkaConsumerPanel(private val kafkaManager: KafkaDataManager,
       border = BorderFactory.createEmptyBorder()
     }
 
-    val bottomPanel = JPanel().apply {
-      add(clearButton)
+    val bottomPanel = MigPanel(LC().insets("10").fillX().hideMode(3)).apply {
       add(consumeButton)
-      add(savePresetButton)
     }
 
     JPanel(BorderLayout()).apply {
@@ -270,9 +259,17 @@ class KafkaConsumerPanel(private val kafkaManager: KafkaDataManager,
 
     restoreFromFile()
 
+    val clearButton = object : DumbAwareAction(KafkaMessagesBundle.message("action.clear.output"), null, AllIcons.Actions.GC) {
+      override fun actionPerformed(e: AnActionEvent) {
+        outputModel.clear()
+      }
+    }
+
     resultsSplitter.firstComponent = ExpansionPanel(KafkaMessagesBundle.message("toggle.data"),
       { JBScrollPane(outputTable).apply { border = BorderFactory.createEmptyBorder() } },
-      PropertiesComponent.getInstance().getBoolean(DATA_SHOW_ID, true)).apply {
+      PropertiesComponent.getInstance().getBoolean(DATA_SHOW_ID, true),
+      listOf(clearButton)
+    ).apply {
       addChangeListener {
         resultsSplitter.proportion = if (this.expanded) 1f else 0.0001f
         resultsSplitter.setResizeEnabled(this.expanded)
@@ -291,9 +288,10 @@ class KafkaConsumerPanel(private val kafkaManager: KafkaDataManager,
 
     resultsSplitter.proportion = if (PropertiesComponent.getInstance().getBoolean(DATA_SHOW_ID, true)) 1f else 0.0001f
 
-    settingsSplitter.firstComponent = ExpansionPanel(KafkaMessagesBundle.message("toggle.settings"), {
-      settingsPanel
-    }, PropertiesComponent.getInstance().getBoolean(SETTINGS_SHOW_ID, true)).apply {
+    settingsSplitter.firstComponent = ExpansionPanel(KafkaMessagesBundle.message("toggle.settings"), { settingsPanel },
+      PropertiesComponent.getInstance().getBoolean(SETTINGS_SHOW_ID, true),
+      listOf(SavePresetButton(KafkaConfigStorage.instance.consumerConfig) { getRunConfig() })
+    ).apply {
       addChangeListener {
         settingsSplitter.proportion = 0.0001f
         settingsSplitter.setResizeEnabled(this.expanded)
@@ -357,7 +355,8 @@ class KafkaConsumerPanel(private val kafkaManager: KafkaDataManager,
       startConsumerGroup.item?.consumerGroup)
     val filter = getFilter()
 
-    val consumerLimit = ConsumerLimit(limitComboBox.item, limitOffset.text, limitSpecificDate.date?.time)
+    val consumerLimit = ConsumerLimit(limitComboBox.item, limitOffset.text,
+      if (limitComboBox.item == ConsumerLimitType.DATE) limitSpecificDate.date?.time else null)
 
     return RunConsumerConfig(topic = topicName,
       keyType = keyComboBox.item,
@@ -429,11 +428,13 @@ class KafkaConsumerPanel(private val kafkaManager: KafkaDataManager,
 
   private fun onStopConsume() {
     consumeButton.text = KafkaMessagesBundle.message("action.consume.start.title")
+    consumeButton.icon = AllIcons.Actions.Execute
     updateVisibility()
   }
 
   private fun onStartConsume() {
     consumeButton.text = KafkaMessagesBundle.message("action.consume.stop.title")
+    consumeButton.icon = AllIcons.Actions.Suspend
     updateVisibility()
   }
 

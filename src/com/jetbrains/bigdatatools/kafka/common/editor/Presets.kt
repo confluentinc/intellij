@@ -9,7 +9,6 @@ import com.intellij.ui.components.JBList
 import com.intellij.util.ui.JBUI
 import com.jetbrains.bigdatatools.kafka.common.models.RunConfig
 import com.jetbrains.bigdatatools.kafka.common.settings.ConfigChangeListener
-import com.jetbrains.bigdatatools.kafka.common.settings.KafkaConfigStorage
 import com.jetbrains.bigdatatools.kafka.common.settings.KafkaRunConfig
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import java.awt.event.MouseAdapter
@@ -45,7 +44,7 @@ open class Presets<T : RunConfig>(private val runConfig: KafkaRunConfig,
       })
       .setRemoveAction {
         presetsList.selectedValue?.let {
-          KafkaConfigStorage.instance.producerConfig.removeConfig(it)
+          runConfig.removeConfig(it)
         }
       }.createPanel().apply {
         border = JBUI.Borders.empty()

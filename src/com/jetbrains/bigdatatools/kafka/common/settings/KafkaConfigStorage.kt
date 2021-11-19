@@ -18,7 +18,10 @@ class KafkaRunConfig(val configsGetter: () -> List<StorageConfig>,
                      val configsSetter: (List<StorageConfig>) -> Unit,
                      private val changeListeners: MutableList<ConfigChangeListener<RunConfig>>) {
 
+  fun hasConfig(config: RunConfig) = loadConfigs().contains(config)
+
   fun loadConfigs() = configsGetter().map { it.fromStorage() }
+
   fun saveConfigs(list: List<RunConfig>) {
     configsSetter(list.map { it.toStorage() })
   }

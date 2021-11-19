@@ -3,9 +3,11 @@ package com.jetbrains.bigdatatools.kafka.producer.editor
 import com.intellij.icons.AllIcons
 import com.intellij.ide.util.PropertiesComponent
 import com.intellij.json.JsonLanguage
+import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.fileEditor.FileEditor
 import com.intellij.openapi.fileEditor.FileEditorLocation
 import com.intellij.openapi.fileEditor.FileEditorState
+import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.Messages
@@ -23,6 +25,7 @@ import com.intellij.util.ui.JBUI
 import com.jetbrains.bigdatatools.kafka.common.editor.KafkaEditorUtils
 import com.jetbrains.bigdatatools.kafka.common.editor.ListTableModel
 import com.jetbrains.bigdatatools.kafka.common.editor.PropertiesTable
+import com.jetbrains.bigdatatools.kafka.common.editor.SavePresetButton
 import com.jetbrains.bigdatatools.kafka.common.editor.renders.FieldTypeRenderer
 import com.jetbrains.bigdatatools.kafka.common.models.FieldType
 import com.jetbrains.bigdatatools.kafka.common.models.ProducerField
@@ -146,45 +149,11 @@ class KafkaProducerEditor(project: Project,
   }
   private val outputTable: MaterialTable by outputTableDelegate
 
-  private val produceButton = JButton(KafkaMessagesBundle.message("kafka.producer.action.produce.title"), AllIcons.Actions.Execute).also {
-    it.addActionListener {
-      val topic = topicComboBox.item
-      if (topic == null || topic.name.isBlank()) {
-        Messages.showErrorDialog(kafkaManager.project,
-          KafkaMessagesBundle.message("producer.error.topic.empty"),
-          KafkaMessagesBundle.message("producer.error.topic.empty.title"))
-        return@addActionListener
-      }
-      val selectedTopicName = topic.name
-
-      val key = ProducerField(keyComboBox.item!!, getKey())
-      val value = ProducerField(valueComboBox.item!!, getValue())
-
-      getConfig()
-
-      val result = producerClient.sentMessage(selectedTopicName, key, value, propertiesComponent.properties, compressionComboBox.item,
-        acksComboBox.item, idempotenceCheckBox.isSelected, forcePartitionField.value)
-      outputModel.addElement(result)
-    }
-  }
-
-  private val savePresetButton = JButton(KafkaMessagesBundle.message("action.save.preset")).apply {
-    addActionListener {
-      KafkaConfigStorage.instance.producerConfig.addConfig(getConfig())
-    }
-  }
-
   private fun getConfig() = RunProducerConfig(topicComboBox.item?.name ?: "", keyType = keyComboBox.item, key = getKey(),
     valueType = valueComboBox.item, value = getValue(),
     properties = propertiesComponent.properties, compression = compressionComboBox.item,
     acks = acksComboBox.item, idempotence = idempotenceCheckBox.isSelected,
     forcePartition = forcePartitionField.value)
-
-  private val clearButton = JButton(KafkaMessagesBundle.message("action.clear.output")).apply {
-    addActionListener {
-      outputModel.clear()
-    }
-  }
 
   private val presetsDelegate = lazy {
     val presets = ProducerPresets()
@@ -227,10 +196,30 @@ class KafkaProducerEditor(project: Project,
       border = BorderFactory.createEmptyBorder()
     }
 
-    val bottomPanel = JPanel().apply {
-      add(clearButton)
+    val produceButton = JButton(KafkaMessagesBundle.message("kafka.producer.action.produce.title"), AllIcons.Actions.Execute).also {
+      it.addActionListener {
+        val topic = topicComboBox.item
+        if (topic == null || topic.name.isBlank()) {
+          Messages.showErrorDialog(kafkaManager.project,
+            KafkaMessagesBundle.message("producer.error.topic.empty"),
+            KafkaMessagesBundle.message("producer.error.topic.empty.title"))
+          return@addActionListener
+        }
+        val selectedTopicName = topic.name
+
+        val key = ProducerField(keyComboBox.item!!, getKey())
+        val value = ProducerField(valueComboBox.item!!, getValue())
+
+        getConfig()
+
+        val result = producerClient.sentMessage(selectedTopicName, key, value, propertiesComponent.properties, compressionComboBox.item,
+          acksComboBox.item, idempotenceCheckBox.isSelected, forcePartitionField.value)
+        outputModel.addElement(result)
+      }
+    }
+
+    val bottomPanel = MigPanel(LC().insets("10").fillX().hideMode(3)).apply {
       add(produceButton)
-      add(savePresetButton)
     }
 
     JPanel(BorderLayout()).apply {
@@ -258,16 +247,25 @@ class KafkaProducerEditor(project: Project,
 
   init {
     settingsSplitter.firstComponent = ExpansionPanel(KafkaMessagesBundle.message("toggle.settings"), { settingsPanel },
-      PropertiesComponent.getInstance().getBoolean(SETTINGS_SHOW_ID, true)).apply {
+      PropertiesComponent.getInstance().getBoolean(SETTINGS_SHOW_ID, true),
+      listOf(SavePresetButton(KafkaConfigStorage.instance.producerConfig) { getConfig() })).apply {
       addChangeListener {
         settingsSplitter.proportion = 0.0001f
         settingsSplitter.setResizeEnabled(this.expanded)
       }
     }
 
+    val clearButton = object : DumbAwareAction(KafkaMessagesBundle.message("action.clear.output"), null, AllIcons.Actions.GC) {
+      override fun actionPerformed(e: AnActionEvent) {
+        outputModel.clear()
+      }
+    }
+
     val outputTableScroll = JBScrollPane(outputTable).apply { border = BorderFactory.createEmptyBorder() }
     settingsSplitter.secondComponent = ExpansionPanel(KafkaMessagesBundle.message("toggle.data"), { outputTableScroll },
-      PropertiesComponent.getInstance().getBoolean(DATA_SHOW_ID, true)).apply {
+      PropertiesComponent.getInstance().getBoolean(DATA_SHOW_ID, true),
+      listOf(clearButton)
+    ).apply {
       addChangeListener {
         settingsSplitter.proportion = 0.0001f
       }
