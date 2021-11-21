@@ -5,6 +5,7 @@ import com.intellij.openapi.project.Project
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaConnectionData
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaPropertySource
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import com.jetbrains.bigdatatools.kafka.util.KafkaPropertiesUtils
 import com.jetbrains.bigdatatools.monitoring.TunnableSettingsCustomizer
 import com.jetbrains.bigdatatools.settings.ModificationKey
 import com.jetbrains.bigdatatools.settings.defaultui.UiUtil
@@ -15,7 +16,10 @@ import com.jetbrains.bigdatatools.ui.MigPanel
 class KafkaSettingsCustomizer(project: Project, connectionData: KafkaConnectionData, uiDisposable: Disposable) :
   TunnableSettingsCustomizer<KafkaConnectionData>(connectionData, project, uiDisposable) {
 
-  private val propertiesEditor = PropertiesFieldComponent.create(KafkaConnectionData::properties,
+  private val propertiesEditor = PropertiesFieldComponent.create(
+    project,
+    KafkaPropertiesUtils.getAdminPropertiesDescriptions(),
+    KafkaConnectionData::properties,
     KafkaSettingsKeys.PROPERTIES_KEY,
     connectionData, uiDisposable)
 
