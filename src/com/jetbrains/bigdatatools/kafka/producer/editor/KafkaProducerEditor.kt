@@ -36,7 +36,9 @@ import com.jetbrains.bigdatatools.kafka.producer.models.*
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import com.jetbrains.bigdatatools.settings.defaultui.UiUtil
 import com.jetbrains.bigdatatools.table.MaterialTable
+import com.jetbrains.bigdatatools.table.MaterialTableUtils
 import com.jetbrains.bigdatatools.table.TableResizeController
+import com.jetbrains.bigdatatools.table.extension.TableFirstRowAdded
 import com.jetbrains.bigdatatools.table.filters.TableFilterHeader
 import com.jetbrains.bigdatatools.table.renderers.DateRenderer
 import com.jetbrains.bigdatatools.table.renderers.DurationRenderer
@@ -130,11 +132,6 @@ class KafkaProducerEditor(project: Project,
 
   private val outputTableDelegate = lazy {
     MaterialTable(outputModel, outputModel.columnModel).apply {
-      TableResizeController.installOn(this).apply {
-        setResizePriorityList("value")
-        mode = TableResizeController.Mode.PRIOR_COLUMNS_LIST
-      }
-
       tableHeader.border = JBUI.Borders.empty()
       outputModel.columnModel.columns.asIterator().forEach {
         if (it.headerValue == "timestamp") {
@@ -145,6 +142,14 @@ class KafkaProducerEditor(project: Project,
         }
       }
       TableFilterHeader(this)
+      val resizeController = TableResizeController(this).apply {
+        setResizePriorityList("value")
+        mode = TableResizeController.Mode.PRIOR_COLUMNS_LIST
+      }
+      TableFirstRowAdded(this) {
+        MaterialTableUtils.fitColumnsWidth(this)
+        resizeController.componentResized()
+      }
     }
   }
   private val outputTable: MaterialTable by outputTableDelegate
