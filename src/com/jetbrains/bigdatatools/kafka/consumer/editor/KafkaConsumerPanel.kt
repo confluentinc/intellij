@@ -26,11 +26,13 @@ import com.jetbrains.bigdatatools.kafka.consumer.client.KafkaConsumerClient
 import com.jetbrains.bigdatatools.kafka.consumer.models.*
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import com.jetbrains.bigdatatools.rfs.util.RfsNotificationUtils
 import com.jetbrains.bigdatatools.table.MaterialTable
 import com.jetbrains.bigdatatools.table.TableResizeController
 import com.jetbrains.bigdatatools.table.filters.TableFilterHeader
 import com.jetbrains.bigdatatools.table.renderers.DateRenderer
 import com.jetbrains.bigdatatools.ui.*
+import com.jetbrains.bigdatatools.util.executeOnPooledThread
 import com.michaelbaranov.microba.calendar.DatePicker
 import net.miginfocom.layout.LC
 import org.apache.kafka.clients.consumer.ConsumerRecord
@@ -136,17 +138,24 @@ class KafkaConsumerPanel(private val kafkaManager: KafkaDataManager,
 
   private val consumeButton = JButton(KafkaMessagesBundle.message("action.consume.start.title"), AllIcons.Actions.Execute).apply {
     addActionListener {
-      if (consumerClient.isRunning()) {
-        consumerClient.stop()
-      }
-      else {
-        startConsume()
-      }
-      updateVisibility()
-      storeToFile()
+      executeOnPooledThread {
+        try {
+          if (consumerClient.isRunning()) {
+            consumerClient.stop()
+          }
+          else {
+            startConsume()
+          }
+          updateVisibility()
+          storeToFile()
 
-      invalidate()
-      repaint()
+          invalidate()
+          repaint()
+        }
+        catch (t: Throwable) {
+          RfsNotificationUtils.notifyException(t, KafkaMessagesBundle.message("error.start.consumer"))
+        }
+      }
     }
   }
 
