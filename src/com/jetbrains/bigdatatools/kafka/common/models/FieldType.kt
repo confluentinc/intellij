@@ -17,7 +17,7 @@ enum class FieldType(val value: String) {
     DOUBLE -> DoubleDeserializer()
     FLOAT -> FloatDeserializer()
     BASE64 -> BytesDeserializer()
-    NULL -> VoidSerializer()
+    NULL -> VoidDeserializer()
   }
 
   fun getSerializer() = when (this) {
