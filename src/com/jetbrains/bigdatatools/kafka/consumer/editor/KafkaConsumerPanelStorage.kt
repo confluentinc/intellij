@@ -14,7 +14,7 @@ class KafkaConsumerPanelStorage(private val dataManager: KafkaDataManager) : Dis
 
   fun getOrCreate(file: VirtualFile): KafkaConsumerPanel {
     val cachedPanel = storage[file]
-    if (cachedPanel!=null)
+    if (cachedPanel != null)
       return cachedPanel
 
     val panel = KafkaConsumerPanel(dataManager, file)
@@ -24,9 +24,13 @@ class KafkaConsumerPanelStorage(private val dataManager: KafkaDataManager) : Dis
   }
 
   fun unsubscribe(file: VirtualFile) {
+    if (Disposer.isDisposed(this)) {
+      return
+    }
+
     alarm.addRequest(
       Runnable {
-        if (Disposer.isDisposed(this@KafkaConsumerPanelStorage ))
+        if (Disposer.isDisposed(this@KafkaConsumerPanelStorage))
           return@Runnable
 
         disposePanel(file)
