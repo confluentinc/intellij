@@ -28,7 +28,9 @@ import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import com.jetbrains.bigdatatools.rfs.util.RfsNotificationUtils
 import com.jetbrains.bigdatatools.table.MaterialTable
+import com.jetbrains.bigdatatools.table.MaterialTableUtils
 import com.jetbrains.bigdatatools.table.TableResizeController
+import com.jetbrains.bigdatatools.table.extension.TableFirstRowAdded
 import com.jetbrains.bigdatatools.table.filters.TableFilterHeader
 import com.jetbrains.bigdatatools.table.renderers.DateRenderer
 import com.jetbrains.bigdatatools.ui.*
@@ -124,7 +126,7 @@ class KafkaConsumerPanel(private val kafkaManager: KafkaDataManager,
 
   private val outputTableDelegate = lazy {
     MaterialTable(outputModel, outputModel.columnModel).apply {
-      TableResizeController.installOn(this)
+      val resizeController = TableResizeController(this)
       tableHeader.border = JBUI.Borders.empty()
       outputModel.columnModel.columns.asIterator().forEach {
         if (it.headerValue == "timestamp") {
@@ -132,6 +134,10 @@ class KafkaConsumerPanel(private val kafkaManager: KafkaDataManager,
         }
       }
       TableFilterHeader(this)
+      TableFirstRowAdded(this) {
+        MaterialTableUtils.fitColumnsWidth(this)
+        resizeController.componentResized()
+      }
     }
   }
   private val outputTable: MaterialTable by outputTableDelegate
