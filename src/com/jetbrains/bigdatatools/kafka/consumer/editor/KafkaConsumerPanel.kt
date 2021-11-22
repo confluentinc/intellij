@@ -265,9 +265,10 @@ class KafkaConsumerPanel(private val kafkaManager: KafkaDataManager,
       }
     }
 
+    val dataExpanded = PropertiesComponent.getInstance().getBoolean(DATA_SHOW_ID, true)
     resultsSplitter.firstComponent = ExpansionPanel(KafkaMessagesBundle.message("toggle.data"),
       { JBScrollPane(outputTable).apply { border = BorderFactory.createEmptyBorder() } },
-      PropertiesComponent.getInstance().getBoolean(DATA_SHOW_ID, true),
+      dataExpanded,
       listOf(clearButton)
     ).apply {
       addChangeListener {
@@ -285,11 +286,12 @@ class KafkaConsumerPanel(private val kafkaManager: KafkaDataManager,
         resultsSplitter.proportion = 1f
       }
     }
+    resultsSplitter.proportion = if (dataExpanded) 1f else 0.0001f
+    resultsSplitter.setResizeEnabled(dataExpanded)
 
-    resultsSplitter.proportion = if (PropertiesComponent.getInstance().getBoolean(DATA_SHOW_ID, true)) 1f else 0.0001f
-
+    val settingsExpanded = PropertiesComponent.getInstance().getBoolean(SETTINGS_SHOW_ID, true)
     settingsSplitter.firstComponent = ExpansionPanel(KafkaMessagesBundle.message("toggle.settings"), { settingsPanel },
-      PropertiesComponent.getInstance().getBoolean(SETTINGS_SHOW_ID, true),
+      settingsExpanded,
       listOf(SavePresetButton(KafkaConfigStorage.instance.consumerConfig) { getRunConfig() })
     ).apply {
       addChangeListener {
@@ -297,17 +299,20 @@ class KafkaConsumerPanel(private val kafkaManager: KafkaDataManager,
         settingsSplitter.setResizeEnabled(this.expanded)
       }
     }
+    settingsSplitter.setResizeEnabled(settingsExpanded)
 
+    val presetsExpanded = PropertiesComponent.getInstance().getBoolean(PRESETS_SHOW_ID, false)
     presetsSplitter.firstComponent = ExpansionPanel(KafkaMessagesBundle.message("toggle.presets"), {
       presets.component.apply {
         minimumSize = Dimension(max(minimumSize.width, 200), minimumSize.height)
       }
-    }, PropertiesComponent.getInstance().getBoolean(PRESETS_SHOW_ID, false)).apply {
+    }, presetsExpanded).apply {
       addChangeListener {
         presetsSplitter.proportion = 0.0001f
         presetsSplitter.setResizeEnabled(this.expanded)
       }
     }
+    presetsSplitter.setResizeEnabled(presetsExpanded)
 
     updateVisibility()
     updateLimit()

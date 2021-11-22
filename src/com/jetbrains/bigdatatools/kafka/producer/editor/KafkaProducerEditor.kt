@@ -246,14 +246,16 @@ class KafkaProducerEditor(project: Project,
   private val mainComponent = createCenterPanel()
 
   init {
+    val settingsExpanded = PropertiesComponent.getInstance().getBoolean(SETTINGS_SHOW_ID, true)
     settingsSplitter.firstComponent = ExpansionPanel(KafkaMessagesBundle.message("toggle.settings"), { settingsPanel },
-      PropertiesComponent.getInstance().getBoolean(SETTINGS_SHOW_ID, true),
+      settingsExpanded,
       listOf(SavePresetButton(KafkaConfigStorage.instance.producerConfig) { getConfig() })).apply {
       addChangeListener {
         settingsSplitter.proportion = 0.0001f
         settingsSplitter.setResizeEnabled(this.expanded)
       }
     }
+    settingsSplitter.setResizeEnabled(settingsExpanded)
 
     val clearButton = object : DumbAwareAction(KafkaMessagesBundle.message("action.clear.output"), null, AllIcons.Actions.GC) {
       override fun actionPerformed(e: AnActionEvent) {
@@ -271,16 +273,18 @@ class KafkaProducerEditor(project: Project,
       }
     }
 
+    val presetsExpanded = PropertiesComponent.getInstance().getBoolean(PRESETS_SHOW_ID, false)
     presetsSplitter.firstComponent = ExpansionPanel(KafkaMessagesBundle.message("toggle.presets"), {
       presets.component.apply {
         minimumSize = Dimension(max(minimumSize.width, 200), minimumSize.height)
       }
-    }, PropertiesComponent.getInstance().getBoolean(PRESETS_SHOW_ID, false)).apply {
+    }, presetsExpanded).apply {
       addChangeListener {
         presetsSplitter.proportion = 0.0001f
         presetsSplitter.setResizeEnabled(this.expanded)
       }
     }
+    presetsSplitter.setResizeEnabled(presetsExpanded)
 
     updateVisibility()
     restoreFromFile()
