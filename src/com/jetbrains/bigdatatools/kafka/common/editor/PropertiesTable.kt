@@ -13,7 +13,7 @@ class PropertiesTable(data: List<Property>) {
   constructor(data: String) : this(BdtPropertyComponent.parseProperties(data))
 
   private val tableModel = PropertiesTableModel(data.toMutableList())
-  private val table = MaterialTable(tableModel, tableModel.columnModel).apply {
+  val table = MaterialTable(tableModel, tableModel.columnModel).apply {
     autoResizeMode = JTable.AUTO_RESIZE_ALL_COLUMNS
     tableHeader.border = JBUI.Borders.empty()
   }
