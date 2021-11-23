@@ -302,6 +302,9 @@ class KafkaConsumerPanel(private val kafkaManager: KafkaDataManager,
     }, PropertiesComponent.getInstance().getBoolean(DETAILS_SHOW_ID, false)).apply {
       addChangeListener {
         resultsSplitter.proportion = 1f
+        if (this.expanded) {
+          updateDetails()
+        }
       }
     }
     resultsSplitter.proportion = if (dataExpanded) 1f else 0.0001f
@@ -322,7 +325,7 @@ class KafkaConsumerPanel(private val kafkaManager: KafkaDataManager,
     val presetsExpanded = PropertiesComponent.getInstance().getBoolean(PRESETS_SHOW_ID, false)
     presetsSplitter.firstComponent = ExpansionPanel(KafkaMessagesBundle.message("toggle.presets"), {
       presets.component.apply {
-        minimumSize = Dimension(max(minimumSize.width, 200), minimumSize.height)
+        minimumSize = Dimension(max(minimumSize.width, 290), minimumSize.height)
       }
     }, presetsExpanded).apply {
       addChangeListener {
@@ -341,10 +344,15 @@ class KafkaConsumerPanel(private val kafkaManager: KafkaDataManager,
 
     outputTable.selectionModel.addListSelectionListener { event ->
       if (!event.valueIsAdjusting) {
-        if (detailsDelegate.isInitialized()) {
-          details.record = outputModel.getValueAt(outputTable.selectedRow)?.getOrNull()
-        }
+        updateDetails()
       }
+    }
+  }
+
+  private fun updateDetails() {
+    if (detailsDelegate.isInitialized()) {
+      details.record = if (outputTable.selectedRow == -1) null
+      else outputModel.getValueAt(outputTable.convertRowIndexToModel(outputTable.selectedRow))?.getOrNull()
     }
   }
 
@@ -412,6 +420,7 @@ class KafkaConsumerPanel(private val kafkaManager: KafkaDataManager,
 
     startFromComboBox.isEnabled = isEnabled
     startSpecificDate.isEnabled = isEnabled
+    startConsumerGroup.isEnabled = isEnabled
     startOffset.isEnabled = isEnabled
 
     limitComboBox.isEnabled = isEnabled

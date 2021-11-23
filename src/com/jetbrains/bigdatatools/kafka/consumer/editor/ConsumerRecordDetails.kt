@@ -1,10 +1,12 @@
 package com.jetbrains.bigdatatools.kafka.consumer.editor
 
-import com.intellij.ui.IdeBorderFactory
+import com.intellij.ui.components.JBScrollPane
+import com.intellij.util.ui.JBUI
 import com.jetbrains.bigdatatools.kafka.common.editor.PropertiesTable
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import com.jetbrains.bigdatatools.settings.connections.Property
 import com.jetbrains.bigdatatools.settings.defaultui.UiUtil
+import com.jetbrains.bigdatatools.ui.DarculaTextAreaBorder
 import com.jetbrains.bigdatatools.ui.EmptyCell
 import com.jetbrains.bigdatatools.ui.MigPanel
 import com.jetbrains.bigdatatools.util.SizeUtils
@@ -13,15 +15,24 @@ import net.miginfocom.layout.LC
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import java.io.Serializable
 import java.nio.charset.StandardCharsets
+import javax.swing.BorderFactory
 import javax.swing.JLabel
 import javax.swing.JTextArea
 import javax.swing.JTextField
 
 class ConsumerRecordDetails {
   private val topicField = JTextField(10)
-  private val keyField = JTextField(10)
+  private val keyField = JTextArea().apply {
+    border = BorderFactory.createCompoundBorder(DarculaTextAreaBorder(), JBUI.Borders.empty(3))
+    minimumSize = JTextField().minimumSize
+    lineWrap = true
+    wrapStyleWord = true
+  }
+
   private val valueField = JTextArea().apply {
-    border = IdeBorderFactory.createBorder()
+    border = BorderFactory.createCompoundBorder(DarculaTextAreaBorder(), JBUI.Borders.empty(3))
+    minimumSize = JTextField().minimumSize
+    lineWrap = true
     wrapStyleWord = true
   }
   private val headers = PropertiesTable(emptyList())
@@ -70,7 +81,8 @@ class ConsumerRecordDetails {
 
   val component = MigPanel(LC().insets("10").fillX().hideMode(3)).apply {
     row(KafkaMessagesBundle.message("consumer.record.topic"), topicField)
-    row(KafkaMessagesBundle.message("consumer.record.key"), keyField)
+    row(KafkaMessagesBundle.message("consumer.record.key"))
+    block(keyField)
     row(KafkaMessagesBundle.message("consumer.record.value"))
     block(valueField)
 
@@ -82,6 +94,6 @@ class ConsumerRecordDetails {
     row(KafkaMessagesBundle.message("consumer.record.valuesize"), valueSize)
 
     add(JLabel(KafkaMessagesBundle.message("consumer.record.headers")), UiUtil.wrap)
-    block(headers.getComponent())
+    block(JBScrollPane(headers.table))
   }
 }
