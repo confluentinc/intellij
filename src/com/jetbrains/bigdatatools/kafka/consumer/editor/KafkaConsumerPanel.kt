@@ -11,7 +11,9 @@ import com.intellij.openapi.ui.Splitter
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.Key
 import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.ui.IdeBorderFactory
 import com.intellij.ui.OnePixelSplitter
+import com.intellij.ui.SideBorder
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.components.JBTextField
 import com.intellij.util.ui.JBUI
@@ -231,6 +233,7 @@ class KafkaConsumerPanel(private val kafkaManager: KafkaDataManager,
     }
 
     val bottomPanel = MigPanel(LC().insets("10").fillX().hideMode(3)).apply {
+      border = IdeBorderFactory.createBorder(SideBorder.TOP)
       add(consumeButton)
     }
 

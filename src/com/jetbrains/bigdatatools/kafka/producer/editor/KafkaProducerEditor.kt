@@ -224,6 +224,7 @@ class KafkaProducerEditor(project: Project,
     }
 
     val bottomPanel = MigPanel(LC().insets("10").fillX().hideMode(3)).apply {
+      border = IdeBorderFactory.createBorder(SideBorder.TOP)
       add(produceButton)
     }
 
