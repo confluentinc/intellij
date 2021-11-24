@@ -1,15 +1,17 @@
 package com.jetbrains.bigdatatools.kafka.common.models
 
+import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import org.apache.kafka.common.serialization.*
+import org.jetbrains.annotations.Nls
 
-enum class FieldType(val value: String) {
-  JSON("JSON"),
-  STRING("String"),
-  LONG("Long"),
-  DOUBLE("Double"),
-  FLOAT("Float"),
-  BASE64("Bytes (base64)"),
-  NULL("null");
+enum class FieldType(@Nls val title: String) {
+  JSON(KafkaMessagesBundle.message("field.type.json")),
+  STRING(KafkaMessagesBundle.message("field.type.string")),
+  LONG(KafkaMessagesBundle.message("field.type.long")),
+  DOUBLE(KafkaMessagesBundle.message("field.type.double")),
+  FLOAT(KafkaMessagesBundle.message("field.type.float")),
+  BASE64(KafkaMessagesBundle.message("field.type.base64")),
+  NULL(KafkaMessagesBundle.message("field.type.null"));
 
   fun getDeserializationClass() = when (this) {
     STRING, JSON -> StringDeserializer()

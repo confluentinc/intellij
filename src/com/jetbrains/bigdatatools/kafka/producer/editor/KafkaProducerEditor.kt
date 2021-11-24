@@ -1,5 +1,6 @@
 package com.jetbrains.bigdatatools.kafka.producer.editor
 
+import com.google.gson.JsonParser
 import com.intellij.icons.AllIcons
 import com.intellij.ide.util.PropertiesComponent
 import com.intellij.json.JsonLanguage
@@ -26,7 +27,6 @@ import com.jetbrains.bigdatatools.kafka.common.editor.KafkaEditorUtils
 import com.jetbrains.bigdatatools.kafka.common.editor.ListTableModel
 import com.jetbrains.bigdatatools.kafka.common.editor.PropertiesTable
 import com.jetbrains.bigdatatools.kafka.common.editor.SavePresetButton
-import com.jetbrains.bigdatatools.kafka.common.editor.renders.FieldTypeRenderer
 import com.jetbrains.bigdatatools.kafka.common.models.FieldType
 import com.jetbrains.bigdatatools.kafka.common.models.ProducerField
 import com.jetbrains.bigdatatools.kafka.common.models.TopicInEditor
@@ -35,6 +35,9 @@ import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.producer.models.*
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import com.jetbrains.bigdatatools.settings.defaultui.UiUtil
+import com.jetbrains.bigdatatools.settings.getValidationInfo
+import com.jetbrains.bigdatatools.settings.revalidateComponent
+import com.jetbrains.bigdatatools.settings.withValidator
 import com.jetbrains.bigdatatools.table.MaterialTable
 import com.jetbrains.bigdatatools.table.MaterialTableUtils
 import com.jetbrains.bigdatatools.table.TableResizeController
@@ -49,6 +52,7 @@ import net.miginfocom.layout.LC
 import java.awt.BorderLayout
 import java.awt.Dimension
 import java.beans.PropertyChangeListener
+import java.util.*
 import javax.swing.*
 import kotlin.math.max
 
@@ -81,35 +85,33 @@ class KafkaProducerEditor(project: Project,
     selectedIndex = 0
   }
 
+  private val keyJsonField: EditorTextField by lazy { createJsonTextArea(project).withValidator(this, ::validateKey) }
+  private val valueJsonField: EditorTextField by lazy { createJsonTextArea(project).withValidator(this, ::validateKey) }
+
+  private val keyField = JBTextField().apply { emptyText.text = "Optional" }.withValidator(this, ::validateKey)
+  private val valueField = JBTextField().apply { emptyText.text = "Optional" }.withValidator(this, ::validateValue)
+
   private val keyComboBox = ComboBox(FieldType.values()).apply {
-    renderer = FieldTypeRenderer()
+    renderer = CustomListCellRenderer<FieldType> { it.title }
     selectedItem = FieldType.STRING
     addItemListener {
       updateVisibility()
+      keyJsonField.revalidateComponent()
+      keyField.revalidateComponent()
       mainComponent.revalidate()
     }
   }
 
   private val valueComboBox = ComboBox(FieldType.values()).apply {
-    renderer = FieldTypeRenderer()
+    renderer = CustomListCellRenderer<FieldType> { it.title }
     selectedItem = FieldType.STRING
     addItemListener {
       updateVisibility()
+      valueJsonField.revalidateComponent()
+      valueField.revalidateComponent()
       mainComponent.revalidate()
     }
   }
-
-  private val keyJson = createJsonTextArea(project)
-  private val valueJson = createJsonTextArea(project)
-
-  private val keyIntegerField = IntegerField().apply { emptyText.text = "Optional" }
-  private val valueIntegerField = IntegerField().apply { emptyText.text = "Optional" }
-
-  private val keyDoubleField = doubleField().apply { emptyText.text = "Optional" }
-  private val valueDoubleField = doubleField().apply { emptyText.text = "Optional" }
-
-  private val keyStringField = JBTextField().apply { emptyText.text = "Optional" }
-  private val valueStringField = JBTextField().apply { emptyText.text = "Optional" }
 
   private val forcePartitionField = IntegerField().apply {
     isCanBeEmpty = true
@@ -170,19 +172,14 @@ class KafkaProducerEditor(project: Project,
 
   private val settingsPanelDelegate = lazy {
     val panel = MigPanel(LC().insets("10").fillX().hideMode(3)).apply {
-      gapLeft = true
       row(KafkaMessagesBundle.message("producer.topics"), topicComboBox)
       row(KafkaMessagesBundle.message("producer.key"), keyComboBox)
-      add(keyJson, UiUtil.growXSpanXWrap)
-      add(keyIntegerField, UiUtil.growXSpanXWrap)
-      add(keyDoubleField, UiUtil.growXSpanXWrap)
-      add(keyStringField, UiUtil.growXSpanXWrap)
+      add(keyJsonField, UiUtil.growXSpanXWrap)
+      add(keyField, UiUtil.growXSpanXWrap)
 
       row(KafkaMessagesBundle.message("producer.value"), valueComboBox)
-      add(valueJson, UiUtil.growXSpanXWrap)
-      add(valueIntegerField, UiUtil.growXSpanXWrap)
-      add(valueDoubleField, UiUtil.growXSpanXWrap)
-      add(valueStringField, UiUtil.growXSpanXWrap)
+      add(valueJsonField, UiUtil.growXSpanXWrap)
+      add(valueField, UiUtil.growXSpanXWrap)
 
       title(KafkaMessagesBundle.message("producer.title.options"))
       row(KafkaMessagesBundle.message("producer.forcePartition"), forcePartitionField)
@@ -190,10 +187,8 @@ class KafkaProducerEditor(project: Project,
       block(propertiesComponent.getComponent())
 
       row(KafkaMessagesBundle.message("producer.compression"), compressionComboBox)
+      add(idempotenceCheckBox, UiUtil.spanXWrap)
       row(KafkaMessagesBundle.message("producer.asks"), acksComboBox)
-      add(idempotenceCheckBox, UiUtil.gapLeftSpanXWrap)
-
-      gapLeft = false
     }
 
     val scroll = JBScrollPane(panel, JScrollPane.VERTICAL_SCROLLBAR_ALWAYS, JScrollPane.HORIZONTAL_SCROLLBAR_NEVER).apply {
@@ -210,6 +205,14 @@ class KafkaProducerEditor(project: Project,
             KafkaMessagesBundle.message("producer.error.topic.empty.title"))
           return@addActionListener
         }
+
+        if (keyField.getValidationInfo() != null ||
+            keyJsonField.getValidationInfo() != null ||
+            valueField.getValidationInfo() != null ||
+            valueJsonField.getValidationInfo() != null) {
+          return@addActionListener
+        }
+
         val selectedTopicName = topic.name
 
         val key = ProducerField(keyComboBox.item!!, getKey())
@@ -319,59 +322,68 @@ class KafkaProducerEditor(project: Project,
       border = IdeBorderFactory.createBorder()
     }
 
-  private fun doubleField() = IntegerField()
-
   private fun updateVisibility() {
-    keyJson.isVisible = false
-    valueJson.isVisible = false
+    keyJsonField.isVisible = false
+    valueJsonField.isVisible = false
 
-    keyIntegerField.isVisible = false
-    valueIntegerField.isVisible = false
+    keyField.isVisible = false
+    valueField.isVisible = false
 
-    keyStringField.isVisible = false
-    valueStringField.isVisible = false
-
-    keyDoubleField.isVisible = false
-    valueDoubleField.isVisible = false
-
-    @Suppress("DuplicatedCode") when (keyComboBox.item!!) {
-      FieldType.JSON -> keyJson.isVisible = true
-      FieldType.STRING -> keyStringField.isVisible = true
-      FieldType.LONG -> keyIntegerField.isVisible = true
-      FieldType.DOUBLE -> keyDoubleField.isVisible = true
-      FieldType.FLOAT -> keyDoubleField.isVisible = true
-      FieldType.BASE64 -> keyStringField.isVisible = true
+    when (keyComboBox.item!!) {
+      FieldType.JSON -> keyJsonField.isVisible = true
+      FieldType.STRING, FieldType.LONG, FieldType.DOUBLE, FieldType.FLOAT, FieldType.BASE64 -> keyField.isVisible = true
       FieldType.NULL -> Unit
     }
 
-    @Suppress("DuplicatedCode") when (valueComboBox.item!!) {
-      FieldType.JSON -> valueJson.isVisible = true
-      FieldType.STRING -> valueStringField.isVisible = true
-      FieldType.LONG -> valueIntegerField.isVisible = true
-      FieldType.DOUBLE -> valueDoubleField.isVisible = true
-      FieldType.FLOAT -> valueDoubleField.isVisible = true
-      FieldType.BASE64 -> valueStringField.isVisible = true
+    when (valueComboBox.item!!) {
+      FieldType.JSON -> valueJsonField.isVisible = true
+      FieldType.STRING, FieldType.LONG, FieldType.DOUBLE, FieldType.FLOAT, FieldType.BASE64 -> valueField.isVisible = true
       FieldType.NULL -> Unit
     }
   }
 
-  private fun getKey() = when (keyComboBox.item!!) {
-    FieldType.JSON -> keyJson.text
-    FieldType.STRING -> keyStringField.text
-    FieldType.LONG -> keyIntegerField.text
-    FieldType.DOUBLE -> keyDoubleField.text
-    FieldType.FLOAT -> keyDoubleField.text
-    FieldType.BASE64 -> keyStringField.text
+  private fun validateKey(text: String): String? = validate(keyComboBox.item!!, getKey())
+
+  private fun validateValue(text: String): String? = validate(valueComboBox.item!!, getValue())
+
+  private fun validate(type: FieldType, value: String): String? {
+    return when (type) {
+      FieldType.JSON -> {
+        try {
+          JsonParser.parseString(value)
+          null
+        }
+        catch (iae: Exception) {
+          iae.cause?.message ?: iae.message
+        }
+      }
+      FieldType.STRING -> null
+      FieldType.LONG -> if (value.toLongOrNull() != null) null else "'$value' is not a valid long value"
+      FieldType.DOUBLE -> if (value.toDoubleOrNull() != null) null else "'$value' is not a valid double value"
+      FieldType.FLOAT -> if (value.toFloatOrNull() != null) null else "'$value' is not a valid float value"
+      FieldType.BASE64 -> {
+        val decoder = Base64.getDecoder()
+        try {
+          decoder.decode(value)
+          null
+        }
+        catch (iae: IllegalArgumentException) {
+          iae.message
+        }
+      }
+      FieldType.NULL -> null // Any value match null type
+    }
+  }
+
+  private fun getKey(): String = when (keyComboBox.item!!) {
+    FieldType.JSON -> keyJsonField.text
+    FieldType.STRING, FieldType.LONG, FieldType.DOUBLE, FieldType.FLOAT, FieldType.BASE64 -> keyField.text
     FieldType.NULL -> ""
   }
 
-  private fun getValue() = when (valueComboBox.item!!) {
-    FieldType.JSON -> valueJson.text
-    FieldType.STRING -> valueStringField.text
-    FieldType.LONG -> valueIntegerField.text
-    FieldType.DOUBLE -> valueDoubleField.text
-    FieldType.FLOAT -> valueDoubleField.text
-    FieldType.BASE64 -> valueStringField.text
+  private fun getValue(): String = when (valueComboBox.item!!) {
+    FieldType.JSON -> valueJsonField.text
+    FieldType.STRING, FieldType.LONG, FieldType.DOUBLE, FieldType.FLOAT, FieldType.BASE64 -> valueField.text
     FieldType.NULL -> ""
   }
 
@@ -403,26 +415,16 @@ class KafkaProducerEditor(project: Project,
     keyComboBox.item = config.keyType
 
     when (config.keyType) {
-      FieldType.JSON -> keyJson.text = config.key
-      FieldType.STRING -> keyStringField.text = config.key
-      FieldType.LONG -> keyIntegerField.text = config.key
-      FieldType.DOUBLE -> keyDoubleField.text = config.key
-      FieldType.FLOAT -> keyDoubleField.text = config.key
-      FieldType.BASE64 -> keyStringField.text = config.key
-      FieldType.NULL -> {
-      }
+      FieldType.JSON -> keyJsonField.text = config.key
+      FieldType.STRING, FieldType.LONG, FieldType.DOUBLE, FieldType.FLOAT, FieldType.BASE64 -> keyField.text = config.key
+      FieldType.NULL -> Unit
     }
     valueComboBox.item = config.valueType
 
     when (config.valueType) {
-      FieldType.JSON -> valueJson.text = config.value
-      FieldType.STRING -> valueStringField.text = config.value
-      FieldType.LONG -> valueIntegerField.text = config.value
-      FieldType.DOUBLE -> valueDoubleField.text = config.value
-      FieldType.FLOAT -> valueDoubleField.text = config.value
-      FieldType.BASE64 -> valueStringField.text = config.value
-      FieldType.NULL -> {
-      }
+      FieldType.JSON -> valueJsonField.text = config.value
+      FieldType.STRING, FieldType.LONG, FieldType.DOUBLE, FieldType.FLOAT, FieldType.BASE64 -> valueField.text = config.value
+      FieldType.NULL -> Unit
     }
 
     acksComboBox.item = config.acks

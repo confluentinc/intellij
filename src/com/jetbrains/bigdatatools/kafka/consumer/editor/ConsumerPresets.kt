@@ -56,9 +56,9 @@ class RunConsumerConfigCellRenderer : ListCellRenderer<RunConsumerConfig> {
     topicLabel.text = value.topic.ifEmpty { "No topic" }
 
     @Suppress("HardCodedStringLiteral")
-    keyLabel.text = "Key: ${value.keyType.value}"
+    keyLabel.text = "Key: ${value.keyType.title}"
     @Suppress("HardCodedStringLiteral")
-    valueLabel.text = "Value: ${value.valueType.value}"
+    valueLabel.text = "Value: ${value.valueType.title}"
 
     startFromLabel.isVisible = false
 

@@ -20,7 +20,6 @@ import com.intellij.util.ui.JBUI
 import com.jetbrains.bigdatatools.kafka.common.editor.KafkaEditorUtils
 import com.jetbrains.bigdatatools.kafka.common.editor.ListTableModel
 import com.jetbrains.bigdatatools.kafka.common.editor.SavePresetButton
-import com.jetbrains.bigdatatools.kafka.common.editor.renders.FieldTypeRenderer
 import com.jetbrains.bigdatatools.kafka.common.models.FieldType
 import com.jetbrains.bigdatatools.kafka.common.models.TopicInEditor
 import com.jetbrains.bigdatatools.kafka.common.settings.KafkaConfigStorage
@@ -98,7 +97,7 @@ class KafkaConsumerPanel(private val kafkaManager: KafkaDataManager,
   private val topicComboBox = KafkaEditorUtils.createTopicComboBox(this, kafkaManager)
 
   private val keyComboBox = ComboBox(FieldType.values()).apply {
-    renderer = FieldTypeRenderer()
+    renderer = CustomListCellRenderer<FieldType> { it.title }
     selectedItem = FieldType.STRING
     addItemListener {
       updateVisibility()
@@ -107,7 +106,7 @@ class KafkaConsumerPanel(private val kafkaManager: KafkaDataManager,
   }
 
   private val valueComboBox = ComboBox(FieldType.values()).apply {
-    renderer = FieldTypeRenderer()
+    renderer = CustomListCellRenderer<FieldType> { it.title }
     selectedItem = FieldType.STRING
     addItemListener {
       updateVisibility()

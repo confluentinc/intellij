@@ -40,12 +40,9 @@ class RunProducerConfigCellRenderer : ListCellRenderer<RunProducerConfig> {
       valueLabel.foreground = list.foreground
     }
 
-    @Suppress("HardCodedStringLiteral")
     topicLabel.text = "Topic: ${if (value?.topic.isNullOrEmpty()) "No topic" else value?.topic}"
-    @Suppress("HardCodedStringLiteral")
-    keyLabel.text = "Key [${value?.keyType?.value ?: "none"}]:  ${if (value?.key.isNullOrEmpty()) "No key" else value?.key}"
-    @Suppress("HardCodedStringLiteral")
-    valueLabel.text = "Value [${value?.valueType?.value ?: "none"}]:  ${if (value?.value.isNullOrEmpty()) "No key" else value?.value}"
+    keyLabel.text = "Key [${value?.keyType?.title ?: "none"}]:  ${if (value?.key.isNullOrEmpty()) "No key" else value?.key}"
+    valueLabel.text = "Value [${value?.valueType?.title ?: "none"}]:  ${if (value?.value.isNullOrEmpty()) "No key" else value?.value}"
 
     return component
   }
