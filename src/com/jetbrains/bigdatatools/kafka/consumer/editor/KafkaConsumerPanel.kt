@@ -19,7 +19,7 @@ import com.intellij.ui.components.JBTextField
 import com.intellij.util.ui.JBUI
 import com.jetbrains.bigdatatools.kafka.common.editor.KafkaEditorUtils
 import com.jetbrains.bigdatatools.kafka.common.editor.ListTableModel
-import com.jetbrains.bigdatatools.kafka.common.editor.SavePresetButton
+import com.jetbrains.bigdatatools.kafka.common.editor.SavePresetAction
 import com.jetbrains.bigdatatools.kafka.common.models.FieldType
 import com.jetbrains.bigdatatools.kafka.common.models.TopicInEditor
 import com.jetbrains.bigdatatools.kafka.common.settings.KafkaConfigStorage
@@ -28,6 +28,7 @@ import com.jetbrains.bigdatatools.kafka.consumer.models.*
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import com.jetbrains.bigdatatools.rfs.util.RfsNotificationUtils
+import com.jetbrains.bigdatatools.table.ClipboardUtils
 import com.jetbrains.bigdatatools.table.MaterialTable
 import com.jetbrains.bigdatatools.table.MaterialTableUtils
 import com.jetbrains.bigdatatools.table.TableResizeController
@@ -35,6 +36,7 @@ import com.jetbrains.bigdatatools.table.extension.TableFirstRowAdded
 import com.jetbrains.bigdatatools.table.filters.TableFilterHeader
 import com.jetbrains.bigdatatools.table.renderers.DateRenderer
 import com.jetbrains.bigdatatools.ui.*
+import com.jetbrains.bigdatatools.util.MessagesBundle
 import com.jetbrains.bigdatatools.util.executeOnPooledThread
 import com.michaelbaranov.microba.calendar.DatePicker
 import net.miginfocom.layout.LC
@@ -138,6 +140,8 @@ class KafkaConsumerPanel(private val kafkaManager: KafkaDataManager,
         MaterialTableUtils.fitColumnsWidth(this)
         resizeController.componentResized()
       }
+
+      setupTablePopupMenu(this)
     }
   }
   private val outputTable: MaterialTable by outputTableDelegate
@@ -311,7 +315,7 @@ class KafkaConsumerPanel(private val kafkaManager: KafkaDataManager,
     val settingsExpanded = PropertiesComponent.getInstance().getBoolean(SETTINGS_SHOW_ID, true)
     settingsSplitter.firstComponent = ExpansionPanel(KafkaMessagesBundle.message("toggle.settings"), { settingsPanel },
       settingsExpanded,
-      listOf(SavePresetButton(KafkaConfigStorage.instance.consumerConfig) { getRunConfig() })
+      listOf(SavePresetAction(KafkaConfigStorage.instance.consumerConfig) { getRunConfig() })
     ).apply {
       addChangeListener {
         settingsSplitter.proportion = 0.0001f
@@ -397,6 +401,23 @@ class KafkaConsumerPanel(private val kafkaManager: KafkaDataManager,
   }
 
   fun getComponent(): JComponent = presetsSplitter
+
+  private fun setupTablePopupMenu(table: JTable) {
+    val copyAll = JMenuItem(MessagesBundle.message("table.copyAll"))
+    copyAll.addActionListener { ClipboardUtils.copyAllToClipboard(table) }
+
+    val copySelected = JMenuItem(MessagesBundle.message("table.copySelected"))
+    copySelected.addActionListener { ClipboardUtils.copySelectedToClipboard(table) }
+
+    val clear = JMenuItem(KafkaMessagesBundle.message("action.clear.output"))
+    copySelected.addActionListener { outputModel.clear() }
+
+    table.componentPopupMenu = JPopupMenu().apply {
+      add(copyAll)
+      add(copySelected)
+      add(clear)
+    }
+  }
 
   private fun getFilter() = ConsumerFilter(
     type = filterComboBox.item,

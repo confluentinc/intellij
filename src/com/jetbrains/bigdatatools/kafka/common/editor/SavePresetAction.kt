@@ -7,7 +7,7 @@ import com.jetbrains.bigdatatools.kafka.common.settings.KafkaRunConfig
 import com.jetbrains.bigdatatools.kafka.util.KafkaIcons
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 
-class SavePresetButton(private val runConfig: KafkaRunConfig, private val configSupplier: () -> RunConfig)
+class SavePresetAction(private val runConfig: KafkaRunConfig, private val configSupplier: () -> RunConfig)
   : DumbAwareAction(KafkaMessagesBundle.message("action.save.preset"), null, KafkaIcons.BOOKMARK_OFF) {
 
   override fun update(e: AnActionEvent) {

@@ -26,7 +26,7 @@ import com.intellij.util.ui.JBUI
 import com.jetbrains.bigdatatools.kafka.common.editor.KafkaEditorUtils
 import com.jetbrains.bigdatatools.kafka.common.editor.ListTableModel
 import com.jetbrains.bigdatatools.kafka.common.editor.PropertiesTable
-import com.jetbrains.bigdatatools.kafka.common.editor.SavePresetButton
+import com.jetbrains.bigdatatools.kafka.common.editor.SavePresetAction
 import com.jetbrains.bigdatatools.kafka.common.models.FieldType
 import com.jetbrains.bigdatatools.kafka.common.models.ProducerField
 import com.jetbrains.bigdatatools.kafka.common.models.TopicInEditor
@@ -38,6 +38,7 @@ import com.jetbrains.bigdatatools.settings.defaultui.UiUtil
 import com.jetbrains.bigdatatools.settings.getValidationInfo
 import com.jetbrains.bigdatatools.settings.revalidateComponent
 import com.jetbrains.bigdatatools.settings.withValidator
+import com.jetbrains.bigdatatools.table.ClipboardUtils
 import com.jetbrains.bigdatatools.table.MaterialTable
 import com.jetbrains.bigdatatools.table.MaterialTableUtils
 import com.jetbrains.bigdatatools.table.TableResizeController
@@ -48,6 +49,7 @@ import com.jetbrains.bigdatatools.table.renderers.DurationRenderer
 import com.jetbrains.bigdatatools.ui.CustomListCellRenderer
 import com.jetbrains.bigdatatools.ui.ExpansionPanel
 import com.jetbrains.bigdatatools.ui.MigPanel
+import com.jetbrains.bigdatatools.util.MessagesBundle
 import net.miginfocom.layout.LC
 import java.awt.BorderLayout
 import java.awt.Dimension
@@ -56,7 +58,6 @@ import java.util.*
 import javax.swing.*
 import kotlin.math.max
 
-@Suppress("DuplicatedCode")
 class KafkaProducerEditor(project: Project,
                           kafkaManager: KafkaDataManager,
                           private val file: VirtualFile) : FileEditor, UserDataHolderBase() {
@@ -152,6 +153,7 @@ class KafkaProducerEditor(project: Project,
         MaterialTableUtils.fitColumnsWidth(this)
         resizeController.componentResized()
       }
+      setupTablePopupMenu(this)
     }
   }
   private val outputTable: MaterialTable by outputTableDelegate
@@ -258,7 +260,7 @@ class KafkaProducerEditor(project: Project,
     val settingsExpanded = PropertiesComponent.getInstance().getBoolean(SETTINGS_SHOW_ID, true)
     settingsSplitter.firstComponent = ExpansionPanel(KafkaMessagesBundle.message("toggle.settings"), { settingsPanel },
       settingsExpanded,
-      listOf(SavePresetButton(KafkaConfigStorage.instance.producerConfig) { getConfig() })).apply {
+      listOf(SavePresetAction(KafkaConfigStorage.instance.producerConfig) { getConfig() })).apply {
       addChangeListener {
         settingsSplitter.proportion = 0.0001f
         settingsSplitter.setResizeEnabled(this.expanded)
@@ -303,6 +305,23 @@ class KafkaProducerEditor(project: Project,
     storeToFile()
   }
 
+  private fun setupTablePopupMenu(table: JTable) {
+    val copyAll = JMenuItem(MessagesBundle.message("table.copyAll"))
+    copyAll.addActionListener { ClipboardUtils.copyAllToClipboard(table) }
+
+    val copySelected = JMenuItem(MessagesBundle.message("table.copySelected"))
+    copySelected.addActionListener { ClipboardUtils.copySelectedToClipboard(table) }
+
+    val clear = JMenuItem(KafkaMessagesBundle.message("action.clear.output"))
+    copySelected.addActionListener { outputModel.clear() }
+
+    table.componentPopupMenu = JPopupMenu().apply {
+      add(copyAll)
+      add(copySelected)
+      add(clear)
+    }
+  }
+
   private fun createCenterPanel(): JComponent = presetsSplitter
 
   private fun createJsonTextArea(project: Project) = EditorTextFieldProvider.getInstance()
@@ -342,8 +361,10 @@ class KafkaProducerEditor(project: Project,
     }
   }
 
+  @Suppress("UNUSED_PARAMETER")
   private fun validateKey(text: String): String? = validate(keyComboBox.item!!, getKey())
 
+  @Suppress("UNUSED_PARAMETER")
   private fun validateValue(text: String): String? = validate(valueComboBox.item!!, getValue())
 
   private fun validate(type: FieldType, value: String): String? {
