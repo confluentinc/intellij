@@ -3,7 +3,7 @@ package com.jetbrains.bigdatatools.kafka.common.models
 import com.intellij.util.Base64
 
 data class ProducerField(val type: FieldType, val text: String?) {
-  val value = when (type) {
+  val value: Any? = when (type) {
     FieldType.JSON -> text
     FieldType.STRING -> text
     FieldType.LONG -> text?.toLong()

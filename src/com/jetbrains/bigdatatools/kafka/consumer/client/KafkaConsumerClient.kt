@@ -15,7 +15,6 @@ import org.apache.kafka.clients.consumer.KafkaConsumer
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.errors.SerializationException
-import java.io.Serializable
 import java.time.Duration
 import java.util.*
 import java.util.concurrent.atomic.AtomicBoolean
@@ -25,12 +24,12 @@ class KafkaConsumerClient(val client: KafkaClient,
                           val onStop: () -> Unit) : Disposable {
   val connectionData = client.connectionData
   private val isRunning = AtomicBoolean(false)
-  private var runConsumer: KafkaConsumer<Serializable, Serializable>? = null
+  private var runConsumer: KafkaConsumer<Any, Any>? = null
 
   override fun dispose() = stop()
 
   fun start(config: RunConsumerConfig,
-            consume: (ConsumerRecord<Serializable, Serializable>) -> Unit,
+            consume: (ConsumerRecord<Any, Any>) -> Unit,
             consumeError: (Throwable) -> Unit) {
     if (config.topic.isBlank()) {
       error(KafkaMessagesBundle.message("consumer.error.topic.empty"))
@@ -85,7 +84,7 @@ class KafkaConsumerClient(val client: KafkaClient,
               return@executeOnPooledThread
             }
 
-            records.forEach { record ->
+            records.forEach { record: ConsumerRecord<Any, Any> ->
               if (config.limit.time != null && record.timestamp() > config.limit.time) {
                 return@executeOnPooledThread
               }
@@ -143,7 +142,7 @@ class KafkaConsumerClient(val client: KafkaClient,
     }
   }
 
-  private fun seekPartitions(consumer: KafkaConsumer<Serializable, Serializable>,
+  private fun seekPartitions(consumer: KafkaConsumer<Any, Any>,
                              partitions: List<TopicPartition>,
                              startWith: ConsumerStartWith) {
     val startFromOffsetSeek = startWith.offset?.let { partitionOffsetsForStartOffset(consumer, partitions, it) }
@@ -162,7 +161,7 @@ class KafkaConsumerClient(val client: KafkaClient,
     }
   }
 
-  private fun createConsumer(keyType: FieldType, valueType: FieldType): KafkaConsumer<Serializable, Serializable> {
+  private fun createConsumer(keyType: FieldType, valueType: FieldType): KafkaConsumer<Any, Any> {
     val props = client.kafkaProps.clone() as Properties
     props[ConsumerConfig.GROUP_ID_CONFIG] = "BigDataTools"
     props[ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG] = keyType.getDeserializationClass()::class.java
@@ -170,7 +169,7 @@ class KafkaConsumerClient(val client: KafkaClient,
     return KafkaConsumer(props)
   }
 
-  private fun calculatePartitions(consumer: KafkaConsumer<Serializable, Serializable>,
+  private fun calculatePartitions(consumer: KafkaConsumer<Any, Any>,
                                   topic: String,
                                   partitionFilter: List<Int>?): List<TopicPartition> {
     var partitions = consumer.partitionsFor(topic).map { TopicPartition(it.topic(), it.partition()) }
@@ -189,7 +188,7 @@ class KafkaConsumerClient(val client: KafkaClient,
 
   fun isRunning() = isRunning.get()
 
-  private fun partitionOffsetsForStartOffset(consumer: KafkaConsumer<Serializable, Serializable>,
+  private fun partitionOffsetsForStartOffset(consumer: KafkaConsumer<Any, Any>,
                                              partitions: List<TopicPartition>,
                                              offset: Long) = if (offset < 0) {
     consumer.endOffsets(partitions).map { it.key to (it.value + offset).coerceAtLeast(0) }.toMap()
@@ -200,7 +199,7 @@ class KafkaConsumerClient(val client: KafkaClient,
 
   private fun partitionOffsetsForStartDate(startTime: Long,
                                            partitions: List<TopicPartition>,
-                                           consumer: KafkaConsumer<Serializable, Serializable>): Map<TopicPartition, Long?>? {
+                                           consumer: KafkaConsumer<Any, Any>): Map<TopicPartition, Long?>? {
     val timestampsToSearch = partitions.associateWith { startTime }
     val offsetsForTimes = consumer.offsetsForTimes(timestampsToSearch)
     return offsetsForTimes?.map { it.key to it.value?.offset() }?.toMap()

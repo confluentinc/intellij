@@ -41,7 +41,6 @@ import net.miginfocom.layout.LC
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import java.awt.BorderLayout
 import java.awt.Dimension
-import java.io.Serializable
 import java.util.*
 import javax.swing.*
 import kotlin.math.max
@@ -114,7 +113,7 @@ class KafkaConsumerPanel(private val kafkaManager: KafkaDataManager,
     }
   }
 
-  private val outputModel = ListTableModel(ArrayList<Result<ConsumerRecord<Serializable, Serializable>>>(),
+  private val outputModel = ListTableModel(ArrayList<Result<ConsumerRecord<Any, Any>>>(),
     listOf("partition", "offset", "timestamp", "value")) { data, index ->
     when (index) {
       0 -> data.getOrNull()?.partition() ?: ""
@@ -369,7 +368,7 @@ class KafkaConsumerPanel(private val kafkaManager: KafkaDataManager,
     }
     consumerClient.start(runConfig,
       consume = { record ->
-        val success: Result<ConsumerRecord<Serializable, Serializable>> = Result.success(record)
+        val success = Result.success(record)
         outputModel.addElement(success)
       },
       consumeError = {

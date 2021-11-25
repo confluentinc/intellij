@@ -1,14 +1,13 @@
 package com.jetbrains.bigdatatools.kafka.consumer.models
 
 import org.apache.kafka.clients.consumer.ConsumerRecord
-import java.io.Serializable
 
 data class ConsumerFilter(val filterKey: String?,
                           val filterValue: String?,
                           val filterHeadKey: String?,
                           val filterHeadValue: String?,
                           val type: ConsumerFilterType) {
-  fun isRecordPassFilter(record: ConsumerRecord<Serializable, Serializable>): Boolean =
+  fun isRecordPassFilter(record: ConsumerRecord<Any, Any>): Boolean =
     isPassFilter(record.key()?.toString(), filterKey) &&
     isPassFilter(record.value()?.toString(), filterValue) &&
     isPassFilterHeaders(record.headers().map { it.key() }, filterHeadKey) &&

@@ -13,7 +13,6 @@ import com.jetbrains.bigdatatools.util.SizeUtils
 import com.jetbrains.bigdatatools.util.TimeUtils
 import net.miginfocom.layout.LC
 import org.apache.kafka.clients.consumer.ConsumerRecord
-import java.io.Serializable
 import java.nio.charset.StandardCharsets
 import javax.swing.BorderFactory
 import javax.swing.JLabel
@@ -44,7 +43,7 @@ class ConsumerRecordDetails {
   private val keySize = JTextField(10)
   private val valueSize = JTextField(10)
 
-  var record: ConsumerRecord<Serializable, Serializable>? = null
+  var record: ConsumerRecord<Any, Any>? = null
     set(value) {
       field = value
 

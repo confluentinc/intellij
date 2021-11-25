@@ -9,7 +9,6 @@ import com.jetbrains.bigdatatools.settings.connections.Property
 import org.apache.kafka.clients.producer.KafkaProducer
 import org.apache.kafka.clients.producer.ProducerConfig
 import org.apache.kafka.clients.producer.ProducerRecord
-import java.io.Serializable
 import java.util.*
 
 class KafkaProducerClient(val client: KafkaClient) {
@@ -27,11 +26,11 @@ class KafkaProducerClient(val client: KafkaClient) {
     props[ProducerConfig.COMPRESSION_TYPE_CONFIG] = recordCompression.name.lowercase()
 
     if (enableIdempotence)
-      props[ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG] = enableIdempotence
+      props[ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG] = true
     else
       props[ProducerConfig.ACKS_CONFIG] = acks.value.toString()
 
-    val producer = KafkaProducer<Serializable, Serializable>(props)
+    val producer = KafkaProducer<Any, Any>(props)
 
     return try {
       val record = ProducerRecord(topic, if (forcePartition >= 0) forcePartition else null, key.value, value.value)
@@ -43,11 +42,11 @@ class KafkaProducerClient(val client: KafkaClient) {
       val metaInfo = producer.send(record).get()
       val end = System.currentTimeMillis()
       ProducerResultMessage(key = key.value?.toString() ?: "",
-                            value = value.value?.toString() ?: "",
-                            offset = metaInfo.offset(),
-                            timestamp = Date(metaInfo.timestamp()),
-                            duration = (end - start).toInt(),
-                            partition = metaInfo.partition())
+        value = value.value?.toString() ?: "",
+        offset = metaInfo.offset(),
+        timestamp = Date(metaInfo.timestamp()),
+        duration = (end - start).toInt(),
+        partition = metaInfo.partition())
     }
     finally {
       producer.flush()
