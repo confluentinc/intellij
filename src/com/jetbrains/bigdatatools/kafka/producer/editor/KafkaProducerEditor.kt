@@ -332,7 +332,7 @@ class KafkaProducerEditor(project: Project,
           isLineMarkerAreaShown = false
           isFoldingOutlineShown = false
           isRightMarginShown = false
-          additionalLinesCount = 5
+          additionalLinesCount = 1
           additionalColumnsCount = 5
           isAdditionalPageAtBottom = false
           isShowIntentionBulb = false
