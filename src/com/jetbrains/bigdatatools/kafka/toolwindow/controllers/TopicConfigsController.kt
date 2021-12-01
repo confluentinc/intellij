@@ -46,7 +46,6 @@ class TopicConfigsController(val project: Project,
       }
     }
 
-
     return listOf(showFullConfig)
   }
 }

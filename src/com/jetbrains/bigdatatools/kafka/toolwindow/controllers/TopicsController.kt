@@ -60,7 +60,6 @@ class TopicsController(project: Project, private val dataManager: KafkaDataManag
     topicTable.selectionModel.addListSelectionListener(topicSelectionListener)
     Disposer.register(this, topicTable)
 
-
     detailsSplitter.firstComponent = SimpleToolWindowPanel(false, true).apply {
       setContent(MaterialJBScrollPane(topicTable))
       val actionToolbar = createToolbar(columnModel)
