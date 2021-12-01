@@ -29,18 +29,10 @@ class KafkaSettingsCustomizer(project: Project, connectionData: KafkaConnectionD
     fileChooserDescriptor = com.intellij.openapi.fileChooser.FileChooserDescriptorFactory.createSingleFileDescriptor())
     .withNotEmptyValidator(uiDisposable)
 
-
   private val sourceTypeChooser = ComboBoxField(KafkaConnectionData::propertySource,
     KafkaSettingsKeys.PROPERTIES_SOURCE_KEY,
     connectionData,
-    arrayOf(KafkaPropertySource.DIRECT, KafkaPropertySource.FILE)) {
-    when (it) {
-      KafkaPropertySource.DIRECT -> KafkaPropertySource.DIRECT.title
-      KafkaPropertySource.FILE -> KafkaPropertySource.FILE.title
-    }
-  }.apply {
-    getComponent().setMinLength(Int.MAX_VALUE)
-  }
+    KafkaPropertySource.values()) { it.title }
 
   init {
     sourceTypeChooser.getComponent().addItemListener {
@@ -55,9 +47,8 @@ class KafkaSettingsCustomizer(project: Project, connectionData: KafkaConnectionD
   override fun getDefaultComponent(fields: List<WrappedComponent<in KafkaConnectionData>>, conn: KafkaConnectionData) = MigPanel().apply {
     row(nameField)
     row(url)
-    row(propertiesEditor)
 
-    row(KafkaMessagesBundle.message("settings.property.source"), sourceTypeChooser.getComponent())
+    shortRow(KafkaMessagesBundle.message("settings.property.source"), sourceTypeChooser.getComponent())
     row(propertiesEditor)
     row(propertiesFile)
 
@@ -70,7 +61,6 @@ class KafkaSettingsCustomizer(project: Project, connectionData: KafkaConnectionD
     propertiesEditor.isVisible = authType == KafkaPropertySource.DIRECT
     propertiesFile.isVisible = authType == KafkaPropertySource.FILE
   }
-
 
   object KafkaSettingsKeys {
     val PROPERTIES_KEY = ModificationKey(KafkaMessagesBundle.message("settings.properties"))
