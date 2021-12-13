@@ -1,6 +1,7 @@
 package com.jetbrains.bigdatatools.kafka.settings
 
 import com.intellij.openapi.Disposable
+import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory
 import com.intellij.openapi.project.Project
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaConnectionData
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaPropertySource
@@ -9,7 +10,10 @@ import com.jetbrains.bigdatatools.kafka.util.KafkaPropertiesUtils
 import com.jetbrains.bigdatatools.monitoring.TunnableSettingsCustomizer
 import com.jetbrains.bigdatatools.settings.ModificationKey
 import com.jetbrains.bigdatatools.settings.defaultui.UiUtil
-import com.jetbrains.bigdatatools.settings.fields.*
+import com.jetbrains.bigdatatools.settings.fields.BrowseTextField
+import com.jetbrains.bigdatatools.settings.fields.PropertiesFieldComponent
+import com.jetbrains.bigdatatools.settings.fields.RadioGroupField
+import com.jetbrains.bigdatatools.settings.fields.WrappedComponent
 import com.jetbrains.bigdatatools.settings.withNotEmptyValidator
 import com.jetbrains.bigdatatools.ui.MigPanel
 
@@ -23,19 +27,21 @@ class KafkaSettingsCustomizer(project: Project, connectionData: KafkaConnectionD
     KafkaSettingsKeys.PROPERTIES_KEY,
     connectionData, uiDisposable)
 
-  private val propertiesFile: WrappedTextComponent<KafkaConnectionData, *> = BrowseTextField(KafkaConnectionData::propertyFilePath,
-    KafkaSettingsKeys.PROPERTIES_FILE_KEY, connectionData,
-    browseTitle = KafkaMessagesBundle.message("settings.properties.file.browse"),
-    fileChooserDescriptor = com.intellij.openapi.fileChooser.FileChooserDescriptorFactory.createSingleFileDescriptor())
+  private val propertiesFile = BrowseTextField(KafkaConnectionData::propertyFilePath,
+                                               KafkaSettingsKeys.PROPERTIES_FILE_KEY,
+                                               connectionData,
+                                               browseTitle = KafkaMessagesBundle.message(
+                                                 "settings.properties.file.browse"),
+                                               fileChooserDescriptor = FileChooserDescriptorFactory.createSingleFileDescriptor())
     .withNotEmptyValidator(uiDisposable)
 
-  private val sourceTypeChooser = ComboBoxField(KafkaConnectionData::propertySource,
-    KafkaSettingsKeys.PROPERTIES_SOURCE_KEY,
-    connectionData,
-    KafkaPropertySource.values()) { it.title }
+  private val sourceTypeChooser = RadioGroupField(KafkaConnectionData::propertySource,
+                                                  KafkaSettingsKeys.PROPERTIES_SOURCE_KEY,
+                                                  connectionData,
+                                                  KafkaPropertySource.values())
 
   init {
-    sourceTypeChooser.getComponent().addItemListener {
+    sourceTypeChooser.addItemListener {
       updateAuthStatus()
     }
     updateAuthStatus()
@@ -48,16 +54,18 @@ class KafkaSettingsCustomizer(project: Project, connectionData: KafkaConnectionD
     row(nameField)
     row(url)
 
-    shortRow(KafkaMessagesBundle.message("settings.property.source"), sourceTypeChooser.getComponent())
+    shortRow(sourceTypeChooser)
+    gapLeft = true
     row(propertiesEditor)
     row(propertiesFile)
+    gapLeft = false
 
+    separatorRow()
     add(tunnelField.getComponent(), UiUtil.spanXWrap)
   }
 
   private fun updateAuthStatus() {
     val authType = sourceTypeChooser.getValue()
-
     propertiesEditor.isVisible = authType == KafkaPropertySource.DIRECT
     propertiesFile.isVisible = authType == KafkaPropertySource.FILE
   }
