@@ -37,9 +37,9 @@ object BdtKafkaMapper {
     }
 
     val underReplicatedPartitionsCount: Int = partitions.flatMap { it.replicas }.count { !it.inSync }
-    val inSyncReplicasCount = partitions.sumBy { it.inSyncReplicasCount }
+    val inSyncReplicasCount = partitions.sumOf { it.inSyncReplicasCount }
 
-    val replicasCount = partitions.sumBy { it.replicasCount }
+    val replicasCount = partitions.sumOf { it.replicasCount }
     val replicationFactor = topicDescription.partitions().firstOrNull()?.replicas()?.size ?: 0
 
     return TopicPresentable(internal = topicDescription.isInternal,
