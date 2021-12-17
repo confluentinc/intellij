@@ -18,7 +18,7 @@ enum class FieldType(@Nls val title: String) {
     LONG -> LongDeserializer()
     DOUBLE -> DoubleDeserializer()
     FLOAT -> FloatDeserializer()
-    BASE64 -> BytesDeserializer()
+    BASE64 -> ByteArrayDeserializer()
     NULL -> VoidDeserializer()
   }
 
@@ -28,7 +28,7 @@ enum class FieldType(@Nls val title: String) {
     LONG -> LongSerializer()
     DOUBLE -> DoubleSerializer()
     FLOAT -> FloatSerializer()
-    BASE64 -> BytesSerializer()
+    BASE64 -> ByteArraySerializer()
     NULL -> VoidSerializer()
   }
 }

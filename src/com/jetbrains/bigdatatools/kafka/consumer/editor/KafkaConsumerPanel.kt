@@ -4,6 +4,7 @@ import com.intellij.icons.AllIcons
 import com.intellij.ide.util.PropertiesComponent
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.AnActionEvent
+import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.Messages
@@ -365,9 +366,11 @@ class KafkaConsumerPanel(private val kafkaManager: KafkaDataManager,
   private fun startConsume() {
     val runConfig = getRunConfig()
     if (runConfig.topic.isBlank()) {
-      Messages.showErrorDialog(kafkaManager.project,
-        KafkaMessagesBundle.message("consumer.error.topic.empty"),
-        KafkaMessagesBundle.message("consumer.error.topic.empty.title"))
+      invokeLater {
+        Messages.showErrorDialog(kafkaManager.project,
+          KafkaMessagesBundle.message("consumer.error.topic.empty"),
+          KafkaMessagesBundle.message("consumer.error.topic.empty.title"))
+      }
       return
     }
     consumerClient.start(runConfig,
