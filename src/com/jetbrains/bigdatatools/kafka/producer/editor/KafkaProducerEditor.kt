@@ -34,6 +34,7 @@ import com.jetbrains.bigdatatools.kafka.common.settings.KafkaConfigStorage
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.producer.models.*
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import com.jetbrains.bigdatatools.rfs.util.RfsNotificationUtils
 import com.jetbrains.bigdatatools.settings.defaultui.UiUtil
 import com.jetbrains.bigdatatools.settings.getValidationInfo
 import com.jetbrains.bigdatatools.settings.revalidateComponent
@@ -50,6 +51,8 @@ import com.jetbrains.bigdatatools.ui.CustomListCellRenderer
 import com.jetbrains.bigdatatools.ui.ExpansionPanel
 import com.jetbrains.bigdatatools.ui.MigPanel
 import com.jetbrains.bigdatatools.util.MessagesBundle
+import com.jetbrains.bigdatatools.util.executeNotOnEdt
+import com.jetbrains.bigdatatools.util.invokeLater
 import net.miginfocom.layout.LC
 import java.awt.BorderLayout
 import java.awt.Dimension
@@ -222,9 +225,18 @@ class KafkaProducerEditor(project: Project,
 
         getConfig()
 
-        val result = producerClient.sentMessage(selectedTopicName, key, value, propertiesComponent.properties, compressionComboBox.item,
-          acksComboBox.item, idempotenceCheckBox.isSelected, forcePartitionField.value)
-        outputModel.addElement(result)
+        executeNotOnEdt {
+          try {
+            val result = producerClient.sentMessage(selectedTopicName, key, value, propertiesComponent.properties, compressionComboBox.item,
+              acksComboBox.item, idempotenceCheckBox.isSelected, forcePartitionField.value)
+            outputModel.addElement(result)
+          }
+          catch (t: Throwable) {
+            invokeLater {
+              RfsNotificationUtils.showExceptionMessage(project, t, title = KafkaMessagesBundle.message("kafka.producer.error"))
+            }
+          }
+        }
       }
     }
 

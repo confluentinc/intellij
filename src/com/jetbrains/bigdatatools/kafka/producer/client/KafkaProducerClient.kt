@@ -5,11 +5,13 @@ import com.jetbrains.bigdatatools.kafka.common.models.ProducerField
 import com.jetbrains.bigdatatools.kafka.producer.models.AcksType
 import com.jetbrains.bigdatatools.kafka.producer.models.ProducerResultMessage
 import com.jetbrains.bigdatatools.kafka.producer.models.RecordCompression
+import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import com.jetbrains.bigdatatools.settings.connections.Property
 import org.apache.kafka.clients.producer.KafkaProducer
 import org.apache.kafka.clients.producer.ProducerConfig
 import org.apache.kafka.clients.producer.ProducerRecord
 import java.util.*
+import java.util.concurrent.TimeUnit
 
 class KafkaProducerClient(val client: KafkaClient) {
   val connectionData = client.connectionData
@@ -33,13 +35,23 @@ class KafkaProducerClient(val client: KafkaClient) {
     val producer = KafkaProducer<Any, Any>(props)
 
     return try {
-      val record = ProducerRecord(topic, if (forcePartition >= 0) forcePartition else null, key.value, value.value)
+      val partition = if (forcePartition >= 0) {
+        val partitions = producer.partitionsFor(topic)
+        if (!partitions.any { it.partition() == forcePartition }) {
+          error(KafkaMessagesBundle.message("producer.wrong.partition", forcePartition, topic))
+        }
+        forcePartition
+      }
+      else
+        null
+
+      val record = ProducerRecord(topic, partition, key.value, value.value)
       headers.forEach {
         record.headers().add((it.name ?: ""), (it.value ?: "").toByteArray())
       }
 
       val start = System.currentTimeMillis()
-      val metaInfo = producer.send(record).get()
+      val metaInfo = producer.send(record).get(15, TimeUnit.SECONDS)
       val end = System.currentTimeMillis()
       ProducerResultMessage(key = key.value?.toString() ?: "",
         value = value.value?.toString() ?: "",
