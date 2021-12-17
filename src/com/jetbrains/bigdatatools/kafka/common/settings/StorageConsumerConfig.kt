@@ -3,12 +3,12 @@ package com.jetbrains.bigdatatools.kafka.common.settings
 import com.jetbrains.bigdatatools.kafka.common.models.FieldType
 import com.jetbrains.bigdatatools.kafka.consumer.models.*
 
-data class StorageConsumerConfig(var topic: String = "",
-                                 var keyType: String = "",
-                                 var valueType: String = "",
+data class StorageConsumerConfig(var topic: String? = "",
+                                 var keyType: String? = "",
+                                 var valueType: String? = "",
                                  var filter: Map<String, String> = emptyMap(),
                                  var limit: Map<String, String> = emptyMap(),
-                                 var partitions: String = "",
+                                 var partitions: String? = "",
                                  var startWith: Map<String, String> = emptyMap()) : StorageConfig {
 
   override fun fromStorage(): RunConsumerConfig {
@@ -33,10 +33,10 @@ data class StorageConsumerConfig(var topic: String = "",
       startWith["consumerGroup"])
 
     return RunConsumerConfig(
-      topic = topic,
+      topic = topic ?: "",
       keyType = FieldType.values().firstOrNull { it.name == keyType } ?: FieldType.STRING,
       valueType = FieldType.values().firstOrNull { it.name == valueType } ?: FieldType.STRING,
-      filter, limit, partitions, startWith
+      filter, limit, partitions ?: "", startWith
     )
   }
 }
