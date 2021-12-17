@@ -232,6 +232,9 @@ class KafkaConsumerClient(val client: KafkaClient,
         calendar.add(Calendar.DAY_OF_YEAR, -1)
         calendar.time
       }
+      ConsumerStartType.THE_BEGINNING -> {
+        Date(0)
+      }
       else -> null
     }?.time
   }
