@@ -130,8 +130,8 @@ class KafkaProducerEditor(project: Project,
       1 -> data.value
       2 -> data.timestamp
       //  3 -> data.offset
-      4 -> data.partition
-      5 -> data.duration
+      3 -> data.partition
+      4 -> data.duration
       else -> ""
     }
   }
