@@ -70,8 +70,8 @@ class ConsumerRecordDetails {
         offset.text = value.offset().toString()
         timestamp.text = TimeUtils.unixTimeToString(value.timestamp())
         timestampType.text = value.timestampType().toString()
-        keySize.text = SizeUtils.toString(value.serializedKeySize())
-        valueSize.text = SizeUtils.toString(value.serializedValueSize())
+        keySize.text = if (value.serializedKeySize() == -1) "None" else SizeUtils.toString(value.serializedKeySize())
+        valueSize.text = if (value.serializedValueSize() == -1) "None" else SizeUtils.toString(value.serializedValueSize())
 
         val headerProperties = value.headers().map { Property(it.key(), String(it.value(), StandardCharsets.UTF_8)) }
         headers.properties = headerProperties.toMutableList()
