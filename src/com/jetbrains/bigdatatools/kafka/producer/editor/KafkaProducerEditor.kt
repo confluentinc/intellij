@@ -124,7 +124,7 @@ class KafkaProducerEditor(project: Project,
 
   //ToDo "offset" temporary removed because always -1
   private val outputModel = ListTableModel(ArrayList<ProducerResultMessage>(),
-    listOf("key", "value", "timestamp", "partition", "duration")) { data, index ->
+                                           listOf("key", "value", "timestamp", "partition", "duration")) { data, index ->
     when (index) {
       0 -> data.key
       1 -> data.value
@@ -162,10 +162,10 @@ class KafkaProducerEditor(project: Project,
   private val outputTable: MaterialTable by outputTableDelegate
 
   private fun getConfig() = RunProducerConfig(topicComboBox.item?.name ?: "", keyType = keyComboBox.item, key = getKey(),
-    valueType = valueComboBox.item, value = getValue(),
-    properties = propertiesComponent.properties, compression = compressionComboBox.item,
-    acks = acksComboBox.item, idempotence = idempotenceCheckBox.isSelected,
-    forcePartition = forcePartitionField.value)
+                                              valueType = valueComboBox.item, value = getValue(),
+                                              properties = propertiesComponent.properties, compression = compressionComboBox.item,
+                                              acks = acksComboBox.item, idempotence = idempotenceCheckBox.isSelected,
+                                              forcePartition = forcePartitionField.value)
 
   private val presetsDelegate = lazy {
     val presets = ProducerPresets()
@@ -206,8 +206,8 @@ class KafkaProducerEditor(project: Project,
         val topic = topicComboBox.item
         if (topic == null || topic.name.isBlank()) {
           Messages.showErrorDialog(kafkaManager.project,
-            KafkaMessagesBundle.message("producer.error.topic.empty"),
-            KafkaMessagesBundle.message("producer.error.topic.empty.title"))
+                                   KafkaMessagesBundle.message("producer.error.topic.empty"),
+                                   KafkaMessagesBundle.message("producer.error.topic.empty.title"))
           return@addActionListener
         }
 
@@ -228,8 +228,10 @@ class KafkaProducerEditor(project: Project,
         executeNotOnEdt {
           try {
             val result = producerClient.sentMessage(selectedTopicName, key, value, propertiesComponent.properties, compressionComboBox.item,
-              acksComboBox.item, idempotenceCheckBox.isSelected, forcePartitionField.value)
-            outputModel.addElement(result)
+                                                    acksComboBox.item, idempotenceCheckBox.isSelected, forcePartitionField.value)
+            invokeLater {
+              outputModel.addElement(result)
+            }
           }
           catch (t: Throwable) {
             invokeLater {
@@ -271,8 +273,9 @@ class KafkaProducerEditor(project: Project,
   init {
     val settingsExpanded = PropertiesComponent.getInstance().getBoolean(SETTINGS_SHOW_ID, true)
     settingsSplitter.firstComponent = ExpansionPanel(KafkaMessagesBundle.message("toggle.settings"), { settingsPanel },
-      settingsExpanded,
-      listOf(SavePresetAction(KafkaConfigStorage.instance.producerConfig) { getConfig() })).apply {
+                                                     settingsExpanded,
+                                                     listOf(SavePresetAction(
+                                                       KafkaConfigStorage.instance.producerConfig) { getConfig() })).apply {
       addChangeListener {
         settingsSplitter.proportion = 0.0001f
         settingsSplitter.setResizeEnabled(this.expanded)
@@ -288,8 +291,8 @@ class KafkaProducerEditor(project: Project,
 
     val outputTableScroll = JBScrollPane(outputTable).apply { border = BorderFactory.createEmptyBorder() }
     settingsSplitter.secondComponent = ExpansionPanel(KafkaMessagesBundle.message("toggle.data"), { outputTableScroll },
-      PropertiesComponent.getInstance().getBoolean(DATA_SHOW_ID, true),
-      listOf(clearButton)
+                                                      PropertiesComponent.getInstance().getBoolean(DATA_SHOW_ID, true),
+                                                      listOf(clearButton)
     ).apply {
       addChangeListener {
         settingsSplitter.proportion = 0.0001f
@@ -338,18 +341,18 @@ class KafkaProducerEditor(project: Project,
 
   private fun createJsonTextArea(project: Project) = EditorTextFieldProvider.getInstance()
     .getEditorField(JsonLanguage.INSTANCE, project,
-      listOf(EditorCustomization {
-        it.settings.apply {
-          isLineNumbersShown = false
-          isLineMarkerAreaShown = false
-          isFoldingOutlineShown = false
-          isRightMarginShown = false
-          additionalLinesCount = 1
-          additionalColumnsCount = 5
-          isAdditionalPageAtBottom = false
-          isShowIntentionBulb = false
-        }
-      }, MonospaceEditorCustomization.getInstance())).apply {
+                    listOf(EditorCustomization {
+                      it.settings.apply {
+                        isLineNumbersShown = false
+                        isLineMarkerAreaShown = false
+                        isFoldingOutlineShown = false
+                        isRightMarginShown = false
+                        additionalLinesCount = 1
+                        additionalColumnsCount = 5
+                        isAdditionalPageAtBottom = false
+                        isShowIntentionBulb = false
+                      }
+                    }, MonospaceEditorCustomization.getInstance())).apply {
       border = IdeBorderFactory.createBorder()
     }
 
