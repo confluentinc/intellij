@@ -413,7 +413,7 @@ class KafkaConsumerPanel(private val kafkaManager: KafkaDataManager,
     copySelected.addActionListener { ClipboardUtils.copySelectedToClipboard(table) }
 
     val clear = JMenuItem(KafkaMessagesBundle.message("action.clear.output"))
-    copySelected.addActionListener { outputModel.clear() }
+    clear.addActionListener { outputModel.clear() }
 
     table.componentPopupMenu = JPopupMenu().apply {
       add(copyAll)
