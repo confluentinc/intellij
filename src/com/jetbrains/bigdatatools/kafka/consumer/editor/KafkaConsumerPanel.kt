@@ -6,6 +6,7 @@ import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.project.DumbAwareAction
+import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.ui.Splitter
@@ -169,7 +170,7 @@ class KafkaConsumerPanel(private val kafkaManager: KafkaDataManager,
             consumerClient.stop()
           }
           else {
-            startConsume()
+            startConsume(kafkaManager.project)
           }
           updateVisibility()
           storeToFile()
@@ -178,6 +179,7 @@ class KafkaConsumerPanel(private val kafkaManager: KafkaDataManager,
           repaint()
         }
         catch (t: Throwable) {
+          @Suppress("DialogTitleCapitalization")
           RfsNotificationUtils.notifyException(t, KafkaMessagesBundle.message("error.start.consumer"))
         }
       }
@@ -377,19 +379,29 @@ class KafkaConsumerPanel(private val kafkaManager: KafkaDataManager,
     storeToFile()
   }
 
-  private fun startConsume() {
+  private fun startConsume(project: Project?) {
     val runConfig = getRunConfig()
     if (runConfig.topic.isBlank()) {
       invokeLater {
         Messages.showErrorDialog(kafkaManager.project,
-                                 KafkaMessagesBundle.message("consumer.error.topic.empty"),
-                                 KafkaMessagesBundle.message("consumer.error.topic.empty.title"))
+          KafkaMessagesBundle.message("consumer.error.topic.empty"),
+          KafkaMessagesBundle.message("consumer.error.topic.empty.title"))
       }
       return
     }
-    consumerClient.start(runConfig,
-                         consume = { invokeLater { outputModel.addElement(Result.success(it)) } },
-                         consumeError = { invokeLater { outputModel.addElement(Result.failure(it)) } })
+
+    try {
+      consumerClient.start(runConfig,
+        consume = { invokeLater { outputModel.addElement(Result.success(it)) } },
+        consumeError = { invokeLater { outputModel.addElement(Result.failure(it)) } })
+
+    }
+    catch (t: Throwable) {
+      invokeLater {
+        RfsNotificationUtils.showExceptionMessage(project, t, KafkaMessagesBundle.message("error.start.consumer"))
+      }
+      return
+    }
   }
 
   private fun getRunConfig(): RunConsumerConfig {

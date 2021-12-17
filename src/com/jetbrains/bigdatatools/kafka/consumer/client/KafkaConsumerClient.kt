@@ -40,6 +40,9 @@ class KafkaConsumerClient(val client: KafkaClient,
 
     val parsedPartitionFilter = ConsumerEditorUtils.parsePartitionsText(config.partitions).ifEmpty { null }
     val partitions = calculatePartitions(consumer, config.topic, parsedPartitionFilter)
+    if (partitions.isEmpty()) {
+      error(KafkaMessagesBundle.message("consumer.partition.not.found", config.topic))
+    }
     consumer.assign(partitions)
     seekPartitions(consumer, partitions, config.startWith)
 
