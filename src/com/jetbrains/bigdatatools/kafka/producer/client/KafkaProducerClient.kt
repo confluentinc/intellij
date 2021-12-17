@@ -53,8 +53,8 @@ class KafkaProducerClient(val client: KafkaClient) {
       val start = System.currentTimeMillis()
       val metaInfo = producer.send(record).get(15, TimeUnit.SECONDS)
       val end = System.currentTimeMillis()
-      ProducerResultMessage(key = key.value?.toString() ?: "",
-        value = value.value?.toString() ?: "",
+      ProducerResultMessage(key = key.text ?: "",
+        value = key.text ?: "",
         offset = metaInfo.offset(),
         timestamp = Date(metaInfo.timestamp()),
         duration = (end - start).toInt(),
