@@ -143,7 +143,7 @@ class KafkaClient(project: Project?,
     val props = Properties()
 
     defaultProps.forEach {
-      props[it.name] = it.value
+      props[it.name ?: ""] = it.value ?: ""
     }
 
     val properties = when (connectionData.propertySource) {
@@ -156,7 +156,7 @@ class KafkaClient(project: Project?,
       }
     }
     BdtPropertyComponent.parseProperties(properties).forEach {
-      props[it.name] = it.value
+      props[it.name ?: ""] = it.value ?: ""
     }
 
     return props

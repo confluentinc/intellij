@@ -35,7 +35,7 @@ class KafkaProducerClient(val client: KafkaClient) {
     return try {
       val record = ProducerRecord(topic, if (forcePartition >= 0) forcePartition else null, key.value, value.value)
       headers.forEach {
-        record.headers().add(it.name, it.value.toByteArray())
+        record.headers().add((it.name ?: ""), (it.value ?: "").toByteArray())
       }
 
       val start = System.currentTimeMillis()

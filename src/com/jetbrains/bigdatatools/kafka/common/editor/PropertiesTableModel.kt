@@ -21,9 +21,13 @@ class PropertiesTableModel(properties: MutableList<Property>) : AbstractTableMod
   //region AbstractTableModel
   override fun getRowCount() = properties.size
   override fun getColumnCount() = 2
-  override fun getValueAt(rowIndex: Int, columnIndex: Int) = if (columnIndex == 0) properties[rowIndex].name else properties[rowIndex].value
+  override fun getValueAt(rowIndex: Int, columnIndex: Int) = if (columnIndex == 0)
+    properties[rowIndex].name ?: ""
+  else
+    properties[rowIndex].value ?: ""
   //endregion AbstractTableModel
 
+  @Suppress("HardCodedStringLiteral")
   override fun getColumnName(column: Int): String = columnModel.getColumn(column).headerValue.toString()
 
   override fun isCellEditable(rowIndex: Int, columnIndex: Int) = true
