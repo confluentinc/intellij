@@ -527,6 +527,11 @@ class KafkaConsumerPanel(private val kafkaManager: KafkaDataManager,
     keyComboBox.item = config.keyType
     valueComboBox.item = config.valueType
 
+    startFromComboBox.item = config.startWith.type
+    startOffset.text = config.startWith.offset?.toString() ?: ""
+    startSpecificDate.date = config.startWith.time?.let { Date(it) }
+    startConsumerGroup.item = kafkaManager.consumerGroupsModel.entries.firstOrNull { it.consumerGroup == config.startWith.consumerGroup }
+
     limitComboBox.item = config.limit.type
     limitOffset.text = config.limit.value
     limitSpecificDate.date = config.limit.time?.let { Date(it) }
