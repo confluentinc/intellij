@@ -117,14 +117,15 @@ class KafkaConsumerPanel(private val kafkaManager: KafkaDataManager,
   }
 
   private val outputModel = ListTableModel(ArrayList<Result<ConsumerRecord<Any, Any>>>(),
-                                           listOf("partition", "offset", "timestamp", "value")) { data, index ->
+                                           listOf("partition", "offset", "timestamp", "key", "value")) { data, index ->
 
     if (data.isFailure) {
       when (index) {
         0 -> ""
         1 -> ""
-        2 -> "Error"
-        3 -> data.exceptionOrNull()?.message ?: ""
+        2 -> ""
+        3 -> "Error"
+        4 -> data.exceptionOrNull()?.message ?: ""
         else -> ""
       }
     }
@@ -133,7 +134,8 @@ class KafkaConsumerPanel(private val kafkaManager: KafkaDataManager,
         0 -> data.getOrNull()?.partition() ?: ""
         1 -> data.getOrNull()?.offset() ?: ""
         2 -> data.getOrNull()?.timestamp() ?: ""
-        3 -> data.getOrNull()?.value() ?: ""
+        3 -> data.getOrNull()?.key() ?: ""
+        4 -> data.getOrNull()?.value() ?: ""
         else -> ""
       }
     }
