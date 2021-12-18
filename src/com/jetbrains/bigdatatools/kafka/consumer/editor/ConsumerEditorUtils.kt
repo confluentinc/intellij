@@ -26,13 +26,13 @@ object ConsumerEditorUtils {
     val startOffset: Long? = when (startWithType) {
       ConsumerStartType.OFFSET -> startOffsetText.ifBlank { null }?.toLongOrNull()
       ConsumerStartType.LATEST_OFFSET_MINUS_X -> startOffsetText.ifBlank { null }?.toLongOrNull()?.times(-1)
-      else -> startOffsetText.ifBlank { null }?.toLongOrNull()
-    }
-
-    val startTime = when (startWithType) {
-      ConsumerStartType.SPECIFIC_DATE -> startDate
       else -> null
     }
+
+    val startTime = if (startWithType == ConsumerStartType.SPECIFIC_DATE)
+      startDate
+    else
+      null
     return ConsumerStartWith(startWithType, time = startTime?.time, offset = startOffset, consumerGroup)
   }
 }
