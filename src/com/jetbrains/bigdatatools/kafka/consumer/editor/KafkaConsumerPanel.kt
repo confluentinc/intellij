@@ -49,8 +49,8 @@ import java.util.*
 import javax.swing.*
 import kotlin.math.max
 
-class KafkaConsumerPanel(private val kafkaManager: KafkaDataManager,
-                         private val file: VirtualFile) : Disposable {
+class KafkaConsumerPanel(private val kafkaManager: KafkaDataManager, private val file: VirtualFile) : Disposable {
+
   private var consumerClient = KafkaConsumerClient(client = kafkaManager.client,
                                                    onStart = ::onStartConsume,
                                                    onStop = ::onStopConsume)
@@ -105,6 +105,9 @@ class KafkaConsumerPanel(private val kafkaManager: KafkaDataManager,
     addItemListener {
       updateVisibility()
       storeToFile()
+      if (detailsDelegate.isInitialized()) {
+        details.keyType = item
+      }
     }
   }
 
@@ -114,6 +117,9 @@ class KafkaConsumerPanel(private val kafkaManager: KafkaDataManager,
     addItemListener {
       updateVisibility()
       storeToFile()
+      if (detailsDelegate.isInitialized()) {
+        details.valueType = item
+      }
     }
   }
 
@@ -135,8 +141,8 @@ class KafkaConsumerPanel(private val kafkaManager: KafkaDataManager,
         0 -> data.getOrNull()?.partition() ?: ""
         1 -> data.getOrNull()?.offset() ?: ""
         2 -> data.getOrNull()?.timestamp() ?: ""
-        3 -> data.getOrNull()?.key() ?: ""
-        4 -> data.getOrNull()?.value() ?: ""
+        3 -> KafkaEditorUtils.getValueAsString(keyComboBox.item, data.getOrNull()?.key())
+        4 -> KafkaEditorUtils.getValueAsString(valueComboBox.item, data.getOrNull()?.value())
         else -> ""
       }
     }
@@ -193,7 +199,12 @@ class KafkaConsumerPanel(private val kafkaManager: KafkaDataManager,
     row(KafkaMessagesBundle.message("label.filter.head.value"), filterHeadValueField)
   }
 
-  private val detailsDelegate = lazy { ConsumerRecordDetails() }
+  private val detailsDelegate: Lazy<ConsumerRecordDetails> = lazy {
+    ConsumerRecordDetails().apply {
+      keyType = keyComboBox.item
+      valueType = valueComboBox.item
+    }
+  }
   private val details: ConsumerRecordDetails by detailsDelegate
 
   private lateinit var startSpecificDateBlock: MigBlock
@@ -384,16 +395,16 @@ class KafkaConsumerPanel(private val kafkaManager: KafkaDataManager,
     if (runConfig.topic.isBlank()) {
       invokeLater {
         Messages.showErrorDialog(kafkaManager.project,
-          KafkaMessagesBundle.message("consumer.error.topic.empty"),
-          KafkaMessagesBundle.message("consumer.error.topic.empty.title"))
+                                 KafkaMessagesBundle.message("consumer.error.topic.empty"),
+                                 KafkaMessagesBundle.message("consumer.error.topic.empty.title"))
       }
       return
     }
 
     try {
       consumerClient.start(runConfig,
-        consume = { invokeLater { outputModel.addElement(Result.success(it)) } },
-        consumeError = { invokeLater { outputModel.addElement(Result.failure(it)) } })
+                           consume = { invokeLater { outputModel.addElement(Result.success(it)) } },
+                           consumeError = { invokeLater { outputModel.addElement(Result.failure(it)) } })
 
     }
     catch (t: Throwable) {

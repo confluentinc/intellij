@@ -3,14 +3,35 @@ package com.jetbrains.bigdatatools.kafka.common.editor
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.util.Disposer
+import com.jetbrains.bigdatatools.kafka.common.models.FieldType
 import com.jetbrains.bigdatatools.kafka.common.models.TopicInEditor
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.model.ConsumerGroupPresentable
 import com.jetbrains.bigdatatools.monitoring.data.listener.DataModelListener
 import com.jetbrains.bigdatatools.ui.CustomListCellRenderer
 import org.apache.kafka.common.ConsumerGroupState
+import java.nio.charset.StandardCharsets
+import java.util.*
 
 object KafkaEditorUtils {
+
+  fun getValueAsString(type: FieldType, value: Any?): String {
+    return if (value == null) {
+      ""
+    }
+    else if (type == FieldType.BASE64 && value is ByteArray) {
+      try {
+        String(Base64.getEncoder().encode(value), StandardCharsets.UTF_8)
+      }
+      catch (e: Exception) {
+        value.toString()
+      }
+    }
+    else {
+      value.toString()
+    }
+  }
+
   fun createConsumerGroups(rootDisposable: Disposable, kafkaManager: KafkaDataManager): ComboBox<ConsumerGroupPresentable> {
     val groups = kafkaManager.consumerGroupsModel
     val comboBox = ComboBox(groups.data?.map { it }?.toTypedArray() ?: emptyArray())

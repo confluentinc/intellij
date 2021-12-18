@@ -2,7 +2,9 @@ package com.jetbrains.bigdatatools.kafka.consumer.editor
 
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.util.ui.JBUI
+import com.jetbrains.bigdatatools.kafka.common.editor.KafkaEditorUtils
 import com.jetbrains.bigdatatools.kafka.common.editor.PropertiesTable
+import com.jetbrains.bigdatatools.kafka.common.models.FieldType
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import com.jetbrains.bigdatatools.settings.connections.Property
 import com.jetbrains.bigdatatools.settings.defaultui.UiUtil
@@ -43,6 +45,25 @@ class ConsumerRecordDetails {
   private val keySize = JTextField(10)
   private val valueSize = JTextField(10)
 
+
+  var keyType = FieldType.STRING
+    set(value) {
+      if (field == value) {
+        return
+      }
+      field = value
+      record = record
+    }
+
+  var valueType = FieldType.STRING
+    set(value) {
+      if (field == value) {
+        return
+      }
+      field = value
+      record = record
+    }
+
   var record: ConsumerRecord<Any, Any>? = null
     set(value) {
       field = value
@@ -63,8 +84,8 @@ class ConsumerRecordDetails {
       }
       else {
         topicField.text = value.topic()
-        keyField.text = value.key()?.toString()
-        valueField.text = value.value()?.toString()
+        keyField.text = KafkaEditorUtils.getValueAsString(keyType, value.key())
+        valueField.text = KafkaEditorUtils.getValueAsString(valueType, value.value())
 
         partition.text = value.partition().toString()
         offset.text = value.offset().toString()
