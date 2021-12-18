@@ -18,12 +18,14 @@ import org.apache.kafka.common.errors.SerializationException
 import java.time.Duration
 import java.util.*
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicInteger
 
 class KafkaConsumerClient(val client: KafkaClient,
                           val onStart: () -> Unit,
                           val onStop: () -> Unit) : Disposable {
   val connectionData = client.connectionData
   private val isRunning = AtomicBoolean(false)
+  private var curRunId = AtomicInteger(0)
   private var runConsumer: KafkaConsumer<Any, Any>? = null
 
   override fun dispose() = stop()
@@ -46,6 +48,8 @@ class KafkaConsumerClient(val client: KafkaClient,
     consumer.assign(partitions)
     seekPartitions(consumer, partitions, config.startWith)
 
+    val taskRunId = curRunId.incrementAndGet()
+
     isRunning.set(true)
     onStart()
     executeOnPooledThread {
@@ -63,6 +67,8 @@ class KafkaConsumerClient(val client: KafkaClient,
 
         consumer.use { consumer ->
           while (isRunning.get()) {
+            if (curRunId.get() != taskRunId)
+              return@executeOnPooledThread
 
             val records = try {
               consumer.poll(Duration.ofMillis(500))
