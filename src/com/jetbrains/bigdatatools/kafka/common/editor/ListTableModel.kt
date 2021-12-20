@@ -7,7 +7,7 @@ import javax.swing.table.TableColumnModel
 
 class ListTableModel<T>(private val data: MutableList<T>,
                         private val columnNames: List<String>,
-                        private val columnMapper: (T, Int) -> Any) : AbstractTableModel() {
+                        private val columnMapper: (T, Int) -> Any?) : AbstractTableModel() {
 
   val columnModel: TableColumnModel by lazy {
     DefaultTableColumnModel().apply {
@@ -17,9 +17,15 @@ class ListTableModel<T>(private val data: MutableList<T>,
     }
   }
 
+  var columnClasses: List<Class<*>>? = null
+
   override fun getRowCount() = data.size
   override fun getColumnCount() = columnNames.size
   override fun getValueAt(rowIndex: Int, columnIndex: Int) = columnMapper(data[rowIndex], columnIndex)
+  override fun getColumnClass(columnIndex: Int): Class<*> {
+    return columnClasses?.get(columnIndex) ?: super.getColumnClass(columnIndex)
+  }
+
   fun getValueAt(rowIndex: Int): T? = if (rowIndex in data.indices) data[rowIndex] else null
 
   fun clear() {

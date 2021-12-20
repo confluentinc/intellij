@@ -129,11 +129,12 @@ class KafkaProducerEditor(project: Project,
       0 -> data.key
       1 -> data.value
       2 -> data.timestamp
-      //  3 -> data.offset
       3 -> data.partition
       4 -> data.duration
       else -> ""
     }
+  }.apply {
+    columnClasses = listOf(Object::class.java, Object::class.java, Date::class.java, Int::class.java, Int::class.java)
   }
 
   private val outputTableDelegate = lazy {
