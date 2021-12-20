@@ -8,7 +8,6 @@ import com.jetbrains.bigdatatools.kafka.consumer.models.ConsumerStartType
 import com.jetbrains.bigdatatools.kafka.consumer.models.ConsumerStartWith
 import com.jetbrains.bigdatatools.kafka.consumer.models.RunConsumerConfig
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
-import com.jetbrains.bigdatatools.util.executeOnPooledThread
 import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.clients.consumer.KafkaConsumer
@@ -33,6 +32,9 @@ class KafkaConsumerClient(val client: KafkaClient,
   fun start(config: RunConsumerConfig,
             consume: (ConsumerRecord<Any, Any>) -> Unit,
             consumeError: (Throwable) -> Unit) {
+    isRunning.set(true)
+    onStart()
+
     if (config.topic.isBlank()) {
       error(KafkaMessagesBundle.message("consumer.error.topic.empty"))
     }
@@ -50,104 +52,100 @@ class KafkaConsumerClient(val client: KafkaClient,
 
     val taskRunId = curRunId.incrementAndGet()
 
-    isRunning.set(true)
-    onStart()
-    executeOnPooledThread {
-      try {
-        @Suppress("CanBeVal")
-        var needToReadTopicCount = config.limit.topicRecordsCount
-        val needToReadPartitionCount = config.limit.partitionRecordsCount?.let { limit ->
-          partitions.associate { it.partition() to limit }.toMutableMap()
-        }
+    try {
+      @Suppress("CanBeVal")
+      var needToReadTopicCount = config.limit.topicRecordsCount
+      val needToReadPartitionCount = config.limit.partitionRecordsCount?.let { limit ->
+        partitions.associate { it.partition() to limit }.toMutableMap()
+      }
 
-        var needToReadTopicSize = config.limit.topicRecordsSize
-        val needToReadPartitionSize = config.limit.partitionRecordsSize?.let { limit ->
-          partitions.associate { it.partition() to limit }.toMutableMap()
-        }
+      var needToReadTopicSize = config.limit.topicRecordsSize
+      val needToReadPartitionSize = config.limit.partitionRecordsSize?.let { limit ->
+        partitions.associate { it.partition() to limit }.toMutableMap()
+      }
 
-        consumer.use { consumer ->
-          while (isRunning.get()) {
-            if (curRunId.get() != taskRunId)
-              return@executeOnPooledThread
+      consumer.use { kafkaConsumer ->
+        while (isRunning.get()) {
+          if (curRunId.get() != taskRunId)
+            return
 
-            val records = try {
-              consumer.poll(Duration.ofMillis(500))
-            }
-            catch (t: SerializationException) {
-              val shortMessage = t.message?.removePrefix("Error deserializing key/value for partition ")
-                                   ?.removeSuffix(". If needed, please seek past the record to continue consumption.") ?: ""
-              val offset = shortMessage.substringAfterLast(" ", "").toLongOrNull()
-              val topicPartitionPart = shortMessage.substringBeforeLast(" at offset", "")
-              val topic = topicPartitionPart.substringBeforeLast("-").ifBlank { null }
-              val partition = topicPartitionPart.substringAfterLast("-").toIntOrNull()
-              if (offset == null || topic == null || partition == null) {
-                consumeError(t)
-                return@executeOnPooledThread
-              }
-              consumer.seek(TopicPartition(topic, partition), offset + 1)
+          val records = try {
+            kafkaConsumer.poll(Duration.ofMillis(500))
+          }
+          catch (t: SerializationException) {
+            val shortMessage = t.message?.removePrefix("Error deserializing key/value for partition ")
+                                 ?.removeSuffix(". If needed, please seek past the record to continue consumption.") ?: ""
+            val offset = shortMessage.substringAfterLast(" ", "").toLongOrNull()
+            val topicPartitionPart = shortMessage.substringBeforeLast(" at offset", "")
+            val topic = topicPartitionPart.substringBeforeLast("-").ifBlank { null }
+            val partition = topicPartitionPart.substringAfterLast("-").toIntOrNull()
+            if (offset == null || topic == null || partition == null) {
               consumeError(t)
-              emptyList()
+              return
             }
-            catch (t: Throwable) {
-              consumeError(t)
-              return@executeOnPooledThread
+            kafkaConsumer.seek(TopicPartition(topic, partition), offset + 1)
+            consumeError(t)
+            emptyList()
+          }
+          catch (t: Throwable) {
+            consumeError(t)
+            return
+          }
+
+          records.forEach { record: ConsumerRecord<Any, Any> ->
+            if (config.limit.time != null && record.timestamp() > config.limit.time) {
+              return
             }
 
-            records.forEach { record: ConsumerRecord<Any, Any> ->
-              if (config.limit.time != null && record.timestamp() > config.limit.time) {
-                return@executeOnPooledThread
-              }
+            if (!config.filter.isRecordPassFilter(record))
+              return@forEach
 
-              if (!config.filter.isRecordPassFilter(record))
-                return@forEach
+            val recordSize = record.serializedValueSize() + record.serializedKeySize()
 
-              val recordSize = record.serializedValueSize() + record.serializedKeySize()
-
-              if (needToReadTopicSize != null && needToReadTopicSize!! <= 0L) {
-                return@executeOnPooledThread
-              }
-              needToReadTopicSize = needToReadTopicSize?.minus(recordSize)
-
-              if (needToReadPartitionSize != null) {
-                if (needToReadPartitionSize.isEmpty()) {
-                  return@executeOnPooledThread
-                }
-
-                val left = needToReadPartitionSize[record.partition()]
-                when {
-                  left == null -> return@forEach
-                  left > 0 -> needToReadPartitionSize[record.partition()] = left - 1
-                  else -> needToReadPartitionSize.remove(record.partition())
-                }
-              }
-
-
-              if (needToReadTopicCount == 0L) {
-                return@executeOnPooledThread
-              }
-              needToReadTopicCount = needToReadTopicCount?.minus(1)
-
-              if (needToReadPartitionCount != null) {
-                if (needToReadPartitionCount.isEmpty()) {
-                  return@executeOnPooledThread
-                }
-
-                val left = needToReadPartitionCount[record.partition()]
-                when {
-                  left == null -> return@forEach
-                  left > 1 -> needToReadPartitionCount[record.partition()] = left - 1
-                  else -> needToReadPartitionCount.remove(record.partition())
-                }
-              }
-
-              consume(record)
+            if (needToReadTopicSize != null && needToReadTopicSize!! <= 0L) {
+              return
             }
+            needToReadTopicSize = needToReadTopicSize?.minus(recordSize)
+
+            if (needToReadPartitionSize != null) {
+              if (needToReadPartitionSize.isEmpty()) {
+                return
+              }
+
+              val left = needToReadPartitionSize[record.partition()]
+              when {
+                left == null -> return@forEach
+                left > 0 -> needToReadPartitionSize[record.partition()] = left - 1
+                else -> needToReadPartitionSize.remove(record.partition())
+              }
+            }
+
+
+            if (needToReadTopicCount == 0L) {
+              return
+            }
+            needToReadTopicCount = needToReadTopicCount?.minus(1)
+
+            if (needToReadPartitionCount != null) {
+              if (needToReadPartitionCount.isEmpty()) {
+                return
+              }
+
+              val left = needToReadPartitionCount[record.partition()]
+              when {
+                left == null -> return@forEach
+                left > 1 -> needToReadPartitionCount[record.partition()] = left - 1
+                else -> needToReadPartitionCount.remove(record.partition())
+              }
+            }
+
+            consume(record)
           }
         }
       }
-      finally {
-        stop()
-      }
+    }
+    finally {
+      stop()
     }
   }
 

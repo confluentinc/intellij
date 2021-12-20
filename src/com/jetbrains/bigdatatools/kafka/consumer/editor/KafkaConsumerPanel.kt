@@ -52,8 +52,8 @@ import kotlin.math.max
 class KafkaConsumerPanel(private val kafkaManager: KafkaDataManager, private val file: VirtualFile) : Disposable {
 
   private var consumerClient = KafkaConsumerClient(client = kafkaManager.client,
-                                                   onStart = ::onStartConsume,
-                                                   onStop = ::onStopConsume)
+    onStart = ::onStartConsume,
+    onStop = ::onStopConsume)
   private val startSpecificDate = DatePicker()
   private val limitSpecificDate = DatePicker()
   private val limitOffset = JBTextField()
@@ -124,7 +124,7 @@ class KafkaConsumerPanel(private val kafkaManager: KafkaDataManager, private val
   }
 
   private val outputModel = ListTableModel(ArrayList<Result<ConsumerRecord<Any, Any>>>(),
-                                           listOf("partition", "offset", "timestamp", "key", "value")) { data, index ->
+    listOf("partition", "offset", "timestamp", "key", "value")) { data, index ->
 
     if (data.isFailure) {
       when (index) {
@@ -315,9 +315,9 @@ class KafkaConsumerPanel(private val kafkaManager: KafkaDataManager, private val
 
     val dataExpanded = PropertiesComponent.getInstance().getBoolean(DATA_SHOW_ID, true)
     resultsSplitter.firstComponent = ExpansionPanel(KafkaMessagesBundle.message("toggle.data"),
-                                                    { JBScrollPane(outputTable).apply { border = BorderFactory.createEmptyBorder() } },
-                                                    dataExpanded,
-                                                    listOf(clearButton)
+      { JBScrollPane(outputTable).apply { border = BorderFactory.createEmptyBorder() } },
+      dataExpanded,
+      listOf(clearButton)
     ).apply {
       addChangeListener {
         resultsSplitter.proportion = if (this.expanded) 1f else 0.0001f
@@ -342,8 +342,8 @@ class KafkaConsumerPanel(private val kafkaManager: KafkaDataManager, private val
 
     val settingsExpanded = PropertiesComponent.getInstance().getBoolean(SETTINGS_SHOW_ID, true)
     settingsSplitter.firstComponent = ExpansionPanel(KafkaMessagesBundle.message("toggle.settings"), { settingsPanel },
-                                                     settingsExpanded,
-                                                     listOf(SavePresetAction(KafkaConfigStorage.instance.consumerConfig) { getRunConfig() })
+      settingsExpanded,
+      listOf(SavePresetAction(KafkaConfigStorage.instance.consumerConfig) { getRunConfig() })
     ).apply {
       addChangeListener {
         settingsSplitter.proportion = 0.0001f
@@ -395,19 +395,27 @@ class KafkaConsumerPanel(private val kafkaManager: KafkaDataManager, private val
     if (runConfig.topic.isBlank()) {
       invokeLater {
         Messages.showErrorDialog(kafkaManager.project,
-                                 KafkaMessagesBundle.message("consumer.error.topic.empty"),
-                                 KafkaMessagesBundle.message("consumer.error.topic.empty.title"))
+          KafkaMessagesBundle.message("consumer.error.topic.empty"),
+          KafkaMessagesBundle.message("consumer.error.topic.empty.title"))
       }
       return
     }
 
     try {
       consumerClient.start(runConfig,
-                           consume = { invokeLater { outputModel.addElement(Result.success(it)) } },
-                           consumeError = { invokeLater { outputModel.addElement(Result.failure(it)) } })
-
+        consume = {
+          invokeLater {
+            outputModel.addElement(Result.success(it))
+          }
+        },
+        consumeError = {
+          invokeLater {
+            outputModel.addElement(Result.failure(it))
+          }
+        })
     }
     catch (t: Throwable) {
+      onStopConsume()
       invokeLater {
         RfsNotificationUtils.showExceptionMessage(project, t, KafkaMessagesBundle.message("error.start.consumer"))
       }
@@ -418,21 +426,21 @@ class KafkaConsumerPanel(private val kafkaManager: KafkaDataManager, private val
   private fun getRunConfig(): RunConsumerConfig {
     val topicName = topicComboBox.item?.name ?: ""
     val startWith = ConsumerEditorUtils.getStartWith(startFromComboBox.item,
-                                                     startOffset.text,
-                                                     startSpecificDate.date,
-                                                     startConsumerGroup.item?.consumerGroup)
+      startOffset.text,
+      startSpecificDate.date,
+      startConsumerGroup.item?.consumerGroup)
     val filter = getFilter()
 
     val consumerLimit = ConsumerLimit(limitComboBox.item, limitOffset.text,
-                                      if (limitComboBox.item == ConsumerLimitType.DATE) limitSpecificDate.date?.time else null)
+      if (limitComboBox.item == ConsumerLimitType.DATE) limitSpecificDate.date?.time else null)
 
     return RunConsumerConfig(topic = topicName,
-                             keyType = keyComboBox.item,
-                             valueType = valueComboBox.item,
-                             partitions = partitionField.text,
-                             limit = consumerLimit,
-                             filter = filter,
-                             startWith = startWith)
+      keyType = keyComboBox.item,
+      valueType = valueComboBox.item,
+      partitions = partitionField.text,
+      limit = consumerLimit,
+      filter = filter,
+      startWith = startWith)
   }
 
   fun getComponent(): JComponent = presetsSplitter
