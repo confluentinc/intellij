@@ -35,6 +35,7 @@ import com.jetbrains.bigdatatools.table.MaterialTable
 import com.jetbrains.bigdatatools.table.MaterialTableUtils
 import com.jetbrains.bigdatatools.table.TableResizeController
 import com.jetbrains.bigdatatools.table.extension.TableFirstRowAdded
+import com.jetbrains.bigdatatools.table.extension.TableLoadingDecorator
 import com.jetbrains.bigdatatools.table.filters.TableFilterHeader
 import com.jetbrains.bigdatatools.table.renderers.DateRenderer
 import com.jetbrains.bigdatatools.ui.*
@@ -400,10 +401,15 @@ class KafkaConsumerPanel(private val kafkaManager: KafkaDataManager, private val
     }
 
     try {
+      if (outputTableDelegate.isInitialized()) {
+        TableLoadingDecorator.installOn(outputTable, KafkaMessagesBundle.message("consumer.table.awaiting"))?.let {
+          Disposer.register(this, it)
+        }
+      }
+
       consumerClient.start(runConfig,
                            consume = { invokeLater { outputModel.addElement(Result.success(it)) } },
                            consumeError = { invokeLater { outputModel.addElement(Result.failure(it)) } })
-
     }
     catch (t: Throwable) {
       onStopConsume()
