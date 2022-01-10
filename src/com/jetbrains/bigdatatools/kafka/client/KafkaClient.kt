@@ -133,7 +133,7 @@ class KafkaClient(project: Project?,
 
   private fun getKafkaProps(connectionData: KafkaConnectionData): Properties {
     val defaultProps = listOf(
-      Property(SERVER_URL, connectionData.uri.removeSuffix("/")),
+      Property(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, connectionData.uri.removeSuffix("/")),
       Property(CommonClientConfigs.CONNECTIONS_MAX_IDLE_MS_CONFIG, 10000.toString()),
       Property(CommonClientConfigs.REQUEST_TIMEOUT_MS_CONFIG, BdIdeRegistryUtil.RFS_DEFAULT_TIMEOUT.toString()),
       Property(CommonClientConfigs.RETRY_BACKOFF_MS_CONFIG, 30000.toString()),
