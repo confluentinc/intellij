@@ -96,39 +96,61 @@ class KafkaClient(project: Project?,
     kafkaAdminNotNull.listConsumerGroupOffsets(consumerGroup).partitionsToOffsetAndMetadata().get()?.toMap() ?: mapOf()
 
   fun getTopics(listInternal: Boolean): List<TopicPresentable> {
-    val detailedTopics = listTopicsDetailedInfo(listInternal)
-    val topicNames = detailedTopics.map { it.name() }
+    val topicNames = getTopicNames(listInternal)
+    val describedTopics = describeTopics(topicNames)
     val loadedTopicConfig = loadTopicConfigs(topicNames)
-    val internalTopics = detailedTopics.map {
-      BdtKafkaMapper.mapToInternalTopic(it)
+    val internalTopics = describedTopics.zip(topicNames).map { (description, name) ->
+      BdtKafkaMapper.mapToInternalTopic(name, description)
     }
     return BdtKafkaMapper.mergeWithConfigs(internalTopics, loadedTopicConfig).values.toList()
+  }
+
+  private fun describeTopics(topicNames: List<String>): List<TopicDescription?> = try {
+    kafkaAdminNotNull.describeTopics(topicNames.toMutableList()).all().get().values.toList()
+  }
+  catch (t: Throwable) {
+    topicNames.map {
+      try {
+        kafkaAdminNotNull.describeTopics(listOf(it)).all().get().values.firstOrNull()
+      }
+      catch (t: Throwable) {
+        logger.warn(t)
+        null
+      }
+    }
   }
 
   private fun loadTopicConfigs(topicNames: List<String>): Map<String, List<TopicConfig>> {
     val resources = topicNames.map {
       ConfigResource(ConfigResource.Type.TOPIC, it)
     }
-    val describedConfigs = kafkaAdminNotNull.describeConfigs(resources).all().get()
-    return describedConfigs.map { config ->
-      val configEntry = config.value.entries()
-      val internalConfigs = configEntry.map { BdtKafkaMapper.mapToInternalTopicConfig(it) }
-      config.key.name() to internalConfigs
 
-    }.toMap()
+    val describedConfigs = kafkaAdminNotNull.describeConfigs(resources).values().map {
+      try {
+        it.key.name() to it.value.get()
+      }
+      catch (t: Throwable) {
+        logger.warn(t)
+        null
+      }
+    }.filterNotNull()
+
+    return describedConfigs.associate { config ->
+      val configEntry = config.second.entries()
+      val internalConfigs = configEntry.map { BdtKafkaMapper.mapToInternalTopicConfig(it) }
+      config.first to internalConfigs
+    }
   }
 
-  private fun listTopicsDetailedInfo(listInternal: Boolean): List<TopicDescription> {
-    val listTopicsOptions = ListTopicsOptions().also {
-      it.listInternal(listInternal)
-    }
-    val names = kafkaAdminNotNull.listTopics(listTopicsOptions).names().get()
-
-    val describedTopics = kafkaAdminNotNull.describeTopics(names).all().get().map { it.value }
-    return if (listInternal)
-      describedTopics
+  private fun getTopicNames(listInternal: Boolean): List<String> {
+    val listTopicsOptions = ListTopicsOptions()
+    listTopicsOptions.listInternal(listInternal)
+    val names = kafkaAdminNotNull.listTopics(listTopicsOptions).names().get() ?: emptySet()
+    val filteredNames = if (listInternal)
+      names
     else
-      describedTopics.filter { !it.name().startsWith("_") }
+      names.filter { !it.startsWith("_") }
+    return filteredNames.sorted()
   }
 
   private fun getKafkaProps(connectionData: KafkaConnectionData): Properties {
