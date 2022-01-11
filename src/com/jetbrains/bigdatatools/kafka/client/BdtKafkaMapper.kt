@@ -18,44 +18,45 @@ object BdtKafkaMapper {
     val numTopicPartitions = topicsToPartitions.size
 
     return ConsumerGroupPresentable(state = detailedGroup.state(),
-                                    consumerGroup = detailedGroup.groupId().ifBlank { "(blank)" },
-                                    consumers = detailedGroup.members().size,
-                                    topics = numTopics,
-                                    partitions = numTopicPartitions)
+      consumerGroup = detailedGroup.groupId().ifBlank { "(blank)" },
+      consumers = detailedGroup.members().size,
+      topics = numTopics,
+      partitions = numTopicPartitions)
   }
 
-  fun mapToInternalTopic(topicDescription: TopicDescription): TopicPresentable {
-    val partitions: List<TopicPartition> = topicDescription.partitions().map { partition: TopicPartitionInfo ->
+  fun mapToInternalTopic(name: String, topicDescription: TopicDescription?): TopicPresentable {
+    val partitions: List<TopicPartition> = topicDescription?.partitions()?.map { partition: TopicPartitionInfo ->
       val replicas: List<InternalReplica> = partition.replicas().map {
         InternalReplica(it.id(), partition.leader().id() != it.id(), partition.isr().contains(it))
       }
       TopicPartition(leader = partition.leader()?.id(),
-                     partitionId = partition.partition(),
-                     inSyncReplicasCount = partition.isr().size,
-                     replicasCount = partition.replicas().size,
-                     replicas = replicas)
-    }
+        partitionId = partition.partition(),
+        inSyncReplicasCount = partition.isr().size,
+        replicasCount = partition.replicas().size,
+        replicas = replicas)
+    } ?: emptyList()
 
     val underReplicatedPartitionsCount: Int = partitions.flatMap { it.replicas }.count { !it.inSync }
     val inSyncReplicasCount = partitions.sumOf { it.inSyncReplicasCount }
 
     val replicasCount = partitions.sumOf { it.replicasCount }
-    val replicationFactor = topicDescription.partitions().firstOrNull()?.replicas()?.size ?: 0
+    val replicationFactor = topicDescription?.partitions()?.firstOrNull()?.replicas()?.size ?: 0
 
-    return TopicPresentable(internal = topicDescription.isInternal,
-                            name = topicDescription.name(),
-                            partitionList = partitions,
-                            replicas = replicasCount,
-                            partitions = topicDescription.partitions().size,
-                            inSyncReplicas = inSyncReplicasCount,
-                            replicationFactor = replicationFactor,
-                            underReplicatedPartitions = underReplicatedPartitionsCount,
-                            topicConfigs = emptyList()
+    return TopicPresentable(internal = topicDescription?.isInternal ?: false,
+      name = name,
+      partitionList = partitions,
+      replicas = replicasCount,
+      partitions = topicDescription?.partitions()?.size ?: -1,
+      inSyncReplicas = inSyncReplicasCount,
+      replicationFactor = replicationFactor,
+      underReplicatedPartitions = underReplicatedPartitionsCount,
+      topicConfigs = emptyList()
     )
   }
 
 
   fun mapToInternalTopicConfig(configEntry: ConfigEntry): TopicConfig {
+    @Suppress("DEPRECATION")
     val defaultValue = if (configEntry.name() == MESSAGE_FORMAT_VERSION_CONFIG)
       configEntry.value()
     else
