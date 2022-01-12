@@ -26,8 +26,8 @@ object BdtKafkaMapper {
 
   fun mapToInternalTopic(name: String, topicDescription: TopicDescription?): TopicPresentable {
     val partitions: List<TopicPartition> = topicDescription?.partitions()?.map { partition: TopicPartitionInfo ->
-      val replicas: List<InternalReplica> = partition.replicas().map {
-        InternalReplica(it.id(), partition.leader().id() != it.id(), partition.isr().contains(it))
+      val replicas: List<InternalReplica> = partition.replicas().filterNotNull().map {
+        InternalReplica(it.id(), partition.leader()?.id() != it.id(), partition.isr()?.contains(it) == true)
       }
       TopicPartition(leader = partition.leader()?.id(),
         partitionId = partition.partition(),
