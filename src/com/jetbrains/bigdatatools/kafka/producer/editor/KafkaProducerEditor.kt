@@ -153,6 +153,10 @@ class KafkaProducerEditor(project: Project,
         setResizePriorityList("value")
         mode = TableResizeController.Mode.PRIOR_COLUMNS_LIST
       }
+
+      MaterialTableUtils.fitColumnsWidth(this)
+      resizeController.componentResized()
+
       TableFirstRowAdded(this) {
         MaterialTableUtils.fitColumnsWidth(this)
         resizeController.componentResized()

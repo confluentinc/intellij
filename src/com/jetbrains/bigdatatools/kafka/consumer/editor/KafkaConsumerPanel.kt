@@ -156,7 +156,12 @@ class KafkaConsumerPanel(private val kafkaManager: KafkaDataManager, private val
           it.cellRenderer = DateRenderer()
         }
       }
+
       TableFilterHeader(this)
+
+      MaterialTableUtils.fitColumnsWidth(this)
+      resizeController.componentResized()
+
       TableFirstRowAdded(this) {
         MaterialTableUtils.fitColumnsWidth(this)
         resizeController.componentResized()
