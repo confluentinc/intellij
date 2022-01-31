@@ -26,7 +26,7 @@ class KafkaSettingsCustomizer(project: Project, connectionData: KafkaConnectionD
       emptyText = KafkaMessagesBundle.message("settings.url.text.empty")
       getTextComponent().toolTipText = KafkaMessagesBundle.message("settings.url.text.hint")
     }
-    .withValidator(uiDisposable, ::validateBucketsNames)
+    .withValidator(uiDisposable, ::validateBucketsNames) as StringNamedField
 
   private val propertiesEditor = PropertiesFieldComponent.create(
     project,
