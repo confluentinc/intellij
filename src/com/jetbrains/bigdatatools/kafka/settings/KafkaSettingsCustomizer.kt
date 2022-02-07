@@ -11,7 +11,6 @@ import com.jetbrains.bigdatatools.monitoring.TunnableSettingsCustomizer
 import com.jetbrains.bigdatatools.settings.CommonSettingsKeys
 import com.jetbrains.bigdatatools.settings.ModificationKey
 import com.jetbrains.bigdatatools.settings.connections.ConnectionData
-import com.jetbrains.bigdatatools.settings.defaultui.UiUtil
 import com.jetbrains.bigdatatools.settings.fields.*
 import com.jetbrains.bigdatatools.settings.withNotEmptyValidator
 import com.jetbrains.bigdatatools.settings.withValidator
@@ -70,7 +69,7 @@ class KafkaSettingsCustomizer(project: Project, connectionData: KafkaConnectionD
     gapLeft = false
 
     separatorRow()
-    add(tunnelField.getComponent(), UiUtil.spanXWrap)
+    block(tunnelField.getComponent())
   }
 
   private fun updateAuthStatus() {
