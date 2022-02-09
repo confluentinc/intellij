@@ -170,7 +170,6 @@ class KafkaConsumerClient(val client: KafkaClient,
 
   private fun createConsumer(keyType: FieldType, valueType: FieldType): KafkaConsumer<Any, Any> {
     val props = client.kafkaProps.clone() as Properties
-    props[ConsumerConfig.GROUP_ID_CONFIG] = "BigDataTools"
     props[ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG] = keyType.getDeserializationClass()::class.java
     props[ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG] = valueType.getDeserializationClass()::class.java
     return KafkaConsumer(props)
