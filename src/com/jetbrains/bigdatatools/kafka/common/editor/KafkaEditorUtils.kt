@@ -1,19 +1,48 @@
 package com.jetbrains.bigdatatools.kafka.common.editor
 
+import com.intellij.json.JsonLanguage
 import com.intellij.openapi.Disposable
+import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.util.Disposer
+import com.intellij.ui.EditorCustomization
+import com.intellij.ui.EditorTextFieldProvider
+import com.intellij.ui.MonospaceEditorCustomization
+import com.intellij.util.ui.UIUtil
 import com.jetbrains.bigdatatools.kafka.common.models.FieldType
 import com.jetbrains.bigdatatools.kafka.common.models.TopicInEditor
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.model.ConsumerGroupPresentable
 import com.jetbrains.bigdatatools.monitoring.data.listener.DataModelListener
+import com.jetbrains.bigdatatools.ui.ComponentColoredBorder
 import com.jetbrains.bigdatatools.ui.CustomListCellRenderer
+import com.jetbrains.bigdatatools.ui.DarculaTextAreaBorder
 import org.apache.kafka.common.ConsumerGroupState
 import java.nio.charset.StandardCharsets
 import java.util.*
+import javax.swing.BorderFactory
 
 object KafkaEditorUtils {
+
+  fun createJsonTextArea(project: Project) = EditorTextFieldProvider.getInstance()
+    .getEditorField(JsonLanguage.INSTANCE, project,
+                    listOf(EditorCustomization {
+                      it.settings.apply {
+                        isLineNumbersShown = false
+                        isLineMarkerAreaShown = false
+                        isFoldingOutlineShown = false
+                        isRightMarginShown = false
+                        additionalLinesCount = 0
+                        additionalColumnsCount = 0
+                        isAdditionalPageAtBottom = false
+                        isShowIntentionBulb = false
+                      }
+                    }, MonospaceEditorCustomization.getInstance())).apply {
+      border = BorderFactory.createCompoundBorder(DarculaTextAreaBorder(), ComponentColoredBorder(3, 5, 3, 5))
+      background = UIUtil.getTextFieldBackground() //DefaultLookup.getColor(this, null, "TextField.background", null)
+      autoscrolls = false
+      setCaretPosition(0)
+    }
 
   fun getValueAsString(type: FieldType, value: Any?): String {
     return if (value == null) {

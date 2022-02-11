@@ -50,7 +50,7 @@ import java.util.*
 import javax.swing.*
 import kotlin.math.max
 
-class KafkaConsumerPanel(private val kafkaManager: KafkaDataManager, private val file: VirtualFile) : Disposable {
+class KafkaConsumerPanel(project: Project, private val kafkaManager: KafkaDataManager, private val file: VirtualFile) : Disposable {
 
   private var consumerClient = KafkaConsumerClient(client = kafkaManager.client,
                                                    onStart = ::onStartConsume,
@@ -204,7 +204,7 @@ class KafkaConsumerPanel(private val kafkaManager: KafkaDataManager, private val
   }
 
   private val detailsDelegate: Lazy<ConsumerRecordDetails> = lazy {
-    ConsumerRecordDetails().apply {
+    ConsumerRecordDetails(project, this).apply {
       keyType = keyComboBox.item
       valueType = valueComboBox.item
     }

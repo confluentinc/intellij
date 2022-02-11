@@ -3,7 +3,6 @@ package com.jetbrains.bigdatatools.kafka.producer.editor
 import com.google.gson.JsonParser
 import com.intellij.icons.AllIcons
 import com.intellij.ide.util.PropertiesComponent
-import com.intellij.json.JsonLanguage
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.fileEditor.FileEditor
 import com.intellij.openapi.fileEditor.FileEditorLocation
@@ -17,7 +16,10 @@ import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.Key
 import com.intellij.openapi.util.UserDataHolderBase
 import com.intellij.openapi.vfs.VirtualFile
-import com.intellij.ui.*
+import com.intellij.ui.EditorTextField
+import com.intellij.ui.IdeBorderFactory
+import com.intellij.ui.OnePixelSplitter
+import com.intellij.ui.SideBorder
 import com.intellij.ui.components.CheckBox
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.components.JBTextField
@@ -89,8 +91,8 @@ class KafkaProducerEditor(project: Project,
     selectedIndex = 0
   }
 
-  private val keyJsonField: EditorTextField by lazy { createJsonTextArea(project).withValidator(this, ::validateKey) }
-  private val valueJsonField: EditorTextField by lazy { createJsonTextArea(project).withValidator(this, ::validateKey) }
+  private val keyJsonField: EditorTextField by lazy { KafkaEditorUtils.createJsonTextArea(project).withValidator(this, ::validateKey) }
+  private val valueJsonField: EditorTextField by lazy { KafkaEditorUtils.createJsonTextArea(project).withValidator(this, ::validateValue) }
 
   private val keyField = JBTextField().apply { emptyText.text = "Optional" }.withValidator(this, ::validateKey)
   private val valueField = JBTextField().apply { emptyText.text = "Optional" }.withValidator(this, ::validateValue)
@@ -343,23 +345,6 @@ class KafkaProducerEditor(project: Project,
   }
 
   private fun createCenterPanel(): JComponent = presetsSplitter
-
-  private fun createJsonTextArea(project: Project) = EditorTextFieldProvider.getInstance()
-    .getEditorField(JsonLanguage.INSTANCE, project,
-                    listOf(EditorCustomization {
-                      it.settings.apply {
-                        isLineNumbersShown = false
-                        isLineMarkerAreaShown = false
-                        isFoldingOutlineShown = false
-                        isRightMarginShown = false
-                        additionalLinesCount = 1
-                        additionalColumnsCount = 5
-                        isAdditionalPageAtBottom = false
-                        isShowIntentionBulb = false
-                      }
-                    }, MonospaceEditorCustomization.getInstance())).apply {
-      border = IdeBorderFactory.createBorder()
-    }
 
   private fun updateVisibility() {
     keyJsonField.isVisible = false

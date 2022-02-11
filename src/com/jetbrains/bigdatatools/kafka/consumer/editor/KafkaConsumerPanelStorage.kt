@@ -2,6 +2,7 @@ package com.jetbrains.bigdatatools.kafka.consumer.editor
 
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.fileEditor.FileEditorManager
+import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.ProjectManager
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.vfs.VirtualFile
@@ -12,12 +13,12 @@ class KafkaConsumerPanelStorage(private val dataManager: KafkaDataManager) : Dis
   private val alarm = Alarm(Alarm.ThreadToUse.SWING_THREAD, this)
   private val storage = mutableMapOf<VirtualFile, KafkaConsumerPanel>()
 
-  fun getOrCreate(file: VirtualFile): KafkaConsumerPanel {
+  fun getOrCreate(project: Project, file: VirtualFile): KafkaConsumerPanel {
     val cachedPanel = storage[file]
     if (cachedPanel != null)
       return cachedPanel
 
-    val panel = KafkaConsumerPanel(dataManager, file)
+    val panel = KafkaConsumerPanel(project, dataManager, file)
     Disposer.register(this, panel)
     storage[file] = panel
     return panel
