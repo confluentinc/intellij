@@ -97,27 +97,35 @@ class KafkaClient(project: Project?,
 
   fun getTopics(listInternal: Boolean): List<TopicPresentable> {
     val topicNames = getTopicNames(listInternal)
-    val describedTopics = describeTopics(topicNames)
+    val (describedTopics, nonParsed) = describeTopics(topicNames)
     val loadedTopicConfig = loadTopicConfigs(topicNames)
-    val internalTopics = describedTopics.zip(topicNames).map { (description, name) ->
-      BdtKafkaMapper.mapToInternalTopic(name, description)
-    }
-    return BdtKafkaMapper.mergeWithConfigs(internalTopics, loadedTopicConfig).values.toList()
+    val parsedInternal = describedTopics.map { BdtKafkaMapper.topicDescriptionToInternalTopic(it) }
+    val nonParsedInternal = nonParsed.map { BdtKafkaMapper.mockInternalTopic(it) }
+    return BdtKafkaMapper.mergeWithConfigs(parsedInternal + nonParsedInternal, loadedTopicConfig).values.toList()
   }
 
-  private fun describeTopics(topicNames: List<String>): List<TopicDescription?> = try {
-    kafkaAdminNotNull.describeTopics(topicNames.toMutableList()).all().get().values.toList()
+  private fun describeTopics(topicNames: List<String>): Pair<List<TopicDescription>, List<String>> = try {
+    kafkaAdminNotNull.describeTopics(topicNames.toMutableList()).all().get().values.toList() to emptyList()
   }
   catch (t: Throwable) {
+    val topics = mutableListOf<TopicDescription>()
+    val nonParsed = mutableListOf<String>()
+
     topicNames.map {
       try {
-        kafkaAdminNotNull.describeTopics(listOf(it)).all().get().values.firstOrNull()
+        val topicDescription = kafkaAdminNotNull.describeTopics(listOf(it)).all().get().values.firstOrNull()
+        if (topicDescription != null)
+          topics.add(topicDescription)
+        else
+          nonParsed.add(it)
       }
       catch (t: Throwable) {
         logger.warn(t)
-        null
+        nonParsed.add(it)
       }
     }
+
+    topics to nonParsed
   }
 
   private fun loadTopicConfigs(topicNames: List<String>): Map<String, List<TopicConfig>> {
