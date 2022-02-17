@@ -3,7 +3,7 @@ package com.jetbrains.bigdatatools.kafka.consumer.editor
 import com.intellij.icons.AllIcons
 import com.intellij.ide.util.PropertiesComponent
 import com.intellij.openapi.Disposable
-import com.intellij.openapi.actionSystem.AnActionEvent
+import com.intellij.openapi.actionSystem.*
 import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
@@ -15,6 +15,7 @@ import com.intellij.openapi.util.Key
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.ui.IdeBorderFactory
 import com.intellij.ui.OnePixelSplitter
+import com.intellij.ui.PopupHandler
 import com.intellij.ui.SideBorder
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.components.JBTextField
@@ -30,7 +31,6 @@ import com.jetbrains.bigdatatools.kafka.consumer.models.*
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import com.jetbrains.bigdatatools.rfs.util.RfsNotificationUtils
-import com.jetbrains.bigdatatools.table.ClipboardUtils
 import com.jetbrains.bigdatatools.table.MaterialTable
 import com.jetbrains.bigdatatools.table.MaterialTableUtils
 import com.jetbrains.bigdatatools.table.TableResizeController
@@ -39,7 +39,6 @@ import com.jetbrains.bigdatatools.table.extension.TableLoadingDecorator
 import com.jetbrains.bigdatatools.table.filters.TableFilterHeader
 import com.jetbrains.bigdatatools.table.renderers.DateRenderer
 import com.jetbrains.bigdatatools.ui.*
-import com.jetbrains.bigdatatools.util.MessagesBundle
 import com.jetbrains.bigdatatools.util.executeOnPooledThread
 import com.michaelbaranov.microba.calendar.DatePicker
 import net.miginfocom.layout.LC
@@ -448,20 +447,11 @@ class KafkaConsumerPanel(project: Project, private val kafkaManager: KafkaDataMa
   fun getComponent(): JComponent = presetsSplitter
 
   private fun setupTablePopupMenu(table: JTable) {
-    val copyAll = JMenuItem(MessagesBundle.message("table.copyAll"))
-    copyAll.addActionListener { ClipboardUtils.copyAllToClipboard(table) }
-
-    val copySelected = JMenuItem(MessagesBundle.message("table.copySelected"))
-    copySelected.addActionListener { ClipboardUtils.copySelectedToClipboard(table) }
-
-    val clear = JMenuItem(KafkaMessagesBundle.message("action.clear.output"))
-    clear.addActionListener { outputModel.clear() }
-
-    table.componentPopupMenu = JPopupMenu().apply {
-      add(copyAll)
-      add(copySelected)
-      add(clear)
-    }
+    val clearAction = SimpleDumbAwareAction(KafkaMessagesBundle.message("action.clear.output")) { outputModel.clear() }
+    PopupHandler.installPopupMenu(table, DefaultActionGroup(
+      ActionManager.getInstance().getAction("BdIde.TableEditor.PopupActionGroup") as ActionGroup, Separator(), clearAction),
+                                  "KafkaConsumerPanel"
+    )
   }
 
   private fun getFilter() = ConsumerFilter(

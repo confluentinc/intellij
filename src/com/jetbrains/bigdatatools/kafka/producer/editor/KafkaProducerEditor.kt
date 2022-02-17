@@ -3,7 +3,7 @@ package com.jetbrains.bigdatatools.kafka.producer.editor
 import com.google.gson.JsonParser
 import com.intellij.icons.AllIcons
 import com.intellij.ide.util.PropertiesComponent
-import com.intellij.openapi.actionSystem.AnActionEvent
+import com.intellij.openapi.actionSystem.*
 import com.intellij.openapi.fileEditor.FileEditor
 import com.intellij.openapi.fileEditor.FileEditorLocation
 import com.intellij.openapi.fileEditor.FileEditorState
@@ -16,10 +16,7 @@ import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.Key
 import com.intellij.openapi.util.UserDataHolderBase
 import com.intellij.openapi.vfs.VirtualFile
-import com.intellij.ui.EditorTextField
-import com.intellij.ui.IdeBorderFactory
-import com.intellij.ui.OnePixelSplitter
-import com.intellij.ui.SideBorder
+import com.intellij.ui.*
 import com.intellij.ui.components.CheckBox
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.components.JBTextField
@@ -41,7 +38,6 @@ import com.jetbrains.bigdatatools.settings.defaultui.UiUtil
 import com.jetbrains.bigdatatools.settings.getValidationInfo
 import com.jetbrains.bigdatatools.settings.revalidateComponent
 import com.jetbrains.bigdatatools.settings.withValidator
-import com.jetbrains.bigdatatools.table.ClipboardUtils
 import com.jetbrains.bigdatatools.table.MaterialTable
 import com.jetbrains.bigdatatools.table.MaterialTableUtils
 import com.jetbrains.bigdatatools.table.TableResizeController
@@ -52,7 +48,7 @@ import com.jetbrains.bigdatatools.table.renderers.DurationRenderer
 import com.jetbrains.bigdatatools.ui.CustomListCellRenderer
 import com.jetbrains.bigdatatools.ui.ExpansionPanel
 import com.jetbrains.bigdatatools.ui.MigPanel
-import com.jetbrains.bigdatatools.util.MessagesBundle
+import com.jetbrains.bigdatatools.ui.SimpleDumbAwareAction
 import com.jetbrains.bigdatatools.util.executeNotOnEdt
 import com.jetbrains.bigdatatools.util.invokeLater
 import net.miginfocom.layout.LC
@@ -328,20 +324,11 @@ class KafkaProducerEditor(project: Project,
   }
 
   private fun setupTablePopupMenu(table: JTable) {
-    val copyAll = JMenuItem(MessagesBundle.message("table.copyAll"))
-    copyAll.addActionListener { ClipboardUtils.copyAllToClipboard(table) }
-
-    val copySelected = JMenuItem(MessagesBundle.message("table.copySelected"))
-    copySelected.addActionListener { ClipboardUtils.copySelectedToClipboard(table) }
-
-    val clear = JMenuItem(KafkaMessagesBundle.message("action.clear.output"))
-    clear.addActionListener { outputModel.clear() }
-
-    table.componentPopupMenu = JPopupMenu().apply {
-      add(copyAll)
-      add(copySelected)
-      add(clear)
-    }
+    val clearAction = SimpleDumbAwareAction(KafkaMessagesBundle.message("action.clear.output")) { outputModel.clear() }
+    PopupHandler.installPopupMenu(table, DefaultActionGroup(
+      ActionManager.getInstance().getAction("BdIde.TableEditor.PopupActionGroup") as ActionGroup, Separator(), clearAction),
+                                  "KafkaProducerEditor"
+    )
   }
 
   private fun createCenterPanel(): JComponent = presetsSplitter
