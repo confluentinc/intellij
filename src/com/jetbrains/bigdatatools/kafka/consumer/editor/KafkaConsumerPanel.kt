@@ -177,6 +177,7 @@ class KafkaConsumerPanel(project: Project, private val kafkaManager: KafkaDataMa
         try {
           if (consumerClient.isRunning()) {
             consumerClient.stop()
+            tableLoadingDecorator?.let { Disposer.dispose(it) }
           }
           else {
             startConsume(kafkaManager.project)
@@ -305,6 +306,8 @@ class KafkaConsumerPanel(project: Project, private val kafkaManager: KafkaDataMa
     proportion = 0.0001f
   }
 
+  private var tableLoadingDecorator: TableLoadingDecorator? = null
+
   init {
     Disposer.register(this, consumerClient)
 
@@ -406,8 +409,10 @@ class KafkaConsumerPanel(project: Project, private val kafkaManager: KafkaDataMa
 
     try {
       if (outputTableDelegate.isInitialized()) {
-        TableLoadingDecorator.installOn(outputTable, KafkaMessagesBundle.message("consumer.table.awaiting"))?.let {
-          Disposer.register(this, it)
+        tableLoadingDecorator?.let { Disposer.dispose(it) }
+        tableLoadingDecorator = TableLoadingDecorator.installOn(outputTable,
+                                                                KafkaMessagesBundle.message("consumer.table.awaiting"))?.apply {
+          Disposer.register(this@KafkaConsumerPanel, this)
         }
       }
 
