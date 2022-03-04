@@ -17,17 +17,17 @@ class KafkaClientTest : LightPlatformTestCase() {
 
   fun testCheckConnectionSuccess() {
     val kafkaClient = createClient(url)
-    TestCase.assertEquals(ConnectedConnectionStatus, kafkaClient.connectWithStatus())
+    TestCase.assertEquals(ConnectedConnectionStatus, kafkaClient.connectWithStatus(false))
   }
 
   fun testCheckConnectionError() {
     val kafkaClient = createClient(nonExistsUrl)
-    assert(kafkaClient.connectWithStatus() is FailedConnectionStatus)
+    assert(kafkaClient.connectWithStatus(false) is FailedConnectionStatus)
   }
 
   fun testGetAllTopics() {
     val kafkaClient = createClient(url)
-    TestCase.assertEquals(ConnectedConnectionStatus, kafkaClient.connectWithStatus())
+    TestCase.assertEquals(ConnectedConnectionStatus, kafkaClient.connectWithStatus(false))
 
     val allTopics = kafkaClient.getTopics(true)
     assert(allTopics.size > 5)
@@ -38,7 +38,7 @@ class KafkaClientTest : LightPlatformTestCase() {
 
   fun testCreateProducer() {
     val kafkaClient = createClient(url)
-    TestCase.assertEquals(ConnectedConnectionStatus, kafkaClient.connectWithStatus())
+    TestCase.assertEquals(ConnectedConnectionStatus, kafkaClient.connectWithStatus(false))
 
     val allTopics = kafkaClient.getTopics(true)
     val testTopic = allTopics.first { it.name == "TestTopic" }
@@ -56,7 +56,7 @@ class KafkaClientTest : LightPlatformTestCase() {
 
   fun testGetAllConsumerGroups() {
     val kafkaClient = createClient(url)
-    TestCase.assertEquals(ConnectedConnectionStatus, kafkaClient.connectWithStatus())
+    TestCase.assertEquals(ConnectedConnectionStatus, kafkaClient.connectWithStatus(false))
     val allTopics = kafkaClient.getConsumerGroups()
     assert(allTopics.size >= 3)
   }

@@ -61,7 +61,7 @@ class KafkaClient(project: Project?,
     kafkaAdmin.describeCluster(clusterOptions).clusterId().get()
   }
 
-  override fun connectInner() {
+  override fun connectInner(calledByUser: Boolean) {
     val localPort = BdtSshTunnelService.createIfRequired(project, connectionData.innerId, connectionData.getTunnelData(), testConnection)
     if (localPort != null) {
       val urlForTunnel = BdtSshTunnelConnectionUtils.getUrlForTunnel(connectionData.uri, localPort)
