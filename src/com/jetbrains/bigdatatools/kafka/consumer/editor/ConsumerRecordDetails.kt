@@ -60,15 +60,15 @@ class ConsumerRecordDetails(project: Project, parentDisposable: Disposable) {
     }
 
   private fun setKey(value: String) {
-    keyField.editor?.document?.setReadOnly(false)
+    keyField.document.setReadOnly(false)
     keyField.text = value
-    keyField.editor?.document?.setReadOnly(true)
+    keyField.document.setReadOnly(true)
   }
 
   private fun setValue(value: String) {
-    valueField.editor?.document?.setReadOnly(false)
+    valueField.document.setReadOnly(false)
     valueField.text = value
-    valueField.editor?.document?.setReadOnly(true)
+    valueField.document.setReadOnly(true)
   }
 
   var record: ConsumerRecord<Any, Any>? = null
