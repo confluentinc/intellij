@@ -70,7 +70,7 @@ class KafkaConsumerClient(val client: KafkaClient,
             return
 
           val records = try {
-            kafkaConsumer.poll(Duration.ofMillis(500))
+            kafkaConsumer.poll(Duration.ofMillis(2000))
           }
           catch (t: SerializationException) {
             val shortMessage = t.message?.removePrefix("Error deserializing key/value for partition ")
