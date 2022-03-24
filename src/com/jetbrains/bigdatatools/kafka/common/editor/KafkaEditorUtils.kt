@@ -107,7 +107,8 @@ object KafkaEditorUtils {
 
   fun createTopicComboBox(rootDisposable: Disposable, kafkaManager: KafkaDataManager): ComboBox<TopicInEditor> {
     val topics = kafkaManager.getTopics()
-    val topicComboBox = ComboBox(topics.map { it.toEditorTopic() }.toTypedArray())
+    val topicComboBox = ComboBox(topics.map { it.toEditorTopic() }.sortedBy { it.name }.toTypedArray())
+    topicComboBox.isSwingPopup = false
     topicComboBox.prototypeDisplayValue = TopicInEditor("Topic sample name") // Field is set for limiting combobox width.
     topicComboBox.renderer = CustomListCellRenderer<TopicInEditor> { it.name }
 
@@ -120,7 +121,7 @@ object KafkaEditorUtils {
         val oldTopics = (0 until topicComboBox.model.size).map {
           topicComboBox.model.getElementAt(it)
         }
-        val newTopics = kafkaManager.getTopics().map { it.toEditorTopic() }
+        val newTopics = kafkaManager.getTopics().map { it.toEditorTopic() }.sortedBy { it.name }
         if (oldTopics == newTopics)
           return
         topicComboBox.removeAllItems()
