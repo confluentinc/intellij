@@ -19,10 +19,7 @@ import com.jetbrains.bigdatatools.settings.connections.Property
 import com.jetbrains.bigdatatools.util.BdIdeRegistryUtil
 import com.jetbrains.bigdatatools.util.executeOnPooledThread
 import org.apache.kafka.clients.CommonClientConfigs
-import org.apache.kafka.clients.admin.AdminClient
-import org.apache.kafka.clients.admin.DescribeClusterOptions
-import org.apache.kafka.clients.admin.ListTopicsOptions
-import org.apache.kafka.clients.admin.TopicDescription
+import org.apache.kafka.clients.admin.*
 import org.apache.kafka.common.config.ConfigResource
 import java.io.File
 import java.time.Duration
@@ -190,6 +187,16 @@ class KafkaClient(project: Project?,
     }
 
     return props
+  }
+
+  fun createTopic(name: String, numPartition: Int?) {
+    kafkaAdmin?.createTopics(listOf(NewTopic(name, Optional.ofNullable(numPartition), Optional.empty())))
+    Thread.sleep(1000)
+  }
+
+  fun deleteTopic(name: String) {
+    kafkaAdmin?.deleteTopics(listOf(name))
+    Thread.sleep(1000)
   }
 
   companion object {

@@ -18,6 +18,8 @@ import com.jetbrains.bigdatatools.monitoring.data.model.ObjectDataModel
 import com.jetbrains.bigdatatools.monitoring.data.model.ProjectionObjectDataModel
 import com.jetbrains.bigdatatools.monitoring.data.model.RemoteInfo
 import com.jetbrains.bigdatatools.rfs.driver.manager.DriverManager
+import com.jetbrains.bigdatatools.rfs.util.RfsNotificationUtils
+import com.jetbrains.bigdatatools.util.executeOnPooledThread
 
 class KafkaDataManager(project: Project?, connectionData: KafkaConnectionData, settings: IntervalUpdateSettings) : MonitoringDataManager(
   project, settings) {
@@ -87,6 +89,16 @@ class KafkaDataManager(project: Project?, connectionData: KafkaConnectionData, s
     return dataModel
   }
 
+  fun createTopic(name: String, numPartition: Int?) = actionWrapper {
+    client.createTopic(name, numPartition)
+    autoUpdaterManager.reloadAsync(topicModel)
+  }
+
+  fun deleteTopic(topicName: String) = actionWrapper {
+    client.deleteTopic(topicName)
+    autoUpdaterManager.reloadAsync(topicModel)
+  }
+
   private fun createTopicsDataModel(): ObjectDataModel<TopicPresentable> {
     val topicDataModel = object : ObjectDataModel<TopicPresentable>(TopicPresentable::class) {
       override val idFieldName: String = "name"
@@ -121,6 +133,15 @@ class KafkaDataManager(project: Project?, connectionData: KafkaConnectionData, s
     Disposer.register(this, dataModel)
 
     return dataModel
+  }
+
+  private fun actionWrapper(body: () -> Unit) = executeOnPooledThread {
+    try {
+      body()
+    }
+    catch (t: Throwable) {
+      RfsNotificationUtils.showExceptionMessage(project, t)
+    }
   }
 
   companion object {
