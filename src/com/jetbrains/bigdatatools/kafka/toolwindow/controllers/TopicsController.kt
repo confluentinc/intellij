@@ -97,13 +97,7 @@ class TopicsController(val project: Project, private val dataManager: KafkaDataM
                                                      null,
                                                      AllIcons.General.Add) {
       override fun actionPerformed(e: AnActionEvent) {
-        val uiDisposable = Disposable { }
-        try {
-          KafkaDialogFactory.createTopicDialog(uiDisposable, dataManager)
-        }
-        finally {
-          Disposer.dispose(uiDisposable)
-        }
+        KafkaDialogFactory.showCreateTopicDialog(dataManager)
       }
 
       override fun update(e: AnActionEvent) {
