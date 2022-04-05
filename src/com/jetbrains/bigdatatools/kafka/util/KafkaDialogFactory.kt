@@ -17,14 +17,18 @@ object KafkaDialogFactory {
     builder.addOkAction()
     builder.addCancelAction()
     builder.title(KafkaMessagesBundle.message("action.create.topic"))
-    val nameField = JTextField(KafkaMessagesBundle.message("dialog.create.topic.default.name"), 15)
+    val nameField = JTextField("NewTopic", 15)
     nameField.selectAll()
     val numPartition = JTextField(6)
 
     val validator = object : InputValidatorEx {
       override fun checkInput(inputString: String) = getErrorText(inputString) == null
       override fun canClose(inputString: String) = getErrorText(inputString) == null
-      override fun getErrorText(inputString: String) = if (inputString.isBlank()) MessagesBundle.message("validator.notEmpty") else null
+      override fun getErrorText(inputString: String) = when {
+        inputString.isBlank() -> MessagesBundle.message("validator.notEmpty")
+        inputString.contains(Regex("[ \t\n]")) -> MessagesBundle.message("validator.notSpaces")
+        else -> null
+      }
     }
 
     registerValidator(builder, buildValidator(nameField, { nameField.text }, validator), nameField)
