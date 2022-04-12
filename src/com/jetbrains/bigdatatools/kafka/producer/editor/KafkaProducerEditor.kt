@@ -51,7 +51,6 @@ import com.jetbrains.bigdatatools.ui.MigPanel
 import com.jetbrains.bigdatatools.ui.SimpleDumbAwareAction
 import com.jetbrains.bigdatatools.util.executeNotOnEdt
 import com.jetbrains.bigdatatools.util.invokeLater
-import net.miginfocom.layout.LC
 import java.awt.BorderLayout
 import java.awt.Dimension
 import java.beans.PropertyChangeListener
@@ -176,10 +175,11 @@ class KafkaProducerEditor(project: Project,
     presets.onApply = { applyConfig(it) }
     presets
   }
+
   private val presets: ProducerPresets by presetsDelegate
 
   private val settingsPanelDelegate = lazy {
-    val panel = MigPanel(LC().insets("10").fillX().hideMode(3)).apply {
+    val panel = MigPanel(UiUtil.insets10FillXHidemode3).apply {
       row(KafkaMessagesBundle.message("producer.topics"), topicComboBox)
       row(KafkaMessagesBundle.message("producer.key"), keyComboBox)
       add(keyJsonField, UiUtil.growXSpanXWrap)
@@ -245,7 +245,7 @@ class KafkaProducerEditor(project: Project,
       }
     }
 
-    val bottomPanel = MigPanel(LC().insets("10").fillX().hideMode(3)).apply {
+    val bottomPanel = MigPanel(UiUtil.insets10FillXHidemode3).apply {
       border = IdeBorderFactory.createBorder(SideBorder.TOP)
       add(produceButton)
     }

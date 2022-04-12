@@ -20,7 +20,6 @@ import com.jetbrains.bigdatatools.ui.EmptyCell
 import com.jetbrains.bigdatatools.ui.MigPanel
 import com.jetbrains.bigdatatools.util.SizeUtils
 import com.jetbrains.bigdatatools.util.TimeUtils
-import net.miginfocom.layout.LC
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import java.nio.charset.StandardCharsets
 import javax.swing.BorderFactory
@@ -110,7 +109,7 @@ class ConsumerRecordDetails(project: Project, parentDisposable: Disposable) {
       component.revalidate()
     }
 
-  val component = MigPanel(LC().insets("10").fillX().hideMode(3)).apply {
+  val component = MigPanel(UiUtil.insets10FillXHidemode3).apply {
     row(KafkaMessagesBundle.message("consumer.record.topic"), topicField)
     row(KafkaMessagesBundle.message("consumer.record.key"))
     block(keyField)
