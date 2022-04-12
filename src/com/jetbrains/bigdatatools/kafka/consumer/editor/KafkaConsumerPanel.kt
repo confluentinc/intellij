@@ -31,6 +31,7 @@ import com.jetbrains.bigdatatools.kafka.consumer.models.*
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import com.jetbrains.bigdatatools.rfs.util.RfsNotificationUtils
+import com.jetbrains.bigdatatools.settings.defaultui.UiUtil
 import com.jetbrains.bigdatatools.table.MaterialTable
 import com.jetbrains.bigdatatools.table.MaterialTableUtils
 import com.jetbrains.bigdatatools.table.TableResizeController
@@ -41,7 +42,6 @@ import com.jetbrains.bigdatatools.table.renderers.DateRenderer
 import com.jetbrains.bigdatatools.ui.*
 import com.jetbrains.bigdatatools.util.executeOnPooledThread
 import com.michaelbaranov.microba.calendar.DatePicker
-import net.miginfocom.layout.LC
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import java.awt.BorderLayout
 import java.awt.Dimension
@@ -220,7 +220,7 @@ class KafkaConsumerPanel(project: Project, private val kafkaManager: KafkaDataMa
   private lateinit var filterPanelBlock: MigBlock
 
   private val settingsPanelDelegate = lazy {
-    val panel = MigPanel(LC().insets("10").fillX().hideMode(3)).apply {
+    val panel = MigPanel(UiUtil.insets10FillXHidemode3).apply {
 
       row(KafkaMessagesBundle.message("settings.label.topics"), topicComboBox)
 
@@ -266,7 +266,7 @@ class KafkaConsumerPanel(project: Project, private val kafkaManager: KafkaDataMa
       border = BorderFactory.createEmptyBorder()
     }
 
-    val bottomPanel = MigPanel(LC().insets("10").fillX().hideMode(3)).apply {
+    val bottomPanel = MigPanel(UiUtil.insets10FillXHidemode3).apply {
       border = IdeBorderFactory.createBorder(SideBorder.TOP)
       add(consumeButton)
     }
