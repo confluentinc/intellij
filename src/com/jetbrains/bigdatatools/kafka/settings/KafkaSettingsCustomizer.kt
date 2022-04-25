@@ -15,6 +15,7 @@ import com.jetbrains.bigdatatools.settings.fields.*
 import com.jetbrains.bigdatatools.settings.withNotEmptyValidator
 import com.jetbrains.bigdatatools.settings.withValidator
 import com.jetbrains.bigdatatools.ui.MigPanel
+import com.jetbrains.bigdatatools.ui.doOnChange
 import com.jetbrains.bigdatatools.util.BdtUrlUtils
 import com.jetbrains.bigdatatools.util.MessagesBundle
 
@@ -70,6 +71,10 @@ class KafkaSettingsCustomizer(project: Project, connectionData: KafkaConnectionD
 
     separatorRow()
     block(tunnelField.getComponent())
+
+    propertiesEditor.getComponent().document.doOnChange {
+      this@apply.revalidate()
+    }
   }
 
   private fun updateAuthStatus() {
