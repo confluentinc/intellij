@@ -95,14 +95,20 @@ class KafkaClient(project: Project?,
   fun getTopics(listInternal: Boolean): List<TopicPresentable> {
     val topicNames = getTopicNames(listInternal)
     val (describedTopics, nonParsed) = describeTopics(topicNames)
-    val loadedTopicConfig = loadTopicConfigs(topicNames)
+    val loadedTopicConfig = try {
+      loadTopicConfigs(topicNames)
+    }
+    catch (t: Throwable) {
+      logger.warn("Cannot load topic configs, ignore it", t)
+      emptyMap()
+    }
     val parsedInternal = describedTopics.map { BdtKafkaMapper.topicDescriptionToInternalTopic(it) }
     val nonParsedInternal = nonParsed.map { BdtKafkaMapper.mockInternalTopic(it) }
     return BdtKafkaMapper.mergeWithConfigs(parsedInternal + nonParsedInternal, loadedTopicConfig).values.toList()
   }
 
   private fun describeTopics(topicNames: List<String>): Pair<List<TopicDescription>, List<String>> = try {
-    kafkaAdminNotNull.describeTopics(topicNames.toMutableList()).all().get().values.toList() to emptyList()
+    kafkaAdminNotNull.describeTopics(topicNames.toMutableList()).allTopicNames().get().values.toList() to emptyList()
   }
   catch (t: Throwable) {
     val topics = mutableListOf<TopicDescription>()
@@ -110,7 +116,7 @@ class KafkaClient(project: Project?,
 
     topicNames.map {
       try {
-        val topicDescription = kafkaAdminNotNull.describeTopics(listOf(it)).all().get().values.firstOrNull()
+        val topicDescription = kafkaAdminNotNull.describeTopics(listOf(it)).allTopicNames().get().values.firstOrNull()
         if (topicDescription != null)
           topics.add(topicDescription)
         else
@@ -176,7 +182,9 @@ class KafkaClient(project: Project?,
     val properties = when (connectionData.propertySource) {
       KafkaPropertySource.DIRECT -> connectionData.properties
       KafkaPropertySource.FILE -> {
-        val filePath = File(connectionData.propertyFilePath).toPath()
+        val propertyFilePath = connectionData.propertyFilePath ?: error(
+          KafkaMessagesBundle.message("property.file.is.not.found", ""))
+        val filePath = File(propertyFilePath).toPath()
         val vf = VirtualFileManager.getInstance().findFileByNioPath(filePath) ?: error(
           KafkaMessagesBundle.message("property.file.is.not.found", filePath))
         vf.inputStream.bufferedReader().readText()
