@@ -30,7 +30,7 @@ import javax.swing.JPanel
  * Main controller for Kafka Cluster.
  * Contains page control for Topics / ConsumerGroups / etc.
  */
-class ClusterPageController(private val project: Project, connectionData: KafkaConnectionData) : ComponentController {
+class ClusterPageController(private val project: Project, private val connectionData: KafkaConnectionData) : ComponentController {
   private val dataManager = KafkaDataManager.getInstance(connectionData.innerId, project) ?: error("Data Manager is not initialized")
 
   private val topicsController = TopicsController(project, dataManager)
@@ -86,7 +86,7 @@ class ClusterPageController(private val project: Project, connectionData: KafkaC
 
     val createProducer = JButton(KafkaMessagesBundle.message("create.producer.action.title")).apply {
       addActionListener {
-        val file = LightVirtualFile("Kafka Producer")
+        val file = LightVirtualFile("${connectionData.name} Producer")
         file.putUserData(KafkaEditorProvider.KAFKA_MANAGER_KEY, dataManager)
         file.putUserData(KafkaEditorProvider.KAFKA_EDITOR_TYPE, KafkaEditorType.PRODUCER)
         FileEditorManagerEx.getInstance(project).openFile(file, true)
@@ -95,7 +95,7 @@ class ClusterPageController(private val project: Project, connectionData: KafkaC
 
     val createConsumer = JButton(KafkaMessagesBundle.message("create.consumer.action.title")).apply {
       addActionListener {
-        val file = LightVirtualFile("Kafka Consumer")
+        val file = LightVirtualFile("${connectionData.name} Consumer")
         file.putUserData(KafkaEditorProvider.KAFKA_MANAGER_KEY, dataManager)
         file.putUserData(KafkaEditorProvider.KAFKA_EDITOR_TYPE, KafkaEditorType.CONSUMER)
         FileEditorManagerEx.getInstance(project).openFile(file, true)
