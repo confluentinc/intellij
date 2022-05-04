@@ -26,6 +26,7 @@ import com.jetbrains.bigdatatools.monitoring.table.model.DataTableColumnModel
 import com.jetbrains.bigdatatools.monitoring.table.model.DataTableModel
 import com.jetbrains.bigdatatools.settings.ColumnVisibilitySettings
 import com.jetbrains.bigdatatools.table.MaterialJBScrollPane
+import com.jetbrains.bigdatatools.table.filters.TableFilterHeader
 import com.jetbrains.bigdatatools.util.ToolbarUtils
 import java.util.*
 import javax.swing.event.ListSelectionEvent
@@ -61,6 +62,9 @@ class TopicsController(val project: Project, private val dataManager: KafkaDataM
                                                                 TableExtensionType.SELECTION_PRESERVER,
                                                                 TableExtensionType.LOADING_INDICATOR))
     TableSelectionPreserver.installOn(topicTable, null)
+    TableFilterHeader(topicTable).apply {
+      caseInsensitive = true
+    }
     topicTable.selectionModel.addListSelectionListener(topicSelectionListener)
     Disposer.register(this, topicTable)
 
