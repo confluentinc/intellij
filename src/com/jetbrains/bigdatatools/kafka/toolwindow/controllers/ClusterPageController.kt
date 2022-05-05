@@ -1,6 +1,8 @@
 package com.jetbrains.bigdatatools.kafka.toolwindow.controllers
 
+import com.intellij.openapi.fileEditor.FileEditor
 import com.intellij.openapi.fileEditor.ex.FileEditorManagerEx
+import com.intellij.openapi.fileEditor.impl.EditorWindow
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.Splitter
 import com.intellij.openapi.util.Disposer
@@ -10,6 +12,7 @@ import com.intellij.ui.OnePixelSplitter
 import com.intellij.ui.SideBorder
 import com.intellij.ui.components.JBList
 import com.intellij.ui.components.JBScrollPane
+import com.intellij.ui.tabs.JBTabs
 import com.jetbrains.bigdatatools.kafka.common.editor.KafkaEditorProvider
 import com.jetbrains.bigdatatools.kafka.common.models.KafkaEditorType
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
@@ -21,10 +24,7 @@ import com.jetbrains.bigdatatools.ui.MigPanel
 import com.jetbrains.bigdatatools.ui.MouseAwarePanel
 import net.miginfocom.layout.LC
 import java.awt.BorderLayout
-import javax.swing.DefaultListModel
-import javax.swing.DefaultListSelectionModel
-import javax.swing.JButton
-import javax.swing.JPanel
+import javax.swing.*
 
 /**
  * Main controller for Kafka Cluster.
@@ -62,6 +62,20 @@ class ClusterPageController(private val project: Project, private val connection
     details.repaint()
   }
 
+  private fun openProducer(): Array<FileEditor> {
+    val file = LightVirtualFile("${connectionData.name} Producer")
+    file.putUserData(KafkaEditorProvider.KAFKA_MANAGER_KEY, dataManager)
+    file.putUserData(KafkaEditorProvider.KAFKA_EDITOR_TYPE, KafkaEditorType.PRODUCER)
+    return FileEditorManagerEx.getInstance(project).openFile(file, true)
+  }
+
+  private fun createConsumerFile(): LightVirtualFile {
+    return LightVirtualFile("${connectionData.name} Consumer").apply {
+      putUserData(KafkaEditorProvider.KAFKA_MANAGER_KEY, dataManager)
+      putUserData(KafkaEditorProvider.KAFKA_EDITOR_TYPE, KafkaEditorType.CONSUMER)
+    }
+  }
+
   private fun createPanel(): JPanel {
     val model = DefaultListModel<ClusterControllerType>().also { model ->
       ClusterControllerType.values().forEach {
@@ -86,19 +100,30 @@ class ClusterPageController(private val project: Project, private val connection
 
     val createProducer = JButton(KafkaMessagesBundle.message("create.producer.action.title")).apply {
       addActionListener {
-        val file = LightVirtualFile("${connectionData.name} Producer")
-        file.putUserData(KafkaEditorProvider.KAFKA_MANAGER_KEY, dataManager)
-        file.putUserData(KafkaEditorProvider.KAFKA_EDITOR_TYPE, KafkaEditorType.PRODUCER)
-        FileEditorManagerEx.getInstance(project).openFile(file, true)
+        openProducer()
       }
     }
 
     val createConsumer = JButton(KafkaMessagesBundle.message("create.consumer.action.title")).apply {
       addActionListener {
-        val file = LightVirtualFile("${connectionData.name} Consumer")
-        file.putUserData(KafkaEditorProvider.KAFKA_MANAGER_KEY, dataManager)
-        file.putUserData(KafkaEditorProvider.KAFKA_EDITOR_TYPE, KafkaEditorType.CONSUMER)
-        FileEditorManagerEx.getInstance(project).openFile(file, true)
+        FileEditorManagerEx.getInstance(project).openFile(createConsumerFile(), true)
+      }
+    }
+
+    val createProducerAndConsumer = JButton(KafkaMessagesBundle.message("create.producer.and.consumer.action.title")).apply {
+      addActionListener {
+        val producerEditor = openProducer()
+        val consumerFile = createConsumerFile()
+        val tabsDataProvider = if (producerEditor.size != 1) null
+        else
+          (SwingUtilities.getAncestorOfClass(JBTabs::class.java, producerEditor[0].component) as? JBTabs)?.dataProvider
+        val window = if (tabsDataProvider == null) null else EditorWindow.DATA_KEY.getData(tabsDataProvider)
+        if (window == null) {
+          FileEditorManagerEx.getInstance(project).openFile(consumerFile, true)
+        }
+        else {
+          window.split(SwingConstants.VERTICAL, true, consumerFile, true)
+        }
       }
     }
 
@@ -111,6 +136,7 @@ class ClusterPageController(private val project: Project, private val connection
       add(MigPanel(LC().insets("0").gridGapY("0").fillX().hideMode(3)).apply {
         row(createProducer)
         row(createConsumer)
+        row(createProducerAndConsumer)
       }, BorderLayout.SOUTH)
     }
 
