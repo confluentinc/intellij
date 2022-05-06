@@ -1,5 +1,6 @@
 package com.jetbrains.bigdatatools.kafka.toolwindow.controllers
 
+import com.intellij.CommonBundle
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.ActionToolbar
@@ -124,8 +125,8 @@ class TopicsController(val project: Project, private val dataManager: KafkaDataM
         val res = Messages.showOkCancelDialog(project,
                                               KafkaMessagesBundle.message("action.delete.topic.message", selectedTopicName),
                                               KafkaMessagesBundle.message("action.delete.topic.title"),
-                                              KafkaMessagesBundle.message("action.delete.topic.ok"),
-                                              KafkaMessagesBundle.message("action.delete.topic.cancel"),
+                                              CommonBundle.getOkButtonText(),
+                                              CommonBundle.getCancelButtonText(),
                                               Messages.getQuestionIcon())
         if (res != Messages.OK)
           return
