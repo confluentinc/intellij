@@ -5,6 +5,7 @@ import com.jetbrains.bigdatatools.kafka.common.settings.KafkaConfigStorage
 import com.jetbrains.bigdatatools.kafka.consumer.models.ConsumerFilterType
 import com.jetbrains.bigdatatools.kafka.consumer.models.ConsumerLimitType
 import com.jetbrains.bigdatatools.kafka.consumer.models.RunConsumerConfig
+import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import com.jetbrains.bigdatatools.ui.MigPanel
 import java.awt.Component
 import java.text.SimpleDateFormat
@@ -31,7 +32,7 @@ class RunConsumerConfigCellRenderer : ListCellRenderer<RunConsumerConfig> {
   private val filterHeaderValueLabel = JLabel()
 
   private val labels = listOf(topicLabel, keyLabel, valueLabel, startFromLabel, limitLabel, filterLabel, filterKeyLabel, filterValueLabel,
-    filterHeaderKeyLabel, filterHeaderValueLabel)
+                              filterHeaderKeyLabel, filterHeaderValueLabel)
 
   private val component = MigPanel().apply {
     labels.forEach { row(it) }
@@ -57,6 +58,7 @@ class RunConsumerConfigCellRenderer : ListCellRenderer<RunConsumerConfig> {
 
     @Suppress("HardCodedStringLiteral")
     keyLabel.text = "Key: ${value.keyType.title}"
+
     @Suppress("HardCodedStringLiteral")
     valueLabel.text = "Value: ${value.valueType.title}"
 
@@ -67,9 +69,10 @@ class RunConsumerConfigCellRenderer : ListCellRenderer<RunConsumerConfig> {
     }
     else {
       limitLabel.isVisible = true
-      limitLabel.text = "Limit: ${value.limit.type.title} ${
-        if (value.limit.type == ConsumerLimitType.DATE) dateFormat.format(value.limit.time) else value.limit.value
-      }"
+      limitLabel.text = KafkaMessagesBundle.message("consumer.preset.limit",
+                                                    value.limit.type.title,
+                                                    if (value.limit.type == ConsumerLimitType.DATE) dateFormat.format(value.limit.time)
+                                                    else value.limit.value)
     }
 
     val filterVisible = value.filter.type != ConsumerFilterType.NONE
@@ -81,15 +84,15 @@ class RunConsumerConfigCellRenderer : ListCellRenderer<RunConsumerConfig> {
     filterHeaderValueLabel.isVisible = filterVisible && !value.filter.filterHeadValue.isNullOrEmpty()
 
     if (filterLabel.isVisible)
-      filterLabel.text = "Filter: ${value.filter.type.title}"
+      filterLabel.text = KafkaMessagesBundle.message("consumer.preset.filter", value.filter.type.title)
     if (filterKeyLabel.isVisible)
-      filterKeyLabel.text = "Key: ${value.filter.filterKey}"
+      filterKeyLabel.text = KafkaMessagesBundle.message("consumer.preset.key", value.filter.filterKey ?: "")
     if (filterValueLabel.isVisible)
-      filterValueLabel.text = "Value: ${value.filter.filterValue}"
+      filterValueLabel.text = KafkaMessagesBundle.message("consumer.preset.value", value.filter.filterValue ?: "")
     if (filterHeaderKeyLabel.isVisible)
-      filterHeaderKeyLabel.text = "Header key: ${value.filter.filterHeadKey}"
+      filterHeaderKeyLabel.text = KafkaMessagesBundle.message("consumer.preset.header.key", value.filter.filterHeadKey ?: "")
     if (filterHeaderValueLabel.isVisible)
-      filterHeaderValueLabel.text = "Header value: ${value.filter.filterHeadValue}"
+      filterHeaderValueLabel.text = KafkaMessagesBundle.message("consumer.preset.header.value", value.filter.filterHeadValue ?: "")
 
     return component
   }

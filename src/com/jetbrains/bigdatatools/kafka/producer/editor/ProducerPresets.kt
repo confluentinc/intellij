@@ -3,6 +3,7 @@ package com.jetbrains.bigdatatools.kafka.producer.editor
 import com.jetbrains.bigdatatools.kafka.common.editor.Presets
 import com.jetbrains.bigdatatools.kafka.common.settings.KafkaConfigStorage
 import com.jetbrains.bigdatatools.kafka.producer.models.RunProducerConfig
+import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import com.jetbrains.bigdatatools.ui.MigPanel
 import java.awt.Component
 import javax.swing.JLabel
@@ -40,10 +41,18 @@ class RunProducerConfigCellRenderer : ListCellRenderer<RunProducerConfig> {
       valueLabel.foreground = list.foreground
     }
 
-    topicLabel.text = "Topic: ${if (value?.topic.isNullOrEmpty()) "No topic" else value?.topic}"
-    keyLabel.text = "Key [${value?.keyType?.title ?: "none"}]:  ${if (value?.key.isNullOrEmpty()) "No key" else value?.key}"
-    valueLabel.text = "Value [${value?.valueType?.title ?: "none"}]:  ${if (value?.value.isNullOrEmpty()) "No key" else value?.value}"
-
+    topicLabel.text = KafkaMessagesBundle.message("producer.preset.topic", if (value?.topic.isNullOrEmpty()) KafkaMessagesBundle.message(
+      "producer.preset.no.topic")
+    else value?.topic ?: "")
+    keyLabel.text = KafkaMessagesBundle.message("producer.preset.key",
+                                                value?.keyType?.title ?: KafkaMessagesBundle.message("producer.preset.none"),
+                                                if (value?.key.isNullOrEmpty()) KafkaMessagesBundle.message("producer.preset.no.key")
+                                                else value?.key ?: "")
+    valueLabel.text = KafkaMessagesBundle.message("producer.preset.value",
+                                                  value?.valueType?.title ?: KafkaMessagesBundle.message("producer.preset.none"),
+                                                  if (value?.value.isNullOrEmpty()) KafkaMessagesBundle.message(
+                                                    "producer.preset.no.value")
+                                                  else value?.value ?: "")
     return component
   }
 }
