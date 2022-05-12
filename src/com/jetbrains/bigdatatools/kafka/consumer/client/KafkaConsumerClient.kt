@@ -7,6 +7,7 @@ import com.jetbrains.bigdatatools.kafka.consumer.editor.ConsumerEditorUtils
 import com.jetbrains.bigdatatools.kafka.consumer.models.ConsumerStartType
 import com.jetbrains.bigdatatools.kafka.consumer.models.ConsumerStartWith
 import com.jetbrains.bigdatatools.kafka.consumer.models.RunConsumerConfig
+import com.jetbrains.bigdatatools.kafka.statistics.KafkaUsagesCollector
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.clients.consumer.ConsumerRecord
@@ -92,6 +93,7 @@ class KafkaConsumerClient(val client: KafkaClient,
             return
           }
 
+          var consumedRecords = 0
           records.forEach { record: ConsumerRecord<Any, Any> ->
             if (config.limit.time != null && record.timestamp() > config.limit.time) {
               return
@@ -120,7 +122,6 @@ class KafkaConsumerClient(val client: KafkaClient,
               }
             }
 
-
             if (needToReadTopicCount == 0L) {
               return
             }
@@ -140,6 +141,11 @@ class KafkaConsumerClient(val client: KafkaClient,
             }
 
             consume(record)
+            consumedRecords++
+          }
+
+          if (consumedRecords > 0) {
+            KafkaUsagesCollector.consumedKeyValue.log(config.keyType, config.valueType, consumedRecords)
           }
         }
       }
@@ -153,7 +159,6 @@ class KafkaConsumerClient(val client: KafkaClient,
                              partitions: List<TopicPartition>,
                              startWith: ConsumerStartWith) {
     val startFromOffsetSeek = startWith.offset?.let { partitionOffsetsForStartOffset(consumer, partitions, it) }
-
 
     val startTime = calculateStartTime(startWith)
     val startFromDateSeek: Map<TopicPartition, Long?>? = startTime?.let { partitionOffsetsForStartDate(it, partitions, consumer) }

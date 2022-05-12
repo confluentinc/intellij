@@ -17,6 +17,7 @@ import com.jetbrains.bigdatatools.kafka.common.editor.KafkaEditorProvider
 import com.jetbrains.bigdatatools.kafka.common.models.KafkaEditorType
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaConnectionData
+import com.jetbrains.bigdatatools.kafka.statistics.KafkaUsagesCollector
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import com.jetbrains.bigdatatools.monitoring.toolwindow.ComponentController
 import com.jetbrains.bigdatatools.ui.CustomListCellRenderer
@@ -101,12 +102,14 @@ class ClusterPageController(private val project: Project, private val connection
     val createProducer = JButton(KafkaMessagesBundle.message("create.producer.action.title")).apply {
       addActionListener {
         openProducer()
+        KafkaUsagesCollector.openProducerEvent.log(project)
       }
     }
 
     val createConsumer = JButton(KafkaMessagesBundle.message("create.consumer.action.title")).apply {
       addActionListener {
         FileEditorManagerEx.getInstance(project).openFile(createConsumerFile(), true)
+        KafkaUsagesCollector.openConsumerEvent.log(project)
       }
     }
 
@@ -123,6 +126,7 @@ class ClusterPageController(private val project: Project, private val connection
         }
         else {
           window.split(SwingConstants.VERTICAL, true, consumerFile, true)
+          KafkaUsagesCollector.openProducerAndConsumerEvent.log(project)
         }
       }
     }

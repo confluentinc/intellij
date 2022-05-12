@@ -32,6 +32,7 @@ import com.jetbrains.bigdatatools.kafka.common.models.TopicInEditor
 import com.jetbrains.bigdatatools.kafka.common.settings.KafkaConfigStorage
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.producer.models.*
+import com.jetbrains.bigdatatools.kafka.statistics.KafkaUsagesCollector
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import com.jetbrains.bigdatatools.rfs.util.RfsNotificationUtils
 import com.jetbrains.bigdatatools.settings.defaultui.UiUtil
@@ -242,6 +243,8 @@ class KafkaProducerEditor(project: Project,
             }
           }
         }
+
+        KafkaUsagesCollector.producedKeyValue.log(project, keyComboBox.item, valueComboBox.item)
       }
     }
 

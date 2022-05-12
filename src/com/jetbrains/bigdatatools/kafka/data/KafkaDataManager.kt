@@ -11,6 +11,7 @@ import com.jetbrains.bigdatatools.kafka.model.TopicPartition
 import com.jetbrains.bigdatatools.kafka.model.TopicPresentable
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaConnectionData
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaDriver
+import com.jetbrains.bigdatatools.kafka.statistics.KafkaUsagesCollector
 import com.jetbrains.bigdatatools.kafka.toolwindow.config.KafkaToolWindowSettings
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import com.jetbrains.bigdatatools.monitoring.data.MonitoringDataManager
@@ -92,11 +93,15 @@ class KafkaDataManager(project: Project?, connectionData: KafkaConnectionData, s
   fun createTopic(name: String, numPartition: Int?) = actionWrapper {
     client.createTopic(name, numPartition)
     autoUpdaterManager.reloadAsync(topicModel)
+
+    KafkaUsagesCollector.topicCreatedEvent.log(project)
   }
 
   fun deleteTopic(topicName: String) = actionWrapper {
     client.deleteTopic(topicName)
     autoUpdaterManager.reloadAsync(topicModel)
+
+    KafkaUsagesCollector.topicDeletedEvent.log(project)
   }
 
   private fun createTopicsDataModel(): ObjectDataModel<TopicPresentable> {

@@ -5,6 +5,7 @@
     <applicationService serviceImplementation="com.jetbrains.bigdatatools.kafka.toolwindow.config.KafkaToolWindowSettings"/>
     <bigdatatools.bdiConnectionSettingProvider implementation="com.jetbrains.bigdatatools.kafka.settings.KafkaSettingsProvider"/>
 
+    <statistics.counterUsagesCollector implementationClass="com.jetbrains.bigdatatools.kafka.statistics.KafkaUsagesCollector"/>
 
     <projectService serviceImplementation="com.jetbrains.bigdatatools.kafka.toolwindow.KafkaMonitoringToolWindowController"/>
 
