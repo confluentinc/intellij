@@ -10,6 +10,7 @@ import com.jetbrains.bigdatatools.kafka.util.KafkaIcons
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import com.jetbrains.bigdatatools.rfs.driver.Driver
 import com.jetbrains.bigdatatools.rfs.settings.RemoteFsDriverProvider
+import com.jetbrains.bigdatatools.rfs.statistics.DriverType
 import com.jetbrains.bigdatatools.settings.connections.ConnectionGroup
 import javax.swing.Icon
 
@@ -20,7 +21,7 @@ class KafkaConnectionData : RemoteFsDriverProvider(KafkaMessagesBundle.message("
 
   override fun getIcon(): Icon = KafkaIcons.MAIN_ICON
   override fun createDriverImpl(project: Project?, isTest: Boolean): Driver = KafkaDriver(this, project)
-  override fun rfsDriverType() = TYPE_ID
+  override fun rfsDriverType() = DriverType.KAFKA
 
   override fun createConfigurable(project: Project, parentGroup: ConnectionGroup) = KafkaConnectionConfigurable(this, project)
 
