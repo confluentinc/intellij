@@ -1,6 +1,6 @@
 package com.jetbrains.bigdatatools.kafka.common.models
 
-import com.intellij.util.Base64
+import java.util.*
 
 data class ProducerField(val type: FieldType, val text: String?) {
   val value: Any? = when (type) {
@@ -9,7 +9,7 @@ data class ProducerField(val type: FieldType, val text: String?) {
     FieldType.LONG -> text?.toLong()
     FieldType.DOUBLE -> text?.toDouble()
     FieldType.FLOAT -> text?.toFloat()
-    FieldType.BASE64 -> text?.let { Base64.decode(it) }
+    FieldType.BASE64 -> text?.let { Base64.getDecoder().decode(it) }
     FieldType.NULL -> null
   }
 }
