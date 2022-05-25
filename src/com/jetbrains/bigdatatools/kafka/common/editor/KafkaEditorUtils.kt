@@ -1,5 +1,7 @@
 package com.jetbrains.bigdatatools.kafka.common.editor
 
+import com.google.gson.GsonBuilder
+import com.google.gson.JsonParser
 import com.intellij.json.JsonLanguage
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.project.Project
@@ -18,7 +20,6 @@ import com.jetbrains.bigdatatools.ui.ComponentColoredBorder
 import com.jetbrains.bigdatatools.ui.CustomListCellRenderer
 import com.jetbrains.bigdatatools.ui.DarculaTextAreaBorder
 import org.apache.kafka.common.ConsumerGroupState
-import java.nio.charset.StandardCharsets
 import java.util.*
 import javax.swing.BorderFactory
 
@@ -39,7 +40,7 @@ object KafkaEditorUtils {
                       }
                     }, MonospaceEditorCustomization.getInstance())).apply {
       border = BorderFactory.createCompoundBorder(DarculaTextAreaBorder(), ComponentColoredBorder(3, 5, 3, 5))
-      background = UIUtil.getTextFieldBackground() //DefaultLookup.getColor(this, null, "TextField.background", null)
+      background = UIUtil.getTextFieldBackground()
       autoscrolls = false
       setCaretPosition(0)
     }
@@ -50,7 +51,16 @@ object KafkaEditorUtils {
     }
     else if (type == FieldType.BASE64 && value is ByteArray) {
       try {
-        String(Base64.getEncoder().encode(value), StandardCharsets.UTF_8)
+        Base64.getEncoder().withoutPadding().encodeToString(value)
+      }
+      catch (e: Exception) {
+        value.toString()
+      }
+    }
+    else if (type == FieldType.JSON) {
+      try {
+        val gson = GsonBuilder().setPrettyPrinting().create()
+        gson.toJson(JsonParser.parseString(value.toString()))
       }
       catch (e: Exception) {
         value.toString()
