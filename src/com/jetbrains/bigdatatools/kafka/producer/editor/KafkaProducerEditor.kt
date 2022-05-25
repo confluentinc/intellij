@@ -57,6 +57,7 @@ import java.awt.Dimension
 import java.beans.PropertyChangeListener
 import java.util.*
 import javax.swing.*
+import javax.swing.text.JTextComponent
 import kotlin.math.max
 
 class KafkaProducerEditor(project: Project,
@@ -87,33 +88,23 @@ class KafkaProducerEditor(project: Project,
     selectedIndex = 0
   }
 
-  private val keyJsonField: EditorTextField by lazy { KafkaEditorUtils.createJsonTextArea(project).withValidator(this, ::validateKey) }
-  private val valueJsonField: EditorTextField by lazy { KafkaEditorUtils.createJsonTextArea(project).withValidator(this, ::validateValue) }
+  private val keyJsonField: EditorTextField by lazy {
+    KafkaEditorUtils.createJsonTextArea(project).withValidator(this, ::validateKey).apply {
+      setDisposedWith(this@KafkaProducerEditor)
+    }
+  }
+
+  private val valueJsonField: EditorTextField by lazy {
+    KafkaEditorUtils.createJsonTextArea(project).withValidator(this, ::validateValue).apply {
+      setDisposedWith(this@KafkaProducerEditor)
+    }
+  }
 
   private val keyField = JBTextField().apply { emptyText.text = "Optional" }.withValidator(this, ::validateKey)
   private val valueField = JBTextField().apply { emptyText.text = "Optional" }.withValidator(this, ::validateValue)
 
-  private val keyComboBox = ComboBox(FieldType.values()).apply {
-    renderer = CustomListCellRenderer<FieldType> { it.title }
-    selectedItem = FieldType.STRING
-    addItemListener {
-      updateVisibility()
-      keyJsonField.revalidateComponent()
-      keyField.revalidateComponent()
-      mainComponent.revalidate()
-    }
-  }
-
-  private val valueComboBox = ComboBox(FieldType.values()).apply {
-    renderer = CustomListCellRenderer<FieldType> { it.title }
-    selectedItem = FieldType.STRING
-    addItemListener {
-      updateVisibility()
-      valueJsonField.revalidateComponent()
-      valueField.revalidateComponent()
-      mainComponent.revalidate()
-    }
-  }
+  private val keyComboBox = createFieldTypeComboBox(keyJsonField, keyField)
+  private val valueComboBox = createFieldTypeComboBox(valueJsonField, valueField)
 
   private val forcePartitionField = IntegerField().apply {
     isCanBeEmpty = true
@@ -356,11 +347,24 @@ class KafkaProducerEditor(project: Project,
     }
   }
 
-  @Suppress("UNUSED_PARAMETER")
-  private fun validateKey(text: String): String? = validate(keyComboBox.item!!, getKey())
+  private fun createFieldTypeComboBox(jsonField: EditorTextField, field: JTextComponent): ComboBox<FieldType> {
+    return ComboBox(FieldType.values()).apply {
+      renderer = CustomListCellRenderer<FieldType> { it.title }
+      selectedItem = FieldType.STRING
+      addItemListener {
+        updateVisibility()
+        jsonField.revalidateComponent()
+        field.revalidateComponent()
+        mainComponent.revalidate()
+      }
+    }
+  }
 
   @Suppress("UNUSED_PARAMETER")
-  private fun validateValue(text: String): String? = validate(valueComboBox.item!!, getValue())
+  private fun validateKey(text: String): String? = validate(keyComboBox.item, getKey())
+
+  @Suppress("UNUSED_PARAMETER")
+  private fun validateValue(text: String): String? = validate(valueComboBox.item, getValue())
 
   private fun validate(type: FieldType, value: String): String? {
     return when (type) {

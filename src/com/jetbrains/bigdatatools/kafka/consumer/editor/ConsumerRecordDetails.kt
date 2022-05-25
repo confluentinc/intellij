@@ -1,35 +1,68 @@
 package com.jetbrains.bigdatatools.kafka.consumer.editor
 
-import com.intellij.json.JsonLanguage
+import com.google.gson.GsonBuilder
+import com.google.gson.JsonParser
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.project.Project
-import com.intellij.ui.EditorCustomization
-import com.intellij.ui.EditorTextFieldProvider
-import com.intellij.ui.MonospaceEditorCustomization
+import com.intellij.openapi.ui.ComboBox
+import com.intellij.ui.EditorTextField
 import com.intellij.ui.components.JBScrollPane
-import com.intellij.util.ui.UIUtil
+import com.jetbrains.bigdatatools.kafka.common.editor.FieldViewerType
 import com.jetbrains.bigdatatools.kafka.common.editor.KafkaEditorUtils
 import com.jetbrains.bigdatatools.kafka.common.editor.PropertiesTable
 import com.jetbrains.bigdatatools.kafka.common.models.FieldType
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import com.jetbrains.bigdatatools.settings.connections.Property
 import com.jetbrains.bigdatatools.settings.defaultui.UiUtil
-import com.jetbrains.bigdatatools.ui.ComponentColoredBorder
-import com.jetbrains.bigdatatools.ui.DarculaTextAreaBorder
+import com.jetbrains.bigdatatools.ui.CustomListCellRenderer
 import com.jetbrains.bigdatatools.ui.EmptyCell
 import com.jetbrains.bigdatatools.ui.MigPanel
 import com.jetbrains.bigdatatools.util.SizeUtils
 import com.jetbrains.bigdatatools.util.TimeUtils
+import net.miginfocom.layout.CC
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import java.nio.charset.StandardCharsets
+import java.util.*
 import javax.swing.BorderFactory
 import javax.swing.JLabel
 import javax.swing.JTextField
 
 class ConsumerRecordDetails(project: Project, parentDisposable: Disposable) {
+
   private val topicField = JTextField(10)
-  private val keyField = createTextEditor(project, parentDisposable)
-  private val valueField = createTextEditor(project, parentDisposable)
+
+  private val keyViewerType = ComboBox(FieldViewerType.values()).apply {
+    border = BorderFactory.createEmptyBorder()
+    renderer = CustomListCellRenderer<FieldViewerType> { it.title }
+  }
+
+  private val keyField = KafkaEditorUtils.createJsonTextArea(project).apply {
+    document.setReadOnly(true)
+    setDisposedWith(parentDisposable)
+  }
+
+  private val valueViewerType = ComboBox(FieldViewerType.values()).apply {
+    border = BorderFactory.createEmptyBorder()
+    renderer = CustomListCellRenderer<FieldViewerType> { it.title }
+  }
+
+  private val valueField = KafkaEditorUtils.createJsonTextArea(project).apply {
+    document.setReadOnly(true)
+    setDisposedWith(parentDisposable)
+  }
+
+  init {
+    keyViewerType.addItemListener {
+      updateField(keyField, keyViewerType, keyType, record?.key())
+      component.revalidate()
+    }
+
+    valueViewerType.addItemListener {
+      updateField(valueField, valueViewerType, valueType, record?.value())
+      component.revalidate()
+    }
+  }
+
   private val headers = PropertiesTable(emptyList())
   private val partition = JTextField(10)
   private val offset = JTextField(10)
@@ -58,16 +91,42 @@ class ConsumerRecordDetails(project: Project, parentDisposable: Disposable) {
       record = record
     }
 
-  private fun setKey(value: String) {
-    keyField.document.setReadOnly(false)
-    keyField.text = value
-    keyField.document.setReadOnly(true)
+  private fun updateField(field: EditorTextField, value: String) {
+    field.document.setReadOnly(false)
+    field.text = value
+    field.document.setReadOnly(true)
   }
 
-  private fun setValue(value: String) {
-    valueField.document.setReadOnly(false)
-    valueField.text = value
-    valueField.document.setReadOnly(true)
+  private fun updateField(field: EditorTextField, viewerType: ComboBox<FieldViewerType>, valueType: FieldType, value: Any?) {
+
+    if (value == null) {
+      updateField(field, "")
+      return
+    }
+
+    val presentingValue = when {
+      viewerType.item == FieldViewerType.JSON -> {
+        try {
+          val gson = GsonBuilder().setPrettyPrinting().create()
+          gson.toJson(JsonParser.parseString(value.toString()))
+        }
+        catch (e: Exception) {
+          value.toString()
+        }
+      }
+      viewerType.item == FieldViewerType.DECODED_BASE64 && value is ByteArray -> {
+        try {
+          Base64.getEncoder().withoutPadding().encodeToString(value)
+        }
+        catch (e: Exception) {
+          value.toString()
+        }
+      }
+      viewerType.item == FieldViewerType.AUTO -> KafkaEditorUtils.getValueAsString(valueType, value)
+      else -> value.toString()
+    }
+
+    updateField(field, presentingValue)
   }
 
   var record: ConsumerRecord<Any, Any>? = null
@@ -75,8 +134,8 @@ class ConsumerRecordDetails(project: Project, parentDisposable: Disposable) {
       field = value
 
       if (value == null) {
-        setKey("")
-        setValue("")
+        updateField(keyField, "")
+        updateField(valueField, "")
 
         topicField.text = ""
 
@@ -91,8 +150,9 @@ class ConsumerRecordDetails(project: Project, parentDisposable: Disposable) {
       }
       else {
         topicField.text = value.topic()
-        setKey(KafkaEditorUtils.getValueAsString(keyType, value.key()))
-        setValue(KafkaEditorUtils.getValueAsString(valueType, value.value()))
+
+        updateField(valueField, valueViewerType, valueType, value.value())
+        updateField(keyField, keyViewerType, keyType, value.value())
 
         partition.text = value.partition().toString()
         offset.text = value.offset().toString()
@@ -111,9 +171,12 @@ class ConsumerRecordDetails(project: Project, parentDisposable: Disposable) {
 
   val component = MigPanel(UiUtil.insets10FillXHidemode3).apply {
     row(KafkaMessagesBundle.message("consumer.record.topic"), topicField)
-    row(KafkaMessagesBundle.message("consumer.record.key"))
+    add(JLabel(KafkaMessagesBundle.message("consumer.record.key")))
+    add(keyViewerType, CC().pushX().alignX("right").wrap())
     block(keyField)
-    row(KafkaMessagesBundle.message("consumer.record.value"))
+
+    add(JLabel(KafkaMessagesBundle.message("consumer.record.value")))
+    add(valueViewerType, CC().pushX().alignX("right").wrap())
     block(valueField)
 
     row(KafkaMessagesBundle.message("consumer.record.partition"), partition)
@@ -125,32 +188,5 @@ class ConsumerRecordDetails(project: Project, parentDisposable: Disposable) {
 
     add(JLabel(KafkaMessagesBundle.message("consumer.record.headers")), UiUtil.wrap)
     block(JBScrollPane(headers.table))
-  }
-
-  private fun createTextEditor(project: Project, parentDisposable: Disposable) = EditorTextFieldProvider.getInstance().getEditorField(
-    JsonLanguage.INSTANCE, project,
-    listOf(
-      EditorCustomization {
-        it.settings.apply {
-          isLineNumbersShown = false
-          isLineMarkerAreaShown = false
-          isFoldingOutlineShown = false
-          isRightMarginShown = false
-          additionalLinesCount = 0
-          additionalColumnsCount = 0
-          isAdditionalPageAtBottom = false
-          isShowIntentionBulb = false
-        }
-      },
-      MonospaceEditorCustomization.getInstance())).apply {
-
-    border = BorderFactory.createCompoundBorder(DarculaTextAreaBorder(), ComponentColoredBorder(3, 5, 3, 5))
-    background = UIUtil.getTextFieldBackground()
-
-    autoscrolls = false
-    document.setReadOnly(true)
-    setCaretPosition(0)
-
-    setDisposedWith(parentDisposable)
   }
 }
