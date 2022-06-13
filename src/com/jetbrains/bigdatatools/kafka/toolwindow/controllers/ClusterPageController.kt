@@ -64,14 +64,15 @@ class ClusterPageController(private val project: Project, private val connection
   }
 
   private fun openProducer(): Array<FileEditor> {
-    val file = LightVirtualFile("${connectionData.name} Producer")
-    file.putUserData(KafkaEditorProvider.KAFKA_MANAGER_KEY, dataManager)
-    file.putUserData(KafkaEditorProvider.KAFKA_EDITOR_TYPE, KafkaEditorType.PRODUCER)
+    val file = LightVirtualFile("${connectionData.name} Producer", KafkaFileType(), "").apply {
+      putUserData(KafkaEditorProvider.KAFKA_MANAGER_KEY, dataManager)
+      putUserData(KafkaEditorProvider.KAFKA_EDITOR_TYPE, KafkaEditorType.PRODUCER)
+    }
     return FileEditorManagerEx.getInstance(project).openFile(file, true)
   }
 
   private fun createConsumerFile(): LightVirtualFile {
-    return LightVirtualFile("${connectionData.name} Consumer").apply {
+    return LightVirtualFile("${connectionData.name} Consumer", KafkaFileType(), "").apply {
       putUserData(KafkaEditorProvider.KAFKA_MANAGER_KEY, dataManager)
       putUserData(KafkaEditorProvider.KAFKA_EDITOR_TYPE, KafkaEditorType.CONSUMER)
     }
