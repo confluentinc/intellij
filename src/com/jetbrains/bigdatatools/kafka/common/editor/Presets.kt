@@ -6,13 +6,13 @@ import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.ui.AnActionButton
 import com.intellij.ui.ToolbarDecorator
 import com.intellij.ui.components.JBList
-import com.intellij.util.ui.JBUI
 import com.jetbrains.bigdatatools.kafka.common.models.RunConfig
 import com.jetbrains.bigdatatools.kafka.common.settings.ConfigChangeListener
 import com.jetbrains.bigdatatools.kafka.common.settings.KafkaRunConfig
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
+import javax.swing.BorderFactory
 import javax.swing.DefaultListModel
 import javax.swing.JPanel
 import javax.swing.ListCellRenderer
@@ -47,7 +47,7 @@ open class Presets<T : RunConfig>(private val runConfig: KafkaRunConfig,
           runConfig.removeConfig(it)
         }
       }.createPanel().apply {
-        border = JBUI.Borders.empty()
+        border = BorderFactory.createEmptyBorder()
       }
 
     presetsList.addMouseListener(object : MouseAdapter() {

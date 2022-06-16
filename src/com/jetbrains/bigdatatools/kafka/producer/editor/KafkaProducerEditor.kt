@@ -21,7 +21,6 @@ import com.intellij.ui.components.CheckBox
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.components.JBTextField
 import com.intellij.ui.components.fields.IntegerField
-import com.intellij.util.ui.JBUI
 import com.jetbrains.bigdatatools.kafka.common.editor.KafkaEditorUtils
 import com.jetbrains.bigdatatools.kafka.common.editor.ListTableModel
 import com.jetbrains.bigdatatools.kafka.common.editor.PropertiesTable
@@ -128,7 +127,7 @@ class KafkaProducerEditor(project: Project,
 
   private val outputTableDelegate = lazy {
     MaterialTable(outputModel, outputModel.columnModel).apply {
-      tableHeader.border = JBUI.Borders.empty()
+      tableHeader.border = BorderFactory.createEmptyBorder()
       outputModel.columnModel.columns.asIterator().forEach {
         if (it.headerValue == "timestamp") {
           it.cellRenderer = DateRenderer()

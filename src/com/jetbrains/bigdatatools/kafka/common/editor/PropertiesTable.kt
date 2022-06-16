@@ -2,10 +2,10 @@ package com.jetbrains.bigdatatools.kafka.common.editor
 
 import com.intellij.ui.TableUtil
 import com.intellij.ui.ToolbarDecorator
-import com.intellij.util.ui.JBUI
 import com.jetbrains.bigdatatools.settings.components.BdtPropertyComponent
 import com.jetbrains.bigdatatools.settings.connections.Property
 import com.jetbrains.bigdatatools.table.MaterialTable
+import javax.swing.BorderFactory
 import javax.swing.JTable
 
 class PropertiesTable(data: List<Property>) {
@@ -15,7 +15,7 @@ class PropertiesTable(data: List<Property>) {
   private val tableModel = PropertiesTableModel(data.toMutableList())
   val table = MaterialTable(tableModel, tableModel.columnModel).apply {
     autoResizeMode = JTable.AUTO_RESIZE_ALL_COLUMNS
-    tableHeader.border = JBUI.Borders.empty()
+    tableHeader.border = BorderFactory.createEmptyBorder()
   }
   private val component = createDecoratedTable()
 
@@ -36,7 +36,7 @@ class PropertiesTable(data: List<Property>) {
       val modelIndex = table.convertRowIndexToModel(table.selectedRow)
       tableModel.removeRow(modelIndex)
     }
-  }.setScrollPaneBorder(JBUI.Borders.empty()).createPanel()
+  }.setScrollPaneBorder(BorderFactory.createEmptyBorder()).createPanel()
 
   fun clear() {
     tableModel.clear()

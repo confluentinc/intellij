@@ -19,7 +19,6 @@ import com.intellij.ui.PopupHandler
 import com.intellij.ui.SideBorder
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.components.JBTextField
-import com.intellij.util.ui.JBUI
 import com.jetbrains.bigdatatools.kafka.common.editor.KafkaEditorUtils
 import com.jetbrains.bigdatatools.kafka.common.editor.ListTableModel
 import com.jetbrains.bigdatatools.kafka.common.editor.SavePresetAction
@@ -149,7 +148,7 @@ class KafkaConsumerPanel(project: Project, private val kafkaManager: KafkaDataMa
   private val outputTableDelegate = lazy {
     MaterialTable(outputModel, outputModel.columnModel).apply {
       val resizeController = TableResizeController(this)
-      tableHeader.border = JBUI.Borders.empty()
+      tableHeader.border = BorderFactory.createEmptyBorder()
       outputModel.columnModel.columns.asIterator().forEach {
         if (it.headerValue == "timestamp") {
           it.cellRenderer = DateRenderer()
