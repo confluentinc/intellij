@@ -1,6 +1,7 @@
 package com.jetbrains.bigdatatools.kafka.toolwindow
 
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ToolWindowManager
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaConnectionData
 import com.jetbrains.bigdatatools.kafka.settings.KafkaConnectionGroup
@@ -10,10 +11,13 @@ import com.jetbrains.bigdatatools.monitoring.toolwindow.ComponentController
 import com.jetbrains.bigdatatools.monitoring.toolwindow.MonitoringToolWindowController
 import com.jetbrains.bigdatatools.settings.connections.ConnectionData
 import com.jetbrains.bigdatatools.settings.connections.ConnectionGroup
+import com.jetbrains.bigdatatools.settings.manager.RfsConnectionDataManager
 
 class KafkaMonitoringToolWindowController(project: Project) : MonitoringToolWindowController(project) {
   override val helpTopicId: String = "big.data.tools.kafka"
   override val settings = KafkaToolWindowSettings.getInstance()
+
+  private val settingsListener = KafkaConnectionSettingsListener()
 
   override fun createConnectionGroup(): ConnectionGroup = KafkaConnectionGroup()
 
@@ -21,6 +25,16 @@ class KafkaMonitoringToolWindowController(project: Project) : MonitoringToolWind
 
   override fun createMainController(connectionData: ConnectionData): ComponentController = ClusterPageController(project,
                                                                                                                  connectionData as KafkaConnectionData)
+
+  override fun dispose() {
+    super.dispose()
+    RfsConnectionDataManager.instance?.removeListener(settingsListener)
+  }
+
+  override fun setUp(toolWindow: ToolWindow) {
+    super.setUp(toolWindow)
+    RfsConnectionDataManager.instance?.addListener(settingsListener)
+  }
 
   override fun focusOn(connectionId: String) {
     val toolWindow = ToolWindowManager.getInstance(project).getToolWindow(TOOL_WINDOW_ID) ?: return
