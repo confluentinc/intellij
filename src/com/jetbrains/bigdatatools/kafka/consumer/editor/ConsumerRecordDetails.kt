@@ -151,8 +151,8 @@ class ConsumerRecordDetails(project: Project, parentDisposable: Disposable) {
       else {
         topicField.text = value.topic()
 
+        updateField(keyField, keyViewerType, keyType, value.key())
         updateField(valueField, valueViewerType, valueType, value.value())
-        updateField(keyField, keyViewerType, keyType, value.value())
 
         partition.text = value.partition().toString()
         offset.text = value.offset().toString()
