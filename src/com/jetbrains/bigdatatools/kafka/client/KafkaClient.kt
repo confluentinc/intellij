@@ -198,13 +198,15 @@ class KafkaClient(project: Project?,
   }
 
   fun createTopic(name: String, numPartition: Int?) {
-    kafkaAdmin?.createTopics(listOf(NewTopic(name, Optional.ofNullable(numPartition), Optional.empty())))
-    Thread.sleep(1000)
+    val admin = kafkaAdmin ?: error("Kafka admin is not inited")
+    val createTopics = admin.createTopics(listOf(NewTopic(name, Optional.ofNullable(numPartition), Optional.empty())))
+    createTopics?.topicId(name)?.get()
   }
 
   fun deleteTopic(name: String) {
-    kafkaAdmin?.deleteTopics(listOf(name))
-    Thread.sleep(1000)
+    val admin = kafkaAdmin ?: error("Kafka admin is not inited")
+    val deleteTopicsResult = admin.deleteTopics(listOf(name))
+    deleteTopicsResult.all().get()
   }
 
   companion object {
