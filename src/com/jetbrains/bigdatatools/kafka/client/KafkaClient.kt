@@ -197,9 +197,10 @@ class KafkaClient(project: Project?,
     return props
   }
 
-  fun createTopic(name: String, numPartition: Int?) {
+  fun createTopic(name: String, numPartition: Int?, replicationFactor: Int?) {
     val admin = kafkaAdmin ?: error("Kafka admin is not inited")
-    val createTopics = admin.createTopics(listOf(NewTopic(name, Optional.ofNullable(numPartition), Optional.empty())))
+    val newTopic = NewTopic(name, Optional.ofNullable(numPartition), Optional.ofNullable(replicationFactor?.toShort()))
+    val createTopics = admin.createTopics(listOf(newTopic))
     createTopics?.topicId(name)?.get()
   }
 

@@ -90,8 +90,8 @@ class KafkaDataManager(project: Project?, connectionData: KafkaConnectionData, s
     return dataModel
   }
 
-  fun createTopic(name: String, numPartition: Int?) = actionWrapper {
-    client.createTopic(name, numPartition)
+  fun createTopic(name: String, numPartition: Int?, replicaFactor: Int?) = actionWrapper {
+    client.createTopic(name, numPartition, replicaFactor)
     autoUpdaterManager.reloadAsync(topicModel)
 
     KafkaUsagesCollector.topicCreatedEvent.log(project)
