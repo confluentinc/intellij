@@ -25,7 +25,8 @@ import javax.swing.BorderFactory
 
 object KafkaEditorUtils {
 
-  fun createJsonTextArea(project: Project) = EditorTextFieldProvider.getInstance()
+  fun createJsonTextArea(project: Project,
+                         additionalCustomization: List<EditorCustomization> = emptyList()) = EditorTextFieldProvider.getInstance()
     .getEditorField(JsonLanguage.INSTANCE, project,
                     listOf(EditorCustomization {
                       it.settings.apply {
@@ -38,7 +39,7 @@ object KafkaEditorUtils {
                         isAdditionalPageAtBottom = false
                         isShowIntentionBulb = false
                       }
-                    }, MonospaceEditorCustomization.getInstance())).apply {
+                    }, MonospaceEditorCustomization.getInstance()) + additionalCustomization).apply {
       border = BorderFactory.createCompoundBorder(DarculaTextAreaBorder(), ComponentColoredBorder(3, 5, 3, 5))
       background = UIUtil.getTextFieldBackground()
       autoscrolls = false

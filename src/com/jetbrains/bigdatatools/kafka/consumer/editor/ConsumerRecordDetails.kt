@@ -3,8 +3,10 @@ package com.jetbrains.bigdatatools.kafka.consumer.editor
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonParser
 import com.intellij.openapi.Disposable
+import com.intellij.openapi.editor.ex.EditorEx
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.ComboBox
+import com.intellij.ui.EditorCustomization
 import com.intellij.ui.EditorTextField
 import com.intellij.ui.components.JBScrollPane
 import com.jetbrains.bigdatatools.kafka.common.editor.FieldViewerType
@@ -21,11 +23,14 @@ import com.jetbrains.bigdatatools.util.SizeUtils
 import com.jetbrains.bigdatatools.util.TimeUtils
 import net.miginfocom.layout.CC
 import org.apache.kafka.clients.consumer.ConsumerRecord
+import java.awt.event.ItemEvent
 import java.nio.charset.StandardCharsets
 import java.util.*
 import javax.swing.BorderFactory
 import javax.swing.JLabel
+import javax.swing.JTextArea
 import javax.swing.JTextField
+import javax.swing.text.JTextComponent
 
 class ConsumerRecordDetails(project: Project, parentDisposable: Disposable) {
 
@@ -36,32 +41,24 @@ class ConsumerRecordDetails(project: Project, parentDisposable: Disposable) {
     renderer = CustomListCellRenderer<FieldViewerType> { it.title }
   }
 
-  private val keyField = KafkaEditorUtils.createJsonTextArea(project).apply {
-    document.setReadOnly(true)
-    setDisposedWith(parentDisposable)
+  private val keyFieldText = JTextArea().apply {
+    isEditable = false
+    border = BorderFactory.createEmptyBorder(5, 5, 5, 5)
   }
+  private val keyFieldTextScroll = JBScrollPane(keyFieldText)
+  private val keyFieldJson: EditorTextField
 
   private val valueViewerType = ComboBox(FieldViewerType.values()).apply {
     border = BorderFactory.createEmptyBorder()
     renderer = CustomListCellRenderer<FieldViewerType> { it.title }
   }
 
-  private val valueField = KafkaEditorUtils.createJsonTextArea(project).apply {
-    document.setReadOnly(true)
-    setDisposedWith(parentDisposable)
+  private val valueFieldText = JTextArea().apply {
+    isEditable = false
+    border = BorderFactory.createEmptyBorder(5, 5, 5, 5)
   }
-
-  init {
-    keyViewerType.addItemListener {
-      updateField(keyField, keyViewerType, keyType, record?.key())
-      component.revalidate()
-    }
-
-    valueViewerType.addItemListener {
-      updateField(valueField, valueViewerType, valueType, record?.value())
-      component.revalidate()
-    }
-  }
+  private val valueFieldTextScroll = JBScrollPane(valueFieldText)
+  private val valueFieldJson: EditorTextField
 
   private val headers = PropertiesTable(emptyList())
   private val partition = JTextField(10)
@@ -71,25 +68,87 @@ class ConsumerRecordDetails(project: Project, parentDisposable: Disposable) {
   private val keySize = JTextField(10)
   private val valueSize = JTextField(10)
 
-  var keyType = FieldType.STRING
+  var keyType = FieldType.JSON
     set(value) {
       if (field == value) {
         return
       }
       field = value
-      keyField.editor?.settings?.isFoldingOutlineShown = (field == FieldType.JSON)
+      updateFieldEditor(keyFieldText, keyFieldJson, field, keyViewerType.item)
       record = record
     }
 
-  var valueType = FieldType.STRING
+  var valueType = FieldType.JSON
     set(value) {
       if (field == value) {
         return
       }
       field = value
-      valueField.editor?.settings?.isFoldingOutlineShown = (field == FieldType.JSON)
+      updateFieldEditor(valueFieldText, valueFieldJson, field, valueViewerType.item)
       record = record
     }
+
+  init {
+    keyFieldJson = KafkaEditorUtils.createJsonTextArea(project,
+                                                       listOf(ConsumerEditorCustomization({ keyType }, { keyViewerType.item }))).apply {
+      document.setReadOnly(true)
+      setDisposedWith(parentDisposable)
+    }
+
+    valueFieldJson = KafkaEditorUtils.createJsonTextArea(project,
+                                                         listOf(
+                                                           ConsumerEditorCustomization({ valueType }, { valueViewerType.item }))).apply {
+      document.setReadOnly(true)
+      setDisposedWith(parentDisposable)
+    }
+
+    keyViewerType.addItemListener { e ->
+      if (e.stateChange == ItemEvent.SELECTED) {
+        updateFieldEditor(keyFieldText, keyFieldJson, keyType, keyViewerType.item)
+        updateField(keyFieldText, keyFieldJson, keyViewerType.item, keyType, record?.key())
+        component.revalidate()
+      }
+    }
+
+    valueViewerType.addItemListener { e ->
+      if (e.stateChange == ItemEvent.SELECTED) {
+        updateFieldEditor(valueFieldText, valueFieldJson, valueType, valueViewerType.item)
+        updateField(valueFieldText, valueFieldJson, valueViewerType.item, valueType, record?.value())
+        component.revalidate()
+      }
+    }
+  }
+
+  private fun isJsonViewer(fieldType: FieldType,
+                           fieldViewerType: FieldViewerType) = fieldType == FieldType.JSON && fieldViewerType == FieldViewerType.AUTO || fieldViewerType == FieldViewerType.JSON
+
+  private fun updateFieldEditor(fieldText: JTextComponent,
+                                fieldJson: EditorTextField,
+                                fieldType: FieldType,
+                                fieldViewerType: FieldViewerType) {
+    val isJson = isJsonViewer(fieldType, fieldViewerType)
+
+    if (isJson) {
+      fieldJson.editor?.settings?.isFoldingOutlineShown = true
+    }
+
+    val fieldTextScroll = if (fieldText == valueFieldText) valueFieldTextScroll else keyFieldTextScroll
+    fieldTextScroll.isVisible = !isJson
+    fieldJson.isVisible = isJson
+  }
+
+  inner class ConsumerEditorCustomization(private val fieldType: () -> FieldType,
+                                          private val fieldViewerType: () -> FieldViewerType) : EditorCustomization {
+    override fun customize(editor: EditorEx) {
+      // On macOS we have dynamically appeared progressbars. We should check when progressbar appears and relayout the detail panel.
+
+      //editor.scrollPane.viewport.addChangeListener { e ->
+      //  System.out.println("Change in " + e.getSource())
+      //  System.out.println("Vertical visible? " + editor.scrollPane.getVerticalScrollBar().isVisible())
+      //  System.out.println("Horizontal visible? " + editor.scrollPane.getHorizontalScrollBar().isVisible())
+      //}
+    }
+  }
 
   private fun updateField(field: EditorTextField, value: String) {
     field.document.setReadOnly(false)
@@ -97,15 +156,24 @@ class ConsumerRecordDetails(project: Project, parentDisposable: Disposable) {
     field.document.setReadOnly(true)
   }
 
-  private fun updateField(field: EditorTextField, viewerType: ComboBox<FieldViewerType>, valueType: FieldType, value: Any?) {
+  private fun updateField(fieldText: JTextComponent,
+                          fieldJson: EditorTextField,
+                          fieldViewerType: FieldViewerType,
+                          fieldType: FieldType,
+                          value: Any?) {
+
+    val isJson = isJsonViewer(fieldType, fieldViewerType)
 
     if (value == null) {
-      updateField(field, "")
+      if (isJson)
+        updateField(fieldJson, "")
+      else
+        fieldText.text = ""
       return
     }
 
     val presentingValue = when {
-      viewerType.item == FieldViewerType.JSON -> {
+      fieldViewerType == FieldViewerType.JSON -> {
         try {
           val gson = GsonBuilder().setPrettyPrinting().create()
           gson.toJson(JsonParser.parseString(value.toString()))
@@ -114,7 +182,7 @@ class ConsumerRecordDetails(project: Project, parentDisposable: Disposable) {
           value.toString()
         }
       }
-      viewerType.item == FieldViewerType.DECODED_BASE64 && value is ByteArray -> {
+      fieldViewerType == FieldViewerType.DECODED_BASE64 && value is ByteArray -> {
         try {
           Base64.getEncoder().withoutPadding().encodeToString(value)
         }
@@ -122,11 +190,14 @@ class ConsumerRecordDetails(project: Project, parentDisposable: Disposable) {
           value.toString()
         }
       }
-      viewerType.item == FieldViewerType.AUTO -> KafkaEditorUtils.getValueAsString(valueType, value)
+      fieldViewerType == FieldViewerType.AUTO -> KafkaEditorUtils.getValueAsString(fieldType, value)
       else -> value.toString()
     }
-
-    updateField(field, presentingValue)
+    if (isJson)
+      updateField(fieldJson, presentingValue)
+    else
+      fieldText.text = presentingValue
+    fieldText.caretPosition = 0
   }
 
   var record: ConsumerRecord<Any, Any>? = null
@@ -134,8 +205,8 @@ class ConsumerRecordDetails(project: Project, parentDisposable: Disposable) {
       field = value
 
       if (value == null) {
-        updateField(keyField, "")
-        updateField(valueField, "")
+        updateField(keyFieldJson, "")
+        updateField(valueFieldJson, "")
 
         topicField.text = ""
 
@@ -151,8 +222,8 @@ class ConsumerRecordDetails(project: Project, parentDisposable: Disposable) {
       else {
         topicField.text = value.topic()
 
-        updateField(keyField, keyViewerType, keyType, value.key())
-        updateField(valueField, valueViewerType, valueType, value.value())
+        updateField(keyFieldText, keyFieldJson, keyViewerType.item, keyType, value.key())
+        updateField(valueFieldText, valueFieldJson, valueViewerType.item, valueType, value.value())
 
         partition.text = value.partition().toString()
         offset.text = value.offset().toString()
@@ -173,11 +244,13 @@ class ConsumerRecordDetails(project: Project, parentDisposable: Disposable) {
     row(KafkaMessagesBundle.message("consumer.record.topic"), topicField)
     add(JLabel(KafkaMessagesBundle.message("consumer.record.key")))
     add(keyViewerType, CC().pushX().alignX("right").wrap())
-    block(keyField)
+    block(keyFieldJson)
+    block(keyFieldTextScroll)
 
     add(JLabel(KafkaMessagesBundle.message("consumer.record.value")))
     add(valueViewerType, CC().pushX().alignX("right").wrap())
-    block(valueField)
+    block(valueFieldJson)
+    block(valueFieldTextScroll)
 
     row(KafkaMessagesBundle.message("consumer.record.partition"), partition)
     row(KafkaMessagesBundle.message("consumer.record.offset"), offset)
