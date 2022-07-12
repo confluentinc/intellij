@@ -34,7 +34,7 @@ import javax.swing.text.JTextComponent
 
 class ConsumerRecordDetails(project: Project, parentDisposable: Disposable) {
 
-  private val topicField = JTextField(10)
+  private val topicField = JTextField(10).apply { isEditable = false }
 
   private val keyViewerType = ComboBox(FieldViewerType.values()).apply {
     border = BorderFactory.createEmptyBorder()
@@ -61,12 +61,12 @@ class ConsumerRecordDetails(project: Project, parentDisposable: Disposable) {
   private val valueFieldJson: EditorTextField
 
   private val headers = PropertiesTable(emptyList())
-  private val partition = JTextField(10)
-  private val offset = JTextField(10)
-  private val timestamp = JTextField(10)
-  private val timestampType = JTextField(10)
-  private val keySize = JTextField(10)
-  private val valueSize = JTextField(10)
+  private val partition = JTextField(10).apply { isEditable = false }
+  private val offset = JTextField(10).apply { isEditable = false }
+  private val timestamp = JTextField(10).apply { isEditable = false }
+  private val timestampType = JTextField(10).apply { isEditable = false }
+  private val keySize = JTextField(10).apply { isEditable = false }
+  private val valueSize = JTextField(10).apply { isEditable = false }
 
   var keyType = FieldType.JSON
     set(value) {

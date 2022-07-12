@@ -5,7 +5,7 @@ import com.intellij.ide.util.PropertiesComponent
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.*
 import com.intellij.openapi.application.invokeLater
-import com.intellij.openapi.project.DumbAwareAction
+import com.intellij.openapi.project.DumbAwareToggleAction
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.Messages
@@ -60,6 +60,7 @@ class KafkaConsumerPanel(project: Project, private val kafkaManager: KafkaDataMa
   private val startOffset = JBTextField()
   private val startConsumerGroup = KafkaEditorUtils.createConsumerGroups(this, kafkaManager)
   private val startFromComboBox = ComboBox(ConsumerStartType.values()).apply {
+    prototypeDisplayValue = ConsumerStartType.TODAY
     renderer = CustomListCellRenderer<ConsumerStartType> { it.title }
     item = ConsumerStartType.NOW
     addItemListener {
@@ -70,6 +71,7 @@ class KafkaConsumerPanel(project: Project, private val kafkaManager: KafkaDataMa
   }
 
   private val limitComboBox = ComboBox(ConsumerLimitType.values()).apply {
+    prototypeDisplayValue = ConsumerLimitType.DATE
     renderer = CustomListCellRenderer<ConsumerLimitType> { it.title }
     item = ConsumerLimitType.NONE
     addItemListener {
@@ -80,6 +82,7 @@ class KafkaConsumerPanel(project: Project, private val kafkaManager: KafkaDataMa
   }
 
   private val filterComboBox = ComboBox(ConsumerFilterType.values()).apply {
+    prototypeDisplayValue = ConsumerFilterType.NONE
     renderer = CustomListCellRenderer<ConsumerFilterType> { it.title }
     item = ConsumerFilterType.NONE
     addItemListener {
@@ -96,7 +99,9 @@ class KafkaConsumerPanel(project: Project, private val kafkaManager: KafkaDataMa
 
   private val partitionField = JBTextField()
 
-  private val topicComboBox = KafkaEditorUtils.createTopicComboBox(this, kafkaManager)
+  private val topicComboBox = KafkaEditorUtils.createTopicComboBox(this, kafkaManager).apply {
+    prototypeDisplayValue = TopicInEditor("AverageName")
+  }
 
   private val keyComboBox = ComboBox(FieldType.values()).apply {
     renderer = CustomListCellRenderer<FieldType> { it.title }
@@ -169,6 +174,20 @@ class KafkaConsumerPanel(project: Project, private val kafkaManager: KafkaDataMa
     }
   }
   private val outputTable: MaterialTable by outputTableDelegate
+
+  private val outputTablePanelDelegate = lazy {
+    JPanel(BorderLayout()).apply {
+      add(JBScrollPane(outputTable).apply {
+        border = BorderFactory.createEmptyBorder()
+      }, BorderLayout.CENTER)
+    }
+  }
+  private val outputTablePanel: JPanel by outputTablePanelDelegate
+
+  private val outputTableStatusDelegate = lazy {
+    ConsumerTableStats()
+  }
+  private val outputTableStatus: ConsumerTableStats by outputTableStatusDelegate
 
   private val consumeButton = JButton(KafkaMessagesBundle.message("action.consume.start.title"), AllIcons.Actions.Execute).apply {
     addActionListener {
@@ -312,29 +331,47 @@ class KafkaConsumerPanel(project: Project, private val kafkaManager: KafkaDataMa
 
     restoreFromFile()
 
-    val clearButton = object : DumbAwareAction(KafkaMessagesBundle.message("action.clear.output"), null, AllIcons.Actions.GC) {
-      override fun actionPerformed(e: AnActionEvent) {
-        outputModel.clear()
+    val clearButton = SimpleDumbAwareAction(KafkaMessagesBundle.message("action.clear.output"), AllIcons.Actions.GC) {
+      outputModel.clear()
+    }
+
+    val tableStatusButton = object : DumbAwareToggleAction(KafkaMessagesBundle.message("action.table.stats"), null,
+                                                           AllIcons.General.Information) {
+      override fun isSelected(e: AnActionEvent) = outputTableStatusDelegate.isInitialized() && outputTableStatus.component.parent != null
+
+      override fun setSelected(e: AnActionEvent, state: Boolean) {
+        if (state) {
+          outputTablePanel.setSouthComponent(outputTableStatus.component)
+          updateTableStatus()
+        }
+        else {
+          outputTablePanel.removeSouthComponent()
+        }
+
+        outputTablePanel.revalidate()
       }
     }
 
     val dataExpanded = PropertiesComponent.getInstance().getBoolean(DATA_SHOW_ID, true)
     resultsSplitter.firstComponent = ExpansionPanel(KafkaMessagesBundle.message("toggle.data"),
-                                                    { JBScrollPane(outputTable).apply { border = BorderFactory.createEmptyBorder() } },
+                                                    { outputTablePanel },
                                                     dataExpanded,
-                                                    listOf(clearButton)
+                                                    listOf(tableStatusButton, clearButton)
     ).apply {
+      expandedServiceKey = DATA_SHOW_ID
       addChangeListener {
         resultsSplitter.proportion = if (this.expanded) 1f else 0.0001f
         resultsSplitter.setResizeEnabled(this.expanded)
       }
     }
+
     resultsSplitter.secondComponent = ExpansionPanel(KafkaMessagesBundle.message("toggle.details"), {
       JBScrollPane(details.component, JScrollPane.VERTICAL_SCROLLBAR_ALWAYS, JScrollPane.HORIZONTAL_SCROLLBAR_NEVER).apply {
         minimumSize = Dimension(max(details.component.minimumSize.width, 250), minimumSize.height)
         border = BorderFactory.createEmptyBorder()
       }
     }, PropertiesComponent.getInstance().getBoolean(DETAILS_SHOW_ID, false)).apply {
+      expandedServiceKey = DETAILS_SHOW_ID
       addChangeListener {
         resultsSplitter.proportion = 1f
         if (this.expanded) {
@@ -350,6 +387,7 @@ class KafkaConsumerPanel(project: Project, private val kafkaManager: KafkaDataMa
                                                      settingsExpanded,
                                                      listOf(SavePresetAction(KafkaConfigStorage.instance.consumerConfig) { getRunConfig() })
     ).apply {
+      expandedServiceKey = SETTINGS_SHOW_ID
       addChangeListener {
         settingsSplitter.proportion = 0.0001f
         settingsSplitter.setResizeEnabled(this.expanded)
@@ -363,6 +401,7 @@ class KafkaConsumerPanel(project: Project, private val kafkaManager: KafkaDataMa
         minimumSize = Dimension(max(minimumSize.width, 290), minimumSize.height)
       }
     }, presetsExpanded).apply {
+      expandedServiceKey = PRESETS_SHOW_ID
       addChangeListener {
         presetsSplitter.proportion = 0.0001f
         presetsSplitter.setResizeEnabled(this.expanded)
@@ -382,6 +421,15 @@ class KafkaConsumerPanel(project: Project, private val kafkaManager: KafkaDataMa
         updateDetails()
       }
     }
+  }
+
+  private fun updateTableStatus() {
+    if (!outputTableStatusDelegate.isInitialized() || outputTableStatus.component.parent == null) {
+      return
+    }
+
+    outputTableStatus.total.text = outputModel.rowCount.toString()
+    outputTableStatus.visible.text = outputTable.rowCount.toString()
   }
 
   private fun updateDetails() {
@@ -528,7 +576,7 @@ class KafkaConsumerPanel(project: Project, private val kafkaManager: KafkaDataMa
     updateVisibility()
   }
 
-  var isRestoring = false
+  private var isRestoring = false
   private fun storeToFile() {
     if (isRestoring)
       return
