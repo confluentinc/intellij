@@ -19,6 +19,9 @@ class ListTableModel<T>(private val data: MutableList<T>,
 
   var columnClasses: List<Class<*>>? = null
 
+  /** If maxElementsCount <= data.size, the first element will be removed when adding a new element. */
+  var maxElementsCount = 0
+
   override fun getRowCount() = data.size
   override fun getColumnCount() = columnNames.size
   override fun getValueAt(rowIndex: Int, columnIndex: Int) = columnMapper(data[rowIndex], columnIndex)
@@ -34,6 +37,13 @@ class ListTableModel<T>(private val data: MutableList<T>,
   }
 
   fun addElement(element: T) {
+    if (maxElementsCount > 0 && data.size >= maxElementsCount) {
+      val elementsToRemove = data.size - maxElementsCount + 1
+      for (i in 0 until elementsToRemove) {
+        data.removeFirst()
+      }
+      fireTableRowsDeleted(0, elementsToRemove - 1)
+    }
     data += element
     fireTableRowsInserted(data.size - 1, data.size - 1)
   }

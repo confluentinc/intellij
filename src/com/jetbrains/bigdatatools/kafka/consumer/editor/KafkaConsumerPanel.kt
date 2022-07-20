@@ -17,6 +17,7 @@ import com.intellij.ui.IdeBorderFactory
 import com.intellij.ui.OnePixelSplitter
 import com.intellij.ui.PopupHandler
 import com.intellij.ui.SideBorder
+import com.intellij.ui.components.ActionLink
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.components.JBTextField
 import com.jetbrains.bigdatatools.kafka.common.editor.KafkaEditorUtils
@@ -25,6 +26,7 @@ import com.jetbrains.bigdatatools.kafka.common.editor.SavePresetAction
 import com.jetbrains.bigdatatools.kafka.common.models.FieldType
 import com.jetbrains.bigdatatools.kafka.common.models.TopicInEditor
 import com.jetbrains.bigdatatools.kafka.common.settings.KafkaConfigStorage
+import com.jetbrains.bigdatatools.kafka.common.settings.StorageConsumerConfig
 import com.jetbrains.bigdatatools.kafka.consumer.client.KafkaConsumerClient
 import com.jetbrains.bigdatatools.kafka.consumer.models.*
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
@@ -59,6 +61,7 @@ class KafkaConsumerPanel(project: Project, private val kafkaManager: KafkaDataMa
 
   private val startOffset = JBTextField()
   private val startConsumerGroup = KafkaEditorUtils.createConsumerGroups(this, kafkaManager)
+
   private val startFromComboBox = ComboBox(ConsumerStartType.values()).apply {
     prototypeDisplayValue = ConsumerStartType.TODAY
     renderer = CustomListCellRenderer<ConsumerStartType> { it.title }
@@ -127,7 +130,7 @@ class KafkaConsumerPanel(project: Project, private val kafkaManager: KafkaDataMa
     }
   }
 
-  private val outputModel = ListTableModel(ArrayList<Result<ConsumerRecord<Any, Any>>>(),
+  private val outputModel = ListTableModel(LinkedList<Result<ConsumerRecord<Any, Any>>>(),
                                            listOf("partition", "offset", "timestamp", "key", "value")) { data, index ->
     if (data.isFailure) {
       when (index) {
@@ -180,14 +183,26 @@ class KafkaConsumerPanel(project: Project, private val kafkaManager: KafkaDataMa
       add(JBScrollPane(outputTable).apply {
         border = BorderFactory.createEmptyBorder()
       }, BorderLayout.CENTER)
+      if (PropertiesComponent.getInstance().getBoolean(TABLE_STATS_ID, false)) {
+        setSouthComponent(outputTableStatus.component)
+      }
     }
   }
   private val outputTablePanel: JPanel by outputTablePanelDelegate
 
   private val outputTableStatusDelegate = lazy {
-    ConsumerTableStats()
+    ConsumerTableStats().apply {
+      setModel(outputTable, outputModel)
+    }
   }
   private val outputTableStatus: ConsumerTableStats by outputTableStatusDelegate
+
+  private val kafkaConsumerSettingsDelegate = lazy { KafkaConsumerSettings() }
+  private val kafkaConsumerSettings: KafkaConsumerSettings by kafkaConsumerSettingsDelegate
+
+  private val advancedSettings = ActionLink(KafkaMessagesBundle.message("settings.advanced")) {
+    kafkaConsumerSettings.show()
+  }
 
   private val consumeButton = JButton(KafkaMessagesBundle.message("action.consume.start.title"), AllIcons.Actions.Execute).apply {
     addActionListener {
@@ -277,6 +292,10 @@ class KafkaConsumerPanel(project: Project, private val kafkaManager: KafkaDataMa
       row(KafkaMessagesBundle.message("settings.partitions"), partitionField)
 
       gapLeft = false
+
+      spacing()
+
+      row(advancedSettings)
     }
 
     val scroll = JBScrollPane(panel, JScrollPane.VERTICAL_SCROLLBAR_ALWAYS, JScrollPane.HORIZONTAL_SCROLLBAR_NEVER).apply {
@@ -336,18 +355,17 @@ class KafkaConsumerPanel(project: Project, private val kafkaManager: KafkaDataMa
     }
 
     val tableStatusButton = object : DumbAwareToggleAction(KafkaMessagesBundle.message("action.table.stats"), null,
-                                                           AllIcons.General.Information) {
+                                                           AllIcons.General.ShowInfos) {
       override fun isSelected(e: AnActionEvent) = outputTableStatusDelegate.isInitialized() && outputTableStatus.component.parent != null
 
       override fun setSelected(e: AnActionEvent, state: Boolean) {
         if (state) {
           outputTablePanel.setSouthComponent(outputTableStatus.component)
-          updateTableStatus()
         }
         else {
           outputTablePanel.removeSouthComponent()
         }
-
+        PropertiesComponent.getInstance().setValue(TABLE_STATS_ID, state)
         outputTablePanel.revalidate()
       }
     }
@@ -423,15 +441,6 @@ class KafkaConsumerPanel(project: Project, private val kafkaManager: KafkaDataMa
     }
   }
 
-  private fun updateTableStatus() {
-    if (!outputTableStatusDelegate.isInitialized() || outputTableStatus.component.parent == null) {
-      return
-    }
-
-    outputTableStatus.total.text = outputModel.rowCount.toString()
-    outputTableStatus.visible.text = outputTable.rowCount.toString()
-  }
-
   private fun updateDetails() {
     if (detailsDelegate.isInitialized()) {
       details.record = if (outputTable.selectedRow == -1) null
@@ -445,7 +454,7 @@ class KafkaConsumerPanel(project: Project, private val kafkaManager: KafkaDataMa
 
   private fun startConsume(project: Project?) {
     val runConfig = getRunConfig()
-    if (runConfig.topic.isBlank()) {
+    if (runConfig.topic.isNullOrBlank()) {
       invokeLater {
         Messages.showErrorDialog(kafkaManager.project,
                                  KafkaMessagesBundle.message("consumer.error.topic.empty"),
@@ -463,9 +472,28 @@ class KafkaConsumerPanel(project: Project, private val kafkaManager: KafkaDataMa
         }
       }
 
+      if (kafkaConsumerSettingsDelegate.isInitialized()) {
+        val maxElementsCount = kafkaConsumerSettings.getSettings()[KafkaConsumerSettings.MAX_CONSUMER_RECORDS]
+        maxElementsCount?.toIntOrNull()?.let {
+          outputModel.maxElementsCount = it
+        }
+      }
+
+      // Callbacks called in Kafka client threads. That's why, to properly update UI we calling invokeLater
       consumerClient.start(runConfig,
-                           consume = { invokeLater { outputModel.addElement(Result.success(it)) } },
-                           consumeError = { invokeLater { outputModel.addElement(Result.failure(it)) } })
+                           consume = {
+                             invokeLater {
+                               outputModel.addElement(Result.success(it))
+                               if (outputTableStatusDelegate.isInitialized()) {
+                                 outputTableStatus.addRecord(it)
+                               }
+                             }
+                           },
+                           consumeError = {
+                             invokeLater {
+                               outputModel.addElement(Result.failure(it))
+                             }
+                           })
     }
     catch (t: Throwable) {
       onStopConsume()
@@ -476,7 +504,7 @@ class KafkaConsumerPanel(project: Project, private val kafkaManager: KafkaDataMa
     }
   }
 
-  private fun getRunConfig(): RunConsumerConfig {
+  private fun getRunConfig(): StorageConsumerConfig {
     val topicName = topicComboBox.item?.name ?: ""
     val startWith = ConsumerEditorUtils.getStartWith(startFromComboBox.item,
                                                      startOffset.text,
@@ -487,13 +515,22 @@ class KafkaConsumerPanel(project: Project, private val kafkaManager: KafkaDataMa
     val consumerLimit = ConsumerLimit(limitComboBox.item, limitOffset.text,
                                       if (limitComboBox.item == ConsumerLimitType.DATE) limitSpecificDate.date?.time else null)
 
-    return RunConsumerConfig(topic = topicName,
-                             keyType = keyComboBox.item,
-                             valueType = valueComboBox.item,
-                             partitions = partitionField.text,
-                             limit = consumerLimit,
-                             filter = filter,
-                             startWith = startWith)
+    val (properties, settings) = if (kafkaConsumerSettingsDelegate.isInitialized()) {
+      kafkaConsumerSettings.getProperties() to kafkaConsumerSettings.getSettings()
+    }
+    else {
+      emptyMap<String, String>() to emptyMap()
+    }
+
+    return StorageConsumerConfig(topic = topicName,
+                                 keyType = keyComboBox.item,
+                                 valueType = valueComboBox.item,
+                                 partitions = partitionField.text,
+                                 limit = consumerLimit,
+                                 filter = filter,
+                                 startWith = startWith,
+                                 properties = properties,
+                                 settings = settings)
   }
 
   fun getComponent(): JComponent = presetsSplitter
@@ -538,6 +575,8 @@ class KafkaConsumerPanel(project: Project, private val kafkaManager: KafkaDataMa
     filterValueField.isEnabled = isEnabled
     filterHeadKeyField.isEnabled = isEnabled
     filterHeadValueField.isEnabled = isEnabled
+
+    advancedSettings.isEnabled = isEnabled
   }
 
   private fun updateStartWith() {
@@ -599,35 +638,41 @@ class KafkaConsumerPanel(project: Project, private val kafkaManager: KafkaDataMa
     }
   }
 
-  private fun applyConfig(config: RunConsumerConfig) {
-    topicComboBox.item = TopicInEditor(config.topic)
-    keyComboBox.item = config.keyType
-    valueComboBox.item = config.valueType
+  private fun applyConfig(config: StorageConsumerConfig) {
+    topicComboBox.item = TopicInEditor(config.getInnerTopic())
+    keyComboBox.item = config.getKeyType()
+    valueComboBox.item = config.getValueType()
+    val startWith = config.getStartsWith()
+    startFromComboBox.item = startWith.type
+    startOffset.text = startWith.offset?.toString() ?: ""
+    startSpecificDate.date = startWith.time?.let { Date(it) }
+    startConsumerGroup.item = kafkaManager.consumerGroupsModel.entries.firstOrNull { it.consumerGroup == startWith.consumerGroup }
 
-    startFromComboBox.item = config.startWith.type
-    startOffset.text = config.startWith.offset?.toString() ?: ""
-    startSpecificDate.date = config.startWith.time?.let { Date(it) }
-    startConsumerGroup.item = kafkaManager.consumerGroupsModel.entries.firstOrNull { it.consumerGroup == config.startWith.consumerGroup }
+    val limit = config.getLimit()
+    limitComboBox.item = limit.type
+    limitOffset.text = limit.value
+    limitSpecificDate.date = limit.time?.let { Date(it) }
 
-    limitComboBox.item = config.limit.type
-    limitOffset.text = config.limit.value
-    limitSpecificDate.date = config.limit.time?.let { Date(it) }
-
-    filterComboBox.item = config.filter.type
-    filterKeyField.text = config.filter.filterKey
-    filterValueField.text = config.filter.filterValue
-    filterHeadKeyField.text = config.filter.filterHeadKey
-    filterHeadValueField.text = config.filter.filterHeadValue
+    val filter = config.getFilter()
+    filterComboBox.item = filter.type
+    filterKeyField.text = filter.filterKey
+    filterValueField.text = filter.filterValue
+    filterHeadKeyField.text = filter.filterHeadKey
+    filterHeadValueField.text = filter.filterHeadValue
 
     partitionField.text = config.partitions
+
+    kafkaConsumerSettings.applyConfig(config)
   }
 
   companion object {
     val STATE_KEY = Key<ConsumerEditorState>("STATE")
 
+    // A number of string keys for PropertiesComponent.getInstance().getBoolean(**_**_ID, false)
     private const val DATA_SHOW_ID = "com.jetbrains.bigdatatools.kafka.consumer.data.show"
     private const val DETAILS_SHOW_ID = "com.jetbrains.bigdatatools.kafka.consumer.details.show"
     private const val SETTINGS_SHOW_ID = "com.jetbrains.bigdatatools.kafka.consumer.settings.show"
     private const val PRESETS_SHOW_ID = "com.jetbrains.bigdatatools.kafka.consumer.presets.show"
+    private const val TABLE_STATS_ID = "com.jetbrains.bigdatatools.kafka.consumer.table.stats.show"
   }
 }

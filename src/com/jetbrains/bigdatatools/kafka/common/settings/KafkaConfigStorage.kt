@@ -5,9 +5,6 @@ import com.intellij.openapi.components.PersistentStateComponent
 import com.intellij.openapi.components.State
 import com.intellij.openapi.components.Storage
 import com.intellij.util.xmlb.XmlSerializerUtil
-import com.jetbrains.bigdatatools.kafka.common.models.RunConfig
-import com.jetbrains.bigdatatools.kafka.consumer.models.RunConsumerConfig
-import com.jetbrains.bigdatatools.kafka.producer.models.RunProducerConfig
 
 interface ConfigChangeListener<T> {
   fun configAdded(config: T)
@@ -16,29 +13,27 @@ interface ConfigChangeListener<T> {
 
 class KafkaRunConfig(val configsGetter: () -> List<StorageConfig>,
                      val configsSetter: (List<StorageConfig>) -> Unit,
-                     private val changeListeners: MutableList<ConfigChangeListener<RunConfig>>) {
+                     private val changeListeners: MutableList<ConfigChangeListener<StorageConfig>>) {
 
-  fun hasConfig(config: RunConfig) = loadConfigs().contains(config)
+  fun hasConfig(config: StorageConfig) = loadConfigs().contains(config)
 
-  fun loadConfigs() = configsGetter().map { it.fromStorage() }
+  fun loadConfigs() = configsGetter()
 
-  fun saveConfigs(list: List<RunConfig>) {
-    configsSetter(list.map { it.toStorage() })
-  }
+  fun saveConfigs(list: List<StorageConfig>) = configsSetter(list)
 
-  fun addConfig(config: RunConfig) {
+  fun addConfig(config: StorageConfig) {
     saveConfigs(loadConfigs() + config)
     changeListeners.forEach { it.configAdded(config) }
   }
 
-  fun removeConfig(config: RunConfig) {
+  fun removeConfig(config: StorageConfig) {
     saveConfigs(loadConfigs().filter { it != config })
     changeListeners.forEach { it.configRemoved(config) }
   }
 
-  fun addChangeListener(listener: ConfigChangeListener<RunConfig>) = changeListeners.add(listener)
+  fun addChangeListener(listener: ConfigChangeListener<StorageConfig>) = changeListeners.add(listener)
 
-  fun removeChangeListener(listener: ConfigChangeListener<RunConfig>) = changeListeners.remove(listener)
+  fun removeChangeListener(listener: ConfigChangeListener<StorageConfig>) = changeListeners.remove(listener)
 }
 
 @Suppress("MemberVisibilityCanBePrivate")
@@ -49,14 +44,14 @@ class KafkaConfigStorage : PersistentStateComponent<KafkaConfigStorage> {
   var consumerRunConfigs: List<StorageConsumerConfig> = emptyList()
   var producerRunConfigs: List<StorageProducerConfig> = emptyList()
 
-  private val consumerChangeListeners = mutableListOf<ConfigChangeListener<RunConsumerConfig>>()
-  private val producerChangeListeners = mutableListOf<ConfigChangeListener<RunProducerConfig>>()
+  private val consumerChangeListeners = mutableListOf<ConfigChangeListener<StorageConfig>>()
+  private val producerChangeListeners = mutableListOf<ConfigChangeListener<StorageConfig>>()
 
-  val consumerConfig = KafkaRunConfig({ consumerRunConfigs }, { consumerRunConfigs = it as List<StorageConsumerConfig> },
-    consumerChangeListeners as MutableList<ConfigChangeListener<RunConfig>>)
+  val consumerConfig = KafkaRunConfig({ consumerRunConfigs },
+                                      { consumerRunConfigs = it as List<StorageConsumerConfig> }, consumerChangeListeners)
 
-  val producerConfig = KafkaRunConfig({ producerRunConfigs }, { producerRunConfigs = it as List<StorageProducerConfig> },
-    producerChangeListeners as MutableList<ConfigChangeListener<RunConfig>>)
+  val producerConfig = KafkaRunConfig({ producerRunConfigs },
+                                      { producerRunConfigs = it as List<StorageProducerConfig> }, producerChangeListeners)
 
   override fun getState() = this
 

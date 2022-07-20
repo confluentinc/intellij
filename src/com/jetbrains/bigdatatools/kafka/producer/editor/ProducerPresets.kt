@@ -2,7 +2,7 @@ package com.jetbrains.bigdatatools.kafka.producer.editor
 
 import com.jetbrains.bigdatatools.kafka.common.editor.Presets
 import com.jetbrains.bigdatatools.kafka.common.settings.KafkaConfigStorage
-import com.jetbrains.bigdatatools.kafka.producer.models.RunProducerConfig
+import com.jetbrains.bigdatatools.kafka.common.settings.StorageProducerConfig
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import com.jetbrains.bigdatatools.ui.MigPanel
 import java.awt.Component
@@ -11,7 +11,7 @@ import javax.swing.JList
 import javax.swing.JSeparator
 import javax.swing.ListCellRenderer
 
-class RunProducerConfigCellRenderer : ListCellRenderer<RunProducerConfig> {
+class RunProducerConfigCellRenderer : ListCellRenderer<StorageProducerConfig> {
   private val topicLabel = JLabel()
   private val keyLabel = JLabel()
   private val valueLabel = JLabel()
@@ -23,8 +23,8 @@ class RunProducerConfigCellRenderer : ListCellRenderer<RunProducerConfig> {
     row(JSeparator())
   }
 
-  override fun getListCellRendererComponent(list: JList<out RunProducerConfig>,
-                                            value: RunProducerConfig?,
+  override fun getListCellRendererComponent(list: JList<out StorageProducerConfig>,
+                                            value: StorageProducerConfig?,
                                             index: Int,
                                             isSelected: Boolean,
                                             cellHasFocus: Boolean): Component {
@@ -45,11 +45,11 @@ class RunProducerConfigCellRenderer : ListCellRenderer<RunProducerConfig> {
       "producer.preset.no.topic")
     else value?.topic ?: "")
     keyLabel.text = KafkaMessagesBundle.message("producer.preset.key",
-                                                value?.keyType?.title ?: KafkaMessagesBundle.message("producer.preset.none"),
+                                                value?.getKeyType()?.title ?: KafkaMessagesBundle.message("producer.preset.none"),
                                                 if (value?.key.isNullOrEmpty()) KafkaMessagesBundle.message("producer.preset.no.key")
                                                 else value?.key ?: "")
     valueLabel.text = KafkaMessagesBundle.message("producer.preset.value",
-                                                  value?.valueType?.title ?: KafkaMessagesBundle.message("producer.preset.none"),
+                                                  value?.getValueType()?.title ?: KafkaMessagesBundle.message("producer.preset.none"),
                                                   if (value?.value.isNullOrEmpty()) KafkaMessagesBundle.message(
                                                     "producer.preset.no.value")
                                                   else value?.value ?: "")
@@ -57,4 +57,4 @@ class RunProducerConfigCellRenderer : ListCellRenderer<RunProducerConfig> {
   }
 }
 
-class ProducerPresets : Presets<RunProducerConfig>(KafkaConfigStorage.instance.producerConfig, RunProducerConfigCellRenderer())
+class ProducerPresets : Presets<StorageProducerConfig>(KafkaConfigStorage.instance.producerConfig, RunProducerConfigCellRenderer())

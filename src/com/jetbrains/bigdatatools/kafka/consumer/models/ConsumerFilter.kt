@@ -7,12 +7,12 @@ data class ConsumerFilter(val filterKey: String?,
                           val filterHeadKey: String?,
                           val filterHeadValue: String?,
                           val type: ConsumerFilterType) {
+
   fun isRecordPassFilter(record: ConsumerRecord<Any, Any>): Boolean =
     isPassFilter(record.key()?.toString(), filterKey) &&
     isPassFilter(record.value()?.toString(), filterValue) &&
     isPassFilterHeaders(record.headers().map { it.key() }, filterHeadKey) &&
     isPassFilterHeaders(record.headers().map { it.value().decodeToString() }, filterHeadValue)
-
 
   private fun isPassFilter(value: String?, filterValue: String?): Boolean {
     if (filterValue == null)

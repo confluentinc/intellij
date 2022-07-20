@@ -5,15 +5,16 @@ import com.jetbrains.bigdatatools.kafka.consumer.models.ConsumerStartWith
 import java.util.*
 
 object ConsumerEditorUtils {
-  fun parsePartitionsText(partitionText: String): List<Int> {
+  fun parsePartitionsText(partitionText: String?): List<Int> {
+    partitionText ?: return emptyList()
     val partitionsStrings = partitionText.split(",").map { it.trim() }.filter { it.isNotBlank() }
     return partitionsStrings.flatMap { p ->
       if (!p.contains("-"))
         listOfNotNull(p.toIntOrNull())
       else {
         val range = p.split("-").map { it.trim() }
-        val start = range.first().trim().toIntOrNull() ?: return@flatMap emptyList<Int>()
-        val end = range.last().trim().toIntOrNull() ?: return@flatMap emptyList<Int>()
+        val start = range.first().trim().toIntOrNull() ?: return@flatMap emptyList()
+        val end = range.last().trim().toIntOrNull() ?: return@flatMap emptyList()
         start..end
       }
     }

@@ -2,11 +2,10 @@ package com.jetbrains.bigdatatools.kafka.consumer.client
 
 import com.intellij.openapi.Disposable
 import com.jetbrains.bigdatatools.kafka.client.KafkaClient
-import com.jetbrains.bigdatatools.kafka.common.models.FieldType
+import com.jetbrains.bigdatatools.kafka.common.settings.StorageConsumerConfig
 import com.jetbrains.bigdatatools.kafka.consumer.editor.ConsumerEditorUtils
 import com.jetbrains.bigdatatools.kafka.consumer.models.ConsumerStartType
 import com.jetbrains.bigdatatools.kafka.consumer.models.ConsumerStartWith
-import com.jetbrains.bigdatatools.kafka.consumer.models.RunConsumerConfig
 import com.jetbrains.bigdatatools.kafka.statistics.KafkaUsagesCollector
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import org.apache.kafka.clients.consumer.ConsumerConfig
@@ -30,39 +29,41 @@ class KafkaConsumerClient(val client: KafkaClient,
 
   override fun dispose() = stop()
 
-  fun start(config: RunConsumerConfig,
+  fun start(config: StorageConsumerConfig,
             consume: (ConsumerRecord<Any, Any>) -> Unit,
             consumeError: (Throwable) -> Unit) {
     isRunning.set(true)
     onStart()
 
-    if (config.topic.isBlank()) {
+    if (config.topic.isNullOrBlank()) {
       error(KafkaMessagesBundle.message("consumer.error.topic.empty"))
     }
 
-    val consumer = createConsumer(config.keyType, config.valueType)
+    val consumer = createConsumer(config)
     runConsumer = consumer
 
     val parsedPartitionFilter = ConsumerEditorUtils.parsePartitionsText(config.partitions).ifEmpty { null }
-    val partitions = calculatePartitions(consumer, config.topic, parsedPartitionFilter)
+    val partitions = calculatePartitions(consumer, config.getInnerTopic(), parsedPartitionFilter)
     if (partitions.isEmpty()) {
-      error(KafkaMessagesBundle.message("consumer.partition.not.found", config.topic))
+      error(KafkaMessagesBundle.message("consumer.partition.not.found", config.getInnerTopic()))
     }
     consumer.assign(partitions)
-    seekPartitions(consumer, partitions, config.startWith)
+    seekPartitions(consumer, partitions, config.getStartsWith())
 
     val taskRunId = curRunId.incrementAndGet()
 
     try {
-      @Suppress("CanBeVal")
-      var needToReadTopicCount = config.limit.topicRecordsCount
-      val needToReadPartitionCount = config.limit.partitionRecordsCount?.let { limit ->
-        partitions.associate { it.partition() to limit }.toMutableMap()
+
+      val limit = config.getLimit()
+
+      var needToReadTopicCount = limit.topicRecordsCount
+      val needToReadPartitionCount = limit.partitionRecordsCount?.let { count ->
+        partitions.associate { it.partition() to count }.toMutableMap()
       }
 
-      var needToReadTopicSize = config.limit.topicRecordsSize
-      val needToReadPartitionSize = config.limit.partitionRecordsSize?.let { limit ->
-        partitions.associate { it.partition() to limit }.toMutableMap()
+      var needToReadTopicSize = limit.topicRecordsSize
+      val needToReadPartitionSize = limit.partitionRecordsSize?.let { size ->
+        partitions.associate { it.partition() to size }.toMutableMap()
       }
 
       consumer.use { kafkaConsumer ->
@@ -95,11 +96,11 @@ class KafkaConsumerClient(val client: KafkaClient,
 
           var consumedRecords = 0
           records.forEach { record: ConsumerRecord<Any, Any> ->
-            if (config.limit.time != null && record.timestamp() > config.limit.time) {
+            if (limit.time != null && record.timestamp() > limit.time) {
               return
             }
 
-            if (!config.filter.isRecordPassFilter(record))
+            if (!config.getFilter().isRecordPassFilter(record))
               return@forEach
 
             val recordSize = record.serializedValueSize() + record.serializedKeySize()
@@ -145,7 +146,7 @@ class KafkaConsumerClient(val client: KafkaClient,
           }
 
           if (consumedRecords > 0) {
-            KafkaUsagesCollector.consumedKeyValue.log(config.keyType, config.valueType, consumedRecords)
+            KafkaUsagesCollector.consumedKeyValue.log(config.getKeyType(), config.getValueType(), consumedRecords)
           }
         }
       }
@@ -173,10 +174,14 @@ class KafkaConsumerClient(val client: KafkaClient,
     }
   }
 
-  private fun createConsumer(keyType: FieldType, valueType: FieldType): KafkaConsumer<Any, Any> {
+  private fun createConsumer(config: StorageConsumerConfig): KafkaConsumer<Any, Any> {
     val props = client.kafkaProps.clone() as Properties
-    props[ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG] = keyType.getDeserializationClass()::class.java
-    props[ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG] = valueType.getDeserializationClass()::class.java
+    props[ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG] = config.getKeyType().getDeserializationClass()::class.java
+    props[ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG] = config.getValueType().getDeserializationClass()::class.java
+
+    config.properties.forEach {
+      it.value.toIntOrNull()?.let { value -> props[it.key] = value }
+    }
     return KafkaConsumer(props)
   }
 

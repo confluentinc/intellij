@@ -2,12 +2,12 @@ package com.jetbrains.bigdatatools.kafka.common.editor
 
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.project.DumbAwareAction
-import com.jetbrains.bigdatatools.kafka.common.models.RunConfig
 import com.jetbrains.bigdatatools.kafka.common.settings.KafkaRunConfig
+import com.jetbrains.bigdatatools.kafka.common.settings.StorageConfig
 import com.jetbrains.bigdatatools.kafka.util.KafkaIcons
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 
-class SavePresetAction(private val runConfig: KafkaRunConfig, private val configSupplier: () -> RunConfig)
+class SavePresetAction(private val runConfig: KafkaRunConfig, private val configSupplier: () -> StorageConfig)
   : DumbAwareAction(KafkaMessagesBundle.message("action.save.preset"), null, KafkaIcons.BOOKMARK_OFF) {
 
   override fun update(e: AnActionEvent) {

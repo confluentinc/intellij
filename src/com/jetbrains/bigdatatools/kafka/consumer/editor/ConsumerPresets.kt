@@ -2,9 +2,9 @@ package com.jetbrains.bigdatatools.kafka.consumer.editor
 
 import com.jetbrains.bigdatatools.kafka.common.editor.Presets
 import com.jetbrains.bigdatatools.kafka.common.settings.KafkaConfigStorage
+import com.jetbrains.bigdatatools.kafka.common.settings.StorageConsumerConfig
 import com.jetbrains.bigdatatools.kafka.consumer.models.ConsumerFilterType
 import com.jetbrains.bigdatatools.kafka.consumer.models.ConsumerLimitType
-import com.jetbrains.bigdatatools.kafka.consumer.models.RunConsumerConfig
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import com.jetbrains.bigdatatools.ui.MigPanel
 import java.awt.Component
@@ -14,7 +14,7 @@ import javax.swing.JList
 import javax.swing.JSeparator
 import javax.swing.ListCellRenderer
 
-class RunConsumerConfigCellRenderer : ListCellRenderer<RunConsumerConfig> {
+class RunConsumerConfigCellRenderer : ListCellRenderer<StorageConsumerConfig> {
 
   companion object {
     val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss")
@@ -39,11 +39,12 @@ class RunConsumerConfigCellRenderer : ListCellRenderer<RunConsumerConfig> {
     row(JSeparator())
   }
 
-  override fun getListCellRendererComponent(list: JList<out RunConsumerConfig>,
-                                            value: RunConsumerConfig,
+  override fun getListCellRendererComponent(list: JList<out StorageConsumerConfig>,
+                                            value: StorageConsumerConfig,
                                             index: Int,
                                             isSelected: Boolean,
                                             cellHasFocus: Boolean): Component {
+
     if (isSelected) {
       component.background = list.selectionBackground
       labels.forEach { it.foreground = list.selectionForeground }
@@ -53,49 +54,49 @@ class RunConsumerConfigCellRenderer : ListCellRenderer<RunConsumerConfig> {
       labels.forEach { it.foreground = list.foreground }
     }
 
-    @Suppress("HardCodedStringLiteral")
-    topicLabel.text = value.topic.ifEmpty { "No topic" }
+    @Suppress("HardCodedStringLiteral") // Topic is user defined name and cannot be i18.
+    topicLabel.text = value.topic?.ifEmpty { KafkaMessagesBundle.message("consumer.preset.no.topic") }
 
-    @Suppress("HardCodedStringLiteral")
-    keyLabel.text = "Key: ${value.keyType.title}"
-
-    @Suppress("HardCodedStringLiteral")
-    valueLabel.text = "Value: ${value.valueType.title}"
+    keyLabel.text = KafkaMessagesBundle.message("consumer.preset.key", value.getKeyType().title)
+    valueLabel.text = KafkaMessagesBundle.message("consumer.preset.value", value.getValueType().title)
 
     startFromLabel.isVisible = false
 
-    if (value.limit.type == ConsumerLimitType.NONE) {
+    val limit = value.getLimit()
+    if (limit.type == ConsumerLimitType.NONE) {
       limitLabel.isVisible = false
     }
     else {
       limitLabel.isVisible = true
       limitLabel.text = KafkaMessagesBundle.message("consumer.preset.limit",
-                                                    value.limit.type.title,
-                                                    if (value.limit.type == ConsumerLimitType.DATE) dateFormat.format(value.limit.time)
-                                                    else value.limit.value)
+                                                    limit.type.title,
+                                                    if (limit.type == ConsumerLimitType.DATE) dateFormat.format(limit.time)
+                                                    else limit.value)
     }
 
-    val filterVisible = value.filter.type != ConsumerFilterType.NONE
+    val filter = value.getFilter()
+
+    val filterVisible = filter.type != ConsumerFilterType.NONE
 
     filterLabel.isVisible = filterVisible
-    filterKeyLabel.isVisible = filterVisible && !value.filter.filterKey.isNullOrEmpty()
-    filterValueLabel.isVisible = filterVisible && !value.filter.filterValue.isNullOrEmpty()
-    filterHeaderKeyLabel.isVisible = filterVisible && !value.filter.filterHeadKey.isNullOrEmpty()
-    filterHeaderValueLabel.isVisible = filterVisible && !value.filter.filterHeadValue.isNullOrEmpty()
+    filterKeyLabel.isVisible = filterVisible && !filter.filterKey.isNullOrEmpty()
+    filterValueLabel.isVisible = filterVisible && !filter.filterValue.isNullOrEmpty()
+    filterHeaderKeyLabel.isVisible = filterVisible && !filter.filterHeadKey.isNullOrEmpty()
+    filterHeaderValueLabel.isVisible = filterVisible && !filter.filterHeadValue.isNullOrEmpty()
 
     if (filterLabel.isVisible)
-      filterLabel.text = KafkaMessagesBundle.message("consumer.preset.filter", value.filter.type.title)
+      filterLabel.text = KafkaMessagesBundle.message("consumer.preset.filter", filter.type.title)
     if (filterKeyLabel.isVisible)
-      filterKeyLabel.text = KafkaMessagesBundle.message("consumer.preset.key", value.filter.filterKey ?: "")
+      filterKeyLabel.text = KafkaMessagesBundle.message("consumer.preset.key", filter.filterKey ?: "")
     if (filterValueLabel.isVisible)
-      filterValueLabel.text = KafkaMessagesBundle.message("consumer.preset.value", value.filter.filterValue ?: "")
+      filterValueLabel.text = KafkaMessagesBundle.message("consumer.preset.value", filter.filterValue ?: "")
     if (filterHeaderKeyLabel.isVisible)
-      filterHeaderKeyLabel.text = KafkaMessagesBundle.message("consumer.preset.header.key", value.filter.filterHeadKey ?: "")
+      filterHeaderKeyLabel.text = KafkaMessagesBundle.message("consumer.preset.header.key", filter.filterHeadKey ?: "")
     if (filterHeaderValueLabel.isVisible)
-      filterHeaderValueLabel.text = KafkaMessagesBundle.message("consumer.preset.header.value", value.filter.filterHeadValue ?: "")
+      filterHeaderValueLabel.text = KafkaMessagesBundle.message("consumer.preset.header.value", filter.filterHeadValue ?: "")
 
     return component
   }
 }
 
-class ConsumerPresets : Presets<RunConsumerConfig>(KafkaConfigStorage.instance.consumerConfig, RunConsumerConfigCellRenderer())
+class ConsumerPresets : Presets<StorageConsumerConfig>(KafkaConfigStorage.instance.consumerConfig, RunConsumerConfigCellRenderer())

@@ -29,6 +29,7 @@ import com.jetbrains.bigdatatools.kafka.common.models.FieldType
 import com.jetbrains.bigdatatools.kafka.common.models.ProducerField
 import com.jetbrains.bigdatatools.kafka.common.models.TopicInEditor
 import com.jetbrains.bigdatatools.kafka.common.settings.KafkaConfigStorage
+import com.jetbrains.bigdatatools.kafka.common.settings.StorageProducerConfig
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.producer.models.*
 import com.jetbrains.bigdatatools.kafka.statistics.KafkaUsagesCollector
@@ -154,11 +155,12 @@ class KafkaProducerEditor(project: Project,
   }
   private val outputTable: MaterialTable by outputTableDelegate
 
-  private fun getConfig() = RunProducerConfig(topicComboBox.item?.name ?: "", keyType = keyComboBox.item, key = getKey(),
-                                              valueType = valueComboBox.item, value = getValue(),
-                                              properties = propertiesComponent.properties, compression = compressionComboBox.item,
-                                              acks = acksComboBox.item, idempotence = idempotenceCheckBox.isSelected,
-                                              forcePartition = forcePartitionField.value)
+  private fun getConfig() = StorageProducerConfig(topicComboBox.item?.name ?: "",
+                                                  keyType = keyComboBox.item, key = getKey(),
+                                                  valueType = valueComboBox.item, value = getValue(),
+                                                  properties = propertiesComponent.properties, compression = compressionComboBox.item,
+                                                  acks = acksComboBox.item, idempotence = idempotenceCheckBox.isSelected,
+                                                  forcePartition = forcePartitionField.value)
 
   private val presetsDelegate = lazy {
     val presets = ProducerPresets()
@@ -429,26 +431,26 @@ class KafkaProducerEditor(project: Project,
     }
   }
 
-  private fun applyConfig(config: RunProducerConfig) {
+  private fun applyConfig(config: StorageProducerConfig) {
     topicComboBox.item = TopicInEditor(config.topic)
-    keyComboBox.item = config.keyType
+    keyComboBox.item = config.getKeyType()
 
-    when (config.keyType) {
+    when (config.getKeyType()) {
       FieldType.JSON -> keyJsonField.text = config.key
       FieldType.STRING, FieldType.LONG, FieldType.DOUBLE, FieldType.FLOAT, FieldType.BASE64 -> keyField.text = config.key
       FieldType.NULL -> Unit
     }
-    valueComboBox.item = config.valueType
+    valueComboBox.item = config.getValueType()
 
-    when (config.valueType) {
+    when (config.getValueType()) {
       FieldType.JSON -> valueJsonField.text = config.value
       FieldType.STRING, FieldType.LONG, FieldType.DOUBLE, FieldType.FLOAT, FieldType.BASE64 -> valueField.text = config.value
       FieldType.NULL -> Unit
     }
 
-    acksComboBox.item = config.acks
+    acksComboBox.item = config.getAsks()
     propertiesComponent.properties = config.properties.toMutableList()
-    compressionComboBox.item = config.compression
+    compressionComboBox.item = config.getCompression()
     idempotenceCheckBox.isSelected = config.idempotence
     forcePartitionField.value = config.forcePartition
   }
