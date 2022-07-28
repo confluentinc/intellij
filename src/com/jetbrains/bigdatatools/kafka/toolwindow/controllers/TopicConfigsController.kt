@@ -28,7 +28,7 @@ class TopicConfigsController(val project: Project,
 
     val showFullConfig = object : DumbAwareToggleAction(KafkaMessagesBundle.message("show.full.topic.config"),
                                                         KafkaMessagesBundle.message("show.full.topic.config.hint"),
-                                                        AllIcons.Actions.ShowHiddens) {
+                                                        AllIcons.Actions.ToggleVisibility) {
       override fun isSelected(e: AnActionEvent) = settings.showFullTopicConfig
 
       override fun displayTextInToolbar() = false

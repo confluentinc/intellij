@@ -89,7 +89,7 @@ class TopicsController(val project: Project, private val dataManager: KafkaDataM
 
     val showInternalTopicsAction = object : DumbAwareToggleAction(KafkaMessagesBundle.message("show.internal.topic"),
                                                                   KafkaMessagesBundle.message("show.internal.topic.hint"),
-                                                                  AllIcons.Actions.ShowHiddens) {
+                                                                  AllIcons.Actions.ToggleVisibility) {
       override fun isSelected(e: AnActionEvent) = settings.showInternalTopics
       override fun displayTextInToolbar() = false
       override fun setSelected(e: AnActionEvent, state: Boolean) {
