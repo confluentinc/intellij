@@ -25,6 +25,7 @@ import com.jetbrains.bigdatatools.ui.MigPanel
 import com.jetbrains.bigdatatools.ui.MouseAwarePanel
 import net.miginfocom.layout.LC
 import java.awt.BorderLayout
+import java.awt.CardLayout
 import javax.swing.*
 
 /**
@@ -37,7 +38,8 @@ class ClusterPageController(private val project: Project, private val connection
   private val topicsController = TopicsController(project, dataManager)
   private val consumerGroupsController = ConsumerGroupsController(dataManager)
 
-  private val details = JPanel(BorderLayout())
+  private val detailsLayout = CardLayout()
+  private val details = JPanel(detailsLayout)
   private val panel = MouseAwarePanel.wrap(createPanel())
 
   init {
@@ -50,17 +52,7 @@ class ClusterPageController(private val project: Project, private val connection
   override fun getComponent() = panel
 
   private fun showDetails(selectedValue: ClusterControllerType) {
-    details.removeAll()
-
-    val component = when (selectedValue) {
-      ClusterControllerType.TOPIC -> topicsController.getComponent()
-      ClusterControllerType.CONSUMER_GROUP -> consumerGroupsController.getComponent()
-    }
-
-    details.add(component)
-
-    details.revalidate()
-    details.repaint()
+    detailsLayout.show(details, selectedValue.name)
   }
 
   private fun openProducer(): Array<FileEditor> {
@@ -97,7 +89,8 @@ class ClusterPageController(private val project: Project, private val connection
       }
     }
 
-    list.selectedIndex = 0
+    details.add(topicsController.getComponent(), ClusterControllerType.TOPIC.name)
+    details.add(consumerGroupsController.getComponent(), ClusterControllerType.CONSUMER_GROUP.name)
     showDetails(ClusterControllerType.TOPIC)
 
     val createProducer = JButton(KafkaMessagesBundle.message("create.producer.action.title")).apply {
