@@ -4,17 +4,17 @@ import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.project.DumbAwareAction
 import com.jetbrains.bigdatatools.kafka.common.settings.KafkaRunConfig
 import com.jetbrains.bigdatatools.kafka.common.settings.StorageConfig
-import com.jetbrains.bigdatatools.kafka.util.KafkaIcons
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import icons.BigdatatoolsKafkaIcons
 
 class SavePresetAction(private val runConfig: KafkaRunConfig, private val configSupplier: () -> StorageConfig)
-  : DumbAwareAction(KafkaMessagesBundle.message("action.save.preset"), null, KafkaIcons.BOOKMARK_OFF) {
+  : DumbAwareAction(KafkaMessagesBundle.message("action.save.preset"), null, BigdatatoolsKafkaIcons.Bookmark_off) {
 
   override fun update(e: AnActionEvent) {
     super.update(e)
     val hasPreset = runConfig.hasConfig(configSupplier())
     e.presentation.text = KafkaMessagesBundle.message(if (hasPreset) "action.remove.preset" else "action.save.preset")
-    e.presentation.icon = if (hasPreset) KafkaIcons.BOOKMARK_ON else KafkaIcons.BOOKMARK_OFF
+    e.presentation.icon = if (hasPreset) BigdatatoolsKafkaIcons.Bookmark_on else BigdatatoolsKafkaIcons.Bookmark_off
   }
 
   override fun actionPerformed(e: AnActionEvent) {
