@@ -3,10 +3,7 @@ package com.jetbrains.bigdatatools.kafka.toolwindow.controllers
 import com.intellij.CommonBundle
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.Disposable
-import com.intellij.openapi.actionSystem.ActionToolbar
-import com.intellij.openapi.actionSystem.AnActionEvent
-import com.intellij.openapi.actionSystem.DefaultActionGroup
-import com.intellij.openapi.actionSystem.Separator
+import com.intellij.openapi.actionSystem.*
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.DumbAwareToggleAction
 import com.intellij.openapi.project.Project
@@ -91,6 +88,7 @@ class TopicsController(val project: Project, private val dataManager: KafkaDataM
                                                                   KafkaMessagesBundle.message("show.internal.topic.hint"),
                                                                   AllIcons.Actions.ToggleVisibility) {
       override fun isSelected(e: AnActionEvent) = settings.showInternalTopics
+      override fun getActionUpdateThread() = ActionUpdateThread.BGT
       override fun displayTextInToolbar() = false
       override fun setSelected(e: AnActionEvent, state: Boolean) {
         settings.showInternalTopics = state
@@ -108,6 +106,8 @@ class TopicsController(val project: Project, private val dataManager: KafkaDataM
       override fun update(e: AnActionEvent) {
         e.presentation.isEnabled = dataManager.client.isConnected()
       }
+
+      override fun getActionUpdateThread() = ActionUpdateThread.BGT
     }
 
     val deleteTopicAction = object : DumbAwareAction(KafkaMessagesBundle.message("action.delete.topic"),
@@ -136,8 +136,9 @@ class TopicsController(val project: Project, private val dataManager: KafkaDataM
       override fun update(e: AnActionEvent) {
         e.presentation.isEnabled = dataManager.client.isConnected() && topicTable.selectedRow != -1
       }
-    }
 
+      override fun getActionUpdateThread() = ActionUpdateThread.BGT
+    }
 
     val configStoragesColumnsAction = ColumnVisibilitySettings.createAction(columnModel.allColumns.map { it.name },
                                                                             settings.topicColumnSettings)

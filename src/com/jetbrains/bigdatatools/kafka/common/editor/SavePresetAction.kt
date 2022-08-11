@@ -1,5 +1,6 @@
 package com.jetbrains.bigdatatools.kafka.common.editor
 
+import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.project.DumbAwareAction
 import com.jetbrains.bigdatatools.kafka.common.settings.KafkaRunConfig
@@ -16,6 +17,8 @@ class SavePresetAction(private val runConfig: KafkaRunConfig, private val config
     e.presentation.text = KafkaMessagesBundle.message(if (hasPreset) "action.remove.preset" else "action.save.preset")
     e.presentation.icon = if (hasPreset) BigdatatoolsKafkaIcons.Bookmark_on else BigdatatoolsKafkaIcons.Bookmark_off
   }
+
+  override fun getActionUpdateThread() = ActionUpdateThread.BGT
 
   override fun actionPerformed(e: AnActionEvent) {
     if (runConfig.hasConfig(configSupplier())) {
