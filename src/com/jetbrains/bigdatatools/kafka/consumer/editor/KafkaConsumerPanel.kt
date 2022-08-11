@@ -357,7 +357,7 @@ class KafkaConsumerPanel(project: Project, private val kafkaManager: KafkaDataMa
     val tableStatusButton = object : DumbAwareToggleAction(KafkaMessagesBundle.message("action.table.stats"), null,
                                                            AllIcons.General.ShowInfos) {
       override fun isSelected(e: AnActionEvent) = outputTableStatusDelegate.isInitialized() && outputTableStatus.component.parent != null
-
+      override fun getActionUpdateThread() = ActionUpdateThread.BGT
       override fun setSelected(e: AnActionEvent, state: Boolean) {
         if (state) {
           outputTablePanel.setSouthComponent(outputTableStatus.component)

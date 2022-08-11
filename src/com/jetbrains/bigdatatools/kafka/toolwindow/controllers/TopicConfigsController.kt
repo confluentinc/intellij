@@ -1,6 +1,7 @@
 package com.jetbrains.bigdatatools.kafka.toolwindow.controllers
 
 import com.intellij.icons.AllIcons
+import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.project.DumbAwareToggleAction
@@ -30,6 +31,8 @@ class TopicConfigsController(val project: Project,
                                                         KafkaMessagesBundle.message("show.full.topic.config.hint"),
                                                         AllIcons.Actions.ToggleVisibility) {
       override fun isSelected(e: AnActionEvent) = settings.showFullTopicConfig
+
+      override fun getActionUpdateThread() = ActionUpdateThread.BGT
 
       override fun displayTextInToolbar() = false
 
