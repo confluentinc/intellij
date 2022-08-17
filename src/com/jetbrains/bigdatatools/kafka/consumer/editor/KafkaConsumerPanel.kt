@@ -106,29 +106,8 @@ class KafkaConsumerPanel(project: Project, private val kafkaManager: KafkaDataMa
     prototypeDisplayValue = TopicInEditor("AverageName")
   }
 
-  private val keyComboBox = ComboBox(FieldType.values()).apply {
-    renderer = CustomListCellRenderer<FieldType> { it.title }
-    selectedItem = FieldType.STRING
-    addItemListener {
-      updateVisibility()
-      storeToFile()
-      if (detailsDelegate.isInitialized()) {
-        details.keyType = item
-      }
-    }
-  }
-
-  private val valueComboBox = ComboBox(FieldType.values()).apply {
-    renderer = CustomListCellRenderer<FieldType> { it.title }
-    selectedItem = FieldType.STRING
-    addItemListener {
-      updateVisibility()
-      storeToFile()
-      if (detailsDelegate.isInitialized()) {
-        details.valueType = item
-      }
-    }
-  }
+  private val keyComboBox = createFileTypeCombobox { details.keyType = it }
+  private val valueComboBox = createFileTypeCombobox { details.valueType = it }
 
   private val outputModel = ListTableModel(LinkedList<Result<ConsumerRecord<Any, Any>>>(),
                                            listOf("partition", "offset", "timestamp", "key", "value")) { data, index ->
@@ -441,6 +420,18 @@ class KafkaConsumerPanel(project: Project, private val kafkaManager: KafkaDataMa
     }
   }
 
+  private fun createFileTypeCombobox(onChange: (FieldType) -> Unit) = ComboBox(FieldType.values()).apply {
+    renderer = CustomListCellRenderer<FieldType> { it.title }
+    selectedItem = FieldType.STRING
+    addItemListener {
+      updateVisibility()
+      storeToFile()
+      if (detailsDelegate.isInitialized()) {
+        onChange(item)
+      }
+    }
+  }
+
   private fun updateDetails() {
     if (detailsDelegate.isInitialized()) {
       details.record = if (outputTable.selectedRow == -1) null
@@ -467,9 +458,8 @@ class KafkaConsumerPanel(project: Project, private val kafkaManager: KafkaDataMa
       if (outputTableDelegate.isInitialized()) {
         tableLoadingDecorator?.let { Disposer.dispose(it) }
         tableLoadingDecorator = TableLoadingDecorator.installOn(outputTable,
-                                                                KafkaMessagesBundle.message("consumer.table.awaiting"))?.apply {
-          Disposer.register(this@KafkaConsumerPanel, this)
-        }
+                                                                this@KafkaConsumerPanel,
+                                                                KafkaMessagesBundle.message("consumer.table.awaiting"))
       }
 
       if (kafkaConsumerSettingsDelegate.isInitialized()) {
@@ -537,10 +527,11 @@ class KafkaConsumerPanel(project: Project, private val kafkaManager: KafkaDataMa
 
   private fun setupTablePopupMenu(table: JTable) {
     val clearAction = SimpleDumbAwareAction(KafkaMessagesBundle.message("action.clear.output")) { outputModel.clear() }
-    PopupHandler.installPopupMenu(table, DefaultActionGroup(
-      ActionManager.getInstance().getAction("BdIde.TableEditor.PopupActionGroup") as ActionGroup, Separator(), clearAction),
-                                  "KafkaConsumerPanel"
-    )
+    PopupHandler.installPopupMenu(table, DefaultActionGroup().apply {
+      (ActionManager.getInstance().getAction("BdIde.TableEditor.PopupActionGroup") as? ActionGroup)?.let { addAll(it) }
+      addSeparator()
+      addAction(clearAction)
+    }, "KafkaConsumerPanel")
   }
 
   private fun getFilter() = ConsumerFilter(
