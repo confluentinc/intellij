@@ -320,10 +320,11 @@ class KafkaProducerEditor(project: Project,
 
   private fun setupTablePopupMenu(table: JTable) {
     val clearAction = SimpleDumbAwareAction(KafkaMessagesBundle.message("action.clear.output")) { outputModel.clear() }
-    PopupHandler.installPopupMenu(table, DefaultActionGroup(
-      ActionManager.getInstance().getAction("BdIde.TableEditor.PopupActionGroup") as ActionGroup, Separator(), clearAction),
-                                  "KafkaProducerEditor"
-    )
+    PopupHandler.installPopupMenu(table, DefaultActionGroup().apply {
+      (ActionManager.getInstance().getAction("BdIde.TableEditor.PopupActionGroup") as? ActionGroup)?.let { addAll(it) }
+      addSeparator()
+      addAction(clearAction)
+    }, "KafkaProducerEditor")
   }
 
   private fun createCenterPanel(): JComponent = presetsSplitter
