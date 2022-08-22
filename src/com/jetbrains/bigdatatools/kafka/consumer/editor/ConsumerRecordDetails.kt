@@ -175,7 +175,7 @@ class ConsumerRecordDetails(project: Project, parentDisposable: Disposable) {
     val presentingValue = when {
       fieldViewerType == FieldViewerType.JSON -> {
         try {
-          val gson = GsonBuilder().setPrettyPrinting().create()
+          val gson = GsonBuilder().disableHtmlEscaping().setPrettyPrinting().create()
           gson.toJson(JsonParser.parseString(value.toString()))
         }
         catch (e: Exception) {
