@@ -42,7 +42,7 @@ class KafkaConsumerSettings {
     }
 
     settingsFields[MAX_CONSUMER_RECORDS] = JTextField().apply {
-      toolTipText = KafkaMessagesBundle.message("consumer.records.limit.descr")
+      toolTipText = "<html>${KafkaMessagesBundle.message("consumer.records.limit.descr")}</html>"
     }
   }
 
