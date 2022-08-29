@@ -8,6 +8,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.util.Disposer
 import com.intellij.ui.EditorCustomization
+import com.intellij.ui.EditorTextField
 import com.intellij.ui.EditorTextFieldProvider
 import com.intellij.ui.MonospaceEditorCustomization
 import com.intellij.util.ui.UIUtil
@@ -25,26 +26,27 @@ import javax.swing.BorderFactory
 
 object KafkaEditorUtils {
 
-  fun createJsonTextArea(project: Project,
-                         additionalCustomization: List<EditorCustomization> = emptyList()) = EditorTextFieldProvider.getInstance()
-    .getEditorField(JsonLanguage.INSTANCE, project,
-                    listOf(EditorCustomization {
-                      it.settings.apply {
-                        isLineNumbersShown = false
-                        isLineMarkerAreaShown = false
-                        isFoldingOutlineShown = false
-                        isRightMarginShown = false
-                        additionalLinesCount = 0
-                        additionalColumnsCount = 0
-                        isAdditionalPageAtBottom = false
-                        isShowIntentionBulb = false
-                      }
-                    }, MonospaceEditorCustomization.getInstance()) + additionalCustomization).apply {
-      border = BorderFactory.createCompoundBorder(DarculaTextAreaBorder(), ComponentColoredBorder(3, 5, 3, 5))
-      background = UIUtil.getTextFieldBackground()
-      autoscrolls = false
-      setCaretPosition(0)
-    }
+  fun createJsonTextArea(project: Project, additionalCustomization: List<EditorCustomization> = emptyList()): EditorTextField {
+    return EditorTextFieldProvider.getInstance()
+      .getEditorField(JsonLanguage.INSTANCE, project,
+                      listOf(EditorCustomization {
+                        it.settings.apply {
+                          isLineNumbersShown = false
+                          isLineMarkerAreaShown = false
+                          isFoldingOutlineShown = false
+                          isRightMarginShown = false
+                          additionalLinesCount = 0
+                          additionalColumnsCount = 0
+                          isAdditionalPageAtBottom = false
+                          isShowIntentionBulb = false
+                        }
+                      }, MonospaceEditorCustomization.getInstance()) + additionalCustomization).apply {
+        border = BorderFactory.createCompoundBorder(DarculaTextAreaBorder(), ComponentColoredBorder(3, 5, 3, 5))
+        background = UIUtil.getTextFieldBackground()
+        autoscrolls = false
+        setCaretPosition(0)
+      }
+  }
 
   fun getValueAsString(type: FieldType, value: Any?): String {
     return if (value == null) {

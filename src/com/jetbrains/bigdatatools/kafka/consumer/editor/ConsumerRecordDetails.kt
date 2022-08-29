@@ -8,7 +8,10 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.ui.EditorCustomization
 import com.intellij.ui.EditorTextField
+import com.intellij.ui.JBColor
+import com.intellij.ui.SideBorder
 import com.intellij.ui.components.JBScrollPane
+import com.intellij.util.ui.UIUtil
 import com.jetbrains.bigdatatools.kafka.common.editor.FieldViewerType
 import com.jetbrains.bigdatatools.kafka.common.editor.KafkaEditorUtils
 import com.jetbrains.bigdatatools.kafka.common.editor.PropertiesTable
@@ -23,6 +26,9 @@ import com.jetbrains.bigdatatools.util.SizeUtils
 import com.jetbrains.bigdatatools.util.TimeUtils
 import net.miginfocom.layout.CC
 import org.apache.kafka.clients.consumer.ConsumerRecord
+import java.awt.Component
+import java.awt.Container
+import java.awt.Dimension
 import java.awt.event.ItemEvent
 import java.nio.charset.StandardCharsets
 import java.util.*
@@ -30,14 +36,42 @@ import javax.swing.BorderFactory
 import javax.swing.JLabel
 import javax.swing.JTextArea
 import javax.swing.JTextField
+import javax.swing.text.DefaultCaret
 import javax.swing.text.JTextComponent
 
 class ConsumerRecordDetails(project: Project, parentDisposable: Disposable) {
 
+  inner class ConsumerEditorCustomization : EditorCustomization {
+    override fun customize(editor: EditorEx) {
+
+      editor.scrollPane.layout = object : JBScrollPane.Layout() {
+        override fun preferredLayoutSize(parent: Container?): Dimension {
+          val superSize = super.preferredLayoutSize(parent)
+
+          return Dimension(superSize.width,
+                           superSize.height + (if (horizontalScrollBar?.isVisible == true) horizontalScrollBar.height * 3 else 0))
+        }
+      }
+    }
+  }
+
+  inner class AdjustableScrollPanel(view: Component) : JBScrollPane(view) {
+
+    init {
+      putClientProperty(UIUtil.KEEP_BORDER_SIDES, SideBorder.ALL)
+      border = BorderFactory.createLineBorder(JBColor.border())
+    }
+
+    override fun getPreferredSize(): Dimension {
+      val superSize = super.getPreferredSize()
+      return Dimension(superSize.width,
+                       superSize.height + (if (horizontalScrollBar?.isVisible == true) horizontalScrollBar.height * 2 else 0))
+    }
+  }
+
   private val topicField = JTextField(10).apply { isEditable = false }
 
   private val keyViewerType = ComboBox(FieldViewerType.values()).apply {
-    border = BorderFactory.createEmptyBorder()
     renderer = CustomListCellRenderer<FieldViewerType> { it.title }
   }
 
@@ -45,11 +79,11 @@ class ConsumerRecordDetails(project: Project, parentDisposable: Disposable) {
     isEditable = false
     border = BorderFactory.createEmptyBorder(5, 5, 5, 5)
   }
-  private val keyFieldTextScroll = JBScrollPane(keyFieldText)
+
+  private val keyFieldTextScroll = AdjustableScrollPanel(keyFieldText)
   private val keyFieldJson: EditorTextField
 
   private val valueViewerType = ComboBox(FieldViewerType.values()).apply {
-    border = BorderFactory.createEmptyBorder()
     renderer = CustomListCellRenderer<FieldViewerType> { it.title }
   }
 
@@ -57,13 +91,17 @@ class ConsumerRecordDetails(project: Project, parentDisposable: Disposable) {
     isEditable = false
     border = BorderFactory.createEmptyBorder(5, 5, 5, 5)
   }
-  private val valueFieldTextScroll = JBScrollPane(valueFieldText)
+
+  private val valueFieldTextScroll = AdjustableScrollPanel(valueFieldText)
   private val valueFieldJson: EditorTextField
 
   private val headers = PropertiesTable(emptyList())
   private val partition = JTextField(10).apply { isEditable = false }
   private val offset = JTextField(10).apply { isEditable = false }
-  private val timestamp = JTextField(10).apply { isEditable = false }
+  private val timestamp = JTextField(10).apply {
+    isEditable = false
+    (caret as? DefaultCaret)?.updatePolicy = DefaultCaret.NEVER_UPDATE
+  }
   private val timestampType = JTextField(10).apply { isEditable = false }
   private val keySize = JTextField(10).apply { isEditable = false }
   private val valueSize = JTextField(10).apply { isEditable = false }
@@ -89,15 +127,12 @@ class ConsumerRecordDetails(project: Project, parentDisposable: Disposable) {
     }
 
   init {
-    keyFieldJson = KafkaEditorUtils.createJsonTextArea(project,
-                                                       listOf(ConsumerEditorCustomization({ keyType }, { keyViewerType.item }))).apply {
+    keyFieldJson = KafkaEditorUtils.createJsonTextArea(project, listOf(ConsumerEditorCustomization())).apply {
       document.setReadOnly(true)
       setDisposedWith(parentDisposable)
     }
 
-    valueFieldJson = KafkaEditorUtils.createJsonTextArea(project,
-                                                         listOf(
-                                                           ConsumerEditorCustomization({ valueType }, { valueViewerType.item }))).apply {
+    valueFieldJson = KafkaEditorUtils.createJsonTextArea(project, listOf(ConsumerEditorCustomization())).apply {
       document.setReadOnly(true)
       setDisposedWith(parentDisposable)
     }
@@ -135,19 +170,6 @@ class ConsumerRecordDetails(project: Project, parentDisposable: Disposable) {
     val fieldTextScroll = if (fieldText == valueFieldText) valueFieldTextScroll else keyFieldTextScroll
     fieldTextScroll.isVisible = !isJson
     fieldJson.isVisible = isJson
-  }
-
-  inner class ConsumerEditorCustomization(private val fieldType: () -> FieldType,
-                                          private val fieldViewerType: () -> FieldViewerType) : EditorCustomization {
-    override fun customize(editor: EditorEx) {
-      // On macOS we have dynamically appeared progressbars. We should check when progressbar appears and relayout the detail panel.
-
-      //editor.scrollPane.viewport.addChangeListener { e ->
-      //  System.out.println("Change in " + e.getSource())
-      //  System.out.println("Vertical visible? " + editor.scrollPane.getVerticalScrollBar().isVisible())
-      //  System.out.println("Horizontal visible? " + editor.scrollPane.getHorizontalScrollBar().isVisible())
-      //}
-    }
   }
 
   private fun updateField(field: EditorTextField, value: String) {
@@ -193,10 +215,12 @@ class ConsumerRecordDetails(project: Project, parentDisposable: Disposable) {
       fieldViewerType == FieldViewerType.AUTO -> KafkaEditorUtils.getValueAsString(fieldType, value)
       else -> value.toString()
     }
-    if (isJson)
+    if (isJson) {
       updateField(fieldJson, presentingValue)
-    else
+    }
+    else {
       fieldText.text = presentingValue
+    }
     fieldText.caretPosition = 0
   }
 

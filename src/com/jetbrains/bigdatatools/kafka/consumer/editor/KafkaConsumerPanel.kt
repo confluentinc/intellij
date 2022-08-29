@@ -35,7 +35,7 @@ import com.jetbrains.bigdatatools.rfs.util.RfsNotificationUtils
 import com.jetbrains.bigdatatools.settings.defaultui.UiUtil
 import com.jetbrains.bigdatatools.table.MaterialTable
 import com.jetbrains.bigdatatools.table.MaterialTableUtils
-import com.jetbrains.bigdatatools.table.TableResizeController
+import com.jetbrains.bigdatatools.table.extension.TableCellPreview
 import com.jetbrains.bigdatatools.table.extension.TableFirstRowAdded
 import com.jetbrains.bigdatatools.table.extension.TableLoadingDecorator
 import com.jetbrains.bigdatatools.table.filters.TableFilterHeader
@@ -43,6 +43,7 @@ import com.jetbrains.bigdatatools.table.renderers.DateRenderer
 import com.jetbrains.bigdatatools.ui.*
 import com.jetbrains.bigdatatools.util.executeOnPooledThread
 import com.michaelbaranov.microba.calendar.DatePicker
+import net.miginfocom.layout.LC
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import java.awt.BorderLayout
 import java.awt.Dimension
@@ -134,7 +135,6 @@ class KafkaConsumerPanel(project: Project, private val kafkaManager: KafkaDataMa
 
   private val outputTableDelegate = lazy {
     MaterialTable(outputModel, outputModel.columnModel).apply {
-      val resizeController = TableResizeController(this)
       tableHeader.border = BorderFactory.createEmptyBorder()
       outputModel.columnModel.columns.asIterator().forEach {
         if (it.headerValue == "timestamp") {
@@ -145,14 +145,14 @@ class KafkaConsumerPanel(project: Project, private val kafkaManager: KafkaDataMa
       TableFilterHeader(this)
 
       MaterialTableUtils.fitColumnsWidth(this)
-      resizeController.componentResized()
 
       TableFirstRowAdded(this) {
         MaterialTableUtils.fitColumnsWidth(this)
-        resizeController.componentResized()
       }
 
       setupTablePopupMenu(this)
+
+      TableCellPreview.installOn(this, listOf("key", "value"))
     }
   }
   private val outputTable: MaterialTable by outputTableDelegate
@@ -232,7 +232,7 @@ class KafkaConsumerPanel(project: Project, private val kafkaManager: KafkaDataMa
   private lateinit var filterPanelBlock: MigBlock
 
   private val settingsPanelDelegate = lazy {
-    val panel = MigPanel(UiUtil.insets10FillXHidemode3).apply {
+    val panel = MigPanel(LC().insets("10 10 0 0").fillX().hideMode(3)).apply {
 
       row(KafkaMessagesBundle.message("settings.label.topics"), topicComboBox)
 
@@ -363,9 +363,8 @@ class KafkaConsumerPanel(project: Project, private val kafkaManager: KafkaDataMa
     }
 
     resultsSplitter.secondComponent = ExpansionPanel(KafkaMessagesBundle.message("toggle.details"), {
-      JBScrollPane(details.component, JScrollPane.VERTICAL_SCROLLBAR_ALWAYS, JScrollPane.HORIZONTAL_SCROLLBAR_NEVER).apply {
+      details.component.apply {
         minimumSize = Dimension(max(details.component.minimumSize.width, 250), minimumSize.height)
-        border = BorderFactory.createEmptyBorder()
       }
     }, PropertiesComponent.getInstance().getBoolean(DETAILS_SHOW_ID, false)).apply {
       expandedServiceKey = DETAILS_SHOW_ID
