@@ -2,6 +2,7 @@ package com.jetbrains.bigdatatools.kafka.common.editor
 
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.Disposable
+import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.ui.AnActionButton
 import com.intellij.ui.ToolbarDecorator
@@ -38,6 +39,8 @@ open class Presets<T : StorageConfig>(private val runConfig: KafkaRunConfig,
       override fun actionPerformed(e: AnActionEvent) {
         presetsList.selectedValue?.let { onApply?.invoke(it) }
       }
+
+      override fun getActionUpdateThread() = ActionUpdateThread.BGT
     })
     .setRemoveAction {
       presetsList.selectedValue?.let {
