@@ -40,7 +40,6 @@
           <root url="jar://$MAVEN_REPOSITORY$/org/apache/kafka/kafka-clients/3.1.0/kafka-clients-3.1.0-sources.jar!/" />
           <root url="jar://$MAVEN_REPOSITORY$/com/github/luben/zstd-jni/1.5.0-4/zstd-jni-1.5.0-4-sources.jar!/" />
           <root url="jar://$MAVEN_REPOSITORY$/org/lz4/lz4-java/1.8.0/lz4-java-1.8.0-sources.jar!/" />
-          <root url="jar://$MAVEN_REPOSITORY$/org/xerial/snappy/snappy-java/1.1.8.4/snappy-java-1.1.8.4-sources.jar!/" />
         </SOURCES>
       </library>
     </orderEntry>
