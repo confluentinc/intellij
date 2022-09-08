@@ -58,6 +58,7 @@ class ConsumerRecordDetails(project: Project, parentDisposable: Disposable) {
   inner class AdjustableScrollPanel(view: Component) : JBScrollPane(view) {
 
     init {
+      // In the other case the borders will be removed when the component placed in the Editor.
       putClientProperty(UIUtil.KEEP_BORDER_SIDES, SideBorder.ALL)
       border = BorderFactory.createLineBorder(JBColor.border())
     }
