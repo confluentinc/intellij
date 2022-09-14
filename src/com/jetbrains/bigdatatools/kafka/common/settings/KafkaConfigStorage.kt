@@ -19,7 +19,7 @@ class KafkaRunConfig(val configsGetter: () -> List<StorageConfig>,
 
   fun loadConfigs() = configsGetter()
 
-  fun saveConfigs(list: List<StorageConfig>) = configsSetter(list)
+  private fun saveConfigs(list: List<StorageConfig>) = configsSetter(list)
 
   fun addConfig(config: StorageConfig) {
     saveConfigs(loadConfigs() + config)
