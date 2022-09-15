@@ -21,12 +21,12 @@ class KafkaUsagesCollector : CounterUsagesCollector() {
     val topicDeletedEvent = GROUP.registerEvent("topic.deleted")
 
     val producedKeyValue = GROUP.registerEvent("produced.keyvalue",
-                                               EventFields.Enum("key_type", FieldType::class.java),
-                                               EventFields.Enum("value_type", FieldType::class.java))
+                                               EventFields.Enum<FieldType>("key_type"),
+                                               EventFields.Enum<FieldType>("value_type"))
 
     val consumedKeyValue = GROUP.registerEvent("consumed.keyvalue",
-                                               EventFields.Enum("key_type", FieldType::class.java),
-                                               EventFields.Enum("value_type", FieldType::class.java),
+                                               EventFields.Enum<FieldType>("key_type"),
+                                               EventFields.Enum<FieldType>("value_type"),
                                                RoundedIntEventField("count"))
   }
 }
