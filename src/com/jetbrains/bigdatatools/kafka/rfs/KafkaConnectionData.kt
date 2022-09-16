@@ -3,8 +3,7 @@ package com.jetbrains.bigdatatools.kafka.rfs
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
 import com.jetbrains.bigdatatools.connection.tunnel.BdtSshTunnelConnectionUtils
-import com.jetbrains.bigdatatools.connection.tunnel.model.ConnectionSshTunnelInfo
-import com.jetbrains.bigdatatools.connection.tunnel.model.TunnelableData
+import com.jetbrains.bigdatatools.connection.tunnel.model.*
 import com.jetbrains.bigdatatools.kafka.settings.KafkaConnectionConfigurable
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import com.jetbrains.bigdatatools.rfs.driver.Driver
@@ -25,23 +24,16 @@ class KafkaConnectionData : RemoteFsDriverProvider(KafkaMessagesBundle.message("
 
   override fun createConfigurable(project: Project, parentGroup: ConnectionGroup) = KafkaConnectionConfigurable(this, project)
 
-  override var tunnel = ConnectionSshTunnelInfo.DEFAULT
+  override var tunnel = ConnectionSshTunnelDataLegacy.DEFAULT
 
-  override fun getTunnelData(): ConnectionSshTunnelInfo {
-    try {
-      val (newUri, newTunnel) = BdtSshTunnelConnectionUtils.transformToConfigVersion2(uri, tunnel)
-      uri = newUri
-      tunnel = newTunnel
-    }
-    catch (t: Throwable) {
-      logger.warn(t)
-    }
-
-    return BdtSshTunnelConnectionUtils.getData(uri, tunnel)
+  override fun getTunnelData(): ConnectionSshTunnelData {
+    migrateTunnel(this::uri)
+    return super.getTunnelData()
   }
 
-  override fun setTunnelData(info: ConnectionSshTunnelInfo) {
-    tunnel = info
+  override fun getTunnelInfo(): ConnectionSshTunnelInfo? {
+    val tunnelData = getTunnelData()
+    return BdtSshTunnelConnectionUtils.getTunnelInfo(uri, tunnelData)
   }
 
   companion object {

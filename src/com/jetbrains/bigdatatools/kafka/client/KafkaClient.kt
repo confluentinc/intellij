@@ -5,7 +5,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFileManager
 import com.jetbrains.bigdatatools.connection.tunnel.BdtSshTunnelConnectionUtils
 import com.jetbrains.bigdatatools.connection.tunnel.BdtSshTunnelService
-import com.jetbrains.bigdatatools.connection.tunnel.model.getTunnelDataOrNull
+import com.jetbrains.bigdatatools.connection.tunnel.model.getTunnelInfoOrNull
 import com.jetbrains.bigdatatools.kafka.model.ConsumerGroupPresentable
 import com.jetbrains.bigdatatools.kafka.model.TopicConfig
 import com.jetbrains.bigdatatools.kafka.model.TopicPresentable
@@ -47,7 +47,7 @@ class KafkaClient(project: Project?,
       logger.warn("Cannot close kafka client", t)
     }
 
-    BdtSshTunnelService.deleteIfExists(project, connectionData.innerId, connectionData.getTunnelDataOrNull(), testConnection)
+    BdtSshTunnelService.deleteIfExists(project, connectionData.innerId, connectionData.getTunnelInfoOrNull(), testConnection)
   }
 
   override fun getRealUri(): String = kafkaProps.getProperty(SERVER_URL) ?: "<NOT_FOUND>"
@@ -59,7 +59,7 @@ class KafkaClient(project: Project?,
   }
 
   override fun connectInner(calledByUser: Boolean) {
-    val localPort = BdtSshTunnelService.createIfRequired(project, connectionData.innerId, connectionData.getTunnelData(), testConnection)
+    val localPort = BdtSshTunnelService.createIfRequired(project, connectionData.innerId, connectionData.getTunnelInfo(), testConnection)
     if (localPort != null) {
       val urlForTunnel = BdtSshTunnelConnectionUtils.getUrlForTunnel(connectionData.uri, localPort)
       kafkaProps.setProperty(SERVER_URL, urlForTunnel)
