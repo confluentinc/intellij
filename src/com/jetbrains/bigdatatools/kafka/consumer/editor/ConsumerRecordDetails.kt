@@ -11,6 +11,7 @@ import com.intellij.ui.EditorTextField
 import com.intellij.ui.JBColor
 import com.intellij.ui.SideBorder
 import com.intellij.ui.components.JBScrollPane
+import com.intellij.ui.scale.JBUIScale
 import com.intellij.util.ui.UIUtil
 import com.jetbrains.bigdatatools.kafka.common.editor.FieldViewerType
 import com.jetbrains.bigdatatools.kafka.common.editor.KafkaEditorUtils
@@ -32,12 +33,10 @@ import java.awt.Dimension
 import java.awt.event.ItemEvent
 import java.nio.charset.StandardCharsets
 import java.util.*
-import javax.swing.BorderFactory
-import javax.swing.JLabel
-import javax.swing.JTextArea
-import javax.swing.JTextField
+import javax.swing.*
 import javax.swing.text.DefaultCaret
 import javax.swing.text.JTextComponent
+import kotlin.math.min
 
 class ConsumerRecordDetails(project: Project, parentDisposable: Disposable) {
 
@@ -49,12 +48,14 @@ class ConsumerRecordDetails(project: Project, parentDisposable: Disposable) {
           val superSize = super.preferredLayoutSize(parent)
 
           return Dimension(superSize.width,
-                           superSize.height + (if (horizontalScrollBar?.isVisible == true) horizontalScrollBar.height * 3 else 0))
+                           min(JBUIScale.scale(500),
+                               superSize.height + (if (horizontalScrollBar?.isVisible == true) horizontalScrollBar.height * 3 else 0)))
         }
       }
     }
   }
 
+  // Special scroll pane used for text presentation of keys and values.
   inner class AdjustableScrollPanel(view: Component) : JBScrollPane(view) {
 
     init {
@@ -66,7 +67,8 @@ class ConsumerRecordDetails(project: Project, parentDisposable: Disposable) {
     override fun getPreferredSize(): Dimension {
       val superSize = super.getPreferredSize()
       return Dimension(superSize.width,
-                       superSize.height + (if (horizontalScrollBar?.isVisible == true) horizontalScrollBar.height * 2 else 0))
+                       min(JBUIScale.scale(500),
+                           superSize.height + (if (horizontalScrollBar?.isVisible == true) horizontalScrollBar.height * 2 else 0)))
     }
   }
 
@@ -265,7 +267,7 @@ class ConsumerRecordDetails(project: Project, parentDisposable: Disposable) {
       component.revalidate()
     }
 
-  val component = MigPanel(UiUtil.insets10FillXHidemode3).apply {
+  val component = JBScrollPane(MigPanel(UiUtil.insets10FillXHidemode3).apply {
     row(KafkaMessagesBundle.message("consumer.record.topic"), topicField)
     add(JLabel(KafkaMessagesBundle.message("consumer.record.key")))
     add(keyViewerType, CC().pushX().alignX("right").wrap())
@@ -286,5 +288,7 @@ class ConsumerRecordDetails(project: Project, parentDisposable: Disposable) {
 
     add(JLabel(KafkaMessagesBundle.message("consumer.record.headers")), UiUtil.wrap)
     block(JBScrollPane(headers.table))
+  }).apply {
+    horizontalScrollBarPolicy = ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER
   }
 }
