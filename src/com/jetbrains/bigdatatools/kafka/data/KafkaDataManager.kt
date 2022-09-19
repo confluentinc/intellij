@@ -97,8 +97,11 @@ class KafkaDataManager(project: Project?, connectionData: KafkaConnectionData, s
     KafkaUsagesCollector.topicCreatedEvent.log(project)
   }
 
-  fun deleteTopic(topicName: String) = actionWrapper {
-    client.deleteTopic(topicName)
+  fun deleteTopic(topicNames: List<String>) = actionWrapper {
+    topicNames.forEach {
+      client.deleteTopic(it)
+    }
+
     autoUpdaterManager.reloadAsync(topicModel)
 
     KafkaUsagesCollector.topicDeletedEvent.log(project)

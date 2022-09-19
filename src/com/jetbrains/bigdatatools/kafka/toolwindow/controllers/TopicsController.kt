@@ -58,7 +58,8 @@ class TopicsController(val project: Project, private val dataManager: KafkaDataM
                                                                 TableExtensionType.COLUMNS_FITTER,
                                                                 TableExtensionType.ERROR_HANDLER,
                                                                 TableExtensionType.SELECTION_PRESERVER,
-                                                                TableExtensionType.LOADING_INDICATOR))
+                                                                TableExtensionType.LOADING_INDICATOR,
+                                                                TableExtensionType.MULTI_SELECT))
     TableSelectionPreserver.installOn(topicTable, null)
     TableFilterHeader(topicTable).apply {
       caseInsensitive = true
@@ -110,27 +111,36 @@ class TopicsController(val project: Project, private val dataManager: KafkaDataM
       override fun getActionUpdateThread() = ActionUpdateThread.BGT
     }
 
+    @Suppress("DialogTitleCapitalization")
     val deleteTopicAction = object : DumbAwareAction(KafkaMessagesBundle.message("action.delete.topic"),
                                                      null,
                                                      AllIcons.General.Remove) {
       override fun actionPerformed(e: AnActionEvent) {
-        val selectedRow = topicTable.selectedRow
-        if (selectedRow == -1) {
+        val selectedRows = topicTable.selectedRows
+
+        val selectedNames = selectedRows.map {
+          val modelIndex = topicTable.convertRowIndexToModel(it)
+          topicTable.tableModel.getInfoAt(modelIndex)?.name
+        }.mapNotNull { it }
+
+        if (selectedNames.isEmpty()) {
           return
         }
 
-        val modelIndex = topicTable.convertRowIndexToModel(selectedRow)
-        val selectedTopicName = topicTable.tableModel.getInfoAt(modelIndex)?.name ?: return
+        val msg = if (selectedNames.size == 1)
+          KafkaMessagesBundle.message("action.delete.topic.single.message", selectedNames.first())
+        else
+          KafkaMessagesBundle.message("action.delete.topic.multi.message", selectedNames.size)
 
         val res = Messages.showOkCancelDialog(project,
-                                              KafkaMessagesBundle.message("action.delete.topic.message", selectedTopicName),
+                                              msg,
                                               KafkaMessagesBundle.message("action.delete.topic.title"),
                                               CommonBundle.getOkButtonText(),
                                               CommonBundle.getCancelButtonText(),
                                               Messages.getQuestionIcon())
         if (res != Messages.OK)
           return
-        dataManager.deleteTopic(selectedTopicName)
+        dataManager.deleteTopic(selectedNames)
       }
 
       override fun update(e: AnActionEvent) {
