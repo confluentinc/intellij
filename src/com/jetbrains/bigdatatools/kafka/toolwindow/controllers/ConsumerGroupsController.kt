@@ -8,14 +8,14 @@ import com.intellij.openapi.util.Disposer
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.model.ConsumerGroupPresentable
 import com.jetbrains.bigdatatools.kafka.toolwindow.config.KafkaToolWindowSettings
-import com.jetbrains.bigdatatools.monitoring.table.DataTableCreator
-import com.jetbrains.bigdatatools.monitoring.table.extension.TableExtensionType
-import com.jetbrains.bigdatatools.monitoring.table.extension.TableSelectionPreserver
-import com.jetbrains.bigdatatools.monitoring.table.model.DataTableColumnModel
-import com.jetbrains.bigdatatools.monitoring.table.model.DataTableModel
-import com.jetbrains.bigdatatools.settings.ColumnVisibilitySettings
-import com.jetbrains.bigdatatools.table.MaterialJBScrollPane
-import com.jetbrains.bigdatatools.util.ToolbarUtils
+import com.jetbrains.bigdatatools.common.monitoring.table.DataTableCreator
+import com.jetbrains.bigdatatools.common.monitoring.table.extension.TableExtensionType
+import com.jetbrains.bigdatatools.common.monitoring.table.extension.TableSelectionPreserver
+import com.jetbrains.bigdatatools.common.monitoring.table.model.DataTableColumnModel
+import com.jetbrains.bigdatatools.common.monitoring.table.model.DataTableModel
+import com.jetbrains.bigdatatools.common.settings.ColumnVisibilitySettings
+import com.jetbrains.bigdatatools.common.table.MaterialJBScrollPane
+import com.jetbrains.bigdatatools.common.util.ToolbarUtils
 import java.util.*
 import javax.swing.JComponent
 

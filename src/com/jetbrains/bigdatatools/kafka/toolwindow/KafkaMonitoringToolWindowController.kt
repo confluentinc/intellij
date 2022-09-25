@@ -7,11 +7,11 @@ import com.jetbrains.bigdatatools.kafka.rfs.KafkaConnectionData
 import com.jetbrains.bigdatatools.kafka.settings.KafkaConnectionGroup
 import com.jetbrains.bigdatatools.kafka.toolwindow.config.KafkaToolWindowSettings
 import com.jetbrains.bigdatatools.kafka.toolwindow.controllers.ClusterPageController
-import com.jetbrains.bigdatatools.monitoring.toolwindow.ComponentController
-import com.jetbrains.bigdatatools.monitoring.toolwindow.MonitoringToolWindowController
-import com.jetbrains.bigdatatools.settings.connections.ConnectionData
-import com.jetbrains.bigdatatools.settings.connections.ConnectionGroup
-import com.jetbrains.bigdatatools.settings.manager.RfsConnectionDataManager
+import com.jetbrains.bigdatatools.common.monitoring.toolwindow.ComponentController
+import com.jetbrains.bigdatatools.common.monitoring.toolwindow.MonitoringToolWindowController
+import com.jetbrains.bigdatatools.common.settings.connections.ConnectionData
+import com.jetbrains.bigdatatools.common.settings.connections.ConnectionGroup
+import com.jetbrains.bigdatatools.common.settings.manager.RfsConnectionDataManager
 
 class KafkaMonitoringToolWindowController(project: Project) : MonitoringToolWindowController(project) {
   override val helpTopicId: String = "big.data.tools.kafka"

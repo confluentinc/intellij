@@ -2,9 +2,9 @@ package com.jetbrains.bigdatatools.kafka.common.editor
 
 import com.intellij.ui.TableUtil
 import com.intellij.ui.ToolbarDecorator
-import com.jetbrains.bigdatatools.settings.components.BdtPropertyComponent
-import com.jetbrains.bigdatatools.settings.connections.Property
-import com.jetbrains.bigdatatools.table.MaterialTable
+import com.jetbrains.bigdatatools.common.settings.components.BdtPropertyComponent
+import com.jetbrains.bigdatatools.common.settings.connections.Property
+import com.jetbrains.bigdatatools.common.table.MaterialTable
 import javax.swing.BorderFactory
 import javax.swing.JTable
 

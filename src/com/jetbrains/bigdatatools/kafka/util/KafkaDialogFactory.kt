@@ -3,12 +3,12 @@ package com.jetbrains.bigdatatools.kafka.util
 import com.intellij.openapi.ui.DialogBuilder
 import com.intellij.openapi.ui.InputValidatorEx
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
-import com.jetbrains.bigdatatools.settings.buildValidator
-import com.jetbrains.bigdatatools.settings.registerValidator
-import com.jetbrains.bigdatatools.settings.withNumberOrEmptyValidator
-import com.jetbrains.bigdatatools.ui.MigPanel
-import com.jetbrains.bigdatatools.ui.doOnChange
-import com.jetbrains.bigdatatools.util.MessagesBundle
+import com.jetbrains.bigdatatools.common.settings.buildValidator
+import com.jetbrains.bigdatatools.common.settings.registerValidator
+import com.jetbrains.bigdatatools.common.settings.withNumberOrEmptyValidator
+import com.jetbrains.bigdatatools.common.ui.MigPanel
+import com.jetbrains.bigdatatools.common.ui.doOnChange
+import com.jetbrains.bigdatatools.common.util.MessagesBundle
 import javax.swing.JTextField
 
 object KafkaDialogFactory {

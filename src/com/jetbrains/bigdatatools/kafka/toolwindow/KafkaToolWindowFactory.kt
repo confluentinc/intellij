@@ -4,7 +4,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.wm.ToolWindow
 import com.jetbrains.bigdatatools.kafka.settings.KafkaSettingsIds
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
-import com.jetbrains.bigdatatools.monitoring.toolwindow.MonitoringToolWindowFactory
+import com.jetbrains.bigdatatools.common.monitoring.toolwindow.MonitoringToolWindowFactory
 
 class KafkaToolWindowFactory : MonitoringToolWindowFactory() {
   override val controllerId = KafkaMonitoringToolWindowController.TOOL_WINDOW_ID

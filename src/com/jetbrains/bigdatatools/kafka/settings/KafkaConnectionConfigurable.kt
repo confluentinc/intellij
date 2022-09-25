@@ -4,11 +4,11 @@ import com.intellij.openapi.Disposable
 import com.intellij.openapi.project.Project
 import com.jetbrains.bigdatatools.kafka.client.KafkaConnectionChecker
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaConnectionData
-import com.jetbrains.bigdatatools.settings.connections.ConnectionConfigurable
-import com.jetbrains.bigdatatools.settings.connections.ConnectionTesting
-import com.jetbrains.bigdatatools.settings.defaultui.ConnectionError
-import com.jetbrains.bigdatatools.settings.defaultui.ConnectionStatus
-import com.jetbrains.bigdatatools.settings.defaultui.ConnectionSuccessful
+import com.jetbrains.bigdatatools.common.settings.connections.ConnectionConfigurable
+import com.jetbrains.bigdatatools.common.settings.connections.ConnectionTesting
+import com.jetbrains.bigdatatools.common.settings.defaultui.ConnectionError
+import com.jetbrains.bigdatatools.common.settings.defaultui.ConnectionStatus
+import com.jetbrains.bigdatatools.common.settings.defaultui.ConnectionSuccessful
 import icons.BigdatatoolsKafkaIcons
 
 class KafkaConnectionConfigurable(connectionData: KafkaConnectionData, project: Project) :

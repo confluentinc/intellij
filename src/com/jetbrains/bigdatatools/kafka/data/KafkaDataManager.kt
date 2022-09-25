@@ -2,7 +2,7 @@ package com.jetbrains.bigdatatools.kafka.data
 
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
-import com.jetbrains.bigdatatools.connection.updater.IntervalUpdateSettings
+import com.jetbrains.bigdatatools.common.connection.updater.IntervalUpdateSettings
 import com.jetbrains.bigdatatools.kafka.client.KafkaClient
 import com.jetbrains.bigdatatools.kafka.consumer.editor.KafkaConsumerPanelStorage
 import com.jetbrains.bigdatatools.kafka.model.ConsumerGroupPresentable
@@ -14,13 +14,13 @@ import com.jetbrains.bigdatatools.kafka.rfs.KafkaDriver
 import com.jetbrains.bigdatatools.kafka.statistics.KafkaUsagesCollector
 import com.jetbrains.bigdatatools.kafka.toolwindow.config.KafkaToolWindowSettings
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
-import com.jetbrains.bigdatatools.monitoring.data.MonitoringDataManager
-import com.jetbrains.bigdatatools.monitoring.data.model.ObjectDataModel
-import com.jetbrains.bigdatatools.monitoring.data.model.ProjectionObjectDataModel
-import com.jetbrains.bigdatatools.monitoring.data.model.RemoteInfo
-import com.jetbrains.bigdatatools.rfs.driver.manager.DriverManager
-import com.jetbrains.bigdatatools.rfs.util.RfsNotificationUtils
-import com.jetbrains.bigdatatools.util.executeOnPooledThread
+import com.jetbrains.bigdatatools.common.monitoring.data.MonitoringDataManager
+import com.jetbrains.bigdatatools.common.monitoring.data.model.ObjectDataModel
+import com.jetbrains.bigdatatools.common.monitoring.data.model.ProjectionObjectDataModel
+import com.jetbrains.bigdatatools.common.monitoring.data.model.RemoteInfo
+import com.jetbrains.bigdatatools.common.rfs.driver.manager.DriverManager
+import com.jetbrains.bigdatatools.common.rfs.util.RfsNotificationUtils
+import com.jetbrains.bigdatatools.common.util.executeOnPooledThread
 
 class KafkaDataManager(project: Project?, connectionData: KafkaConnectionData, settings: IntervalUpdateSettings) : MonitoringDataManager(
   project, settings) {

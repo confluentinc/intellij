@@ -10,7 +10,7 @@ import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.model.TopicConfig
 import com.jetbrains.bigdatatools.kafka.toolwindow.config.KafkaToolWindowSettings
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
-import com.jetbrains.bigdatatools.monitoring.toolwindow.DetailsTableMonitoringController
+import com.jetbrains.bigdatatools.common.monitoring.toolwindow.DetailsTableMonitoringController
 
 class TopicConfigsController(val project: Project,
                              private val dataManager: KafkaDataManager) : DetailsTableMonitoringController<TopicConfig>() {

@@ -16,10 +16,10 @@ import com.jetbrains.bigdatatools.kafka.common.models.FieldType
 import com.jetbrains.bigdatatools.kafka.common.models.TopicInEditor
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.model.ConsumerGroupPresentable
-import com.jetbrains.bigdatatools.monitoring.data.listener.DataModelListener
-import com.jetbrains.bigdatatools.ui.ComponentColoredBorder
-import com.jetbrains.bigdatatools.ui.CustomListCellRenderer
-import com.jetbrains.bigdatatools.ui.DarculaTextAreaBorder
+import com.jetbrains.bigdatatools.common.monitoring.data.listener.DataModelListener
+import com.jetbrains.bigdatatools.common.ui.ComponentColoredBorder
+import com.jetbrains.bigdatatools.common.ui.CustomListCellRenderer
+import com.jetbrains.bigdatatools.common.ui.DarculaTextAreaBorder
 import org.apache.kafka.common.ConsumerGroupState
 import java.util.*
 import javax.swing.BorderFactory

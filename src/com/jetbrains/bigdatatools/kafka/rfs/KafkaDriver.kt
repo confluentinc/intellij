@@ -5,7 +5,7 @@ import com.intellij.openapi.util.Disposer
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.toolwindow.KafkaMonitoringToolWindowController
 import com.jetbrains.bigdatatools.kafka.toolwindow.config.KafkaToolWindowSettings
-import com.jetbrains.bigdatatools.monitoring.rfs.MonitoringDriver
+import com.jetbrains.bigdatatools.common.monitoring.rfs.MonitoringDriver
 import icons.BigdatatoolsKafkaIcons
 import javax.swing.Icon
 
