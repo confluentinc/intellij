@@ -4,7 +4,7 @@ import com.jetbrains.bigdatatools.kafka.common.models.FieldType
 import com.jetbrains.bigdatatools.kafka.producer.models.AcksType
 import com.jetbrains.bigdatatools.kafka.producer.models.RecordCompression
 
-import com.jetbrains.bigdatatools.settings.connections.Property
+import com.jetbrains.bigdatatools.common.settings.connections.Property
 
 data class StorageProducerConfig(var topic: String = "",
                                  var keyType: String = "",

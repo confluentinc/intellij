@@ -4,8 +4,8 @@ import com.intellij.ui.IdeBorderFactory
 import com.intellij.ui.SideBorder
 import com.jetbrains.bigdatatools.kafka.common.editor.ListTableModel
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
-import com.jetbrains.bigdatatools.table.MaterialTable
-import com.jetbrains.bigdatatools.util.SizeUtils
+import com.jetbrains.bigdatatools.common.table.MaterialTable
+import com.jetbrains.bigdatatools.common.util.SizeUtils
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import java.awt.FlowLayout
 import java.util.*

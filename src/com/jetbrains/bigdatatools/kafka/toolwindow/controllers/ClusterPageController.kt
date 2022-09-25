@@ -19,10 +19,10 @@ import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaConnectionData
 import com.jetbrains.bigdatatools.kafka.statistics.KafkaUsagesCollector
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
-import com.jetbrains.bigdatatools.monitoring.toolwindow.ComponentController
-import com.jetbrains.bigdatatools.ui.CustomListCellRenderer
-import com.jetbrains.bigdatatools.ui.MigPanel
-import com.jetbrains.bigdatatools.ui.MouseAwarePanel
+import com.jetbrains.bigdatatools.common.monitoring.toolwindow.ComponentController
+import com.jetbrains.bigdatatools.common.ui.CustomListCellRenderer
+import com.jetbrains.bigdatatools.common.ui.MigPanel
+import com.jetbrains.bigdatatools.common.ui.MouseAwarePanel
 import net.miginfocom.layout.LC
 import java.awt.BorderLayout
 import java.awt.CardLayout

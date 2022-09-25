@@ -3,7 +3,7 @@ package com.jetbrains.bigdatatools.kafka.toolwindow.controllers
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.model.TopicPartition
 import com.jetbrains.bigdatatools.kafka.toolwindow.config.KafkaToolWindowSettings
-import com.jetbrains.bigdatatools.monitoring.toolwindow.DetailsTableMonitoringController
+import com.jetbrains.bigdatatools.common.monitoring.toolwindow.DetailsTableMonitoringController
 
 class TopicPartitionsController(private val dataManager: KafkaDataManager) : DetailsTableMonitoringController<TopicPartition>() {
   init {

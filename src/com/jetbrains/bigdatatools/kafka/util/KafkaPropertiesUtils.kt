@@ -1,6 +1,6 @@
 package com.jetbrains.bigdatatools.kafka.util
 
-import com.jetbrains.bigdatatools.ui.components.ConnectionProperty
+import com.jetbrains.bigdatatools.common.ui.components.ConnectionProperty
 import org.apache.kafka.clients.admin.AdminClientConfig
 import org.apache.kafka.common.config.ConfigDef.NO_DEFAULT_VALUE
 import java.util.*

@@ -7,17 +7,17 @@ import com.jetbrains.bigdatatools.kafka.rfs.KafkaConnectionData
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaPropertySource
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import com.jetbrains.bigdatatools.kafka.util.KafkaPropertiesUtils
-import com.jetbrains.bigdatatools.monitoring.TunnableSettingsCustomizer
-import com.jetbrains.bigdatatools.settings.CommonSettingsKeys
-import com.jetbrains.bigdatatools.settings.ModificationKey
-import com.jetbrains.bigdatatools.settings.connections.ConnectionData
-import com.jetbrains.bigdatatools.settings.fields.*
-import com.jetbrains.bigdatatools.settings.withNotEmptyValidator
-import com.jetbrains.bigdatatools.settings.withValidator
-import com.jetbrains.bigdatatools.ui.MigPanel
-import com.jetbrains.bigdatatools.ui.doOnChange
-import com.jetbrains.bigdatatools.util.BdtUrlUtils
-import com.jetbrains.bigdatatools.util.MessagesBundle
+import com.jetbrains.bigdatatools.common.monitoring.TunnableSettingsCustomizer
+import com.jetbrains.bigdatatools.common.settings.CommonSettingsKeys
+import com.jetbrains.bigdatatools.common.settings.ModificationKey
+import com.jetbrains.bigdatatools.common.settings.connections.ConnectionData
+import com.jetbrains.bigdatatools.common.settings.fields.*
+import com.jetbrains.bigdatatools.common.settings.withNotEmptyValidator
+import com.jetbrains.bigdatatools.common.settings.withValidator
+import com.jetbrains.bigdatatools.common.ui.MigPanel
+import com.jetbrains.bigdatatools.common.ui.doOnChange
+import com.jetbrains.bigdatatools.common.util.BdtUrlUtils
+import com.jetbrains.bigdatatools.common.util.MessagesBundle
 
 class KafkaSettingsCustomizer(project: Project, connectionData: KafkaConnectionData, uiDisposable: Disposable) :
   TunnableSettingsCustomizer<KafkaConnectionData>(connectionData, project, uiDisposable) {

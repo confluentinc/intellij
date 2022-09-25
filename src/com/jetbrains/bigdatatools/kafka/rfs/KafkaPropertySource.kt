@@ -1,7 +1,7 @@
 package com.jetbrains.bigdatatools.kafka.rfs
 
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
-import com.jetbrains.bigdatatools.settings.components.RenderableEntity
+import com.jetbrains.bigdatatools.common.settings.components.RenderableEntity
 
 enum class KafkaPropertySource(override val title: String) : RenderableEntity {
   DIRECT(KafkaMessagesBundle.message("settings.property.source.direct")),

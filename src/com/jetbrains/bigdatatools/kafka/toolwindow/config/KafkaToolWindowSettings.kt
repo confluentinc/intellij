@@ -6,8 +6,8 @@ import com.intellij.openapi.components.ServiceManager
 import com.intellij.openapi.components.State
 import com.intellij.openapi.components.Storage
 import com.intellij.util.xmlb.XmlSerializerUtil
-import com.jetbrains.bigdatatools.connection.updater.IntervalUpdateSettings
-import com.jetbrains.bigdatatools.settings.ColumnVisibilitySettings
+import com.jetbrains.bigdatatools.common.connection.updater.IntervalUpdateSettings
+import com.jetbrains.bigdatatools.common.settings.ColumnVisibilitySettings
 
 
 @State(name = "KafkaSettings", storages = [Storage(file = "kafka.xml")])

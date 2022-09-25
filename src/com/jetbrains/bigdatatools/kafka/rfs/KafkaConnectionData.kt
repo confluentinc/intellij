@@ -2,14 +2,14 @@ package com.jetbrains.bigdatatools.kafka.rfs
 
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
-import com.jetbrains.bigdatatools.connection.tunnel.BdtSshTunnelConnectionUtils
-import com.jetbrains.bigdatatools.connection.tunnel.model.*
+import com.jetbrains.bigdatatools.common.connection.tunnel.BdtSshTunnelConnectionUtils
+import com.jetbrains.bigdatatools.common.connection.tunnel.model.*
 import com.jetbrains.bigdatatools.kafka.settings.KafkaConnectionConfigurable
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
-import com.jetbrains.bigdatatools.rfs.driver.Driver
-import com.jetbrains.bigdatatools.rfs.settings.RemoteFsDriverProvider
-import com.jetbrains.bigdatatools.rfs.statistics.DriverType
-import com.jetbrains.bigdatatools.settings.connections.ConnectionGroup
+import com.jetbrains.bigdatatools.common.rfs.driver.Driver
+import com.jetbrains.bigdatatools.common.rfs.settings.RemoteFsDriverProvider
+import com.jetbrains.bigdatatools.common.rfs.statistics.DriverType
+import com.jetbrains.bigdatatools.common.settings.connections.ConnectionGroup
 import icons.BigdatatoolsKafkaIcons
 import javax.swing.Icon
 

@@ -2,9 +2,9 @@ package com.jetbrains.bigdatatools.kafka.settings
 
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaConnectionData
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
-import com.jetbrains.bigdatatools.settings.connections.ConnectionData
-import com.jetbrains.bigdatatools.settings.connections.ConnectionGroup
-import com.jetbrains.bigdatatools.settings.connections.MonitoringConnectionGroup
+import com.jetbrains.bigdatatools.common.settings.connections.ConnectionData
+import com.jetbrains.bigdatatools.common.settings.connections.ConnectionGroup
+import com.jetbrains.bigdatatools.common.settings.connections.MonitoringConnectionGroup
 import icons.BigdatatoolsKafkaIcons
 
 class KafkaConnectionGroup : ConnectionGroup(id = KafkaSettingsIds.GROUP_ID,

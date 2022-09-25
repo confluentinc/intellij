@@ -6,7 +6,7 @@ import com.jetbrains.bigdatatools.kafka.common.settings.StorageConsumerConfig
 import com.jetbrains.bigdatatools.kafka.consumer.models.ConsumerFilterType
 import com.jetbrains.bigdatatools.kafka.consumer.models.ConsumerLimitType
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
-import com.jetbrains.bigdatatools.ui.MigPanel
+import com.jetbrains.bigdatatools.common.ui.MigPanel
 import java.awt.Component
 import java.text.SimpleDateFormat
 import javax.swing.JLabel
