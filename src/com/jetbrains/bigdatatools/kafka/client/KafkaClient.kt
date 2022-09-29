@@ -1,11 +1,17 @@
 package com.jetbrains.bigdatatools.kafka.client
 
+import com.intellij.openapi.Disposable
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.vfs.VirtualFileManager
-import com.jetbrains.bigdatatools.common.connection.tunnel.BdtSshTunnelConnectionUtils
-import com.jetbrains.bigdatatools.common.connection.tunnel.BdtSshTunnelService
-import com.jetbrains.bigdatatools.common.connection.tunnel.model.getTunnelInfoOrNull
+import com.jetbrains.bigdatatools.common.connection.tunnel.BdtSshTunnelService.createIfRequired
+import com.jetbrains.bigdatatools.common.monitoring.connection.MonitoringClient
+import com.jetbrains.bigdatatools.common.settings.components.BdtPropertyComponent
+import com.jetbrains.bigdatatools.common.settings.connections.Property
+import com.jetbrains.bigdatatools.common.util.BdIdeRegistryUtil
+import com.jetbrains.bigdatatools.common.util.executeOnPooledThread
+import com.jetbrains.bigdatatools.common.util.withPluginClassLoader
 import com.jetbrains.bigdatatools.kafka.model.ConsumerGroupPresentable
 import com.jetbrains.bigdatatools.kafka.model.TopicConfig
 import com.jetbrains.bigdatatools.kafka.model.TopicPresentable
@@ -13,11 +19,6 @@ import com.jetbrains.bigdatatools.kafka.producer.client.KafkaProducerClient
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaConnectionData
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaPropertySource
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
-import com.jetbrains.bigdatatools.common.monitoring.connection.MonitoringClient
-import com.jetbrains.bigdatatools.common.settings.components.BdtPropertyComponent
-import com.jetbrains.bigdatatools.common.settings.connections.Property
-import com.jetbrains.bigdatatools.common.util.BdIdeRegistryUtil
-import com.jetbrains.bigdatatools.common.util.executeOnPooledThread
 import org.apache.kafka.clients.CommonClientConfigs
 import org.apache.kafka.clients.admin.*
 import org.apache.kafka.common.config.ConfigResource
@@ -37,6 +38,8 @@ class KafkaClient(project: Project?,
   private val kafkaAdminNotNull: AdminClient
     get() = kafkaAdmin ?: error("Kafka Admin Client is not inited")
 
+  private val closingDisposable = Disposable {}
+
   fun createProducerClient() = KafkaProducerClient(client = this)
 
   override fun dispose() = executeOnPooledThread {
@@ -47,7 +50,7 @@ class KafkaClient(project: Project?,
       logger.warn("Cannot close kafka client", t)
     }
 
-    BdtSshTunnelService.deleteIfExists(project, connectionData.innerId, connectionData.getTunnelInfoOrNull(), testConnection)
+    Disposer.dispose(closingDisposable)
   }
 
   override fun getRealUri(): String = kafkaProps.getProperty(SERVER_URL) ?: "<NOT_FOUND>"
@@ -59,20 +62,17 @@ class KafkaClient(project: Project?,
   }
 
   override fun connectInner(calledByUser: Boolean) {
-    val localPort = BdtSshTunnelService.createIfRequired(project, connectionData.innerId, connectionData.getTunnelInfo(), testConnection)
-    if (localPort != null) {
-      val urlForTunnel = BdtSshTunnelConnectionUtils.getUrlForTunnel(connectionData.uri, localPort)
-      kafkaProps.setProperty(SERVER_URL, urlForTunnel)
-    }
+    createIfRequired(project, connectionData.getTunnelInfo(), connectionData.innerId, testConnection)
+      ?.forUri(connectionData.uri)
+      ?.let { tunnelHandler ->
+        Disposer.register(closingDisposable, tunnelHandler)
+        val urlForTunnel = tunnelHandler.tunnelledUri
+        kafkaProps.setProperty(SERVER_URL, urlForTunnel)
+      }
 
     if (kafkaAdmin == null) {
-      val contextCL = Thread.currentThread().contextClassLoader
-      try {
-        Thread.currentThread().contextClassLoader = this::class.java.classLoader
+      withPluginClassLoader {
         kafkaAdmin = AdminClient.create(kafkaProps)
-      }
-      finally {
-        Thread.currentThread().contextClassLoader = contextCL
       }
     }
 
