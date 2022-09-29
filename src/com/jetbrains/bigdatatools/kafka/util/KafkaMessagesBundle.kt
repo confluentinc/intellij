@@ -6,7 +6,7 @@ import org.jetbrains.annotations.NonNls
 import org.jetbrains.annotations.PropertyKey
 
 @NonNls
-private const val BUNDLE = "messages.Kafka"
+private const val BUNDLE = "messages.KafkaBundle"
 
 object KafkaMessagesBundle : DynamicBundle(BUNDLE) {
   @Nls
