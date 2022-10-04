@@ -38,7 +38,7 @@ class KafkaClient(project: Project?,
   private val kafkaAdminNotNull: AdminClient
     get() = kafkaAdmin ?: error("Kafka Admin Client is not inited")
 
-  private val closingDisposable = Disposable {}
+  private val closingDisposable = Disposer.newDisposable()
 
   fun createProducerClient() = KafkaProducerClient(client = this)
 
