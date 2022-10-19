@@ -3,12 +3,7 @@ package com.jetbrains.bigdatatools.kafka.settings
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory
 import com.intellij.openapi.project.Project
-import com.jetbrains.bigdatatools.kafka.rfs.KafkaConnectionData
-import com.jetbrains.bigdatatools.kafka.rfs.KafkaPropertySource
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
-import com.jetbrains.bigdatatools.kafka.util.KafkaPropertiesUtils
 import com.jetbrains.bigdatatools.common.monitoring.TunnableSettingsCustomizer
-import com.jetbrains.bigdatatools.common.settings.CommonSettingsKeys
 import com.jetbrains.bigdatatools.common.settings.ModificationKey
 import com.jetbrains.bigdatatools.common.settings.connections.ConnectionData
 import com.jetbrains.bigdatatools.common.settings.fields.*
@@ -18,11 +13,15 @@ import com.jetbrains.bigdatatools.common.ui.MigPanel
 import com.jetbrains.bigdatatools.common.ui.doOnChange
 import com.jetbrains.bigdatatools.common.util.BdtUrlUtils
 import com.jetbrains.bigdatatools.common.util.MessagesBundle
+import com.jetbrains.bigdatatools.kafka.rfs.KafkaConnectionData
+import com.jetbrains.bigdatatools.kafka.rfs.KafkaPropertySource
+import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import com.jetbrains.bigdatatools.kafka.util.KafkaPropertiesUtils
 
 class KafkaSettingsCustomizer(project: Project, connectionData: KafkaConnectionData, uiDisposable: Disposable) :
   TunnableSettingsCustomizer<KafkaConnectionData>(connectionData, project, uiDisposable) {
 
-  override val url = StringNamedField(ConnectionData::uri, CommonSettingsKeys.URL_KEY, connectionData)
+  override val url = StringNamedField(ConnectionData::uri, ModificationKey(KafkaMessagesBundle.message("settings.url")), connectionData)
     .apply {
       emptyText = KafkaMessagesBundle.message("settings.url.text.empty")
       getTextComponent().toolTipText = KafkaMessagesBundle.message("settings.url.text.hint")
@@ -42,8 +41,10 @@ class KafkaSettingsCustomizer(project: Project, connectionData: KafkaConnectionD
                                                browseTitle = KafkaMessagesBundle.message(
                                                  "settings.properties.file.browse"),
                                                fileChooserDescriptor = FileChooserDescriptorFactory.createSingleFileDescriptor())
+    .also {
+      it.emptyText = KafkaMessagesBundle.message("settings.properties.empty.text")
+    }
     .withNotEmptyValidator(uiDisposable)
-
   private val sourceTypeChooser = RadioGroupField(KafkaConnectionData::propertySource,
                                                   KafkaSettingsKeys.PROPERTIES_SOURCE_KEY,
                                                   connectionData,
