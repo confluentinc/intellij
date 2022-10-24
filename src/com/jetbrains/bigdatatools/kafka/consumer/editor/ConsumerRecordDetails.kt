@@ -13,11 +13,6 @@ import com.intellij.ui.SideBorder
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.scale.JBUIScale
 import com.intellij.util.ui.UIUtil
-import com.jetbrains.bigdatatools.kafka.common.editor.FieldViewerType
-import com.jetbrains.bigdatatools.kafka.common.editor.KafkaEditorUtils
-import com.jetbrains.bigdatatools.kafka.common.editor.PropertiesTable
-import com.jetbrains.bigdatatools.kafka.common.models.FieldType
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import com.jetbrains.bigdatatools.common.settings.connections.Property
 import com.jetbrains.bigdatatools.common.settings.defaultui.UiUtil
 import com.jetbrains.bigdatatools.common.ui.CustomListCellRenderer
@@ -25,6 +20,11 @@ import com.jetbrains.bigdatatools.common.ui.EmptyCell
 import com.jetbrains.bigdatatools.common.ui.MigPanel
 import com.jetbrains.bigdatatools.common.util.SizeUtils
 import com.jetbrains.bigdatatools.common.util.TimeUtils
+import com.jetbrains.bigdatatools.kafka.common.editor.FieldViewerType
+import com.jetbrains.bigdatatools.kafka.common.editor.KafkaEditorUtils
+import com.jetbrains.bigdatatools.kafka.common.editor.PropertiesTable
+import com.jetbrains.bigdatatools.kafka.common.models.FieldType
+import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import net.miginfocom.layout.CC
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import java.awt.Component
@@ -200,7 +200,7 @@ class ConsumerRecordDetails(project: Project, parentDisposable: Disposable) {
     val presentingValue = when {
       fieldViewerType == FieldViewerType.JSON -> {
         try {
-          val gson = GsonBuilder().disableHtmlEscaping().setPrettyPrinting().create()
+          val gson = GsonBuilder().disableHtmlEscaping().setPrettyPrinting().serializeNulls().create()
           gson.toJson(JsonParser.parseString(value.toString()))
         }
         catch (e: Exception) {
