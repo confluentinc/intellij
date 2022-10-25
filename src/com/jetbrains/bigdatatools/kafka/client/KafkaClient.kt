@@ -1,6 +1,5 @@
 package com.jetbrains.bigdatatools.kafka.client
 
-import com.intellij.openapi.Disposable
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
@@ -22,6 +21,7 @@ import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import org.apache.kafka.clients.CommonClientConfigs
 import org.apache.kafka.clients.admin.*
 import org.apache.kafka.common.config.ConfigResource
+import org.apache.kafka.common.config.SaslConfigs
 import java.io.File
 import java.time.Duration
 import java.util.*
@@ -194,6 +194,16 @@ class KafkaClient(project: Project?,
       props[it.name ?: ""] = it.value ?: ""
     }
 
+    //Kafka load string by own classloader which is not see classes from BDT
+    val saslCallback = props[SaslConfigs.SASL_CLIENT_CALLBACK_HANDLER_CLASS]
+    if (saslCallback is String) {
+      try {
+        props[SaslConfigs.SASL_CLIENT_CALLBACK_HANDLER_CLASS] = this::class.java.classLoader.loadClass(saslCallback)
+      }
+      catch (_: Throwable) {
+        //Ignore
+      }
+    }
     return props
   }
 
