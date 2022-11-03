@@ -31,11 +31,6 @@ class KafkaConnectionData : RemoteFsDriverProvider(KafkaMessagesBundle.message("
     return super.getTunnelData()
   }
 
-  override fun getTunnelInfo(): ConnectionSshTunnelInfo? {
-    val tunnelData = getTunnelData()
-    return BdtSshTunnelConnectionUtils.getTunnelInfo(uri, tunnelData)
-  }
-
   companion object {
     private val logger = Logger.getInstance(this::class.java)
 

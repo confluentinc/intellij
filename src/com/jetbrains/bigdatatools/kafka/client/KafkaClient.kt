@@ -62,8 +62,7 @@ class KafkaClient(project: Project?,
   }
 
   override fun connectInner(calledByUser: Boolean) {
-    createIfRequired(project, connectionData.getTunnelInfo(), connectionData.innerId, testConnection)
-      ?.forUri(connectionData.uri)
+    createIfRequired(project, connectionData.getTunnelData(), connectionData.uri, connectionData.innerId, testConnection)
       ?.let { tunnelHandler ->
         Disposer.register(closingDisposable, tunnelHandler)
         val urlForTunnel = tunnelHandler.tunnelledUri
