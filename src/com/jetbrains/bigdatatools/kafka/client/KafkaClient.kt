@@ -9,7 +9,6 @@ import com.jetbrains.bigdatatools.common.monitoring.connection.MonitoringClient
 import com.jetbrains.bigdatatools.common.settings.components.BdtPropertyComponent
 import com.jetbrains.bigdatatools.common.settings.connections.Property
 import com.jetbrains.bigdatatools.common.util.BdIdeRegistryUtil
-import com.jetbrains.bigdatatools.common.util.executeOnPooledThread
 import com.jetbrains.bigdatatools.common.util.withPluginClassLoader
 import com.jetbrains.bigdatatools.kafka.model.ConsumerGroupPresentable
 import com.jetbrains.bigdatatools.kafka.model.TopicConfig
@@ -42,7 +41,7 @@ class KafkaClient(project: Project?,
 
   fun createProducerClient() = KafkaProducerClient(client = this)
 
-  override fun dispose() = executeOnPooledThread {
+  override fun dispose() {
     try {
       kafkaAdmin?.close(Duration.ofSeconds(10))
     }
