@@ -10,7 +10,7 @@ import com.jetbrains.bigdatatools.kafka.toolwindow.controllers.ClusterPageContro
 import com.jetbrains.bigdatatools.common.monitoring.toolwindow.ComponentController
 import com.jetbrains.bigdatatools.common.monitoring.toolwindow.MonitoringToolWindowController
 import com.jetbrains.bigdatatools.common.settings.connections.ConnectionData
-import com.jetbrains.bigdatatools.common.settings.connections.ConnectionGroup
+import com.jetbrains.bigdatatools.common.settings.connections.ConnectionFactory
 import com.jetbrains.bigdatatools.common.settings.manager.RfsConnectionDataManager
 
 class KafkaMonitoringToolWindowController(project: Project) : MonitoringToolWindowController(project) {
@@ -19,7 +19,7 @@ class KafkaMonitoringToolWindowController(project: Project) : MonitoringToolWind
 
   private val settingsListener = KafkaConnectionSettingsListener()
 
-  override fun createConnectionGroup(): ConnectionGroup = KafkaConnectionGroup()
+  override fun createConnectionGroup(): ConnectionFactory<*> = KafkaConnectionGroup()
 
   override fun isSupportedData(connectionData: ConnectionData): Boolean = connectionData is KafkaConnectionData
 

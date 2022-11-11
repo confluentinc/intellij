@@ -2,7 +2,6 @@ package com.jetbrains.bigdatatools.kafka.rfs
 
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
-import com.jetbrains.bigdatatools.common.connection.tunnel.BdtSshTunnelConnectionUtils
 import com.jetbrains.bigdatatools.common.connection.tunnel.model.*
 import com.jetbrains.bigdatatools.kafka.settings.KafkaConnectionConfigurable
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
