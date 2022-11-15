@@ -3,7 +3,10 @@ package com.jetbrains.bigdatatools.kafka.producer.editor
 import com.google.gson.JsonParser
 import com.intellij.icons.AllIcons
 import com.intellij.ide.util.PropertiesComponent
-import com.intellij.openapi.actionSystem.*
+import com.intellij.openapi.actionSystem.ActionGroup
+import com.intellij.openapi.actionSystem.ActionManager
+import com.intellij.openapi.actionSystem.AnActionEvent
+import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.fileEditor.FileEditor
 import com.intellij.openapi.fileEditor.FileEditorLocation
 import com.intellij.openapi.fileEditor.FileEditorState
@@ -21,19 +24,6 @@ import com.intellij.ui.components.CheckBox
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.components.JBTextField
 import com.intellij.ui.components.fields.IntegerField
-import com.jetbrains.bigdatatools.kafka.common.editor.KafkaEditorUtils
-import com.jetbrains.bigdatatools.kafka.common.editor.ListTableModel
-import com.jetbrains.bigdatatools.kafka.common.editor.PropertiesTable
-import com.jetbrains.bigdatatools.kafka.common.editor.SavePresetAction
-import com.jetbrains.bigdatatools.kafka.common.models.FieldType
-import com.jetbrains.bigdatatools.kafka.common.models.ProducerField
-import com.jetbrains.bigdatatools.kafka.common.models.TopicInEditor
-import com.jetbrains.bigdatatools.kafka.common.settings.KafkaConfigStorage
-import com.jetbrains.bigdatatools.kafka.common.settings.StorageProducerConfig
-import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
-import com.jetbrains.bigdatatools.kafka.producer.models.*
-import com.jetbrains.bigdatatools.kafka.statistics.KafkaUsagesCollector
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import com.jetbrains.bigdatatools.common.rfs.util.RfsNotificationUtils
 import com.jetbrains.bigdatatools.common.settings.defaultui.UiUtil
 import com.jetbrains.bigdatatools.common.settings.getValidationInfo
@@ -52,6 +42,26 @@ import com.jetbrains.bigdatatools.common.ui.MigPanel
 import com.jetbrains.bigdatatools.common.ui.SimpleDumbAwareAction
 import com.jetbrains.bigdatatools.common.util.executeNotOnEdt
 import com.jetbrains.bigdatatools.common.util.invokeLater
+import com.jetbrains.bigdatatools.kafka.common.editor.KafkaEditorUtils
+import com.jetbrains.bigdatatools.kafka.common.editor.ListTableModel
+import com.jetbrains.bigdatatools.kafka.common.editor.PropertiesTable
+import com.jetbrains.bigdatatools.kafka.common.editor.SavePresetAction
+import com.jetbrains.bigdatatools.kafka.common.models.FieldType
+import com.jetbrains.bigdatatools.kafka.common.models.ProducerField
+import com.jetbrains.bigdatatools.kafka.common.models.SubjectInEditor
+import com.jetbrains.bigdatatools.kafka.common.models.TopicInEditor
+import com.jetbrains.bigdatatools.kafka.common.settings.KafkaConfigStorage
+import com.jetbrains.bigdatatools.kafka.common.settings.StorageProducerConfig
+import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
+import com.jetbrains.bigdatatools.kafka.producer.models.AcksType
+import com.jetbrains.bigdatatools.kafka.producer.models.ProducerEditorState
+import com.jetbrains.bigdatatools.kafka.producer.models.ProducerResultMessage
+import com.jetbrains.bigdatatools.kafka.producer.models.RecordCompression
+import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryStrategy
+import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryUtil
+import com.jetbrains.bigdatatools.kafka.statistics.KafkaUsagesCollector
+import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.schemaregistry.ParsedSchema
 import java.awt.BorderLayout
 import java.awt.Dimension
 import java.beans.PropertyChangeListener
@@ -61,7 +71,7 @@ import javax.swing.text.JTextComponent
 import kotlin.math.max
 
 class KafkaProducerEditor(project: Project,
-                          kafkaManager: KafkaDataManager,
+                          private val kafkaManager: KafkaDataManager,
                           private val file: VirtualFile) : FileEditor, UserDataHolderBase() {
   private var isRestoring = false
 
@@ -105,6 +115,21 @@ class KafkaProducerEditor(project: Project,
 
   private val keyComboBox = createFieldTypeComboBox(keyJsonField, keyField)
   private val valueComboBox = createFieldTypeComboBox(valueJsonField, valueField)
+
+  private val keyStrategyComboBox = createStrategyComboBox().also {
+    it.addItemListener {
+      updateVisibilityOfRegistrySubject()
+    }
+  }
+
+  private val valueStrategyComboBox = createStrategyComboBox().also {
+    it.addItemListener {
+      updateVisibilityOfRegistrySubject()
+    }
+  }
+
+  private val keySubjectComboBox = KafkaEditorUtils.createSubjectComboBox(this, kafkaManager)
+  private val valueSubjectComboBox = KafkaEditorUtils.createSubjectComboBox(this, kafkaManager)
 
   private val forcePartitionField = IntegerField().apply {
     isCanBeEmpty = true
@@ -160,7 +185,11 @@ class KafkaProducerEditor(project: Project,
                                                   valueType = valueComboBox.item, value = getValue(),
                                                   properties = propertiesComponent.properties, compression = compressionComboBox.item,
                                                   acks = acksComboBox.item, idempotence = idempotenceCheckBox.isSelected,
-                                                  forcePartition = forcePartitionField.value)
+                                                  forcePartition = forcePartitionField.value,
+                                                  keyStrategy = keyStrategyComboBox.item,
+                                                  valueStrategy = valueStrategyComboBox.item,
+                                                  keySubject = keySubjectComboBox.item.name,
+                                                  valueSubject = valueSubjectComboBox.item.name)
 
   private val presetsDelegate = lazy {
     val presets = ProducerPresets()
@@ -175,10 +204,14 @@ class KafkaProducerEditor(project: Project,
     val panel = MigPanel(UiUtil.insets10FillXHidemode3).apply {
       row(KafkaMessagesBundle.message("producer.topics"), topicComboBox)
       row(KafkaMessagesBundle.message("producer.key"), keyComboBox)
+      add(keyStrategyComboBox, UiUtil.growXSpanXWrap)
+      add(keySubjectComboBox, UiUtil.growXSpanXWrap)
       add(keyJsonField, UiUtil.growXSpanXWrap)
       add(keyField, UiUtil.growXSpanXWrap)
 
       row(KafkaMessagesBundle.message("producer.value"), valueComboBox)
+      add(valueStrategyComboBox, UiUtil.growXSpanXWrap)
+      add(valueSubjectComboBox, UiUtil.growXSpanXWrap)
       add(valueJsonField, UiUtil.growXSpanXWrap)
       add(valueField, UiUtil.growXSpanXWrap)
 
@@ -216,15 +249,20 @@ class KafkaProducerEditor(project: Project,
 
         val selectedTopicName = topic.name
 
-        val key = ProducerField(keyComboBox.item!!, getKey())
-        val value = ProducerField(valueComboBox.item!!, getValue())
-
-        getConfig()
 
         executeNotOnEdt {
           try {
-            val result = producerClient.sentMessage(selectedTopicName, key, value, propertiesComponent.properties, compressionComboBox.item,
-                                                    acksComboBox.item, idempotenceCheckBox.isSelected, forcePartitionField.value)
+            val key = ProducerField(keyComboBox.item!!, getKey(), keyStrategyComboBox.item, getSchemaFor(isKey = true))
+            val value = ProducerField(valueComboBox.item!!, getValue(), valueStrategyComboBox.item, getSchemaFor(isKey = false))
+
+            val result = producerClient.sentMessage(selectedTopicName,
+                                                    key,
+                                                    value,
+                                                    propertiesComponent.properties,
+                                                    compressionComboBox.item,
+                                                    acksComboBox.item,
+                                                    idempotenceCheckBox.isSelected,
+                                                    forcePartitionField.value)
             invokeLater {
               outputModel.addElement(result)
             }
@@ -318,6 +356,25 @@ class KafkaProducerEditor(project: Project,
     storeToFile()
   }
 
+  private fun getSchemaFor(isKey: Boolean): ParsedSchema? {
+    val fieldType = if (isKey) keyComboBox.item else valueComboBox.item
+    val suffix = if (isKey) "key" else "value"
+    val strategy = if (isKey) keyStrategyComboBox.item else valueStrategyComboBox.item
+    val subject = if (isKey) keySubjectComboBox.item.name else valueSubjectComboBox.item.name
+    if (fieldType !in FieldType.registryValues)
+      return null
+
+    val subjectName: String = when (strategy) {
+      KafkaRegistryStrategy.TOPIC_NAME -> "${topicComboBox.item.name}-$suffix"
+      KafkaRegistryStrategy.CUSTOM, KafkaRegistryStrategy.RECORD_NAME, KafkaRegistryStrategy.TOPIC_RECORD_NAME -> subject
+      null -> return null
+    }
+
+    val schemaMetadata = kafkaManager.getRegistrySchema(subjectName)?.meta
+                         ?: error("Schema `$subjectName` is not found")
+    return KafkaRegistryUtil.parseSchema(schemaMetadata)
+  }
+
   private fun setupTablePopupMenu(table: JTable) {
     val clearAction = SimpleDumbAwareAction(KafkaMessagesBundle.message("action.clear.output")) { outputModel.clear() }
     PopupHandler.installPopupMenu(table, DefaultActionGroup().apply {
@@ -330,6 +387,9 @@ class KafkaProducerEditor(project: Project,
   private fun createCenterPanel(): JComponent = presetsSplitter
 
   private fun updateVisibility() {
+    keyStrategyComboBox.isVisible = false
+    valueStrategyComboBox.isVisible = false
+
     keyJsonField.isVisible = false
     valueJsonField.isVisible = false
 
@@ -340,17 +400,35 @@ class KafkaProducerEditor(project: Project,
       FieldType.JSON -> keyJsonField.isVisible = true
       FieldType.STRING, FieldType.LONG, FieldType.DOUBLE, FieldType.FLOAT, FieldType.BASE64 -> keyField.isVisible = true
       FieldType.NULL -> Unit
+      FieldType.AVRO_REGISTRY, FieldType.PROTOBUF_REGISTRY, FieldType.JSON_REGISTRY -> {
+        keyJsonField.isVisible = true
+        keyStrategyComboBox.isVisible = true
+      }
     }
 
     when (valueComboBox.item!!) {
       FieldType.JSON -> valueJsonField.isVisible = true
       FieldType.STRING, FieldType.LONG, FieldType.DOUBLE, FieldType.FLOAT, FieldType.BASE64 -> valueField.isVisible = true
+      FieldType.AVRO_REGISTRY, FieldType.PROTOBUF_REGISTRY, FieldType.JSON_REGISTRY -> {
+        valueStrategyComboBox.isVisible = true
+        valueJsonField.isVisible = true
+      }
       FieldType.NULL -> Unit
     }
+
+    updateVisibilityOfRegistrySubject()
   }
 
-  private fun createFieldTypeComboBox(jsonField: EditorTextField, field: JTextComponent): ComboBox<FieldType> {
-    return ComboBox(FieldType.values()).apply {
+  private fun updateVisibilityOfRegistrySubject() {
+    keySubjectComboBox.isVisible = keyComboBox.item in FieldType.registryValues &&
+                                   keyStrategyComboBox.item != KafkaRegistryStrategy.TOPIC_NAME
+
+    valueSubjectComboBox.isVisible = valueComboBox.item in FieldType.registryValues &&
+                                     valueStrategyComboBox.item != KafkaRegistryStrategy.TOPIC_NAME
+  }
+
+  private fun createFieldTypeComboBox(jsonField: EditorTextField, field: JTextComponent) =
+    ComboBox(FieldType.values()).apply {
       renderer = CustomListCellRenderer<FieldType> { it.title }
       selectedItem = FieldType.STRING
       addItemListener {
@@ -359,6 +437,13 @@ class KafkaProducerEditor(project: Project,
         field.revalidateComponent()
         mainComponent.revalidate()
       }
+    }
+
+  private fun createStrategyComboBox() = ComboBox(KafkaRegistryStrategy.producerOptions).apply {
+    renderer = CustomListCellRenderer<KafkaRegistryStrategy> { it.presentable }
+    selectedItem = KafkaRegistryStrategy.TOPIC_NAME
+    addItemListener {
+      updateVisibility()
     }
   }
 
@@ -394,6 +479,14 @@ class KafkaProducerEditor(project: Project,
         }
       }
       FieldType.NULL -> null // Any value match null type
+      FieldType.AVRO_REGISTRY, FieldType.PROTOBUF_REGISTRY, FieldType.JSON_REGISTRY -> try {
+        JsonParser.parseString(value)
+        null
+      }
+      catch (iae: Exception) {
+        iae.cause?.message ?: iae.message
+      }
+
     }
   }
 
@@ -401,12 +494,14 @@ class KafkaProducerEditor(project: Project,
     FieldType.JSON -> keyJsonField.text
     FieldType.STRING, FieldType.LONG, FieldType.DOUBLE, FieldType.FLOAT, FieldType.BASE64 -> keyField.text
     FieldType.NULL -> ""
+    FieldType.AVRO_REGISTRY, FieldType.JSON_REGISTRY, FieldType.PROTOBUF_REGISTRY -> keyJsonField.text
   }
 
   private fun getValue(): String = when (valueComboBox.item!!) {
     FieldType.JSON -> valueJsonField.text
     FieldType.STRING, FieldType.LONG, FieldType.DOUBLE, FieldType.FLOAT, FieldType.BASE64 -> valueField.text
     FieldType.NULL -> ""
+    FieldType.AVRO_REGISTRY, FieldType.JSON_REGISTRY, FieldType.PROTOBUF_REGISTRY -> valueJsonField.text
   }
 
   private fun storeToFile() {
@@ -440,6 +535,11 @@ class KafkaProducerEditor(project: Project,
       FieldType.JSON -> keyJsonField.text = config.key
       FieldType.STRING, FieldType.LONG, FieldType.DOUBLE, FieldType.FLOAT, FieldType.BASE64 -> keyField.text = config.key
       FieldType.NULL -> Unit
+      FieldType.AVRO_REGISTRY, FieldType.JSON_REGISTRY, FieldType.PROTOBUF_REGISTRY -> {
+        keyJsonField.text = config.key
+        keyStrategyComboBox.item = config.keyStrategy
+        keySubjectComboBox.item = SubjectInEditor(config.keySubject)
+      }
     }
     valueComboBox.item = config.getValueType()
 
@@ -447,6 +547,11 @@ class KafkaProducerEditor(project: Project,
       FieldType.JSON -> valueJsonField.text = config.value
       FieldType.STRING, FieldType.LONG, FieldType.DOUBLE, FieldType.FLOAT, FieldType.BASE64 -> valueField.text = config.value
       FieldType.NULL -> Unit
+      FieldType.AVRO_REGISTRY, FieldType.JSON_REGISTRY, FieldType.PROTOBUF_REGISTRY -> {
+        valueJsonField.text = config.value
+        valueStrategyComboBox.item = config.valueStrategy
+        valueSubjectComboBox.item = SubjectInEditor(config.valueSubject)
+      }
     }
 
     acksComboBox.item = config.getAsks()

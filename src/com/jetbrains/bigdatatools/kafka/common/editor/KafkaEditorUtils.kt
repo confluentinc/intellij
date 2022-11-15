@@ -2,6 +2,7 @@ package com.jetbrains.bigdatatools.kafka.common.editor
 
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonParser
+import com.google.protobuf.Message
 import com.intellij.json.JsonLanguage
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.project.Project
@@ -12,15 +13,21 @@ import com.intellij.ui.EditorTextField
 import com.intellij.ui.EditorTextFieldProvider
 import com.intellij.ui.MonospaceEditorCustomization
 import com.intellij.util.ui.UIUtil
-import com.jetbrains.bigdatatools.kafka.common.models.FieldType
-import com.jetbrains.bigdatatools.kafka.common.models.TopicInEditor
-import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
-import com.jetbrains.bigdatatools.kafka.model.ConsumerGroupPresentable
 import com.jetbrains.bigdatatools.common.monitoring.data.listener.DataModelListener
 import com.jetbrains.bigdatatools.common.ui.ComponentColoredBorder
 import com.jetbrains.bigdatatools.common.ui.CustomListCellRenderer
 import com.jetbrains.bigdatatools.common.ui.DarculaTextAreaBorder
+import com.jetbrains.bigdatatools.kafka.common.models.FieldType
+import com.jetbrains.bigdatatools.kafka.common.models.SubjectInEditor
+import com.jetbrains.bigdatatools.kafka.common.models.TopicInEditor
+import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
+import com.jetbrains.bigdatatools.kafka.model.ConsumerGroupPresentable
+import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.schemaregistry.avro.AvroSchemaUtils
+import io.confluent.kafka.schemaregistry.json.JsonSchemaUtils
+import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchemaUtils
 import org.apache.kafka.common.ConsumerGroupState
+import java.nio.charset.Charset
 import java.util.*
 import javax.swing.BorderFactory
 
@@ -48,30 +55,38 @@ object KafkaEditorUtils {
       }
   }
 
-  fun getValueAsString(type: FieldType, value: Any?): String {
-    return if (value == null) {
-      ""
+  fun getValueAsString(type: FieldType, value: Any?): String = when {
+    value == null -> ""
+    type == FieldType.BASE64 && value is ByteArray -> try {
+      Base64.getEncoder().withoutPadding().encodeToString(value)
     }
-    else if (type == FieldType.BASE64 && value is ByteArray) {
-      try {
-        Base64.getEncoder().withoutPadding().encodeToString(value)
-      }
-      catch (e: Exception) {
-        value.toString()
-      }
-    }
-    else if (type == FieldType.JSON) {
-      try {
-        val gson = GsonBuilder().disableHtmlEscaping().setPrettyPrinting().create()
-        gson.toJson(JsonParser.parseString(value.toString()))
-      }
-      catch (e: Exception) {
-        value.toString()
-      }
-    }
-    else {
+    catch (e: Exception) {
       value.toString()
     }
+    type == FieldType.JSON -> try {
+      toPrettyJson(value.toString())
+    }
+    catch (e: Exception) {
+      value.toString()
+    }
+    type == FieldType.AVRO_REGISTRY -> {
+      val avro = AvroSchemaUtils.toJson(value).toString(Charset.defaultCharset())
+      toPrettyJson(avro)
+    }
+    type == FieldType.PROTOBUF_REGISTRY -> {
+      val message = value as Message
+      toPrettyJson(ProtobufSchemaUtils.toJson(message).toString(Charset.defaultCharset()))
+    }
+    type == FieldType.JSON_REGISTRY -> {
+      val jsonString = JsonSchemaUtils.toJson(value).toString(Charset.defaultCharset())
+      toPrettyJson(value.toString())
+    }
+    else -> value.toString()
+  }!!
+
+  private fun toPrettyJson(jsonString: String): String {
+    val gson = GsonBuilder().disableHtmlEscaping().setPrettyPrinting().create()
+    return gson.toJson(JsonParser.parseString(jsonString))
   }
 
   fun createConsumerGroups(rootDisposable: Disposable, kafkaManager: KafkaDataManager): ComboBox<ConsumerGroupPresentable> {
@@ -157,5 +172,47 @@ object KafkaEditorUtils {
     }
 
     return topicComboBox
+  }
+
+  fun createSubjectComboBox(rootDisposable: Disposable, kafkaManager: KafkaDataManager): ComboBox<SubjectInEditor> {
+    val schemas = kafkaManager.registrySchemaModel?.entries ?: emptyList()
+    val comboBox = ComboBox(schemas.map { SubjectInEditor(it.name) }.sortedBy { it.name }.toTypedArray())
+    comboBox.isSwingPopup = false
+    comboBox.prototypeDisplayValue = SubjectInEditor("Subject sample name")
+    comboBox.toolTipText = KafkaMessagesBundle.message("registry.subject.combobox.default.name")
+    comboBox.renderer = CustomListCellRenderer<SubjectInEditor> { it.name }
+
+    val listener = object : DataModelListener {
+      override fun onChanged() = updateComboBox()
+      override fun onError(msg: String, e: Throwable?) = updateComboBox()
+
+      private fun updateComboBox() {
+        val selectedItem = comboBox.item
+        val oldData = (0 until comboBox.model.size).map {
+          comboBox.model.getElementAt(it)
+        }
+        val newSubjects = kafkaManager.registrySchemaModel?.entries?.map { SubjectInEditor(it.name) } ?: emptyList()
+        if (oldData == newSubjects)
+          return
+        comboBox.removeAllItems()
+        newSubjects.forEach {
+          comboBox.addItem(it)
+        }
+
+        comboBox.item = if (selectedItem in newSubjects)
+          selectedItem
+        else
+          null
+
+        comboBox.invalidate()
+        comboBox.repaint()
+      }
+    }
+    kafkaManager.registrySchemaModel?.addListener(listener)
+    Disposer.register(rootDisposable) {
+      kafkaManager.registrySchemaModel?.removeListener(listener)
+    }
+
+    return comboBox
   }
 }

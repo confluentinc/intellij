@@ -1,10 +1,10 @@
 package com.jetbrains.bigdatatools.kafka.common.settings
 
+import com.jetbrains.bigdatatools.common.settings.connections.Property
 import com.jetbrains.bigdatatools.kafka.common.models.FieldType
 import com.jetbrains.bigdatatools.kafka.producer.models.AcksType
 import com.jetbrains.bigdatatools.kafka.producer.models.RecordCompression
-
-import com.jetbrains.bigdatatools.common.settings.connections.Property
+import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryStrategy
 
 data class StorageProducerConfig(var topic: String = "",
                                  var keyType: String = "",
@@ -15,7 +15,12 @@ data class StorageProducerConfig(var topic: String = "",
                                  var compression: String = "",
                                  var acks: String = "",
                                  var idempotence: Boolean = false,
-                                 var forcePartition: Int = -1) : StorageConfig {
+                                 var forcePartition: Int = -1,
+                                 var keyStrategy: KafkaRegistryStrategy = KafkaRegistryStrategy.TOPIC_NAME,
+                                 var valueStrategy: KafkaRegistryStrategy = KafkaRegistryStrategy.TOPIC_NAME,
+                                 val keySubject: String = "",
+                                 val valueSubject: String = "") : StorageConfig {
+
 
   constructor(topic: String,
               keyType: FieldType,
@@ -26,16 +31,24 @@ data class StorageProducerConfig(var topic: String = "",
               compression: RecordCompression,
               acks: AcksType,
               idempotence: Boolean,
-              forcePartition: Int) : this(topic = topic,
-                                          keyType = keyType.name,
-                                          valueType = valueType.name,
-                                          key = key,
-                                          value = value,
-                                          acks = acks.name,
-                                          compression = compression.name,
-                                          forcePartition = forcePartition,
-                                          idempotence = idempotence,
-                                          properties = properties)
+              forcePartition: Int,
+              keyStrategy: KafkaRegistryStrategy,
+              valueStrategy: KafkaRegistryStrategy,
+              keySubject: String = "",
+              valueSubject: String = "") : this(topic = topic,
+                                                keyType = keyType.name,
+                                                valueType = valueType.name,
+                                                key = key,
+                                                value = value,
+                                                acks = acks.name,
+                                                compression = compression.name,
+                                                forcePartition = forcePartition,
+                                                idempotence = idempotence,
+                                                properties = properties,
+                                                keyStrategy = keyStrategy,
+                                                valueStrategy = valueStrategy,
+                                                keySubject = keySubject,
+                                                valueSubject = valueSubject)
 
   fun getKeyType(): FieldType = FieldType.values().find { it.name == keyType } ?: FieldType.STRING
   fun getValueType(): FieldType = FieldType.values().find { it.name == valueType } ?: FieldType.STRING

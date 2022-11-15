@@ -1,13 +1,19 @@
 package com.jetbrains.bigdatatools.kafka.consumer.client
 
 import com.intellij.openapi.Disposable
-import com.jetbrains.bigdatatools.kafka.client.KafkaClient
+import com.jetbrains.bigdatatools.kafka.common.models.FieldType
 import com.jetbrains.bigdatatools.kafka.common.settings.StorageConsumerConfig
 import com.jetbrains.bigdatatools.kafka.consumer.editor.ConsumerEditorUtils
 import com.jetbrains.bigdatatools.kafka.consumer.models.ConsumerStartType
 import com.jetbrains.bigdatatools.kafka.consumer.models.ConsumerStartWith
+import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
+import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryConsumerType
+import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryUtil
+import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryUtil.schemaType
 import com.jetbrains.bigdatatools.kafka.statistics.KafkaUsagesCollector
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.schemaregistry.ParsedSchema
+import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig
 import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.clients.consumer.KafkaConsumer
@@ -19,9 +25,10 @@ import java.util.*
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 
-class KafkaConsumerClient(val client: KafkaClient,
+class KafkaConsumerClient(val dataManager: KafkaDataManager,
                           val onStart: () -> Unit,
                           val onStop: () -> Unit) : Disposable {
+  val client = dataManager.client
   val connectionData = client.connectionData
   private val isRunning = AtomicBoolean(false)
   private var curRunId = AtomicInteger(0)
@@ -176,8 +183,14 @@ class KafkaConsumerClient(val client: KafkaClient,
 
   private fun createConsumer(config: StorageConsumerConfig): KafkaConsumer<Any, Any> {
     val props = client.kafkaProps.clone() as Properties
+
     props[ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG] = config.getKeyType().getDeserializationClass()::class.java
     props[ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG] = config.getValueType().getDeserializationClass()::class.java
+    props[AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG] = connectionData.registryUrl
+
+
+    getSchema(config, isKey = true)?.let { props[FieldType.KEY_PARSED_SCHEMA_CONFIG_KEY] = it }
+    getSchema(config, isKey = false)?.let { props[FieldType.VALUE_PARSED_SCHEMA_CONFIG_KEY] = it }
 
     config.properties.forEach {
       it.value.toIntOrNull()?.let { value -> props[it.key] = value }
@@ -253,5 +266,29 @@ class KafkaConsumerClient(val client: KafkaClient,
       }
       else -> null
     }?.time
+  }
+
+  private fun getSchema(config: StorageConsumerConfig, isKey: Boolean): ParsedSchema? {
+    val fieldType = if (isKey) config.getKeyType() else config.getValueType()
+    val registryType = if (isKey) config.getKeyRegistryType() else config.getValueRegistryType()
+    val subject = if (isKey) config.keySubject else config.valueSubject
+    val schemaId = if (isKey) config.keySchemaId else config.valueSchemaId
+    val schemaJson = if (isKey) config.keyCustomSchema else config.valueCustomSchema
+
+    if (fieldType !in FieldType.registryValues)
+      return null
+    return when (registryType) {
+      KafkaRegistryConsumerType.AUTO -> null
+      KafkaRegistryConsumerType.SUBJECT -> dataManager.getRegistrySchema(subject)?.meta?.let {
+        KafkaRegistryUtil.parseSchema(it)
+      }
+      KafkaRegistryConsumerType.SCHEMA_ID -> {
+        val id = schemaId.toIntOrNull()
+        dataManager.getRegistrySchemaById(id)
+      }
+      KafkaRegistryConsumerType.CUSTOM -> {
+        KafkaRegistryUtil.parseSchema(fieldType.schemaType, schemaJson)
+      }
+    }
   }
 }

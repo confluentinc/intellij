@@ -1,17 +1,21 @@
 package com.jetbrains.bigdatatools.kafka.producer.client
 
+import com.jetbrains.bigdatatools.common.settings.connections.Property
+import com.jetbrains.bigdatatools.common.util.withPluginClassLoader
 import com.jetbrains.bigdatatools.kafka.client.KafkaClient
 import com.jetbrains.bigdatatools.kafka.common.models.ProducerField
 import com.jetbrains.bigdatatools.kafka.producer.models.AcksType
 import com.jetbrains.bigdatatools.kafka.producer.models.ProducerResultMessage
 import com.jetbrains.bigdatatools.kafka.producer.models.RecordCompression
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
-import com.jetbrains.bigdatatools.common.settings.connections.Property
+import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig
+import io.confluent.kafka.serializers.context.NullContextNameStrategy
 import org.apache.kafka.clients.producer.KafkaProducer
 import org.apache.kafka.clients.producer.ProducerConfig
 import org.apache.kafka.clients.producer.ProducerRecord
 import java.util.*
 import java.util.concurrent.TimeUnit
+
 
 class KafkaProducerClient(val client: KafkaClient) {
   val connectionData = client.connectionData
@@ -26,13 +30,27 @@ class KafkaProducerClient(val client: KafkaClient) {
     props[ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG] = key.type.getSerializer()::class.java
     props[ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG] = value.type.getSerializer()::class.java
     props[ProducerConfig.COMPRESSION_TYPE_CONFIG] = recordCompression.name.lowercase()
+    props[AbstractKafkaSchemaSerDeConfig.CONTEXT_NAME_STRATEGY] = NullContextNameStrategy::class.java
+    props[AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG] = connectionData.registryUrl
+    props[AbstractKafkaSchemaSerDeConfig.AUTO_REGISTER_SCHEMAS] = false
+
+    key.registryStrategy?.let {
+      props[AbstractKafkaSchemaSerDeConfig.KEY_SUBJECT_NAME_STRATEGY] = it::class.java
+    }
+
+    value.registryStrategy?.let {
+      props[AbstractKafkaSchemaSerDeConfig.VALUE_SUBJECT_NAME_STRATEGY] = it::class.java
+    }
+
 
     if (enableIdempotence)
       props[ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG] = true
     else
       props[ProducerConfig.ACKS_CONFIG] = acks.value.toString()
 
-    val producer = KafkaProducer<Any, Any>(props)
+    val producer = withPluginClassLoader {
+      KafkaProducer<Any, Any>(props)
+    }
 
     return try {
       val partition = if (forcePartition >= 0) {
@@ -54,11 +72,11 @@ class KafkaProducerClient(val client: KafkaClient) {
       val metaInfo = producer.send(record).get(15, TimeUnit.SECONDS)
       val end = System.currentTimeMillis()
       ProducerResultMessage(key = key.text ?: "",
-        value = value.text ?: "",
-        offset = metaInfo.offset(),
-        timestamp = Date(metaInfo.timestamp()),
-        duration = (end - start).toInt(),
-        partition = metaInfo.partition())
+                            value = value.text ?: "",
+                            offset = metaInfo.offset(),
+                            timestamp = Date(metaInfo.timestamp()),
+                            duration = (end - start).toInt(),
+                            partition = metaInfo.partition())
     }
     finally {
       producer.flush()

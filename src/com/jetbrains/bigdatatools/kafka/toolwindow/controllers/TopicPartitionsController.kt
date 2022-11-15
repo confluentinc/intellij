@@ -1,9 +1,9 @@
 package com.jetbrains.bigdatatools.kafka.toolwindow.controllers
 
+import com.jetbrains.bigdatatools.common.monitoring.toolwindow.DetailsTableMonitoringController
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.model.TopicPartition
 import com.jetbrains.bigdatatools.kafka.toolwindow.config.KafkaToolWindowSettings
-import com.jetbrains.bigdatatools.common.monitoring.toolwindow.DetailsTableMonitoringController
 
 class TopicPartitionsController(private val dataManager: KafkaDataManager) : DetailsTableMonitoringController<TopicPartition>() {
   init {
@@ -15,4 +15,6 @@ class TopicPartitionsController(private val dataManager: KafkaDataManager) : Det
   override fun getRenderableColumns() = TopicPartition.renderableColumns
 
   override fun getDataModel() = selectedId?.let { dataManager.getTopicPartitionsModel(it) }
+
+  override fun showColumnFilter(): Boolean = false
 }

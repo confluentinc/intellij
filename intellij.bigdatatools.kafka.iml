@@ -27,20 +27,18 @@
         <properties maven-id="org.apache.kafka:kafka-clients:3.1.0">
           <exclude>
             <dependency maven-id="org.slf4j:slf4j-api" />
+            <dependency maven-id="org.lz4:lz4-java" />
+            <dependency maven-id="org.xerial.snappy:snappy-java" />
           </exclude>
         </properties>
         <CLASSES>
           <root url="jar://$MAVEN_REPOSITORY$/org/apache/kafka/kafka-clients/3.1.0/kafka-clients-3.1.0.jar!/" />
           <root url="jar://$MAVEN_REPOSITORY$/com/github/luben/zstd-jni/1.5.0-4/zstd-jni-1.5.0-4.jar!/" />
-          <root url="jar://$MAVEN_REPOSITORY$/org/lz4/lz4-java/1.8.0/lz4-java-1.8.0.jar!/" />
-          <root url="jar://$MAVEN_REPOSITORY$/org/xerial/snappy/snappy-java/1.1.8.4/snappy-java-1.1.8.4.jar!/" />
         </CLASSES>
         <JAVADOC />
         <SOURCES>
           <root url="jar://$MAVEN_REPOSITORY$/org/apache/kafka/kafka-clients/3.1.0/kafka-clients-3.1.0-sources.jar!/" />
           <root url="jar://$MAVEN_REPOSITORY$/com/github/luben/zstd-jni/1.5.0-4/zstd-jni-1.5.0-4-sources.jar!/" />
-          <root url="jar://$MAVEN_REPOSITORY$/org/lz4/lz4-java/1.8.0/lz4-java-1.8.0-sources.jar!/" />
-          <root url="jar://$MAVEN_REPOSITORY$/org/xerial/snappy/snappy-java/1.1.8.4/snappy-java-1.1.8.4-sources.jar!/" />
         </SOURCES>
       </library>
     </orderEntry>
@@ -77,5 +75,165 @@
         </SOURCES>
       </library>
     </orderEntry>
+    <orderEntry type="module" module-name="intellij.bigdatatools.hdfs" />
+    <orderEntry type="library" name="apache.avro" level="project" />
+    <orderEntry type="library" name="protobuf" level="project" />
+    <orderEntry type="module" module-name="intellij.platform.diff" />
+    <orderEntry type="module" module-name="intellij.platform.util.diff" />
+    <orderEntry type="module-library">
+      <library name="io.confluent.kafka.avro.serializer" type="repository">
+        <properties maven-id="io.confluent:kafka-avro-serializer:7.2.0">
+          <exclude>
+            <dependency maven-id="org.apache.avro:avro" />
+            <dependency maven-id="io.confluent:kafka-schema-registry-client" />
+            <dependency maven-id="com.google.guava:guava" />
+            <dependency maven-id="org.slf4j:slf4j-api" />
+            <dependency maven-id="com.google.re2j:re2j" />
+            <dependency maven-id="io.confluent:common-utils" />
+            <dependency maven-id="org.apache.commons:commons-compress" />
+            <dependency maven-id="io.confluent:kafka-schema-serializer" />
+          </exclude>
+        </properties>
+        <CLASSES>
+          <root url="jar://$MAVEN_REPOSITORY$/io/confluent/kafka-avro-serializer/7.2.0/kafka-avro-serializer-7.2.0.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/io/confluent/logredactor/1.0.10/logredactor-1.0.10.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/io/confluent/logredactor-metrics/1.0.10/logredactor-metrics-1.0.10.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/com/eclipsesource/minimal-json/minimal-json/0.9.5/minimal-json-0.9.5.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES>
+          <root url="jar://$MAVEN_REPOSITORY$/io/confluent/kafka-avro-serializer/7.2.0/kafka-avro-serializer-7.2.0-sources.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/io/confluent/logredactor/1.0.10/logredactor-1.0.10-sources.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/io/confluent/logredactor-metrics/1.0.10/logredactor-metrics-1.0.10-sources.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/com/eclipsesource/minimal-json/minimal-json/0.9.5/minimal-json-0.9.5-sources.jar!/" />
+        </SOURCES>
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="io.confluent.kafka.json.schema.serializer" type="repository">
+        <properties maven-id="io.confluent:kafka-json-schema-serializer:7.2.0">
+          <exclude>
+            <dependency maven-id="io.confluent:kafka-schema-registry-client" />
+            <dependency maven-id="org.json:json" />
+            <dependency maven-id="commons-validator:commons-validator" />
+            <dependency maven-id="com.fasterxml.jackson.core:jackson-core" />
+            <dependency maven-id="com.fasterxml.jackson.core:jackson-databind" />
+            <dependency maven-id="com.fasterxml.jackson.core:jackson-annotations" />
+            <dependency maven-id="com.fasterxml.jackson.datatype:jackson-datatype-jsr310" />
+            <dependency maven-id="org.scala-lang:scala-library" />
+            <dependency maven-id="org.jetbrains.kotlin:kotlin-scripting-compiler-embeddable" />
+            <dependency maven-id="org.slf4j:slf4j-api" />
+            <dependency maven-id="org.jetbrains.kotlin:kotlin-stdlib" />
+            <dependency maven-id="org.jetbrains.kotlin:kotlin-scripting-jvm" />
+            <dependency maven-id="io.confluent:common-utils" />
+            <dependency maven-id="com.google.guava:guava" />
+            <dependency maven-id="com.google.re2j:re2j" />
+            <dependency maven-id="io.github.classgraph:classgraph" />
+            <dependency maven-id="joda-time:joda-time" />
+          </exclude>
+        </properties>
+        <CLASSES>
+          <root url="jar://$MAVEN_REPOSITORY$/io/confluent/kafka-json-schema-serializer/7.2.0/kafka-json-schema-serializer-7.2.0.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/io/confluent/kafka-json-schema-provider/7.2.0/kafka-json-schema-provider-7.2.0.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/com/github/erosb/everit-json-schema/1.14.1/everit-json-schema-1.14.1.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/com/damnhandy/handy-uri-templates/2.1.8/handy-uri-templates-2.1.8.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/com/fasterxml/jackson/datatype/jackson-datatype-guava/2.13.2/jackson-datatype-guava-2.13.2.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/com/fasterxml/jackson/datatype/jackson-datatype-jdk8/2.13.2/jackson-datatype-jdk8-2.13.2.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/com/fasterxml/jackson/datatype/jackson-datatype-joda/2.13.2/jackson-datatype-joda-2.13.2.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/com/fasterxml/jackson/module/jackson-module-parameter-names/2.13.2/jackson-module-parameter-names-2.13.2.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/com/kjetland/mbknor-jackson-jsonschema_2.13/1.0.39/mbknor-jackson-jsonschema_2.13-1.0.39.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/javax/validation/validation-api/2.0.1.Final/validation-api-2.0.1.Final.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/io/confluent/kafka-schema-serializer/7.2.0/kafka-schema-serializer-7.2.0.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/io/confluent/kafka-json-serializer/7.2.0/kafka-json-serializer-7.2.0.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/io/confluent/common-config/7.2.0/common-config-7.2.0.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES>
+          <root url="jar://$MAVEN_REPOSITORY$/io/confluent/kafka-json-schema-serializer/7.2.0/kafka-json-schema-serializer-7.2.0-sources.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/io/confluent/kafka-json-schema-provider/7.2.0/kafka-json-schema-provider-7.2.0-sources.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/com/github/erosb/everit-json-schema/1.14.1/everit-json-schema-1.14.1-sources.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/com/damnhandy/handy-uri-templates/2.1.8/handy-uri-templates-2.1.8-sources.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/com/fasterxml/jackson/datatype/jackson-datatype-guava/2.13.2/jackson-datatype-guava-2.13.2-sources.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/com/fasterxml/jackson/datatype/jackson-datatype-jdk8/2.13.2/jackson-datatype-jdk8-2.13.2-sources.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/com/fasterxml/jackson/datatype/jackson-datatype-joda/2.13.2/jackson-datatype-joda-2.13.2-sources.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/com/fasterxml/jackson/module/jackson-module-parameter-names/2.13.2/jackson-module-parameter-names-2.13.2-sources.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/com/kjetland/mbknor-jackson-jsonschema_2.13/1.0.39/mbknor-jackson-jsonschema_2.13-1.0.39-sources.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/javax/validation/validation-api/2.0.1.Final/validation-api-2.0.1.Final-sources.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/io/confluent/kafka-schema-serializer/7.2.0/kafka-schema-serializer-7.2.0-sources.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/io/confluent/kafka-json-serializer/7.2.0/kafka-json-serializer-7.2.0-sources.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/io/confluent/common-config/7.2.0/common-config-7.2.0-sources.jar!/" />
+        </SOURCES>
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="io.confluent.kafka.protobuf.serializer" type="repository">
+        <properties maven-id="io.confluent:kafka-protobuf-serializer:7.2.0">
+          <exclude>
+            <dependency maven-id="org.jetbrains.kotlin:kotlin-stdlib-common" />
+            <dependency maven-id="com.google.guava:guava" />
+            <dependency maven-id="org.jetbrains.kotlin:kotlin-stdlib-jdk8" />
+            <dependency maven-id="com.squareup.okio:okio" />
+            <dependency maven-id="com.squareup.okio:okio-jvm" />
+            <dependency maven-id="org.jetbrains.kotlin:kotlin-stdlib" />
+            <dependency maven-id="com.google.protobuf:protobuf-java" />
+            <dependency maven-id="com.google.protobuf:protobuf-java-util" />
+            <dependency maven-id="io.confluent:kafka-schema-registry-client" />
+            <dependency maven-id="io.confluent:common-utils" />
+            <dependency maven-id="io.confluent:kafka-schema-serializer" />
+            <dependency maven-id="com.google.api.grpc:proto-google-common-protos" />
+          </exclude>
+        </properties>
+        <CLASSES>
+          <root url="jar://$MAVEN_REPOSITORY$/io/confluent/kafka-protobuf-serializer/7.2.0/kafka-protobuf-serializer-7.2.0.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/io/confluent/kafka-protobuf-provider/7.2.0/kafka-protobuf-provider-7.2.0.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/com/squareup/wire/wire-schema-jvm/4.3.0/wire-schema-jvm-4.3.0.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/com/squareup/wire/wire-runtime-jvm/4.3.0/wire-runtime-jvm-4.3.0.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/io/confluent/kafka-protobuf-types/7.2.0/kafka-protobuf-types-7.2.0.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES>
+          <root url="jar://$MAVEN_REPOSITORY$/io/confluent/kafka-protobuf-serializer/7.2.0/kafka-protobuf-serializer-7.2.0-sources.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/io/confluent/kafka-protobuf-provider/7.2.0/kafka-protobuf-provider-7.2.0-sources.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/com/squareup/wire/wire-schema-jvm/4.3.0/wire-schema-jvm-4.3.0-sources.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/com/squareup/wire/wire-runtime-jvm/4.3.0/wire-runtime-jvm-4.3.0-sources.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/com/google/api/grpc/proto-google-common-protos/2.5.1/proto-google-common-protos-2.5.1-sources.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/io/confluent/kafka-protobuf-types/7.2.0/kafka-protobuf-types-7.2.0-sources.jar!/" />
+        </SOURCES>
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library" exported="">
+      <library name="io.confluent.kafka.schema.registry.client" type="repository">
+        <properties maven-id="io.confluent:kafka-schema-registry-client:7.2.0">
+          <exclude>
+            <dependency maven-id="org.apache.kafka:kafka-clients" />
+            <dependency maven-id="org.apache.avro:avro" />
+            <dependency maven-id="org.apache.commons:commons-compress" />
+            <dependency maven-id="com.fasterxml.jackson.core:jackson-databind" />
+            <dependency maven-id="com.google.guava:guava" />
+            <dependency maven-id="org.slf4j:slf4j-api" />
+          </exclude>
+        </properties>
+        <CLASSES>
+          <root url="jar://$MAVEN_REPOSITORY$/io/confluent/kafka-schema-registry-client/7.2.0/kafka-schema-registry-client-7.2.0.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/io/swagger/core/v3/swagger-annotations/2.1.10/swagger-annotations-2.1.10.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/io/confluent/common-utils/7.2.0/common-utils-7.2.0.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES>
+          <root url="jar://$MAVEN_REPOSITORY$/io/confluent/kafka-schema-registry-client/7.2.0/kafka-schema-registry-client-7.2.0-sources.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/io/swagger/core/v3/swagger-annotations/2.1.10/swagger-annotations-2.1.10-sources.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/io/confluent/common-utils/7.2.0/common-utils-7.2.0-sources.jar!/" />
+        </SOURCES>
+      </library>
+    </orderEntry>
+    <orderEntry type="library" name="commons-compress" level="project" />
+    <orderEntry type="library" name="grpc-protobuf" level="project" />
+    <orderEntry type="library" name="google.re2j" level="project" />
+    <orderEntry type="library" name="classgraph" level="project" />
+    <orderEntry type="library" name="joda.time" level="project" />
+    <orderEntry type="library" name="lz4-java" level="project" />
+    <orderEntry type="library" name="jackson" level="project" />
+    <orderEntry type="library" name="jackson-databind" level="project" />
+    <orderEntry type="library" name="xerial.snappy.java" level="project" />
   </component>
 </module>

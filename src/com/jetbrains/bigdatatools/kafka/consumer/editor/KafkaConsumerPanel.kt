@@ -4,6 +4,7 @@ import com.intellij.icons.AllIcons
 import com.intellij.ide.util.PropertiesComponent
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.*
+import com.intellij.openapi.application.invokeAndWaitIfNeeded
 import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.project.DumbAwareToggleAction
 import com.intellij.openapi.project.Project
@@ -20,17 +21,6 @@ import com.intellij.ui.SideBorder
 import com.intellij.ui.components.ActionLink
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.components.JBTextField
-import com.jetbrains.bigdatatools.kafka.common.editor.KafkaEditorUtils
-import com.jetbrains.bigdatatools.kafka.common.editor.ListTableModel
-import com.jetbrains.bigdatatools.kafka.common.editor.SavePresetAction
-import com.jetbrains.bigdatatools.kafka.common.models.FieldType
-import com.jetbrains.bigdatatools.kafka.common.models.TopicInEditor
-import com.jetbrains.bigdatatools.kafka.common.settings.KafkaConfigStorage
-import com.jetbrains.bigdatatools.kafka.common.settings.StorageConsumerConfig
-import com.jetbrains.bigdatatools.kafka.consumer.client.KafkaConsumerClient
-import com.jetbrains.bigdatatools.kafka.consumer.models.*
-import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import com.jetbrains.bigdatatools.common.rfs.util.RfsNotificationUtils
 import com.jetbrains.bigdatatools.common.settings.defaultui.UiUtil
 import com.jetbrains.bigdatatools.common.table.MaterialTable
@@ -42,6 +32,17 @@ import com.jetbrains.bigdatatools.common.table.filters.TableFilterHeader
 import com.jetbrains.bigdatatools.common.table.renderers.DateRenderer
 import com.jetbrains.bigdatatools.common.ui.*
 import com.jetbrains.bigdatatools.common.util.executeOnPooledThread
+import com.jetbrains.bigdatatools.common.util.withPluginClassLoader
+import com.jetbrains.bigdatatools.kafka.common.editor.KafkaEditorUtils
+import com.jetbrains.bigdatatools.kafka.common.editor.ListTableModel
+import com.jetbrains.bigdatatools.kafka.common.editor.SavePresetAction
+import com.jetbrains.bigdatatools.kafka.common.models.TopicInEditor
+import com.jetbrains.bigdatatools.kafka.common.settings.KafkaConfigStorage
+import com.jetbrains.bigdatatools.kafka.common.settings.StorageConsumerConfig
+import com.jetbrains.bigdatatools.kafka.consumer.client.KafkaConsumerClient
+import com.jetbrains.bigdatatools.kafka.consumer.models.*
+import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
+import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import com.michaelbaranov.microba.calendar.DatePicker
 import net.miginfocom.layout.LC
 import org.apache.kafka.clients.consumer.ConsumerRecord
@@ -51,11 +52,10 @@ import java.util.*
 import javax.swing.*
 import kotlin.math.max
 
-class KafkaConsumerPanel(project: Project, private val kafkaManager: KafkaDataManager, private val file: VirtualFile) : Disposable {
-
-  private var consumerClient = KafkaConsumerClient(client = kafkaManager.client,
-                                                   onStart = ::onStartConsume,
-                                                   onStop = ::onStopConsume)
+class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaDataManager, private val file: VirtualFile) : Disposable {
+  private var consumerClient: KafkaConsumerClient = KafkaConsumerClient(dataManager = kafkaManager,
+                                                                        onStart = ::onStartConsume,
+                                                                        onStop = ::onStopConsume)
   private val startSpecificDate = DatePicker()
   private val limitSpecificDate = DatePicker()
   private val limitOffset = JBTextField()
@@ -107,8 +107,8 @@ class KafkaConsumerPanel(project: Project, private val kafkaManager: KafkaDataMa
     prototypeDisplayValue = TopicInEditor("AverageName")
   }
 
-  private val keyComboBox = createFileTypeCombobox { details.keyType = it }
-  private val valueComboBox = createFileTypeCombobox { details.valueType = it }
+  private val key = KafkaConsumerFieldComponent(this, isKey = true)
+  private val value = KafkaConsumerFieldComponent(this, isKey = false)
 
   private val outputModel = ListTableModel(LinkedList<Result<ConsumerRecord<Any, Any>>>(),
                                            listOf("partition", "offset", "timestamp", "key", "value")) { data, index ->
@@ -124,8 +124,8 @@ class KafkaConsumerPanel(project: Project, private val kafkaManager: KafkaDataMa
         0 -> data.getOrNull()?.partition()
         1 -> data.getOrNull()?.offset()
         2 -> data.getOrNull()?.let { Date(it.timestamp()) }
-        3 -> KafkaEditorUtils.getValueAsString(keyComboBox.item, data.getOrNull()?.key())
-        4 -> KafkaEditorUtils.getValueAsString(valueComboBox.item, data.getOrNull()?.value())
+        3 -> KafkaEditorUtils.getValueAsString(key.typeComboBox.item, data.getOrNull()?.key())
+        4 -> KafkaEditorUtils.getValueAsString(value.typeComboBox.item, data.getOrNull()?.value())
         else -> ""
       }
     }
@@ -183,7 +183,7 @@ class KafkaConsumerPanel(project: Project, private val kafkaManager: KafkaDataMa
     kafkaConsumerSettings.show()
   }
 
-  private val consumeButton = JButton(KafkaMessagesBundle.message("action.consume.start.title"), AllIcons.Actions.Execute).apply {
+  private val consumeButton: JButton = JButton(KafkaMessagesBundle.message("action.consume.start.title"), AllIcons.Actions.Execute).apply {
     addActionListener {
       executeOnPooledThread {
         try {
@@ -215,13 +215,13 @@ class KafkaConsumerPanel(project: Project, private val kafkaManager: KafkaDataMa
     row(KafkaMessagesBundle.message("label.filter.head.value"), filterHeadValueField)
   }
 
-  private val detailsDelegate: Lazy<ConsumerRecordDetails> = lazy {
+  internal val detailsDelegate: Lazy<ConsumerRecordDetails> = lazy {
     ConsumerRecordDetails(project, this).apply {
-      keyType = keyComboBox.item
-      valueType = valueComboBox.item
+      keyType = key.typeComboBox.item
+      valueType = value.typeComboBox.item
     }
   }
-  private val details: ConsumerRecordDetails by detailsDelegate
+  internal val details: ConsumerRecordDetails by detailsDelegate
 
   private lateinit var startSpecificDateBlock: MigBlock
   private lateinit var startOffsetBlock: MigBlock
@@ -238,8 +238,18 @@ class KafkaConsumerPanel(project: Project, private val kafkaManager: KafkaDataMa
 
       title(KafkaMessagesBundle.message("settings.title.format"))
       gapLeft = true
-      row(KafkaMessagesBundle.message("settings.format.key"), keyComboBox)
-      row(KafkaMessagesBundle.message("settings.format.value"), valueComboBox)
+      row(KafkaMessagesBundle.message("settings.format.key"), key.typeComboBox)
+      row(key.registryType)
+      row(key.subjectComboBox)
+      row(key.schemaIdField)
+      row(key.schemaJsonField)
+
+      row(KafkaMessagesBundle.message("settings.format.value"), value.typeComboBox)
+      row(value.registryType)
+      row(value.subjectComboBox)
+      row(value.schemaIdField)
+      row(value.schemaJsonField)
+
 
       title(KafkaMessagesBundle.message("settings.title.range.filters"))
       row(KafkaMessagesBundle.message("settings.filters.from"), startFromComboBox)
@@ -419,18 +429,6 @@ class KafkaConsumerPanel(project: Project, private val kafkaManager: KafkaDataMa
     }
   }
 
-  private fun createFileTypeCombobox(onChange: (FieldType) -> Unit) = ComboBox(FieldType.values()).apply {
-    renderer = CustomListCellRenderer<FieldType> { it.title }
-    selectedItem = FieldType.STRING
-    addItemListener {
-      updateVisibility()
-      storeToFile()
-      if (detailsDelegate.isInitialized()) {
-        onChange(item)
-      }
-    }
-  }
-
   private fun updateDetails() {
     if (detailsDelegate.isInitialized()) {
       details.record = if (outputTable.selectedRow == -1) null
@@ -468,21 +466,23 @@ class KafkaConsumerPanel(project: Project, private val kafkaManager: KafkaDataMa
         }
       }
 
-      // Callbacks called in Kafka client threads. That's why, to properly update UI we calling invokeLater
-      consumerClient.start(runConfig,
-                           consume = {
-                             invokeLater {
-                               outputModel.addElement(Result.success(it))
-                               if (outputTableStatusDelegate.isInitialized()) {
-                                 outputTableStatus.addRecord(it)
+      withPluginClassLoader {
+        // Callbacks called in Kafka client threads. That's why, to properly update UI we calling invokeLater
+        consumerClient.start(runConfig,
+                             consume = {
+                               invokeLater {
+                                 outputModel.addElement(Result.success(it))
+                                 if (outputTableStatusDelegate.isInitialized()) {
+                                   outputTableStatus.addRecord(it)
+                                 }
                                }
-                             }
-                           },
-                           consumeError = {
-                             invokeLater {
-                               outputModel.addElement(Result.failure(it))
-                             }
-                           })
+                             },
+                             consumeError = {
+                               invokeLater {
+                                 outputModel.addElement(Result.failure(it))
+                               }
+                             })
+      }
     }
     catch (t: Throwable) {
       onStopConsume()
@@ -512,14 +512,27 @@ class KafkaConsumerPanel(project: Project, private val kafkaManager: KafkaDataMa
     }
 
     return StorageConsumerConfig(topic = topicName,
-                                 keyType = keyComboBox.item,
-                                 valueType = valueComboBox.item,
+                                 keyType = key.typeComboBox.item,
+                                 valueType = value.typeComboBox.item,
                                  partitions = partitionField.text,
                                  limit = consumerLimit,
                                  filter = filter,
                                  startWith = startWith,
                                  properties = properties,
-                                 settings = settings)
+                                 settings = settings,
+
+                                 keyRegistryType = key.registryType.item?.name ?: "",
+                                 valueRegistryType = value.registryType.item?.name ?: "",
+
+                                 keySchemaId = key.schemaIdField.text,
+                                 valueSchemaId = value.schemaIdField.text,
+
+                                 keySubject = key.subjectComboBox.item?.name ?: "",
+                                 valueSubject = value.subjectComboBox.item?.name ?: "",
+
+                                 keyCustomSchema = key.schemaJsonField.text,
+                                 valueCustomSchema = value.schemaJsonField.text
+    )
   }
 
   fun getComponent(): JComponent = presetsSplitter
@@ -541,15 +554,15 @@ class KafkaConsumerPanel(project: Project, private val kafkaManager: KafkaDataMa
     filterHeadValue = filterHeadValueField.text.ifBlank { null },
   )
 
-  private fun updateVisibility() {
+  internal fun updateVisibility() = invokeAndWaitIfNeeded {
     val isEnabled = !consumerClient.isRunning()
 
     topicComboBox.isEnabled = isEnabled
 
     partitionField.isEnabled = isEnabled
 
-    keyComboBox.isEnabled = isEnabled
-    valueComboBox.isEnabled = isEnabled
+    key.updateIsEnabled(isEnabled)
+    value.updateIsEnabled(isEnabled)
 
     startFromComboBox.isEnabled = isEnabled
     startSpecificDate.isEnabled = isEnabled
@@ -593,20 +606,20 @@ class KafkaConsumerPanel(project: Project, private val kafkaManager: KafkaDataMa
     }
   }
 
-  private fun onStopConsume() {
+  private fun onStopConsume() = invokeLater {
     consumeButton.text = KafkaMessagesBundle.message("action.consume.start.title")
     consumeButton.icon = AllIcons.Actions.Execute
     updateVisibility()
   }
 
-  private fun onStartConsume() {
+  private fun onStartConsume() = invokeLater {
     consumeButton.text = KafkaMessagesBundle.message("action.consume.stop.title")
     consumeButton.icon = AllIcons.Actions.Suspend
     updateVisibility()
   }
 
   private var isRestoring = false
-  private fun storeToFile() {
+  internal fun storeToFile() {
     if (isRestoring)
       return
     file.putUserData(STATE_KEY, ConsumerEditorState(outputModel.elements().toList(), getRunConfig()))
@@ -630,8 +643,10 @@ class KafkaConsumerPanel(project: Project, private val kafkaManager: KafkaDataMa
 
   private fun applyConfig(config: StorageConsumerConfig) {
     topicComboBox.item = TopicInEditor(config.getInnerTopic())
-    keyComboBox.item = config.getKeyType()
-    valueComboBox.item = config.getValueType()
+
+    key.load(config)
+    value.load(config)
+
     val startWith = config.getStartsWith()
     startFromComboBox.item = startWith.type
     startOffset.text = startWith.offset?.toString() ?: ""

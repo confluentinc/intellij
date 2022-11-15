@@ -13,16 +13,16 @@ import com.intellij.ui.SideBorder
 import com.intellij.ui.components.JBList
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.tabs.JBTabs
+import com.jetbrains.bigdatatools.common.monitoring.toolwindow.ComponentController
+import com.jetbrains.bigdatatools.common.ui.CustomListCellRenderer
+import com.jetbrains.bigdatatools.common.ui.MigPanel
+import com.jetbrains.bigdatatools.common.ui.MouseAwarePanel
 import com.jetbrains.bigdatatools.kafka.common.editor.KafkaEditorProvider
 import com.jetbrains.bigdatatools.kafka.common.models.KafkaEditorType
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaConnectionData
 import com.jetbrains.bigdatatools.kafka.statistics.KafkaUsagesCollector
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
-import com.jetbrains.bigdatatools.common.monitoring.toolwindow.ComponentController
-import com.jetbrains.bigdatatools.common.ui.CustomListCellRenderer
-import com.jetbrains.bigdatatools.common.ui.MigPanel
-import com.jetbrains.bigdatatools.common.ui.MouseAwarePanel
 import net.miginfocom.layout.LC
 import java.awt.BorderLayout
 import java.awt.CardLayout
@@ -38,6 +38,11 @@ class ClusterPageController(private val project: Project, private val connection
   private val topicsController = TopicsController(project, dataManager)
   private val consumerGroupsController = ConsumerGroupsController(dataManager)
 
+  private val schemaRegistryController = if (dataManager.isKafkaRegistryEnabled)
+    KafkaSchemaRegistryController(project, dataManager)
+  else
+    null
+
   private val detailsLayout = CardLayout()
   private val details = JPanel(detailsLayout)
   private val panel = MouseAwarePanel.wrap(createPanel())
@@ -45,6 +50,7 @@ class ClusterPageController(private val project: Project, private val connection
   init {
     Disposer.register(this, topicsController)
     Disposer.register(this, consumerGroupsController)
+    schemaRegistryController?.let { Disposer.register(this, it) }
   }
 
   override fun dispose() {}
@@ -91,6 +97,10 @@ class ClusterPageController(private val project: Project, private val connection
 
     details.add(topicsController.getComponent(), ClusterControllerType.TOPIC.name)
     details.add(consumerGroupsController.getComponent(), ClusterControllerType.CONSUMER_GROUP.name)
+
+    schemaRegistryController?.let {
+      details.add(schemaRegistryController.getComponent(), ClusterControllerType.SCHEMA_REGISTRY_GROUP.name)
+    }
     showDetails(ClusterControllerType.TOPIC)
 
     val createProducer = JButton(KafkaMessagesBundle.message("create.producer.action.title")).apply {
@@ -147,6 +157,8 @@ class ClusterPageController(private val project: Project, private val connection
   }
 
   private enum class ClusterControllerType(val value: String) {
-    TOPIC("Topics"), CONSUMER_GROUP("Consumers")
+    TOPIC("Topics"),
+    CONSUMER_GROUP("Consumers"),
+    SCHEMA_REGISTRY_GROUP(KafkaMessagesBundle.message("settings.registry.title"))
   }
 }

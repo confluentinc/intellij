@@ -2,16 +2,18 @@ package com.jetbrains.bigdatatools.kafka.toolwindow.config
 
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.PersistentStateComponent
-import com.intellij.openapi.components.ServiceManager
 import com.intellij.openapi.components.State
 import com.intellij.openapi.components.Storage
 import com.intellij.util.xmlb.XmlSerializerUtil
 import com.jetbrains.bigdatatools.common.connection.updater.IntervalUpdateSettings
 import com.jetbrains.bigdatatools.common.settings.ColumnVisibilitySettings
+import com.jetbrains.bigdatatools.kafka.model.SchemaRegistryFieldsInfo
+import com.jetbrains.bigdatatools.kafka.model.SchemaRegistryInfo
 
 
 @State(name = "KafkaSettings", storages = [Storage(file = "kafka.xml")])
 class KafkaToolWindowSettings : PersistentStateComponent<KafkaToolWindowSettings>, IntervalUpdateSettings {
+  var registryShowDeletedSubjects: Boolean = false
   var showFullTopicConfig: Boolean = false
   override var selectedConnectionId: String? = null
 
@@ -37,6 +39,24 @@ class KafkaToolWindowSettings : PersistentStateComponent<KafkaToolWindowSettings
 
   private val consumerGroupsTableColumns = mutableListOf("consumerGroup", "state", "consumers", "topics", "partitions")
   val consumerGroupsColumnSettings = ColumnVisibilitySettings(consumerGroupsTableColumns)
+
+  private val schemaRegistryTableColumns = mutableListOf(SchemaRegistryInfo::name.name,
+                                                         SchemaRegistryInfo::type.name,
+                                                         SchemaRegistryInfo::version.name)
+  val schemaRegistryTableColumnSettings = ColumnVisibilitySettings(schemaRegistryTableColumns)
+
+  private val schemaRegistryFieldsTableColumns = mutableListOf(
+    SchemaRegistryFieldsInfo::name.name,
+    SchemaRegistryFieldsInfo::type.name,
+    SchemaRegistryFieldsInfo::default.name)
+  val schemaRegistryFieldsTableColumnSettings = ColumnVisibilitySettings(schemaRegistryFieldsTableColumns)
+
+  private val schemaRegistryVersionsTableColumns = mutableListOf(
+    SchemaRegistryInfo::id.name,
+    SchemaRegistryInfo::version.name,
+    SchemaRegistryInfo::schema.name)
+
+  val schemaRegistryVersionsTableColumnsSettings = ColumnVisibilitySettings(schemaRegistryVersionsTableColumns)
 
   override val configs: MutableMap<String, KafkaClusterConfig> = mutableMapOf()
 

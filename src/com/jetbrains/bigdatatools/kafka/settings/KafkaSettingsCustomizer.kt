@@ -41,14 +41,34 @@ class KafkaSettingsCustomizer(project: Project, connectionData: KafkaConnectionD
                                                browseTitle = KafkaMessagesBundle.message(
                                                  "settings.properties.file.browse"),
                                                fileChooserDescriptor = FileChooserDescriptorFactory.createSingleFileDescriptor())
-    .also {
-      it.emptyText = KafkaMessagesBundle.message("settings.properties.empty.text")
-    }
+
     .withNotEmptyValidator(uiDisposable)
+
   private val sourceTypeChooser = RadioGroupField(KafkaConnectionData::propertySource,
                                                   KafkaSettingsKeys.PROPERTIES_SOURCE_KEY,
                                                   connectionData,
                                                   KafkaPropertySource.values())
+
+  private val registryUrl = StringNonRequiredField(
+    KafkaConnectionData::registryUrl,
+    ModificationKey(KafkaMessagesBundle.message("settings.registry.url")), connectionData)
+    .apply {
+      emptyText = KafkaMessagesBundle.message("settings.registry.url.hint")
+    }
+    .withValidator(uiDisposable) {
+      if (it.isBlank())
+        return@withValidator null
+      val isValid = BdtUrlUtils.isValidUrl(it)
+      if (!isValid) MessagesBundle.message("url.format.error") else null
+    }
+
+  private val registryProperties = PropertiesFieldComponent.create(
+    project,
+    KafkaPropertiesUtils.getAdminPropertiesDescriptions(),
+    KafkaConnectionData::registryProperties,
+    ModificationKey(KafkaMessagesBundle.message("settings.registry.additional.properties")),
+    connectionData, uiDisposable)
+
 
   init {
     sourceTypeChooser.addItemListener {
@@ -58,7 +78,7 @@ class KafkaSettingsCustomizer(project: Project, connectionData: KafkaConnectionD
   }
 
   override fun getDefaultFields(): List<WrappedComponent<in KafkaConnectionData>> =
-    listOf(nameField, url, propertiesEditor, propertiesFile, tunnelField, sourceTypeChooser)
+    listOf(nameField, url, propertiesEditor, propertiesFile, tunnelField, sourceTypeChooser, registryUrl, registryProperties)
 
   override fun getDefaultComponent(fields: List<WrappedComponent<in KafkaConnectionData>>, conn: KafkaConnectionData) = MigPanel().apply {
     row(nameField)
@@ -71,9 +91,19 @@ class KafkaSettingsCustomizer(project: Project, connectionData: KafkaConnectionD
     gapLeft = false
 
     separatorRow()
+
+    title(KafkaMessagesBundle.message("settings.registry.title"))
+    row(registryUrl)
+    row(registryProperties)
+
+    separatorRow()
     block(tunnelField.getComponent())
 
+
     propertiesEditor.getComponent().document.doOnChange {
+      this@apply.revalidate()
+    }
+    registryProperties.getComponent().document.doOnChange {
       this@apply.revalidate()
     }
   }
