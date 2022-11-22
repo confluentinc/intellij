@@ -196,7 +196,6 @@
           <root url="jar://$MAVEN_REPOSITORY$/io/confluent/kafka-protobuf-provider/7.2.0/kafka-protobuf-provider-7.2.0-sources.jar!/" />
           <root url="jar://$MAVEN_REPOSITORY$/com/squareup/wire/wire-schema-jvm/4.3.0/wire-schema-jvm-4.3.0-sources.jar!/" />
           <root url="jar://$MAVEN_REPOSITORY$/com/squareup/wire/wire-runtime-jvm/4.3.0/wire-runtime-jvm-4.3.0-sources.jar!/" />
-          <root url="jar://$MAVEN_REPOSITORY$/com/google/api/grpc/proto-google-common-protos/2.5.1/proto-google-common-protos-2.5.1-sources.jar!/" />
           <root url="jar://$MAVEN_REPOSITORY$/io/confluent/kafka-protobuf-types/7.2.0/kafka-protobuf-types-7.2.0-sources.jar!/" />
         </SOURCES>
       </library>
