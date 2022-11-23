@@ -79,13 +79,13 @@ object KafkaEditorUtils {
     }
     type == FieldType.JSON_REGISTRY -> {
       val jsonString = JsonSchemaUtils.toJson(value).toString(Charset.defaultCharset())
-      toPrettyJson(value.toString())
+      toPrettyJson(jsonString)
     }
     else -> value.toString()
   }!!
 
   private fun toPrettyJson(jsonString: String): String {
-    val gson = GsonBuilder().disableHtmlEscaping().setPrettyPrinting().create()
+    val gson = GsonBuilder().disableHtmlEscaping().setPrettyPrinting().serializeNulls().create()
     return gson.toJson(JsonParser.parseString(jsonString))
   }
 
