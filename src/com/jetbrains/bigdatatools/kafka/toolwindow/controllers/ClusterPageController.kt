@@ -1,7 +1,7 @@
 package com.jetbrains.bigdatatools.kafka.toolwindow.controllers
 
 import com.intellij.openapi.fileEditor.FileEditor
-import com.intellij.openapi.fileEditor.ex.FileEditorManagerEx
+import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.fileEditor.impl.EditorWindow
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.Splitter
@@ -66,7 +66,7 @@ class ClusterPageController(private val project: Project, private val connection
       putUserData(KafkaEditorProvider.KAFKA_MANAGER_KEY, dataManager)
       putUserData(KafkaEditorProvider.KAFKA_EDITOR_TYPE, KafkaEditorType.PRODUCER)
     }
-    return FileEditorManagerEx.getInstance(project).openFile(file, true)
+    return FileEditorManager.getInstance(project).openFile(file, true)
   }
 
   private fun createConsumerFile(): LightVirtualFile {
@@ -118,7 +118,7 @@ class ClusterPageController(private val project: Project, private val connection
 
     val createConsumer = JButton(KafkaMessagesBundle.message("create.consumer.action.title")).apply {
       addActionListener {
-        FileEditorManagerEx.getInstance(project).openFile(createConsumerFile(), true)
+        FileEditorManager.getInstance(project).openFile(createConsumerFile(), true)
         KafkaUsagesCollector.openConsumerEvent.log(project)
       }
     }
@@ -132,7 +132,7 @@ class ClusterPageController(private val project: Project, private val connection
           (SwingUtilities.getAncestorOfClass(JBTabs::class.java, producerEditor[0].component) as? JBTabs)?.dataProvider
         val window = if (tabsDataProvider == null) null else EditorWindow.DATA_KEY.getData(tabsDataProvider)
         if (window == null) {
-          FileEditorManagerEx.getInstance(project).openFile(consumerFile, true)
+          FileEditorManager.getInstance(project).openFile(consumerFile, true)
         }
         else {
           window.split(SwingConstants.VERTICAL, true, consumerFile, true)
