@@ -7,31 +7,36 @@ import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.Messages
+import com.intellij.util.PairFunction
 import com.jetbrains.bigdatatools.common.monitoring.toolwindow.DetailsTableMonitoringController
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.model.SchemaRegistryInfo
 import com.jetbrains.bigdatatools.kafka.toolwindow.config.KafkaToolWindowSettings
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import javax.swing.JCheckBox
 
 class KafkaRegistrySchemaVersionsController(val project: Project,
                                             private val dataManager: KafkaDataManager) : DetailsTableMonitoringController<SchemaRegistryInfo>() {
-  @Suppress("DuplicatedCode")
+
   private val deleteSchema = object : DumbAwareAction(KafkaMessagesBundle.message("action.remove.version.title"),
                                                       null,
                                                       AllIcons.General.Remove) {
     override fun actionPerformed(e: AnActionEvent) {
       val registryInfo = getSelectedItem() ?: return
-      if (Messages.showOkCancelDialog(project,
-                                      KafkaMessagesBundle.message("action.remove.version.confirm.dialog.msg", registryInfo.version,
-                                                                  registryInfo.name),
-                                      KafkaMessagesBundle.message("action.remove.schema.confirm.dialog.title"),
-                                      Messages.getOkButton(),
-                                      Messages.getCancelButton(),
-                                      Messages.getQuestionIcon()) != Messages.OK) {
-        return
-      }
-      val isPermanent = false //TODO: @nikita.pavlenko please add do dialog check
-      dataManager.deleteRegistrySchemaVersion(registryInfo, isPermanent)
+
+      Messages.showCheckboxMessageDialog(KafkaMessagesBundle.message("action.remove.version.confirm.dialog.msg", registryInfo.version,
+                                                                     registryInfo.name),
+                                         KafkaMessagesBundle.message("action.remove.schema.confirm.dialog.title"),
+                                         arrayOf(Messages.getOkButton(), Messages.getCancelButton()),
+                                         "Permanent deletion",
+                                         false, 0, 0,
+                                         Messages.getQuestionIcon(),
+                                         PairFunction { exitCode: Int, cb: JCheckBox ->
+                                           if (exitCode == Messages.OK) {
+                                             dataManager.deleteRegistrySchemaVersion(registryInfo, cb.isSelected)
+                                           }
+                                           exitCode
+                                         })
     }
 
     override fun update(e: AnActionEvent) {
@@ -40,7 +45,6 @@ class KafkaRegistrySchemaVersionsController(val project: Project,
 
     override fun getActionUpdateThread() = ActionUpdateThread.BGT
   }
-
 
   init {
     init()

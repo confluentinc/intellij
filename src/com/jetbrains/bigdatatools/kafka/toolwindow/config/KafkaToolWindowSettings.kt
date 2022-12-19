@@ -10,8 +10,7 @@ import com.jetbrains.bigdatatools.common.settings.ColumnVisibilitySettings
 import com.jetbrains.bigdatatools.kafka.model.SchemaRegistryFieldsInfo
 import com.jetbrains.bigdatatools.kafka.model.SchemaRegistryInfo
 
-
-@State(name = "KafkaSettings", storages = [Storage(file = "kafka.xml")])
+@State(name = "KafkaSettings", storages = [Storage("kafka.xml")])
 class KafkaToolWindowSettings : PersistentStateComponent<KafkaToolWindowSettings>, IntervalUpdateSettings {
   var registryShowDeletedSubjects: Boolean = false
   var showFullTopicConfig: Boolean = false
@@ -19,7 +18,6 @@ class KafkaToolWindowSettings : PersistentStateComponent<KafkaToolWindowSettings
 
   private val topicConfigsTableColumns = mutableListOf("name", "value", "defaultValue")
   val topicConfigsColumnSettings = ColumnVisibilitySettings(topicConfigsTableColumns)
-
 
   private val topicPartitionsTableColumns = mutableListOf("partitionId",
                                                           "leader",
@@ -29,6 +27,7 @@ class KafkaToolWindowSettings : PersistentStateComponent<KafkaToolWindowSettings
                                                           "replicasCount",
                                                           "segmentCount",
                                                           "segmentSize")
+
   val topicPartitionsColumnSettings = ColumnVisibilitySettings(topicPartitionsTableColumns)
 
   private val topicTableColumns = mutableListOf("name", "replicas", "partitions",
@@ -74,7 +73,6 @@ class KafkaToolWindowSettings : PersistentStateComponent<KafkaToolWindowSettings
     }
     return config
   }
-
 
   override fun getState(): KafkaToolWindowSettings = this
 
