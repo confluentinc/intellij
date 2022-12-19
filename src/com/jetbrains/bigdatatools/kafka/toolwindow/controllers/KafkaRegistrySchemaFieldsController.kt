@@ -11,23 +11,35 @@ import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.ui.DialogBuilder
 import com.jetbrains.bigdatatools.common.monitoring.toolwindow.DetailsTableMonitoringController
-import com.jetbrains.bigdatatools.common.ui.BdtJsonInfoDialog
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.model.SchemaRegistryFieldsInfo
+import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryFormat
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryUtil
+import com.jetbrains.bigdatatools.kafka.registry.ui.KafkaRegistrySchemaEditor
 import com.jetbrains.bigdatatools.kafka.toolwindow.config.KafkaToolWindowSettings
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 
 class KafkaRegistrySchemaFieldsController(val project: Project,
                                           private val dataManager: KafkaDataManager) : DetailsTableMonitoringController<SchemaRegistryFieldsInfo>() {
   private val showSchema = object : DumbAwareAction(KafkaMessagesBundle.message("show.schema.info"), null,
-                                                    AllIcons.General.Information) {
+                                                    AllIcons.Actions.ToggleVisibility) {
     override fun actionPerformed(e: AnActionEvent) {
       val registryInfo = selectedId?.let { dataManager.getSchemaInfo(it.toInt()) } ?: return
       val schema = KafkaRegistryUtil.getPrettySchema(registryInfo) ?: return
 
-      BdtJsonInfoDialog(project, registryInfo.name, schema).show()
+      val isJson = KafkaRegistryFormat.valueOf(registryInfo.type) != KafkaRegistryFormat.PROTOBUF
+
+      val dialogWrapper = DialogBuilder(project)
+      dialogWrapper.title(KafkaMessagesBundle.message("registry.info.dialog.title", registryInfo.name))
+      dialogWrapper.centerPanel(KafkaRegistrySchemaEditor.createEditor(project, isJson).apply {
+        setDisposedWith(dialogWrapper)
+        text = schema
+        document.setReadOnly(true)
+        setCaretPosition(0)
+      }).addOkAction()
+      dialogWrapper.show()
     }
 
     override fun getActionUpdateThread() = ActionUpdateThread.BGT

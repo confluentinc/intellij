@@ -188,8 +188,8 @@ class KafkaProducerEditor(project: Project,
                                                   forcePartition = forcePartitionField.value,
                                                   keyStrategy = keyStrategyComboBox.item,
                                                   valueStrategy = valueStrategyComboBox.item,
-                                                  keySubject = keySubjectComboBox.item.name,
-                                                  valueSubject = valueSubjectComboBox.item.name)
+                                                  keySubject = keySubjectComboBox.item?.name ?: "",
+                                                  valueSubject = valueSubjectComboBox.item?.name ?: "")
 
   private val presetsDelegate = lazy {
     val presets = ProducerPresets()

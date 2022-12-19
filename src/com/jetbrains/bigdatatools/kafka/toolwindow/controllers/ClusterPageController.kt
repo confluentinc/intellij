@@ -79,12 +79,18 @@ class ClusterPageController(private val project: Project, private val connection
   private fun createPanel(): JPanel {
     val model = DefaultListModel<ClusterControllerType>().also { model ->
       ClusterControllerType.values().forEach {
+        if (it == ClusterControllerType.SCHEMA_REGISTRY_GROUP && schemaRegistryController == null) {
+          return@forEach
+        }
         model.addElement(it)
       }
     }
 
     val list = JBList(model).apply {
-      cellRenderer = CustomListCellRenderer<ClusterControllerType> { it.value }
+      val renderer = CustomListCellRenderer<ClusterControllerType> { it.value }
+      renderer.border = BorderFactory.createEmptyBorder(5, 10, 5, 0)
+      cellRenderer = renderer
+
       selectionMode = DefaultListSelectionModel.SINGLE_SELECTION
       selectedIndex = 0
 
