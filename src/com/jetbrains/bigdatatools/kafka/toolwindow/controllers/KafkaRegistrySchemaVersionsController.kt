@@ -28,7 +28,7 @@ class KafkaRegistrySchemaVersionsController(val project: Project,
                                                                      registryInfo.name),
                                          KafkaMessagesBundle.message("action.remove.schema.confirm.dialog.title"),
                                          arrayOf(Messages.getOkButton(), Messages.getCancelButton()),
-                                         "Permanent deletion",
+                                         KafkaMessagesBundle.message("action.remove.version.confirm.dialog.option"),
                                          false, 0, 0,
                                          Messages.getQuestionIcon(),
                                          PairFunction { exitCode: Int, cb: JCheckBox ->
