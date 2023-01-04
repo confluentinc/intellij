@@ -6,7 +6,7 @@ import io.confluent.kafka.serializers.KafkaAvroDeserializer
 import org.apache.avro.Schema
 
 class BdtKafkaAvroDeserializer : KafkaAvroDeserializer() {
-  var parsedSchema: ParsedSchema? = null
+  private var parsedSchema: ParsedSchema? = null
 
   override fun configure(configs: MutableMap<String, *>?, isKey: Boolean) {
     super.configure(configs, isKey)
