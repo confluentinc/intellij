@@ -2,10 +2,10 @@ package com.jetbrains.bigdatatools.kafka.consumer.editor
 
 import com.intellij.ui.IdeBorderFactory
 import com.intellij.ui.SideBorder
-import com.jetbrains.bigdatatools.kafka.common.editor.ListTableModel
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import com.jetbrains.bigdatatools.common.table.MaterialTable
 import com.jetbrains.bigdatatools.common.util.SizeUtils
+import com.jetbrains.bigdatatools.kafka.common.editor.ListTableModel
+import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import java.awt.FlowLayout
 import java.util.*
@@ -23,10 +23,10 @@ class ConsumerTableStats {
 
   val component = JPanel(FlowLayout(FlowLayout.LEFT)).apply {
     border = IdeBorderFactory.createBorder(SideBorder.TOP)
-    add(JLabel(KafkaMessagesBundle.message("table.stats.total"))); add(total)
-    add(JLabel(KafkaMessagesBundle.message("table.stats.visible"))); add(visible)
-    add(JLabel(KafkaMessagesBundle.message("table.stats.speed"))); add(speed)
-    add(JLabel(KafkaMessagesBundle.message("table.stats.memory"))); add(memory)
+    add(JLabel(KafkaMessagesBundle.message("table.stats.total")).apply { isEnabled = false }); add(total)
+    add(JLabel(KafkaMessagesBundle.message("table.stats.visible")).apply { isEnabled = false }); add(visible)
+    add(JLabel(KafkaMessagesBundle.message("table.stats.speed")).apply { isEnabled = false }); add(speed)
+    add(JLabel(KafkaMessagesBundle.message("table.stats.memory")).apply { isEnabled = false }); add(memory)
   }
 
   private val lastRecordSizes = LinkedList<Pair<Long, Int>>()

@@ -24,6 +24,8 @@ import com.intellij.ui.components.CheckBox
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.components.JBTextField
 import com.intellij.ui.components.fields.IntegerField
+import com.intellij.ui.dsl.builder.AlignX
+import com.intellij.ui.dsl.builder.panel
 import com.jetbrains.bigdatatools.common.rfs.util.RfsNotificationUtils
 import com.jetbrains.bigdatatools.common.settings.defaultui.UiUtil
 import com.jetbrains.bigdatatools.common.settings.getValidationInfo
@@ -201,28 +203,28 @@ class KafkaProducerEditor(project: Project,
   private val presets: ProducerPresets by presetsDelegate
 
   private val settingsPanelDelegate = lazy {
-    val panel = MigPanel(UiUtil.insets10FillXHidemode3).apply {
-      row(KafkaMessagesBundle.message("producer.topics"), topicComboBox)
-      row(KafkaMessagesBundle.message("producer.key"), keyComboBox)
-      add(keyStrategyComboBox, UiUtil.growXSpanXWrap)
-      add(keySubjectComboBox, UiUtil.growXSpanXWrap)
-      add(keyJsonField, UiUtil.growXSpanXWrap)
-      add(keyField, UiUtil.growXSpanXWrap)
+    val panel = panel {
+      row(KafkaMessagesBundle.message("producer.topics")) { cell(topicComboBox).align(AlignX.FILL).resizableColumn() }
 
-      row(KafkaMessagesBundle.message("producer.value"), valueComboBox)
-      add(valueStrategyComboBox, UiUtil.growXSpanXWrap)
-      add(valueSubjectComboBox, UiUtil.growXSpanXWrap)
-      add(valueJsonField, UiUtil.growXSpanXWrap)
-      add(valueField, UiUtil.growXSpanXWrap)
+      row(KafkaMessagesBundle.message("producer.key")) { cell(keyComboBox) }
+      row { cell(keyStrategyComboBox);cell(keySubjectComboBox).align(AlignX.FILL).resizableColumn() }
+      row { cell(keyJsonField).align(AlignX.FILL).resizableColumn() }
+      row { cell(keyField).align(AlignX.FILL).resizableColumn() }
 
-      title(KafkaMessagesBundle.message("producer.title.options"))
-      row(KafkaMessagesBundle.message("producer.forcePartition"), forcePartitionField)
-      row(KafkaMessagesBundle.message("record.headers.label"))
-      block(propertiesComponent.getComponent())
+      row(KafkaMessagesBundle.message("producer.value")) { cell(valueComboBox) }
+      row { cell(valueStrategyComboBox); cell(valueSubjectComboBox).align(AlignX.FILL).resizableColumn() }
+      row { cell(valueJsonField).align(AlignX.FILL).resizableColumn() }
+      row { cell(valueField).align(AlignX.FILL).resizableColumn() }
 
-      row(KafkaMessagesBundle.message("producer.compression"), compressionComboBox)
-      add(idempotenceCheckBox, UiUtil.spanXWrap)
-      row(KafkaMessagesBundle.message("producer.asks"), acksComboBox)
+      collapsibleGroup(KafkaMessagesBundle.message("producer.title.options")) {
+        row(KafkaMessagesBundle.message("producer.forcePartition")) { cell(forcePartitionField).align(AlignX.FILL).resizableColumn() }
+        row(KafkaMessagesBundle.message("record.headers.label")) {}
+        row { cell(propertiesComponent.getComponent()).align(AlignX.FILL).resizableColumn() }
+
+        row(KafkaMessagesBundle.message("producer.compression")) { cell(compressionComboBox).align(AlignX.FILL).resizableColumn() }
+        row { cell(idempotenceCheckBox).align(AlignX.FILL).resizableColumn() }
+        row(KafkaMessagesBundle.message("producer.asks")) { cell(acksComboBox).align(AlignX.FILL).resizableColumn() }
+      }
     }
 
     val scroll = JBScrollPane(panel, JScrollPane.VERTICAL_SCROLLBAR_ALWAYS, JScrollPane.HORIZONTAL_SCROLLBAR_NEVER).apply {
@@ -248,7 +250,6 @@ class KafkaProducerEditor(project: Project,
         }
 
         val selectedTopicName = topic.name
-
 
         executeNotOnEdt {
           try {

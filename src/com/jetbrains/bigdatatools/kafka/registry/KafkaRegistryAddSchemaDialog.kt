@@ -78,6 +78,23 @@ class KafkaRegistryAddSchemaDialog(private val project: Project,
     add(jsonTextArea, BorderLayout.CENTER)
   }
 
+  private val panel = panel {
+    row(KafkaMessagesBundle.message("schema.registry.add.schema.dialog.field.format")) { cell(formatCombobox) }
+    row(KafkaMessagesBundle.message("schema.registry.add.schema.dialog.field.strategy")) { cell(strategyCombobox) }
+    row(KafkaMessagesBundle.message("schema.registry.add.schema.dialog.field.key.value")) { cell(keyValueCombobox) }.visibleIf(
+      keyValueVisible)
+    row(KafkaMessagesBundle.message("schema.registry.add.schema.dialog.field.topic")) { cell(topicField) }.visibleIf(topicFieldVisible)
+    row(KafkaMessagesBundle.message("schema.registry.add.schema.dialog.field.record")) { cell(recordField) }.visibleIf(recordFieldVisible)
+    row(subjectNameLabel) { cell(subjectNameField) }
+    row { cell(textScrollPane).align(Align.FILL).resizableColumn() }.resizableRow()
+  }
+
+  init {
+    init()
+    title = KafkaMessagesBundle.message("registry.add.schema.dialog.title")
+    onChangeFormat()
+  }
+
   private fun createEditor(project: Project, isJson: Boolean) = KafkaRegistrySchemaEditor.createEditor(project, isJson).apply {
     setDisposedWith(disposable)
   }.withValidator(disposable) {
@@ -88,26 +105,9 @@ class KafkaRegistryAddSchemaDialog(private val project: Project,
     }
   }
 
-  private val panel = panel {
-    row(KafkaMessagesBundle.message("schema.registry.add.schema.dialog.field.format")) { cell(formatCombobox) }
-    row(KafkaMessagesBundle.message("schema.registry.add.schema.dialog.field.strategy")) { cell(strategyCombobox) }
-    row(KafkaMessagesBundle.message("schema.registry.add.schema.dialog.field.key.value")) { cell(keyValueCombobox) }.visibleIf(
-      keyValueVisible)
-    row(KafkaMessagesBundle.message("schema.registry.add.schema.dialog.field.topic")) { cell(topicField) }.visibleIf(topicFieldVisible)
-    row(KafkaMessagesBundle.message("schema.registry.add.schema.dialog.field.record")) { cell(recordField) }.visibleIf(recordFieldVisible)
-    row(subjectNameLabel) { cell(subjectNameField) }
-    row { cell(textScrollPane).align(Align.FILL).resizableColumn() }
-  }
-
-  init {
-    init()
-    title = KafkaMessagesBundle.message("registry.add.schema.dialog.title")
-    onChangeFormat()
-  }
-
   fun applyRegistryInfo(registryInfo: SchemaRegistryInfo) {
     formatCombobox.selectedItem = KafkaRegistryFormat.valueOf(registryInfo.type)
-    jsonTextArea.text = registryInfo.schema
+    jsonTextArea.text = KafkaEditorUtils.toPrettyJson(registryInfo.schema)
   }
 
   override fun createCenterPanel(): JComponent = panel

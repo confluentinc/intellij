@@ -263,13 +263,15 @@ class KafkaDataManager(project: Project?,
     }
   }
 
-
-  fun deleteRegistrySchema(registryInfo: SchemaRegistryInfo) = executeOnPooledThread {
+  fun deleteRegistrySchema(name: String, isPermanent: Boolean) = executeOnPooledThread {
     withCatchNotifyError {
-      val name = registryInfo.name
-      registryClient?.deleteSubject(name)
+      registryClient?.deleteSubject(name, isPermanent)
       registrySchemaModel?.let { autoUpdaterManager.reloadAsync(it) }
     }
+  }
+
+  fun deleteRegistrySchema(registryInfo: SchemaRegistryInfo, isPermanent: Boolean) = executeOnPooledThread {
+    deleteRegistrySchema(registryInfo.name, isPermanent)
   }
 
   fun createRegistrySubject(schemaName: String, parsedSchema: ParsedSchema) = executeOnPooledThread {

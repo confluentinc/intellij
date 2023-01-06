@@ -289,6 +289,7 @@ class ConsumerRecordDetails(project: Project, parentDisposable: Disposable) {
     add(JLabel(KafkaMessagesBundle.message("consumer.record.headers")), UiUtil.wrap)
     block(JBScrollPane(headers.table))
   }).apply {
+    border = BorderFactory.createEmptyBorder()
     horizontalScrollBarPolicy = ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER
   }
 }

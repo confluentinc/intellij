@@ -2,9 +2,9 @@ package com.jetbrains.bigdatatools.kafka.consumer.editor
 
 import com.intellij.openapi.ui.DialogBuilder
 import com.intellij.ui.components.JBScrollPane
+import com.jetbrains.bigdatatools.common.ui.MigPanel
 import com.jetbrains.bigdatatools.kafka.common.settings.StorageConsumerConfig
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
-import com.jetbrains.bigdatatools.common.ui.MigPanel
 import org.apache.kafka.clients.consumer.ConsumerConfig
 import javax.swing.BorderFactory
 import javax.swing.JLabel
@@ -83,7 +83,7 @@ class KafkaConsumerSettings {
 
     val panel = MigPanel().apply {
       settingsFields.forEach {
-        row(JLabel(KafkaMessagesBundle.message(it.key)).apply {
+        row(JLabel(KafkaMessagesBundle.messageOrKey(it.key)).apply {
           toolTipText = it.value.toolTipText
         }, it.value)
       }
@@ -91,7 +91,7 @@ class KafkaConsumerSettings {
       block(JSeparator())
 
       propertiesFields.forEach {
-        row(JLabel(KafkaMessagesBundle.message(it.key)).apply {
+        row(JLabel(KafkaMessagesBundle.messageOrKey(it.key)).apply {
           toolTipText = it.value.toolTipText
         }, it.value)
       }

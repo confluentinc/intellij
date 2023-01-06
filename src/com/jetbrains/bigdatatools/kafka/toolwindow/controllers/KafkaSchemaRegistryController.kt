@@ -1,6 +1,5 @@
 package com.jetbrains.bigdatatools.kafka.toolwindow.controllers
 
-
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnAction
@@ -61,20 +60,30 @@ class KafkaSchemaRegistryController(project: Project,
                                                       AllIcons.General.Remove) {
     override fun actionPerformed(e: AnActionEvent) {
       val registryInfo = getSelectedItem() ?: return
-      if (Messages.showOkCancelDialog(project,
-                                      KafkaMessagesBundle.message("action.remove.schema.confirm.dialog.msg", registryInfo.name),
-                                      KafkaMessagesBundle.message("action.remove.schema.confirm.dialog.title"),
-                                      Messages.getOkButton(),
-                                      Messages.getCancelButton(),
-                                      Messages.getQuestionIcon()) != Messages.OK) {
+      if (registryInfo.id == -1) { // Special case for soft deleted items.
+        if (Messages.showOkCancelDialog(project,
+                                        KafkaMessagesBundle.message("action.remove.schema.confirm.dialog.msg.permanent", registryInfo.name),
+                                        KafkaMessagesBundle.message("action.remove.schema.confirm.dialog.title"),
+                                        Messages.getOkButton(),
+                                        Messages.getCancelButton(),
+                                        Messages.getQuestionIcon()) == Messages.OK) {
+          dataManager.deleteRegistrySchema(registryInfo, true)
+        }
         return
       }
 
-      dataManager.deleteRegistrySchema(registryInfo)
+      if (Messages.showOkCancelDialog(project,
+                                      KafkaMessagesBundle.message("action.remove.schema.confirm.dialog.msg.soft", registryInfo.name),
+                                      KafkaMessagesBundle.message("action.remove.schema.confirm.dialog.title"),
+                                      Messages.getOkButton(),
+                                      Messages.getCancelButton(),
+                                      Messages.getQuestionIcon()) == Messages.OK) {
+        dataManager.deleteRegistrySchema(registryInfo, false)
+      }
     }
 
     override fun update(e: AnActionEvent) {
-      e.presentation.isEnabled = getSelectedItem()?.id != -1
+      e.presentation.isEnabled = getSelectedItem() != null
     }
 
     override fun getActionUpdateThread() = ActionUpdateThread.BGT
