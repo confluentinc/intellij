@@ -1,0 +1,81 @@
+package com.jetbrains.bigdatatools.kafka.registry.ui
+
+import com.intellij.diff.DiffContentFactory
+import com.intellij.diff.chains.SimpleDiffRequestChain
+import com.intellij.diff.impl.CacheDiffRequestChainProcessor
+import com.intellij.diff.requests.SimpleDiffRequest
+import com.intellij.json.JsonFileType
+import com.intellij.openapi.project.Project
+import com.intellij.openapi.ui.DialogBuilder
+import com.intellij.protobuf.lang.PbFileType
+import com.jetbrains.bigdatatools.kafka.model.SchemaRegistryInfo
+import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryFormat
+import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryUtil
+import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+
+object KafkaRegistrySchemaInfoDialog {
+  fun show(project: Project, registryInfo: SchemaRegistryInfo) {
+    val schema = KafkaRegistryUtil.getPrettySchema(registryInfo) ?: return
+
+    val isJson = KafkaRegistryFormat.valueOf(registryInfo.type) != KafkaRegistryFormat.PROTOBUF
+
+    val dialogWrapper = DialogBuilder(project)
+    dialogWrapper.title(KafkaMessagesBundle.message("registry.info.dialog.title", registryInfo.name))
+    dialogWrapper.centerPanel(KafkaRegistrySchemaEditor.createEditor(project, isJson).apply {
+      setDisposedWith(dialogWrapper)
+      text = schema
+      document.setReadOnly(true)
+      setCaretPosition(0)
+    }).addOkAction()
+    dialogWrapper.show()
+  }
+
+  fun showDiff(project: Project, registryInfoFirst: SchemaRegistryInfo,
+               registryInfoSecond: SchemaRegistryInfo, onApply: ((String) -> Unit)? = null) {
+
+    val isJson = KafkaRegistryFormat.valueOf(registryInfoFirst.type) != KafkaRegistryFormat.PROTOBUF
+    val fileType = if (isJson) JsonFileType.INSTANCE else PbFileType.INSTANCE
+
+    val schemaFirst = KafkaRegistryUtil.getPrettySchema(registryInfoFirst) ?: return
+    val schemaSecond = KafkaRegistryUtil.getPrettySchema(registryInfoSecond) ?: return
+
+    val prev = DiffContentFactory.getInstance().create(schemaFirst, fileType)
+    prev.document.setReadOnly(true)
+
+    val new = DiffContentFactory.getInstance().create(schemaSecond, fileType)
+    new.document.setReadOnly(false)
+
+    val diffData = SimpleDiffRequest(KafkaMessagesBundle.message("show.edit.schema.diff.title", registryInfoFirst.name),
+                                     prev,
+                                     new,
+                                     KafkaMessagesBundle.message("show.edit.schema.diff.prev.name"),
+                                     KafkaMessagesBundle.message("show.edit.schema.diff.new.name"))
+
+
+    // DiffWindowBase
+    val requests = SimpleDiffRequestChain(diffData)
+    val myProcessor = CacheDiffRequestChainProcessor(project, requests)
+
+    val dialogWrapper = DialogBuilder(project)
+    dialogWrapper.setCenterPanel(myProcessor.component)
+    dialogWrapper.addOkAction()
+    dialogWrapper.addCancelAction()
+    myProcessor.updateRequest()
+    if (dialogWrapper.showAndGet()) {
+      val newText = new.document.text
+      if (prev.document.text != newText) {
+        onApply?.invoke(newText)
+      }
+    }
+
+    //DiffManager.getInstance().showDiff(project, diffData, DiffDialogHints.MODAL)
+    //val newText = new.document.text
+    //if (prev.document.text != newText) {
+    //  onApply?.invoke(newText)
+    //}
+  }
+
+  fun showDiff(project: Project, registryInfo: SchemaRegistryInfo, onApply: ((String) -> Unit)? = null) {
+    showDiff(project, registryInfo, registryInfo, onApply)
+  }
+}

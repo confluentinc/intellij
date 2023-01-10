@@ -7,7 +7,6 @@ import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.dsl.builder.Align
 import com.intellij.ui.dsl.builder.panel
-import com.jetbrains.bigdatatools.common.settings.withValidator
 import com.jetbrains.bigdatatools.common.ui.CustomListCellRenderer
 import com.jetbrains.bigdatatools.common.ui.doOnChange
 import com.jetbrains.bigdatatools.common.util.toPresentableText
@@ -19,6 +18,7 @@ import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import io.confluent.kafka.schemaregistry.ParsedSchema
 import java.awt.BorderLayout
 import javax.swing.JComponent
+import javax.swing.JEditorPane
 import javax.swing.JPanel
 import javax.swing.JTextField
 
@@ -27,7 +27,7 @@ import javax.swing.JTextField
  * - add more pretty validation message place
  * - rewrite validation logic if reqired, seems that parse new cache values perform after validation
  * - disable ok if schema is not parsed
- * - check conductor ui, maybe we need change comboboxes to redioboxes and remove or rewrite some fields
+ * - check conductor ui, maybe we need change comboboxes to radioboxes and remove or rewrite some fields
  */
 class KafkaRegistryAddSchemaDialog(private val project: Project,
                                    val dataManager: KafkaDataManager) : DialogWrapper(project, true, IdeModalityType.PROJECT) {
@@ -66,7 +66,6 @@ class KafkaRegistryAddSchemaDialog(private val project: Project,
   private val subjectNameLabel = JBLabel("")
 
   private var cachedParsedSchema: ParsedSchema? = null
-  private var cachedNotificationError: Throwable? = null
 
   private val keyValueVisible = AtomicBooleanProperty(false)
   private val topicFieldVisible = AtomicBooleanProperty(false)
@@ -74,9 +73,23 @@ class KafkaRegistryAddSchemaDialog(private val project: Project,
 
   // In case of proto - ProtoBaseLanguage
   private var jsonTextArea = createEditor(project, true)
-  private var textScrollPane = JPanel(BorderLayout()).apply {
+  private val textScrollPane = JPanel(BorderLayout()).apply {
     add(jsonTextArea, BorderLayout.CENTER)
   }
+
+  private lateinit var errorLabel: JEditorPane
+
+  // Error will be shown only after user first time tries to save schema.
+  private var okButtonPressed = false
+
+  //= JLabel().apply {
+  //  isOpaque = true
+  //  isEnabled = false
+  //  isVisible = false
+  //  verticalTextPosition = SwingConstants.TOP
+  //  border = JBUI.Borders.empty(10, 15, 15, 15)
+  //  background = LightColors.RED
+  //}
 
   private val panel = panel {
     row(KafkaMessagesBundle.message("schema.registry.add.schema.dialog.field.format")) { cell(formatCombobox) }
@@ -87,6 +100,7 @@ class KafkaRegistryAddSchemaDialog(private val project: Project,
     row(KafkaMessagesBundle.message("schema.registry.add.schema.dialog.field.record")) { cell(recordField) }.visibleIf(recordFieldVisible)
     row(subjectNameLabel) { cell(subjectNameField) }
     row { cell(textScrollPane).align(Align.FILL).resizableColumn() }.resizableRow()
+    row { /*cell(errorLabel).align(Align.FILL).resizableColumn() */ errorLabel = comment("").component }
   }
 
   init {
@@ -97,8 +111,6 @@ class KafkaRegistryAddSchemaDialog(private val project: Project,
 
   private fun createEditor(project: Project, isJson: Boolean) = KafkaRegistrySchemaEditor.createEditor(project, isJson).apply {
     setDisposedWith(disposable)
-  }.withValidator(disposable) {
-    cachedNotificationError?.toPresentableText()
   }.also {
     it.document.doOnChange {
       onChangeStrategy()
@@ -117,9 +129,9 @@ class KafkaRegistryAddSchemaDialog(private val project: Project,
   fun getSchemaName(): String = subjectNameField.text
   fun getParsedSchema(): ParsedSchema = KafkaRegistryUtil.parseSchema(getFormat(), jsonTextArea.text)
 
-  override fun isOKActionEnabled(): Boolean {
-    return cachedNotificationError == null
-  }
+  //override fun isOKActionEnabled(): Boolean {
+  //  return cachedNotificationError == null
+  //}
 
   private fun onChangeFormat() {
     jsonTextArea = createEditor(project, formatCombobox.item != KafkaRegistryFormat.PROTOBUF)
@@ -190,12 +202,35 @@ class KafkaRegistryAddSchemaDialog(private val project: Project,
   private fun getFormat() = (formatCombobox.selectedItem as KafkaRegistryFormat).name
   private fun getStrategy() = (strategyCombobox.selectedItem as KafkaRegistryStrategy)
 
-  private fun updateParsedSchema() = try {
-    cachedParsedSchema = getParsedSchema()
-    cachedNotificationError = null
+  private fun updateParsedSchema() {
+    if (!okButtonPressed) {
+      return
+    }
+
+    try {
+      cachedParsedSchema = getParsedSchema()
+      isOKActionEnabled = true
+      errorLabel.isVisible = false
+      //cachedNotificationError = null
+    }
+    catch (t: Throwable) {
+      cachedParsedSchema = null
+      //cachedNotificationError = t
+      isOKActionEnabled = false
+      errorLabel.isVisible = true
+      errorLabel.text = t.toPresentableText() //"<html>${t.toPresentableText()}</html>"
+    }
   }
-  catch (t: Throwable) {
-    cachedParsedSchema = null
-    cachedNotificationError = t
+
+  override fun doOKAction() {
+    if (!okButtonPressed) {
+      okButtonPressed = true
+      updateParsedSchema()
+    }
+
+    if (okAction.isEnabled) {
+      applyFields()
+      close(OK_EXIT_CODE)
+    }
   }
 }
