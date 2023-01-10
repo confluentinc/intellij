@@ -11,11 +11,13 @@ import com.intellij.util.PairFunction
 import com.jetbrains.bigdatatools.common.monitoring.toolwindow.DetailsTableMonitoringController
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.model.SchemaRegistryInfo
+import com.jetbrains.bigdatatools.kafka.registry.ui.KafkaRegistrySchemaInfoDialog
 import com.jetbrains.bigdatatools.kafka.toolwindow.config.KafkaToolWindowSettings
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import javax.swing.JCheckBox
+import javax.swing.ListSelectionModel
 
-class KafkaRegistrySchemaVersionsController(val project: Project,
+class KafkaRegistrySchemaVersionsController(private val project: Project,
                                             private val dataManager: KafkaDataManager) : DetailsTableMonitoringController<SchemaRegistryInfo>() {
 
   private val deleteSchema = object : DumbAwareAction(KafkaMessagesBundle.message("action.remove.version.title"),
@@ -46,11 +48,56 @@ class KafkaRegistrySchemaVersionsController(val project: Project,
     override fun getActionUpdateThread() = ActionUpdateThread.BGT
   }
 
-  init {
-    init()
+  private val viewSchema = object : DumbAwareAction(KafkaMessagesBundle.message("show.schema.info"),
+                                                    null,
+                                                    AllIcons.Actions.ToggleVisibility) {
+    override fun actionPerformed(e: AnActionEvent) {
+      val registryInfo = getSelectedItem() ?: return
+      KafkaRegistrySchemaInfoDialog.show(project, registryInfo)
+    }
+
+    override fun update(e: AnActionEvent) {
+      e.presentation.isEnabled = getSelectedItem() != null
+    }
+
+    override fun getActionUpdateThread() = ActionUpdateThread.BGT
   }
 
-  override fun getAdditionalActions(): List<AnAction> = listOf(deleteSchema)
+  private val showDiff = object : DumbAwareAction(KafkaMessagesBundle.message("action.diff.version.title"),
+                                                  null,
+                                                  AllIcons.Actions.Diff) {
+    override fun actionPerformed(e: AnActionEvent) {
+
+      if (dataTable.selectedRows.size != 2) {
+        Messages.showInfoMessage(project, "Two schema should be selected to compare", "")
+        return
+      }
+
+      val firstSchema = dataTable.tableModel.getInfoAt(dataTable.convertRowIndexToModel(dataTable.selectedRows[0])) ?: return
+      val secondSchema = dataTable.tableModel.getInfoAt(dataTable.convertRowIndexToModel(dataTable.selectedRows[1])) ?: return
+
+      KafkaRegistrySchemaInfoDialog.showDiff(project, firstSchema, secondSchema)
+    }
+
+    override fun update(e: AnActionEvent) {
+      e.presentation.isEnabled = getSelectedItem() != null
+    }
+
+    override fun getActionUpdateThread() = ActionUpdateThread.BGT
+  }
+
+  init {
+    init()
+    dataTable.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION)
+
+
+    //val schemaColumn = dataTable.columnModel.columns.asSequence().firstOrNull { it.headerValue == "Schema" }
+    //if (schemaColumn != null) {
+    //  PreviewableTextRenderer.installOnColumn(dataTable, schemaColumn)
+    //}
+  }
+
+  override fun getAdditionalActions(): List<AnAction> = listOf(deleteSchema, viewSchema, showDiff)
 
   override fun showColumnFilter(): Boolean = false
 

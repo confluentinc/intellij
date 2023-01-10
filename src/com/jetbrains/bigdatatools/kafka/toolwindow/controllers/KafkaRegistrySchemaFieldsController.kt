@@ -1,45 +1,25 @@
 package com.jetbrains.bigdatatools.kafka.toolwindow.controllers
 
-import com.intellij.diff.DiffContentFactory
-import com.intellij.diff.DiffDialogHints
-import com.intellij.diff.DiffManager
-import com.intellij.diff.requests.SimpleDiffRequest
 import com.intellij.icons.AllIcons
-import com.intellij.json.JsonFileType
 import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.ui.DialogBuilder
 import com.jetbrains.bigdatatools.common.monitoring.toolwindow.DetailsTableMonitoringController
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.model.SchemaRegistryFieldsInfo
-import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryFormat
-import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryUtil
-import com.jetbrains.bigdatatools.kafka.registry.ui.KafkaRegistrySchemaEditor
+import com.jetbrains.bigdatatools.kafka.registry.ui.KafkaRegistrySchemaInfoDialog
 import com.jetbrains.bigdatatools.kafka.toolwindow.config.KafkaToolWindowSettings
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 
-class KafkaRegistrySchemaFieldsController(val project: Project,
+class KafkaRegistrySchemaFieldsController(private val project: Project,
                                           private val dataManager: KafkaDataManager) : DetailsTableMonitoringController<SchemaRegistryFieldsInfo>() {
   private val showSchema = object : DumbAwareAction(KafkaMessagesBundle.message("show.schema.info"), null,
                                                     AllIcons.Actions.ToggleVisibility) {
     override fun actionPerformed(e: AnActionEvent) {
       val registryInfo = selectedId?.let { dataManager.getSchemaInfo(it.toInt()) } ?: return
-      val schema = KafkaRegistryUtil.getPrettySchema(registryInfo) ?: return
-
-      val isJson = KafkaRegistryFormat.valueOf(registryInfo.type) != KafkaRegistryFormat.PROTOBUF
-
-      val dialogWrapper = DialogBuilder(project)
-      dialogWrapper.title(KafkaMessagesBundle.message("registry.info.dialog.title", registryInfo.name))
-      dialogWrapper.centerPanel(KafkaRegistrySchemaEditor.createEditor(project, isJson).apply {
-        setDisposedWith(dialogWrapper)
-        text = schema
-        document.setReadOnly(true)
-        setCaretPosition(0)
-      }).addOkAction()
-      dialogWrapper.show()
+      KafkaRegistrySchemaInfoDialog.show(project, registryInfo)
     }
 
     override fun getActionUpdateThread() = ActionUpdateThread.BGT
@@ -49,21 +29,8 @@ class KafkaRegistrySchemaFieldsController(val project: Project,
                                                     AllIcons.Actions.EditScheme) {
     override fun actionPerformed(e: AnActionEvent) {
       val registryInfo = selectedId?.let { dataManager.getSchemaInfo(it.toInt()) } ?: return
-      val schema = KafkaRegistryUtil.getPrettySchema(registryInfo) ?: return
 
-      val prev = DiffContentFactory.getInstance().create(schema, JsonFileType.INSTANCE).also {
-        it.document.setReadOnly(true)
-      }
-      val new = DiffContentFactory.getInstance().create(schema, JsonFileType.INSTANCE)
-      new.document.setReadOnly(false)
-      val diffData = SimpleDiffRequest(KafkaMessagesBundle.message("show.edit.schema.diff.title", registryInfo.name),
-                                       prev,
-                                       new,
-                                       KafkaMessagesBundle.message("show.edit.schema.diff.prev.name"),
-                                       KafkaMessagesBundle.message("show.edit.schema.diff.new.name"))
-      DiffManager.getInstance().showDiff(project, diffData, DiffDialogHints.MODAL)
-      val newText = new.document.text
-      if (prev.document.text != newText) {
+      KafkaRegistrySchemaInfoDialog.showDiff(project, registryInfo) { newText ->
         dataManager.updateSchema(registryInfo, newText)
       }
     }
