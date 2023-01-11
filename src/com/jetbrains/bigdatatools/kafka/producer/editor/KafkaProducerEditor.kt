@@ -26,7 +26,6 @@ import com.intellij.ui.components.JBTextField
 import com.intellij.ui.components.fields.IntegerField
 import com.intellij.ui.dsl.builder.AlignX
 import com.intellij.ui.dsl.builder.panel
-import com.jetbrains.bigdatatools.common.rfs.util.RfsNotificationUtils
 import com.jetbrains.bigdatatools.common.settings.defaultui.UiUtil
 import com.jetbrains.bigdatatools.common.settings.getValidationInfo
 import com.jetbrains.bigdatatools.common.settings.revalidateComponent
@@ -44,6 +43,7 @@ import com.jetbrains.bigdatatools.common.ui.MigPanel
 import com.jetbrains.bigdatatools.common.ui.SimpleDumbAwareAction
 import com.jetbrains.bigdatatools.common.util.executeNotOnEdt
 import com.jetbrains.bigdatatools.common.util.invokeLater
+import com.jetbrains.bigdatatools.common.util.toPresentableText
 import com.jetbrains.bigdatatools.kafka.common.editor.KafkaEditorUtils
 import com.jetbrains.bigdatatools.kafka.common.editor.ListTableModel
 import com.jetbrains.bigdatatools.kafka.common.editor.PropertiesTable
@@ -111,6 +111,9 @@ class KafkaProducerEditor(project: Project,
       setDisposedWith(this@KafkaProducerEditor)
     }
   }
+
+  private var keySchemaValidationError: Throwable? = null
+  private var valueSchemaValidationError: Throwable? = null
 
   private val keyField = JBTextField().apply { emptyText.text = "Optional" }.withValidator(this, ::validateKey)
   private val valueField = JBTextField().apply { emptyText.text = "Optional" }.withValidator(this, ::validateValue)
@@ -252,10 +255,25 @@ class KafkaProducerEditor(project: Project,
         val selectedTopicName = topic.name
 
         executeNotOnEdt {
-          try {
-            val key = ProducerField(keyComboBox.item!!, getKey(), keyStrategyComboBox.item, getSchemaFor(isKey = true))
-            val value = ProducerField(valueComboBox.item!!, getValue(), valueStrategyComboBox.item, getSchemaFor(isKey = false))
+          keySchemaValidationError = null
+          val key = try {
+            ProducerField(keyComboBox.item, getKey(), keyStrategyComboBox.item, getSchemaFor(isKey = true))
+          }
+          catch (t: Throwable) {
+            keySchemaValidationError = t
+            null
+          }
 
+          valueSchemaValidationError = null
+          val value = try {
+            ProducerField(valueComboBox.item, getValue(), valueStrategyComboBox.item, getSchemaFor(isKey = false))
+          }
+          catch (t: Throwable) {
+            valueSchemaValidationError = t
+            null
+          }
+
+          if (key != null && value != null) {
             val result = producerClient.sentMessage(selectedTopicName,
                                                     key,
                                                     value,
@@ -268,11 +286,18 @@ class KafkaProducerEditor(project: Project,
               outputModel.addElement(result)
             }
           }
-          catch (t: Throwable) {
-            invokeLater {
-              RfsNotificationUtils.showExceptionMessage(project, t, title = KafkaMessagesBundle.message("kafka.producer.error"))
-            }
-          }
+
+          keyField.revalidateComponent()
+          valueField.revalidateComponent()
+          keyJsonField.revalidateComponent()
+          valueJsonField.revalidateComponent()
+
+          //}
+          //catch (t: Throwable) {
+          //  invokeLater {
+          //    RfsNotificationUtils.showExceptionMessage(project, t, title = KafkaMessagesBundle.message("kafka.producer.error"))
+          //  }
+          //}
         }
 
         KafkaUsagesCollector.producedKeyValue.log(project, keyComboBox.item, valueComboBox.item)
@@ -361,7 +386,13 @@ class KafkaProducerEditor(project: Project,
     val fieldType = if (isKey) keyComboBox.item else valueComboBox.item
     val suffix = if (isKey) "key" else "value"
     val strategy = if (isKey) keyStrategyComboBox.item else valueStrategyComboBox.item
-    val subject = if (isKey) keySubjectComboBox.item.name else valueSubjectComboBox.item.name
+    val subject = if (strategy == KafkaRegistryStrategy.TOPIC_NAME) {
+      topicComboBox.item.name
+    }
+    else {
+      if (isKey) keySubjectComboBox.item.name else valueSubjectComboBox.item.name
+    }
+
     if (fieldType !in FieldType.registryValues)
       return null
 
@@ -396,6 +427,9 @@ class KafkaProducerEditor(project: Project,
 
     keyField.isVisible = false
     valueField.isVisible = false
+
+    keySchemaValidationError = null
+    valueSchemaValidationError = null
 
     when (keyComboBox.item!!) {
       FieldType.JSON -> keyJsonField.isVisible = true
@@ -449,10 +483,16 @@ class KafkaProducerEditor(project: Project,
   }
 
   @Suppress("UNUSED_PARAMETER")
-  private fun validateKey(text: String): String? = validate(keyComboBox.item, getKey())
+  private fun validateKey(text: String): String? {
+    if (keySchemaValidationError != null) return keySchemaValidationError?.toPresentableText()
+    return validate(keyComboBox.item, getKey())
+  }
 
   @Suppress("UNUSED_PARAMETER")
-  private fun validateValue(text: String): String? = validate(valueComboBox.item, getValue())
+  private fun validateValue(text: String): String? {
+    if (valueSchemaValidationError != null) return valueSchemaValidationError?.toPresentableText()
+    return validate(valueComboBox.item, getValue())
+  }
 
   private fun validate(type: FieldType, value: String): String? {
     return when (type) {
