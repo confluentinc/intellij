@@ -11,7 +11,7 @@ import com.jetbrains.bigdatatools.common.monitoring.data.model.RemoteInfo
 import com.jetbrains.bigdatatools.common.rfs.driver.manager.DriverManager
 import com.jetbrains.bigdatatools.common.rfs.util.RfsNotificationUtils
 import com.jetbrains.bigdatatools.common.util.executeOnPooledThread
-import com.jetbrains.bigdatatools.common.util.withCatchNotifyError
+import com.jetbrains.bigdatatools.common.util.withCatchNotifyErrorDialog
 import com.jetbrains.bigdatatools.kafka.client.KafkaClient
 import com.jetbrains.bigdatatools.kafka.consumer.editor.KafkaConsumerPanelStorage
 import com.jetbrains.bigdatatools.kafka.model.*
@@ -204,7 +204,6 @@ class KafkaDataManager(project: Project?,
     return dataModel
   }
 
-
   fun getRegistrySchemaVersionsModel(id: Int): ObjectDataModel<SchemaRegistryInfo> {
     schemaVersionsModels[id]?.let {
       return it
@@ -252,7 +251,7 @@ class KafkaDataManager(project: Project?,
   }
 
   fun deleteRegistrySchemaVersion(registryInfo: SchemaRegistryInfo, isPermanent: Boolean = false) = executeOnPooledThread {
-    withCatchNotifyError {
+    withCatchNotifyErrorDialog {
       val name = registryInfo.name
       registryClient?.deleteSchemaVersion(name, registryInfo.version.toString(), isPermanent)
 
@@ -263,8 +262,8 @@ class KafkaDataManager(project: Project?,
     }
   }
 
-  fun deleteRegistrySchema(name: String, isPermanent: Boolean) = executeOnPooledThread {
-    withCatchNotifyError {
+  private fun deleteRegistrySchema(name: String, isPermanent: Boolean) = executeOnPooledThread {
+    withCatchNotifyErrorDialog {
       registryClient?.deleteSubject(name, isPermanent)
       registrySchemaModel?.let { autoUpdaterManager.reloadAsync(it) }
     }
@@ -275,7 +274,7 @@ class KafkaDataManager(project: Project?,
   }
 
   fun createRegistrySubject(schemaName: String, parsedSchema: ParsedSchema) = executeOnPooledThread {
-    withCatchNotifyError {
+    withCatchNotifyErrorDialog {
       registryClient?.register(schemaName, parsedSchema)
       registrySchemaModel?.let { autoUpdaterManager.reloadAsync(it) }
     }
@@ -283,8 +282,8 @@ class KafkaDataManager(project: Project?,
 
   fun updateSchema(registryInfo: SchemaRegistryInfo,
                    newText: @NlsSafe String) = executeOnPooledThread {
-    withCatchNotifyError {
-      val registryClient = registryClient ?: return@withCatchNotifyError
+    withCatchNotifyErrorDialog {
+      val registryClient = registryClient ?: return@withCatchNotifyErrorDialog
       val parsedSchema = KafkaRegistryUtil.validateSchema(registryInfo, newText)
       registryClient.register(registryInfo.name, parsedSchema)
 
