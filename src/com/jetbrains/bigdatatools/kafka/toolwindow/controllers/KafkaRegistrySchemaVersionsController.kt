@@ -20,8 +20,7 @@ import javax.swing.ListSelectionModel
 class KafkaRegistrySchemaVersionsController(private val project: Project,
                                             private val dataManager: KafkaDataManager) : DetailsTableMonitoringController<SchemaRegistryInfo>() {
 
-  private val deleteSchema = object : DumbAwareAction(KafkaMessagesBundle.message("action.remove.version.title"),
-                                                      null,
+  private val deleteSchema = object : DumbAwareAction(KafkaMessagesBundle.message("action.remove.version.title"), null,
                                                       AllIcons.General.Remove) {
     override fun actionPerformed(e: AnActionEvent) {
       val registryInfo = getSelectedItem() ?: return
@@ -69,14 +68,14 @@ class KafkaRegistrySchemaVersionsController(private val project: Project,
     override fun actionPerformed(e: AnActionEvent) {
 
       if (dataTable.selectedRows.size != 2) {
-        Messages.showInfoMessage(project, "Two schema should be selected to compare", "")
+        Messages.showInfoMessage(project, KafkaMessagesBundle.message("action.diff.select.two.message"), "")
         return
       }
 
       val firstSchema = dataTable.tableModel.getInfoAt(dataTable.convertRowIndexToModel(dataTable.selectedRows[0])) ?: return
       val secondSchema = dataTable.tableModel.getInfoAt(dataTable.convertRowIndexToModel(dataTable.selectedRows[1])) ?: return
 
-      KafkaRegistrySchemaInfoDialog.showDiff(project, firstSchema, secondSchema)
+      KafkaRegistrySchemaInfoDialog.showDiff(KafkaMessagesBundle.message("diff.dialog.title"), project, firstSchema, secondSchema)
     }
 
     override fun update(e: AnActionEvent) {
@@ -89,12 +88,6 @@ class KafkaRegistrySchemaVersionsController(private val project: Project,
   init {
     init()
     dataTable.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION)
-
-
-    //val schemaColumn = dataTable.columnModel.columns.asSequence().firstOrNull { it.headerValue == "Schema" }
-    //if (schemaColumn != null) {
-    //  PreviewableTextRenderer.installOnColumn(dataTable, schemaColumn)
-    //}
   }
 
   override fun getAdditionalActions(): List<AnAction> = listOf(deleteSchema, viewSchema, showDiff)

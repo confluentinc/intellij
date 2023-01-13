@@ -11,6 +11,7 @@ import com.jetbrains.bigdatatools.common.monitoring.data.model.RemoteInfo
 import com.jetbrains.bigdatatools.common.rfs.driver.manager.DriverManager
 import com.jetbrains.bigdatatools.common.rfs.util.RfsNotificationUtils
 import com.jetbrains.bigdatatools.common.util.executeOnPooledThread
+import com.jetbrains.bigdatatools.common.util.runAsync
 import com.jetbrains.bigdatatools.common.util.withCatchNotifyErrorDialog
 import com.jetbrains.bigdatatools.kafka.client.KafkaClient
 import com.jetbrains.bigdatatools.kafka.consumer.editor.KafkaConsumerPanelStorage
@@ -273,25 +274,20 @@ class KafkaDataManager(project: Project?,
     deleteRegistrySchema(registryInfo.name, isPermanent)
   }
 
-  fun createRegistrySubject(schemaName: String, parsedSchema: ParsedSchema) = executeOnPooledThread {
-    withCatchNotifyErrorDialog {
-      registryClient?.register(schemaName, parsedSchema)
-      registrySchemaModel?.let { autoUpdaterManager.reloadAsync(it) }
-    }
+  fun createRegistrySubject(schemaName: String, parsedSchema: ParsedSchema) = runAsync {
+    registryClient?.register(schemaName, parsedSchema)
+    registrySchemaModel?.let { autoUpdaterManager.reloadAsync(it) }
   }
 
-  fun updateSchema(registryInfo: SchemaRegistryInfo,
-                   newText: @NlsSafe String) = executeOnPooledThread {
-    withCatchNotifyErrorDialog {
-      val registryClient = registryClient ?: return@withCatchNotifyErrorDialog
-      val parsedSchema = KafkaRegistryUtil.validateSchema(registryInfo, newText)
-      registryClient.register(registryInfo.name, parsedSchema)
+  fun updateSchema(registryInfo: SchemaRegistryInfo, newText: @NlsSafe String) = runAsync {
+    val registryClient = registryClient ?: return@runAsync
+    val parsedSchema = KafkaRegistryUtil.validateSchema(registryInfo, newText)
+    registryClient.register(registryInfo.name, parsedSchema)
 
-      registrySchemaModel?.let {
-        autoUpdaterManager.reloadAsync(it)
-      }
-      autoUpdaterManager.reloadAsync(getRegistrySchemaVersionsModel(registryInfo.id))
+    registrySchemaModel?.let {
+      autoUpdaterManager.reloadAsync(it)
     }
+    autoUpdaterManager.reloadAsync(getRegistrySchemaVersionsModel(registryInfo.id))
   }
 
   fun getRegistrySchema(subjectName: String) = registrySchemaModel?.data?.firstOrNull { it.name == subjectName }

@@ -30,7 +30,7 @@ class KafkaRegistrySchemaFieldsController(private val project: Project,
     override fun actionPerformed(e: AnActionEvent) {
       val registryInfo = selectedId?.let { dataManager.getSchemaInfo(it.toInt()) } ?: return
 
-      KafkaRegistrySchemaInfoDialog.showDiff(project, registryInfo) { newText ->
+      KafkaRegistrySchemaInfoDialog.showDiff(KafkaMessagesBundle.message("update.dialog.title"), project, registryInfo) { newText ->
         dataManager.updateSchema(registryInfo, newText)
       }
     }

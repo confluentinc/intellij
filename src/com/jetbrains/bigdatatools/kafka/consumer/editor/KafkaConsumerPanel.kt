@@ -239,17 +239,16 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
       title(KafkaMessagesBundle.message("settings.title.format"))
       gapLeft = true
       row(KafkaMessagesBundle.message("settings.format.key"), key.typeComboBox)
-      row(key.registryType)
-      row(key.subjectComboBox)
-      row(key.schemaIdField)
-      row(key.schemaJsonField)
+      add(key.registryType)
+      add(key.subjectComboBox, UiUtil.wrap)
+      add(key.schemaIdField, UiUtil.wrap)
+      block(key.schemaJsonField)
 
       row(KafkaMessagesBundle.message("settings.format.value"), value.typeComboBox)
-      row(value.registryType)
-      row(value.subjectComboBox)
-      row(value.schemaIdField)
-      row(value.schemaJsonField)
-
+      add(value.registryType)
+      add(value.subjectComboBox, UiUtil.wrap)
+      add(value.schemaIdField, UiUtil.wrap)
+      block(value.schemaJsonField)
 
       title(KafkaMessagesBundle.message("settings.title.range.filters"))
       row(KafkaMessagesBundle.message("settings.filters.from"), startFromComboBox)

@@ -1,5 +1,6 @@
 package com.jetbrains.bigdatatools.kafka.registry
 
+import com.intellij.openapi.application.runInEdt
 import com.intellij.openapi.observable.properties.AtomicBooleanProperty
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.ComboBox
@@ -30,7 +31,7 @@ import javax.swing.JTextField
  * - check conductor ui, maybe we need change comboboxes to radioboxes and remove or rewrite some fields
  */
 class KafkaRegistryAddSchemaDialog(private val project: Project,
-                                   val dataManager: KafkaDataManager) : DialogWrapper(project, true, IdeModalityType.PROJECT) {
+                                   val dataManager: KafkaDataManager) : DialogWrapper(project, false, IdeModalityType.MODELESS) {
   private val formatCombobox = ComboBox(KafkaRegistryFormat.values()).apply {
     renderer = CustomListCellRenderer<KafkaRegistryFormat> { it.presentable }
     addItemListener {
@@ -82,15 +83,6 @@ class KafkaRegistryAddSchemaDialog(private val project: Project,
   // Error will be shown only after user first time tries to save schema.
   private var okButtonPressed = false
 
-  //= JLabel().apply {
-  //  isOpaque = true
-  //  isEnabled = false
-  //  isVisible = false
-  //  verticalTextPosition = SwingConstants.TOP
-  //  border = JBUI.Borders.empty(10, 15, 15, 15)
-  //  background = LightColors.RED
-  //}
-
   private val panel = panel {
     row(KafkaMessagesBundle.message("schema.registry.add.schema.dialog.field.format")) { cell(formatCombobox) }
     row(KafkaMessagesBundle.message("schema.registry.add.schema.dialog.field.strategy")) { cell(strategyCombobox) }
@@ -100,7 +92,7 @@ class KafkaRegistryAddSchemaDialog(private val project: Project,
     row(KafkaMessagesBundle.message("schema.registry.add.schema.dialog.field.record")) { cell(recordField) }.visibleIf(recordFieldVisible)
     row(subjectNameLabel) { cell(subjectNameField) }
     row { cell(textScrollPane).align(Align.FILL).resizableColumn() }.resizableRow()
-    row { /*cell(errorLabel).align(Align.FILL).resizableColumn() */ errorLabel = comment("").component }
+    row { errorLabel = comment("").component }
   }
 
   init {
@@ -126,12 +118,8 @@ class KafkaRegistryAddSchemaDialog(private val project: Project,
 
   override fun getDimensionServiceKey() = "com.jetbrains.bigdatatools.common.ui.add.kafka.registry.dialog.bounds"
 
-  fun getSchemaName(): String = subjectNameField.text
-  fun getParsedSchema(): ParsedSchema = KafkaRegistryUtil.parseSchema(getFormat(), jsonTextArea.text)
-
-  //override fun isOKActionEnabled(): Boolean {
-  //  return cachedNotificationError == null
-  //}
+  private fun getSchemaName(): String = subjectNameField.text
+  private fun getParsedSchema(): ParsedSchema = KafkaRegistryUtil.parseSchema(getFormat(), jsonTextArea.text)
 
   private fun onChangeFormat() {
     jsonTextArea = createEditor(project, formatCombobox.item != KafkaRegistryFormat.PROTOBUF)
@@ -211,14 +199,12 @@ class KafkaRegistryAddSchemaDialog(private val project: Project,
       cachedParsedSchema = getParsedSchema()
       isOKActionEnabled = true
       errorLabel.isVisible = false
-      //cachedNotificationError = null
     }
     catch (t: Throwable) {
       cachedParsedSchema = null
-      //cachedNotificationError = t
       isOKActionEnabled = false
       errorLabel.isVisible = true
-      errorLabel.text = t.toPresentableText() //"<html>${t.toPresentableText()}</html>"
+      errorLabel.text = t.toPresentableText()
     }
   }
 
@@ -229,8 +215,24 @@ class KafkaRegistryAddSchemaDialog(private val project: Project,
     }
 
     if (okAction.isEnabled) {
-      applyFields()
-      close(OK_EXIT_CODE)
+      val schemaName = getSchemaName()
+      val parsedSchema = try {
+        getParsedSchema()
+      }
+      catch (t: Throwable) {
+        return
+      }
+
+      dataManager.createRegistrySubject(schemaName, parsedSchema).onError {
+        runInEdt {
+          errorLabel.text = it.message
+          errorLabel.isVisible = true
+        }
+      }.onSuccess {
+        runInEdt {
+          close(OK_EXIT_CODE)
+        }
+      }
     }
   }
 }

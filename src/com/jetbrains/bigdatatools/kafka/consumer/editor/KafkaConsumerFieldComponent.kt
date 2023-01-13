@@ -28,7 +28,7 @@ class KafkaConsumerFieldComponent(private val consumerPanel: KafkaConsumerPanel,
   }
 
   val subjectComboBox = KafkaEditorUtils.createSubjectComboBox(consumerPanel, consumerPanel.kafkaManager)
-  val schemaIdField = JBTextField()
+  val schemaIdField = JBTextField(15)
 
   val schemaJsonField: EditorTextField by lazy {
     KafkaEditorUtils.createJsonTextArea(consumerPanel.project).apply {

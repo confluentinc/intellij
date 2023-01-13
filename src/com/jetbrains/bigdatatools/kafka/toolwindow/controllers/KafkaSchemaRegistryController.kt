@@ -39,18 +39,18 @@ class KafkaSchemaRegistryController(project: Project,
   private val addSchema = object : DumbAwareAction(KafkaMessagesBundle.message("action.add.schema.title"), null,
                                                    AllIcons.General.Add) {
     override fun actionPerformed(e: AnActionEvent) {
-      val dialog = KafkaRegistryAddSchemaDialog(project, dataManager)
-      if (!dialog.showAndGet())
-        return
-      val schemaName = dialog.getSchemaName()
-      val parsedSchema = try {
-        dialog.getParsedSchema()
-      }
-      catch (t: Throwable) {
-        return
-      }
-
-      dataManager.createRegistrySubject(schemaName, parsedSchema)
+      KafkaRegistryAddSchemaDialog(project, dataManager).show()
+      //if (!dialog.showAndGet())
+      //  return
+      //val schemaName = dialog.getSchemaName()
+      //val parsedSchema = try {
+      //  dialog.getParsedSchema()
+      //}
+      //catch (t: Throwable) {
+      //  return
+      //}
+      //
+      //dataManager.createRegistrySubject(schemaName, parsedSchema)
     }
 
     override fun getActionUpdateThread() = ActionUpdateThread.BGT
@@ -94,22 +94,22 @@ class KafkaSchemaRegistryController(project: Project,
     override fun actionPerformed(e: AnActionEvent) {
       val registryInfo = getSelectedItem() ?: return
 
-      val dialog = KafkaRegistryAddSchemaDialog(project, dataManager).apply {
+      KafkaRegistryAddSchemaDialog(project, dataManager).apply {
         applyRegistryInfo(registryInfo)
-      }
-
-      if (!dialog.showAndGet())
-        return
-
-      val schemaName = dialog.getSchemaName()
-      val parsedSchema = try {
-        dialog.getParsedSchema()
-      }
-      catch (t: Throwable) {
-        return
-      }
-
-      dataManager.createRegistrySubject(schemaName, parsedSchema)
+      }.show()
+      //
+      //if (!dialog.showAndGet())
+      //  return
+      //
+      //val schemaName = dialog.getSchemaName()
+      //val parsedSchema = try {
+      //  dialog.getParsedSchema()
+      //}
+      //catch (t: Throwable) {
+      //  return
+      //}
+      //
+      //dataManager.createRegistrySubject(schemaName, parsedSchema)
     }
 
     override fun update(e: AnActionEvent) {
