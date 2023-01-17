@@ -30,7 +30,6 @@ import org.apache.kafka.clients.consumer.ConsumerRecord
 import java.awt.Component
 import java.awt.Container
 import java.awt.Dimension
-import java.awt.event.ItemEvent
 import java.nio.charset.StandardCharsets
 import java.util.*
 import javax.swing.*
@@ -140,20 +139,16 @@ class ConsumerRecordDetails(project: Project, parentDisposable: Disposable) {
       setDisposedWith(parentDisposable)
     }
 
-    keyViewerType.addItemListener { e ->
-      if (e.stateChange == ItemEvent.SELECTED) {
-        updateFieldEditor(keyFieldText, keyFieldJson, keyType, keyViewerType.item)
-        updateField(keyFieldText, keyFieldJson, keyViewerType.item, keyType, record?.key())
-        component.revalidate()
-      }
+    keyViewerType.addActionListener { e ->
+      updateFieldEditor(keyFieldText, keyFieldJson, keyType, keyViewerType.item)
+      updateField(keyFieldText, keyFieldJson, keyViewerType.item, keyType, record?.key())
+      component.revalidate()
     }
 
-    valueViewerType.addItemListener { e ->
-      if (e.stateChange == ItemEvent.SELECTED) {
-        updateFieldEditor(valueFieldText, valueFieldJson, valueType, valueViewerType.item)
-        updateField(valueFieldText, valueFieldJson, valueViewerType.item, valueType, record?.value())
-        component.revalidate()
-      }
+    valueViewerType.addActionListener { e ->
+      updateFieldEditor(valueFieldText, valueFieldJson, valueType, valueViewerType.item)
+      updateField(valueFieldText, valueFieldJson, valueViewerType.item, valueType, record?.value())
+      component.revalidate()
     }
   }
 

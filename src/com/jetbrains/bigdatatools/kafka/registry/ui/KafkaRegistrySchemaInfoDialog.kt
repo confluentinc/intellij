@@ -9,6 +9,7 @@ import com.intellij.openapi.application.runInEdt
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.DialogBuilder
 import com.intellij.openapi.ui.DialogWrapper
+import com.intellij.openapi.util.NlsContexts
 import com.intellij.protobuf.lang.PbFileType
 import com.intellij.ui.dsl.builder.panel
 import com.jetbrains.bigdatatools.kafka.model.SchemaRegistryInfo
@@ -26,17 +27,14 @@ object KafkaRegistrySchemaInfoDialog {
 
     val dialogWrapper = DialogBuilder(project)
     dialogWrapper.title(KafkaMessagesBundle.message("registry.info.dialog.title", registryInfo.name))
-    dialogWrapper.centerPanel(KafkaRegistrySchemaEditor.createEditor(project, isJson).apply {
-      setDisposedWith(dialogWrapper)
-      text = schema
-      document.setReadOnly(true)
-      setCaretPosition(0)
-    }).addOkAction()
+    dialogWrapper.centerPanel(KafkaRegistrySchemaEditor(project).apply {
+      setText(schema, isJson)
+    }.component).addOkAction()
     dialogWrapper.show()
   }
 
-  // Sutable for bot
-  fun showDiff(title: String, project: Project, registryInfoFirst: SchemaRegistryInfo,
+  // Suitable for both "Diff between schema versions" and "Update schema".
+  fun showDiff(@NlsContexts.DialogTitle title: String, project: Project, registryInfoFirst: SchemaRegistryInfo,
                registryInfoSecond: SchemaRegistryInfo, onApply: ((String) -> Promise<Unit>)? = null) {
 
     val isJson = KafkaRegistryFormat.valueOf(registryInfoFirst.type) != KafkaRegistryFormat.PROTOBUF
@@ -95,7 +93,10 @@ object KafkaRegistrySchemaInfoDialog {
     dialogWrapper.show()
   }
 
-  fun showDiff(title: String, project: Project, registryInfo: SchemaRegistryInfo, onApply: ((String) -> Promise<Unit>)? = null) {
+  fun showDiff(@NlsContexts.DialogTitle title: String,
+               project: Project,
+               registryInfo: SchemaRegistryInfo,
+               onApply: ((String) -> Promise<Unit>)? = null) {
     showDiff(title, project, registryInfo, registryInfo, onApply)
   }
 }

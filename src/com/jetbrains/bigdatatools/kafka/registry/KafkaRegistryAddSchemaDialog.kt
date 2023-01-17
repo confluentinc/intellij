@@ -9,7 +9,6 @@ import com.intellij.ui.components.JBLabel
 import com.intellij.ui.dsl.builder.Align
 import com.intellij.ui.dsl.builder.panel
 import com.jetbrains.bigdatatools.common.ui.CustomListCellRenderer
-import com.jetbrains.bigdatatools.common.ui.doOnChange
 import com.jetbrains.bigdatatools.common.util.toPresentableText
 import com.jetbrains.bigdatatools.kafka.common.editor.KafkaEditorUtils
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
@@ -17,44 +16,36 @@ import com.jetbrains.bigdatatools.kafka.model.SchemaRegistryInfo
 import com.jetbrains.bigdatatools.kafka.registry.ui.KafkaRegistrySchemaEditor
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import io.confluent.kafka.schemaregistry.ParsedSchema
-import java.awt.BorderLayout
 import javax.swing.JComponent
 import javax.swing.JEditorPane
-import javax.swing.JPanel
 import javax.swing.JTextField
 
-/**
- * TODO: @nikita.pavlenko
- * - add more pretty validation message place
- * - rewrite validation logic if reqired, seems that parse new cache values perform after validation
- * - disable ok if schema is not parsed
- * - check conductor ui, maybe we need change comboboxes to radioboxes and remove or rewrite some fields
- */
-class KafkaRegistryAddSchemaDialog(private val project: Project,
-                                   val dataManager: KafkaDataManager) : DialogWrapper(project, false, IdeModalityType.MODELESS) {
+class KafkaRegistryAddSchemaDialog(project: Project, val dataManager: KafkaDataManager) :
+  DialogWrapper(project, false, IdeModalityType.MODELESS) {
+
   private val formatCombobox = ComboBox(KafkaRegistryFormat.values()).apply {
     renderer = CustomListCellRenderer<KafkaRegistryFormat> { it.presentable }
-    addItemListener {
+    addActionListener {
       onChangeFormat()
     }
   }
 
   private val strategyCombobox = ComboBox(KafkaRegistryStrategy.values()).apply {
     renderer = CustomListCellRenderer<KafkaRegistryStrategy> { it.presentable }
-    addItemListener {
+    addActionListener {
       onChangeStrategy()
     }
   }
 
   private val keyValueCombobox = ComboBox(KafkaRegistryKeyValue.values()).apply {
     renderer = CustomListCellRenderer<KafkaRegistryKeyValue> { it.presentable }
-    addItemListener {
+    addActionListener {
       onChangeStrategy()
     }
   }
 
   private val topicField = KafkaEditorUtils.createTopicComboBox(disposable, dataManager).also {
-    it.addItemListener {
+    it.addActionListener {
       onChangeStrategy()
     }
   }
@@ -73,10 +64,7 @@ class KafkaRegistryAddSchemaDialog(private val project: Project,
   private val recordFieldVisible = AtomicBooleanProperty(false)
 
   // In case of proto - ProtoBaseLanguage
-  private var jsonTextArea = createEditor(project, true)
-  private val textScrollPane = JPanel(BorderLayout()).apply {
-    add(jsonTextArea, BorderLayout.CENTER)
-  }
+  private val textScrollPane = KafkaRegistrySchemaEditor(project)
 
   private lateinit var errorLabel: JEditorPane
 
@@ -84,14 +72,18 @@ class KafkaRegistryAddSchemaDialog(private val project: Project,
   private var okButtonPressed = false
 
   private val panel = panel {
-    row(KafkaMessagesBundle.message("schema.registry.add.schema.dialog.field.format")) { cell(formatCombobox) }
-    row(KafkaMessagesBundle.message("schema.registry.add.schema.dialog.field.strategy")) { cell(strategyCombobox) }
+    row(KafkaMessagesBundle.message("schema.registry.add.schema.dialog.field.format")) {
+      cell(formatCombobox)
+      label(KafkaMessagesBundle.message("schema.registry.add.schema.dialog.field.strategy"))
+      cell(strategyCombobox)
+    }
+
     row(KafkaMessagesBundle.message("schema.registry.add.schema.dialog.field.key.value")) { cell(keyValueCombobox) }.visibleIf(
       keyValueVisible)
     row(KafkaMessagesBundle.message("schema.registry.add.schema.dialog.field.topic")) { cell(topicField) }.visibleIf(topicFieldVisible)
     row(KafkaMessagesBundle.message("schema.registry.add.schema.dialog.field.record")) { cell(recordField) }.visibleIf(recordFieldVisible)
     row(subjectNameLabel) { cell(subjectNameField) }
-    row { cell(textScrollPane).align(Align.FILL).resizableColumn() }.resizableRow()
+    row { cell(textScrollPane.component).align(Align.FILL).resizableColumn() }.resizableRow()
     row { errorLabel = comment("").component }
   }
 
@@ -99,19 +91,13 @@ class KafkaRegistryAddSchemaDialog(private val project: Project,
     init()
     title = KafkaMessagesBundle.message("registry.add.schema.dialog.title")
     onChangeFormat()
-  }
-
-  private fun createEditor(project: Project, isJson: Boolean) = KafkaRegistrySchemaEditor.createEditor(project, isJson).apply {
-    setDisposedWith(disposable)
-  }.also {
-    it.document.doOnChange {
-      onChangeStrategy()
-    }
+    onChangeStrategy()
   }
 
   fun applyRegistryInfo(registryInfo: SchemaRegistryInfo) {
     formatCombobox.selectedItem = KafkaRegistryFormat.valueOf(registryInfo.type)
-    jsonTextArea.text = KafkaEditorUtils.toPrettyJson(registryInfo.schema)
+    textScrollPane.setText(KafkaEditorUtils.toPrettyJson(registryInfo.schema),
+                           isJson = formatCombobox.selectedItem != KafkaRegistryFormat.PROTOBUF)
   }
 
   override fun createCenterPanel(): JComponent = panel
@@ -119,18 +105,14 @@ class KafkaRegistryAddSchemaDialog(private val project: Project,
   override fun getDimensionServiceKey() = "com.jetbrains.bigdatatools.common.ui.add.kafka.registry.dialog.bounds"
 
   private fun getSchemaName(): String = subjectNameField.text
-  private fun getParsedSchema(): ParsedSchema = KafkaRegistryUtil.parseSchema(getFormat(), jsonTextArea.text)
+  private fun getParsedSchema(): ParsedSchema = KafkaRegistryUtil.parseSchema(getFormat(), textScrollPane.text)
 
   private fun onChangeFormat() {
-    jsonTextArea = createEditor(project, formatCombobox.item != KafkaRegistryFormat.PROTOBUF)
-    textScrollPane.removeAll()
-    textScrollPane.add(jsonTextArea, BorderLayout.CENTER)
-
-    val newDefault = KafkaRegistryTemplates.getDefaultIfNotConfigured(jsonTextArea.text, getFormat())
+    val newDefault = KafkaRegistryTemplates.getDefaultIfNotConfigured(textScrollPane.text, getFormat())
     newDefault?.let {
-      jsonTextArea.text = it
+      textScrollPane.setText(it,
+                             isJson = formatCombobox.selectedItem != KafkaRegistryFormat.PROTOBUF)
     }
-    onChangeStrategy()
   }
 
   private fun onChangeStrategy() {
@@ -174,10 +156,6 @@ class KafkaRegistryAddSchemaDialog(private val project: Project,
         subjectNameField.text = topicField.item?.name?.ifBlank { "<topic>" } + "-" + recordField.text?.ifBlank { "<record>" }
       }
     }
-    val newDefault = KafkaRegistryTemplates.getDefaultIfNotConfigured(jsonTextArea.text, getFormat())
-    newDefault?.let {
-      jsonTextArea.text = it
-    }
   }
 
   private fun updateRecordFieldText() {
@@ -187,8 +165,8 @@ class KafkaRegistryAddSchemaDialog(private val project: Project,
     }
   }
 
-  private fun getFormat() = (formatCombobox.selectedItem as KafkaRegistryFormat).name
-  private fun getStrategy() = (strategyCombobox.selectedItem as KafkaRegistryStrategy)
+  private fun getFormat(): String = formatCombobox.item.name
+  private fun getStrategy(): KafkaRegistryStrategy = strategyCombobox.item
 
   private fun updateParsedSchema() {
     if (!okButtonPressed) {

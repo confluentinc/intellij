@@ -5,24 +5,24 @@ import io.confluent.kafka.schemaregistry.json.JsonSchema
 import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchema
 
 object KafkaRegistryTemplates {
-  private const val avroDefault = """{
-    "type": "record",
-    "name": "MyRecord",
-    "namespace": "com.mycompany",
-    "fields" : [
-      {"name": "id", "type": "long"}
-    ]
-  }"""
+  private const val avroDefault =
+    """{
+  "type": "record",
+  "name": "MyRecord",
+  "namespace": "com.mycompany",
+  "fields" : [
+    {"name": "id", "type": "long"}
+  ]
+}"""
 
-  private val protobufSchema = """
-    syntax = "proto3";
-  
-    message MyRecord {
-      int32 id = 1;
-      string createdAt = 2;
-      string name = 3;
-    }
-  """.trimIndent()
+  private const val protobufSchema =
+    """syntax = "proto3";
+
+message MyRecord {
+  int32 id = 1;
+  string createdAt = 2;
+  string name = 3;
+}"""
 
   private const val jsonSchema = """{
   "${"$"}id": "https://mycompany.com/myrecord",

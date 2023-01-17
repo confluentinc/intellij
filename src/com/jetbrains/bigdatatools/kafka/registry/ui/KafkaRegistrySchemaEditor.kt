@@ -1,14 +1,53 @@
 package com.jetbrains.bigdatatools.kafka.registry.ui
 
+import com.intellij.json.JsonFileType
 import com.intellij.json.JsonLanguage
 import com.intellij.openapi.project.Project
+import com.intellij.protobuf.lang.PbFileType
 import com.intellij.protobuf.lang.PbLanguage
 import com.intellij.ui.EditorCustomization
+import com.intellij.ui.EditorTextField
 import com.intellij.ui.EditorTextFieldProvider
 import com.intellij.ui.MonospaceEditorCustomization
+import java.awt.BorderLayout
+import javax.swing.JPanel
 
-object KafkaRegistrySchemaEditor {
-  fun createEditor(project: Project, isJson: Boolean) = EditorTextFieldProvider.getInstance().getEditorField(
+class KafkaRegistrySchemaEditor(private val project: Project) {
+
+  val component = JPanel(BorderLayout())
+
+  var customSchemaEditor: EditorTextField? = null
+
+  val text: String
+    get() = customSchemaEditor?.text ?: ""
+
+  fun setText(text: String, isJson: Boolean) {
+    var editor = customSchemaEditor
+
+    editor = if (editor == null) {
+      val newEditor = createEditor(project, isJson)
+      component.add(newEditor, BorderLayout.CENTER)
+      newEditor
+    }
+    else {
+      if (editor.fileType == PbFileType.INSTANCE && !isJson ||
+          editor.fileType == JsonFileType.INSTANCE && isJson) {
+        editor
+      }
+      else {
+        val newEditor = createEditor(project, isJson)
+        component.removeAll()
+        component.add(newEditor, BorderLayout.CENTER)
+        newEditor
+      }
+    }
+
+    editor.text = text
+
+    customSchemaEditor = editor
+  }
+
+  private fun createEditor(project: Project, isJson: Boolean) = EditorTextFieldProvider.getInstance().getEditorField(
     if (isJson) JsonLanguage.INSTANCE else PbLanguage.INSTANCE, project, listOf(
     EditorCustomization {
       it.settings.apply {

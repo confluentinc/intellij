@@ -26,7 +26,6 @@ import com.intellij.ui.components.JBTextField
 import com.intellij.ui.components.fields.IntegerField
 import com.intellij.ui.dsl.builder.AlignX
 import com.intellij.ui.dsl.builder.panel
-import com.jetbrains.bigdatatools.common.settings.defaultui.UiUtil
 import com.jetbrains.bigdatatools.common.settings.getValidationInfo
 import com.jetbrains.bigdatatools.common.settings.revalidateComponent
 import com.jetbrains.bigdatatools.common.settings.withValidator
@@ -39,7 +38,6 @@ import com.jetbrains.bigdatatools.common.table.renderers.DateRenderer
 import com.jetbrains.bigdatatools.common.table.renderers.DurationRenderer
 import com.jetbrains.bigdatatools.common.ui.CustomListCellRenderer
 import com.jetbrains.bigdatatools.common.ui.ExpansionPanel
-import com.jetbrains.bigdatatools.common.ui.MigPanel
 import com.jetbrains.bigdatatools.common.ui.SimpleDumbAwareAction
 import com.jetbrains.bigdatatools.common.util.executeNotOnEdt
 import com.jetbrains.bigdatatools.common.util.invokeLater
@@ -66,6 +64,7 @@ import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import io.confluent.kafka.schemaregistry.ParsedSchema
 import java.awt.BorderLayout
 import java.awt.Dimension
+import java.awt.FlowLayout
 import java.beans.PropertyChangeListener
 import java.util.*
 import javax.swing.*
@@ -121,20 +120,20 @@ class KafkaProducerEditor(project: Project,
   private val keyComboBox = createFieldTypeComboBox(keyJsonField, keyField)
   private val valueComboBox = createFieldTypeComboBox(valueJsonField, valueField)
 
-  private val keyStrategyComboBox = createStrategyComboBox().also {
-    it.addItemListener {
+  private val keyStrategyComboBox = createStrategyComboBox().apply {
+    addActionListener {
       updateVisibilityOfRegistrySubject()
     }
   }
 
-  private val valueStrategyComboBox = createStrategyComboBox().also {
-    it.addItemListener {
+  private val valueStrategyComboBox = createStrategyComboBox().apply {
+    addActionListener {
       updateVisibilityOfRegistrySubject()
     }
   }
 
-  private val keySubjectComboBox = KafkaEditorUtils.createSubjectComboBox(this, kafkaManager)
-  private val valueSubjectComboBox = KafkaEditorUtils.createSubjectComboBox(this, kafkaManager)
+  private val keySubjectComboBox = KafkaEditorUtils.createSubjectComboBox(this, kafkaManager).apply { isVisible = false }
+  private val valueSubjectComboBox = KafkaEditorUtils.createSubjectComboBox(this, kafkaManager).apply { isVisible = false }
 
   private val forcePartitionField = IntegerField().apply {
     isCanBeEmpty = true
@@ -210,12 +209,16 @@ class KafkaProducerEditor(project: Project,
       row(KafkaMessagesBundle.message("producer.topics")) { cell(topicComboBox).align(AlignX.FILL).resizableColumn() }
 
       row(KafkaMessagesBundle.message("producer.key")) { cell(keyComboBox) }
-      row { cell(keyStrategyComboBox);cell(keySubjectComboBox).align(AlignX.FILL).resizableColumn() }
+      indent {
+        row { cell(keyStrategyComboBox);cell(keySubjectComboBox).align(AlignX.FILL).resizableColumn() }
+      }
       row { cell(keyJsonField).align(AlignX.FILL).resizableColumn() }
       row { cell(keyField).align(AlignX.FILL).resizableColumn() }
 
       row(KafkaMessagesBundle.message("producer.value")) { cell(valueComboBox) }
-      row { cell(valueStrategyComboBox); cell(valueSubjectComboBox).align(AlignX.FILL).resizableColumn() }
+      indent {
+        row { cell(valueStrategyComboBox); cell(valueSubjectComboBox).align(AlignX.FILL).resizableColumn() }
+      }
       row { cell(valueJsonField).align(AlignX.FILL).resizableColumn() }
       row { cell(valueField).align(AlignX.FILL).resizableColumn() }
 
@@ -229,6 +232,8 @@ class KafkaProducerEditor(project: Project,
         row(KafkaMessagesBundle.message("producer.asks")) { cell(acksComboBox).align(AlignX.FILL).resizableColumn() }
       }
     }
+
+    panel.border = BorderFactory.createEmptyBorder(0, 10, 0, 0)
 
     val scroll = JBScrollPane(panel, JScrollPane.VERTICAL_SCROLLBAR_ALWAYS, JScrollPane.HORIZONTAL_SCROLLBAR_NEVER).apply {
       minimumSize = Dimension(panel.minimumSize.width, minimumSize.height)
@@ -291,20 +296,13 @@ class KafkaProducerEditor(project: Project,
           valueField.revalidateComponent()
           keyJsonField.revalidateComponent()
           valueJsonField.revalidateComponent()
-
-          //}
-          //catch (t: Throwable) {
-          //  invokeLater {
-          //    RfsNotificationUtils.showExceptionMessage(project, t, title = KafkaMessagesBundle.message("kafka.producer.error"))
-          //  }
-          //}
         }
 
         KafkaUsagesCollector.producedKeyValue.log(project, keyComboBox.item, valueComboBox.item)
       }
     }
 
-    val bottomPanel = MigPanel(UiUtil.insets10FillXHidemode3).apply {
+    val bottomPanel = JPanel(FlowLayout(FlowLayout.LEFT)).apply {
       border = IdeBorderFactory.createBorder(SideBorder.TOP)
       add(produceButton)
     }
@@ -466,7 +464,7 @@ class KafkaProducerEditor(project: Project,
     ComboBox(FieldType.values()).apply {
       renderer = CustomListCellRenderer<FieldType> { it.title }
       selectedItem = FieldType.STRING
-      addItemListener {
+      addActionListener {
         updateVisibility()
         jsonField.revalidateComponent()
         field.revalidateComponent()
@@ -477,7 +475,7 @@ class KafkaProducerEditor(project: Project,
   private fun createStrategyComboBox() = ComboBox(KafkaRegistryStrategy.producerOptions).apply {
     renderer = CustomListCellRenderer<KafkaRegistryStrategy> { it.presentable }
     selectedItem = KafkaRegistryStrategy.TOPIC_NAME
-    addItemListener {
+    addActionListener {
       updateVisibility()
     }
   }

@@ -6,6 +6,7 @@ import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.*
 import com.intellij.openapi.application.invokeAndWaitIfNeeded
 import com.intellij.openapi.application.invokeLater
+import com.intellij.openapi.observable.properties.AtomicBooleanProperty
 import com.intellij.openapi.project.DumbAwareToggleAction
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.ComboBox
@@ -21,8 +22,10 @@ import com.intellij.ui.SideBorder
 import com.intellij.ui.components.ActionLink
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.components.JBTextField
+import com.intellij.ui.dsl.builder.Align
+import com.intellij.ui.dsl.builder.AlignX
+import com.intellij.ui.dsl.builder.panel
 import com.jetbrains.bigdatatools.common.rfs.util.RfsNotificationUtils
-import com.jetbrains.bigdatatools.common.settings.defaultui.UiUtil
 import com.jetbrains.bigdatatools.common.table.MaterialTable
 import com.jetbrains.bigdatatools.common.table.MaterialTableUtils
 import com.jetbrains.bigdatatools.common.table.extension.TableCellPreview
@@ -44,10 +47,10 @@ import com.jetbrains.bigdatatools.kafka.consumer.models.*
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import com.michaelbaranov.microba.calendar.DatePicker
-import net.miginfocom.layout.LC
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import java.awt.BorderLayout
 import java.awt.Dimension
+import java.awt.FlowLayout
 import java.util.*
 import javax.swing.*
 import kotlin.math.max
@@ -58,18 +61,18 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
                                                                         onStop = ::onStopConsume)
   private val startSpecificDate = DatePicker()
   private val limitSpecificDate = DatePicker()
-  private val limitOffset = JBTextField()
+  private val limitOffset = JBTextField(15)
 
-  private val startOffset = JBTextField()
+  private val startOffset = JBTextField(15)
   private val startConsumerGroup = KafkaEditorUtils.createConsumerGroups(this, kafkaManager)
 
   private val startFromComboBox = ComboBox(ConsumerStartType.values()).apply {
     prototypeDisplayValue = ConsumerStartType.TODAY
     renderer = CustomListCellRenderer<ConsumerStartType> { it.title }
     item = ConsumerStartType.NOW
-    addItemListener {
+    addActionListener {
       updateStartWith()
-      storeToFile()
+      storeToUserData()
       getComponent().revalidate()
     }
   }
@@ -78,9 +81,9 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
     prototypeDisplayValue = ConsumerLimitType.DATE
     renderer = CustomListCellRenderer<ConsumerLimitType> { it.title }
     item = ConsumerLimitType.NONE
-    addItemListener {
+    addActionListener {
       updateLimit()
-      storeToFile()
+      storeToUserData()
       getComponent().revalidate()
     }
   }
@@ -89,9 +92,9 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
     prototypeDisplayValue = ConsumerFilterType.NONE
     renderer = CustomListCellRenderer<ConsumerFilterType> { it.title }
     item = ConsumerFilterType.NONE
-    addItemListener {
+    addActionListener {
       updateFilter()
-      storeToFile()
+      storeToUserData()
       getComponent().revalidate()
     }
   }
@@ -195,7 +198,7 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
             startConsume(kafkaManager.project)
           }
           updateVisibility()
-          storeToFile()
+          storeToUserData()
 
           invalidate()
           repaint()
@@ -208,11 +211,11 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
     }
   }
 
-  private val filterPanel = MigPanel().apply {
-    row(KafkaMessagesBundle.message("label.filter.key"), filterKeyField)
-    row(KafkaMessagesBundle.message("label.filter.value"), filterValueField)
-    row(KafkaMessagesBundle.message("label.filter.head.key"), filterHeadKeyField)
-    row(KafkaMessagesBundle.message("label.filter.head.value"), filterHeadValueField)
+  private val filterPanel = panel {
+    row(KafkaMessagesBundle.message("label.filter.key")) { cell(filterKeyField).align(AlignX.FILL).resizableColumn() }
+    row(KafkaMessagesBundle.message("label.filter.value")) { cell(filterValueField).align(AlignX.FILL).resizableColumn() }
+    row(KafkaMessagesBundle.message("label.filter.head.key")) { cell(filterHeadKeyField).align(AlignX.FILL).resizableColumn() }
+    row(KafkaMessagesBundle.message("label.filter.head.value")) { cell(filterHeadValueField).align(AlignX.FILL).resizableColumn() }
   }
 
   internal val detailsDelegate: Lazy<ConsumerRecordDetails> = lazy {
@@ -223,75 +226,67 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
   }
   internal val details: ConsumerRecordDetails by detailsDelegate
 
-  private lateinit var startSpecificDateBlock: MigBlock
-  private lateinit var startOffsetBlock: MigBlock
-  private lateinit var startConsumerGroupBlock: MigBlock
+  private val startSpecificDateBlock = AtomicBooleanProperty(false)
+  private val startOffsetBlock = AtomicBooleanProperty(false)
+  private val startConsumerGroupBlock = AtomicBooleanProperty(false)
 
-  private lateinit var limitSpecificDateBlock: MigBlock
-  private lateinit var limitOffsetBlock: MigBlock
-  private lateinit var filterPanelBlock: MigBlock
+  private val limitSpecificDateBlock = AtomicBooleanProperty(false)
+  private val limitOffsetBlock = AtomicBooleanProperty(false)
+  private val filterPanelBlock = AtomicBooleanProperty(false)
 
   private val settingsPanelDelegate = lazy {
-    val panel = MigPanel(LC().insets("10 10 0 0").fillX().hideMode(3)).apply {
+    val panel = panel {
+      row(KafkaMessagesBundle.message("settings.label.topics")) { cell(topicComboBox).align(AlignX.FILL).resizableColumn() }
 
-      row(KafkaMessagesBundle.message("settings.label.topics"), topicComboBox)
+      group(KafkaMessagesBundle.message("settings.title.format")) {
+        row(KafkaMessagesBundle.message("settings.format.key")) { cell(key.typeComboBox) }
+        indent {
+          row { cell(key.registryType); cell(key.subjectComboBox); cell(key.schemaIdField) }
+          row { cell(key.customSchemaPanel.component).align(Align.FILL).resizableColumn() }.resizableRow()
+        }
 
-      title(KafkaMessagesBundle.message("settings.title.format"))
-      gapLeft = true
-      row(KafkaMessagesBundle.message("settings.format.key"), key.typeComboBox)
-      add(key.registryType)
-      add(key.subjectComboBox, UiUtil.wrap)
-      add(key.schemaIdField, UiUtil.wrap)
-      block(key.schemaJsonField)
-
-      row(KafkaMessagesBundle.message("settings.format.value"), value.typeComboBox)
-      add(value.registryType)
-      add(value.subjectComboBox, UiUtil.wrap)
-      add(value.schemaIdField, UiUtil.wrap)
-      block(value.schemaJsonField)
-
-      title(KafkaMessagesBundle.message("settings.title.range.filters"))
-      row(KafkaMessagesBundle.message("settings.filters.from"), startFromComboBox)
-
-      startSpecificDateBlock = MigBlock(this).apply {
-        row(EmptyCell(), startSpecificDate)
-      }
-      startOffsetBlock = MigBlock(this).apply {
-        row(EmptyCell(), startOffset)
-      }
-      startConsumerGroupBlock = MigBlock(this).apply {
-        row(EmptyCell(), startConsumerGroup)
+        row(KafkaMessagesBundle.message("settings.format.value")) { cell(value.typeComboBox) }
+        indent {
+          row { cell(value.registryType); cell(value.subjectComboBox); cell(value.schemaIdField) }
+          row { cell(value.customSchemaPanel.component).align(Align.FILL).resizableColumn() }.resizableRow()
+        }
       }
 
-      row(KafkaMessagesBundle.message("settings.filters.limit"), limitComboBox)
-      limitSpecificDateBlock = MigBlock(this).apply {
-        row(EmptyCell(), limitSpecificDate)
+      group(KafkaMessagesBundle.message("settings.title.range.filters")) {
+        row(KafkaMessagesBundle.message("settings.filters.from")) { cell(startFromComboBox).align(AlignX.FILL).resizableColumn() }
+        indent {
+          row { cell(startSpecificDate) }.visibleIf(startSpecificDateBlock)
+          row { cell(startOffset) }.visibleIf(startOffsetBlock)
+          row { cell(startConsumerGroup) }.visibleIf(startConsumerGroupBlock)
+        }
+
+        row(KafkaMessagesBundle.message("settings.filters.limit")) { cell(limitComboBox).align(AlignX.FILL).resizableColumn() }
+        indent {
+          row { cell(limitSpecificDate) }.visibleIf(limitSpecificDateBlock)
+          row { cell(limitOffset) }.visibleIf(limitOffsetBlock)
+        }
+
+        row(KafkaMessagesBundle.message("settings.filter")) { cell(filterComboBox).align(AlignX.FILL).resizableColumn() }
+        indent {
+          row { cell(filterPanel).align(AlignX.FILL).resizableColumn() }.visibleIf(filterPanelBlock)
+        }
       }
-      limitOffsetBlock = MigBlock(this).apply {
-        row(EmptyCell(), limitOffset)
+
+      group(KafkaMessagesBundle.message("settings.title.partitions")) {
+        row(KafkaMessagesBundle.message("settings.partitions")) { cell(partitionField) }
       }
 
-      row(KafkaMessagesBundle.message("settings.filter"), filterComboBox)
-      filterPanelBlock = MigBlock(this).apply {
-        row(EmptyCell(), filterPanel)
-      }
-
-      title(KafkaMessagesBundle.message("settings.title.partitions"))
-      row(KafkaMessagesBundle.message("settings.partitions"), partitionField)
-
-      gapLeft = false
-
-      spacing()
-
-      row(advancedSettings)
+      row { cell(advancedSettings) }
     }
+
+    panel.border = BorderFactory.createEmptyBorder(0, 10, 0, 0)
 
     val scroll = JBScrollPane(panel, JScrollPane.VERTICAL_SCROLLBAR_ALWAYS, JScrollPane.HORIZONTAL_SCROLLBAR_NEVER).apply {
       minimumSize = Dimension(panel.minimumSize.width, minimumSize.height)
       border = BorderFactory.createEmptyBorder()
     }
 
-    val bottomPanel = MigPanel(UiUtil.insets10FillXHidemode3).apply {
+    val bottomPanel = JPanel(FlowLayout(FlowLayout.LEFT)).apply {
       border = IdeBorderFactory.createBorder(SideBorder.TOP)
       add(consumeButton)
     }
@@ -310,6 +305,7 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
     presets.onApply = { applyConfig(it) }
     presets
   }
+
   private val presets: ConsumerPresets by presetsDelegate
 
   private val resultsSplitter = OnePixelSplitter().apply {
@@ -419,7 +415,7 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
     updateStartWith()
     updateFilter()
 
-    storeToFile()
+    storeToUserData()
 
     outputTable.selectionModel.addListSelectionListener { event ->
       if (!event.valueIsAdjusting) {
@@ -436,7 +432,7 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
   }
 
   override fun dispose() {
-    storeToFile()
+    storeToUserData()
   }
 
   private fun startConsume(project: Project?) {
@@ -520,17 +516,17 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
                                  properties = properties,
                                  settings = settings,
 
-                                 keyRegistryType = key.registryType.item?.name ?: "",
-                                 valueRegistryType = value.registryType.item?.name ?: "",
+                                 keyRegistryType = key.registryType.item.name,
+                                 valueRegistryType = value.registryType.item.name,
 
                                  keySchemaId = key.schemaIdField.text,
                                  valueSchemaId = value.schemaIdField.text,
 
-                                 keySubject = key.subjectComboBox.item?.name ?: "",
-                                 valueSubject = value.subjectComboBox.item?.name ?: "",
+                                 keySubject = key.subjectComboBox.item.name,
+                                 valueSubject = value.subjectComboBox.item.name,
 
-                                 keyCustomSchema = key.schemaJsonField.text,
-                                 valueCustomSchema = value.schemaJsonField.text
+                                 keyCustomSchema = key.customSchemaPanel.text,
+                                 valueCustomSchema = value.customSchemaPanel.text
     )
   }
 
@@ -582,26 +578,26 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
   }
 
   private fun updateStartWith() {
-    startSpecificDateBlock.isVisible = startFromComboBox.selectedItem == ConsumerStartType.SPECIFIC_DATE
-    startOffsetBlock.isVisible = startFromComboBox.selectedItem == ConsumerStartType.OFFSET ||
-                                 startFromComboBox.selectedItem == ConsumerStartType.LATEST_OFFSET_MINUS_X
-    startConsumerGroupBlock.isVisible = startFromComboBox.selectedItem == ConsumerStartType.CONSUMER_GROUP
+    startSpecificDateBlock.set(startFromComboBox.selectedItem == ConsumerStartType.SPECIFIC_DATE)
+    startOffsetBlock.set(startFromComboBox.selectedItem == ConsumerStartType.OFFSET ||
+                         startFromComboBox.selectedItem == ConsumerStartType.LATEST_OFFSET_MINUS_X)
+    startConsumerGroupBlock.set(startFromComboBox.selectedItem == ConsumerStartType.CONSUMER_GROUP)
   }
 
   private fun updateFilter() {
-    filterPanelBlock.isVisible = filterComboBox.selectedItem != ConsumerFilterType.NONE
+    filterPanelBlock.set(filterComboBox.selectedItem != ConsumerFilterType.NONE)
   }
 
   private fun updateLimit() {
-    limitSpecificDateBlock.isVisible = false
-    limitOffsetBlock.isVisible = false
+    limitSpecificDateBlock.set(false)
+    limitOffsetBlock.set(false)
 
     when (limitComboBox.selectedItem) {
-      ConsumerLimitType.DATE -> limitSpecificDateBlock.isVisible = true
+      ConsumerLimitType.DATE -> limitSpecificDateBlock.set(true)
       ConsumerLimitType.TOPIC_NUMBER_RECORDS,
       ConsumerLimitType.PARTITION_NUMBER_RECORDS,
       ConsumerLimitType.PARTITION_MAX_SIZE,
-      ConsumerLimitType.TOPIC_MAX_SIZE -> limitOffsetBlock.isVisible = true
+      ConsumerLimitType.TOPIC_MAX_SIZE -> limitOffsetBlock.set(true)
     }
   }
 
@@ -618,7 +614,8 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
   }
 
   private var isRestoring = false
-  internal fun storeToFile() {
+
+  internal fun storeToUserData() {
     if (isRestoring)
       return
     file.putUserData(STATE_KEY, ConsumerEditorState(outputModel.elements().toList(), getRunConfig()))
