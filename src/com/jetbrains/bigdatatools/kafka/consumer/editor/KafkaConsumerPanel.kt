@@ -522,8 +522,8 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
                                  keySchemaId = key.schemaIdField.text,
                                  valueSchemaId = value.schemaIdField.text,
 
-                                 keySubject = key.subjectComboBox.item.name,
-                                 valueSubject = value.subjectComboBox.item.name,
+                                 keySubject = key.subjectComboBox.item?.name ?: "",
+                                 valueSubject = value.subjectComboBox.item?.name ?: "",
 
                                  keyCustomSchema = key.customSchemaPanel.text,
                                  valueCustomSchema = value.customSchemaPanel.text
