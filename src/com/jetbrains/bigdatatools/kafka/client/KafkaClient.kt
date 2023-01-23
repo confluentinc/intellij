@@ -52,7 +52,7 @@ class KafkaClient(project: Project?,
     Disposer.dispose(closingDisposable)
   }
 
-  override fun getRealUri(): String = kafkaProps.getProperty(SERVER_URL) ?: "<NOT_FOUND>"
+  override fun getRealUri(): String = kafkaProps.getProperty(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG) ?: "<NOT_FOUND>"
 
   override fun checkConnectionInner() {
     val kafkaAdmin = kafkaAdmin ?: error("Admin Client is not initialized")
@@ -65,12 +65,12 @@ class KafkaClient(project: Project?,
       ?.let { tunnelHandler ->
         Disposer.register(closingDisposable, tunnelHandler)
         val urlForTunnel = tunnelHandler.tunnelledUri
-        kafkaProps.setProperty(SERVER_URL, urlForTunnel)
+        kafkaProps.setProperty(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, urlForTunnel)
       }
 
     if (kafkaAdmin == null) {
       withPluginClassLoader {
-        kafkaAdmin = AdminClient.create(kafkaProps)
+        kafkaAdmin = KafkaClientBuilder.createAdminClient(kafkaProps)
       }
     }
 
@@ -207,6 +207,8 @@ class KafkaClient(project: Project?,
 
   fun createTopic(name: String, numPartition: Int?, replicationFactor: Int?) {
     val admin = kafkaAdmin ?: error("Kafka admin is not inited")
+
+    @Suppress("SSBasedInspection")
     val newTopic = NewTopic(name, Optional.ofNullable(numPartition), Optional.ofNullable(replicationFactor?.toShort()))
     val createTopics = admin.createTopics(listOf(newTopic))
     createTopics?.topicId(name)?.get()
@@ -220,6 +222,5 @@ class KafkaClient(project: Project?,
 
   companion object {
     private val logger = Logger.getInstance(this::class.java)
-    private const val SERVER_URL = "bootstrap.servers"
   }
 }
