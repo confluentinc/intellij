@@ -1,8 +1,12 @@
 package com.jetbrains.bigdatatools.kafka.settings
 
+import com.intellij.ide.DataManager
 import com.intellij.openapi.Disposable
+import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.ui.popup.JBPopupFactory
+import com.intellij.ui.components.ActionLink
 import com.jetbrains.bigdatatools.common.monitoring.TunnableSettingsCustomizer
 import com.jetbrains.bigdatatools.common.settings.ModificationKey
 import com.jetbrains.bigdatatools.common.settings.connections.ConnectionData
@@ -10,6 +14,7 @@ import com.jetbrains.bigdatatools.common.settings.fields.*
 import com.jetbrains.bigdatatools.common.settings.withNotEmptyValidator
 import com.jetbrains.bigdatatools.common.settings.withValidator
 import com.jetbrains.bigdatatools.common.ui.MigPanel
+import com.jetbrains.bigdatatools.common.ui.SimpleDumbAwareAction
 import com.jetbrains.bigdatatools.common.ui.doOnChange
 import com.jetbrains.bigdatatools.common.util.BdtUrlUtils
 import com.jetbrains.bigdatatools.common.util.MessagesBundle
@@ -43,6 +48,10 @@ class KafkaSettingsCustomizer(project: Project, connectionData: KafkaConnectionD
                                                fileChooserDescriptor = FileChooserDescriptorFactory.createSingleFileDescriptor())
 
     .withNotEmptyValidator(uiDisposable)
+
+  private val generateAction = ActionLink(MessagesBundle.message("settings.connection.properties.add.config")) {
+    generateAction()
+  }
 
   private val sourceTypeChooser = RadioGroupField(KafkaConnectionData::propertySource,
                                                   KafkaSettingsKeys.PROPERTIES_SOURCE_KEY,
@@ -86,6 +95,7 @@ class KafkaSettingsCustomizer(project: Project, connectionData: KafkaConnectionD
 
     shortRow(sourceTypeChooser)
     gapLeft = true
+    row(generateAction)
     row(propertiesEditor)
     row(propertiesFile)
     gapLeft = false
@@ -120,6 +130,44 @@ class KafkaSettingsCustomizer(project: Project, connectionData: KafkaConnectionD
     val brokers = names.split(",").map { it.trim() }
     val errors = brokers.map { it to BdtUrlUtils.validateUrl(it) }.filter { it.second != null }
     return errors.firstOrNull()?.let { "${it.first}: ${it.second ?: MessagesBundle.message("unexpected.error")}" }
+  }
+
+  private fun generateAction() {
+    val actionGroup = DefaultActionGroup()
+
+    actionGroup.add(SimpleDumbAwareAction(KafkaMessagesBundle.message("settings.generate.ssl")) {
+      propertiesEditor.addConfig(mapOf(
+        "security.protocol" to "SSL",
+        "ssl.truststore.location" to "<TRUSTORE_PATH>",
+        "ssl.truststore.password" to "<TRUSTORE_PASSWORD>",
+        "ssl.keystore.type" to "PKCS12",
+        "ssl.keystore.location" to "<KEYSTORE_PATH>",
+        "ssl.keystore.password" to "<KEYSTORE_PASSWORD>",
+        "ssl.keystore.password" to "<KEYSTORE_PASSWORD>",
+        "ssl.endpoint.identification.algorithm" to "<KEY_PASSWORD>"
+      ))
+    })
+
+
+    actionGroup.add(SimpleDumbAwareAction(KafkaMessagesBundle.message("settings.generate.kerberos.with.jaas")) {
+      propertiesEditor.addConfig(mapOf(
+        "security.protocol" to "SASL_PLAINTEXT",
+        "sasl.kerberos.service.name" to "kafka",
+        "sasl.jaas.config" to "com.sun.security.auth.module.Krb5LoginModule required " +
+          "useKeyTab=true " +
+          "keyTab=\"PATH_TO_KEYTAB\" " +
+          "storeKey=true " +
+          "useTicketCache=false " +
+          "serviceName=\"kafka\" " +
+          "principal=\"USER/HOST@REALM\";"
+      ))
+    })
+
+
+    val popupMenu = JBPopupFactory.getInstance().createActionGroupPopup(null, actionGroup,
+                                                                        DataManager.getInstance().getDataContext(generateAction),
+                                                                        JBPopupFactory.ActionSelectionAid.SPEEDSEARCH, false)
+    popupMenu.showUnderneathOf(generateAction)
   }
 
   object KafkaSettingsKeys {
