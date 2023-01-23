@@ -16,7 +16,6 @@ import com.intellij.ui.tabs.JBTabs
 import com.jetbrains.bigdatatools.common.monitoring.toolwindow.ComponentController
 import com.jetbrains.bigdatatools.common.ui.CustomListCellRenderer
 import com.jetbrains.bigdatatools.common.ui.MigPanel
-import com.jetbrains.bigdatatools.common.ui.MouseAwarePanel
 import com.jetbrains.bigdatatools.kafka.common.editor.KafkaEditorProvider
 import com.jetbrains.bigdatatools.kafka.common.models.KafkaEditorType
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
@@ -45,7 +44,7 @@ class ClusterPageController(private val project: Project, private val connection
 
   private val detailsLayout = CardLayout()
   private val details = JPanel(detailsLayout)
-  private val panel = MouseAwarePanel.wrap(createPanel())
+  private val panel = createPanel()
 
   init {
     Disposer.register(this, topicsController)
