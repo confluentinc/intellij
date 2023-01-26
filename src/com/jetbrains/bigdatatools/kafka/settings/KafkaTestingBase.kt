@@ -22,7 +22,7 @@ class KafkaTestingBase(project: Project,
       extendedCallback(null, ConnectionSuccessful())
     }
     else {
-      extendedCallback(null, ConnectionError(error.cause ?: error))
+      extendedCallback(null, ConnectionError(error))
     }
   }
 }

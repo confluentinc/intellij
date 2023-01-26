@@ -1,14 +1,18 @@
 package com.jetbrains.bigdatatools.kafka.client
 
-import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.vfs.VirtualFileManager
+import com.intellij.util.net.NetUtils
+import com.jetbrains.bigdatatools.common.connection.exception.BdtConnectionException
+import com.jetbrains.bigdatatools.common.connection.exception.BdtHostUnavailableException
+import com.jetbrains.bigdatatools.common.connection.exception.BdtUnexpectedConnectionException
 import com.jetbrains.bigdatatools.common.connection.tunnel.BdtSshTunnelService.createIfRequired
 import com.jetbrains.bigdatatools.common.monitoring.connection.MonitoringClient
 import com.jetbrains.bigdatatools.common.settings.components.BdtPropertyComponent
 import com.jetbrains.bigdatatools.common.settings.connections.Property
 import com.jetbrains.bigdatatools.common.util.BdIdeRegistryUtil
+import com.jetbrains.bigdatatools.common.util.BdtUrlUtils
 import com.jetbrains.bigdatatools.common.util.withPluginClassLoader
 import com.jetbrains.bigdatatools.kafka.model.ConsumerGroupPresentable
 import com.jetbrains.bigdatatools.kafka.model.TopicConfig
@@ -22,7 +26,6 @@ import org.apache.kafka.clients.admin.*
 import org.apache.kafka.common.config.ConfigResource
 import org.apache.kafka.common.config.SaslConfigs
 import java.io.File
-import java.time.Duration
 import java.util.*
 
 
@@ -33,49 +36,59 @@ class KafkaClient(project: Project?,
     getKafkaProps(connectionData)
   }
 
-  private var kafkaAdmin: AdminClient? = null
-  private val kafkaAdminNotNull: AdminClient
+  private var kafkaAdmin: BdtKafkaAdminClient? = null
+  private val kafkaAdminNotNull
     get() = kafkaAdmin ?: error("Kafka Admin Client is not inited")
 
-  private val closingDisposable = Disposer.newDisposable()
+  var registryClient: BdtKafkaRegistryClient? = null
+    private set
+
+
+  override fun dispose() {}
+
+  override fun connectInner(calledByUser: Boolean) {
+    kafkaAdmin?.let {
+      Disposer.dispose(it)
+    }
+
+    kafkaAdmin = null
+
+    createIfRequired(project, connectionData.getTunnelData(), connectionData.uri, connectionData.innerId, testConnection)
+      ?.let { tunnelHandler ->
+        Disposer.register(this, tunnelHandler)
+        val urlForTunnel = tunnelHandler.tunnelledUri.split("//:").last()
+        kafkaProps.setProperty(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, urlForTunnel)
+      }
+    withPluginClassLoader {
+      kafkaAdmin = KafkaClientBuilder.createAdminClient(kafkaProps)
+      kafkaAdmin?.let { Disposer.register(this, it) }
+    }
+
+    registryClient?.let {
+      Disposer.dispose(it)
+    }
+
+    registryClient = null
+
+    registryClient = KafkaClientBuilder.createRegistryClient(project, connectionData, testConnection)
+    registryClient?.let {
+      Disposer.register(this, it)
+    }
+
+    longCheckConnection()
+  }
+
+  override fun checkConnectionInner() {
+    val url = kafkaProps.getProperty(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG)
+              ?: throw BdtUnexpectedConnectionException(null, KafkaMessagesBundle.message("connection.is.not.found.in.config",
+                                                                                          CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG))
+    checkUrlAvailability(url)
+  }
 
   fun createProducerClient() = KafkaProducerClient(client = this)
 
-  override fun dispose() {
-    try {
-      kafkaAdmin?.close(Duration.ofSeconds(10))
-    }
-    catch (t: Throwable) {
-      logger.warn("Cannot close kafka client", t)
-    }
-
-    Disposer.dispose(closingDisposable)
-  }
 
   override fun getRealUri(): String = kafkaProps.getProperty(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG) ?: "<NOT_FOUND>"
-
-  override fun checkConnectionInner() {
-    val kafkaAdmin = kafkaAdmin ?: error("Admin Client is not initialized")
-    val clusterOptions = DescribeClusterOptions().timeoutMs(BdIdeRegistryUtil.RFS_DEFAULT_TIMEOUT)
-    kafkaAdmin.describeCluster(clusterOptions).clusterId().get()
-  }
-
-  override fun connectInner(calledByUser: Boolean) {
-    createIfRequired(project, connectionData.getTunnelData(), connectionData.uri, connectionData.innerId, testConnection)
-      ?.let { tunnelHandler ->
-        Disposer.register(closingDisposable, tunnelHandler)
-        val urlForTunnel = tunnelHandler.tunnelledUri
-        kafkaProps.setProperty(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, urlForTunnel)
-      }
-
-    if (kafkaAdmin == null) {
-      withPluginClassLoader {
-        kafkaAdmin = KafkaClientBuilder.createAdminClient(kafkaProps)
-      }
-    }
-
-    checkConnectionInner()
-  }
 
   fun getConsumerGroups(): List<ConsumerGroupPresentable> {
     val consumerGroupsIds: List<String> = kafkaAdminNotNull.listConsumerGroups().all().get().map {
@@ -103,6 +116,21 @@ class KafkaClient(project: Project?,
     val parsedInternal = describedTopics.map { BdtKafkaMapper.topicDescriptionToInternalTopic(it) }
     val nonParsedInternal = nonParsed.map { BdtKafkaMapper.mockInternalTopic(it) }
     return BdtKafkaMapper.mergeWithConfigs(parsedInternal + nonParsedInternal, loadedTopicConfig).values.toList()
+  }
+
+  fun createTopic(name: String, numPartition: Int?, replicationFactor: Int?) {
+    val admin = kafkaAdmin ?: error("Kafka admin is not inited")
+
+    @Suppress("SSBasedInspection")
+    val newTopic = NewTopic(name, Optional.ofNullable(numPartition), Optional.ofNullable(replicationFactor?.toShort()))
+    val createTopics = admin.createTopics(listOf(newTopic))
+    createTopics?.topicId(name)?.get()
+  }
+
+  fun deleteTopic(name: String) {
+    val admin = kafkaAdmin ?: error("Kafka admin is not inited")
+    val deleteTopicsResult = admin.deleteTopics(listOf(name))
+    deleteTopicsResult.all().get()
   }
 
   private fun describeTopics(topicNames: List<String>): Pair<List<TopicDescription>, List<String>> = try {
@@ -205,22 +233,37 @@ class KafkaClient(project: Project?,
     return props
   }
 
-  fun createTopic(name: String, numPartition: Int?, replicationFactor: Int?) {
-    val admin = kafkaAdmin ?: error("Kafka admin is not inited")
-
-    @Suppress("SSBasedInspection")
-    val newTopic = NewTopic(name, Optional.ofNullable(numPartition), Optional.ofNullable(replicationFactor?.toShort()))
-    val createTopics = admin.createTopics(listOf(newTopic))
-    createTopics?.topicId(name)?.get()
+  private fun checkRegistryClient() {
+    try {
+      registryClient?.allSubjects
+    }
+    catch (t: Throwable) {
+      throw BdtConnectionException(KafkaMessagesBundle.message("connection.kafka.registry.is.not.available"), t)
+    }
   }
 
-  fun deleteTopic(name: String) {
-    val admin = kafkaAdmin ?: error("Kafka admin is not inited")
-    val deleteTopicsResult = admin.deleteTopics(listOf(name))
-    deleteTopicsResult.all().get()
+  private fun checkUrlAvailability(url: String) {
+    val urlObject = BdtUrlUtils.convertToUrlObject(url)
+    val canConnect = NetUtils.canConnectToRemoteSocket(urlObject.host, urlObject.port)
+    if (!canConnect) {
+      throw BdtHostUnavailableException(url)
+    }
   }
 
-  companion object {
-    private val logger = Logger.getInstance(this::class.java)
+  private fun longCheckConnection() {
+    val url = kafkaProps.getProperty(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG)
+              ?: throw BdtUnexpectedConnectionException(null, KafkaMessagesBundle.message("connection.is.not.found.in.config",
+                                                                                          CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG))
+    checkUrlAvailability(url)
+    try {
+      val kafkaAdmin = kafkaAdmin ?: error(KafkaMessagesBundle.message("connection.admin.is.not.initialized"))
+      val clusterOptions = DescribeClusterOptions().timeoutMs(BdIdeRegistryUtil.RFS_DEFAULT_TIMEOUT)
+      kafkaAdmin.describeCluster(clusterOptions).clusterId().get()
+    }
+    catch (t: Throwable) {
+      throw BdtConnectionException(KafkaMessagesBundle.message("connection.check.port.success.but.next.error", url), t)
+    }
+
+    checkRegistryClient()
   }
 }

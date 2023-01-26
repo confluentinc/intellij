@@ -17,14 +17,12 @@ import com.jetbrains.bigdatatools.kafka.client.KafkaClient
 import com.jetbrains.bigdatatools.kafka.consumer.editor.KafkaConsumerPanelStorage
 import com.jetbrains.bigdatatools.kafka.model.*
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryUtil
-import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryUtil.registrySchemaProviders
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaConnectionData
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaDriver
 import com.jetbrains.bigdatatools.kafka.statistics.KafkaUsagesCollector
 import com.jetbrains.bigdatatools.kafka.toolwindow.config.KafkaToolWindowSettings
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import io.confluent.kafka.schemaregistry.ParsedSchema
-import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient
 
 class KafkaDataManager(project: Project?,
                        val connectionData: KafkaConnectionData,
@@ -34,10 +32,6 @@ class KafkaDataManager(project: Project?,
 
   val isKafkaRegistryEnabled = connectionData.registryUrl?.isNotBlank() == true
 
-  private val registryClient = if (isKafkaRegistryEnabled)
-    CachedSchemaRegistryClient(listOf(connectionData.registryUrl!!), 100, registrySchemaProviders, null)
-  else
-    null
 
   internal val topicModel = createTopicsDataModel()
   internal val registrySchemaModel = createSchemaRegistryDataModel()
@@ -153,12 +147,14 @@ class KafkaDataManager(project: Project?,
   }
 
   private fun createSchemaRegistryDataModel(): ObjectDataModel<SchemaRegistryInfo>? {
-    val client = registryClient ?: return null
+    if (!isKafkaRegistryEnabled)
+      return null
     val dataModel = object : ObjectDataModel<SchemaRegistryInfo>(SchemaRegistryInfo::class) {
       override val idFieldName: String = SchemaRegistryInfo::name.name
     }
 
     addDataModelUpdater(dataModel, "Cannot request topic model") {
+      val client = client.registryClient!!
       val subjects = client.getAllSubjects(KafkaToolWindowSettings.getInstance().registryShowDeletedSubjects)
 
       val infos = subjects.map {
@@ -182,11 +178,10 @@ class KafkaDataManager(project: Project?,
       return it
     }
 
-    val client = registryClient!!
-
     val dataModel = ObjectDataModel(SchemaRegistryFieldsInfo::class)
 
     addDataModelUpdater(dataModel, "Cannot request environment model") {
+      val client = client.registryClient!!
       val meta = getSchemaInfo(id)?.meta ?: error("Meta is not found")
 
       val schema = try {
@@ -210,11 +205,10 @@ class KafkaDataManager(project: Project?,
       return it
     }
 
-    val client = registryClient!!
-
     val dataModel = ObjectDataModel(SchemaRegistryInfo::class)
 
     addDataModelUpdater(dataModel, "Cannot request environment model") {
+      val client = client.registryClient!!
       val meta = getSchemaInfo(id) ?: error("Meta is not found")
 
       val versions = client.getAllVersions(meta.name) ?: emptyList()
@@ -254,7 +248,7 @@ class KafkaDataManager(project: Project?,
   fun deleteRegistrySchemaVersion(registryInfo: SchemaRegistryInfo, isPermanent: Boolean = false) = executeOnPooledThread {
     withCatchNotifyErrorDialog {
       val name = registryInfo.name
-      registryClient?.deleteSchemaVersion(name, registryInfo.version.toString(), isPermanent)
+      client.registryClient?.deleteSchemaVersion(name, registryInfo.version.toString(), isPermanent)
 
       registrySchemaModel?.let {
         autoUpdaterManager.reloadAsync(it)
@@ -265,7 +259,7 @@ class KafkaDataManager(project: Project?,
 
   private fun deleteRegistrySchema(name: String, isPermanent: Boolean) = executeOnPooledThread {
     withCatchNotifyErrorDialog {
-      registryClient?.deleteSubject(name, isPermanent)
+      client.registryClient?.deleteSubject(name, isPermanent)
       registrySchemaModel?.let { autoUpdaterManager.reloadAsync(it) }
     }
   }
@@ -275,12 +269,12 @@ class KafkaDataManager(project: Project?,
   }
 
   fun createRegistrySubject(schemaName: String, parsedSchema: ParsedSchema) = runAsync {
-    registryClient?.register(schemaName, parsedSchema)
+    client.registryClient?.register(schemaName, parsedSchema)
     registrySchemaModel?.let { autoUpdaterManager.reloadAsync(it) }
   }
 
   fun updateSchema(registryInfo: SchemaRegistryInfo, newText: @NlsSafe String) = runAsync {
-    val registryClient = registryClient ?: return@runAsync
+    val registryClient = client.registryClient ?: return@runAsync
     val parsedSchema = KafkaRegistryUtil.validateSchema(registryInfo, newText)
     registryClient.register(registryInfo.name, parsedSchema)
 
@@ -294,7 +288,7 @@ class KafkaDataManager(project: Project?,
 
   fun getRegistrySchemaById(id: Int?): ParsedSchema? {
     id ?: return null
-    return registryClient?.getSchemaById(id)
+    return client.registryClient?.getSchemaById(id)
   }
 
   companion object {

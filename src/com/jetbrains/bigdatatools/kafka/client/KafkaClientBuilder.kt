@@ -1,16 +1,35 @@
 package com.jetbrains.bigdatatools.kafka.client
 
+import com.intellij.openapi.project.Project
+import com.intellij.openapi.util.Disposer
+import com.jetbrains.bigdatatools.common.connection.tunnel.BdtSshTunnelService
 import com.jetbrains.bigdatatools.common.settings.kerberos.BdtKerberosManager
+import com.jetbrains.bigdatatools.kafka.rfs.KafkaConnectionData
 import org.apache.kafka.clients.CommonClientConfigs.SECURITY_PROTOCOL_CONFIG
 import org.apache.kafka.clients.admin.AdminClient
 import org.apache.kafka.common.security.auth.SecurityProtocol
 import java.util.*
 
 object KafkaClientBuilder {
-  fun createAdminClient(properties: Properties): AdminClient {
+  fun createAdminClient(properties: Properties): BdtKafkaAdminClient {
     if (properties.isKerberosEnabled)
       BdtKerberosManager.instance.setupKerberosValues()
-    return AdminClient.create(properties)
+    return BdtKafkaAdminClient(AdminClient.create(properties))
+  }
+
+  fun createRegistryClient(project: Project?,
+                           connectionData: KafkaConnectionData,
+                           testConnection: Boolean): BdtKafkaRegistryClient? {
+    val url = connectionData.registryUrl?.ifBlank { null } ?: return null
+    val tunnel = BdtSshTunnelService.createIfRequired(project, connectionData.getTunnelData(),
+                                                      url, connectionData.innerId,
+                                                      testConnection)
+    val tunneledUrl = tunnel?.tunnelledUri ?: url
+    val registryClient = BdtKafkaRegistryClient(tunneledUrl)
+    if (tunnel != null) {
+      Disposer.register(registryClient, tunnel)
+    }
+    return registryClient
   }
 
   private val Properties.isKerberosEnabled

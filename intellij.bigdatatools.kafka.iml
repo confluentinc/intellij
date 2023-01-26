@@ -22,7 +22,7 @@
     <orderEntry type="library" scope="PROVIDED" name="microba" level="project" />
     <orderEntry type="library" name="gson" level="project" />
     <orderEntry type="module" module-name="intellij.platform.lang.impl" />
-    <orderEntry type="module-library">
+    <orderEntry type="module-library" exported="">
       <library name="apache.kafka.clients" type="repository">
         <properties maven-id="org.apache.kafka:kafka-clients:3.1.0">
           <exclude>
@@ -236,5 +236,6 @@
     <orderEntry type="library" name="xerial.snappy.java" level="project" />
     <orderEntry type="module" module-name="intellij.protoeditor.core" />
     <orderEntry type="module" module-name="intellij.platform.diff.impl" />
+    <orderEntry type="module" module-name="intellij.platform.ide.util.io" />
   </component>
 </module>
