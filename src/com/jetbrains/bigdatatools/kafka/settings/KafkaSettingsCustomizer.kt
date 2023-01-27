@@ -1,27 +1,24 @@
 package com.jetbrains.bigdatatools.kafka.settings
 
-import com.intellij.ide.DataManager
 import com.intellij.openapi.Disposable
-import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.ui.popup.JBPopupFactory
-import com.intellij.ui.components.ActionLink
+import com.intellij.openapi.ui.ComboBox
+import com.intellij.ui.components.JBCheckBox
+import com.intellij.ui.dsl.builder.*
 import com.jetbrains.bigdatatools.common.monitoring.TunnableSettingsCustomizer
 import com.jetbrains.bigdatatools.common.settings.ModificationKey
 import com.jetbrains.bigdatatools.common.settings.connections.ConnectionData
 import com.jetbrains.bigdatatools.common.settings.fields.*
-import com.jetbrains.bigdatatools.common.settings.withNotEmptyValidator
 import com.jetbrains.bigdatatools.common.settings.withValidator
-import com.jetbrains.bigdatatools.common.ui.MigPanel
-import com.jetbrains.bigdatatools.common.ui.SimpleDumbAwareAction
-import com.jetbrains.bigdatatools.common.ui.doOnChange
+import com.jetbrains.bigdatatools.common.ui.CustomListCellRenderer
+import com.jetbrains.bigdatatools.common.ui.row
 import com.jetbrains.bigdatatools.common.util.BdtUrlUtils
 import com.jetbrains.bigdatatools.common.util.MessagesBundle
-import com.jetbrains.bigdatatools.kafka.rfs.KafkaConnectionData
-import com.jetbrains.bigdatatools.kafka.rfs.KafkaPropertySource
+import com.jetbrains.bigdatatools.kafka.rfs.*
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import com.jetbrains.bigdatatools.kafka.util.KafkaPropertiesUtils
+import org.apache.kafka.common.security.auth.SecurityProtocol
 
 class KafkaSettingsCustomizer(project: Project, connectionData: KafkaConnectionData, uiDisposable: Disposable) :
   TunnableSettingsCustomizer<KafkaConnectionData>(connectionData, project, uiDisposable) {
@@ -31,7 +28,7 @@ class KafkaSettingsCustomizer(project: Project, connectionData: KafkaConnectionD
       emptyText = KafkaMessagesBundle.message("settings.url.text.empty")
       getTextComponent().toolTipText = KafkaMessagesBundle.message("settings.url.text.hint")
     }
-    .withValidator(uiDisposable, ::validateBucketsNames) as StringNamedField
+    .withValidator(uiDisposable, ::validateBrokerNames) as StringNamedField
 
   private val propertiesEditor = PropertiesFieldComponent.create(
     project,
@@ -46,12 +43,6 @@ class KafkaSettingsCustomizer(project: Project, connectionData: KafkaConnectionD
                                                browseTitle = KafkaMessagesBundle.message(
                                                  "settings.properties.file.browse"),
                                                fileChooserDescriptor = FileChooserDescriptorFactory.createSingleFileDescriptor())
-
-    .withNotEmptyValidator(uiDisposable)
-
-  private val generateAction = ActionLink(MessagesBundle.message("settings.connection.properties.add.config")) {
-    generateAction()
-  }
 
   private val sourceTypeChooser = RadioGroupField(KafkaConnectionData::propertySource,
                                                   KafkaSettingsKeys.PROPERTIES_SOURCE_KEY,
@@ -78,53 +69,169 @@ class KafkaSettingsCustomizer(project: Project, connectionData: KafkaConnectionD
     ModificationKey(KafkaMessagesBundle.message("settings.registry.additional.properties")),
     connectionData, uiDisposable)
 
+  private lateinit var implicitClientSettingsGroup: RowsRange
+  private lateinit var authType: Cell<ComboBox<KafkaSecurityType>>
+  private lateinit var saslGroup: RowsRange
+  private lateinit var sslGroup: RowsRange
+  private lateinit var saslCredentialsGroup: RowsRange
+  private lateinit var saslKerberosGroup: RowsRange
+  private lateinit var saslSecurityProtocol: Cell<ComboBox<SecurityProtocol>>
+  private lateinit var saslMechanism: Cell<ComboBox<KafkaSaslMechanism>>
+  private lateinit var sslUseKeystore: Cell<JBCheckBox>
+  private lateinit var sslKeystoreGroup: RowsRange
+
+  private lateinit var schemaAuth: Cell<ComboBox<SchemaRegistryAuthType>>
+  private lateinit var schemaBasicAuthGroup: RowsRange
+  private lateinit var schemaBasicLogin: Row
+  private lateinit var schemaBasicPassword: Row
+  private lateinit var schemaBearerToken: Row
 
   init {
     sourceTypeChooser.addItemListener {
       updateAuthStatus()
     }
-    updateAuthStatus()
   }
 
   override fun getDefaultFields(): List<WrappedComponent<in KafkaConnectionData>> =
     listOf(nameField, url, propertiesEditor, propertiesFile, tunnelField, sourceTypeChooser, registryUrl, registryProperties)
 
-  override fun getDefaultComponent(fields: List<WrappedComponent<in KafkaConnectionData>>, conn: KafkaConnectionData) = MigPanel().apply {
+  override fun getDefaultComponent(fields: List<WrappedComponent<in KafkaConnectionData>>, conn: KafkaConnectionData) = panel {
     row(nameField)
     row(url)
 
-    shortRow(sourceTypeChooser)
-    gapLeft = true
-    row(generateAction)
-    row(propertiesEditor)
+    row(sourceTypeChooser)
     row(propertiesFile)
-    gapLeft = false
-
-    separatorRow()
-
-    title(KafkaMessagesBundle.message("settings.registry.title"))
-    row(registryUrl)
-    row(registryProperties)
-
-    separatorRow()
-    block(tunnelField.getComponent())
 
 
-    propertiesEditor.getComponent().document.doOnChange {
-      this@apply.revalidate()
+    implicitClientSettingsGroup = rowsRange {
+      row(KafkaMessagesBundle.message("kafka.auth.method.label")) {
+        authType = comboBox(KafkaSecurityType.values().toList(), CustomListCellRenderer<KafkaSecurityType> { it.title }).onChanged {
+          updateVisibilityOfAuth()
+        }
+      }
+
+      saslGroup = rowsRange {
+        row(KafkaMessagesBundle.message("kafka.security.protocol.label")) {
+          saslSecurityProtocol = comboBox(listOf(SecurityProtocol.SASL_PLAINTEXT, SecurityProtocol.SASL_SSL),
+                                          CustomListCellRenderer<SecurityProtocol> { it.name })
+        }
+
+        row(KafkaMessagesBundle.message("kafka.sasl.mechanism")) {
+          saslMechanism = comboBox(KafkaSaslMechanism.values().toList(),
+                                   CustomListCellRenderer<KafkaSaslMechanism> { it.title }).onChanged {
+            updateVisibilityOfSasl()
+          }
+        }
+
+
+        saslKerberosGroup = rowsRange {
+          row(MessagesBundle.message("kerberos.settings.principal.label")) {
+            textField()
+          }
+          row(MessagesBundle.message("kerberos.connection.settings.keytab.label")) {
+            textFieldWithBrowseButton(project = project,
+                                      browseDialogTitle = MessagesBundle.message("kerberos.connection.settings.keytab.select.dialog.title"))
+          }
+        }
+
+
+        saslCredentialsGroup = rowsRange {
+          row(KafkaMessagesBundle.message("kafka.username")) {
+            textField()
+          }
+          row(KafkaMessagesBundle.message("kafka.password")) {
+            passwordField()
+          }
+        }
+      }
+
+
+      sslGroup = rowsRange {
+        row(KafkaMessagesBundle.message("kafka.truststore.location")) {
+          textFieldWithBrowseButton(project = project,
+                                    browseDialogTitle = KafkaMessagesBundle.message("kafka.truststore.location.dialog.title"))
+        }
+        row(KafkaMessagesBundle.message("kafka.truststore.password")) {
+          textField()
+        }
+        row {
+          //ssl.endpoint.identification.algorithm
+          checkBox(KafkaMessagesBundle.message("kafka.auth.enable.server.host.name.indetification"))
+        }.topGap(TopGap.SMALL)
+
+
+
+        row {
+          sslUseKeystore = checkBox(KafkaMessagesBundle.message("kafka.ssl.use.keystore")).onChanged {
+            updateVisibilityOfSslKeystore()
+          }
+        }.topGap(TopGap.SMALL)
+        sslKeystoreGroup = rowsRange {
+          row(KafkaMessagesBundle.message("kafka.keystore.location")) {
+            textFieldWithBrowseButton(project = project,
+                                      browseDialogTitle = KafkaMessagesBundle.message("kafka.truststore.location.dialog.title"))
+
+          }
+          row(KafkaMessagesBundle.message("kafka.keystore.password")) {
+            textField()
+          }
+          row(KafkaMessagesBundle.message("kafka.key.password")) {
+            textField()
+          }
+        }
+      }
+
+      row(propertiesEditor).topGap(TopGap.MEDIUM)
     }
-    registryProperties.getComponent().document.doOnChange {
-      this@apply.revalidate()
+
+
+    group(KafkaMessagesBundle.message("settings.registry.title")) {
+      row(registryUrl).bottomGap(BottomGap.SMALL)
+
+      row(KafkaMessagesBundle.message("kafka.auth.method.label")) {
+        schemaAuth = comboBox(SchemaRegistryAuthType.values().toList(),
+                              CustomListCellRenderer<SchemaRegistryAuthType> { it.title }).onChanged {
+          updateSchemaRegistryAuth()
+        }
+      }
+      indent {
+        schemaBasicAuthGroup = rowsRange {
+          schemaBasicLogin = row(KafkaMessagesBundle.message("kafka.username")) {
+            textField()
+          }
+          schemaBasicPassword = row(KafkaMessagesBundle.message("kafka.password")) {
+            passwordField()
+          }
+        }
+
+        schemaBearerToken = row(KafkaMessagesBundle.message("kafka.token")) {
+          textField()
+        }
+      }
+
+      row(registryProperties).topGap(TopGap.SMALL)
     }
+
+
+
+    panel {
+      row {
+        cell(tunnelField.getComponent())
+      }
+    }
+
+    updateAuthStatus()
+    updateSchemaRegistryAuth()
   }
 
   private fun updateAuthStatus() {
     val authType = sourceTypeChooser.getValue()
-    propertiesEditor.isVisible = authType == KafkaPropertySource.DIRECT
     propertiesFile.isVisible = authType == KafkaPropertySource.FILE
+    implicitClientSettingsGroup.visible(authType == KafkaPropertySource.DIRECT)
+    updateVisibilityOfAuth()
   }
 
-  private fun validateBucketsNames(names: String): String? {
+  private fun validateBrokerNames(names: String): String? {
     if (names.isBlank())
       return KafkaMessagesBundle.message("settings.url.must.be.non.empty.hint")
     val brokers = names.split(",").map { it.trim() }
@@ -132,42 +239,39 @@ class KafkaSettingsCustomizer(project: Project, connectionData: KafkaConnectionD
     return errors.firstOrNull()?.let { "${it.first}: ${it.second ?: MessagesBundle.message("unexpected.error")}" }
   }
 
-  private fun generateAction() {
-    val actionGroup = DefaultActionGroup()
-
-    actionGroup.add(SimpleDumbAwareAction(KafkaMessagesBundle.message("settings.generate.ssl")) {
-      propertiesEditor.addConfig(mapOf(
-        "security.protocol" to "SSL",
-        "ssl.truststore.location" to "<TRUSTORE_PATH>",
-        "ssl.truststore.password" to "<TRUSTORE_PASSWORD>",
-        "ssl.keystore.type" to "PKCS12",
-        "ssl.keystore.location" to "<KEYSTORE_PATH>",
-        "ssl.keystore.password" to "<KEYSTORE_PASSWORD>",
-        "ssl.keystore.password" to "<KEYSTORE_PASSWORD>",
-        "ssl.endpoint.identification.algorithm" to "<KEY_PASSWORD>"
-      ))
-    })
+  private fun updateSchemaRegistryAuth() {
+    val selectedAuthType = schemaAuth.component.item
+    schemaBasicAuthGroup.visible(selectedAuthType == SchemaRegistryAuthType.BASIC_AUTH)
+    schemaBearerToken.visible(selectedAuthType == SchemaRegistryAuthType.BEARER)
+  }
 
 
-    actionGroup.add(SimpleDumbAwareAction(KafkaMessagesBundle.message("settings.generate.kerberos.with.jaas")) {
-      propertiesEditor.addConfig(mapOf(
-        "security.protocol" to "SASL_PLAINTEXT",
-        "sasl.kerberos.service.name" to "kafka",
-        "sasl.jaas.config" to "com.sun.security.auth.module.Krb5LoginModule required " +
-          "useKeyTab=true " +
-          "keyTab=\"PATH_TO_KEYTAB\" " +
-          "storeKey=true " +
-          "useTicketCache=false " +
-          "serviceName=\"kafka\" " +
-          "principal=\"USER/HOST@REALM\";"
-      ))
-    })
+  private fun updateVisibilityOfAuth() {
+    val selectedAuthType = authType.component.item
+    saslGroup.visible(selectedAuthType == KafkaSecurityType.SASL)
+    sslGroup.visible(selectedAuthType == KafkaSecurityType.SSL)
+    when (selectedAuthType) {
+      KafkaSecurityType.NOT_SPECIFIED -> {}
+      KafkaSecurityType.SASL -> {
+        updateVisibilityOfSasl()
+      }
+      KafkaSecurityType.SSL -> {
+        updateVisibilityOfSslKeystore()
+      }
+      KafkaSecurityType.AWS_IAM -> {}
+      else -> {}
+    }
+  }
 
+  private fun updateVisibilityOfSasl() {
+    val mechanism = saslMechanism.component.item
+    saslCredentialsGroup.visible(mechanism in setOf(KafkaSaslMechanism.PLAIN, KafkaSaslMechanism.SCRAM_256, KafkaSaslMechanism.SCRAM_512))
+    saslKerberosGroup.visible(mechanism == KafkaSaslMechanism.KERBEROS)
+  }
 
-    val popupMenu = JBPopupFactory.getInstance().createActionGroupPopup(null, actionGroup,
-                                                                        DataManager.getInstance().getDataContext(generateAction),
-                                                                        JBPopupFactory.ActionSelectionAid.SPEEDSEARCH, false)
-    popupMenu.showUnderneathOf(generateAction)
+  private fun updateVisibilityOfSslKeystore() {
+    val use = sslUseKeystore.component.isSelected
+    sslKeystoreGroup.visible(use)
   }
 
   object KafkaSettingsKeys {
