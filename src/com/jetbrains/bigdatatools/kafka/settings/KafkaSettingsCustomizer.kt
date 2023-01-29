@@ -91,7 +91,7 @@ class KafkaSettingsCustomizer(project: Project, connectionData: KafkaConnectionD
   private lateinit var sslGroup: RowsRange
   private lateinit var saslCredentialsGroup: RowsRange
   private lateinit var saslKerberosGroup: RowsRange
-  private lateinit var saslSecurityProtocol: Cell<ComboBox<SecurityProtocol>>
+  private lateinit var saslSecurityProtocol: Cell<JBCheckBox>
   private lateinit var saslMechanism: Cell<ComboBox<KafkaSaslMechanism>>
   private lateinit var sslUseKeystore: Cell<JBCheckBox>
   private lateinit var sslKeystoreGroup: RowsRange
@@ -145,9 +145,8 @@ class KafkaSettingsCustomizer(project: Project, connectionData: KafkaConnectionD
       }
 
       saslGroup = indent {
-        row(KafkaMessagesBundle.message("kafka.security.protocol.label")) {
-          saslSecurityProtocol = comboBox(listOf(SecurityProtocol.SASL_PLAINTEXT, SecurityProtocol.SASL_SSL),
-                                          CustomListCellRenderer<SecurityProtocol> { it.name }).onChanged {
+        row {
+          saslSecurityProtocol = checkBox(KafkaMessagesBundle.message("kafka.auth.sasl.use.ssl")).onChanged {
             updatePropertiesField()
           }
         }
@@ -203,6 +202,12 @@ class KafkaSettingsCustomizer(project: Project, connectionData: KafkaConnectionD
 
 
       sslGroup = indent {
+        row {
+          sslEnableValidateHostname = checkBox(KafkaMessagesBundle.message("kafka.auth.enable.server.host.name.indetification")).onChanged {
+            updatePropertiesField()
+          }
+        }.bottomGap(BottomGap.SMALL)
+
         row(KafkaMessagesBundle.message("kafka.truststore.location")) {
           sslTruststoreLocation = textFieldWithBrowseButton(project = project,
                                                             browseDialogTitle = KafkaMessagesBundle.message(
@@ -214,14 +219,7 @@ class KafkaSettingsCustomizer(project: Project, connectionData: KafkaConnectionD
           sslTruststorePassword = textField().onChanged {
             updatePropertiesField()
           }
-        }
-        row {
-          sslEnableValidateHostname = checkBox(KafkaMessagesBundle.message("kafka.auth.enable.server.host.name.indetification")).onChanged {
-            updatePropertiesField()
-          }
-        }.topGap(TopGap.SMALL)
-
-
+        }.bottomGap(BottomGap.SMALL)
 
         row {
           sslUseKeystore = checkBox(KafkaMessagesBundle.message("kafka.ssl.use.keystore")).onChanged {
@@ -383,7 +381,13 @@ class KafkaSettingsCustomizer(project: Project, connectionData: KafkaConnectionD
         else {
           "${saslMechanism.module} required username='${saslUsername.component.text}' password='${saslPassword.component.text}';"
         }
-        result += mapOf(SECURITY_PROTOCOL_CONFIG to saslSecurityProtocol.component.item?.name,
+        val securityProtocol = if (saslSecurityProtocol.component.isSelected) {
+          SecurityProtocol.SASL_SSL
+        }
+        else {
+          SecurityProtocol.SASL_PLAINTEXT
+        }
+        result += mapOf(SECURITY_PROTOCOL_CONFIG to securityProtocol.name,
                         SASL_MECHANISM to saslMechanism?.saslMechanism,
                         SASL_JAAS_CONFIG to jaasConfig)
       }
@@ -435,7 +439,7 @@ class KafkaSettingsCustomizer(project: Project, connectionData: KafkaConnectionD
           return
         }
         authMethod.component.item = KafkaAuthMethod.SASL
-        saslSecurityProtocol.component.item = securityProtocol
+        saslSecurityProtocol.component.isSelected = securityProtocol == SecurityProtocol.SASL_SSL
         val saslMechanismValue = properties[SASL_MECHANISM]?.let { s -> KafkaSaslMechanism.values().firstOrNull { it.saslMechanism == s } }
                                  ?: return
         saslMechanism.component.item = saslMechanismValue
