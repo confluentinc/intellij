@@ -25,6 +25,7 @@ import org.apache.kafka.clients.CommonClientConfigs
 import org.apache.kafka.clients.admin.*
 import org.apache.kafka.common.config.ConfigResource
 import org.apache.kafka.common.config.SaslConfigs
+import org.com.jetbrains.bigdatatools.aws.common.ui.external.AwsSettingsForKafka
 import java.io.File
 import java.util.*
 
@@ -60,6 +61,7 @@ class KafkaClient(project: Project?,
         kafkaProps.setProperty(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, urlForTunnel)
       }
     withPluginClassLoader {
+      setSystemPropertiesForAwsIam()
       kafkaAdmin = KafkaClientBuilder.createAdminClient(kafkaProps)
       kafkaAdmin?.let { Disposer.register(this, it) }
     }
@@ -265,5 +267,14 @@ class KafkaClient(project: Project?,
     }
 
     checkRegistryClient()
+  }
+
+  private fun setSystemPropertiesForAwsIam() {
+    if (kafkaProps.getProperty(SaslConfigs.SASL_MECHANISM) != AwsSettingsForKafka.AWS_MECHANISM)
+      return
+    val accessKey = kafkaProps.getProperty(AwsSettingsForKafka.AWS_ACCESS_KEY)?.ifBlank { null }?.trim()
+    val secretKey = kafkaProps.getProperty(AwsSettingsForKafka.AWS_SECRET_KEY)?.ifBlank { null }?.trim()
+    accessKey?.let { System.setProperty(AwsSettingsForKafka.AWS_ACCESS_KEY, it) }
+    secretKey?.let { System.setProperty(AwsSettingsForKafka.AWS_SECRET_KEY, it) }
   }
 }

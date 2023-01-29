@@ -28,6 +28,9 @@ import org.apache.kafka.common.config.SaslConfigs.SASL_JAAS_CONFIG
 import org.apache.kafka.common.config.SaslConfigs.SASL_MECHANISM
 import org.apache.kafka.common.config.SslConfigs.*
 import org.apache.kafka.common.security.auth.SecurityProtocol
+import org.com.jetbrains.bigdatatools.aws.common.connection.auth.AuthenticationType
+import org.com.jetbrains.bigdatatools.aws.common.ui.external.AwsSettingsForKafka
+import org.com.jetbrains.bigdatatools.aws.common.ui.external.AwsSettingsInfo
 
 class KafkaSettingsCustomizer(project: Project, connectionData: KafkaConnectionData, uiDisposable: Disposable) :
   TunnableSettingsCustomizer<KafkaConnectionData>(connectionData, project, uiDisposable) {
@@ -110,6 +113,11 @@ class KafkaSettingsCustomizer(project: Project, connectionData: KafkaConnectionD
   private lateinit var schemaBasicLogin: Row
   private lateinit var schemaBasicPassword: Row
   private lateinit var schemaBearerToken: Row
+
+  private val awsMskSettings = AwsSettingsForKafka {
+    updatePropertiesField()
+  }
+  private lateinit var awsMskSettingsRows: RowsRange
 
   init {
     sourceTypeChooser.addItemListener {
@@ -243,6 +251,9 @@ class KafkaSettingsCustomizer(project: Project, connectionData: KafkaConnectionD
         }
       }
 
+      awsMskSettingsRows = indent {
+        awsMskSettings.getComponentRows(this)
+      }
       row(propertiesEditor).topGap(TopGap.MEDIUM)
     }
 
@@ -313,6 +324,7 @@ class KafkaSettingsCustomizer(project: Project, connectionData: KafkaConnectionD
     val selectedAuthType = authMethod.component.item
     saslGroup.visible(selectedAuthType == KafkaAuthMethod.SASL)
     sslGroup.visible(selectedAuthType == KafkaAuthMethod.SSL)
+    awsMskSettingsRows.visible(selectedAuthType == KafkaAuthMethod.AWS_IAM)
     when (selectedAuthType) {
       KafkaAuthMethod.NOT_SPECIFIED -> {}
       KafkaAuthMethod.SASL -> {
@@ -321,7 +333,9 @@ class KafkaSettingsCustomizer(project: Project, connectionData: KafkaConnectionD
       KafkaAuthMethod.SSL -> {
         updateVisibilityOfSslKeystore()
       }
-      KafkaAuthMethod.AWS_IAM -> {}
+      KafkaAuthMethod.AWS_IAM -> {
+        awsMskSettings.updateVisibility()
+      }
       else -> {}
     }
   }
@@ -354,7 +368,7 @@ class KafkaSettingsCustomizer(project: Project, connectionData: KafkaConnectionD
     SSL_KEY_PASSWORD_CONFIG to null,
   )
 
-  private fun getKafkaProperties(): Map<String, String> {
+  private fun getKafkaProperties(): Map<String, String?> {
     val result = mutableMapOf<String, String?>()
     when (authMethod.component.item!!) {
       KafkaAuthMethod.NOT_SPECIFIED -> {}
@@ -385,9 +399,21 @@ class KafkaSettingsCustomizer(project: Project, connectionData: KafkaConnectionD
                           SSL_KEY_PASSWORD_CONFIG to sslKeyPassword.component.text.ifBlank { null })
         }
       }
-      KafkaAuthMethod.AWS_IAM -> {}
+      KafkaAuthMethod.AWS_IAM -> {
+        val info = awsMskSettings.getInfo()
+        val jaasConfig = when (info?.authenticationType) {
+          AuthenticationType.KEY_PAIR, AuthenticationType.DEFAULT -> "software.amazon.msk.auth.iam.IAMLoginModule required ;"
+          AuthenticationType.PROFILE_FROM_CREDENTIALS_FILE -> "software.amazon.msk.auth.iam.IAMLoginModule required awsProfileName='${info.profile ?: "<NOT_SELECTED>"}';"
+          else -> null
+        }
+        result += mapOf(SECURITY_PROTOCOL_CONFIG to SecurityProtocol.SASL_SSL.name,
+                        SASL_MECHANISM to AwsSettingsForKafka.AWS_MECHANISM,
+                        SASL_JAAS_CONFIG to jaasConfig,
+                        AwsSettingsForKafka.AWS_ACCESS_KEY to info?.accessKey,
+                        AwsSettingsForKafka.AWS_SECRET_KEY to info?.secretKey)
+      }
     }
-    return result.entries.associate { it.key to it.value!! }
+    return result.entries.associate { it.key to it.value }
   }
 
   private fun updateUiFromProperties() {
@@ -404,6 +430,10 @@ class KafkaSettingsCustomizer(project: Project, connectionData: KafkaConnectionD
         return
       }
       SecurityProtocol.SASL_PLAINTEXT, SecurityProtocol.SASL_SSL -> {
+        if (properties[SASL_MECHANISM] == AwsSettingsForKafka.AWS_MECHANISM) {
+          setAwsProperties(properties)
+          return
+        }
         authMethod.component.item = KafkaAuthMethod.SASL
         saslSecurityProtocol.component.item = securityProtocol
         val saslMechanismValue = properties[SASL_MECHANISM]?.let { s -> KafkaSaslMechanism.values().firstOrNull { it.saslMechanism == s } }
@@ -433,6 +463,33 @@ class KafkaSettingsCustomizer(project: Project, connectionData: KafkaConnectionD
         sslEnableValidateHostname.component.isSelected = properties[SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG] == ""
       }
     }
+  }
+
+  private fun setAwsProperties(properties: Map<String, String>) {
+    val jaasConfig = properties[SASL_JAAS_CONFIG] ?: return
+    val bdtJaasConfig = try {
+      BdtJaasConfig(jaasConfig).config?.options?.map { it.key.lowercase() to (it.value?.toString() ?: "") }?.toMap() ?: return
+    }
+    catch (t: Throwable) {
+      return
+    }
+    val profile = bdtJaasConfig["awsProfileName"]
+
+    val secretKey = properties[AwsSettingsForKafka.AWS_SECRET_KEY]
+    val accessKey = properties[AwsSettingsForKafka.AWS_ACCESS_KEY]
+    val authType = when {
+      profile == null && accessKey == null && secretKey == null -> AuthenticationType.DEFAULT
+      profile != null -> AuthenticationType.PROFILE_FROM_CREDENTIALS_FILE
+      else -> AuthenticationType.KEY_PAIR
+    }
+
+    val info = AwsSettingsInfo(
+      authType,
+      profile = profile,
+      accessKey = accessKey,
+      secretKey = secretKey
+    )
+    awsMskSettings.loadInfo(info)
   }
 
   object KafkaSettingsKeys {
