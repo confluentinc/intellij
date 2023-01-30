@@ -13,12 +13,13 @@ import com.jetbrains.bigdatatools.common.monitoring.TunnableSettingsCustomizer
 import com.jetbrains.bigdatatools.common.settings.ModificationKey
 import com.jetbrains.bigdatatools.common.settings.connections.ConnectionData
 import com.jetbrains.bigdatatools.common.settings.fields.*
-import com.jetbrains.bigdatatools.common.settings.kerberos.BdtKerberosManager
+import com.jetbrains.bigdatatools.common.settings.kerberos.KerberosUiFactory.krb5ConfRow
 import com.jetbrains.bigdatatools.common.settings.withValidator
 import com.jetbrains.bigdatatools.common.ui.CustomListCellRenderer
 import com.jetbrains.bigdatatools.common.ui.row
 import com.jetbrains.bigdatatools.common.util.BdtUrlUtils
 import com.jetbrains.bigdatatools.common.util.MessagesBundle
+import com.jetbrains.bigdatatools.kafka.client.KafkaClient
 import com.jetbrains.bigdatatools.kafka.rfs.*
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import com.jetbrains.bigdatatools.kafka.util.KafkaPropertiesUtils
@@ -141,7 +142,7 @@ class KafkaSettingsCustomizer(project: Project, connectionData: KafkaConnectionD
         authMethod = comboBox(KafkaAuthMethod.values().toList(), CustomListCellRenderer<KafkaAuthMethod> { it.title }).onChanged {
           updateVisibilityOfAuth()
           updatePropertiesField()
-        }
+        }.align(AlignX.FILL)
       }
 
       saslGroup = indent {
@@ -156,32 +157,23 @@ class KafkaSettingsCustomizer(project: Project, connectionData: KafkaConnectionD
                                    CustomListCellRenderer<KafkaSaslMechanism> { it.title }).onChanged {
             updateVisibilityOfSasl()
             updatePropertiesField()
-          }
+          }.align(AlignX.FILL)
         }
 
         saslKerberosGroup = indent {
-          row(MessagesBundle.message("kerberos.settings.krb5.config.in.connection.label")) {
-            @Suppress("DialogTitleCapitalization")
-            val krb5Conf = textFieldWithBrowseButton(project = project,
-                                                     browseDialogTitle = MessagesBundle.message(
-                                                       "kerberos.connection.settings.krb5.select.dialog.title"))
-            krb5Conf.text(BdtKerberosManager.instance.krb5Config)
-            krb5Conf.onChanged {
-              BdtKerberosManager.instance.krb5Config = krb5Conf.component.text
-            }
-          }
+          krb5ConfRow(project)
 
           row(MessagesBundle.message("kerberos.settings.principal.label")) {
             saslPrincipal = textField().onChanged {
               updatePropertiesField()
-            }
+            }.align(AlignX.FILL)
           }
           row(MessagesBundle.message("kerberos.connection.settings.keytab.label")) {
             saslKeytab = textFieldWithBrowseButton(project = project,
                                                    browseDialogTitle = MessagesBundle.message(
                                                      "kerberos.connection.settings.keytab.select.dialog.title")).onChanged {
               updatePropertiesField()
-            }
+            }.align(AlignX.FILL)
           }
         }
 
@@ -190,12 +182,12 @@ class KafkaSettingsCustomizer(project: Project, connectionData: KafkaConnectionD
           row(KafkaMessagesBundle.message("kafka.username")) {
             saslUsername = textField().onChanged {
               updatePropertiesField()
-            }
+            }.align(AlignX.FILL)
           }
           row(KafkaMessagesBundle.message("kafka.password")) {
             saslPassword = textField().onChanged {
               updatePropertiesField()
-            }
+            }.align(AlignX.FILL)
           }
         }
       }
@@ -213,12 +205,12 @@ class KafkaSettingsCustomizer(project: Project, connectionData: KafkaConnectionD
                                                             browseDialogTitle = KafkaMessagesBundle.message(
                                                               "kafka.truststore.location.dialog.title")).onChanged {
             updatePropertiesField()
-          }
+          }.align(AlignX.FILL)
         }
         row(KafkaMessagesBundle.message("kafka.truststore.password")) {
           sslTruststorePassword = textField().onChanged {
             updatePropertiesField()
-          }
+          }.align(AlignX.FILL)
         }.bottomGap(BottomGap.SMALL)
 
         row {
@@ -233,18 +225,18 @@ class KafkaSettingsCustomizer(project: Project, connectionData: KafkaConnectionD
                                                             browseDialogTitle = KafkaMessagesBundle.message(
                                                               "kafka.truststore.location.dialog.title")).onChanged {
               updatePropertiesField()
-            }
+            }.align(AlignX.FILL)
 
           }
           row(KafkaMessagesBundle.message("kafka.keystore.password")) {
             sslKeystorePassword = textField().onChanged {
               updatePropertiesField()
-            }
+            }.align(AlignX.FILL)
           }
           row(KafkaMessagesBundle.message("kafka.key.password")) {
             sslKeyPassword = textField().onChanged {
               updatePropertiesField()
-            }
+            }.align(AlignX.FILL)
           }
         }
       }
@@ -263,20 +255,20 @@ class KafkaSettingsCustomizer(project: Project, connectionData: KafkaConnectionD
         schemaAuth = comboBox(SchemaRegistryAuthType.values().toList(),
                               CustomListCellRenderer<SchemaRegistryAuthType> { it.title }).onChanged {
           updateSchemaRegistryAuth()
-        }
+        }.align(AlignX.FILL)
       }
       indent {
         schemaBasicAuthGroup = rowsRange {
           schemaBasicLogin = row(KafkaMessagesBundle.message("kafka.username")) {
-            textField()
+            textField().align(AlignX.FILL)
           }
           schemaBasicPassword = row(KafkaMessagesBundle.message("kafka.password")) {
-            passwordField()
+            passwordField().align(AlignX.FILL)
           }
         }
 
         schemaBearerToken = row(KafkaMessagesBundle.message("kafka.token")) {
-          textField()
+          textField().align(AlignX.FILL)
         }
       }
 
@@ -295,6 +287,7 @@ class KafkaSettingsCustomizer(project: Project, connectionData: KafkaConnectionD
     updateSchemaRegistryAuth()
     updateUiFromProperties()
   }
+
 
   private fun updateAuthStatus() {
     val authType = sourceTypeChooser.getValue()
@@ -494,6 +487,11 @@ class KafkaSettingsCustomizer(project: Project, connectionData: KafkaConnectionD
       secretKey = secretKey
     )
     awsMskSettings.loadInfo(info)
+  }
+
+  //TODO: Nikita@Pavlenko
+  private fun loadProperties() {
+    KafkaClient.loadPropertyFile(propertiesFile.getValue())
   }
 
   object KafkaSettingsKeys {

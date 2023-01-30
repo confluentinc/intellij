@@ -210,12 +210,8 @@ class KafkaClient(project: Project?,
     val properties = when (connectionData.propertySource) {
       KafkaPropertySource.DIRECT -> connectionData.properties
       KafkaPropertySource.FILE -> {
-        val propertyFilePath = connectionData.propertyFilePath ?: error(
-          KafkaMessagesBundle.message("property.file.is.not.found", ""))
-        val filePath = File(propertyFilePath).toPath()
-        val vf = VirtualFileManager.getInstance().findFileByNioPath(filePath) ?: error(
-          KafkaMessagesBundle.message("property.file.is.not.found", filePath))
-        vf.inputStream.bufferedReader().readText()
+        val propertyFilePath = connectionData.propertyFilePath ?: error(KafkaMessagesBundle.message("property.file.is.not.found", ""))
+        loadPropertyFile(propertyFilePath)
       }
     }
     BdtPropertyComponent.parseProperties(properties).forEach {
@@ -276,5 +272,14 @@ class KafkaClient(project: Project?,
     val secretKey = kafkaProps.getProperty(AwsSettingsForKafka.AWS_SECRET_KEY)?.ifBlank { null }?.trim()
     accessKey?.let { System.setProperty(AwsSettingsForKafka.AWS_ACCESS_KEY, it) }
     secretKey?.let { System.setProperty(AwsSettingsForKafka.AWS_SECRET_KEY, it) }
+  }
+
+  companion object {
+    fun loadPropertyFile(propertyFilePath: String): String {
+      val filePath = File(propertyFilePath).toPath()
+      val vf = VirtualFileManager.getInstance().findFileByNioPath(filePath) ?: error(
+        KafkaMessagesBundle.message("property.file.is.not.found", filePath))
+      return vf.inputStream.bufferedReader().readText()
+    }
   }
 }
