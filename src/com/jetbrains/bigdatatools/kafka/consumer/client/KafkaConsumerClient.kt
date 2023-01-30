@@ -186,7 +186,7 @@ class KafkaConsumerClient(val dataManager: KafkaDataManager,
 
     props[ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG] = config.getKeyType().getDeserializationClass()::class.java
     props[ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG] = config.getValueType().getDeserializationClass()::class.java
-    props[AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG] = connectionData.registryUrl
+    connectionData.registryUrl?.let { props[AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG] = it }
 
     getSchema(config, isKey = true)?.let { props[FieldType.KEY_PARSED_SCHEMA_CONFIG_KEY] = it }
     getSchema(config, isKey = false)?.let { props[FieldType.VALUE_PARSED_SCHEMA_CONFIG_KEY] = it }

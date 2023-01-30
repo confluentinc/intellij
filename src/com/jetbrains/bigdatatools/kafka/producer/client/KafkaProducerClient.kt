@@ -16,7 +16,6 @@ import org.apache.kafka.clients.producer.ProducerRecord
 import java.util.*
 import java.util.concurrent.TimeUnit
 
-
 class KafkaProducerClient(val client: KafkaClient) {
   val connectionData = client.connectionData
 
@@ -31,7 +30,7 @@ class KafkaProducerClient(val client: KafkaClient) {
     props[ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG] = value.type.getSerializer()::class.java
     props[ProducerConfig.COMPRESSION_TYPE_CONFIG] = recordCompression.name.lowercase()
     props[AbstractKafkaSchemaSerDeConfig.CONTEXT_NAME_STRATEGY] = NullContextNameStrategy::class.java
-    props[AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG] = connectionData.registryUrl
+    connectionData.registryUrl?.let { props[AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG] = it }
     props[AbstractKafkaSchemaSerDeConfig.AUTO_REGISTER_SCHEMAS] = false
 
     key.registryStrategy?.let {
@@ -41,7 +40,6 @@ class KafkaProducerClient(val client: KafkaClient) {
     value.registryStrategy?.let {
       props[AbstractKafkaSchemaSerDeConfig.VALUE_SUBJECT_NAME_STRATEGY] = it::class.java
     }
-
 
     if (enableIdempotence)
       props[ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG] = true
