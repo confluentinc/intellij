@@ -62,9 +62,12 @@ class KafkaRegistryAddSchemaDialog(project: Project, val dataManager: KafkaDataM
   private val keyValueVisible = AtomicBooleanProperty(false)
   private val topicFieldVisible = AtomicBooleanProperty(false)
   private val recordFieldVisible = AtomicBooleanProperty(false)
+  private val subjectFieldVisible = AtomicBooleanProperty(false)
 
-  // In case of proto - ProtoBaseLanguage
-  private val textScrollPane = KafkaRegistrySchemaEditor(project)
+  private val textScrollPane = KafkaRegistrySchemaEditor(project) {
+    updateParsedSchema()
+    updateRecordFieldText()
+  }
 
   private lateinit var errorLabel: JEditorPane
 
@@ -81,8 +84,10 @@ class KafkaRegistryAddSchemaDialog(project: Project, val dataManager: KafkaDataM
     row(KafkaMessagesBundle.message("schema.registry.add.schema.dialog.field.key.value")) { cell(keyValueCombobox) }.visibleIf(
       keyValueVisible)
     row(KafkaMessagesBundle.message("schema.registry.add.schema.dialog.field.topic")) { cell(topicField) }.visibleIf(topicFieldVisible)
-    row(KafkaMessagesBundle.message("schema.registry.add.schema.dialog.field.record")) { cell(recordField) }.visibleIf(recordFieldVisible)
-    row(subjectNameLabel) { cell(subjectNameField) }
+    row(KafkaMessagesBundle.message("schema.registry.add.schema.dialog.field.record")) {
+      cell(recordField).align(Align.FILL).resizableColumn()
+    }.visibleIf(recordFieldVisible)
+    row(subjectNameLabel) { cell(subjectNameField).align(Align.FILL).resizableColumn() }.visibleIf(subjectFieldVisible)
     row { cell(textScrollPane.component).align(Align.FILL).resizableColumn() }.resizableRow()
     row { errorLabel = comment("").component }
   }
@@ -113,6 +118,7 @@ class KafkaRegistryAddSchemaDialog(project: Project, val dataManager: KafkaDataM
       textScrollPane.setText(it,
                              isJson = formatCombobox.selectedItem != KafkaRegistryFormat.PROTOBUF)
     }
+    updateRecordFieldText()
   }
 
   private fun onChangeStrategy() {
@@ -120,6 +126,7 @@ class KafkaRegistryAddSchemaDialog(project: Project, val dataManager: KafkaDataM
 
     when (getStrategy()) {
       KafkaRegistryStrategy.CUSTOM -> {
+        subjectFieldVisible.set(true)
         subjectNameField.isEditable = true
         subjectNameLabel.text = KafkaMessagesBundle.message("schema.registry.add.schema.dialog.field.custom.name")
         keyValueVisible.set(false)
@@ -127,6 +134,7 @@ class KafkaRegistryAddSchemaDialog(project: Project, val dataManager: KafkaDataM
         recordFieldVisible.set(false)
       }
       KafkaRegistryStrategy.TOPIC_NAME -> {
+        subjectFieldVisible.set(true)
         subjectNameField.isEditable = false
         subjectNameLabel.text = KafkaMessagesBundle.message("schema.registry.add.schema.dialog.field.computed.name")
         keyValueVisible.set(true)
@@ -136,16 +144,15 @@ class KafkaRegistryAddSchemaDialog(project: Project, val dataManager: KafkaDataM
         subjectNameField.text = topicField.item?.name?.ifBlank { "<topic>" } + "-" + keyValueCombobox.item.name.lowercase()
       }
       KafkaRegistryStrategy.RECORD_NAME -> {
-        subjectNameField.isEditable = false
-        subjectNameLabel.text = KafkaMessagesBundle.message("schema.registry.add.schema.dialog.field.computed.name")
+        subjectFieldVisible.set(false)
         keyValueVisible.set(false)
         topicFieldVisible.set(false)
         recordFieldVisible.set(true)
 
         updateRecordFieldText()
-        subjectNameField.text = recordField.text
       }
       KafkaRegistryStrategy.TOPIC_RECORD_NAME -> {
+        subjectFieldVisible.set(true)
         subjectNameField.isEditable = false
         subjectNameLabel.text = KafkaMessagesBundle.message("schema.registry.add.schema.dialog.field.computed.name")
         keyValueVisible.set(true)
@@ -159,9 +166,17 @@ class KafkaRegistryAddSchemaDialog(project: Project, val dataManager: KafkaDataM
   }
 
   private fun updateRecordFieldText() {
-    val newRecordName = KafkaRegistryUtil.parseRecordName(cachedParsedSchema) ?: ""
-    if (recordField.text != newRecordName) {
-      recordField.text = newRecordName
+    val strategy = getStrategy()
+    if (strategy == KafkaRegistryStrategy.RECORD_NAME) {
+      val newRecordName = KafkaRegistryUtil.parseRecordName(cachedParsedSchema) ?: ""
+      if (recordField.text != newRecordName) {
+        recordField.text = newRecordName
+      }
+    }
+
+    if (strategy == KafkaRegistryStrategy.TOPIC_RECORD_NAME) {
+      val newRecordName = KafkaRegistryUtil.parseRecordName(cachedParsedSchema) ?: ""
+      subjectNameField.text = topicField.item?.name?.ifBlank { "<topic>" } + "-" + newRecordName.ifBlank { "<record>" }
     }
   }
 
@@ -169,20 +184,20 @@ class KafkaRegistryAddSchemaDialog(project: Project, val dataManager: KafkaDataM
   private fun getStrategy(): KafkaRegistryStrategy = strategyCombobox.item
 
   private fun updateParsedSchema() {
-    if (!okButtonPressed) {
-      return
-    }
-
     try {
       cachedParsedSchema = getParsedSchema()
-      isOKActionEnabled = true
-      errorLabel.isVisible = false
+      if (okButtonPressed) {
+        isOKActionEnabled = true
+        errorLabel.isVisible = false
+      }
     }
     catch (t: Throwable) {
       cachedParsedSchema = null
-      isOKActionEnabled = false
-      errorLabel.isVisible = true
-      errorLabel.text = t.toPresentableText()
+      if (okButtonPressed) {
+        isOKActionEnabled = false
+        errorLabel.isVisible = true
+        errorLabel.text = t.toPresentableText()
+      }
     }
   }
 

@@ -9,14 +9,15 @@ import com.intellij.ui.EditorCustomization
 import com.intellij.ui.EditorTextField
 import com.intellij.ui.EditorTextFieldProvider
 import com.intellij.ui.MonospaceEditorCustomization
+import com.jetbrains.bigdatatools.common.ui.doOnChange
 import java.awt.BorderLayout
 import javax.swing.JPanel
 
-class KafkaRegistrySchemaEditor(private val project: Project) {
+class KafkaRegistrySchemaEditor(private val project: Project, private val onChange: (() -> Unit)? = null) {
 
   val component = JPanel(BorderLayout())
 
-  var customSchemaEditor: EditorTextField? = null
+  private var customSchemaEditor: EditorTextField? = null
 
   val text: String
     get() = customSchemaEditor?.text ?: ""
@@ -26,6 +27,8 @@ class KafkaRegistrySchemaEditor(private val project: Project) {
 
     editor = if (editor == null) {
       val newEditor = createEditor(project, isJson)
+      onChange?.let { newEditor.document.doOnChange(it) }
+
       component.add(newEditor, BorderLayout.CENTER)
       newEditor
     }
@@ -36,6 +39,7 @@ class KafkaRegistrySchemaEditor(private val project: Project) {
       }
       else {
         val newEditor = createEditor(project, isJson)
+        onChange?.let { newEditor.document.doOnChange(it) }
         component.removeAll()
         component.add(newEditor, BorderLayout.CENTER)
         newEditor
