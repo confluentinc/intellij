@@ -11,8 +11,7 @@
 
     <toolWindow id="KafkaToolWindow" anchor="bottom" canCloseContents="true"
                 icon="/icons/kafkaToolWindow.svg"
-                factoryClass="com.jetbrains.bigdatatools.kafka.toolwindow.KafkaToolWindowFactory"
-                doNotActivateOnStart="true"/>
+                factoryClass="com.jetbrains.bigdatatools.kafka.toolwindow.KafkaToolWindowFactory"/>
 
     <fileEditorProvider implementation="com.jetbrains.bigdatatools.kafka.common.editor.KafkaEditorProvider"/>
   </extensions>
