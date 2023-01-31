@@ -5,13 +5,13 @@ import com.intellij.diff.chains.SimpleDiffRequestChain
 import com.intellij.diff.impl.CacheDiffRequestChainProcessor
 import com.intellij.diff.requests.SimpleDiffRequest
 import com.intellij.json.JsonFileType
-import com.intellij.openapi.application.runInEdt
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.DialogBuilder
 import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.openapi.util.NlsContexts
 import com.intellij.protobuf.lang.PbFileType
 import com.intellij.ui.dsl.builder.panel
+import com.jetbrains.bigdatatools.common.util.invokeAndWaitSwing
 import com.jetbrains.bigdatatools.kafka.model.SchemaRegistryInfo
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryFormat
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryUtil
@@ -79,7 +79,7 @@ object KafkaRegistrySchemaInfoDialog {
             errorLabel?.text = it.message
             errorLabel?.isVisible = true
           }.onSuccess {
-            runInEdt {
+            invokeAndWaitSwing {
               dialogWrapper.dialogWrapper.close(DialogWrapper.OK_EXIT_CODE)
             }
           }
