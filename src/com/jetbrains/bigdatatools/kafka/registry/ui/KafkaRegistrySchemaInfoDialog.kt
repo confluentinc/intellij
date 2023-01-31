@@ -1,5 +1,6 @@
 package com.jetbrains.bigdatatools.kafka.registry.ui
 
+import com.intellij.CommonBundle
 import com.intellij.diff.DiffContentFactory
 import com.intellij.diff.chains.SimpleDiffRequestChain
 import com.intellij.diff.impl.CacheDiffRequestChainProcessor
@@ -69,7 +70,8 @@ object KafkaRegistrySchemaInfoDialog {
       row { cell(processor.component) }.resizableRow()
       row { errorLabel = comment("").component }
     })
-    dialogWrapper.addOkAction().setText(KafkaMessagesBundle.message("diff.dialog.button.update"))
+    dialogWrapper.addOkAction().setText(if (onApply == null) CommonBundle.getOkButtonText()
+                                        else KafkaMessagesBundle.message("diff.dialog.button.update"))
     if (onApply != null) {
       dialogWrapper.addCancelAction()
 
