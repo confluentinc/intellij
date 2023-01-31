@@ -8,6 +8,7 @@ import com.intellij.json.JsonFileType
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.DialogBuilder
 import com.intellij.openapi.ui.DialogWrapper
+import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.NlsContexts
 import com.intellij.protobuf.lang.PbFileType
 import com.intellij.ui.dsl.builder.panel
@@ -62,6 +63,7 @@ object KafkaRegistrySchemaInfoDialog {
     var errorLabel: JEditorPane? = null
 
     val dialogWrapper = DialogBuilder(project)
+    Disposer.register(dialogWrapper, processor)
     dialogWrapper.setTitle(title)
     dialogWrapper.setCenterPanel(panel {
       row { cell(processor.component) }.resizableRow()
