@@ -6,6 +6,8 @@ import com.intellij.openapi.observable.util.whenFocusLost
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.TextFieldWithBrowseButton
+import com.intellij.ui.Gray
+import com.intellij.ui.JBColor
 import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.components.JBTextField
 import com.intellij.ui.dsl.builder.*
@@ -16,7 +18,9 @@ import com.jetbrains.bigdatatools.common.settings.fields.*
 import com.jetbrains.bigdatatools.common.settings.kerberos.KerberosUiFactory.krb5ConfRow
 import com.jetbrains.bigdatatools.common.settings.withValidator
 import com.jetbrains.bigdatatools.common.ui.CustomListCellRenderer
+import com.jetbrains.bigdatatools.common.ui.block
 import com.jetbrains.bigdatatools.common.ui.row
+import com.jetbrains.bigdatatools.common.ui.shortRow
 import com.jetbrains.bigdatatools.common.util.BdtUrlUtils
 import com.jetbrains.bigdatatools.common.util.MessagesBundle
 import com.jetbrains.bigdatatools.kafka.client.KafkaClient
@@ -57,8 +61,7 @@ class KafkaSettingsCustomizer(project: Project, connectionData: KafkaConnectionD
   private val propertiesFile = BrowseTextField(KafkaConnectionData::propertyFilePath,
                                                KafkaSettingsKeys.PROPERTIES_FILE_KEY,
                                                connectionData,
-                                               browseTitle = KafkaMessagesBundle.message(
-                                                 "settings.properties.file.browse"),
+                                               browseTitle = KafkaMessagesBundle.message("settings.properties.file.browse"),
                                                fileChooserDescriptor = FileChooserDescriptorFactory.createSingleFileDescriptor())
 
   private val sourceTypeChooser = RadioGroupField(KafkaConnectionData::propertySource,
@@ -108,7 +111,6 @@ class KafkaSettingsCustomizer(project: Project, connectionData: KafkaConnectionD
   private lateinit var sslKeystorePassword: Cell<JBTextField>
   private lateinit var sslKeyPassword: Cell<JBTextField>
 
-
   private lateinit var schemaAuth: Cell<ComboBox<SchemaRegistryAuthType>>
   private lateinit var schemaBasicAuthGroup: RowsRange
   private lateinit var schemaBasicLogin: Row
@@ -130,123 +132,121 @@ class KafkaSettingsCustomizer(project: Project, connectionData: KafkaConnectionD
     listOf(nameField, url, propertiesEditor, propertiesFile, tunnelField, sourceTypeChooser, registryUrl, registryProperties)
 
   override fun getDefaultComponent(fields: List<WrappedComponent<in KafkaConnectionData>>, conn: KafkaConnectionData) = panel {
-    row(nameField)
+    row(nameField).topGap(TopGap.SMALL).bottomGap(BottomGap.SMALL)
+    separator(JBColor.namedColor("Group.separatorColor", JBColor(Gray.xCD, Gray.x51)))
     row(url)
 
-    row(sourceTypeChooser)
-    row(propertiesFile)
+    shortRow(sourceTypeChooser)
+    indent {
+      row(propertiesFile)
 
-
-    implicitClientSettingsGroup = rowsRange {
-      row(KafkaMessagesBundle.message("kafka.auth.method.label")) {
-        authMethod = comboBox(KafkaAuthMethod.values().toList(), CustomListCellRenderer<KafkaAuthMethod> { it.title }).onChanged {
-          updateVisibilityOfAuth()
-          updatePropertiesField()
-        }.align(AlignX.FILL)
-      }
-
-      saslGroup = indent {
-        row {
-          saslSecurityProtocol = checkBox(KafkaMessagesBundle.message("kafka.auth.sasl.use.ssl")).onChanged {
-            updatePropertiesField()
-          }
-        }
-
-        row(KafkaMessagesBundle.message("kafka.sasl.mechanism")) {
-          saslMechanism = comboBox(KafkaSaslMechanism.values().toList(),
-                                   CustomListCellRenderer<KafkaSaslMechanism> { it.title }).onChanged {
-            updateVisibilityOfSasl()
+      implicitClientSettingsGroup = rowsRange {
+        row(KafkaMessagesBundle.message("kafka.auth.method.label")) {
+          authMethod = comboBox(KafkaAuthMethod.values().toList(), CustomListCellRenderer<KafkaAuthMethod> { it.title }).onChanged {
+            updateVisibilityOfAuth()
             updatePropertiesField()
           }.align(AlignX.FILL)
         }
 
-        saslKerberosGroup = indent {
-          krb5ConfRow(project)
+        saslGroup = indent {
+          row {
+            saslSecurityProtocol = checkBox(KafkaMessagesBundle.message("kafka.auth.sasl.use.ssl")).onChanged {
+              updatePropertiesField()
+            }
+          }
 
-          row(MessagesBundle.message("kerberos.settings.principal.label")) {
-            saslPrincipal = textField().onChanged {
+          row(KafkaMessagesBundle.message("kafka.sasl.mechanism")) {
+            saslMechanism = comboBox(KafkaSaslMechanism.values().toList(),
+                                     CustomListCellRenderer<KafkaSaslMechanism> { it.title }).onChanged {
+              updateVisibilityOfSasl()
               updatePropertiesField()
             }.align(AlignX.FILL)
           }
-          row(MessagesBundle.message("kerberos.connection.settings.keytab.label")) {
-            saslKeytab = textFieldWithBrowseButton(project = project,
-                                                   browseDialogTitle = MessagesBundle.message(
-                                                     "kerberos.connection.settings.keytab.select.dialog.title")).onChanged {
-              updatePropertiesField()
-            }.align(AlignX.FILL)
+
+          saslKerberosGroup = indent {
+            krb5ConfRow(project)
+            row(MessagesBundle.message("kerberos.settings.principal.label")) {
+              saslPrincipal = textField().onChanged {
+                updatePropertiesField()
+              }.align(AlignX.FILL)
+            }
+            row(MessagesBundle.message("kerberos.connection.settings.keytab.label")) {
+              saslKeytab = textFieldWithBrowseButton(project = project,
+                                                     browseDialogTitle = MessagesBundle.message(
+                                                       "kerberos.connection.settings.keytab.select.dialog.title")).onChanged {
+                updatePropertiesField()
+              }.align(AlignX.FILL)
+            }
+          }
+
+          saslCredentialsGroup = indent {
+            row(KafkaMessagesBundle.message("kafka.username")) {
+              saslUsername = textField().onChanged {
+                updatePropertiesField()
+              }.align(AlignX.FILL)
+            }
+            row(KafkaMessagesBundle.message("kafka.password")) {
+              saslPassword = textField().onChanged {
+                updatePropertiesField()
+              }.align(AlignX.FILL)
+            }
           }
         }
 
-
-        saslCredentialsGroup = indent {
-          row(KafkaMessagesBundle.message("kafka.username")) {
-            saslUsername = textField().onChanged {
+        sslGroup = indent {
+          row {
+            sslEnableValidateHostname = checkBox(
+              KafkaMessagesBundle.message("kafka.auth.enable.server.host.name.indetification")).onChanged {
+              updatePropertiesField()
+            }
+          }.bottomGap(BottomGap.SMALL)
+          row(KafkaMessagesBundle.message("kafka.truststore.location")) {
+            sslTruststoreLocation = textFieldWithBrowseButton(project = project,
+                                                              browseDialogTitle = KafkaMessagesBundle.message(
+                                                                "kafka.truststore.location.dialog.title")).onChanged {
               updatePropertiesField()
             }.align(AlignX.FILL)
           }
-          row(KafkaMessagesBundle.message("kafka.password")) {
-            saslPassword = textField().onChanged {
+          row(KafkaMessagesBundle.message("kafka.truststore.password")) {
+            sslTruststorePassword = textField().onChanged {
               updatePropertiesField()
             }.align(AlignX.FILL)
+          }.bottomGap(BottomGap.SMALL)
+          row {
+            sslUseKeystore = checkBox(KafkaMessagesBundle.message("kafka.ssl.use.keystore")).onChanged {
+              updateVisibilityOfSslKeystore()
+              updatePropertiesField()
+            }
+          }.topGap(TopGap.SMALL)
+
+          sslKeystoreGroup = rowsRange {
+            row(KafkaMessagesBundle.message("kafka.keystore.location")) {
+              sslKeystoreLocation = textFieldWithBrowseButton(project = project,
+                                                              browseDialogTitle = KafkaMessagesBundle.message(
+                                                                "kafka.truststore.location.dialog.title")).onChanged {
+                updatePropertiesField()
+              }.align(AlignX.FILL)
+            }
+            row(KafkaMessagesBundle.message("kafka.keystore.password")) {
+              sslKeystorePassword = textField().onChanged {
+                updatePropertiesField()
+              }.align(AlignX.FILL)
+            }
+            row(KafkaMessagesBundle.message("kafka.key.password")) {
+              sslKeyPassword = textField().onChanged {
+                updatePropertiesField()
+              }.align(AlignX.FILL)
+            }
           }
         }
+
+        awsMskSettingsRows = indent {
+          awsMskSettings.getComponentRows(this)
+        }
+        row(propertiesEditor.labelComponent)
+        block(propertiesEditor.getComponent())
       }
-
-
-      sslGroup = indent {
-        row {
-          sslEnableValidateHostname = checkBox(KafkaMessagesBundle.message("kafka.auth.enable.server.host.name.indetification")).onChanged {
-            updatePropertiesField()
-          }
-        }.bottomGap(BottomGap.SMALL)
-
-        row(KafkaMessagesBundle.message("kafka.truststore.location")) {
-          sslTruststoreLocation = textFieldWithBrowseButton(project = project,
-                                                            browseDialogTitle = KafkaMessagesBundle.message(
-                                                              "kafka.truststore.location.dialog.title")).onChanged {
-            updatePropertiesField()
-          }.align(AlignX.FILL)
-        }
-        row(KafkaMessagesBundle.message("kafka.truststore.password")) {
-          sslTruststorePassword = textField().onChanged {
-            updatePropertiesField()
-          }.align(AlignX.FILL)
-        }.bottomGap(BottomGap.SMALL)
-
-        row {
-          sslUseKeystore = checkBox(KafkaMessagesBundle.message("kafka.ssl.use.keystore")).onChanged {
-            updateVisibilityOfSslKeystore()
-            updatePropertiesField()
-          }
-        }.topGap(TopGap.SMALL)
-        sslKeystoreGroup = rowsRange {
-          row(KafkaMessagesBundle.message("kafka.keystore.location")) {
-            sslKeystoreLocation = textFieldWithBrowseButton(project = project,
-                                                            browseDialogTitle = KafkaMessagesBundle.message(
-                                                              "kafka.truststore.location.dialog.title")).onChanged {
-              updatePropertiesField()
-            }.align(AlignX.FILL)
-
-          }
-          row(KafkaMessagesBundle.message("kafka.keystore.password")) {
-            sslKeystorePassword = textField().onChanged {
-              updatePropertiesField()
-            }.align(AlignX.FILL)
-          }
-          row(KafkaMessagesBundle.message("kafka.key.password")) {
-            sslKeyPassword = textField().onChanged {
-              updatePropertiesField()
-            }.align(AlignX.FILL)
-          }
-        }
-      }
-
-      awsMskSettingsRows = indent {
-        awsMskSettings.getComponentRows(this)
-      }
-      row(propertiesEditor).topGap(TopGap.MEDIUM)
     }
-
 
     group(KafkaMessagesBundle.message("settings.registry.title")) {
       row(registryUrl).bottomGap(BottomGap.SMALL)
@@ -272,14 +272,13 @@ class KafkaSettingsCustomizer(project: Project, connectionData: KafkaConnectionD
         }
       }
 
-      row(registryProperties).topGap(TopGap.SMALL)
+      row(registryProperties.labelComponent)
+      block(registryProperties.getComponent())
     }
-
-
 
     panel {
       row {
-        cell(tunnelField.getComponent())
+        cell(tunnelField.getComponent()).align(AlignX.FILL).resizableColumn()
       }
     }
 
@@ -287,7 +286,6 @@ class KafkaSettingsCustomizer(project: Project, connectionData: KafkaConnectionD
     updateSchemaRegistryAuth()
     updateUiFromProperties()
   }
-
 
   private fun updateAuthStatus() {
     val authType = sourceTypeChooser.getValue()
@@ -309,7 +307,6 @@ class KafkaSettingsCustomizer(project: Project, connectionData: KafkaConnectionD
     schemaBasicAuthGroup.visible(selectedAuthType == SchemaRegistryAuthType.BASIC_AUTH)
     schemaBearerToken.visible(selectedAuthType == SchemaRegistryAuthType.BEARER)
   }
-
 
   private fun updateVisibilityOfAuth() {
     val selectedAuthType = authMethod.component.item
