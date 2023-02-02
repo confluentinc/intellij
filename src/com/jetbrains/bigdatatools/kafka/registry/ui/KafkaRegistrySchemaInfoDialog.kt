@@ -12,7 +12,11 @@ import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.NlsContexts
 import com.intellij.protobuf.lang.PbFileType
+import com.intellij.ui.LightColors
+import com.intellij.ui.dsl.builder.Align
 import com.intellij.ui.dsl.builder.panel
+import com.intellij.util.ui.JBUI
+import com.intellij.util.ui.UIUtil
 import com.jetbrains.bigdatatools.common.util.invokeAndWaitSwing
 import com.jetbrains.bigdatatools.kafka.model.SchemaRegistryInfo
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryFormat
@@ -67,8 +71,12 @@ object KafkaRegistrySchemaInfoDialog {
     Disposer.register(dialogWrapper, processor)
     dialogWrapper.setTitle(title)
     dialogWrapper.setCenterPanel(panel {
-      row { cell(processor.component) }.resizableRow()
-      row { errorLabel = comment("").component }
+      row { cell(processor.component).align(Align.FILL).resizableColumn() }.resizableRow()
+      row {
+        errorLabel = comment("").component.apply {
+          isVisible = false
+        }
+      }
     })
     dialogWrapper.addOkAction().setText(if (onApply == null) CommonBundle.getOkButtonText()
                                         else KafkaMessagesBundle.message("diff.dialog.button.update"))
@@ -80,8 +88,14 @@ object KafkaRegistrySchemaInfoDialog {
         val newText = new.document.text
         if (prev.document.text != newText) {
           onApply.invoke(newText).onError {
-            errorLabel?.text = it.message
-            errorLabel?.isVisible = true
+            errorLabel?.apply {
+              isOpaque = true
+              foreground = UIUtil.getLabelForeground()
+              background = LightColors.RED
+              border = JBUI.Borders.empty(10, 15, 15, 15)
+              text = it.message
+              isVisible = true
+            }
           }.onSuccess {
             invokeAndWaitSwing {
               dialogWrapper.dialogWrapper.close(DialogWrapper.OK_EXIT_CODE)
