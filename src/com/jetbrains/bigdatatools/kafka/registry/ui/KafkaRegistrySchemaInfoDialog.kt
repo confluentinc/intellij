@@ -6,12 +6,12 @@ import com.intellij.diff.chains.SimpleDiffRequestChain
 import com.intellij.diff.impl.CacheDiffRequestChainProcessor
 import com.intellij.diff.requests.SimpleDiffRequest
 import com.intellij.json.JsonFileType
+import com.intellij.openapi.fileTypes.FileTypeManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.DialogBuilder
 import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.NlsContexts
-import com.intellij.protobuf.lang.PbFileType
 import com.intellij.ui.LightColors
 import com.intellij.ui.dsl.builder.Align
 import com.intellij.ui.dsl.builder.panel
@@ -44,7 +44,9 @@ object KafkaRegistrySchemaInfoDialog {
                registryInfoSecond: SchemaRegistryInfo, onApply: ((String) -> Promise<Unit>)? = null) {
 
     val isJson = KafkaRegistryFormat.valueOf(registryInfoFirst.type) != KafkaRegistryFormat.PROTOBUF
-    val fileType = if (isJson) JsonFileType.INSTANCE else PbFileType.INSTANCE
+    val fileType = if (isJson) JsonFileType.INSTANCE
+    else
+      FileTypeManager.getInstance().findFileTypeByName("protobuf")
 
     val schemaFirst = KafkaRegistryUtil.getPrettySchema(registryInfoFirst) ?: return
     val schemaSecond = KafkaRegistryUtil.getPrettySchema(registryInfoSecond) ?: return
