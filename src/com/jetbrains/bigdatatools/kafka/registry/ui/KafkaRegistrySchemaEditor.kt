@@ -2,9 +2,8 @@ package com.jetbrains.bigdatatools.kafka.registry.ui
 
 import com.intellij.json.JsonFileType
 import com.intellij.json.JsonLanguage
+import com.intellij.lang.Language
 import com.intellij.openapi.project.Project
-import com.intellij.protobuf.lang.PbFileType
-import com.intellij.protobuf.lang.PbLanguage
 import com.intellij.ui.EditorCustomization
 import com.intellij.ui.EditorTextField
 import com.intellij.ui.EditorTextFieldProvider
@@ -33,7 +32,7 @@ class KafkaRegistrySchemaEditor(private val project: Project, private val onChan
       newEditor
     }
     else {
-      if (editor.fileType == PbFileType.INSTANCE && !isJson ||
+      if (editor.fileType.name == "protobuf" && !isJson ||
           editor.fileType == JsonFileType.INSTANCE && isJson) {
         editor
       }
@@ -52,7 +51,7 @@ class KafkaRegistrySchemaEditor(private val project: Project, private val onChan
   }
 
   private fun createEditor(project: Project, isJson: Boolean) = EditorTextFieldProvider.getInstance().getEditorField(
-    if (isJson) JsonLanguage.INSTANCE else PbLanguage.INSTANCE, project, listOf(
+    if (isJson) JsonLanguage.INSTANCE else Language.findLanguageByID("protobuf") ?: Language.ANY, project, listOf(
     EditorCustomization {
       it.settings.apply {
         isLineNumbersShown = false
