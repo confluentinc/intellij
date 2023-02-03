@@ -15,6 +15,7 @@ import com.jetbrains.bigdatatools.common.monitoring.TunnableSettingsCustomizer
 import com.jetbrains.bigdatatools.common.settings.ModificationKey
 import com.jetbrains.bigdatatools.common.settings.connections.ConnectionData
 import com.jetbrains.bigdatatools.common.settings.fields.*
+import com.jetbrains.bigdatatools.common.settings.kerberos.BdtJaasConfig
 import com.jetbrains.bigdatatools.common.settings.kerberos.KerberosUiFactory.krb5ConfRow
 import com.jetbrains.bigdatatools.common.settings.withValidator
 import com.jetbrains.bigdatatools.common.ui.CustomListCellRenderer
@@ -23,11 +24,9 @@ import com.jetbrains.bigdatatools.common.ui.row
 import com.jetbrains.bigdatatools.common.ui.shortRow
 import com.jetbrains.bigdatatools.common.util.BdtUrlUtils
 import com.jetbrains.bigdatatools.common.util.MessagesBundle
-import com.jetbrains.bigdatatools.kafka.client.KafkaClient
 import com.jetbrains.bigdatatools.kafka.rfs.*
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import com.jetbrains.bigdatatools.kafka.util.KafkaPropertiesUtils
-import com.jetbrains.bigdatatools.kafka.util.jaas.BdtJaasConfig
 import org.apache.kafka.clients.CommonClientConfigs.SECURITY_PROTOCOL_CONFIG
 import org.apache.kafka.common.config.SaslConfigs.SASL_JAAS_CONFIG
 import org.apache.kafka.common.config.SaslConfigs.SASL_MECHANISM
@@ -484,11 +483,6 @@ class KafkaSettingsCustomizer(project: Project, connectionData: KafkaConnectionD
       secretKey = secretKey
     )
     awsMskSettings.loadInfo(info)
-  }
-
-  //TODO: Nikita@Pavlenko
-  private fun loadProperties() {
-    KafkaClient.loadPropertyFile(propertiesFile.getValue())
   }
 
   object KafkaSettingsKeys {
