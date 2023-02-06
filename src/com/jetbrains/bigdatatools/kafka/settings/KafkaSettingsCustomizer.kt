@@ -11,6 +11,7 @@ import com.intellij.ui.JBColor
 import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.components.JBTextField
 import com.intellij.ui.dsl.builder.*
+import com.jetbrains.bigdatatools.common.connection.tunnel.ui.SshTunnelComponent
 import com.jetbrains.bigdatatools.common.monitoring.TunnableSettingsCustomizer
 import com.jetbrains.bigdatatools.common.settings.ModificationKey
 import com.jetbrains.bigdatatools.common.settings.connections.ConnectionData
@@ -38,7 +39,13 @@ import org.com.jetbrains.bigdatatools.aws.common.ui.external.AwsSettingsInfo
 
 class KafkaSettingsCustomizer(project: Project, connectionData: KafkaConnectionData, uiDisposable: Disposable) :
   TunnableSettingsCustomizer<KafkaConnectionData>(connectionData, project, uiDisposable) {
-
+  @Suppress("DialogTitleCapitalization")
+  override val tunnelField: SshTunnelComponent<KafkaConnectionData> = SshTunnelComponent(project, uiDisposable, connectionData,
+                                                                                         hostAndPortProvider,
+                                                                                         additionalLabel = KafkaMessagesBundle.message(
+                                                                                           "ssh.additional.label"),
+                                                                                         additionalHelper = KafkaMessagesBundle.message(
+                                                                                           "ssh.additiona.helper"))
   override val url = StringNamedField(ConnectionData::uri, ModificationKey(KafkaMessagesBundle.message("settings.url")), connectionData)
     .apply {
       emptyText = KafkaMessagesBundle.message("settings.url.text.empty")
@@ -273,13 +280,13 @@ class KafkaSettingsCustomizer(project: Project, connectionData: KafkaConnectionD
 
       row(registryProperties.labelComponent)
       block(registryProperties.getComponent())
-    }
-
-    panel {
-      row {
-        cell(tunnelField.getComponent()).align(AlignX.FILL).resizableColumn()
+      panel {
+        row {
+          cell(tunnelField.getComponent()).align(AlignX.FILL).resizableColumn()
+        }
       }
     }
+
 
     updateAuthStatus()
     updateSchemaRegistryAuth()
