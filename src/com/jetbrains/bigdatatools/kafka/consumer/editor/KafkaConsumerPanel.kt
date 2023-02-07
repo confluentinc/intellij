@@ -67,7 +67,6 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
   private val startConsumerGroup = KafkaEditorUtils.createConsumerGroups(this, kafkaManager)
 
   private val startFromComboBox = ComboBox(ConsumerStartType.values()).apply {
-    prototypeDisplayValue = ConsumerStartType.TODAY
     renderer = CustomListCellRenderer<ConsumerStartType> { it.title }
     item = ConsumerStartType.NOW
     addActionListener {
@@ -78,7 +77,6 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
   }
 
   private val limitComboBox = ComboBox(ConsumerLimitType.values()).apply {
-    prototypeDisplayValue = ConsumerLimitType.DATE
     renderer = CustomListCellRenderer<ConsumerLimitType> { it.title }
     item = ConsumerLimitType.NONE
     addActionListener {
@@ -89,7 +87,6 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
   }
 
   private val filterComboBox = ComboBox(ConsumerFilterType.values()).apply {
-    prototypeDisplayValue = ConsumerFilterType.NONE
     renderer = CustomListCellRenderer<ConsumerFilterType> { it.title }
     item = ConsumerFilterType.NONE
     addActionListener {
