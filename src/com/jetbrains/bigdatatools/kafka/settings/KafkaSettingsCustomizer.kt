@@ -45,7 +45,7 @@ class KafkaSettingsCustomizer(project: Project, connectionData: KafkaConnectionD
                                                                                          additionalLabel = KafkaMessagesBundle.message(
                                                                                            "ssh.additional.label"),
                                                                                          additionalHelper = KafkaMessagesBundle.message(
-                                                                                           "ssh.additiona.helper"))
+                                                                                           "ssh.additional.helper"))
   override val url = StringNamedField(ConnectionData::uri, ModificationKey(KafkaMessagesBundle.message("settings.url")), connectionData)
     .apply {
       emptyText = KafkaMessagesBundle.message("settings.url.text.empty")
