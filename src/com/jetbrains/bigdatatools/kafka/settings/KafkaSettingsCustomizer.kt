@@ -101,12 +101,14 @@ class KafkaSettingsCustomizer(project: Project, connectionData: KafkaConnectionD
   private lateinit var sslGroup: RowsRange
   private lateinit var saslCredentialsGroup: RowsRange
   private lateinit var saslKerberosGroup: RowsRange
+  private lateinit var saslAdditionalKerberosGroup: RowsRange
   private lateinit var saslSecurityProtocol: Cell<JBCheckBox>
   private lateinit var saslMechanism: Cell<ComboBox<KafkaSaslMechanism>>
   private lateinit var sslUseKeystore: Cell<JBCheckBox>
   private lateinit var sslKeystoreGroup: RowsRange
   private lateinit var saslPrincipal: Cell<JBTextField>
   private lateinit var saslKeytab: Cell<TextFieldWithBrowseButton>
+  private lateinit var saslKerberosUseTicketCache: Cell<JBCheckBox>
   private lateinit var saslUsername: Cell<JBTextField>
   private lateinit var saslPassword: Cell<JBTextField>
   private lateinit var sslTruststoreLocation: Cell<TextFieldWithBrowseButton>
@@ -170,18 +172,28 @@ class KafkaSettingsCustomizer(project: Project, connectionData: KafkaConnectionD
           }
 
           saslKerberosGroup = indent {
-            krb5ConfRow(project)
-            row(MessagesBundle.message("kerberos.settings.principal.label")) {
-              saslPrincipal = textField().onChanged {
-                updatePropertiesField()
-              }.align(AlignX.FILL)
+            row {
+              saslKerberosUseTicketCache = checkBox(MessagesBundle.message("settings.use.kerberos.cache")).also {
+                it.component.isSelected = true
+              }.onChanged {
+                updateVisibilityOfAdditionalKerberos()
+              }
             }
-            row(MessagesBundle.message("kerberos.connection.settings.keytab.label")) {
-              saslKeytab = textFieldWithBrowseButton(project = project,
-                                                     browseDialogTitle = MessagesBundle.message(
-                                                       "kerberos.connection.settings.keytab.select.dialog.title")).onChanged {
-                updatePropertiesField()
-              }.align(AlignX.FILL)
+            saslAdditionalKerberosGroup = rowsRange {
+              krb5ConfRow(project)
+
+              row(MessagesBundle.message("kerberos.settings.principal.label")) {
+                saslPrincipal = textField().onChanged {
+                  updatePropertiesField()
+                }.align(AlignX.FILL)
+              }
+              row(MessagesBundle.message("kerberos.connection.settings.keytab.label")) {
+                saslKeytab = textFieldWithBrowseButton(project = project,
+                                                       browseDialogTitle = MessagesBundle.message(
+                                                         "kerberos.connection.settings.keytab.select.dialog.title")).onChanged {
+                  updatePropertiesField()
+                }.align(AlignX.FILL)
+              }
             }
           }
 
@@ -338,6 +350,13 @@ class KafkaSettingsCustomizer(project: Project, connectionData: KafkaConnectionD
     val mechanism = saslMechanism.component.item
     saslCredentialsGroup.visible(mechanism in setOf(KafkaSaslMechanism.PLAIN, KafkaSaslMechanism.SCRAM_256, KafkaSaslMechanism.SCRAM_512))
     saslKerberosGroup.visible(mechanism == KafkaSaslMechanism.KERBEROS)
+    if (mechanism == KafkaSaslMechanism.KERBEROS) {
+      updateVisibilityOfAdditionalKerberos()
+    }
+  }
+
+  private fun updateVisibilityOfAdditionalKerberos() {
+    saslAdditionalKerberosGroup.visible(!saslKerberosUseTicketCache.component.isSelected)
   }
 
   private fun updateVisibilityOfSslKeystore() {
@@ -372,7 +391,12 @@ class KafkaSettingsCustomizer(project: Project, connectionData: KafkaConnectionD
         val jaasConfig = if (saslMechanism == KafkaSaslMechanism.KERBEROS) {
           val keytab = saslKeytab.component.text
           val principal = saslPrincipal.component.text
-          "${saslMechanism.module} required useKeyTab=true keyTab='$keytab' principal='$principal';"
+          if (saslKerberosUseTicketCache.component.isSelected) {
+            "${saslMechanism.module} required useTicketCache=true;"
+          }
+          else {
+            "${saslMechanism.module} required useKeyTab=true keyTab='$keytab' principal='$principal';"
+          }
         }
         else {
           "${saslMechanism.module} required username='${saslUsername.component.text}' password='${saslPassword.component.text}';"
@@ -451,6 +475,7 @@ class KafkaSettingsCustomizer(project: Project, connectionData: KafkaConnectionD
         saslPassword.component.text = bdtJaasConfig["password"] ?: ""
         saslKeytab.component.text = bdtJaasConfig["keytab"] ?: ""
         saslPrincipal.component.text = bdtJaasConfig["principal"] ?: ""
+        saslKerberosUseTicketCache.component.text = bdtJaasConfig["useticketcache"] ?: ""
       }
       SecurityProtocol.SSL -> {
         authMethod.component.item = KafkaAuthMethod.SSL
