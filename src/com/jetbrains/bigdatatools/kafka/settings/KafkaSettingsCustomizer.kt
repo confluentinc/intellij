@@ -153,10 +153,9 @@ class KafkaSettingsCustomizer(project: Project, connectionData: KafkaConnectionD
     row(nameField).topGap(TopGap.SMALL).bottomGap(BottomGap.SMALL)
 
     group(KafkaMessagesBundle.message("kafka.broker.group.title")) {
-      row(url)
-
       shortRow(sourceTypeChooser)
       indent {
+        row(url)
 
         propertiesTypeChooserGroup = row {
           label(KafkaMessagesBundle.message("kafka.property.source.label"))
@@ -177,18 +176,15 @@ class KafkaSettingsCustomizer(project: Project, connectionData: KafkaConnectionD
           }
 
           saslGroup = indent {
-            row {
-              saslSecurityProtocol = checkBox(KafkaMessagesBundle.message("kafka.auth.sasl.use.ssl")).onChanged {
-                updatePropertiesField()
-              }
-            }
-
             row(KafkaMessagesBundle.message("kafka.sasl.mechanism")) {
               saslMechanism = comboBox(KafkaSaslMechanism.values().toList(),
                                        CustomListCellRenderer<KafkaSaslMechanism> { it.title }).onChanged {
                 updateVisibilityOfSasl()
                 updatePropertiesField()
               }.align(AlignX.FILL)
+              saslSecurityProtocol = checkBox(KafkaMessagesBundle.message("kafka.auth.sasl.use.ssl")).onChanged {
+                updatePropertiesField()
+              }
             }
 
             saslKerberosGroup = indent {
@@ -306,11 +302,7 @@ class KafkaSettingsCustomizer(project: Project, connectionData: KafkaConnectionD
         }
       }
 
-      panel {
-        row {
-          cell(tunnelField.getComponent()).align(AlignX.FILL).resizableColumn()
-        }.topGap(TopGap.SMALL)
-      }
+      block(tunnelField.getComponent()).topGap(TopGap.SMALL)
     }
 
     updateAuthStatus()
@@ -321,6 +313,7 @@ class KafkaSettingsCustomizer(project: Project, connectionData: KafkaConnectionD
 
   private fun updateAuthStatus() {
     val authType = sourceTypeChooser.getValue()
+    url.isVisible = authType == KafkaPropertySource.DIRECT
     propertiesTypeChooserGroup.visible(authType == KafkaPropertySource.FILE)
     implicitClientSettingsGroup.visible(authType == KafkaPropertySource.DIRECT)
     updateVisibilityOfAuth()
