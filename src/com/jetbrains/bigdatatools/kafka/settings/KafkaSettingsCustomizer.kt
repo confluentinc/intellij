@@ -104,7 +104,7 @@ class KafkaSettingsCustomizer(project: Project, connectionData: KafkaConnectionD
     }
   }
 
-  private lateinit var propertiesGroup: RowsRange
+  private lateinit var propertiesGroup: Row
   private lateinit var propertiesTypeChooserGroup: Row
   private lateinit var implicitClientSettingsGroup: RowsRange
 
@@ -164,10 +164,7 @@ class KafkaSettingsCustomizer(project: Project, connectionData: KafkaConnectionD
 
         row(propertiesFile)
 
-        propertiesGroup = rowsRange {
-          row(propertiesEditor.labelComponent)
-          block(propertiesEditor.getComponent())
-        }
+        propertiesGroup = block(propertiesEditor.getComponent())
 
         implicitClientSettingsGroup = rowsRange {
           row {
