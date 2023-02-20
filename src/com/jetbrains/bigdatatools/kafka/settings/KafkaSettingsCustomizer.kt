@@ -486,7 +486,7 @@ class KafkaSettingsCustomizer(project: Project, connectionData: KafkaConnectionD
         saslPassword.component.text = bdtJaasConfig["password"] ?: ""
         saslKeytab.component.text = bdtJaasConfig["keytab"] ?: ""
         saslPrincipal.component.text = bdtJaasConfig["principal"] ?: ""
-        saslKerberosUseTicketCache.component.text = bdtJaasConfig["useticketcache"] ?: ""
+        saslKerberosUseTicketCache.component.isSelected = bdtJaasConfig["useticketcache"]?.toBoolean() ?: false
       }
       SecurityProtocol.SSL -> {
         authMethod.selectedItem = KafkaAuthMethod.SSL
