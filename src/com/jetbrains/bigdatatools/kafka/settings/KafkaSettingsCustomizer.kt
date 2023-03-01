@@ -36,7 +36,7 @@ import org.com.jetbrains.bigdatatools.aws.common.connection.auth.AuthenticationT
 import org.com.jetbrains.bigdatatools.aws.common.ui.external.AwsSettingsForKafka
 import org.com.jetbrains.bigdatatools.aws.common.ui.external.AwsSettingsInfo
 
-class KafkaSettingsCustomizer(project: Project, connectionData: KafkaConnectionData, uiDisposable: Disposable) :
+class KafkaSettingsCustomizer(project: Project, connectionData: KafkaConnectionData, private val uiDisposable: Disposable) :
   TunnableSettingsCustomizer<KafkaConnectionData>(connectionData, project, uiDisposable) {
   @Suppress("DialogTitleCapitalization")
   override val tunnelField: SshTunnelComponent<KafkaConnectionData> = SshTunnelComponent(project, uiDisposable, connectionData,
@@ -193,7 +193,7 @@ class KafkaSettingsCustomizer(project: Project, connectionData: KafkaConnectionD
                 }
               }
               saslAdditionalKerberosGroup = rowsRange {
-                krb5ConfRow(project)
+                krb5ConfRow(project, uiDisposable)
 
                 row(MessagesBundle.message("kerberos.settings.principal.label")) {
                   saslPrincipal = textField().onChanged {
