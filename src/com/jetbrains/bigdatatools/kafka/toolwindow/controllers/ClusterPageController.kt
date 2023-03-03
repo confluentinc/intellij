@@ -164,6 +164,6 @@ class ClusterPageController(private val project: Project, private val connection
   private enum class ClusterControllerType(val value: String) {
     TOPIC("Topics"),
     CONSUMER_GROUP("Consumers"),
-    SCHEMA_REGISTRY_GROUP(KafkaMessagesBundle.message("settings.registry.title"))
+    SCHEMA_REGISTRY_GROUP(KafkaMessagesBundle.message("settings.registry.tab"))
   }
 }
