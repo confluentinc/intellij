@@ -288,7 +288,7 @@ class KafkaConsumerClient(val dataManager: KafkaDataManager,
         dataManager.getRegistrySchemaById(id)
       }
       KafkaRegistryConsumerType.CUSTOM -> {
-        KafkaRegistryUtil.parseSchema(fieldType.schemaType, schemaJson)
+        KafkaRegistryUtil.parseSchema(fieldType.schemaType, schemaJson).getOrNull()
       }
     }
   }

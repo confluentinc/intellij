@@ -3,15 +3,16 @@ package com.jetbrains.bigdatatools.kafka.toolwindow
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ToolWindowManager
-import com.jetbrains.bigdatatools.kafka.rfs.KafkaConnectionData
-import com.jetbrains.bigdatatools.kafka.settings.KafkaConnectionGroup
-import com.jetbrains.bigdatatools.kafka.toolwindow.config.KafkaToolWindowSettings
-import com.jetbrains.bigdatatools.kafka.toolwindow.controllers.ClusterPageController
 import com.jetbrains.bigdatatools.common.monitoring.toolwindow.ComponentController
 import com.jetbrains.bigdatatools.common.monitoring.toolwindow.MonitoringToolWindowController
 import com.jetbrains.bigdatatools.common.settings.connections.ConnectionData
 import com.jetbrains.bigdatatools.common.settings.connections.ConnectionFactory
 import com.jetbrains.bigdatatools.common.settings.manager.RfsConnectionDataManager
+import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryUtil
+import com.jetbrains.bigdatatools.kafka.rfs.KafkaConnectionData
+import com.jetbrains.bigdatatools.kafka.settings.KafkaConnectionGroup
+import com.jetbrains.bigdatatools.kafka.toolwindow.config.KafkaToolWindowSettings
+import com.jetbrains.bigdatatools.kafka.toolwindow.controllers.ClusterPageController
 
 class KafkaMonitoringToolWindowController(project: Project) : MonitoringToolWindowController(project) {
   override val helpTopicId: String = "big.data.tools.kafka"
@@ -34,6 +35,7 @@ class KafkaMonitoringToolWindowController(project: Project) : MonitoringToolWind
   override fun setUp(toolWindow: ToolWindow) {
     super.setUp(toolWindow)
     RfsConnectionDataManager.instance?.addListener(settingsListener)
+    KafkaRegistryUtil.disableLoggers()
   }
 
   override fun focusOn(connectionId: String) {

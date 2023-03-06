@@ -1,5 +1,6 @@
 package com.jetbrains.bigdatatools.kafka.registry
 
+import com.intellij.icons.AllIcons
 import com.intellij.openapi.application.runInEdt
 import com.intellij.openapi.observable.properties.AtomicBooleanProperty
 import com.intellij.openapi.project.Project
@@ -7,7 +8,9 @@ import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.dsl.builder.Align
+import com.intellij.ui.dsl.builder.Row
 import com.intellij.ui.dsl.builder.panel
+import com.intellij.util.ui.UIUtil
 import com.jetbrains.bigdatatools.common.ui.CustomListCellRenderer
 import com.jetbrains.bigdatatools.common.util.toPresentableText
 import com.jetbrains.bigdatatools.kafka.common.editor.KafkaEditorUtils
@@ -69,6 +72,7 @@ class KafkaRegistryAddSchemaDialog(project: Project, val dataManager: KafkaDataM
     updateRecordFieldText()
   }
 
+  private lateinit var errorRow: Row
   private lateinit var errorLabel: JEditorPane
 
   // Error will be shown only after user first time tries to save schema.
@@ -89,7 +93,12 @@ class KafkaRegistryAddSchemaDialog(project: Project, val dataManager: KafkaDataM
     }.visibleIf(recordFieldVisible)
     row(subjectNameLabel) { cell(subjectNameField).align(Align.FILL).resizableColumn() }.visibleIf(subjectFieldVisible)
     row { cell(textScrollPane.component).align(Align.FILL).resizableColumn() }.resizableRow()
-    row { errorLabel = comment("").component }
+    errorRow = row {
+      label("").component.icon = AllIcons.General.Error; errorLabel = comment("").component.apply {
+      foreground = UIUtil.getLabelForeground()
+    }
+    }
+    errorRow.visible(false)
   }
 
   init {
@@ -110,13 +119,11 @@ class KafkaRegistryAddSchemaDialog(project: Project, val dataManager: KafkaDataM
   override fun getDimensionServiceKey() = "com.jetbrains.bigdatatools.common.ui.add.kafka.registry.dialog.bounds"
 
   private fun getSchemaName(): String = subjectNameField.text
-  private fun getParsedSchema(): ParsedSchema = KafkaRegistryUtil.parseSchema(getFormat(), textScrollPane.text)
 
   private fun onChangeFormat() {
     val newDefault = KafkaRegistryTemplates.getDefaultIfNotConfigured(textScrollPane.text, getFormat())
     newDefault?.let {
-      textScrollPane.setText(it,
-                             isJson = formatCombobox.selectedItem != KafkaRegistryFormat.PROTOBUF)
+      textScrollPane.setText(it, isJson = formatCombobox.selectedItem != KafkaRegistryFormat.PROTOBUF)
     }
     updateRecordFieldText()
   }
@@ -184,19 +191,21 @@ class KafkaRegistryAddSchemaDialog(project: Project, val dataManager: KafkaDataM
   private fun getStrategy(): KafkaRegistryStrategy = strategyCombobox.item
 
   private fun updateParsedSchema() {
-    try {
-      cachedParsedSchema = getParsedSchema()
+    val parsedSchemaResult = KafkaRegistryUtil.parseSchema(getFormat(), textScrollPane.text)
+
+    if (parsedSchemaResult.isSuccess) {
+      cachedParsedSchema = parsedSchemaResult.getOrNull()
       if (okButtonPressed) {
         isOKActionEnabled = true
-        errorLabel.isVisible = false
+        errorRow.visible(false)
       }
     }
-    catch (t: Throwable) {
+    else {
       cachedParsedSchema = null
       if (okButtonPressed) {
         isOKActionEnabled = false
-        errorLabel.isVisible = true
-        errorLabel.text = t.toPresentableText()
+        errorLabel.text = parsedSchemaResult.exceptionOrNull()?.toPresentableText()
+        errorRow.visible(true)
       }
     }
   }
@@ -209,17 +218,12 @@ class KafkaRegistryAddSchemaDialog(project: Project, val dataManager: KafkaDataM
 
     if (okAction.isEnabled) {
       val schemaName = getSchemaName()
-      val parsedSchema = try {
-        getParsedSchema()
-      }
-      catch (t: Throwable) {
-        return
-      }
+      val parsedSchema = KafkaRegistryUtil.parseSchema(getFormat(), textScrollPane.text).getOrNull() ?: return
 
       dataManager.createRegistrySubject(schemaName, parsedSchema).onError {
         runInEdt {
           errorLabel.text = it.message
-          errorLabel.isVisible = true
+          errorRow.visible(true)
         }
       }.onSuccess {
         runInEdt {

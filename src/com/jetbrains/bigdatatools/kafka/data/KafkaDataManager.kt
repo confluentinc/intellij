@@ -275,7 +275,7 @@ class KafkaDataManager(project: Project?,
 
   fun updateSchema(registryInfo: SchemaRegistryInfo, newText: @NlsSafe String) = runAsync {
     val registryClient = client.registryClient ?: return@runAsync
-    val parsedSchema = KafkaRegistryUtil.validateSchema(registryInfo, newText)
+    val parsedSchema = KafkaRegistryUtil.parseSchema(registryInfo, newText)
     registryClient.register(registryInfo.name, parsedSchema)
 
     registrySchemaModel?.let {

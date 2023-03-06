@@ -19,17 +19,24 @@ import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchema
 import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchemaProvider
 import org.apache.avro.Schema
 import org.everit.json.schema.*
+import java.util.logging.Level
+import java.util.logging.Logger
 
 object KafkaRegistryUtil {
   val registrySchemaProviders = listOf(AvroSchemaProvider(), ProtobufSchemaProvider(), JsonSchemaProvider())
 
-  fun validateSchema(registryInfo: SchemaRegistryInfo,
-                     newText: @NlsSafe String): ParsedSchema {
-    val schemaType = registryInfo.meta?.schemaType ?: error("Metainfo is not exists for ${registryInfo.name}")
-    val references = registryInfo.meta.references
-    return parseSchema(schemaType, newText, references)
+  // We need to disable loggers in schemaregistry, because there was a lot ot error messages (for example AvroSchemaProvider) in case of exceptions,
+  // while we are processing that exceptions on our own. And every error message in log produces IDE error notification.
+  fun disableLoggers() {
+    Logger.getLogger("io.confluent.kafka.schemaregistry").level = Level.OFF
   }
 
+  fun parseSchema(registryInfo: SchemaRegistryInfo,
+                  newText: @NlsSafe String): ParsedSchema? {
+    val schemaType = registryInfo.meta?.schemaType ?: error("Metainfo is not exists for ${registryInfo.name}")
+    val references = registryInfo.meta.references
+    return parseSchema(schemaType, newText, references).getOrNull()
+  }
 
   val FieldType.schemaType: String?
     get() = when (this) {
@@ -45,16 +52,23 @@ object KafkaRegistryUtil {
       FieldType.JSON_REGISTRY -> JsonSchema.TYPE
     }
 
-
-  fun parseSchema(meta: SchemaMetadata) = parseSchema(meta.schemaType, meta.schema, meta.references)
+  fun parseSchema(meta: SchemaMetadata): ParsedSchema? {
+    return parseSchema(meta.schemaType, meta.schema, meta.references).getOrNull()
+  }
 
   fun parseSchema(schemaType: String?,
                   newText: @NlsSafe String,
-                  references: List<SchemaReference> = emptyList()): ParsedSchema {
+                  references: List<SchemaReference> = emptyList()): Result<ParsedSchema> {
     val provider = registrySchemaProviders.firstOrNull {
       it.schemaType() == schemaType
     } ?: error("Schema type is not found ${schemaType}")
-    return provider.parseSchemaOrElseThrow(newText, references, true)
+
+    return try {
+      Result.success(provider.parseSchemaOrElseThrow(newText, references, true))
+    }
+    catch (e: Exception) {
+      Result.failure(e)
+    }
   }
 
   fun getPrettySchema(registryInfo: SchemaRegistryInfo): String? {
@@ -69,7 +83,6 @@ object KafkaRegistryUtil {
   }
 
   fun parseRecordName(schema: ParsedSchema?): String? = schema?.name()
-
 
   fun parseFields(schema: ParsedSchema?): List<SchemaRegistryFieldsInfo> =
     when (schema?.schemaType()) {
