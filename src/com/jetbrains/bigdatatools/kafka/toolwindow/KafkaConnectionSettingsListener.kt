@@ -3,13 +3,18 @@ package com.jetbrains.bigdatatools.kafka.toolwindow
 import com.intellij.openapi.fileEditor.ex.FileEditorManagerEx
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.ProjectManager
-import com.jetbrains.bigdatatools.kafka.common.editor.KafkaEditorProvider
 import com.jetbrains.bigdatatools.common.settings.ConnectionSettingsListener
 import com.jetbrains.bigdatatools.common.settings.ModificationKey
 import com.jetbrains.bigdatatools.common.settings.connections.ConnectionData
+import com.jetbrains.bigdatatools.kafka.common.editor.KafkaEditorProvider
+import com.jetbrains.bigdatatools.kafka.rfs.KafkaConnectionData
 
+/** If Kafka connection settings is modified, we are closing all editor tabs (Consumer/Producer). */
 class KafkaConnectionSettingsListener : ConnectionSettingsListener {
   override fun onConnectionModified(project: Project?, connectionData: ConnectionData, modified: Collection<ModificationKey>) {
+    if (connectionData !is KafkaConnectionData) {
+      return
+    }
 
     val projects = if (project == null) ProjectManager.getInstance().openProjects else arrayOf(project)
     projects.forEach { prj ->
