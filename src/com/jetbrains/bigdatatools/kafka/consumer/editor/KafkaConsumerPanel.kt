@@ -15,16 +15,15 @@ import com.intellij.openapi.ui.Splitter
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.Key
 import com.intellij.openapi.vfs.VirtualFile
-import com.intellij.ui.IdeBorderFactory
-import com.intellij.ui.OnePixelSplitter
-import com.intellij.ui.PopupHandler
-import com.intellij.ui.SideBorder
+import com.intellij.ui.*
 import com.intellij.ui.components.ActionLink
+import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.components.JBTextField
 import com.intellij.ui.dsl.builder.Align
 import com.intellij.ui.dsl.builder.AlignX
 import com.intellij.ui.dsl.builder.panel
+import com.intellij.ui.dsl.gridLayout.Gaps
 import com.jetbrains.bigdatatools.common.rfs.util.RfsNotificationUtils
 import com.jetbrains.bigdatatools.common.table.MaterialTable
 import com.jetbrains.bigdatatools.common.table.MaterialTableUtils
@@ -50,7 +49,7 @@ import com.michaelbaranov.microba.calendar.DatePicker
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import java.awt.BorderLayout
 import java.awt.Dimension
-import java.awt.FlowLayout
+import java.text.SimpleDateFormat
 import java.util.*
 import javax.swing.*
 import kotlin.math.max
@@ -94,6 +93,11 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
       storeToUserData()
       getComponent().revalidate()
     }
+  }
+
+  private var timestamp = 0L
+  private val timestampLabel = JBLabel().also {
+    it.isVisible = false
   }
 
   private val filterKeyField = JBTextField()
@@ -283,9 +287,11 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
       border = BorderFactory.createEmptyBorder()
     }
 
-    val bottomPanel = JPanel(FlowLayout(FlowLayout.LEFT)).apply {
-      border = IdeBorderFactory.createBorder(SideBorder.TOP)
-      add(consumeButton)
+    val bottomPanel = panel {
+      row {
+        cell(consumeButton).customize(Gaps(2, 2, 2, 2))
+        cell(timestampLabel).customize(Gaps(0, 3, 0, 0))
+      }
     }
 
     JPanel(BorderLayout()).apply {
@@ -458,6 +464,7 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
         }
       }
 
+      val dateFormat = SimpleDateFormat("HH:mm:ss")
       withPluginClassLoader {
         // Callbacks called in Kafka client threads. That's why, to properly update UI we calling invokeLater
         consumerClient.start(runConfig,
@@ -469,7 +476,15 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
                                  }
                                }
                              },
+                             timestampUpdate = {
+                               timestamp = System.currentTimeMillis()
+                               timestampLabel.text = "${KafkaMessagesBundle.message("consumer.comment.last.updated")}: ${
+                                 dateFormat.format(Date(timestamp))
+                               }"
+                             },
                              consumeError = {
+                               timestampLabel.icon = null
+
                                invokeLater {
                                  outputModel.addElement(Result.failure(it))
                                }
@@ -601,12 +616,25 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
   private fun onStopConsume() = invokeLater {
     consumeButton.text = KafkaMessagesBundle.message("action.consume.start.title")
     consumeButton.icon = AllIcons.Actions.Execute
+
+    timestampLabel.icon = null
+    if (timestamp <= 0) {
+      timestampLabel.text = ""
+      timestampLabel.isVisible = false
+    }
+
     updateVisibility()
   }
 
   private fun onStartConsume() = invokeLater {
     consumeButton.text = KafkaMessagesBundle.message("action.consume.stop.title")
     consumeButton.icon = AllIcons.Actions.Suspend
+
+    timestamp = 0
+    timestampLabel.icon = AnimatedIcon.Default.INSTANCE
+    timestampLabel.isVisible = true
+    timestampLabel.text = KafkaMessagesBundle.message("consumer.initializing")
+
     updateVisibility()
   }
 

@@ -38,6 +38,7 @@ class KafkaConsumerClient(val dataManager: KafkaDataManager,
 
   fun start(config: StorageConsumerConfig,
             consume: (ConsumerRecord<Any, Any>) -> Unit,
+            timestampUpdate: ()-> Unit,
             consumeError: (Throwable) -> Unit) {
     isRunning.set(true)
     onStart()
@@ -60,7 +61,6 @@ class KafkaConsumerClient(val dataManager: KafkaDataManager,
     val taskRunId = curRunId.incrementAndGet()
 
     try {
-
       val limit = config.getLimit()
 
       var needToReadTopicCount = limit.topicRecordsCount
@@ -98,10 +98,12 @@ class KafkaConsumerClient(val dataManager: KafkaDataManager,
           }
           catch (t: Throwable) {
             consumeError(t)
+            timestampUpdate()
             return
           }
 
           var consumedRecords = 0
+          timestampUpdate()
           records.forEach { record: ConsumerRecord<Any, Any> ->
             if (limit.time != null && record.timestamp() > limit.time) {
               return
