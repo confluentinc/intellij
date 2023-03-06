@@ -16,7 +16,11 @@ import javax.swing.Icon
 
 class KafkaConnectionData : RemoteFsDriverProvider(KafkaMessagesBundle.message("config.name.default")), TunnelableData {
   var properties: String = ""
+
+  var brokerConfigurationSource: KafkaConfigurationSource = KafkaConfigurationSource.FROM_PROPERTIES
   var propertySource: KafkaPropertySource = KafkaPropertySource.DIRECT
+
+  var registryConfSource: KafkaConfigurationSource = KafkaConfigurationSource.FROM_UI
   var propertyFilePath: String? = null
 
   var registryUrl: String? = null
