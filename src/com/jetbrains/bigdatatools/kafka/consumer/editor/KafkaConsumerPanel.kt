@@ -15,15 +15,17 @@ import com.intellij.openapi.ui.Splitter
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.Key
 import com.intellij.openapi.vfs.VirtualFile
-import com.intellij.ui.*
+import com.intellij.ui.AnimatedIcon
+import com.intellij.ui.OnePixelSplitter
+import com.intellij.ui.PopupHandler
 import com.intellij.ui.components.ActionLink
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.components.JBTextField
 import com.intellij.ui.dsl.builder.Align
 import com.intellij.ui.dsl.builder.AlignX
+import com.intellij.ui.dsl.builder.Cell
 import com.intellij.ui.dsl.builder.panel
-import com.intellij.ui.dsl.gridLayout.Gaps
 import com.jetbrains.bigdatatools.common.rfs.util.RfsNotificationUtils
 import com.jetbrains.bigdatatools.common.table.MaterialTable
 import com.jetbrains.bigdatatools.common.table.MaterialTableUtils
@@ -96,9 +98,8 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
   }
 
   private var timestamp = 0L
-  private val timestampLabel = JBLabel().also {
-    it.isVisible = false
-  }
+  private val timestampLabel = JBLabel()
+  private lateinit var timestampCell: Cell<JComponent>
 
   private val filterKeyField = JBTextField()
   private val filterValueField = JBTextField()
@@ -274,7 +275,7 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
       }
 
       group(KafkaMessagesBundle.message("settings.title.partitions")) {
-        row(KafkaMessagesBundle.message("settings.partitions")) { cell(partitionField) }
+        row(KafkaMessagesBundle.message("settings.partitions")) { cell(partitionField).align(AlignX.FILL).resizableColumn() }
       }
 
       row { cell(advancedSettings) }
@@ -287,11 +288,16 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
       border = BorderFactory.createEmptyBorder()
     }
 
+    val bottomWidthGroup = "ButtonAndComment"
     val bottomPanel = panel {
       row {
-        cell(consumeButton).customize(Gaps(2, 2, 2, 2))
-        cell(timestampLabel).customize(Gaps(0, 3, 0, 0))
+        cell(consumeButton).widthGroup(bottomWidthGroup)
+        timestampCell = cell(timestampLabel).widthGroup(bottomWidthGroup).comment(
+          KafkaMessagesBundle.message("consumer.last.update.label.comment"))
+        timestampCell.visible(false)
       }
+    }.apply {
+      border = BorderFactory.createEmptyBorder(10, 10, 10, 10)
     }
 
     JPanel(BorderLayout()).apply {
@@ -478,9 +484,8 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
                              },
                              timestampUpdate = {
                                timestamp = System.currentTimeMillis()
-                               timestampLabel.text = "${KafkaMessagesBundle.message("consumer.comment.last.updated")}: ${
-                                 dateFormat.format(Date(timestamp))
-                               }"
+                               timestampLabel.text = dateFormat.format(Date(timestamp))
+
                              },
                              consumeError = {
                                timestampLabel.icon = null
@@ -619,8 +624,7 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
 
     timestampLabel.icon = null
     if (timestamp <= 0) {
-      timestampLabel.text = ""
-      timestampLabel.isVisible = false
+      timestampLabel.text = KafkaMessagesBundle.message("consumer.last.update.label.unitialized")
     }
 
     updateVisibility()
@@ -632,8 +636,8 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
 
     timestamp = 0
     timestampLabel.icon = AnimatedIcon.Default.INSTANCE
-    timestampLabel.isVisible = true
-    timestampLabel.text = KafkaMessagesBundle.message("consumer.initializing")
+    timestampLabel.text = KafkaMessagesBundle.message("consumer.last.update.label.initializing")
+    timestampCell.visible(true)
 
     updateVisibility()
   }
