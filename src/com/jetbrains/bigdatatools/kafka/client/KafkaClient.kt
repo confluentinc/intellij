@@ -74,10 +74,10 @@ class KafkaClient(project: Project?,
   }
 
   override fun checkConnectionInner() {
-    val url = kafkaProps.getProperty(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG)
-              ?: throw BdtUnexpectedConnectionException(null, KafkaMessagesBundle.message("connection.is.not.found.in.config",
-                                                                                          CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG))
-    checkUrlAvailability(url)
+    val urlsString = kafkaProps.getProperty(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG)
+                     ?: throw BdtUnexpectedConnectionException(null, KafkaMessagesBundle.message("connection.is.not.found.in.config",
+                                                                                                 CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG))
+    checkUrlAvailability(urlsString)
   }
 
   fun createProducerClient() = KafkaProducerClient(client = this)
@@ -234,8 +234,12 @@ class KafkaClient(project: Project?,
   }
 
   private fun checkUrlAvailability(url: String) {
-    val urlObject = BdtUrlUtils.convertToUrlObject(url)
-    val canConnect = NetUtils.canConnectToRemoteSocket(urlObject.host, urlObject.port)
+    val urls = url.split(",").map { it.trim() }
+    val canConnect = urls.any {
+      val urlObject = BdtUrlUtils.convertToUrlObject(it)
+      NetUtils.canConnectToRemoteSocket(urlObject.host, urlObject.port)
+    }
+
     if (!canConnect) {
       throw BdtHostUnavailableException(url)
     }
