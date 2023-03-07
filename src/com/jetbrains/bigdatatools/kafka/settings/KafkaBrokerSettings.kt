@@ -6,6 +6,7 @@ import com.intellij.openapi.observable.util.whenFocusLost
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.TextFieldWithBrowseButton
+import com.intellij.ui.ContextHelpLabel
 import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.components.JBTextField
 import com.intellij.ui.dsl.builder.*
@@ -172,7 +173,8 @@ class KafkaBrokerSettings(val project: Project,
           saslKerberosUseTicketCache = checkBox(MessagesBundle.message("settings.use.kerberos.cache")).onChanged {
             updateVisibilityOfAdditionalKerberos()
             updatePropertiesField()
-          }
+          }.gap(RightGap.SMALL)
+          cell(ContextHelpLabel.create(MessagesBundle.message("kerberos.settings.use.ticket.cache.tooltip")))
         }
         saslAdditionalKerberosGroup = rowsRange {
 
