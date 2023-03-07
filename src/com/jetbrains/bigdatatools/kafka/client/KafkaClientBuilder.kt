@@ -29,9 +29,11 @@ object KafkaClientBuilder {
                            testConnection: Boolean): BdtKafkaRegistryClient? {
     val props = BdtPropertyComponent.parseProperties(connectionData.properties).associate {
       (it.name ?: "") to (it.value ?: "")
+    } + BdtPropertyComponent.parseProperties(connectionData.registryProperties).associate {
+      (it.name ?: "") to (it.value ?: "")
     }
 
-    val url = props[SCHEMA_REGISTRY_URL_CONFIG] ?: connectionData.registryUrl?.ifBlank { null } ?: return null
+    val url = props[SCHEMA_REGISTRY_URL_CONFIG]?.ifBlank { null } ?: connectionData.registryUrl?.ifBlank { null } ?: return null
 
     val tunnel = BdtSshTunnelService.createIfRequired(project, connectionData.getTunnelData(),
                                                       url, connectionData.innerId,

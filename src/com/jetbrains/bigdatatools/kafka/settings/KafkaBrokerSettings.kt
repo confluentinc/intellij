@@ -24,6 +24,8 @@ import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import com.jetbrains.bigdatatools.kafka.util.KafkaPropertiesUtils
 import org.apache.kafka.clients.CommonClientConfigs
 import org.apache.kafka.common.config.SaslConfigs
+import org.apache.kafka.common.config.SaslConfigs.SASL_CLIENT_CALLBACK_HANDLER_CLASS
+import org.apache.kafka.common.config.SaslConfigs.SASL_KERBEROS_SERVICE_NAME
 import org.apache.kafka.common.config.SslConfigs
 import org.apache.kafka.common.security.auth.SecurityProtocol
 import org.com.jetbrains.bigdatatools.aws.common.connection.auth.AuthenticationType
@@ -88,6 +90,13 @@ class KafkaBrokerSettings(val project: Project,
     }
   }
 
+  init {
+    url.apply {
+      getComponent().whenFocusLost {
+        updatePropertiesField()
+      }
+    }
+  }
 
   private lateinit var saslGroup: RowsRange
   private lateinit var sslGroup: RowsRange
@@ -276,6 +285,7 @@ class KafkaBrokerSettings(val project: Project,
     SaslConfigs.SASL_JAAS_CONFIG to null,
     SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG to null,
     SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG to null,
+    SASL_CLIENT_CALLBACK_HANDLER_CLASS to null,
     SslConfigs.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG to null,
     SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG to null,
     SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG to null,
@@ -288,6 +298,9 @@ class KafkaBrokerSettings(val project: Project,
       KafkaAuthMethod.SASL -> {
         val saslMechanism = saslMechanism.component.item
 
+        if (saslMechanism == KafkaSaslMechanism.KERBEROS) {
+          result += SASL_KERBEROS_SERVICE_NAME to "kafka"
+        }
         val jaasConfig = if (saslMechanism == KafkaSaslMechanism.KERBEROS) {
           val keytab = saslKeytab.component.text
           val principal = saslPrincipal.component.text
@@ -333,6 +346,7 @@ class KafkaBrokerSettings(val project: Project,
         result += mapOf(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG to SecurityProtocol.SASL_SSL.name,
                         SaslConfigs.SASL_MECHANISM to AwsSettingsForKafka.AWS_MECHANISM,
                         SaslConfigs.SASL_JAAS_CONFIG to jaasConfig,
+                        SASL_CLIENT_CALLBACK_HANDLER_CLASS to "software.amazon.msk.auth.iam.IAMClientCallbackHandler",
                         AwsSettingsForKafka.AWS_ACCESS_KEY to info?.accessKey,
                         AwsSettingsForKafka.AWS_SECRET_KEY to info?.secretKey)
       }
@@ -491,5 +505,5 @@ class KafkaBrokerSettings(val project: Project,
 
 
   fun getDefaultFields(): List<WrappedComponent<in KafkaConnectionData>> = listOf(url, propertiesEditor, propertiesFile,
-                                                                                  propertiesSource)
+                                                                                  propertiesSource, confSource)
 }
