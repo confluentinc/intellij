@@ -53,7 +53,6 @@ class KafkaBrokerSettings(val project: Project,
     addItemListener {
       onUpdatePropertiesSource()
     }
-
   }
 
   private val propertiesEditor = PropertiesFieldComponent.create(
@@ -72,16 +71,11 @@ class KafkaBrokerSettings(val project: Project,
                                                browseTitle = KafkaMessagesBundle.message("settings.properties.file.browse"),
                                                fileChooserDescriptor = FileChooserDescriptorFactory.createSingleFileDescriptor())
 
-
   private lateinit var implicitClientSettingsGroup: RowsRange
   private lateinit var propertiesClientSettingsGroup: RowsRange
 
   private lateinit var directPropertiesGroup: Row
   private lateinit var filePropertiesGroup: Row
-
-
-  private lateinit var propertiesTypeChooserGroup: Row
-
 
   private val authMethod = RadioComboBox(KafkaAuthMethod.values(), KafkaAuthMethod.NOT_SPECIFIED).apply {
     addItemListener {
@@ -120,12 +114,10 @@ class KafkaBrokerSettings(val project: Project,
   private lateinit var sslKeystorePassword: Cell<JBTextField>
   private lateinit var sslKeyPassword: Cell<JBTextField>
 
-
   private val awsMskSettings = AwsSettingsForKafka {
     updatePropertiesField()
   }
   private lateinit var awsMskSettingsRows: RowsRange
-
 
   private var isUpdatedFromProperties = AtomicBoolean(false)
 
@@ -186,7 +178,6 @@ class KafkaBrokerSettings(val project: Project,
           cell(ContextHelpLabel.create(MessagesBundle.message("kerberos.settings.use.ticket.cache.tooltip")))
         }
         saslAdditionalKerberosGroup = rowsRange {
-
 
           row(MessagesBundle.message("kerberos.settings.principal.label")) {
             saslPrincipal = textField().align(AlignX.FILL).onChanged {
@@ -269,7 +260,6 @@ class KafkaBrokerSettings(val project: Project,
       awsMskSettings.getComponentRows(this)
     }
   }
-
 
   private fun updatePropertiesField() {
     if (isUpdatedFromProperties.get())
@@ -464,7 +454,6 @@ class KafkaBrokerSettings(val project: Project,
     url.isVisible = confSource.getValue() == KafkaConfigurationSource.FROM_UI || propertiesSource.getValue() == KafkaPropertySource.DIRECT
   }
 
-
   private fun updateVisibilityOfAuth() {
     val selectedAuthType = authMethod.selectedItem
     saslGroup.visible(selectedAuthType == KafkaAuthMethod.SASL)
@@ -484,7 +473,6 @@ class KafkaBrokerSettings(val project: Project,
     }
   }
 
-
   private fun updateVisibilityOfSasl() {
     val mechanism = saslMechanism.component.item
     saslCredentialsGroup.visible(mechanism in setOf(KafkaSaslMechanism.PLAIN, KafkaSaslMechanism.SCRAM_256, KafkaSaslMechanism.SCRAM_512))
@@ -502,7 +490,6 @@ class KafkaBrokerSettings(val project: Project,
     val use = sslUseKeystore.component.isSelected
     sslKeystoreGroup.visible(use)
   }
-
 
   fun getDefaultFields(): List<WrappedComponent<in KafkaConnectionData>> = listOf(url, propertiesEditor, propertiesFile,
                                                                                   propertiesSource, confSource)
