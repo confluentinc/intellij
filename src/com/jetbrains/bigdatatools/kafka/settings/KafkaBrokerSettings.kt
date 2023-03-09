@@ -8,6 +8,7 @@ import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.TextFieldWithBrowseButton
 import com.intellij.ui.ContextHelpLabel
 import com.intellij.ui.components.JBCheckBox
+import com.intellij.ui.components.JBPasswordField
 import com.intellij.ui.components.JBTextField
 import com.intellij.ui.dsl.builder.*
 import com.jetbrains.bigdatatools.common.settings.connections.ConnectionData
@@ -105,14 +106,14 @@ class KafkaBrokerSettings(val project: Project,
   private lateinit var saslKeytab: Cell<TextFieldWithBrowseButton>
   private lateinit var saslKerberosUseTicketCache: Cell<JBCheckBox>
   private lateinit var saslUsername: Cell<JBTextField>
-  private lateinit var saslPassword: Cell<JBTextField>
+  private lateinit var saslPassword: Cell<JBPasswordField>
   private lateinit var sslTruststoreLocation: Cell<TextFieldWithBrowseButton>
-  private lateinit var sslTruststorePassword: Cell<JBTextField>
+  private lateinit var sslTruststorePassword: Cell<JBPasswordField>
 
   private lateinit var sslEnableValidateHostname: Cell<JBCheckBox>
   private lateinit var sslKeystoreLocation: Cell<TextFieldWithBrowseButton>
-  private lateinit var sslKeystorePassword: Cell<JBTextField>
-  private lateinit var sslKeyPassword: Cell<JBTextField>
+  private lateinit var sslKeystorePassword: Cell<JBPasswordField>
+  private lateinit var sslKeyPassword: Cell<JBPasswordField>
 
   private val awsMskSettings = AwsSettingsForKafka {
     updatePropertiesField()
@@ -202,7 +203,7 @@ class KafkaBrokerSettings(val project: Project,
           }
         }
         row(KafkaMessagesBundle.message("kafka.password")) {
-          saslPassword = textField().align(AlignX.FILL).onChanged {
+          saslPassword = passwordField().align(AlignX.FILL).onChanged {
             updatePropertiesField()
           }
         }
@@ -224,7 +225,7 @@ class KafkaBrokerSettings(val project: Project,
         }
       }
       row(KafkaMessagesBundle.message("kafka.truststore.password")) {
-        sslTruststorePassword = textField().align(AlignX.FILL).onChanged {
+        sslTruststorePassword = passwordField().align(AlignX.FILL).onChanged {
           updatePropertiesField()
         }
       }.bottomGap(BottomGap.SMALL)
@@ -244,12 +245,12 @@ class KafkaBrokerSettings(val project: Project,
           }
         }
         row(KafkaMessagesBundle.message("kafka.keystore.password")) {
-          sslKeystorePassword = textField().align(AlignX.FILL).onChanged {
+          sslKeystorePassword = passwordField().align(AlignX.FILL).onChanged {
             updatePropertiesField()
           }
         }
         row(KafkaMessagesBundle.message("kafka.key.password")) {
-          sslKeyPassword = textField().align(AlignX.FILL).onChanged {
+          sslKeyPassword = passwordField().align(AlignX.FILL).onChanged {
             updatePropertiesField()
           }
         }

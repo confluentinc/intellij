@@ -3,6 +3,7 @@ package com.jetbrains.bigdatatools.kafka.settings
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.observable.util.whenFocusLost
 import com.intellij.openapi.project.Project
+import com.intellij.ui.components.JBPasswordField
 import com.intellij.ui.components.JBTextField
 import com.intellij.ui.dsl.builder.*
 import com.jetbrains.bigdatatools.common.connection.tunnel.ui.SshTunnelComponent
@@ -81,9 +82,8 @@ class KafkaRegistrySettings(val project: Project,
   private lateinit var schemaBasicAuthGroup: RowsRange
   private lateinit var schemaBearerhGroup: Row
   private lateinit var schemaBasicLogin: Cell<JBTextField>
-  private lateinit var schemaBasicPassword: Cell<JBTextField>
+  private lateinit var schemaBasicPassword: Cell<JBPasswordField>
   private lateinit var schemaBearerToken: Cell<JBTextField>
-
 
   private val isUpdatingFromProperties = AtomicBoolean(false)
 
@@ -107,7 +107,7 @@ class KafkaRegistrySettings(val project: Project,
               schemaBasicLogin = textField().align(AlignX.FILL)
             }
             row(KafkaMessagesBundle.message("kafka.password")) {
-              schemaBasicPassword = textField().align(AlignX.FILL)
+              schemaBasicPassword = passwordField().align(AlignX.FILL)
             }
           }
 
@@ -116,7 +116,6 @@ class KafkaRegistrySettings(val project: Project,
           }
         }
       }
-
       block(tunnelField.getComponent()).topGap(TopGap.SMALL)
     }
 
@@ -132,7 +131,6 @@ class KafkaRegistrySettings(val project: Project,
     schemaBearerToken.onChanged {
       updateRegistryPropertiesField()
     }
-
   }
 
   private fun updateRegistryAuthStatus() {
@@ -211,7 +209,6 @@ class KafkaRegistrySettings(val project: Project,
     }
     return default + fromUi + mapOf(SCHEMA_REGISTRY_URL_CONFIG to registryUrl.getTextComponent().text)
   }
-
 
   fun getDefaultFields(): List<WrappedComponent<in KafkaConnectionData>> =
     listOf(registrySourceTypeChooser, registryPropertiesEditor, registryUrl)
