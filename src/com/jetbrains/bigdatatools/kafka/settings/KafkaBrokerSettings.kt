@@ -15,6 +15,7 @@ import com.jetbrains.bigdatatools.common.settings.connections.ConnectionData
 import com.jetbrains.bigdatatools.common.settings.fields.*
 import com.jetbrains.bigdatatools.common.settings.kerberos.BdtJaasConfig
 import com.jetbrains.bigdatatools.common.settings.kerberos.KerberosUiFactory.krb5ConfRow
+import com.jetbrains.bigdatatools.common.settings.withFileExistValidator
 import com.jetbrains.bigdatatools.common.ui.CustomListCellRenderer
 import com.jetbrains.bigdatatools.common.ui.block
 import com.jetbrains.bigdatatools.common.ui.components.RadioComboBox
@@ -70,7 +71,9 @@ class KafkaBrokerSettings(val project: Project,
                                                KafkaSettingsCustomizer.KafkaSettingsKeys.PROPERTIES_FILE_KEY,
                                                connectionData,
                                                browseTitle = KafkaMessagesBundle.message("settings.properties.file.browse"),
-                                               fileChooserDescriptor = FileChooserDescriptorFactory.createSingleFileDescriptor())
+                                               fileChooserDescriptor = FileChooserDescriptorFactory.createSingleFileDescriptor()).apply {
+    withFileExistValidator(uiDisposable)
+  }
 
   private lateinit var implicitClientSettingsGroup: RowsRange
   private lateinit var propertiesClientSettingsGroup: RowsRange
@@ -492,6 +495,6 @@ class KafkaBrokerSettings(val project: Project,
     sslKeystoreGroup.visible(use)
   }
 
-  fun getDefaultFields(): List<WrappedComponent<in KafkaConnectionData>> = listOf(url, propertiesEditor, propertiesFile,
+  fun getDefaultFields(): List<WrappedComponent<in KafkaConnectionData>> = listOf(propertiesEditor, propertiesFile,
                                                                                   propertiesSource, confSource)
 }
