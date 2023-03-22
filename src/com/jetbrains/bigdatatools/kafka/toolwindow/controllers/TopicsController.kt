@@ -11,11 +11,6 @@ import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.ui.SimpleToolWindowPanel
 import com.intellij.openapi.util.Disposer
 import com.intellij.ui.OnePixelSplitter
-import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
-import com.jetbrains.bigdatatools.kafka.model.TopicPresentable
-import com.jetbrains.bigdatatools.kafka.toolwindow.config.KafkaToolWindowSettings
-import com.jetbrains.bigdatatools.kafka.util.KafkaDialogFactory
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import com.jetbrains.bigdatatools.common.monitoring.table.DataTable
 import com.jetbrains.bigdatatools.common.monitoring.table.DataTableCreator
 import com.jetbrains.bigdatatools.common.monitoring.table.extension.TableExtensionType
@@ -26,6 +21,11 @@ import com.jetbrains.bigdatatools.common.settings.ColumnVisibilitySettings
 import com.jetbrains.bigdatatools.common.table.MaterialJBScrollPane
 import com.jetbrains.bigdatatools.common.table.filters.TableFilterHeader
 import com.jetbrains.bigdatatools.common.util.ToolbarUtils
+import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
+import com.jetbrains.bigdatatools.kafka.model.TopicPresentable
+import com.jetbrains.bigdatatools.kafka.toolwindow.config.KafkaToolWindowSettings
+import com.jetbrains.bigdatatools.kafka.util.KafkaDialogFactory
+import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import java.util.*
 import javax.swing.event.ListSelectionEvent
 import javax.swing.event.ListSelectionListener
@@ -59,7 +59,8 @@ class TopicsController(val project: Project, private val dataManager: KafkaDataM
                                                                 TableExtensionType.ERROR_HANDLER,
                                                                 TableExtensionType.SELECTION_PRESERVER,
                                                                 TableExtensionType.LOADING_INDICATOR,
-                                                                TableExtensionType.MULTI_SELECT))
+                                                                TableExtensionType.MULTI_SELECT,
+                                                                TableExtensionType.SMART_RESIZER))
     TableSelectionPreserver.installOn(topicTable, null)
     TableFilterHeader(topicTable).apply {
       caseInsensitive = true
