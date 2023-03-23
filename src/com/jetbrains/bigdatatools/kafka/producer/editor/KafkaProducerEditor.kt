@@ -7,6 +7,8 @@ import com.intellij.openapi.actionSystem.ActionGroup
 import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.DefaultActionGroup
+import com.intellij.openapi.editor.event.DocumentEvent
+import com.intellij.openapi.editor.event.DocumentListener
 import com.intellij.openapi.fileEditor.FileEditor
 import com.intellij.openapi.fileEditor.FileEditorLocation
 import com.intellij.openapi.fileEditor.FileEditorState
@@ -102,12 +104,24 @@ class KafkaProducerEditor(project: Project,
   private val keyJsonField: EditorTextField by lazy {
     KafkaEditorUtils.createJsonTextArea(project).withValidator(this, ::validateKey).apply {
       setDisposedWith(this@KafkaProducerEditor)
+    }.also {
+      it.document.addDocumentListener(object : DocumentListener {
+        override fun documentChanged(event: DocumentEvent) {
+          keySchemaValidationError = null
+        }
+      }, this)
     }
   }
 
   private val valueJsonField: EditorTextField by lazy {
     KafkaEditorUtils.createJsonTextArea(project).withValidator(this, ::validateValue).apply {
       setDisposedWith(this@KafkaProducerEditor)
+    }.also {
+      it.document.addDocumentListener(object : DocumentListener {
+        override fun documentChanged(event: DocumentEvent) {
+          valueSchemaValidationError = null
+        }
+      }, this)
     }
   }
 
@@ -210,17 +224,31 @@ class KafkaProducerEditor(project: Project,
 
       row(KafkaMessagesBundle.message("producer.key")) { cell(keyComboBox) }
       indent {
-        row { cell(keyStrategyComboBox);cell(keySubjectComboBox).align(AlignX.FILL).resizableColumn() }
+        row {
+          cell(keyStrategyComboBox).onChanged { keySchemaValidationError = null }
+          cell(keySubjectComboBox).onChanged { keySchemaValidationError = null }.align(AlignX.FILL).resizableColumn()
+        }
       }
       row { cell(keyJsonField).align(AlignX.FILL).resizableColumn() }
-      row { cell(keyField).align(AlignX.FILL).resizableColumn() }
+      row {
+        cell(keyField).align(AlignX.FILL).resizableColumn().onChanged {
+          keySchemaValidationError = null
+        }
+      }
 
       row(KafkaMessagesBundle.message("producer.value")) { cell(valueComboBox) }
       indent {
-        row { cell(valueStrategyComboBox); cell(valueSubjectComboBox).align(AlignX.FILL).resizableColumn() }
+        row {
+          cell(valueStrategyComboBox).onChanged { valueSchemaValidationError = null }
+          cell(valueSubjectComboBox).onChanged { valueSchemaValidationError = null }.align(AlignX.FILL).resizableColumn()
+        }
       }
       row { cell(valueJsonField).align(AlignX.FILL).resizableColumn() }
-      row { cell(valueField).align(AlignX.FILL).resizableColumn() }
+      row {
+        cell(valueField).align(AlignX.FILL).resizableColumn().onChanged {
+          valueSchemaValidationError = null
+        }
+      }
 
       collapsibleGroup(KafkaMessagesBundle.message("producer.title.options")) {
         row(KafkaMessagesBundle.message("producer.forcePartition")) { cell(forcePartitionField).align(AlignX.FILL).resizableColumn() }

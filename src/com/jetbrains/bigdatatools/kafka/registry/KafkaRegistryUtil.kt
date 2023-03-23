@@ -94,8 +94,13 @@ object KafkaRegistryUtil {
 
   private fun parseAvroFields(rawSchema: Any?): List<SchemaRegistryFieldsInfo>? {
     val avroSchema = rawSchema as? Schema ?: return emptyList()
-    val fields = avroSchema.fields?.map {
-      SchemaRegistryFieldsInfo(it.name(), it.schema().type.getName().lowercase(), it.defaultVal()?.toString() ?: "")
+
+    val fields = if (avroSchema.type == Schema.Type.RECORD)
+      avroSchema.fields?.map {
+        SchemaRegistryFieldsInfo(it.name(), it.schema().type.getName().lowercase(), it.defaultVal()?.toString() ?: "")
+      }
+    else {
+      emptyList()
     }
     return fields
   }
