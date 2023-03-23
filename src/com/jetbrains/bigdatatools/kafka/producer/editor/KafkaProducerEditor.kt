@@ -226,6 +226,8 @@ class KafkaProducerEditor(project: Project,
       indent {
         row {
           cell(keyStrategyComboBox).onChanged { keySchemaValidationError = null }
+        }
+        row {
           cell(keySubjectComboBox).onChanged { keySchemaValidationError = null }.align(AlignX.FILL).resizableColumn()
         }
       }
@@ -240,6 +242,8 @@ class KafkaProducerEditor(project: Project,
       indent {
         row {
           cell(valueStrategyComboBox).onChanged { valueSchemaValidationError = null }
+        }
+        row {
           cell(valueSubjectComboBox).onChanged { valueSchemaValidationError = null }.align(AlignX.FILL).resizableColumn()
         }
       }
