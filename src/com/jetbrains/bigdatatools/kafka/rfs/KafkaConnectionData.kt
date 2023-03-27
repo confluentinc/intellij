@@ -27,7 +27,7 @@ class KafkaConnectionData : RemoteFsDriverProvider(KafkaMessagesBundle.message("
   var registryProperties: String = ""
 
   override fun getIcon(): Icon = BigdatatoolsKafkaIcons.Kafka
-  override fun createDriverImpl(project: Project?, isTest: Boolean): Driver = KafkaDriver(this, project)
+  override fun createDriverImpl(project: Project?, isTest: Boolean): Driver = KafkaDriver(this, project, testConnection = isTest)
   override fun rfsDriverType() = DriverType.KAFKA
 
   override fun createConfigurable(project: Project, parentGroup: ConnectionGroup) = KafkaConnectionConfigurable(this, project)

@@ -2,14 +2,15 @@ package com.jetbrains.bigdatatools.kafka.rfs
 
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
+import com.jetbrains.bigdatatools.common.monitoring.rfs.MonitoringDriver
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.toolwindow.KafkaMonitoringToolWindowController
 import com.jetbrains.bigdatatools.kafka.toolwindow.config.KafkaToolWindowSettings
-import com.jetbrains.bigdatatools.common.monitoring.rfs.MonitoringDriver
 import icons.BigdatatoolsKafkaIcons
 import javax.swing.Icon
 
-class KafkaDriver(override val connectionData: KafkaConnectionData, project: Project?) : MonitoringDriver(project) {
+class KafkaDriver(override val connectionData: KafkaConnectionData, project: Project?, testConnection: Boolean) : MonitoringDriver(project,
+                                                                                                                                   testConnection) {
   override val dataManager: KafkaDataManager = KafkaDataManager(project, connectionData,
                                                                 KafkaToolWindowSettings.getInstance())
   override val presentableName: String = connectionData.name

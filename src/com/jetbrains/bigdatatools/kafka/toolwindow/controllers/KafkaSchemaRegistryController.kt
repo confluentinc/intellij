@@ -21,7 +21,7 @@ import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 
 class KafkaSchemaRegistryController(project: Project,
                                     val dataManager: KafkaDataManager) : TableWithDetailsMonitoringController<SchemaRegistryInfo>() {
-  private val model: ObjectDataModel<SchemaRegistryInfo> = dataManager.registrySchemaModel!!
+  private val model: ObjectDataModel<SchemaRegistryInfo> = dataManager.schemaRegistryModel!!
   override val detailsController: DetailsMonitoringController = KafkaRegistryTabController(project, dataManager)
 
   private val showDeleted = object : DumbAwareToggleAction(KafkaMessagesBundle.message("action.show.deleted.subject.title"),
@@ -32,7 +32,7 @@ class KafkaSchemaRegistryController(project: Project,
     override fun getActionUpdateThread() = ActionUpdateThread.BGT
     override fun setSelected(e: AnActionEvent, state: Boolean) {
       settings.registryShowDeletedSubjects = state
-      dataManager.registrySchemaModel?.let { dataManager.autoUpdaterManager.reloadAsync(it) }
+      dataManager.schemaRegistryModel?.let { dataManager.updater.invokeRefreshModel(it) }
     }
   }
 

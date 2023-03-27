@@ -6,8 +6,8 @@ import com.intellij.openapi.util.NlsSafe
 import com.jetbrains.bigdatatools.common.connection.updater.IntervalUpdateSettings
 import com.jetbrains.bigdatatools.common.monitoring.data.MonitoringDataManager
 import com.jetbrains.bigdatatools.common.monitoring.data.model.ObjectDataModel
-import com.jetbrains.bigdatatools.common.monitoring.data.model.ProjectionObjectDataModel
-import com.jetbrains.bigdatatools.common.monitoring.data.model.RemoteInfo
+import com.jetbrains.bigdatatools.common.monitoring.data.storage.ObjectDataModelStorage
+import com.jetbrains.bigdatatools.common.monitoring.data.storage.RootDataModelStorage
 import com.jetbrains.bigdatatools.common.rfs.driver.manager.DriverManager
 import com.jetbrains.bigdatatools.common.rfs.util.RfsNotificationUtils
 import com.jetbrains.bigdatatools.common.util.executeOnPooledThread
@@ -28,84 +28,34 @@ class KafkaDataManager(project: Project?,
                        val connectionData: KafkaConnectionData,
                        settings: IntervalUpdateSettings) : MonitoringDataManager(project, settings) {
   val connectionId = connectionData.innerId
-  override val client = KafkaClient(project, connectionData, false)
+  override val client = KafkaClient(project, connectionData, false).also { Disposer.register(this, it) }
+  val consumerPanelStorage = KafkaConsumerPanelStorage(this).also { Disposer.register(this, it) }
 
   val isKafkaRegistryEnabled = connectionData.registryUrl?.isNotBlank() == true
 
+  internal val schemaRegistryModel = createSchemaRegistryDataModel().also {
+    it?.let { dataModel -> Disposer.register(this, dataModel) }
+  }
 
-  internal val topicModel = createTopicsDataModel()
-  internal val registrySchemaModel = createSchemaRegistryDataModel()
-  internal val consumerGroupsModel = createConsumerGroupsDataModel()
+  internal val topicModel = createTopicsDataModel().also { Disposer.register(this, it) }
 
-  var topicConfigsModels = mapOf<String, ProjectionObjectDataModel<TopicConfig, TopicPresentable>>()
-    private set
+  internal val consumerGroupsModel = createConsumerGroupsDataModel().also { Disposer.register(this, it) }
+  var topicPartitionsModels = createTopicPartitionsStorage().also { Disposer.register(this, it) }
+  private val schemaVersionsModels = createSchemeVersionsStorage().also { Disposer.register(this, it) }
+  val topicConfigsModels = createTopicConfigsStorage().also { Disposer.register(this, it) }
+  private val schemaFieldsModels = createSchemaFieldsStorage().also { Disposer.register(this, it) }
 
-  private var topicPartitionsModels = mapOf<String, ProjectionObjectDataModel<TopicPartition, TopicPresentable>>()
-
-  private var schemaFieldsModels = mapOf<Int, ObjectDataModel<SchemaRegistryFieldsInfo>>()
-  private var schemaVersionsModels = mapOf<Int, ObjectDataModel<SchemaRegistryInfo>>()
-
-  val consumerPanelStorage = KafkaConsumerPanelStorage(this)
 
   init {
-    Disposer.register(this, consumerPanelStorage)
-    Disposer.register(this, client)
-    Disposer.register(this, topicModel)
-    Disposer.register(this, consumerGroupsModel)
-
-    registrySchemaModel?.let { Disposer.register(this, it) }
-
     init()
-  }
-
-  override fun dispose() {}
-
-  override fun disposeInvalidatedData() {
-    topicConfigsModels = topicConfigsModels - disposeInvalidatedValues(topicConfigsModels).keys
-    topicPartitionsModels = topicPartitionsModels - disposeInvalidatedValues(topicPartitionsModels).keys
-    schemaFieldsModels = schemaFieldsModels - disposeInvalidatedValues(schemaFieldsModels).keys
-  }
-
-  @Suppress("DuplicatedCode")
-  fun getTopicPartitionsModel(topicName: String): ObjectDataModel<TopicPartition> {
-    topicPartitionsModels[topicName]?.let {
-      return it
-    }
-
-    val dataModel = getTopicProjectorModel(TopicPartition::partitionId.name) { topics ->
-      val topic = topics.find { it.name == topicName } ?: error(KafkaMessagesBundle.message("topic.not.found", topicName))
-      topic.partitionList
-    }
-
-    topicPartitionsModels = topicPartitionsModels + (topicName to dataModel)
-
-    return dataModel
+    RootDataModelStorage(updater, listOfNotNull(topicModel, consumerGroupsModel, schemaRegistryModel)).also { Disposer.register(this, it) }
   }
 
   fun getTopics() = topicModel.data ?: emptyList()
 
-  @Suppress("DuplicatedCode")
-  fun getTopicConfigsModel(topicName: String): ProjectionObjectDataModel<TopicConfig, TopicPresentable> {
-    topicConfigsModels[topicName]?.let {
-      return it
-    }
-
-    val dataModel = getTopicProjectorModel(TopicConfig::name.name) { topics ->
-      val topic = topics.find { it.name == topicName } ?: error(KafkaMessagesBundle.message("topic.not.found", topicName))
-      val showFullTopicConfig = KafkaToolWindowSettings.getInstance().showFullTopicConfig
-
-      if (showFullTopicConfig) topic.topicConfigs
-      else topic.topicConfigs.filter { it.value != it.defaultValue }
-    }
-
-    topicConfigsModels = topicConfigsModels + (topicName to dataModel)
-
-    return dataModel
-  }
-
   fun createTopic(name: String, numPartition: Int?, replicaFactor: Int?) = actionWrapper {
     client.createTopic(name, numPartition, replicaFactor)
-    autoUpdaterManager.reloadAsync(topicModel)
+    updater.invokeRefreshModel(topicModel)
 
     KafkaUsagesCollector.topicCreatedEvent.log(project)
   }
@@ -115,49 +65,29 @@ class KafkaDataManager(project: Project?,
       client.deleteTopic(it)
     }
 
-    autoUpdaterManager.reloadAsync(topicModel)
+    updater.invokeRefreshModel(topicModel)
 
     KafkaUsagesCollector.topicDeletedEvent.log(project)
   }
 
-  private fun createTopicsDataModel(): ObjectDataModel<TopicPresentable> {
-    val topicDataModel = object : ObjectDataModel<TopicPresentable>(TopicPresentable::class) {
-      override val idFieldName: String = "name"
-    }
-
-    addDataModelUpdater(topicDataModel, "Cannot request topic model") {
-      val topics = client.getTopics(KafkaToolWindowSettings.getInstance().showInternalTopics)
-      topicDataModel.setData(topics)
-    }
-
-    return topicDataModel
+  private fun createTopicsDataModel() = ObjectDataModel(TopicPresentable::name) {
+    client.getTopics(KafkaToolWindowSettings.getInstance().showInternalTopics)
   }
 
-  private fun createConsumerGroupsDataModel(): ObjectDataModel<ConsumerGroupPresentable> {
-    val topicDataModel = object : ObjectDataModel<ConsumerGroupPresentable>(ConsumerGroupPresentable::class) {
-      override val idFieldName: String = "consumerGroup"
+  private fun createConsumerGroupsDataModel() =
+    ObjectDataModel(ConsumerGroupPresentable::consumerGroup) {
+      client.getConsumerGroups()
     }
-
-    addDataModelUpdater(topicDataModel, "Cannot request consumer groups") {
-      val data = client.getConsumerGroups()
-      topicDataModel.setData(data)
-    }
-
-    return topicDataModel
-  }
 
   private fun createSchemaRegistryDataModel(): ObjectDataModel<SchemaRegistryInfo>? {
     if (!isKafkaRegistryEnabled)
       return null
-    val dataModel = object : ObjectDataModel<SchemaRegistryInfo>(SchemaRegistryInfo::class) {
-      override val idFieldName: String = SchemaRegistryInfo::name.name
-    }
 
-    addDataModelUpdater(dataModel, "Cannot request topic model") {
+    val dataModel = ObjectDataModel(SchemaRegistryInfo::id) {
       val client = client.registryClient!!
       val subjects = client.getAllSubjects(KafkaToolWindowSettings.getInstance().registryShowDeletedSubjects)
 
-      val infos = subjects.map {
+      subjects.map {
         val meta = try {
           client.getLatestSchemaMetadata(it)
         }
@@ -166,75 +96,14 @@ class KafkaDataManager(project: Project?,
         }
         SchemaRegistryInfo(name = it, meta = meta)
       }
-
-      dataModel.setData(infos)
     }
-
     return dataModel
   }
 
-  fun getRegistrySchemaFieldsModel(id: Int): ObjectDataModel<SchemaRegistryFieldsInfo> {
-    schemaFieldsModels[id]?.let {
-      return it
-    }
+  fun getRegistrySchemaFieldsModel(id: Int): ObjectDataModel<SchemaRegistryFieldsInfo> = schemaFieldsModels.get(id)
+  fun getRegistrySchemaVersionsModel(id: Int): ObjectDataModel<SchemaRegistryInfo> = schemaVersionsModels.get(id)
+  fun getSchemaInfo(id: Int) = schemaRegistryModel?.data?.firstOrNull { it.id == id }
 
-    val dataModel = ObjectDataModel(SchemaRegistryFieldsInfo::class)
-
-    addDataModelUpdater(dataModel, "Cannot request environment model") {
-      val client = client.registryClient!!
-      val meta = getSchemaInfo(id)?.meta ?: error("Meta is not found")
-
-      val schema = try {
-        client.parseSchema(meta.schemaType, meta.schema, meta.references).get()
-      }
-      catch (t: Throwable) {
-        null
-      }
-
-      val fields = KafkaRegistryUtil.parseFields(schema)
-      dataModel.setData(fields)
-    }
-
-    schemaFieldsModels = schemaFieldsModels + (id to dataModel)
-
-    return dataModel
-  }
-
-  fun getRegistrySchemaVersionsModel(id: Int): ObjectDataModel<SchemaRegistryInfo> {
-    schemaVersionsModels[id]?.let {
-      return it
-    }
-
-    val dataModel = ObjectDataModel(SchemaRegistryInfo::class)
-
-    addDataModelUpdater(dataModel, "Cannot request environment model") {
-      val client = client.registryClient!!
-      val meta = getSchemaInfo(id) ?: error("Meta is not found")
-
-      val versions = client.getAllVersions(meta.name) ?: emptyList()
-      val metas = versions.map {
-        val versionMeta = client.getSchemaMetadata(meta.name, it)
-        SchemaRegistryInfo(name = meta.name, meta = versionMeta)
-      }
-      dataModel.setData(metas)
-    }
-
-    schemaVersionsModels = schemaVersionsModels + (id to dataModel)
-
-    return dataModel
-  }
-
-  fun getSchemaInfo(id: Int) = registrySchemaModel?.data?.firstOrNull { it.id == id }
-
-
-  private inline fun <reified T : RemoteInfo> getTopicProjectorModel(idField: String,
-                                                                     noinline dataTransform: (List<TopicPresentable>) -> List<T>): ProjectionObjectDataModel<T, TopicPresentable> {
-
-    val dataModel = ProjectionObjectDataModel(T::class, idField, topicModel, dataTransform)
-    Disposer.register(this, dataModel)
-
-    return dataModel
-  }
 
   private fun actionWrapper(body: () -> Unit) = executeOnPooledThread {
     try {
@@ -250,17 +119,17 @@ class KafkaDataManager(project: Project?,
       val name = registryInfo.name
       client.registryClient?.deleteSchemaVersion(name, registryInfo.version.toString(), isPermanent)
 
-      registrySchemaModel?.let {
-        autoUpdaterManager.reloadAsync(it)
+      schemaRegistryModel?.let {
+        updater.invokeRefreshModel(it)
       }
-      autoUpdaterManager.reloadAsync(getRegistrySchemaVersionsModel(registryInfo.id))
+      updater.invokeRefreshModel(getRegistrySchemaVersionsModel(registryInfo.id))
     }
   }
 
   private fun deleteRegistrySchema(name: String, isPermanent: Boolean) = executeOnPooledThread {
     withCatchNotifyErrorDialog {
       client.registryClient?.deleteSubject(name, isPermanent)
-      registrySchemaModel?.let { autoUpdaterManager.reloadAsync(it) }
+      schemaRegistryModel?.let { updater.invokeRefreshModel(it) }
     }
   }
 
@@ -270,7 +139,7 @@ class KafkaDataManager(project: Project?,
 
   fun createRegistrySubject(schemaName: String, parsedSchema: ParsedSchema) = runAsync {
     client.registryClient?.register(schemaName, parsedSchema)
-    registrySchemaModel?.let { autoUpdaterManager.reloadAsync(it) }
+    schemaRegistryModel?.let { updater.invokeRefreshModel(it) }
   }
 
   fun updateSchema(registryInfo: SchemaRegistryInfo, newText: @NlsSafe String) = runAsync {
@@ -278,21 +147,69 @@ class KafkaDataManager(project: Project?,
     val parsedSchema = KafkaRegistryUtil.parseSchema(registryInfo, newText)
     registryClient.register(registryInfo.name, parsedSchema)
 
-    registrySchemaModel?.let {
-      autoUpdaterManager.reloadAsync(it)
+    schemaRegistryModel?.let {
+      updater.invokeRefreshModel(it)
     }
-    autoUpdaterManager.reloadAsync(getRegistrySchemaVersionsModel(registryInfo.id))
+    updater.invokeRefreshModel(getRegistrySchemaVersionsModel(registryInfo.id))
   }
 
-  fun getRegistrySchema(subjectName: String) = registrySchemaModel?.data?.firstOrNull { it.name == subjectName }
+  fun getRegistrySchema(subjectName: String) = schemaRegistryModel?.data?.firstOrNull { it.name == subjectName }
 
   fun getRegistrySchemaById(id: Int?): ParsedSchema? {
     id ?: return null
     return client.registryClient?.getSchemaById(id)
   }
 
+  private fun createTopicPartitionsStorage() = ObjectDataModelStorage<String, TopicPartition>(updater,
+                                                                                              TopicPartition::partitionId,
+                                                                                              dependOn = topicModel) { topicName ->
+    val topics = topicModel.data ?: emptyList()
+    val topic = topics.find { it.name == topicName } ?: error(KafkaMessagesBundle.message("topic.not.found", topicName))
+    topic.partitionList
+  }
+
+  private fun createSchemeVersionsStorage() = ObjectDataModelStorage<Int, SchemaRegistryInfo>(updater, SchemaRegistryInfo::id) {
+    val client = client.registryClient!!
+    val meta = getSchemaInfo(it) ?: error("Meta is not found")
+
+    val versions = client.getAllVersions(meta.name) ?: emptyList()
+    val metas = versions.map { version ->
+      val versionMeta = client.getSchemaMetadata(meta.name, version)
+      SchemaRegistryInfo(name = meta.name, meta = versionMeta)
+    }
+    metas
+  }
+
+
+  private fun createTopicConfigsStorage() = ObjectDataModelStorage<String, TopicConfig>(updater,
+                                                                                        TopicConfig::name,
+                                                                                        dependOn = topicModel) { topicName ->
+    val topics = topicModel.data ?: emptyList()
+    val topic = topics.find { it.name == topicName } ?: error(KafkaMessagesBundle.message("topic.not.found", topicName))
+    val showFullTopicConfig = KafkaToolWindowSettings.getInstance().showFullTopicConfig
+
+    if (showFullTopicConfig)
+      topic.topicConfigs
+    else
+      topic.topicConfigs.filter { it.value != it.defaultValue }
+  }
+
+  private fun createSchemaFieldsStorage() = ObjectDataModelStorage<Int, SchemaRegistryFieldsInfo>(updater, SchemaRegistryFieldsInfo::name) {
+    val client = client.registryClient!!
+    val meta = getSchemaInfo(it)?.meta ?: error("Meta is not found")
+
+    val schema = try {
+      client.parseSchema(meta.schemaType, meta.schema, meta.references).get()
+    }
+    catch (t: Throwable) {
+      null
+    }
+
+    KafkaRegistryUtil.parseFields(schema)
+  }
+
   companion object {
     fun getInstance(connectionId: String,
-                    project: Project): KafkaDataManager? = (DriverManager.getDriverById(project, connectionId) as? KafkaDriver)?.dataManager
+                    project: Project) = (DriverManager.getDriverById(project, connectionId) as? KafkaDriver)?.dataManager
   }
 }

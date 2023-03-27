@@ -151,7 +151,7 @@ object KafkaEditorUtils {
   }
 
   fun createSubjectComboBox(rootDisposable: Disposable, kafkaManager: KafkaDataManager): ComboBox<SubjectInEditor> {
-    val schemas = kafkaManager.registrySchemaModel?.entries ?: emptyList()
+    val schemas = kafkaManager.schemaRegistryModel?.entries ?: emptyList()
     val comboBox = ComboBox(schemas.map { SubjectInEditor(it.name) }.sortedBy { it.name }.toTypedArray())
     comboBox.isSwingPopup = false
     comboBox.prototypeDisplayValue = SubjectInEditor("Subject sample name")
@@ -159,11 +159,11 @@ object KafkaEditorUtils {
     comboBox.renderer = CustomListCellRenderer<SubjectInEditor> { it.name }
 
     val listener = KafkaDataModelListener(comboBox) {
-      kafkaManager.registrySchemaModel?.entries?.map { SubjectInEditor(it.name) } ?: emptyList()
+      kafkaManager.schemaRegistryModel?.entries?.map { SubjectInEditor(it.name) } ?: emptyList()
     }
-    kafkaManager.registrySchemaModel?.addListener(listener)
+    kafkaManager.schemaRegistryModel?.addListener(listener)
     Disposer.register(rootDisposable) {
-      kafkaManager.registrySchemaModel?.removeListener(listener)
+      kafkaManager.schemaRegistryModel?.removeListener(listener)
     }
 
     return comboBox
