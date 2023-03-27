@@ -60,6 +60,7 @@ import com.jetbrains.bigdatatools.kafka.producer.models.ProducerEditorState
 import com.jetbrains.bigdatatools.kafka.producer.models.ProducerResultMessage
 import com.jetbrains.bigdatatools.kafka.producer.models.RecordCompression
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryStrategy
+import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryType
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryUtil
 import com.jetbrains.bigdatatools.kafka.statistics.KafkaUsagesCollector
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
@@ -84,6 +85,10 @@ class KafkaProducerEditor(project: Project,
   private val propertiesComponent = PropertiesTable("")
 
   private val topicComboBox = KafkaEditorUtils.createTopicComboBox(this, kafkaManager)
+  private val registriesComboBox = if (kafkaManager.connectionData.registryType == KafkaRegistryType.AWS_GLUE)
+    KafkaEditorUtils.createRegistrySchemaComboBox(this, kafkaManager)
+  else
+    null
 
   private val acksComboBox = ComboBox(AcksType.values()).apply {
     renderer = CustomListCellRenderer<AcksType> { it.name.lowercase() }
@@ -207,7 +212,8 @@ class KafkaProducerEditor(project: Project,
                                                   keyStrategy = keyStrategyComboBox.item,
                                                   valueStrategy = valueStrategyComboBox.item,
                                                   keySubject = keySubjectComboBox.item?.name ?: "",
-                                                  valueSubject = valueSubjectComboBox.item?.name ?: "")
+                                                  valueSubject = valueSubjectComboBox.item?.name ?: "",
+                                                  registryName = registriesComboBox?.item ?: "")
 
   private val presetsDelegate = lazy {
     val presets = ProducerPresets()
@@ -221,6 +227,9 @@ class KafkaProducerEditor(project: Project,
   private val settingsPanelDelegate = lazy {
     val panel = panel {
       row(KafkaMessagesBundle.message("producer.topics")) { cell(topicComboBox).align(AlignX.FILL).resizableColumn() }
+      registriesComboBox?.let {
+        row(KafkaMessagesBundle.message("producer.registry")) { cell(it).align(AlignX.FILL).resizableColumn() }
+      }
 
       row(KafkaMessagesBundle.message("producer.key")) { cell(keyComboBox) }
       indent {
@@ -311,14 +320,16 @@ class KafkaProducerEditor(project: Project,
           }
 
           if (key != null && value != null) {
-            val result = producerClient.sentMessage(selectedTopicName,
+            val result = producerClient.sentMessage(kafkaManager,
+                                                    selectedTopicName,
                                                     key,
                                                     value,
                                                     propertiesComponent.properties,
                                                     compressionComboBox.item,
                                                     acksComboBox.item,
                                                     idempotenceCheckBox.isSelected,
-                                                    forcePartitionField.value)
+                                                    forcePartitionField.value,
+                                                    registryName = registriesComboBox?.item)
             invokeLater {
               outputModel.addElement(result)
             }
@@ -432,7 +443,7 @@ class KafkaProducerEditor(project: Project,
       null -> return null
     }
 
-    val schemaMetadata = kafkaManager.getRegistrySchema(subjectName)?.meta
+    val schemaMetadata = kafkaManager.confluentSchemaRegistry?.getRegistrySchema(subjectName)?.meta
                          ?: error("Schema `$subjectName` is not found")
     return KafkaRegistryUtil.parseSchema(schemaMetadata)
   }
@@ -600,6 +611,7 @@ class KafkaProducerEditor(project: Project,
 
   private fun applyConfig(config: StorageProducerConfig) {
     topicComboBox.item = TopicInEditor(config.topic)
+    registriesComboBox?.item = config.registryName
     keyComboBox.item = config.getKeyType()
 
     when (config.getKeyType()) {

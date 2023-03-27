@@ -1,12 +1,15 @@
 package com.jetbrains.bigdatatools.kafka.producer.client
 
+import com.amazonaws.services.schemaregistry.utils.AWSSchemaRegistryConstants
 import com.jetbrains.bigdatatools.common.settings.connections.Property
 import com.jetbrains.bigdatatools.common.util.withPluginClassLoader
 import com.jetbrains.bigdatatools.kafka.client.KafkaClient
 import com.jetbrains.bigdatatools.kafka.common.models.ProducerField
+import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.producer.models.AcksType
 import com.jetbrains.bigdatatools.kafka.producer.models.ProducerResultMessage
 import com.jetbrains.bigdatatools.kafka.producer.models.RecordCompression
+import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryType
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig
 import io.confluent.kafka.serializers.context.NullContextNameStrategy
@@ -19,26 +22,40 @@ import java.util.concurrent.TimeUnit
 class KafkaProducerClient(val client: KafkaClient) {
   val connectionData = client.connectionData
 
-  fun sentMessage(topic: String, key: ProducerField, value: ProducerField,
+  fun sentMessage(dataManager: KafkaDataManager,
+                  topic: String, key: ProducerField, value: ProducerField,
                   headers: List<Property> = emptyList(),
                   recordCompression: RecordCompression = RecordCompression.NONE,
                   acks: AcksType = AcksType.NONE,
                   enableIdempotence: Boolean = false,
-                  forcePartition: Int = -1): ProducerResultMessage {
+                  forcePartition: Int = -1,
+                  registryName: String?): ProducerResultMessage {
     val props = client.kafkaProps.clone() as Properties
-    props[ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG] = key.type.getSerializer()::class.java
-    props[ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG] = value.type.getSerializer()::class.java
+    props[ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG] = key.type.getSerializer(
+      dataManager.confluentSchemaRegistry?.client?.internalClient)::class.java
+    props[ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG] = value.type.getSerializer(
+      dataManager.confluentSchemaRegistry?.client?.internalClient)::class.java
     props[ProducerConfig.COMPRESSION_TYPE_CONFIG] = recordCompression.name.lowercase()
     props[AbstractKafkaSchemaSerDeConfig.CONTEXT_NAME_STRATEGY] = NullContextNameStrategy::class.java
-    connectionData.registryUrl?.let { props[AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG] = it }
     props[AbstractKafkaSchemaSerDeConfig.AUTO_REGISTER_SCHEMAS] = false
+    props[AWSSchemaRegistryConstants.REGISTRY_NAME] = registryName ?: ""
 
-    key.registryStrategy?.let {
-      props[AbstractKafkaSchemaSerDeConfig.KEY_SUBJECT_NAME_STRATEGY] = it::class.java
-    }
+    when (connectionData.registryType) {
+      KafkaRegistryType.NONE -> {}
+      KafkaRegistryType.CONFLUENT -> {
+        connectionData.registryUrl?.let { props[AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG] = it }
+        key.registryStrategy?.let {
+          props[AbstractKafkaSchemaSerDeConfig.KEY_SUBJECT_NAME_STRATEGY] = it::class.java
+        }
 
-    value.registryStrategy?.let {
-      props[AbstractKafkaSchemaSerDeConfig.VALUE_SUBJECT_NAME_STRATEGY] = it::class.java
+        value.registryStrategy?.let {
+          props[AbstractKafkaSchemaSerDeConfig.VALUE_SUBJECT_NAME_STRATEGY] = it::class.java
+        }
+      }
+      KafkaRegistryType.AWS_GLUE -> {
+        props.put(AWSSchemaRegistryConstants.SCHEMA_NAME, "my-schema")
+        props.put(AWSSchemaRegistryConstants.REGISTRY_NAME, registryName)
+      }
     }
 
     if (enableIdempotence)

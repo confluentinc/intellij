@@ -9,6 +9,7 @@ import com.jetbrains.bigdatatools.kafka.common.models.SubjectInEditor
 import com.jetbrains.bigdatatools.kafka.common.settings.StorageConsumerConfig
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryConsumerType
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryTemplates
+import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryType
 import com.jetbrains.bigdatatools.kafka.registry.ui.KafkaRegistrySchemaEditor
 import io.confluent.kafka.schemaregistry.avro.AvroSchema
 import io.confluent.kafka.schemaregistry.json.JsonSchema
@@ -70,11 +71,9 @@ class KafkaConsumerFieldComponent(private val consumerPanel: KafkaConsumerPanel,
   }
 
   private fun createFileTypeCombobox(onChange: (FieldType) -> Unit): ComboBox<FieldType> {
-    val registryTypes = if (consumerPanel.kafkaManager.isKafkaRegistryEnabled) {
-      FieldType.registryValues
-    }
-    else {
-      emptyList()
+    val registryTypes = when (consumerPanel.kafkaManager.connectionData.registryType) {
+      KafkaRegistryType.NONE -> emptyList()
+      else -> FieldType.registryValues
     }
     val fieldTypes = FieldType.defaultValues + registryTypes
     return ComboBox(fieldTypes.toTypedArray()).apply {

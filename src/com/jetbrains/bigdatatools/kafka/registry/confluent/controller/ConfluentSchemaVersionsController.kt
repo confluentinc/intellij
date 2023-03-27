@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.toolwindow.controllers
+package com.jetbrains.bigdatatools.kafka.registry.confluent.controller
 
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.actionSystem.ActionUpdateThread
@@ -10,15 +10,15 @@ import com.intellij.openapi.ui.Messages
 import com.intellij.util.PairFunction
 import com.jetbrains.bigdatatools.common.monitoring.toolwindow.DetailsTableMonitoringController
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
-import com.jetbrains.bigdatatools.kafka.model.SchemaRegistryInfo
-import com.jetbrains.bigdatatools.kafka.registry.ui.KafkaRegistrySchemaInfoDialog
+import com.jetbrains.bigdatatools.kafka.registry.confluent.ConfluentSchemaInfo
+import com.jetbrains.bigdatatools.kafka.registry.ui.KafkaSchemaInfoDialog
 import com.jetbrains.bigdatatools.kafka.toolwindow.config.KafkaToolWindowSettings
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import javax.swing.JCheckBox
 import javax.swing.ListSelectionModel
 
-class KafkaRegistrySchemaVersionsController(private val project: Project,
-                                            private val dataManager: KafkaDataManager) : DetailsTableMonitoringController<SchemaRegistryInfo>() {
+class ConfluentSchemaVersionsController(private val project: Project,
+                                        private val dataManager: KafkaDataManager) : DetailsTableMonitoringController<ConfluentSchemaInfo, String>() {
 
   private val deleteSchema = object : DumbAwareAction(KafkaMessagesBundle.message("action.remove.version.title"), null,
                                                       AllIcons.General.Remove) {
@@ -34,7 +34,7 @@ class KafkaRegistrySchemaVersionsController(private val project: Project,
                                          Messages.getQuestionIcon(),
                                          PairFunction { exitCode: Int, cb: JCheckBox ->
                                            if (exitCode == Messages.OK) {
-                                             dataManager.deleteRegistrySchemaVersion(registryInfo, cb.isSelected)
+                                             dataManager.confluentSchemaRegistry?.deleteRegistrySchemaVersion(registryInfo, cb.isSelected)
                                            }
                                            exitCode
                                          })
@@ -52,7 +52,8 @@ class KafkaRegistrySchemaVersionsController(private val project: Project,
                                                     AllIcons.Actions.ToggleVisibility) {
     override fun actionPerformed(e: AnActionEvent) {
       val registryInfo = getSelectedItem() ?: return
-      KafkaRegistrySchemaInfoDialog.show(project, registryInfo)
+      KafkaSchemaInfoDialog.show(project = project, schemaType = registryInfo.type, schemaDefinition = registryInfo.schema,
+                                 schemaName = registryInfo.name)
     }
 
     override fun update(e: AnActionEvent) {
@@ -75,7 +76,7 @@ class KafkaRegistrySchemaVersionsController(private val project: Project,
       val firstSchema = dataTable.tableModel.getInfoAt(dataTable.convertRowIndexToModel(dataTable.selectedRows[0])) ?: return
       val secondSchema = dataTable.tableModel.getInfoAt(dataTable.convertRowIndexToModel(dataTable.selectedRows[1])) ?: return
 
-      KafkaRegistrySchemaInfoDialog.showDiff(KafkaMessagesBundle.message("diff.dialog.title"), project, firstSchema, secondSchema)
+      KafkaSchemaInfoDialog.showDiff(KafkaMessagesBundle.message("diff.dialog.title"), project, firstSchema, secondSchema)
     }
 
     override fun update(e: AnActionEvent) {
@@ -96,7 +97,7 @@ class KafkaRegistrySchemaVersionsController(private val project: Project,
 
   override fun getColumnSettings() = KafkaToolWindowSettings.getInstance().schemaRegistryVersionsTableColumnsSettings
 
-  override fun getRenderableColumns() = SchemaRegistryInfo.renderableColumns
+  override fun getRenderableColumns() = ConfluentSchemaInfo.renderableColumns
 
-  override fun getDataModel() = selectedId?.let { dataManager.getRegistrySchemaVersionsModel(it.toInt()) }
+  override fun getDataModel() = selectedId?.let { dataManager.confluentSchemaRegistry?.getRegistrySchemaVersionsModel(it.toInt()) }
 }

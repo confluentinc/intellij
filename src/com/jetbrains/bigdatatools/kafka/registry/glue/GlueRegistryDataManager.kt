@@ -1,0 +1,167 @@
+package com.jetbrains.bigdatatools.kafka.registry.glue
+
+import com.intellij.openapi.Disposable
+import com.intellij.openapi.project.Project
+import com.intellij.openapi.util.Disposer
+import com.intellij.openapi.util.NlsSafe
+import com.intellij.util.concurrency.annotations.RequiresBackgroundThread
+import com.jetbrains.bigdatatools.common.connection.exception.BdtConnectionException
+import com.jetbrains.bigdatatools.common.monitoring.data.MonitoringDataManager
+import com.jetbrains.bigdatatools.common.monitoring.data.model.FieldGroupsData
+import com.jetbrains.bigdatatools.common.monitoring.data.model.FieldsDataModel
+import com.jetbrains.bigdatatools.common.monitoring.data.model.FieldsGroupModel
+import com.jetbrains.bigdatatools.common.monitoring.data.model.ObjectDataModel
+import com.jetbrains.bigdatatools.common.monitoring.data.storage.FieldGroupsDataModelStorage
+import com.jetbrains.bigdatatools.common.monitoring.data.storage.ObjectDataModelStorage
+import com.jetbrains.bigdatatools.common.rfs.driver.manager.DriverManager
+import com.jetbrains.bigdatatools.common.util.executeOnPooledThread
+import com.jetbrains.bigdatatools.common.util.runAsync
+import com.jetbrains.bigdatatools.common.util.withCatchNotifyErrorDialog
+import com.jetbrains.bigdatatools.glue.client.BdtGlueClient
+import com.jetbrains.bigdatatools.glue.monitoring.models.GlueRegistryInfo
+import com.jetbrains.bigdatatools.glue.monitoring.models.GlueSchemaDetailedInfo
+import com.jetbrains.bigdatatools.glue.monitoring.models.GlueSchemaInfo
+import com.jetbrains.bigdatatools.glue.monitoring.models.GlueSchemaVersionInfo
+import com.jetbrains.bigdatatools.glue.utils.GlueTransforms
+import com.jetbrains.bigdatatools.kafka.model.SchemaRegistryFieldsInfo
+import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryUtil
+import com.jetbrains.bigdatatools.kafka.rfs.KafkaDriver
+import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import software.amazon.awssdk.services.glue.model.*
+
+class GlueRegistryDataManager(val dataManager: MonitoringDataManager,
+                              val clientRetriever: () -> BdtGlueClient?) : Disposable {
+  val client: BdtGlueClient
+    get() = clientRetriever() ?: throw BdtConnectionException(KafkaMessagesBundle.message("error.glue.client.is.not.inited"))
+
+  internal val schemaModel = createSchemaRegistryDataModel().also {
+    Disposer.register(this, it)
+  }
+
+  internal val registryModel = createRegistriesDataModel().also {
+    Disposer.register(this, it)
+  }
+
+
+  private val schemaDetailsModels = createSchemaDetailedInfos().also { Disposer.register(this, it) }
+  private val schemaVersionsModels = createSchemeVersionsStorage().also { Disposer.register(this, it) }
+  private val schemaFieldsModels = createSchemaFieldsStorage().also { Disposer.register(this, it) }
+
+
+  override fun dispose() {}
+
+  private fun createSchemaRegistryDataModel(): ObjectDataModel<GlueSchemaInfo> {
+    val dataModel = ObjectDataModel(GlueSchemaInfo::id) {
+      val client = client
+      client.listSchemas(null)
+    }
+    return dataModel
+  }
+
+  private fun createRegistriesDataModel(): ObjectDataModel<GlueRegistryInfo> {
+    val dataModel = ObjectDataModel(GlueRegistryInfo::name) {
+      val client = client
+      client.listRegistries()
+    }
+    return dataModel
+  }
+
+
+  fun getRegistries(): List<String> = registryModel.data?.map { it.name }?.sorted() ?: emptyList()
+  fun getRegistrySchemaFieldsModel(id: SchemaId): ObjectDataModel<SchemaRegistryFieldsInfo> = schemaFieldsModels[id]
+  fun getRegistrySchemaVersionsModel(id: SchemaId): ObjectDataModel<GlueSchemaVersionInfo> = schemaVersionsModels[id]
+  fun getRegistrySchemaInfoModel(id: SchemaId): FieldsGroupModel<GlueSchemaDetailedInfo> = schemaDetailsModels[id]
+
+  fun getDetailedSchema(id: SchemaId) = schemaDetailsModels[id].originObject
+
+  fun deleteSchemaVersion(schemaVersionInfo: GlueSchemaVersionInfo) = executeOnPooledThread {
+    withCatchNotifyErrorDialog {
+      client.deleteSchemaVersion(registryName = schemaVersionInfo.schemaId.registryName(),
+                                 schemaName = schemaVersionInfo.schemaId.schemaName(),
+                                 version = schemaVersionInfo.version)
+
+      dataManager.updater.invokeRefreshModel(schemaModel)
+      dataManager.updater.invokeRefreshModel(getRegistrySchemaVersionsModel(schemaVersionInfo.schemaId))
+    }
+  }
+
+  fun deleteSchema(registryName: String, schemaName: String) = executeOnPooledThread {
+    withCatchNotifyErrorDialog {
+      client.deleteSchema(registryName, schemaName)
+      dataManager.updater.invokeRefreshModel(schemaModel)
+    }
+  }
+
+  fun createSchema(registryName: String,
+                   schemaName: String,
+                   dataFormat: DataFormat,
+                   schemaDefinition: String,
+                   compatibility: Compatibility,
+                   description: String,
+                   tags: Map<String, String>) = runAsync {
+    client.createSchema(registryName, schemaName, dataFormat, schemaDefinition, compatibility, description, tags)
+    dataManager.updater.invokeRefreshModel(schemaModel)
+  }
+
+  fun registerNewSchemaVersion(registryName: String, schemaName: String, newSchemaDefinition: @NlsSafe String) = runAsync {
+    val schemaId = SchemaId.builder().schemaName(schemaName).registryName(registryName).build()
+    client.registerNewSchemaVersion(schemaId, newSchemaDefinition)
+
+    dataManager.updater.invokeRefreshModel(schemaModel)
+    dataManager.updater.invokeRefreshModel(getRegistrySchemaVersionsModel(schemaId))
+  }
+
+
+  private fun createSchemeVersionsStorage() = ObjectDataModelStorage<SchemaId, GlueSchemaVersionInfo>(dataManager.updater,
+                                                                                                      GlueSchemaVersionInfo::version) {
+    client.listSchemaVersions(registryName = it.registryName(), schemaName = it.schemaName())
+  }
+
+
+  private fun createSchemaFieldsStorage() = ObjectDataModelStorage<SchemaId, SchemaRegistryFieldsInfo>(dataManager.updater,
+                                                                                                       SchemaRegistryFieldsInfo::name) {
+
+    val detailedInfo = loadDetailedSchemaInfo(it.registryName(), it.schemaName())
+
+    val schema = try {
+      KafkaRegistryUtil.parseSchema(schemaType = detailedInfo.schemaResponse.dataFormatAsString(),
+                                    newText = detailedInfo.versionResponse.schemaDefinition() ?: "").getOrThrow()
+    }
+    catch (t: Throwable) {
+      null
+    }
+
+    KafkaRegistryUtil.parseFields(schema)
+  }
+
+  private fun createSchemaDetailedInfos() = FieldGroupsDataModelStorage<SchemaId, GlueSchemaDetailedInfo>(dataManager.updater) { id ->
+    val newValue = loadDetailedSchemaInfo(id.registryName(), id.schemaName())
+    val list: List<Pair<String, String>> = newValue.tags?.entries?.map { it.key to it.value } ?: emptyList()
+    val groups = listOf(
+      KafkaMessagesBundle.message("datamanager.schema.details") to GlueTransforms.getSchemaInfoDetails(newValue.schemaResponse),
+      (KafkaMessagesBundle.message("datamanager.schema.details.tags") to FieldsDataModel.createForList(list)
+      ))
+    FieldGroupsData(newValue, groups)
+  }
+
+  @RequiresBackgroundThread
+  fun loadSchemaVersion(registryName: String, schemaName: String, version: Long): GetSchemaVersionResponse {
+    return client.getSchemaVersion(registryName, schemaName, version)
+  }
+
+  @RequiresBackgroundThread
+  fun loadSchemaInfo(registryName: String, schemaName: String): GetSchemaResponse {
+    return client.getSchema(registryName, schemaName)
+  }
+
+
+  @RequiresBackgroundThread
+  fun loadDetailedSchemaInfo(registryName: String,
+                             schemaName: String): GlueSchemaDetailedInfo = client.getDetailedSchema(registryName, schemaName)
+
+
+  companion object {
+    fun getInstance(connectionId: String, project: Project) = (DriverManager.getDriverById(project,
+                                                                                           connectionId) as? KafkaDriver)?.dataManager
+  }
+}

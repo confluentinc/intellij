@@ -15,7 +15,6 @@ import com.jetbrains.bigdatatools.common.ui.CustomListCellRenderer
 import com.jetbrains.bigdatatools.common.util.toPresentableText
 import com.jetbrains.bigdatatools.kafka.common.editor.KafkaEditorUtils
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
-import com.jetbrains.bigdatatools.kafka.model.SchemaRegistryInfo
 import com.jetbrains.bigdatatools.kafka.registry.ui.KafkaRegistrySchemaEditor
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import io.confluent.kafka.schemaregistry.ParsedSchema
@@ -108,11 +107,13 @@ class KafkaRegistryAddSchemaDialog(project: Project, val dataManager: KafkaDataM
     onChangeStrategy()
   }
 
-  fun applyRegistryInfo(registryInfo: SchemaRegistryInfo) {
-    formatCombobox.selectedItem = KafkaRegistryFormat.valueOf(registryInfo.type)
-    textScrollPane.setText(KafkaEditorUtils.toPrettyJson(registryInfo.schema),
+
+  fun applyRegistryInfo(schemaFormat: String, schemaDefinition: String) {
+    formatCombobox.selectedItem = KafkaRegistryFormat.valueOf(schemaFormat)
+    textScrollPane.setText(KafkaEditorUtils.toPrettyJson(schemaDefinition),
                            isJson = formatCombobox.selectedItem != KafkaRegistryFormat.PROTOBUF)
   }
+
 
   override fun createCenterPanel(): JComponent = panel
 
@@ -220,7 +221,7 @@ class KafkaRegistryAddSchemaDialog(project: Project, val dataManager: KafkaDataM
       val schemaName = getSchemaName()
       val parsedSchema = KafkaRegistryUtil.parseSchema(getFormat(), textScrollPane.text).getOrNull() ?: return
 
-      dataManager.createRegistrySubject(schemaName, parsedSchema).onError {
+      dataManager.confluentSchemaRegistry!!.createRegistrySubject(schemaName, parsedSchema).onError {
         runInEdt {
           errorLabel.text = it.message
           errorRow.visible(true)

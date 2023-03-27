@@ -9,6 +9,7 @@ import com.jetbrains.bigdatatools.common.rfs.driver.Driver
 import com.jetbrains.bigdatatools.common.rfs.settings.RemoteFsDriverProvider
 import com.jetbrains.bigdatatools.common.rfs.statistics.DriverType
 import com.jetbrains.bigdatatools.common.settings.connections.ConnectionGroup
+import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryType
 import com.jetbrains.bigdatatools.kafka.settings.KafkaConnectionConfigurable
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import icons.BigdatatoolsKafkaIcons
@@ -23,9 +24,14 @@ class KafkaConnectionData : RemoteFsDriverProvider(KafkaMessagesBundle.message("
   var registryConfSource: KafkaConfigurationSource = KafkaConfigurationSource.FROM_UI
   var propertyFilePath: String? = null
 
+  var registryType = KafkaRegistryType.NONE
   var registryUrl: String? = null
   var registryProperties: String = ""
 
+  var version: Int? = null
+
+
+  var glueConnectionId: String = ""
   override fun getIcon(): Icon = BigdatatoolsKafkaIcons.Kafka
   override fun createDriverImpl(project: Project?, isTest: Boolean): Driver = KafkaDriver(this, project, testConnection = isTest)
   override fun rfsDriverType() = DriverType.KAFKA
@@ -37,5 +43,14 @@ class KafkaConnectionData : RemoteFsDriverProvider(KafkaMessagesBundle.message("
   override fun getTunnelData(): ConnectionSshTunnelData {
     migrateTunnel(this::uri)
     return super.getTunnelData()
+  }
+
+  override fun migrate() {
+    if (version != 3) {
+      version = 3
+      if (registryUrl != null || registryProperties.isNotBlank()) {
+        registryType = KafkaRegistryType.CONFLUENT
+      }
+    }
   }
 }

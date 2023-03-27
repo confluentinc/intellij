@@ -7,8 +7,10 @@ import com.intellij.openapi.components.Storage
 import com.intellij.util.xmlb.XmlSerializerUtil
 import com.jetbrains.bigdatatools.common.connection.updater.IntervalUpdateSettings
 import com.jetbrains.bigdatatools.common.settings.ColumnVisibilitySettings
+import com.jetbrains.bigdatatools.glue.monitoring.models.GlueSchemaInfo
+import com.jetbrains.bigdatatools.glue.monitoring.models.GlueSchemaVersionInfo
 import com.jetbrains.bigdatatools.kafka.model.SchemaRegistryFieldsInfo
-import com.jetbrains.bigdatatools.kafka.model.SchemaRegistryInfo
+import com.jetbrains.bigdatatools.kafka.registry.confluent.ConfluentSchemaInfo
 
 @State(name = "KafkaSettings", storages = [Storage("kafka.xml")])
 class KafkaToolWindowSettings : PersistentStateComponent<KafkaToolWindowSettings>, IntervalUpdateSettings {
@@ -39,10 +41,17 @@ class KafkaToolWindowSettings : PersistentStateComponent<KafkaToolWindowSettings
   private val consumerGroupsTableColumns = mutableListOf("consumerGroup", "state", "consumers", "topics", "partitions")
   val consumerGroupsColumnSettings = ColumnVisibilitySettings(consumerGroupsTableColumns)
 
-  private val schemaRegistryTableColumns = mutableListOf(SchemaRegistryInfo::name.name,
-                                                         SchemaRegistryInfo::type.name,
-                                                         SchemaRegistryInfo::version.name)
+  private val schemaRegistryTableColumns = mutableListOf(ConfluentSchemaInfo::name.name,
+                                                         ConfluentSchemaInfo::type.name,
+                                                         ConfluentSchemaInfo::version.name)
   val schemaRegistryTableColumnSettings = ColumnVisibilitySettings(schemaRegistryTableColumns)
+
+  private val glueSchemaTableColumns = mutableListOf(GlueSchemaInfo::schemaName.name,
+                                                     GlueSchemaInfo::registryName.name,
+                                                     GlueSchemaInfo::description.name,
+                                                     GlueSchemaInfo::createdTime.name,
+                                                     GlueSchemaInfo::updatedTime.name)
+  val glueSchemaTableColumnSettings = ColumnVisibilitySettings(glueSchemaTableColumns)
 
   private val schemaRegistryFieldsTableColumns = mutableListOf(
     SchemaRegistryFieldsInfo::name.name,
@@ -50,10 +59,18 @@ class KafkaToolWindowSettings : PersistentStateComponent<KafkaToolWindowSettings
     SchemaRegistryFieldsInfo::default.name)
   val schemaRegistryFieldsTableColumnSettings = ColumnVisibilitySettings(schemaRegistryFieldsTableColumns)
 
+  private val glueSchemaVersionsTableColumns = mutableListOf(
+    GlueSchemaVersionInfo::version.name,
+    GlueSchemaVersionInfo::registered.name,
+    GlueSchemaVersionInfo::status.name)
+
+  val glueSchemaVersionsTableColumnsSettings = ColumnVisibilitySettings(glueSchemaVersionsTableColumns)
+
+
   private val schemaRegistryVersionsTableColumns = mutableListOf(
-    SchemaRegistryInfo::id.name,
-    SchemaRegistryInfo::version.name,
-    SchemaRegistryInfo::schema.name)
+    ConfluentSchemaInfo::id.name,
+    ConfluentSchemaInfo::version.name,
+    ConfluentSchemaInfo::schema.name)
 
   val schemaRegistryVersionsTableColumnsSettings = ColumnVisibilitySettings(schemaRegistryVersionsTableColumns)
 

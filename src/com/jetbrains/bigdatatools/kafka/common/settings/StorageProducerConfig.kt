@@ -1,5 +1,6 @@
 package com.jetbrains.bigdatatools.kafka.common.settings
 
+import com.intellij.openapi.util.NlsSafe
 import com.jetbrains.bigdatatools.common.settings.connections.Property
 import com.jetbrains.bigdatatools.kafka.common.models.FieldType
 import com.jetbrains.bigdatatools.kafka.producer.models.AcksType
@@ -19,7 +20,8 @@ data class StorageProducerConfig(var topic: String = "",
                                  var keyStrategy: KafkaRegistryStrategy = KafkaRegistryStrategy.TOPIC_NAME,
                                  var valueStrategy: KafkaRegistryStrategy = KafkaRegistryStrategy.TOPIC_NAME,
                                  val keySubject: String = "",
-                                 val valueSubject: String = "") : StorageConfig {
+                                 val valueSubject: String = "",
+                                 @NlsSafe val registryName: String = "") : StorageConfig {
 
 
   constructor(topic: String,
@@ -35,20 +37,22 @@ data class StorageProducerConfig(var topic: String = "",
               keyStrategy: KafkaRegistryStrategy,
               valueStrategy: KafkaRegistryStrategy,
               keySubject: String = "",
-              valueSubject: String = "") : this(topic = topic,
-                                                keyType = keyType.name,
-                                                valueType = valueType.name,
-                                                key = key,
-                                                value = value,
-                                                acks = acks.name,
-                                                compression = compression.name,
-                                                forcePartition = forcePartition,
-                                                idempotence = idempotence,
-                                                properties = properties,
-                                                keyStrategy = keyStrategy,
-                                                valueStrategy = valueStrategy,
-                                                keySubject = keySubject,
-                                                valueSubject = valueSubject)
+              valueSubject: String = "",
+              @NlsSafe registryName: String = "") : this(topic = topic,
+                                                         keyType = keyType.name,
+                                                         valueType = valueType.name,
+                                                         key = key,
+                                                         value = value,
+                                                         acks = acks.name,
+                                                         compression = compression.name,
+                                                         forcePartition = forcePartition,
+                                                         idempotence = idempotence,
+                                                         properties = properties,
+                                                         keyStrategy = keyStrategy,
+                                                         valueStrategy = valueStrategy,
+                                                         keySubject = keySubject,
+                                                         valueSubject = valueSubject,
+                                                         registryName = registryName)
 
   fun getKeyType(): FieldType = FieldType.values().find { it.name == keyType } ?: FieldType.STRING
   fun getValueType(): FieldType = FieldType.values().find { it.name == valueType } ?: FieldType.STRING
