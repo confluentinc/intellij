@@ -207,6 +207,14 @@ class KafkaClient(project: Project?,
         loadPropertyFile(propertyFilePath)
       }
     }
+
+    //Add schema properties bevause it will use in Producer/Consumer
+    if (connectionData.registryProperties.isNotBlank()) {
+      BdtPropertyComponent.parseProperties(connectionData.registryProperties).forEach {
+        props[it.name ?: ""] = it.value ?: ""
+      }
+    }
+
     BdtPropertyComponent.parseProperties(properties).forEach {
       props[it.name ?: ""] = it.value ?: ""
     }
