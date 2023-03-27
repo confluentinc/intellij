@@ -94,7 +94,7 @@ class TopicsController(val project: Project, private val dataManager: KafkaDataM
       override fun displayTextInToolbar() = false
       override fun setSelected(e: AnActionEvent, state: Boolean) {
         settings.showInternalTopics = state
-        dataManager.autoUpdaterManager.reloadAsync(dataModel)
+        dataManager.updater.invokeRefreshModel(dataModel)
       }
     }
 

@@ -14,7 +14,7 @@ class TopicPartitionsController(private val dataManager: KafkaDataManager) : Det
 
   override fun getRenderableColumns() = TopicPartition.renderableColumns
 
-  override fun getDataModel() = selectedId?.let { dataManager.getTopicPartitionsModel(it) }
+  override fun getDataModel() = selectedId?.let { dataManager.topicPartitionsModels.get(it) }
 
   override fun showColumnFilter(): Boolean = false
 }

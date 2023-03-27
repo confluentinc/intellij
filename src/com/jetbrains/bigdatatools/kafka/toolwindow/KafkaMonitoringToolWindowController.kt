@@ -44,8 +44,7 @@ class KafkaMonitoringToolWindowController(project: Project) : MonitoringToolWind
     toolWindow.show {
       val contentManager = toolWindow.contentManager
       val content = contentManager.contents.firstOrNull { it.getUserData(CONNECTION_ID) == connectionId } ?: return@show
-      contentManager.setSelectedContent(content)
-      contentManager.requestFocus(content, true)
+      setSelectedContent(content)
     }
   }
 

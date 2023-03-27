@@ -6,11 +6,12 @@ import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.project.DumbAwareToggleAction
 import com.intellij.openapi.project.Project
+import com.jetbrains.bigdatatools.common.monitoring.toolwindow.DetailsTableMonitoringController
+import com.jetbrains.bigdatatools.common.util.executeOnPooledThread
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.model.TopicConfig
 import com.jetbrains.bigdatatools.kafka.toolwindow.config.KafkaToolWindowSettings
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
-import com.jetbrains.bigdatatools.common.monitoring.toolwindow.DetailsTableMonitoringController
 
 class TopicConfigsController(val project: Project,
                              private val dataManager: KafkaDataManager) : DetailsTableMonitoringController<TopicConfig>() {
@@ -22,7 +23,7 @@ class TopicConfigsController(val project: Project,
 
   override fun getRenderableColumns() = TopicConfig.renderableColumns
 
-  override fun getDataModel() = selectedId?.let { dataManager.getTopicConfigsModel(it) }
+  override fun getDataModel() = selectedId?.let { dataManager.topicConfigsModels.get(it) }
 
   override fun getAdditionalActions(): List<AnAction> {
     val settings = KafkaToolWindowSettings.getInstance()
@@ -40,11 +41,13 @@ class TopicConfigsController(val project: Project,
         settings.showFullTopicConfig = state
 
         //Create if disposed
-        selectedId?.let { dataManager.getTopicConfigsModel(it) }
+        selectedId?.let { dataManager.topicConfigsModels.get(it) }
 
         //Revalidate for all stored models
-        dataManager.topicConfigsModels.values.forEach {
-          it.updateData()
+
+        executeOnPooledThread {
+          val modelsForRefresh = dataManager.topicConfigsModels.getModelsForRefresh()
+          dataManager.updater.invokeRefreshModels(modelsForRefresh)
         }
       }
     }
