@@ -14,7 +14,7 @@ import com.jetbrains.bigdatatools.kafka.toolwindow.config.KafkaToolWindowSetting
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 
 class TopicConfigsController(val project: Project,
-                             private val dataManager: KafkaDataManager) : DetailsTableMonitoringController<TopicConfig>() {
+                             private val dataManager: KafkaDataManager) : DetailsTableMonitoringController<TopicConfig, String>() {
   init {
     init()
   }

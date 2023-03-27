@@ -18,21 +18,26 @@ import com.intellij.ui.dsl.builder.panel
 import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.UIUtil
 import com.jetbrains.bigdatatools.common.util.invokeAndWaitSwing
-import com.jetbrains.bigdatatools.kafka.model.SchemaRegistryInfo
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryFormat
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryUtil
+import com.jetbrains.bigdatatools.kafka.registry.confluent.ConfluentSchemaInfo
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import org.jetbrains.annotations.Nls
 import org.jetbrains.concurrency.Promise
 import javax.swing.JEditorPane
 
-object KafkaRegistrySchemaInfoDialog {
-  fun show(project: Project, registryInfo: SchemaRegistryInfo) {
-    val schema = KafkaRegistryUtil.getPrettySchema(registryInfo) ?: return
+object KafkaSchemaInfoDialog {
 
-    val isJson = KafkaRegistryFormat.valueOf(registryInfo.type) != KafkaRegistryFormat.PROTOBUF
+  fun show(schemaType: String,
+           schemaDefinition: String,
+           project: Project,
+           schemaName: String) {
+    val schema = KafkaRegistryUtil.getPrettySchema(schemaType = schemaType, schema = schemaDefinition) ?: return
+
+    val isJson = KafkaRegistryFormat.valueOf(schemaType) != KafkaRegistryFormat.PROTOBUF
 
     val dialogWrapper = DialogBuilder(project)
-    dialogWrapper.title(KafkaMessagesBundle.message("registry.info.dialog.title", registryInfo.name))
+    dialogWrapper.title(KafkaMessagesBundle.message("registry.info.dialog.title", schemaName))
     dialogWrapper.centerPanel(KafkaRegistrySchemaEditor(project).apply {
       setText(schema, isJson)
     }.component).addOkAction()
@@ -40,16 +45,33 @@ object KafkaRegistrySchemaInfoDialog {
   }
 
   // Suitable for both "Diff between schema versions" and "Update schema".
-  fun showDiff(@NlsContexts.DialogTitle title: String, project: Project, registryInfoFirst: SchemaRegistryInfo,
-               registryInfoSecond: SchemaRegistryInfo, onApply: ((String) -> Promise<Unit>)? = null) {
+  fun showDiff(@NlsContexts.DialogTitle title: String,
+               project: Project,
+               registryInfoFirst: ConfluentSchemaInfo,
+               registryInfoSecond: ConfluentSchemaInfo, onApply: ((String) -> Promise<Unit>)? = null) {
+    val schemaName = registryInfoFirst.name
+    val schemaType = registryInfoFirst.type
+    val schemaDefinition1 = registryInfoFirst.schema
+    val schemaDefinition2 = registryInfoSecond.schema
 
-    val isJson = KafkaRegistryFormat.valueOf(registryInfoFirst.type) != KafkaRegistryFormat.PROTOBUF
+    showDiff(project, title, schemaName, schemaType, schemaDefinition1, schemaDefinition2, onApply)
+  }
+
+  fun showDiff(project: Project,
+               @Nls title: String,
+               schemaName: String,
+               schemaType: String,
+               schemaDefinition1: String,
+               schemaDefinition2: String,
+               onApply: ((String) -> Promise<Unit>)?) {
+    val isJson = KafkaRegistryFormat.valueOf(schemaType) != KafkaRegistryFormat.PROTOBUF
     val fileType = if (isJson) JsonFileType.INSTANCE
     else
       FileTypeManager.getInstance().findFileTypeByName("protobuf")
 
-    val schemaFirst = KafkaRegistryUtil.getPrettySchema(registryInfoFirst) ?: return
-    val schemaSecond = KafkaRegistryUtil.getPrettySchema(registryInfoSecond) ?: return
+
+    val schemaFirst = KafkaRegistryUtil.getPrettySchema(schemaType = schemaType, schema = schemaDefinition1) ?: return
+    val schemaSecond = KafkaRegistryUtil.getPrettySchema(schemaType = schemaType, schema = schemaDefinition2) ?: return
 
     val prev = DiffContentFactory.getInstance().create(schemaFirst, fileType)
     prev.document.setReadOnly(true)
@@ -57,7 +79,8 @@ object KafkaRegistrySchemaInfoDialog {
     val new = DiffContentFactory.getInstance().create(schemaSecond, fileType)
     new.document.setReadOnly(false)
 
-    val diffData = SimpleDiffRequest(KafkaMessagesBundle.message("show.edit.schema.diff.title", registryInfoFirst.name),
+
+    val diffData = SimpleDiffRequest(KafkaMessagesBundle.message("show.edit.schema.diff.title", schemaName),
                                      prev,
                                      new,
                                      KafkaMessagesBundle.message("show.edit.schema.diff.prev.name"),
@@ -115,7 +138,7 @@ object KafkaRegistrySchemaInfoDialog {
 
   fun showDiff(@NlsContexts.DialogTitle title: String,
                project: Project,
-               registryInfo: SchemaRegistryInfo,
+               registryInfo: ConfluentSchemaInfo,
                onApply: ((String) -> Promise<Unit>)? = null) {
     showDiff(title, project, registryInfo, registryInfo, onApply)
   }

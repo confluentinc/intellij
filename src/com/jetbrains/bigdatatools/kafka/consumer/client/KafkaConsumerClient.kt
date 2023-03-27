@@ -37,8 +37,9 @@ class KafkaConsumerClient(val dataManager: KafkaDataManager,
   override fun dispose() = stop()
 
   fun start(config: StorageConsumerConfig,
+            dataManager: KafkaDataManager,
             consume: (ConsumerRecord<Any, Any>) -> Unit,
-            timestampUpdate: ()-> Unit,
+            timestampUpdate: () -> Unit,
             consumeError: (Throwable) -> Unit) {
     isRunning.set(true)
     onStart()
@@ -47,7 +48,7 @@ class KafkaConsumerClient(val dataManager: KafkaDataManager,
       error(KafkaMessagesBundle.message("consumer.error.topic.empty"))
     }
 
-    val consumer = createConsumer(config)
+    val consumer = createConsumer(config, dataManager)
     runConsumer = consumer
 
     val parsedPartitionFilter = ConsumerEditorUtils.parsePartitionsText(config.partitions).ifEmpty { null }
@@ -183,12 +184,15 @@ class KafkaConsumerClient(val dataManager: KafkaDataManager,
     }
   }
 
-  private fun createConsumer(config: StorageConsumerConfig): KafkaConsumer<Any, Any> {
+  private fun createConsumer(config: StorageConsumerConfig, dataManager: KafkaDataManager): KafkaConsumer<Any, Any> {
     val props = client.kafkaProps.clone() as Properties
 
-    props[ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG] = config.getKeyType().getDeserializationClass()::class.java
-    props[ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG] = config.getValueType().getDeserializationClass()::class.java
+    props[ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG] = config.getKeyType().getDeserializationClass(
+      dataManager.connectionData.registryType)::class.java
+    props[ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG] = config.getValueType().getDeserializationClass(
+      dataManager.connectionData.registryType)::class.java
     connectionData.registryUrl?.let { props[AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG] = it }
+
 
     getSchema(config, isKey = true)?.let { props[FieldType.KEY_PARSED_SCHEMA_CONFIG_KEY] = it }
     getSchema(config, isKey = false)?.let { props[FieldType.VALUE_PARSED_SCHEMA_CONFIG_KEY] = it }
@@ -280,12 +284,12 @@ class KafkaConsumerClient(val dataManager: KafkaDataManager,
       return null
     return when (registryType) {
       KafkaRegistryConsumerType.AUTO -> null
-      KafkaRegistryConsumerType.SUBJECT -> dataManager.getRegistrySchema(subject)?.meta?.let {
+      KafkaRegistryConsumerType.SUBJECT -> dataManager.confluentSchemaRegistry?.getRegistrySchema(subject)?.meta?.let {
         KafkaRegistryUtil.parseSchema(it)
       }
       KafkaRegistryConsumerType.SCHEMA_ID -> {
         val id = schemaId.toIntOrNull()
-        dataManager.getRegistrySchemaById(id)
+        dataManager.confluentSchemaRegistry?.getRegistrySchemaById(id)
       }
       KafkaRegistryConsumerType.CUSTOM -> {
         KafkaRegistryUtil.parseSchema(fieldType.schemaType, schemaJson).getOrNull()

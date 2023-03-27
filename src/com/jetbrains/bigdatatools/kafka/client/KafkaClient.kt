@@ -1,22 +1,30 @@
 package com.jetbrains.bigdatatools.kafka.client
 
+import com.amazonaws.services.schemaregistry.utils.AWSSchemaRegistryConstants
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.util.net.NetUtils
+import com.jetbrains.bigdatatools.common.connection.exception.BdtConfigurationException
 import com.jetbrains.bigdatatools.common.connection.exception.BdtConnectionException
 import com.jetbrains.bigdatatools.common.connection.exception.BdtHostUnavailableException
 import com.jetbrains.bigdatatools.common.connection.exception.BdtUnexpectedConnectionException
 import com.jetbrains.bigdatatools.common.monitoring.connection.MonitoringClient
+import com.jetbrains.bigdatatools.common.rfs.driver.manager.DriverManager
 import com.jetbrains.bigdatatools.common.settings.components.BdtPropertyComponent
 import com.jetbrains.bigdatatools.common.settings.connections.Property
+import com.jetbrains.bigdatatools.common.settings.manager.RfsConnectionDataManager
 import com.jetbrains.bigdatatools.common.util.BdIdeRegistryUtil
 import com.jetbrains.bigdatatools.common.util.BdtUrlUtils
 import com.jetbrains.bigdatatools.common.util.withPluginClassLoader
+import com.jetbrains.bigdatatools.glue.client.BdtGlueClient
+import com.jetbrains.bigdatatools.glue.rfs.GlueDriver
 import com.jetbrains.bigdatatools.kafka.model.ConsumerGroupPresentable
 import com.jetbrains.bigdatatools.kafka.model.TopicConfig
 import com.jetbrains.bigdatatools.kafka.model.TopicPresentable
 import com.jetbrains.bigdatatools.kafka.producer.client.KafkaProducerClient
+import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryType
+import com.jetbrains.bigdatatools.kafka.registry.confluent.ConfluentRegistryClient
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaConnectionData
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaPropertySource
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
@@ -31,7 +39,7 @@ import java.util.*
 
 class KafkaClient(project: Project?,
                   val connectionData: KafkaConnectionData,
-                  val testConnection: Boolean) : MonitoringClient(project) {
+                  private val testConnection: Boolean) : MonitoringClient(project) {
   internal val kafkaProps by lazy {
     getKafkaProps(connectionData)
   }
@@ -40,7 +48,10 @@ class KafkaClient(project: Project?,
   private val kafkaAdminNotNull
     get() = kafkaAdmin ?: error("Kafka Admin Client is not inited")
 
-  var registryClient: BdtKafkaRegistryClient? = null
+  var confluentRegistryClient: ConfluentRegistryClient? = null
+    private set
+
+  var glueRegistryClient: BdtGlueClient? = null
     private set
 
 
@@ -59,19 +70,30 @@ class KafkaClient(project: Project?,
       kafkaAdmin?.let { Disposer.register(this, it) }
     }
 
-    registryClient?.let {
+    confluentRegistryClient?.let {
       Disposer.dispose(it)
     }
 
-    registryClient = null
+    confluentRegistryClient = null
 
-    registryClient = KafkaClientBuilder.createRegistryClient(project, connectionData, testConnection)
-    registryClient?.let {
+    when (connectionData.registryType) {
+      KafkaRegistryType.NONE -> {}
+      KafkaRegistryType.CONFLUENT -> {
+        confluentRegistryClient = ConfluentRegistryClient.createFor(project, connectionData, testConnection)
+      }
+      KafkaRegistryType.AWS_GLUE -> {
+        val glueDriver = getGlueDriver()
+        glueRegistryClient = glueDriver.dataManager.client
+      }
+    }
+    confluentRegistryClient = ConfluentRegistryClient.createFor(project, connectionData, testConnection)
+    confluentRegistryClient?.let {
       Disposer.register(this, it)
     }
 
     longCheckConnection()
   }
+
 
   override fun checkConnectionInner() {
     val urlsString = kafkaProps.getProperty(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG)
@@ -208,12 +230,19 @@ class KafkaClient(project: Project?,
       }
     }
 
-    //Add schema properties bevause it will use in Producer/Consumer
-    if (connectionData.registryProperties.isNotBlank()) {
-      BdtPropertyComponent.parseProperties(connectionData.registryProperties).forEach {
-        props[it.name ?: ""] = it.value ?: ""
+    when (connectionData.registryType) {
+      KafkaRegistryType.NONE -> {}
+      KafkaRegistryType.CONFLUENT -> {
+        BdtPropertyComponent.parseProperties(connectionData.registryProperties).forEach {
+          props[it.name ?: ""] = it.value ?: ""
+        }
+      }
+      KafkaRegistryType.AWS_GLUE -> {
+        val glueConnData = getGlueDriver().connectionData
+        props[AWSSchemaRegistryConstants.AWS_REGION] = glueConnData.region
       }
     }
+
 
     BdtPropertyComponent.parseProperties(properties).forEach {
       props[it.name ?: ""] = it.value ?: ""
@@ -234,7 +263,7 @@ class KafkaClient(project: Project?,
 
   private fun checkRegistryClient() {
     try {
-      registryClient?.allSubjects
+      confluentRegistryClient?.allSubjects
     }
     catch (t: Throwable) {
       throw BdtConnectionException(KafkaMessagesBundle.message("connection.kafka.registry.is.not.available"), t)
@@ -277,6 +306,20 @@ class KafkaClient(project: Project?,
     val secretKey = kafkaProps.getProperty(AwsSettingsForKafka.AWS_SECRET_KEY)?.ifBlank { null }?.trim()
     accessKey?.let { System.setProperty(AwsSettingsForKafka.AWS_ACCESS_KEY, it) }
     secretKey?.let { System.setProperty(AwsSettingsForKafka.AWS_SECRET_KEY, it) }
+  }
+
+  private fun getGlueDriver(): GlueDriver {
+    val glueConnectionId = connectionData.glueConnectionId.ifBlank { null } ?: throw BdtConfigurationException(
+      KafkaMessagesBundle.message("error.glue.connection.is.not.found"))
+    val connection = RfsConnectionDataManager.instance?.getConnectionById(project, glueConnectionId) ?: throw BdtConfigurationException(
+      KafkaMessagesBundle.message("error.glue.connection.is.not.found"))
+
+    if (!connection.isEnabled) {
+      throw BdtConfigurationException(
+        KafkaMessagesBundle.message("error.glue.connection.is.disabled"))
+    }
+    val glueDriver = DriverManager.getDriverById(project, connection.innerId) as GlueDriver
+    return glueDriver
   }
 
   companion object {

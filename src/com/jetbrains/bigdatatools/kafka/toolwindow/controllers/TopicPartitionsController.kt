@@ -5,7 +5,7 @@ import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.model.TopicPartition
 import com.jetbrains.bigdatatools.kafka.toolwindow.config.KafkaToolWindowSettings
 
-class TopicPartitionsController(private val dataManager: KafkaDataManager) : DetailsTableMonitoringController<TopicPartition>() {
+class TopicPartitionsController(private val dataManager: KafkaDataManager) : DetailsTableMonitoringController<TopicPartition, String>() {
   init {
     init()
   }

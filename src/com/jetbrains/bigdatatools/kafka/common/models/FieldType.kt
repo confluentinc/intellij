@@ -1,5 +1,8 @@
 package com.jetbrains.bigdatatools.kafka.common.models
 
+import com.amazonaws.services.schemaregistry.deserializers.GlueSchemaRegistryKafkaDeserializer
+import com.amazonaws.services.schemaregistry.serializers.GlueSchemaRegistryKafkaSerializer
+import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryType
 import com.jetbrains.bigdatatools.kafka.registry.serde.BdtKafkaAvroDeserializer
 import com.jetbrains.bigdatatools.kafka.registry.serde.BdtKafkaJsonSchemaDeserializer
 import com.jetbrains.bigdatatools.kafka.registry.serde.BdtKafkaProtobufDeserializer
@@ -22,18 +25,30 @@ enum class FieldType(@Nls val title: String) {
 
   AVRO_REGISTRY(KafkaMessagesBundle.message("field.type.avro.registry")),
   PROTOBUF_REGISTRY(KafkaMessagesBundle.message("field.type.protobuf.registry")),
-  JSON_REGISTRY(KafkaMessagesBundle.run { message("field.type.json.registry") });
+  JSON_REGISTRY(KafkaMessagesBundle.message("field.type.json.registry"));
 
-  fun getDeserializationClass() = when (this) {
+
+  fun getDeserializationClass(registryType: KafkaRegistryType) = when (this) {
     STRING, JSON -> StringDeserializer()
     LONG -> LongDeserializer()
     DOUBLE -> DoubleDeserializer()
     FLOAT -> FloatDeserializer()
     BASE64 -> ByteArrayDeserializer()
     NULL -> VoidDeserializer()
-    AVRO_REGISTRY -> BdtKafkaAvroDeserializer()
-    PROTOBUF_REGISTRY -> BdtKafkaProtobufDeserializer()
-    JSON_REGISTRY -> BdtKafkaJsonSchemaDeserializer()
+    AVRO_REGISTRY -> if (registryType == KafkaRegistryType.AWS_GLUE)
+      GlueSchemaRegistryKafkaDeserializer()
+    else
+      BdtKafkaAvroDeserializer()
+    PROTOBUF_REGISTRY -> if (registryType == KafkaRegistryType.AWS_GLUE)
+      GlueSchemaRegistryKafkaDeserializer()
+    else
+      BdtKafkaProtobufDeserializer()
+
+    JSON_REGISTRY -> if (registryType == KafkaRegistryType.AWS_GLUE)
+      GlueSchemaRegistryKafkaDeserializer()
+    else
+      BdtKafkaJsonSchemaDeserializer()
+
   }
 
   fun getSerializer(registryClient: SchemaRegistryClient? = null) = when (this) {
@@ -44,9 +59,9 @@ enum class FieldType(@Nls val title: String) {
     FLOAT -> FloatSerializer()
     BASE64 -> ByteArraySerializer()
     NULL -> VoidSerializer()
-    AVRO_REGISTRY -> KafkaAvroSerializer(registryClient)
-    PROTOBUF_REGISTRY -> KafkaProtobufSerializer(registryClient)
-    JSON_REGISTRY -> KafkaJsonSchemaSerializer()
+    AVRO_REGISTRY -> if (registryClient != null) KafkaAvroSerializer(registryClient) else GlueSchemaRegistryKafkaSerializer()
+    PROTOBUF_REGISTRY -> if (registryClient != null) KafkaProtobufSerializer(registryClient) else GlueSchemaRegistryKafkaSerializer()
+    JSON_REGISTRY -> if (registryClient != null) KafkaJsonSchemaSerializer() else GlueSchemaRegistryKafkaSerializer()
   }
 
   companion object {

@@ -7,16 +7,18 @@ import com.intellij.ui.components.JBPasswordField
 import com.intellij.ui.components.JBTextField
 import com.intellij.ui.dsl.builder.*
 import com.jetbrains.bigdatatools.common.connection.tunnel.ui.SshTunnelComponent
+import com.jetbrains.bigdatatools.common.constants.BdtConnectionType
 import com.jetbrains.bigdatatools.common.settings.ModificationKey
-import com.jetbrains.bigdatatools.common.settings.fields.PropertiesFieldComponent
-import com.jetbrains.bigdatatools.common.settings.fields.RadioGroupField
-import com.jetbrains.bigdatatools.common.settings.fields.StringNonRequiredField
-import com.jetbrains.bigdatatools.common.settings.fields.WrappedComponent
+import com.jetbrains.bigdatatools.common.settings.fields.*
+import com.jetbrains.bigdatatools.common.settings.manager.RfsConnectionDataManager
 import com.jetbrains.bigdatatools.common.settings.withUrlValidator
 import com.jetbrains.bigdatatools.common.ui.block
 import com.jetbrains.bigdatatools.common.ui.components.RadioComboBox
 import com.jetbrains.bigdatatools.common.ui.row
 import com.jetbrains.bigdatatools.common.ui.shortRow
+import com.jetbrains.bigdatatools.common.util.BdtUrlUtils
+import com.jetbrains.bigdatatools.common.util.MessagesBundle
+import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryType
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaConfigurationSource
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaConnectionData
 import com.jetbrains.bigdatatools.kafka.rfs.SchemaRegistryAuthType
@@ -30,6 +32,14 @@ class KafkaRegistrySettings(val project: Project,
                             val connectionData: KafkaConnectionData,
                             uiDisposable: Disposable,
                             private val tunnelField: SshTunnelComponent<KafkaConnectionData>) {
+  private val registryType = RadioGroupField(KafkaConnectionData::registryType,
+                                             ModificationKey(KafkaMessagesBundle.message("schema.registry.type.label")), connectionData,
+                                             KafkaRegistryType.values()).apply {
+    addItemListener {
+      updateRegistryType()
+    }
+  }
+
   private val registryPropertiesEditor = PropertiesFieldComponent.create(
     project,
     KafkaPropertiesUtils.getRegistryPropertiesDescriptions(),
@@ -70,6 +80,16 @@ class KafkaRegistrySettings(val project: Project,
     }
   }
 
+  private val glueConnectionComboBox = ComboBoxField(KafkaConnectionData::glueConnectionId,
+                                                     ModificationKey(KafkaMessagesBundle.message("settings.glue.driver.id")),
+                                                     connectionData,
+                                                     getGlueDriversIds(),
+                                                     ::getSparkMonitoringConnectionNames)
+
+
+  private lateinit var confluentGroup: RowsRange
+  private lateinit var glueGroup: RowsRange
+
   private lateinit var registryPropertiesGroup: Row
   private lateinit var implicitRegistryClientSettingsGroup: RowsRange
 
@@ -85,33 +105,46 @@ class KafkaRegistrySettings(val project: Project,
 
   private fun Panel.setComponent() {
     group(KafkaMessagesBundle.message("settings.registry.title")) {
-      row(registryUrl).bottomGap(BottomGap.SMALL)
-
-      shortRow(registrySourceTypeChooser)
-
-      registryPropertiesGroup = block(registryPropertiesEditor.getComponent())
-
-      implicitRegistryClientSettingsGroup = rowsRange {
-        row(KafkaMessagesBundle.message("kafka.auth.method.label")) {
-          cell(schemaAuth.getComponent())
-        }
-        indent {
-          schemaBasicAuthGroup = rowsRange {
-            row(KafkaMessagesBundle.message("kafka.username")) {
-              schemaBasicLogin = textField().align(AlignX.FILL)
-            }
-            row(KafkaMessagesBundle.message("kafka.password")) {
-              schemaBasicPassword = passwordField().align(AlignX.FILL)
-            }
-          }
-
-          schemaBearerhGroup = row(KafkaMessagesBundle.message("kafka.token")) {
-            schemaBearerToken = textField().align(AlignX.FILL)
-          }
+      shortRow(registryType)
+      confluentGroup = confluentSettings()
+      glueGroup = rowsRange {
+        row {
+          label(KafkaMessagesBundle.message("settings.glue.driver.id"))
+          cell(glueConnectionComboBox.getComponent())
         }
       }
-      block(tunnelField.getComponent()).topGap(TopGap.SMALL)
+      updateRegistryType()
     }
+  }
+
+  private fun Panel.confluentSettings() = rowsRange {
+    row(registryUrl).bottomGap(BottomGap.SMALL)
+
+    shortRow(registrySourceTypeChooser)
+
+    registryPropertiesGroup = block(registryPropertiesEditor.getComponent())
+
+    implicitRegistryClientSettingsGroup = rowsRange {
+      row(KafkaMessagesBundle.message("kafka.auth.method.label")) {
+        cell(schemaAuth.getComponent())
+      }
+      indent {
+        schemaBasicAuthGroup = rowsRange {
+          row(KafkaMessagesBundle.message("kafka.username")) {
+            schemaBasicLogin = textField().align(AlignX.FILL)
+          }
+          row(KafkaMessagesBundle.message("kafka.password")) {
+            schemaBasicPassword = passwordField().align(AlignX.FILL)
+          }
+        }
+
+        schemaBearerhGroup = row(KafkaMessagesBundle.message("kafka.token")) {
+          schemaBearerToken = textField().align(AlignX.FILL)
+        }
+      }
+    }
+    block(tunnelField.getComponent()).topGap(TopGap.SMALL)
+
 
     updateRegistryAuthStatus()
     updateRegistryUiFromProperties()
@@ -186,6 +219,8 @@ class KafkaRegistrySettings(val project: Project,
       SchemaRegistryClientConfig.BEARER_AUTH_TOKEN_CONFIG to null,
       SchemaRegistryClientConfig.USER_INFO_CONFIG to null,
     )
+
+    @Suppress("DEPRECATION")
     val fromUi = when (schemaAuth.selectedItem) {
       SchemaRegistryAuthType.NOT_SPECIFIED -> emptyMap<String, String?>()
       SchemaRegistryAuthType.BASIC_AUTH -> {
@@ -205,7 +240,36 @@ class KafkaRegistrySettings(val project: Project,
   }
 
   fun getDefaultFields(): List<WrappedComponent<in KafkaConnectionData>> =
-    listOf(registrySourceTypeChooser, registryPropertiesEditor, registryUrl)
+    listOf(registryType, registrySourceTypeChooser, registryPropertiesEditor, registryUrl, glueConnectionComboBox)
+
+  private fun updateRegistryType() {
+    when (registryType.getValue()) {
+      KafkaRegistryType.NONE -> {
+        confluentGroup.visible(false)
+        glueGroup.visible(false)
+
+      }
+      KafkaRegistryType.CONFLUENT -> {
+        confluentGroup.visible(true)
+        glueGroup.visible(false)
+
+      }
+      KafkaRegistryType.AWS_GLUE -> {
+        confluentGroup.visible(false)
+        glueGroup.visible(true)
+      }
+    }
+  }
+
+  private fun getGlueDriversIds(): Array<String> {
+    val connections = RfsConnectionDataManager.instance?.getConnectionsByGroupId(BdtConnectionType.GLUE.id, project) ?: emptyList()
+    return if (connections.isEmpty()) arrayOf("") else arrayOf("") + connections.map { it.innerId }.toTypedArray()
+  }
+
+  private fun getSparkMonitoringConnectionNames(innerId: String): String? {
+    return RfsConnectionDataManager.instance?.getConnectionById(project, innerId)?.name
+  }
+
 
   companion object {
     private const val SUPPORT_REGISTRY_BASIC_AUTH_TYPE = "USER_INFO"

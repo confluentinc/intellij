@@ -1,11 +1,11 @@
 package com.jetbrains.bigdatatools.kafka.registry
 
 import com.google.gson.GsonBuilder
-import com.google.gson.JsonObject
+import com.google.gson.JsonElement
 import com.intellij.openapi.util.NlsSafe
 import com.jetbrains.bigdatatools.kafka.common.models.FieldType
 import com.jetbrains.bigdatatools.kafka.model.SchemaRegistryFieldsInfo
-import com.jetbrains.bigdatatools.kafka.model.SchemaRegistryInfo
+import com.jetbrains.bigdatatools.kafka.registry.confluent.ConfluentSchemaInfo
 import com.squareup.wire.schema.internal.parser.MessageElement
 import com.squareup.wire.schema.internal.parser.ProtoFileElement
 import io.confluent.kafka.schemaregistry.ParsedSchema
@@ -31,7 +31,7 @@ object KafkaRegistryUtil {
     Logger.getLogger("io.confluent.kafka.schemaregistry").level = Level.OFF
   }
 
-  fun parseSchema(registryInfo: SchemaRegistryInfo,
+  fun parseSchema(registryInfo: ConfluentSchemaInfo,
                   newText: @NlsSafe String): ParsedSchema? {
     val schemaType = registryInfo.meta?.schemaType ?: error("Metainfo is not exists for ${registryInfo.name}")
     val references = registryInfo.meta.references
@@ -71,15 +71,15 @@ object KafkaRegistryUtil {
     }
   }
 
-  fun getPrettySchema(registryInfo: SchemaRegistryInfo): String? {
-    val schema = if (registryInfo.meta?.schemaType == ProtobufSchema.TYPE)
-      registryInfo.meta.schema
+  fun getPrettySchema(schemaType: String, schema: String): String? {
+    return if (schemaType == ProtobufSchema.TYPE) {
+      schema
+    }
     else {
       val gson = GsonBuilder().setPrettyPrinting().create()
-      val jsonObject = gson.fromJson(registryInfo.meta?.schema ?: "{}", JsonObject::class.java)
+      val jsonObject = gson.fromJson(schema.ifBlank { null } ?: "{}", JsonElement::class.java)
       gson.toJson(jsonObject)
     }
-    return schema
   }
 
   fun parseRecordName(schema: ParsedSchema?): String? = schema?.name()

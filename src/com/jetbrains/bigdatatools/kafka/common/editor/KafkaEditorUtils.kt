@@ -1,5 +1,6 @@
 package com.jetbrains.bigdatatools.kafka.common.editor
 
+import com.amazonaws.services.schemaregistry.utils.AWSSchemaRegistryConstants
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonParser
 import com.google.protobuf.Message
@@ -31,6 +32,7 @@ import java.nio.charset.Charset
 import java.util.*
 import javax.swing.BorderFactory
 
+@Suppress("HardCodedStringLiteral")
 object KafkaEditorUtils {
 
   fun createJsonTextArea(project: Project, additionalCustomization: List<EditorCustomization> = emptyList()): EditorTextField {
@@ -150,8 +152,25 @@ object KafkaEditorUtils {
     return topicComboBox
   }
 
+  fun createRegistrySchemaComboBox(rootDisposable: Disposable, kafkaManager: KafkaDataManager): ComboBox<String> {
+    val registries = kafkaManager.glueSchemaRegistry?.getRegistries() ?: emptyList()
+    val comboBox = ComboBox(registries.toTypedArray())
+    comboBox.isSwingPopup = false
+    comboBox.prototypeDisplayValue = AWSSchemaRegistryConstants.DEFAULT_REGISTRY_NAME // Field is set for limiting combobox width.
+    comboBox.renderer = CustomListCellRenderer<String> { it }
+
+    val listener = KafkaDataModelListener(comboBox) { kafkaManager.glueSchemaRegistry?.getRegistries() ?: emptyList() }
+    kafkaManager.topicModel.addListener(listener)
+    Disposer.register(rootDisposable) {
+      kafkaManager.topicModel.removeListener(listener)
+    }
+
+    return comboBox
+  }
+
+
   fun createSubjectComboBox(rootDisposable: Disposable, kafkaManager: KafkaDataManager): ComboBox<SubjectInEditor> {
-    val schemas = kafkaManager.schemaRegistryModel?.entries ?: emptyList()
+    val schemas = kafkaManager.confluentSchemaRegistry?.schemaRegistryModel?.entries ?: emptyList()
     val comboBox = ComboBox(schemas.map { SubjectInEditor(it.name) }.sortedBy { it.name }.toTypedArray())
     comboBox.isSwingPopup = false
     comboBox.prototypeDisplayValue = SubjectInEditor("Subject sample name")
@@ -159,11 +178,11 @@ object KafkaEditorUtils {
     comboBox.renderer = CustomListCellRenderer<SubjectInEditor> { it.name }
 
     val listener = KafkaDataModelListener(comboBox) {
-      kafkaManager.schemaRegistryModel?.entries?.map { SubjectInEditor(it.name) } ?: emptyList()
+      kafkaManager.confluentSchemaRegistry?.schemaRegistryModel?.entries?.map { SubjectInEditor(it.name) } ?: emptyList()
     }
-    kafkaManager.schemaRegistryModel?.addListener(listener)
+    kafkaManager.confluentSchemaRegistry?.schemaRegistryModel?.addListener(listener)
     Disposer.register(rootDisposable) {
-      kafkaManager.schemaRegistryModel?.removeListener(listener)
+      kafkaManager.confluentSchemaRegistry?.schemaRegistryModel?.removeListener(listener)
     }
 
     return comboBox

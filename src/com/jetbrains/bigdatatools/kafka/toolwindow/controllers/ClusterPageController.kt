@@ -19,6 +19,9 @@ import com.jetbrains.bigdatatools.common.ui.MigPanel
 import com.jetbrains.bigdatatools.kafka.common.editor.KafkaEditorProvider
 import com.jetbrains.bigdatatools.kafka.common.models.KafkaEditorType
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
+import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryType
+import com.jetbrains.bigdatatools.kafka.registry.confluent.controller.ConfluentRegistryController
+import com.jetbrains.bigdatatools.kafka.registry.glue.controller.GlueRegistryController
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaConnectionData
 import com.jetbrains.bigdatatools.kafka.statistics.KafkaUsagesCollector
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
@@ -37,8 +40,13 @@ class ClusterPageController(private val project: Project, private val connection
   private val topicsController = TopicsController(project, dataManager)
   private val consumerGroupsController = ConsumerGroupsController(dataManager)
 
-  private val schemaRegistryController = if (dataManager.isKafkaRegistryEnabled)
-    KafkaSchemaRegistryController(project, dataManager)
+  private val confluentRegistryController = if (dataManager.isConfluentSchemaRegistryEnabled)
+    ConfluentRegistryController(project, dataManager)
+  else
+    null
+
+  private val glueRegistryController = if (dataManager.isGlueSchemaRegistryEnabled)
+    GlueRegistryController(project, dataManager)
   else
     null
 
@@ -49,7 +57,8 @@ class ClusterPageController(private val project: Project, private val connection
   init {
     Disposer.register(this, topicsController)
     Disposer.register(this, consumerGroupsController)
-    schemaRegistryController?.let { Disposer.register(this, it) }
+    confluentRegistryController?.let { Disposer.register(this, it) }
+    glueRegistryController?.let { Disposer.register(this, it) }
   }
 
   override fun dispose() {}
@@ -78,7 +87,7 @@ class ClusterPageController(private val project: Project, private val connection
   private fun createPanel(): JPanel {
     val model = DefaultListModel<ClusterControllerType>().also { model ->
       ClusterControllerType.values().forEach {
-        if (it == ClusterControllerType.SCHEMA_REGISTRY_GROUP && schemaRegistryController == null) {
+        if (it == ClusterControllerType.SCHEMA_REGISTRY_GROUP && connectionData.registryType == KafkaRegistryType.NONE) {
           return@forEach
         }
         model.addElement(it)
@@ -103,9 +112,13 @@ class ClusterPageController(private val project: Project, private val connection
     details.add(topicsController.getComponent(), ClusterControllerType.TOPIC.name)
     details.add(consumerGroupsController.getComponent(), ClusterControllerType.CONSUMER_GROUP.name)
 
-    schemaRegistryController?.let {
-      details.add(schemaRegistryController.getComponent(), ClusterControllerType.SCHEMA_REGISTRY_GROUP.name)
+    confluentRegistryController?.let {
+      details.add(it.getComponent(), ClusterControllerType.SCHEMA_REGISTRY_GROUP.name)
     }
+    glueRegistryController?.let {
+      details.add(it.getComponent(), ClusterControllerType.SCHEMA_REGISTRY_GROUP.name)
+    }
+
     showDetails(ClusterControllerType.TOPIC)
 
     val createProducer = JButton(KafkaMessagesBundle.message("create.producer.action.title")).apply {
