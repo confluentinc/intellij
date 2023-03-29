@@ -12,13 +12,11 @@ import com.jetbrains.bigdatatools.common.settings.fields.PropertiesFieldComponen
 import com.jetbrains.bigdatatools.common.settings.fields.RadioGroupField
 import com.jetbrains.bigdatatools.common.settings.fields.StringNonRequiredField
 import com.jetbrains.bigdatatools.common.settings.fields.WrappedComponent
-import com.jetbrains.bigdatatools.common.settings.withValidator
+import com.jetbrains.bigdatatools.common.settings.withUrlValidator
 import com.jetbrains.bigdatatools.common.ui.block
 import com.jetbrains.bigdatatools.common.ui.components.RadioComboBox
 import com.jetbrains.bigdatatools.common.ui.row
 import com.jetbrains.bigdatatools.common.ui.shortRow
-import com.jetbrains.bigdatatools.common.util.BdtUrlUtils
-import com.jetbrains.bigdatatools.common.util.MessagesBundle
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaConfigurationSource
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaConnectionData
 import com.jetbrains.bigdatatools.kafka.rfs.SchemaRegistryAuthType
@@ -58,12 +56,8 @@ class KafkaRegistrySettings(val project: Project,
     .apply {
       emptyText = KafkaMessagesBundle.message("settings.registry.url.hint")
     }
-    .withValidator(uiDisposable) {
-      if (it.isBlank())
-        return@withValidator null
-      val isValid = BdtUrlUtils.isValidUrl(it)
-      if (!isValid) MessagesBundle.message("url.format.error") else null
-    }.also { editor ->
+    .withUrlValidator(uiDisposable, allowEmpty = true)
+    .also { editor ->
       editor.getComponent().whenFocusLost {
         updateRegistryPropertiesField()
       }
