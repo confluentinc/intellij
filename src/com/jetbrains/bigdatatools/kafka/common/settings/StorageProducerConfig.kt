@@ -1,11 +1,10 @@
 package com.jetbrains.bigdatatools.kafka.common.settings
 
-import com.intellij.openapi.util.NlsSafe
 import com.jetbrains.bigdatatools.common.settings.connections.Property
 import com.jetbrains.bigdatatools.kafka.common.models.FieldType
 import com.jetbrains.bigdatatools.kafka.producer.models.AcksType
 import com.jetbrains.bigdatatools.kafka.producer.models.RecordCompression
-import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryStrategy
+import com.jetbrains.bigdatatools.kafka.registry.ConfluentRegistryStrategy
 
 data class StorageProducerConfig(var topic: String = "",
                                  var keyType: String = "",
@@ -17,11 +16,12 @@ data class StorageProducerConfig(var topic: String = "",
                                  var acks: String = "",
                                  var idempotence: Boolean = false,
                                  var forcePartition: Int = -1,
-                                 var keyStrategy: KafkaRegistryStrategy = KafkaRegistryStrategy.TOPIC_NAME,
-                                 var valueStrategy: KafkaRegistryStrategy = KafkaRegistryStrategy.TOPIC_NAME,
+                                 var keyStrategy: ConfluentRegistryStrategy = ConfluentRegistryStrategy.TOPIC_NAME,
+                                 var valueStrategy: ConfluentRegistryStrategy = ConfluentRegistryStrategy.TOPIC_NAME,
                                  val keySubject: String = "",
+                                 val keyRegistry: String = "",
                                  val valueSubject: String = "",
-                                 @NlsSafe val registryName: String = "") : StorageConfig {
+                                 val valueRegistry: String = "") : StorageConfig {
 
 
   constructor(topic: String,
@@ -34,25 +34,27 @@ data class StorageProducerConfig(var topic: String = "",
               acks: AcksType,
               idempotence: Boolean,
               forcePartition: Int,
-              keyStrategy: KafkaRegistryStrategy,
-              valueStrategy: KafkaRegistryStrategy,
+              keyStrategy: ConfluentRegistryStrategy,
+              valueStrategy: ConfluentRegistryStrategy,
               keySubject: String = "",
+              keyRegistry: String = "",
               valueSubject: String = "",
-              @NlsSafe registryName: String = "") : this(topic = topic,
-                                                         keyType = keyType.name,
-                                                         valueType = valueType.name,
-                                                         key = key,
-                                                         value = value,
-                                                         acks = acks.name,
-                                                         compression = compression.name,
-                                                         forcePartition = forcePartition,
-                                                         idempotence = idempotence,
-                                                         properties = properties,
-                                                         keyStrategy = keyStrategy,
-                                                         valueStrategy = valueStrategy,
-                                                         keySubject = keySubject,
-                                                         valueSubject = valueSubject,
-                                                         registryName = registryName)
+              valueRegistry: String = "") : this(topic = topic,
+                                                 keyType = keyType.name,
+                                                 key = key,
+                                                 valueType = valueType.name,
+                                                 value = value,
+                                                 properties = properties,
+                                                 compression = compression.name,
+                                                 acks = acks.name,
+                                                 idempotence = idempotence,
+                                                 forcePartition = forcePartition,
+                                                 keyStrategy = keyStrategy,
+                                                 valueStrategy = valueStrategy,
+                                                 keySubject = keySubject,
+                                                 keyRegistry = keyRegistry,
+                                                 valueSubject = valueSubject,
+                                                 valueRegistry = valueRegistry)
 
   fun getKeyType(): FieldType = FieldType.values().find { it.name == keyType } ?: FieldType.STRING
   fun getValueType(): FieldType = FieldType.values().find { it.name == valueType } ?: FieldType.STRING

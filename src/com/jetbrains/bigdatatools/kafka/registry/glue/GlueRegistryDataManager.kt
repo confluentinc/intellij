@@ -18,7 +18,6 @@ import com.jetbrains.bigdatatools.common.util.executeOnPooledThread
 import com.jetbrains.bigdatatools.common.util.runAsync
 import com.jetbrains.bigdatatools.common.util.withCatchNotifyErrorDialog
 import com.jetbrains.bigdatatools.glue.client.BdtGlueClient
-import com.jetbrains.bigdatatools.glue.monitoring.models.GlueRegistryInfo
 import com.jetbrains.bigdatatools.glue.monitoring.models.GlueSchemaDetailedInfo
 import com.jetbrains.bigdatatools.glue.monitoring.models.GlueSchemaInfo
 import com.jetbrains.bigdatatools.glue.monitoring.models.GlueSchemaVersionInfo
@@ -27,21 +26,22 @@ import com.jetbrains.bigdatatools.kafka.model.SchemaRegistryFieldsInfo
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryUtil
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaDriver
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
-import software.amazon.awssdk.services.glue.model.*
+import software.amazon.awssdk.services.glue.model.Compatibility
+import software.amazon.awssdk.services.glue.model.DataFormat
+import software.amazon.awssdk.services.glue.model.GetSchemaVersionResponse
+import software.amazon.awssdk.services.glue.model.SchemaId
 
 class GlueRegistryDataManager(val dataManager: MonitoringDataManager,
                               val clientRetriever: () -> BdtGlueClient?) : Disposable {
   val client: BdtGlueClient
     get() = clientRetriever() ?: throw BdtConnectionException(KafkaMessagesBundle.message("error.glue.client.is.not.inited"))
 
+  val region: String
+    get() = client.connData.region
+
   internal val schemaModel = createSchemaRegistryDataModel().also {
     Disposer.register(this, it)
   }
-
-  internal val registryModel = createRegistriesDataModel().also {
-    Disposer.register(this, it)
-  }
-
 
   private val schemaDetailsModels = createSchemaDetailedInfos().also { Disposer.register(this, it) }
   private val schemaVersionsModels = createSchemeVersionsStorage().also { Disposer.register(this, it) }
@@ -58,16 +58,7 @@ class GlueRegistryDataManager(val dataManager: MonitoringDataManager,
     return dataModel
   }
 
-  private fun createRegistriesDataModel(): ObjectDataModel<GlueRegistryInfo> {
-    val dataModel = ObjectDataModel(GlueRegistryInfo::name) {
-      val client = client
-      client.listRegistries()
-    }
-    return dataModel
-  }
 
-
-  fun getRegistries(): List<String> = registryModel.data?.map { it.name }?.sorted() ?: emptyList()
   fun getRegistrySchemaFieldsModel(id: SchemaId): ObjectDataModel<SchemaRegistryFieldsInfo> = schemaFieldsModels[id]
   fun getRegistrySchemaVersionsModel(id: SchemaId): ObjectDataModel<GlueSchemaVersionInfo> = schemaVersionsModels[id]
   fun getRegistrySchemaInfoModel(id: SchemaId): FieldsGroupModel<GlueSchemaDetailedInfo> = schemaDetailsModels[id]
@@ -147,11 +138,6 @@ class GlueRegistryDataManager(val dataManager: MonitoringDataManager,
   @RequiresBackgroundThread
   fun loadSchemaVersion(registryName: String, schemaName: String, version: Long): GetSchemaVersionResponse {
     return client.getSchemaVersion(registryName, schemaName, version)
-  }
-
-  @RequiresBackgroundThread
-  fun loadSchemaInfo(registryName: String, schemaName: String): GetSchemaResponse {
-    return client.getSchema(registryName, schemaName)
   }
 
 

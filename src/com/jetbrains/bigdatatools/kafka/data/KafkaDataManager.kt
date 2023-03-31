@@ -11,6 +11,7 @@ import com.jetbrains.bigdatatools.common.rfs.driver.manager.DriverManager
 import com.jetbrains.bigdatatools.common.rfs.util.RfsNotificationUtils
 import com.jetbrains.bigdatatools.common.util.executeOnPooledThread
 import com.jetbrains.bigdatatools.kafka.client.KafkaClient
+import com.jetbrains.bigdatatools.kafka.common.models.RegistrySchemaInEditor
 import com.jetbrains.bigdatatools.kafka.consumer.editor.KafkaConsumerPanelStorage
 import com.jetbrains.bigdatatools.kafka.model.ConsumerGroupPresentable
 import com.jetbrains.bigdatatools.kafka.model.TopicConfig
@@ -28,6 +29,8 @@ import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 class KafkaDataManager(project: Project?,
                        val connectionData: KafkaConnectionData,
                        settings: IntervalUpdateSettings) : MonitoringDataManager(project, settings) {
+  val registryType = connectionData.registryType
+
   val connectionId = connectionData.innerId
   override val client = KafkaClient(project, connectionData, false).also { Disposer.register(this, it) }
   val consumerPanelStorage = KafkaConsumerPanelStorage(this).also { Disposer.register(this, it) }
@@ -57,8 +60,7 @@ class KafkaDataManager(project: Project?,
     init()
     RootDataModelStorage(updater, listOfNotNull(topicModel, consumerGroupsModel,
                                                 confluentSchemaRegistry?.schemaRegistryModel,
-                                                glueSchemaRegistry?.schemaModel,
-                                                glueSchemaRegistry?.registryModel)).also { Disposer.register(this, it) }
+                                                glueSchemaRegistry?.schemaModel)).also { Disposer.register(this, it) }
   }
 
   fun getTopics() = topicModel.data ?: emptyList()
@@ -68,6 +70,18 @@ class KafkaDataManager(project: Project?,
     updater.invokeRefreshModel(topicModel)
 
     KafkaUsagesCollector.topicCreatedEvent.log(project)
+  }
+
+  fun getSchemasForEditor(): List<RegistrySchemaInEditor> {
+    val confluentSchemas = confluentSchemaRegistry?.schemaRegistryModel?.data?.map {
+      RegistrySchemaInEditor(schemaName = it.name, registryName = "")
+    }?.sorted()?.let { listOf(RegistrySchemaInEditor.GLUE_DEFAULT) + it }
+    val glueSchemas = glueSchemaRegistry?.schemaModel?.data?.map {
+      RegistrySchemaInEditor(schemaName = it.schemaName, registryName = it.registryName)
+    }?.sorted()
+
+    val schemas = confluentSchemas ?: glueSchemas
+    return schemas ?: emptyList()
   }
 
   fun deleteTopic(topicNames: List<String>) = actionWrapper {

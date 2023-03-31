@@ -28,6 +28,7 @@ import com.intellij.ui.components.JBTextField
 import com.intellij.ui.components.fields.IntegerField
 import com.intellij.ui.dsl.builder.AlignX
 import com.intellij.ui.dsl.builder.panel
+import com.jetbrains.bigdatatools.common.rfs.util.RfsNotificationUtils
 import com.jetbrains.bigdatatools.common.settings.getValidationInfo
 import com.jetbrains.bigdatatools.common.settings.revalidateComponent
 import com.jetbrains.bigdatatools.common.settings.withValidator
@@ -50,7 +51,7 @@ import com.jetbrains.bigdatatools.kafka.common.editor.PropertiesTable
 import com.jetbrains.bigdatatools.kafka.common.editor.SavePresetAction
 import com.jetbrains.bigdatatools.kafka.common.models.FieldType
 import com.jetbrains.bigdatatools.kafka.common.models.ProducerField
-import com.jetbrains.bigdatatools.kafka.common.models.SubjectInEditor
+import com.jetbrains.bigdatatools.kafka.common.models.RegistrySchemaInEditor
 import com.jetbrains.bigdatatools.kafka.common.models.TopicInEditor
 import com.jetbrains.bigdatatools.kafka.common.settings.KafkaConfigStorage
 import com.jetbrains.bigdatatools.kafka.common.settings.StorageProducerConfig
@@ -59,12 +60,13 @@ import com.jetbrains.bigdatatools.kafka.producer.models.AcksType
 import com.jetbrains.bigdatatools.kafka.producer.models.ProducerEditorState
 import com.jetbrains.bigdatatools.kafka.producer.models.ProducerResultMessage
 import com.jetbrains.bigdatatools.kafka.producer.models.RecordCompression
-import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryStrategy
+import com.jetbrains.bigdatatools.kafka.registry.ConfluentRegistryStrategy
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryType
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryUtil
 import com.jetbrains.bigdatatools.kafka.statistics.KafkaUsagesCollector
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import io.confluent.kafka.schemaregistry.ParsedSchema
+import software.amazon.awssdk.services.glue.model.DataFormat
 import java.awt.BorderLayout
 import java.awt.Dimension
 import java.awt.FlowLayout
@@ -85,10 +87,6 @@ class KafkaProducerEditor(project: Project,
   private val propertiesComponent = PropertiesTable("")
 
   private val topicComboBox = KafkaEditorUtils.createTopicComboBox(this, kafkaManager)
-  private val registriesComboBox = if (kafkaManager.connectionData.registryType == KafkaRegistryType.AWS_GLUE)
-    KafkaEditorUtils.createRegistrySchemaComboBox(this, kafkaManager)
-  else
-    null
 
   private val acksComboBox = ComboBox(AcksType.values()).apply {
     renderer = CustomListCellRenderer<AcksType> { it.name.lowercase() }
@@ -141,18 +139,18 @@ class KafkaProducerEditor(project: Project,
 
   private val keyStrategyComboBox = createStrategyComboBox().apply {
     addActionListener {
-      updateVisibilityOfRegistrySubject()
+      updateVisibilityOfRegistrySchemaSelector()
     }
   }
 
   private val valueStrategyComboBox = createStrategyComboBox().apply {
     addActionListener {
-      updateVisibilityOfRegistrySubject()
+      updateVisibilityOfRegistrySchemaSelector()
     }
   }
 
-  private val keySubjectComboBox = KafkaEditorUtils.createSubjectComboBox(this, kafkaManager).apply { isVisible = false }
-  private val valueSubjectComboBox = KafkaEditorUtils.createSubjectComboBox(this, kafkaManager).apply { isVisible = false }
+  private val keySchemaComboBox = KafkaEditorUtils.createSchemaComboBox(this, kafkaManager).apply { isVisible = false }
+  private val valueSchemaComboBox = KafkaEditorUtils.createSchemaComboBox(this, kafkaManager).apply { isVisible = false }
 
   private val forcePartitionField = IntegerField().apply {
     isCanBeEmpty = true
@@ -211,9 +209,10 @@ class KafkaProducerEditor(project: Project,
                                                   forcePartition = forcePartitionField.value,
                                                   keyStrategy = keyStrategyComboBox.item,
                                                   valueStrategy = valueStrategyComboBox.item,
-                                                  keySubject = keySubjectComboBox.item?.name ?: "",
-                                                  valueSubject = valueSubjectComboBox.item?.name ?: "",
-                                                  registryName = registriesComboBox?.item ?: "")
+                                                  keySubject = keySchemaComboBox.item?.schemaName ?: "",
+                                                  keyRegistry = keySchemaComboBox.item?.registryName ?: "",
+                                                  valueSubject = valueSchemaComboBox.item?.schemaName ?: "",
+                                                  valueRegistry = valueSchemaComboBox.item?.registryName ?: "")
 
   private val presetsDelegate = lazy {
     val presets = ProducerPresets()
@@ -227,9 +226,6 @@ class KafkaProducerEditor(project: Project,
   private val settingsPanelDelegate = lazy {
     val panel = panel {
       row(KafkaMessagesBundle.message("producer.topics")) { cell(topicComboBox).align(AlignX.FILL).resizableColumn() }
-      registriesComboBox?.let {
-        row(KafkaMessagesBundle.message("producer.registry")) { cell(it).align(AlignX.FILL).resizableColumn() }
-      }
 
       row(KafkaMessagesBundle.message("producer.key")) { cell(keyComboBox) }
       indent {
@@ -237,7 +233,7 @@ class KafkaProducerEditor(project: Project,
           cell(keyStrategyComboBox).onChanged { keySchemaValidationError = null }
         }
         row {
-          cell(keySubjectComboBox).onChanged { keySchemaValidationError = null }.align(AlignX.FILL).resizableColumn()
+          cell(keySchemaComboBox).onChanged { keySchemaValidationError = null }.align(AlignX.FILL).resizableColumn()
         }
       }
       row { cell(keyJsonField).align(AlignX.FILL).resizableColumn() }
@@ -253,7 +249,7 @@ class KafkaProducerEditor(project: Project,
           cell(valueStrategyComboBox).onChanged { valueSchemaValidationError = null }
         }
         row {
-          cell(valueSubjectComboBox).onChanged { valueSchemaValidationError = null }.align(AlignX.FILL).resizableColumn()
+          cell(valueSchemaComboBox).onChanged { valueSchemaValidationError = null }.align(AlignX.FILL).resizableColumn()
         }
       }
       row { cell(valueJsonField).align(AlignX.FILL).resizableColumn() }
@@ -303,7 +299,9 @@ class KafkaProducerEditor(project: Project,
         executeNotOnEdt {
           keySchemaValidationError = null
           val key = try {
-            ProducerField(keyComboBox.item, getKey(), keyStrategyComboBox.item, getSchemaFor(isKey = true))
+            ProducerField(keyComboBox.item, getKey(), keyStrategyComboBox.item, getSchemaFor(isKey = true),
+                          registryName = keySchemaComboBox.item.registryName,
+                          schemaName = keySchemaComboBox.item.schemaName.let { if (it == RegistrySchemaInEditor.GLUE_DEFAULT.schemaName) topicComboBox.item.name else it })
           }
           catch (t: Throwable) {
             keySchemaValidationError = t
@@ -312,7 +310,9 @@ class KafkaProducerEditor(project: Project,
 
           valueSchemaValidationError = null
           val value = try {
-            ProducerField(valueComboBox.item, getValue(), valueStrategyComboBox.item, getSchemaFor(isKey = false))
+            ProducerField(valueComboBox.item, getValue(), valueStrategyComboBox.item, getSchemaFor(isKey = false),
+                          schemaName = valueSchemaComboBox.item.schemaName.let { if (it == RegistrySchemaInEditor.GLUE_DEFAULT.schemaName) topicComboBox.item.name else it },
+                          registryName = valueSchemaComboBox.item.registryName)
           }
           catch (t: Throwable) {
             valueSchemaValidationError = t
@@ -320,19 +320,24 @@ class KafkaProducerEditor(project: Project,
           }
 
           if (key != null && value != null) {
-            val result = producerClient.sentMessage(kafkaManager,
-                                                    selectedTopicName,
-                                                    key,
-                                                    value,
-                                                    propertiesComponent.properties,
-                                                    compressionComboBox.item,
-                                                    acksComboBox.item,
-                                                    idempotenceCheckBox.isSelected,
-                                                    forcePartitionField.value,
-                                                    registryName = registriesComboBox?.item)
-            invokeLater {
-              outputModel.addElement(result)
+            try {
+              val result = producerClient.sentMessage(kafkaManager,
+                                                      selectedTopicName,
+                                                      key,
+                                                      value,
+                                                      propertiesComponent.properties,
+                                                      compressionComboBox.item,
+                                                      acksComboBox.item,
+                                                      idempotenceCheckBox.isSelected,
+                                                      forcePartitionField.value)
+              invokeLater {
+                outputModel.addElement(result)
+              }
             }
+            catch (t: Throwable) {
+              RfsNotificationUtils.showExceptionMessage(project, t)
+            }
+
           }
 
           keyField.revalidateComponent()
@@ -425,27 +430,57 @@ class KafkaProducerEditor(project: Project,
 
   private fun getSchemaFor(isKey: Boolean): ParsedSchema? {
     val fieldType = if (isKey) keyComboBox.item else valueComboBox.item
-    val suffix = if (isKey) "key" else "value"
-    val strategy = if (isKey) keyStrategyComboBox.item else valueStrategyComboBox.item
-    val subject = if (strategy == KafkaRegistryStrategy.TOPIC_NAME) {
-      topicComboBox.item.name
-    }
-    else {
-      if (isKey) keySubjectComboBox.item.name else valueSubjectComboBox.item.name
-    }
-
     if (fieldType !in FieldType.registryValues)
       return null
 
-    val subjectName: String = when (strategy) {
-      KafkaRegistryStrategy.TOPIC_NAME -> "${topicComboBox.item.name}-$suffix"
-      KafkaRegistryStrategy.CUSTOM, KafkaRegistryStrategy.RECORD_NAME, KafkaRegistryStrategy.TOPIC_RECORD_NAME -> subject
-      null -> return null
+    return when (kafkaManager.registryType) {
+      KafkaRegistryType.NONE -> null
+      KafkaRegistryType.CONFLUENT -> parseConfluentSchema(isKey)
+      KafkaRegistryType.AWS_GLUE -> parseGlueSchema(isKey)
+    }
+  }
+
+  private fun parseGlueSchema(isKey: Boolean): ParsedSchema {
+    val schemaName = (if (isKey) keySchemaComboBox.item.schemaName else valueSchemaComboBox.item.schemaName).let {
+      if (it == RegistrySchemaInEditor.GLUE_DEFAULT.schemaName) topicComboBox.item.name else it
+    }
+    val registryName = if (isKey) keySchemaComboBox.item.registryName else valueSchemaComboBox.item.registryName
+
+    val detailedInfo = kafkaManager.glueSchemaRegistry?.loadDetailedSchemaInfo(registryName, schemaName) ?: throw Exception(
+      KafkaMessagesBundle.message("error.glue.schema.is.not.found", schemaName, registryName))
+
+    val type = (if (isKey) keyComboBox else valueComboBox).item
+    val dataFormat = when (type) {
+      FieldType.AVRO_REGISTRY -> DataFormat.AVRO
+      FieldType.PROTOBUF_REGISTRY -> DataFormat.PROTOBUF
+      FieldType.JSON_REGISTRY -> DataFormat.JSON
+      else -> null
     }
 
-    val schemaMetadata = kafkaManager.confluentSchemaRegistry?.getRegistrySchema(subjectName)?.meta
-                         ?: error("Schema `$subjectName` is not found")
-    return KafkaRegistryUtil.parseSchema(schemaMetadata)
+    val expectedFormat = detailedInfo.schemaResponse.dataFormat()
+    if (dataFormat != expectedFormat) {
+      throw Exception(KafkaMessagesBundle.message("error.glue.wrong.format", dataFormat?.name ?: "<unknown>", expectedFormat))
+    }
+    return KafkaRegistryUtil.parseSchema(schemaType = detailedInfo.schemaResponse.dataFormatAsString(),
+                                         detailedInfo.versionResponse.schemaDefinition(), emptyList()).getOrThrow()
+  }
+
+
+  private fun parseConfluentSchema(isKey: Boolean): ParsedSchema {
+    val strategy = if (isKey) keyStrategyComboBox.item else valueStrategyComboBox.item
+    val schemaName = when (strategy) {
+      ConfluentRegistryStrategy.TOPIC_NAME -> {
+        val suffix = if (isKey) "key" else "value"
+        "${topicComboBox.item.name}-$suffix"
+      }
+      ConfluentRegistryStrategy.RECORD_NAME, ConfluentRegistryStrategy.TOPIC_RECORD_NAME, ConfluentRegistryStrategy.CUSTOM ->
+        if (isKey) keySchemaComboBox.item.schemaName else valueSchemaComboBox.item.schemaName
+      else -> error("Wrong Registry strategy")
+    }
+
+    val schemaMetadata = kafkaManager.confluentSchemaRegistry?.getRegistrySchema(schemaName)?.meta
+                         ?: error("Schema `$schemaName` is not found")
+    return KafkaRegistryUtil.parseSchema(schemaMetadata.schemaType, schemaMetadata.schema, schemaMetadata.references).getOrThrow()
   }
 
   private fun setupTablePopupMenu(table: JTable) {
@@ -478,7 +513,7 @@ class KafkaProducerEditor(project: Project,
       FieldType.NULL -> Unit
       FieldType.AVRO_REGISTRY, FieldType.PROTOBUF_REGISTRY, FieldType.JSON_REGISTRY -> {
         keyJsonField.isVisible = true
-        keyStrategyComboBox.isVisible = true
+        keyStrategyComboBox.isVisible = kafkaManager.isConfluentSchemaRegistryEnabled
       }
     }
 
@@ -486,21 +521,21 @@ class KafkaProducerEditor(project: Project,
       FieldType.JSON -> valueJsonField.isVisible = true
       FieldType.STRING, FieldType.LONG, FieldType.DOUBLE, FieldType.FLOAT, FieldType.BASE64 -> valueField.isVisible = true
       FieldType.AVRO_REGISTRY, FieldType.PROTOBUF_REGISTRY, FieldType.JSON_REGISTRY -> {
-        valueStrategyComboBox.isVisible = true
+        valueStrategyComboBox.isVisible = kafkaManager.isConfluentSchemaRegistryEnabled
         valueJsonField.isVisible = true
       }
       FieldType.NULL -> Unit
     }
 
-    updateVisibilityOfRegistrySubject()
+    updateVisibilityOfRegistrySchemaSelector()
   }
 
-  private fun updateVisibilityOfRegistrySubject() {
-    keySubjectComboBox.isVisible = keyComboBox.item in FieldType.registryValues &&
-                                   keyStrategyComboBox.item != KafkaRegistryStrategy.TOPIC_NAME
+  private fun updateVisibilityOfRegistrySchemaSelector() {
+    keySchemaComboBox.isVisible = keyComboBox.item in FieldType.registryValues &&
+                                  (kafkaManager.isGlueSchemaRegistryEnabled || keyStrategyComboBox.item != ConfluentRegistryStrategy.TOPIC_NAME)
 
-    valueSubjectComboBox.isVisible = valueComboBox.item in FieldType.registryValues &&
-                                     valueStrategyComboBox.item != KafkaRegistryStrategy.TOPIC_NAME
+    valueSchemaComboBox.isVisible = valueComboBox.item in FieldType.registryValues &&
+                                    (kafkaManager.isGlueSchemaRegistryEnabled || valueStrategyComboBox.item != ConfluentRegistryStrategy.TOPIC_NAME)
   }
 
   private fun createFieldTypeComboBox(jsonField: EditorTextField, field: JTextComponent) =
@@ -515,9 +550,9 @@ class KafkaProducerEditor(project: Project,
       }
     }
 
-  private fun createStrategyComboBox() = ComboBox(KafkaRegistryStrategy.producerOptions).apply {
-    renderer = CustomListCellRenderer<KafkaRegistryStrategy> { it.presentable }
-    selectedItem = KafkaRegistryStrategy.TOPIC_NAME
+  private fun createStrategyComboBox() = ComboBox(ConfluentRegistryStrategy.producerOptions).apply {
+    renderer = CustomListCellRenderer<ConfluentRegistryStrategy> { it.presentable }
+    selectedItem = ConfluentRegistryStrategy.TOPIC_NAME
     addActionListener {
       updateVisibility()
     }
@@ -611,7 +646,6 @@ class KafkaProducerEditor(project: Project,
 
   private fun applyConfig(config: StorageProducerConfig) {
     topicComboBox.item = TopicInEditor(config.topic)
-    registriesComboBox?.item = config.registryName
     keyComboBox.item = config.getKeyType()
 
     when (config.getKeyType()) {
@@ -621,7 +655,7 @@ class KafkaProducerEditor(project: Project,
       FieldType.AVRO_REGISTRY, FieldType.JSON_REGISTRY, FieldType.PROTOBUF_REGISTRY -> {
         keyJsonField.text = config.key
         keyStrategyComboBox.item = config.keyStrategy
-        keySubjectComboBox.item = SubjectInEditor(config.keySubject)
+        keySchemaComboBox.item = RegistrySchemaInEditor(config.keySubject, config.keyRegistry)
       }
     }
     valueComboBox.item = config.getValueType()
@@ -633,7 +667,7 @@ class KafkaProducerEditor(project: Project,
       FieldType.AVRO_REGISTRY, FieldType.JSON_REGISTRY, FieldType.PROTOBUF_REGISTRY -> {
         valueJsonField.text = config.value
         valueStrategyComboBox.item = config.valueStrategy
-        valueSubjectComboBox.item = SubjectInEditor(config.valueSubject)
+        valueSchemaComboBox.item = RegistrySchemaInEditor(config.valueSubject, config.valueRegistry)
       }
     }
 

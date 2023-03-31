@@ -22,7 +22,9 @@ data class StorageConsumerConfig(var topic: String? = "",
                                  val valueRegistryType: String,
 
                                  val keySubject: String = "",
+                                 val keyRegistry: String = "",
                                  val valueSubject: String = "",
+                                 val valueRegistry: String = "",
 
                                  val keyCustomSchema: String = "",
                                  val valueCustomSchema: String = "",

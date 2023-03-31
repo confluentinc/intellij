@@ -2,17 +2,19 @@ package com.jetbrains.bigdatatools.kafka.common.models
 
 import com.amazonaws.services.schemaregistry.deserializers.GlueSchemaRegistryKafkaDeserializer
 import com.amazonaws.services.schemaregistry.serializers.GlueSchemaRegistryKafkaSerializer
+import com.amazonaws.services.schemaregistry.utils.AWSSchemaRegistryConstants
+import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryType
 import com.jetbrains.bigdatatools.kafka.registry.serde.BdtKafkaAvroDeserializer
 import com.jetbrains.bigdatatools.kafka.registry.serde.BdtKafkaJsonSchemaDeserializer
 import com.jetbrains.bigdatatools.kafka.registry.serde.BdtKafkaProtobufDeserializer
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
-import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient
 import io.confluent.kafka.serializers.KafkaAvroSerializer
 import io.confluent.kafka.serializers.json.KafkaJsonSchemaSerializer
 import io.confluent.kafka.serializers.protobuf.KafkaProtobufSerializer
 import org.apache.kafka.common.serialization.*
 import org.jetbrains.annotations.Nls
+import software.amazon.awssdk.services.glue.model.DataFormat
 
 enum class FieldType(@Nls val title: String) {
   JSON(KafkaMessagesBundle.message("field.type.json")),
@@ -51,7 +53,7 @@ enum class FieldType(@Nls val title: String) {
 
   }
 
-  fun getSerializer(registryClient: SchemaRegistryClient? = null) = when (this) {
+  fun getSerializer(kafkaDataManager: KafkaDataManager, producerField: ProducerField) = when (this) {
     STRING -> StringSerializer()
     JSON -> StringSerializer()
     LONG -> LongSerializer()
@@ -59,9 +61,36 @@ enum class FieldType(@Nls val title: String) {
     FLOAT -> FloatSerializer()
     BASE64 -> ByteArraySerializer()
     NULL -> VoidSerializer()
-    AVRO_REGISTRY -> if (registryClient != null) KafkaAvroSerializer(registryClient) else GlueSchemaRegistryKafkaSerializer()
-    PROTOBUF_REGISTRY -> if (registryClient != null) KafkaProtobufSerializer(registryClient) else GlueSchemaRegistryKafkaSerializer()
-    JSON_REGISTRY -> if (registryClient != null) KafkaJsonSchemaSerializer() else GlueSchemaRegistryKafkaSerializer()
+    AVRO_REGISTRY -> when (kafkaDataManager.registryType) {
+      KafkaRegistryType.NONE -> error("Non exists")
+      KafkaRegistryType.CONFLUENT -> KafkaAvroSerializer(kafkaDataManager.confluentSchemaRegistry?.client?.internalClient)
+      KafkaRegistryType.AWS_GLUE -> GlueSchemaRegistryKafkaSerializer(mapOf(
+        AWSSchemaRegistryConstants.REGISTRY_NAME to producerField.registryName.ifBlank { null },
+        AWSSchemaRegistryConstants.SCHEMA_NAME to producerField.schemaName.ifBlank { null },
+        AWSSchemaRegistryConstants.AWS_REGION to kafkaDataManager.glueSchemaRegistry?.region,
+        AWSSchemaRegistryConstants.DATA_FORMAT to DataFormat.AVRO.name
+      ))
+    }
+    PROTOBUF_REGISTRY -> when (kafkaDataManager.registryType) {
+      KafkaRegistryType.NONE -> error("Non exists")
+      KafkaRegistryType.CONFLUENT -> KafkaProtobufSerializer(kafkaDataManager.confluentSchemaRegistry?.client?.internalClient)
+      KafkaRegistryType.AWS_GLUE -> GlueSchemaRegistryKafkaSerializer(mapOf(
+        AWSSchemaRegistryConstants.REGISTRY_NAME to producerField.registryName.ifBlank { null },
+        AWSSchemaRegistryConstants.SCHEMA_NAME to producerField.schemaName.ifBlank { null },
+        AWSSchemaRegistryConstants.AWS_REGION to kafkaDataManager.glueSchemaRegistry?.region,
+        AWSSchemaRegistryConstants.DATA_FORMAT to DataFormat.PROTOBUF.name
+      ))
+    }
+    JSON_REGISTRY -> when (kafkaDataManager.registryType) {
+      KafkaRegistryType.NONE -> error("Non exists")
+      KafkaRegistryType.CONFLUENT -> KafkaJsonSchemaSerializer(kafkaDataManager.confluentSchemaRegistry?.client?.internalClient)
+      KafkaRegistryType.AWS_GLUE -> GlueSchemaRegistryKafkaSerializer(mapOf(
+        AWSSchemaRegistryConstants.REGISTRY_NAME to producerField.registryName.ifBlank { null },
+        AWSSchemaRegistryConstants.SCHEMA_NAME to producerField.schemaName.ifBlank { null },
+        AWSSchemaRegistryConstants.AWS_REGION to kafkaDataManager.glueSchemaRegistry?.region,
+        AWSSchemaRegistryConstants.DATA_FORMAT to DataFormat.JSON.name
+      ))
+    }
   }
 
   companion object {

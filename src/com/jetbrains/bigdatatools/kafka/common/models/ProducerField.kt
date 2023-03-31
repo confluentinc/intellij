@@ -1,6 +1,6 @@
 package com.jetbrains.bigdatatools.kafka.common.models
 
-import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryStrategy
+import com.jetbrains.bigdatatools.kafka.registry.ConfluentRegistryStrategy
 import io.confluent.kafka.schemaregistry.ParsedSchema
 import io.confluent.kafka.schemaregistry.avro.AvroSchema
 import io.confluent.kafka.schemaregistry.avro.AvroSchemaUtils
@@ -17,13 +17,15 @@ import java.util.*
 
 data class ProducerField(val type: FieldType,
                          val text: String?,
-                         val strategy: KafkaRegistryStrategy?,
-                         val parsedSchema: ParsedSchema?) {
+                         val strategy: ConfluentRegistryStrategy?,
+                         val parsedSchema: ParsedSchema?,
+                         val schemaName: String,
+                         val registryName: String) {
   val registryStrategy: SubjectNameStrategy? = when {
     type !in FieldType.registryValues -> null
-    strategy == KafkaRegistryStrategy.TOPIC_NAME -> TopicNameStrategy()
-    strategy == KafkaRegistryStrategy.RECORD_NAME -> RecordNameStrategy()
-    strategy == KafkaRegistryStrategy.TOPIC_RECORD_NAME -> TopicRecordNameStrategy()
+    strategy == ConfluentRegistryStrategy.TOPIC_NAME -> TopicNameStrategy()
+    strategy == ConfluentRegistryStrategy.RECORD_NAME -> RecordNameStrategy()
+    strategy == ConfluentRegistryStrategy.TOPIC_RECORD_NAME -> TopicRecordNameStrategy()
     else -> null
   }
 

@@ -243,13 +243,13 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
       group(KafkaMessagesBundle.message("settings.title.format")) {
         row(KafkaMessagesBundle.message("settings.format.key")) { cell(key.typeComboBox) }
         indent {
-          row { cell(key.registryType); cell(key.subjectComboBox); cell(key.schemaIdField) }
+          row { cell(key.registryType); cell(key.schemaComboBox); cell(key.schemaIdField) }
           row { cell(key.customSchemaPanel.component).align(Align.FILL).resizableColumn() }.resizableRow()
         }
 
         row(KafkaMessagesBundle.message("settings.format.value")) { cell(value.typeComboBox) }
         indent {
-          row { cell(value.registryType); cell(value.subjectComboBox); cell(value.schemaIdField) }
+          row { cell(value.registryType); cell(value.schemaComboBox); cell(value.schemaIdField) }
           row { cell(value.customSchemaPanel.component).align(Align.FILL).resizableColumn() }.resizableRow()
         }
       }
@@ -540,8 +540,8 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
                                  keySchemaId = key.schemaIdField.text,
                                  valueSchemaId = value.schemaIdField.text,
 
-                                 keySubject = key.subjectComboBox.item?.name ?: "",
-                                 valueSubject = value.subjectComboBox.item?.name ?: "",
+                                 keySubject = key.schemaComboBox.item?.schemaName ?: "",
+                                 valueSubject = value.schemaComboBox.item?.schemaName ?: "",
 
                                  keyCustomSchema = key.customSchemaPanel.text,
                                  valueCustomSchema = value.customSchemaPanel.text

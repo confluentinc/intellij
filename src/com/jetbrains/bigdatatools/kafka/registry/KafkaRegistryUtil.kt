@@ -52,8 +52,8 @@ object KafkaRegistryUtil {
       FieldType.JSON_REGISTRY -> JsonSchema.TYPE
     }
 
-  fun parseSchema(meta: SchemaMetadata): ParsedSchema? {
-    return parseSchema(meta.schemaType, meta.schema, meta.references).getOrNull()
+  fun parseSchema(schemaMetadata: SchemaMetadata): ParsedSchema? {
+    return parseSchema(schemaMetadata.schemaType, schemaMetadata.schema, schemaMetadata.references).getOrNull()
   }
 
   fun parseSchema(schemaType: String?,

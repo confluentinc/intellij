@@ -1,6 +1,5 @@
 package com.jetbrains.bigdatatools.kafka.producer.client
 
-import com.amazonaws.services.schemaregistry.utils.AWSSchemaRegistryConstants
 import com.jetbrains.bigdatatools.common.settings.connections.Property
 import com.jetbrains.bigdatatools.common.util.withPluginClassLoader
 import com.jetbrains.bigdatatools.kafka.client.KafkaClient
@@ -16,6 +15,7 @@ import io.confluent.kafka.serializers.context.NullContextNameStrategy
 import org.apache.kafka.clients.producer.KafkaProducer
 import org.apache.kafka.clients.producer.ProducerConfig
 import org.apache.kafka.clients.producer.ProducerRecord
+import org.apache.kafka.common.serialization.Serializer
 import java.util.*
 import java.util.concurrent.TimeUnit
 
@@ -23,22 +23,20 @@ class KafkaProducerClient(val client: KafkaClient) {
   val connectionData = client.connectionData
 
   fun sentMessage(dataManager: KafkaDataManager,
-                  topic: String, key: ProducerField, value: ProducerField,
+                  topic: String,
+                  key: ProducerField, value: ProducerField,
                   headers: List<Property> = emptyList(),
                   recordCompression: RecordCompression = RecordCompression.NONE,
                   acks: AcksType = AcksType.NONE,
                   enableIdempotence: Boolean = false,
-                  forcePartition: Int = -1,
-                  registryName: String?): ProducerResultMessage {
+                  forcePartition: Int = -1): ProducerResultMessage {
     val props = client.kafkaProps.clone() as Properties
-    props[ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG] = key.type.getSerializer(
-      dataManager.confluentSchemaRegistry?.client?.internalClient)::class.java
-    props[ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG] = value.type.getSerializer(
-      dataManager.confluentSchemaRegistry?.client?.internalClient)::class.java
+    val keySerializer: Serializer<out Any> = key.type.getSerializer(dataManager, producerField = key)
+    val valueSerializer = value.type.getSerializer(dataManager, producerField = value)
+
     props[ProducerConfig.COMPRESSION_TYPE_CONFIG] = recordCompression.name.lowercase()
     props[AbstractKafkaSchemaSerDeConfig.CONTEXT_NAME_STRATEGY] = NullContextNameStrategy::class.java
     props[AbstractKafkaSchemaSerDeConfig.AUTO_REGISTER_SCHEMAS] = false
-    props[AWSSchemaRegistryConstants.REGISTRY_NAME] = registryName ?: ""
 
     when (connectionData.registryType) {
       KafkaRegistryType.NONE -> {}
@@ -52,10 +50,7 @@ class KafkaProducerClient(val client: KafkaClient) {
           props[AbstractKafkaSchemaSerDeConfig.VALUE_SUBJECT_NAME_STRATEGY] = it::class.java
         }
       }
-      KafkaRegistryType.AWS_GLUE -> {
-        props.put(AWSSchemaRegistryConstants.SCHEMA_NAME, "my-schema")
-        props.put(AWSSchemaRegistryConstants.REGISTRY_NAME, registryName)
-      }
+      KafkaRegistryType.AWS_GLUE -> {}
     }
 
     if (enableIdempotence)
@@ -63,8 +58,9 @@ class KafkaProducerClient(val client: KafkaClient) {
     else
       props[ProducerConfig.ACKS_CONFIG] = acks.value.toString()
 
+    @Suppress("UNCHECKED_CAST")
     val producer = withPluginClassLoader {
-      KafkaProducer<Any, Any>(props)
+      KafkaProducer(props, keySerializer, valueSerializer) as KafkaProducer<Any, Any>
     }
 
     return try {
@@ -84,7 +80,9 @@ class KafkaProducerClient(val client: KafkaClient) {
       }
 
       val start = System.currentTimeMillis()
-      val metaInfo = producer.send(record).get(15, TimeUnit.SECONDS)
+
+      @Suppress("UNCHECKED_CAST")
+      val metaInfo = producer.send(record as ProducerRecord<Any, Any>).get(15, TimeUnit.SECONDS)
       val end = System.currentTimeMillis()
       ProducerResultMessage(key = key.text ?: "",
                             value = value.text ?: "",

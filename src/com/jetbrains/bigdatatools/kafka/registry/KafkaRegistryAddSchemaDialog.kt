@@ -32,8 +32,8 @@ class KafkaRegistryAddSchemaDialog(project: Project, val dataManager: KafkaDataM
     }
   }
 
-  private val strategyCombobox = ComboBox(KafkaRegistryStrategy.values()).apply {
-    renderer = CustomListCellRenderer<KafkaRegistryStrategy> { it.presentable }
+  private val strategyCombobox = ComboBox(ConfluentRegistryStrategy.values()).apply {
+    renderer = CustomListCellRenderer<ConfluentRegistryStrategy> { it.presentable }
     addActionListener {
       onChangeStrategy()
     }
@@ -133,7 +133,7 @@ class KafkaRegistryAddSchemaDialog(project: Project, val dataManager: KafkaDataM
     updateParsedSchema()
 
     when (getStrategy()) {
-      KafkaRegistryStrategy.CUSTOM -> {
+      ConfluentRegistryStrategy.CUSTOM -> {
         subjectFieldVisible.set(true)
         subjectNameField.isEditable = true
         subjectNameLabel.text = KafkaMessagesBundle.message("schema.registry.add.schema.dialog.field.custom.name")
@@ -141,7 +141,7 @@ class KafkaRegistryAddSchemaDialog(project: Project, val dataManager: KafkaDataM
         topicFieldVisible.set(false)
         recordFieldVisible.set(false)
       }
-      KafkaRegistryStrategy.TOPIC_NAME -> {
+      ConfluentRegistryStrategy.TOPIC_NAME -> {
         subjectFieldVisible.set(true)
         subjectNameField.isEditable = false
         subjectNameLabel.text = KafkaMessagesBundle.message("schema.registry.add.schema.dialog.field.computed.name")
@@ -151,7 +151,7 @@ class KafkaRegistryAddSchemaDialog(project: Project, val dataManager: KafkaDataM
 
         subjectNameField.text = topicField.item?.name?.ifBlank { "<topic>" } + "-" + keyValueCombobox.item.name.lowercase()
       }
-      KafkaRegistryStrategy.RECORD_NAME -> {
+      ConfluentRegistryStrategy.RECORD_NAME -> {
         subjectFieldVisible.set(false)
         keyValueVisible.set(false)
         topicFieldVisible.set(false)
@@ -159,7 +159,7 @@ class KafkaRegistryAddSchemaDialog(project: Project, val dataManager: KafkaDataM
 
         updateRecordFieldText()
       }
-      KafkaRegistryStrategy.TOPIC_RECORD_NAME -> {
+      ConfluentRegistryStrategy.TOPIC_RECORD_NAME -> {
         subjectFieldVisible.set(true)
         subjectNameField.isEditable = false
         subjectNameLabel.text = KafkaMessagesBundle.message("schema.registry.add.schema.dialog.field.computed.name")
@@ -175,21 +175,21 @@ class KafkaRegistryAddSchemaDialog(project: Project, val dataManager: KafkaDataM
 
   private fun updateRecordFieldText() {
     val strategy = getStrategy()
-    if (strategy == KafkaRegistryStrategy.RECORD_NAME) {
+    if (strategy == ConfluentRegistryStrategy.RECORD_NAME) {
       val newRecordName = KafkaRegistryUtil.parseRecordName(cachedParsedSchema) ?: ""
       if (recordField.text != newRecordName) {
         recordField.text = newRecordName
       }
     }
 
-    if (strategy == KafkaRegistryStrategy.TOPIC_RECORD_NAME) {
+    if (strategy == ConfluentRegistryStrategy.TOPIC_RECORD_NAME) {
       val newRecordName = KafkaRegistryUtil.parseRecordName(cachedParsedSchema) ?: ""
       subjectNameField.text = topicField.item?.name?.ifBlank { "<topic>" } + "-" + newRecordName.ifBlank { "<record>" }
     }
   }
 
   private fun getFormat(): String = formatCombobox.item.name
-  private fun getStrategy(): KafkaRegistryStrategy = strategyCombobox.item
+  private fun getStrategy(): ConfluentRegistryStrategy = strategyCombobox.item
 
   private fun updateParsedSchema() {
     val parsedSchemaResult = KafkaRegistryUtil.parseSchema(getFormat(), textScrollPane.text)
