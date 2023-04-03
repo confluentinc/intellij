@@ -2,7 +2,6 @@ package com.jetbrains.bigdatatools.kafka.common.settings
 
 import com.jetbrains.bigdatatools.kafka.common.models.FieldType
 import com.jetbrains.bigdatatools.kafka.consumer.models.*
-import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryConsumerType
 
 data class StorageConsumerConfig(var topic: String? = "",
                                  var keyType: String? = "",
@@ -18,8 +17,8 @@ data class StorageConsumerConfig(var topic: String? = "",
   // Our settings like "Display only last 100 records".
                                  var settings: Map<String, String> = emptyMap(),
 
-                                 val keyRegistryType: String,
-                                 val valueRegistryType: String,
+                                 val keyRegistryType: String = "",
+                                 val valueRegistryType: String = "",
 
                                  val keySubject: String = "",
                                  val keyRegistry: String = "",
@@ -32,43 +31,32 @@ data class StorageConsumerConfig(var topic: String? = "",
                                  val keySchemaId: String = "",
                                  val valueSchemaId: String = "") : StorageConfig {
 
-  constructor(topic: String,
-              keyType: FieldType,
-              valueType: FieldType,
-              filter: ConsumerFilter,
-              limit: ConsumerLimit,
-              partitions: String,
-              startWith: ConsumerStartWith,
-              properties: Map<String, String>,
-              settings: Map<String, String>,
-              keyRegistryType: String,
-              valueRegistryType: String,
+  constructor(
+    topic: String,
+    keyType: FieldType,
+    valueType: FieldType,
+    filter: ConsumerFilter,
+    limit: ConsumerLimit,
+    partitions: String,
+    startWith: ConsumerStartWith,
+    properties: Map<String, String>,
+    settings: Map<String, String>,
 
-              keySubject: String = "",
-              valueSubject: String = "",
+    keySubject: String = "",
+    valueSubject: String = "",
 
-              keyCustomSchema: String = "",
-              valueCustomSchema: String = "",
-
-              keySchemaId: String = "",
-              valueSchemaId: String = ""
-  ) : this(topic = topic,
-           keyType = keyType.name,
-           valueType = valueType.name,
-           filter = createFilterMap(filter),
-           limit = createLimit(limit),
-           partitions = partitions,
-           startWith = createStartWithMap(startWith),
-           properties = properties,
-           settings = settings,
-           keyRegistryType = keyRegistryType,
-           valueRegistryType = valueRegistryType,
-           keySubject = keySubject,
-           valueSubject = valueSubject,
-           keyCustomSchema = keyCustomSchema,
-           valueCustomSchema = valueCustomSchema,
-           keySchemaId = keySchemaId,
-           valueSchemaId = valueSchemaId
+    ) : this(
+    topic = topic,
+    keyType = keyType.name,
+    valueType = valueType.name,
+    filter = createFilterMap(filter),
+    limit = createLimit(limit),
+    partitions = partitions,
+    startWith = createStartWithMap(startWith),
+    properties = properties,
+    settings = settings,
+    keySubject = keySubject,
+    valueSubject = valueSubject,
   )
 
   companion object {
@@ -126,10 +114,4 @@ data class StorageConsumerConfig(var topic: String? = "",
 
   fun getKeyType(): FieldType = FieldType.values().firstOrNull { it.name == keyType } ?: FieldType.STRING
   fun getValueType(): FieldType = FieldType.values().firstOrNull { it.name == valueType } ?: FieldType.STRING
-
-  fun getKeyRegistryType(): KafkaRegistryConsumerType = KafkaRegistryConsumerType.values().firstOrNull { it.name == keyRegistryType }
-                                                        ?: KafkaRegistryConsumerType.AUTO
-
-  fun getValueRegistryType(): KafkaRegistryConsumerType = KafkaRegistryConsumerType.values().firstOrNull { it.name == valueRegistryType }
-                                                          ?: KafkaRegistryConsumerType.AUTO
 }

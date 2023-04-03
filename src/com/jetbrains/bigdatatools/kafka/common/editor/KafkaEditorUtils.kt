@@ -152,9 +152,9 @@ object KafkaEditorUtils {
     val schemas = kafkaManager.getSchemasForEditor()
     val comboBox = ComboBox(schemas.toTypedArray())
     comboBox.isSwingPopup = false
-    comboBox.prototypeDisplayValue = RegistrySchemaInEditor("Schema sample", "sample")
     comboBox.toolTipText = KafkaMessagesBundle.message("registry.subject.combobox.default.name")
     comboBox.renderer = CustomListCellRenderer<RegistrySchemaInEditor> { it.toString() }
+    comboBox.selectedItem = RegistrySchemaInEditor.TOPIC_SCHEMA
 
     val listener = KafkaDataModelListener(comboBox) {
       kafkaManager.getSchemasForEditor()

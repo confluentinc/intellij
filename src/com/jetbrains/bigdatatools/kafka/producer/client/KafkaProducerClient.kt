@@ -3,7 +3,7 @@ package com.jetbrains.bigdatatools.kafka.producer.client
 import com.jetbrains.bigdatatools.common.settings.connections.Property
 import com.jetbrains.bigdatatools.common.util.withPluginClassLoader
 import com.jetbrains.bigdatatools.kafka.client.KafkaClient
-import com.jetbrains.bigdatatools.kafka.common.models.ProducerField
+import com.jetbrains.bigdatatools.kafka.consumer.models.ConsumerProducerFieldConfig
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.producer.models.AcksType
 import com.jetbrains.bigdatatools.kafka.producer.models.ProducerResultMessage
@@ -24,7 +24,7 @@ class KafkaProducerClient(val client: KafkaClient) {
 
   fun sentMessage(dataManager: KafkaDataManager,
                   topic: String,
-                  key: ProducerField, value: ProducerField,
+                  key: ConsumerProducerFieldConfig, value: ConsumerProducerFieldConfig,
                   headers: List<Property> = emptyList(),
                   recordCompression: RecordCompression = RecordCompression.NONE,
                   acks: AcksType = AcksType.NONE,
@@ -42,13 +42,6 @@ class KafkaProducerClient(val client: KafkaClient) {
       KafkaRegistryType.NONE -> {}
       KafkaRegistryType.CONFLUENT -> {
         connectionData.registryUrl?.let { props[AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG] = it }
-        key.registryStrategy?.let {
-          props[AbstractKafkaSchemaSerDeConfig.KEY_SUBJECT_NAME_STRATEGY] = it::class.java
-        }
-
-        value.registryStrategy?.let {
-          props[AbstractKafkaSchemaSerDeConfig.VALUE_SUBJECT_NAME_STRATEGY] = it::class.java
-        }
       }
       KafkaRegistryType.AWS_GLUE -> {}
     }
@@ -74,7 +67,7 @@ class KafkaProducerClient(val client: KafkaClient) {
       else
         null
 
-      val record = ProducerRecord(topic, partition, key.value, value.value)
+      val record = ProducerRecord(topic, partition, key.valueText, value.valueText)
       headers.forEach {
         record.headers().add((it.name ?: ""), (it.value ?: "").toByteArray())
       }
@@ -84,8 +77,8 @@ class KafkaProducerClient(val client: KafkaClient) {
       @Suppress("UNCHECKED_CAST")
       val metaInfo = producer.send(record as ProducerRecord<Any, Any>).get(15, TimeUnit.SECONDS)
       val end = System.currentTimeMillis()
-      ProducerResultMessage(key = key.text ?: "",
-                            value = value.text ?: "",
+      ProducerResultMessage(key = key.valueText,
+                            value = value.valueText,
                             offset = metaInfo.offset(),
                             timestamp = Date(metaInfo.timestamp()),
                             duration = (end - start).toInt(),

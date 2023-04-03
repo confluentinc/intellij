@@ -3,22 +3,23 @@ package com.jetbrains.bigdatatools.kafka.common.models
 import com.amazonaws.services.schemaregistry.deserializers.GlueSchemaRegistryKafkaDeserializer
 import com.amazonaws.services.schemaregistry.serializers.GlueSchemaRegistryKafkaSerializer
 import com.amazonaws.services.schemaregistry.utils.AWSSchemaRegistryConstants
+import com.jetbrains.bigdatatools.kafka.consumer.models.ConsumerProducerFieldConfig
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryType
-import com.jetbrains.bigdatatools.kafka.registry.serde.BdtKafkaAvroDeserializer
-import com.jetbrains.bigdatatools.kafka.registry.serde.BdtKafkaJsonSchemaDeserializer
-import com.jetbrains.bigdatatools.kafka.registry.serde.BdtKafkaProtobufDeserializer
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.serializers.KafkaAvroDeserializer
 import io.confluent.kafka.serializers.KafkaAvroSerializer
+import io.confluent.kafka.serializers.json.KafkaJsonSchemaDeserializer
 import io.confluent.kafka.serializers.json.KafkaJsonSchemaSerializer
+import io.confluent.kafka.serializers.protobuf.KafkaProtobufDeserializer
 import io.confluent.kafka.serializers.protobuf.KafkaProtobufSerializer
 import org.apache.kafka.common.serialization.*
 import org.jetbrains.annotations.Nls
 import software.amazon.awssdk.services.glue.model.DataFormat
 
 enum class FieldType(@Nls val title: String) {
-  JSON(KafkaMessagesBundle.message("field.type.json")),
   STRING(KafkaMessagesBundle.message("field.type.string")),
+  JSON(KafkaMessagesBundle.message("field.type.json")),
   LONG(KafkaMessagesBundle.message("field.type.long")),
   DOUBLE(KafkaMessagesBundle.message("field.type.double")),
   FLOAT(KafkaMessagesBundle.message("field.type.float")),
@@ -29,31 +30,46 @@ enum class FieldType(@Nls val title: String) {
   PROTOBUF_REGISTRY(KafkaMessagesBundle.message("field.type.protobuf.registry")),
   JSON_REGISTRY(KafkaMessagesBundle.message("field.type.json.registry"));
 
-
-  fun getDeserializationClass(registryType: KafkaRegistryType) = when (this) {
+  fun getDeserializationClass(dataManager: KafkaDataManager, consumerField: ConsumerProducerFieldConfig) = when (this) {
     STRING, JSON -> StringDeserializer()
     LONG -> LongDeserializer()
     DOUBLE -> DoubleDeserializer()
     FLOAT -> FloatDeserializer()
     BASE64 -> ByteArrayDeserializer()
     NULL -> VoidDeserializer()
-    AVRO_REGISTRY -> if (registryType == KafkaRegistryType.AWS_GLUE)
-      GlueSchemaRegistryKafkaDeserializer()
-    else
-      BdtKafkaAvroDeserializer()
-    PROTOBUF_REGISTRY -> if (registryType == KafkaRegistryType.AWS_GLUE)
-      GlueSchemaRegistryKafkaDeserializer()
-    else
-      BdtKafkaProtobufDeserializer()
-
-    JSON_REGISTRY -> if (registryType == KafkaRegistryType.AWS_GLUE)
-      GlueSchemaRegistryKafkaDeserializer()
-    else
-      BdtKafkaJsonSchemaDeserializer()
-
+    AVRO_REGISTRY -> when (dataManager.registryType) {
+      KafkaRegistryType.NONE -> error("Non exists")
+      KafkaRegistryType.CONFLUENT -> KafkaAvroDeserializer(dataManager.confluentSchemaRegistry?.client?.internalClient)
+      KafkaRegistryType.AWS_GLUE -> GlueSchemaRegistryKafkaDeserializer(mapOf(
+        AWSSchemaRegistryConstants.REGISTRY_NAME to consumerField.registryName.ifBlank { null },
+        AWSSchemaRegistryConstants.SCHEMA_NAME to consumerField.schemaName.ifBlank { null },
+        AWSSchemaRegistryConstants.AWS_REGION to dataManager.glueSchemaRegistry?.region,
+        AWSSchemaRegistryConstants.DATA_FORMAT to DataFormat.AVRO.name
+      ))
+    }
+    PROTOBUF_REGISTRY -> when (dataManager.registryType) {
+      KafkaRegistryType.NONE -> error("Non exists")
+      KafkaRegistryType.CONFLUENT -> KafkaProtobufDeserializer(dataManager.confluentSchemaRegistry?.client?.internalClient)
+      KafkaRegistryType.AWS_GLUE -> GlueSchemaRegistryKafkaDeserializer(mapOf(
+        AWSSchemaRegistryConstants.REGISTRY_NAME to consumerField.registryName.ifBlank { null },
+        AWSSchemaRegistryConstants.SCHEMA_NAME to consumerField.schemaName.ifBlank { null },
+        AWSSchemaRegistryConstants.AWS_REGION to dataManager.glueSchemaRegistry?.region,
+        AWSSchemaRegistryConstants.DATA_FORMAT to DataFormat.AVRO.name
+      ))
+    }
+    JSON_REGISTRY -> when (dataManager.registryType) {
+      KafkaRegistryType.NONE -> error("Non exists")
+      KafkaRegistryType.CONFLUENT -> KafkaJsonSchemaDeserializer(dataManager.confluentSchemaRegistry?.client?.internalClient)
+      KafkaRegistryType.AWS_GLUE -> GlueSchemaRegistryKafkaDeserializer(mapOf(
+        AWSSchemaRegistryConstants.REGISTRY_NAME to consumerField.registryName.ifBlank { null },
+        AWSSchemaRegistryConstants.SCHEMA_NAME to consumerField.schemaName.ifBlank { null },
+        AWSSchemaRegistryConstants.AWS_REGION to dataManager.glueSchemaRegistry?.region,
+        AWSSchemaRegistryConstants.DATA_FORMAT to DataFormat.AVRO.name
+      ))
+    }
   }
 
-  fun getSerializer(kafkaDataManager: KafkaDataManager, producerField: ProducerField) = when (this) {
+  fun getSerializer(kafkaDataManager: KafkaDataManager, producerField: ConsumerProducerFieldConfig) = when (this) {
     STRING -> StringSerializer()
     JSON -> StringSerializer()
     LONG -> LongSerializer()
@@ -94,8 +110,9 @@ enum class FieldType(@Nls val title: String) {
   }
 
   companion object {
-    val defaultValues = listOf(JSON, STRING, LONG, DOUBLE, FLOAT, BASE64, NULL)
+    val defaultValues = listOf(STRING, JSON, LONG, DOUBLE, FLOAT, BASE64, NULL)
     val registryValues = listOf(AVRO_REGISTRY, PROTOBUF_REGISTRY, JSON_REGISTRY)
+    val allValues = defaultValues + registryValues
 
     const val KEY_PARSED_SCHEMA_CONFIG_KEY = "bdt.registry.key.schema.custom"
     const val VALUE_PARSED_SCHEMA_CONFIG_KEY = "bdt.registry.value.schema.custom"

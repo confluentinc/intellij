@@ -24,38 +24,6 @@ data class StorageProducerConfig(var topic: String = "",
                                  val valueRegistry: String = "") : StorageConfig {
 
 
-  constructor(topic: String,
-              keyType: FieldType,
-              key: String,
-              valueType: FieldType,
-              value: String,
-              properties: List<Property>,
-              compression: RecordCompression,
-              acks: AcksType,
-              idempotence: Boolean,
-              forcePartition: Int,
-              keyStrategy: ConfluentRegistryStrategy,
-              valueStrategy: ConfluentRegistryStrategy,
-              keySubject: String = "",
-              keyRegistry: String = "",
-              valueSubject: String = "",
-              valueRegistry: String = "") : this(topic = topic,
-                                                 keyType = keyType.name,
-                                                 key = key,
-                                                 valueType = valueType.name,
-                                                 value = value,
-                                                 properties = properties,
-                                                 compression = compression.name,
-                                                 acks = acks.name,
-                                                 idempotence = idempotence,
-                                                 forcePartition = forcePartition,
-                                                 keyStrategy = keyStrategy,
-                                                 valueStrategy = valueStrategy,
-                                                 keySubject = keySubject,
-                                                 keyRegistry = keyRegistry,
-                                                 valueSubject = valueSubject,
-                                                 valueRegistry = valueRegistry)
-
   fun getKeyType(): FieldType = FieldType.values().find { it.name == keyType } ?: FieldType.STRING
   fun getValueType(): FieldType = FieldType.values().find { it.name == valueType } ?: FieldType.STRING
   fun getCompression(): RecordCompression = RecordCompression.values().find { it.name == compression } ?: RecordCompression.NONE

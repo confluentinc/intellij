@@ -4,14 +4,16 @@ import com.google.gson.GsonBuilder
 import com.google.gson.JsonElement
 import com.intellij.openapi.util.NlsSafe
 import com.jetbrains.bigdatatools.kafka.common.models.FieldType
+import com.jetbrains.bigdatatools.kafka.consumer.models.ConsumerProducerFieldConfig
+import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.model.SchemaRegistryFieldsInfo
 import com.jetbrains.bigdatatools.kafka.registry.confluent.ConfluentSchemaInfo
+import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import com.squareup.wire.schema.internal.parser.MessageElement
 import com.squareup.wire.schema.internal.parser.ProtoFileElement
 import io.confluent.kafka.schemaregistry.ParsedSchema
 import io.confluent.kafka.schemaregistry.avro.AvroSchema
 import io.confluent.kafka.schemaregistry.avro.AvroSchemaProvider
-import io.confluent.kafka.schemaregistry.client.SchemaMetadata
 import io.confluent.kafka.schemaregistry.client.rest.entities.SchemaReference
 import io.confluent.kafka.schemaregistry.json.JsonSchema
 import io.confluent.kafka.schemaregistry.json.JsonSchemaProvider
@@ -19,6 +21,7 @@ import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchema
 import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchemaProvider
 import org.apache.avro.Schema
 import org.everit.json.schema.*
+import software.amazon.awssdk.services.glue.model.DataFormat
 import java.util.logging.Level
 import java.util.logging.Logger
 
@@ -52,8 +55,44 @@ object KafkaRegistryUtil {
       FieldType.JSON_REGISTRY -> JsonSchema.TYPE
     }
 
-  fun parseSchema(schemaMetadata: SchemaMetadata): ParsedSchema? {
-    return parseSchema(schemaMetadata.schemaType, schemaMetadata.schema, schemaMetadata.references).getOrNull()
+  fun loadSchema(config: ConsumerProducerFieldConfig, dataManager: KafkaDataManager): ParsedSchema? {
+    if (config.type !in FieldType.registryValues)
+      return null
+
+    return when (config.registryType) {
+      KafkaRegistryType.NONE -> null
+      KafkaRegistryType.CONFLUENT -> parseConfluentSchema(config, dataManager)
+      KafkaRegistryType.AWS_GLUE -> parseGlueSchema(config, dataManager)
+    }
+  }
+
+
+  private fun parseConfluentSchema(config: ConsumerProducerFieldConfig, dataManager: KafkaDataManager): ParsedSchema {
+    val schemaMetadata = dataManager.confluentSchemaRegistry?.getRegistrySchema(config.schemaName)?.meta
+                         ?: error("Schema `${config.schemaName}` is not found")
+    return parseSchema(schemaMetadata.schemaType, schemaMetadata.schema, schemaMetadata.references).getOrThrow()
+  }
+
+  private fun parseGlueSchema(config: ConsumerProducerFieldConfig, dataManager: KafkaDataManager): ParsedSchema {
+    val schemaName = config.schemaName
+    val registryName = config.registryName
+
+    val detailedInfo = dataManager.glueSchemaRegistry?.loadDetailedSchemaInfo(registryName, schemaName) ?: throw Exception(
+      KafkaMessagesBundle.message("error.glue.schema.is.not.found", schemaName, registryName))
+
+    val dataFormat = when (config.type) {
+      FieldType.AVRO_REGISTRY -> DataFormat.AVRO
+      FieldType.PROTOBUF_REGISTRY -> DataFormat.PROTOBUF
+      FieldType.JSON_REGISTRY -> DataFormat.JSON
+      else -> null
+    }
+
+    val expectedFormat = detailedInfo.schemaResponse.dataFormat()
+    if (dataFormat != expectedFormat) {
+      throw Exception(KafkaMessagesBundle.message("error.glue.wrong.format", dataFormat?.name ?: "<unknown>", expectedFormat))
+    }
+    return parseSchema(schemaType = detailedInfo.schemaResponse.dataFormatAsString(),
+                       detailedInfo.versionResponse.schemaDefinition(), emptyList()).getOrThrow()
   }
 
   fun parseSchema(schemaType: String?,
