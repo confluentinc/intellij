@@ -22,7 +22,6 @@ import com.intellij.ui.components.ActionLink
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.components.JBTextField
-import com.intellij.ui.dsl.builder.Align
 import com.intellij.ui.dsl.builder.AlignX
 import com.intellij.ui.dsl.builder.Cell
 import com.intellij.ui.dsl.builder.panel
@@ -108,12 +107,12 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
 
   private val partitionField = JBTextField()
 
-  private val topicComboBox = KafkaEditorUtils.createTopicComboBox(this, kafkaManager).apply {
+  val topicComboBox = KafkaEditorUtils.createTopicComboBox(this, kafkaManager).apply {
     prototypeDisplayValue = TopicInEditor("AverageName")
   }
 
-  private val key = KafkaConsumerFieldComponent(this, isKey = true)
-  private val value = KafkaConsumerFieldComponent(this, isKey = false)
+  private val key = KafkaConsumerFieldComponent(project, this, isKey = true)
+  private val value = KafkaConsumerFieldComponent(project, this, isKey = false)
 
   private val outputModel = ListTableModel(LinkedList<Result<ConsumerRecord<Any, Any>>>(),
                                            listOf("partition", "offset", "timestamp", "key", "value")) { data, index ->
@@ -129,8 +128,8 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
         0 -> data.getOrNull()?.partition()
         1 -> data.getOrNull()?.offset()
         2 -> data.getOrNull()?.let { Date(it.timestamp()) }
-        3 -> KafkaEditorUtils.getValueAsString(key.typeComboBox.item, data.getOrNull()?.key())
-        4 -> KafkaEditorUtils.getValueAsString(value.typeComboBox.item, data.getOrNull()?.value())
+        3 -> KafkaEditorUtils.getValueAsString(key.fieldTypeComboBox.item, data.getOrNull()?.key())
+        4 -> KafkaEditorUtils.getValueAsString(value.fieldTypeComboBox.item, data.getOrNull()?.value())
         else -> ""
       }
     }
@@ -222,8 +221,8 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
 
   internal val detailsDelegate: Lazy<ConsumerRecordDetails> = lazy {
     ConsumerRecordDetails(project, this).apply {
-      keyType = key.typeComboBox.item
-      valueType = value.typeComboBox.item
+      keyType = key.fieldTypeComboBox.item
+      valueType = value.fieldTypeComboBox.item
     }
   }
   internal val details: ConsumerRecordDetails by detailsDelegate
@@ -240,19 +239,8 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
     val panel = panel {
       row(KafkaMessagesBundle.message("settings.label.topics")) { cell(topicComboBox).align(AlignX.FILL).resizableColumn() }
 
-      group(KafkaMessagesBundle.message("settings.title.format")) {
-        row(KafkaMessagesBundle.message("settings.format.key")) { cell(key.typeComboBox) }
-        indent {
-          row { cell(key.registryType); cell(key.schemaComboBox); cell(key.schemaIdField) }
-          row { cell(key.customSchemaPanel.component).align(Align.FILL).resizableColumn() }.resizableRow()
-        }
-
-        row(KafkaMessagesBundle.message("settings.format.value")) { cell(value.typeComboBox) }
-        indent {
-          row { cell(value.registryType); cell(value.schemaComboBox); cell(value.schemaIdField) }
-          row { cell(value.customSchemaPanel.component).align(Align.FILL).resizableColumn() }.resizableRow()
-        }
-      }
+      key.createComponent(this)
+      value.createComponent(this)
 
       group(KafkaMessagesBundle.message("settings.title.range.filters")) {
         row(KafkaMessagesBundle.message("settings.filters.from")) { cell(startFromComboBox).align(AlignX.FILL).resizableColumn() }
@@ -472,9 +460,14 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
 
       val dateFormat = SimpleDateFormat("HH:mm:ss")
       withPluginClassLoader {
+        key.validateSchema()
+        value.validateSchema()
+
         // Callbacks called in Kafka client threads. That's why, to properly update UI we calling invokeLater
         consumerClient.start(runConfig,
                              dataManager = kafkaManager,
+                             keyConfig = key.getFieldConfig(),
+                             valueConfig = value.getFieldConfig(),
                              consume = {
                                invokeLater {
                                  outputModel.addElement(Result.success(it))
@@ -524,27 +517,20 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
       emptyMap<String, String>() to emptyMap()
     }
 
-    return StorageConsumerConfig(topic = topicName,
-                                 keyType = key.typeComboBox.item,
-                                 valueType = value.typeComboBox.item,
-                                 partitions = partitionField.text,
-                                 limit = consumerLimit,
-                                 filter = filter,
-                                 startWith = startWith,
-                                 properties = properties,
-                                 settings = settings,
+    return StorageConsumerConfig(
+      topic = topicName,
+      keyType = key.fieldTypeComboBox.item,
+      keySubject = key.schemaComboBox.item?.schemaName ?: "",
 
-                                 keyRegistryType = key.registryType.item.name,
-                                 valueRegistryType = value.registryType.item.name,
+      valueType = value.fieldTypeComboBox.item,
+      valueSubject = value.schemaComboBox.item?.schemaName ?: "",
 
-                                 keySchemaId = key.schemaIdField.text,
-                                 valueSchemaId = value.schemaIdField.text,
-
-                                 keySubject = key.schemaComboBox.item?.schemaName ?: "",
-                                 valueSubject = value.schemaComboBox.item?.schemaName ?: "",
-
-                                 keyCustomSchema = key.customSchemaPanel.text,
-                                 valueCustomSchema = value.customSchemaPanel.text
+      partitions = partitionField.text,
+      limit = consumerLimit,
+      filter = filter,
+      startWith = startWith,
+      properties = properties,
+      settings = settings,
     )
   }
 

@@ -1,125 +1,120 @@
 package com.jetbrains.bigdatatools.kafka.consumer.editor
 
+import com.intellij.icons.AllIcons
+import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.ComboBox
-import com.intellij.ui.components.JBTextField
+import com.intellij.ui.dsl.builder.Align
+import com.intellij.ui.dsl.builder.Panel
+import com.intellij.ui.dsl.builder.RightGap
+import com.intellij.ui.dsl.builder.RowsRange
+import com.jetbrains.bigdatatools.common.rfs.util.RfsNotificationUtils
 import com.jetbrains.bigdatatools.common.ui.CustomListCellRenderer
+import com.jetbrains.bigdatatools.common.ui.SimpleDumbAwareAction
 import com.jetbrains.bigdatatools.kafka.common.editor.KafkaEditorUtils
 import com.jetbrains.bigdatatools.kafka.common.models.FieldType
 import com.jetbrains.bigdatatools.kafka.common.models.RegistrySchemaInEditor
 import com.jetbrains.bigdatatools.kafka.common.settings.StorageConsumerConfig
-import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryConsumerType
-import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryTemplates
+import com.jetbrains.bigdatatools.kafka.consumer.models.ConsumerProducerFieldConfig
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryType
-import com.jetbrains.bigdatatools.kafka.registry.ui.KafkaRegistrySchemaEditor
-import io.confluent.kafka.schemaregistry.avro.AvroSchema
-import io.confluent.kafka.schemaregistry.json.JsonSchema
-import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchema
+import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryUtil
+import com.jetbrains.bigdatatools.kafka.registry.ui.KafkaSchemaInfoDialog
+import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 
-class KafkaConsumerFieldComponent(private val consumerPanel: KafkaConsumerPanel, val isKey: Boolean) {
-  val typeComboBox = createFileTypeCombobox {
-    if (isKey) {
-      consumerPanel.details.keyType = it
-    }
-    else {
-      consumerPanel.details.valueType = it
-    }
+class KafkaConsumerFieldComponent(private val project: Project,
+                                  private val consumerPanel: KafkaConsumerPanel, val isKey: Boolean) {
+  private val kafkaManager = consumerPanel.kafkaManager
 
-    registryType.isVisible = it in FieldType.registryValues
+  private val fieldTypes = if (consumerPanel.kafkaManager.registryType != KafkaRegistryType.NONE)
+    FieldType.allValues
+  else
+    FieldType.defaultValues
 
-    updateSubjectVisibility()
-    updateCustomSchemaIfRequired()
-  }
-
-  val registryType = createFieldTypeComboBox().apply {
+  val fieldTypeComboBox = ComboBox(fieldTypes.toTypedArray<FieldType>()).apply<ComboBox<FieldType>> {
+    renderer = CustomListCellRenderer<FieldType> { it.title }
+    selectedItem = FieldType.STRING
     addActionListener {
-      updateSubjectVisibility()
-      updateCustomSchemaIfRequired()
-    }
-  }
-
-
-  val schemaComboBox = KafkaEditorUtils.createSchemaComboBox(consumerPanel, consumerPanel.kafkaManager).apply { isVisible = false }
-  val schemaIdField = JBTextField(15).apply { isVisible = false }
-
-  val customSchemaPanel = KafkaRegistrySchemaEditor(consumerPanel.project)
-
-  /** Switching between JSON/Proto/Avro we are updating default template in editor text. */
-  private fun updateCustomSchemaIfRequired() {
-    if (!customSchemaPanel.component.isVisible) {
-      return
-    }
-
-    val provider = when (typeComboBox.item!!) {
-      FieldType.AVRO_REGISTRY -> AvroSchema.TYPE
-      FieldType.PROTOBUF_REGISTRY -> ProtobufSchema.TYPE
-      FieldType.JSON_REGISTRY -> JsonSchema.TYPE
-      FieldType.FLOAT, FieldType.BASE64, FieldType.DOUBLE, FieldType.JSON, FieldType.LONG, FieldType.NULL, FieldType.STRING -> null
-    }
-
-    provider ?: return
-
-    val newDefault = KafkaRegistryTemplates.getDefaultIfNotConfigured(customSchemaPanel.text, provider)
-    newDefault?.let {
-      customSchemaPanel.setText(it, isJson = typeComboBox.item != FieldType.PROTOBUF_REGISTRY)
-    }
-  }
-
-  private fun updateSubjectVisibility() {
-    registryType.isVisible = typeComboBox.item in FieldType.registryValues
-    schemaComboBox.isVisible = registryType.isVisible && registryType.item == KafkaRegistryConsumerType.SUBJECT
-    schemaIdField.isVisible = registryType.isVisible && registryType.item == KafkaRegistryConsumerType.SCHEMA_ID
-    customSchemaPanel.component.isVisible = registryType.isVisible && registryType.item == KafkaRegistryConsumerType.CUSTOM
-  }
-
-  private fun createFileTypeCombobox(onChange: (FieldType) -> Unit): ComboBox<FieldType> {
-    val registryTypes = when (consumerPanel.kafkaManager.connectionData.registryType) {
-      KafkaRegistryType.NONE -> emptyList()
-      else -> FieldType.registryValues
-    }
-    val fieldTypes = FieldType.defaultValues + registryTypes
-    return ComboBox(fieldTypes.toTypedArray()).apply {
-      renderer = CustomListCellRenderer<FieldType> { it.title }
-      selectedItem = FieldType.STRING
-      addActionListener {
-        consumerPanel.updateVisibility()
-        consumerPanel.storeToUserData()
-        if (consumerPanel.detailsDelegate.isInitialized()) {
-          onChange(item)
+      consumerPanel.updateVisibility()
+      consumerPanel.storeToUserData()
+      if (consumerPanel.detailsDelegate.isInitialized()) {
+        if (isKey) {
+          consumerPanel.details.keyType = item
         }
+        else {
+          consumerPanel.details.valueType = item
+        }
+        updateRegistryFieldsVisibility()
       }
     }
   }
 
-  private fun createFieldTypeComboBox() = ComboBox(KafkaRegistryConsumerType.values()).apply {
-    renderer = CustomListCellRenderer<KafkaRegistryConsumerType> { it.presentable }
-    prototypeDisplayValue = KafkaRegistryConsumerType.SUBJECT
-    selectedItem = KafkaRegistryConsumerType.AUTO
-    addActionListener {
-      consumerPanel.updateVisibility()
+  val schemaComboBox = KafkaEditorUtils.createSchemaComboBox(consumerPanel, consumerPanel.kafkaManager)
+
+  private lateinit var registryRows: RowsRange
+
+  fun createComponent(panel: Panel) {
+    val title = if (isKey)
+      KafkaMessagesBundle.message("consumer.producer.key.group")
+    else
+      KafkaMessagesBundle.message("consumer.producer.value.group")
+
+    panel.apply {
+      group(title) {
+        row(KafkaMessagesBundle.message("consumer.producer.format.type")) { cell(fieldTypeComboBox).align(Align.FILL).resizableColumn() }
+        registryRows = rowsRange {
+          row(KafkaMessagesBundle.message("settings.format.registry.schema")) {
+            cell(schemaComboBox).align(Align.FILL).resizableColumn().gap(RightGap.SMALL)
+            actionButton(SimpleDumbAwareAction(KafkaMessagesBundle.message("show.schema.info"),
+                                               AllIcons.Actions.ToggleVisibility) {
+              try {
+                val config = getFieldConfig()
+                val schema = KafkaRegistryUtil.loadSchema(config, kafkaManager) ?: return@SimpleDumbAwareAction
+                KafkaSchemaInfoDialog.show(project = project, schemaType = schema.schemaType(), schemaDefinition = schema.canonicalString(),
+                                           schemaName = config.schemaName)
+              }
+              catch (t: Throwable) {
+                RfsNotificationUtils.showExceptionMessage(project, t)
+              }
+            })
+          }
+        }
+      }
     }
+    updateRegistryFieldsVisibility()
+  }
+
+  private fun updateRegistryFieldsVisibility() {
+    val isRegistryField = fieldTypeComboBox.item in FieldType.registryValues
+    registryRows.visible(isRegistryField)
+    if (!isRegistryField)
+      return
   }
 
   fun load(config: StorageConsumerConfig) {
-    typeComboBox.item = if (isKey) config.getKeyType() else config.getValueType()
-    registryType.item = if (isKey) config.getKeyRegistryType() else config.getValueRegistryType()
-    schemaIdField.text = if (isKey) config.keySchemaId else config.valueSchemaId
+    fieldTypeComboBox.item = if (isKey) config.getKeyType() else config.getValueType()
 
     schemaComboBox.item = if (isKey)
       RegistrySchemaInEditor(schemaName = config.keySubject, registryName = config.keyRegistry)
     else
       RegistrySchemaInEditor(schemaName = config.valueSubject, registryName = config.valueRegistry)
-
-    customSchemaPanel.setText(if (isKey) config.keyCustomSchema else config.valueCustomSchema,
-                              isJson = typeComboBox.item != FieldType.PROTOBUF_REGISTRY)
   }
 
   fun updateIsEnabled(isEnabled: Boolean) {
-    typeComboBox.isEnabled = isEnabled
-    registryType.isEnabled = isEnabled
+    fieldTypeComboBox.isEnabled = isEnabled
     schemaComboBox.isEnabled = isEnabled
-    schemaIdField.isEnabled = isEnabled
-    customSchemaPanel.component.isEnabled = isEnabled
 
-    updateSubjectVisibility()
+    updateRegistryFieldsVisibility()
   }
+
+  fun validateSchema() {
+    val config = getFieldConfig()
+    KafkaRegistryUtil.loadSchema(config, kafkaManager)
+  }
+
+  fun getFieldConfig() = ConsumerProducerFieldConfig(type = fieldTypeComboBox.item,
+                                                     valueText = "",
+                                                     isKey = isKey,
+                                                     topic = consumerPanel.topicComboBox.item.name,
+                                                     registryType = kafkaManager.registryType,
+                                                     rawSchemaName = schemaComboBox.item.schemaName,
+                                                     registryName = schemaComboBox.item.registryName)
 }

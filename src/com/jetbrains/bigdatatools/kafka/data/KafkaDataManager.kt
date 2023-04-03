@@ -57,6 +57,9 @@ class KafkaDataManager(project: Project?,
 
 
   init {
+    confluentSchemaRegistry?.let { Disposer.register(this, it) }
+    glueSchemaRegistry?.let { Disposer.register(this, it) }
+
     init()
     RootDataModelStorage(updater, listOfNotNull(topicModel, consumerGroupsModel,
                                                 confluentSchemaRegistry?.schemaRegistryModel,
@@ -75,13 +78,13 @@ class KafkaDataManager(project: Project?,
   fun getSchemasForEditor(): List<RegistrySchemaInEditor> {
     val confluentSchemas = confluentSchemaRegistry?.schemaRegistryModel?.data?.map {
       RegistrySchemaInEditor(schemaName = it.name, registryName = "")
-    }?.sorted()?.let { listOf(RegistrySchemaInEditor.GLUE_DEFAULT) + it }
+    }?.sorted()
     val glueSchemas = glueSchemaRegistry?.schemaModel?.data?.map {
       RegistrySchemaInEditor(schemaName = it.schemaName, registryName = it.registryName)
     }?.sorted()
 
     val schemas = confluentSchemas ?: glueSchemas
-    return schemas ?: emptyList()
+    return schemas?.let { listOf(RegistrySchemaInEditor.TOPIC_SCHEMA) + it } ?: emptyList()
   }
 
   fun deleteTopic(topicNames: List<String>) = actionWrapper {
