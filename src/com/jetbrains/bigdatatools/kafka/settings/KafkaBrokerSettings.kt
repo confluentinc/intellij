@@ -186,6 +186,8 @@ class KafkaBrokerSettings(val project: Project,
           row(MessagesBundle.message("kerberos.settings.principal.label")) {
             saslPrincipal = textField().align(AlignX.FILL).onChanged {
               updatePropertiesField()
+            }.apply {
+              component.emptyText.text = MessagesBundle.message("kerberos.settings.principal.empty")
             }
           }
           row(MessagesBundle.message("kerberos.connection.settings.keytab.label")) {
