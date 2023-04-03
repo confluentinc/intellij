@@ -11,6 +11,9 @@ import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.components.JBPasswordField
 import com.intellij.ui.components.JBTextField
 import com.intellij.ui.dsl.builder.*
+import com.jetbrains.bigdatatools.aws.common.connection.auth.AuthenticationType
+import com.jetbrains.bigdatatools.aws.common.ui.external.AwsSettingsForKafka
+import com.jetbrains.bigdatatools.aws.common.ui.external.AwsSettingsInfo
 import com.jetbrains.bigdatatools.common.settings.connections.ConnectionData
 import com.jetbrains.bigdatatools.common.settings.fields.*
 import com.jetbrains.bigdatatools.common.settings.kerberos.BdtJaasConfig
@@ -30,9 +33,6 @@ import org.apache.kafka.common.config.SaslConfigs.SASL_CLIENT_CALLBACK_HANDLER_C
 import org.apache.kafka.common.config.SaslConfigs.SASL_KERBEROS_SERVICE_NAME
 import org.apache.kafka.common.config.SslConfigs
 import org.apache.kafka.common.security.auth.SecurityProtocol
-import org.com.jetbrains.bigdatatools.aws.common.connection.auth.AuthenticationType
-import org.com.jetbrains.bigdatatools.aws.common.ui.external.AwsSettingsForKafka
-import org.com.jetbrains.bigdatatools.aws.common.ui.external.AwsSettingsInfo
 import java.util.concurrent.atomic.AtomicBoolean
 
 class KafkaBrokerSettings(val project: Project,

@@ -5,6 +5,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.util.net.NetUtils
+import com.jetbrains.bigdatatools.aws.common.ui.external.AwsSettingsForKafka
 import com.jetbrains.bigdatatools.common.connection.exception.BdtConfigurationException
 import com.jetbrains.bigdatatools.common.connection.exception.BdtConnectionException
 import com.jetbrains.bigdatatools.common.connection.exception.BdtHostUnavailableException
@@ -29,10 +30,12 @@ import com.jetbrains.bigdatatools.kafka.rfs.KafkaConnectionData
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaPropertySource
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import org.apache.kafka.clients.CommonClientConfigs
-import org.apache.kafka.clients.admin.*
+import org.apache.kafka.clients.admin.DescribeClusterOptions
+import org.apache.kafka.clients.admin.ListTopicsOptions
+import org.apache.kafka.clients.admin.NewTopic
+import org.apache.kafka.clients.admin.TopicDescription
 import org.apache.kafka.common.config.ConfigResource
 import org.apache.kafka.common.config.SaslConfigs
-import org.com.jetbrains.bigdatatools.aws.common.ui.external.AwsSettingsForKafka
 import java.io.File
 import java.util.*
 
@@ -138,7 +141,6 @@ class KafkaClient(project: Project?,
   fun createTopic(name: String, numPartition: Int?, replicationFactor: Int?) {
     val admin = kafkaAdmin ?: error("Kafka admin is not inited")
 
-    @Suppress("SSBasedInspection")
     val newTopic = NewTopic(name, Optional.ofNullable(numPartition), Optional.ofNullable(replicationFactor?.toShort()))
     val createTopics = admin.createTopics(listOf(newTopic))
     createTopics?.topicId(name)?.get()

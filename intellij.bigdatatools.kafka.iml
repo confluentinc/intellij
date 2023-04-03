@@ -336,5 +336,6 @@
       </library>
     </orderEntry>
     <orderEntry type="library" name="snakeyaml-engine" level="project" />
+    <orderEntry type="module" module-name="intellij.bigdatatools.aws" />
   </component>
 </module>
