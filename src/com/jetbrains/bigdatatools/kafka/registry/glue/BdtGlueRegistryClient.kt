@@ -119,7 +119,7 @@ class BdtGlueRegistryClient(val project: Project?,
   }
 
   fun createSchema(schemaName: String,
-                   dataFormat: DataFormat,
+                   dataFormat: String,
                    schemaDefinition: String,
                    compatibility: Compatibility,
                    description: String,
