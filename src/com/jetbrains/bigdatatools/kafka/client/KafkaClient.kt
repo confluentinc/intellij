@@ -4,7 +4,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.util.net.NetUtils
-import com.jetbrains.bigdatatools.aws.common.ui.external.AwsSettingsForKafka
+import com.intellij.bigdatatools.aws.ui.external.AwsSettingsForKafka
 import com.jetbrains.bigdatatools.common.connection.exception.BdtConnectionException
 import com.jetbrains.bigdatatools.common.connection.exception.BdtHostUnavailableException
 import com.jetbrains.bigdatatools.common.connection.exception.BdtUnexpectedConnectionException

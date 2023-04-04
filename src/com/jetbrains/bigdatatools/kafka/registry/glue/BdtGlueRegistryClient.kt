@@ -2,11 +2,11 @@ package com.jetbrains.bigdatatools.kafka.registry.glue
 
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.NlsSafe
-import com.jetbrains.bigdatatools.aws.common.connection.AwsConnectionUtils
-import com.jetbrains.bigdatatools.aws.common.connection.auth.AuthenticationType
-import com.jetbrains.bigdatatools.aws.common.connection.auth.AwsAuthUtil
-import com.jetbrains.bigdatatools.aws.common.driver.AwsCredentialController
-import com.jetbrains.bigdatatools.aws.common.ui.external.AwsSettingsInfo
+import com.intellij.bigdatatools.aws.connection.AwsConnectionUtils
+import com.intellij.bigdatatools.aws.connection.auth.AuthenticationType
+import com.intellij.bigdatatools.aws.connection.auth.AwsAuthUtil
+import com.intellij.bigdatatools.aws.driver.AwsCredentialController
+import com.intellij.bigdatatools.aws.ui.external.AwsSettingsInfo
 import com.jetbrains.bigdatatools.common.monitoring.connection.MonitoringClient
 import com.jetbrains.bigdatatools.kafka.registry.glue.models.GlueSchemaDetailedInfo
 import com.jetbrains.bigdatatools.kafka.registry.glue.models.GlueSchemaInfo

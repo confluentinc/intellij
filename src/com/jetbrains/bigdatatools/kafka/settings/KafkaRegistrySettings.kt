@@ -6,10 +6,10 @@ import com.intellij.openapi.project.Project
 import com.intellij.ui.components.JBPasswordField
 import com.intellij.ui.components.JBTextField
 import com.intellij.ui.dsl.builder.*
-import com.jetbrains.bigdatatools.aws.common.settings.AwsCompatibleConnectionData
-import com.jetbrains.bigdatatools.aws.common.ui.external.AwsSettingsForKafka
-import com.jetbrains.bigdatatools.aws.common.ui.external.StaticAwsSettingsInfo
-import com.jetbrains.bigdatatools.aws.common.utils.AwsSettingsConst
+import com.intellij.bigdatatools.aws.settings.AwsCompatibleConnectionData
+import com.intellij.bigdatatools.aws.ui.external.AwsSettingsForKafka
+import com.intellij.bigdatatools.aws.ui.external.StaticAwsSettingsInfo
+import com.intellij.bigdatatools.aws.utils.AwsSettingsConst
 import com.jetbrains.bigdatatools.common.connection.tunnel.ui.SshTunnelComponent
 import com.jetbrains.bigdatatools.common.serializer.BdtJson
 import com.jetbrains.bigdatatools.common.settings.ModificationKey
