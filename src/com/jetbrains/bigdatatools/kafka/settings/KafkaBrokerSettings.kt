@@ -11,9 +11,9 @@ import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.components.JBPasswordField
 import com.intellij.ui.components.JBTextField
 import com.intellij.ui.dsl.builder.*
-import com.jetbrains.bigdatatools.aws.common.connection.auth.AuthenticationType
-import com.jetbrains.bigdatatools.aws.common.ui.external.AwsSettingsForKafka
-import com.jetbrains.bigdatatools.aws.common.ui.external.StaticAwsSettingsInfo
+import com.intellij.bigdatatools.aws.connection.auth.AuthenticationType
+import com.intellij.bigdatatools.aws.ui.external.AwsSettingsForKafka
+import com.intellij.bigdatatools.aws.ui.external.StaticAwsSettingsInfo
 import com.jetbrains.bigdatatools.common.settings.connections.ConnectionData
 import com.jetbrains.bigdatatools.common.settings.fields.*
 import com.jetbrains.bigdatatools.common.settings.kerberos.BdtJaasConfig

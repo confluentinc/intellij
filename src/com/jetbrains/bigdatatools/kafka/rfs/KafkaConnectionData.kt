@@ -1,8 +1,8 @@
 package com.jetbrains.bigdatatools.kafka.rfs
 
 import com.intellij.openapi.project.Project
-import com.jetbrains.bigdatatools.aws.common.settings.AwsCompatibleConnectionData
-import com.jetbrains.bigdatatools.aws.common.ui.external.StaticAwsSettingsInfo
+import com.intellij.bigdatatools.aws.settings.AwsCompatibleConnectionData
+import com.intellij.bigdatatools.aws.ui.external.StaticAwsSettingsInfo
 import com.jetbrains.bigdatatools.common.connection.exception.BdtConfigurationException
 import com.jetbrains.bigdatatools.common.connection.tunnel.model.ConnectionSshTunnelData
 import com.jetbrains.bigdatatools.common.connection.tunnel.model.ConnectionSshTunnelDataLegacy
