@@ -32,13 +32,16 @@ class GlueSchemaVersionsController(private val project: Project,
     override fun actionPerformed(e: AnActionEvent) {
       val registryInfo = getSelectedItem() ?: return
 
-      Messages.showOkCancelDialog(project,
-                                  KafkaMessagesBundle.message("action.remove.version.confirm.dialog.msg", registryInfo.version,
-                                                              registryInfo.schemaId.schemaName()),
-                                  KafkaMessagesBundle.message("action.remove.version.title"),
-                                  KafkaMessagesBundle.message("action.remove.schema.version.confirm.ok"),
-                                  Messages.getCancelButton(),
-                                  Messages.getQuestionIcon())
+      val res = Messages.showOkCancelDialog(project,
+                                            KafkaMessagesBundle.message("action.remove.version.confirm.dialog.msg", registryInfo.version,
+                                                                        registryInfo.schemaId.schemaName()),
+                                            KafkaMessagesBundle.message("action.remove.version.title"),
+                                            KafkaMessagesBundle.message("action.remove.schema.version.confirm.ok"),
+                                            Messages.getCancelButton(),
+                                            Messages.getQuestionIcon())
+      if (res == Messages.OK)
+        dataManager.glueSchemaRegistry?.deleteSchemaVersion(registryInfo)
+
     }
 
     override fun update(e: AnActionEvent) {

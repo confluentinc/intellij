@@ -75,8 +75,11 @@ class GlueRegistryController(project: Project,
       KafkaRegistryAddSchemaDialog(project, dataManager).apply {
         val detailedInfo = dataManager.glueSchemaRegistry?.getDetailedSchema(
           SchemaId.builder().registryName(schemaInfo.registryName).schemaName(schemaInfo.schemaName).build())
+
         val schemaDefinition = detailedInfo?.versionResponse?.schemaDefinition() ?: ""
-        applyRegistryInfo(detailedInfo?.schemaResponse?.dataFormatAsString() ?: "", schemaDefinition)
+        val schemaType = detailedInfo?.schemaResponse?.dataFormatAsString() ?: ""
+
+        applyRegistryInfo(schemaType, schemaDefinition)
       }.show()
     }
 

@@ -27,7 +27,6 @@ import com.jetbrains.bigdatatools.kafka.registry.glue.ui.GlueTransforms
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaDriver
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import software.amazon.awssdk.services.glue.model.Compatibility
-import software.amazon.awssdk.services.glue.model.DataFormat
 import software.amazon.awssdk.services.glue.model.GetSchemaVersionResponse
 import software.amazon.awssdk.services.glue.model.SchemaId
 
@@ -83,7 +82,7 @@ class GlueRegistryDataManager(val dataManager: MonitoringDataManager,
   }
 
   fun createSchema(schemaName: String,
-                   dataFormat: DataFormat,
+                   dataFormat: String,
                    schemaDefinition: String,
                    compatibility: Compatibility,
                    description: String,

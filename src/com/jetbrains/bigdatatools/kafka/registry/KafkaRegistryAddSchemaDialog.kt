@@ -18,6 +18,7 @@ import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.registry.ui.KafkaRegistrySchemaEditor
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import io.confluent.kafka.schemaregistry.ParsedSchema
+import software.amazon.awssdk.services.glue.model.Compatibility
 import javax.swing.JComponent
 import javax.swing.JEditorPane
 import javax.swing.JTextField
@@ -221,7 +222,12 @@ class KafkaRegistryAddSchemaDialog(project: Project, val dataManager: KafkaDataM
       val schemaName = getSchemaName()
       val parsedSchema = KafkaRegistryUtil.parseSchema(getFormat(), textScrollPane.text).getOrNull() ?: return
 
-      dataManager.confluentSchemaRegistry!!.createRegistrySubject(schemaName, parsedSchema).onError {
+      val createAsync = dataManager.confluentSchemaRegistry?.createRegistrySubject(schemaName, parsedSchema)
+                        ?: dataManager.glueSchemaRegistry?.createSchema(schemaName,
+                                                                        parsedSchema.schemaType(),
+                                                                        parsedSchema.canonicalString(), Compatibility.BACKWARD, "",
+                                                                        emptyMap()) ?: error("Not schema registry")
+      createAsync.onError {
         runInEdt {
           errorLabel.text = it.message
           errorRow.visible(true)
