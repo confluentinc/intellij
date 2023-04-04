@@ -1,7 +1,6 @@
 package com.jetbrains.bigdatatools.kafka.settings
 
 import com.intellij.bigdatatools.aws.ui.external.AwsSettingsInfo
-import com.intellij.openapi.application.invokeAndWaitIfNeeded
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.DialogBuilder
@@ -15,7 +14,7 @@ import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 
 object KafkaUIUtils {
   fun showAndGetGlueRegistry(project: Project?, awsSettingsInfo: AwsSettingsInfo): String? {
-    val client = BdtGlueRegistryClient(project, awsSettingsInfo)
+    val client = BdtGlueRegistryClient(project, "", awsSettingsInfo)
 
     @NlsSafe
     val names =  client.use {

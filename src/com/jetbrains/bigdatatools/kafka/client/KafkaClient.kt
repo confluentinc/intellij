@@ -1,10 +1,11 @@
 package com.jetbrains.bigdatatools.kafka.client
 
+import com.amazonaws.services.schemaregistry.utils.AWSSchemaRegistryConstants
+import com.intellij.bigdatatools.aws.ui.external.AwsSettingsForKafka
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.util.net.NetUtils
-import com.intellij.bigdatatools.aws.ui.external.AwsSettingsForKafka
 import com.jetbrains.bigdatatools.common.connection.exception.BdtConnectionException
 import com.jetbrains.bigdatatools.common.connection.exception.BdtHostUnavailableException
 import com.jetbrains.bigdatatools.common.connection.exception.BdtUnexpectedConnectionException
@@ -73,26 +74,24 @@ class KafkaClient(project: Project?,
     }
 
     confluentRegistryClient = null
+    glueRegistryClient = null
 
     when (connectionData.registryType) {
       KafkaRegistryType.NONE -> {}
       KafkaRegistryType.CONFLUENT -> {
-        confluentRegistryClient = ConfluentRegistryClient.createFor(project, connectionData, testConnection)
-      }
-      KafkaRegistryType.AWS_GLUE -> {
-        glueRegistryClient = createGlueClient()
-        glueRegistryClient?.connect(calledByUser)
-        glueRegistryClient?.let {
+        confluentRegistryClient = ConfluentRegistryClient.createFor(project, connectionData, testConnection)?.also {
           Disposer.register(this, it)
         }
       }
-    }
-    confluentRegistryClient = ConfluentRegistryClient.createFor(project, connectionData, testConnection)
-    confluentRegistryClient?.let {
-      Disposer.register(this, it)
+      KafkaRegistryType.AWS_GLUE -> {
+        glueRegistryClient = createGlueClient()?.also {
+          Disposer.register(this, it)
+        }
+        glueRegistryClient?.connect(calledByUser)
+      }
     }
 
-    longCheckConnection()
+    longBrokerCheckConnection()
   }
 
 
@@ -101,6 +100,8 @@ class KafkaClient(project: Project?,
                      ?: throw BdtUnexpectedConnectionException(null, KafkaMessagesBundle.message("connection.is.not.found.in.config",
                                                                                                  CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG))
     checkUrlAvailability(urlsString)
+
+    checkRegistryClient()
   }
 
   fun createProducerClient() = KafkaProducerClient(client = this)
@@ -260,7 +261,7 @@ class KafkaClient(project: Project?,
 
   private fun checkRegistryClient() {
     try {
-      confluentRegistryClient?.allSubjects
+      confluentRegistryClient?.checkConnection()
       glueRegistryClient?.checkConnection()
     }
     catch (t: Throwable) {
@@ -280,7 +281,7 @@ class KafkaClient(project: Project?,
     }
   }
 
-  private fun longCheckConnection() {
+  private fun longBrokerCheckConnection() {
     val url = kafkaProps.getProperty(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG)
               ?: throw BdtUnexpectedConnectionException(null, KafkaMessagesBundle.message("connection.is.not.found.in.config",
                                                                                           CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG))
@@ -293,8 +294,6 @@ class KafkaClient(project: Project?,
     catch (t: Throwable) {
       throw BdtConnectionException(KafkaMessagesBundle.message("connection.check.port.success.but.next.error", url), t)
     }
-
-    checkRegistryClient()
   }
 
   private fun setSystemPropertiesForAwsIam() {
@@ -309,7 +308,9 @@ class KafkaClient(project: Project?,
 
   private fun createGlueClient(): BdtGlueRegistryClient? {
     val awsSettingsInfo = connectionData.loadAwsGlueSettings() ?: return null
-    return BdtGlueRegistryClient(project, awsSettingsInfo)
+    return BdtGlueRegistryClient(project,
+                                 connectionData.glueRegistryName ?: AWSSchemaRegistryConstants.DEFAULT_REGISTRY_NAME,
+                                 awsSettingsInfo)
   }
 
   companion object {

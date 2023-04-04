@@ -77,7 +77,7 @@ object KafkaRegistryUtil {
     val schemaName = config.schemaName
     val registryName = config.registryName
 
-    val detailedInfo = dataManager.glueSchemaRegistry?.loadDetailedSchemaInfo(registryName, schemaName) ?: throw Exception(
+    val detailedInfo = dataManager.glueSchemaRegistry?.loadDetailedSchemaInfo(schemaName) ?: throw Exception(
       KafkaMessagesBundle.message("error.glue.schema.is.not.found", schemaName, registryName))
 
     val dataFormat = when (config.type) {

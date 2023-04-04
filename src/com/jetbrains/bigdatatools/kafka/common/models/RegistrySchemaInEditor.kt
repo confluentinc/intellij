@@ -9,10 +9,7 @@ data class RegistrySchemaInEditor(val schemaName: String, val registryName: Stri
       registryName.compareTo(other.registryName)
   }
 
-  override fun toString() = if (registryName.isBlank())
-    schemaName
-  else
-    "$schemaName ($registryName)"
+  override fun toString() = schemaName
 
   companion object {
     val TOPIC_SCHEMA = RegistrySchemaInEditor(schemaName = "(Topic Name)", registryName = "")

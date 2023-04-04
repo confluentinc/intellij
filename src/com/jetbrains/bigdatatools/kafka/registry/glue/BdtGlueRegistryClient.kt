@@ -1,13 +1,12 @@
 package com.jetbrains.bigdatatools.kafka.registry.glue
 
-import com.intellij.openapi.project.Project
-import com.intellij.openapi.util.NlsSafe
 import com.intellij.bigdatatools.aws.connection.AwsConnectionUtils
-import com.intellij.bigdatatools.aws.connection.auth.AuthenticationType
 import com.intellij.bigdatatools.aws.connection.auth.AwsAuthUtil
 import com.intellij.bigdatatools.aws.driver.AwsCredentialController
 import com.intellij.bigdatatools.aws.ui.external.AwsSettingsInfo
-import com.jetbrains.bigdatatools.common.monitoring.connection.MonitoringClient
+import com.intellij.openapi.Disposable
+import com.intellij.openapi.project.Project
+import com.intellij.openapi.util.NlsSafe
 import com.jetbrains.bigdatatools.kafka.registry.glue.models.GlueSchemaDetailedInfo
 import com.jetbrains.bigdatatools.kafka.registry.glue.models.GlueSchemaInfo
 import com.jetbrains.bigdatatools.kafka.registry.glue.models.GlueSchemaVersionInfo
@@ -17,55 +16,57 @@ import software.amazon.awssdk.regions.Region
 import software.amazon.awssdk.services.glue.GlueClient
 import software.amazon.awssdk.services.glue.model.*
 
-class BdtGlueRegistryClient(project: Project?,
-                            val awsSettings: AwsSettingsInfo) : MonitoringClient(project) {
+class BdtGlueRegistryClient(val project: Project?,
+                            val registryName: String,
+                            val awsSettings: AwsSettingsInfo) : Disposable {
   private val authentication = AwsAuthUtil.getPrimaryAuthentication(awsSettings)
   private val credentialsController = AwsCredentialController(authentication.getCredentialsProvider())
 
-  private var client: GlueClient? = null
+  lateinit var client: GlueClient
 
-  override fun getRealUri(): String = "https://console.aws.amazon.com/elasticmapreduce/home?region=${awsSettings.region}"
 
   override fun dispose() {
-    client?.close()
+    client.close()
   }
 
-  override fun connectInner(calledByUser: Boolean) {
+  fun connect(calledByUser: Boolean) {
     credentialsController.wrapWithAllowDialogs(calledByUser) {
-      if (client == null || calledByUser) {
-        client?.close()
-        client = createClient()
+      client = createClient()
+      if (calledByUser) {
+        if (registryName.isBlank())
+          listRegistries()
+        else
+          listSchemas()
       }
     }
   }
 
-  override fun checkConnectionInner() {
-    listSchemas(null)
+  fun checkConnection() {
+    listSchemas()
   }
 
-
-  fun deleteSchemaVersion(registryName: String, schemaName: String, version: Long) {
+  fun deleteSchemaVersion(schemaName: String, version: Long) {
     val schemaId = SchemaId.builder().schemaName(schemaName).registryName(registryName).build()
     val request = DeleteSchemaVersionsRequest.builder().schemaId(schemaId).versions(version.toString()).build()
-    client!!.deleteSchemaVersions(request)
+    client.deleteSchemaVersions(request)
   }
 
-  fun deleteSchema(registryName: String, name: String) {
+  fun deleteSchema(name: String) {
     val schemaId = SchemaId.builder().schemaName(name).registryName(registryName).build()
     val request = DeleteSchemaRequest.builder().schemaId(schemaId).build()
-    client!!.deleteSchema(request)
+    client.deleteSchema(request)
 
   }
 
   fun listRegistries(): List<RegistryListItem> {
     val request = ListRegistriesRequest.builder().build()
-    return client!!.listRegistries(request).registries()
+    return client.listRegistries(request).registries()
   }
 
-  fun listSchemas(registryName: String?): List<GlueSchemaInfo> {
-    val registryId = registryName?.let { RegistryId.builder().registryName(registryName).build() }
+  fun listSchemas(): List<GlueSchemaInfo> {
+    val registryId = registryName.let { RegistryId.builder().registryName(registryName).build() }
     val request = ListSchemasRequest.builder().registryId(registryId).build()
-    return client!!.listSchemas(request).schemas().map {
+    return client.listSchemas(request).schemas().map {
       GlueSchemaInfo(schemaName = it.schemaName() ?: "",
                      registryName = it.registryName() ?: "",
                      schemaArn = it.schemaArn() ?: "",
@@ -76,16 +77,16 @@ class BdtGlueRegistryClient(project: Project?,
     }
   }
 
-  fun getDetailedSchema(registryName: String, schemaName: String): GlueSchemaDetailedInfo {
+  fun getDetailedSchema(schemaName: String): GlueSchemaDetailedInfo {
     val schemaId = SchemaId.builder().schemaName(schemaName).registryName(registryName).build()
     val schemaRequest = GetSchemaRequest.builder().schemaId(schemaId).build()
-    val schemaResponse = client!!.getSchema(schemaRequest)
+    val schemaResponse = client.getSchema(schemaRequest)
 
     val versionNumber = SchemaVersionNumber.builder().versionNumber(schemaResponse.latestSchemaVersion()).build()
     val versionRequest = GetSchemaVersionRequest.builder().schemaId(schemaId).schemaVersionNumber(versionNumber)
-    val versionResponse = client!!.getSchemaVersion(versionRequest.build())
+    val versionResponse = client.getSchemaVersion(versionRequest.build())
 
-    val tags = client?.getTags(GetTagsRequest.builder().resourceArn(schemaResponse.schemaArn()).build())?.tags()
+    val tags = client.getTags(GetTagsRequest.builder().resourceArn(schemaResponse.schemaArn()).build())?.tags()
 
     return GlueSchemaDetailedInfo(
       schemaResponse = schemaResponse,
@@ -94,32 +95,30 @@ class BdtGlueRegistryClient(project: Project?,
     )
   }
 
-  fun getSchema(registryName: String, schemaName: String): GetSchemaResponse {
+  fun getSchema(schemaName: String): GetSchemaResponse {
     val schemaId = SchemaId.builder().schemaName(schemaName).registryName(registryName).build()
     val request = GetSchemaRequest.builder().schemaId(schemaId).build()
-    return client!!.getSchema(request)
+    return client.getSchema(request)
   }
 
-  fun getSchemaVersion(registryName: String, schemaName: String, version: Long): GetSchemaVersionResponse {
+  fun getSchemaVersion(schemaName: String, version: Long): GetSchemaVersionResponse {
     val schemaId = SchemaId.builder().schemaName(schemaName).registryName(registryName).build()
     val versionNumber = SchemaVersionNumber.builder().versionNumber(version).build()
     val request = GetSchemaVersionRequest.builder().schemaId(schemaId).schemaVersionNumber(versionNumber).build()
-    val response = client!!.getSchemaVersion(request)
-    return response
+    return client.getSchemaVersion(request)
   }
 
 
-  fun listSchemaVersions(registryName: String, schemaName: String): List<GlueSchemaVersionInfo> {
+  fun listSchemaVersions(schemaName: String): List<GlueSchemaVersionInfo> {
     val schemaId = SchemaId.builder().schemaName(schemaName).registryName(registryName).build()
     val request = ListSchemaVersionsRequest.builder().schemaId(schemaId).build()
-    return client!!.listSchemaVersions(request).schemas().map {
+    return client.listSchemaVersions(request).schemas().map {
       GlueSchemaVersionInfo(version = it.versionNumber() ?: -1, registered = it.createdTime() ?: "", status = it.statusAsString() ?: "",
                             schemaId = schemaId)
     }
   }
 
-  fun createSchema(registryName: String,
-                   schemaName: String,
+  fun createSchema(schemaName: String,
                    dataFormat: DataFormat,
                    schemaDefinition: String,
                    compatibility: Compatibility,
@@ -134,7 +133,7 @@ class BdtGlueRegistryClient(project: Project?,
       .description(description)
       .tags(tags)
       .build()
-    client!!.createSchema(request)
+    client.createSchema(request)
   }
 
   fun registerNewSchemaVersion(schemaId: SchemaId, newSchemaDefinition: @NlsSafe String) {
@@ -142,20 +141,13 @@ class BdtGlueRegistryClient(project: Project?,
       .schemaId(schemaId)
       .schemaDefinition(newSchemaDefinition)
       .build()
-    client!!.registerSchemaVersion(request)
+    client.registerSchemaVersion(request)
   }
 
-  private fun createClient(): GlueClient? {
+  private fun createClient(): GlueClient {
     val httpClient = AwsConnectionUtils.createHttpClient(null, false)
-    val overrideConfiguration = if (AuthenticationType.getById(awsSettings.authenticationType) in setOf(AuthenticationType.KEY_PAIR,
-                                                                                                        AuthenticationType.ANON,
-                                                                                                        AuthenticationType.PROFILE_FROM_CREDENTIALS_FILE)) {
-      val clientConfiguration = ClientOverrideConfiguration.builder()
-      clientConfiguration.defaultProfileFile(ProfileFile.aggregator().build()).build()
-    }
-    else {
-      null
-    }
+    val clientConfiguration = ClientOverrideConfiguration.builder()
+    val overrideConfiguration = clientConfiguration.defaultProfileFile(ProfileFile.aggregator().build()).build()
 
     val clientBuilder = GlueClient.builder()
       .credentialsProvider(credentialsController.credentials)

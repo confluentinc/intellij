@@ -52,7 +52,7 @@ class GlueRegistryDataManager(val dataManager: MonitoringDataManager,
   private fun createSchemaRegistryDataModel(): ObjectDataModel<GlueSchemaInfo> {
     val dataModel = ObjectDataModel(GlueSchemaInfo::id) {
       val client = client
-      client.listSchemas(null)
+      client.listSchemas()
     }
     return dataModel
   }
@@ -66,8 +66,7 @@ class GlueRegistryDataManager(val dataManager: MonitoringDataManager,
 
   fun deleteSchemaVersion(schemaVersionInfo: GlueSchemaVersionInfo) = executeOnPooledThread {
     withCatchNotifyErrorDialog {
-      client.deleteSchemaVersion(registryName = schemaVersionInfo.schemaId.registryName(),
-                                 schemaName = schemaVersionInfo.schemaId.schemaName(),
+      client.deleteSchemaVersion(schemaName = schemaVersionInfo.schemaId.schemaName(),
                                  version = schemaVersionInfo.version)
 
       dataManager.updater.invokeRefreshModel(schemaModel)
@@ -75,21 +74,20 @@ class GlueRegistryDataManager(val dataManager: MonitoringDataManager,
     }
   }
 
-  fun deleteSchema(registryName: String, schemaName: String) = executeOnPooledThread {
+  fun deleteSchema(schemaName: String) = executeOnPooledThread {
     withCatchNotifyErrorDialog {
-      client.deleteSchema(registryName, schemaName)
+      client.deleteSchema(schemaName)
       dataManager.updater.invokeRefreshModel(schemaModel)
     }
   }
 
-  fun createSchema(registryName: String,
-                   schemaName: String,
+  fun createSchema(schemaName: String,
                    dataFormat: DataFormat,
                    schemaDefinition: String,
                    compatibility: Compatibility,
                    description: String,
                    tags: Map<String, String>) = runAsync {
-    client.createSchema(registryName, schemaName, dataFormat, schemaDefinition, compatibility, description, tags)
+    client.createSchema(schemaName, dataFormat, schemaDefinition, compatibility, description, tags)
     dataManager.updater.invokeRefreshModel(schemaModel)
   }
 
@@ -104,14 +102,14 @@ class GlueRegistryDataManager(val dataManager: MonitoringDataManager,
 
   private fun createSchemeVersionsStorage() = ObjectDataModelStorage<SchemaId, GlueSchemaVersionInfo>(dataManager.updater,
                                                                                                       GlueSchemaVersionInfo::version) {
-    client.listSchemaVersions(registryName = it.registryName(), schemaName = it.schemaName())
+    client.listSchemaVersions(schemaName = it.schemaName())
   }
 
 
   private fun createSchemaFieldsStorage() = ObjectDataModelStorage<SchemaId, SchemaRegistryFieldsInfo>(dataManager.updater,
                                                                                                        SchemaRegistryFieldsInfo::name) {
 
-    val detailedInfo = loadDetailedSchemaInfo(it.registryName(), it.schemaName())
+    val detailedInfo = loadDetailedSchemaInfo(it.schemaName())
 
     val schema = try {
       KafkaRegistryUtil.parseSchema(schemaType = detailedInfo.schemaResponse.dataFormatAsString(),
@@ -125,7 +123,7 @@ class GlueRegistryDataManager(val dataManager: MonitoringDataManager,
   }
 
   private fun createSchemaDetailedInfos() = FieldGroupsDataModelStorage<SchemaId, GlueSchemaDetailedInfo>(dataManager.updater) { id ->
-    val newValue = loadDetailedSchemaInfo(id.registryName(), id.schemaName())
+    val newValue = loadDetailedSchemaInfo(id.schemaName())
     val list: List<Pair<String, String>> = newValue.tags?.entries?.map { it.key to it.value } ?: emptyList()
     val groups = listOf(
       KafkaMessagesBundle.message("datamanager.schema.details") to GlueTransforms.getSchemaInfoDetails(newValue.schemaResponse),
@@ -135,14 +133,13 @@ class GlueRegistryDataManager(val dataManager: MonitoringDataManager,
   }
 
   @RequiresBackgroundThread
-  fun loadSchemaVersion(registryName: String, schemaName: String, version: Long): GetSchemaVersionResponse {
-    return client.getSchemaVersion(registryName, schemaName, version)
+  fun loadSchemaVersion(schemaName: String, version: Long): GetSchemaVersionResponse {
+    return client.getSchemaVersion(schemaName, version)
   }
 
 
   @RequiresBackgroundThread
-  fun loadDetailedSchemaInfo(registryName: String,
-                             schemaName: String): GlueSchemaDetailedInfo = client.getDetailedSchema(registryName, schemaName)
+  fun loadDetailedSchemaInfo(schemaName: String): GlueSchemaDetailedInfo = client.getDetailedSchema(schemaName)
 
 
   companion object {

@@ -56,7 +56,7 @@ class GlueRegistryController(project: Project,
                                       Messages.getOkButton(),
                                       Messages.getCancelButton(),
                                       Messages.getQuestionIcon()) == Messages.OK) {
-        dataManager.glueSchemaRegistry?.deleteSchema(registryName = schemaInfo.registryName, schemaName = schemaInfo.schemaName)
+        dataManager.glueSchemaRegistry?.deleteSchema(schemaName = schemaInfo.schemaName)
       }
     }
 

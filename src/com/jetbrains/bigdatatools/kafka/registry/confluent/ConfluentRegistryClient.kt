@@ -20,10 +20,11 @@ class ConfluentRegistryClient(restService: RestService) : Disposable {
                                                   KafkaRegistryUtil.registrySchemaProviders,
                                                   null, null)
 
-  val allSubjects
-    get() = internalClient.allSubjects.filterNotNull()
-
   override fun dispose() {}
+
+  fun checkConnection() {
+    internalClient.mode
+  }
 
   fun getAllSubjects(registryShowDeletedSubjects: Boolean) =
     internalClient.getAllSubjects(registryShowDeletedSubjects)?.toList() ?: emptyList()

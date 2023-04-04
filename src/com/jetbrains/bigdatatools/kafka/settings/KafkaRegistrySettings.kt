@@ -1,16 +1,16 @@
 package com.jetbrains.bigdatatools.kafka.settings
 
 import com.amazonaws.services.schemaregistry.utils.AWSSchemaRegistryConstants
+import com.intellij.bigdatatools.aws.settings.AwsCompatibleConnectionData
+import com.intellij.bigdatatools.aws.ui.external.AwsSettingsForKafka
+import com.intellij.bigdatatools.aws.ui.external.StaticAwsSettingsInfo
+import com.intellij.bigdatatools.aws.utils.AwsSettingsConst
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.observable.util.whenFocusLost
 import com.intellij.openapi.project.Project
 import com.intellij.ui.components.JBPasswordField
 import com.intellij.ui.components.JBTextField
 import com.intellij.ui.dsl.builder.*
-import com.intellij.bigdatatools.aws.settings.AwsCompatibleConnectionData
-import com.intellij.bigdatatools.aws.ui.external.AwsSettingsForKafka
-import com.intellij.bigdatatools.aws.ui.external.StaticAwsSettingsInfo
-import com.intellij.bigdatatools.aws.utils.AwsSettingsConst
 import com.jetbrains.bigdatatools.common.connection.tunnel.ui.SshTunnelComponent
 import com.jetbrains.bigdatatools.common.serializer.BdtJson
 import com.jetbrains.bigdatatools.common.settings.ModificationKey
@@ -260,7 +260,8 @@ class KafkaRegistrySettings(val project: Project,
   }
 
   fun getDefaultFields(): List<WrappedComponent<in KafkaConnectionData>> =
-    listOf(registryType, registrySourceTypeChooser, registryPropertiesEditor, registryUrl, glueSettings, awsAccessKey, awsSecretKey)
+    listOf(registryType, registrySourceTypeChooser, registryPropertiesEditor, registryUrl, glueSettings, awsAccessKey, awsSecretKey,
+           glueRegistryName)
 
   private fun updateRegistryType() {
     when (registryType.getValue()) {

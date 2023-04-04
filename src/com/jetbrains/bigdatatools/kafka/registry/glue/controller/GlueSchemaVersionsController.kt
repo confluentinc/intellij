@@ -51,10 +51,8 @@ class GlueSchemaVersionsController(private val project: Project,
 
       val schemaInfo = dataManager.glueSchemaRegistry?.getDetailedSchema(id) ?: return
       val schemaName = schemaInfo.schemaResponse.schemaName()
-      val registryName = schemaInfo.schemaResponse.registryName()
       executeOnPooledThread {
-        val schemaVersion = dataManager.glueSchemaRegistry.client.getSchemaVersion(registryName, schemaName,
-                                                                                   version = schemaVersionInfo.version)
+        val schemaVersion = dataManager.glueSchemaRegistry.client.getSchemaVersion(schemaName, version = schemaVersionInfo.version)
         invokeLater {
           KafkaSchemaInfoDialog.show(project = project,
                                      schemaType = schemaInfo.schemaResponse.dataFormatAsString(),
@@ -94,11 +92,9 @@ class GlueSchemaVersionsController(private val project: Project,
 
 
       executeOnPooledThread {
-        val versionDetailed1 = dataManager.glueSchemaRegistry.loadSchemaVersion(registryName,
-                                                                                schemaName,
+        val versionDetailed1 = dataManager.glueSchemaRegistry.loadSchemaVersion(schemaName,
                                                                                 versionInfo1.version)
-        val versionDetailed2 = dataManager.glueSchemaRegistry.loadSchemaVersion(registryName,
-                                                                                schemaName,
+        val versionDetailed2 = dataManager.glueSchemaRegistry.loadSchemaVersion(schemaName,
                                                                                 versionInfo2.version)
 
         invokeLater {
