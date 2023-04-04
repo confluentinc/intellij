@@ -1,6 +1,9 @@
 package com.jetbrains.bigdatatools.kafka.rfs
 
 import com.intellij.openapi.project.Project
+import com.jetbrains.bigdatatools.aws.common.settings.AwsCompatibleConnectionData
+import com.jetbrains.bigdatatools.aws.common.ui.external.StaticAwsSettingsInfo
+import com.jetbrains.bigdatatools.common.connection.exception.BdtConfigurationException
 import com.jetbrains.bigdatatools.common.connection.tunnel.model.ConnectionSshTunnelData
 import com.jetbrains.bigdatatools.common.connection.tunnel.model.ConnectionSshTunnelDataLegacy
 import com.jetbrains.bigdatatools.common.connection.tunnel.model.TunnelableData
@@ -8,6 +11,7 @@ import com.jetbrains.bigdatatools.common.connection.tunnel.model.migrateTunnel
 import com.jetbrains.bigdatatools.common.rfs.driver.Driver
 import com.jetbrains.bigdatatools.common.rfs.settings.RemoteFsDriverProvider
 import com.jetbrains.bigdatatools.common.rfs.statistics.DriverType
+import com.jetbrains.bigdatatools.common.serializer.BdtJson
 import com.jetbrains.bigdatatools.common.settings.connections.ConnectionGroup
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryType
 import com.jetbrains.bigdatatools.kafka.settings.KafkaConnectionConfigurable
@@ -31,7 +35,22 @@ class KafkaConnectionData : RemoteFsDriverProvider(KafkaMessagesBundle.message("
   var version: Int? = null
 
 
-  var glueConnectionId: String = ""
+  var glueSettings: String? = null
+
+
+  fun loadAwsGlueSettings(): StaticAwsSettingsInfo? {
+    return if (registryType == KafkaRegistryType.AWS_GLUE) {
+      val settingsInfo = glueSettings?.ifBlank { null }?.let { BdtJson.fromJsonToClass(it, StaticAwsSettingsInfo::class.java) }
+      settingsInfo ?: throw BdtConfigurationException(KafkaMessagesBundle.message("error.configuration.glue.is.not.setup"))
+      val awsCred = getCredentials(AwsCompatibleConnectionData.SECRET_KEY_ID)
+      settingsInfo.copy(accessKey = awsCred?.userName ?: "", secretKey = awsCred?.getPasswordAsString() ?: "")
+    }
+    else {
+      null
+    }
+
+  }
+
   override fun getIcon(): Icon = BigdatatoolsKafkaIcons.Kafka
   override fun createDriverImpl(project: Project?, isTest: Boolean): Driver = KafkaDriver(this, project, testConnection = isTest)
   override fun rfsDriverType() = DriverType.KAFKA

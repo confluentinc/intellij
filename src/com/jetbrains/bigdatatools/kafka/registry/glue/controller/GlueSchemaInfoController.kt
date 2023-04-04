@@ -12,18 +12,18 @@ import com.jetbrains.bigdatatools.common.monitoring.data.model.FieldsGroupModel
 import com.jetbrains.bigdatatools.common.monitoring.toolwindow.AbstractGroupFieldsModelsController
 import com.jetbrains.bigdatatools.common.monitoring.toolwindow.AbstractTableController
 import com.jetbrains.bigdatatools.common.util.ToolbarUtils
-import com.jetbrains.bigdatatools.glue.monitoring.models.GlueSchemaDetailedInfo
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
+import com.jetbrains.bigdatatools.kafka.registry.glue.models.GlueSchemaDetailedInfo
 import com.jetbrains.bigdatatools.kafka.registry.ui.KafkaSchemaInfoDialog
+import com.jetbrains.bigdatatools.kafka.toolwindow.config.KafkaToolWindowSettings
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
-import org.com.jetbrains.bigdatatools.aws.emr.settings.EmrToolWindowSettings
 import software.amazon.awssdk.services.glue.model.SchemaId
 import java.awt.BorderLayout
 
 class GlueSchemaInfoController(project: Project, override val dataManager: KafkaDataManager) :
   AbstractGroupFieldsModelsController<SchemaId>(project, dataManager.connectionData.innerId) {
 
-  override val toolWindowSettings = EmrToolWindowSettings.getInstance()
+  override val toolWindowSettings = KafkaToolWindowSettings.getInstance()
 
   private val showSchema = object : DumbAwareAction(KafkaMessagesBundle.message("show.schema.info"), null,
                                                     AllIcons.Actions.ToggleVisibility) {

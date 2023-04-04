@@ -13,7 +13,7 @@ import com.intellij.ui.components.JBTextField
 import com.intellij.ui.dsl.builder.*
 import com.jetbrains.bigdatatools.aws.common.connection.auth.AuthenticationType
 import com.jetbrains.bigdatatools.aws.common.ui.external.AwsSettingsForKafka
-import com.jetbrains.bigdatatools.aws.common.ui.external.AwsSettingsInfo
+import com.jetbrains.bigdatatools.aws.common.ui.external.StaticAwsSettingsInfo
 import com.jetbrains.bigdatatools.common.settings.connections.ConnectionData
 import com.jetbrains.bigdatatools.common.settings.fields.*
 import com.jetbrains.bigdatatools.common.settings.kerberos.BdtJaasConfig
@@ -262,9 +262,7 @@ class KafkaBrokerSettings(val project: Project,
       }
     }
 
-    awsMskSettingsRows = indent {
-      awsMskSettings.getComponentRows(this)
-    }
+    awsMskSettingsRows = awsMskSettings.getComponentRows(this)
   }
 
   private fun updatePropertiesField() {
@@ -321,12 +319,14 @@ class KafkaBrokerSettings(val project: Project,
                         SaslConfigs.SASL_JAAS_CONFIG to jaasConfig)
       }
       KafkaAuthMethod.SSL -> {
+        @Suppress("DEPRECATION")
         result += mapOf(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG to SecurityProtocol.SSL.name,
                         SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG to sslTruststoreLocation.component.text.ifBlank { null },
                         SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG to sslTruststorePassword.component.text.ifBlank { null })
         if (!sslEnableValidateHostname.component.isSelected)
           result += mapOf(SslConfigs.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG to "")
         if (sslUseKeystore.component.isEnabled) {
+          @Suppress("DEPRECATION")
           result += mapOf(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG to sslKeystoreLocation.component.text.ifBlank { null },
                           SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG to sslKeystorePassword.component.text.ifBlank { null },
                           SslConfigs.SSL_KEY_PASSWORD_CONFIG to sslKeyPassword.component.text.ifBlank { null })
@@ -335,8 +335,8 @@ class KafkaBrokerSettings(val project: Project,
       KafkaAuthMethod.AWS_IAM -> {
         val info = awsMskSettings.getInfo()
         val jaasConfig = when (info?.authenticationType) {
-          AuthenticationType.KEY_PAIR, AuthenticationType.DEFAULT -> "software.amazon.msk.auth.iam.IAMLoginModule required ;"
-          AuthenticationType.PROFILE_FROM_CREDENTIALS_FILE -> "software.amazon.msk.auth.iam.IAMLoginModule required awsProfileName='${info.profile ?: "<NOT_SELECTED>"}';"
+          AuthenticationType.KEY_PAIR.id, AuthenticationType.DEFAULT.id -> "software.amazon.msk.auth.iam.IAMLoginModule required ;"
+          AuthenticationType.PROFILE_FROM_CREDENTIALS_FILE.id -> "software.amazon.msk.auth.iam.IAMLoginModule required awsProfileName='${info.profile ?: "<NOT_SELECTED>"}';"
           else -> null
         }
         result += mapOf(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG to SecurityProtocol.SASL_SSL.name,
@@ -407,6 +407,8 @@ class KafkaBrokerSettings(val project: Project,
   }
 
   private fun setAwsProperties(properties: Map<String, String>) {
+    authMethod.selectedItem = KafkaAuthMethod.AWS_IAM
+
     val jaasConfig = properties[SaslConfigs.SASL_JAAS_CONFIG] ?: return
     val bdtJaasConfig = try {
       BdtJaasConfig(jaasConfig).config?.options?.map { it.key.lowercase() to (it.value?.toString() ?: "") }?.toMap() ?: return
@@ -424,11 +426,12 @@ class KafkaBrokerSettings(val project: Project,
       else -> AuthenticationType.KEY_PAIR
     }
 
-    val info = AwsSettingsInfo(
-      authType,
+    val info = StaticAwsSettingsInfo(
+      authType.id,
       profile = profile,
       accessKey = accessKey,
-      secretKey = secretKey
+      secretKey = secretKey,
+      region = null,
     )
     awsMskSettings.loadInfo(info)
   }
@@ -442,9 +445,9 @@ class KafkaBrokerSettings(val project: Project,
     when (confSource.getValue()) {
       KafkaConfigurationSource.FROM_UI -> {
         setKafkaPropertiesToUi()
+        updateVisibilityOfAuth()
       }
       KafkaConfigurationSource.FROM_PROPERTIES -> {
-        updateVisibilityOfAuth()
         onUpdatePropertiesSource()
       }
     }

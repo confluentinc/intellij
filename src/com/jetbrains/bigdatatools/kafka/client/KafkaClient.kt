@@ -1,31 +1,26 @@
 package com.jetbrains.bigdatatools.kafka.client
 
-import com.amazonaws.services.schemaregistry.utils.AWSSchemaRegistryConstants
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.util.net.NetUtils
 import com.jetbrains.bigdatatools.aws.common.ui.external.AwsSettingsForKafka
-import com.jetbrains.bigdatatools.common.connection.exception.BdtConfigurationException
 import com.jetbrains.bigdatatools.common.connection.exception.BdtConnectionException
 import com.jetbrains.bigdatatools.common.connection.exception.BdtHostUnavailableException
 import com.jetbrains.bigdatatools.common.connection.exception.BdtUnexpectedConnectionException
 import com.jetbrains.bigdatatools.common.monitoring.connection.MonitoringClient
-import com.jetbrains.bigdatatools.common.rfs.driver.manager.DriverManager
 import com.jetbrains.bigdatatools.common.settings.components.BdtPropertyComponent
 import com.jetbrains.bigdatatools.common.settings.connections.Property
-import com.jetbrains.bigdatatools.common.settings.manager.RfsConnectionDataManager
 import com.jetbrains.bigdatatools.common.util.BdIdeRegistryUtil
 import com.jetbrains.bigdatatools.common.util.BdtUrlUtils
 import com.jetbrains.bigdatatools.common.util.withPluginClassLoader
-import com.jetbrains.bigdatatools.glue.client.BdtGlueClient
-import com.jetbrains.bigdatatools.glue.rfs.GlueDriver
 import com.jetbrains.bigdatatools.kafka.model.ConsumerGroupPresentable
 import com.jetbrains.bigdatatools.kafka.model.TopicConfig
 import com.jetbrains.bigdatatools.kafka.model.TopicPresentable
 import com.jetbrains.bigdatatools.kafka.producer.client.KafkaProducerClient
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryType
 import com.jetbrains.bigdatatools.kafka.registry.confluent.ConfluentRegistryClient
+import com.jetbrains.bigdatatools.kafka.registry.glue.BdtGlueRegistryClient
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaConnectionData
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaPropertySource
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
@@ -54,7 +49,7 @@ class KafkaClient(project: Project?,
   var confluentRegistryClient: ConfluentRegistryClient? = null
     private set
 
-  var glueRegistryClient: BdtGlueClient? = null
+  var glueRegistryClient: BdtGlueRegistryClient? = null
     private set
 
 
@@ -85,8 +80,11 @@ class KafkaClient(project: Project?,
         confluentRegistryClient = ConfluentRegistryClient.createFor(project, connectionData, testConnection)
       }
       KafkaRegistryType.AWS_GLUE -> {
-        val glueDriver = getGlueDriver()
-        glueRegistryClient = glueDriver.dataManager.client
+        glueRegistryClient = createGlueClient()
+        glueRegistryClient?.connect(calledByUser)
+        glueRegistryClient?.let {
+          Disposer.register(this, it)
+        }
       }
     }
     confluentRegistryClient = ConfluentRegistryClient.createFor(project, connectionData, testConnection)
@@ -239,10 +237,7 @@ class KafkaClient(project: Project?,
           props[it.name ?: ""] = it.value ?: ""
         }
       }
-      KafkaRegistryType.AWS_GLUE -> {
-        val glueConnData = getGlueDriver().connectionData
-        props[AWSSchemaRegistryConstants.AWS_REGION] = glueConnData.region
-      }
+      KafkaRegistryType.AWS_GLUE -> {}
     }
 
 
@@ -266,6 +261,7 @@ class KafkaClient(project: Project?,
   private fun checkRegistryClient() {
     try {
       confluentRegistryClient?.allSubjects
+      glueRegistryClient?.checkConnection()
     }
     catch (t: Throwable) {
       throw BdtConnectionException(KafkaMessagesBundle.message("connection.kafka.registry.is.not.available"), t)
@@ -310,18 +306,10 @@ class KafkaClient(project: Project?,
     secretKey?.let { System.setProperty(AwsSettingsForKafka.AWS_SECRET_KEY, it) }
   }
 
-  private fun getGlueDriver(): GlueDriver {
-    val glueConnectionId = connectionData.glueConnectionId.ifBlank { null } ?: throw BdtConfigurationException(
-      KafkaMessagesBundle.message("error.glue.connection.is.not.found"))
-    val connection = RfsConnectionDataManager.instance?.getConnectionById(project, glueConnectionId) ?: throw BdtConfigurationException(
-      KafkaMessagesBundle.message("error.glue.connection.is.not.found"))
 
-    if (!connection.isEnabled) {
-      throw BdtConfigurationException(
-        KafkaMessagesBundle.message("error.glue.connection.is.disabled"))
-    }
-    val glueDriver = DriverManager.getDriverById(project, connection.innerId) as GlueDriver
-    return glueDriver
+  private fun createGlueClient(): BdtGlueRegistryClient? {
+    val awsSettingsInfo = connectionData.loadAwsGlueSettings() ?: return null
+    return BdtGlueRegistryClient(project, awsSettingsInfo)
   }
 
   companion object {

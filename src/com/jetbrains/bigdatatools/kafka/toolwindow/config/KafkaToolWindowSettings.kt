@@ -7,10 +7,10 @@ import com.intellij.openapi.components.Storage
 import com.intellij.util.xmlb.XmlSerializerUtil
 import com.jetbrains.bigdatatools.common.connection.updater.IntervalUpdateSettings
 import com.jetbrains.bigdatatools.common.settings.ColumnVisibilitySettings
-import com.jetbrains.bigdatatools.glue.monitoring.models.GlueSchemaInfo
-import com.jetbrains.bigdatatools.glue.monitoring.models.GlueSchemaVersionInfo
 import com.jetbrains.bigdatatools.kafka.model.SchemaRegistryFieldsInfo
 import com.jetbrains.bigdatatools.kafka.registry.confluent.ConfluentSchemaInfo
+import com.jetbrains.bigdatatools.kafka.registry.glue.models.GlueSchemaInfo
+import com.jetbrains.bigdatatools.kafka.registry.glue.models.GlueSchemaVersionInfo
 
 @State(name = "KafkaSettings", storages = [Storage("kafka.xml")])
 class KafkaToolWindowSettings : PersistentStateComponent<KafkaToolWindowSettings>, IntervalUpdateSettings {
