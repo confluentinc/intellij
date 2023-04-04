@@ -7,11 +7,15 @@ import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.Messages
-import com.jetbrains.bigdatatools.common.monitoring.toolwindow.DetailsTableMonitoringController
+import com.jetbrains.bigdatatools.common.monitoring.table.extension.TableColumnsFitter
+import com.jetbrains.bigdatatools.common.monitoring.table.extension.TableLoadingDecorator
+import com.jetbrains.bigdatatools.common.monitoring.toolwindow.DetailsMonitoringController
+import com.jetbrains.bigdatatools.common.monitoring.toolwindow.TableWithDetailsMonitoringController
 import com.jetbrains.bigdatatools.common.util.executeOnPooledThread
 import com.jetbrains.bigdatatools.common.util.invokeLater
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.registry.glue.models.GlueSchemaVersionInfo
+import com.jetbrains.bigdatatools.kafka.registry.glue.models.SchemaVersionId
 import com.jetbrains.bigdatatools.kafka.registry.ui.KafkaSchemaInfoDialog
 import com.jetbrains.bigdatatools.kafka.toolwindow.config.KafkaToolWindowSettings
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
@@ -19,7 +23,9 @@ import software.amazon.awssdk.services.glue.model.SchemaId
 import javax.swing.ListSelectionModel
 
 class GlueSchemaVersionsController(private val project: Project,
-                                   private val dataManager: KafkaDataManager) : DetailsTableMonitoringController<GlueSchemaVersionInfo, SchemaId>() {
+                                   private val dataManager: KafkaDataManager) : TableWithDetailsMonitoringController<GlueSchemaVersionInfo, SchemaVersionId>(),
+                                                                                DetailsMonitoringController<SchemaId> {
+  private var selectedId: SchemaId? = null
 
   private val deleteSchema = object : DumbAwareAction(KafkaMessagesBundle.message("action.remove.version.title"), null,
                                                       AllIcons.General.Remove) {
@@ -109,7 +115,6 @@ class GlueSchemaVersionsController(private val project: Project,
         }
       }
 
-
     }
 
     override fun update(e: AnActionEvent) {
@@ -119,10 +124,18 @@ class GlueSchemaVersionsController(private val project: Project,
     override fun getActionUpdateThread() = ActionUpdateThread.BGT
   }
 
+  override val detailsController = GlueSchemaFieldsController(dataManager)
+
   init {
     init()
     dataTable.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION)
   }
+
+  override fun indexToDetailId(modelIndex: Int): SchemaVersionId? {
+    return dataTable.tableModel.getInfoAt(modelIndex)?.schemaVersionId
+  }
+
+  override fun saveSelectedItem() {}
 
   override fun getAdditionalActions(): List<AnAction> = listOf(deleteSchema, viewSchema, showDiff)
 
@@ -133,4 +146,18 @@ class GlueSchemaVersionsController(private val project: Project,
   override fun getRenderableColumns() = GlueSchemaVersionInfo.renderableColumns
 
   override fun getDataModel() = selectedId?.let { dataManager.glueSchemaRegistry?.getRegistrySchemaVersionsModel(it) }
+
+  override fun setDetailsId(id: SchemaId) {
+    selectedId = id
+
+    val model = getDataModel() ?: return
+    dataTable.tableModel.setDataModel(model)
+
+    TableColumnsFitter.get(dataTable)?.reset()
+    TableLoadingDecorator.installOn(dataTable)
+
+    decoratedTableComponent.revalidate()
+    decoratedTableComponent.repaint()
+  }
+
 }

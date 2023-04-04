@@ -8,13 +8,11 @@ import software.amazon.awssdk.services.glue.model.SchemaId
 
 class GlueTabController(project: Project,
                         dataManager: KafkaDataManager) : TabbedDetailsMonitoringController<SchemaId>(project) {
-  private val fieldsController = GlueSchemaFieldsController(dataManager)
   private val versionsController = GlueSchemaVersionsController(project, dataManager)
   private val schemaInfoController = GlueSchemaInfoController(project, dataManager)
 
   override val tabsControllers = listOf(
     KafkaMessagesBundle.message("registry.tab.schema.info") to schemaInfoController,
-    KafkaMessagesBundle.message("registry.tab.fields") to fieldsController,
     KafkaMessagesBundle.message("registry.tab.versions") to versionsController
   )
 

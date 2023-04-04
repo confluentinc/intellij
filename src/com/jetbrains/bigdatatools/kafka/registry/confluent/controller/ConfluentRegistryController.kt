@@ -21,7 +21,7 @@ import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 class ConfluentRegistryController(project: Project,
                                   val dataManager: KafkaDataManager) : TableWithDetailsMonitoringController<ConfluentSchemaInfo, String>() {
   private val model: ObjectDataModel<ConfluentSchemaInfo> = dataManager.confluentSchemaRegistry?.schemaRegistryModel!!
-  override val detailsController = ConfluentTabController(project, dataManager)
+  override val detailsController = ConfluentSchemaVersionsController(project, dataManager)
 
   private val showDeleted = object : DumbAwareToggleAction(KafkaMessagesBundle.message("action.show.deleted.subject.title"),
                                                            null, AllIcons.General.Filter) {

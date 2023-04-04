@@ -22,6 +22,7 @@ import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryUtil
 import com.jetbrains.bigdatatools.kafka.registry.glue.models.GlueSchemaDetailedInfo
 import com.jetbrains.bigdatatools.kafka.registry.glue.models.GlueSchemaInfo
 import com.jetbrains.bigdatatools.kafka.registry.glue.models.GlueSchemaVersionInfo
+import com.jetbrains.bigdatatools.kafka.registry.glue.models.SchemaVersionId
 import com.jetbrains.bigdatatools.kafka.registry.glue.ui.GlueTransforms
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaDriver
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
@@ -58,7 +59,7 @@ class GlueRegistryDataManager(val dataManager: MonitoringDataManager,
   }
 
 
-  fun getRegistrySchemaFieldsModel(id: SchemaId): ObjectDataModel<SchemaRegistryFieldsInfo> = schemaFieldsModels[id]
+  fun getRegistrySchemaFieldsModel(id: SchemaVersionId): ObjectDataModel<SchemaRegistryFieldsInfo> = schemaFieldsModels[id]
   fun getRegistrySchemaVersionsModel(id: SchemaId): ObjectDataModel<GlueSchemaVersionInfo> = schemaVersionsModels[id]
   fun getRegistrySchemaInfoModel(id: SchemaId): FieldsGroupModel<GlueSchemaDetailedInfo> = schemaDetailsModels[id]
 
@@ -106,14 +107,14 @@ class GlueRegistryDataManager(val dataManager: MonitoringDataManager,
   }
 
 
-  private fun createSchemaFieldsStorage() = ObjectDataModelStorage<SchemaId, SchemaRegistryFieldsInfo>(dataManager.updater,
-                                                                                                       SchemaRegistryFieldsInfo::name) {
+  private fun createSchemaFieldsStorage() = ObjectDataModelStorage<SchemaVersionId, SchemaRegistryFieldsInfo>(dataManager.updater,
+                                                                                                              SchemaRegistryFieldsInfo::name) {
 
-    val detailedInfo = loadDetailedSchemaInfo(it.schemaName())
+    val detailedInfo = loadSchemaVersion(it.schemaId.schemaName(), it.versionId)
 
     val schema = try {
-      KafkaRegistryUtil.parseSchema(schemaType = detailedInfo.schemaResponse.dataFormatAsString(),
-                                    newText = detailedInfo.versionResponse.schemaDefinition() ?: "").getOrThrow()
+      KafkaRegistryUtil.parseSchema(schemaType = detailedInfo.dataFormatAsString(),
+                                    newText = detailedInfo.schemaDefinition() ?: "").getOrThrow()
     }
     catch (t: Throwable) {
       null
