@@ -14,6 +14,8 @@ data class GlueSchemaVersionInfo(
   val status: String,
   @NoRendering val schemaId: SchemaId,
 ) : RemoteInfo {
+  @NoRendering
+  val schemaVersionId = SchemaVersionId(schemaId, version)
   companion object {
     val renderableColumns: List<KProperty1<GlueSchemaVersionInfo, *>> by lazy {
       GlueSchemaVersionInfo::class.declaredMemberProperties.filter { DataRenderingUtil.shouldRenderFrom(it.javaField?.annotations) }

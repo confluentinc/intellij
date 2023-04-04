@@ -8,7 +8,10 @@ import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.Messages
 import com.intellij.util.PairFunction
-import com.jetbrains.bigdatatools.common.monitoring.toolwindow.DetailsTableMonitoringController
+import com.jetbrains.bigdatatools.common.monitoring.table.extension.TableColumnsFitter
+import com.jetbrains.bigdatatools.common.monitoring.table.extension.TableLoadingDecorator
+import com.jetbrains.bigdatatools.common.monitoring.toolwindow.DetailsMonitoringController
+import com.jetbrains.bigdatatools.common.monitoring.toolwindow.TableWithDetailsMonitoringController
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.registry.confluent.ConfluentSchemaInfo
 import com.jetbrains.bigdatatools.kafka.registry.ui.KafkaSchemaInfoDialog
@@ -18,7 +21,9 @@ import javax.swing.JCheckBox
 import javax.swing.ListSelectionModel
 
 class ConfluentSchemaVersionsController(private val project: Project,
-                                        private val dataManager: KafkaDataManager) : DetailsTableMonitoringController<ConfluentSchemaInfo, String>() {
+                                        private val dataManager: KafkaDataManager) : TableWithDetailsMonitoringController<ConfluentSchemaInfo, String>(),
+                                                                                     DetailsMonitoringController<String> {
+  private var selectedId: String? = null
 
   private val deleteSchema = object : DumbAwareAction(KafkaMessagesBundle.message("action.remove.version.title"), null,
                                                       AllIcons.General.Remove) {
@@ -86,6 +91,8 @@ class ConfluentSchemaVersionsController(private val project: Project,
     override fun getActionUpdateThread() = ActionUpdateThread.BGT
   }
 
+  override val detailsController = ConfluentSchemaFieldsController(project, dataManager)
+
   init {
     init()
     dataTable.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION)
@@ -100,4 +107,23 @@ class ConfluentSchemaVersionsController(private val project: Project,
   override fun getRenderableColumns() = ConfluentSchemaInfo.renderableColumns
 
   override fun getDataModel() = selectedId?.let { dataManager.confluentSchemaRegistry?.getRegistrySchemaVersionsModel(it.toInt()) }
+
+
+  override fun indexToDetailId(modelIndex: Int): String? {
+    return dataTable.tableModel.getInfoAt(modelIndex)?.id?.toString()
+  }
+
+  override fun saveSelectedItem() {}
+  override fun setDetailsId(id: String) {
+    selectedId = id
+
+    val model = getDataModel() ?: return
+    dataTable.tableModel.setDataModel(model)
+
+    TableColumnsFitter.get(dataTable)?.reset()
+    TableLoadingDecorator.installOn(dataTable)
+
+    decoratedTableComponent.revalidate()
+    decoratedTableComponent.repaint()
+  }
 }
