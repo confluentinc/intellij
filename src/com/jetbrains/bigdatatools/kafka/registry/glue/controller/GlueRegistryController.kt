@@ -11,9 +11,9 @@ import com.intellij.openapi.ui.Messages
 import com.jetbrains.bigdatatools.common.monitoring.data.model.ObjectDataModel
 import com.jetbrains.bigdatatools.common.monitoring.toolwindow.TableWithDetailsMonitoringController
 import com.jetbrains.bigdatatools.common.settings.ColumnVisibilitySettings
-import com.jetbrains.bigdatatools.glue.monitoring.models.GlueSchemaInfo
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryAddSchemaDialog
+import com.jetbrains.bigdatatools.kafka.registry.glue.models.GlueSchemaInfo
 import com.jetbrains.bigdatatools.kafka.toolwindow.config.KafkaToolWindowSettings
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import software.amazon.awssdk.services.glue.model.SchemaId

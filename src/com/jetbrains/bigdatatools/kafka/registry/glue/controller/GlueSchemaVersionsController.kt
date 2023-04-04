@@ -10,8 +10,8 @@ import com.intellij.openapi.ui.Messages
 import com.jetbrains.bigdatatools.common.monitoring.toolwindow.DetailsTableMonitoringController
 import com.jetbrains.bigdatatools.common.util.executeOnPooledThread
 import com.jetbrains.bigdatatools.common.util.invokeLater
-import com.jetbrains.bigdatatools.glue.monitoring.models.GlueSchemaVersionInfo
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
+import com.jetbrains.bigdatatools.kafka.registry.glue.models.GlueSchemaVersionInfo
 import com.jetbrains.bigdatatools.kafka.registry.ui.KafkaSchemaInfoDialog
 import com.jetbrains.bigdatatools.kafka.toolwindow.config.KafkaToolWindowSettings
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle

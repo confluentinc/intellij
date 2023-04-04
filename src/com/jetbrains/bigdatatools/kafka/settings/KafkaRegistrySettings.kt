@@ -6,18 +6,19 @@ import com.intellij.openapi.project.Project
 import com.intellij.ui.components.JBPasswordField
 import com.intellij.ui.components.JBTextField
 import com.intellij.ui.dsl.builder.*
+import com.jetbrains.bigdatatools.aws.common.settings.AwsCompatibleConnectionData
+import com.jetbrains.bigdatatools.aws.common.ui.external.AwsSettingsForKafka
+import com.jetbrains.bigdatatools.aws.common.ui.external.StaticAwsSettingsInfo
+import com.jetbrains.bigdatatools.aws.common.utils.AwsSettingsConst
 import com.jetbrains.bigdatatools.common.connection.tunnel.ui.SshTunnelComponent
-import com.jetbrains.bigdatatools.common.constants.BdtConnectionType
+import com.jetbrains.bigdatatools.common.serializer.BdtJson
 import com.jetbrains.bigdatatools.common.settings.ModificationKey
 import com.jetbrains.bigdatatools.common.settings.fields.*
-import com.jetbrains.bigdatatools.common.settings.manager.RfsConnectionDataManager
 import com.jetbrains.bigdatatools.common.settings.withUrlValidator
 import com.jetbrains.bigdatatools.common.ui.block
 import com.jetbrains.bigdatatools.common.ui.components.RadioComboBox
 import com.jetbrains.bigdatatools.common.ui.row
 import com.jetbrains.bigdatatools.common.ui.shortRow
-import com.jetbrains.bigdatatools.common.util.BdtUrlUtils
-import com.jetbrains.bigdatatools.common.util.MessagesBundle
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryType
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaConfigurationSource
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaConnectionData
@@ -80,11 +81,20 @@ class KafkaRegistrySettings(val project: Project,
     }
   }
 
-  private val glueConnectionComboBox = ComboBoxField(KafkaConnectionData::glueConnectionId,
-                                                     ModificationKey(KafkaMessagesBundle.message("settings.glue.driver.id")),
-                                                     connectionData,
-                                                     getGlueDriversIds(),
-                                                     ::getSparkMonitoringConnectionNames)
+  private val awsAccessKey = UsernameNamedField(AwsSettingsConst.S3_ACCESS_KEY, connectionData,
+                                                AwsCompatibleConnectionData.SECRET_KEY_ID)
+
+  private val awsSecretKey = PasswordNamedField(AwsSettingsConst.S3_SECRET_KEY, connectionData,
+                                                AwsCompatibleConnectionData.SECRET_KEY_ID)
+
+  private val glueSettings = StringNonRequiredField(
+    KafkaConnectionData::glueSettings,
+    ModificationKey("GlueSettings"), connectionData)
+
+
+  private val awsGlueSettings = AwsSettingsForKafka(includeRegionSetting = true) {
+    saveGlueSettings()
+  }
 
 
   private lateinit var confluentGroup: RowsRange
@@ -107,12 +117,8 @@ class KafkaRegistrySettings(val project: Project,
     group(KafkaMessagesBundle.message("settings.registry.title")) {
       shortRow(registryType)
       confluentGroup = confluentSettings()
-      glueGroup = rowsRange {
-        row {
-          label(KafkaMessagesBundle.message("settings.glue.driver.id"))
-          cell(glueConnectionComboBox.getComponent())
-        }
-      }
+      glueGroup = awsGlueSettings.getComponentRows(this)
+      initGlueSettings(awsGlueSettings)
       updateRegistryType()
     }
   }
@@ -240,7 +246,7 @@ class KafkaRegistrySettings(val project: Project,
   }
 
   fun getDefaultFields(): List<WrappedComponent<in KafkaConnectionData>> =
-    listOf(registryType, registrySourceTypeChooser, registryPropertiesEditor, registryUrl, glueConnectionComboBox)
+    listOf(registryType, registrySourceTypeChooser, registryPropertiesEditor, registryUrl, glueSettings, awsAccessKey, awsSecretKey)
 
   private fun updateRegistryType() {
     when (registryType.getValue()) {
@@ -261,15 +267,20 @@ class KafkaRegistrySettings(val project: Project,
     }
   }
 
-  private fun getGlueDriversIds(): Array<String> {
-    val connections = RfsConnectionDataManager.instance?.getConnectionsByGroupId(BdtConnectionType.GLUE.id, project) ?: emptyList()
-    return if (connections.isEmpty()) arrayOf("") else arrayOf("") + connections.map { it.innerId }.toTypedArray()
+  private fun initGlueSettings(it: AwsSettingsForKafka) {
+    val jsonSettings = glueSettings.getTextComponent().text.ifBlank { null } ?: return
+    val info = BdtJson.fromJsonToClass(jsonSettings, StaticAwsSettingsInfo::class.java)
+    it.loadInfo(info.copy(accessKey = awsAccessKey.getComponent().text, secretKey = awsSecretKey.getComponent().text))
+    awsGlueSettings.updateVisibility()
   }
 
-  private fun getSparkMonitoringConnectionNames(innerId: String): String? {
-    return RfsConnectionDataManager.instance?.getConnectionById(project, innerId)?.name
+  private fun saveGlueSettings() {
+    val awsSettingsInfo = awsGlueSettings.getInfo() ?: return
+    awsAccessKey.getComponent().text = awsSettingsInfo.accessKey
+    awsSecretKey.getComponent().text = awsSettingsInfo.secretKey
+    val newValue = BdtJson.toJson(awsSettingsInfo.copy(accessKey = null, secretKey = null))
+    glueSettings.getTextComponent().text = newValue
   }
-
 
   companion object {
     private const val SUPPORT_REGISTRY_BASIC_AUTH_TYPE = "USER_INFO"

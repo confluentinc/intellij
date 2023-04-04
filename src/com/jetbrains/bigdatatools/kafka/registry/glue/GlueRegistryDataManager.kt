@@ -17,13 +17,12 @@ import com.jetbrains.bigdatatools.common.rfs.driver.manager.DriverManager
 import com.jetbrains.bigdatatools.common.util.executeOnPooledThread
 import com.jetbrains.bigdatatools.common.util.runAsync
 import com.jetbrains.bigdatatools.common.util.withCatchNotifyErrorDialog
-import com.jetbrains.bigdatatools.glue.client.BdtGlueClient
-import com.jetbrains.bigdatatools.glue.monitoring.models.GlueSchemaDetailedInfo
-import com.jetbrains.bigdatatools.glue.monitoring.models.GlueSchemaInfo
-import com.jetbrains.bigdatatools.glue.monitoring.models.GlueSchemaVersionInfo
-import com.jetbrains.bigdatatools.glue.utils.GlueTransforms
 import com.jetbrains.bigdatatools.kafka.model.SchemaRegistryFieldsInfo
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryUtil
+import com.jetbrains.bigdatatools.kafka.registry.glue.models.GlueSchemaDetailedInfo
+import com.jetbrains.bigdatatools.kafka.registry.glue.models.GlueSchemaInfo
+import com.jetbrains.bigdatatools.kafka.registry.glue.models.GlueSchemaVersionInfo
+import com.jetbrains.bigdatatools.kafka.registry.glue.ui.GlueTransforms
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaDriver
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import software.amazon.awssdk.services.glue.model.Compatibility
@@ -32,12 +31,12 @@ import software.amazon.awssdk.services.glue.model.GetSchemaVersionResponse
 import software.amazon.awssdk.services.glue.model.SchemaId
 
 class GlueRegistryDataManager(val dataManager: MonitoringDataManager,
-                              val clientRetriever: () -> BdtGlueClient?) : Disposable {
-  val client: BdtGlueClient
+                              val clientRetriever: () -> BdtGlueRegistryClient?) : Disposable {
+  val client: BdtGlueRegistryClient
     get() = clientRetriever() ?: throw BdtConnectionException(KafkaMessagesBundle.message("error.glue.client.is.not.inited"))
 
   val region: String
-    get() = client.connData.region
+    get() = client.awsSettings.region ?: ""
 
   internal val schemaModel = createSchemaRegistryDataModel().also {
     Disposer.register(this, it)

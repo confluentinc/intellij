@@ -75,7 +75,6 @@
         </SOURCES>
       </library>
     </orderEntry>
-    <orderEntry type="module" module-name="intellij.bigdatatools.hdfs" />
     <orderEntry type="library" name="apache.avro" level="project" />
     <orderEntry type="library" name="protobuf" level="project" />
     <orderEntry type="module" module-name="intellij.platform.diff" />
@@ -237,7 +236,6 @@
     <orderEntry type="module" module-name="intellij.platform.diff.impl" />
     <orderEntry type="module" module-name="intellij.platform.ide.util.io" />
     <orderEntry type="library" name="software.amazon.awssdk.glue" level="project" />
-    <orderEntry type="module" module-name="intellij.bigdatatools.glue" />
     <orderEntry type="module-library">
       <library name="software.amazon.glue.schema.registry.serde" type="repository">
         <properties maven-id="software.amazon.glue:schema-registry-serde:1.1.15">
