@@ -57,6 +57,11 @@ class BdtGlueRegistryClient(project: Project?,
 
   }
 
+  fun listRegistries(): List<RegistryListItem> {
+    val request = ListRegistriesRequest.builder().build()
+    return client!!.listRegistries(request).registries()
+  }
+
   fun listSchemas(registryName: String?): List<GlueSchemaInfo> {
     val registryId = registryName?.let { RegistryId.builder().registryName(registryName).build() }
     val request = ListSchemasRequest.builder().registryId(registryId).build()

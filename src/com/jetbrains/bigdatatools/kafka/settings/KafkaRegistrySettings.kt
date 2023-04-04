@@ -1,5 +1,6 @@
 package com.jetbrains.bigdatatools.kafka.settings
 
+import com.amazonaws.services.schemaregistry.utils.AWSSchemaRegistryConstants
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.observable.util.whenFocusLost
 import com.intellij.openapi.project.Project
@@ -91,6 +92,15 @@ class KafkaRegistrySettings(val project: Project,
     KafkaConnectionData::glueSettings,
     ModificationKey("GlueSettings"), connectionData)
 
+  private val glueRegistryName = LoadingChooserComponent(
+    KafkaConnectionData::glueRegistryName,
+    ModificationKey(KafkaMessagesBundle.message("settings.glue.registry.name")),
+    connectionData,
+    AWSSchemaRegistryConstants.DEFAULT_REGISTRY_NAME,
+    isEditable= true,
+  ) {
+    KafkaUIUtils.showAndGetGlueRegistry(project,awsGlueSettings.getInfo())
+  }
 
   private val awsGlueSettings = AwsSettingsForKafka(includeRegionSetting = true) {
     saveGlueSettings()
@@ -117,7 +127,11 @@ class KafkaRegistrySettings(val project: Project,
     group(KafkaMessagesBundle.message("settings.registry.title")) {
       shortRow(registryType)
       confluentGroup = confluentSettings()
-      glueGroup = awsGlueSettings.getComponentRows(this)
+      glueGroup = rowsRange {
+        row(glueRegistryName)
+        awsGlueSettings.getComponentRows(this)
+      }
+
       initGlueSettings(awsGlueSettings)
       updateRegistryType()
     }
@@ -275,7 +289,7 @@ class KafkaRegistrySettings(val project: Project,
   }
 
   private fun saveGlueSettings() {
-    val awsSettingsInfo = awsGlueSettings.getInfo() ?: return
+    val awsSettingsInfo = awsGlueSettings.getInfo()
     awsAccessKey.getComponent().text = awsSettingsInfo.accessKey
     awsSecretKey.getComponent().text = awsSettingsInfo.secretKey
     val newValue = BdtJson.toJson(awsSettingsInfo.copy(accessKey = null, secretKey = null))

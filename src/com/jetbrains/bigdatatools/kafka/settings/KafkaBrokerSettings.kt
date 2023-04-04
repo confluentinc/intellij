@@ -1,5 +1,8 @@
 package com.jetbrains.bigdatatools.kafka.settings
 
+import com.intellij.bigdatatools.aws.connection.auth.AuthenticationType
+import com.intellij.bigdatatools.aws.ui.external.AwsSettingsForKafka
+import com.intellij.bigdatatools.aws.ui.external.StaticAwsSettingsInfo
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory
 import com.intellij.openapi.observable.util.whenFocusLost
@@ -11,9 +14,6 @@ import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.components.JBPasswordField
 import com.intellij.ui.components.JBTextField
 import com.intellij.ui.dsl.builder.*
-import com.intellij.bigdatatools.aws.connection.auth.AuthenticationType
-import com.intellij.bigdatatools.aws.ui.external.AwsSettingsForKafka
-import com.intellij.bigdatatools.aws.ui.external.StaticAwsSettingsInfo
 import com.jetbrains.bigdatatools.common.settings.connections.ConnectionData
 import com.jetbrains.bigdatatools.common.settings.fields.*
 import com.jetbrains.bigdatatools.common.settings.kerberos.BdtJaasConfig
@@ -262,7 +262,7 @@ class KafkaBrokerSettings(val project: Project,
       }
     }
 
-    awsMskSettingsRows = awsMskSettings.getComponentRows(this)
+    awsMskSettingsRows = indent { awsMskSettings.getComponentRows(this) }
   }
 
   private fun updatePropertiesField() {
