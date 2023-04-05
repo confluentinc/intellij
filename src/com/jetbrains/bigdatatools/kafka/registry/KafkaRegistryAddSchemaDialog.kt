@@ -25,6 +25,7 @@ import javax.swing.JTextField
 
 class KafkaRegistryAddSchemaDialog(project: Project, val dataManager: KafkaDataManager) :
   DialogWrapper(project, false, IdeModalityType.MODELESS) {
+  private val isConfluentSchema = dataManager.connectionData.registryType == KafkaRegistryType.CONFLUENT
 
   private val formatCombobox = ComboBox(KafkaRegistryFormat.values()).apply {
     renderer = CustomListCellRenderer<KafkaRegistryFormat> { it.presentable }
@@ -81,17 +82,26 @@ class KafkaRegistryAddSchemaDialog(project: Project, val dataManager: KafkaDataM
   private val panel = panel {
     row(KafkaMessagesBundle.message("schema.registry.add.schema.dialog.field.format")) {
       cell(formatCombobox)
-      label(KafkaMessagesBundle.message("schema.registry.add.schema.dialog.field.strategy"))
-      cell(strategyCombobox)
+      if (isConfluentSchema) {
+        label(KafkaMessagesBundle.message("schema.registry.add.schema.dialog.field.strategy"))
+        cell(strategyCombobox)
+
+      }
     }
 
-    row(KafkaMessagesBundle.message("schema.registry.add.schema.dialog.field.key.value")) { cell(keyValueCombobox) }.visibleIf(
-      keyValueVisible)
-    row(KafkaMessagesBundle.message("schema.registry.add.schema.dialog.field.topic")) { cell(topicField) }.visibleIf(topicFieldVisible)
-    row(KafkaMessagesBundle.message("schema.registry.add.schema.dialog.field.record")) {
-      cell(recordField).align(Align.FILL).resizableColumn()
-    }.visibleIf(recordFieldVisible)
+    if (isConfluentSchema) {
+      row(KafkaMessagesBundle.message("schema.registry.add.schema.dialog.field.key.value")) { cell(keyValueCombobox) }.visibleIf(
+        keyValueVisible)
+
+      row(KafkaMessagesBundle.message("schema.registry.add.schema.dialog.field.topic")) { cell(topicField) }.visibleIf(topicFieldVisible)
+      row(KafkaMessagesBundle.message("schema.registry.add.schema.dialog.field.record")) {
+        cell(recordField).align(Align.FILL).resizableColumn()
+      }.visibleIf(recordFieldVisible)
+    }
+
+
     row(subjectNameLabel) { cell(subjectNameField).align(Align.FILL).resizableColumn() }.visibleIf(subjectFieldVisible)
+
     row { cell(textScrollPane.component).align(Align.FILL).resizableColumn() }.resizableRow()
     errorRow = row {
       label("").component.icon = AllIcons.General.Error; errorLabel = comment("").component.apply {
@@ -106,6 +116,8 @@ class KafkaRegistryAddSchemaDialog(project: Project, val dataManager: KafkaDataM
     title = KafkaMessagesBundle.message("registry.add.schema.dialog.title")
     onChangeFormat()
     onChangeStrategy()
+    if (!isConfluentSchema)
+      strategyCombobox.item = ConfluentRegistryStrategy.CUSTOM
   }
 
 
@@ -131,6 +143,11 @@ class KafkaRegistryAddSchemaDialog(project: Project, val dataManager: KafkaDataM
   }
 
   private fun onChangeStrategy() {
+    if (!isConfluentSchema) {
+      subjectNameLabel.text = KafkaMessagesBundle.message("schema.registry.add.schema.dialog.field.schema.name")
+      subjectFieldVisible.set(true)
+      return
+    }
     updateParsedSchema()
 
     when (getStrategy()) {
