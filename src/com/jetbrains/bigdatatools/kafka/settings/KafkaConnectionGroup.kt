@@ -1,10 +1,10 @@
 package com.jetbrains.bigdatatools.kafka.settings
 
+import com.intellij.bigdatatools.kafka.BigdatatoolsKafkaIcons
 import com.jetbrains.bigdatatools.common.constants.BdtConnectionType
 import com.jetbrains.bigdatatools.common.settings.connections.ConnectionFactory
 import com.jetbrains.bigdatatools.common.settings.connections.MonitoringConnectionGroup
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaConnectionData
-import icons.BigdatatoolsKafkaIcons
 
 class KafkaConnectionGroup : ConnectionFactory<KafkaConnectionData>(
   id = BdtConnectionType.KAFKA.id,

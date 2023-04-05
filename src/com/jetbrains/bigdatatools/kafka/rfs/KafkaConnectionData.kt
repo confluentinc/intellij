@@ -1,8 +1,9 @@
 package com.jetbrains.bigdatatools.kafka.rfs
 
-import com.intellij.openapi.project.Project
 import com.intellij.bigdatatools.aws.settings.AwsCompatibleConnectionData
 import com.intellij.bigdatatools.aws.ui.external.StaticAwsSettingsInfo
+import com.intellij.bigdatatools.kafka.BigdatatoolsKafkaIcons
+import com.intellij.openapi.project.Project
 import com.jetbrains.bigdatatools.common.connection.exception.BdtConfigurationException
 import com.jetbrains.bigdatatools.common.connection.tunnel.model.ConnectionSshTunnelData
 import com.jetbrains.bigdatatools.common.connection.tunnel.model.ConnectionSshTunnelDataLegacy
@@ -16,7 +17,6 @@ import com.jetbrains.bigdatatools.common.settings.connections.ConnectionGroup
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryType
 import com.jetbrains.bigdatatools.kafka.settings.KafkaConnectionConfigurable
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
-import icons.BigdatatoolsKafkaIcons
 import javax.swing.Icon
 
 class KafkaConnectionData : RemoteFsDriverProvider(KafkaMessagesBundle.message("config.name.default")), TunnelableData {

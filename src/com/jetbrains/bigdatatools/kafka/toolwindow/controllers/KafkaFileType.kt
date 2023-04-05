@@ -1,7 +1,7 @@
 package com.jetbrains.bigdatatools.kafka.toolwindow.controllers
 
+import com.intellij.bigdatatools.kafka.BigdatatoolsKafkaIcons
 import com.intellij.openapi.fileTypes.FileType
-import icons.BigdatatoolsKafkaIcons
 
 /** Fake file type to supply Consumer and Producer editor tabs with icon. */
 class KafkaFileType : FileType {

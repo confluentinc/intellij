@@ -1,4 +1,4 @@
-package icons;
+package com.intellij.bigdatatools.kafka;
 
 import com.intellij.ui.IconManager;
 import org.jetbrains.annotations.NotNull;
