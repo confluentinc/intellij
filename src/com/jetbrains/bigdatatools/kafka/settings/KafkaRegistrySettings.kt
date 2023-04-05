@@ -128,8 +128,8 @@ class KafkaRegistrySettings(val project: Project,
       shortRow(registryType)
       confluentGroup = confluentSettings()
       glueGroup = rowsRange {
-        row(glueRegistryName)
         awsGlueSettings.getComponentRows(this)
+        row(glueRegistryName)
       }
 
       initGlueSettings(awsGlueSettings)
