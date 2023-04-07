@@ -1,4 +1,16 @@
 <idea-plugin>
+  <id>com.intellij.bigdatatools.kafka</id>
+  <name>Kafka</name>
+  <vendor>JetBrains</vendor>
+
+  <description><![CDATA[
+    <p>A Kafka support plugin for users .</p>
+    ADD HERE SOME TEXT
+    </dl>
+    ]]></description>
+
+  <depends>com.intellij.bigdatatools.core</depends>
+
   <extensions defaultExtensionNs="com.intellij">
     <applicationService serviceImplementation="com.jetbrains.bigdatatools.kafka.common.settings.KafkaConfigStorage"/>
 
