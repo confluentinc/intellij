@@ -13,10 +13,10 @@ class KafkaToolWindowFactory : MonitoringToolWindowFactory() {
   override val connectionGroupId = BdtConnectionType.KAFKA.id
   override val title: String = KafkaMessagesBundle.message("toolwindow.title")
 
-  override fun shouldBeAvailable(project: Project): Boolean {
-    return (BdtPlugins.isKafkaPluginInstalled()) &&
-           !RfsConnectionDataManager.instance?.getConnectionsByGroupId(connectionGroupId, project)?.filter { it.isEnabled }.isNullOrEmpty()
-  }
+  override fun shouldBeAvailable(project: Project) =
+    (BdtPlugins.isKafkaPluginInstalled()) ||
+    (BdtPlugins.isFullPluginInstalled() &&
+     !RfsConnectionDataManager.instance?.getConnectionsByGroupId(connectionGroupId, project)?.filter { it.isEnabled }.isNullOrEmpty())
 
   override fun createToolWindowContent(project: Project, toolWindow: ToolWindow) {
     KafkaMonitoringToolWindowController.getInstance(project)?.setUp(toolWindow)
