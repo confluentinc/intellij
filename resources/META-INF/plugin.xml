@@ -12,6 +12,12 @@
   <depends>com.intellij.bigdatatools.core</depends>
 
   <extensions defaultExtensionNs="com.intellij">
+    <dependencySupport kind="java" coordinate="org.apache.kafka:kafka_2.13" displayName="Kafka"/>
+    <dependencySupport kind="java" coordinate="org.apache.kafka:kafka_2.12" displayName="Kafka"/>
+    <dependencySupport kind="java" coordinate="org.apache.kafka:kafka-clients" displayName="Kafka Clients"/>
+  </extensions>
+
+  <extensions defaultExtensionNs="com.intellij">
     <applicationService serviceImplementation="com.jetbrains.bigdatatools.kafka.common.settings.KafkaConfigStorage"/>
 
     <applicationService serviceImplementation="com.jetbrains.bigdatatools.kafka.toolwindow.config.KafkaToolWindowSettings"/>
