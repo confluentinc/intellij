@@ -1,6 +1,5 @@
 package com.jetbrains.bigdatatools.kafka.client
 
-import com.amazonaws.services.schemaregistry.utils.AWSSchemaRegistryConstants
 import com.intellij.bigdatatools.aws.ui.external.AwsSettingsForKafka
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
@@ -309,7 +308,7 @@ class KafkaClient(project: Project?,
   private fun createGlueClient(): BdtGlueRegistryClient? {
     val awsSettingsInfo = connectionData.loadAwsGlueSettings() ?: return null
     return BdtGlueRegistryClient(project,
-                                 connectionData.glueRegistryName ?: AWSSchemaRegistryConstants.DEFAULT_REGISTRY_NAME,
+                                 connectionData.getGlueRegistryOrDefault(),
                                  awsSettingsInfo)
   }
 

@@ -84,16 +84,13 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
     }
   }
 
-  fun getProducerField(): ConsumerProducerFieldConfig {
-    return ConsumerProducerFieldConfig(type = fieldTypeComboBox.item,
-                                       valueText = getValueText(),
-                                       isKey = isKey,
-                                       topic = producedEditor.topicComboBox.item.name,
+  fun getProducerField() = ConsumerProducerFieldConfig(type = fieldTypeComboBox.item,
+                                                       valueText = getValueText(),
+                                                       isKey = isKey,
+                                                       topic = producedEditor.topicComboBox.item.name,
 
-                                       registryType = kafkaManager.registryType,
-                                       rawSchemaName = schemaComboBox.item.schemaName,
-                                       registryName = schemaComboBox.item.registryName)
-  }
+                                                       registryType = kafkaManager.registryType,
+                                                       rawSchemaName = schemaComboBox.item?.schemaName ?: "")
 
   private lateinit var registryRows: RowsRange
 

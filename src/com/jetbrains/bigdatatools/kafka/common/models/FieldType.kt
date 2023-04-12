@@ -41,7 +41,7 @@ enum class FieldType(@Nls val title: String) {
       KafkaRegistryType.NONE -> error("Non exists")
       KafkaRegistryType.CONFLUENT -> KafkaAvroDeserializer(dataManager.confluentSchemaRegistry?.client?.internalClient)
       KafkaRegistryType.AWS_GLUE -> GlueSchemaRegistryKafkaDeserializer(mapOf(
-        AWSSchemaRegistryConstants.REGISTRY_NAME to consumerField.registryName.ifBlank { null },
+        AWSSchemaRegistryConstants.REGISTRY_NAME to dataManager.connectionData.getGlueRegistryOrDefault(),
         AWSSchemaRegistryConstants.SCHEMA_NAME to consumerField.schemaName.ifBlank { null },
         AWSSchemaRegistryConstants.AWS_REGION to dataManager.glueSchemaRegistry?.region,
         AWSSchemaRegistryConstants.DATA_FORMAT to DataFormat.AVRO.name
@@ -51,7 +51,7 @@ enum class FieldType(@Nls val title: String) {
       KafkaRegistryType.NONE -> error("Non exists")
       KafkaRegistryType.CONFLUENT -> KafkaProtobufDeserializer(dataManager.confluentSchemaRegistry?.client?.internalClient)
       KafkaRegistryType.AWS_GLUE -> GlueSchemaRegistryKafkaDeserializer(mapOf(
-        AWSSchemaRegistryConstants.REGISTRY_NAME to consumerField.registryName.ifBlank { null },
+        AWSSchemaRegistryConstants.REGISTRY_NAME to dataManager.connectionData.getGlueRegistryOrDefault(),
         AWSSchemaRegistryConstants.SCHEMA_NAME to consumerField.schemaName.ifBlank { null },
         AWSSchemaRegistryConstants.AWS_REGION to dataManager.glueSchemaRegistry?.region,
         AWSSchemaRegistryConstants.DATA_FORMAT to DataFormat.AVRO.name
@@ -61,7 +61,7 @@ enum class FieldType(@Nls val title: String) {
       KafkaRegistryType.NONE -> error("Non exists")
       KafkaRegistryType.CONFLUENT -> KafkaJsonSchemaDeserializer(dataManager.confluentSchemaRegistry?.client?.internalClient)
       KafkaRegistryType.AWS_GLUE -> GlueSchemaRegistryKafkaDeserializer(mapOf(
-        AWSSchemaRegistryConstants.REGISTRY_NAME to consumerField.registryName.ifBlank { null },
+        AWSSchemaRegistryConstants.REGISTRY_NAME to dataManager.connectionData.getGlueRegistryOrDefault(),
         AWSSchemaRegistryConstants.SCHEMA_NAME to consumerField.schemaName.ifBlank { null },
         AWSSchemaRegistryConstants.AWS_REGION to dataManager.glueSchemaRegistry?.region,
         AWSSchemaRegistryConstants.DATA_FORMAT to DataFormat.AVRO.name
@@ -69,7 +69,7 @@ enum class FieldType(@Nls val title: String) {
     }
   }
 
-  fun getSerializer(kafkaDataManager: KafkaDataManager, producerField: ConsumerProducerFieldConfig) = when (this) {
+  fun getSerializer(dataManager: KafkaDataManager, producerField: ConsumerProducerFieldConfig) = when (this) {
     STRING -> StringSerializer()
     JSON -> StringSerializer()
     LONG -> LongSerializer()
@@ -77,33 +77,33 @@ enum class FieldType(@Nls val title: String) {
     FLOAT -> FloatSerializer()
     BASE64 -> ByteArraySerializer()
     NULL -> VoidSerializer()
-    AVRO_REGISTRY -> when (kafkaDataManager.registryType) {
+    AVRO_REGISTRY -> when (dataManager.registryType) {
       KafkaRegistryType.NONE -> error("Non exists")
-      KafkaRegistryType.CONFLUENT -> KafkaAvroSerializer(kafkaDataManager.confluentSchemaRegistry?.client?.internalClient)
+      KafkaRegistryType.CONFLUENT -> KafkaAvroSerializer(dataManager.confluentSchemaRegistry?.client?.internalClient)
       KafkaRegistryType.AWS_GLUE -> GlueSchemaRegistryKafkaSerializer(mapOf(
-        AWSSchemaRegistryConstants.REGISTRY_NAME to producerField.registryName.ifBlank { null },
+        AWSSchemaRegistryConstants.REGISTRY_NAME to dataManager.connectionData.getGlueRegistryOrDefault(),
         AWSSchemaRegistryConstants.SCHEMA_NAME to producerField.schemaName.ifBlank { null },
-        AWSSchemaRegistryConstants.AWS_REGION to kafkaDataManager.glueSchemaRegistry?.region,
+        AWSSchemaRegistryConstants.AWS_REGION to dataManager.glueSchemaRegistry?.region,
         AWSSchemaRegistryConstants.DATA_FORMAT to DataFormat.AVRO.name
       ))
     }
-    PROTOBUF_REGISTRY -> when (kafkaDataManager.registryType) {
+    PROTOBUF_REGISTRY -> when (dataManager.registryType) {
       KafkaRegistryType.NONE -> error("Non exists")
-      KafkaRegistryType.CONFLUENT -> KafkaProtobufSerializer(kafkaDataManager.confluentSchemaRegistry?.client?.internalClient)
+      KafkaRegistryType.CONFLUENT -> KafkaProtobufSerializer(dataManager.confluentSchemaRegistry?.client?.internalClient)
       KafkaRegistryType.AWS_GLUE -> GlueSchemaRegistryKafkaSerializer(mapOf(
-        AWSSchemaRegistryConstants.REGISTRY_NAME to producerField.registryName.ifBlank { null },
+        AWSSchemaRegistryConstants.REGISTRY_NAME to dataManager.connectionData.getGlueRegistryOrDefault(),
         AWSSchemaRegistryConstants.SCHEMA_NAME to producerField.schemaName.ifBlank { null },
-        AWSSchemaRegistryConstants.AWS_REGION to kafkaDataManager.glueSchemaRegistry?.region,
+        AWSSchemaRegistryConstants.AWS_REGION to dataManager.glueSchemaRegistry?.region,
         AWSSchemaRegistryConstants.DATA_FORMAT to DataFormat.PROTOBUF.name
       ))
     }
-    JSON_REGISTRY -> when (kafkaDataManager.registryType) {
+    JSON_REGISTRY -> when (dataManager.registryType) {
       KafkaRegistryType.NONE -> error("Non exists")
-      KafkaRegistryType.CONFLUENT -> KafkaJsonSchemaSerializer(kafkaDataManager.confluentSchemaRegistry?.client?.internalClient)
+      KafkaRegistryType.CONFLUENT -> KafkaJsonSchemaSerializer(dataManager.confluentSchemaRegistry?.client?.internalClient)
       KafkaRegistryType.AWS_GLUE -> GlueSchemaRegistryKafkaSerializer(mapOf(
-        AWSSchemaRegistryConstants.REGISTRY_NAME to producerField.registryName.ifBlank { null },
+        AWSSchemaRegistryConstants.REGISTRY_NAME to dataManager.connectionData.getGlueRegistryOrDefault(),
         AWSSchemaRegistryConstants.SCHEMA_NAME to producerField.schemaName.ifBlank { null },
-        AWSSchemaRegistryConstants.AWS_REGION to kafkaDataManager.glueSchemaRegistry?.region,
+        AWSSchemaRegistryConstants.AWS_REGION to dataManager.glueSchemaRegistry?.region,
         AWSSchemaRegistryConstants.DATA_FORMAT to DataFormat.JSON.name
       ))
     }

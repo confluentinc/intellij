@@ -75,7 +75,7 @@ object KafkaRegistryUtil {
 
   private fun parseGlueSchema(config: ConsumerProducerFieldConfig, dataManager: KafkaDataManager): ParsedSchema {
     val schemaName = config.schemaName
-    val registryName = config.registryName
+    val registryName = dataManager.connectionData.getGlueRegistryOrDefault()
 
     val detailedInfo = dataManager.glueSchemaRegistry?.loadDetailedSchemaInfo(schemaName) ?: throw Exception(
       KafkaMessagesBundle.message("error.glue.schema.is.not.found", schemaName, registryName))

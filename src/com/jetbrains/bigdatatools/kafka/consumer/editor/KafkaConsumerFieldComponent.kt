@@ -115,6 +115,5 @@ class KafkaConsumerFieldComponent(private val project: Project,
                                                      isKey = isKey,
                                                      topic = consumerPanel.topicComboBox.item.name,
                                                      registryType = kafkaManager.registryType,
-                                                     rawSchemaName = schemaComboBox.item.schemaName,
-                                                     registryName = schemaComboBox.item.registryName)
+                                                     rawSchemaName = schemaComboBox.item?.schemaName ?: "")
 }

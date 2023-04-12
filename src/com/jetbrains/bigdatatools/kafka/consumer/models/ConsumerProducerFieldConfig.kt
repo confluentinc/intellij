@@ -10,8 +10,7 @@ data class ConsumerProducerFieldConfig(val type: FieldType,
                                        val topic: String,
 
                                        val registryType: KafkaRegistryType,
-                                       private val rawSchemaName: String,
-                                       val registryName: String) {
+                                       private val rawSchemaName: String) {
   val schemaName = if (type in FieldType.registryValues) calculateSchemaName() else ""
 
   private fun calculateSchemaName() = if (rawSchemaName == RegistrySchemaInEditor.TOPIC_SCHEMA.schemaName) {

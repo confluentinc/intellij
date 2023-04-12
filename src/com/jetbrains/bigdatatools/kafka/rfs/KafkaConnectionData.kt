@@ -1,5 +1,6 @@
 package com.jetbrains.bigdatatools.kafka.rfs
 
+import com.amazonaws.services.schemaregistry.utils.AWSSchemaRegistryConstants
 import com.intellij.bigdatatools.aws.settings.AwsCompatibleConnectionData
 import com.intellij.bigdatatools.aws.ui.external.StaticAwsSettingsInfo
 import com.intellij.bigdatatools.kafka.BigdatatoolsKafkaIcons
@@ -49,8 +50,9 @@ class KafkaConnectionData : RemoteFsDriverProvider(KafkaMessagesBundle.message("
     else {
       null
     }
-
   }
+
+  fun getGlueRegistryOrDefault() = glueRegistryName ?: AWSSchemaRegistryConstants.DEFAULT_REGISTRY_NAME
 
   override fun getIcon(): Icon = BigdatatoolsKafkaIcons.Kafka
   override fun createDriverImpl(project: Project?, isTest: Boolean): Driver = KafkaDriver(this, project, testConnection = isTest)
