@@ -223,7 +223,7 @@ class KafkaProducerEditor(val project: Project,
             return@executeNotOnEdt
 
           val key = keyFieldComponent.getProducerField()
-          val value = keyFieldComponent.getProducerField()
+          val value = valueFieldComponent.getProducerField()
 
           try {
             val result = producerClient.sentMessage(kafkaManager,
