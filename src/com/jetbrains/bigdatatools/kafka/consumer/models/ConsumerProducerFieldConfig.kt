@@ -24,4 +24,17 @@ data class ConsumerProducerFieldConfig(val type: FieldType,
   else {
     rawSchemaName
   }
+
+  fun getValueObj() = when (type) {
+    FieldType.STRING -> valueText
+    FieldType.JSON -> valueText
+    FieldType.LONG -> valueText.toLong()
+    FieldType.DOUBLE -> valueText.toDouble()
+    FieldType.FLOAT -> valueText.toFloat()
+    FieldType.BASE64 -> valueText
+    FieldType.NULL -> null
+    FieldType.AVRO_REGISTRY -> valueText
+    FieldType.PROTOBUF_REGISTRY -> valueText
+    FieldType.JSON_REGISTRY -> valueText
+  }
 }

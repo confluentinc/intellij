@@ -67,7 +67,7 @@ class KafkaProducerClient(val client: KafkaClient) {
       else
         null
 
-      val record = ProducerRecord(topic, partition, key.valueText, value.valueText)
+      val record = ProducerRecord(topic, partition, key.getValueObj(), value.getValueObj())
       headers.forEach {
         record.headers().add((it.name ?: ""), (it.value ?: "").toByteArray())
       }
