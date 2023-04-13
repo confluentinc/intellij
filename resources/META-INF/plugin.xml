@@ -9,6 +9,8 @@
     </dl>
     ]]></description>
 
+  <depends>com.intellij.modules.ultimate</depends>
+
   <depends>com.intellij.bigdatatools.core</depends>
 
   <extensions defaultExtensionNs="com.intellij">
