@@ -147,7 +147,6 @@ object KafkaEditorUtils {
     return topicComboBox
   }
 
-
   fun createSchemaComboBox(rootDisposable: Disposable, kafkaManager: KafkaDataManager): ComboBox<RegistrySchemaInEditor> {
     val schemas = kafkaManager.getSchemasForEditor()
     val comboBox = ComboBox(schemas.toTypedArray())
