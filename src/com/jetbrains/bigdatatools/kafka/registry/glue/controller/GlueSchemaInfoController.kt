@@ -1,7 +1,6 @@
 package com.jetbrains.bigdatatools.kafka.registry.glue.controller
 
 import com.intellij.icons.AllIcons
-import com.intellij.openapi.actionSystem.ActionToolbar
 import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.project.DumbAwareAction
@@ -34,7 +33,6 @@ class GlueSchemaInfoController(project: Project, override val dataManager: Kafka
                                  schemaType = schemaInfo.schemaResponse.dataFormatAsString(),
                                  schemaDefinition = schemaInfo.versionResponse.schemaDefinition(),
                                  schemaName = schemaInfo.schemaResponse.schemaName())
-
     }
 
     override fun getActionUpdateThread() = ActionUpdateThread.BGT
@@ -60,7 +58,6 @@ class GlueSchemaInfoController(project: Project, override val dataManager: Kafka
     override fun getActionUpdateThread() = ActionUpdateThread.BGT
   }
 
-
   init {
     init()
 
@@ -73,9 +70,6 @@ class GlueSchemaInfoController(project: Project, override val dataManager: Kafka
     }
   }
 
-
-  override fun getFieldsGroupModel(id: SchemaId): FieldsGroupModel<GlueSchemaDetailedInfo> = dataManager.glueSchemaRegistry!!.getRegistrySchemaInfoModel(
-    id)
-
-  override fun createToolbar(project: Project): ActionToolbar? = null
+  override fun getFieldsGroupModel(id: SchemaId): FieldsGroupModel<GlueSchemaDetailedInfo> =
+    dataManager.glueSchemaRegistry!!.getRegistrySchemaInfoModel(id)
 }
