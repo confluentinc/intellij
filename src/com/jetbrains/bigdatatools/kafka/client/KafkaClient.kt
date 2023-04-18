@@ -56,19 +56,25 @@ class KafkaClient(project: Project?,
   override fun dispose() {}
 
   override fun connectInner(calledByUser: Boolean) {
-    kafkaAdmin?.let {
-      Disposer.dispose(it)
-    }
-
-    kafkaAdmin = null
+    disposeKafkaAdminClient()
 
     withPluginClassLoader {
       setSystemPropertiesForAwsIam()
-      kafkaAdmin = KafkaClientBuilder.createAdminClient(kafkaProps)
-      kafkaAdmin?.let { Disposer.register(this, it) }
+      try {
+        kafkaAdmin = KafkaClientBuilder.createAdminClient(kafkaProps)
+        kafkaAdmin?.let { Disposer.register(this, it) }
+      }
+      catch (t: Throwable) {
+        disposeKafkaAdminClient()
+        throw t
+      }
     }
 
     confluentRegistryClient?.let {
+      Disposer.dispose(it)
+    }
+
+    glueRegistryClient?.let {
       Disposer.dispose(it)
     }
 
@@ -93,12 +99,17 @@ class KafkaClient(project: Project?,
     longBrokerCheckConnection()
   }
 
-
   override fun checkConnectionInner() {
     val urlsString = kafkaProps.getProperty(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG)
                      ?: throw BdtUnexpectedConnectionException(null, KafkaMessagesBundle.message("connection.is.not.found.in.config",
                                                                                                  CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG))
-    checkUrlAvailability(urlsString)
+    try {
+      checkUrlAvailability(urlsString)
+    }
+    catch (t: Throwable) {
+      disposeKafkaAdminClient()
+      throw t
+    }
 
     checkRegistryClient()
   }
@@ -280,7 +291,7 @@ class KafkaClient(project: Project?,
     }
   }
 
-  private fun longBrokerCheckConnection() {
+  private fun longBrokerCheckConnection() = try {
     val url = kafkaProps.getProperty(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG)
               ?: throw BdtUnexpectedConnectionException(null, KafkaMessagesBundle.message("connection.is.not.found.in.config",
                                                                                           CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG))
@@ -293,6 +304,10 @@ class KafkaClient(project: Project?,
     catch (t: Throwable) {
       throw BdtConnectionException(KafkaMessagesBundle.message("connection.check.port.success.but.next.error", url), t)
     }
+  }
+  catch (t: Throwable) {
+    disposeKafkaAdminClient()
+    throw t
   }
 
   private fun setSystemPropertiesForAwsIam() {
@@ -310,6 +325,14 @@ class KafkaClient(project: Project?,
     return BdtGlueRegistryClient(project,
                                  connectionData.getGlueRegistryOrDefault(),
                                  awsSettingsInfo)
+  }
+
+  private fun disposeKafkaAdminClient() {
+    kafkaAdmin?.let {
+      Disposer.dispose(it)
+    }
+
+    kafkaAdmin = null
   }
 
   companion object {
