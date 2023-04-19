@@ -12,6 +12,7 @@ import com.jetbrains.bigdatatools.common.settings.connections.ConnectionData
 import com.jetbrains.bigdatatools.common.settings.fields.StringNamedField
 import com.jetbrains.bigdatatools.common.settings.fields.WrappedComponent
 import com.jetbrains.bigdatatools.common.settings.withValidator
+import com.jetbrains.bigdatatools.common.ui.block
 import com.jetbrains.bigdatatools.common.ui.row
 import com.jetbrains.bigdatatools.common.util.BdtUrlUtils
 import com.jetbrains.bigdatatools.common.util.MessagesBundle
@@ -20,13 +21,8 @@ import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 
 class KafkaSettingsCustomizer(project: Project, connectionData: KafkaConnectionData, uiDisposable: Disposable) :
   TunnableSettingsCustomizer<KafkaConnectionData>(connectionData, project, uiDisposable) {
-  @Suppress("DialogTitleCapitalization")
   override val tunnelField: SshTunnelComponent<KafkaConnectionData> = SshTunnelComponent(project, uiDisposable, connectionData,
-                                                                                         hostAndPortProvider,
-                                                                                         additionalLabel = KafkaMessagesBundle.message(
-                                                                                           "ssh.additional.label"),
-                                                                                         additionalHelper = KafkaMessagesBundle.message(
-                                                                                           "ssh.additional.helper"))
+                                                                                         hostAndPortProvider)
 
   override val url = StringNamedField(ConnectionData::uri, ModificationKey(KafkaMessagesBundle.message("settings.url")), connectionData)
     .apply {
@@ -34,7 +30,7 @@ class KafkaSettingsCustomizer(project: Project, connectionData: KafkaConnectionD
       getTextComponent().toolTipText = KafkaMessagesBundle.message("settings.url.text.hint")
     }.withValidator(uiDisposable, ::validateBrokerNames) as StringNamedField
 
-  private val registrySettings = KafkaRegistrySettings(project, connectionData, uiDisposable, tunnelField)
+  private val registrySettings = KafkaRegistrySettings(project, connectionData, uiDisposable)
   private val brokerSettings = KafkaBrokerSettings(project, connectionData, uiDisposable, url)
 
   override fun getDefaultFields(): List<WrappedComponent<in KafkaConnectionData>> {
@@ -46,6 +42,8 @@ class KafkaSettingsCustomizer(project: Project, connectionData: KafkaConnectionD
     row(nameField).topGap(TopGap.SMALL).bottomGap(BottomGap.SMALL)
     brokerSettings.setPanelComponent(this)
     registrySettings.setPanelComponent(this)
+
+    block(tunnelField.getComponent()).topGap(TopGap.SMALL)
   }
 
   private fun validateBrokerNames(names: String): String? {

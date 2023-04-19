@@ -8,6 +8,7 @@ import com.intellij.util.net.NetUtils
 import com.jetbrains.bigdatatools.common.connection.exception.BdtConnectionException
 import com.jetbrains.bigdatatools.common.connection.exception.BdtHostUnavailableException
 import com.jetbrains.bigdatatools.common.connection.exception.BdtUnexpectedConnectionException
+import com.jetbrains.bigdatatools.common.connection.tunnel.BdtSshTunnelService.createIfRequired
 import com.jetbrains.bigdatatools.common.monitoring.connection.MonitoringClient
 import com.jetbrains.bigdatatools.common.settings.components.BdtPropertyComponent
 import com.jetbrains.bigdatatools.common.settings.connections.Property
@@ -58,6 +59,12 @@ class KafkaClient(project: Project?,
   override fun connectInner(calledByUser: Boolean) {
     disposeKafkaAdminClient()
 
+    createIfRequired(project, connectionData.getTunnelData(), connectionData.uri, connectionData.innerId, testConnection)
+      ?.let { tunnelHandler ->
+        Disposer.register(this, tunnelHandler)
+        val urlForTunnel = tunnelHandler.tunnelledUri.split("//:").last()
+        kafkaProps.setProperty(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, urlForTunnel)
+      }
     withPluginClassLoader {
       setSystemPropertiesForAwsIam()
       try {

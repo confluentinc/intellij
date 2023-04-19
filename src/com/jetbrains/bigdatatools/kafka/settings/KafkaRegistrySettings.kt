@@ -11,7 +11,6 @@ import com.intellij.openapi.project.Project
 import com.intellij.ui.components.JBPasswordField
 import com.intellij.ui.components.JBTextField
 import com.intellij.ui.dsl.builder.*
-import com.jetbrains.bigdatatools.common.connection.tunnel.ui.SshTunnelComponent
 import com.jetbrains.bigdatatools.common.serializer.BdtJson
 import com.jetbrains.bigdatatools.common.settings.ModificationKey
 import com.jetbrains.bigdatatools.common.settings.fields.*
@@ -32,8 +31,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 class KafkaRegistrySettings(val project: Project,
                             val connectionData: KafkaConnectionData,
-                            uiDisposable: Disposable,
-                            private val tunnelField: SshTunnelComponent<KafkaConnectionData>) {
+                            uiDisposable: Disposable) {
   private val registryType = RadioGroupField(KafkaConnectionData::registryType,
                                              ModificationKey(KafkaMessagesBundle.message("schema.registry.type.label")), connectionData,
                                              KafkaRegistryType.values()).apply {
@@ -163,7 +161,6 @@ class KafkaRegistrySettings(val project: Project,
         }
       }
     }
-    block(tunnelField.getComponent()).topGap(TopGap.SMALL)
 
 
     updateRegistryAuthStatus()
