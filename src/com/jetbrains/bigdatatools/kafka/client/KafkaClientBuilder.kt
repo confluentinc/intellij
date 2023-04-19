@@ -12,7 +12,6 @@ import java.util.*
 object KafkaClientBuilder {
   fun createAdminClient(properties: Properties): BdtKafkaAdminClient {
     if (properties.isKerberosEnabled) {
-      BdtKerberosManager.instance.validateKrb5()
       BdtKerberosManager.instance.setupKerberosValues()
     }
     return try {

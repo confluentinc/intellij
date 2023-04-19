@@ -17,8 +17,8 @@ import com.intellij.ui.dsl.builder.*
 import com.jetbrains.bigdatatools.common.settings.connections.ConnectionData
 import com.jetbrains.bigdatatools.common.settings.fields.*
 import com.jetbrains.bigdatatools.common.settings.kerberos.BdtJaasConfig
-import com.jetbrains.bigdatatools.common.settings.kerberos.KerberosUiFactory.krb5ConfRow
-import com.jetbrains.bigdatatools.common.settings.withFileExistValidator
+import com.jetbrains.bigdatatools.common.settings.kerberos.KerberosSettingsDialog
+import com.jetbrains.bigdatatools.common.settings.withEmptyOrFileExistValidator
 import com.jetbrains.bigdatatools.common.ui.CustomListCellRenderer
 import com.jetbrains.bigdatatools.common.ui.block
 import com.jetbrains.bigdatatools.common.ui.components.RadioComboBox
@@ -72,7 +72,7 @@ class KafkaBrokerSettings(val project: Project,
                                                connectionData,
                                                browseTitle = KafkaMessagesBundle.message("settings.properties.file.browse"),
                                                fileChooserDescriptor = FileChooserDescriptorFactory.createSingleFileDescriptor()).apply {
-    withFileExistValidator(uiDisposable)
+    withEmptyOrFileExistValidator(uiDisposable, canBeEmpty = false)
   }
 
   private lateinit var implicitClientSettingsGroup: RowsRange
@@ -172,8 +172,6 @@ class KafkaBrokerSettings(val project: Project,
       }
 
       saslKerberosGroup = indent {
-        krb5ConfRow(project, uiDisposable)
-
         row {
           saslKerberosUseTicketCache = checkBox(MessagesBundle.message("settings.use.kerberos.cache")).onChanged {
             updateVisibilityOfAdditionalKerberos()
@@ -182,7 +180,6 @@ class KafkaBrokerSettings(val project: Project,
           cell(ContextHelpLabel.create(MessagesBundle.message("kerberos.settings.use.ticket.cache.tooltip")))
         }
         saslAdditionalKerberosGroup = rowsRange {
-
           row(MessagesBundle.message("kerberos.settings.principal.label")) {
             saslPrincipal = textField().align(AlignX.FILL).onChanged {
               updatePropertiesField()
@@ -197,6 +194,11 @@ class KafkaBrokerSettings(val project: Project,
               AlignX.FILL).onChanged {
               updatePropertiesField()
             }
+          }
+        }
+        row {
+          link(MessagesBundle.message("kerberos.settings.open.button")) {
+            KerberosSettingsDialog(project).showAndGet()
           }
         }
       }
@@ -334,7 +336,7 @@ class KafkaBrokerSettings(val project: Project,
       }
       KafkaAuthMethod.AWS_IAM -> {
         val info = awsMskSettings.getInfo()
-        val jaasConfig = when (info?.authenticationType) {
+        val jaasConfig = when (info.authenticationType) {
           AuthenticationType.KEY_PAIR.id, AuthenticationType.DEFAULT.id -> "software.amazon.msk.auth.iam.IAMLoginModule required ;"
           AuthenticationType.PROFILE_FROM_CREDENTIALS_FILE.id -> "software.amazon.msk.auth.iam.IAMLoginModule required awsProfileName='${info.profile ?: "<NOT_SELECTED>"}';"
           else -> null
@@ -343,8 +345,8 @@ class KafkaBrokerSettings(val project: Project,
                         SaslConfigs.SASL_MECHANISM to AwsSettingsForKafka.AWS_MECHANISM,
                         SaslConfigs.SASL_JAAS_CONFIG to jaasConfig,
                         SASL_CLIENT_CALLBACK_HANDLER_CLASS to "software.amazon.msk.auth.iam.IAMClientCallbackHandler",
-                        AwsSettingsForKafka.AWS_ACCESS_KEY to info?.accessKey,
-                        AwsSettingsForKafka.AWS_SECRET_KEY to info?.secretKey)
+                        AwsSettingsForKafka.AWS_ACCESS_KEY to info.accessKey,
+                        AwsSettingsForKafka.AWS_SECRET_KEY to info.secretKey)
       }
     }
     return result.entries.associate { it.key to it.value }
