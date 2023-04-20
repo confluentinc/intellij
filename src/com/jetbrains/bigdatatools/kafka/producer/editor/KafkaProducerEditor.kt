@@ -127,7 +127,7 @@ class KafkaProducerEditor(val project: Project,
         }
       }
       TableFilterHeader(this)
-      val resizeController = TableResizeController(this).apply {
+      val resizeController = TableResizeController.installOn(this).apply {
         setResizePriorityList("value")
         mode = TableResizeController.Mode.PRIOR_COLUMNS_LIST
       }
