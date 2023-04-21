@@ -10,13 +10,13 @@ import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 
 class KafkaToolWindowFactory : MonitoringToolWindowFactory() {
   override val controllerId = KafkaMonitoringToolWindowController.TOOL_WINDOW_ID
-  override val connectionGroupId = BdtConnectionType.KAFKA.id
+  override val connectionType = BdtConnectionType.KAFKA
   override val title: String = KafkaMessagesBundle.message("toolwindow.title")
 
   override fun shouldBeAvailable(project: Project) =
     (BdtPlugins.isKafkaPluginInstalled()) ||
     (BdtPlugins.isFullPluginInstalled() &&
-     !RfsConnectionDataManager.instance?.getConnectionsByGroupId(connectionGroupId, project)?.filter { it.isEnabled }.isNullOrEmpty())
+     !RfsConnectionDataManager.instance?.getConnectionsByGroupId(connectionType.id, project)?.filter { it.isEnabled }.isNullOrEmpty())
 
   override fun createToolWindowContent(project: Project, toolWindow: ToolWindow) {
     KafkaMonitoringToolWindowController.getInstance(project)?.setUp(toolWindow)
