@@ -7,6 +7,7 @@ import com.intellij.openapi.editor.event.DocumentEvent
 import com.intellij.openapi.editor.event.DocumentListener
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.ui.EditorTextField
+import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.components.JBTextField
 import com.intellij.ui.dsl.builder.*
 import com.jetbrains.bigdatatools.common.rfs.util.RfsNotificationUtils
@@ -24,6 +25,7 @@ import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryType
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryUtil
 import com.jetbrains.bigdatatools.kafka.registry.ui.KafkaSchemaInfoDialog
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import com.jetbrains.bigdatatools.kafka.util.generator.GenerateRandomData
 import java.util.*
 
 class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEditor, val isKey: Boolean) : Disposable {
@@ -56,6 +58,7 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
     addActionListener {
       updateVisibility()
 
+      generateData.selected(false)
       jsonField.revalidateComponent()
       textField.revalidateComponent()
       producedEditor.mainComponent.revalidate()
@@ -99,6 +102,9 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
   private lateinit var jsonRow: Row
   private lateinit var jsonCell: Cell<EditorTextField>
 
+  private lateinit var generateRow: Row
+  private lateinit var generateData: Cell<JBCheckBox>
+
   fun createComponent(panel: Panel) {
     panel.apply {
       val title = if (isKey)
@@ -128,6 +134,13 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
           }
         }
 
+        generateRow = row {
+          generateData = checkBox(KafkaMessagesBundle.message("generate.random.data")).onChanged {
+            val config = getProducerField()
+            val newText = if (it.isSelected) GenerateRandomData.generate(config) else ""
+            updateFieldsText(config, newText)
+          }
+        }
         jsonRow = row {
           jsonCell = cell(jsonField).align(AlignX.FILL).resizableColumn().comment("")
         }
@@ -139,6 +152,16 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
       }
     }
     updateVisibility()
+  }
+
+  private fun updateFieldsText(config: ConsumerProducerFieldConfig, newText: String) {
+    if (config.type in FieldType.registryValues || config.type == FieldType.JSON) {
+      jsonField.text = newText
+    }
+    else if (config.type != FieldType.NULL) {
+      textField.text = newText
+    }
+    else return
   }
 
   @Suppress("UNUSED_PARAMETER")
@@ -160,6 +183,7 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
 
     jsonRow.visible(fieldType in jsonFieldTypes)
     textRow.visible(fieldType in textFieldTypes)
+    generateRow.visible(fieldType != FieldType.NULL)
 
     val isRegistryType = fieldType in FieldType.registryValues
     registryRows.visible(isRegistryType)
