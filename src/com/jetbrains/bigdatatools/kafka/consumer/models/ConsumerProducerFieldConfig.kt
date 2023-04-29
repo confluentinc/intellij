@@ -1,7 +1,6 @@
 package com.jetbrains.bigdatatools.kafka.consumer.models
 
 import com.jetbrains.bigdatatools.kafka.common.models.FieldType
-import com.jetbrains.bigdatatools.kafka.common.models.RegistrySchemaInEditor
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryType
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryUtil
@@ -18,20 +17,7 @@ data class ConsumerProducerFieldConfig(val type: FieldType,
                                        val topic: String,
 
                                        val registryType: KafkaRegistryType,
-                                       private val rawSchemaName: String) {
-  val schemaName = if (type in FieldType.registryValues) calculateSchemaName() else ""
-
-  private fun calculateSchemaName() = if (rawSchemaName == RegistrySchemaInEditor.TOPIC_SCHEMA.schemaName) {
-    val topicName = topic
-    when (registryType) {
-      KafkaRegistryType.NONE -> ""
-      KafkaRegistryType.CONFLUENT -> if (isKey) "$topicName-key" else "$topicName-value"
-      KafkaRegistryType.AWS_GLUE -> rawSchemaName
-    }
-  }
-  else {
-    rawSchemaName
-  }
+                                       val schemaName: String) {
 
   fun getValueObj(dataManager: KafkaDataManager) = when (type) {
     FieldType.STRING -> valueText

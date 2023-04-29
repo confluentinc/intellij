@@ -47,7 +47,10 @@ class KafkaConsumerFieldComponent(private val project: Project,
     }
   }
 
-  val schemaComboBox = KafkaEditorUtils.createSchemaComboBox(consumerPanel, consumerPanel.kafkaManager)
+  val schemaComboBox = KafkaEditorUtils.createSchemaComboBox(
+    consumerPanel,
+    consumerPanel.kafkaManager,
+    consumerPanel.topicComboBox, isKey)
 
   private lateinit var registryRows: RowsRange
 
@@ -115,5 +118,5 @@ class KafkaConsumerFieldComponent(private val project: Project,
                                                      isKey = isKey,
                                                      topic = consumerPanel.topicComboBox.item.name,
                                                      registryType = kafkaManager.registryType,
-                                                     rawSchemaName = schemaComboBox.item?.schemaName ?: "")
+                                                     schemaName = schemaComboBox.item?.schemaName ?: "")
 }

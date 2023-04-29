@@ -31,7 +31,8 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
   private val kafkaManager = producedEditor.kafkaManager
 
   private var schemaValidationError: Throwable? = null
-  val schemaComboBox = KafkaEditorUtils.createSchemaComboBox(this, kafkaManager)
+  val schemaComboBox = KafkaEditorUtils.createSchemaComboBox(this, kafkaManager,
+                                                             producedEditor.topicComboBox, isKey)
 
 
   val textField = JBTextField().apply { emptyText.text = "Optional" }.withValidator(this, ::validateValue)
@@ -90,7 +91,7 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
                                                        topic = producedEditor.topicComboBox.item.name,
 
                                                        registryType = kafkaManager.registryType,
-                                                       rawSchemaName = schemaComboBox.item?.schemaName ?: "")
+                                                       schemaName = schemaComboBox.item?.schemaName ?: "")
 
   private lateinit var registryRows: RowsRange
 
