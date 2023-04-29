@@ -1,5 +1,6 @@
 package com.jetbrains.bigdatatools.kafka.producer.client
 
+import com.jetbrains.bigdatatools.common.rfs.util.RfsNotificationUtils
 import com.jetbrains.bigdatatools.common.settings.connections.Property
 import com.jetbrains.bigdatatools.common.util.withPluginClassLoader
 import com.jetbrains.bigdatatools.kafka.client.KafkaClient
@@ -18,21 +19,76 @@ import org.apache.kafka.clients.producer.ProducerRecord
 import org.apache.kafka.common.serialization.Serializer
 import java.util.*
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicBoolean
 
 class KafkaProducerClient(val client: KafkaClient) {
   val connectionData = client.connectionData
 
-  fun sentMessage(dataManager: KafkaDataManager,
-                  topic: String,
-                  key: ConsumerProducerFieldConfig, value: ConsumerProducerFieldConfig,
-                  headers: List<Property> = emptyList(),
-                  recordCompression: RecordCompression = RecordCompression.NONE,
-                  acks: AcksType = AcksType.NONE,
-                  enableIdempotence: Boolean = false,
-                  forcePartition: Int = -1): ProducerResultMessage {
+  private val isRunning = AtomicBoolean(false)
+
+  fun isRunning(): Boolean = isRunning.get()
+
+  fun start(dataManager: KafkaDataManager,
+            topic: String,
+            key: ConsumerProducerFieldConfig,
+            value: ConsumerProducerFieldConfig,
+            headers: List<Property>,
+            recordCompression: RecordCompression,
+            acks: AcksType,
+            enableIdempotence: Boolean,
+            forcePartition: Int,
+            onUpdate: (ProducerResultMessage) -> Unit) {
+    try {
+      if (isRunning())
+        error("Producer is already run")
+      val props = createProducerProperties(recordCompression, enableIdempotence, acks)
+
+      val keySerializer: Serializer<out Any> = key.type.getSerializer(dataManager, producerField = key)
+      val valueSerializer = value.type.getSerializer(dataManager, producerField = value)
+
+      @Suppress("UNCHECKED_CAST")
+      val producer = withPluginClassLoader {
+        KafkaProducer(props, keySerializer, valueSerializer) as KafkaProducer<Any, Any>
+      }
+      try {
+        isRunning.set(true)
+        val partition = setupPartitions(forcePartition, producer, topic)
+        if (!isRunning())
+          return
+        val result = sentMessage(partition, producer, dataManager, topic, key, value, headers) ?: return
+        onUpdate(result)
+      }
+      finally {
+        producer.flush()
+        producer.close()
+        isRunning.set(false)
+      }
+    }
+    catch (t: Throwable) {
+      RfsNotificationUtils.showExceptionMessage(dataManager.project, t, KafkaMessagesBundle.message("error.producer.title"))
+    }
+  }
+
+  private fun setupPartitions(forcePartition: Int,
+                              producer: KafkaProducer<Any, Any>,
+                              topic: String): Int? {
+    val partition = if (forcePartition >= 0) {
+      val partitions = producer.partitionsFor(topic)
+      if (!partitions.any { it.partition() == forcePartition }) {
+        error(KafkaMessagesBundle.message("producer.wrong.partition", forcePartition, topic))
+      }
+      forcePartition
+    }
+    else
+      null
+    return partition
+  }
+
+  private fun createProducerProperties(recordCompression: RecordCompression,
+                                       enableIdempotence: Boolean,
+                                       acks: AcksType): Properties {
     val props = client.kafkaProps.clone() as Properties
-    val keySerializer: Serializer<out Any> = key.type.getSerializer(dataManager, producerField = key)
-    val valueSerializer = value.type.getSerializer(dataManager, producerField = value)
+
 
     props[ProducerConfig.COMPRESSION_TYPE_CONFIG] = recordCompression.name.lowercase()
     props[AbstractKafkaSchemaSerDeConfig.CONTEXT_NAME_STRATEGY] = NullContextNameStrategy::class.java
@@ -50,43 +106,52 @@ class KafkaProducerClient(val client: KafkaClient) {
       props[ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG] = true
     else
       props[ProducerConfig.ACKS_CONFIG] = acks.value.toString()
+    return props
+  }
+
+  fun stop() {
+    if (!isRunning())
+      error("Producer is not run")
+    isRunning.set(false)
+  }
+
+
+  private fun sentMessage(partition: Int?,
+                          producer: KafkaProducer<Any, Any>,
+                          dataManager: KafkaDataManager,
+                          topic: String,
+                          key: ConsumerProducerFieldConfig,
+                          value: ConsumerProducerFieldConfig,
+                          headers: List<Property>): ProducerResultMessage? {
+    val record = ProducerRecord(topic, partition, key.getValueObj(dataManager), value.getValueObj(dataManager))
+    headers.forEach {
+      record.headers().add((it.name ?: ""), (it.value ?: "").toByteArray())
+    }
+
+    val start = System.currentTimeMillis()
 
     @Suppress("UNCHECKED_CAST")
-    val producer = withPluginClassLoader {
-      KafkaProducer(props, keySerializer, valueSerializer) as KafkaProducer<Any, Any>
-    }
-
-    return try {
-      val partition = if (forcePartition >= 0) {
-        val partitions = producer.partitionsFor(topic)
-        if (!partitions.any { it.partition() == forcePartition }) {
-          error(KafkaMessagesBundle.message("producer.wrong.partition", forcePartition, topic))
-        }
-        forcePartition
+    val metadataFuture = producer.send(record as ProducerRecord<Any, Any>)
+    val sendTimeout = 15000
+    while (System.currentTimeMillis() - start < sendTimeout) {
+      Thread.sleep(100)
+      if (metadataFuture.isDone)
+        break
+      if (!isRunning()) {
+        metadataFuture.cancel(true)
+        break
       }
-      else
-        null
-
-      val record = ProducerRecord(topic, partition, key.getValueObj(dataManager), value.getValueObj(dataManager))
-      headers.forEach {
-        record.headers().add((it.name ?: ""), (it.value ?: "").toByteArray())
-      }
-
-      val start = System.currentTimeMillis()
-
-      @Suppress("UNCHECKED_CAST")
-      val metaInfo = producer.send(record as ProducerRecord<Any, Any>).get(15, TimeUnit.SECONDS)
-      val end = System.currentTimeMillis()
-      ProducerResultMessage(key = key.valueText,
-                            value = value.valueText,
-                            offset = metaInfo.offset(),
-                            timestamp = Date(metaInfo.timestamp()),
-                            duration = (end - start).toInt(),
-                            partition = metaInfo.partition())
     }
-    finally {
-      producer.flush()
-      producer.close()
-    }
+
+    if (!isRunning())
+      return null
+    val metaInfo = metadataFuture.get(2, TimeUnit.SECONDS)
+    val end = System.currentTimeMillis()
+    return ProducerResultMessage(key = key.valueText,
+                                 value = value.valueText,
+                                 offset = metaInfo.offset(),
+                                 timestamp = Date(metaInfo.timestamp()),
+                                 duration = (end - start).toInt(),
+                                 partition = metaInfo.partition())
   }
 }

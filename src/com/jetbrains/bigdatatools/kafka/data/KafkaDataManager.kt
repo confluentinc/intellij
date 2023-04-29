@@ -75,16 +75,30 @@ class KafkaDataManager(project: Project?,
     KafkaUsagesCollector.topicCreatedEvent.log(project)
   }
 
+  fun initRefreshSchemasIfRequired() {
+    val confluentSchemaModel = confluentSchemaRegistry?.schemaRegistryModel
+    if (confluentSchemaModel?.isInitedByFirstTime == false) {
+      updater.invokeRefreshModel(confluentSchemaModel)
+    }
+    val glueSchema = glueSchemaRegistry?.schemaModel
+    if (glueSchema?.isInitedByFirstTime == false) {
+      updater.invokeRefreshModel(glueSchema)
+    }
+  }
+
   fun getSchemasForEditor(): List<RegistrySchemaInEditor> {
-    val confluentSchemas = confluentSchemaRegistry?.schemaRegistryModel?.data?.map {
+    val confluentSchemaModel = confluentSchemaRegistry?.schemaRegistryModel
+    val glueSchema = glueSchemaRegistry?.schemaModel
+
+    val confluentSchemas = confluentSchemaModel?.data?.map {
       RegistrySchemaInEditor(schemaName = it.name, registryName = "")
     }?.sorted()
-    val glueSchemas = glueSchemaRegistry?.schemaModel?.data?.map {
+    val glueSchemas = glueSchema?.data?.map {
       RegistrySchemaInEditor(schemaName = it.schemaName, registryName = it.registryName)
     }?.sorted()
 
     val schemas = confluentSchemas ?: glueSchemas
-    return schemas?.let { listOf(RegistrySchemaInEditor.TOPIC_SCHEMA) + it } ?: emptyList()
+    return schemas ?: emptyList()
   }
 
   fun deleteTopic(topicNames: List<String>) = actionWrapper {

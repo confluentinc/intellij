@@ -18,10 +18,8 @@ import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.Key
 import com.intellij.openapi.util.UserDataHolderBase
 import com.intellij.openapi.vfs.VirtualFile
-import com.intellij.ui.IdeBorderFactory
 import com.intellij.ui.OnePixelSplitter
 import com.intellij.ui.PopupHandler
-import com.intellij.ui.SideBorder
 import com.intellij.ui.components.CheckBox
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.components.fields.IntegerField
@@ -41,10 +39,7 @@ import com.jetbrains.bigdatatools.common.ui.ExpansionPanel
 import com.jetbrains.bigdatatools.common.ui.SimpleDumbAwareAction
 import com.jetbrains.bigdatatools.common.util.executeNotOnEdt
 import com.jetbrains.bigdatatools.common.util.invokeLater
-import com.jetbrains.bigdatatools.kafka.common.editor.KafkaEditorUtils
-import com.jetbrains.bigdatatools.kafka.common.editor.ListTableModel
-import com.jetbrains.bigdatatools.kafka.common.editor.PropertiesTable
-import com.jetbrains.bigdatatools.kafka.common.editor.SavePresetAction
+import com.jetbrains.bigdatatools.kafka.common.editor.*
 import com.jetbrains.bigdatatools.kafka.common.models.TopicInEditor
 import com.jetbrains.bigdatatools.kafka.common.settings.KafkaConfigStorage
 import com.jetbrains.bigdatatools.kafka.common.settings.StorageProducerConfig
@@ -57,7 +52,6 @@ import com.jetbrains.bigdatatools.kafka.statistics.KafkaUsagesCollector
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import java.awt.BorderLayout
 import java.awt.Dimension
-import java.awt.FlowLayout
 import java.beans.PropertyChangeListener
 import java.util.*
 import javax.swing.*
@@ -67,6 +61,8 @@ class KafkaProducerEditor(val project: Project,
                           internal val kafkaManager: KafkaDataManager,
                           private val file: VirtualFile) : FileEditor, UserDataHolderBase() {
   private var isRestoring = false
+
+  private val progress = KafkaProducerConsumerProgressComponent()
 
   private val producerClient = kafkaManager.client.createProducerClient()
   val topics = kafkaManager.getTopics()
@@ -172,6 +168,16 @@ class KafkaProducerEditor(val project: Project,
 
   private val presets: ProducerPresets by presetsDelegate
 
+  private val produceButton = JButton(KafkaMessagesBundle.message("kafka.producer.action.produce.title"), AllIcons.Actions.Execute).also {
+    it.addActionListener {
+      if (producerClient.isRunning())
+        stopProduce()
+      else
+        startProduce()
+    }
+  }
+
+
   private val settingsPanelDelegate = lazy {
     val panel = panel {
       row(KafkaMessagesBundle.message("producer.topics")) { cell(topicComboBox).align(AlignX.FILL).resizableColumn() }
@@ -197,61 +203,15 @@ class KafkaProducerEditor(val project: Project,
       border = BorderFactory.createEmptyBorder()
     }
 
-    val produceButton = JButton(KafkaMessagesBundle.message("kafka.producer.action.produce.title"), AllIcons.Actions.Execute).also {
-      it.addActionListener {
-        val topic = topicComboBox.item
-        if (topic == null || topic.name.isBlank()) {
-          Messages.showErrorDialog(kafkaManager.project,
-                                   KafkaMessagesBundle.message("producer.error.topic.empty"),
-                                   KafkaMessagesBundle.message("producer.error.topic.empty.title"))
-          return@addActionListener
-        }
+    val bottomWidthGroup = "ButtonAndComment"
+    val bottomPanel = panel {
+      row {
+        cell(produceButton).widthGroup(bottomWidthGroup)
+        progress.initCell(this, bottomWidthGroup)
 
-        if (keyFieldComponent.textField.getValidationInfo() != null ||
-            keyFieldComponent.jsonField.getValidationInfo() != null ||
-            valueFieldComponent.textField.getValidationInfo() != null ||
-            valueFieldComponent.jsonField.getValidationInfo() != null) {
-          return@addActionListener
-        }
-
-        val selectedTopicName = topic.name
-
-        executeNotOnEdt {
-          if (!keyFieldComponent.validateSchema())
-            return@executeNotOnEdt
-          if (!valueFieldComponent.validateSchema())
-            return@executeNotOnEdt
-
-          val key = keyFieldComponent.getProducerField()
-          val value = valueFieldComponent.getProducerField()
-
-          try {
-            val result = producerClient.sentMessage(kafkaManager,
-                                                    selectedTopicName,
-                                                    key,
-                                                    value,
-                                                    propertiesComponent.properties,
-                                                    compressionComboBox.item,
-                                                    acksComboBox.item,
-                                                    idempotenceCheckBox.isSelected,
-                                                    forcePartitionField.value)
-            invokeLater {
-              outputModel.addElement(result)
-            }
-          }
-          catch (t: Throwable) {
-            RfsNotificationUtils.showExceptionMessage(project, t)
-          }
-        }
-
-        KafkaUsagesCollector.producedKeyValue.log(project, keyFieldComponent.fieldTypeComboBox.item,
-                                                  valueFieldComponent.fieldTypeComboBox.item)
       }
-    }
-
-    val bottomPanel = JPanel(FlowLayout(FlowLayout.LEFT)).apply {
-      border = IdeBorderFactory.createBorder(SideBorder.TOP)
-      add(produceButton)
+    }.apply {
+      border = BorderFactory.createEmptyBorder(10, 10, 10, 10)
     }
 
     JPanel(BorderLayout()).apply {
@@ -259,6 +219,83 @@ class KafkaProducerEditor(val project: Project,
       add(bottomPanel, BorderLayout.SOUTH)
     }
   }
+
+  private fun stopProduce() {
+    producerClient.stop()
+  }
+
+  private fun startProduce(): Boolean {
+    val topic = topicComboBox.item
+    if (topic == null || topic.name.isBlank()) {
+      Messages.showErrorDialog(kafkaManager.project,
+                               KafkaMessagesBundle.message("producer.error.topic.empty"),
+                               KafkaMessagesBundle.message("producer.error.topic.empty.title"))
+      return true
+    }
+
+    if (keyFieldComponent.textField.getValidationInfo() != null ||
+        keyFieldComponent.jsonField.getValidationInfo() != null ||
+        valueFieldComponent.textField.getValidationInfo() != null ||
+        valueFieldComponent.jsonField.getValidationInfo() != null) {
+      return true
+    }
+
+    val selectedTopicName = topic.name
+
+    executeNotOnEdt {
+      if (!keyFieldComponent.validateSchema())
+        return@executeNotOnEdt
+      if (!valueFieldComponent.validateSchema())
+        return@executeNotOnEdt
+
+      val key = keyFieldComponent.getProducerField()
+      val value = valueFieldComponent.getProducerField()
+
+      try {
+        onStart()
+        producerClient.start(kafkaManager,
+                             selectedTopicName,
+                             key,
+                             value,
+                             propertiesComponent.properties,
+                             compressionComboBox.item,
+                             acksComboBox.item,
+                             idempotenceCheckBox.isSelected,
+                             forcePartitionField.value,
+                             onUpdate = {
+                               invokeLater {
+                                 progress.onUpdate()
+                                 outputModel.addElement(it)
+                               }
+                             })
+      }
+      catch (t: Throwable) {
+        RfsNotificationUtils.showExceptionMessage(project, t)
+      }
+      finally {
+        invokeLater {
+          onStop()
+        }
+      }
+    }
+
+    KafkaUsagesCollector.producedKeyValue.log(project, keyFieldComponent.fieldTypeComboBox.item,
+                                              valueFieldComponent.fieldTypeComboBox.item)
+    return false
+  }
+
+  private fun onStart() = invokeLater {
+    produceButton.text = KafkaMessagesBundle.message("action.produce.stop")
+    produceButton.icon = AllIcons.Actions.Suspend
+    progress.onStart()
+  }
+
+  private fun onStop() = invokeLater {
+    produceButton.text = KafkaMessagesBundle.message("kafka.producer.action.produce.title")
+    produceButton.icon = AllIcons.Actions.Execute
+    progress.onStop()
+  }
+
   private val settingsPanel: JPanel by settingsPanelDelegate
 
   private val settingsSplitter = OnePixelSplitter().apply {

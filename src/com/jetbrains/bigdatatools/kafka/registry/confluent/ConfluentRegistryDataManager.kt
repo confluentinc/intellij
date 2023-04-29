@@ -36,24 +36,29 @@ class ConfluentRegistryDataManager(val dataManager: MonitoringDataManager,
 
   private fun createSchemaRegistryDataModel(): ObjectDataModel<ConfluentSchemaInfo> {
     val dataModel = ObjectDataModel(ConfluentSchemaInfo::id) {
-      val client = client
-      val subjects = client.getAllSubjects(KafkaToolWindowSettings.getInstance().registryShowDeletedSubjects)
-
-      subjects.map {
-        val meta = try {
-          client.getLatestSchemaMetadata(it)
-        }
-        catch (t: Throwable) {
-          null
-        }
-        ConfluentSchemaInfo(name = it, meta = meta)
-      }
+      loadSchemaInfos()
     }
     return dataModel
   }
 
-  fun getRegistrySchemaFieldsModel(id: Int): ObjectDataModel<SchemaRegistryFieldsInfo> = schemaFieldsModels.get(id)
-  fun getRegistrySchemaVersionsModel(id: Int): ObjectDataModel<ConfluentSchemaInfo> = schemaVersionsModels.get(id)
+  private fun loadSchemaInfos(): List<ConfluentSchemaInfo> {
+    val subjects = loadSchemaNames()
+
+    return subjects.map {
+      val meta = try {
+        client.getLatestSchemaMetadata(it)
+      }
+      catch (t: Throwable) {
+        null
+      }
+      ConfluentSchemaInfo(name = it, meta = meta)
+    }
+  }
+
+  private fun loadSchemaNames() = client.getAllSubjects(KafkaToolWindowSettings.getInstance().registryShowDeletedSubjects)
+
+  fun getRegistrySchemaFieldsModel(id: Int): ObjectDataModel<SchemaRegistryFieldsInfo> = schemaFieldsModels[id]
+  fun getRegistrySchemaVersionsModel(id: Int): ObjectDataModel<ConfluentSchemaInfo> = schemaVersionsModels[id]
   fun getSchemaInfo(id: Int) = schemaRegistryModel.data?.firstOrNull { it.id == id }
 
 
@@ -92,11 +97,6 @@ class ConfluentRegistryDataManager(val dataManager: MonitoringDataManager,
   }
 
   fun getRegistrySchema(subjectName: String) = schemaRegistryModel.data?.firstOrNull { it.name == subjectName }
-
-  fun getRegistrySchemaById(id: Int?): ParsedSchema? {
-    id ?: return null
-    return client.getSchemaById(id)
-  }
 
   private fun createSchemeVersionsStorage() = ObjectDataModelStorage<Int, ConfluentSchemaInfo>(dataManager.updater,
                                                                                                ConfluentSchemaInfo::id) {

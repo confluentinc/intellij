@@ -5,7 +5,6 @@ import com.intellij.ide.util.PropertiesComponent
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.*
 import com.intellij.openapi.application.invokeAndWaitIfNeeded
-import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.observable.properties.AtomicBooleanProperty
 import com.intellij.openapi.project.DumbAwareToggleAction
 import com.intellij.openapi.project.Project
@@ -15,15 +14,12 @@ import com.intellij.openapi.ui.Splitter
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.Key
 import com.intellij.openapi.vfs.VirtualFile
-import com.intellij.ui.AnimatedIcon
 import com.intellij.ui.OnePixelSplitter
 import com.intellij.ui.PopupHandler
 import com.intellij.ui.components.ActionLink
-import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.components.JBTextField
 import com.intellij.ui.dsl.builder.AlignX
-import com.intellij.ui.dsl.builder.Cell
 import com.intellij.ui.dsl.builder.panel
 import com.jetbrains.bigdatatools.common.rfs.util.RfsNotificationUtils
 import com.jetbrains.bigdatatools.common.table.MaterialTable
@@ -35,8 +31,10 @@ import com.jetbrains.bigdatatools.common.table.filters.TableFilterHeader
 import com.jetbrains.bigdatatools.common.table.renderers.DateRenderer
 import com.jetbrains.bigdatatools.common.ui.*
 import com.jetbrains.bigdatatools.common.util.executeOnPooledThread
+import com.jetbrains.bigdatatools.common.util.invokeLater
 import com.jetbrains.bigdatatools.common.util.withPluginClassLoader
 import com.jetbrains.bigdatatools.kafka.common.editor.KafkaEditorUtils
+import com.jetbrains.bigdatatools.kafka.common.editor.KafkaProducerConsumerProgressComponent
 import com.jetbrains.bigdatatools.kafka.common.editor.ListTableModel
 import com.jetbrains.bigdatatools.kafka.common.editor.SavePresetAction
 import com.jetbrains.bigdatatools.kafka.common.models.TopicInEditor
@@ -50,7 +48,6 @@ import com.michaelbaranov.microba.calendar.DatePicker
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import java.awt.BorderLayout
 import java.awt.Dimension
-import java.text.SimpleDateFormat
 import java.util.*
 import javax.swing.*
 import kotlin.math.max
@@ -96,9 +93,8 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
     }
   }
 
-  private var timestamp = 0L
-  private val timestampLabel = JBLabel()
-  private lateinit var timestampCell: Cell<JComponent>
+  private val progress = KafkaProducerConsumerProgressComponent()
+
 
   private val filterKeyField = JBTextField()
   private val filterValueField = JBTextField()
@@ -280,9 +276,8 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
     val bottomPanel = panel {
       row {
         cell(consumeButton).widthGroup(bottomWidthGroup)
-        timestampCell = cell(timestampLabel).widthGroup(bottomWidthGroup).comment(
-          KafkaMessagesBundle.message("consumer.last.update.label.comment"))
-        timestampCell.visible(false)
+        progress.initCell(this, bottomWidthGroup)
+
       }
     }.apply {
       border = BorderFactory.createEmptyBorder(10, 10, 10, 10)
@@ -458,7 +453,6 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
         }
       }
 
-      val dateFormat = SimpleDateFormat("HH:mm:ss")
       withPluginClassLoader {
         key.validateSchema()
         value.validateSchema()
@@ -477,12 +471,11 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
                                }
                              },
                              timestampUpdate = {
-                               timestamp = System.currentTimeMillis()
-                               timestampLabel.text = dateFormat.format(Date(timestamp))
+                               progress.onUpdate()
 
                              },
                              consumeError = {
-                               timestampLabel.icon = null
+                               progress.onError()
 
                                invokeLater {
                                  outputModel.addElement(Result.failure(it))
@@ -609,10 +602,8 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
     consumeButton.text = KafkaMessagesBundle.message("action.consume.start.title")
     consumeButton.icon = AllIcons.Actions.Execute
 
-    timestampLabel.icon = null
-    if (timestamp <= 0) {
-      timestampLabel.text = KafkaMessagesBundle.message("consumer.last.update.label.unitialized")
-    }
+    progress.onStop()
+
 
     updateVisibility()
   }
@@ -621,11 +612,7 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
     consumeButton.text = KafkaMessagesBundle.message("action.consume.stop.title")
     consumeButton.icon = AllIcons.Actions.Suspend
 
-    timestamp = 0
-    timestampLabel.icon = AnimatedIcon.Default.INSTANCE
-    timestampLabel.text = KafkaMessagesBundle.message("consumer.last.update.label.initializing")
-    timestampCell.visible(true)
-
+    progress.onStart()
     updateVisibility()
   }
 
