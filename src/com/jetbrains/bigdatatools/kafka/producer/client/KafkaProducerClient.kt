@@ -24,7 +24,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 class KafkaProducerClient(val client: KafkaClient) {
   val connectionData = client.connectionData
 
-  private val isRunning = AtomicBoolean(false)
+  val isRunning = AtomicBoolean(false)
 
   fun isRunning(): Boolean = isRunning.get()
 

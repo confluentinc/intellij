@@ -53,7 +53,7 @@ import javax.swing.*
 import kotlin.math.max
 
 class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaDataManager, private val file: VirtualFile) : Disposable {
-  private var consumerClient: KafkaConsumerClient = KafkaConsumerClient(dataManager = kafkaManager,
+  private val consumerClient: KafkaConsumerClient = KafkaConsumerClient(dataManager = kafkaManager,
                                                                         onStart = ::onStartConsume,
                                                                         onStop = ::onStopConsume)
   private val startSpecificDate = DatePicker()

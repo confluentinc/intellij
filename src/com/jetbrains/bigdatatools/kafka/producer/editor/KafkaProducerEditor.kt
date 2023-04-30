@@ -2,6 +2,7 @@ package com.jetbrains.bigdatatools.kafka.producer.editor
 
 import com.intellij.icons.AllIcons
 import com.intellij.ide.util.PropertiesComponent
+import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.ActionGroup
 import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.AnActionEvent
@@ -64,7 +65,11 @@ class KafkaProducerEditor(val project: Project,
 
   private val progress = KafkaProducerConsumerProgressComponent()
 
-  private val producerClient = kafkaManager.client.createProducerClient()
+  private val producerClient = kafkaManager.client.createProducerClient().also {
+    Disposer.register(this, Disposable {
+      it.isRunning.set(false)
+    })
+  }
   val topics = kafkaManager.getTopics()
 
   private val propertiesComponent = PropertiesTable("")
