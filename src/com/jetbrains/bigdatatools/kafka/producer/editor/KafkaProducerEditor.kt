@@ -18,14 +18,14 @@ import com.intellij.openapi.ui.Splitter
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.Key
 import com.intellij.openapi.util.UserDataHolderBase
+import com.intellij.openapi.util.text.StringUtil
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.ui.OnePixelSplitter
 import com.intellij.ui.PopupHandler
 import com.intellij.ui.components.CheckBox
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.components.fields.IntegerField
-import com.intellij.ui.dsl.builder.AlignX
-import com.intellij.ui.dsl.builder.panel
+import com.intellij.ui.dsl.builder.*
 import com.jetbrains.bigdatatools.common.rfs.util.RfsNotificationUtils
 import com.jetbrains.bigdatatools.common.settings.getValidationInfo
 import com.jetbrains.bigdatatools.common.table.MaterialTable
@@ -63,6 +63,7 @@ class KafkaProducerEditor(val project: Project,
                           private val file: VirtualFile) : FileEditor, UserDataHolderBase() {
   private var isRestoring = false
 
+  private val flowController = KafkaFlowController()
   private val progress = KafkaProducerConsumerProgressComponent()
 
   private val producerClient = kafkaManager.client.createProducerClient().also {
@@ -72,26 +73,22 @@ class KafkaProducerEditor(val project: Project,
   }
   val topics = kafkaManager.getTopics()
 
-  private val propertiesComponent = PropertiesTable("")
+  private val propertiesComponent = PropertiesTable("app.name=IntellijKafkaPlugin")
 
   val topicComboBox = KafkaEditorUtils.createTopicComboBox(this, kafkaManager)
 
-  private val acksComboBox = ComboBox(AcksType.values()).apply {
-    renderer = CustomListCellRenderer<AcksType> { it.name.lowercase() }
-    item = AcksType.NONE
-  }
+  private lateinit var acksComboBox: SegmentedButton<AcksType>
 
   private val idempotenceCheckBox = CheckBox(KafkaMessagesBundle.message("producer.idempotence.label")).apply {
     addChangeListener {
-      acksComboBox.isEnabled = !isSelected
+      acksComboBox.enabled(!isSelected)
     }
   }
 
   private val compressionComboBox = ComboBox(RecordCompression.values()).apply {
-    renderer = CustomListCellRenderer<RecordCompression> { it.name.lowercase() }
+    renderer = CustomListCellRenderer<RecordCompression> { StringUtil.wordsToBeginFromUpperCase(it.name.lowercase()) }
     selectedIndex = 0
   }
-
 
   private val keyFieldComponent = KafkaProducerFieldComponent(this, isKey = true).also { Disposer.register(this, it) }
   private val valueFieldComponent = KafkaProducerFieldComponent(this, isKey = false).also { Disposer.register(this, it) }
@@ -99,6 +96,7 @@ class KafkaProducerEditor(val project: Project,
   private val forcePartitionField = IntegerField().apply {
     isCanBeEmpty = true
     defaultValue = -1
+    emptyText.text = KafkaMessagesBundle.message("producer.forcePartition.emptytext")
   }
 
   //ToDo "offset" temporary removed because always -1
@@ -160,7 +158,7 @@ class KafkaProducerEditor(val project: Project,
 
     properties = propertiesComponent.properties,
     compression = compressionComboBox.item.name,
-    acks = acksComboBox.item.name,
+    acks = acksComboBox.selectedItem?.name ?: AcksType.NONE.name,
     idempotence = idempotenceCheckBox.isSelected,
     forcePartition = forcePartitionField.value)
 
@@ -190,15 +188,29 @@ class KafkaProducerEditor(val project: Project,
       keyFieldComponent.createComponent(this)
       valueFieldComponent.createComponent(this)
 
-      collapsibleGroup(KafkaMessagesBundle.message("producer.title.options")) {
-        row(KafkaMessagesBundle.message("producer.forcePartition")) { cell(forcePartitionField).align(AlignX.FILL).resizableColumn() }
-        row(KafkaMessagesBundle.message("record.headers.label")) {}
+      collapsibleGroup(KafkaMessagesBundle.message("producer.title.headers")) {
         row { cell(propertiesComponent.getComponent()).align(AlignX.FILL).resizableColumn() }
+      }.topGap(TopGap.NONE).bottomGap(BottomGap.NONE)
 
-        row(KafkaMessagesBundle.message("producer.compression")) { cell(compressionComboBox).align(AlignX.FILL).resizableColumn() }
-        row { cell(idempotenceCheckBox).align(AlignX.FILL).resizableColumn() }
-        row(KafkaMessagesBundle.message("producer.asks")) { cell(acksComboBox).align(AlignX.FILL).resizableColumn() }
-      }
+
+      flowController.getComponent(this)
+
+      collapsibleGroup(KafkaMessagesBundle.message("producer.title.options")) {
+        row(KafkaMessagesBundle.message("producer.forcePartition")) {
+          cell(forcePartitionField).align(AlignX.FILL).resizableColumn()
+        }
+        row(KafkaMessagesBundle.message("producer.compression")) {
+          cell(compressionComboBox).align(AlignX.FILL).resizableColumn()
+        }
+        row {
+          cell(idempotenceCheckBox).align(AlignX.FILL).resizableColumn().comment(
+            KafkaMessagesBundle.message("producer.idempotence.comment"))
+        }
+        row(KafkaMessagesBundle.message("producer.asks")) {
+          acksComboBox = segmentedButton(AcksType.values().toList()) { StringUtil.wordsToBeginFromUpperCase(it.name.lowercase()) }
+          acksComboBox.selectedItem = AcksType.NONE
+        }
+      }.topGap(TopGap.NONE)
     }
 
     panel.border = BorderFactory.createEmptyBorder(0, 10, 0, 0)
@@ -264,7 +276,7 @@ class KafkaProducerEditor(val project: Project,
                              value,
                              propertiesComponent.properties,
                              compressionComboBox.item,
-                             acksComboBox.item,
+                             acksComboBox.selectedItem ?: AcksType.NONE,
                              idempotenceCheckBox.isSelected,
                              forcePartitionField.value,
                              onUpdate = {
@@ -410,7 +422,7 @@ class KafkaProducerEditor(val project: Project,
     valueFieldComponent.applyConfig(config)
 
 
-    acksComboBox.item = config.getAsks()
+    acksComboBox.selectedItem = config.getAsks()
     propertiesComponent.properties = config.properties.toMutableList()
     compressionComboBox.item = config.getCompression()
     idempotenceCheckBox.isSelected = config.idempotence
