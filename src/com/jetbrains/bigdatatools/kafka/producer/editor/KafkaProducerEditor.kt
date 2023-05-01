@@ -45,10 +45,7 @@ import com.jetbrains.bigdatatools.kafka.common.models.TopicInEditor
 import com.jetbrains.bigdatatools.kafka.common.settings.KafkaConfigStorage
 import com.jetbrains.bigdatatools.kafka.common.settings.StorageProducerConfig
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
-import com.jetbrains.bigdatatools.kafka.producer.models.AcksType
-import com.jetbrains.bigdatatools.kafka.producer.models.ProducerEditorState
-import com.jetbrains.bigdatatools.kafka.producer.models.ProducerResultMessage
-import com.jetbrains.bigdatatools.kafka.producer.models.RecordCompression
+import com.jetbrains.bigdatatools.kafka.producer.models.*
 import com.jetbrains.bigdatatools.kafka.statistics.KafkaUsagesCollector
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import java.awt.BorderLayout
@@ -143,24 +140,6 @@ class KafkaProducerEditor(val project: Project,
   }
   private val outputTable: MaterialTable by outputTableDelegate
 
-  private fun getConfig() = StorageProducerConfig(
-    topic = topicComboBox.item?.name ?: "",
-
-    keyType = keyFieldComponent.fieldTypeComboBox.item.name,
-    key = keyFieldComponent.getValueText(),
-    keySubject = valueFieldComponent.schemaComboBox.item?.schemaName ?: "",
-    keyRegistry = keyFieldComponent.schemaComboBox.item?.registryName ?: "",
-
-    valueType = valueFieldComponent.fieldTypeComboBox.item.name,
-    value = valueFieldComponent.getValueText(),
-    valueSubject = valueFieldComponent.schemaComboBox.item?.schemaName ?: "",
-    valueRegistry = valueFieldComponent.schemaComboBox.item?.registryName ?: "",
-
-    properties = propertiesComponent.properties,
-    compression = compressionComboBox.item.name,
-    acks = acksComboBox.selectedItem?.name ?: AcksType.NONE.name,
-    idempotence = idempotenceCheckBox.isSelected,
-    forcePartition = forcePartitionField.value)
 
   private val presetsDelegate = lazy {
     val presets = ProducerPresets()
@@ -279,12 +258,13 @@ class KafkaProducerEditor(val project: Project,
                              acksComboBox.selectedItem ?: AcksType.NONE,
                              idempotenceCheckBox.isSelected,
                              forcePartitionField.value,
-                             onUpdate = {
-                               invokeLater {
-                                 progress.onUpdate()
-                                 outputModel.addElement(it)
-                               }
-                             })
+                             flowParams = flowController.getParams()
+        ) {
+          invokeLater {
+            progress.onUpdate()
+            outputModel.addElement(it)
+          }
+        }
       }
       catch (t: Throwable) {
         RfsNotificationUtils.showExceptionMessage(project, t)
@@ -416,6 +396,27 @@ class KafkaProducerEditor(val project: Project,
     }
   }
 
+  private fun getConfig() = StorageProducerConfig(
+    topic = topicComboBox.item?.name ?: "",
+
+    keyType = keyFieldComponent.fieldTypeComboBox.item.name,
+    key = keyFieldComponent.getValueText(),
+    keySubject = valueFieldComponent.schemaComboBox.item?.schemaName ?: "",
+    keyRegistry = keyFieldComponent.schemaComboBox.item?.registryName ?: "",
+
+    valueType = valueFieldComponent.fieldTypeComboBox.item.name,
+    value = valueFieldComponent.getValueText(),
+    valueSubject = valueFieldComponent.schemaComboBox.item?.schemaName ?: "",
+    valueRegistry = valueFieldComponent.schemaComboBox.item?.registryName ?: "",
+
+    properties = propertiesComponent.properties,
+    compression = compressionComboBox.item.name,
+    acks = acksComboBox.selectedItem?.name ?: AcksType.NONE.name,
+    idempotence = idempotenceCheckBox.isSelected,
+    forcePartition = forcePartitionField.value,
+    flowParams = flowController.getParams())
+
+
   private fun applyConfig(config: StorageProducerConfig) {
     topicComboBox.item = TopicInEditor(config.topic)
     keyFieldComponent.applyConfig(config)
@@ -427,6 +428,8 @@ class KafkaProducerEditor(val project: Project,
     compressionComboBox.item = config.getCompression()
     idempotenceCheckBox.isSelected = config.idempotence
     forcePartitionField.value = config.forcePartition
+
+    flowController.setParams(config.flowParams ?: ProducerFlowParams())
   }
 
   override fun getName(): String = KafkaMessagesBundle.message("produce.to.topic")

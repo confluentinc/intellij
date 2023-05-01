@@ -3,13 +3,18 @@ package com.jetbrains.bigdatatools.kafka.producer.editor
 import com.intellij.ui.JBIntSpinner
 import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.dsl.builder.*
+import com.jetbrains.bigdatatools.kafka.producer.models.Mode
+import com.jetbrains.bigdatatools.kafka.producer.models.ProducerFlowParams
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 
 
 class KafkaFlowController {
   private lateinit var flowRecordsCountPerRequest: Cell<JBIntSpinner>
-  private lateinit var generateRandomKey: Cell<JBCheckBox>
-  private lateinit var generateRandomValue: Cell<JBCheckBox>
+  private lateinit var requestInterval: Cell<JBIntSpinner>
+  private lateinit var totalRequest: Cell<JBIntSpinner>
+  private lateinit var totalElapsedTime: Cell<JBIntSpinner>
+  private lateinit var generateRandomKeys: Cell<JBCheckBox>
+  private lateinit var generateRandomValues: Cell<JBCheckBox>
   private lateinit var mode: SegmentedButton<Mode>
   private lateinit var autoParams: Panel
 
@@ -19,11 +24,11 @@ class KafkaFlowController {
         flowRecordsCountPerRequest = spinner(1..1000, 1)
       }
       row {
-        generateRandomKey = checkBox(KafkaMessagesBundle.message("producer.flow.generate.random.key"))
+        generateRandomKeys = checkBox(KafkaMessagesBundle.message("producer.flow.generate.random.key"))
 
       }
       row {
-        generateRandomValue = checkBox(KafkaMessagesBundle.message("producer.flow.generate.random.value"))
+        generateRandomValues = checkBox(KafkaMessagesBundle.message("producer.flow.generate.random.value"))
       }
       row(KafkaMessagesBundle.message("producer.flow.mode.label")) {
         mode = this.segmentedButton(Mode.values().toList()) { it.label }
@@ -31,14 +36,14 @@ class KafkaFlowController {
       }
       autoParams = panel {
         row(KafkaMessagesBundle.message("producer.flow.interval")) {
-          spinner(1000..60000, 100)
+          requestInterval = spinner(1000..60000, 1000)
         }
         groupRowsRange(KafkaMessagesBundle.message("producer.flow.stop.conditions.title"), indent = true, topGroupGap = false) {
           row(KafkaMessagesBundle.message("producer.flow.stop.conditions.count")) {
-            spinner(0..1000, 10)
+            totalRequest = spinner(0..1000, 10)
           }
           row(KafkaMessagesBundle.message("producer.flow.stop.conditions.elapsed.time")) {
-            spinner(0..60000, 100)
+            totalElapsedTime = spinner(0..600000, 1000)
           }.bottomGap(BottomGap.MEDIUM)
         }
       }
@@ -50,12 +55,27 @@ class KafkaFlowController {
     updateModeVisibility()
   }
 
-  private fun updateModeVisibility() {
-    autoParams.visible(mode.selectedItem == Mode.AUTO)
+  fun getParams(): ProducerFlowParams = ProducerFlowParams(
+    mode = mode.selectedItem ?: Mode.MANUAL,
+    flowRecordsCountPerRequest = flowRecordsCountPerRequest.component.number,
+    generateRandomKeys = generateRandomKeys.selected.invoke(),
+    generateRandomValues = generateRandomValues.selected.invoke(),
+    requestInterval = requestInterval.component.number,
+    totalRequests = totalRequest.component.number,
+    totalElapsedTime = totalElapsedTime.component.number,
+  )
+
+  fun setParams(params: ProducerFlowParams) {
+    mode.selectedItem = params.mode
+    generateRandomKeys.selected(params.generateRandomKeys)
+    generateRandomValues.selected(params.generateRandomValues)
+    flowRecordsCountPerRequest.component.number = params.flowRecordsCountPerRequest
+    requestInterval.component.number = params.requestInterval
+    totalRequest.component.number = params.totalRequests
+    totalElapsedTime.component.number = params.totalElapsedTime
   }
 
-  enum class Mode(val label: String) {
-    MANUAL(KafkaMessagesBundle.message("producer.flow.mode.manual")),
-    AUTO(KafkaMessagesBundle.message("producer.flow.mode.auto"))
+  private fun updateModeVisibility() {
+    autoParams.visible(mode.selectedItem == Mode.AUTO)
   }
 }

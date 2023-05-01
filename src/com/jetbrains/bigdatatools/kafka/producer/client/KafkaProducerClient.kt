@@ -6,9 +6,7 @@ import com.jetbrains.bigdatatools.common.util.withPluginClassLoader
 import com.jetbrains.bigdatatools.kafka.client.KafkaClient
 import com.jetbrains.bigdatatools.kafka.consumer.models.ConsumerProducerFieldConfig
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
-import com.jetbrains.bigdatatools.kafka.producer.models.AcksType
-import com.jetbrains.bigdatatools.kafka.producer.models.ProducerResultMessage
-import com.jetbrains.bigdatatools.kafka.producer.models.RecordCompression
+import com.jetbrains.bigdatatools.kafka.producer.models.*
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryType
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig
@@ -37,6 +35,7 @@ class KafkaProducerClient(val client: KafkaClient) {
             acks: AcksType,
             enableIdempotence: Boolean,
             forcePartition: Int,
+            flowParams: ProducerFlowParams,
             onUpdate: (ProducerResultMessage) -> Unit) {
     try {
       if (isRunning())
@@ -55,8 +54,28 @@ class KafkaProducerClient(val client: KafkaClient) {
         val partition = setupPartitions(forcePartition, producer, topic)
         if (!isRunning())
           return
-        val result = sentMessage(partition, producer, dataManager, topic, key, value, headers) ?: return
-        onUpdate(result)
+
+        when (flowParams.mode) {
+          Mode.MANUAL -> sentSeveralMessage(flowParams, partition, producer, dataManager, topic, key, value, headers, onUpdate)
+          Mode.AUTO -> {
+            val start = System.currentTimeMillis()
+            var produced = 0
+            val totalElapsedTime = flowParams.totalElapsedTime
+            val totalRequests = flowParams.totalRequests
+            while (true) {
+              if (!isRunning())
+                return
+              if (totalRequests != 0 && produced >= totalRequests)
+                return
+              if (totalElapsedTime != 0 && (System.currentTimeMillis() - start) >= totalElapsedTime)
+                return
+
+              sentSeveralMessage(flowParams, partition, producer, dataManager, topic, key, value, headers, onUpdate)
+              produced += flowParams.flowRecordsCountPerRequest
+              Thread.sleep(flowParams.requestInterval.toLong())
+            }
+          }
+        }
       }
       finally {
         producer.flush()
@@ -66,6 +85,23 @@ class KafkaProducerClient(val client: KafkaClient) {
     }
     catch (t: Throwable) {
       RfsNotificationUtils.showExceptionMessage(dataManager.project, t, KafkaMessagesBundle.message("error.producer.title"))
+    }
+  }
+
+  private fun sentSeveralMessage(flowParams: ProducerFlowParams,
+                                 partition: Int?,
+                                 producer: KafkaProducer<Any, Any>,
+                                 dataManager: KafkaDataManager,
+                                 topic: String,
+                                 key: ConsumerProducerFieldConfig,
+                                 value: ConsumerProducerFieldConfig,
+                                 headers: List<Property>,
+                                 onUpdate: (ProducerResultMessage) -> Unit) {
+    repeat(flowParams.flowRecordsCountPerRequest) {
+      if (!isRunning())
+        return
+      val result = sentMessage(flowParams, partition, producer, dataManager, topic, key, value, headers) ?: return
+      onUpdate(result)
     }
   }
 
@@ -116,14 +152,27 @@ class KafkaProducerClient(val client: KafkaClient) {
   }
 
 
-  private fun sentMessage(partition: Int?,
+  private fun sentMessage(flowParams: ProducerFlowParams,
+                          partition: Int?,
                           producer: KafkaProducer<Any, Any>,
                           dataManager: KafkaDataManager,
                           topic: String,
                           key: ConsumerProducerFieldConfig,
                           value: ConsumerProducerFieldConfig,
                           headers: List<Property>): ProducerResultMessage? {
-    val record = ProducerRecord(topic, partition, key.getValueObj(dataManager), value.getValueObj(dataManager))
+    val keyObj = if (flowParams.generateRandomKeys)
+    //TODO: Nurullo please add here generator
+      key.getValueObj(dataManager)
+    else
+      key.getValueObj(dataManager)
+
+    val valueObj = if (flowParams.generateRandomValues)
+    //TODO: Nurullo please add here generator
+      value.getValueObj(dataManager)
+    else
+      value.getValueObj(dataManager)
+
+    val record = ProducerRecord(topic, partition, keyObj, valueObj)
     headers.forEach {
       record.headers().add((it.name ?: ""), (it.value ?: "").toByteArray())
     }

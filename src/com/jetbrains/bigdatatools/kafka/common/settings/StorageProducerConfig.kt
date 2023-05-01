@@ -3,6 +3,7 @@ package com.jetbrains.bigdatatools.kafka.common.settings
 import com.jetbrains.bigdatatools.common.settings.connections.Property
 import com.jetbrains.bigdatatools.kafka.common.models.FieldType
 import com.jetbrains.bigdatatools.kafka.producer.models.AcksType
+import com.jetbrains.bigdatatools.kafka.producer.models.ProducerFlowParams
 import com.jetbrains.bigdatatools.kafka.producer.models.RecordCompression
 import com.jetbrains.bigdatatools.kafka.registry.ConfluentRegistryStrategy
 
@@ -21,7 +22,8 @@ data class StorageProducerConfig(var topic: String = "",
                                  val keySubject: String = "",
                                  val keyRegistry: String = "",
                                  val valueSubject: String = "",
-                                 val valueRegistry: String = "") : StorageConfig {
+                                 val valueRegistry: String = "",
+                                 val flowParams: ProducerFlowParams? = null) : StorageConfig {
 
 
   fun getKeyType(): FieldType = FieldType.values().find { it.name == keyType } ?: FieldType.STRING
