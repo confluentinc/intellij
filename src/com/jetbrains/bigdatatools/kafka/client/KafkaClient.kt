@@ -309,7 +309,7 @@ class KafkaClient(project: Project?,
       kafkaAdmin.describeCluster(clusterOptions).clusterId().get()
     }
     catch (t: Throwable) {
-      throw BdtConnectionException(KafkaMessagesBundle.message("connection.check.port.success.but.next.error", url), t)
+      throw BdtConnectionException(KafkaMessagesBundle.message("connection.check.port.success.but.next.error"), t)
     }
   }
   catch (t: Throwable) {

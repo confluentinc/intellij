@@ -237,7 +237,8 @@ class KafkaRegistryAddSchemaDialog(project: Project, val dataManager: KafkaDataM
 
     if (okAction.isEnabled) {
       val schemaName = getSchemaName()
-      val parsedSchema = KafkaRegistryUtil.parseSchema(getFormat(), textScrollPane.text).getOrNull() ?: return
+      updateParsedSchema()
+      val parsedSchema = cachedParsedSchema ?: return
 
       val createAsync = dataManager.confluentSchemaRegistry?.createRegistrySubject(schemaName, parsedSchema)
                         ?: dataManager.glueSchemaRegistry?.createSchema(schemaName,

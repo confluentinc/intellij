@@ -29,6 +29,7 @@ import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import software.amazon.awssdk.services.glue.model.Compatibility
 import software.amazon.awssdk.services.glue.model.GetSchemaVersionResponse
 import software.amazon.awssdk.services.glue.model.SchemaId
+import java.util.*
 
 class GlueRegistryDataManager(val dataManager: MonitoringDataManager,
                               val clientRetriever: () -> BdtGlueRegistryClient?) : Disposable {
@@ -140,6 +141,11 @@ class GlueRegistryDataManager(val dataManager: MonitoringDataManager,
 
   @RequiresBackgroundThread
   fun loadDetailedSchemaInfo(schemaName: String): GlueSchemaDetailedInfo = client.getDetailedSchema(schemaName)
+
+  fun getLastVersionSchemaInfo(schemaName: String): UUID? {
+    val id = client.getDetailedSchema(schemaName).versionResponse.schemaVersionId()
+    return UUID.fromString(id)
+  }
 
 
   companion object {

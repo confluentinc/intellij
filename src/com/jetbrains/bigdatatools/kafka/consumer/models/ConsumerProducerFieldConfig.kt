@@ -1,5 +1,6 @@
 package com.jetbrains.bigdatatools.kafka.consumer.models
 
+import com.amazonaws.services.schemaregistry.serializers.json.JsonDataWithSchema
 import com.jetbrains.bigdatatools.kafka.common.models.FieldType
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryType
@@ -29,7 +30,13 @@ data class ConsumerProducerFieldConfig(val type: FieldType,
     FieldType.NULL -> null
     FieldType.AVRO_REGISTRY -> AvroSchemaUtils.toObject(valueText, getRawSchema(dataManager) as AvroSchema)
     FieldType.PROTOBUF_REGISTRY -> ProtobufSchemaUtils.toObject(valueText, getRawSchema(dataManager) as ProtobufSchema)
-    FieldType.JSON_REGISTRY -> JsonSchemaUtils.toObject(valueText, getRawSchema(dataManager) as JsonSchema)
+    FieldType.JSON_REGISTRY -> {
+      when (registryType) {
+        KafkaRegistryType.NONE -> error("Not allowed")
+        KafkaRegistryType.CONFLUENT -> JsonSchemaUtils.toObject(valueText, getRawSchema(dataManager) as JsonSchema)
+        KafkaRegistryType.AWS_GLUE -> JsonDataWithSchema.builder(getRawSchema(dataManager)?.canonicalString(), valueText).build()
+      }
+    }
   }
 
   private fun getRawSchema(dataManager: KafkaDataManager) = KafkaRegistryUtil.loadSchema(this, dataManager)

@@ -26,7 +26,7 @@ message MyRecord {
 
   private const val jsonSchema = """{
   "${"$"}id": "https://mycompany.com/myrecord",
-  "${"$"}schema": "https://json-schema.org/draft/2019-09/schema",
+  "${"$"}schema": "http://json-schema.org/draft-07/schema",
   "type": "object",
   "title": "MyRecord",
   "description": "Json schema for MyRecord",

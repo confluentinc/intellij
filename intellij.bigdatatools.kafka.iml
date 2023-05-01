@@ -116,20 +116,19 @@
             <dependency maven-id="io.confluent:kafka-schema-registry-client" />
             <dependency maven-id="org.json:json" />
             <dependency maven-id="commons-validator:commons-validator" />
+            <dependency maven-id="joda-time:joda-time" />
+            <dependency maven-id="com.google.re2j:re2j" />
+            <dependency maven-id="com.google.guava:guava" />
             <dependency maven-id="com.fasterxml.jackson.core:jackson-core" />
             <dependency maven-id="com.fasterxml.jackson.core:jackson-databind" />
             <dependency maven-id="com.fasterxml.jackson.core:jackson-annotations" />
             <dependency maven-id="com.fasterxml.jackson.datatype:jackson-datatype-jsr310" />
-            <dependency maven-id="org.scala-lang:scala-library" />
             <dependency maven-id="org.jetbrains.kotlin:kotlin-scripting-compiler-embeddable" />
             <dependency maven-id="org.slf4j:slf4j-api" />
+            <dependency maven-id="io.github.classgraph:classgraph" />
             <dependency maven-id="org.jetbrains.kotlin:kotlin-stdlib" />
             <dependency maven-id="org.jetbrains.kotlin:kotlin-scripting-jvm" />
             <dependency maven-id="io.confluent:common-utils" />
-            <dependency maven-id="com.google.guava:guava" />
-            <dependency maven-id="com.google.re2j:re2j" />
-            <dependency maven-id="io.github.classgraph:classgraph" />
-            <dependency maven-id="joda-time:joda-time" />
           </exclude>
         </properties>
         <CLASSES>
@@ -142,6 +141,7 @@
           <root url="jar://$MAVEN_REPOSITORY$/com/fasterxml/jackson/datatype/jackson-datatype-joda/2.13.2/jackson-datatype-joda-2.13.2.jar!/" />
           <root url="jar://$MAVEN_REPOSITORY$/com/fasterxml/jackson/module/jackson-module-parameter-names/2.13.2/jackson-module-parameter-names-2.13.2.jar!/" />
           <root url="jar://$MAVEN_REPOSITORY$/com/kjetland/mbknor-jackson-jsonschema_2.13/1.0.39/mbknor-jackson-jsonschema_2.13-1.0.39.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/org/scala-lang/scala-library/2.13.1/scala-library-2.13.1.jar!/" />
           <root url="jar://$MAVEN_REPOSITORY$/javax/validation/validation-api/2.0.1.Final/validation-api-2.0.1.Final.jar!/" />
           <root url="jar://$MAVEN_REPOSITORY$/io/confluent/kafka-schema-serializer/7.2.0/kafka-schema-serializer-7.2.0.jar!/" />
           <root url="jar://$MAVEN_REPOSITORY$/io/confluent/kafka-json-serializer/7.2.0/kafka-json-serializer-7.2.0.jar!/" />
@@ -158,6 +158,7 @@
           <root url="jar://$MAVEN_REPOSITORY$/com/fasterxml/jackson/datatype/jackson-datatype-joda/2.13.2/jackson-datatype-joda-2.13.2-sources.jar!/" />
           <root url="jar://$MAVEN_REPOSITORY$/com/fasterxml/jackson/module/jackson-module-parameter-names/2.13.2/jackson-module-parameter-names-2.13.2-sources.jar!/" />
           <root url="jar://$MAVEN_REPOSITORY$/com/kjetland/mbknor-jackson-jsonschema_2.13/1.0.39/mbknor-jackson-jsonschema_2.13-1.0.39-sources.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/org/scala-lang/scala-library/2.13.1/scala-library-2.13.1-sources.jar!/" />
           <root url="jar://$MAVEN_REPOSITORY$/javax/validation/validation-api/2.0.1.Final/validation-api-2.0.1.Final-sources.jar!/" />
           <root url="jar://$MAVEN_REPOSITORY$/io/confluent/kafka-schema-serializer/7.2.0/kafka-schema-serializer-7.2.0-sources.jar!/" />
           <root url="jar://$MAVEN_REPOSITORY$/io/confluent/kafka-json-serializer/7.2.0/kafka-json-serializer-7.2.0-sources.jar!/" />
@@ -181,13 +182,13 @@
             <dependency maven-id="io.confluent:common-utils" />
             <dependency maven-id="io.confluent:kafka-schema-serializer" />
             <dependency maven-id="com.google.api.grpc:proto-google-common-protos" />
+            <dependency maven-id="com.squareup.wire:wire-runtime-jvm" />
+            <dependency maven-id="com.squareup.wire:wire-schema-jvm" />
           </exclude>
         </properties>
         <CLASSES>
           <root url="jar://$MAVEN_REPOSITORY$/io/confluent/kafka-protobuf-serializer/7.2.0/kafka-protobuf-serializer-7.2.0.jar!/" />
           <root url="jar://$MAVEN_REPOSITORY$/io/confluent/kafka-protobuf-provider/7.2.0/kafka-protobuf-provider-7.2.0.jar!/" />
-          <root url="jar://$MAVEN_REPOSITORY$/com/squareup/wire/wire-schema-jvm/4.3.0/wire-schema-jvm-4.3.0.jar!/" />
-          <root url="jar://$MAVEN_REPOSITORY$/com/squareup/wire/wire-runtime-jvm/4.3.0/wire-runtime-jvm-4.3.0.jar!/" />
           <root url="jar://$MAVEN_REPOSITORY$/io/confluent/kafka-protobuf-types/7.2.0/kafka-protobuf-types-7.2.0.jar!/" />
         </CLASSES>
         <JAVADOC />
@@ -244,53 +245,29 @@
             <dependency maven-id="com.amazonaws:aws-java-sdk-sts" />
             <dependency maven-id="software.amazon.awssdk:sts" />
             <dependency maven-id="software.amazon.awssdk:glue" />
+            <dependency maven-id="software.amazon.awssdk:aws-json-protocol" />
+            <dependency maven-id="software.amazon.awssdk:utils" />
+            <dependency maven-id="software.amazon.awssdk:annotations" />
+            <dependency maven-id="software.amazon.awssdk:http-client-spi" />
             <dependency maven-id="org.apache.avro:avro" />
             <dependency maven-id="org.apache.commons:commons-compress" />
             <dependency maven-id="org.slf4j:slf4j-api" />
             <dependency maven-id="com.google.guava:guava" />
             <dependency maven-id="org.apache.commons:commons-lang3" />
-            <dependency maven-id="software.amazon.awssdk:arns" />
-            <dependency maven-id="com.github.luben:zstd-jni" />
-            <dependency maven-id="org.lz4:lz4-java" />
-            <dependency maven-id="org.xerial.snappy:snappy-java" />
-            <dependency maven-id="org.scala-lang:scala-library" />
-            <dependency maven-id="org.jetbrains.kotlin:kotlin-scripting-compiler-embeddable" />
-            <dependency maven-id="com.fasterxml.jackson.core:jackson-databind" />
-            <dependency maven-id="javax.validation:validation-api" />
+            <dependency maven-id="org.apache.kafka:kafka-clients" />
+            <dependency maven-id="com.kjetland:mbknor-jackson-jsonschema_2.12" />
             <dependency maven-id="io.github.classgraph:classgraph" />
-            <dependency maven-id="org.json:json" />
-            <dependency maven-id="commons-validator:commons-validator" />
-            <dependency maven-id="joda-time:joda-time" />
+            <dependency maven-id="com.github.erosb:everit-json-schema" />
             <dependency maven-id="com.google.protobuf:protobuf-java" />
             <dependency maven-id="org.jetbrains.kotlin:kotlin-stdlib" />
             <dependency maven-id="org.jetbrains.kotlin:kotlin-stdlib-jdk8" />
             <dependency maven-id="org.jetbrains.kotlin:kotlin-reflect" />
             <dependency maven-id="org.jetbrains.kotlin:kotlin-scripting-compiler-impl-embeddable" />
+            <dependency maven-id="org.jetbrains.kotlin:kotlin-scripting-compiler-embeddable" />
             <dependency maven-id="org.jetbrains.kotlinx:kotlinx-serialization-core-jvm" />
-            <dependency maven-id="com.squareup.okio:okio" />
-            <dependency maven-id="org.apache.kafka:kafka-clients" />
-            <dependency maven-id="org.jetbrains.kotlin:kotlin-stdlib-common" />
-            <dependency maven-id="software.amazon.awssdk:aws-core" />
-            <dependency maven-id="software.amazon.awssdk:aws-json-protocol" />
-            <dependency maven-id="software.amazon.awssdk:sdk-core" />
-            <dependency maven-id="software.amazon.awssdk:regions" />
-            <dependency maven-id="software.amazon.awssdk:protocol-core" />
-            <dependency maven-id="software.amazon.awssdk:profiles" />
-            <dependency maven-id="software.amazon.awssdk:auth" />
-            <dependency maven-id="com.google.re2j:re2j" />
-            <dependency maven-id="software.amazon.awssdk:utils" />
-            <dependency maven-id="software.amazon.eventstream:eventstream" />
-            <dependency maven-id="org.reactivestreams:reactive-streams" />
-            <dependency maven-id="com.github.erosb:everit-json-schema" />
-            <dependency maven-id="com.damnhandy:handy-uri-templates" />
+            <dependency maven-id="com.squareup.wire:wire-schema" />
+            <dependency maven-id="com.squareup.wire:wire-compiler" />
             <dependency maven-id="com.google.api.grpc:proto-google-common-protos" />
-            <dependency maven-id="org.snakeyaml:snakeyaml-engine" />
-            <dependency maven-id="software.amazon.awssdk:annotations" />
-            <dependency maven-id="software.amazon.awssdk:http-client-spi" />
-            <dependency maven-id="software.amazon.awssdk:json-utils" />
-            <dependency maven-id="software.amazon.awssdk:metrics-spi" />
-            <dependency maven-id="software.amazon.awssdk:third-party-jackson-core" />
-            <dependency maven-id="com.kjetland:mbknor-jackson-jsonschema_2.12" />
           </exclude>
         </properties>
         <CLASSES>
@@ -298,18 +275,7 @@
           <root url="jar://$MAVEN_REPOSITORY$/software/amazon/glue/schema-registry-common/1.1.15/schema-registry-common-1.1.15.jar!/" />
           <root url="jar://$MAVEN_REPOSITORY$/software/amazon/glue/schema-registry-build-tools/1.1.15/schema-registry-build-tools-1.1.15.jar!/" />
           <root url="jar://$MAVEN_REPOSITORY$/software/amazon/awssdk/url-connection-client/2.17.122/url-connection-client-2.17.122.jar!/" />
-          <root url="jar://$MAVEN_REPOSITORY$/com/squareup/wire/wire-schema/3.7.1/wire-schema-3.7.1.jar!/" />
-          <root url="jar://$MAVEN_REPOSITORY$/com/squareup/wire/wire-runtime/3.7.1/wire-runtime-3.7.1.jar!/" />
-          <root url="jar://$MAVEN_REPOSITORY$/com/squareup/wire/wire-compiler/3.7.1/wire-compiler-3.7.1.jar!/" />
-          <root url="jar://$MAVEN_REPOSITORY$/com/squareup/wire/wire-kotlin-generator/3.7.1/wire-kotlin-generator-3.7.1.jar!/" />
-          <root url="jar://$MAVEN_REPOSITORY$/com/squareup/kotlinpoet/1.7.2/kotlinpoet-1.7.2.jar!/" />
-          <root url="jar://$MAVEN_REPOSITORY$/com/squareup/wire/wire-grpc-server-generator/3.7.1/wire-grpc-server-generator-3.7.1.jar!/" />
-          <root url="jar://$MAVEN_REPOSITORY$/com/squareup/wire/wire-java-generator/3.7.1/wire-java-generator-3.7.1.jar!/" />
-          <root url="jar://$MAVEN_REPOSITORY$/com/squareup/javapoet/1.13.0/javapoet-1.13.0.jar!/" />
-          <root url="jar://$MAVEN_REPOSITORY$/com/squareup/wire/wire-swift-generator/3.7.1/wire-swift-generator-3.7.1.jar!/" />
-          <root url="jar://$MAVEN_REPOSITORY$/io/outfoxx/swiftpoet/1.0.0/swiftpoet-1.0.0.jar!/" />
-          <root url="jar://$MAVEN_REPOSITORY$/com/squareup/wire/wire-profiles/3.7.1/wire-profiles-3.7.1.jar!/" />
-          <root url="jar://$MAVEN_REPOSITORY$/com/charleskorn/kaml/kaml/0.20.0/kaml-0.20.0.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/software/amazon/awssdk/arns/2.17.122/arns-2.17.122.jar!/" />
           <root url="jar://$MAVEN_REPOSITORY$/com/google/jimfs/jimfs/1.1/jimfs-1.1.jar!/" />
         </CLASSES>
         <JAVADOC />
@@ -318,11 +284,54 @@
           <root url="jar://$MAVEN_REPOSITORY$/software/amazon/glue/schema-registry-common/1.1.15/schema-registry-common-1.1.15-sources.jar!/" />
           <root url="jar://$MAVEN_REPOSITORY$/software/amazon/glue/schema-registry-build-tools/1.1.15/schema-registry-build-tools-1.1.15-sources.jar!/" />
           <root url="jar://$MAVEN_REPOSITORY$/software/amazon/awssdk/url-connection-client/2.17.122/url-connection-client-2.17.122-sources.jar!/" />
-          <root url="jar://$MAVEN_REPOSITORY$/com/squareup/wire/wire-schema/3.7.1/wire-schema-3.7.1-sources.jar!/" />
-          <root url="jar://$MAVEN_REPOSITORY$/com/squareup/wire/wire-runtime/3.7.1/wire-runtime-3.7.1-sources.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/software/amazon/awssdk/arns/2.17.122/arns-2.17.122-sources.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/com/google/jimfs/jimfs/1.1/jimfs-1.1-sources.jar!/" />
+        </SOURCES>
+      </library>
+    </orderEntry>
+    <orderEntry type="library" name="snakeyaml-engine" level="project" />
+    <orderEntry type="module" module-name="intellij.bigdatatools.aws" />
+    <orderEntry type="module-library">
+      <library name="squareup.wire.compiler" type="repository">
+        <properties maven-id="com.squareup.wire:wire-compiler:3.7.1">
+          <exclude>
+            <dependency maven-id="com.google.guava:guava" />
+            <dependency maven-id="org.jetbrains.kotlin:kotlin-stdlib-common" />
+            <dependency maven-id="com.squareup.okio:okio" />
+            <dependency maven-id="org.jetbrains.kotlin:kotlin-stdlib-jdk8" />
+            <dependency maven-id="org.jetbrains.kotlinx:kotlinx-serialization-core-jvm" />
+            <dependency maven-id="org.jetbrains.kotlin:kotlin-reflect" />
+            <dependency maven-id="org.jetbrains.kotlin:kotlin-stdlib" />
+            <dependency maven-id="org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm" />
+            <dependency maven-id="com.squareup.okhttp3:okhttp" />
+            <dependency maven-id="org.snakeyaml:snakeyaml-engine" />
+          </exclude>
+        </properties>
+        <CLASSES>
+          <root url="jar://$MAVEN_REPOSITORY$/com/squareup/wire/wire-compiler/3.7.1/wire-compiler-3.7.1.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/com/squareup/wire/wire-schema/3.7.1/wire-schema-3.7.1.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/org/jetbrains/annotations/13.0/annotations-13.0.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/com/squareup/wire/wire-runtime/3.7.1/wire-runtime-3.7.1.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/com/squareup/wire/wire-kotlin-generator/3.7.1/wire-kotlin-generator-3.7.1.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/com/squareup/kotlinpoet/1.7.2/kotlinpoet-1.7.2.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/com/squareup/wire/wire-grpc-client/3.7.1/wire-grpc-client-3.7.1.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/com/squareup/wire/wire-grpc-server-generator/3.7.1/wire-grpc-server-generator-3.7.1.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/com/squareup/wire/wire-java-generator/3.7.1/wire-java-generator-3.7.1.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/com/squareup/javapoet/1.13.0/javapoet-1.13.0.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/com/squareup/wire/wire-swift-generator/3.7.1/wire-swift-generator-3.7.1.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/io/outfoxx/swiftpoet/1.0.0/swiftpoet-1.0.0.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/com/squareup/wire/wire-profiles/3.7.1/wire-profiles-3.7.1.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/com/charleskorn/kaml/kaml/0.20.0/kaml-0.20.0.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES>
           <root url="jar://$MAVEN_REPOSITORY$/com/squareup/wire/wire-compiler/3.7.1/wire-compiler-3.7.1-sources.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/com/squareup/wire/wire-schema/3.7.1/wire-schema-3.7.1-sources.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/org/jetbrains/annotations/13.0/annotations-13.0-sources.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/com/squareup/wire/wire-runtime/3.7.1/wire-runtime-3.7.1-sources.jar!/" />
           <root url="jar://$MAVEN_REPOSITORY$/com/squareup/wire/wire-kotlin-generator/3.7.1/wire-kotlin-generator-3.7.1-sources.jar!/" />
           <root url="jar://$MAVEN_REPOSITORY$/com/squareup/kotlinpoet/1.7.2/kotlinpoet-1.7.2-sources.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/com/squareup/wire/wire-grpc-client/3.7.1/wire-grpc-client-3.7.1-sources.jar!/" />
           <root url="jar://$MAVEN_REPOSITORY$/com/squareup/wire/wire-grpc-server-generator/3.7.1/wire-grpc-server-generator-3.7.1-sources.jar!/" />
           <root url="jar://$MAVEN_REPOSITORY$/com/squareup/wire/wire-java-generator/3.7.1/wire-java-generator-3.7.1-sources.jar!/" />
           <root url="jar://$MAVEN_REPOSITORY$/com/squareup/javapoet/1.13.0/javapoet-1.13.0-sources.jar!/" />
@@ -330,11 +339,9 @@
           <root url="jar://$MAVEN_REPOSITORY$/io/outfoxx/swiftpoet/1.0.0/swiftpoet-1.0.0-sources.jar!/" />
           <root url="jar://$MAVEN_REPOSITORY$/com/squareup/wire/wire-profiles/3.7.1/wire-profiles-3.7.1-sources.jar!/" />
           <root url="jar://$MAVEN_REPOSITORY$/com/charleskorn/kaml/kaml/0.20.0/kaml-0.20.0-sources.jar!/" />
-          <root url="jar://$MAVEN_REPOSITORY$/com/google/jimfs/jimfs/1.1/jimfs-1.1-sources.jar!/" />
         </SOURCES>
       </library>
     </orderEntry>
-    <orderEntry type="library" name="snakeyaml-engine" level="project" />
-    <orderEntry type="module" module-name="intellij.bigdatatools.aws" />
+    <orderEntry type="library" name="snakeyaml" level="project" />
   </component>
 </module>

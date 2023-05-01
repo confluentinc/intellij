@@ -20,7 +20,7 @@ class BdtGlueRegistryClient(val project: Project?,
                             val registryName: String,
                             val awsSettings: AwsSettingsInfo) : Disposable {
   private val authentication = AwsAuthUtil.getPrimaryAuthentication(awsSettings)
-  private val credentialsController = AwsCredentialController(authentication.getCredentialsProvider())
+  val credentialsController = AwsCredentialController(authentication.getCredentialsProvider())
 
   lateinit var client: GlueClient
 
@@ -81,7 +81,6 @@ class BdtGlueRegistryClient(val project: Project?,
     val schemaId = SchemaId.builder().schemaName(schemaName).registryName(registryName).build()
     val schemaRequest = GetSchemaRequest.builder().schemaId(schemaId).build()
     val schemaResponse = client.getSchema(schemaRequest)
-
     val versionNumber = SchemaVersionNumber.builder().versionNumber(schemaResponse.latestSchemaVersion()).build()
     val versionRequest = GetSchemaVersionRequest.builder().schemaId(schemaId).schemaVersionNumber(versionNumber)
     val versionResponse = client.getSchemaVersion(versionRequest.build())

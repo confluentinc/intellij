@@ -98,14 +98,15 @@ object KafkaRegistryUtil {
   fun parseSchema(schemaType: String?,
                   newText: @NlsSafe String,
                   references: List<SchemaReference> = emptyList()): Result<ParsedSchema> {
-    val provider = registrySchemaProviders.firstOrNull {
-      it.schemaType() == schemaType
-    } ?: error("Schema type is not found ${schemaType}")
-
     return try {
-      Result.success(provider.parseSchemaOrElseThrow(newText, references, true))
+      val provider = registrySchemaProviders.firstOrNull {
+        it.schemaType() == schemaType
+      } ?: error("Schema type is not found ${schemaType}")
+
+      val value = provider.parseSchemaOrElseThrow(newText, references, true)
+      Result.success(value)
     }
-    catch (e: Exception) {
+    catch (e: Throwable) {
       Result.failure(e)
     }
   }
