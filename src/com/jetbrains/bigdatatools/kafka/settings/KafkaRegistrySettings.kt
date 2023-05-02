@@ -1,8 +1,9 @@
 package com.jetbrains.bigdatatools.kafka.settings
 
 import com.amazonaws.services.schemaregistry.utils.AWSSchemaRegistryConstants
+import com.intellij.bigdatatools.aws.connection.auth.AuthenticationType
 import com.intellij.bigdatatools.aws.settings.AwsCompatibleConnectionData
-import com.intellij.bigdatatools.aws.ui.external.AwsSettingsForKafka
+import com.intellij.bigdatatools.aws.ui.external.AwsSettingsComponentForKafka
 import com.intellij.bigdatatools.aws.ui.external.StaticAwsSettingsInfo
 import com.intellij.bigdatatools.aws.utils.AwsSettingsConst
 import com.intellij.openapi.Disposable
@@ -95,12 +96,12 @@ class KafkaRegistrySettings(val project: Project,
     ModificationKey(KafkaMessagesBundle.message("settings.glue.registry.name")),
     connectionData,
     AWSSchemaRegistryConstants.DEFAULT_REGISTRY_NAME,
-    isEditable= true,
+    isEditable = true,
   ) {
-    KafkaUIUtils.showAndGetGlueRegistry(project,awsGlueSettings.getInfo())
+    KafkaUIUtils.showAndGetGlueRegistry(project, awsGlueSettings.getInfo())
   }
 
-  private val awsGlueSettings = AwsSettingsForKafka(includeRegionSetting = true) {
+  private val awsGlueSettings = AwsSettingsComponentForKafka(includeRegionSetting = true) {
     saveGlueSettings()
   }
 
@@ -122,7 +123,7 @@ class KafkaRegistrySettings(val project: Project,
   fun setPanelComponent(panel: Panel) = panel.setComponent()
 
   private fun Panel.setComponent() {
-    group(KafkaMessagesBundle.message("settings.registry.title")) {
+    val group = collapsibleGroup(KafkaMessagesBundle.message("settings.registry.title")) {
       shortRow(registryType)
       confluentGroup = confluentSettings()
       glueGroup = rowsRange {
@@ -133,6 +134,8 @@ class KafkaRegistrySettings(val project: Project,
       initGlueSettings(awsGlueSettings)
       updateRegistryType()
     }
+    group.expanded = connectionData.registryType != KafkaRegistryType.NONE
+    group.topGap(TopGap.NONE)
   }
 
   private fun Panel.confluentSettings() = rowsRange {
@@ -279,10 +282,12 @@ class KafkaRegistrySettings(val project: Project,
     }
   }
 
-  private fun initGlueSettings(it: AwsSettingsForKafka) {
-    val jsonSettings = glueSettings.getTextComponent().text.ifBlank { null } ?: return
-    val info = BdtJson.fromJsonToClass(jsonSettings, StaticAwsSettingsInfo::class.java)
-    it.loadInfo(info.copy(accessKey = awsAccessKey.getComponent().text, secretKey = awsSecretKey.getComponent().text))
+  private fun initGlueSettings(settings: AwsSettingsComponentForKafka) {
+    val jsonSettings = glueSettings.getTextComponent().text.ifBlank { null }
+    val info = jsonSettings?.let { BdtJson.fromJsonToClass(it, StaticAwsSettingsInfo::class.java) } ?: StaticAwsSettingsInfo(
+      AuthenticationType.DEFAULT.id)
+
+    settings.loadInfo(info.copy(accessKey = awsAccessKey.getComponent().text, secretKey = awsSecretKey.getComponent().text))
     awsGlueSettings.updateVisibility()
   }
 
