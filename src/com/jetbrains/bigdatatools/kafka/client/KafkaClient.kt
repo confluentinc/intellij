@@ -1,6 +1,6 @@
 package com.jetbrains.bigdatatools.kafka.client
 
-import com.intellij.bigdatatools.aws.ui.external.AwsSettingsForKafka
+import com.intellij.bigdatatools.aws.ui.external.AwsSettingsComponentForKafka
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.vfs.VirtualFileManager
@@ -318,12 +318,12 @@ class KafkaClient(project: Project?,
   }
 
   private fun setSystemPropertiesForAwsIam() {
-    if (kafkaProps.getProperty(SaslConfigs.SASL_MECHANISM) != AwsSettingsForKafka.AWS_MECHANISM)
+    if (kafkaProps.getProperty(SaslConfigs.SASL_MECHANISM) != AwsSettingsComponentForKafka.AWS_MECHANISM)
       return
-    val accessKey = kafkaProps.getProperty(AwsSettingsForKafka.AWS_ACCESS_KEY)?.ifBlank { null }?.trim()
-    val secretKey = kafkaProps.getProperty(AwsSettingsForKafka.AWS_SECRET_KEY)?.ifBlank { null }?.trim()
-    accessKey?.let { System.setProperty(AwsSettingsForKafka.AWS_ACCESS_KEY, it) }
-    secretKey?.let { System.setProperty(AwsSettingsForKafka.AWS_SECRET_KEY, it) }
+    val accessKey = kafkaProps.getProperty(AwsSettingsComponentForKafka.AWS_ACCESS_KEY)?.ifBlank { null }?.trim()
+    val secretKey = kafkaProps.getProperty(AwsSettingsComponentForKafka.AWS_SECRET_KEY)?.ifBlank { null }?.trim()
+    accessKey?.let { System.setProperty(AwsSettingsComponentForKafka.AWS_ACCESS_KEY, it) }
+    secretKey?.let { System.setProperty(AwsSettingsComponentForKafka.AWS_SECRET_KEY, it) }
   }
 
 

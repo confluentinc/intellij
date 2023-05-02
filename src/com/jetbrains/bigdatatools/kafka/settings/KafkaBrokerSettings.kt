@@ -1,7 +1,7 @@
 package com.jetbrains.bigdatatools.kafka.settings
 
 import com.intellij.bigdatatools.aws.connection.auth.AuthenticationType
-import com.intellij.bigdatatools.aws.ui.external.AwsSettingsForKafka
+import com.intellij.bigdatatools.aws.ui.external.AwsSettingsComponentForKafka
 import com.intellij.bigdatatools.aws.ui.external.StaticAwsSettingsInfo
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory
@@ -118,7 +118,7 @@ class KafkaBrokerSettings(val project: Project,
   private lateinit var sslKeystorePassword: Cell<JBPasswordField>
   private lateinit var sslKeyPassword: Cell<JBPasswordField>
 
-  private val awsMskSettings = AwsSettingsForKafka {
+  private val awsMskSettings = AwsSettingsComponentForKafka {
     updatePropertiesField()
   }
   private lateinit var awsMskSettingsRows: RowsRange
@@ -342,11 +342,11 @@ class KafkaBrokerSettings(val project: Project,
           else -> null
         }
         result += mapOf(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG to SecurityProtocol.SASL_SSL.name,
-                        SaslConfigs.SASL_MECHANISM to AwsSettingsForKafka.AWS_MECHANISM,
+                        SaslConfigs.SASL_MECHANISM to AwsSettingsComponentForKafka.AWS_MECHANISM,
                         SaslConfigs.SASL_JAAS_CONFIG to jaasConfig,
                         SASL_CLIENT_CALLBACK_HANDLER_CLASS to "software.amazon.msk.auth.iam.IAMClientCallbackHandler",
-                        AwsSettingsForKafka.AWS_ACCESS_KEY to info.accessKey,
-                        AwsSettingsForKafka.AWS_SECRET_KEY to info.secretKey)
+                        AwsSettingsComponentForKafka.AWS_ACCESS_KEY to info.accessKey,
+                        AwsSettingsComponentForKafka.AWS_SECRET_KEY to info.secretKey)
       }
     }
     return result.entries.associate { it.key to it.value }
@@ -368,7 +368,7 @@ class KafkaBrokerSettings(val project: Project,
           return
         }
         SecurityProtocol.SASL_PLAINTEXT, SecurityProtocol.SASL_SSL -> {
-          if (properties[SaslConfigs.SASL_MECHANISM] == AwsSettingsForKafka.AWS_MECHANISM) {
+          if (properties[SaslConfigs.SASL_MECHANISM] == AwsSettingsComponentForKafka.AWS_MECHANISM) {
             setAwsProperties(properties)
             return
           }
@@ -420,8 +420,8 @@ class KafkaBrokerSettings(val project: Project,
     }
     val profile = bdtJaasConfig["awsProfileName"]
 
-    val secretKey = properties[AwsSettingsForKafka.AWS_SECRET_KEY]
-    val accessKey = properties[AwsSettingsForKafka.AWS_ACCESS_KEY]
+    val secretKey = properties[AwsSettingsComponentForKafka.AWS_SECRET_KEY]
+    val accessKey = properties[AwsSettingsComponentForKafka.AWS_ACCESS_KEY]
     val authType = when {
       profile == null && accessKey == null && secretKey == null -> AuthenticationType.DEFAULT
       profile != null -> AuthenticationType.PROFILE_FROM_CREDENTIALS_FILE
