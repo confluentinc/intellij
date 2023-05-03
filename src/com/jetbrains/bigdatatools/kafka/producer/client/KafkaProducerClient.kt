@@ -9,6 +9,7 @@ import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.producer.models.*
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryType
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import com.jetbrains.bigdatatools.kafka.util.generator.GenerateRandomData
 import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig
 import io.confluent.kafka.serializers.context.NullContextNameStrategy
 import org.apache.kafka.clients.producer.KafkaProducer
@@ -161,14 +162,12 @@ class KafkaProducerClient(val client: KafkaClient) {
                           value: ConsumerProducerFieldConfig,
                           headers: List<Property>): ProducerResultMessage? {
     val keyObj = if (flowParams.generateRandomKeys)
-    //TODO: Nurullo please add here generator
-      key.getValueObj(dataManager)
+      GenerateRandomData.generate(key, dataManager)
     else
       key.getValueObj(dataManager)
 
     val valueObj = if (flowParams.generateRandomValues)
-    //TODO: Nurullo please add here generator
-      value.getValueObj(dataManager)
+      GenerateRandomData.generate(value, dataManager)
     else
       value.getValueObj(dataManager)
 
