@@ -111,6 +111,7 @@ class KafkaBrokerSettings(val project: Project,
 
   private lateinit var saslGroup: RowsRange
   private lateinit var sslGroup: RowsRange
+  private lateinit var sslGroupTitle: Row
   private lateinit var saslCredentialsGroup: RowsRange
   private lateinit var saslKerberosGroup: RowsRange
   private lateinit var saslAdditionalKerberosGroup: RowsRange
@@ -188,6 +189,7 @@ class KafkaBrokerSettings(val project: Project,
 
         saslSecurityProtocol = checkBox(KafkaMessagesBundle.message("kafka.auth.sasl.use.ssl")).onChanged {
           updatePropertiesField()
+          updateVisibilityOfAuth()
         }
       }
 
@@ -239,6 +241,7 @@ class KafkaBrokerSettings(val project: Project,
       }
     }
 
+    sslGroupTitle = group("SSL Settings") {}.bottomGap(BottomGap.NONE)
     sslGroup = indent {
       row {
         sslEnableValidateHostname = checkBox(
@@ -342,20 +345,14 @@ class KafkaBrokerSettings(val project: Project,
         result += mapOf(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG to securityProtocol.name,
                         SaslConfigs.SASL_MECHANISM to saslMechanism?.saslMechanism,
                         SaslConfigs.SASL_JAAS_CONFIG to jaasConfig)
+
+        if (securityProtocol == SecurityProtocol.SASL_SSL)
+          addSslProperties(result)
+
       }
       KafkaAuthMethod.SSL -> {
-        @Suppress("DEPRECATION")
-        result += mapOf(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG to SecurityProtocol.SSL.name,
-                        SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG to sslTruststoreLocation.component.text.ifBlank { null },
-                        SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG to sslTruststorePassword.component.text.ifBlank { null })
-        if (!sslEnableValidateHostname.component.isSelected)
-          result += mapOf(SslConfigs.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG to "")
-        if (sslUseKeystore.component.isEnabled) {
-          @Suppress("DEPRECATION")
-          result += mapOf(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG to sslKeystoreLocation.component.text.ifBlank { null },
-                          SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG to sslKeystorePassword.component.text.ifBlank { null },
-                          SslConfigs.SSL_KEY_PASSWORD_CONFIG to sslKeyPassword.component.text.ifBlank { null })
-        }
+        result[CommonClientConfigs.SECURITY_PROTOCOL_CONFIG] = SecurityProtocol.SSL.name
+        addSslProperties(result)
       }
       KafkaAuthMethod.AWS_IAM -> {
         val info = awsMskSettings.getInfo()
@@ -373,6 +370,20 @@ class KafkaBrokerSettings(val project: Project,
       }
     }
     return result.entries.associate { it.key to it.value }
+  }
+
+  private fun addSslProperties(result: MutableMap<String, String?>) {
+    @Suppress("DEPRECATION")
+    result += mapOf(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG to sslTruststoreLocation.component.text.ifBlank { null },
+                    SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG to sslTruststorePassword.component.text.ifBlank { null })
+    if (!sslEnableValidateHostname.component.isSelected)
+      result += mapOf(SslConfigs.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG to "")
+    if (sslUseKeystore.component.isEnabled) {
+      @Suppress("DEPRECATION")
+      result += mapOf(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG to sslKeystoreLocation.component.text.ifBlank { null },
+                      SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG to sslKeystorePassword.component.text.ifBlank { null },
+                      SslConfigs.SSL_KEY_PASSWORD_CONFIG to sslKeyPassword.component.text.ifBlank { null })
+    }
   }
 
   private fun setKafkaPropertiesToUi() {
@@ -394,41 +405,49 @@ class KafkaBrokerSettings(val project: Project,
             return
           }
           authMethod.selectedItem = KafkaAuthMethod.SASL
-          saslSecurityProtocol.component.isSelected = securityProtocol == SecurityProtocol.SASL_SSL
-          val saslMechanismValue = getSaslMechanism(properties)
-          saslMechanismValue ?: return
-          saslMechanism.component.item = saslMechanismValue
-          val jaasConfig = properties[SaslConfigs.SASL_JAAS_CONFIG] ?: return
-          val bdtJaasConfig = try {
-            BdtJaasConfig(jaasConfig).config?.options?.map { it.key.lowercase() to (it.value?.toString() ?: "") }?.toMap() ?: return
-          }
-          catch (t: Throwable) {
-            return
-          }
-
-          saslUsername.component.text = bdtJaasConfig["username"] ?: ""
-          saslPassword.component.text = bdtJaasConfig["password"] ?: ""
-          saslKeytab.component.text = bdtJaasConfig["keytab"] ?: ""
-          saslPrincipal.component.text = bdtJaasConfig["principal"] ?: ""
-          saslKerberosUseTicketCache.component.isSelected = bdtJaasConfig["useticketcache"]?.toBoolean() ?: false
+          setSaslToUi(securityProtocol, properties)
         }
         SecurityProtocol.SSL -> {
           authMethod.selectedItem = KafkaAuthMethod.SSL
 
-          sslTruststoreLocation.component.text = properties[SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG] ?: ""
-          sslTruststorePassword.component.text = properties[SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG] ?: ""
-          sslKeystoreLocation.component.text = properties[SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG] ?: ""
-          sslKeystorePassword.component.text = properties[SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG] ?: ""
-          sslKeyPassword.component.text = properties[SslConfigs.SSL_KEY_PASSWORD_CONFIG] ?: ""
-          sslEnableValidateHostname.component.isSelected = properties[SslConfigs.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG] != ""
         }
       }
+      setSslToUi(properties)
     }
     finally {
       isUpdatedFromProperties.set(false)
     }
   }
 
+  private fun setSaslToUi(securityProtocol: SecurityProtocol, properties: Map<String, String>): Boolean {
+    saslSecurityProtocol.component.isSelected = securityProtocol == SecurityProtocol.SASL_SSL
+    val saslMechanismValue = getSaslMechanism(properties)
+    saslMechanismValue ?: return true
+    saslMechanism.component.item = saslMechanismValue
+    val jaasConfig = properties[SaslConfigs.SASL_JAAS_CONFIG] ?: return true
+    val bdtJaasConfig = try {
+      BdtJaasConfig(jaasConfig).config?.options?.map { it.key.lowercase() to (it.value?.toString() ?: "") }?.toMap() ?: return true
+    }
+    catch (t: Throwable) {
+      return true
+    }
+
+    saslUsername.component.text = bdtJaasConfig["username"] ?: ""
+    saslPassword.component.text = bdtJaasConfig["password"] ?: ""
+    saslKeytab.component.text = bdtJaasConfig["keytab"] ?: ""
+    saslPrincipal.component.text = bdtJaasConfig["principal"] ?: ""
+    saslKerberosUseTicketCache.component.isSelected = bdtJaasConfig["useticketcache"]?.toBoolean() ?: false
+    return false
+  }
+
+  private fun setSslToUi(properties: Map<String, String>) {
+    sslTruststoreLocation.component.text = properties[SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG] ?: ""
+    sslTruststorePassword.component.text = properties[SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG] ?: ""
+    sslKeystoreLocation.component.text = properties[SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG] ?: ""
+    sslKeystorePassword.component.text = properties[SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG] ?: ""
+    sslKeyPassword.component.text = properties[SslConfigs.SSL_KEY_PASSWORD_CONFIG] ?: ""
+    sslEnableValidateHostname.component.isSelected = properties[SslConfigs.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG] != ""
+  }
 
   private fun setAwsProperties(properties: Map<String, String>) {
     authMethod.selectedItem = KafkaAuthMethod.AWS_IAM
@@ -489,13 +508,20 @@ class KafkaBrokerSettings(val project: Project,
 
   private fun updateVisibilityOfAuth() {
     val selectedAuthType = authMethod.selectedItem
+    val isSaslSsl = selectedAuthType == KafkaAuthMethod.SASL && saslSecurityProtocol.component.isSelected
+    val isSslVisible = selectedAuthType == KafkaAuthMethod.SSL || isSaslSsl
+
     saslGroup.visible(selectedAuthType == KafkaAuthMethod.SASL)
-    sslGroup.visible(selectedAuthType == KafkaAuthMethod.SSL)
+    sslGroup.visible(isSslVisible)
+    sslGroupTitle.visible(isSaslSsl)
     awsMskSettingsRows.visible(selectedAuthType == KafkaAuthMethod.AWS_IAM)
     when (selectedAuthType) {
       KafkaAuthMethod.NOT_SPECIFIED -> {}
       KafkaAuthMethod.SASL -> {
         updateVisibilityOfSasl()
+        if (isSslVisible) {
+          updateVisibilityOfSslKeystore()
+        }
       }
       KafkaAuthMethod.SSL -> {
         updateVisibilityOfSslKeystore()
@@ -532,9 +558,8 @@ class KafkaBrokerSettings(val project: Project,
     return KafkaSaslMechanism.values().firstOrNull { it.saslMechanism == saslMechanismKey }
   }
 
-  private fun getSecurityProtocol(properties: Map<String, String>): SecurityProtocol? {
-    return properties[CommonClientConfigs.SECURITY_PROTOCOL_CONFIG]?.let {
+  private fun getSecurityProtocol(properties: Map<String, String>) =
+    properties[CommonClientConfigs.SECURITY_PROTOCOL_CONFIG]?.let {
       SecurityProtocol.values().firstOrNull { protocol -> protocol.name == it }
     }
-  }
 }
