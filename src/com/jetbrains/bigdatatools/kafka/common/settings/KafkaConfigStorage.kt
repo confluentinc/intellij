@@ -1,9 +1,9 @@
 package com.jetbrains.bigdatatools.kafka.common.settings
 
-import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.PersistentStateComponent
 import com.intellij.openapi.components.State
 import com.intellij.openapi.components.Storage
+import com.intellij.openapi.components.service
 import com.intellij.util.xmlb.XmlSerializerUtil
 
 interface ConfigChangeListener<T> {
@@ -58,6 +58,7 @@ class KafkaConfigStorage : PersistentStateComponent<KafkaConfigStorage> {
   override fun loadState(state: KafkaConfigStorage) = XmlSerializerUtil.copyBean(state, this)
 
   companion object {
-    val instance: KafkaConfigStorage = ApplicationManager.getApplication().getService(KafkaConfigStorage::class.java)
+    val instance: KafkaConfigStorage
+      get() = service()
   }
 }

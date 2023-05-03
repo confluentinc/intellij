@@ -1,9 +1,9 @@
 package com.jetbrains.bigdatatools.kafka.toolwindow.config
 
-import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.PersistentStateComponent
 import com.intellij.openapi.components.State
 import com.intellij.openapi.components.Storage
+import com.intellij.openapi.components.service
 import com.intellij.util.xmlb.XmlSerializerUtil
 import com.jetbrains.bigdatatools.common.connection.updater.IntervalUpdateSettings
 import com.jetbrains.bigdatatools.common.settings.ColumnVisibilitySettings
@@ -66,7 +66,6 @@ class KafkaToolWindowSettings : PersistentStateComponent<KafkaToolWindowSettings
 
   val glueSchemaVersionsTableColumnsSettings = ColumnVisibilitySettings(glueSchemaVersionsTableColumns)
 
-
   private val schemaRegistryVersionsTableColumns = mutableListOf(
     ConfluentSchemaInfo::id.name,
     ConfluentSchemaInfo::version.name,
@@ -98,6 +97,6 @@ class KafkaToolWindowSettings : PersistentStateComponent<KafkaToolWindowSettings
   }
 
   companion object {
-    fun getInstance(): KafkaToolWindowSettings = ApplicationManager.getApplication().getService(KafkaToolWindowSettings::class.java)
+    fun getInstance(): KafkaToolWindowSettings = service()
   }
 }
