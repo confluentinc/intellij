@@ -341,7 +341,6 @@
       </library>
     </orderEntry>
     <orderEntry type="library" name="snakeyaml-engine" level="project" />
-    <orderEntry type="module" module-name="intellij.bigdatatools.aws" />
     <orderEntry type="module-library">
       <library name="github.mifmif.generex" type="repository">
         <properties maven-id="com.github.mifmif:generex:1.0.2" />
@@ -353,6 +352,5 @@
         <SOURCES />
       </library>
     </orderEntry>
-    <orderEntry type="library" name="snakeyaml" level="project" />
   </component>
 </module>
