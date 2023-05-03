@@ -340,6 +340,19 @@
         </SOURCES>
       </library>
     </orderEntry>
+    <orderEntry type="library" name="snakeyaml-engine" level="project" />
+    <orderEntry type="module" module-name="intellij.bigdatatools.aws" />
+    <orderEntry type="module-library">
+      <library name="github.mifmif.generex" type="repository">
+        <properties maven-id="com.github.mifmif:generex:1.0.2" />
+        <CLASSES>
+          <root url="jar://$MAVEN_REPOSITORY$/com/github/mifmif/generex/1.0.2/generex-1.0.2.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/dk/brics/automaton/automaton/1.11-8/automaton-1.11-8.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
     <orderEntry type="library" name="snakeyaml" level="project" />
   </component>
 </module>
