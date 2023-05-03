@@ -137,7 +137,7 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
         generateRow = row {
           generateData = checkBox(KafkaMessagesBundle.message("generate.random.data")).onChanged {
             val config = getProducerField()
-            val newText = if (it.isSelected) GenerateRandomData.generate(config) else ""
+            val newText = if (it.isSelected) GenerateRandomData.generate(config, kafkaManager) else ""
             updateFieldsText(config, newText)
           }
         }
