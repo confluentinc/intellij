@@ -3,11 +3,13 @@ package com.jetbrains.bigdatatools.kafka.producer.editor
 import com.google.gson.JsonParser
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.Disposable
+import com.intellij.openapi.actionSystem.AnActionEvent
+import com.intellij.openapi.actionSystem.impl.ActionButton
 import com.intellij.openapi.editor.event.DocumentEvent
 import com.intellij.openapi.editor.event.DocumentListener
+import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.ui.EditorTextField
-import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.components.JBTextField
 import com.intellij.ui.dsl.builder.*
 import com.jetbrains.bigdatatools.common.rfs.util.RfsNotificationUtils
@@ -58,7 +60,7 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
     addActionListener {
       updateVisibility()
 
-      generateData.selected(false)
+      updateFieldsText(item, "")
       jsonField.revalidateComponent()
       textField.revalidateComponent()
       producedEditor.mainComponent.revalidate()
@@ -102,8 +104,7 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
   private lateinit var jsonRow: Row
   private lateinit var jsonCell: Cell<EditorTextField>
 
-  private lateinit var generateRow: Row
-  private lateinit var generateData: Cell<JBCheckBox>
+  private lateinit var generateData: Cell<ActionButton>
 
   fun createComponent(panel: Panel) {
     panel.apply {
@@ -114,7 +115,15 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
 
       group(title, indent = false) {
         row(KafkaMessagesBundle.message("consumer.producer.format.type")) {
-          cell(fieldTypeComboBox).align(Align.FILL)
+          cell(fieldTypeComboBox).resizableColumn().gap(RightGap.SMALL)
+          @Suppress("DialogTitleCapitalization")
+          generateData = actionButton(object : DumbAwareAction(KafkaMessagesBundle.message("generate.random.data"), null,
+                                                               AllIcons.Diff.MagicResolveToolbar) {
+            override fun actionPerformed(e: AnActionEvent) {
+              val config = getProducerField()
+              updateFieldsText(config.type, GenerateRandomData.generate(config, kafkaManager))
+            }
+          })
         }
         registryRows = rowsRange {
           row(KafkaMessagesBundle.message("settings.format.registry.schema")) {
@@ -134,13 +143,6 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
           }
         }
 
-        generateRow = row {
-          generateData = checkBox(KafkaMessagesBundle.message("generate.random.data")).onChanged {
-            val config = getProducerField()
-            val newText = if (it.isSelected) GenerateRandomData.generate(config, kafkaManager) else ""
-            updateFieldsText(config, newText)
-          }
-        }
         jsonRow = row {
           jsonCell = cell(jsonField).align(AlignX.FILL).resizableColumn().comment("")
         }
@@ -154,13 +156,11 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
     updateVisibility()
   }
 
-  private fun updateFieldsText(config: ConsumerProducerFieldConfig, newText: String) {
-    if (config.type in FieldType.registryValues || config.type == FieldType.JSON) {
+  private fun updateFieldsText(type: FieldType, newText: String) {
+    if (type in FieldType.registryValues || type == FieldType.JSON)
       jsonField.text = newText
-    }
-    else if (config.type != FieldType.NULL) {
+    else if (type != FieldType.NULL)
       textField.text = newText
-    }
     else return
   }
 
@@ -183,7 +183,8 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
 
     jsonRow.visible(fieldType in jsonFieldTypes)
     textRow.visible(fieldType in textFieldTypes)
-    generateRow.visible(fieldType != FieldType.NULL)
+    generateData.visible(fieldType != FieldType.NULL)
+    generateData.enabled(fieldType != FieldType.JSON && fieldType != FieldType.JSON_REGISTRY && fieldType != FieldType.PROTOBUF_REGISTRY)
 
     val isRegistryType = fieldType in FieldType.registryValues
     registryRows.visible(isRegistryType)
