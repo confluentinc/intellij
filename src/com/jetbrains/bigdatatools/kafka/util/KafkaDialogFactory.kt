@@ -23,7 +23,7 @@ object KafkaDialogFactory {
     val numPartition = JTextField("3", 6).withNumberOrEmptyValidator(builder).also {
       it.toolTipText = KafkaMessagesBundle.message("create.topic.leave.empty.for.default")
     }
-    val replicationFactor = JTextField("1", 6).withNumberOrEmptyValidator(builder).also {
+    val replicationFactor = JTextField("3", 6).withNumberOrEmptyValidator(builder).also {
       it.toolTipText = KafkaMessagesBundle.message("create.topic.leave.empty.for.default")
     }
 
