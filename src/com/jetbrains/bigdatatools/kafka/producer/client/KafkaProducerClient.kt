@@ -43,11 +43,10 @@ class KafkaProducerClient(val client: KafkaClient) {
         error("Producer is already run")
       val props = createProducerProperties(recordCompression, enableIdempotence, acks)
 
-      val keySerializer: Serializer<out Any> = key.type.getSerializer(dataManager, producerField = key)
-      val valueSerializer = value.type.getSerializer(dataManager, producerField = value)
-
       @Suppress("UNCHECKED_CAST")
       val producer = withPluginClassLoader {
+        val keySerializer: Serializer<out Any> = key.type.getSerializer(dataManager, producerField = key)
+        val valueSerializer = value.type.getSerializer(dataManager, producerField = value)
         KafkaProducer(props, keySerializer, valueSerializer) as KafkaProducer<Any, Any>
       }
       try {

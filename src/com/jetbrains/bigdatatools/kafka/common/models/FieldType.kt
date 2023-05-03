@@ -10,11 +10,8 @@ import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryType
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import io.confluent.kafka.serializers.KafkaAvroDeserializer
-import io.confluent.kafka.serializers.KafkaAvroSerializer
 import io.confluent.kafka.serializers.json.KafkaJsonSchemaDeserializer
-import io.confluent.kafka.serializers.json.KafkaJsonSchemaSerializer
 import io.confluent.kafka.serializers.protobuf.KafkaProtobufDeserializer
-import io.confluent.kafka.serializers.protobuf.KafkaProtobufSerializer
 import org.apache.kafka.common.serialization.*
 import org.jetbrains.annotations.Nls
 import software.amazon.awssdk.services.glue.model.DataFormat
@@ -89,7 +86,8 @@ enum class FieldType(@Nls val title: String) {
     NULL -> VoidSerializer()
     AVRO_REGISTRY -> when (dataManager.registryType) {
       KafkaRegistryType.NONE -> error("Non exists")
-      KafkaRegistryType.CONFLUENT -> KafkaAvroSerializer(dataManager.confluentSchemaRegistry?.client?.internalClient)
+      KafkaRegistryType.CONFLUENT -> BdtKafkaAvroSerializer(dataManager.confluentSchemaRegistry?.client?.internalClient,
+                                                            producerField.schemaName)
       KafkaRegistryType.AWS_GLUE -> GlueSchemaRegistryKafkaSerializer(
         dataManager.glueSchemaRegistry?.client?.credentialsController?.credentials,
         dataManager.glueSchemaRegistry?.getLastVersionSchemaInfo(producerField.schemaName),
@@ -102,7 +100,8 @@ enum class FieldType(@Nls val title: String) {
     }
     PROTOBUF_REGISTRY -> when (dataManager.registryType) {
       KafkaRegistryType.NONE -> error("Non exists")
-      KafkaRegistryType.CONFLUENT -> KafkaProtobufSerializer(dataManager.confluentSchemaRegistry?.client?.internalClient)
+      KafkaRegistryType.CONFLUENT -> BdtKafkaProtobufSerializer(dataManager.confluentSchemaRegistry?.client?.internalClient,
+                                                                producerField.schemaName)
       KafkaRegistryType.AWS_GLUE -> GlueSchemaRegistryKafkaSerializer(
         dataManager.glueSchemaRegistry?.client?.credentialsController?.credentials,
         dataManager.glueSchemaRegistry?.getLastVersionSchemaInfo(producerField.schemaName),
@@ -115,7 +114,8 @@ enum class FieldType(@Nls val title: String) {
     }
     JSON_REGISTRY -> when (dataManager.registryType) {
       KafkaRegistryType.NONE -> error("Non exists")
-      KafkaRegistryType.CONFLUENT -> KafkaJsonSchemaSerializer(dataManager.confluentSchemaRegistry?.client?.internalClient)
+      KafkaRegistryType.CONFLUENT -> BdtKafkaJsonSchemaSerializer(dataManager.confluentSchemaRegistry?.client?.internalClient,
+                                                                  producerField.schemaName)
       KafkaRegistryType.AWS_GLUE -> GlueSchemaRegistryKafkaSerializer(
         dataManager.glueSchemaRegistry?.client?.credentialsController?.credentials,
         dataManager.glueSchemaRegistry?.getLastVersionSchemaInfo(producerField.schemaName),
