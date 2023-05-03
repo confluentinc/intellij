@@ -24,6 +24,7 @@ import com.jetbrains.bigdatatools.common.ui.block
 import com.jetbrains.bigdatatools.common.ui.components.RadioComboBox
 import com.jetbrains.bigdatatools.common.ui.row
 import com.jetbrains.bigdatatools.common.util.MessagesBundle
+import com.jetbrains.bigdatatools.common.util.PathUtils
 import com.jetbrains.bigdatatools.kafka.rfs.*
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import com.jetbrains.bigdatatools.kafka.util.KafkaPropertiesUtils
@@ -65,8 +66,18 @@ class KafkaBrokerSettings(val project: Project,
     connectionData, uiDisposable).also { editor ->
     editor.getComponent().whenFocusLost {
       setKafkaPropertiesToUi()
+      updateVisibilityOfPropertiesKrb5Conf()
     }
   }
+
+  private fun updateVisibilityOfPropertiesKrb5Conf() {
+    val properties: Map<String, String> = propertiesEditor.getProperties() ?: emptyMap()
+    val securityProtocol = getSecurityProtocol(properties)
+    val isKrb5LinkActive = securityProtocol in setOf(SecurityProtocol.SASL_SSL, SecurityProtocol.SASL_PLAINTEXT) &&
+                           getSaslMechanism(properties) == KafkaSaslMechanism.KERBEROS
+    propertiesKerberosLinkRow.visible(isKrb5LinkActive)
+  }
+
   private val propertiesFile = BrowseTextField(KafkaConnectionData::propertyFilePath,
                                                KafkaSettingsCustomizer.KafkaSettingsKeys.PROPERTIES_FILE_KEY,
                                                connectionData,
@@ -74,6 +85,8 @@ class KafkaBrokerSettings(val project: Project,
                                                fileChooserDescriptor = FileChooserDescriptorFactory.createSingleFileDescriptor()).apply {
     withEmptyOrFileExistValidator(uiDisposable, canBeEmpty = false)
   }
+
+  private lateinit var propertiesKerberosLinkRow: Row
 
   private lateinit var implicitClientSettingsGroup: RowsRange
   private lateinit var propertiesClientSettingsGroup: RowsRange
@@ -145,6 +158,13 @@ class KafkaBrokerSettings(val project: Project,
 
         filePropertiesGroup = row(propertiesFile)
         directPropertiesGroup = block(propertiesEditor.getComponent())
+
+        propertiesKerberosLinkRow = row {
+          link(MessagesBundle.message("kerberos.settings.open.button")) {
+            KerberosSettingsDialog(project).showAndGet()
+          }
+        }
+
       }
 
     }
@@ -190,7 +210,9 @@ class KafkaBrokerSettings(val project: Project,
           row(MessagesBundle.message("kerberos.connection.settings.keytab.label")) {
             saslKeytab = textFieldWithBrowseButton(project = project,
                                                    browseDialogTitle = MessagesBundle.message(
-                                                     "kerberos.connection.settings.keytab.select.dialog.title")).align(
+                                                     "kerberos.connection.settings.keytab.select.dialog.title")) {
+              PathUtils.toUnixPath(it.canonicalPath ?: "/")
+            }.align(
               AlignX.FILL).onChanged {
               updatePropertiesField()
             }
@@ -273,6 +295,7 @@ class KafkaBrokerSettings(val project: Project,
 
     val uiProps = getNullProperties() + getKafkaPropertiesFromUi()
     propertiesEditor.mergeConfig(uiProps)
+    updateVisibilityOfPropertiesKrb5Conf()
   }
 
   private fun getNullProperties() = mapOf<String, String?>(
@@ -359,9 +382,7 @@ class KafkaBrokerSettings(val project: Project,
       properties[CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG]?.let {
         url.getTextComponent().text = it
       }
-      val securityProtocol = properties[CommonClientConfigs.SECURITY_PROTOCOL_CONFIG]?.let {
-        SecurityProtocol.values().firstOrNull { protocol -> protocol.name == it }
-      } ?: SecurityProtocol.PLAINTEXT
+      val securityProtocol = getSecurityProtocol(properties) ?: SecurityProtocol.PLAINTEXT
       when (securityProtocol) {
         SecurityProtocol.PLAINTEXT -> {
           authMethod.selectedItem = KafkaAuthMethod.NOT_SPECIFIED
@@ -374,8 +395,8 @@ class KafkaBrokerSettings(val project: Project,
           }
           authMethod.selectedItem = KafkaAuthMethod.SASL
           saslSecurityProtocol.component.isSelected = securityProtocol == SecurityProtocol.SASL_SSL
-          val saslMechanismValue = properties[SaslConfigs.SASL_MECHANISM]?.let { s -> KafkaSaslMechanism.values().firstOrNull { it.saslMechanism == s } }
-                                   ?: return
+          val saslMechanismValue = getSaslMechanism(properties)
+          saslMechanismValue ?: return
           saslMechanism.component.item = saslMechanismValue
           val jaasConfig = properties[SaslConfigs.SASL_JAAS_CONFIG] ?: return
           val bdtJaasConfig = try {
@@ -407,6 +428,7 @@ class KafkaBrokerSettings(val project: Project,
       isUpdatedFromProperties.set(false)
     }
   }
+
 
   private fun setAwsProperties(properties: Map<String, String>) {
     authMethod.selectedItem = KafkaAuthMethod.AWS_IAM
@@ -504,4 +526,15 @@ class KafkaBrokerSettings(val project: Project,
 
   fun getDefaultFields(): List<WrappedComponent<in KafkaConnectionData>> = listOf(propertiesEditor, propertiesFile,
                                                                                   propertiesSource, confSource)
+
+  private fun getSaslMechanism(properties: Map<String, String>): KafkaSaslMechanism? {
+    val saslMechanismKey = properties[SaslConfigs.SASL_MECHANISM] ?: SaslConfigs.DEFAULT_SASL_MECHANISM
+    return KafkaSaslMechanism.values().firstOrNull { it.saslMechanism == saslMechanismKey }
+  }
+
+  private fun getSecurityProtocol(properties: Map<String, String>): SecurityProtocol? {
+    return properties[CommonClientConfigs.SECURITY_PROTOCOL_CONFIG]?.let {
+      SecurityProtocol.values().firstOrNull { protocol -> protocol.name == it }
+    }
+  }
 }
