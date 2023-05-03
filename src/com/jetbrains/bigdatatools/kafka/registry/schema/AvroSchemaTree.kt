@@ -6,7 +6,7 @@ import org.apache.avro.Schema
 import javax.swing.tree.DefaultMutableTreeNode
 
 class AvroSchemaTree(private val schema: AvroSchema) {
-  private fun buildAvroSchemaTree(parent: DefaultMutableTreeNode, fieldName: String, schema: Schema, defaultVal: Any? = null) {
+  private fun buildAvroSchemaTree(parent: DefaultMutableTreeNode, fieldName: String, schema: Schema, field: Schema.Field? = null) {
     val typeName = when (schema.type) {
       Schema.Type.MAP -> "map<string, ${schema.valueType.type.getName().lowercase()}>"
       Schema.Type.FIXED -> "fixed {${schema.fixedSize}}"
@@ -14,18 +14,25 @@ class AvroSchemaTree(private val schema: AvroSchema) {
       else -> schema.type.getName().lowercase()
     }
 
-    val child = DefaultMutableTreeNode(SchemaRegistryFieldsInfo(fieldName, typeName, defaultVal?.toString() ?: ""))
+    val child = DefaultMutableTreeNode(
+      if (field != null)
+        SchemaRegistryFieldsInfo(fieldName, typeName, field.defaultVal()?.toString() ?: "", field.doc())
+      else SchemaRegistryFieldsInfo(fieldName, typeName, "")
+    )
     parent.add(child)
-    when (schema.type) {
-      Schema.Type.RECORD -> schema.fields.forEach { buildAvroSchemaTree(child, it.name(), it.schema(), it.defaultVal()) }
-      Schema.Type.UNION -> for ((index, value) in schema.types.withIndex()) {
-        buildAvroSchemaTree(child, "[$index]", value)
-      }
-      else -> {}
+    addNestedTypes(child, schema)
+  }
+
+  private fun addNestedTypes(parent: DefaultMutableTreeNode, schema: Schema) = when (schema.type) {
+    Schema.Type.RECORD -> schema.fields.forEach { buildAvroSchemaTree(parent, it.name(), it.schema(), it) }
+    Schema.Type.UNION -> for ((index, schemaItem) in schema.types.withIndex()) {
+      buildAvroSchemaTree(parent, "[$index]", schemaItem)
     }
+    else -> {}
   }
 
   fun buildTree(root: DefaultMutableTreeNode) {
-    schema.rawSchema().fields.forEach { buildAvroSchemaTree(root, it.name(), it.schema(), it.defaultVal()) }
+    val rawSchema = schema.rawSchema()
+    addNestedTypes(root, rawSchema)
   }
 }

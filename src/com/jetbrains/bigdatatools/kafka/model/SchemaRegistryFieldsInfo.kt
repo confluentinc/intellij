@@ -6,7 +6,13 @@ import kotlin.reflect.KProperty1
 import kotlin.reflect.full.declaredMemberProperties
 import kotlin.reflect.jvm.javaField
 
-data class SchemaRegistryFieldsInfo(val name: String, val type: String, val default: String) : RemoteInfo {
+data class SchemaRegistryFieldsInfo(
+  val name: String,
+  val type: String,
+  val default: String,
+  val description: String = "",
+  val optional: Boolean = false
+) : RemoteInfo {
   override fun toString(): String = name
 
   companion object {

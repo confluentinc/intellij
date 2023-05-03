@@ -17,11 +17,6 @@ import javax.swing.ScrollPaneConstants
 import javax.swing.tree.DefaultMutableTreeNode
 
 class SchemaTreePanel {
-  // TODO: It's possible to show additional information
-  // JsonSchema -- title, description
-  // Avro -- doc
-  // Protobuf -- label, documentation, options
-
   private val commonColumns = arrayOf(
     SchemaRegistryColumn(KafkaMessagesBundle.message("column.name.type")) { it.type },
     SchemaRegistryColumn(KafkaMessagesBundle.message("column.name.default")) { it.default },

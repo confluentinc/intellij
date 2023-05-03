@@ -12,7 +12,8 @@ class JsonSchemaTree(private val schema: JsonSchema) {
     else
       resolveJsonFieldType(schema)
 
-    val child = DefaultMutableTreeNode(SchemaRegistryFieldsInfo(fieldName, type, schema.defaultValue?.toString() ?: ""))
+    val child = DefaultMutableTreeNode(SchemaRegistryFieldsInfo(fieldName, type, schema.defaultValue?.toString() ?: "", schema.description,
+                                                                schema.isNullable))
     parent.add(child)
     when (schema) {
       is ObjectSchema -> schema.propertySchemas?.forEach { buildJsonSchemaTree(child, it.key, it.value) }
@@ -20,7 +21,6 @@ class JsonSchemaTree(private val schema: JsonSchema) {
         for ((index, value) in it.withIndex()) {
           buildJsonSchemaTree(child, "[$index]", value)
         }
-        println(schema.allItemSchema)
       }
       else -> {}
     }

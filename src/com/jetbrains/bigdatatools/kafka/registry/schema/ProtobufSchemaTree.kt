@@ -14,7 +14,7 @@ class ProtobufSchemaTree(private val schema: ProtobufSchema) {
     when (type) {
       is MessageElement -> {
         type.fields.forEach {
-          val child = DefaultMutableTreeNode(SchemaRegistryFieldsInfo(it.name, it.type, it.defaultValue ?: ""))
+          val child = DefaultMutableTreeNode(SchemaRegistryFieldsInfo(it.name, it.type, it.defaultValue ?: "", it.documentation))
           parent.add(child)
 
           val objectType = protoTypes[it.type]
@@ -25,11 +25,8 @@ class ProtobufSchemaTree(private val schema: ProtobufSchema) {
         type.nestedTypes.forEach { buildTree(parent, it) }
       }
       is EnumElement -> {
-        val child = DefaultMutableTreeNode(SchemaRegistryFieldsInfo(type.name, "enum", ""))
-        parent.add(child)
-
         for ((index, value) in type.constants.withIndex()) {
-          child.add(DefaultMutableTreeNode(SchemaRegistryFieldsInfo("[$index]", value.name, "")))
+          parent.add(DefaultMutableTreeNode(SchemaRegistryFieldsInfo("[$index]", value.name, "")))
         }
       }
       else -> {}
