@@ -9,15 +9,16 @@ import org.jetbrains.annotations.PropertyKey
 @NonNls
 private const val BUNDLE = "messages.KafkaBundle"
 
-object KafkaMessagesBundle : DynamicBundle(BUNDLE) {
+internal object KafkaMessagesBundle : DynamicBundle(BUNDLE) {
   @Nls
   @JvmStatic
   fun message(@PropertyKey(resourceBundle = BUNDLE) key: String, vararg params: Any): String = getMessage(key, *params)
 
-  // In some places we have to show kafka properties which can be dynamic and we can miss some keys.
+  // In some places, we have to show kafka properties which can be dynamic, and we can miss some keys.
   @Nls
   @JvmStatic
-  fun messageOrKey(@PropertyKey(resourceBundle = BUNDLE) key: String, vararg params: Any): String =
-    @Suppress("HardCodedStringLiteral") // We are providing key as a default result.
-    BundleBase.messageOrDefault(resourceBundle, key, key, params)
+  fun messageOrKey(@PropertyKey(resourceBundle = BUNDLE) key: String, vararg params: Any): String {
+    @Suppress("HardCodedStringLiteral")
+    return BundleBase.messageOrDefault(resourceBundle, key, key, params)!!
+  }
 }
