@@ -8,6 +8,8 @@ import com.jetbrains.bigdatatools.kafka.consumer.models.ConsumerProducerFieldCon
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.model.SchemaRegistryFieldsInfo
 import com.jetbrains.bigdatatools.kafka.registry.confluent.ConfluentSchemaInfo
+import com.jetbrains.bigdatatools.kafka.registry.serde.BdtJsonSchemaProvider
+import com.jetbrains.bigdatatools.kafka.registry.serde.BdtProtobufSchemaProvider
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import com.squareup.wire.schema.internal.parser.MessageElement
 import com.squareup.wire.schema.internal.parser.ProtoFileElement
@@ -16,9 +18,7 @@ import io.confluent.kafka.schemaregistry.avro.AvroSchema
 import io.confluent.kafka.schemaregistry.avro.AvroSchemaProvider
 import io.confluent.kafka.schemaregistry.client.rest.entities.SchemaReference
 import io.confluent.kafka.schemaregistry.json.JsonSchema
-import io.confluent.kafka.schemaregistry.json.JsonSchemaProvider
 import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchema
-import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchemaProvider
 import org.apache.avro.Schema
 import org.everit.json.schema.*
 import software.amazon.awssdk.services.glue.model.DataFormat
@@ -26,7 +26,7 @@ import java.util.logging.Level
 import java.util.logging.Logger
 
 object KafkaRegistryUtil {
-  val registrySchemaProviders = listOf(AvroSchemaProvider(), ProtobufSchemaProvider(), JsonSchemaProvider())
+  val registrySchemaProviders = listOf(AvroSchemaProvider(), BdtProtobufSchemaProvider(), BdtJsonSchemaProvider())
 
   // We need to disable loggers in schemaregistry, because there was a lot ot error messages (for example AvroSchemaProvider) in case of exceptions,
   // while we are processing that exceptions on our own. And every error message in log produces IDE error notification.

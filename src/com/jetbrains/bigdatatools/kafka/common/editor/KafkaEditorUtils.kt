@@ -74,8 +74,13 @@ object KafkaEditorUtils {
       toPrettyJson(avro)
     }
     type == FieldType.PROTOBUF_REGISTRY -> {
-      val message = value as Message
-      toPrettyJson(ProtobufSchemaUtils.toJson(message).toString(Charset.defaultCharset()))
+      try {
+        val message = value as Message
+        toPrettyJson(ProtobufSchemaUtils.toJson(message).toString(Charset.defaultCharset()))
+      }
+      catch (t: Throwable) {
+        value.toString()
+      }
     }
     type == FieldType.JSON_REGISTRY -> {
       val jsonString = if (value is JsonDataWithSchema) {
