@@ -460,8 +460,8 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
         // Callbacks called in Kafka client threads. That's why, to properly update UI we calling invokeLater
         consumerClient.start(runConfig,
                              dataManager = kafkaManager,
-                             keyConfig = key.getFieldConfig(),
-                             valueConfig = value.getFieldConfig(),
+                             keyConfig = key.loadFieldConfig(),
+                             valueConfig = value.loadFieldConfig(),
                              consume = {
                                invokeLater {
                                  outputModel.addElement(Result.success(it))

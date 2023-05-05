@@ -10,6 +10,7 @@ import com.intellij.ui.dsl.builder.RowsRange
 import com.jetbrains.bigdatatools.common.rfs.util.RfsNotificationUtils
 import com.jetbrains.bigdatatools.common.ui.CustomListCellRenderer
 import com.jetbrains.bigdatatools.common.ui.SimpleDumbAwareAction
+import com.jetbrains.bigdatatools.common.util.executeNotOnEdt
 import com.jetbrains.bigdatatools.kafka.common.editor.KafkaEditorUtils
 import com.jetbrains.bigdatatools.kafka.common.models.FieldType
 import com.jetbrains.bigdatatools.kafka.common.models.RegistrySchemaInEditor
@@ -68,14 +69,17 @@ class KafkaConsumerFieldComponent(private val project: Project,
             cell(schemaComboBox).align(Align.FILL).resizableColumn().gap(RightGap.SMALL)
             actionButton(SimpleDumbAwareAction(KafkaMessagesBundle.message("show.schema.info"),
                                                AllIcons.Actions.ToggleVisibility) {
-              try {
-                val config = getFieldConfig()
-                val schema = KafkaRegistryUtil.loadSchema(config, kafkaManager) ?: return@SimpleDumbAwareAction
-                KafkaSchemaInfoDialog.show(project = project, schemaType = schema.schemaType(), schemaDefinition = schema.canonicalString(),
-                                           schemaName = config.schemaName)
-              }
-              catch (t: Throwable) {
-                RfsNotificationUtils.showExceptionMessage(project, t)
+              executeNotOnEdt {
+                try {
+                  val config = loadFieldConfig()
+                  val schema = config.parsedSchema ?: return@executeNotOnEdt
+                  KafkaSchemaInfoDialog.show(project = project, schemaType = schema.schemaType(),
+                                             schemaDefinition = schema.canonicalString(),
+                                             schemaName = config.schemaName)
+                }
+                catch (t: Throwable) {
+                  RfsNotificationUtils.showExceptionMessage(project, t)
+                }
               }
             })
           }
@@ -109,14 +113,21 @@ class KafkaConsumerFieldComponent(private val project: Project,
   }
 
   fun validateSchema() {
-    val config = getFieldConfig()
-    KafkaRegistryUtil.loadSchema(config, kafkaManager)
+    loadFieldConfig()
   }
 
-  fun getFieldConfig() = ConsumerProducerFieldConfig(type = fieldTypeComboBox.item,
-                                                     valueText = "",
-                                                     isKey = isKey,
-                                                     topic = consumerPanel.topicComboBox.item.name,
-                                                     registryType = kafkaManager.registryType,
-                                                     schemaName = schemaComboBox.item?.schemaName ?: "")
+  fun loadFieldConfig(): ConsumerProducerFieldConfig {
+    val fieldType = fieldTypeComboBox.item
+    val registryType = kafkaManager.registryType
+    val schemaName = schemaComboBox.item?.schemaName ?: ""
+    val schema = KafkaRegistryUtil.loadSchema(registryType, schemaName, fieldType, kafkaManager)
+
+    return ConsumerProducerFieldConfig(type = fieldType,
+                                       valueText = "",
+                                       isKey = isKey,
+                                       topic = consumerPanel.topicComboBox.item.name,
+                                       registryType = registryType,
+                                       schemaName = schemaName,
+                                       parsedSchema = schema)
+  }
 }

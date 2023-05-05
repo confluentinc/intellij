@@ -84,7 +84,7 @@ enum class FieldType(@Nls val title: String) {
     FLOAT -> FloatSerializer()
     BASE64 -> ByteArraySerializer()
     NULL -> VoidSerializer()
-    AVRO_REGISTRY -> when (dataManager.registryType) {
+    AVRO_REGISTRY -> when (producerField.registryType) {
       KafkaRegistryType.NONE -> error("Non exists")
       KafkaRegistryType.CONFLUENT -> BdtKafkaAvroSerializer(dataManager.confluentSchemaRegistry?.client?.internalClient,
                                                             producerField.schemaName)

@@ -56,7 +56,7 @@ class KafkaProducerClient(val client: KafkaClient) {
           return
 
         when (flowParams.mode) {
-          Mode.MANUAL -> sentSeveralMessage(flowParams, partition, producer, dataManager, topic, key, value, headers, onUpdate)
+          Mode.MANUAL -> sentSeveralMessage(flowParams, partition, producer, topic, key, value, headers, onUpdate)
           Mode.AUTO -> {
             val start = System.currentTimeMillis()
             var produced = 0
@@ -70,7 +70,7 @@ class KafkaProducerClient(val client: KafkaClient) {
               if (totalElapsedTime != 0 && (System.currentTimeMillis() - start) >= totalElapsedTime)
                 return
 
-              sentSeveralMessage(flowParams, partition, producer, dataManager, topic, key, value, headers, onUpdate)
+              sentSeveralMessage(flowParams, partition, producer, topic, key, value, headers, onUpdate)
               produced += flowParams.flowRecordsCountPerRequest
               Thread.sleep(flowParams.requestInterval.toLong())
             }
@@ -91,7 +91,6 @@ class KafkaProducerClient(val client: KafkaClient) {
   private fun sentSeveralMessage(flowParams: ProducerFlowParams,
                                  partition: Int?,
                                  producer: KafkaProducer<Any, Any>,
-                                 dataManager: KafkaDataManager,
                                  topic: String,
                                  key: ConsumerProducerFieldConfig,
                                  value: ConsumerProducerFieldConfig,
@@ -100,7 +99,7 @@ class KafkaProducerClient(val client: KafkaClient) {
     repeat(flowParams.flowRecordsCountPerRequest) {
       if (!isRunning())
         return
-      val result = sentMessage(flowParams, partition, producer, dataManager, topic, key, value, headers) ?: return
+      val result = sentMessage(flowParams, partition, producer, topic, key, value, headers) ?: return
       onUpdate(result)
     }
   }
@@ -152,25 +151,26 @@ class KafkaProducerClient(val client: KafkaClient) {
   }
 
 
-  private fun sentMessage(flowParams: ProducerFlowParams,
-                          partition: Int?,
-                          producer: KafkaProducer<Any, Any>,
-                          dataManager: KafkaDataManager,
-                          topic: String,
-                          key: ConsumerProducerFieldConfig,
-                          value: ConsumerProducerFieldConfig,
-                          headers: List<Property>): ProducerResultMessage? {
-    val keyObj = if (flowParams.generateRandomKeys)
-      GenerateRandomData.generate(key, dataManager)
+  private fun sentMessage(
+    flowParams: ProducerFlowParams,
+    partition: Int?,
+    producer: KafkaProducer<Any, Any>,
+    topic: String,
+    key: ConsumerProducerFieldConfig,
+    value: ConsumerProducerFieldConfig,
+    headers: List<Property>,
+  ): ProducerResultMessage? {
+    val correctKey = if (flowParams.generateRandomKeys)
+      key.copy(valueText = GenerateRandomData.generate(key))
     else
-      key.getValueObj(dataManager)
+      key
 
-    val valueObj = if (flowParams.generateRandomValues)
-      GenerateRandomData.generate(value, dataManager)
+    val correctValue = if (flowParams.generateRandomValues)
+      value.copy(valueText = GenerateRandomData.generate(value))
     else
-      value.getValueObj(dataManager)
+      value
 
-    val record = ProducerRecord(topic, partition, keyObj, valueObj)
+    val record = ProducerRecord(topic, partition, correctKey.getValueObj(), correctValue.getValueObj())
     headers.forEach {
       record.headers().add((it.name ?: ""), (it.value ?: "").toByteArray())
     }
@@ -194,8 +194,8 @@ class KafkaProducerClient(val client: KafkaClient) {
       return null
     val metaInfo = metadataFuture.get(2, TimeUnit.SECONDS)
     val end = System.currentTimeMillis()
-    return ProducerResultMessage(key = key.valueText,
-                                 value = value.valueText,
+    return ProducerResultMessage(key = correctKey.valueText,
+                                 value = correctValue.valueText,
                                  offset = metaInfo.offset(),
                                  timestamp = Date(metaInfo.timestamp()),
                                  duration = (end - start).toInt(),

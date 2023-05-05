@@ -3,6 +3,7 @@ package com.jetbrains.bigdatatools.kafka.producer.editor
 import com.google.gson.JsonParser
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.Disposable
+import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.impl.ActionButton
 import com.intellij.openapi.editor.event.DocumentEvent
@@ -17,6 +18,8 @@ import com.jetbrains.bigdatatools.common.settings.revalidateComponent
 import com.jetbrains.bigdatatools.common.settings.withValidator
 import com.jetbrains.bigdatatools.common.ui.CustomListCellRenderer
 import com.jetbrains.bigdatatools.common.ui.SimpleDumbAwareAction
+import com.jetbrains.bigdatatools.common.util.executeNotOnEdt
+import com.jetbrains.bigdatatools.common.util.invokeLater
 import com.jetbrains.bigdatatools.common.util.toPresentableText
 import com.jetbrains.bigdatatools.kafka.common.editor.KafkaEditorUtils
 import com.jetbrains.bigdatatools.kafka.common.models.FieldType
@@ -77,8 +80,7 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
   fun validateSchema(): Boolean {
     schemaValidationError = null
     return try {
-      val config = getProducerField()
-      KafkaRegistryUtil.loadSchema(config, kafkaManager)
+      getProducerField()
       true
     }
     catch (t: Throwable) {
@@ -90,13 +92,20 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
     }
   }
 
-  fun getProducerField() = ConsumerProducerFieldConfig(type = fieldTypeComboBox.item,
-                                                       valueText = getValueText(),
-                                                       isKey = isKey,
-                                                       topic = producedEditor.topicComboBox.item.name,
+  fun getProducerField(): ConsumerProducerFieldConfig {
+    val fieldType = fieldTypeComboBox.item
+    val registryType = kafkaManager.registryType
+    val schemaName = schemaComboBox.item?.schemaName ?: ""
+    val schema = KafkaRegistryUtil.loadSchema(registryType, schemaName, fieldType, kafkaManager)
 
-                                                       registryType = kafkaManager.registryType,
-                                                       schemaName = schemaComboBox.item?.schemaName ?: "")
+    return ConsumerProducerFieldConfig(type = fieldType,
+                                       valueText = getValueText(),
+                                       isKey = isKey,
+                                       topic = producedEditor.topicComboBox.item.name,
+                                       registryType = registryType,
+                                       schemaName = schemaName,
+                                       parsedSchema = schema)
+  }
 
   private lateinit var registryRows: RowsRange
 
@@ -104,7 +113,7 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
   private lateinit var jsonRow: Row
   private lateinit var jsonCell: Cell<EditorTextField>
 
-  private lateinit var generateData: Cell<ActionButton>
+  private lateinit var generateDataAction: Cell<ActionButton>
 
   fun createComponent(panel: Panel) {
     panel.apply {
@@ -116,28 +125,26 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
       group(title, indent = false) {
         row(KafkaMessagesBundle.message("consumer.producer.format.type")) {
           cell(fieldTypeComboBox).resizableColumn().gap(RightGap.SMALL)
-          @Suppress("DialogTitleCapitalization")
-          generateData = actionButton(object : DumbAwareAction(KafkaMessagesBundle.message("generate.random.data"), null,
-                                                               AllIcons.Diff.MagicResolveToolbar) {
-            override fun actionPerformed(e: AnActionEvent) {
-              val config = getProducerField()
-              updateFieldsText(config.type, GenerateRandomData.generate(config, kafkaManager))
-            }
-          })
+          generateDataAction = actionButton(createGenerateAction())
         }
         registryRows = rowsRange {
           row(KafkaMessagesBundle.message("settings.format.registry.schema")) {
             cell(schemaComboBox).onChanged { schemaValidationError = null }.resizableColumn().gap(RightGap.SMALL)
             actionButton(SimpleDumbAwareAction(KafkaMessagesBundle.message("show.schema.info"),
                                                AllIcons.Actions.ToggleVisibility) {
-              try {
-                val config = getProducerField()
-                val schema = KafkaRegistryUtil.loadSchema(config, kafkaManager) ?: return@SimpleDumbAwareAction
-                KafkaSchemaInfoDialog.show(project = project, schemaType = schema.schemaType(), schemaDefinition = schema.canonicalString(),
-                                           schemaName = config.schemaName)
-              }
-              catch (t: Throwable) {
-                RfsNotificationUtils.showExceptionMessage(project, t)
+              executeNotOnEdt {
+                try {
+                  val config = getProducerField()
+                  val schema = config.parsedSchema ?: return@executeNotOnEdt
+                  invokeLater {
+                    KafkaSchemaInfoDialog.show(project = project, schemaType = schema.schemaType(),
+                                               schemaDefinition = schema.canonicalString(),
+                                               schemaName = config.schemaName)
+                  }
+                }
+                catch (t: Throwable) {
+                  RfsNotificationUtils.showExceptionMessage(project, t)
+                }
               }
             })
           }
@@ -156,6 +163,7 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
     updateVisibility()
   }
 
+
   private fun updateFieldsText(type: FieldType, newText: String) {
     if (type in FieldType.registryValues || type == FieldType.JSON)
       jsonField.text = newText
@@ -166,7 +174,8 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
 
   @Suppress("UNUSED_PARAMETER")
   private fun validateValue(text: String): String? {
-    if (schemaValidationError != null) return schemaValidationError?.toPresentableText()
+    if (schemaValidationError != null)
+      return schemaValidationError?.toPresentableText()
     return validate(fieldTypeComboBox.item, getValueText())
   }
 
@@ -183,11 +192,11 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
 
     jsonRow.visible(fieldType in jsonFieldTypes)
     textRow.visible(fieldType in textFieldTypes)
-    generateData.visible(fieldType != FieldType.NULL)
-    generateData.enabled(fieldType != FieldType.JSON && fieldType != FieldType.JSON_REGISTRY && fieldType != FieldType.PROTOBUF_REGISTRY)
 
     val isRegistryType = fieldType in FieldType.registryValues
     registryRows.visible(isRegistryType)
+
+    generateDataAction.component.update()
 
     updateJsonComment()
   }
@@ -252,6 +261,42 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
         "producer.json.value.comment")
     }
   }
+
+  private fun createGenerateAction() = object : DumbAwareAction(KafkaMessagesBundle.message("generate.random.data"), null,
+                                                                AllIcons.Diff.MagicResolveToolbar) {
+    override fun actionPerformed(e: AnActionEvent) {
+      executeNotOnEdt {
+        val config = getProducerField()
+        invokeLater {
+          updateFieldsText(config.type, GenerateRandomData.generate(config.type, config.parsedSchema))
+        }
+      }
+    }
+
+    override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
+
+    override fun update(e: AnActionEvent) {
+      when (fieldTypeComboBox.item) {
+        FieldType.STRING,
+        FieldType.LONG,
+        FieldType.DOUBLE,
+        FieldType.FLOAT,
+        FieldType.BASE64,
+        FieldType.AVRO_REGISTRY -> {
+          e.presentation.isEnabledAndVisible = true
+          e.presentation.text = KafkaMessagesBundle.message("generate.random.data")
+        }
+        FieldType.PROTOBUF_REGISTRY, FieldType.JSON, FieldType.JSON_REGISTRY -> {
+          e.presentation.isVisible = true
+          e.presentation.isEnabled = false
+          @Suppress("DialogTitleCapitalization")
+          e.presentation.text = KafkaMessagesBundle.message("generate.random.data.not.supported")
+        }
+        null, FieldType.NULL -> e.presentation.isVisible = false
+      }
+    }
+  }
+
 
   companion object {
     private val jsonFieldTypes = setOf(FieldType.JSON) + FieldType.registryValues

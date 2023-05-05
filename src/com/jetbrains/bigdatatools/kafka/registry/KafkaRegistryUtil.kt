@@ -3,8 +3,8 @@ package com.jetbrains.bigdatatools.kafka.registry
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonElement
 import com.intellij.openapi.util.NlsSafe
+import com.intellij.util.concurrency.annotations.RequiresBackgroundThread
 import com.jetbrains.bigdatatools.kafka.common.models.FieldType
-import com.jetbrains.bigdatatools.kafka.consumer.models.ConsumerProducerFieldConfig
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.model.SchemaRegistryFieldsInfo
 import com.jetbrains.bigdatatools.kafka.registry.confluent.ConfluentSchemaInfo
@@ -55,32 +55,35 @@ object KafkaRegistryUtil {
       FieldType.JSON_REGISTRY -> JsonSchema.TYPE
     }
 
-  fun loadSchema(config: ConsumerProducerFieldConfig, dataManager: KafkaDataManager): ParsedSchema? {
-    if (config.type !in FieldType.registryValues)
+  @RequiresBackgroundThread
+  fun loadSchema(registryType: KafkaRegistryType,
+                 schemaName: String,
+                 fieldType: FieldType,
+                 dataManager: KafkaDataManager): ParsedSchema? {
+    if (fieldType !in FieldType.registryValues)
       return null
 
-    return when (config.registryType) {
+    return when (registryType) {
       KafkaRegistryType.NONE -> null
-      KafkaRegistryType.CONFLUENT -> parseConfluentSchema(config, dataManager)
-      KafkaRegistryType.AWS_GLUE -> parseGlueSchema(config, dataManager)
+      KafkaRegistryType.CONFLUENT -> parseConfluentSchema(schemaName, dataManager)
+      KafkaRegistryType.AWS_GLUE -> parseGlueSchema(schemaName, fieldType, dataManager)
     }
   }
 
 
-  private fun parseConfluentSchema(config: ConsumerProducerFieldConfig, dataManager: KafkaDataManager): ParsedSchema {
-    val schemaMetadata = dataManager.confluentSchemaRegistry?.getRegistrySchema(config.schemaName)?.meta
-                         ?: error("Schema `${config.schemaName}` is not found")
+  private fun parseConfluentSchema(schemaName: String, dataManager: KafkaDataManager): ParsedSchema {
+    val schemaMetadata = dataManager.confluentSchemaRegistry?.getRegistrySchema(schemaName)?.meta
+                         ?: error("Schema `${schemaName}` is not found")
     return parseSchema(schemaMetadata.schemaType, schemaMetadata.schema, schemaMetadata.references).getOrThrow()
   }
 
-  private fun parseGlueSchema(config: ConsumerProducerFieldConfig, dataManager: KafkaDataManager): ParsedSchema {
-    val schemaName = config.schemaName
+  private fun parseGlueSchema(schemaName: String, fieldType: FieldType, dataManager: KafkaDataManager): ParsedSchema {
     val registryName = dataManager.connectionData.getGlueRegistryOrDefault()
 
     val detailedInfo = dataManager.glueSchemaRegistry?.loadDetailedSchemaInfo(schemaName) ?: throw Exception(
       KafkaMessagesBundle.message("error.glue.schema.is.not.found", schemaName, registryName))
 
-    val dataFormat = when (config.type) {
+    val dataFormat = when (fieldType) {
       FieldType.AVRO_REGISTRY -> DataFormat.AVRO
       FieldType.PROTOBUF_REGISTRY -> DataFormat.PROTOBUF
       FieldType.JSON_REGISTRY -> DataFormat.JSON

@@ -1,10 +1,8 @@
 package com.jetbrains.bigdatatools.kafka.util.generator
 
 import com.intellij.openapi.diagnostic.Logger
-import com.jetbrains.bigdatatools.kafka.consumer.models.ConsumerProducerFieldConfig
-import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
-import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryUtil
 import com.mifmif.common.regex.Generex
+import io.confluent.kafka.schemaregistry.ParsedSchema
 import org.apache.avro.LogicalType
 import org.apache.avro.LogicalTypes
 import org.apache.avro.Schema
@@ -1224,8 +1222,7 @@ class AvroGenerator private constructor(private val topLevelSchema: Schema) {
     private const val PRETTY_FORMAT = true
     private const val ITERATION_NUM: Long = 1
 
-    fun generateAvroMessage(config: ConsumerProducerFieldConfig, dataManager: KafkaDataManager): String {
-      val schema = KafkaRegistryUtil.loadSchema(config, dataManager)
+    fun generateAvroMessage(schema: ParsedSchema?): String {
       val avroSchema = schema?.rawSchema() as? Schema
       if (schema?.schemaType() != "AVRO" || avroSchema == null) {
         logger.warn("Schema could not be null and the type of it should be AVRO")
