@@ -196,7 +196,9 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
     val isRegistryType = fieldType in FieldType.registryValues
     registryRows.visible(isRegistryType)
 
-    generateDataAction.component.update()
+    invokeLater {
+      generateDataAction.component.update()
+    }
 
     updateJsonComment()
   }
