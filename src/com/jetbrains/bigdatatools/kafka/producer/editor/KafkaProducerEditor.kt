@@ -20,6 +20,7 @@ import com.intellij.openapi.util.Key
 import com.intellij.openapi.util.UserDataHolderBase
 import com.intellij.openapi.util.text.StringUtil
 import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.ui.JBColor
 import com.intellij.ui.OnePixelSplitter
 import com.intellij.ui.PopupHandler
 import com.intellij.ui.components.CheckBox
@@ -113,7 +114,11 @@ class KafkaProducerEditor(val project: Project,
 
   private val outputTableDelegate = lazy {
     MaterialTable(outputModel, outputModel.columnModel).apply {
+      background = JBColor.WHITE
+      tableHeader.background = JBColor.WHITE
+
       tableHeader.border = BorderFactory.createEmptyBorder()
+
       outputModel.columnModel.columns.asIterator().forEach {
         if (it.headerValue == "timestamp") {
           it.cellRenderer = DateRenderer()

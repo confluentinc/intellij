@@ -14,6 +14,7 @@ import com.intellij.openapi.ui.Splitter
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.Key
 import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.ui.JBColor
 import com.intellij.ui.OnePixelSplitter
 import com.intellij.ui.PopupHandler
 import com.intellij.ui.components.ActionLink
@@ -135,6 +136,9 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
 
   private val outputTableDelegate = lazy {
     MaterialTable(outputModel, outputModel.columnModel).apply {
+      background = JBColor.WHITE
+      tableHeader.background = JBColor.WHITE
+
       tableHeader.border = BorderFactory.createEmptyBorder()
       outputModel.columnModel.columns.asIterator().forEach {
         if (it.headerValue == "timestamp") {

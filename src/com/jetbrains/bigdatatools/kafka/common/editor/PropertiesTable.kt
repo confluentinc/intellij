@@ -1,5 +1,6 @@
 package com.jetbrains.bigdatatools.kafka.common.editor
 
+import com.intellij.ui.JBColor
 import com.intellij.ui.TableUtil
 import com.intellij.ui.ToolbarDecorator
 import com.jetbrains.bigdatatools.common.settings.components.BdtPropertyComponent
@@ -9,13 +10,14 @@ import javax.swing.BorderFactory
 import javax.swing.JTable
 
 class PropertiesTable(data: List<Property>) {
-
   constructor(data: String) : this(BdtPropertyComponent.parseProperties(data))
 
   private val tableModel = PropertiesTableModel(data.toMutableList())
   val table = MaterialTable(tableModel, tableModel.columnModel).apply {
     autoResizeMode = JTable.AUTO_RESIZE_ALL_COLUMNS
     tableHeader.border = BorderFactory.createEmptyBorder()
+    background = JBColor.WHITE
+    tableHeader.background = JBColor.WHITE
   }
   private val component = createDecoratedTable()
 
