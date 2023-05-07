@@ -5,6 +5,7 @@ import com.google.gson.GsonBuilder
 import com.google.gson.JsonParser
 import com.google.protobuf.Message
 import com.intellij.json.JsonLanguage
+import com.intellij.lang.Language
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.ComboBox
@@ -34,9 +35,11 @@ import java.util.*
 import javax.swing.BorderFactory
 
 object KafkaEditorUtils {
-  fun createJsonTextArea(project: Project, additionalCustomization: List<EditorCustomization> = emptyList()) =
+  fun createTextArea(project: Project,
+                     language: Language = JsonLanguage.INSTANCE,
+                     additionalCustomization: List<EditorCustomization> = emptyList()) =
     EditorTextFieldProvider.getInstance()
-      .getEditorField(JsonLanguage.INSTANCE, project,
+      .getEditorField(language, project,
                       listOf(EditorCustomization {
                         it.settings.apply {
                           isLineNumbersShown = false

@@ -6,15 +6,12 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.ui.EditorCustomization
 import com.intellij.ui.EditorTextField
-import com.intellij.ui.JBColor
-import com.intellij.ui.SideBorder
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.dsl.builder.AlignX
 import com.intellij.ui.dsl.builder.BottomGap
 import com.intellij.ui.dsl.builder.TopGap
 import com.intellij.ui.dsl.builder.panel
 import com.intellij.ui.scale.JBUIScale
-import com.intellij.util.ui.UIUtil
 import com.jetbrains.bigdatatools.common.rfs.driver.metainfo.components.SelectableLabel
 import com.jetbrains.bigdatatools.common.ui.ComponentColoredBorder
 import com.jetbrains.bigdatatools.common.ui.CustomListCellRenderer
@@ -25,7 +22,6 @@ import com.jetbrains.bigdatatools.kafka.common.editor.KafkaEditorUtils
 import com.jetbrains.bigdatatools.kafka.common.editor.PropertiesTable
 import com.jetbrains.bigdatatools.kafka.common.models.FieldType
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
-import java.awt.Component
 import java.awt.Container
 import java.awt.Dimension
 import javax.swing.BorderFactory
@@ -76,12 +72,12 @@ class KafkaRecordDetails(project: Project, parentDisposable: Disposable) {
   private var valueType = FieldType.JSON
 
   init {
-    keyFieldJson = KafkaEditorUtils.createJsonTextArea(project, listOf(ConsumerEditorCustomization())).apply {
+    keyFieldJson = KafkaEditorUtils.createTextArea(project, additionalCustomization = listOf(ConsumerEditorCustomization())).apply {
       document.setReadOnly(true)
       setDisposedWith(parentDisposable)
     }
 
-    valueFieldJson = KafkaEditorUtils.createJsonTextArea(project, listOf(ConsumerEditorCustomization())).apply {
+    valueFieldJson = KafkaEditorUtils.createTextArea(project, additionalCustomization = listOf(ConsumerEditorCustomization())).apply {
       document.setReadOnly(true)
       setDisposedWith(parentDisposable)
     }
@@ -268,22 +264,6 @@ class KafkaRecordDetails(project: Project, parentDisposable: Disposable) {
                                superSize.height + (if (horizontalScrollBar?.isVisible == true) horizontalScrollBar.height * 3 else 0)))
         }
       }
-    }
-  }
-
-  // Special scroll pane used for text presentation of keys and values.
-  inner class AdjustableScrollPanel(view: Component) : JBScrollPane(view) {
-    init {
-      // In the other case the borders will be removed when the component placed in the Editor.
-      putClientProperty(UIUtil.KEEP_BORDER_SIDES, SideBorder.ALL)
-      border = BorderFactory.createLineBorder(JBColor.border())
-    }
-
-    override fun getPreferredSize(): Dimension {
-      val superSize = super.getPreferredSize()
-      return Dimension(superSize.width,
-                       min(JBUIScale.scale(500),
-                           superSize.height + (if (horizontalScrollBar?.isVisible == true) horizontalScrollBar.height * 2 else 0)))
     }
   }
 }

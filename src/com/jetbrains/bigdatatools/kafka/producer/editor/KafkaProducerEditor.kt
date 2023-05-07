@@ -3,14 +3,9 @@ package com.jetbrains.bigdatatools.kafka.producer.editor
 import com.intellij.icons.AllIcons
 import com.intellij.ide.util.PropertiesComponent
 import com.intellij.openapi.Disposable
-import com.intellij.openapi.actionSystem.ActionGroup
-import com.intellij.openapi.actionSystem.ActionManager
-import com.intellij.openapi.actionSystem.AnActionEvent
-import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.fileEditor.FileEditor
 import com.intellij.openapi.fileEditor.FileEditorLocation
 import com.intellij.openapi.fileEditor.FileEditorState
-import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.Messages
@@ -20,39 +15,35 @@ import com.intellij.openapi.util.Key
 import com.intellij.openapi.util.UserDataHolderBase
 import com.intellij.openapi.util.text.StringUtil
 import com.intellij.openapi.vfs.VirtualFile
-import com.intellij.ui.JBColor
 import com.intellij.ui.OnePixelSplitter
-import com.intellij.ui.PopupHandler
 import com.intellij.ui.components.CheckBox
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.components.fields.IntegerField
 import com.intellij.ui.dsl.builder.*
 import com.jetbrains.bigdatatools.common.rfs.util.RfsNotificationUtils
 import com.jetbrains.bigdatatools.common.settings.getValidationInfo
-import com.jetbrains.bigdatatools.common.table.MaterialTable
-import com.jetbrains.bigdatatools.common.table.MaterialTableUtils
-import com.jetbrains.bigdatatools.common.table.TableResizeController
-import com.jetbrains.bigdatatools.common.table.extension.TableFirstRowAdded
-import com.jetbrains.bigdatatools.common.table.filters.TableFilterHeader
-import com.jetbrains.bigdatatools.common.table.renderers.DateRenderer
-import com.jetbrains.bigdatatools.common.table.renderers.DurationRenderer
 import com.jetbrains.bigdatatools.common.ui.CustomListCellRenderer
 import com.jetbrains.bigdatatools.common.ui.ExpansionPanel
-import com.jetbrains.bigdatatools.common.ui.SimpleDumbAwareAction
 import com.jetbrains.bigdatatools.common.util.executeNotOnEdt
 import com.jetbrains.bigdatatools.common.util.invokeLater
-import com.jetbrains.bigdatatools.kafka.common.editor.*
+import com.jetbrains.bigdatatools.kafka.common.editor.KafkaEditorUtils
+import com.jetbrains.bigdatatools.kafka.common.editor.KafkaProducerConsumerProgressComponent
+import com.jetbrains.bigdatatools.kafka.common.editor.PropertiesTable
+import com.jetbrains.bigdatatools.kafka.common.editor.SavePresetAction
 import com.jetbrains.bigdatatools.kafka.common.models.TopicInEditor
 import com.jetbrains.bigdatatools.kafka.common.settings.KafkaConfigStorage
 import com.jetbrains.bigdatatools.kafka.common.settings.StorageProducerConfig
+import com.jetbrains.bigdatatools.kafka.consumer.editor.KafkaRecordsOutput
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
-import com.jetbrains.bigdatatools.kafka.producer.models.*
+import com.jetbrains.bigdatatools.kafka.producer.models.AcksType
+import com.jetbrains.bigdatatools.kafka.producer.models.ProducerEditorState
+import com.jetbrains.bigdatatools.kafka.producer.models.ProducerFlowParams
+import com.jetbrains.bigdatatools.kafka.producer.models.RecordCompression
 import com.jetbrains.bigdatatools.kafka.statistics.KafkaUsagesCollector
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import java.awt.BorderLayout
 import java.awt.Dimension
 import java.beans.PropertyChangeListener
-import java.util.*
 import javax.swing.*
 import kotlin.math.max
 
@@ -60,6 +51,8 @@ class KafkaProducerEditor(val project: Project,
                           internal val kafkaManager: KafkaDataManager,
                           private val file: VirtualFile) : FileEditor, UserDataHolderBase() {
   private var isRestoring = false
+
+  private val output = KafkaRecordsOutput(project, isProducer = true).also { Disposer.register(this, it) }
 
   private val flowController = KafkaFlowController()
   private val progress = KafkaProducerConsumerProgressComponent()
@@ -96,54 +89,6 @@ class KafkaProducerEditor(val project: Project,
     defaultValue = -1
     emptyText.text = KafkaMessagesBundle.message("producer.forcePartition.emptytext")
   }
-
-  //ToDo "offset" temporary removed because always -1
-  private val outputModel = ListTableModel(ArrayList<ProducerResultMessage>(),
-                                           listOf("key", "value", "timestamp", "partition", "duration")) { data, index ->
-    when (index) {
-      0 -> data.key
-      1 -> data.value
-      2 -> data.timestamp
-      3 -> data.partition
-      4 -> data.duration
-      else -> ""
-    }
-  }.apply {
-    columnClasses = listOf(Object::class.java, Object::class.java, Date::class.java, Int::class.java, Int::class.java)
-  }
-
-  private val outputTableDelegate = lazy {
-    MaterialTable(outputModel, outputModel.columnModel).apply {
-      background = JBColor.WHITE
-      tableHeader.background = JBColor.WHITE
-
-      tableHeader.border = BorderFactory.createEmptyBorder()
-
-      outputModel.columnModel.columns.asIterator().forEach {
-        if (it.headerValue == "timestamp") {
-          it.cellRenderer = DateRenderer()
-        }
-        else if (it.headerValue == "duration") {
-          it.cellRenderer = DurationRenderer()
-        }
-      }
-      TableFilterHeader(this)
-      val resizeController = TableResizeController.installOn(this).apply {
-        setResizePriorityList("value")
-        mode = TableResizeController.Mode.PRIOR_COLUMNS_LIST
-      }
-
-      MaterialTableUtils.fitColumnsWidth(this)
-      resizeController.componentResized()
-
-      TableFirstRowAdded(this) {
-        MaterialTableUtils.fitColumnsWidth(this)
-        resizeController.componentResized()
-      }
-      setupTablePopupMenu(this)
-    }
-  }
-  private val outputTable: MaterialTable by outputTableDelegate
 
 
   private val presetsDelegate = lazy {
@@ -267,7 +212,7 @@ class KafkaProducerEditor(val project: Project,
         ) {
           invokeLater {
             progress.onUpdate()
-            outputModel.addElement(it)
+            output.addRow(it)
           }
         }
       }
@@ -329,21 +274,7 @@ class KafkaProducerEditor(val project: Project,
     }
     settingsSplitter.setResizeEnabled(settingsExpanded)
 
-    val clearButton = object : DumbAwareAction(KafkaMessagesBundle.message("action.clear.output"), null, AllIcons.Actions.GC) {
-      override fun actionPerformed(e: AnActionEvent) {
-        outputModel.clear()
-      }
-    }
-
-    val outputTableScroll = JBScrollPane(outputTable).apply { border = BorderFactory.createEmptyBorder() }
-    settingsSplitter.secondComponent = ExpansionPanel(KafkaMessagesBundle.message("toggle.data"), { outputTableScroll },
-                                                      PropertiesComponent.getInstance().getBoolean(DATA_SHOW_ID, true),
-                                                      listOf(clearButton)
-    ).apply {
-      addChangeListener {
-        settingsSplitter.proportion = 0.0001f
-      }
-    }
+    settingsSplitter.secondComponent = output.resultsSplitter
 
     val presetsExpanded = PropertiesComponent.getInstance().getBoolean(PRESETS_SHOW_ID, false)
     presetsSplitter.firstComponent = ExpansionPanel(KafkaMessagesBundle.message("toggle.presets"), {
@@ -366,15 +297,6 @@ class KafkaProducerEditor(val project: Project,
   }
 
 
-  private fun setupTablePopupMenu(table: JTable) {
-    val clearAction = SimpleDumbAwareAction(KafkaMessagesBundle.message("action.clear.output")) { outputModel.clear() }
-    PopupHandler.installPopupMenu(table, DefaultActionGroup().apply {
-      (ActionManager.getInstance().getAction("BdIde.TableEditor.PopupActionGroup") as? ActionGroup)?.let { addAll(it) }
-      addSeparator()
-      addAction(clearAction)
-    }, "KafkaProducerEditor")
-  }
-
   private fun createCenterPanel(): JComponent = presetsSplitter
 
 
@@ -382,7 +304,8 @@ class KafkaProducerEditor(val project: Project,
     if (isRestoring) {
       return
     }
-    file.putUserData(STATE_KEY, ProducerEditorState(outputModel.elements().toList(), getConfig()))
+
+    file.putUserData(STATE_KEY, ProducerEditorState(output.getElements(), getConfig()))
   }
 
   private fun restoreFromFile() {
@@ -390,10 +313,7 @@ class KafkaProducerEditor(val project: Project,
       isRestoring = true
 
       val state = file.getUserData(STATE_KEY) ?: return
-      outputModel.clear()
-      state.output.forEach {
-        outputModel.addElement(it)
-      }
+      output.replace(state.output)
       applyConfig(state.config)
     }
     finally {
@@ -451,7 +371,6 @@ class KafkaProducerEditor(val project: Project,
   companion object {
     val STATE_KEY = Key<ProducerEditorState>("PRODUCER_STATE")
 
-    private const val DATA_SHOW_ID = "com.jetbrains.bigdatatools.kafka.producer.data.show"
     private const val SETTINGS_SHOW_ID = "com.jetbrains.bigdatatools.kafka.producer.settings.show"
     private const val PRESETS_SHOW_ID = "com.jetbrains.bigdatatools.kafka.producer.presets.show"
   }
