@@ -1,20 +1,20 @@
 package com.jetbrains.bigdatatools.kafka.consumer.editor
 
 import com.intellij.openapi.Disposable
+import com.intellij.openapi.application.runWriteAction
 import com.intellij.openapi.editor.ex.EditorEx
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.ComboBox
+import com.intellij.openapi.vfs.writeBytes
 import com.intellij.ui.EditorCustomization
 import com.intellij.ui.EditorTextField
 import com.intellij.ui.components.JBScrollPane
-import com.intellij.ui.dsl.builder.AlignX
-import com.intellij.ui.dsl.builder.BottomGap
-import com.intellij.ui.dsl.builder.TopGap
-import com.intellij.ui.dsl.builder.panel
+import com.intellij.ui.dsl.builder.*
 import com.intellij.ui.scale.JBUIScale
 import com.jetbrains.bigdatatools.common.rfs.driver.metainfo.components.SelectableLabel
 import com.jetbrains.bigdatatools.common.ui.ComponentColoredBorder
 import com.jetbrains.bigdatatools.common.ui.CustomListCellRenderer
+import com.jetbrains.bigdatatools.common.ui.chooser.FileChooserUtil
 import com.jetbrains.bigdatatools.common.util.SizeUtils
 import com.jetbrains.bigdatatools.common.util.TimeUtils
 import com.jetbrains.bigdatatools.kafka.common.editor.FieldViewerType
@@ -24,6 +24,7 @@ import com.jetbrains.bigdatatools.kafka.common.models.FieldType
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import java.awt.Container
 import java.awt.Dimension
+import java.util.*
 import javax.swing.BorderFactory
 import javax.swing.JTextArea
 import javax.swing.ScrollPaneConstants
@@ -31,6 +32,9 @@ import kotlin.math.min
 
 class KafkaRecordDetails(project: Project, parentDisposable: Disposable) {
   private val topicField = SelectableLabel("")
+
+  private lateinit var keyLoadFileLinkRow: Row
+  private lateinit var valueLoadFileLinkRow: Row
   private val keyViewerType = ComboBox(FieldViewerType.values()).apply {
     renderer = CustomListCellRenderer<FieldViewerType> { it.title }
   }
@@ -83,12 +87,12 @@ class KafkaRecordDetails(project: Project, parentDisposable: Disposable) {
     }
 
     keyViewerType.addActionListener {
-      updateViewerVisible(keyViewerType, keyType, keyFieldTextScroll, keyFieldJson)
+      updateViewerVisible(keyViewerType, keyType, keyFieldTextScroll, keyFieldJson, keyLoadFileLinkRow)
       component.revalidate()
     }
 
     valueViewerType.addActionListener {
-      updateViewerVisible(valueViewerType, valueType, valueFieldTextScroll, valueFieldJson)
+      updateViewerVisible(valueViewerType, valueType, valueFieldTextScroll, valueFieldJson, valueLoadFileLinkRow)
       component.revalidate()
     }
 
@@ -99,6 +103,12 @@ class KafkaRecordDetails(project: Project, parentDisposable: Disposable) {
     row(KafkaMessagesBundle.message("consumer.record.key")) {
       cell(keyViewerType).align(AlignX.RIGHT)
     }
+    keyLoadFileLinkRow = row {
+      link(KafkaMessagesBundle.message("producer.config.link.load.file")) {
+        loadBinaryFile(project, "key", keyFieldText)
+      }
+    }
+
     row {
       cell(keyFieldJson).resizableColumn().align(AlignX.FILL)
       cell(keyFieldTextScroll).resizableColumn().align(AlignX.FILL)
@@ -106,6 +116,11 @@ class KafkaRecordDetails(project: Project, parentDisposable: Disposable) {
 
     row(KafkaMessagesBundle.message("consumer.record.value")) {
       cell(valueViewerType).align(AlignX.RIGHT)
+    }
+    valueLoadFileLinkRow = row {
+      link(KafkaMessagesBundle.message("producer.config.link.load.file")) {
+        loadBinaryFile(project, "value", valueFieldText)
+      }
     }
     row {
       cell(valueFieldJson).resizableColumn().align(AlignX.FILL)
@@ -212,6 +227,7 @@ class KafkaRecordDetails(project: Project, parentDisposable: Disposable) {
     val textField = if (isKey) keyFieldText else valueFieldText
     val textScrollableField = if (isKey) keyFieldTextScroll else valueFieldTextScroll
     val jsonField = if (isKey) keyFieldJson else valueFieldJson
+    val linkRow = if (isKey) keyLoadFileLinkRow else valueLoadFileLinkRow
 
     textField.text = value
 
@@ -219,37 +235,38 @@ class KafkaRecordDetails(project: Project, parentDisposable: Disposable) {
     jsonField.text = KafkaEditorUtils.tryFormatJson(value)
     jsonField.document.setReadOnly(true)
 
-    updateViewerVisible(viewerType, fieldType, textScrollableField, jsonField)
+    updateViewerVisible(viewerType, fieldType, textScrollableField, jsonField, linkRow)
   }
 
 
   private fun updateViewerVisible(viewerType: ComboBox<FieldViewerType>,
                                   fieldType: FieldType,
                                   textField: AdjustableScrollPanel,
-                                  jsonField: EditorTextField) {
-    val isString = when (viewerType.item) {
-      FieldViewerType.AUTO -> shouldBeString(fieldType, jsonField.text)
-      FieldViewerType.TEXT -> true
-      FieldViewerType.JSON -> false
-      FieldViewerType.DECODED_BASE64 -> true
-      else -> false
+                                  jsonField: EditorTextField,
+                                  linkRow: Row) {
+    val visibleFieldType = if (viewerType.item === FieldViewerType.AUTO) {
+      detectAutoType(fieldType, jsonField.text)
+    }
+    else {
+      viewerType.item
     }
 
-    textField.isVisible = isString
-    jsonField.isVisible = !isString
+    textField.isVisible = visibleFieldType == FieldViewerType.TEXT || visibleFieldType == FieldViewerType.DECODED_BASE64
+    jsonField.isVisible = visibleFieldType == FieldViewerType.JSON
+    linkRow.visible(visibleFieldType == FieldViewerType.DECODED_BASE64)
   }
 
-  private fun shouldBeString(fieldType: FieldType, text: String) = when (fieldType) {
-    FieldType.STRING -> !KafkaEditorUtils.isJsonString(text)
-    FieldType.JSON -> false
-    FieldType.LONG -> true
-    FieldType.DOUBLE -> true
-    FieldType.FLOAT -> true
-    FieldType.BASE64 -> true
-    FieldType.NULL -> true
-    FieldType.AVRO_REGISTRY -> false
-    FieldType.PROTOBUF_REGISTRY -> false
-    FieldType.JSON_REGISTRY -> false
+  private fun detectAutoType(fieldType: FieldType, text: String): FieldViewerType = when (fieldType) {
+    FieldType.STRING -> if (KafkaEditorUtils.isJsonString(text)) FieldViewerType.JSON else FieldViewerType.TEXT
+    FieldType.JSON -> FieldViewerType.JSON
+    FieldType.LONG -> FieldViewerType.TEXT
+    FieldType.DOUBLE -> FieldViewerType.TEXT
+    FieldType.FLOAT -> FieldViewerType.TEXT
+    FieldType.BASE64 -> FieldViewerType.DECODED_BASE64
+    FieldType.NULL -> FieldViewerType.TEXT
+    FieldType.AVRO_REGISTRY -> FieldViewerType.JSON
+    FieldType.PROTOBUF_REGISTRY -> FieldViewerType.JSON
+    FieldType.JSON_REGISTRY -> FieldViewerType.JSON
   }
 
   inner class ConsumerEditorCustomization : EditorCustomization {
@@ -264,6 +281,13 @@ class KafkaRecordDetails(project: Project, parentDisposable: Disposable) {
                                superSize.height + (if (horizontalScrollBar?.isVisible == true) horizontalScrollBar.height * 3 else 0)))
         }
       }
+    }
+  }
+
+  private fun loadBinaryFile(project: Project, defaultFileName: String, fieldText: JTextArea) {
+    val virtualFile = FileChooserUtil.selectFolderAndCreateFile(project, defaultFileName) ?: return
+    runWriteAction {
+      virtualFile.writeBytes(Base64.getDecoder().decode(fieldText.text))
     }
   }
 }

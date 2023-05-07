@@ -11,6 +11,7 @@ import com.intellij.openapi.editor.event.DocumentListener
 import com.intellij.openapi.fileTypes.PlainTextLanguage
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.ui.ComboBox
+import com.intellij.openapi.vfs.readBytes
 import com.intellij.ui.EditorTextField
 import com.intellij.ui.dsl.builder.*
 import com.jetbrains.bigdatatools.common.rfs.util.RfsNotificationUtils
@@ -18,6 +19,7 @@ import com.jetbrains.bigdatatools.common.settings.revalidateComponent
 import com.jetbrains.bigdatatools.common.settings.withValidator
 import com.jetbrains.bigdatatools.common.ui.CustomListCellRenderer
 import com.jetbrains.bigdatatools.common.ui.SimpleDumbAwareAction
+import com.jetbrains.bigdatatools.common.ui.chooser.FileChooserUtil
 import com.jetbrains.bigdatatools.common.util.executeNotOnEdt
 import com.jetbrains.bigdatatools.common.util.invokeLater
 import com.jetbrains.bigdatatools.common.util.toPresentableText
@@ -51,7 +53,6 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
       }, this)
     }
   }
-
 
   val jsonField: EditorTextField by lazy {
     KafkaEditorUtils.createTextArea(project).withValidator(this, ::validateValue).also {
@@ -129,6 +130,7 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
 
   private lateinit var textRow: Row
   private lateinit var jsonRow: Row
+  private lateinit var loadFileLinkRow: Row
   private lateinit var jsonCell: Cell<EditorTextField>
 
   private lateinit var generateDataAction: Cell<ActionButton>
@@ -174,6 +176,17 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
         textRow = row {
           cell(textField).align(AlignX.FILL).resizableColumn()
         }
+        loadFileLinkRow = row {
+          link(KafkaMessagesBundle.message("producer.config.link.upload.file")) {
+            val vf = FileChooserUtil.selectSingleFile(project) ?: return@link
+            executeNotOnEdt {
+              val readBytes = vf.readBytes()
+              invokeLater {
+                textField.text = Base64.getEncoder().encodeToString(readBytes)
+              }
+            }
+          }
+        }.topGap(TopGap.NONE)
       }
     }
     updateVisibility()
@@ -208,6 +221,7 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
 
     jsonRow.visible(fieldType in jsonFieldTypes)
     textRow.visible(fieldType in textFieldTypes)
+    loadFileLinkRow.visible(fieldType == FieldType.BASE64)
 
     val isRegistryType = fieldType in FieldType.registryValues
     registryRows.visible(isRegistryType)
