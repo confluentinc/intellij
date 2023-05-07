@@ -15,7 +15,6 @@ import javax.swing.event.RowSorterEvent
 import javax.swing.event.TableModelEvent
 
 class ConsumerTableStats {
-
   private val total = JLabel()
   private val visible = JLabel()
   private val speed = JLabel()
@@ -31,7 +30,7 @@ class ConsumerTableStats {
 
   private val lastRecordSizes = LinkedList<Pair<Long, Int>>()
 
-  fun setModel(table: MaterialTable, model: ListTableModel<Result<ConsumerRecord<Any, Any>>>) {
+  fun setModel(table: MaterialTable, model: ListTableModel<ConsumerOutputRow>) {
 
     table.rowSorter.addRowSorterListener { e ->
       if (e.type == RowSorterEvent.Type.SORTED) {
@@ -45,13 +44,13 @@ class ConsumerTableStats {
 
       @Suppress("HardCodedStringLiteral")
       memory.text = SizeUtils.toString(model.elements().sumOf {
-        val record = it.getOrNull() ?: return@sumOf 0
+        val record = it.record.getOrNull() ?: return@sumOf 0
         record.serializedValueSize() + record.serializedKeySize()
       })
 
       if (e.type == TableModelEvent.INSERT) {
         for (i in e.firstRow until e.lastRow) {
-          model.getValueAt(i)?.let { it.getOrNull()?.let { record -> addRecord(record) } }
+          model.getValueAt(i)?.let { it.record.getOrNull()?.let { record -> addRecord(record) } }
         }
       }
     }

@@ -1,7 +1,7 @@
 package com.jetbrains.bigdatatools.kafka.consumer.models
 
 import com.jetbrains.bigdatatools.kafka.common.settings.StorageConsumerConfig
-import org.apache.kafka.clients.consumer.ConsumerRecord
+import com.jetbrains.bigdatatools.kafka.consumer.editor.ConsumerOutputRow
 
-data class ConsumerEditorState(val output: List<Result<ConsumerRecord<Any, Any>>>,
+data class ConsumerEditorState(val output: List<ConsumerOutputRow>,
                                val config: StorageConsumerConfig)

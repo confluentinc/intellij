@@ -38,7 +38,6 @@ import javax.swing.text.JTextComponent
 import kotlin.math.min
 
 class ConsumerRecordDetails(project: Project, parentDisposable: Disposable) {
-
   inner class ConsumerEditorCustomization : EditorCustomization {
     override fun customize(editor: EditorEx) {
 
@@ -108,24 +107,20 @@ class ConsumerRecordDetails(project: Project, parentDisposable: Disposable) {
   private val keySize = JTextField(10).apply { isEditable = false }
   private val valueSize = JTextField(10).apply { isEditable = false }
 
-  var keyType = FieldType.JSON
+  private var keyType = FieldType.JSON
     set(value) {
       if (field == value) {
         return
       }
       field = value
-      updateFieldEditor(keyFieldText, keyFieldJson, field, keyViewerType.item)
-      record = record
     }
 
-  var valueType = FieldType.JSON
+  private var valueType = FieldType.JSON
     set(value) {
       if (field == value) {
         return
       }
       field = value
-      updateFieldEditor(valueFieldText, valueFieldJson, field, valueViewerType.item)
-      record = record
     }
 
   init {
@@ -150,6 +145,15 @@ class ConsumerRecordDetails(project: Project, parentDisposable: Disposable) {
       updateField(valueFieldText, valueFieldJson, valueViewerType.item, valueType, record?.value())
       component.revalidate()
     }
+  }
+
+  fun update(row: ConsumerOutputRow?) {
+    keyType = row?.keyType ?: FieldType.STRING
+    valueType = row?.valueType ?: FieldType.JSON
+    record = row?.record?.getOrNull()
+    row ?: return
+    updateFieldEditor(keyFieldText, keyFieldJson, row.keyType, keyViewerType.item)
+    updateFieldEditor(valueFieldText, valueFieldJson, row.valueType, valueViewerType.item)
   }
 
   private fun isJsonViewer(fieldType: FieldType,
@@ -181,7 +185,6 @@ class ConsumerRecordDetails(project: Project, parentDisposable: Disposable) {
                           fieldViewerType: FieldViewerType,
                           fieldType: FieldType,
                           value: Any?) {
-
     val isJson = isJsonViewer(fieldType, fieldViewerType)
 
     if (value == null) {
@@ -222,7 +225,7 @@ class ConsumerRecordDetails(project: Project, parentDisposable: Disposable) {
     fieldText.caretPosition = 0
   }
 
-  var record: ConsumerRecord<Any, Any>? = null
+  private var record: ConsumerRecord<Any, Any>? = null
     set(value) {
       field = value
 
