@@ -36,15 +36,6 @@ class KafkaConsumerFieldComponent(private val project: Project,
     addActionListener {
       consumerPanel.updateVisibility()
       consumerPanel.storeToUserData()
-      if (consumerPanel.detailsDelegate.isInitialized()) {
-        if (isKey) {
-          consumerPanel.details.keyType = item
-        }
-        else {
-          consumerPanel.details.valueType = item
-        }
-        updateRegistryFieldsVisibility()
-      }
     }
   }
 

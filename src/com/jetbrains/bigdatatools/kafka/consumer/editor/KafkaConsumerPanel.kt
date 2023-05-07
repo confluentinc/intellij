@@ -3,10 +3,8 @@ package com.jetbrains.bigdatatools.kafka.consumer.editor
 import com.intellij.icons.AllIcons
 import com.intellij.ide.util.PropertiesComponent
 import com.intellij.openapi.Disposable
-import com.intellij.openapi.actionSystem.*
 import com.intellij.openapi.application.invokeAndWaitIfNeeded
 import com.intellij.openapi.observable.properties.AtomicBooleanProperty
-import com.intellij.openapi.project.DumbAwareToggleAction
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.Messages
@@ -14,29 +12,20 @@ import com.intellij.openapi.ui.Splitter
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.Key
 import com.intellij.openapi.vfs.VirtualFile
-import com.intellij.ui.JBColor
 import com.intellij.ui.OnePixelSplitter
-import com.intellij.ui.PopupHandler
 import com.intellij.ui.components.ActionLink
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.components.JBTextField
 import com.intellij.ui.dsl.builder.AlignX
 import com.intellij.ui.dsl.builder.panel
 import com.jetbrains.bigdatatools.common.rfs.util.RfsNotificationUtils
-import com.jetbrains.bigdatatools.common.table.MaterialTable
-import com.jetbrains.bigdatatools.common.table.MaterialTableUtils
-import com.jetbrains.bigdatatools.common.table.extension.TableCellPreview
-import com.jetbrains.bigdatatools.common.table.extension.TableFirstRowAdded
-import com.jetbrains.bigdatatools.common.table.extension.TableLoadingDecorator
-import com.jetbrains.bigdatatools.common.table.filters.TableFilterHeader
-import com.jetbrains.bigdatatools.common.table.renderers.DateRenderer
-import com.jetbrains.bigdatatools.common.ui.*
+import com.jetbrains.bigdatatools.common.ui.CustomListCellRenderer
+import com.jetbrains.bigdatatools.common.ui.ExpansionPanel
 import com.jetbrains.bigdatatools.common.util.executeOnPooledThread
 import com.jetbrains.bigdatatools.common.util.invokeLater
 import com.jetbrains.bigdatatools.common.util.withPluginClassLoader
 import com.jetbrains.bigdatatools.kafka.common.editor.KafkaEditorUtils
 import com.jetbrains.bigdatatools.kafka.common.editor.KafkaProducerConsumerProgressComponent
-import com.jetbrains.bigdatatools.kafka.common.editor.ListTableModel
 import com.jetbrains.bigdatatools.kafka.common.editor.SavePresetAction
 import com.jetbrains.bigdatatools.kafka.common.models.TopicInEditor
 import com.jetbrains.bigdatatools.kafka.common.settings.KafkaConfigStorage
@@ -46,7 +35,6 @@ import com.jetbrains.bigdatatools.kafka.consumer.models.*
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import com.michaelbaranov.microba.calendar.DatePicker
-import org.apache.kafka.clients.consumer.ConsumerRecord
 import java.awt.BorderLayout
 import java.awt.Dimension
 import java.util.*
@@ -57,6 +45,10 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
   private val consumerClient: KafkaConsumerClient = KafkaConsumerClient(dataManager = kafkaManager,
                                                                         onStart = ::onStartConsume,
                                                                         onStop = ::onStopConsume)
+  private val output = KafkaConsumerOutput(project).also {
+    Disposer.register(this, it)
+  }
+
   private val startSpecificDate = DatePicker()
   private val limitSpecificDate = DatePicker()
   private val limitOffset = JBTextField(15)
@@ -96,7 +88,6 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
 
   private val progress = KafkaProducerConsumerProgressComponent()
 
-
   private val filterKeyField = JBTextField()
   private val filterValueField = JBTextField()
   private val filterHeadKeyField = JBTextField()
@@ -111,74 +102,6 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
   private val key = KafkaConsumerFieldComponent(project, this, isKey = true)
   private val value = KafkaConsumerFieldComponent(project, this, isKey = false)
 
-  private val outputModel = ListTableModel(LinkedList<Result<ConsumerRecord<Any, Any>>>(),
-                                           listOf("partition", "offset", "timestamp", "key", "value")) { data, index ->
-    if (data.isFailure) {
-      when (index) {
-        3 -> "Error"
-        4 -> data.exceptionOrNull()?.message ?: ""
-        else -> null
-      }
-    }
-    else {
-      when (index) {
-        0 -> data.getOrNull()?.partition()
-        1 -> data.getOrNull()?.offset()
-        2 -> data.getOrNull()?.let { Date(it.timestamp()) }
-        3 -> KafkaEditorUtils.getValueAsString(key.fieldTypeComboBox.item, data.getOrNull()?.key())
-        4 -> KafkaEditorUtils.getValueAsString(value.fieldTypeComboBox.item, data.getOrNull()?.value())
-        else -> ""
-      }
-    }
-  }.apply {
-    columnClasses = listOf(Int::class.java, Long::class.java, Date::class.java, Object::class.java, Object::class.java)
-  }
-
-  private val outputTableDelegate = lazy {
-    MaterialTable(outputModel, outputModel.columnModel).apply {
-      background = JBColor.WHITE
-      tableHeader.background = JBColor.WHITE
-
-      tableHeader.border = BorderFactory.createEmptyBorder()
-      outputModel.columnModel.columns.asIterator().forEach {
-        if (it.headerValue == "timestamp") {
-          it.cellRenderer = DateRenderer()
-        }
-      }
-
-      TableFilterHeader(this)
-
-      MaterialTableUtils.fitColumnsWidth(this)
-
-      TableFirstRowAdded(this) {
-        MaterialTableUtils.fitColumnsWidth(this)
-      }
-
-      setupTablePopupMenu(this)
-
-      TableCellPreview.installOn(this, listOf("key", "value"))
-    }
-  }
-  private val outputTable: MaterialTable by outputTableDelegate
-
-  private val outputTablePanelDelegate = lazy {
-    JPanel(BorderLayout()).apply {
-      add(JBScrollPane(outputTable).apply {
-        border = BorderFactory.createEmptyBorder()
-      }, BorderLayout.CENTER)
-      if (PropertiesComponent.getInstance().getBoolean(TABLE_STATS_ID, false)) {
-        setSouthComponent(outputTableStatus.component)
-      }
-    }
-  }
-  private val outputTablePanel: JPanel by outputTablePanelDelegate
-
-  private val outputTableStatusDelegate = lazy {
-    ConsumerTableStats().apply {
-      setModel(outputTable, outputModel)
-    }
-  }
-  private val outputTableStatus: ConsumerTableStats by outputTableStatusDelegate
 
   private val kafkaConsumerSettingsDelegate = lazy { KafkaConsumerSettings() }
   private val kafkaConsumerSettings: KafkaConsumerSettings by kafkaConsumerSettingsDelegate
@@ -193,7 +116,8 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
         try {
           if (consumerClient.isRunning()) {
             consumerClient.stop()
-            tableLoadingDecorator?.let { Disposer.dispose(it) }
+            output.stop()
+
           }
           else {
             startConsume(kafkaManager.project)
@@ -219,13 +143,6 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
     row(KafkaMessagesBundle.message("label.filter.head.value")) { cell(filterHeadValueField).align(AlignX.FILL).resizableColumn() }
   }
 
-  internal val detailsDelegate: Lazy<ConsumerRecordDetails> = lazy {
-    ConsumerRecordDetails(project, this).apply {
-      keyType = key.fieldTypeComboBox.item
-      valueType = value.fieldTypeComboBox.item
-    }
-  }
-  internal val details: ConsumerRecordDetails by detailsDelegate
 
   private val startSpecificDateBlock = AtomicBooleanProperty(false)
   private val startOffsetBlock = AtomicBooleanProperty(false)
@@ -304,15 +221,11 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
 
   private val presets: ConsumerPresets by presetsDelegate
 
-  private val resultsSplitter = OnePixelSplitter().apply {
-    lackOfSpaceStrategy = Splitter.LackOfSpaceStrategy.HONOR_THE_SECOND_MIN_SIZE
-    dividerPositionStrategy = Splitter.DividerPositionStrategy.KEEP_SECOND_SIZE
-  }
 
   private val settingsSplitter = OnePixelSplitter().apply {
     lackOfSpaceStrategy = Splitter.LackOfSpaceStrategy.HONOR_THE_FIRST_MIN_SIZE
     dividerPositionStrategy = Splitter.DividerPositionStrategy.KEEP_FIRST_SIZE
-    secondComponent = resultsSplitter
+    secondComponent = output.resultsSplitter
     proportion = 0.0001f
   }
 
@@ -323,61 +236,11 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
     proportion = 0.0001f
   }
 
-  private var tableLoadingDecorator: TableLoadingDecorator? = null
-
   init {
     Disposer.register(this, consumerClient)
 
     restoreFromFile()
 
-    val clearButton = SimpleDumbAwareAction(KafkaMessagesBundle.message("action.clear.output"), AllIcons.Actions.GC) {
-      outputModel.clear()
-    }
-
-    val tableStatusButton = object : DumbAwareToggleAction(KafkaMessagesBundle.message("action.table.stats"), null,
-                                                           AllIcons.General.ShowInfos) {
-      override fun isSelected(e: AnActionEvent) = outputTableStatusDelegate.isInitialized() && outputTableStatus.component.parent != null
-      override fun getActionUpdateThread() = ActionUpdateThread.BGT
-      override fun setSelected(e: AnActionEvent, state: Boolean) {
-        if (state) {
-          outputTablePanel.setSouthComponent(outputTableStatus.component)
-        }
-        else {
-          outputTablePanel.removeSouthComponent()
-        }
-        PropertiesComponent.getInstance().setValue(TABLE_STATS_ID, state)
-        outputTablePanel.revalidate()
-      }
-    }
-
-    val dataExpanded = PropertiesComponent.getInstance().getBoolean(DATA_SHOW_ID, true)
-    resultsSplitter.firstComponent = ExpansionPanel(KafkaMessagesBundle.message("toggle.data"),
-                                                    { outputTablePanel },
-                                                    dataExpanded,
-                                                    listOf(tableStatusButton, clearButton)
-    ).apply {
-      expandedServiceKey = DATA_SHOW_ID
-      addChangeListener {
-        resultsSplitter.proportion = if (this.expanded) 1f else 0.0001f
-        resultsSplitter.setResizeEnabled(this.expanded)
-      }
-    }
-
-    resultsSplitter.secondComponent = ExpansionPanel(KafkaMessagesBundle.message("toggle.details"), {
-      details.component.apply {
-        minimumSize = Dimension(max(details.component.minimumSize.width, 250), minimumSize.height)
-      }
-    }, PropertiesComponent.getInstance().getBoolean(DETAILS_SHOW_ID, false)).apply {
-      expandedServiceKey = DETAILS_SHOW_ID
-      addChangeListener {
-        resultsSplitter.proportion = 1f
-        if (this.expanded) {
-          updateDetails()
-        }
-      }
-    }
-    resultsSplitter.proportion = if (dataExpanded) 1f else 0.0001f
-    resultsSplitter.setResizeEnabled(dataExpanded)
 
     val settingsExpanded = PropertiesComponent.getInstance().getBoolean(SETTINGS_SHOW_ID, true)
     settingsSplitter.firstComponent = ExpansionPanel(KafkaMessagesBundle.message("toggle.settings"), { settingsPanel },
@@ -413,19 +276,8 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
 
     storeToUserData()
 
-    outputTable.selectionModel.addListSelectionListener { event ->
-      if (!event.valueIsAdjusting) {
-        updateDetails()
-      }
-    }
   }
 
-  private fun updateDetails() {
-    if (detailsDelegate.isInitialized()) {
-      details.record = if (outputTable.selectedRow == -1) null
-      else outputModel.getValueAt(outputTable.convertRowIndexToModel(outputTable.selectedRow))?.getOrNull()
-    }
-  }
 
   override fun dispose() {
     storeToUserData()
@@ -443,17 +295,13 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
     }
 
     try {
-      if (outputTableDelegate.isInitialized()) {
-        tableLoadingDecorator?.let { Disposer.dispose(it) }
-        tableLoadingDecorator = TableLoadingDecorator.installOn(outputTable,
-                                                                this@KafkaConsumerPanel,
-                                                                KafkaMessagesBundle.message("consumer.table.awaiting"))
-      }
+      output.start()
 
+      output.setMaxRows(10)
       if (kafkaConsumerSettingsDelegate.isInitialized()) {
         val maxElementsCount = kafkaConsumerSettings.getSettings()[KafkaConsumerSettings.MAX_CONSUMER_RECORDS]
         maxElementsCount?.toIntOrNull()?.let {
-          outputModel.maxElementsCount = it
+          output.setMaxRows(it)
         }
       }
 
@@ -467,11 +315,11 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
                              keyConfig = key.loadFieldConfig(),
                              valueConfig = value.loadFieldConfig(),
                              consume = {
+
+                               val element = ConsumerOutputRow(key.fieldTypeComboBox.item, value.fieldTypeComboBox.item,
+                                                               Result.success(it))
                                invokeLater {
-                                 outputModel.addElement(Result.success(it))
-                                 if (outputTableStatusDelegate.isInitialized()) {
-                                   outputTableStatus.addRecord(it)
-                                 }
+                                 output.addRow(element)
                                }
                              },
                              timestampUpdate = {
@@ -481,8 +329,9 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
                              consumeError = {
                                progress.onError()
 
+                               val element = ConsumerOutputRow(key.fieldTypeComboBox.item, value.fieldTypeComboBox.item, Result.failure(it))
                                invokeLater {
-                                 outputModel.addElement(Result.failure(it))
+                                 output.addError(element)
                                }
                              })
       }
@@ -533,14 +382,6 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
 
   fun getComponent(): JComponent = presetsSplitter
 
-  private fun setupTablePopupMenu(table: JTable) {
-    val clearAction = SimpleDumbAwareAction(KafkaMessagesBundle.message("action.clear.output")) { outputModel.clear() }
-    PopupHandler.installPopupMenu(table, DefaultActionGroup().apply {
-      (ActionManager.getInstance().getAction("BdIde.TableEditor.PopupActionGroup") as? ActionGroup)?.let { addAll(it) }
-      addSeparator()
-      addAction(clearAction)
-    }, "KafkaConsumerPanel")
-  }
 
   private fun getFilter() = ConsumerFilter(
     type = filterComboBox.item,
@@ -625,7 +466,7 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
   internal fun storeToUserData() {
     if (isRestoring)
       return
-    file.putUserData(STATE_KEY, ConsumerEditorState(outputModel.elements().toList(), getRunConfig()))
+    file.putUserData(STATE_KEY, ConsumerEditorState(output.getElements(), getRunConfig()))
   }
 
   private fun restoreFromFile() {
@@ -633,10 +474,8 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
       isRestoring = true
 
       val state = file.getUserData(STATE_KEY) ?: return
-      outputModel.clear()
-      state.output.forEach {
-        outputModel.addElement(it)
-      }
+      output.replace(state.output)
+
       applyConfig(state.config)
     }
     finally {
@@ -677,10 +516,10 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
     val STATE_KEY = Key<ConsumerEditorState>("STATE")
 
     // A number of string keys for PropertiesComponent.getInstance().getBoolean(**_**_ID, false)
-    private const val DATA_SHOW_ID = "com.jetbrains.bigdatatools.kafka.consumer.data.show"
-    private const val DETAILS_SHOW_ID = "com.jetbrains.bigdatatools.kafka.consumer.details.show"
+    internal const val DATA_SHOW_ID = "com.jetbrains.bigdatatools.kafka.consumer.data.show"
+    internal const val DETAILS_SHOW_ID = "com.jetbrains.bigdatatools.kafka.consumer.details.show"
     private const val SETTINGS_SHOW_ID = "com.jetbrains.bigdatatools.kafka.consumer.settings.show"
     private const val PRESETS_SHOW_ID = "com.jetbrains.bigdatatools.kafka.consumer.presets.show"
-    private const val TABLE_STATS_ID = "com.jetbrains.bigdatatools.kafka.consumer.table.stats.show"
+    internal const val TABLE_STATS_ID = "com.jetbrains.bigdatatools.kafka.consumer.table.stats.show"
   }
 }
