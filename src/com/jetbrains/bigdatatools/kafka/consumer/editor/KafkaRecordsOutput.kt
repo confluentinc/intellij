@@ -14,11 +14,13 @@ import com.intellij.ui.PopupHandler
 import com.intellij.ui.components.JBScrollPane
 import com.jetbrains.bigdatatools.common.table.MaterialTable
 import com.jetbrains.bigdatatools.common.table.MaterialTableUtils
+import com.jetbrains.bigdatatools.common.table.TableResizeController
 import com.jetbrains.bigdatatools.common.table.extension.TableCellPreview
 import com.jetbrains.bigdatatools.common.table.extension.TableFirstRowAdded
 import com.jetbrains.bigdatatools.common.table.extension.TableLoadingDecorator
 import com.jetbrains.bigdatatools.common.table.filters.TableFilterHeader
 import com.jetbrains.bigdatatools.common.table.renderers.DateRenderer
+import com.jetbrains.bigdatatools.common.table.renderers.DurationRenderer
 import com.jetbrains.bigdatatools.common.ui.*
 import com.jetbrains.bigdatatools.kafka.common.editor.ListTableModel
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
@@ -30,18 +32,18 @@ import javax.swing.JPanel
 import javax.swing.JTable
 import kotlin.math.max
 
-class KafkaRecordsOutput(val project: Project) : Disposable {
+class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Disposable {
   private var tableLoadingDecorator: TableLoadingDecorator? = null
 
   private val outputModel = ListTableModel(LinkedList<KafkaRecord>(),
-                                           listOf(TIMESTAMP_FIELD, KEY_COLUMN, VALUE_COLUMN, PARTITION_COLUMN,
-                                                  OFFSET_COLUMN)) { data, index ->
+                                           listOf(TIMESTAMP_FIELD, KEY_COLUMN, VALUE_COLUMN, PARTITION_COLUMN) +
+                                           if (isProducer) listOf(DURATION_COLUMN) else listOf(OFFSET_COLUMN)) { data, index ->
     when (index) {
       0 -> Date(data.timestamp)
       1 -> data.keyText ?: KafkaMessagesBundle.message("error.output.row.key")
       2 -> data.valueText ?: data.errorText
       3 -> data.partition
-      4 -> data.offset
+      4 -> if (isProducer) data.duration else data.offset
       else -> ""
     }
   }.apply {
@@ -55,8 +57,9 @@ class KafkaRecordsOutput(val project: Project) : Disposable {
 
       tableHeader.border = BorderFactory.createEmptyBorder()
       outputModel.columnModel.columns.asIterator().forEach {
-        if (it.headerValue == TIMESTAMP_FIELD) {
-          it.cellRenderer = DateRenderer()
+        when (it.headerValue) {
+          TIMESTAMP_FIELD -> it.cellRenderer = DateRenderer()
+          DURATION_COLUMN -> it.cellRenderer = DurationRenderer()
         }
       }
 
@@ -66,10 +69,17 @@ class KafkaRecordsOutput(val project: Project) : Disposable {
 
       TableFilterHeader(this)
 
+      val resizeController = TableResizeController.installOn(this).apply {
+        setResizePriorityList(VALUE_COLUMN)
+        mode = TableResizeController.Mode.PRIOR_COLUMNS_LIST
+      }
+
       MaterialTableUtils.fitColumnsWidth(this)
+      resizeController.componentResized()
 
       TableFirstRowAdded(this) {
         MaterialTableUtils.fitColumnsWidth(this)
+        resizeController.componentResized()
       }
 
       setupTablePopupMenu(this)
@@ -85,7 +95,7 @@ class KafkaRecordsOutput(val project: Project) : Disposable {
       add(JBScrollPane(outputTable).apply {
         border = BorderFactory.createEmptyBorder()
       }, BorderLayout.CENTER)
-      if (PropertiesComponent.getInstance().getBoolean(KafkaConsumerPanel.TABLE_STATS_ID, false)) {
+      if (PropertiesComponent.getInstance().getBoolean(TABLE_STATS_ID, false)) {
         setSouthComponent(outputTableStatus.component)
       }
     }
@@ -115,7 +125,7 @@ class KafkaRecordsOutput(val project: Project) : Disposable {
   val detailsPanel: ExpansionPanel
 
   init {
-    val dataExpanded = PropertiesComponent.getInstance().getBoolean(KafkaConsumerPanel.DATA_SHOW_ID, true)
+    val dataExpanded = PropertiesComponent.getInstance().getBoolean(DATA_SHOW_ID, true)
 
     val clearButton = SimpleDumbAwareAction(KafkaMessagesBundle.message("action.clear.output"), AllIcons.Actions.GC) {
       outputModel.clear()
@@ -133,7 +143,7 @@ class KafkaRecordsOutput(val project: Project) : Disposable {
         else {
           outputTablePanel.removeSouthComponent()
         }
-        PropertiesComponent.getInstance().setValue(KafkaConsumerPanel.TABLE_STATS_ID, state)
+        PropertiesComponent.getInstance().setValue(TABLE_STATS_ID, state)
         outputTablePanel.revalidate()
       }
     }
@@ -143,7 +153,7 @@ class KafkaRecordsOutput(val project: Project) : Disposable {
                                                     dataExpanded,
                                                     listOf(tableStatusButton, clearButton)
     ).apply {
-      expandedServiceKey = KafkaConsumerPanel.DATA_SHOW_ID
+      expandedServiceKey = DATA_SHOW_ID
       addChangeListener {
         resultsSplitter.proportion = if (this.expanded) 1f else 0.0001f
         resultsSplitter.setResizeEnabled(this.expanded)
@@ -154,8 +164,8 @@ class KafkaRecordsOutput(val project: Project) : Disposable {
       details.component.apply {
         minimumSize = Dimension(max(details.component.minimumSize.width, 250), minimumSize.height)
       }
-    }, PropertiesComponent.getInstance().getBoolean(KafkaConsumerPanel.DETAILS_SHOW_ID, false)).apply {
-      expandedServiceKey = KafkaConsumerPanel.DETAILS_SHOW_ID
+    }, PropertiesComponent.getInstance().getBoolean(DETAILS_SHOW_ID, false)).apply {
+      expandedServiceKey = DETAILS_SHOW_ID
       addChangeListener {
         resultsSplitter.proportion = 1f
         if (this.expanded) {
@@ -226,7 +236,7 @@ class KafkaRecordsOutput(val project: Project) : Disposable {
       (ActionManager.getInstance().getAction("BdIde.TableEditor.PopupActionGroup") as? ActionGroup)?.let { addAll(it) }
       addSeparator()
       addAction(clearAction)
-    }, "KafkaConsumerPanel")
+    }, "KafkaRecordOutput")
   }
 
   private fun updateDetails() {
@@ -245,5 +255,10 @@ class KafkaRecordsOutput(val project: Project) : Disposable {
     private val VALUE_COLUMN = KafkaMessagesBundle.message("output.column.value")
     private val PARTITION_COLUMN = KafkaMessagesBundle.message("output.column.partition")
     private val OFFSET_COLUMN = KafkaMessagesBundle.message("output.column.offset")
+    private val DURATION_COLUMN = KafkaMessagesBundle.message("output.column.duration")
+
+    internal const val DATA_SHOW_ID = "com.jetbrains.bigdatatools.kafka.consumer.data.show"
+    internal const val DETAILS_SHOW_ID = "com.jetbrains.bigdatatools.kafka.consumer.details.show"
+    internal const val TABLE_STATS_ID = "com.jetbrains.bigdatatools.kafka.consumer.table.stats.show"
   }
 }

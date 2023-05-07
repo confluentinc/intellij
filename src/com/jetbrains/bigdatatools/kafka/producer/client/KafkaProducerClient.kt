@@ -4,9 +4,13 @@ import com.jetbrains.bigdatatools.common.rfs.util.RfsNotificationUtils
 import com.jetbrains.bigdatatools.common.settings.connections.Property
 import com.jetbrains.bigdatatools.common.util.withPluginClassLoader
 import com.jetbrains.bigdatatools.kafka.client.KafkaClient
+import com.jetbrains.bigdatatools.kafka.consumer.editor.KafkaRecord
 import com.jetbrains.bigdatatools.kafka.consumer.models.ConsumerProducerFieldConfig
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
-import com.jetbrains.bigdatatools.kafka.producer.models.*
+import com.jetbrains.bigdatatools.kafka.producer.models.AcksType
+import com.jetbrains.bigdatatools.kafka.producer.models.Mode
+import com.jetbrains.bigdatatools.kafka.producer.models.ProducerFlowParams
+import com.jetbrains.bigdatatools.kafka.producer.models.RecordCompression
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryType
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import com.jetbrains.bigdatatools.kafka.util.generator.GenerateRandomData
@@ -37,7 +41,7 @@ class KafkaProducerClient(val client: KafkaClient) {
             enableIdempotence: Boolean,
             forcePartition: Int,
             flowParams: ProducerFlowParams,
-            onUpdate: (ProducerResultMessage) -> Unit) {
+            onUpdate: (KafkaRecord) -> Unit) {
     try {
       if (isRunning())
         error("Producer is already run")
@@ -95,7 +99,7 @@ class KafkaProducerClient(val client: KafkaClient) {
                                  key: ConsumerProducerFieldConfig,
                                  value: ConsumerProducerFieldConfig,
                                  headers: List<Property>,
-                                 onUpdate: (ProducerResultMessage) -> Unit) {
+                                 onUpdate: (KafkaRecord) -> Unit) {
     repeat(flowParams.flowRecordsCountPerRequest) {
       if (!isRunning())
         return
@@ -159,7 +163,7 @@ class KafkaProducerClient(val client: KafkaClient) {
     key: ConsumerProducerFieldConfig,
     value: ConsumerProducerFieldConfig,
     headers: List<Property>,
-  ): ProducerResultMessage? {
+  ): KafkaRecord? {
     val correctKey = if (flowParams.generateRandomKeys)
       key.copy(valueText = GenerateRandomData.generate(key))
     else
@@ -195,11 +199,8 @@ class KafkaProducerClient(val client: KafkaClient) {
     val metaInfo = metadataFuture.get(2, TimeUnit.SECONDS)
     val end = System.currentTimeMillis()
 
-    return ProducerResultMessage(key = correctKey.valueText,
-                                 value = correctValue.valueText,
-                                 offset = metaInfo.offset(),
-                                 timestamp = Date(metaInfo.timestamp()),
-                                 duration = (end - start).toInt(),
-                                 partition = metaInfo.partition())
+    return KafkaRecord.createFor(keyConfig = correctKey, valueConfig = correctValue,
+                                 metadata = metaInfo, duration = (end - start),
+                                 headers = headers)
   }
 }

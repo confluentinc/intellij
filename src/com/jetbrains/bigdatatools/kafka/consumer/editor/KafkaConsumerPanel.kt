@@ -45,9 +45,7 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
   private val consumerClient: KafkaConsumerClient = KafkaConsumerClient(dataManager = kafkaManager,
                                                                         onStart = ::onStartConsume,
                                                                         onStop = ::onStopConsume)
-  private val output = KafkaRecordsOutput(project).also {
-    Disposer.register(this, it)
-  }
+  private val output = KafkaRecordsOutput(project, isProducer = false).also { Disposer.register(this, it) }
 
   private val startSpecificDate = DatePicker()
   private val limitSpecificDate = DatePicker()
@@ -517,10 +515,8 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
     val STATE_KEY = Key<ConsumerEditorState>("STATE")
 
     // A number of string keys for PropertiesComponent.getInstance().getBoolean(**_**_ID, false)
-    internal const val DATA_SHOW_ID = "com.jetbrains.bigdatatools.kafka.consumer.data.show"
-    internal const val DETAILS_SHOW_ID = "com.jetbrains.bigdatatools.kafka.consumer.details.show"
     private const val SETTINGS_SHOW_ID = "com.jetbrains.bigdatatools.kafka.consumer.settings.show"
     private const val PRESETS_SHOW_ID = "com.jetbrains.bigdatatools.kafka.consumer.presets.show"
-    internal const val TABLE_STATS_ID = "com.jetbrains.bigdatatools.kafka.consumer.table.stats.show"
+
   }
 }

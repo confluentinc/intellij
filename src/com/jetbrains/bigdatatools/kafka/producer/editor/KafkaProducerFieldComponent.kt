@@ -8,10 +8,10 @@ import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.impl.ActionButton
 import com.intellij.openapi.editor.event.DocumentEvent
 import com.intellij.openapi.editor.event.DocumentListener
+import com.intellij.openapi.fileTypes.PlainTextLanguage
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.ui.EditorTextField
-import com.intellij.ui.components.JBTextField
 import com.intellij.ui.dsl.builder.*
 import com.jetbrains.bigdatatools.common.rfs.util.RfsNotificationUtils
 import com.jetbrains.bigdatatools.common.settings.revalidateComponent
@@ -41,11 +41,20 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
   val schemaComboBox = KafkaEditorUtils.createSchemaComboBox(this, kafkaManager,
                                                              producedEditor.topicComboBox, isKey)
 
+  val textField: EditorTextField by lazy {
+    KafkaEditorUtils.createTextArea(project, language = PlainTextLanguage.INSTANCE).withValidator(this, ::validateValue).also {
+      it.setDisposedWith(this@KafkaProducerFieldComponent)
+      it.document.addDocumentListener(object : DocumentListener {
+        override fun documentChanged(event: DocumentEvent) {
+          schemaValidationError = null
+        }
+      }, this)
+    }
+  }
 
-  val textField = JBTextField().apply { emptyText.text = "Optional" }.withValidator(this, ::validateValue)
 
   val jsonField: EditorTextField by lazy {
-    KafkaEditorUtils.createJsonTextArea(project).withValidator(this, ::validateValue).also {
+    KafkaEditorUtils.createTextArea(project).withValidator(this, ::validateValue).also {
       it.setDisposedWith(this@KafkaProducerFieldComponent)
       it.document.addDocumentListener(object : DocumentListener {
         override fun documentChanged(event: DocumentEvent) {
@@ -59,13 +68,22 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
 
   val fieldTypeComboBox = ComboBox(supportedFieldTypes.toTypedArray()).apply<ComboBox<FieldType>> {
     renderer = CustomListCellRenderer<FieldType> { it.title }
-    selectedItem = FieldType.STRING
+    selectedItem = if (isKey) FieldType.STRING else FieldType.JSON
+
+    var curIsJsonView: Boolean = (selectedItem as? FieldType) in jsonFieldTypes
     addActionListener {
       updateVisibility()
 
-      updateFieldsText(item, "")
-      jsonField.revalidateComponent()
-      textField.revalidateComponent()
+      val newIsJsonView = (selectedItem as? FieldType) in jsonFieldTypes
+      if (newIsJsonView != curIsJsonView) {
+        if (curIsJsonView)
+          updateFieldsText(item, jsonField.text)
+        else
+          updateFieldsText(item, textField.text)
+      }
+      curIsJsonView = newIsJsonView
+
+      revalidateFields()
       producedEditor.mainComponent.revalidate()
     }
   }
@@ -154,9 +172,7 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
           jsonCell = cell(jsonField).align(AlignX.FILL).resizableColumn().comment("")
         }
         textRow = row {
-          cell(textField).align(AlignX.FILL).resizableColumn().onChanged {
-            schemaValidationError = null
-          }
+          cell(textField).align(AlignX.FILL).resizableColumn()
         }
       }
     }
@@ -165,11 +181,11 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
 
 
   private fun updateFieldsText(type: FieldType, newText: String) {
-    if (type in FieldType.registryValues || type == FieldType.JSON)
+    if (type in jsonFieldTypes)
       jsonField.text = newText
-    else if (type != FieldType.NULL)
+    else
       textField.text = newText
-    else return
+
   }
 
   @Suppress("UNUSED_PARAMETER")
