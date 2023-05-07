@@ -45,7 +45,7 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
   private val consumerClient: KafkaConsumerClient = KafkaConsumerClient(dataManager = kafkaManager,
                                                                         onStart = ::onStartConsume,
                                                                         onStop = ::onStopConsume)
-  private val output = KafkaConsumerOutput(project).also {
+  private val output = KafkaRecordsOutput(project).also {
     Disposer.register(this, it)
   }
 

@@ -19,10 +19,7 @@ import com.jetbrains.bigdatatools.common.table.extension.TableFirstRowAdded
 import com.jetbrains.bigdatatools.common.table.extension.TableLoadingDecorator
 import com.jetbrains.bigdatatools.common.table.filters.TableFilterHeader
 import com.jetbrains.bigdatatools.common.table.renderers.DateRenderer
-import com.jetbrains.bigdatatools.common.ui.ExpansionPanel
-import com.jetbrains.bigdatatools.common.ui.SimpleDumbAwareAction
-import com.jetbrains.bigdatatools.common.ui.removeSouthComponent
-import com.jetbrains.bigdatatools.common.ui.setSouthComponent
+import com.jetbrains.bigdatatools.common.ui.*
 import com.jetbrains.bigdatatools.kafka.common.editor.ListTableModel
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import java.awt.BorderLayout
@@ -33,11 +30,12 @@ import javax.swing.JPanel
 import javax.swing.JTable
 import kotlin.math.max
 
-class KafkaConsumerOutput(val project: Project) : Disposable {
+class KafkaRecordsOutput(val project: Project) : Disposable {
   private var tableLoadingDecorator: TableLoadingDecorator? = null
 
   private val outputModel = ListTableModel(LinkedList<KafkaRecord>(),
-                                           listOf("timestamp", "key", "value", "partition", "offset")) { data, index ->
+                                           listOf(TIMESTAMP_FIELD, KEY_COLUMN, VALUE_COLUMN, PARTITION_COLUMN,
+                                                  OFFSET_COLUMN)) { data, index ->
     when (index) {
       0 -> Date(data.timestamp)
       1 -> data.keyText ?: KafkaMessagesBundle.message("error.output.row.key")
@@ -57,9 +55,13 @@ class KafkaConsumerOutput(val project: Project) : Disposable {
 
       tableHeader.border = BorderFactory.createEmptyBorder()
       outputModel.columnModel.columns.asIterator().forEach {
-        if (it.headerValue == "timestamp") {
+        if (it.headerValue == TIMESTAMP_FIELD) {
           it.cellRenderer = DateRenderer()
         }
+      }
+
+      this.onDoubleClick {
+        detailsPanel.expanded = !detailsPanel.expanded
       }
 
       TableFilterHeader(this)
@@ -72,7 +74,7 @@ class KafkaConsumerOutput(val project: Project) : Disposable {
 
       setupTablePopupMenu(this)
 
-      TableCellPreview.installOn(this, listOf("key", "value"))
+      TableCellPreview.installOn(this, listOf(KEY_COLUMN, VALUE_COLUMN))
     }
   }
 
@@ -110,6 +112,8 @@ class KafkaConsumerOutput(val project: Project) : Disposable {
     dividerPositionStrategy = Splitter.DividerPositionStrategy.KEEP_SECOND_SIZE
   }
 
+  val detailsPanel: ExpansionPanel
+
   init {
     val dataExpanded = PropertiesComponent.getInstance().getBoolean(KafkaConsumerPanel.DATA_SHOW_ID, true)
 
@@ -146,7 +150,7 @@ class KafkaConsumerOutput(val project: Project) : Disposable {
       }
     }
 
-    resultsSplitter.secondComponent = ExpansionPanel(KafkaMessagesBundle.message("toggle.details"), {
+    detailsPanel = ExpansionPanel(KafkaMessagesBundle.message("toggle.details"), {
       details.component.apply {
         minimumSize = Dimension(max(details.component.minimumSize.width, 250), minimumSize.height)
       }
@@ -159,6 +163,7 @@ class KafkaConsumerOutput(val project: Project) : Disposable {
         }
       }
     }
+    resultsSplitter.secondComponent = detailsPanel
     resultsSplitter.proportion = if (dataExpanded) 1f else 0.0001f
     resultsSplitter.setResizeEnabled(dataExpanded)
 
@@ -187,7 +192,7 @@ class KafkaConsumerOutput(val project: Project) : Disposable {
     if (outputTableDelegate.isInitialized()) {
       tableLoadingDecorator?.let { Disposer.dispose(it) }
       tableLoadingDecorator = TableLoadingDecorator.installOn(outputTable,
-                                                              this@KafkaConsumerOutput,
+                                                              this@KafkaRecordsOutput,
                                                               KafkaMessagesBundle.message("consumer.table.awaiting"))
     }
   }
@@ -213,7 +218,11 @@ class KafkaConsumerOutput(val project: Project) : Disposable {
 
   private fun setupTablePopupMenu(table: JTable) {
     val clearAction = SimpleDumbAwareAction(KafkaMessagesBundle.message("action.clear.output")) { outputModel.clear() }
+    val openDetails = SimpleDumbAwareAction(KafkaMessagesBundle.message("action.open.details")) { detailsPanel.expanded = true }
+
     PopupHandler.installPopupMenu(table, DefaultActionGroup().apply {
+      addAction(openDetails)
+      addSeparator()
       (ActionManager.getInstance().getAction("BdIde.TableEditor.PopupActionGroup") as? ActionGroup)?.let { addAll(it) }
       addSeparator()
       addAction(clearAction)
@@ -228,5 +237,13 @@ class KafkaConsumerOutput(val project: Project) : Disposable {
         outputModel.getValueAt(outputTable.convertRowIndexToModel(outputTable.selectedRow))
       details.update(row)
     }
+  }
+
+  companion object {
+    private val TIMESTAMP_FIELD = KafkaMessagesBundle.message("output.column.timestamp")
+    private val KEY_COLUMN = KafkaMessagesBundle.message("output.column.key")
+    private val VALUE_COLUMN = KafkaMessagesBundle.message("output.column.value")
+    private val PARTITION_COLUMN = KafkaMessagesBundle.message("output.column.partition")
+    private val OFFSET_COLUMN = KafkaMessagesBundle.message("output.column.offset")
   }
 }
