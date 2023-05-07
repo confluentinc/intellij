@@ -222,4 +222,23 @@ object KafkaEditorUtils {
     comboBox.invalidate()
     comboBox.repaint()
   }
+
+  fun tryFormatJson(text: String): String {
+    if (!isJsonString(text))
+      return text
+    return try {
+      val gson = GsonBuilder().disableHtmlEscaping().setPrettyPrinting().serializeNulls().create()
+      gson.toJson(JsonParser.parseString(text))
+    }
+    catch (e: Exception) {
+      text
+    }
+  }
+
+  fun isJsonString(text: String): Boolean {
+    val first = text.firstOrNull { !Character.isWhitespace(it) } ?: return false
+    val last = text.lastOrNull { !Character.isWhitespace(it) } ?: return false
+    return first == '{' && last == '}' && text.contains(":") || first == '[' && last == ']'
+  }
+
 }

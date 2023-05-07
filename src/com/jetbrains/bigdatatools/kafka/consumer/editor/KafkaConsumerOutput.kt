@@ -23,7 +23,6 @@ import com.jetbrains.bigdatatools.common.ui.ExpansionPanel
 import com.jetbrains.bigdatatools.common.ui.SimpleDumbAwareAction
 import com.jetbrains.bigdatatools.common.ui.removeSouthComponent
 import com.jetbrains.bigdatatools.common.ui.setSouthComponent
-import com.jetbrains.bigdatatools.kafka.common.editor.KafkaEditorUtils
 import com.jetbrains.bigdatatools.kafka.common.editor.ListTableModel
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import java.awt.BorderLayout
@@ -37,27 +36,18 @@ import kotlin.math.max
 class KafkaConsumerOutput(val project: Project) : Disposable {
   private var tableLoadingDecorator: TableLoadingDecorator? = null
 
-  private val outputModel = ListTableModel(LinkedList<ConsumerOutputRow>(),
-                                           listOf("partition", "offset", "timestamp", "key", "value")) { data, index ->
-    if (data.record.isFailure) {
-      when (index) {
-        3 -> "Error"
-        4 -> data.record.exceptionOrNull()?.message ?: ""
-        else -> null
-      }
-    }
-    else {
-      when (index) {
-        0 -> data.record.getOrNull()?.partition()
-        1 -> data.record.getOrNull()?.offset()
-        2 -> data.record.getOrNull()?.let { Date(it.timestamp()) }
-        3 -> KafkaEditorUtils.getValueAsString(data.keyType, data.record.getOrNull()?.key())
-        4 -> KafkaEditorUtils.getValueAsString(data.valueType, data.record.getOrNull()?.value())
-        else -> ""
-      }
+  private val outputModel = ListTableModel(LinkedList<KafkaRecord>(),
+                                           listOf("timestamp", "key", "value", "partition", "offset")) { data, index ->
+    when (index) {
+      0 -> Date(data.timestamp)
+      1 -> data.keyText ?: KafkaMessagesBundle.message("error.output.row.key")
+      2 -> data.valueText ?: data.errorText
+      3 -> data.partition
+      4 -> data.offset
+      else -> ""
     }
   }.apply {
-    columnClasses = listOf(Int::class.java, Long::class.java, Date::class.java, Object::class.java, Object::class.java)
+    columnClasses = listOf(Date::class.java, String::class.java, String::class.java, Long::class.java, Long::class.java)
   }
 
   private val outputTableDelegate = lazy {
@@ -108,11 +98,11 @@ class KafkaConsumerOutput(val project: Project) : Disposable {
   private val outputTableStatus: ConsumerTableStats by outputTableStatusDelegate
 
 
-  private val detailsDelegate: Lazy<ConsumerRecordDetails> = lazy {
-    ConsumerRecordDetails(project, this)
+  private val detailsDelegate: Lazy<KafkaRecordDetails> = lazy {
+    KafkaRecordDetails(project, this)
   }
 
-  private val details: ConsumerRecordDetails by detailsDelegate
+  private val details: KafkaRecordDetails by detailsDelegate
 
 
   internal val resultsSplitter = OnePixelSplitter().apply {
@@ -182,7 +172,7 @@ class KafkaConsumerOutput(val project: Project) : Disposable {
 
   override fun dispose() {}
 
-  fun replace(output: List<ConsumerOutputRow>) {
+  fun replace(output: List<KafkaRecord>) {
     outputModel.clear()
     output.forEach {
       outputModel.addElement(it)
@@ -206,18 +196,18 @@ class KafkaConsumerOutput(val project: Project) : Disposable {
     outputModel.maxElementsCount = limit
   }
 
-  fun addRow(element: ConsumerOutputRow) {
+  fun addRow(element: KafkaRecord) {
     outputModel.addElement(element)
     if (outputTableStatusDelegate.isInitialized()) {
-      outputTableStatus.addRecord(element.record.getOrThrow())
+      outputTableStatus.addRecord(element)
     }
   }
 
-  fun addError(element: ConsumerOutputRow) {
+  fun addError(element: KafkaRecord) {
     outputModel.addElement(element)
   }
 
-  fun getElements(): List<ConsumerOutputRow> {
+  fun getElements(): List<KafkaRecord> {
     return outputModel.elements().toList()
   }
 

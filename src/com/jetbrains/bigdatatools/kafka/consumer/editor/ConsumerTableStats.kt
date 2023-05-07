@@ -6,7 +6,6 @@ import com.jetbrains.bigdatatools.common.table.MaterialTable
 import com.jetbrains.bigdatatools.common.util.SizeUtils
 import com.jetbrains.bigdatatools.kafka.common.editor.ListTableModel
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
-import org.apache.kafka.clients.consumer.ConsumerRecord
 import java.awt.FlowLayout
 import java.util.*
 import javax.swing.JLabel
@@ -30,8 +29,7 @@ class ConsumerTableStats {
 
   private val lastRecordSizes = LinkedList<Pair<Long, Int>>()
 
-  fun setModel(table: MaterialTable, model: ListTableModel<ConsumerOutputRow>) {
-
+  fun setModel(table: MaterialTable, model: ListTableModel<KafkaRecord>) {
     table.rowSorter.addRowSorterListener { e ->
       if (e.type == RowSorterEvent.Type.SORTED) {
         visible.text = table.rowCount.toString()
@@ -44,20 +42,19 @@ class ConsumerTableStats {
 
       @Suppress("HardCodedStringLiteral")
       memory.text = SizeUtils.toString(model.elements().sumOf {
-        val record = it.record.getOrNull() ?: return@sumOf 0
-        record.serializedValueSize() + record.serializedKeySize()
+        it.keySize + it.valueSize
       })
 
       if (e.type == TableModelEvent.INSERT) {
         for (i in e.firstRow until e.lastRow) {
-          model.getValueAt(i)?.let { it.record.getOrNull()?.let { record -> addRecord(record) } }
+          model.getValueAt(i)?.let { addRecord(it) }
         }
       }
     }
   }
 
-  fun addRecord(record: ConsumerRecord<Any, Any>) {
-    val size = record.serializedKeySize() + record.serializedValueSize()
+  fun addRecord(record: KafkaRecord) {
+    val size = record.keySize + record.valueSize
     lastRecordSizes += Pair(System.currentTimeMillis(), size)
     if (lastRecordSizes.size > RECORDS_LIST_SPEED_SIZE) {
       lastRecordSizes.removeFirst()

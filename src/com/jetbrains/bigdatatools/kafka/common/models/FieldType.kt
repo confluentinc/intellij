@@ -128,6 +128,7 @@ enum class FieldType(@Nls val title: String) {
     }
   }
 
+
   companion object {
     val defaultValues = listOf(STRING, JSON, LONG, DOUBLE, FLOAT, BASE64, NULL)
     val registryValues = listOf(AVRO_REGISTRY, PROTOBUF_REGISTRY, JSON_REGISTRY)

@@ -316,8 +316,8 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
                              valueConfig = value.loadFieldConfig(),
                              consume = {
 
-                               val element = ConsumerOutputRow(key.fieldTypeComboBox.item, value.fieldTypeComboBox.item,
-                                                               Result.success(it))
+                               val element = KafkaRecord.createFor(key.fieldTypeComboBox.item, value.fieldTypeComboBox.item,
+                                                                   Result.success(it))
                                invokeLater {
                                  output.addRow(element)
                                }
@@ -329,7 +329,8 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
                              consumeError = {
                                progress.onError()
 
-                               val element = ConsumerOutputRow(key.fieldTypeComboBox.item, value.fieldTypeComboBox.item, Result.failure(it))
+                               val element = KafkaRecord.createFor(key.fieldTypeComboBox.item, value.fieldTypeComboBox.item,
+                                                                   Result.failure(it))
                                invokeLater {
                                  output.addError(element)
                                }

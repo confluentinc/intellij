@@ -5,7 +5,7 @@ import javax.swing.table.AbstractTableModel
 import javax.swing.table.DefaultTableColumnModel
 import javax.swing.table.TableColumn
 
-class PropertiesTableModel(properties: MutableList<Property>) : AbstractTableModel() {
+class PropertiesTableModel(properties: MutableList<Property>, private val isEditable: Boolean) : AbstractTableModel() {
 
   var properties: MutableList<Property> = properties
     set(value) {
@@ -30,7 +30,7 @@ class PropertiesTableModel(properties: MutableList<Property>) : AbstractTableMod
   @Suppress("HardCodedStringLiteral")
   override fun getColumnName(column: Int): String = columnModel.getColumn(column).headerValue.toString()
 
-  override fun isCellEditable(rowIndex: Int, columnIndex: Int) = true
+  override fun isCellEditable(rowIndex: Int, columnIndex: Int) = isEditable
 
   fun clear() {
     properties.clear()

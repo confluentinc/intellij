@@ -194,6 +194,7 @@ class KafkaProducerClient(val client: KafkaClient) {
       return null
     val metaInfo = metadataFuture.get(2, TimeUnit.SECONDS)
     val end = System.currentTimeMillis()
+
     return ProducerResultMessage(key = correctKey.valueText,
                                  value = correctValue.valueText,
                                  offset = metaInfo.offset(),
