@@ -289,12 +289,12 @@
             <dependency maven-id="org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm" />
             <dependency maven-id="com.squareup.okhttp3:okhttp" />
             <dependency maven-id="org.snakeyaml:snakeyaml-engine" />
+            <dependency maven-id="org.jetbrains:annotations" />
           </exclude>
         </properties>
         <CLASSES>
           <root url="jar://$MAVEN_REPOSITORY$/com/squareup/wire/wire-compiler/3.7.1/wire-compiler-3.7.1.jar!/" />
           <root url="jar://$MAVEN_REPOSITORY$/com/squareup/wire/wire-schema/3.7.1/wire-schema-3.7.1.jar!/" />
-          <root url="jar://$MAVEN_REPOSITORY$/org/jetbrains/annotations/13.0/annotations-13.0.jar!/" />
           <root url="jar://$MAVEN_REPOSITORY$/com/squareup/wire/wire-runtime/3.7.1/wire-runtime-3.7.1.jar!/" />
           <root url="jar://$MAVEN_REPOSITORY$/com/squareup/wire/wire-kotlin-generator/3.7.1/wire-kotlin-generator-3.7.1.jar!/" />
           <root url="jar://$MAVEN_REPOSITORY$/com/squareup/kotlinpoet/1.7.2/kotlinpoet-1.7.2.jar!/" />
@@ -311,7 +311,6 @@
         <SOURCES>
           <root url="jar://$MAVEN_REPOSITORY$/com/squareup/wire/wire-compiler/3.7.1/wire-compiler-3.7.1-sources.jar!/" />
           <root url="jar://$MAVEN_REPOSITORY$/com/squareup/wire/wire-schema/3.7.1/wire-schema-3.7.1-sources.jar!/" />
-          <root url="jar://$MAVEN_REPOSITORY$/org/jetbrains/annotations/13.0/annotations-13.0-sources.jar!/" />
           <root url="jar://$MAVEN_REPOSITORY$/com/squareup/wire/wire-runtime/3.7.1/wire-runtime-3.7.1-sources.jar!/" />
           <root url="jar://$MAVEN_REPOSITORY$/com/squareup/wire/wire-kotlin-generator/3.7.1/wire-kotlin-generator-3.7.1-sources.jar!/" />
           <root url="jar://$MAVEN_REPOSITORY$/com/squareup/kotlinpoet/1.7.2/kotlinpoet-1.7.2-sources.jar!/" />

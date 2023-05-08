@@ -42,7 +42,9 @@ class KafkaConsumerFieldComponent(private val project: Project,
   val schemaComboBox = KafkaEditorUtils.createSchemaComboBox(
     consumerPanel,
     consumerPanel.kafkaManager,
-    consumerPanel.topicComboBox, isKey)
+    consumerPanel.topicComboBox,
+    fieldTypeComboBox,
+    isKey)
 
   private lateinit var registryRows: RowsRange
 

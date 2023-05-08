@@ -9,27 +9,35 @@ import com.intellij.lang.Language
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.ComboBox
+import com.intellij.openapi.ui.ValidationInfo
 import com.intellij.openapi.util.Disposer
 import com.intellij.ui.EditorCustomization
 import com.intellij.ui.EditorTextFieldProvider
 import com.intellij.ui.MonospaceEditorCustomization
 import com.intellij.util.ui.UIUtil
 import com.jetbrains.bigdatatools.common.monitoring.data.listener.DataModelListener
+import com.jetbrains.bigdatatools.common.settings.getValidator
+import com.jetbrains.bigdatatools.common.settings.withValidator
 import com.jetbrains.bigdatatools.common.ui.ComponentColoredBorder
 import com.jetbrains.bigdatatools.common.ui.CustomListCellRenderer
 import com.jetbrains.bigdatatools.common.ui.DarculaTextAreaBorder
+import com.jetbrains.bigdatatools.common.util.executeNotOnEdt
+import com.jetbrains.bigdatatools.common.util.invokeLater
 import com.jetbrains.bigdatatools.kafka.common.models.FieldType
 import com.jetbrains.bigdatatools.kafka.common.models.RegistrySchemaInEditor
 import com.jetbrains.bigdatatools.kafka.common.models.TopicInEditor
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.model.ConsumerGroupPresentable
+import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryFormat
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryType
+import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryUtil
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import io.confluent.kafka.schemaregistry.avro.AvroSchemaUtils
 import io.confluent.kafka.schemaregistry.json.JsonSchemaUtils
 import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchemaUtils
 import org.apache.kafka.common.ConsumerGroupState
 import java.awt.event.ItemEvent.SELECTED
+import java.awt.event.ItemListener
 import java.nio.charset.Charset
 import java.util.*
 import javax.swing.BorderFactory
@@ -141,24 +149,30 @@ object KafkaEditorUtils {
       kafkaManager.topicModel.removeListener(listener)
     }
 
-    return topicComboBox
+    return topicComboBox.withValidator(rootDisposable) {
+      if (topicComboBox.selectedItem == null)
+        ValidationInfo(KafkaMessagesBundle.message("producer.error.topic.empty"), topicComboBox)
+      else
+        null
+    }
   }
 
 
   fun createSchemaComboBox(rootDisposable: Disposable,
                            kafkaManager: KafkaDataManager,
                            topicComboBox: ComboBox<TopicInEditor>,
+                           fieldTypeComboBox: ComboBox<FieldType>,
                            isKey: Boolean): ComboBox<RegistrySchemaInEditor> {
     val initSchemas = calculateSchemasForCombobox(kafkaManager, topicComboBox, isKey).toTypedArray()
-    val comboBox = ComboBox(initSchemas)
+    val schemaCombobox = ComboBox(initSchemas)
 
     topicComboBox.name
-    comboBox.isSwingPopup = false
-    comboBox.toolTipText = KafkaMessagesBundle.message("registry.subject.combobox.default.name")
-    comboBox.renderer = CustomListCellRenderer<RegistrySchemaInEditor> { it.toString() }
-    comboBox.selectedItem = initSchemas.firstOrNull()
+    schemaCombobox.isSwingPopup = false
+    schemaCombobox.toolTipText = KafkaMessagesBundle.message("registry.subject.combobox.default.name")
+    schemaCombobox.renderer = CustomListCellRenderer<RegistrySchemaInEditor> { it.toString() }
+    schemaCombobox.selectedItem = initSchemas.firstOrNull()
 
-    val listener = KafkaDataModelListener(comboBox) {
+    val listener = KafkaDataModelListener(schemaCombobox) {
       calculateSchemasForCombobox(kafkaManager, topicComboBox, isKey)
     }
 
@@ -169,16 +183,62 @@ object KafkaEditorUtils {
       kafkaManager.glueSchemaRegistry?.schemaModel?.removeListener(listener)
     }
 
+    var validationInfo: ValidationInfo? = null
+
+
+    val updateListener = ItemListener {
+      if (it.stateChange != SELECTED)
+        return@ItemListener
+
+      executeNotOnEdt {
+        val newValidation = validateSchemaType(kafkaManager, schemaCombobox, fieldTypeComboBox)
+        if (newValidation != validationInfo) {
+          validationInfo = newValidation
+          invokeLater {
+            schemaCombobox.getValidator()?.revalidate()
+          }
+        }
+      }
+    }
+
     topicComboBox.addItemListener {
       if (it.stateChange != SELECTED)
         return@addItemListener
 
-      updateComboBox(comboBox) { calculateSchemasForCombobox(kafkaManager, topicComboBox, isKey) }
+      updateComboBox(schemaCombobox) { calculateSchemasForCombobox(kafkaManager, topicComboBox, isKey) }
     }
 
+    schemaCombobox.addItemListener(updateListener)
+    fieldTypeComboBox.addItemListener(updateListener)
+
+
     kafkaManager.initRefreshSchemasIfRequired()
-    return comboBox
+    return schemaCombobox.withValidator(rootDisposable) { validationInfo }
   }
+
+
+  fun validateSchemaType(kafkaManager: KafkaDataManager,
+                         schemaCombobox: ComboBox<RegistrySchemaInEditor>,
+                         fieldTypeComboBox: ComboBox<FieldType>): ValidationInfo? {
+    val registry = schemaCombobox.item ?: return null
+    val registryType = KafkaRegistryUtil.getSchemaType(registry.schemaName,
+                                                       kafkaManager) ?: return null
+
+    val selectedFieldType = fieldTypeComboBox.item ?: return null
+
+    val isCorrect = when (registryType) {
+      KafkaRegistryFormat.AVRO -> selectedFieldType == FieldType.AVRO_REGISTRY
+      KafkaRegistryFormat.PROTOBUF -> selectedFieldType == FieldType.PROTOBUF_REGISTRY
+      KafkaRegistryFormat.JSON -> selectedFieldType == FieldType.JSON_REGISTRY
+    }
+    if (isCorrect)
+      return null
+    val message = KafkaMessagesBundle.message("producer.validation.incorrect.schema.format",
+                                              schemaCombobox.item?.schemaName ?: "",
+                                              registryType.presentable)
+    return ValidationInfo(message, schemaCombobox)
+  }
+
 
   private fun calculateSchemasForCombobox(kafkaManager: KafkaDataManager,
                                           topicComboBox: ComboBox<TopicInEditor>,

@@ -22,6 +22,7 @@ import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchema
 import org.apache.avro.Schema
 import org.everit.json.schema.*
 import software.amazon.awssdk.services.glue.model.DataFormat
+import software.amazon.awssdk.services.glue.model.SchemaId
 import java.util.logging.Level
 import java.util.logging.Logger
 
@@ -54,6 +55,20 @@ object KafkaRegistryUtil {
       FieldType.PROTOBUF_REGISTRY -> ProtobufSchema.TYPE
       FieldType.JSON_REGISTRY -> JsonSchema.TYPE
     }
+
+  fun getSchemaType(schemaName: String, dataManager: KafkaDataManager): KafkaRegistryFormat? {
+    val registryFormat = when (dataManager.connectionData.registryType) {
+      KafkaRegistryType.NONE -> null
+      KafkaRegistryType.CONFLUENT -> dataManager.confluentSchemaRegistry?.getRegistrySchema(schemaName)?.type?.uppercase()
+      KafkaRegistryType.AWS_GLUE -> {
+        val schemaId = SchemaId.builder().registryName(dataManager.connectionData.glueRegistryName).schemaName(schemaName).build()
+        dataManager.glueSchemaRegistry?.getDetailedSchema(schemaId)?.schemaResponse?.dataFormat()?.name
+      }
+    }
+    registryFormat ?: return null
+
+    return KafkaRegistryFormat.valueOf(registryFormat)
+  }
 
   @RequiresBackgroundThread
   fun loadSchema(registryType: KafkaRegistryType,

@@ -22,6 +22,10 @@
     <dependencySupport kind="javascript" coordinate="npm:node-rdkafka" displayName="Kafka"/>
     <dependencySupport kind="javascript" coordinate="npm:kafkajs" displayName="Kafka"/>
     <dependencySupport kind="javascript" coordinate="npm:@kafkajs/confluent-schema-registry" displayName="Kafka"/>
+
+    <dependencySupport kind="dotnet" coordinate="Confluent.Kafka" displayName="Kafka"/>
+    <dependencySupport kind="dotnet" coordinate="AWSSDK.Kafka" displayName="Kafka"/>
+    <dependencySupport kind="dotnet" coordinate="Confluent.SchemaRegistry" displayName="Kafka"/>
   </extensions>
 
   <extensions defaultExtensionNs="com.intellij">

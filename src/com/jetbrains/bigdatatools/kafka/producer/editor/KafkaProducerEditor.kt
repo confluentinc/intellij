@@ -179,10 +179,8 @@ class KafkaProducerEditor(val project: Project,
       return true
     }
 
-    if (keyFieldComponent.textField.getValidationInfo() != null ||
-        keyFieldComponent.jsonField.getValidationInfo() != null ||
-        valueFieldComponent.textField.getValidationInfo() != null ||
-        valueFieldComponent.jsonField.getValidationInfo() != null) {
+    if (topicComboBox.getValidationInfo() != null ||
+        !keyFieldComponent.isValid() || !valueFieldComponent.isValid()) {
       return true
     }
 
@@ -356,6 +354,7 @@ class KafkaProducerEditor(val project: Project,
 
     flowController.setParams(config.flowParams ?: ProducerFlowParams())
   }
+
 
   override fun getName(): String = KafkaMessagesBundle.message("produce.to.topic")
   override fun getComponent(): JComponent = mainComponent
