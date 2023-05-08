@@ -15,6 +15,7 @@ import com.intellij.openapi.vfs.readBytes
 import com.intellij.ui.EditorTextField
 import com.intellij.ui.dsl.builder.*
 import com.jetbrains.bigdatatools.common.rfs.util.RfsNotificationUtils
+import com.jetbrains.bigdatatools.common.settings.getValidationInfo
 import com.jetbrains.bigdatatools.common.settings.revalidateComponent
 import com.jetbrains.bigdatatools.common.settings.withValidator
 import com.jetbrains.bigdatatools.common.ui.CustomListCellRenderer
@@ -39,32 +40,8 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
   val project = producedEditor.project
   private val kafkaManager = producedEditor.kafkaManager
 
+
   private var schemaValidationError: Throwable? = null
-  val schemaComboBox = KafkaEditorUtils.createSchemaComboBox(this, kafkaManager,
-                                                             producedEditor.topicComboBox, isKey)
-
-  val textField: EditorTextField by lazy {
-    KafkaEditorUtils.createTextArea(project, language = PlainTextLanguage.INSTANCE).withValidator(this, ::validateValue).also {
-      it.setDisposedWith(this@KafkaProducerFieldComponent)
-      it.document.addDocumentListener(object : DocumentListener {
-        override fun documentChanged(event: DocumentEvent) {
-          schemaValidationError = null
-        }
-      }, this)
-    }
-  }
-
-  val jsonField: EditorTextField by lazy {
-    KafkaEditorUtils.createTextArea(project).withValidator(this, ::validateValue).also {
-      it.setDisposedWith(this@KafkaProducerFieldComponent)
-      it.document.addDocumentListener(object : DocumentListener {
-        override fun documentChanged(event: DocumentEvent) {
-          schemaValidationError = null
-        }
-      }, this)
-    }
-  }
-
   private val supportedFieldTypes = if (kafkaManager.registryType != KafkaRegistryType.NONE) FieldType.allValues else FieldType.defaultValues
 
   val fieldTypeComboBox = ComboBox(supportedFieldTypes.toTypedArray()).apply<ComboBox<FieldType>> {
@@ -88,6 +65,33 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
       producedEditor.mainComponent.revalidate()
     }
   }
+
+
+  val schemaComboBox = KafkaEditorUtils.createSchemaComboBox(this, kafkaManager,
+                                                             producedEditor.topicComboBox, fieldTypeComboBox, isKey)
+
+  val textField: EditorTextField by lazy {
+    KafkaEditorUtils.createTextArea(project, language = PlainTextLanguage.INSTANCE).withValidator(this, ::validateValue).also {
+      it.setDisposedWith(this@KafkaProducerFieldComponent)
+      it.document.addDocumentListener(object : DocumentListener {
+        override fun documentChanged(event: DocumentEvent) {
+          schemaValidationError = null
+        }
+      }, this)
+    }
+  }
+
+  val jsonField: EditorTextField by lazy {
+    KafkaEditorUtils.createTextArea(project).withValidator(this, ::validateValue).also {
+      it.setDisposedWith(this@KafkaProducerFieldComponent)
+      it.document.addDocumentListener(object : DocumentListener {
+        override fun documentChanged(event: DocumentEvent) {
+          schemaValidationError = null
+        }
+      }, this)
+    }
+  }
+
 
   override fun dispose() {}
 
@@ -134,6 +138,11 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
   private lateinit var jsonCell: Cell<EditorTextField>
 
   private lateinit var generateDataAction: Cell<ActionButton>
+
+  fun isValid() =
+    textField.getValidationInfo() == null &&
+    jsonField.getValidationInfo() == null &&
+    schemaComboBox.getValidationInfo() == null
 
   fun createComponent(panel: Panel) {
     panel.apply {
