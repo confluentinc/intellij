@@ -10,7 +10,6 @@ import com.intellij.openapi.editor.event.DocumentEvent
 import com.intellij.openapi.editor.event.DocumentListener
 import com.intellij.openapi.fileTypes.PlainTextLanguage
 import com.intellij.openapi.project.DumbAwareAction
-import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.vfs.readBytes
 import com.intellij.ui.EditorTextField
 import com.intellij.ui.dsl.builder.*
@@ -18,7 +17,6 @@ import com.jetbrains.bigdatatools.common.rfs.util.RfsNotificationUtils
 import com.jetbrains.bigdatatools.common.settings.getValidationInfo
 import com.jetbrains.bigdatatools.common.settings.revalidateComponent
 import com.jetbrains.bigdatatools.common.settings.withValidator
-import com.jetbrains.bigdatatools.common.ui.CustomListCellRenderer
 import com.jetbrains.bigdatatools.common.ui.SimpleDumbAwareAction
 import com.jetbrains.bigdatatools.common.ui.chooser.FileChooserUtil
 import com.jetbrains.bigdatatools.common.util.executeNotOnEdt
@@ -29,7 +27,6 @@ import com.jetbrains.bigdatatools.kafka.common.models.FieldType
 import com.jetbrains.bigdatatools.kafka.common.models.RegistrySchemaInEditor
 import com.jetbrains.bigdatatools.kafka.common.settings.StorageProducerConfig
 import com.jetbrains.bigdatatools.kafka.consumer.models.ConsumerProducerFieldConfig
-import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryType
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryUtil
 import com.jetbrains.bigdatatools.kafka.registry.ui.KafkaSchemaInfoDialog
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
@@ -40,37 +37,29 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
   val project = producedEditor.project
   private val kafkaManager = producedEditor.kafkaManager
 
-
   private var schemaValidationError: Throwable? = null
-  private val supportedFieldTypes = if (kafkaManager.registryType != KafkaRegistryType.NONE) FieldType.allValues else FieldType.defaultValues
+  private var curIsJsonView: Boolean = !isKey
 
-  val fieldTypeComboBox = ComboBox(supportedFieldTypes.toTypedArray()).apply<ComboBox<FieldType>> {
-    renderer = CustomListCellRenderer<FieldType> { it.title }
-    selectedItem = if (isKey) FieldType.STRING else FieldType.JSON
+  val fieldTypeComboBox = KafkaEditorUtils.createFieldTypeComboBox(producedEditor.topicComboBox, kafkaManager, isKey) {
+    updateVisibility()
 
-    var curIsJsonView: Boolean = (selectedItem as? FieldType) in jsonFieldTypes
-    addActionListener {
-      updateVisibility()
-
-      val newIsJsonView = (selectedItem as? FieldType) in jsonFieldTypes
-      if (newIsJsonView != curIsJsonView) {
-        if (curIsJsonView)
-          updateFieldsText(item, jsonField.text)
-        else
-          updateFieldsText(item, textField.text)
-      }
-      curIsJsonView = newIsJsonView
-
-      revalidateFields()
-      producedEditor.mainComponent.revalidate()
+    val newIsJsonView = it.item in jsonFieldTypes
+    if (newIsJsonView != curIsJsonView) {
+      if (curIsJsonView)
+        updateFieldsText(it.item, jsonField.text)
+      else
+        updateFieldsText(it.item, textField.text)
     }
-  }
+    curIsJsonView = newIsJsonView
 
+    revalidateFields()
+    producedEditor.mainComponent.revalidate()
+  }
 
   val schemaComboBox = KafkaEditorUtils.createSchemaComboBox(this, kafkaManager,
                                                              producedEditor.topicComboBox, fieldTypeComboBox, isKey)
 
-  val textField: EditorTextField by lazy {
+  private val textField: EditorTextField by lazy {
     KafkaEditorUtils.createTextArea(project, language = PlainTextLanguage.INSTANCE).withValidator(this, ::validateValue).also {
       it.setDisposedWith(this@KafkaProducerFieldComponent)
       it.document.addDocumentListener(object : DocumentListener {
@@ -81,7 +70,7 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
     }
   }
 
-  val jsonField: EditorTextField by lazy {
+  private val jsonField: EditorTextField by lazy {
     KafkaEditorUtils.createTextArea(project).withValidator(this, ::validateValue).also {
       it.setDisposedWith(this@KafkaProducerFieldComponent)
       it.document.addDocumentListener(object : DocumentListener {

@@ -2,14 +2,12 @@ package com.jetbrains.bigdatatools.kafka.consumer.editor
 
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.ui.ComboBox
 import com.intellij.ui.dsl.builder.Align
 import com.intellij.ui.dsl.builder.Panel
 import com.intellij.ui.dsl.builder.RightGap
 import com.intellij.ui.dsl.builder.RowsRange
 import com.jetbrains.bigdatatools.common.rfs.util.RfsNotificationUtils
 import com.jetbrains.bigdatatools.common.settings.getValidationInfo
-import com.jetbrains.bigdatatools.common.ui.CustomListCellRenderer
 import com.jetbrains.bigdatatools.common.ui.SimpleDumbAwareAction
 import com.jetbrains.bigdatatools.common.util.executeNotOnEdt
 import com.jetbrains.bigdatatools.kafka.common.editor.KafkaEditorUtils
@@ -17,7 +15,6 @@ import com.jetbrains.bigdatatools.kafka.common.models.FieldType
 import com.jetbrains.bigdatatools.kafka.common.models.RegistrySchemaInEditor
 import com.jetbrains.bigdatatools.kafka.common.settings.StorageConsumerConfig
 import com.jetbrains.bigdatatools.kafka.consumer.models.ConsumerProducerFieldConfig
-import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryType
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryUtil
 import com.jetbrains.bigdatatools.kafka.registry.ui.KafkaSchemaInfoDialog
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
@@ -26,19 +23,12 @@ class KafkaConsumerFieldComponent(private val project: Project,
                                   private val consumerPanel: KafkaConsumerPanel, val isKey: Boolean) {
   private val kafkaManager = consumerPanel.kafkaManager
 
-  private val fieldTypes = if (consumerPanel.kafkaManager.registryType != KafkaRegistryType.NONE)
-    FieldType.allValues
-  else
-    FieldType.defaultValues
 
-  val fieldTypeComboBox = ComboBox(fieldTypes.toTypedArray<FieldType>()).apply<ComboBox<FieldType>> {
-    renderer = CustomListCellRenderer<FieldType> { it.title }
-    selectedItem = FieldType.STRING
-    addActionListener {
-      consumerPanel.updateVisibility()
-      consumerPanel.storeToUserData()
-    }
+  val fieldTypeComboBox = KafkaEditorUtils.createFieldTypeComboBox(consumerPanel.topicComboBox, consumerPanel.kafkaManager, isKey) {
+    consumerPanel.updateVisibility()
+    consumerPanel.storeToUserData()
   }
+
 
   val schemaComboBox = KafkaEditorUtils.createSchemaComboBox(
     consumerPanel,

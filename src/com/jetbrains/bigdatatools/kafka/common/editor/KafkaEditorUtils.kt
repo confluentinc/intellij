@@ -110,11 +110,49 @@ object KafkaEditorUtils {
     return gson.toJson(JsonParser.parseString(jsonString))
   }
 
-  private class KafkaDataModelListener<T>(private val comboBox: ComboBox<T>, private val dataSupplier: () -> List<T>?) : DataModelListener {
+  private class KafkaDataModelListener<T>(private val comboBox: ComboBox<T>,
+                                          private val dataSupplier: () -> Pair<List<T>?, Int?>) : DataModelListener {
     override fun onChanged() = updateComboBox(comboBox, dataSupplier)
     override fun onError(msg: String, e: Throwable?) = updateComboBox(comboBox, dataSupplier)
 
   }
+
+
+  fun createFieldTypeComboBox(topicCombobox: ComboBox<TopicInEditor>,
+                              dataManager: KafkaDataManager,
+                              isKey: Boolean,
+                              onChange: (ComboBox<FieldType>) -> Unit): ComboBox<FieldType> {
+    val fieldTypes = if (dataManager.registryType != KafkaRegistryType.NONE)
+      FieldType.allValues
+    else
+      FieldType.defaultValues
+
+
+    val defaultFieldType = if (isKey) FieldType.STRING else FieldType.JSON
+    val fieldsCombobox = ComboBox(fieldTypes.toTypedArray<FieldType>()).apply<ComboBox<FieldType>> {
+      renderer = CustomListCellRenderer<FieldType> { it.title }
+      selectedItem = defaultFieldType
+      addActionListener {
+        onChange(this)
+      }
+    }
+
+    if (dataManager.registryType != KafkaRegistryType.NONE) {
+      topicCombobox.addItemListener {
+        if (it.stateChange != SELECTED)
+          return@addItemListener
+
+        fieldsCombobox.selectedItem = calculateSchemaTypeForTopic(dataManager, topicCombobox, isKey) ?: defaultFieldType
+      }
+    }
+
+    executeNotOnEdt {
+      fieldsCombobox.selectedItem = calculateSchemaTypeForTopic(dataManager, topicCombobox, isKey) ?: return@executeNotOnEdt
+    }
+
+    return fieldsCombobox
+  }
+
 
   fun createConsumerGroups(rootDisposable: Disposable, kafkaManager: KafkaDataManager): ComboBox<ConsumerGroupPresentable> {
     val groups = kafkaManager.consumerGroupsModel
@@ -125,7 +163,7 @@ object KafkaEditorUtils {
                                                               topics = 0,
                                                               partitions = 0) // Field is set for limiting combobox width.
     comboBox.renderer = CustomListCellRenderer<ConsumerGroupPresentable> { it.consumerGroup }
-    val listener = KafkaDataModelListener(comboBox) { kafkaManager.consumerGroupsModel.data?.map { it } }
+    val listener = KafkaDataModelListener(comboBox) { kafkaManager.consumerGroupsModel.data?.map { it } to null }
     kafkaManager.consumerGroupsModel.addListener(listener)
     Disposer.register(rootDisposable) {
       kafkaManager.consumerGroupsModel.removeListener(listener)
@@ -142,20 +180,23 @@ object KafkaEditorUtils {
     topicComboBox.renderer = CustomListCellRenderer<TopicInEditor> { it.name }
 
     val listener = KafkaDataModelListener(topicComboBox) {
-      kafkaManager.getTopics().map { it.toEditorTopic() }.sortedBy { it.name }
+      kafkaManager.getTopics().map { it.toEditorTopic() }.sortedBy { it.name } to null
     }
     kafkaManager.topicModel.addListener(listener)
     Disposer.register(rootDisposable) {
       kafkaManager.topicModel.removeListener(listener)
     }
 
-    return topicComboBox.withValidator(rootDisposable) {
+    topicComboBox.withValidator(rootDisposable) {
       val selectedItem = topicComboBox.selectedItem as? TopicInEditor
       if (selectedItem == null || selectedItem.name.isBlank())
         ValidationInfo(KafkaMessagesBundle.message("producer.error.topic.empty"), topicComboBox)
       else
         null
     }
+
+    topicComboBox.getValidator()?.enableValidation()
+    return topicComboBox
   }
 
 
@@ -164,14 +205,19 @@ object KafkaEditorUtils {
                            topicComboBox: ComboBox<TopicInEditor>,
                            fieldTypeComboBox: ComboBox<FieldType>,
                            isKey: Boolean): ComboBox<RegistrySchemaInEditor> {
-    val initSchemas = calculateSchemasForCombobox(kafkaManager, topicComboBox, isKey).toTypedArray()
-    val schemaCombobox = ComboBox(initSchemas)
+    val (initSchemas, preferedIndex) = calculateSchemasForCombobox(kafkaManager, topicComboBox, isKey)
+    val schemaCombobox = ComboBox(initSchemas.toTypedArray())
 
     topicComboBox.name
     schemaCombobox.isSwingPopup = false
     schemaCombobox.toolTipText = KafkaMessagesBundle.message("registry.subject.combobox.default.name")
     schemaCombobox.renderer = CustomListCellRenderer<RegistrySchemaInEditor> { it.toString() }
-    schemaCombobox.selectedItem = initSchemas.firstOrNull()
+
+    schemaCombobox.selectedIndex = when {
+      preferedIndex != null -> preferedIndex
+      initSchemas.isNotEmpty() -> 0
+      else -> -1
+    }
 
     val listener = KafkaDataModelListener(schemaCombobox) {
       calculateSchemasForCombobox(kafkaManager, topicComboBox, isKey)
@@ -214,13 +260,16 @@ object KafkaEditorUtils {
 
 
     kafkaManager.initRefreshSchemasIfRequired()
-    return schemaCombobox.withValidator(rootDisposable) { validationInfo }
+    schemaCombobox.withValidator(rootDisposable) { validationInfo }
+    schemaCombobox.getValidator()?.enableValidation()
+
+    return schemaCombobox
   }
 
 
-  fun validateSchemaType(kafkaManager: KafkaDataManager,
-                         schemaCombobox: ComboBox<RegistrySchemaInEditor>,
-                         fieldTypeComboBox: ComboBox<FieldType>): ValidationInfo? {
+  private fun validateSchemaType(kafkaManager: KafkaDataManager,
+                                 schemaCombobox: ComboBox<RegistrySchemaInEditor>,
+                                 fieldTypeComboBox: ComboBox<FieldType>): ValidationInfo? {
     val registry = schemaCombobox.item ?: return null
     val registryType = KafkaRegistryUtil.getSchemaType(registry.schemaName,
                                                        kafkaManager) ?: return null
@@ -241,50 +290,65 @@ object KafkaEditorUtils {
   }
 
 
+  private fun calculateSchemaTypeForTopic(kafkaManager: KafkaDataManager,
+                                          topicComboBox: ComboBox<TopicInEditor>,
+                                          isKey: Boolean): FieldType? {
+    val schema = calculateTopicSchemaName(kafkaManager, topicComboBox.item?.name ?: "", isKey) ?: return null
+    val type = KafkaRegistryUtil.getSchemaType(schema, kafkaManager)
+    return when (type) {
+      KafkaRegistryFormat.AVRO -> FieldType.AVRO_REGISTRY
+      KafkaRegistryFormat.PROTOBUF -> FieldType.PROTOBUF_REGISTRY
+      KafkaRegistryFormat.JSON -> FieldType.JSON_REGISTRY
+      null -> null
+    }
+  }
+
+
   private fun calculateSchemasForCombobox(kafkaManager: KafkaDataManager,
                                           topicComboBox: ComboBox<TopicInEditor>,
-                                          isKey: Boolean): List<RegistrySchemaInEditor> {
+                                          isKey: Boolean): Pair<List<RegistrySchemaInEditor>, Int?> {
     val schemas = kafkaManager.getSchemasForEditor()
     val preferSchemaName = calculateTopicSchemaName(kafkaManager, topicComboBox.item?.name ?: "", isKey)
-    val preferedSchema = RegistrySchemaInEditor(preferSchemaName, kafkaManager.connectionData.glueRegistryName ?: "")
-
-    val reordered = if (preferedSchema in schemas) {
-      listOf(preferedSchema) + (schemas - preferedSchema)
-    }
-    else
-      schemas
-    return reordered
+    val index = schemas.indexOfFirst { it.schemaName == preferSchemaName }.takeIf { it >= 0 }
+    return schemas to index
   }
 
-  private fun calculateTopicSchemaName(kafkaManager: KafkaDataManager, topic: String, isKey: Boolean) = when (kafkaManager.registryType) {
-    KafkaRegistryType.NONE -> ""
-    KafkaRegistryType.CONFLUENT -> if (isKey) "$topic-key" else "$topic-value"
-    KafkaRegistryType.AWS_GLUE -> topic
+  private fun calculateTopicSchemaName(kafkaManager: KafkaDataManager, topic: String, isKey: Boolean): String? {
+    val schemas = kafkaManager.getSchemasForEditor().map { it.schemaName }
+    val confluentSchemaName = if (isKey) "$topic-key" else "$topic-value"
+    if (confluentSchemaName in schemas)
+      return confluentSchemaName
+    if (topic in schemas)
+      return topic
+    return null
   }
 
-  private fun <T> updateComboBox(comboBox: ComboBox<T>, dataSupplier: () -> List<T>?) {
-    val selectedItem = comboBox.item
-    val selectedItemIndex = comboBox.selectedIndex
-
+  private fun <T> updateComboBox(comboBox: ComboBox<T>, dataSupplier: () -> Pair<List<T>?, Int?>) {
     val oldTopics = (0 until comboBox.model.size).map {
       comboBox.model.getElementAt(it)
     }
-    val newTopics = dataSupplier()
-    if (oldTopics == newTopics)
+    val (newTopics, selectedItemIndex) = dataSupplier()
+    if (oldTopics == newTopics) {
+      updateSelectedIndex(comboBox, selectedItemIndex)
       return
+    }
     comboBox.removeAllItems()
     newTopics?.forEach {
       comboBox.addItem(it)
     }
 
-    comboBox.item = when {
-      selectedItemIndex <= 0 -> newTopics?.firstOrNull()
-      newTopics?.contains(selectedItem) == true -> selectedItem
-      else -> null
-    }
+    updateSelectedIndex(comboBox, selectedItemIndex)
 
     comboBox.invalidate()
     comboBox.repaint()
+  }
+
+  private fun <T> updateSelectedIndex(comboBox: ComboBox<T>,
+                                      selectedItemIndex: Int?) {
+    comboBox.selectedIndex = when {
+      selectedItemIndex != null -> selectedItemIndex
+      else -> comboBox.selectedIndex
+    }
   }
 
   fun tryFormatJson(text: String): String {
@@ -304,5 +368,4 @@ object KafkaEditorUtils {
     val last = text.lastOrNull { !Character.isWhitespace(it) } ?: return false
     return first == '{' && last == '}' && text.contains(":") || first == '[' && last == ']'
   }
-
 }
