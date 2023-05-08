@@ -8,6 +8,7 @@ import com.intellij.ui.dsl.builder.Panel
 import com.intellij.ui.dsl.builder.RightGap
 import com.intellij.ui.dsl.builder.RowsRange
 import com.jetbrains.bigdatatools.common.rfs.util.RfsNotificationUtils
+import com.jetbrains.bigdatatools.common.settings.getValidationInfo
 import com.jetbrains.bigdatatools.common.ui.CustomListCellRenderer
 import com.jetbrains.bigdatatools.common.ui.SimpleDumbAwareAction
 import com.jetbrains.bigdatatools.common.util.executeNotOnEdt
@@ -105,10 +106,6 @@ class KafkaConsumerFieldComponent(private val project: Project,
     updateRegistryFieldsVisibility()
   }
 
-  fun validateSchema() {
-    loadFieldConfig()
-  }
-
   fun loadFieldConfig(): ConsumerProducerFieldConfig {
     val fieldType = fieldTypeComboBox.item
     val registryType = kafkaManager.registryType
@@ -123,4 +120,6 @@ class KafkaConsumerFieldComponent(private val project: Project,
                                        schemaName = schemaName,
                                        parsedSchema = schema)
   }
+
+  fun getValidationInfo() = schemaComboBox.getValidationInfo()
 }

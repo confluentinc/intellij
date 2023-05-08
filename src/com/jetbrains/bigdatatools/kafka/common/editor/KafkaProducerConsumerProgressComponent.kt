@@ -1,5 +1,6 @@
 package com.jetbrains.bigdatatools.kafka.common.editor
 
+import com.intellij.icons.AllIcons
 import com.intellij.ui.AnimatedIcon
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.dsl.builder.Cell
@@ -26,6 +27,14 @@ class KafkaProducerConsumerProgressComponent {
   fun onUpdate() {
     timestamp = System.currentTimeMillis()
     timestampLabel.text = dateFormat.format(Date(timestamp))
+  }
+
+  fun onValidationError() {
+    timestampCell.visible(true)
+    timestampLabel.icon = AllIcons.General.Error
+    timestampLabel.text = KafkaMessagesBundle.message("kafka.validation.error.label")
+    timestampCell.comment?.isVisible = false
+
   }
 
   fun onError() {

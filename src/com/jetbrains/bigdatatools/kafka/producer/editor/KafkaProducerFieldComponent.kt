@@ -139,10 +139,8 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
 
   private lateinit var generateDataAction: Cell<ActionButton>
 
-  fun isValid() =
-    textField.getValidationInfo() == null &&
-    jsonField.getValidationInfo() == null &&
-    schemaComboBox.getValidationInfo() == null
+  fun getValidationInfo() =
+    textField.getValidationInfo() ?: jsonField.getValidationInfo() ?: schemaComboBox.getValidationInfo()
 
   fun createComponent(panel: Panel) {
     panel.apply {

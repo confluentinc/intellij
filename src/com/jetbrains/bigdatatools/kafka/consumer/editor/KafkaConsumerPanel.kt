@@ -19,6 +19,7 @@ import com.intellij.ui.components.JBTextField
 import com.intellij.ui.dsl.builder.AlignX
 import com.intellij.ui.dsl.builder.panel
 import com.jetbrains.bigdatatools.common.rfs.util.RfsNotificationUtils
+import com.jetbrains.bigdatatools.common.settings.getValidationInfo
 import com.jetbrains.bigdatatools.common.ui.CustomListCellRenderer
 import com.jetbrains.bigdatatools.common.ui.ExpansionPanel
 import com.jetbrains.bigdatatools.common.util.executeOnPooledThread
@@ -115,9 +116,14 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
           if (consumerClient.isRunning()) {
             consumerClient.stop()
             output.stop()
-
           }
           else {
+            val validationInfo = topicComboBox.getValidationInfo() ?: key.getValidationInfo() ?: value.getValidationInfo()
+            if (validationInfo != null) {
+              progress.onValidationError()
+              return@executeOnPooledThread
+            }
+
             startConsume(kafkaManager.project)
           }
           updateVisibility()
@@ -283,6 +289,7 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
 
   private fun startConsume(project: Project?) {
     val runConfig = getRunConfig()
+
     if (runConfig.topic.isNullOrBlank()) {
       invokeLater {
         Messages.showErrorDialog(kafkaManager.project,
@@ -304,16 +311,12 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
       }
 
       withPluginClassLoader {
-        key.validateSchema()
-        value.validateSchema()
-
         // Callbacks called in Kafka client threads. That's why, to properly update UI we calling invokeLater
         consumerClient.start(runConfig,
                              dataManager = kafkaManager,
                              keyConfig = key.loadFieldConfig(),
                              valueConfig = value.loadFieldConfig(),
                              consume = {
-
                                val element = KafkaRecord.createFor(key.fieldTypeComboBox.item, value.fieldTypeComboBox.item,
                                                                    Result.success(it))
                                invokeLater {

@@ -150,7 +150,8 @@ object KafkaEditorUtils {
     }
 
     return topicComboBox.withValidator(rootDisposable) {
-      if (topicComboBox.selectedItem == null)
+      val selectedItem = topicComboBox.selectedItem as? TopicInEditor
+      if (selectedItem == null || selectedItem.name.isBlank())
         ValidationInfo(KafkaMessagesBundle.message("producer.error.topic.empty"), topicComboBox)
       else
         null

@@ -8,7 +8,6 @@ import com.intellij.openapi.fileEditor.FileEditorLocation
 import com.intellij.openapi.fileEditor.FileEditorState
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.ComboBox
-import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.ui.Splitter
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.Key
@@ -172,17 +171,16 @@ class KafkaProducerEditor(val project: Project,
 
   private fun startProduce(): Boolean {
     val topic = topicComboBox.item
-    if (topic == null || topic.name.isBlank()) {
-      Messages.showErrorDialog(kafkaManager.project,
-                               KafkaMessagesBundle.message("producer.error.topic.empty"),
-                               KafkaMessagesBundle.message("producer.error.topic.empty.title"))
+
+    val validationInfo = topicComboBox.getValidationInfo()
+                         ?: keyFieldComponent.getValidationInfo()
+                         ?: valueFieldComponent.getValidationInfo()
+
+    if (validationInfo != null) {
+      progress.onValidationError()
       return true
     }
 
-    if (topicComboBox.getValidationInfo() != null ||
-        !keyFieldComponent.isValid() || !valueFieldComponent.isValid()) {
-      return true
-    }
 
     val selectedTopicName = topic.name
 
