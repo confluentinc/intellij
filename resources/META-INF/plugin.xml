@@ -4,9 +4,23 @@
   <vendor>JetBrains</vendor>
 
   <description><![CDATA[
-    <p>A Kafka support plugin for users .</p>
-    ADD HERE SOME TEXT
-    </dl>
+<p>The plugin lets you monitor your <a href="https://kafka.apache.org/">Kafka</a> event streaming processes.</p>
+
+<p>You can:
+<dl>
+   <dd>- Connect to Kafka cluster</dd>
+   <dd>- Produce and consume messages in different formats including Avro, Protobuf</dd>
+   <dd>- Manage topics, and monitor consumer groups</dd>
+   <dd>- Use Confluent Schema Registry and AWS Glue Schema Registry</dd>
+</dl>
+</p>
+
+<p>This plugin is a part of the Big Data Tools plugin bundle.</p>
+<p>
+    <a href="https://info.jetbrains.com/data-engineering-communication-center.html">Subscribe to our News</a> |
+    <a href="https://blog.jetbrains.com/big-data-tools">Read our Blog</a> |
+    <a href="https://slack-bdt.mau.jetbrains.com">Join the Slack Community</a>
+</p>
     ]]></description>
 
   <depends>com.intellij.modules.ultimate</depends>
