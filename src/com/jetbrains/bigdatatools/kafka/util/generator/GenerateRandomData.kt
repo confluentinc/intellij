@@ -4,7 +4,6 @@ import com.google.gson.GsonBuilder
 import com.jetbrains.bigdatatools.kafka.common.models.FieldType
 import com.jetbrains.bigdatatools.kafka.consumer.models.ConsumerProducerFieldConfig
 import io.confluent.kafka.schemaregistry.ParsedSchema
-import java.util.*
 
 object GenerateRandomData {
   fun generate(config: ConsumerProducerFieldConfig): String = generate(config.type, config.parsedSchema)
@@ -14,7 +13,7 @@ object GenerateRandomData {
     FieldType.LONG -> PrimitivesGenerator.generateLong().toString()
     FieldType.DOUBLE -> PrimitivesGenerator.generateDouble().toString()
     FieldType.FLOAT -> PrimitivesGenerator.generateFloat().toString()
-    FieldType.BASE64 -> Base64.getEncoder().encodeToString(PrimitivesGenerator.generateBytes())
+    FieldType.BASE64 -> PrimitivesGenerator.generateBytes().toString()
     FieldType.AVRO_REGISTRY -> AvroGenerator.generateAvroMessage(parsedSchema)
     FieldType.JSON -> GsonBuilder().setPrettyPrinting().create().toJson(JsonGenerator.generateJson())
     else -> ""
