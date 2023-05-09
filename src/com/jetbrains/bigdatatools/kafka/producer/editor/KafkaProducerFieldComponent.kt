@@ -323,11 +323,12 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
         FieldType.DOUBLE,
         FieldType.FLOAT,
         FieldType.BASE64,
+        FieldType.JSON,
         FieldType.AVRO_REGISTRY -> {
           e.presentation.isEnabledAndVisible = true
           e.presentation.text = KafkaMessagesBundle.message("generate.random.data")
         }
-        FieldType.PROTOBUF_REGISTRY, FieldType.JSON, FieldType.JSON_REGISTRY -> {
+        FieldType.PROTOBUF_REGISTRY, FieldType.JSON_REGISTRY -> {
           e.presentation.isVisible = true
           e.presentation.isEnabled = false
           @Suppress("DialogTitleCapitalization")

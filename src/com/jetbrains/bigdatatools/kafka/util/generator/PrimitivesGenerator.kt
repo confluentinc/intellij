@@ -15,4 +15,6 @@ object PrimitivesGenerator {
   fun generateFloat(from: Float = Float.MIN_VALUE, until: Float = Float.MAX_VALUE) = (from + Random.nextFloat() * (until - from))
 
   fun generateBytes(minSize: Int = 10, maxSize: Int = 100) = Random.nextBytes(Random.nextInt(minSize, maxSize))
+
+  fun generateInt(from: Int = Int.MIN_VALUE, until: Int = Int.MAX_VALUE) = Random.nextInt(from, until)
 }
