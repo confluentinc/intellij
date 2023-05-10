@@ -11,9 +11,9 @@ import kotlin.reflect.jvm.javaField
 class TopicPartition(val partitionId: Int,
                      val leader: Int?,
                      @field:NoRendering
-                     val replicas: List<InternalReplica>,
+                     val internalReplicas: List<InternalReplica>,
                      val inSyncReplicasCount: Int,
-                     val replicasCount: Int) : RemoteInfo {
+                     val replicas: String) : RemoteInfo {
   companion object {
     val renderableColumns: List<KProperty1<TopicPartition, *>> by lazy {
       TopicPartition::class.declaredMemberProperties.filter { DataRenderingUtil.shouldRenderFrom(it.javaField?.annotations) }

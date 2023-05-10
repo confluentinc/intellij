@@ -7,7 +7,10 @@ import com.intellij.openapi.components.service
 import com.intellij.util.xmlb.XmlSerializerUtil
 import com.jetbrains.bigdatatools.common.connection.updater.IntervalUpdateSettings
 import com.jetbrains.bigdatatools.common.settings.ColumnVisibilitySettings
+import com.jetbrains.bigdatatools.kafka.model.ConsumerGroupPresentable
 import com.jetbrains.bigdatatools.kafka.model.SchemaRegistryFieldsInfo
+import com.jetbrains.bigdatatools.kafka.model.TopicPartition
+import com.jetbrains.bigdatatools.kafka.model.TopicPresentable
 import com.jetbrains.bigdatatools.kafka.registry.confluent.ConfluentSchemaInfo
 import com.jetbrains.bigdatatools.kafka.registry.glue.models.GlueSchemaInfo
 import com.jetbrains.bigdatatools.kafka.registry.glue.models.GlueSchemaVersionInfo
@@ -21,29 +24,32 @@ class KafkaToolWindowSettings : PersistentStateComponent<KafkaToolWindowSettings
   private val topicConfigsTableColumns = mutableListOf("name", "value", "defaultValue")
   val topicConfigsColumnSettings = ColumnVisibilitySettings(topicConfigsTableColumns)
 
-  private val topicPartitionsTableColumns = mutableListOf("partitionId",
-                                                          "leader",
-                                                          "offsetMin",
-                                                          "offsetMax",
-                                                          "inSyncReplicasCount",
-                                                          "replicasCount",
-                                                          "segmentCount",
-                                                          "segmentSize")
+  private val topicPartitionsTableColumns = mutableListOf(TopicPartition::partitionId.name,
+                                                          TopicPartition::leader.name,
+                                                          TopicPartition::replicas.name)
 
   val topicPartitionsColumnSettings = ColumnVisibilitySettings(topicPartitionsTableColumns)
 
-  private val topicTableColumns = mutableListOf("name", "replicas", "partitions",
-                                                "inSyncReplicas", "replicationFactor", "underReplicatedPartitions")
+  private val topicTableColumns = mutableListOf(
+    TopicPresentable::name.name,
+    TopicPresentable::partitions.name,
+    TopicPresentable::replicationFactor.name,
+    TopicPresentable::inSyncReplicas.name)
   val topicColumnSettings = ColumnVisibilitySettings(topicTableColumns)
 
   var showInternalTopics: Boolean = false
 
-  private val consumerGroupsTableColumns = mutableListOf("consumerGroup", "state", "consumers", "topics", "partitions")
+  private val consumerGroupsTableColumns = mutableListOf(
+    ConsumerGroupPresentable::consumerGroup.name,
+    ConsumerGroupPresentable::state.name,
+    ConsumerGroupPresentable::consumers.name,
+    ConsumerGroupPresentable::topics.name,
+    ConsumerGroupPresentable::partitions.name)
   val consumerGroupsColumnSettings = ColumnVisibilitySettings(consumerGroupsTableColumns)
 
   private val schemaRegistryTableColumns = mutableListOf(ConfluentSchemaInfo::name.name,
                                                          ConfluentSchemaInfo::type.name,
-                                                         ConfluentSchemaInfo::version.name)
+                                                         ConfluentSchemaInfo::versions.name)
   val schemaRegistryTableColumnSettings = ColumnVisibilitySettings(schemaRegistryTableColumns)
 
   private val glueSchemaTableColumns = mutableListOf(GlueSchemaInfo::schemaName.name,
@@ -68,20 +74,15 @@ class KafkaToolWindowSettings : PersistentStateComponent<KafkaToolWindowSettings
 
   private val schemaRegistryVersionsTableColumns = mutableListOf(
     ConfluentSchemaInfo::id.name,
-    ConfluentSchemaInfo::version.name,
-    ConfluentSchemaInfo::schema.name)
+    ConfluentSchemaInfo::versions.name)
 
   val schemaRegistryVersionsTableColumnsSettings = ColumnVisibilitySettings(schemaRegistryVersionsTableColumns)
 
   override val configs: MutableMap<String, KafkaClusterConfig> = mutableMapOf()
 
-  override var dataUpdateIntervalMillis: Int = 30000
+  override var dataUpdateIntervalMillis: Int = 60_000
 
-  fun setSelectedTopicName(connectionId: String, selectedTopic: String) {
-    getOrCreateSparkConfig(connectionId).selectedTopic = selectedTopic
-  }
-
-  private fun getOrCreateSparkConfig(connectionId: String): KafkaClusterConfig {
+  fun getOrCreateConfig(connectionId: String): KafkaClusterConfig {
     var config = configs[connectionId]
     if (config == null) {
       config = KafkaClusterConfig()

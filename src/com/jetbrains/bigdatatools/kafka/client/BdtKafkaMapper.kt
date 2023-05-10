@@ -29,17 +29,18 @@ object BdtKafkaMapper {
       val replicas: List<InternalReplica> = partition.replicas().filterNotNull().map {
         InternalReplica(it.id(), partition.leader()?.id() != it.id(), partition.isr()?.contains(it) == true)
       }
+      partition.replicas().map { }
       TopicPartition(leader = partition.leader()?.id(),
                      partitionId = partition.partition(),
                      inSyncReplicasCount = partition.isr().size,
-                     replicasCount = partition.replicas().size,
-                     replicas = replicas)
+                     replicas = partition.replicas()?.joinToString(separator = ", ") { it.idString() } ?: "",
+                     internalReplicas = replicas)
     } ?: emptyList()
 
-    val underReplicatedPartitionsCount: Int = partitions.flatMap { it.replicas }.count { !it.inSync }
+    val underReplicatedPartitionsCount: Int = partitions.flatMap { it.internalReplicas }.count { !it.inSync }
     val inSyncReplicasCount = partitions.sumOf { it.inSyncReplicasCount }
 
-    val replicasCount = partitions.sumOf { it.replicasCount }
+    val replicasCount = partitions.sumOf { it.internalReplicas.size }
     val replicationFactor = topicDescription.partitions()?.firstOrNull()?.replicas()?.size ?: 0
 
     return TopicPresentable(internal = topicDescription.isInternal,

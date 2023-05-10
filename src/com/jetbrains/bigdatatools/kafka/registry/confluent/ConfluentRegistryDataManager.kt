@@ -65,7 +65,7 @@ class ConfluentRegistryDataManager(val dataManager: MonitoringDataManager,
   fun deleteRegistrySchemaVersion(registryInfo: ConfluentSchemaInfo, isPermanent: Boolean = false) = executeOnPooledThread {
     withCatchNotifyErrorDialog {
       val name = registryInfo.name
-      client.deleteSchemaVersion(name, registryInfo.version.toString(), isPermanent)
+      client.deleteSchemaVersion(name, registryInfo.versions.toString(), isPermanent)
 
       dataManager.updater.invokeRefreshModel(schemaRegistryModel)
       dataManager.updater.invokeRefreshModel(getRegistrySchemaVersionsModel(registryInfo.id))
@@ -104,26 +104,16 @@ class ConfluentRegistryDataManager(val dataManager: MonitoringDataManager,
     val meta = getSchemaInfo(it) ?: error("Meta is not found")
 
     val versions = client.getAllVersions(meta.name)
-    val metas = versions.map { version ->
+    versions.map { version ->
       val versionMeta = client.getSchemaMetadata(meta.name, version)
       ConfluentSchemaInfo(name = meta.name, meta = versionMeta)
     }
-    metas
   }
 
 
   private fun createSchemaFieldsStorage() = ObjectDataModelStorage<Int, SchemaRegistryFieldsInfo>(dataManager.updater,
                                                                                                   SchemaRegistryFieldsInfo::name) {
-    val client = client
-    val meta = getSchemaInfo(it)?.meta ?: error("Meta is not found")
-
-    val schema = try {
-      client.parseSchema(meta.schemaType, meta.schema, meta.references)
-    }
-    catch (t: Throwable) {
-      null
-    }
-
+    val schema = this.client.getSchemaById(it) ?: error("Meta is not found")
     KafkaRegistryUtil.parseFields(schema)
   }
 

@@ -23,7 +23,9 @@ class TopicConfigsController(val project: Project,
 
   override fun getRenderableColumns() = TopicConfig.renderableColumns
 
-  override fun getDataModel() = selectedId?.let { dataManager.topicConfigsModels.get(it) }
+  override fun getDataModel() = selectedId?.let { dataManager.topicConfigsModels[it] }
+
+  override fun showColumnFilter(): Boolean = false
 
   override fun getAdditionalActions(): List<AnAction> {
     val settings = KafkaToolWindowSettings.getInstance()

@@ -30,7 +30,7 @@ class ConfluentSchemaVersionsController(private val project: Project,
     override fun actionPerformed(e: AnActionEvent) {
       val registryInfo = getSelectedItem() ?: return
 
-      Messages.showCheckboxMessageDialog(KafkaMessagesBundle.message("action.remove.version.confirm.dialog.msg", registryInfo.version,
+      Messages.showCheckboxMessageDialog(KafkaMessagesBundle.message("action.remove.version.confirm.dialog.msg", registryInfo.versions,
                                                                      registryInfo.name),
                                          KafkaMessagesBundle.message("action.remove.schema.confirm.dialog.title"),
                                          arrayOf(Messages.getOkButton(), Messages.getCancelButton()),

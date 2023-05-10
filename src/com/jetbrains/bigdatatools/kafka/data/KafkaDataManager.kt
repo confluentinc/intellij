@@ -112,7 +112,9 @@ class KafkaDataManager(project: Project?,
   }
 
   private fun createTopicsDataModel() = ObjectDataModel(TopicPresentable::name) {
-    client.getTopics(KafkaToolWindowSettings.getInstance().showInternalTopics)
+    val toolWindowSettings = KafkaToolWindowSettings.getInstance()
+    val topicFilterName = toolWindowSettings.getOrCreateConfig(connectionId).topicFilterName
+    client.getTopics(toolWindowSettings.showInternalTopics).filter { topicFilterName == null || it.name.contains(topicFilterName) }
   }
 
   private fun createConsumerGroupsDataModel() =
