@@ -2,6 +2,7 @@ package com.jetbrains.bigdatatools.kafka.util
 
 import com.intellij.openapi.ui.DialogBuilder
 import com.intellij.openapi.ui.InputValidatorEx
+import com.intellij.ui.components.JBTextField
 import com.intellij.ui.dsl.builder.AlignX
 import com.intellij.ui.dsl.builder.panel
 import com.jetbrains.bigdatatools.common.settings.buildValidator
@@ -20,11 +21,13 @@ object KafkaDialogFactory {
     builder.title(KafkaMessagesBundle.message("action.create.topic"))
     val nameField = JTextField("NewTopic", 15)
     nameField.selectAll()
-    val numPartition = JTextField("3", 6).withNumberOrEmptyValidator(builder).also {
-      it.toolTipText = KafkaMessagesBundle.message("create.topic.leave.empty.for.default")
+    val numPartition = JBTextField("", 15).also {
+      it.emptyText.text = KafkaMessagesBundle.message("create.topic.leave.empty.for.default")
+      it.withNumberOrEmptyValidator(builder)
     }
-    val replicationFactor = JTextField("3", 6).withNumberOrEmptyValidator(builder).also {
-      it.toolTipText = KafkaMessagesBundle.message("create.topic.leave.empty.for.default")
+    val replicationFactor = JBTextField("", 15).also {
+      it.emptyText.text = KafkaMessagesBundle.message("create.topic.leave.empty.for.default")
+      it.withNumberOrEmptyValidator(builder)
     }
 
     val validator = object : InputValidatorEx {
