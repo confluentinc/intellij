@@ -11,7 +11,7 @@ import kotlin.reflect.jvm.javaField
 data class ConfluentSchemaInfo(val name: String,
                                @NoRendering val meta: SchemaMetadata?) : RemoteInfo {
   val id = meta?.id ?: -1
-  val version = meta?.version ?: -1
+  val versions = meta?.version ?: -1
   val type = meta?.schemaType ?: ""
   val schema = meta?.schema ?: ""
 
