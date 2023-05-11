@@ -7,6 +7,7 @@ import com.intellij.bigdatatools.aws.ui.external.AwsSettingsInfo
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.NlsSafe
+import com.jetbrains.bigdatatools.common.util.TimeUtils
 import com.jetbrains.bigdatatools.kafka.registry.glue.models.GlueSchemaDetailedInfo
 import com.jetbrains.bigdatatools.kafka.registry.glue.models.GlueSchemaInfo
 import com.jetbrains.bigdatatools.kafka.registry.glue.models.GlueSchemaVersionInfo
@@ -66,14 +67,19 @@ class BdtGlueRegistryClient(val project: Project?,
   fun listSchemas(): List<GlueSchemaInfo> {
     val registryId = registryName.let { RegistryId.builder().registryName(registryName).build() }
     val request = ListSchemasRequest.builder().registryId(registryId).build()
+
     return client.listSchemas(request).schemas().map {
-      GlueSchemaInfo(schemaName = it.schemaName() ?: "",
+      val schemaName = it.schemaName()
+      GlueSchemaInfo(schemaName = schemaName ?: "",
                      registryName = it.registryName() ?: "",
+                     type = null,
+                     compatibility = null,
+                     versions = null,
                      schemaArn = it.schemaArn() ?: "",
-                     createdTime = it.createdTime() ?: "",
+                     createdTime = TimeUtils.parseIsoTime(it.createdTime()),
                      description = it.description() ?: "",
                      schemaStatus = it.schemaStatusAsString() ?: "",
-                     updatedTime = it.updatedTime() ?: "")
+                     updatedTime = TimeUtils.parseIsoTime(it.updatedTime()))
     }
   }
 
@@ -155,5 +161,13 @@ class BdtGlueRegistryClient(val project: Project?,
     if (overrideConfiguration != null)
       clientBuilder.overrideConfiguration(overrideConfiguration)
     return clientBuilder.build()
+  }
+
+  fun updateListSchemasWithLongLoadFields(original: List<GlueSchemaInfo>): List<GlueSchemaInfo> {
+    return original.map {
+      val response = getSchema(it.schemaName)
+      it.copy(compatibility = response.compatibilityAsString(), versions = response.latestSchemaVersion(),
+              type = response.dataFormatAsString())
+    }
   }
 }
