@@ -53,10 +53,12 @@ class KafkaToolWindowSettings : PersistentStateComponent<KafkaToolWindowSettings
   val schemaRegistryTableColumnSettings = ColumnVisibilitySettings(schemaRegistryTableColumns)
 
   private val glueSchemaTableColumns = mutableListOf(GlueSchemaInfo::schemaName.name,
-                                                     GlueSchemaInfo::registryName.name,
-                                                     GlueSchemaInfo::description.name,
-                                                     GlueSchemaInfo::createdTime.name,
-                                                     GlueSchemaInfo::updatedTime.name)
+                                                     GlueSchemaInfo::type.name,
+                                                     GlueSchemaInfo::versions.name,
+                                                     GlueSchemaInfo::compatibility.name,
+                                                     GlueSchemaInfo::updatedTime.name,
+                                                     GlueSchemaInfo::description.name)
+
   val glueSchemaTableColumnSettings = ColumnVisibilitySettings(glueSchemaTableColumns)
 
   private val schemaRegistryFieldsTableColumns = mutableListOf(
@@ -80,7 +82,7 @@ class KafkaToolWindowSettings : PersistentStateComponent<KafkaToolWindowSettings
 
   override val configs: MutableMap<String, KafkaClusterConfig> = mutableMapOf()
 
-  override var dataUpdateIntervalMillis: Int = 60_000
+  override var dataUpdateIntervalMillis: Int = 0
 
   fun getOrCreateConfig(connectionId: String): KafkaClusterConfig {
     var config = configs[connectionId]

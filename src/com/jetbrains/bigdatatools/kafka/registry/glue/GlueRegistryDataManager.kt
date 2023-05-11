@@ -51,8 +51,9 @@ class GlueRegistryDataManager(val dataManager: MonitoringDataManager,
   override fun dispose() {}
 
   private fun createSchemaRegistryDataModel(): ObjectDataModel<GlueSchemaInfo> {
-    val dataModel = ObjectDataModel(GlueSchemaInfo::id) {
-      val client = client
+    val dataModel = ObjectDataModel(GlueSchemaInfo::id, additionalInfoLoading = {
+      client.updateListSchemasWithLongLoadFields(it.data ?: emptyList())
+    }) {
       client.listSchemas()
     }
     return dataModel
