@@ -8,6 +8,7 @@ import com.jetbrains.bigdatatools.kafka.common.models.FieldType
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.model.SchemaRegistryFieldsInfo
 import com.jetbrains.bigdatatools.kafka.registry.confluent.ConfluentSchemaInfo
+import com.jetbrains.bigdatatools.kafka.registry.schema.JsonSchemaTree
 import com.jetbrains.bigdatatools.kafka.registry.serde.BdtJsonSchemaProvider
 import com.jetbrains.bigdatatools.kafka.registry.serde.BdtProtobufSchemaProvider
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
@@ -20,7 +21,7 @@ import io.confluent.kafka.schemaregistry.client.rest.entities.SchemaReference
 import io.confluent.kafka.schemaregistry.json.JsonSchema
 import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchema
 import org.apache.avro.Schema
-import org.everit.json.schema.*
+import org.everit.json.schema.ObjectSchema
 import software.amazon.awssdk.services.glue.model.DataFormat
 import software.amazon.awssdk.services.glue.model.SchemaId
 import java.util.logging.Level
@@ -174,23 +175,9 @@ object KafkaRegistryUtil {
     val schema = rawSchema as? ObjectSchema ?: return emptyList()
     val fields = schema.propertySchemas?.map {
       val schemaValue = it.value
-      val type = resolveJsonFieldType(schemaValue)
+      val type = JsonSchemaTree.resolveJsonFieldType(schemaValue)
       SchemaRegistryFieldsInfo(it.key, type, schemaValue.defaultValue?.toString() ?: "")
     }
     return fields
-  }
-
-  private fun resolveJsonFieldType(schemaValue: org.everit.json.schema.Schema) = when (schemaValue) {
-    is NullSchema -> "null"
-    is ArraySchema -> "array"
-    is BooleanSchema -> "boolean"
-    is NumberSchema -> when {
-      schemaValue.requiresInteger() -> "integer"
-      schemaValue.isRequiresNumber -> "number"
-      else -> ""
-    }
-    is ObjectSchema -> "object"
-    is StringSchema -> "string"
-    else -> ""
   }
 }
