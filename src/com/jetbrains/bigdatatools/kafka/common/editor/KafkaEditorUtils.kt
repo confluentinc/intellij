@@ -110,8 +110,8 @@ object KafkaEditorUtils {
     return gson.toJson(JsonParser.parseString(jsonString))
   }
 
-  private class KafkaDataModelListener<T>(private val comboBox: ComboBox<T>,
-                                          private val dataSupplier: () -> Pair<List<T>?, Int?>) : DataModelListener {
+  internal class KafkaDataModelListener<T>(private val comboBox: ComboBox<T>,
+                                           private val dataSupplier: () -> Pair<List<T>?, Int?>) : DataModelListener {
     override fun onChanged() = updateComboBox(comboBox, dataSupplier)
     override fun onError(msg: String, e: Throwable?) = updateComboBox(comboBox, dataSupplier)
 
@@ -172,6 +172,7 @@ object KafkaEditorUtils {
     return comboBox
   }
 
+
   fun createTopicComboBox(rootDisposable: Disposable, kafkaManager: KafkaDataManager): ComboBox<TopicInEditor> {
     val topics = kafkaManager.getTopics()
     val topicComboBox = ComboBox(topics.map { it.toEditorTopic() }.sortedBy { it.name }.toTypedArray())
@@ -223,11 +224,9 @@ object KafkaEditorUtils {
       calculateSchemasForCombobox(kafkaManager, topicComboBox, isKey)
     }
 
-    kafkaManager.confluentSchemaRegistry?.schemaRegistryModel?.addListener(listener)
-    kafkaManager.glueSchemaRegistry?.schemaModel?.addListener(listener)
+    kafkaManager.schemaRegistryModel?.addListener(listener)
     Disposer.register(rootDisposable) {
-      kafkaManager.confluentSchemaRegistry?.schemaRegistryModel?.removeListener(listener)
-      kafkaManager.glueSchemaRegistry?.schemaModel?.removeListener(listener)
+      kafkaManager.schemaRegistryModel?.removeListener(listener)
     }
 
     var validationInfo: ValidationInfo? = null
@@ -323,7 +322,7 @@ object KafkaEditorUtils {
     return null
   }
 
-  private fun <T> updateComboBox(comboBox: ComboBox<T>, dataSupplier: () -> Pair<List<T>?, Int?>) {
+  fun <T> updateComboBox(comboBox: ComboBox<T>, dataSupplier: () -> Pair<List<T>?, Int?>) {
     val oldTopics = (0 until comboBox.model.size).map {
       comboBox.model.getElementAt(it)
     }

@@ -18,7 +18,6 @@ import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.registry.ui.KafkaRegistrySchemaEditor
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import io.confluent.kafka.schemaregistry.ParsedSchema
-import software.amazon.awssdk.services.glue.model.Compatibility
 import javax.swing.JComponent
 import javax.swing.JEditorPane
 import javax.swing.JTextField
@@ -121,8 +120,8 @@ class KafkaRegistryAddSchemaDialog(project: Project, val dataManager: KafkaDataM
   }
 
 
-  fun applyRegistryInfo(schemaFormat: String, schemaDefinition: String) {
-    formatCombobox.selectedItem = KafkaRegistryFormat.valueOf(schemaFormat)
+  fun applyRegistryInfo(schemaFormat: KafkaRegistryFormat, schemaDefinition: String) {
+    formatCombobox.selectedItem = schemaFormat
     textScrollPane.setText(KafkaEditorUtils.toPrettyJson(schemaDefinition),
                            isJson = formatCombobox.selectedItem != KafkaRegistryFormat.PROTOBUF)
   }
@@ -206,7 +205,7 @@ class KafkaRegistryAddSchemaDialog(project: Project, val dataManager: KafkaDataM
     }
   }
 
-  private fun getFormat(): String = formatCombobox.item.name
+  private fun getFormat() = formatCombobox.item
   private fun getStrategy(): ConfluentRegistryStrategy = strategyCombobox.item
 
   private fun updateParsedSchema() {
@@ -237,14 +236,9 @@ class KafkaRegistryAddSchemaDialog(project: Project, val dataManager: KafkaDataM
 
     if (okAction.isEnabled) {
       val schemaName = getSchemaName()
-      updateParsedSchema()
       val parsedSchema = cachedParsedSchema ?: return
 
-      val createAsync = dataManager.confluentSchemaRegistry?.createRegistrySubject(schemaName, parsedSchema)
-                        ?: dataManager.glueSchemaRegistry?.createSchema(schemaName,
-                                                                        parsedSchema.schemaType(),
-                                                                        parsedSchema.canonicalString(), Compatibility.BACKWARD, "",
-                                                                        emptyMap()) ?: error("Not schema registry")
+      val createAsync = dataManager.createSchema(schemaName, parsedSchema)
       createAsync.onError {
         runInEdt {
           errorLabel.text = it.message

@@ -20,9 +20,7 @@ data class StorageProducerConfig(var topic: String = "",
                                  var keyStrategy: ConfluentRegistryStrategy = ConfluentRegistryStrategy.TOPIC_NAME,
                                  var valueStrategy: ConfluentRegistryStrategy = ConfluentRegistryStrategy.TOPIC_NAME,
                                  val keySubject: String = "",
-                                 val keyRegistry: String = "",
                                  val valueSubject: String = "",
-                                 val valueRegistry: String = "",
                                  val flowParams: ProducerFlowParams? = null) : StorageConfig {
 
 

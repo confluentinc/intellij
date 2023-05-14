@@ -108,7 +108,7 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
     val fieldType = fieldTypeComboBox.item
     val registryType = kafkaManager.registryType
     val schemaName = schemaComboBox.item?.schemaName ?: ""
-    val schema = KafkaRegistryUtil.loadSchema(registryType, schemaName, fieldType, kafkaManager)
+    val schema = KafkaRegistryUtil.loadSchema(schemaName, fieldType, kafkaManager)
 
     return ConsumerProducerFieldConfig(type = fieldType,
                                        valueText = getValueText(),
@@ -275,9 +275,9 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
       FieldType.AVRO_REGISTRY, FieldType.JSON_REGISTRY, FieldType.PROTOBUF_REGISTRY -> {
         jsonField.text = text
         schemaComboBox.item = if (isKey)
-          RegistrySchemaInEditor(config.keySubject, config.keyRegistry)
+          RegistrySchemaInEditor(config.keySubject)
         else
-          RegistrySchemaInEditor(config.valueSubject, config.valueRegistry)
+          RegistrySchemaInEditor(config.valueSubject)
       }
     }
   }

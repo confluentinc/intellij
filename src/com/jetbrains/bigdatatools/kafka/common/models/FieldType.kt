@@ -38,12 +38,12 @@ enum class FieldType(@Nls val title: String) {
     NULL -> VoidDeserializer()
     AVRO_REGISTRY -> when (dataManager.registryType) {
       KafkaRegistryType.NONE -> error("Non exists")
-      KafkaRegistryType.CONFLUENT -> KafkaAvroDeserializer(dataManager.confluentSchemaRegistry?.client?.internalClient)
+      KafkaRegistryType.CONFLUENT -> KafkaAvroDeserializer(dataManager.client.confluentRegistryClient?.internalClient)
       KafkaRegistryType.AWS_GLUE -> GlueSchemaRegistryKafkaDeserializer(
-        dataManager.glueSchemaRegistry?.client?.credentialsController?.credentials, mapOf(
+        dataManager.client.glueRegistryClient?.credentialsController?.credentials, mapOf(
         AWSSchemaRegistryConstants.REGISTRY_NAME to dataManager.connectionData.getGlueRegistryOrDefault(),
         AWSSchemaRegistryConstants.SCHEMA_NAME to consumerField.schemaName.ifBlank { null },
-        AWSSchemaRegistryConstants.AWS_REGION to dataManager.glueSchemaRegistry?.region,
+        AWSSchemaRegistryConstants.AWS_REGION to dataManager.client.glueRegistryClient?.region,
         AWSSchemaRegistryConstants.DATA_FORMAT to DataFormat.AVRO.name,
         AWSSchemaRegistryConstants.AVRO_RECORD_TYPE to AvroRecordType.GENERIC_RECORD.name,
 
@@ -51,26 +51,26 @@ enum class FieldType(@Nls val title: String) {
     }
     PROTOBUF_REGISTRY -> when (dataManager.registryType) {
       KafkaRegistryType.NONE -> error("Non exists")
-      KafkaRegistryType.CONFLUENT -> KafkaProtobufDeserializer(dataManager.confluentSchemaRegistry?.client?.internalClient)
+      KafkaRegistryType.CONFLUENT -> KafkaProtobufDeserializer(dataManager.client.confluentRegistryClient?.internalClient)
       KafkaRegistryType.AWS_GLUE -> GlueSchemaRegistryKafkaDeserializer(
-        dataManager.glueSchemaRegistry?.client?.credentialsController?.credentials,
+        dataManager.client.glueRegistryClient?.credentialsController?.credentials,
         mapOf(
           AWSSchemaRegistryConstants.REGISTRY_NAME to dataManager.connectionData.getGlueRegistryOrDefault(),
           AWSSchemaRegistryConstants.SCHEMA_NAME to consumerField.schemaName.ifBlank { null },
-          AWSSchemaRegistryConstants.AWS_REGION to dataManager.glueSchemaRegistry?.region,
+          AWSSchemaRegistryConstants.AWS_REGION to dataManager.client.glueRegistryClient?.region,
           AWSSchemaRegistryConstants.DATA_FORMAT to DataFormat.PROTOBUF.name,
           AWSSchemaRegistryConstants.PROTOBUF_MESSAGE_TYPE to ProtobufMessageType.DYNAMIC_MESSAGE.name
         ))
     }
     JSON_REGISTRY -> when (dataManager.registryType) {
       KafkaRegistryType.NONE -> error("Non exists")
-      KafkaRegistryType.CONFLUENT -> KafkaJsonSchemaDeserializer(dataManager.confluentSchemaRegistry?.client?.internalClient)
+      KafkaRegistryType.CONFLUENT -> KafkaJsonSchemaDeserializer(dataManager.client.confluentRegistryClient?.internalClient)
       KafkaRegistryType.AWS_GLUE -> GlueSchemaRegistryKafkaDeserializer(
-        dataManager.glueSchemaRegistry?.client?.credentialsController?.credentials,
+        dataManager.client.glueRegistryClient?.credentialsController?.credentials,
         mapOf(
           AWSSchemaRegistryConstants.REGISTRY_NAME to dataManager.connectionData.getGlueRegistryOrDefault(),
           AWSSchemaRegistryConstants.SCHEMA_NAME to consumerField.schemaName.ifBlank { null },
-          AWSSchemaRegistryConstants.AWS_REGION to dataManager.glueSchemaRegistry?.region,
+          AWSSchemaRegistryConstants.AWS_REGION to dataManager.client.glueRegistryClient?.region,
           AWSSchemaRegistryConstants.DATA_FORMAT to DataFormat.JSON.name
         ))
     }
@@ -86,43 +86,43 @@ enum class FieldType(@Nls val title: String) {
     NULL -> VoidSerializer()
     AVRO_REGISTRY -> when (producerField.registryType) {
       KafkaRegistryType.NONE -> error("Non exists")
-      KafkaRegistryType.CONFLUENT -> BdtKafkaAvroSerializer(dataManager.confluentSchemaRegistry?.client?.internalClient,
+      KafkaRegistryType.CONFLUENT -> BdtKafkaAvroSerializer(dataManager.client.confluentRegistryClient?.internalClient,
                                                             producerField.schemaName)
       KafkaRegistryType.AWS_GLUE -> GlueSchemaRegistryKafkaSerializer(
-        dataManager.glueSchemaRegistry?.client?.credentialsController?.credentials,
-        dataManager.glueSchemaRegistry?.getLastVersionSchemaInfo(producerField.schemaName),
+        dataManager.client.glueRegistryClient?.credentialsController?.credentials,
+        dataManager.client.glueRegistryClient?.getLatestVersionId(producerField.schemaName),
         mapOf(
           AWSSchemaRegistryConstants.REGISTRY_NAME to dataManager.connectionData.getGlueRegistryOrDefault(),
           AWSSchemaRegistryConstants.SCHEMA_NAME to producerField.schemaName.ifBlank { null },
-          AWSSchemaRegistryConstants.AWS_REGION to dataManager.glueSchemaRegistry?.region,
+          AWSSchemaRegistryConstants.AWS_REGION to dataManager.client.glueRegistryClient?.region,
           AWSSchemaRegistryConstants.DATA_FORMAT to DataFormat.AVRO.name
         ))
     }
     PROTOBUF_REGISTRY -> when (dataManager.registryType) {
       KafkaRegistryType.NONE -> error("Non exists")
-      KafkaRegistryType.CONFLUENT -> BdtKafkaProtobufSerializer(dataManager.confluentSchemaRegistry?.client?.internalClient,
+      KafkaRegistryType.CONFLUENT -> BdtKafkaProtobufSerializer(dataManager.client.confluentRegistryClient?.internalClient,
                                                                 producerField.schemaName)
       KafkaRegistryType.AWS_GLUE -> GlueSchemaRegistryKafkaSerializer(
-        dataManager.glueSchemaRegistry?.client?.credentialsController?.credentials,
-        dataManager.glueSchemaRegistry?.getLastVersionSchemaInfo(producerField.schemaName),
+        dataManager.client.glueRegistryClient?.credentialsController?.credentials,
+        dataManager.client.glueRegistryClient?.getLatestVersionId(producerField.schemaName),
         mapOf(
           AWSSchemaRegistryConstants.REGISTRY_NAME to dataManager.connectionData.getGlueRegistryOrDefault(),
           AWSSchemaRegistryConstants.SCHEMA_NAME to producerField.schemaName.ifBlank { null },
-          AWSSchemaRegistryConstants.AWS_REGION to dataManager.glueSchemaRegistry?.region,
+          AWSSchemaRegistryConstants.AWS_REGION to dataManager.client.glueRegistryClient?.region,
           AWSSchemaRegistryConstants.DATA_FORMAT to DataFormat.PROTOBUF.name
         ))
     }
     JSON_REGISTRY -> when (dataManager.registryType) {
       KafkaRegistryType.NONE -> error("Non exists")
-      KafkaRegistryType.CONFLUENT -> BdtKafkaJsonSchemaSerializer(dataManager.confluentSchemaRegistry?.client?.internalClient,
+      KafkaRegistryType.CONFLUENT -> BdtKafkaJsonSchemaSerializer(dataManager.client.confluentRegistryClient?.internalClient,
                                                                   producerField.schemaName)
       KafkaRegistryType.AWS_GLUE -> GlueSchemaRegistryKafkaSerializer(
-        dataManager.glueSchemaRegistry?.client?.credentialsController?.credentials,
-        dataManager.glueSchemaRegistry?.getLastVersionSchemaInfo(producerField.schemaName),
+        dataManager.client.glueRegistryClient?.credentialsController?.credentials,
+        dataManager.client.glueRegistryClient?.getLatestVersionId(producerField.schemaName),
         mapOf(
           AWSSchemaRegistryConstants.REGISTRY_NAME to dataManager.connectionData.getGlueRegistryOrDefault(),
           AWSSchemaRegistryConstants.SCHEMA_NAME to producerField.schemaName.ifBlank { null },
-          AWSSchemaRegistryConstants.AWS_REGION to dataManager.glueSchemaRegistry?.region,
+          AWSSchemaRegistryConstants.AWS_REGION to dataManager.client.glueRegistryClient?.region,
           AWSSchemaRegistryConstants.DATA_FORMAT to DataFormat.JSON.name
         ))
     }

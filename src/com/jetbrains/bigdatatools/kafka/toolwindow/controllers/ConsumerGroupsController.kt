@@ -1,48 +1,56 @@
 package com.jetbrains.bigdatatools.kafka.toolwindow.controllers
 
-import com.intellij.openapi.Disposable
-import com.intellij.openapi.ui.SimpleToolWindowPanel
-import com.intellij.openapi.util.Disposer
-import com.jetbrains.bigdatatools.common.monitoring.table.DataTableCreator
-import com.jetbrains.bigdatatools.common.monitoring.table.extension.TableExtensionType
-import com.jetbrains.bigdatatools.common.monitoring.table.extension.TableSelectionPreserver
-import com.jetbrains.bigdatatools.common.monitoring.table.model.DataTableColumnModel
-import com.jetbrains.bigdatatools.common.monitoring.table.model.DataTableModel
-import com.jetbrains.bigdatatools.common.table.MaterialJBScrollPane
+import com.intellij.openapi.actionSystem.ActionToolbar
+import com.intellij.openapi.actionSystem.DefaultActionGroup
+import com.intellij.ui.DocumentAdapter
+import com.intellij.ui.SearchTextField
+import com.jetbrains.bigdatatools.common.monitoring.data.model.FilterAdapter
+import com.jetbrains.bigdatatools.common.monitoring.toolwindow.AbstractTableController
+import com.jetbrains.bigdatatools.common.ui.CustomComponentActionImpl
+import com.jetbrains.bigdatatools.common.ui.filter.CountFilterPopupComponent
+import com.jetbrains.bigdatatools.common.util.ToolbarUtils
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.model.ConsumerGroupPresentable
+import com.jetbrains.bigdatatools.kafka.registry.confluent.controller.KafkaRegistryController
 import com.jetbrains.bigdatatools.kafka.toolwindow.config.KafkaToolWindowSettings
-import java.util.*
-import javax.swing.JComponent
+import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import javax.swing.event.DocumentEvent
 
-class ConsumerGroupsController(dataManager: KafkaDataManager) : Disposable {
-  private val component: JComponent
-
+class ConsumerGroupsController(val dataManager: KafkaDataManager) : AbstractTableController<ConsumerGroupPresentable>() {
   init {
-    val dataModel = dataManager.consumerGroupsModel
-
-    val columnSettings = KafkaToolWindowSettings.getInstance().consumerGroupsColumnSettings
-
-    val columnModel = DataTableColumnModel(ConsumerGroupPresentable.renderableColumns, columnSettings)
-    val tableModel = DataTableModel(dataModel, columnModel)
-
-    val table = DataTableCreator.create(tableModel, EnumSet.of(TableExtensionType.SPEED_SEARCH,
-                                                               TableExtensionType.RENDERERS_SETTER,
-                                                               TableExtensionType.COLUMNS_FITTER,
-                                                               TableExtensionType.ERROR_HANDLER,
-                                                               TableExtensionType.SELECTION_PRESERVER,
-                                                               TableExtensionType.LOADING_INDICATOR,
-                                                               TableExtensionType.SMART_RESIZER))
-    TableSelectionPreserver.installOn(table, null)
-
-    Disposer.register(this, table)
-
-    component = SimpleToolWindowPanel(false, true).apply {
-      setContent(MaterialJBScrollPane(table))
-    }
+    init()
   }
 
-  override fun dispose() = Unit
+  override fun getColumnSettings() = KafkaToolWindowSettings.getInstance().consumerGroupsColumnSettings
 
-  fun getComponent() = component
+  override fun getRenderableColumns() = ConsumerGroupPresentable.renderableColumns
+
+  override fun showColumnFilter(): Boolean = false
+
+  override fun getDataModel() = dataManager.consumerGroupsModel
+
+  override fun createTopToolBar(): ActionToolbar {
+    val searchTextField = SearchTextField(false).apply {
+      addDocumentListener(object : DocumentAdapter() {
+        override fun textChanged(e: DocumentEvent) {
+          val config = KafkaToolWindowSettings.getInstance().getOrCreateConfig(dataManager.connectionId)
+          config.consumerFilterName = this@apply.text
+          dataManager.updater.invokeRefreshModel(dataManager.consumerGroupsModel)
+        }
+      })
+    }
+
+    val countFilter = CountFilterPopupComponent(KafkaMessagesBundle.message("label.filter.limit"),
+                                                KafkaToolWindowSettings.getInstance().getOrCreateConfig(
+                                                  dataManager.connectionId).topicLimit)
+    FilterAdapter.install(dataTable.tableModel, countFilter, KafkaRegistryController.LIMIT_FILTER) { limit ->
+      val config = KafkaToolWindowSettings.getInstance().getOrCreateConfig(dataManager.connectionId)
+      config.consumerLimit = limit
+      dataManager.updater.invokeRefreshModel(dataManager.consumerGroupsModel)
+    }
+
+    val toolbar = DefaultActionGroup(CustomComponentActionImpl(searchTextField),
+                                     CustomComponentActionImpl(countFilter))
+    return ToolbarUtils.createActionToolbar("BDTKafkaConsumersTopToolbar", toolbar, true)
+  }
 }

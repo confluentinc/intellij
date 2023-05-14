@@ -1,0 +1,260 @@
+package com.jetbrains.bigdatatools.kafka.registry.confluent.controller
+
+import com.intellij.icons.AllIcons
+import com.intellij.openapi.actionSystem.ActionPlaces
+import com.intellij.openapi.actionSystem.ActionToolbar
+import com.intellij.openapi.actionSystem.AnActionEvent
+import com.intellij.openapi.actionSystem.DefaultActionGroup
+import com.intellij.openapi.actionSystem.impl.MoreActionGroup
+import com.intellij.openapi.observable.properties.AtomicBooleanProperty
+import com.intellij.openapi.project.DumbAwareAction
+import com.intellij.openapi.project.Project
+import com.intellij.openapi.ui.ComboBox
+import com.intellij.openapi.ui.Messages
+import com.intellij.ui.IdeBorderFactory
+import com.intellij.ui.SideBorder
+import com.intellij.ui.components.JBPanelWithEmptyText
+import com.intellij.ui.dsl.builder.*
+import com.intellij.ui.dsl.gridLayout.UnscaledGaps
+import com.intellij.ui.layout.migLayout.createLayoutConstraints
+import com.intellij.ui.layout.migLayout.patched.MigLayout
+import com.jetbrains.bigdatatools.common.monitoring.toolwindow.ComponentController
+import com.jetbrains.bigdatatools.common.monitoring.toolwindow.DetailsMonitoringController
+import com.jetbrains.bigdatatools.common.ui.CustomComponentActionImpl
+import com.jetbrains.bigdatatools.common.util.ToolbarUtils
+import com.jetbrains.bigdatatools.common.util.invokeLater
+import com.jetbrains.bigdatatools.kafka.common.editor.SchemaVersionDiffController
+import com.jetbrains.bigdatatools.kafka.common.editor.SchemaVersionsComboboxController
+import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
+import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryFormat
+import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryUtil
+import com.jetbrains.bigdatatools.kafka.registry.SchemaVersionInfo
+import com.jetbrains.bigdatatools.kafka.registry.ui.KafkaRegistrySchemaEditor
+import com.jetbrains.bigdatatools.kafka.registry.ui.KafkaSchemaInfoDialog
+import com.jetbrains.bigdatatools.kafka.toolwindow.config.KafkaClusterConfig
+import com.jetbrains.bigdatatools.kafka.toolwindow.config.KafkaToolWindowSettings
+import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import net.miginfocom.layout.ConstraintParser
+import org.jetbrains.annotations.Nls
+import java.awt.BorderLayout
+import java.util.function.BiFunction
+import javax.swing.JCheckBox
+import javax.swing.JComponent
+import javax.swing.JPanel
+
+class KafkaSchemaController(private val project: Project,
+                            private val dataManager: KafkaDataManager) : ComponentController,
+                                                                         DetailsMonitoringController<String> {
+  private val config: KafkaClusterConfig
+    get() = KafkaToolWindowSettings.getInstance().getOrCreateConfig(dataManager.connectionId)
+  private var schemaName: String? = null
+  private val version1Controller = SchemaVersionsComboboxController(this, dataManager)
+  private val version2Controller = SchemaVersionsComboboxController(this, dataManager)
+  private lateinit var version1: Cell<ComboBox<Long>>
+  private lateinit var version2: Cell<ComboBox<Long>>
+
+  private var version1Schema: SchemaVersionInfo? = null
+  private var version2Schema: SchemaVersionInfo? = null
+
+  private val isStructure = AtomicBooleanProperty(config.isStructure)
+  private val isSchema = AtomicBooleanProperty(!config.isStructure)
+  private val isEditMode = AtomicBooleanProperty(false)
+  private val isNotEditMode = AtomicBooleanProperty(true)
+
+
+  private val curComponent = JBPanelWithEmptyText(BorderLayout())
+
+  private val schemaView = KafkaRegistrySchemaEditor(project, isEditable = false)
+  private val structureView = KafkaRegistrySchemaEditor(project, isEditable = false)
+
+  private val diffViewController = SchemaVersionDiffController(project)
+
+  private val internalComponent = panel {
+    row {
+      cell(structureView.component).align(Align.FILL)
+    }.resizableRow().visibleIf(isStructure)
+
+
+    row {
+      cell(schemaView.component).align(Align.FILL)
+    }.resizableRow().visibleIf(isNotEditMode)
+
+    row {
+      cell(diffViewController.component).align(Align.FILL)
+    }.resizableRow().visibleIf(isEditMode)
+  }
+
+
+  init {
+    init()
+  }
+
+  override fun dispose() {}
+
+  fun init() {
+    curComponent.add(createToolbar(internalComponent), BorderLayout.NORTH)
+    curComponent.add(internalComponent, BorderLayout.CENTER)
+    curComponent.revalidate()
+    curComponent.repaint()
+  }
+
+  override fun getComponent(): JComponent = curComponent
+
+  override fun setDetailsId(id: String) {
+    version1Controller.setSchema(id)
+    version2Controller.setSchema(id)
+    schemaName = id
+
+    updateVersion1Info()
+    updateVersion2Info()
+  }
+
+
+  private fun updateVersion1Info() {
+    val schemaName = schemaName
+    if (schemaName == null)
+      return
+    val version = version1.component.item ?: return
+    dataManager.getSchemaVersionInfo(schemaName, version).onSuccess {
+      version1Schema = it
+      val prettySchema = KafkaRegistryUtil.getPrettySchema(schemaType = it.type.name, schema = it.schema)
+      invokeLater {
+        schemaView.setText(prettySchema, it.type != KafkaRegistryFormat.PROTOBUF)
+        structureView.setText(it.version.toString(), false)
+        diffViewController.updateVersion1(it)
+      }
+
+    }
+  }
+
+  private fun updateVersion2Info() {
+    val schemaName = schemaName
+    if (schemaName == null)
+      return
+    val version = version2.component.item ?: return
+    dataManager.getSchemaVersionInfo(schemaName, version).onSuccess {
+      version2Schema = it
+      invokeLater {
+        diffViewController.updateVersion2(it)
+      }
+    }
+  }
+
+
+  private fun createToolbar(targetComponent: JComponent): JPanel {
+    val leftActionGroup = createLeftActionGroup()
+    val rightActionGroup = createRightActionGroup()
+
+    val leftToolbar = ToolbarUtils.createActionToolbar("KafkaSchemaToolbarLeft", leftActionGroup, true).apply {
+      this.targetComponent = targetComponent
+    }
+
+    val rightToolbar = ToolbarUtils.createActionToolbar("KafkaSchemaToolbarRight", rightActionGroup, true).apply {
+      layoutPolicy = ActionToolbar.NOWRAP_LAYOUT_POLICY // For removing empty space on the right.
+      this.targetComponent = targetComponent
+    }
+
+    val toolbarPanel = JPanel(MigLayout(createLayoutConstraints(0, 0).noVisualPadding().fill(),
+                                        ConstraintParser.parseColumnConstraints("[grow][pref!]"))).apply {
+      border = IdeBorderFactory.createBorder(SideBorder.BOTTOM)
+      add(leftToolbar.component)
+      add(rightToolbar.component)
+    }
+    return toolbarPanel
+  }
+
+
+  private fun createLeftActionGroup(): DefaultActionGroup {
+    lateinit var viewType: SegmentedButton<ViewType>
+
+
+    val panel = panel {
+      row {
+        viewType = segmentedButton(ViewType.values().toList()) { it.title }
+          .customize(UnscaledGaps(top = 0, left = 0, bottom = 0, right = 25))
+        viewType.selectedItem = if (config.isStructure) ViewType.STRUCTURE else ViewType.SCHEMA
+        viewType.whenItemSelected {
+          config.isStructure = it == ViewType.STRUCTURE
+
+          isStructure.set(it == ViewType.STRUCTURE)
+          isSchema.set(it == ViewType.SCHEMA)
+          isNotEditMode.set(it == ViewType.SCHEMA)
+          isEditMode.set(false)
+        }
+
+        version1 = cell(version1Controller.getComponent()).onChanged {
+          updateVersion1Info()
+        }.customize(UnscaledGaps(top = 0, left = 0, bottom = 0, right = 0))
+
+        link(KafkaMessagesBundle.message("link.label.compare")) {
+          isNotEditMode.set(false)
+          isEditMode.set(true)
+        }.visibleIf(isNotEditMode).customize(UnscaledGaps(top = 0, left = 10, bottom = 0, right = 0))
+
+        icon(AllIcons.General.ArrowRight).visibleIf(isEditMode).gap(RightGap.SMALL)
+          .customize(UnscaledGaps(top = 0, left = 0, bottom = 0, right = 0))
+
+        version2 = cell(version2Controller.getComponent()).visibleIf(isEditMode).onChanged {
+          updateVersion2Info()
+        }.customize(UnscaledGaps(top = 0, left = 0, bottom = 0, right = 0))
+
+        actionButton(object : DumbAwareAction(AllIcons.Windows.CloseInactive) {
+          override fun actionPerformed(e: AnActionEvent) {
+            isNotEditMode.set(true)
+            isEditMode.set(false)
+          }
+        }, ActionPlaces.TOOLBAR).visibleIf(isEditMode)
+          .customize(UnscaledGaps(top = 0, left = 0, bottom = 0, right = 0))
+      }.bottomGap(BottomGap.NONE).topGap(TopGap.NONE)
+    }
+
+    return DefaultActionGroup(CustomComponentActionImpl(panel))
+  }
+
+  private fun createRightActionGroup(): DefaultActionGroup {
+
+    val panel = panel {
+      row {
+        button(KafkaMessagesBundle.message("action.create.new.version")) {
+          val versionInfo = version1Schema ?: return@button
+
+          KafkaSchemaInfoDialog.showDiff(KafkaMessagesBundle.message("update.dialog.title"), project, versionInfo) { newText ->
+            dataManager.updateSchema(versionInfo, newText)
+          }
+        }
+        val moreAction = MoreActionGroup()
+        moreAction.add(object : DumbAwareAction(KafkaMessagesBundle.message("action.delete.version.text")) {
+          override fun actionPerformed(e: AnActionEvent) {
+            val versionSchema = version1Schema ?: return
+            Messages.showCheckboxMessageDialog(
+              KafkaMessagesBundle.message("action.remove.version.confirm.dialog.msg", versionSchema.version,
+                                          versionSchema.schemaName),
+              KafkaMessagesBundle.message("action.delete.version.text"),
+              arrayOf(Messages.getOkButton(), Messages.getCancelButton()),
+              KafkaMessagesBundle.message("action.remove.version.confirm.dialog.option"),
+              false, 0, 0,
+              Messages.getQuestionIcon(),
+              BiFunction { exitCode: Int, _: JCheckBox ->
+                if (exitCode == Messages.OK) {
+                  dataManager.deleteRegistrySchemaVersion(versionSchema)
+                }
+                exitCode
+              })
+          }
+        })
+        actionButton(moreAction)
+
+      }.bottomGap(BottomGap.NONE).topGap(TopGap.NONE)
+    }
+
+    return DefaultActionGroup(CustomComponentActionImpl(panel))
+  }
+
+  companion object {
+    enum class ViewType(@Nls val title: String) {
+      STRUCTURE(KafkaMessagesBundle.message("schema.view.type.structure")),
+      SCHEMA(KafkaMessagesBundle.message("schema.view.type.schema"))
+    }
+  }
+}
+
