@@ -323,12 +323,10 @@ class KafkaProducerEditor(val project: Project,
     keyType = keyFieldComponent.fieldTypeComboBox.item.name,
     key = keyFieldComponent.getValueText(),
     keySubject = valueFieldComponent.schemaComboBox.item?.schemaName ?: "",
-    keyRegistry = keyFieldComponent.schemaComboBox.item?.registryName ?: "",
 
     valueType = valueFieldComponent.fieldTypeComboBox.item.name,
     value = valueFieldComponent.getValueText(),
     valueSubject = valueFieldComponent.schemaComboBox.item?.schemaName ?: "",
-    valueRegistry = valueFieldComponent.schemaComboBox.item?.registryName ?: "",
 
     properties = propertiesComponent.properties,
     compression = compressionComboBox.item.name,

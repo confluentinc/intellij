@@ -30,10 +30,12 @@ import org.apache.kafka.clients.admin.DescribeClusterOptions
 import org.apache.kafka.clients.admin.ListTopicsOptions
 import org.apache.kafka.clients.admin.NewTopic
 import org.apache.kafka.clients.admin.TopicDescription
+import org.apache.kafka.common.ConsumerGroupState
 import org.apache.kafka.common.config.ConfigResource
 import org.apache.kafka.common.config.SaslConfigs
 import java.io.File
 import java.util.*
+import kotlin.jvm.optionals.getOrNull
 
 
 class KafkaClient(project: Project?,
@@ -127,13 +129,16 @@ class KafkaClient(project: Project?,
   override fun getRealUri(): String = kafkaProps.getProperty(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG) ?: "<NOT_FOUND>"
 
   fun getConsumerGroups(): List<ConsumerGroupPresentable> {
-    val consumerGroupsIds: List<String> = kafkaAdminNotNull.listConsumerGroups().all().get().map {
-      it.groupId()
-    }
+    return kafkaAdminNotNull.listConsumerGroups().all().get().map {
+      ConsumerGroupPresentable(state = it.state().getOrNull() ?: ConsumerGroupState.UNKNOWN, consumerGroup = it.groupId())
+    }.sortedBy { it.consumerGroup }
+  }
+
+  fun getDetailedConsumerGroups(consumerGroupsIds: List<String>): List<ConsumerGroupPresentable> {
     val detailedGroups = kafkaAdminNotNull.describeConsumerGroups(consumerGroupsIds).all().get()
     return detailedGroups.map { (_, detailedGroup) ->
       BdtKafkaMapper.mapToConsumerGroup(detailedGroup)
-    }
+    }.sortedBy { it.consumerGroup }
   }
 
   fun getConsumerGroupOffsets(consumerGroup: String) =
@@ -141,6 +146,10 @@ class KafkaClient(project: Project?,
 
   fun getTopics(listInternal: Boolean): List<TopicPresentable> {
     val topicNames = getTopicNames(listInternal)
+    return topicNames.map { TopicPresentable(name = it) }.sortedTipics()
+  }
+
+  fun getTopicWithConfigs(topicNames: List<String>): List<TopicPresentable> {
     val (describedTopics, nonParsed) = describeTopics(topicNames)
     val loadedTopicConfig = try {
       loadTopicConfigs(topicNames)
@@ -151,7 +160,7 @@ class KafkaClient(project: Project?,
     }
     val parsedInternal = describedTopics.map { BdtKafkaMapper.topicDescriptionToInternalTopic(it) }
     val nonParsedInternal = nonParsed.map { BdtKafkaMapper.mockInternalTopic(it) }
-    return BdtKafkaMapper.mergeWithConfigs(parsedInternal + nonParsedInternal, loadedTopicConfig).values.toList()
+    return BdtKafkaMapper.mergeWithConfigs(parsedInternal + nonParsedInternal, loadedTopicConfig).values.toList().sortedTipics()
   }
 
   fun createTopic(name: String, numPartition: Int?, replicationFactor: Int?) {
@@ -340,6 +349,10 @@ class KafkaClient(project: Project?,
     }
 
     kafkaAdmin = null
+  }
+
+  private fun List<TopicPresentable>.sortedTipics(): List<TopicPresentable> {
+    return this.sortedBy { it.name.lowercase() }
   }
 
   companion object {

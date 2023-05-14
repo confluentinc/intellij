@@ -8,16 +8,12 @@ import com.intellij.util.xmlb.XmlSerializerUtil
 import com.jetbrains.bigdatatools.common.connection.updater.IntervalUpdateSettings
 import com.jetbrains.bigdatatools.common.settings.ColumnVisibilitySettings
 import com.jetbrains.bigdatatools.kafka.model.ConsumerGroupPresentable
-import com.jetbrains.bigdatatools.kafka.model.SchemaRegistryFieldsInfo
 import com.jetbrains.bigdatatools.kafka.model.TopicPartition
 import com.jetbrains.bigdatatools.kafka.model.TopicPresentable
-import com.jetbrains.bigdatatools.kafka.registry.confluent.ConfluentSchemaInfo
-import com.jetbrains.bigdatatools.kafka.registry.glue.models.GlueSchemaInfo
-import com.jetbrains.bigdatatools.kafka.registry.glue.models.GlueSchemaVersionInfo
+import com.jetbrains.bigdatatools.kafka.registry.common.KafkaSchemaInfo
 
 @State(name = "KafkaSettings", storages = [Storage("kafka.xml")])
 class KafkaToolWindowSettings : PersistentStateComponent<KafkaToolWindowSettings>, IntervalUpdateSettings {
-  var registryShowDeletedSubjects: Boolean = false
   var showFullTopicConfig: Boolean = false
   override var selectedConnectionId: String? = null
 
@@ -47,38 +43,20 @@ class KafkaToolWindowSettings : PersistentStateComponent<KafkaToolWindowSettings
     ConsumerGroupPresentable::partitions.name)
   val consumerGroupsColumnSettings = ColumnVisibilitySettings(consumerGroupsTableColumns)
 
-  private val schemaRegistryTableColumns = mutableListOf(ConfluentSchemaInfo::name.name,
-                                                         ConfluentSchemaInfo::type.name,
-                                                         ConfluentSchemaInfo::versions.name)
-  val schemaRegistryTableColumnSettings = ColumnVisibilitySettings(schemaRegistryTableColumns)
+  private val confluentSchemaTableColumns = mutableListOf(KafkaSchemaInfo::name.name,
+                                                          KafkaSchemaInfo::type.name,
+                                                          KafkaSchemaInfo::versions.name)
 
-  private val glueSchemaTableColumns = mutableListOf(GlueSchemaInfo::schemaName.name,
-                                                     GlueSchemaInfo::type.name,
-                                                     GlueSchemaInfo::versions.name,
-                                                     GlueSchemaInfo::compatibility.name,
-                                                     GlueSchemaInfo::updatedTime.name,
-                                                     GlueSchemaInfo::description.name)
+  val confluentSchemaTableColumnSettings = ColumnVisibilitySettings(confluentSchemaTableColumns)
 
-  val glueSchemaTableColumnSettings = ColumnVisibilitySettings(glueSchemaTableColumns)
+  private val glueSchemaTableColumns = confluentSchemaTableColumns + mutableListOf(
+    KafkaSchemaInfo::compatibility.name,
+    KafkaSchemaInfo::updatedTime.name,
+    KafkaSchemaInfo::description.name,
+  )
 
-  private val schemaRegistryFieldsTableColumns = mutableListOf(
-    SchemaRegistryFieldsInfo::name.name,
-    SchemaRegistryFieldsInfo::type.name,
-    SchemaRegistryFieldsInfo::default.name)
-  val schemaRegistryFieldsTableColumnSettings = ColumnVisibilitySettings(schemaRegistryFieldsTableColumns)
+  val glueSchemaTableColumnSettings = ColumnVisibilitySettings(glueSchemaTableColumns.toMutableList())
 
-  private val glueSchemaVersionsTableColumns = mutableListOf(
-    GlueSchemaVersionInfo::version.name,
-    GlueSchemaVersionInfo::registered.name,
-    GlueSchemaVersionInfo::status.name)
-
-  val glueSchemaVersionsTableColumnsSettings = ColumnVisibilitySettings(glueSchemaVersionsTableColumns)
-
-  private val schemaRegistryVersionsTableColumns = mutableListOf(
-    ConfluentSchemaInfo::id.name,
-    ConfluentSchemaInfo::versions.name)
-
-  val schemaRegistryVersionsTableColumnsSettings = ColumnVisibilitySettings(schemaRegistryVersionsTableColumns)
 
   override val configs: MutableMap<String, KafkaClusterConfig> = mutableMapOf()
 

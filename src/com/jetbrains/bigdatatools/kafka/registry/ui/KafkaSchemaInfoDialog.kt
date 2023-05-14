@@ -20,7 +20,7 @@ import com.intellij.util.ui.UIUtil
 import com.jetbrains.bigdatatools.common.util.invokeAndWaitSwing
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryFormat
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryUtil
-import com.jetbrains.bigdatatools.kafka.registry.confluent.ConfluentSchemaInfo
+import com.jetbrains.bigdatatools.kafka.registry.SchemaVersionInfo
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import org.jetbrains.annotations.Nls
 import org.jetbrains.concurrency.Promise
@@ -32,7 +32,7 @@ object KafkaSchemaInfoDialog {
            schemaDefinition: String,
            project: Project,
            schemaName: String) {
-    val schema = KafkaRegistryUtil.getPrettySchema(schemaType = schemaType, schema = schemaDefinition) ?: return
+    val schema = KafkaRegistryUtil.getPrettySchema(schemaType = schemaType, schema = schemaDefinition)
 
     val isJson = KafkaRegistryFormat.valueOf(schemaType) != KafkaRegistryFormat.PROTOBUF
 
@@ -45,33 +45,33 @@ object KafkaSchemaInfoDialog {
   }
 
   // Suitable for both "Diff between schema versions" and "Update schema".
-  fun showDiff(@NlsContexts.DialogTitle title: String,
-               project: Project,
-               registryInfoFirst: ConfluentSchemaInfo,
-               registryInfoSecond: ConfluentSchemaInfo, onApply: ((String) -> Promise<Unit>)? = null) {
-    val schemaName = registryInfoFirst.name
-    val schemaType = registryInfoFirst.type
+  private fun showDiff(@NlsContexts.DialogTitle title: String,
+                       project: Project,
+                       registryInfoFirst: SchemaVersionInfo,
+                       registryInfoSecond: SchemaVersionInfo, onApply: ((String) -> Promise<Unit>)? = null) {
+    val schemaName = registryInfoFirst.schemaName
+    val schemaType = registryInfoFirst.type.name
     val schemaDefinition1 = registryInfoFirst.schema
     val schemaDefinition2 = registryInfoSecond.schema
 
     showDiff(project, title, schemaName, schemaType, schemaDefinition1, schemaDefinition2, onApply)
   }
 
-  fun showDiff(project: Project,
-               @Nls title: String,
-               schemaName: String,
-               schemaType: String,
-               schemaDefinition1: String,
-               schemaDefinition2: String,
-               onApply: ((String) -> Promise<Unit>)?) {
+  private fun showDiff(project: Project,
+                       @Nls title: String,
+                       schemaName: String,
+                       schemaType: String,
+                       schemaDefinition1: String,
+                       schemaDefinition2: String,
+                       onApply: ((String) -> Promise<Unit>)?) {
     val isJson = KafkaRegistryFormat.valueOf(schemaType) != KafkaRegistryFormat.PROTOBUF
     val fileType = if (isJson) JsonFileType.INSTANCE
     else
       FileTypeManager.getInstance().findFileTypeByName("protobuf")
 
 
-    val schemaFirst = KafkaRegistryUtil.getPrettySchema(schemaType = schemaType, schema = schemaDefinition1) ?: return
-    val schemaSecond = KafkaRegistryUtil.getPrettySchema(schemaType = schemaType, schema = schemaDefinition2) ?: return
+    val schemaFirst = KafkaRegistryUtil.getPrettySchema(schemaType = schemaType, schema = schemaDefinition1)
+    val schemaSecond = KafkaRegistryUtil.getPrettySchema(schemaType = schemaType, schema = schemaDefinition2)
 
     val prev = DiffContentFactory.getInstance().create(schemaFirst, fileType)
     prev.document.setReadOnly(true)
@@ -92,19 +92,24 @@ object KafkaSchemaInfoDialog {
 
     var errorLabel: JEditorPane? = null
 
-    val dialogWrapper = DialogBuilder(project)
-    Disposer.register(dialogWrapper, processor)
-    dialogWrapper.setTitle(title)
-    dialogWrapper.setCenterPanel(panel {
+
+    val panel = panel {
       row { cell(processor.component).align(Align.FILL).resizableColumn() }.resizableRow()
       row {
         errorLabel = comment("").component.apply {
           isVisible = false
         }
       }
-    })
-    dialogWrapper.addOkAction().setText(if (onApply == null) CommonBundle.getOkButtonText()
-                                        else KafkaMessagesBundle.message("diff.dialog.button.update"))
+    }
+
+
+    val dialogWrapper = DialogBuilder(project)
+    Disposer.register(dialogWrapper, processor)
+    dialogWrapper.setTitle(title)
+
+    dialogWrapper.setCenterPanel(panel)
+    dialogWrapper.addOkAction().setText(
+      if (onApply == null) CommonBundle.getOkButtonText() else KafkaMessagesBundle.message("diff.dialog.button.update"))
     if (onApply != null) {
       dialogWrapper.addCancelAction()
 
@@ -138,7 +143,7 @@ object KafkaSchemaInfoDialog {
 
   fun showDiff(@NlsContexts.DialogTitle title: String,
                project: Project,
-               registryInfo: ConfluentSchemaInfo,
+               registryInfo: SchemaVersionInfo,
                onApply: ((String) -> Promise<Unit>)? = null) {
     showDiff(title, project, registryInfo, registryInfo, onApply)
   }

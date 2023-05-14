@@ -9,11 +9,14 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.Messages
 import com.intellij.ui.DocumentAdapter
 import com.intellij.ui.SearchTextField
+import com.jetbrains.bigdatatools.common.monitoring.data.model.FilterAdapter
 import com.jetbrains.bigdatatools.common.monitoring.toolwindow.TableWithDetailsMonitoringController
 import com.jetbrains.bigdatatools.common.ui.CustomComponentActionImpl
+import com.jetbrains.bigdatatools.common.ui.filter.CountFilterPopupComponent
 import com.jetbrains.bigdatatools.common.util.ToolbarUtils
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.model.TopicPresentable
+import com.jetbrains.bigdatatools.kafka.registry.confluent.controller.KafkaRegistryController
 import com.jetbrains.bigdatatools.kafka.toolwindow.config.KafkaToolWindowSettings
 import com.jetbrains.bigdatatools.kafka.util.KafkaDialogFactory
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
@@ -103,8 +106,20 @@ class TopicsController(val project: Project,
       })
     }
 
-    val toolbar = DefaultActionGroup(CustomComponentActionImpl(searchTextField), showInternalTopicsAction, Separator(), createTopicAction,
-                                     deleteTopicAction)
+    val countFilter = CountFilterPopupComponent(KafkaMessagesBundle.message("label.filter.limit"),
+                                                KafkaToolWindowSettings.getInstance().getOrCreateConfig(
+                                                  dataManager.connectionId).topicLimit)
+    FilterAdapter.install(dataTable.tableModel, countFilter, KafkaRegistryController.LIMIT_FILTER) { limit ->
+      val config = KafkaToolWindowSettings.getInstance().getOrCreateConfig(dataManager.connectionId)
+      config.topicLimit = limit
+      dataManager.updater.invokeRefreshModel(dataManager.topicModel)
+    }
+
+    val toolbar = DefaultActionGroup(CustomComponentActionImpl(searchTextField),
+                                     CustomComponentActionImpl(countFilter),
+                                     showInternalTopicsAction,
+                                     Separator(),
+                                     createTopicAction, deleteTopicAction)
     return ToolbarUtils.createActionToolbar("BDTKafkaTopicsTopToolbar", toolbar, true)
   }
 

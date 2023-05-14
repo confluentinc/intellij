@@ -84,9 +84,9 @@ class KafkaConsumerFieldComponent(private val project: Project,
     fieldTypeComboBox.item = if (isKey) config.getKeyType() else config.getValueType()
 
     schemaComboBox.item = if (isKey)
-      RegistrySchemaInEditor(schemaName = config.keySubject, registryName = config.keyRegistry)
+      RegistrySchemaInEditor(schemaName = config.keySubject)
     else
-      RegistrySchemaInEditor(schemaName = config.valueSubject, registryName = config.valueRegistry)
+      RegistrySchemaInEditor(schemaName = config.valueSubject)
   }
 
   fun updateIsEnabled(isEnabled: Boolean) {
@@ -100,7 +100,7 @@ class KafkaConsumerFieldComponent(private val project: Project,
     val fieldType = fieldTypeComboBox.item
     val registryType = kafkaManager.registryType
     val schemaName = schemaComboBox.item?.schemaName ?: ""
-    val schema = KafkaRegistryUtil.loadSchema(registryType, schemaName, fieldType, kafkaManager)
+    val schema = KafkaRegistryUtil.loadSchema(schemaName, fieldType, kafkaManager)
 
     return ConsumerProducerFieldConfig(type = fieldType,
                                        valueText = "",

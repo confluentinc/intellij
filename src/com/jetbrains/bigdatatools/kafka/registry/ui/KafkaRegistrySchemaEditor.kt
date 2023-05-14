@@ -12,7 +12,9 @@ import com.jetbrains.bigdatatools.common.ui.doOnChange
 import java.awt.BorderLayout
 import javax.swing.JPanel
 
-class KafkaRegistrySchemaEditor(private val project: Project, private val onChange: (() -> Unit)? = null) {
+class KafkaRegistrySchemaEditor(private val project: Project,
+                                private val isEditable: Boolean = true,
+                                private val onChange: (() -> Unit)? = null) {
 
   val component = JPanel(BorderLayout())
 
@@ -38,6 +40,7 @@ class KafkaRegistrySchemaEditor(private val project: Project, private val onChan
       }
       else {
         val newEditor = createEditor(project, isJson)
+
         onChange?.let { newEditor.document.doOnChange(it) }
         component.removeAll()
         component.add(newEditor, BorderLayout.CENTER)
@@ -45,7 +48,9 @@ class KafkaRegistrySchemaEditor(private val project: Project, private val onChan
       }
     }
 
+    editor.document.setReadOnly(false)
     editor.text = text
+    editor.document.setReadOnly(!isEditable)
 
     customSchemaEditor = editor
   }
@@ -64,5 +69,7 @@ class KafkaRegistrySchemaEditor(private val project: Project, private val onChan
     }, MonospaceEditorCustomization.getInstance())).apply {
     autoscrolls = false
     setCaretPosition(0)
+
+    document.setReadOnly(!isEditable)
   }
 }

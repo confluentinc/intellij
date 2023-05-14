@@ -1,17 +1,20 @@
 package com.jetbrains.bigdatatools.kafka.registry.confluent
 
 import com.intellij.openapi.Disposable
+import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
+import com.intellij.openapi.util.NlsSafe
 import com.jetbrains.bigdatatools.common.connection.tunnel.BdtSshTunnelService
 import com.jetbrains.bigdatatools.common.settings.components.BdtPropertyComponent
+import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryFormat
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryUtil
+import com.jetbrains.bigdatatools.kafka.registry.SchemaVersionInfo
+import com.jetbrains.bigdatatools.kafka.registry.common.KafkaSchemaInfo
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaConnectionData
 import io.confluent.kafka.schemaregistry.ParsedSchema
 import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient
-import io.confluent.kafka.schemaregistry.client.SchemaMetadata
 import io.confluent.kafka.schemaregistry.client.rest.RestService
-import io.confluent.kafka.schemaregistry.client.rest.entities.SchemaReference
 import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig
 
 class ConfluentRegistryClient(restService: RestService) : Disposable {
@@ -26,40 +29,65 @@ class ConfluentRegistryClient(restService: RestService) : Disposable {
     internalClient.mode
   }
 
-  fun getAllSubjects(registryShowDeletedSubjects: Boolean) =
-    internalClient.getAllSubjects(registryShowDeletedSubjects)?.toList() ?: emptyList()
-
-  fun getLatestSchemaMetadata(schema: String): SchemaMetadata? {
-    return internalClient.getLatestSchemaMetadata(schema)
+  fun listSchemas(registryShowDeletedSubjects: Boolean): List<KafkaSchemaInfo> {
+    val names = internalClient.getAllSubjects(registryShowDeletedSubjects)?.sortedBy { it.lowercase() } ?: emptyList()
+    return names.map { KafkaSchemaInfo(it) }
   }
 
-  fun deleteSchemaVersion(name: String, version: String, permanent: Boolean) {
-    internalClient.deleteSchemaVersion(name, version, permanent)
+  fun loadSchemaInfo(schemaName: String): KafkaSchemaInfo {
+    val meta = try {
+      internalClient.getLatestSchemaMetadata(schemaName)
+    }
+    catch (t: Throwable) {
+      thisLogger().warn("Cannot request schemaMeta", t)
+      null
+    }
+    meta ?: return KafkaSchemaInfo(schemaName)
+
+    return KafkaSchemaInfo(name = schemaName,
+                           type = KafkaRegistryFormat.parse(meta.schemaType),
+                           versions = meta.version.toLong())
   }
 
-  fun deleteSubject(name: String, permanent: Boolean) {
+  fun deleteSchemaVersion(registryInfo: SchemaVersionInfo, isPermanent: Boolean = false) {
+    internalClient.deleteSchemaVersion(registryInfo.schemaName, registryInfo.version.toString(), isPermanent)
+  }
+
+  fun deleteSchema(name: String, permanent: Boolean) {
     internalClient.deleteSubject(name, permanent)
 
   }
 
-  fun register(schemaName: String, parsedSchema: ParsedSchema?) {
+  fun createSchema(schemaName: String, parsedSchema: ParsedSchema) {
     internalClient.register(schemaName, parsedSchema)
   }
 
-  fun getSchemaById(id: Int): ParsedSchema? {
-    return internalClient.getSchemaById(id)
+
+  fun updateSchema(registryInfo: SchemaVersionInfo, newText: @NlsSafe String) {
+    val parsedSchema = KafkaRegistryUtil.parseSchema(registryInfo.type, newText, registryInfo.references).getOrThrow()
+    internalClient.register(registryInfo.schemaName, parsedSchema)
   }
 
-  fun getAllVersions(schema: String): List<Int> {
-    return internalClient.getAllVersions(schema)
+
+  fun listSchemaVersions(schema: String): List<Long> {
+    return internalClient.getAllVersions(schema).map { it.toLong() }
   }
 
-  fun getSchemaMetadata(schemaName: String, version: Int): SchemaMetadata? {
-    return internalClient.getSchemaMetadata(schemaName, version)
+  fun getSchemaVersionInfo(schema: String, version: Long): SchemaVersionInfo {
+    val response = internalClient.getByVersion(schema, version.toInt(), true)
+    return SchemaVersionInfo(schemaName = schema,
+                             version = version,
+                             type = KafkaRegistryFormat.parse(response.schemaType),
+                             schema = response.schema,
+                             references = response.references.toList())
   }
 
-  fun parseSchema(schemaType: String, schema: String, references: List<SchemaReference>): ParsedSchema {
-    return internalClient.parseSchema(schemaType, schema, references).get()
+  fun getLatestVersionInfo(schemaName: String): SchemaVersionInfo {
+    val metadata = internalClient.getLatestSchemaMetadata(schemaName)
+    return SchemaVersionInfo(schemaName = schemaName,
+                             version = metadata.version.toLong(),
+                             type = KafkaRegistryFormat.parse(metadata.schemaType),
+                             schema = metadata.schema)
   }
 
   companion object {

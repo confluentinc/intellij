@@ -20,8 +20,7 @@ import com.jetbrains.bigdatatools.kafka.common.editor.KafkaEditorProvider
 import com.jetbrains.bigdatatools.kafka.common.models.KafkaEditorType
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryType
-import com.jetbrains.bigdatatools.kafka.registry.confluent.controller.ConfluentRegistryController
-import com.jetbrains.bigdatatools.kafka.registry.glue.controller.GlueRegistryController
+import com.jetbrains.bigdatatools.kafka.registry.confluent.controller.KafkaRegistryController
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaConnectionData
 import com.jetbrains.bigdatatools.kafka.statistics.KafkaUsagesCollector
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
@@ -40,13 +39,8 @@ class ClusterPageController(private val project: Project, private val connection
   private val topicsController = TopicsController(project, dataManager)
   private val consumerGroupsController = ConsumerGroupsController(dataManager)
 
-  private val confluentRegistryController = if (dataManager.isConfluentSchemaRegistryEnabled)
-    ConfluentRegistryController(project, dataManager)
-  else
-    null
-
-  private val glueRegistryController = if (dataManager.isGlueSchemaRegistryEnabled)
-    GlueRegistryController(project, dataManager)
+  private val registryController = if (dataManager.registryType != KafkaRegistryType.NONE)
+    KafkaRegistryController(project, dataManager)
   else
     null
 
@@ -57,8 +51,7 @@ class ClusterPageController(private val project: Project, private val connection
   init {
     Disposer.register(this, topicsController)
     Disposer.register(this, consumerGroupsController)
-    confluentRegistryController?.let { Disposer.register(this, it) }
-    glueRegistryController?.let { Disposer.register(this, it) }
+    registryController?.let { Disposer.register(this, it) }
   }
 
   override fun dispose() {}
@@ -112,10 +105,7 @@ class ClusterPageController(private val project: Project, private val connection
     details.add(topicsController.getComponent(), ClusterControllerType.TOPIC.name)
     details.add(consumerGroupsController.getComponent(), ClusterControllerType.CONSUMER_GROUP.name)
 
-    confluentRegistryController?.let {
-      details.add(it.getComponent(), ClusterControllerType.SCHEMA_REGISTRY_GROUP.name)
-    }
-    glueRegistryController?.let {
+    registryController?.let {
       details.add(it.getComponent(), ClusterControllerType.SCHEMA_REGISTRY_GROUP.name)
     }
 

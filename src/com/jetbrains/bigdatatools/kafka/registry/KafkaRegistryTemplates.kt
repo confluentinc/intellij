@@ -1,9 +1,5 @@
 package com.jetbrains.bigdatatools.kafka.registry
 
-import io.confluent.kafka.schemaregistry.avro.AvroSchema
-import io.confluent.kafka.schemaregistry.json.JsonSchema
-import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchema
-
 object KafkaRegistryTemplates {
   private const val avroDefault =
     """{
@@ -43,14 +39,14 @@ message MyRecord {
 }"""
 
   private val templates = mapOf(
-    AvroSchema.TYPE to avroDefault,
-    ProtobufSchema.TYPE to protobufSchema,
-    JsonSchema.TYPE to jsonSchema
+    KafkaRegistryFormat.AVRO to avroDefault,
+    KafkaRegistryFormat.PROTOBUF to protobufSchema,
+    KafkaRegistryFormat.JSON to jsonSchema
   )
 
-  private fun getDefault(providerType: String) = templates[providerType] ?: error("Not found default for $providerType")
+  private fun getDefault(providerType: KafkaRegistryFormat) = templates[providerType] ?: error("Not found default for $providerType")
 
-  fun getDefaultIfNotConfigured(prevText: String, newProvider: String): String? {
+  fun getDefaultIfNotConfigured(prevText: String, newProvider: KafkaRegistryFormat): String? {
     val isDefault = prevText.isBlank() || prevText in templates.values
     return getDefault(newProvider).takeIf { isDefault }
   }

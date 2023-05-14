@@ -8,18 +8,20 @@ import com.intellij.openapi.Disposable
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.NlsSafe
 import com.jetbrains.bigdatatools.common.util.TimeUtils
-import com.jetbrains.bigdatatools.kafka.registry.glue.models.GlueSchemaDetailedInfo
-import com.jetbrains.bigdatatools.kafka.registry.glue.models.GlueSchemaInfo
-import com.jetbrains.bigdatatools.kafka.registry.glue.models.GlueSchemaVersionInfo
+import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryFormat
+import com.jetbrains.bigdatatools.kafka.registry.SchemaVersionInfo
+import com.jetbrains.bigdatatools.kafka.registry.common.KafkaSchemaInfo
 import software.amazon.awssdk.core.client.config.ClientOverrideConfiguration
 import software.amazon.awssdk.profiles.ProfileFile
 import software.amazon.awssdk.regions.Region
 import software.amazon.awssdk.services.glue.GlueClient
 import software.amazon.awssdk.services.glue.model.*
+import java.util.*
 
 class BdtGlueRegistryClient(val project: Project?,
-                            val registryName: String,
-                            val awsSettings: AwsSettingsInfo) : Disposable {
+                            private val registryName: String,
+                            private val awsSettings: AwsSettingsInfo) : Disposable {
+  val region: String? = awsSettings.region
   private val authentication = AwsAuthUtil.getPrimaryAuthentication(awsSettings)
   val credentialsController = AwsCredentialController(authentication.getCredentialsProvider())
 
@@ -46,9 +48,9 @@ class BdtGlueRegistryClient(val project: Project?,
     listSchemas()
   }
 
-  fun deleteSchemaVersion(schemaName: String, version: Long) {
-    val schemaId = SchemaId.builder().schemaName(schemaName).registryName(registryName).build()
-    val request = DeleteSchemaVersionsRequest.builder().schemaId(schemaId).versions(version.toString()).build()
+  fun deleteSchemaVersion(schemaVersionInfo: SchemaVersionInfo) {
+    val schemaId = SchemaId.builder().schemaName(schemaVersionInfo.schemaName).registryName(registryName).build()
+    val request = DeleteSchemaVersionsRequest.builder().schemaId(schemaId).versions(schemaVersionInfo.version.toString()).build()
     client.deleteSchemaVersions(request)
   }
 
@@ -64,62 +66,62 @@ class BdtGlueRegistryClient(val project: Project?,
     return client.listRegistries(request).registries()
   }
 
-  fun listSchemas(): List<GlueSchemaInfo> {
+  fun listSchemas(): List<KafkaSchemaInfo> {
     val registryId = registryName.let { RegistryId.builder().registryName(registryName).build() }
     val request = ListSchemasRequest.builder().registryId(registryId).build()
 
     return client.listSchemas(request).schemas().map {
       val schemaName = it.schemaName()
-      GlueSchemaInfo(schemaName = schemaName ?: "",
-                     registryName = it.registryName() ?: "",
-                     type = null,
-                     compatibility = null,
-                     versions = null,
-                     schemaArn = it.schemaArn() ?: "",
-                     createdTime = TimeUtils.parseIsoTime(it.createdTime()),
-                     description = it.description() ?: "",
-                     schemaStatus = it.schemaStatusAsString() ?: "",
-                     updatedTime = TimeUtils.parseIsoTime(it.updatedTime()))
+      KafkaSchemaInfo(name = schemaName ?: "",
+                      type = null,
+                      compatibility = null,
+                      versions = null,
+                      description = it.description() ?: "",
+                      schemaStatus = it.schemaStatusAsString() ?: "",
+                      updatedTime = TimeUtils.parseIsoTime(it.updatedTime()))
     }
   }
 
-  fun getDetailedSchema(schemaName: String): GlueSchemaDetailedInfo {
-    val schemaId = SchemaId.builder().schemaName(schemaName).registryName(registryName).build()
-    val schemaRequest = GetSchemaRequest.builder().schemaId(schemaId).build()
-    val schemaResponse = client.getSchema(schemaRequest)
-    val versionNumber = SchemaVersionNumber.builder().versionNumber(schemaResponse.latestSchemaVersion()).build()
-    val versionRequest = GetSchemaVersionRequest.builder().schemaId(schemaId).schemaVersionNumber(versionNumber)
-    val versionResponse = client.getSchemaVersion(versionRequest.build())
-
-    val tags = client.getTags(GetTagsRequest.builder().resourceArn(schemaResponse.schemaArn()).build())?.tags()
-
-    return GlueSchemaDetailedInfo(
-      schemaResponse = schemaResponse,
-      versionResponse = versionResponse,
-      tags = tags
-    )
+  fun getLatestVersionId(schemaName: String): UUID {
+    val schemaVersion = getSchemaResponse(schemaName).latestSchemaVersion()
+    val versionResponse = getVersionResponse(schemaName, schemaVersion)
+    return UUID.fromString(versionResponse.schemaVersionId())
   }
 
-  fun getSchema(schemaName: String): GetSchemaResponse {
+  private fun getSchemaResponse(schemaName: String): GetSchemaResponse {
+    val schemaId = SchemaId.builder().schemaName(schemaName).registryName(registryName).build()
+    val schemaRequest = GetSchemaRequest.builder().schemaId(schemaId).build()
+    return client.getSchema(schemaRequest)
+  }
+
+  private fun getVersionResponse(schemaName: String, version: Long): GetSchemaVersionResponse {
+    val schemaId = SchemaId.builder().schemaName(schemaName).registryName(registryName).build()
+    val versionNumber = SchemaVersionNumber.builder().versionNumber(version).build()
+    val versionRequest = GetSchemaVersionRequest.builder().schemaId(schemaId).schemaVersionNumber(versionNumber)
+    return client.getSchemaVersion(versionRequest.build())
+  }
+
+  private fun loadSchema(schemaName: String): GetSchemaResponse {
     val schemaId = SchemaId.builder().schemaName(schemaName).registryName(registryName).build()
     val request = GetSchemaRequest.builder().schemaId(schemaId).build()
     return client.getSchema(request)
   }
 
-  fun getSchemaVersion(schemaName: String, version: Long): GetSchemaVersionResponse {
+  fun getSchemaVersionInfo(schemaName: String, version: Long): SchemaVersionInfo {
     val schemaId = SchemaId.builder().schemaName(schemaName).registryName(registryName).build()
     val versionNumber = SchemaVersionNumber.builder().versionNumber(version).build()
     val request = GetSchemaVersionRequest.builder().schemaId(schemaId).schemaVersionNumber(versionNumber).build()
-    return client.getSchemaVersion(request)
+    val response = client.getSchemaVersion(request)
+    val registryFormat = response.dataFormat().toRegistryFormat()
+    return SchemaVersionInfo(schemaName, version, registryFormat, response.schemaDefinition())
   }
 
 
-  fun listSchemaVersions(schemaName: String): List<GlueSchemaVersionInfo> {
+  fun listSchemaVersions(schemaName: String): List<Long> {
     val schemaId = SchemaId.builder().schemaName(schemaName).registryName(registryName).build()
     val request = ListSchemaVersionsRequest.builder().schemaId(schemaId).build()
     return client.listSchemaVersions(request).schemas().map {
-      GlueSchemaVersionInfo(version = it.versionNumber() ?: -1, registered = it.createdTime() ?: "", status = it.statusAsString() ?: "",
-                            schemaId = schemaId)
+      it.versionNumber()
     }
   }
 
@@ -141,9 +143,9 @@ class BdtGlueRegistryClient(val project: Project?,
     client.createSchema(request)
   }
 
-  fun registerNewSchemaVersion(schemaId: SchemaId, newSchemaDefinition: @NlsSafe String) {
+  fun updateSchema(schemaId: SchemaVersionInfo, newSchemaDefinition: @NlsSafe String) {
     val request = RegisterSchemaVersionRequest.builder()
-      .schemaId(schemaId)
+      .schemaId(SchemaId.builder().schemaName(schemaId.schemaName).registryName(registryName).build())
       .schemaDefinition(newSchemaDefinition)
       .build()
     client.registerSchemaVersion(request)
@@ -163,11 +165,34 @@ class BdtGlueRegistryClient(val project: Project?,
     return clientBuilder.build()
   }
 
-  fun updateListSchemasWithLongLoadFields(original: List<GlueSchemaInfo>): List<GlueSchemaInfo> {
-    return original.map {
-      val response = getSchema(it.schemaName)
-      it.copy(compatibility = response.compatibilityAsString(), versions = response.latestSchemaVersion(),
-              type = response.dataFormatAsString())
+  fun loadSchemaInfo(schemaName: String): KafkaSchemaInfo {
+    val response = loadSchema(schemaName)
+    return KafkaSchemaInfo(
+      name = schemaName,
+      versions = response.latestSchemaVersion(),
+      type = KafkaRegistryFormat.parse(response.dataFormatAsString()),
+      compatibility = response.compatibilityAsString(),
+      description = response.description() ?: "",
+      schemaStatus = response.schemaStatusAsString() ?: "",
+      updatedTime = TimeUtils.parseIsoTime(response.updatedTime()),
+    )
+  }
+
+  fun getLatestVersionInfo(schemaName: String): SchemaVersionInfo {
+    val schemaResponse = getSchemaResponse(schemaName)
+    val schemaVersion = schemaResponse.latestSchemaVersion()
+    val versionResponse = getVersionResponse(schemaName, schemaVersion)
+    return SchemaVersionInfo(schemaName = schemaName, version = schemaVersion,
+                             type = KafkaRegistryFormat.parse(schemaResponse.dataFormatAsString()),
+                             schema = versionResponse.schemaDefinition())
+  }
+
+  companion object {
+    fun DataFormat.toRegistryFormat() = when (this) {
+      DataFormat.AVRO -> KafkaRegistryFormat.AVRO
+      DataFormat.JSON -> KafkaRegistryFormat.JSON
+      DataFormat.PROTOBUF -> KafkaRegistryFormat.PROTOBUF
+      DataFormat.UNKNOWN_TO_SDK_VERSION -> error("Wrong format")
     }
   }
 }
