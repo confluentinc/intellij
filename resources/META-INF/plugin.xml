@@ -40,6 +40,11 @@
     <dependencySupport kind="dotnet" coordinate="Confluent.Kafka" displayName="Kafka"/>
     <dependencySupport kind="dotnet" coordinate="AWSSDK.Kafka" displayName="Kafka"/>
     <dependencySupport kind="dotnet" coordinate="Confluent.SchemaRegistry" displayName="Kafka"/>
+
+    <dependencySupport kind="python" coordinate="confluent-kafka" displayName="Kafka"/>
+    <dependencySupport kind="python" coordinate="librdkafka" displayName="Kafka"/>
+    <dependencySupport kind="python" coordinate="python-schema-registry-client" displayName="Kafka"/>
+    <dependencySupport kind="python" coordinate="kafka-python" displayName="Kafka"/>
   </extensions>
 
   <extensions defaultExtensionNs="com.intellij">
