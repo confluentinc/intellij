@@ -135,5 +135,6 @@ class TopicsController(val project: Project,
 
   override fun indexToDetailId(modelIndex: Int) = dataTable.tableModel.getInfoAt(modelIndex)?.name
 
+  override fun getAdditionalContextActions(): List<AnAction> = listOf(createTopicAction, deleteTopicAction)
   override fun saveSelectedItem() {}
 }

@@ -118,6 +118,8 @@ class KafkaRegistryController(project: Project,
   }
 
 
+  override fun getAdditionalContextActions(): List<AnAction> = listOf(addSchema, deleteSchema, cloneSchema)
+
   override fun showDetails() {
     if (getSelectedItem()?.isSoftDeleted == true) {
       detailsSplitter.secondComponent = JBPanelWithEmptyText().withEmptyText(
