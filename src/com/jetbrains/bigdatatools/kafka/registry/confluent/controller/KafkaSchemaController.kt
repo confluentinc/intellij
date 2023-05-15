@@ -29,6 +29,7 @@ import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryFormat
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryUtil
 import com.jetbrains.bigdatatools.kafka.registry.SchemaVersionInfo
+import com.jetbrains.bigdatatools.kafka.registry.schema.SchemaTreePanel
 import com.jetbrains.bigdatatools.kafka.registry.ui.KafkaRegistrySchemaEditor
 import com.jetbrains.bigdatatools.kafka.registry.ui.KafkaSchemaInfoDialog
 import com.jetbrains.bigdatatools.kafka.toolwindow.config.KafkaClusterConfig
@@ -52,26 +53,27 @@ class KafkaSchemaController(private val project: Project,
   private val version2Controller = SchemaVersionsComboboxController(this, dataManager)
   private lateinit var version1: Cell<ComboBox<Long>>
   private lateinit var version2: Cell<ComboBox<Long>>
+  private lateinit var viewType: SegmentedButton<ViewType>
 
   private var version1Schema: SchemaVersionInfo? = null
   private var version2Schema: SchemaVersionInfo? = null
 
-  private val isStructure = AtomicBooleanProperty(config.isStructure)
-  private val isSchema = AtomicBooleanProperty(!config.isStructure)
+  private val isStructure = AtomicBooleanProperty(false)
+  private val isSchema = AtomicBooleanProperty(false)
   private val isEditMode = AtomicBooleanProperty(false)
-  private val isNotEditMode = AtomicBooleanProperty(true)
+  private val isNotEditMode = AtomicBooleanProperty(false)
 
 
   private val curComponent = JBPanelWithEmptyText(BorderLayout())
 
   private val schemaView = KafkaRegistrySchemaEditor(project, isEditable = false)
-  private val structureView = KafkaRegistrySchemaEditor(project, isEditable = false)
+  private val structureView = SchemaTreePanel()
 
   private val diffViewController = SchemaVersionDiffController(project)
 
   private val internalComponent = panel {
     row {
-      cell(structureView.component).align(Align.FILL)
+      cell(structureView.getComponent()).align(Align.FILL)
     }.resizableRow().visibleIf(isStructure)
 
 
@@ -96,6 +98,7 @@ class KafkaSchemaController(private val project: Project,
     curComponent.add(internalComponent, BorderLayout.CENTER)
     curComponent.revalidate()
     curComponent.repaint()
+    onViewTypeUpdate()
   }
 
   override fun getComponent(): JComponent = curComponent
@@ -118,12 +121,13 @@ class KafkaSchemaController(private val project: Project,
     dataManager.getSchemaVersionInfo(schemaName, version).onSuccess {
       version1Schema = it
       val prettySchema = KafkaRegistryUtil.getPrettySchema(schemaType = it.type.name, schema = it.schema)
+      val parsedSchema = KafkaRegistryUtil.parseSchema(schemaType = it.type, newText = it.schema, references = it.references).getOrNull()
+                         ?: return@onSuccess
       invokeLater {
         schemaView.setText(prettySchema, it.type != KafkaRegistryFormat.PROTOBUF)
-        structureView.setText(it.version.toString(), false)
+        structureView.update(parsedSchema)
         diffViewController.updateVersion1(it)
       }
-
     }
   }
 
@@ -165,7 +169,7 @@ class KafkaSchemaController(private val project: Project,
 
 
   private fun createLeftActionGroup(): DefaultActionGroup {
-    lateinit var viewType: SegmentedButton<ViewType>
+
 
 
     val panel = panel {
@@ -174,12 +178,7 @@ class KafkaSchemaController(private val project: Project,
           .customize(UnscaledGaps(top = 0, left = 0, bottom = 0, right = 25))
         viewType.selectedItem = if (config.isStructure) ViewType.STRUCTURE else ViewType.SCHEMA
         viewType.whenItemSelected {
-          config.isStructure = it == ViewType.STRUCTURE
-
-          isStructure.set(it == ViewType.STRUCTURE)
-          isSchema.set(it == ViewType.SCHEMA)
-          isNotEditMode.set(it == ViewType.SCHEMA)
-          isEditMode.set(false)
+          onViewTypeUpdate()
         }
 
         version1 = cell(version1Controller.getComponent()).onChanged {
@@ -210,6 +209,7 @@ class KafkaSchemaController(private val project: Project,
 
     return DefaultActionGroup(CustomComponentActionImpl(panel))
   }
+
 
   private fun createRightActionGroup(): DefaultActionGroup {
 
@@ -249,6 +249,17 @@ class KafkaSchemaController(private val project: Project,
 
     return DefaultActionGroup(CustomComponentActionImpl(panel))
   }
+
+  private fun onViewTypeUpdate() {
+    val selectedViewType = viewType.selectedItem
+    config.isStructure = selectedViewType == ViewType.STRUCTURE
+
+    isStructure.set(selectedViewType == ViewType.STRUCTURE)
+    isSchema.set(selectedViewType == ViewType.SCHEMA)
+    isNotEditMode.set(selectedViewType == ViewType.SCHEMA)
+    isEditMode.set(false)
+  }
+
 
   companion object {
     enum class ViewType(@Nls val title: String) {
