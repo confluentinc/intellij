@@ -1,16 +1,18 @@
 package com.jetbrains.bigdatatools.kafka.registry.schema
 
-import com.intellij.ide.util.treeView.NodeRenderer
 import com.intellij.openapi.util.NlsContexts
 import com.intellij.ui.ScrollPaneFactory
 import com.intellij.ui.treeStructure.treetable.ListTreeTableModel
 import com.intellij.util.ui.ColumnInfo
 import com.jetbrains.bigdatatools.common.rfs.editorviewer.RfsTreeTable
+import com.jetbrains.bigdatatools.common.table.MaterialTableUtils
 import com.jetbrains.bigdatatools.kafka.model.SchemaRegistryFieldsInfo
+import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import io.confluent.kafka.schemaregistry.ParsedSchema
 import io.confluent.kafka.schemaregistry.avro.AvroSchema
 import io.confluent.kafka.schemaregistry.json.JsonSchema
 import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchema
+import java.awt.Dimension
 import javax.swing.ScrollPaneConstants
 import javax.swing.tree.DefaultMutableTreeNode
 
@@ -20,22 +22,33 @@ class SchemaTreePanel {
   // Avro -- doc
   // Protobuf -- label, documentation, options
 
-  val treeTableModel = ListTreeTableModel(DefaultMutableTreeNode(), arrayOf(
-    SchemaRegistryColumn("Type", 10) { it.type },
-    SchemaRegistryColumn("Default", 10) { it.default },
-  ))
+  private val commonColumns = arrayOf(
+    SchemaRegistryColumn(KafkaMessagesBundle.message("column.name.type")) { it.type },
+    SchemaRegistryColumn(KafkaMessagesBundle.message("column.name.default")) { it.default },
+    SchemaRegistryColumn(KafkaMessagesBundle.message("column.name.documentation")) { it.default },
+    SchemaRegistryColumn(KafkaMessagesBundle.message("column.name.optional")) { it.default },
+  )
+
+  private val treeTableModel = ListTreeTableModel(DefaultMutableTreeNode(), commonColumns)
 
   private var treeTable = RfsTreeTable(treeTableModel)
-  private val scrollPanel = ScrollPaneFactory.createScrollPane(treeTable, ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED,
+  private val scrollPanel = ScrollPaneFactory.createScrollPane(treeTable,
+                                                               ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED,
                                                                ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER)
 
   init {
     val tree = treeTable.tree
+    treeTable.table.emptyText.text = ""
+
+    // We need to set max size explicitly because by default maxSize == preferredSize
+    // and this leads to TreeTable first column resize problem.
+    treeTable.tree.maximumSize = Dimension(Int.MAX_VALUE, Int.MAX_VALUE)
+
+
 
     tree.isRootVisible = false
-    tree.showsRootHandles = true
-    tree.cellRenderer = NodeRenderer()
-    //treeTable.setTableHeader(null);
+
+    MaterialTableUtils.fitColumnsWidth(treeTable.table)
 
     //treeTable.setTableHeader(null);
     //
@@ -64,12 +77,10 @@ class SchemaTreePanel {
 
   companion object {
     class SchemaRegistryColumn<T : Comparable<T>>(@NlsContexts.ColumnName name: String,
-                                                  val columns: Int,
-                                                  val getValue: (SchemaRegistryFieldsInfo) -> T) : ColumnInfo<DefaultMutableTreeNode, T>(
-      name) {
+                                                  val getValue: (SchemaRegistryFieldsInfo) -> T)
+      : ColumnInfo<DefaultMutableTreeNode, T>(name) {
 
       override fun valueOf(item: DefaultMutableTreeNode): T = getValue((item.userObject as SchemaRegistryFieldsInfo))
-
     }
   }
 }

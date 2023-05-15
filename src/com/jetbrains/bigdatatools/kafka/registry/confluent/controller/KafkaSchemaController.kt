@@ -119,6 +119,9 @@ class KafkaSchemaController(private val project: Project,
       return
     val version = version1.component.item ?: return
     dataManager.getSchemaVersionInfo(schemaName, version).onSuccess {
+      if (version1Schema == it)
+        return@onSuccess
+
       version1Schema = it
       val prettySchema = KafkaRegistryUtil.getPrettySchema(schemaType = it.type.name, schema = it.schema)
       val parsedSchema = KafkaRegistryUtil.parseSchema(schemaType = it.type, newText = it.schema, references = it.references).getOrNull()
@@ -137,6 +140,9 @@ class KafkaSchemaController(private val project: Project,
       return
     val version = version2.component.item ?: return
     dataManager.getSchemaVersionInfo(schemaName, version).onSuccess {
+      if (version2Schema == it)
+        return@onSuccess
+
       version2Schema = it
       invokeLater {
         diffViewController.updateVersion2(it)

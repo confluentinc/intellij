@@ -34,6 +34,7 @@ import com.jetbrains.bigdatatools.kafka.util.generator.GenerateRandomData
 import java.util.*
 
 class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEditor, val isKey: Boolean) : Disposable {
+  private var isInited: Boolean = false
   val project = producedEditor.project
   private val kafkaManager = producedEditor.kafkaManager
 
@@ -41,6 +42,9 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
   private var curIsJsonView: Boolean = !isKey
 
   val fieldTypeComboBox = KafkaEditorUtils.createFieldTypeComboBox(producedEditor.topicComboBox, kafkaManager, isKey) {
+    if (!isInited)
+      return@createFieldTypeComboBox
+
     updateVisibility()
 
     val newIsJsonView = it.item in jsonFieldTypes
@@ -185,6 +189,7 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
         }.topGap(TopGap.NONE)
       }
     }
+    isInited = true
     updateVisibility()
   }
 
@@ -212,7 +217,7 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
   }
 
 
-  private fun updateVisibility() {
+  private fun updateVisibility(): Unit = invokeLater {
     val fieldType = fieldTypeComboBox.item
 
     jsonRow.visible(fieldType in jsonFieldTypes)
