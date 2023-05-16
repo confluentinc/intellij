@@ -33,9 +33,6 @@ class KafkaTopicSchemaController(private val project: Project,
   override fun getComponent(): JComponent = curComponent
 
   override fun setDetailsId(id: String) {
-    if (topicName == id)
-      return
-
     topicName = id
     val schemaName = id + viewType.suffix
     if (dataManager.isSchemaExists(schemaName))

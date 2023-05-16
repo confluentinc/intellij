@@ -69,9 +69,7 @@ class ConfluentRegistryClient(restService: RestService) : Disposable {
   }
 
 
-  fun listSchemaVersions(schema: String): List<Long> {
-    return internalClient.getAllVersions(schema).map { it.toLong() }
-  }
+  fun listSchemaVersions(schema: String) = internalClient.getAllVersions(schema).map { it.toLong() }
 
   fun getSchemaVersionInfo(schema: String, version: Long): SchemaVersionInfo {
     val response = internalClient.getByVersion(schema, version.toInt(), true)
