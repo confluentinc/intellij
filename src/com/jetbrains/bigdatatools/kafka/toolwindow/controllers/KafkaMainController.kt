@@ -49,11 +49,11 @@ import javax.swing.SwingUtilities
 class KafkaMainController(private val project: Project, private val connectionData: KafkaConnectionData) : ComponentController {
   private val dataManager = KafkaDataManager.getInstance(connectionData.innerId, project) ?: error("Data Manager is not initialized")
 
-  private val topicsController = TopicsController(project, dataManager).also { Disposer.register(this, it) }
+  private val topicsController = TopicsController(project, dataManager, this).also { Disposer.register(this, it) }
   private val consumerGroupsController = ConsumerGroupsController(dataManager).also { Disposer.register(this, it) }
 
   private val registryController = if (dataManager.registryType != KafkaRegistryType.NONE)
-    KafkaRegistryController(project, dataManager).also { Disposer.register(this, it) }
+    KafkaRegistryController(project, dataManager, this).also { Disposer.register(this, it) }
   else
     null
 
@@ -155,7 +155,7 @@ class KafkaMainController(private val project: Project, private val connectionDa
       details.add(it.getComponent(), KafkaGroupType.SCHEMA_DETAIL.name)
     }
 
-    showDetailsComponent(KafkaGroupType.TOPIC)
+    showDetailsComponent(KafkaDriver.topicPath)
 
     val createProducer = JButton(KafkaMessagesBundle.message("create.producer.action.title")).apply {
       addActionListener {

@@ -7,12 +7,14 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.Messages
 import com.intellij.ui.DocumentAdapter
 import com.intellij.ui.SearchTextField
-import com.intellij.ui.components.JBPanelWithEmptyText
 import com.jetbrains.bigdatatools.common.monitoring.data.model.FilterAdapter
 import com.jetbrains.bigdatatools.common.monitoring.data.model.FilterKey
 import com.jetbrains.bigdatatools.common.monitoring.data.model.ObjectDataModel
-import com.jetbrains.bigdatatools.common.monitoring.toolwindow.TableWithDetailsMonitoringController
+import com.jetbrains.bigdatatools.common.monitoring.table.DataTable
+import com.jetbrains.bigdatatools.common.monitoring.table.model.DataTableModel
+import com.jetbrains.bigdatatools.common.monitoring.toolwindow.AbstractTableController
 import com.jetbrains.bigdatatools.common.settings.ColumnVisibilitySettings
+import com.jetbrains.bigdatatools.common.table.renderers.LinkRenderer
 import com.jetbrains.bigdatatools.common.ui.CustomComponentActionImpl
 import com.jetbrains.bigdatatools.common.ui.filter.CountFilterPopupComponent
 import com.jetbrains.bigdatatools.common.util.ToolbarUtils
@@ -21,15 +23,17 @@ import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryAddSchemaDialog
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryType
 import com.jetbrains.bigdatatools.kafka.registry.common.KafkaSchemaInfo
+import com.jetbrains.bigdatatools.kafka.rfs.KafkaDriver
 import com.jetbrains.bigdatatools.kafka.toolwindow.config.KafkaToolWindowSettings
+import com.jetbrains.bigdatatools.kafka.toolwindow.controllers.KafkaMainController
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import javax.swing.event.DocumentEvent
 
 class KafkaRegistryController(project: Project,
-                              val dataManager: KafkaDataManager) : TableWithDetailsMonitoringController<KafkaSchemaInfo, String>() {
+                              val dataManager: KafkaDataManager,
+                              private val mainController: KafkaMainController) : AbstractTableController<KafkaSchemaInfo>() {
   val registryType = dataManager.registryType
   private val model: ObjectDataModel<KafkaSchemaInfo> = dataManager.schemaRegistryModel!!
-  override val detailsController = KafkaSchemaController(project, dataManager)
 
   private val addSchema = object : DumbAwareAction(KafkaMessagesBundle.message("action.add.schema.title"), null,
                                                    AllIcons.General.Add) {
@@ -86,9 +90,21 @@ class KafkaRegistryController(project: Project,
   }
 
   init {
-    detailsSplitter.proportion = 0.3f
     init()
   }
+
+  override fun customTableInit(table: DataTable<KafkaSchemaInfo>) {
+    LinkRenderer.installOnColumn(table, columnModel.getColumn(0)).apply {
+      onClick = { row, _ ->
+        @Suppress("UNCHECKED_CAST")
+        val schema = (table.model as? DataTableModel<KafkaSchemaInfo>)?.getInfoAt(row)?.name
+        schema?.let {
+          mainController.showDetailsComponent(KafkaDriver.schemasPath.child(it, false))
+        }
+      }
+    }
+  }
+
 
   override fun createTopToolBar(): ActionToolbar {
     val searchTextField = SearchTextField(false).apply {
@@ -120,18 +136,6 @@ class KafkaRegistryController(project: Project,
 
   override fun getAdditionalContextActions(): List<AnAction> = listOf(addSchema, deleteSchema, cloneSchema)
 
-  override fun showDetails() {
-    if (getSelectedItem()?.isSoftDeleted == true) {
-      detailsSplitter.secondComponent = JBPanelWithEmptyText().withEmptyText(
-        KafkaMessagesBundle.message("schema.registry.deleted")
-      )
-      return
-    }
-    super.showDetails()
-  }
-
-  override fun saveSelectedItem() {}
-
   override fun getColumnSettings(): ColumnVisibilitySettings = when (registryType) {
     KafkaRegistryType.NONE -> error("Should not be invoked")
     KafkaRegistryType.CONFLUENT -> KafkaToolWindowSettings.getInstance().confluentSchemaTableColumnSettings
@@ -142,7 +146,6 @@ class KafkaRegistryController(project: Project,
 
   override fun getRenderableColumns() = KafkaSchemaInfo.renderableColumns
   override fun getDataModel() = model
-  override fun indexToDetailId(modelIndex: Int) = dataTable.tableModel.getInfoAt(modelIndex)?.name
 
   companion object {
     val LIMIT_FILTER = FilterKey("limit")

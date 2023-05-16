@@ -10,22 +10,25 @@ import com.intellij.openapi.ui.Messages
 import com.intellij.ui.DocumentAdapter
 import com.intellij.ui.SearchTextField
 import com.jetbrains.bigdatatools.common.monitoring.data.model.FilterAdapter
-import com.jetbrains.bigdatatools.common.monitoring.toolwindow.TableWithDetailsMonitoringController
+import com.jetbrains.bigdatatools.common.monitoring.table.DataTable
+import com.jetbrains.bigdatatools.common.monitoring.table.model.DataTableModel
+import com.jetbrains.bigdatatools.common.monitoring.toolwindow.AbstractTableController
+import com.jetbrains.bigdatatools.common.table.renderers.LinkRenderer
 import com.jetbrains.bigdatatools.common.ui.CustomComponentActionImpl
 import com.jetbrains.bigdatatools.common.ui.filter.CountFilterPopupComponent
 import com.jetbrains.bigdatatools.common.util.ToolbarUtils
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.model.TopicPresentable
 import com.jetbrains.bigdatatools.kafka.registry.confluent.controller.KafkaRegistryController
+import com.jetbrains.bigdatatools.kafka.rfs.KafkaDriver
 import com.jetbrains.bigdatatools.kafka.toolwindow.config.KafkaToolWindowSettings
 import com.jetbrains.bigdatatools.kafka.util.KafkaDialogFactory
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import javax.swing.event.DocumentEvent
 
 class TopicsController(val project: Project,
-                       private val dataManager: KafkaDataManager) : TableWithDetailsMonitoringController<TopicPresentable, String>() {
-  override val detailsController = TopicDetailsController(project, dataManager)
-
+                       private val dataManager: KafkaDataManager,
+                       private val mainController: KafkaMainController) : AbstractTableController<TopicPresentable>() {
   private val showInternalTopicsAction = object : DumbAwareToggleAction(KafkaMessagesBundle.message("show.internal.topic"),
                                                                         KafkaMessagesBundle.message("show.internal.topic.hint"),
                                                                         AllIcons.Actions.ToggleVisibility) {
@@ -95,6 +98,18 @@ class TopicsController(val project: Project,
     init()
   }
 
+  override fun customTableInit(table: DataTable<TopicPresentable>) {
+    LinkRenderer.installOnColumn(table, columnModel.getColumn(0)).apply {
+      onClick = { row, _ ->
+        @Suppress("UNCHECKED_CAST")
+        val topicName = (table.model as? DataTableModel<TopicPresentable>)?.getInfoAt(row)?.name
+        topicName?.let {
+          mainController.showDetailsComponent(KafkaDriver.topicPath.child(it, false))
+        }
+      }
+    }
+  }
+
   override fun createTopToolBar(): ActionToolbar {
     val searchTextField = SearchTextField(false).apply {
       addDocumentListener(object : DocumentAdapter() {
@@ -124,17 +139,9 @@ class TopicsController(val project: Project,
   }
 
   override fun getColumnSettings() = KafkaToolWindowSettings.getInstance().topicColumnSettings
-
   override fun getRenderableColumns() = TopicPresentable.renderableColumns
-
   override fun getDataModel() = dataManager.topicModel
-
   override fun getAdditionalActions(): List<AnAction> = listOf()
-
   override fun showColumnFilter(): Boolean = false
-
-  override fun indexToDetailId(modelIndex: Int) = dataTable.tableModel.getInfoAt(modelIndex)?.name
-
   override fun getAdditionalContextActions(): List<AnAction> = listOf(createTopicAction, deleteTopicAction)
-  override fun saveSelectedItem() {}
 }
