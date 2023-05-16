@@ -2,6 +2,8 @@ package com.jetbrains.bigdatatools.kafka.util.generator
 
 import java.util.*
 import kotlin.random.Random
+import kotlin.random.nextUInt
+import kotlin.random.nextULong
 
 object PrimitivesGenerator {
   fun generateString(minLength: Int = 3, maxLength: Int = 20): String {
@@ -19,4 +21,10 @@ object PrimitivesGenerator {
     Base64.getEncoder().encode(Random.nextBytes(Random.nextInt(minSize, maxSize)))
 
   fun generateInt(from: Int = Int.MIN_VALUE, until: Int = Int.MAX_VALUE) = Random.nextInt(from, until)
+
+  fun generateUlong(from: ULong = ULong.MIN_VALUE, until: ULong = ULong.MAX_VALUE) = Random.nextULong(from, until)
+
+  fun generateUint(from: UInt = UInt.MIN_VALUE, until: UInt = UInt.MAX_VALUE) = Random.nextUInt(from, until)
+
+  fun generateBoolean() = Random.nextBoolean()
 }

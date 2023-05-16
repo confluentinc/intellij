@@ -337,5 +337,6 @@
         <SOURCES />
       </library>
     </orderEntry>
+    <orderEntry type="library" name="google.protobuf.java.util" level="project" />
   </component>
 </module>
