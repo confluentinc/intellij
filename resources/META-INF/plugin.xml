@@ -4,18 +4,16 @@
   <vendor>JetBrains</vendor>
 
   <description><![CDATA[
-<p>The plugin lets you monitor your <a href="https://kafka.apache.org/">Kafka</a> event streaming processes.</p>
-
-<p>You can:
+<p>Monitor your <a href="https://kafka.apache.org/">Kafka</a> event streaming processes:
 <dl>
    <dd>- Connect to Kafka cluster</dd>
-   <dd>- Produce and consume messages in different formats including Avro, Protobuf</dd>
+   <dd>- Produce and consume messages in different formats including Avro and Protobuf</dd>
    <dd>- Manage topics, and monitor consumer groups</dd>
    <dd>- Use Confluent Schema Registry and AWS Glue Schema Registry</dd>
 </dl>
 </p>
 
-<p>This plugin is a part of the Big Data Tools plugin bundle.</p>
+<p>This plugin is a part of the <a href="https://plugins.jetbrains.com/plugin/12494-big-data-tools">Big Data Tools</a> plugin bundle.</p>
 <p>
     <a href="https://info.jetbrains.com/data-engineering-communication-center.html">Subscribe to our News</a> |
     <a href="https://blog.jetbrains.com/big-data-tools">Read our Blog</a> |
