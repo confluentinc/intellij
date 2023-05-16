@@ -17,16 +17,19 @@ object JsonGenerator {
                             "Business")
 
   private fun createSimpleObject() = hashMapOf<String, Any>(
-    "id" to generateLong(),
-    "year" to generateInt(1970, 2023),
-    "count" to generateInt(100, 10_000),
-    "city" to getRandomItem(cities),
-    "temperature" to getRandomItem(temperatures),
-    "name" to getRandomItem(names),
-    "color" to getRandomItem(colors),
-    "status" to getRandomItem(statuses),
-    "tag" to getRandomItem(tags)
+    "id".addRandomChars() to generateLong(),
+    "year".addRandomChars() to generateInt(1970, 2023),
+    "count".addRandomChars() to generateInt(100, 10_000),
+    "city".addRandomChars() to getRandomItem(cities),
+    "temperature".addRandomChars() to getRandomItem(temperatures),
+    "name".addRandomChars() to getRandomItem(names),
+    "color".addRandomChars() to getRandomItem(colors),
+    "status".addRandomChars() to getRandomItem(statuses),
+    "tag".addRandomChars() to getRandomItem(tags)
   )
+
+  private fun String.addRandomChars() = "$this/${generateLong()}"
+  private fun String.removeRandomChars() = this.takeWhile { it.isLetter() }
 
   private fun <T> getRandomItem(array: List<T>): T = array[Random.nextInt(array.size)]
 
@@ -40,7 +43,7 @@ object JsonGenerator {
       if (count > numberOfFields)
         break
 
-      jsonObject.addProperty(key, value.toString())
+      jsonObject.addProperty(key.removeRandomChars(), value.toString())
       count += 1
     }
     return jsonObject
