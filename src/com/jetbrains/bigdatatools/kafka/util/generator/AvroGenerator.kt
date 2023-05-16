@@ -1,6 +1,6 @@
 package com.jetbrains.bigdatatools.kafka.util.generator
 
-import com.intellij.openapi.diagnostic.Logger
+import com.jetbrains.bigdatatools.kafka.util.generator.GenerateRandomData.logger
 import com.mifmif.common.regex.Generex
 import io.confluent.kafka.schemaregistry.ParsedSchema
 import org.apache.avro.LogicalType
@@ -1216,8 +1216,6 @@ class AvroGenerator private constructor(private val topLevelSchema: Schema) {
      */
     const val ITERATION_PROP_INITIAL = "initial"
     const val DECIMAL_LOGICAL_TYPE_NAME = "decimal"
-
-    private val logger = Logger.getInstance(this::class.java)
 
     private const val PRETTY_FORMAT = true
     private const val ITERATION_NUM: Long = 1
