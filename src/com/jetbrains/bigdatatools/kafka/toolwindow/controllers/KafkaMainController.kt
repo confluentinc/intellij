@@ -1,5 +1,6 @@
 package com.jetbrains.bigdatatools.kafka.toolwindow.controllers
 
+import com.intellij.ide.projectView.impl.ProjectViewTree
 import com.intellij.openapi.fileEditor.FileEditor
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.fileEditor.impl.EditorWindow
@@ -10,37 +11,55 @@ import com.intellij.testFramework.LightVirtualFile
 import com.intellij.ui.IdeBorderFactory
 import com.intellij.ui.OnePixelSplitter
 import com.intellij.ui.SideBorder
-import com.intellij.ui.components.JBList
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.tabs.JBTabs
+import com.intellij.ui.tree.AsyncTreeModel
+import com.intellij.util.ui.EmptyIcon
 import com.jetbrains.bigdatatools.common.monitoring.toolwindow.ComponentController
-import com.jetbrains.bigdatatools.common.ui.CustomListCellRenderer
+import com.jetbrains.bigdatatools.common.rfs.driver.RfsPath
+import com.jetbrains.bigdatatools.common.rfs.driver.manager.DriverManager
+import com.jetbrains.bigdatatools.common.rfs.editorviewer.RfsNodeAnimator
+import com.jetbrains.bigdatatools.common.rfs.viewer.utils.DriverRfsTreeUtil.lastDriverNode
 import com.jetbrains.bigdatatools.common.ui.MigPanel
 import com.jetbrains.bigdatatools.kafka.common.editor.KafkaEditorProvider
 import com.jetbrains.bigdatatools.kafka.common.models.KafkaEditorType
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryType
 import com.jetbrains.bigdatatools.kafka.registry.confluent.controller.KafkaRegistryController
+import com.jetbrains.bigdatatools.kafka.registry.confluent.controller.KafkaSchemaController
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaConnectionData
+import com.jetbrains.bigdatatools.kafka.rfs.KafkaDriver
+import com.jetbrains.bigdatatools.kafka.rfs.KafkaDriver.Companion.isConsumers
+import com.jetbrains.bigdatatools.kafka.rfs.KafkaDriver.Companion.isSchemas
+import com.jetbrains.bigdatatools.kafka.rfs.KafkaDriver.Companion.isTopicFolder
 import com.jetbrains.bigdatatools.kafka.statistics.KafkaUsagesCollector
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import net.miginfocom.layout.LC
 import java.awt.BorderLayout
 import java.awt.CardLayout
-import javax.swing.*
+import javax.swing.JButton
+import javax.swing.JPanel
+import javax.swing.SwingConstants
+import javax.swing.SwingUtilities
 
 /**
  * Main controller for Kafka Cluster.
  * Contains page control for Topics / ConsumerGroups / etc.
  */
-class ClusterPageController(private val project: Project, private val connectionData: KafkaConnectionData) : ComponentController {
+class KafkaMainController(private val project: Project, private val connectionData: KafkaConnectionData) : ComponentController {
   private val dataManager = KafkaDataManager.getInstance(connectionData.innerId, project) ?: error("Data Manager is not initialized")
 
-  private val topicsController = TopicsController(project, dataManager)
-  private val consumerGroupsController = ConsumerGroupsController(dataManager)
+  private val topicsController = TopicsController(project, dataManager).also { Disposer.register(this, it) }
+  private val consumerGroupsController = ConsumerGroupsController(dataManager).also { Disposer.register(this, it) }
 
   private val registryController = if (dataManager.registryType != KafkaRegistryType.NONE)
-    KafkaRegistryController(project, dataManager)
+    KafkaRegistryController(project, dataManager).also { Disposer.register(this, it) }
+  else
+    null
+
+  private val topicInfoController = TopicDetailsController(project, dataManager).also { Disposer.register(this, it) }
+  private val schemaInfoController = if (dataManager.registryType != KafkaRegistryType.NONE)
+    KafkaSchemaController(project, dataManager).also { Disposer.register(this, it) }
   else
     null
 
@@ -48,18 +67,45 @@ class ClusterPageController(private val project: Project, private val connection
   private val details = JPanel(detailsLayout)
   private val panel = createPanel()
 
-  init {
-    Disposer.register(this, topicsController)
-    Disposer.register(this, consumerGroupsController)
-    registryController?.let { Disposer.register(this, it) }
-  }
-
   override fun dispose() {}
 
   override fun getComponent() = panel
 
-  private fun showDetails(selectedValue: ClusterControllerType) {
-    detailsLayout.show(details, selectedValue.name)
+  fun showDetailsComponent(rfsPath: RfsPath) {
+    val label = dataManager.activeComponentLabel
+    label.icon = EmptyIcon.ICON_8
+    when {
+      rfsPath.isRoot -> {
+        showDetailsComponent(null)
+        label.text = ""
+      }
+      rfsPath.isTopicFolder -> {
+        showDetailsComponent(KafkaGroupType.TOPIC)
+        label.text = KafkaGroupType.TOPIC.title
+      }
+      rfsPath.isConsumers || rfsPath.parent?.isConsumers == true -> {
+        showDetailsComponent(KafkaGroupType.CONSUMER_GROUP)
+        label.text = KafkaGroupType.CONSUMER_GROUP.title
+      }
+      rfsPath.isSchemas -> {
+        showDetailsComponent(KafkaGroupType.SCHEMA_REGISTRY_GROUP)
+        label.text = KafkaGroupType.SCHEMA_REGISTRY_GROUP.title
+      }
+      rfsPath.parent?.isTopicFolder == true -> {
+        showDetailsComponent(KafkaGroupType.TOPIC_DETAIL)
+        topicInfoController.setDetailsId(rfsPath.name)
+        label.text = KafkaMessagesBundle.message("active.component.topic.detail", rfsPath.name)
+      }
+      rfsPath.parent?.isSchemas == true -> {
+        showDetailsComponent(KafkaGroupType.SCHEMA_DETAIL)
+        schemaInfoController?.setDetailsId(rfsPath.name)
+        label.text = KafkaMessagesBundle.message("active.component.schema.detail", rfsPath.name)
+      }
+    }
+  }
+
+  private fun showDetailsComponent(selectedValue: KafkaGroupType?) {
+    detailsLayout.show(details, selectedValue?.name)
   }
 
   private fun openProducer(): Array<FileEditor> {
@@ -78,38 +124,38 @@ class ClusterPageController(private val project: Project, private val connection
   }
 
   private fun createPanel(): JPanel {
-    val model = DefaultListModel<ClusterControllerType>().also { model ->
-      ClusterControllerType.values().forEach {
-        if (it == ClusterControllerType.SCHEMA_REGISTRY_GROUP && connectionData.registryType == KafkaRegistryType.NONE) {
-          return@forEach
-        }
-        model.addElement(it)
-      }
+    val driver = DriverManager.getDriverById(project, connectionData.innerId) as KafkaDriver
+    val treeModel = driver.createTreeModel(driver.root, project)
+    val asyncTreeModel = AsyncTreeModel(treeModel, this)
+    val myTree = ProjectViewTree(asyncTreeModel)
+    myTree.showsRootHandles = true
+    myTree.isRootVisible = false
+
+    val nodeAnimator = RfsNodeAnimator(treeModel).also {
+      Disposer.register(this, it)
+    }
+    nodeAnimator.setRepainter { _, rfsPath ->
+      val treePath = treeModel.getTreePath(rfsPath) ?: return@setRepainter
+      val pathBounds = myTree.getPathBounds(treePath) ?: return@setRepainter
+      myTree.repaint(pathBounds)
     }
 
-    val list = JBList(model).apply {
-      val renderer = CustomListCellRenderer<ClusterControllerType> { it.value }
-      renderer.border = BorderFactory.createEmptyBorder(5, 10, 5, 0)
-      cellRenderer = renderer
-
-      selectionMode = DefaultListSelectionModel.SINGLE_SELECTION
-      selectedIndex = 0
-
-      addListSelectionListener { e ->
-        if (e.valueIsAdjusting)
-          return@addListSelectionListener
-        showDetails(selectedValue)
-      }
+    myTree.addTreeSelectionListener {
+      val rfsPath = it.path.lastDriverNode?.rfsPath ?: return@addTreeSelectionListener
+      showDetailsComponent(rfsPath)
     }
 
-    details.add(topicsController.getComponent(), ClusterControllerType.TOPIC.name)
-    details.add(consumerGroupsController.getComponent(), ClusterControllerType.CONSUMER_GROUP.name)
-
+    details.add(topicsController.getComponent(), KafkaGroupType.TOPIC.name)
+    details.add(topicInfoController.getComponent(), KafkaGroupType.TOPIC_DETAIL.name)
+    details.add(consumerGroupsController.getComponent(), KafkaGroupType.CONSUMER_GROUP.name)
     registryController?.let {
-      details.add(it.getComponent(), ClusterControllerType.SCHEMA_REGISTRY_GROUP.name)
+      details.add(it.getComponent(), KafkaGroupType.SCHEMA_REGISTRY_GROUP.name)
+    }
+    schemaInfoController?.let {
+      details.add(it.getComponent(), KafkaGroupType.SCHEMA_DETAIL.name)
     }
 
-    showDetails(ClusterControllerType.TOPIC)
+    showDetailsComponent(KafkaGroupType.TOPIC)
 
     val createProducer = JButton(KafkaMessagesBundle.message("create.producer.action.title")).apply {
       addActionListener {
@@ -143,7 +189,7 @@ class ClusterPageController(private val project: Project, private val connection
       }
     }
 
-    val scroll = JBScrollPane(list).apply {
+    val scroll = JBScrollPane(myTree).apply {
       border = IdeBorderFactory.createBorder(SideBorder.BOTTOM)
     }
 
@@ -162,11 +208,5 @@ class ClusterPageController(private val project: Project, private val connection
       firstComponent = leftPanel
       secondComponent = details
     }
-  }
-
-  private enum class ClusterControllerType(val value: String) {
-    TOPIC("Topics"),
-    CONSUMER_GROUP("Consumers"),
-    SCHEMA_REGISTRY_GROUP(KafkaMessagesBundle.message("settings.registry.tab"))
   }
 }

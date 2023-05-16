@@ -11,6 +11,7 @@ import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.Messages
+import com.intellij.openapi.util.NlsSafe
 import com.intellij.ui.IdeBorderFactory
 import com.intellij.ui.SideBorder
 import com.intellij.ui.components.JBPanelWithEmptyText
@@ -48,6 +49,8 @@ class KafkaSchemaController(private val project: Project,
                                                                          DetailsMonitoringController<String> {
   private val config: KafkaClusterConfig
     get() = KafkaToolWindowSettings.getInstance().getOrCreateConfig(dataManager.connectionId)
+
+  @NlsSafe
   private var schemaName: String? = null
   private val version1Controller = SchemaVersionsComboboxController(this, dataManager)
   private val version2Controller = SchemaVersionsComboboxController(this, dataManager)
@@ -103,11 +106,10 @@ class KafkaSchemaController(private val project: Project,
 
   override fun getComponent(): JComponent = curComponent
 
-  override fun setDetailsId(id: String) {
+  override fun setDetailsId(@NlsSafe id: String) {
     version1Controller.setSchema(id)
     version2Controller.setSchema(id)
     schemaName = id
-
     updateVersion1Info()
     updateVersion2Info()
   }
@@ -175,8 +177,6 @@ class KafkaSchemaController(private val project: Project,
 
 
   private fun createLeftActionGroup(): DefaultActionGroup {
-
-
 
     val panel = panel {
       row {

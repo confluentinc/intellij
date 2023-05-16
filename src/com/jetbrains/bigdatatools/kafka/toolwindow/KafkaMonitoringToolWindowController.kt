@@ -5,6 +5,7 @@ import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ToolWindowManager
 import com.jetbrains.bigdatatools.common.monitoring.toolwindow.ComponentController
 import com.jetbrains.bigdatatools.common.monitoring.toolwindow.MonitoringToolWindowController
+import com.jetbrains.bigdatatools.common.rfs.driver.RfsPath
 import com.jetbrains.bigdatatools.common.settings.connections.ConnectionData
 import com.jetbrains.bigdatatools.common.settings.connections.ConnectionFactory
 import com.jetbrains.bigdatatools.common.settings.manager.RfsConnectionDataManager
@@ -12,7 +13,7 @@ import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryUtil
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaConnectionData
 import com.jetbrains.bigdatatools.kafka.settings.KafkaConnectionGroup
 import com.jetbrains.bigdatatools.kafka.toolwindow.config.KafkaToolWindowSettings
-import com.jetbrains.bigdatatools.kafka.toolwindow.controllers.ClusterPageController
+import com.jetbrains.bigdatatools.kafka.toolwindow.controllers.KafkaMainController
 
 class KafkaMonitoringToolWindowController(project: Project) : MonitoringToolWindowController(project) {
   override val helpTopicId: String = "big.data.tools.kafka"
@@ -24,8 +25,8 @@ class KafkaMonitoringToolWindowController(project: Project) : MonitoringToolWind
 
   override fun isSupportedData(connectionData: ConnectionData): Boolean = connectionData is KafkaConnectionData
 
-  override fun createMainController(connectionData: ConnectionData): ComponentController = ClusterPageController(project,
-                                                                                                                 connectionData as KafkaConnectionData)
+  override fun createMainController(connectionData: ConnectionData): ComponentController = KafkaMainController(project,
+                                                                                                               connectionData as KafkaConnectionData)
 
   override fun dispose() {
     super.dispose()
@@ -38,14 +39,23 @@ class KafkaMonitoringToolWindowController(project: Project) : MonitoringToolWind
     KafkaRegistryUtil.disableLoggers()
   }
 
-  override fun focusOn(connectionId: String) {
+  fun focusOn(connectionId: String, rfsPath: RfsPath?) {
     val toolWindow = ToolWindowManager.getInstance(project).getToolWindow(TOOL_WINDOW_ID) ?: return
 
     toolWindow.show {
       val contentManager = toolWindow.contentManager
       val content = contentManager.contents.firstOrNull { it.getUserData(CONNECTION_ID) == connectionId } ?: return@show
       setSelectedContent(content)
+
+      if (rfsPath != null) {
+        val mainController = content.getUserData(PAGE_CONTROLLER_ID) as? KafkaMainController ?: return@show
+        mainController.showDetailsComponent(rfsPath)
+      }
     }
+  }
+
+  override fun focusOn(connectionId: String) {
+    focusOn(connectionId, null)
   }
 
   companion object {
