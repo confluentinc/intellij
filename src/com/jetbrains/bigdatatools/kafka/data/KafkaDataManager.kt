@@ -220,6 +220,8 @@ class KafkaDataManager(project: Project?,
   private fun loadSchema(schemaName: String) =
     client.confluentRegistryClient?.loadSchemaInfo(schemaName) ?: client.glueRegistryClient?.loadSchemaInfo(schemaName) ?: error("Not used")
 
+  fun isSchemaExists(name: String) = schemaRegistryModel?.data?.any { it.name == name } ?: false
+
   fun getCachedOrLoadSchema(name: String): KafkaSchemaInfo {
     return schemaRegistryModel?.data?.firstOrNull { it.name == name }?.takeIf { it.type != null } ?: loadSchema(name)
   }

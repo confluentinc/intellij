@@ -14,7 +14,9 @@ import com.intellij.util.ui.UIUtil
 import com.jetbrains.bigdatatools.common.ui.CustomListCellRenderer
 import com.jetbrains.bigdatatools.common.util.toPresentableText
 import com.jetbrains.bigdatatools.kafka.common.editor.KafkaEditorUtils
+import com.jetbrains.bigdatatools.kafka.common.models.TopicInEditor
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
+import com.jetbrains.bigdatatools.kafka.registry.confluent.controller.TopicSchemaViewType
 import com.jetbrains.bigdatatools.kafka.registry.ui.KafkaRegistrySchemaEditor
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import io.confluent.kafka.schemaregistry.ParsedSchema
@@ -119,6 +121,25 @@ class KafkaRegistryAddSchemaDialog(project: Project, val dataManager: KafkaDataM
       strategyCombobox.item = ConfluentRegistryStrategy.CUSTOM
   }
 
+  fun applySchemaName(topicName: String, viewType: TopicSchemaViewType) {
+    when (viewType) {
+      TopicSchemaViewType.DISABLED -> TODO()
+      TopicSchemaViewType.KEY -> {
+        topicField.item = TopicInEditor(topicName)
+        keyValueCombobox.item = KafkaRegistryKeyValue.KEY
+        strategyCombobox.item = ConfluentRegistryStrategy.TOPIC_NAME
+      }
+      TopicSchemaViewType.VALUE -> {
+        topicField.item = TopicInEditor(topicName)
+        keyValueCombobox.item = KafkaRegistryKeyValue.VALUE
+        strategyCombobox.item = ConfluentRegistryStrategy.TOPIC_NAME
+      }
+      TopicSchemaViewType.TOPIC -> {
+        subjectNameField.text = topicName
+        strategyCombobox.item = ConfluentRegistryStrategy.CUSTOM
+      }
+    }
+  }
 
   fun applyRegistryInfo(schemaFormat: KafkaRegistryFormat, schemaDefinition: String) {
     formatCombobox.selectedItem = schemaFormat

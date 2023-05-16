@@ -266,7 +266,6 @@ class KafkaSchemaController(private val project: Project,
     isEditMode.set(false)
   }
 
-
   companion object {
     enum class ViewType(@Nls val title: String) {
       STRUCTURE(KafkaMessagesBundle.message("schema.view.type.structure")),
