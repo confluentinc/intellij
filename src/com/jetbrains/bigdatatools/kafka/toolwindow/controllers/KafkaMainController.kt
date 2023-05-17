@@ -1,9 +1,11 @@
 package com.jetbrains.bigdatatools.kafka.toolwindow.controllers
 
 import com.intellij.ide.projectView.impl.ProjectViewTree
+import com.intellij.openapi.Disposable
 import com.intellij.openapi.fileEditor.FileEditor
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.fileEditor.impl.EditorWindow
+import com.intellij.openapi.observable.properties.AtomicBooleanProperty
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.Splitter
 import com.intellij.openapi.util.Disposer
@@ -12,18 +14,26 @@ import com.intellij.ui.IdeBorderFactory
 import com.intellij.ui.OnePixelSplitter
 import com.intellij.ui.SideBorder
 import com.intellij.ui.components.JBScrollPane
+import com.intellij.ui.dsl.builder.Align
+import com.intellij.ui.dsl.builder.BottomGap
+import com.intellij.ui.dsl.builder.TopGap
+import com.intellij.ui.dsl.builder.panel
+import com.intellij.ui.dsl.gridLayout.UnscaledGaps
 import com.intellij.ui.tabs.JBTabs
 import com.intellij.ui.tree.AsyncTreeModel
 import com.intellij.util.ui.EmptyIcon
 import com.jetbrains.bigdatatools.common.monitoring.toolwindow.ComponentController
+import com.jetbrains.bigdatatools.common.rfs.driver.DriverConnectionStatus
 import com.jetbrains.bigdatatools.common.rfs.driver.RfsPath
 import com.jetbrains.bigdatatools.common.rfs.driver.manager.DriverManager
+import com.jetbrains.bigdatatools.common.rfs.editorviewer.RfsEditorErrorPanel
 import com.jetbrains.bigdatatools.common.rfs.editorviewer.RfsNodeAnimator
+import com.jetbrains.bigdatatools.common.rfs.fileInfo.DriverRfsListener
+import com.jetbrains.bigdatatools.common.rfs.tree.DriverRfsTreeModel
 import com.jetbrains.bigdatatools.common.rfs.viewer.utils.DriverRfsTreeUtil.lastDriverNode
-import com.jetbrains.bigdatatools.common.ui.MigPanel
+import com.jetbrains.bigdatatools.common.util.invokeLater
 import com.jetbrains.bigdatatools.kafka.common.editor.KafkaEditorProvider
 import com.jetbrains.bigdatatools.kafka.common.models.KafkaEditorType
-import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryType
 import com.jetbrains.bigdatatools.kafka.registry.confluent.controller.KafkaRegistryController
 import com.jetbrains.bigdatatools.kafka.registry.confluent.controller.KafkaSchemaController
@@ -34,7 +44,6 @@ import com.jetbrains.bigdatatools.kafka.rfs.KafkaDriver.Companion.isSchemas
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaDriver.Companion.isTopicFolder
 import com.jetbrains.bigdatatools.kafka.statistics.KafkaUsagesCollector
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
-import net.miginfocom.layout.LC
 import java.awt.BorderLayout
 import java.awt.CardLayout
 import javax.swing.JButton
@@ -47,7 +56,9 @@ import javax.swing.SwingUtilities
  * Contains page control for Topics / ConsumerGroups / etc.
  */
 class KafkaMainController(private val project: Project, private val connectionData: KafkaConnectionData) : ComponentController {
-  private val dataManager = KafkaDataManager.getInstance(connectionData.innerId, project) ?: error("Data Manager is not initialized")
+  private val driver = DriverManager.getDriverById(project, connectionData.innerId) as? KafkaDriver ?: error(
+    "Data Manager is not initialized")
+  private val dataManager = driver.dataManager
 
   private val topicsController = TopicsController(project, dataManager, this).also { Disposer.register(this, it) }
   private val consumerGroupsController = ConsumerGroupsController(dataManager).also { Disposer.register(this, it) }
@@ -65,7 +76,36 @@ class KafkaMainController(private val project: Project, private val connectionDa
 
   private val detailsLayout = CardLayout()
   private val details = JPanel(detailsLayout)
-  private val panel = createPanel()
+
+  private val isNormalView = AtomicBooleanProperty(true)
+  private val isErrorView = AtomicBooleanProperty(false)
+
+  private val normalPanel = createNormalPanel()
+  private var prevError: Throwable? = null
+  private val errorPanel = JPanel()
+  private val panel = panel {
+    row {
+      cell(normalPanel).align(Align.FILL)
+    }.resizableRow().visibleIf(isNormalView)
+    row {
+      cell(errorPanel).align(Align.FILL)
+    }.resizableRow().visibleIf(isErrorView)
+  }
+
+
+  private val driverListener = object : DriverRfsListener {
+    override fun driverRefreshFinished(status: DriverConnectionStatus) {
+      invokeLater {
+        updateMainPanel(status.getException())
+      }
+    }
+  }
+
+  init {
+    driver.addListener(driverListener)
+    Disposer.register(this, Disposable { driver.removeListener(driverListener) })
+    updateMainPanel(driver.dataManager.client.connectionError)
+  }
 
   override fun dispose() {}
 
@@ -123,13 +163,14 @@ class KafkaMainController(private val project: Project, private val connectionDa
     }
   }
 
-  private fun createPanel(): JPanel {
+  private fun createNormalPanel(): JPanel {
     val driver = DriverManager.getDriverById(project, connectionData.innerId) as KafkaDriver
     val treeModel = driver.createTreeModel(driver.root, project)
     val asyncTreeModel = AsyncTreeModel(treeModel, this)
     val myTree = ProjectViewTree(asyncTreeModel)
     myTree.showsRootHandles = true
     myTree.isRootVisible = false
+    DriverRfsTreeModel.fixInitFirstConnection(asyncTreeModel, myTree)
 
     val nodeAnimator = RfsNodeAnimator(treeModel).also {
       Disposer.register(this, it)
@@ -195,10 +236,16 @@ class KafkaMainController(private val project: Project, private val connectionDa
 
     val leftPanel = JPanel(BorderLayout()).apply {
       add(scroll, BorderLayout.CENTER)
-      add(MigPanel(LC().insets("0").gridGapY("0").fillX().hideMode(3)).apply {
-        row(createProducer)
-        row(createConsumer)
-        row(createProducerAndConsumer)
+      add(panel {
+        row {
+          cell(createProducer).align(Align.FILL).resizableColumn().customize(UnscaledGaps.EMPTY)
+        }.bottomGap(BottomGap.NONE).topGap(TopGap.NONE)
+        row {
+          cell(createConsumer).align(Align.FILL).resizableColumn().customize(UnscaledGaps.EMPTY)
+        }.bottomGap(BottomGap.NONE).topGap(TopGap.NONE)
+        row {
+          cell(createProducerAndConsumer).align(Align.FILL).resizableColumn().customize(UnscaledGaps.EMPTY)
+        }.bottomGap(BottomGap.NONE).topGap(TopGap.NONE)
       }, BorderLayout.SOUTH)
     }
 
@@ -207,6 +254,28 @@ class KafkaMainController(private val project: Project, private val connectionDa
       dividerPositionStrategy = Splitter.DividerPositionStrategy.KEEP_FIRST_SIZE
       firstComponent = leftPanel
       secondComponent = details
+    }
+  }
+
+  private fun setErrorPanel(exception: Throwable) {
+    if (prevError == exception)
+      return
+    prevError = exception
+    errorPanel.removeAll()
+    errorPanel.add(RfsEditorErrorPanel(exception, this), BorderLayout.CENTER)
+    errorPanel.revalidate()
+    errorPanel.repaint()
+  }
+
+  private fun updateMainPanel(exception: Throwable?) {
+    if (exception == null) {
+      isNormalView.set(true)
+      isErrorView.set(false)
+    }
+    else {
+      isNormalView.set(false)
+      isErrorView.set(true)
+      setErrorPanel(exception)
     }
   }
 }
