@@ -12,6 +12,7 @@ import com.intellij.openapi.util.Disposer
 import com.intellij.testFramework.LightVirtualFile
 import com.intellij.ui.IdeBorderFactory
 import com.intellij.ui.OnePixelSplitter
+import com.intellij.ui.PopupHandler
 import com.intellij.ui.SideBorder
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.dsl.builder.Align
@@ -29,6 +30,7 @@ import com.jetbrains.bigdatatools.common.rfs.driver.manager.DriverManager
 import com.jetbrains.bigdatatools.common.rfs.editorviewer.RfsEditorErrorPanel
 import com.jetbrains.bigdatatools.common.rfs.editorviewer.RfsNodeAnimator
 import com.jetbrains.bigdatatools.common.rfs.fileInfo.DriverRfsListener
+import com.jetbrains.bigdatatools.common.rfs.projectview.actions.RfsActionPlaces
 import com.jetbrains.bigdatatools.common.rfs.tree.DriverRfsTreeModel
 import com.jetbrains.bigdatatools.common.rfs.util.RfsUtil
 import com.jetbrains.bigdatatools.common.rfs.viewer.utils.DriverRfsTreeUtil.lastDriverNode
@@ -81,7 +83,7 @@ class KafkaMainController(private val project: Project, private val connectionDa
   private val isNormalView = AtomicBooleanProperty(true)
   private val isErrorView = AtomicBooleanProperty(false)
 
-  lateinit var myTree: ProjectViewTree
+  private lateinit var myTree: ProjectViewTree
   private val normalPanel = createNormalPanel()
   private var prevError: Throwable? = null
   private val errorPanel = JPanel()
@@ -187,6 +189,8 @@ class KafkaMainController(private val project: Project, private val connectionDa
       val pathBounds = myTree.getPathBounds(treePath) ?: return@setRepainter
       myTree.repaint(pathBounds)
     }
+
+    PopupHandler.installPopupMenu(myTree, "BigDataTools.RfsPane.PopupActionGroup", RfsActionPlaces.RFS_PANE_POPUP)
 
     myTree.addTreeSelectionListener {
       val rfsPath = it.path.lastDriverNode?.rfsPath ?: return@addTreeSelectionListener

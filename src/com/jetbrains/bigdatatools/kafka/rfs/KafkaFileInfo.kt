@@ -1,10 +1,12 @@
 package com.jetbrains.bigdatatools.kafka.rfs
 
+import com.intellij.openapi.progress.ProgressIndicator
 import com.jetbrains.bigdatatools.common.rfs.driver.ExportFormat
 import com.jetbrains.bigdatatools.common.rfs.driver.FileInfoBase
 import com.jetbrains.bigdatatools.common.rfs.driver.RfsPath
-import com.jetbrains.bigdatatools.common.rfs.driver.task.RemoteFsTask
+import com.jetbrains.bigdatatools.common.rfs.driver.task.RemoteFsDeleteTask
 import com.jetbrains.bigdatatools.common.rfs.driver.task.RfsCopyMoveTask
+import com.jetbrains.bigdatatools.kafka.registry.common.KafkaSchemaInfo
 import java.io.InputStream
 
 class KafkaFileInfo(override val driver: KafkaDriver, override val path: RfsPath) : FileInfoBase() {
@@ -13,14 +15,21 @@ class KafkaFileInfo(override val driver: KafkaDriver, override val path: RfsPath
   override val modificationTime: Long = -1
 
   override val isCopySupport: Boolean = false
-  override val isActionDeleteSupport: Boolean = false
+  override val isActionDeleteSupport: Boolean = path.size == 2
   override val isMoveSupport: Boolean = false
 
-  override fun doRenameAsync(newPath: RfsPath, overwrite: Boolean): RfsCopyMoveTask {
-    TODO("Not yet implemented")
+  override fun isMetaInfoSupport(): Boolean = false
+
+  override fun doDeleteAsync() = object : RemoteFsDeleteTask(path) {
+    override fun run(indicator: ProgressIndicator) {
+      when (path.parent) {
+        KafkaDriver.topicPath -> driver.dataManager.deleteTopic(listOf(path.name))
+        KafkaDriver.schemasPath -> driver.dataManager.deleteSchema(KafkaSchemaInfo(path.name))
+      }
+    }
   }
 
-  override fun doDeleteAsync(): RemoteFsTask {
+  override fun doRenameAsync(newPath: RfsPath, overwrite: Boolean): RfsCopyMoveTask {
     TODO("Not yet implemented")
   }
 
