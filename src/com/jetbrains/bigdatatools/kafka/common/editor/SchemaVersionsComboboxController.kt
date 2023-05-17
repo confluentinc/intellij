@@ -5,9 +5,11 @@ import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.util.Disposer
 import com.intellij.ui.SimpleListCellRenderer
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
+import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 
 class SchemaVersionsComboboxController(rootDisposable: Disposable,
-                                       private val kafkaManager: KafkaDataManager) : Disposable {
+                                       private val kafkaManager: KafkaDataManager,
+                                       private val onListUpdate: (List<Long>) -> Unit) : Disposable {
   var schemaName: String = ""
 
   var disposable = Disposer.newDisposable(this)
@@ -15,7 +17,7 @@ class SchemaVersionsComboboxController(rootDisposable: Disposable,
   private val versionCombobox = ComboBox<Long>(emptyArray()).apply {
     isSwingPopup = false
     prototypeDisplayValue = 11111
-    renderer = SimpleListCellRenderer.create("") { "Version $it" }
+    renderer = SimpleListCellRenderer.create(KafkaMessagesBundle.message("schema.version.is.not.found")) { "Version $it" }
   }
 
   init {
@@ -31,11 +33,11 @@ class SchemaVersionsComboboxController(rootDisposable: Disposable,
     disposable = Disposer.newDisposable(this)
     val versionModel = kafkaManager.getSchemaVersionsModel(schemaName)
 
-    KafkaEditorUtils.updateComboBox(versionCombobox) {
+    KafkaEditorUtils.updateComboBox(versionCombobox, onListUpdate = onListUpdate) {
       versionModel.originObject to null
     }
 
-    val listener = KafkaEditorUtils.KafkaDataModelListener(versionCombobox) {
+    val listener = KafkaEditorUtils.KafkaDataModelListener(versionCombobox, onListUpdate) {
       val newVersions = versionModel.originObject
       newVersions to null
     }

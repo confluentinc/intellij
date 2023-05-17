@@ -65,7 +65,12 @@ class ConfluentRegistryClient(restService: RestService) : Disposable {
 
   fun updateSchema(registryInfo: SchemaVersionInfo, newText: @NlsSafe String) {
     val parsedSchema = KafkaRegistryUtil.parseSchema(registryInfo.type, newText, registryInfo.references).getOrThrow()
-    internalClient.register(registryInfo.schemaName, parsedSchema)
+    try {
+      internalClient.register(registryInfo.schemaName, parsedSchema)
+    }
+    catch (t: Throwable) {
+      throw t
+    }
   }
 
 

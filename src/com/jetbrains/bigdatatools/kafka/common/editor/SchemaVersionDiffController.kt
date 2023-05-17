@@ -49,7 +49,7 @@ class SchemaVersionDiffController(val project: Project) : Disposable {
     val prev = DiffContentFactory.getInstance().create(schema1.getPretty(), fileType)
     prev.document.setReadOnly(true)
     val new = DiffContentFactory.getInstance().create(schema2.getPretty(), fileType)
-    new.document.setReadOnly(false)
+    new.document.setReadOnly(true)
 
 
     val diffData = SimpleDiffRequest("",

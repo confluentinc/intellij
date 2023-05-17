@@ -143,8 +143,12 @@ class KafkaRegistryAddSchemaDialog(project: Project, val dataManager: KafkaDataM
 
   fun applyRegistryInfo(schemaFormat: KafkaRegistryFormat, schemaDefinition: String) {
     formatCombobox.selectedItem = schemaFormat
-    textScrollPane.setText(KafkaEditorUtils.toPrettyJson(schemaDefinition),
-                           isJson = formatCombobox.selectedItem != KafkaRegistryFormat.PROTOBUF)
+    if (schemaFormat == KafkaRegistryFormat.PROTOBUF) {
+      textScrollPane.setText(schemaDefinition, isJson = false)
+    }
+    else {
+      textScrollPane.setText(KafkaEditorUtils.toPrettyJson(schemaDefinition), isJson = true)
+    }
   }
 
 

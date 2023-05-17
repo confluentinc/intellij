@@ -24,6 +24,7 @@ import com.jetbrains.bigdatatools.kafka.rfs.KafkaDriver
 import com.jetbrains.bigdatatools.kafka.toolwindow.config.KafkaToolWindowSettings
 import com.jetbrains.bigdatatools.kafka.util.KafkaDialogFactory
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import javax.swing.ListSelectionModel
 import javax.swing.event.DocumentEvent
 
 class TopicsController(val project: Project,
@@ -96,6 +97,7 @@ class TopicsController(val project: Project,
 
   init {
     init()
+    dataTable.selectionModel.selectionMode = ListSelectionModel.MULTIPLE_INTERVAL_SELECTION
   }
 
   override fun customTableInit(table: DataTable<TopicPresentable>) {
@@ -104,7 +106,7 @@ class TopicsController(val project: Project,
         @Suppress("UNCHECKED_CAST")
         val topicName = (table.model as? DataTableModel<TopicPresentable>)?.getInfoAt(row)?.name
         topicName?.let {
-          mainController.showDetailsComponent(KafkaDriver.topicPath.child(it, false))
+          mainController.open(KafkaDriver.topicPath.child(it, false))
         }
       }
     }

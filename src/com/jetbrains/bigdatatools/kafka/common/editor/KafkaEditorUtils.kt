@@ -111,9 +111,10 @@ object KafkaEditorUtils {
   }
 
   internal class KafkaDataModelListener<T>(private val comboBox: ComboBox<T>,
+                                           val onListUpdate: (List<T>) -> Unit = {},
                                            private val dataSupplier: () -> Pair<List<T>?, Int?>) : DataModelListener {
-    override fun onChanged() = updateComboBox(comboBox, dataSupplier)
-    override fun onError(msg: String, e: Throwable?) = updateComboBox(comboBox, dataSupplier)
+    override fun onChanged() = updateComboBox(comboBox, onListUpdate, dataSupplier)
+    override fun onError(msg: String, e: Throwable?) = updateComboBox(comboBox, onListUpdate, dataSupplier)
 
   }
 
@@ -322,7 +323,7 @@ object KafkaEditorUtils {
     return null
   }
 
-  fun <T> updateComboBox(comboBox: ComboBox<T>, dataSupplier: () -> Pair<List<T>?, Int?>) {
+  fun <T> updateComboBox(comboBox: ComboBox<T>, onListUpdate: (List<T>) -> Unit = {}, dataSupplier: () -> Pair<List<T>?, Int?>) {
     val oldTopics = (0 until comboBox.model.size).map {
       comboBox.model.getElementAt(it)
     }
@@ -340,6 +341,7 @@ object KafkaEditorUtils {
 
     comboBox.invalidate()
     comboBox.repaint()
+    onListUpdate(newTopics ?: emptyList())
   }
 
   private fun <T> updateSelectedIndex(comboBox: ComboBox<T>,

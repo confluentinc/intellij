@@ -99,7 +99,7 @@ class KafkaRegistryController(project: Project,
         @Suppress("UNCHECKED_CAST")
         val schema = (table.model as? DataTableModel<KafkaSchemaInfo>)?.getInfoAt(row)?.name
         schema?.let {
-          mainController.showDetailsComponent(KafkaDriver.schemasPath.child(it, false))
+          mainController.open(KafkaDriver.schemasPath.child(it, false))
         }
       }
     }

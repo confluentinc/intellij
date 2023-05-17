@@ -7,6 +7,7 @@ import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.actionSystem.impl.MoreActionGroup
 import com.intellij.openapi.observable.properties.AtomicBooleanProperty
+import com.intellij.openapi.observable.util.and
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.ComboBox
@@ -50,21 +51,24 @@ class KafkaSchemaController(private val project: Project,
   private val config: KafkaClusterConfig
     get() = KafkaToolWindowSettings.getInstance().getOrCreateConfig(dataManager.connectionId)
 
+  private val isStructure = AtomicBooleanProperty(false)
+  private val isSchema = AtomicBooleanProperty(false)
+  private val isEditMode = AtomicBooleanProperty(false)
+  private val isNotEditMode = AtomicBooleanProperty(false)
+  private val isEditModeAvailable = AtomicBooleanProperty(false)
+
   @NlsSafe
   private var schemaName: String? = null
-  private val version1Controller = SchemaVersionsComboboxController(this, dataManager)
-  private val version2Controller = SchemaVersionsComboboxController(this, dataManager)
+  private val version1Controller = SchemaVersionsComboboxController(this, dataManager) {
+    isEditModeAvailable.set(it.size > 1)
+  }
+  private val version2Controller = SchemaVersionsComboboxController(this, dataManager) {}
   private lateinit var version1: Cell<ComboBox<Long>>
   private lateinit var version2: Cell<ComboBox<Long>>
   private lateinit var viewType: SegmentedButton<ViewType>
 
   private var version1Schema: SchemaVersionInfo? = null
   private var version2Schema: SchemaVersionInfo? = null
-
-  private val isStructure = AtomicBooleanProperty(false)
-  private val isSchema = AtomicBooleanProperty(false)
-  private val isEditMode = AtomicBooleanProperty(false)
-  private val isNotEditMode = AtomicBooleanProperty(false)
 
 
   private val curComponent = JBPanelWithEmptyText(BorderLayout())
@@ -194,7 +198,7 @@ class KafkaSchemaController(private val project: Project,
         link(KafkaMessagesBundle.message("link.label.compare")) {
           isNotEditMode.set(false)
           isEditMode.set(true)
-        }.visibleIf(isNotEditMode).customize(UnscaledGaps(top = 0, left = 10, bottom = 0, right = 0))
+        }.visibleIf(isEditModeAvailable.and(isNotEditMode)).customize(UnscaledGaps(top = 0, left = 10, bottom = 0, right = 0))
 
         icon(AllIcons.General.ArrowRight).visibleIf(isEditMode).gap(RightGap.SMALL)
           .customize(UnscaledGaps(top = 0, left = 0, bottom = 0, right = 0))

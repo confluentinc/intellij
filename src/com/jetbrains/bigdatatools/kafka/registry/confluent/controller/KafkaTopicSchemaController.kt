@@ -4,6 +4,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.ui.SimpleTextAttributes
 import com.intellij.ui.components.JBPanelWithEmptyText
 import com.intellij.util.ui.StatusText
+import com.jetbrains.bigdatatools.common.monitoring.data.listener.DataModelListener
 import com.jetbrains.bigdatatools.common.monitoring.toolwindow.DetailsMonitoringController
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryAddSchemaDialog
@@ -20,14 +21,26 @@ class KafkaTopicSchemaController(private val project: Project,
   private val curComponent = JBPanelWithEmptyText(BorderLayout())
   private val internalComponent = schemaController.getComponent()
 
-  init {
-    init()
+  private val listener = object : DataModelListener {
+    override fun onChanged() {
+      setDetailsId(topicName ?: "")
+    }
+
   }
 
-  override fun dispose() {}
+  init {
+    init()
+    setDetailsId(topicName ?: "")
+  }
+
+  override fun dispose() {
+    dataManager.schemaRegistryModel?.removeListener(listener)
+
+  }
 
   fun init() {
     setEmptyText()
+    dataManager.schemaRegistryModel?.addListener(listener)
   }
 
   override fun getComponent(): JComponent = curComponent

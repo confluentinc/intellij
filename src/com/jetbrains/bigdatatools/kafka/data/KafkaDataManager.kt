@@ -1,5 +1,6 @@
 package com.jetbrains.bigdatatools.kafka.data
 
+import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.jetbrains.bigdatatools.common.connection.updater.IntervalUpdateSettings
@@ -93,8 +94,14 @@ class KafkaDataManager(project: Project?,
   }
 
   private fun createTopicsDataModel() = ObjectDataModel(TopicPresentable::name, additionalInfoLoading = { model ->
-    val originalNames = model.data?.map { it.name } ?: emptyList()
-    client.getTopicWithConfigs(originalNames)
+    try {
+      val originalNames = model.data?.map { it.name } ?: emptyList()
+      client.getTopicWithConfigs(originalNames)
+    }
+    catch (t: Throwable) {
+      thisLogger().warn(t)
+      model.data ?: emptyList()
+    }
   }) {
     val toolWindowSettings = KafkaToolWindowSettings.getInstance()
     val topicFilterName = toolWindowSettings.getOrCreateConfig(connectionId).topicFilterName
@@ -107,8 +114,14 @@ class KafkaDataManager(project: Project?,
 
   private fun createConsumerGroupsDataModel() =
     ObjectDataModel(ConsumerGroupPresentable::consumerGroup, additionalInfoLoading = { dataObject ->
-      val groupIds = dataObject.data?.map { it.consumerGroup } ?: emptyList()
-      client.getDetailedConsumerGroups(groupIds)
+      try {
+        val groupIds = dataObject.data?.map { it.consumerGroup } ?: emptyList()
+        client.getDetailedConsumerGroups(groupIds)
+      }
+      catch (t: Throwable) {
+        thisLogger().warn(t)
+        dataObject.data ?: emptyList()
+      }
     }) {
       val toolWindowSettings = KafkaToolWindowSettings.getInstance()
       val filterName = toolWindowSettings.getOrCreateConfig(connectionId).consumerFilterName
@@ -169,14 +182,16 @@ class KafkaDataManager(project: Project?,
 
   fun deleteRegistrySchemaVersion(versionSchema: SchemaVersionInfo) = actionWrapper {
     client.confluentRegistryClient?.deleteSchemaVersion(versionSchema) ?: client.glueRegistryClient?.deleteSchemaVersion(versionSchema)
+    updater.invokeRefreshModel(schemaVersionModels[versionSchema.schemaName])
     schemaRegistryModel?.let { updater.invokeRefreshModel(it) }
+
   }
 
   fun updateSchema(versionInfo: SchemaVersionInfo, newText: String) = runAsync {
     client.confluentRegistryClient?.updateSchema(versionInfo, newText) ?: client.glueRegistryClient?.updateSchema(versionInfo, newText)
     ?: error("Not Fond registry")
     schemaRegistryModel?.let { updater.invokeRefreshModel(it) }
-    Unit
+    updater.invokeRefreshModel(schemaVersionModels[versionInfo.schemaName])
   }
 
   fun deleteSchema(info: KafkaSchemaInfo) = actionWrapper {
@@ -207,14 +222,19 @@ class KafkaDataManager(project: Project?,
     return dataModel
   }
 
-  private fun listSchemas(registryShowDeletedSubjects: Boolean = false): List<KafkaSchemaInfo> {
-    return client.confluentRegistryClient?.listSchemas(registryShowDeletedSubjects)
-           ?: client.glueRegistryClient?.listSchemas()
-           ?: emptyList()
-  }
+  private fun listSchemas(registryShowDeletedSubjects: Boolean = false) =
+    client.confluentRegistryClient?.listSchemas(registryShowDeletedSubjects)
+    ?: client.glueRegistryClient?.listSchemas()
+    ?: emptyList()
 
   private fun updateSchemaList(dataModel: ObjectDataModel<KafkaSchemaInfo>) = dataModel.data?.map {
-    loadSchema(it.name)
+    try {
+      loadSchema(it.name)
+    }
+    catch (t: Throwable) {
+      thisLogger().warn(t)
+      it
+    }
   } ?: emptyList()
 
   private fun loadSchema(schemaName: String) =

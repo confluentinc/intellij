@@ -49,7 +49,7 @@ class KafkaMonitoringToolWindowController(project: Project) : MonitoringToolWind
 
       if (rfsPath != null) {
         val mainController = content.getUserData(PAGE_CONTROLLER_ID) as? KafkaMainController ?: return@show
-        mainController.showDetailsComponent(rfsPath)
+        mainController.open(rfsPath)
       }
     }
   }

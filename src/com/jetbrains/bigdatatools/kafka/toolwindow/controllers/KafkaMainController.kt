@@ -30,6 +30,7 @@ import com.jetbrains.bigdatatools.common.rfs.editorviewer.RfsEditorErrorPanel
 import com.jetbrains.bigdatatools.common.rfs.editorviewer.RfsNodeAnimator
 import com.jetbrains.bigdatatools.common.rfs.fileInfo.DriverRfsListener
 import com.jetbrains.bigdatatools.common.rfs.tree.DriverRfsTreeModel
+import com.jetbrains.bigdatatools.common.rfs.util.RfsUtil
 import com.jetbrains.bigdatatools.common.rfs.viewer.utils.DriverRfsTreeUtil.lastDriverNode
 import com.jetbrains.bigdatatools.common.util.invokeLater
 import com.jetbrains.bigdatatools.kafka.common.editor.KafkaEditorProvider
@@ -80,6 +81,7 @@ class KafkaMainController(private val project: Project, private val connectionDa
   private val isNormalView = AtomicBooleanProperty(true)
   private val isErrorView = AtomicBooleanProperty(false)
 
+  lateinit var myTree: ProjectViewTree
   private val normalPanel = createNormalPanel()
   private var prevError: Throwable? = null
   private val errorPanel = JPanel()
@@ -111,7 +113,11 @@ class KafkaMainController(private val project: Project, private val connectionDa
 
   override fun getComponent() = panel
 
-  fun showDetailsComponent(rfsPath: RfsPath) {
+  fun open(rfsPath: RfsPath) {
+    RfsUtil.select(driver.getExternalId(), rfsPath, myTree)
+  }
+
+  private fun showDetailsComponent(rfsPath: RfsPath) {
     val label = dataManager.activeComponentLabel
     label.icon = EmptyIcon.ICON_8
     when {
@@ -167,7 +173,8 @@ class KafkaMainController(private val project: Project, private val connectionDa
     val driver = DriverManager.getDriverById(project, connectionData.innerId) as KafkaDriver
     val treeModel = driver.createTreeModel(driver.root, project)
     val asyncTreeModel = AsyncTreeModel(treeModel, this)
-    val myTree = ProjectViewTree(asyncTreeModel)
+
+    myTree = ProjectViewTree(asyncTreeModel)
     myTree.showsRootHandles = true
     myTree.isRootVisible = false
     DriverRfsTreeModel.fixInitFirstConnection(asyncTreeModel, myTree)
