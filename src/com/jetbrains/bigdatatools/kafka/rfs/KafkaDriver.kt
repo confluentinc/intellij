@@ -3,6 +3,7 @@ package com.jetbrains.bigdatatools.kafka.rfs
 import com.intellij.bigdatatools.kafka.BigdatatoolsKafkaIcons
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
+import com.jetbrains.bigdatatools.common.monitoring.data.listener.DataModelListener
 import com.jetbrains.bigdatatools.common.monitoring.rfs.MonitoringDriver
 import com.jetbrains.bigdatatools.common.rfs.driver.Driver
 import com.jetbrains.bigdatatools.common.rfs.driver.FileInfo
@@ -30,6 +31,23 @@ class KafkaDriver(override val connectionData: KafkaConnectionData, project: Pro
 
   init {
     Disposer.register(this, dataManager)
+
+    dataManager.topicModel.addListener(object : DataModelListener {
+      override fun onChanged() {
+        fileInfoManager.refreshFiles(topicPath)
+      }
+    })
+    dataManager.consumerGroupsModel.addListener(object : DataModelListener {
+      override fun onChanged() {
+        fileInfoManager.refreshFiles(consumerPath)
+      }
+    })
+
+    dataManager.schemaRegistryModel?.addListener(object : DataModelListener {
+      override fun onChanged() {
+        fileInfoManager.refreshFiles(schemasPath)
+      }
+    })
   }
 
   override fun dispose() {}
