@@ -25,7 +25,9 @@ data class TopicPresentable(val name: String,
                             @field:LoadingRendering
                             val replicationFactor: Int? = null,
                             @field:LoadingRendering
-                            val underReplicatedPartitions: Int? = null) : RemoteInfo {
+                            val underReplicatedPartitions: Int? = null,
+                            @field:LoadingRendering
+                            val messageCount: Long? = null) : RemoteInfo {
   fun toEditorTopic() = TopicInEditor(name)
 
   companion object {

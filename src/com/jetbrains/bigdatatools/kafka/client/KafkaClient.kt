@@ -26,11 +26,10 @@ import com.jetbrains.bigdatatools.kafka.rfs.KafkaConnectionData
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaPropertySource
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import org.apache.kafka.clients.CommonClientConfigs
-import org.apache.kafka.clients.admin.DescribeClusterOptions
-import org.apache.kafka.clients.admin.ListTopicsOptions
-import org.apache.kafka.clients.admin.NewTopic
-import org.apache.kafka.clients.admin.TopicDescription
+import org.apache.kafka.clients.admin.*
 import org.apache.kafka.common.ConsumerGroupState
+import org.apache.kafka.common.KafkaFuture
+import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.config.ConfigResource
 import org.apache.kafka.common.config.SaslConfigs
 import java.io.File
@@ -158,7 +157,19 @@ class KafkaClient(project: Project?,
       logger.warn("Cannot load topic configs, ignore it", t)
       emptyMap()
     }
-    val parsedInternal = describedTopics.map { BdtKafkaMapper.topicDescriptionToInternalTopic(it) }
+
+    val parsedInternal = describedTopics.map { description ->
+      description.partitions().map { it to OffsetSpec.latest() }
+      val earliest = description.partitions().associate { TopicPartition(description.name(), it.partition()) to OffsetSpec.earliest() }
+      val latest = description.partitions().associate { TopicPartition(description.name(), it.partition()) to OffsetSpec.latest() }
+      val earliestOffsetsFuture = kafkaAdmin?.listOffsets(earliest)?.all()
+      val latestOffsetsFuture = kafkaAdmin?.listOffsets(latest)?.all()
+      KafkaFuture.allOf(earliestOffsetsFuture, latestOffsetsFuture).get()
+      val earliestOffsets = earliestOffsetsFuture?.get()
+      val latestOffsets = latestOffsetsFuture?.get()
+      BdtKafkaMapper.topicDescriptionToInternalTopic(description, earliestOffsets ?: emptyMap(), latestOffsets ?: emptyMap())
+    }
+
     val nonParsedInternal = nonParsed.map { BdtKafkaMapper.mockInternalTopic(it) }
     return BdtKafkaMapper.mergeWithConfigs(parsedInternal + nonParsedInternal, loadedTopicConfig).values.toList().sortedTipics()
   }
