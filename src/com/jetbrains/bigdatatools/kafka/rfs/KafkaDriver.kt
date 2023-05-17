@@ -54,6 +54,8 @@ class KafkaDriver(override val connectionData: KafkaConnectionData, project: Pro
 
   override fun createTreeModel(rootPath: RfsPath, project: Project) = DriverRfsTreeModel(project, rootPath, this, false)
 
+  override fun doLoadFileInfo(rfsPath: RfsPath) = KafkaFileInfo(this, rfsPath)
+
   override fun doLoadChildren(rfsPath: RfsPath): List<FileInfo>? {
     dataManager.client.connectionError?.let {
       throw it
