@@ -10,6 +10,7 @@ import com.intellij.ui.EditorTextFieldProvider
 import com.intellij.ui.MonospaceEditorCustomization
 import com.jetbrains.bigdatatools.common.ui.doOnChange
 import java.awt.BorderLayout
+import javax.swing.BorderFactory
 import javax.swing.JPanel
 
 class KafkaRegistrySchemaEditor(private val project: Project,
@@ -51,7 +52,7 @@ class KafkaRegistrySchemaEditor(private val project: Project,
     editor.document.setReadOnly(false)
     editor.text = text
     editor.document.setReadOnly(!isEditable)
-
+    editor.component.border = BorderFactory.createEmptyBorder()
     customSchemaEditor = editor
   }
 
