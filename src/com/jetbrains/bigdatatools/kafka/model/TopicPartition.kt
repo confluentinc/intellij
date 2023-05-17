@@ -8,12 +8,16 @@ import kotlin.reflect.full.declaredMemberProperties
 import kotlin.reflect.jvm.javaField
 
 @Suppress("unused")
-class TopicPartition(val partitionId: Int,
-                     val leader: Int?,
-                     @field:NoRendering
-                     val internalReplicas: List<InternalReplica>,
-                     val inSyncReplicasCount: Int,
-                     val replicas: String) : RemoteInfo {
+data class TopicPartition(val partitionId: Int,
+                          val leader: Int?,
+                          @field:NoRendering
+                          val internalReplicas: List<InternalReplica>,
+                          val inSyncReplicasCount: Int,
+                          val replicas: String,
+                          val endOffset: Long?,
+                          val startOffset: Long?) : RemoteInfo {
+  val offsets = "$startOffset -> $endOffset"
+
   companion object {
     val renderableColumns: List<KProperty1<TopicPartition, *>> by lazy {
       TopicPartition::class.declaredMemberProperties.filter { DataRenderingUtil.shouldRenderFrom(it.javaField?.annotations) }

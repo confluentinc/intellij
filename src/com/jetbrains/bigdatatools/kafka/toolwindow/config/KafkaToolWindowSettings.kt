@@ -22,12 +22,14 @@ class KafkaToolWindowSettings : PersistentStateComponent<KafkaToolWindowSettings
 
   private val topicPartitionsTableColumns = mutableListOf(TopicPartition::partitionId.name,
                                                           TopicPartition::leader.name,
-                                                          TopicPartition::replicas.name)
+                                                          TopicPartition::replicas.name,
+                                                          TopicPartition::offsets.name)
 
   val topicPartitionsColumnSettings = ColumnVisibilitySettings(topicPartitionsTableColumns)
 
   private val topicTableColumns = mutableListOf(
     TopicPresentable::name.name,
+    TopicPresentable::messageCount.name,
     TopicPresentable::partitions.name,
     TopicPresentable::replicationFactor.name,
     TopicPresentable::inSyncReplicas.name)
