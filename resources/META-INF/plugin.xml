@@ -62,4 +62,36 @@
     <fileEditorProvider implementation="com.jetbrains.bigdatatools.kafka.common.editor.KafkaEditorProvider"/>
     <iconMapper mappingFile="KafkaIconMappings.json"/>
   </extensions>
+
+
+  <actions resource-bundle="messages.KafkaBundle">
+    <group id="Kafka.Actions">
+      <group id="Kafka.Topic.Actions">
+        <!--suppress PluginXmlCapitalization -->
+        <action id="kafka.DeleteTopicAction" class="com.jetbrains.bigdatatools.kafka.toolwindow.actions.DeleteTopicAction"
+                icon="AllIcons.General.Remove">
+          <keyboard-shortcut keymap="$default" first-keystroke="DELETE"/>
+        </action>
+        <action id="kafka.CreateTopicAction" class="com.jetbrains.bigdatatools.kafka.toolwindow.actions.CreateTopicAction"
+                icon="AllIcons.General.Add">
+          <keyboard-shortcut keymap="$default" first-keystroke="alt INSERT"/>
+        </action>
+      </group>
+
+      <group id="Kafka.Schema.Actions">
+        <action id="kafka.CreateSchemaAction" class="com.jetbrains.bigdatatools.kafka.toolwindow.actions.CreateSchemaAction"
+                icon="AllIcons.General.Add">
+          <keyboard-shortcut keymap="$default" first-keystroke="alt INSERT"/>
+        </action>
+        <action id="kafka.CloneSchemaAction" class="com.jetbrains.bigdatatools.kafka.toolwindow.actions.CloneSchemaAction"/>
+
+        <action id="Kafka.DeleteSchemaAction"
+                class="com.jetbrains.bigdatatools.kafka.toolwindow.actions.DeleteSchemaAction"
+                icon="AllIcons.General.Remove">
+          <keyboard-shortcut keymap="$default" first-keystroke="DELETE"/>
+        </action>
+      </group>
+    </group>
+
+  </actions>
 </idea-plugin>

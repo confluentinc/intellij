@@ -18,7 +18,7 @@ object KafkaDialogFactory {
     val builder = DialogBuilder()
     builder.addOkAction()
     builder.addCancelAction()
-    builder.title(KafkaMessagesBundle.message("action.create.topic"))
+    builder.title(KafkaMessagesBundle.message("action.kafka.CreateTopicAction.text"))
     val nameField = JTextField("NewTopic", 15)
     nameField.selectAll()
     val numPartition = JBTextField("", 15).also {

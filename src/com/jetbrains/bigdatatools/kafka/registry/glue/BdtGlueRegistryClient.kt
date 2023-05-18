@@ -75,7 +75,7 @@ class BdtGlueRegistryClient(val project: Project?,
       KafkaSchemaInfo(name = schemaName ?: "",
                       type = null,
                       compatibility = null,
-                      versions = null,
+                      version = null,
                       description = it.description() ?: "",
                       schemaStatus = it.schemaStatusAsString() ?: "",
                       updatedTime = TimeUtils.parseIsoTime(it.updatedTime()))
@@ -169,7 +169,7 @@ class BdtGlueRegistryClient(val project: Project?,
     val response = loadSchema(schemaName)
     return KafkaSchemaInfo(
       name = schemaName,
-      versions = response.latestSchemaVersion(),
+      version = response.latestSchemaVersion(),
       type = KafkaRegistryFormat.parse(response.dataFormatAsString()),
       compatibility = response.compatibilityAsString(),
       description = response.description() ?: "",

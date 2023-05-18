@@ -1,7 +1,10 @@
 package com.jetbrains.bigdatatools.kafka.toolwindow.controllers
 
+import com.intellij.ide.DataManager
 import com.intellij.ide.projectView.impl.ProjectViewTree
 import com.intellij.openapi.Disposable
+import com.intellij.openapi.actionSystem.AnActionEvent
+import com.intellij.openapi.actionSystem.DataKey
 import com.intellij.openapi.fileEditor.FileEditor
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.fileEditor.impl.EditorWindow
@@ -37,6 +40,7 @@ import com.jetbrains.bigdatatools.common.rfs.viewer.utils.DriverRfsTreeUtil.last
 import com.jetbrains.bigdatatools.common.util.invokeLater
 import com.jetbrains.bigdatatools.kafka.common.editor.KafkaEditorProvider
 import com.jetbrains.bigdatatools.kafka.common.models.KafkaEditorType
+import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryType
 import com.jetbrains.bigdatatools.kafka.registry.confluent.controller.KafkaRegistryController
 import com.jetbrains.bigdatatools.kafka.registry.confluent.controller.KafkaSchemaController
@@ -109,6 +113,15 @@ class KafkaMainController(private val project: Project, private val connectionDa
     driver.addListener(driverListener)
     Disposer.register(this, Disposable { driver.removeListener(driverListener) })
     updateMainPanel(driver.dataManager.client.connectionError)
+
+    DataManager.registerDataProvider(panel) { dataId ->
+      when {
+        DATA_MANAGER.`is`(dataId) -> dataManager
+        RFS_PATH.`is`(dataId) -> myTree.selectionPath?.lastDriverNode?.rfsPath
+        else -> null
+      }
+    }
+
   }
 
   override fun dispose() {}
@@ -190,7 +203,7 @@ class KafkaMainController(private val project: Project, private val connectionDa
       myTree.repaint(pathBounds)
     }
 
-    PopupHandler.installPopupMenu(myTree, "BigDataTools.RfsPane.PopupActionGroup", RfsActionPlaces.RFS_PANE_POPUP)
+    PopupHandler.installPopupMenu(myTree, "Kafka.Actions", RfsActionPlaces.RFS_PANE_POPUP)
 
     myTree.addTreeSelectionListener {
       val rfsPath = it.path.lastDriverNode?.rfsPath ?: return@addTreeSelectionListener
@@ -288,5 +301,17 @@ class KafkaMainController(private val project: Project, private val connectionDa
       isErrorView.set(true)
       setErrorPanel(exception)
     }
+  }
+
+  companion object {
+    val DATA_MANAGER: DataKey<KafkaDataManager> = DataKey.create("kafka.data.manager")
+    val RFS_PATH: DataKey<RfsPath> = DataKey.create("bdt.rfs.path")
+
+    val AnActionEvent.dataManager
+      get() = dataContext.getData(DATA_MANAGER)!!
+
+    val AnActionEvent.rfsPath
+      get() = dataContext.getData(RFS_PATH)
+
   }
 }

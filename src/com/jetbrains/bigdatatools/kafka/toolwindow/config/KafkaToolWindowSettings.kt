@@ -47,7 +47,7 @@ class KafkaToolWindowSettings : PersistentStateComponent<KafkaToolWindowSettings
 
   private val confluentSchemaTableColumns = mutableListOf(KafkaSchemaInfo::name.name,
                                                           KafkaSchemaInfo::type.name,
-                                                          KafkaSchemaInfo::versions.name)
+                                                          KafkaSchemaInfo::version.name)
 
   val confluentSchemaTableColumnSettings = ColumnVisibilitySettings(confluentSchemaTableColumns)
 

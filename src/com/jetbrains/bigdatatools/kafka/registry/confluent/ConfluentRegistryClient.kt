@@ -46,7 +46,7 @@ class ConfluentRegistryClient(restService: RestService) : Disposable {
 
     return KafkaSchemaInfo(name = schemaName,
                            type = KafkaRegistryFormat.parse(meta.schemaType),
-                           versions = meta.version.toLong())
+                           version = meta.version.toLong())
   }
 
   fun deleteSchemaVersion(registryInfo: SchemaVersionInfo, isPermanent: Boolean = false) {

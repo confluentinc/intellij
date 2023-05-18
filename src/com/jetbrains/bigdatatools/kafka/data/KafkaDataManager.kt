@@ -240,11 +240,11 @@ class KafkaDataManager(project: Project?,
   private fun loadSchema(schemaName: String) =
     client.confluentRegistryClient?.loadSchemaInfo(schemaName) ?: client.glueRegistryClient?.loadSchemaInfo(schemaName) ?: error("Not used")
 
-  fun isSchemaExists(name: String) = schemaRegistryModel?.data?.any { it.name == name } ?: false
+  fun isSchemaExists(name: String) = getCachedSchema(name) != null
 
-  fun getCachedOrLoadSchema(name: String): KafkaSchemaInfo {
-    return schemaRegistryModel?.data?.firstOrNull { it.name == name }?.takeIf { it.type != null } ?: loadSchema(name)
-  }
+  fun getCachedOrLoadSchema(name: String): KafkaSchemaInfo = getCachedSchema(name)?.takeIf { it.type != null } ?: loadSchema(name)
+
+  fun getCachedSchema(name: String) = schemaRegistryModel?.data?.firstOrNull { it.name == name }
 
   fun getLatestVersionInfo(schemaName: String) =
     client.confluentRegistryClient?.getLatestVersionInfo(schemaName) ?: client.glueRegistryClient?.getLatestVersionInfo(schemaName)
