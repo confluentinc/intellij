@@ -43,7 +43,6 @@ class ConfluentRegistryClient(restService: RestService) : Disposable {
       null
     }
     meta ?: return KafkaSchemaInfo(schemaName)
-
     return KafkaSchemaInfo(name = schemaName,
                            type = KafkaRegistryFormat.parse(meta.schemaType),
                            version = meta.version.toLong())

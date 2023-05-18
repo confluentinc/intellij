@@ -7,8 +7,8 @@ import com.intellij.openapi.components.service
 import com.intellij.util.xmlb.XmlSerializerUtil
 import com.jetbrains.bigdatatools.common.connection.updater.IntervalUpdateSettings
 import com.jetbrains.bigdatatools.common.settings.ColumnVisibilitySettings
+import com.jetbrains.bigdatatools.kafka.model.BdtTopicPartition
 import com.jetbrains.bigdatatools.kafka.model.ConsumerGroupPresentable
-import com.jetbrains.bigdatatools.kafka.model.TopicPartition
 import com.jetbrains.bigdatatools.kafka.model.TopicPresentable
 import com.jetbrains.bigdatatools.kafka.registry.common.KafkaSchemaInfo
 
@@ -20,10 +20,10 @@ class KafkaToolWindowSettings : PersistentStateComponent<KafkaToolWindowSettings
   private val topicConfigsTableColumns = mutableListOf("name", "value", "defaultValue")
   val topicConfigsColumnSettings = ColumnVisibilitySettings(topicConfigsTableColumns)
 
-  private val topicPartitionsTableColumns = mutableListOf(TopicPartition::partitionId.name,
-                                                          TopicPartition::leader.name,
-                                                          TopicPartition::replicas.name,
-                                                          TopicPartition::offsets.name)
+  private val topicPartitionsTableColumns = mutableListOf(BdtTopicPartition::partitionId.name,
+                                                          BdtTopicPartition::leader.name,
+                                                          BdtTopicPartition::replicas.name,
+                                                          BdtTopicPartition::offsets.name)
 
   val topicPartitionsColumnSettings = ColumnVisibilitySettings(topicPartitionsTableColumns)
 

@@ -13,9 +13,7 @@ data class TopicPresentable(val name: String,
                             @field:NoRendering
                             val internal: Boolean = false,
                             @field:NoRendering
-                            val partitionList: List<TopicPartition> = emptyList(),
-                            @field:NoRendering
-                            val topicConfigs: List<TopicConfig> = emptyList(),
+                            val partitionList: List<BdtTopicPartition> = emptyList(),
                             @field:LoadingRendering
                             val replicas: Int? = null,
                             @field:LoadingRendering

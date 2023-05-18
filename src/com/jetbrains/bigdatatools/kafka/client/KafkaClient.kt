@@ -4,6 +4,7 @@ import com.intellij.bigdatatools.aws.ui.external.AwsSettingsComponentForKafka
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.vfs.VirtualFileManager
+import com.intellij.util.io.await
 import com.intellij.util.net.NetUtils
 import com.jetbrains.bigdatatools.common.connection.exception.BdtConnectionException
 import com.jetbrains.bigdatatools.common.connection.exception.BdtHostUnavailableException
@@ -15,9 +16,7 @@ import com.jetbrains.bigdatatools.common.settings.connections.Property
 import com.jetbrains.bigdatatools.common.util.BdIdeRegistryUtil
 import com.jetbrains.bigdatatools.common.util.BdtUrlUtils
 import com.jetbrains.bigdatatools.common.util.withPluginClassLoader
-import com.jetbrains.bigdatatools.kafka.model.ConsumerGroupPresentable
-import com.jetbrains.bigdatatools.kafka.model.TopicConfig
-import com.jetbrains.bigdatatools.kafka.model.TopicPresentable
+import com.jetbrains.bigdatatools.kafka.model.*
 import com.jetbrains.bigdatatools.kafka.producer.client.KafkaProducerClient
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryType
 import com.jetbrains.bigdatatools.kafka.registry.confluent.ConfluentRegistryClient
@@ -28,7 +27,6 @@ import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import org.apache.kafka.clients.CommonClientConfigs
 import org.apache.kafka.clients.admin.*
 import org.apache.kafka.common.ConsumerGroupState
-import org.apache.kafka.common.KafkaFuture
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.config.ConfigResource
 import org.apache.kafka.common.config.SaslConfigs
@@ -145,33 +143,47 @@ class KafkaClient(project: Project?,
 
   fun getTopics(listInternal: Boolean): List<TopicPresentable> {
     val topicNames = getTopicNames(listInternal)
-    return topicNames.map { TopicPresentable(name = it) }.sortedTipics()
+    return topicNames.map { TopicPresentable(name = it) }.sortedTopics()
   }
 
-  fun getTopicWithConfigs(topicNames: List<String>): List<TopicPresentable> {
+  suspend fun getDetailedTopicsInfo(topicNames: List<String>): List<TopicPresentable> {
     val (describedTopics, nonParsed) = describeTopics(topicNames)
-    val loadedTopicConfig = try {
-      loadTopicConfigs(topicNames)
-    }
-    catch (t: Throwable) {
-      logger.warn("Cannot load topic configs, ignore it", t)
-      emptyMap()
-    }
 
+    val partitionsInfos = requestTopicOffsets(describedTopics)
     val parsedInternal = describedTopics.map { description ->
-      description.partitions().map { it to OffsetSpec.latest() }
-      val earliest = description.partitions().associate { TopicPartition(description.name(), it.partition()) to OffsetSpec.earliest() }
-      val latest = description.partitions().associate { TopicPartition(description.name(), it.partition()) to OffsetSpec.latest() }
-      val earliestOffsetsFuture = kafkaAdmin?.listOffsets(earliest)?.all()
-      val latestOffsetsFuture = kafkaAdmin?.listOffsets(latest)?.all()
-      KafkaFuture.allOf(earliestOffsetsFuture, latestOffsetsFuture).get()
-      val earliestOffsets = earliestOffsetsFuture?.get()
-      val latestOffsets = latestOffsetsFuture?.get()
-      BdtKafkaMapper.topicDescriptionToInternalTopic(description, earliestOffsets ?: emptyMap(), latestOffsets ?: emptyMap())
+      BdtKafkaMapper.topicDescriptionToInternalTopic(description, partitions = partitionsInfos[description.name()] ?: emptyList())
     }
 
     val nonParsedInternal = nonParsed.map { BdtKafkaMapper.mockInternalTopic(it) }
-    return BdtKafkaMapper.mergeWithConfigs(parsedInternal + nonParsedInternal, loadedTopicConfig).values.toList().sortedTipics()
+    return (parsedInternal + nonParsedInternal).toList().sortedTopics()
+  }
+
+  private suspend fun requestTopicOffsets(topics: List<TopicDescription>): Map<String, List<BdtTopicPartition>> {
+    val requestPartitions = topics.flatMap { desc ->
+      desc.partitions().map { TopicPartition(desc.name(), it.partition()) }
+    }
+    val earliestOffsetsFuture = kafkaAdminNotNull.listOffsets(
+      requestPartitions.associateWith { OffsetSpec.earliest() }.toMutableMap()).all()
+    val latestOffsetsFuture = kafkaAdminNotNull.listOffsets(requestPartitions.associateWith { OffsetSpec.latest() }.toMutableMap()).all()
+    val earliestOffsets = earliestOffsetsFuture.await()
+    val latestOffsets = latestOffsetsFuture.await()
+
+    return topics.associate { topic ->
+      val partitions = topic.partitions().map { partition ->
+        val replicas: List<InternalReplica> = partition.replicas().filterNotNull().map {
+          InternalReplica(it.id(), partition.leader()?.id() != it.id(), partition.isr()?.contains(it) == true)
+        }
+        BdtTopicPartition(leader = partition.leader()?.id(),
+                          partitionId = partition.partition(),
+                          inSyncReplicasCount = partition.isr().size,
+                          replicas = partition.replicas()?.joinToString(separator = ", ") { it.idString() } ?: "",
+                          startOffset = earliestOffsets[TopicPartition(topic.name(), partition.partition())]?.offset(),
+                          endOffset = latestOffsets[TopicPartition(topic.name(), partition.partition())]?.offset(),
+                          internalReplicas = replicas)
+
+      }
+      topic.name() to partitions
+    }
   }
 
   fun createTopic(name: String, numPartition: Int?, replicationFactor: Int?) {
@@ -189,7 +201,8 @@ class KafkaClient(project: Project?,
   }
 
   private fun describeTopics(topicNames: List<String>): Pair<List<TopicDescription>, List<String>> = try {
-    kafkaAdminNotNull.describeTopics(topicNames.toMutableList()).allTopicNames().get().values.toList() to emptyList()
+    val allTopicNames = kafkaAdminNotNull.describeTopics(topicNames.toMutableList()).allTopicNames()
+    allTopicNames.get().values.toList() to emptyList()
   }
   catch (t: Throwable) {
     val topics = mutableListOf<TopicDescription>()
@@ -362,9 +375,11 @@ class KafkaClient(project: Project?,
     kafkaAdmin = null
   }
 
-  private fun List<TopicPresentable>.sortedTipics(): List<TopicPresentable> {
+  private fun List<TopicPresentable>.sortedTopics(): List<TopicPresentable> {
     return this.sortedBy { it.name.lowercase() }
   }
+
+  fun getTopicConfig(topicName: String): List<TopicConfig> = loadTopicConfigs(listOf(topicName)).values.first()
 
   companion object {
     fun loadPropertyFile(propertyFilePath: String): String {

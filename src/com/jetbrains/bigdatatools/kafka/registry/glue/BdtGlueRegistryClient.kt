@@ -39,13 +39,13 @@ class BdtGlueRegistryClient(val project: Project?,
         if (registryName.isBlank())
           listRegistries()
         else
-          listSchemas()
+          listSchemas(1)
       }
     }
   }
 
   fun checkConnection() {
-    listSchemas()
+    listSchemas(1)
   }
 
   fun deleteSchemaVersion(schemaVersionInfo: SchemaVersionInfo) {
@@ -66,9 +66,13 @@ class BdtGlueRegistryClient(val project: Project?,
     return client.listRegistries(request).registries()
   }
 
-  fun listSchemas(): List<KafkaSchemaInfo> {
+  fun listSchemas(size: Int? = null): List<KafkaSchemaInfo> {
     val registryId = registryName.let { RegistryId.builder().registryName(registryName).build() }
-    val request = ListSchemasRequest.builder().registryId(registryId).build()
+    val requestBuilder = ListSchemasRequest.builder().registryId(registryId)
+    if (size != null) {
+      requestBuilder.maxResults(size)
+    }
+    val request = requestBuilder.build()
 
     return client.listSchemas(request).schemas().map {
       val schemaName = it.schemaName()
