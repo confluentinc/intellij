@@ -9,7 +9,7 @@ class AvroSchemaTree(private val schema: AvroSchema) {
   private fun buildAvroSchemaTree(parent: DefaultMutableTreeNode, fieldName: String, schema: Schema, field: Schema.Field? = null) {
     val typeName = when (schema.type) {
       Schema.Type.MAP -> "map<string, ${schema.valueType.type.getName().lowercase()}>"
-      Schema.Type.FIXED -> "fixed {${schema.fixedSize}}"
+      Schema.Type.FIXED -> "fixed size=${schema.fixedSize}"
       Schema.Type.ARRAY -> "array<${schema.elementType}>"
       else -> schema.type.getName().lowercase()
     }
