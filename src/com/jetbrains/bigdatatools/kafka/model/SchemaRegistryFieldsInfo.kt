@@ -10,7 +10,7 @@ data class SchemaRegistryFieldsInfo(
   val name: String,
   val type: String,
   val default: String,
-  val description: String = "",
+  val description: String,
   val optional: Boolean? = null
 ) : RemoteInfo {
   override fun toString(): String = name

@@ -58,12 +58,14 @@ class SchemaTreePanel {
 
   fun update(schema: ParsedSchema) {
     val root = DefaultMutableTreeNode()
-    when (schema) {
-      is AvroSchema -> AvroSchemaTree(schema).buildTree(root)
-      is JsonSchema -> JsonSchemaTree(schema).buildTree(root)
-      is ProtobufSchema -> ProtobufSchemaTree(schema).buildTree(root)
-      else -> {}
-    }
+
+    val schemaTree = when (schema) {
+                       is AvroSchema -> AvroSchemaTree(schema)
+                       is JsonSchema -> JsonSchemaTree(schema)
+                       is ProtobufSchema -> ProtobufSchemaTree(schema)
+                       else -> null
+                     } ?: return
+    schemaTree.buildTree(root)
     treeTableModel.setRoot(root)
   }
 

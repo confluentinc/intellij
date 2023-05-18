@@ -1,19 +1,17 @@
 package com.jetbrains.bigdatatools.kafka.registry.schema
 
-import com.jetbrains.bigdatatools.kafka.model.SchemaRegistryFieldsInfo
 import io.confluent.kafka.schemaregistry.json.JsonSchema
 import org.everit.json.schema.*
 import javax.swing.tree.DefaultMutableTreeNode
 
-class JsonSchemaTree(private val schema: JsonSchema) {
+class JsonSchemaTree(private val schema: JsonSchema) : SchemaTree {
   private fun buildJsonSchemaTree(parent: DefaultMutableTreeNode, fieldName: String, schema: Schema) {
     val type = if (schema is ArraySchema && schema.allItemSchema != null)
       "array<${resolveJsonFieldType(schema.allItemSchema)}>"
     else
       resolveJsonFieldType(schema)
 
-    val child = DefaultMutableTreeNode(SchemaRegistryFieldsInfo(fieldName, type, schema.defaultValue?.toString() ?: "",
-                                                                schema.description ?: "", schema.isNullable ?: null))
+    val child = createMutableNode(fieldName, type, schema.defaultValue, schema.description, schema.isNullable)
     parent.add(child)
     when (schema) {
       is ObjectSchema -> schema.propertySchemas?.forEach { buildJsonSchemaTree(child, it.key, it.value) }
@@ -26,7 +24,7 @@ class JsonSchemaTree(private val schema: JsonSchema) {
     }
   }
 
-  fun buildTree(root: DefaultMutableTreeNode) {
+  override fun buildTree(root: DefaultMutableTreeNode) {
     val objectSchema = schema.rawSchema() as? ObjectSchema ?: return
     objectSchema.propertySchemas?.forEach { buildJsonSchemaTree(root, it.key, it.value) }
   }

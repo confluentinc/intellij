@@ -1,11 +1,10 @@
 package com.jetbrains.bigdatatools.kafka.registry.schema
 
-import com.jetbrains.bigdatatools.kafka.model.SchemaRegistryFieldsInfo
 import io.confluent.kafka.schemaregistry.avro.AvroSchema
 import org.apache.avro.Schema
 import javax.swing.tree.DefaultMutableTreeNode
 
-class AvroSchemaTree(private val schema: AvroSchema) {
+class AvroSchemaTree(private val schema: AvroSchema) : SchemaTree {
   private fun buildAvroSchemaTree(parent: DefaultMutableTreeNode, fieldName: String, schema: Schema, field: Schema.Field? = null) {
     val typeName = when (schema.type) {
       Schema.Type.MAP -> "map<string, ${schema.valueType.type.getName().lowercase()}>"
@@ -14,11 +13,10 @@ class AvroSchemaTree(private val schema: AvroSchema) {
       else -> schema.type.getName().lowercase()
     }
 
-    val child = DefaultMutableTreeNode(
-      if (field != null)
-        SchemaRegistryFieldsInfo(fieldName, typeName, field.defaultVal()?.toString() ?: "", field.doc() ?: "")
-      else SchemaRegistryFieldsInfo(fieldName, typeName, "")
-    )
+    val child = if (field != null)
+      createMutableNode(fieldName, typeName, field.defaultVal(), field.doc())
+    else createMutableNode(fieldName, typeName)
+
     parent.add(child)
     addNestedTypes(child, schema)
   }
@@ -31,7 +29,7 @@ class AvroSchemaTree(private val schema: AvroSchema) {
     else -> {}
   }
 
-  fun buildTree(root: DefaultMutableTreeNode) {
+  override fun buildTree(root: DefaultMutableTreeNode) {
     val rawSchema = schema.rawSchema()
     addNestedTypes(root, rawSchema)
   }
