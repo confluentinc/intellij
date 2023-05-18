@@ -148,7 +148,7 @@ class KafkaRegistryController(project: Project,
   override fun getDataModel() = model
 
   companion object {
-    val LIMIT_FILTER = FilterKey("limit")
+    val LIMIT_FILTER = FilterKey("registryLimit")
   }
 }
 

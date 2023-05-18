@@ -113,7 +113,7 @@ class KafkaDataManager(project: Project?,
       topicFilterName == null || it.name.contains(topicFilterName)
     }
     val topicLimit = KafkaToolWindowSettings.getInstance().getOrCreateConfig(connectionId).topicLimit
-    topicLimit?.let { topics.take(it) } ?: topics
+    (topicLimit?.let { topics.take(it) } ?: topics) to (topicLimit != null && topics.size > topicLimit)
   }
 
   private fun createConsumerGroupsDataModel() =
@@ -134,7 +134,7 @@ class KafkaDataManager(project: Project?,
         filterName == null || it.consumerGroup.contains(filterName)
       }
       val limit = KafkaToolWindowSettings.getInstance().getOrCreateConfig(connectionId).consumerLimit
-      limit?.let { groups.take(it) } ?: groups
+      (limit?.let { groups.take(it) } ?: groups) to (limit != null && groups.size > limit)
     }
 
   private fun actionWrapper(body: () -> Unit) = executeOnPooledThread {
@@ -219,8 +219,8 @@ class KafkaDataManager(project: Project?,
     }) {
       val filter = KafkaToolWindowSettings.getInstance().getOrCreateConfig(connectionId).schemaFilterName
       val limit = KafkaToolWindowSettings.getInstance().getOrCreateConfig(connectionId).registryLimit
-      val schemas = listSchemas(limit).filter { filter == null || it.name.contains(filter) }
-      limit?.let { schemas.take(it) } ?: schemas
+      val schemas = listSchemas(limit?.let { it + 1 }).filter { filter == null || it.name.contains(filter) }
+      (limit?.let { schemas.take(it) } ?: schemas) to (limit != null && schemas.size > limit)
     }
     return dataModel
   }

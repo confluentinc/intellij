@@ -10,6 +10,7 @@ import com.intellij.openapi.ui.Messages
 import com.intellij.ui.DocumentAdapter
 import com.intellij.ui.SearchTextField
 import com.jetbrains.bigdatatools.common.monitoring.data.model.FilterAdapter
+import com.jetbrains.bigdatatools.common.monitoring.data.model.FilterKey
 import com.jetbrains.bigdatatools.common.monitoring.table.DataTable
 import com.jetbrains.bigdatatools.common.monitoring.table.model.DataTableModel
 import com.jetbrains.bigdatatools.common.monitoring.toolwindow.AbstractTableController
@@ -19,7 +20,6 @@ import com.jetbrains.bigdatatools.common.ui.filter.CountFilterPopupComponent
 import com.jetbrains.bigdatatools.common.util.ToolbarUtils
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.model.TopicPresentable
-import com.jetbrains.bigdatatools.kafka.registry.confluent.controller.KafkaRegistryController
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaDriver
 import com.jetbrains.bigdatatools.kafka.toolwindow.config.KafkaToolWindowSettings
 import com.jetbrains.bigdatatools.kafka.util.KafkaDialogFactory
@@ -126,7 +126,7 @@ class TopicsController(val project: Project,
     val countFilter = CountFilterPopupComponent(KafkaMessagesBundle.message("label.filter.limit"),
                                                 KafkaToolWindowSettings.getInstance().getOrCreateConfig(
                                                   dataManager.connectionId).topicLimit)
-    FilterAdapter.install(dataTable.tableModel, countFilter, KafkaRegistryController.LIMIT_FILTER) { limit ->
+    FilterAdapter.install(dataTable.tableModel, countFilter, LIMIT_FILTER) { limit ->
       val config = KafkaToolWindowSettings.getInstance().getOrCreateConfig(dataManager.connectionId)
       config.topicLimit = limit
       dataManager.updater.invokeRefreshModel(dataManager.topicModel)
@@ -136,7 +136,8 @@ class TopicsController(val project: Project,
                                      CustomComponentActionImpl(countFilter),
                                      showInternalTopicsAction,
                                      Separator(),
-                                     createTopicAction, deleteTopicAction)
+                                     createTopicAction, deleteTopicAction
+    )
     return ToolbarUtils.createActionToolbar("BDTKafkaTopicsTopToolbar", toolbar, true)
   }
 
@@ -146,4 +147,9 @@ class TopicsController(val project: Project,
   override fun getAdditionalActions(): List<AnAction> = listOf()
   override fun showColumnFilter(): Boolean = false
   override fun getAdditionalContextActions(): List<AnAction> = listOf(createTopicAction, deleteTopicAction)
+
+  companion object {
+    val LIMIT_FILTER = FilterKey("topicLimit")
+  }
+
 }
