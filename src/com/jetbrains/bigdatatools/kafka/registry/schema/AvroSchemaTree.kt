@@ -16,7 +16,7 @@ class AvroSchemaTree(private val schema: AvroSchema) {
 
     val child = DefaultMutableTreeNode(
       if (field != null)
-        SchemaRegistryFieldsInfo(fieldName, typeName, field.defaultVal()?.toString() ?: "", field.doc())
+        SchemaRegistryFieldsInfo(fieldName, typeName, field.defaultVal()?.toString() ?: "", field.doc() ?: "")
       else SchemaRegistryFieldsInfo(fieldName, typeName, "")
     )
     parent.add(child)
