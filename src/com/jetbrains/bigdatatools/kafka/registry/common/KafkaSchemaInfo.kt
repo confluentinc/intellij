@@ -14,7 +14,7 @@ data class KafkaSchemaInfo(val name: String,
                            @field:LoadingRendering
                            val type: KafkaRegistryFormat? = null,
                            @field:LoadingRendering
-                           val versions: Long? = null,
+                           val version: Long? = null,
                            @field:LoadingRendering
                            val compatibility: String? = null,
                            @field:DateRendering
@@ -23,7 +23,7 @@ data class KafkaSchemaInfo(val name: String,
                            val description: String? = null,
                            @field:LoadingRendering
                            val schemaStatus: String? = null,
-                           val isSoftDeleted: Boolean = versions == -1L) : RemoteInfo {
+                           val isSoftDeleted: Boolean = version == -1L) : RemoteInfo {
   companion object {
     val renderableColumns: List<KProperty1<KafkaSchemaInfo, *>> by lazy {
       KafkaSchemaInfo::class.declaredMemberProperties.filter { DataRenderingUtil.shouldRenderFrom(it.javaField?.annotations) }

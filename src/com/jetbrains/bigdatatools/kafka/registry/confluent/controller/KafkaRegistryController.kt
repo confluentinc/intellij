@@ -35,7 +35,7 @@ class KafkaRegistryController(project: Project,
   val registryType = dataManager.registryType
   private val model: ObjectDataModel<KafkaSchemaInfo> = dataManager.schemaRegistryModel!!
 
-  private val addSchema = object : DumbAwareAction(KafkaMessagesBundle.message("action.add.schema.title"), null,
+  private val addSchema = object : DumbAwareAction(KafkaMessagesBundle.message("action.kafka.CreateSchemaAction.text"), null,
                                                    AllIcons.General.Add) {
     override fun actionPerformed(e: AnActionEvent) {
       KafkaRegistryAddSchemaDialog(project, dataManager).show()
@@ -44,7 +44,7 @@ class KafkaRegistryController(project: Project,
     override fun getActionUpdateThread() = ActionUpdateThread.BGT
   }
 
-  private val deleteSchema = object : DumbAwareAction(KafkaMessagesBundle.message("action.remove.schema.title"), null,
+  private val deleteSchema = object : DumbAwareAction(KafkaMessagesBundle.message("action.Kafka.DeleteSchemaAction.text"), null,
                                                       AllIcons.General.Remove) {
     override fun actionPerformed(e: AnActionEvent) {
       val registryInfo = getSelectedItem() ?: return
@@ -66,12 +66,12 @@ class KafkaRegistryController(project: Project,
     override fun getActionUpdateThread() = ActionUpdateThread.BGT
   }
 
-  private val cloneSchema = object : DumbAwareAction(KafkaMessagesBundle.message("action.clone.schema.title"), null,
+  private val cloneSchema = object : DumbAwareAction(KafkaMessagesBundle.message("action.kafka.CloneSchemaAction.text"), null,
                                                      AllIcons.Actions.Copy) {
     override fun actionPerformed(e: AnActionEvent) {
       val schemaInfo = getSelectedItem() ?: return
       val schemaFormat = schemaInfo.type ?: return
-      val version = schemaInfo.versions ?: return
+      val version = schemaInfo.version ?: return
 
       dataManager.getSchemaVersionInfo(schemaInfo.name, version).onSuccess { versionInfo ->
         invokeLater {

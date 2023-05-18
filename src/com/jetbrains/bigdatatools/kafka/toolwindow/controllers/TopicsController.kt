@@ -42,7 +42,7 @@ class TopicsController(val project: Project,
     }
   }
 
-  private val createTopicAction = object : DumbAwareAction(KafkaMessagesBundle.message("action.create.topic"),
+  private val createTopicAction = object : DumbAwareAction(KafkaMessagesBundle.message("action.kafka.CreateTopicAction.text"),
                                                            null,
                                                            AllIcons.General.Add) {
     override fun actionPerformed(e: AnActionEvent) {
@@ -57,7 +57,7 @@ class TopicsController(val project: Project,
   }
 
   @Suppress("DialogTitleCapitalization")
-  private val deleteTopicAction = object : DumbAwareAction(KafkaMessagesBundle.message("action.delete.topic"),
+  private val deleteTopicAction = object : DumbAwareAction(KafkaMessagesBundle.message("action.kafka.DeleteTopicAction.text"),
                                                            null,
                                                            AllIcons.General.Remove) {
     override fun actionPerformed(e: AnActionEvent) {
