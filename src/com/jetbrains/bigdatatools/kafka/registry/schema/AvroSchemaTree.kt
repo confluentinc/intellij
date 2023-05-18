@@ -7,17 +7,21 @@ import javax.swing.tree.DefaultMutableTreeNode
 
 class AvroSchemaTree(private val schema: AvroSchema) : SchemaTree {
   private fun buildAvroSchemaTree(parent: DefaultMutableTreeNode, fieldName: String, schema: Schema, field: Schema.Field? = null) {
+    val nameOfField = if (schema.type == Type.FIXED)
+      "$fieldName size=${schema.fixedSize}"
+    else fieldName
+
     val child = if (field != null)
-      createMutableNode(fieldName, schema.typeName(), field.defaultVal(), field.doc())
-    else createMutableNode(fieldName, schema.typeName())
+      createMutableNode(nameOfField, schema.typeName(), field.defaultVal(), field.doc())
+    else createMutableNode(nameOfField, schema.typeName())
 
     parent.add(child)
     addNestedTypes(child, schema)
   }
 
   private fun addNestedTypes(parent: DefaultMutableTreeNode, schema: Schema) = when (schema.type) {
-    Type.RECORD -> schema.fields.forEach { buildAvroSchemaTree(parent, it.name(), it.schema(), it) }
-    Type.UNION -> for ((index, schemaItem) in schema.types.withIndex()) {
+    Type.RECORD -> schema.fields?.forEach { buildAvroSchemaTree(parent, it.name(), it.schema(), it) }
+    Type.UNION -> schema.types?.forEachIndexed { index, schemaItem ->
       buildAvroSchemaTree(parent, "[$index]", schemaItem)
     }
     Type.MAP -> {
@@ -25,7 +29,6 @@ class AvroSchemaTree(private val schema: AvroSchema) : SchemaTree {
       parent.add(createMutableNode("value", schema.valueType.typeName()))
     }
     Type.ARRAY -> parent.add(createMutableNode("value", schema.elementType.typeName()))
-    Type.FIXED -> parent.add(createMutableNode("size", schema.fixedSize.toString()))
     Type.ENUM -> schema.enumSymbols?.forEachIndexed { index, enum ->
       parent.add(createMutableNode("[$index]", enum))
     }
