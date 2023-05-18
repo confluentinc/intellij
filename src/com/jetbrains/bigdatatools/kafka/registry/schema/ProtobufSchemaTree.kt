@@ -1,42 +1,42 @@
 package com.jetbrains.bigdatatools.kafka.registry.schema
 
-import com.squareup.wire.schema.internal.parser.EnumElement
-import com.squareup.wire.schema.internal.parser.MessageElement
-import com.squareup.wire.schema.internal.parser.TypeElement
+import com.google.protobuf.Descriptors.FieldDescriptor
+import com.google.protobuf.Descriptors.FieldDescriptor.Type.*
 import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchema
 import javax.swing.tree.DefaultMutableTreeNode
 
 class ProtobufSchemaTree(private val schema: ProtobufSchema) : SchemaTree {
-  private val protoTypes = hashMapOf<String, TypeElement>()
 
-  private fun buildProtobufTree(parent: DefaultMutableTreeNode, type: TypeElement) {
-    when (type) {
-      is MessageElement -> {
-        type.fields.forEach {
-          val child = createMutableNode(it.name, it.type, it.defaultValue, it.documentation)
-          parent.add(child)
+  private fun buildProtobufTree(parent: DefaultMutableTreeNode, field: FieldDescriptor) {
+    when (field.type) {
+      GROUP, MESSAGE -> {
+        val messageType = field.messageType ?: return
 
-          val objectType = protoTypes[it.type]
-          if (objectType != null) {
-            buildProtobufTree(child, objectType)
-          }
-        }
-        type.nestedTypes.forEach { buildProtobufTree(parent, it) }
+        val typeName = if (field.isMapField) "map" else messageType.fullName
+        val child = createMutableNode(field.name, typeName, optional = field.isOptional)
+        parent.add(child)
+
+        messageType.fields.forEach { buildProtobufTree(child, it) }
       }
-      is EnumElement -> {
-        for ((index, value) in type.constants.withIndex()) {
-          parent.add(createMutableNode("[$index]", value.name))
+      ENUM -> {
+        val enumType = field.enumType ?: return
+        val child = createMutableNode(field.name, field.typeName(), field.defaultValue, optional = field.isOptional)
+        parent.add(child)
+
+        enumType.values.forEachIndexed { index, enum ->
+          child.add(createMutableNode("[$index]", enum.name))
         }
       }
-      else -> {}
+      else -> {
+        parent.add(createMutableNode(field.name, field.typeName(), field.defaultValue, optional = field.isOptional))
+      }
     }
   }
 
-  override fun buildTree(root: DefaultMutableTreeNode) {
-    val protoFile = schema.rawSchema() ?: return
-    val mainMessage = protoFile.types.firstOrNull() as? MessageElement ?: return
-    protoFile.types.forEach { protoTypes[it.name] = it }
+  private fun FieldDescriptor.typeName() = this.type.name.lowercase()
 
-    buildProtobufTree(root, mainMessage)
+  override fun buildTree(root: DefaultMutableTreeNode) {
+    val descriptor = schema.toDescriptor()
+    descriptor.fields.forEach { buildProtobufTree(root, it) }
   }
 }
