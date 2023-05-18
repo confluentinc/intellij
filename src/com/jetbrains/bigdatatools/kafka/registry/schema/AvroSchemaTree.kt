@@ -2,11 +2,12 @@ package com.jetbrains.bigdatatools.kafka.registry.schema
 
 import io.confluent.kafka.schemaregistry.avro.AvroSchema
 import org.apache.avro.Schema
+import org.apache.avro.Schema.Field
 import org.apache.avro.Schema.Type
 import javax.swing.tree.DefaultMutableTreeNode
 
 class AvroSchemaTree(private val schema: AvroSchema) : SchemaTree {
-  private fun buildAvroSchemaTree(parent: DefaultMutableTreeNode, fieldName: String, schema: Schema, field: Schema.Field? = null) {
+  private fun buildAvroSchemaTree(parent: DefaultMutableTreeNode, fieldName: String, schema: Schema, field: Field? = null) {
     val nameOfField = if (schema.type == Type.FIXED)
       "$fieldName size=${schema.fixedSize}"
     else fieldName
@@ -26,9 +27,9 @@ class AvroSchemaTree(private val schema: AvroSchema) : SchemaTree {
     }
     Type.MAP -> {
       parent.add(createMutableNode("key", "string"))
-      parent.add(createMutableNode("value", schema.valueType.typeName()))
+      buildAvroSchemaTree(parent, "value", schema.valueType)
     }
-    Type.ARRAY -> parent.add(createMutableNode("value", schema.elementType.typeName()))
+    Type.ARRAY -> buildAvroSchemaTree(parent, "value", schema.elementType)
     Type.ENUM -> schema.enumSymbols?.forEachIndexed { index, enum ->
       parent.add(createMutableNode("[$index]", enum))
     }
