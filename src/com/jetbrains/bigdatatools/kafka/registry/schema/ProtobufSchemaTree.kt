@@ -6,8 +6,14 @@ import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchema
 import javax.swing.tree.DefaultMutableTreeNode
 
 class ProtobufSchemaTree(private val schema: ProtobufSchema) : SchemaTree {
+  private val messages = mutableListOf<String>()
 
   private fun buildProtobufTree(parent: DefaultMutableTreeNode, field: FieldDescriptor) {
+    val fullName = field.fullName
+    if (messages.contains(fullName))
+      return
+    else messages.add(fullName)
+
     when (field.type) {
       GROUP, MESSAGE -> {
         val messageType = field.messageType ?: return
