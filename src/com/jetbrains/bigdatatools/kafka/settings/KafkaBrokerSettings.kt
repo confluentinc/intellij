@@ -101,6 +101,8 @@ class KafkaBrokerSettings(val project: Project,
     }
   }
 
+  private val sslComponent = KafkaSslSettingsComponent(project, ::updatePropertiesField)
+
   init {
     url.apply {
       getComponent().whenFocusLost {
@@ -117,20 +119,11 @@ class KafkaBrokerSettings(val project: Project,
   private lateinit var saslAdditionalKerberosGroup: RowsRange
   private lateinit var saslSecurityProtocol: Cell<JBCheckBox>
   private lateinit var saslMechanism: Cell<ComboBox<KafkaSaslMechanism>>
-  private lateinit var sslUseKeystore: Cell<JBCheckBox>
-  private lateinit var sslKeystoreGroup: RowsRange
   private lateinit var saslPrincipal: Cell<JBTextField>
   private lateinit var saslKeytab: Cell<TextFieldWithBrowseButton>
   private lateinit var saslKerberosUseTicketCache: Cell<JBCheckBox>
   private lateinit var saslUsername: Cell<JBTextField>
   private lateinit var saslPassword: Cell<JBPasswordField>
-  private lateinit var sslTruststoreLocation: Cell<TextFieldWithBrowseButton>
-  private lateinit var sslTruststorePassword: Cell<JBPasswordField>
-
-  private lateinit var sslEnableValidateHostname: Cell<JBCheckBox>
-  private lateinit var sslKeystoreLocation: Cell<TextFieldWithBrowseButton>
-  private lateinit var sslKeystorePassword: Cell<JBPasswordField>
-  private lateinit var sslKeyPassword: Cell<JBPasswordField>
 
   private val awsMskSettings = AwsSettingsComponentForKafka {
     updatePropertiesField()
@@ -241,54 +234,8 @@ class KafkaBrokerSettings(val project: Project,
       }
     }
 
-    sslGroupTitle = group("SSL Settings") {}.bottomGap(BottomGap.NONE)
-    sslGroup = indent {
-      row {
-        sslEnableValidateHostname = checkBox(
-          KafkaMessagesBundle.message("kafka.auth.enable.server.host.name.indetification")).onChanged {
-          updatePropertiesField()
-        }
-      }.bottomGap(BottomGap.SMALL)
-      row(KafkaMessagesBundle.message("kafka.truststore.location")) {
-        sslTruststoreLocation = textFieldWithBrowseButton(project = project,
-                                                          browseDialogTitle = KafkaMessagesBundle.message(
-                                                            "kafka.truststore.location.dialog.title")).align(AlignX.FILL).onChanged {
-          updatePropertiesField()
-        }
-      }
-      row(KafkaMessagesBundle.message("kafka.truststore.password")) {
-        sslTruststorePassword = passwordField().align(AlignX.FILL).onChanged {
-          updatePropertiesField()
-        }
-      }.bottomGap(BottomGap.SMALL)
-      row {
-        sslUseKeystore = checkBox(KafkaMessagesBundle.message("kafka.ssl.use.keystore")).onChanged {
-          updatePropertiesField()
-          updateVisibilityOfSslKeystore()
-        }
-      }.topGap(TopGap.SMALL)
-
-      sslKeystoreGroup = rowsRange {
-        row(KafkaMessagesBundle.message("kafka.keystore.location")) {
-          sslKeystoreLocation = textFieldWithBrowseButton(project = project,
-                                                          browseDialogTitle = KafkaMessagesBundle.message(
-                                                            "kafka.truststore.location.dialog.title")).align(AlignX.FILL).onChanged {
-            updatePropertiesField()
-          }
-        }
-        row(KafkaMessagesBundle.message("kafka.keystore.password")) {
-          sslKeystorePassword = passwordField().align(AlignX.FILL).onChanged {
-            updatePropertiesField()
-          }
-        }
-        row(KafkaMessagesBundle.message("kafka.key.password")) {
-          sslKeyPassword = passwordField().align(AlignX.FILL).onChanged {
-            updatePropertiesField()
-          }
-        }
-      }
-    }
-
+    sslGroupTitle = group(KafkaMessagesBundle.message("border.title.ssl.settings")) {}.bottomGap(BottomGap.NONE)
+    sslGroup = sslComponent.create(this)
     awsMskSettingsRows = indent { awsMskSettings.getComponentRows(this) }
   }
 
@@ -323,6 +270,7 @@ class KafkaBrokerSettings(val project: Project,
         if (saslMechanism == KafkaSaslMechanism.KERBEROS) {
           result += SASL_KERBEROS_SERVICE_NAME to "kafka"
         }
+        @Suppress("DEPRECATION")
         val jaasConfig = if (saslMechanism == KafkaSaslMechanism.KERBEROS) {
           val keytab = saslKeytab.component.text
           val principal = saslPrincipal.component.text
@@ -373,16 +321,15 @@ class KafkaBrokerSettings(val project: Project,
   }
 
   private fun addSslProperties(result: MutableMap<String, String?>) {
-    @Suppress("DEPRECATION")
-    result += mapOf(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG to sslTruststoreLocation.component.text.ifBlank { null },
-                    SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG to sslTruststorePassword.component.text.ifBlank { null })
-    if (!sslEnableValidateHostname.component.isSelected)
+    val config = sslComponent.getConfig()
+    result += mapOf(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG to config.truststoreLocation.ifBlank { null },
+                    SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG to config.truststorePassword.ifBlank { null })
+    if (!config.validateHostName)
       result += mapOf(SslConfigs.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG to "")
-    if (sslUseKeystore.component.isEnabled) {
-      @Suppress("DEPRECATION")
-      result += mapOf(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG to sslKeystoreLocation.component.text.ifBlank { null },
-                      SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG to sslKeystorePassword.component.text.ifBlank { null },
-                      SslConfigs.SSL_KEY_PASSWORD_CONFIG to sslKeyPassword.component.text.ifBlank { null })
+    if (config.useKeyStore) {
+      result += mapOf(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG to config.keystoreLocation.ifBlank { null },
+                      SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG to config.keystorePassword.ifBlank { null },
+                      SslConfigs.SSL_KEY_PASSWORD_CONFIG to config.keyPassword.ifBlank { null })
     }
   }
 
@@ -441,12 +388,18 @@ class KafkaBrokerSettings(val project: Project,
   }
 
   private fun setSslToUi(properties: Map<String, String>) {
-    sslTruststoreLocation.component.text = properties[SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG] ?: ""
-    sslTruststorePassword.component.text = properties[SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG] ?: ""
-    sslKeystoreLocation.component.text = properties[SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG] ?: ""
-    sslKeystorePassword.component.text = properties[SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG] ?: ""
-    sslKeyPassword.component.text = properties[SslConfigs.SSL_KEY_PASSWORD_CONFIG] ?: ""
-    sslEnableValidateHostname.component.isSelected = properties[SslConfigs.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG] != ""
+    val keystoreLocation = properties[SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG] ?: ""
+    sslComponent.applyConfig(
+      KafkaSslConfig(
+        validateHostName = properties[SslConfigs.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG] != "",
+        truststoreLocation = properties[SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG] ?: "",
+        truststorePassword = properties[SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG] ?: "",
+        useKeyStore = keystoreLocation.isNotBlank(),
+        keyPassword = properties[SslConfigs.SSL_KEY_PASSWORD_CONFIG] ?: "",
+        keystoreLocation = keystoreLocation,
+        keystorePassword = properties[SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG] ?: ""
+      )
+    )
   }
 
   private fun setAwsProperties(properties: Map<String, String>) {
@@ -519,12 +472,8 @@ class KafkaBrokerSettings(val project: Project,
       KafkaAuthMethod.NOT_SPECIFIED -> {}
       KafkaAuthMethod.SASL -> {
         updateVisibilityOfSasl()
-        if (isSslVisible) {
-          updateVisibilityOfSslKeystore()
-        }
       }
       KafkaAuthMethod.SSL -> {
-        updateVisibilityOfSslKeystore()
       }
       KafkaAuthMethod.AWS_IAM -> {
         awsMskSettings.updateVisibility()
@@ -543,11 +492,6 @@ class KafkaBrokerSettings(val project: Project,
 
   private fun updateVisibilityOfAdditionalKerberos() {
     saslAdditionalKerberosGroup.visible(!saslKerberosUseTicketCache.component.isSelected)
-  }
-
-  private fun updateVisibilityOfSslKeystore() {
-    val use = sslUseKeystore.component.isSelected
-    sslKeystoreGroup.visible(use)
   }
 
   fun getDefaultFields(): List<WrappedComponent<in KafkaConnectionData>> = listOf(propertiesEditor, propertiesFile,

@@ -219,16 +219,16 @@ class KafkaDataManager(project: Project?,
     }) {
       val filter = KafkaToolWindowSettings.getInstance().getOrCreateConfig(connectionId).schemaFilterName
       val limit = KafkaToolWindowSettings.getInstance().getOrCreateConfig(connectionId).registryLimit
-      val schemas = listSchemas(limit?.let { it + 1 }).filter { filter == null || it.name.contains(filter) }
-      (limit?.let { schemas.take(it) } ?: schemas) to (limit != null && schemas.size > limit)
+      listSchemas(limit, filter)
+
     }
     return dataModel
   }
 
-  private fun listSchemas(limit: Int?, registryShowDeletedSubjects: Boolean = false) =
-    client.confluentRegistryClient?.listSchemas(registryShowDeletedSubjects)
-    ?: client.glueRegistryClient?.listSchemas(limit)
-    ?: emptyList()
+  private fun listSchemas(limit: Int?, filter: String?, registryShowDeletedSubjects: Boolean = false) =
+    client.confluentRegistryClient?.listSchemas(limit, filter, registryShowDeletedSubjects)
+    ?: client.glueRegistryClient?.listSchemas(limit, filter)
+    ?: (emptyList<KafkaSchemaInfo>() to false)
 
   private suspend fun updateSchemaList(dataModel: ObjectDataModel<KafkaSchemaInfo>): List<KafkaSchemaInfo> {
     val data = dataModel.data ?: emptyList()

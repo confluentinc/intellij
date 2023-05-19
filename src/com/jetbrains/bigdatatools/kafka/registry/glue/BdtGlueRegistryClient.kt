@@ -39,13 +39,13 @@ class BdtGlueRegistryClient(val project: Project?,
         if (registryName.isBlank())
           listRegistries()
         else
-          listSchemas(1)
+          listSchemas(1, null)
       }
     }
   }
 
   fun checkConnection() {
-    listSchemas(1)
+    listSchemas(1, null)
   }
 
   fun deleteSchemaVersion(schemaVersionInfo: SchemaVersionInfo) {
@@ -66,23 +66,50 @@ class BdtGlueRegistryClient(val project: Project?,
     return client.listRegistries(request).registries()
   }
 
-  fun listSchemas(size: Int? = null): List<KafkaSchemaInfo> {
+  fun listSchemas(size: Int? = null, filter: String?): Pair<List<KafkaSchemaInfo>, Boolean> {
     val registryId = registryName.let { RegistryId.builder().registryName(registryName).build() }
     val requestBuilder = ListSchemasRequest.builder().registryId(registryId)
     if (size != null) {
       requestBuilder.maxResults(size)
     }
-    val request = requestBuilder.build()
+    var request = requestBuilder.build()
 
-    return client.listSchemas(request).schemas().map {
-      val schemaName = it.schemaName()
-      KafkaSchemaInfo(name = schemaName ?: "",
-                      type = null,
-                      compatibility = null,
-                      version = null,
-                      description = it.description() ?: "",
-                      schemaStatus = it.schemaStatusAsString() ?: "",
-                      updatedTime = TimeUtils.parseIsoTime(it.updatedTime()))
+    var left = size
+    val filterRegex = filter?.let { Regex(it) }
+    val totalResult = mutableListOf<KafkaSchemaInfo>()
+    while (true) {
+      if (left == 0)
+        return totalResult to false
+
+      val response = client.listSchemas(request)
+
+      val clusters = response.schemas()
+        .filter { filterRegex == null || it.schemaName().contains(filterRegex) }
+        .map {
+          val schemaName = it.schemaName()
+          KafkaSchemaInfo(name = schemaName ?: "",
+                          type = null,
+                          compatibility = null,
+                          version = null,
+                          description = it.description() ?: "",
+                          schemaStatus = it.schemaStatusAsString() ?: "",
+                          updatedTime = TimeUtils.parseIsoTime(it.updatedTime()))
+        }
+      if (left == null) {
+        totalResult.addAll(clusters)
+      }
+      if (left != null && clusters.size >= left) {
+        totalResult.addAll(clusters.subList(0, left))
+        return totalResult to true
+      }
+      if (left != null && clusters.size < left) {
+        totalResult.addAll(clusters)
+        left -= clusters.size
+      }
+      val nextMarker = response.nextToken()
+      if (nextMarker == null)
+        return totalResult to false
+      request = request.toBuilder().nextToken(nextMarker).build()
     }
   }
 

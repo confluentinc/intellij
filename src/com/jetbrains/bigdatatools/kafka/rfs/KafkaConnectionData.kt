@@ -32,6 +32,7 @@ class KafkaConnectionData : RemoteFsDriverProvider(KafkaMessagesBundle.message("
   var registryType = KafkaRegistryType.NONE
   var registryUrl: String? = null
   var registryProperties: String = ""
+  var registryUseBrokerSsl: Boolean = true
   var glueRegistryName: String? = null
 
   var version: Int? = null

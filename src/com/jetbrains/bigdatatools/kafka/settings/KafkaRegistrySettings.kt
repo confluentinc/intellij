@@ -9,9 +9,11 @@ import com.intellij.bigdatatools.aws.utils.AwsSettingsConst
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.observable.util.whenFocusLost
 import com.intellij.openapi.project.Project
+import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.components.JBPasswordField
 import com.intellij.ui.components.JBTextField
 import com.intellij.ui.dsl.builder.*
+import com.intellij.ui.layout.not
 import com.jetbrains.bigdatatools.common.serializer.BdtJson
 import com.jetbrains.bigdatatools.common.settings.ModificationKey
 import com.jetbrains.bigdatatools.common.settings.fields.*
@@ -28,6 +30,7 @@ import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import com.jetbrains.bigdatatools.kafka.util.KafkaPropertiesUtils
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClientConfig
 import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG
+import org.apache.kafka.common.config.SslConfigs
 import java.util.concurrent.atomic.AtomicBoolean
 
 class KafkaRegistrySettings(val project: Project,
@@ -101,10 +104,14 @@ class KafkaRegistrySettings(val project: Project,
     KafkaUIUtils.showAndGetGlueRegistry(project, awsGlueSettings.getInfo())
   }
 
+  private val useBrokerSslCheckbox = CheckBoxField(KafkaConnectionData::registryUseBrokerSsl, USE_BROKER_SSL,
+                                                   connectionData)
+
   private val awsGlueSettings = AwsSettingsComponentForKafka(includeRegionSetting = true) {
     saveGlueSettings()
   }
 
+  private val sslComponent = KafkaSslSettingsComponent(project, ::updateRegistryPropertiesField)
 
   private lateinit var confluentGroup: RowsRange
   private lateinit var glueGroup: RowsRange
@@ -145,7 +152,7 @@ class KafkaRegistrySettings(val project: Project,
 
     registryPropertiesGroup = block(registryPropertiesEditor.getComponent())
 
-    implicitRegistryClientSettingsGroup = rowsRange {
+    implicitRegistryClientSettingsGroup = indent {
       row(KafkaMessagesBundle.message("kafka.auth.method.label")) {
         cell(schemaAuth.getComponent())
       }
@@ -163,6 +170,15 @@ class KafkaRegistrySettings(val project: Project,
           schemaBearerToken = textField().align(AlignX.FILL)
         }
       }
+      lateinit var useBrokerSsl: Cell<JBCheckBox>
+      row {
+        useBrokerSsl = cell(useBrokerSslCheckbox.checkBoxField)
+        useBrokerSsl.onChanged {
+          updateRegistryPropertiesField()
+        }
+      }
+      sslComponent.create(this).visibleIf(useBrokerSsl.selected.not())
+
     }
 
 
@@ -230,6 +246,18 @@ class KafkaRegistrySettings(val project: Project,
         schemaAuth.selectedItem = SchemaRegistryAuthType.NOT_SPECIFIED
       }
     }
+
+    val keystoreLocation = properties[SchemaRegistryClientConfig.CLIENT_NAMESPACE + SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG] ?: ""
+    sslComponent.applyConfig(KafkaSslConfig(
+      validateHostName = properties[SchemaRegistryClientConfig.CLIENT_NAMESPACE + SslConfigs.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG] != "",
+      truststoreLocation = properties[SchemaRegistryClientConfig.CLIENT_NAMESPACE + SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG] ?: "",
+      truststorePassword = properties[SchemaRegistryClientConfig.CLIENT_NAMESPACE + SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG] ?: "",
+      useKeyStore = keystoreLocation.isNotBlank(),
+      keyPassword = properties[SslConfigs.SSL_KEY_PASSWORD_CONFIG] ?: "",
+      keystoreLocation = keystoreLocation,
+      keystorePassword = properties[SchemaRegistryClientConfig.CLIENT_NAMESPACE + SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG] ?: ""
+    )
+    )
   }
 
   private fun getRegistryProperties(): Map<String, String?> {
@@ -256,12 +284,36 @@ class KafkaRegistrySettings(val project: Project,
         )
       }
     }
-    return default + fromUi + mapOf(SCHEMA_REGISTRY_URL_CONFIG to registryUrl.getTextComponent().text)
+    val ssl = if (!useBrokerSslCheckbox.checkBoxField.isSelected) {
+      val config = sslComponent.getConfig()
+      val result = mutableMapOf<String, String?>()
+      result += mapOf(
+        SchemaRegistryClientConfig.CLIENT_NAMESPACE + SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG to config.truststoreLocation.ifBlank { null },
+        SchemaRegistryClientConfig.CLIENT_NAMESPACE + SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG to config.truststorePassword.ifBlank { null })
+      if (!config.validateHostName)
+        result += mapOf(SchemaRegistryClientConfig.CLIENT_NAMESPACE + SslConfigs.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG to "")
+      if (config.useKeyStore) {
+        result += mapOf(
+          SchemaRegistryClientConfig.CLIENT_NAMESPACE + SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG to config.keystoreLocation.ifBlank { null },
+          SchemaRegistryClientConfig.CLIENT_NAMESPACE + SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG to config.keystorePassword.ifBlank { null },
+          SchemaRegistryClientConfig.CLIENT_NAMESPACE + SslConfigs.SSL_KEY_PASSWORD_CONFIG to config.keyPassword.ifBlank { null })
+      }
+      result
+    }
+    else
+      mapOf(SchemaRegistryClientConfig.CLIENT_NAMESPACE + SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG to null,
+            SchemaRegistryClientConfig.CLIENT_NAMESPACE + SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG to null,
+            SchemaRegistryClientConfig.CLIENT_NAMESPACE + SslConfigs.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG to null,
+            SchemaRegistryClientConfig.CLIENT_NAMESPACE + SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG to null,
+            SchemaRegistryClientConfig.CLIENT_NAMESPACE + SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG to null,
+            SchemaRegistryClientConfig.CLIENT_NAMESPACE + SslConfigs.SSL_KEY_PASSWORD_CONFIG to null)
+
+    return default + ssl + fromUi + mapOf(SCHEMA_REGISTRY_URL_CONFIG to registryUrl.getTextComponent().text)
   }
 
   fun getDefaultFields(): List<WrappedComponent<in KafkaConnectionData>> =
     listOf(registryType, registrySourceTypeChooser, registryPropertiesEditor, registryUrl, glueSettings, awsAccessKey, awsSecretKey,
-           glueRegistryName)
+           glueRegistryName, useBrokerSslCheckbox)
 
   private fun updateRegistryType() {
     when (registryType.getValue()) {
@@ -302,5 +354,6 @@ class KafkaRegistrySettings(val project: Project,
   companion object {
     private const val SUPPORT_REGISTRY_BASIC_AUTH_TYPE = "USER_INFO"
     private const val SUPPORT_REGISTRY_BEARER_AUTH_TYPE = "STATIC_TOKEN"
+    private val USE_BROKER_SSL = ModificationKey(KafkaMessagesBundle.message("kafka.registry.use.broker.ssl.settings.checkbox"))
   }
 }

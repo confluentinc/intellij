@@ -14,14 +14,16 @@ import com.jetbrains.bigdatatools.kafka.registry.common.KafkaSchemaInfo
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaConnectionData
 import io.confluent.kafka.schemaregistry.ParsedSchema
 import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClientConfig
 import io.confluent.kafka.schemaregistry.client.rest.RestService
 import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig
+import org.apache.kafka.common.config.ConfigDef
 
-class ConfluentRegistryClient(restService: RestService) : Disposable {
+class ConfluentRegistryClient(restService: RestService, props: Map<String, String>) : Disposable {
   val internalClient = CachedSchemaRegistryClient(restService,
                                                   100,
                                                   KafkaRegistryUtil.registrySchemaProviders,
-                                                  null, null)
+                                                  props, null)
 
   override fun dispose() {}
 
@@ -29,9 +31,11 @@ class ConfluentRegistryClient(restService: RestService) : Disposable {
     internalClient.mode
   }
 
-  fun listSchemas(registryShowDeletedSubjects: Boolean): List<KafkaSchemaInfo> {
+  fun listSchemas(limit: Int?, filter: String?, registryShowDeletedSubjects: Boolean): Pair<List<KafkaSchemaInfo>, Boolean> {
     val names = internalClient.getAllSubjects(registryShowDeletedSubjects)?.sortedBy { it.lowercase() } ?: emptyList()
-    return names.map { KafkaSchemaInfo(it) }
+    val regex = filter?.let { Regex(it) }
+    val filteredNames = names.filter { regex == null || it.contains(regex) }
+    return filteredNames.map { KafkaSchemaInfo(it) }.take(limit ?: Int.MAX_VALUE) to (limit != null && names.size > limit)
   }
 
   fun loadSchemaInfo(schemaName: String): KafkaSchemaInfo {
@@ -99,11 +103,23 @@ class ConfluentRegistryClient(restService: RestService) : Disposable {
     private fun createConfluentClient(connectionData: KafkaConnectionData,
                                       project: Project?,
                                       testConnection: Boolean): ConfluentRegistryClient? {
-      val props = BdtPropertyComponent.parseProperties(connectionData.properties).associate {
-        (it.name ?: "") to (it.value ?: "")
-      } + BdtPropertyComponent.parseProperties(connectionData.registryProperties).associate {
+      val brokerSettings = BdtPropertyComponent.parseProperties(connectionData.properties).associate {
         (it.name ?: "") to (it.value ?: "")
       }
+      val brokerSsl = if (connectionData.registryUseBrokerSsl) {
+        val configDef = ConfigDef()
+        configDef.withClientSslSupport()
+        configDef.configKeys().mapNotNull {
+          val key = it.key
+          brokerSettings[key]?.let { (SchemaRegistryClientConfig.CLIENT_NAMESPACE + key) to it }
+        }.toMap()
+      }
+      else
+        mapOf()
+      val registryProps = BdtPropertyComponent.parseProperties(connectionData.registryProperties).associate {
+        (it.name ?: "") to (it.value ?: "")
+      }
+      val props = brokerSettings + brokerSsl + registryProps
 
       val url = props[AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG]?.ifBlank { null }
                 ?: connectionData.registryUrl?.ifBlank { null } ?: return null
@@ -116,7 +132,7 @@ class ConfluentRegistryClient(restService: RestService) : Disposable {
       val restService = RestService(tunneledUrl)
 
       restService.configure(props)
-      val registryClient = ConfluentRegistryClient(restService)
+      val registryClient = ConfluentRegistryClient(restService, props)
       if (tunnel != null) {
         Disposer.register(registryClient, tunnel)
       }

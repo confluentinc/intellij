@@ -30,8 +30,8 @@ class KafkaSettingsCustomizer(project: Project, connectionData: KafkaConnectionD
       getTextComponent().toolTipText = KafkaMessagesBundle.message("settings.url.text.hint")
     }.withValidator(uiDisposable, ::validateBrokerNames) as StringNamedField
 
-  private val registrySettings = KafkaRegistrySettings(project, connectionData, uiDisposable)
   private val brokerSettings = KafkaBrokerSettings(project, connectionData, uiDisposable, url)
+  private val registrySettings = KafkaRegistrySettings(project, connectionData, uiDisposable)
 
   override fun getDefaultFields(): List<WrappedComponent<in KafkaConnectionData>> {
     return listOf<WrappedComponent<in KafkaConnectionData>>(nameField, url,
