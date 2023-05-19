@@ -125,6 +125,9 @@ class KafkaRegistrySettings(val project: Project,
   private lateinit var schemaBasicPassword: Cell<JBPasswordField>
   private lateinit var schemaBearerToken: Cell<JBTextField>
 
+  private lateinit var useProxy: Cell<JBCheckBox>
+  private lateinit var proxyUrl: Cell<JBTextField>
+
   private val isUpdatingFromProperties = AtomicBoolean(false)
 
   fun setPanelComponent(panel: Panel) = panel.setComponent()
@@ -178,6 +181,20 @@ class KafkaRegistrySettings(val project: Project,
         }
       }
       sslComponent.create(this).visibleIf(useBrokerSsl.selected.not())
+
+      row {
+        useProxy = checkBox(KafkaMessagesBundle.message("kafka.registry.use.proxy"))
+        useProxy.onChanged {
+          updateRegistryPropertiesField()
+        }
+      }
+      indent {
+        row(KafkaMessagesBundle.message("kafka.registry.proxy.label")) {
+          proxyUrl = textField().align(AlignX.FILL).onChanged {
+            updateRegistryPropertiesField()
+          }
+        }
+      }.visibleIf(useProxy.selected)
 
     }
 
@@ -256,8 +273,14 @@ class KafkaRegistrySettings(val project: Project,
       keyPassword = properties[SslConfigs.SSL_KEY_PASSWORD_CONFIG] ?: "",
       keystoreLocation = keystoreLocation,
       keystorePassword = properties[SchemaRegistryClientConfig.CLIENT_NAMESPACE + SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG] ?: ""
-    )
-    )
+    ))
+
+    val proxyHost = properties[SchemaRegistryClientConfig.PROXY_HOST]
+    val proxyPort = properties[SchemaRegistryClientConfig.PROXY_PORT]
+    val isProxySetup = proxyHost != null && proxyPort != null
+    useProxy.selected(isProxySetup)
+    if (isProxySetup)
+      proxyUrl.text("$proxyHost:$proxyPort")
   }
 
   private fun getRegistryProperties(): Map<String, String?> {
@@ -269,7 +292,7 @@ class KafkaRegistrySettings(val project: Project,
     )
 
     @Suppress("DEPRECATION")
-    val fromUi = when (schemaAuth.selectedItem) {
+    val auth = when (schemaAuth.selectedItem) {
       SchemaRegistryAuthType.NOT_SPECIFIED -> emptyMap<String, String?>()
       SchemaRegistryAuthType.BASIC_AUTH -> {
         mapOf(
@@ -308,7 +331,20 @@ class KafkaRegistrySettings(val project: Project,
             SchemaRegistryClientConfig.CLIENT_NAMESPACE + SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG to null,
             SchemaRegistryClientConfig.CLIENT_NAMESPACE + SslConfigs.SSL_KEY_PASSWORD_CONFIG to null)
 
-    return default + ssl + fromUi + mapOf(SCHEMA_REGISTRY_URL_CONFIG to registryUrl.getTextComponent().text)
+    val proxy = if (useProxy.selected.invoke()) {
+      mapOf(
+        SchemaRegistryClientConfig.PROXY_HOST to proxyUrl.component.text.split(":").first(),
+        SchemaRegistryClientConfig.PROXY_PORT to proxyUrl.component.text.split(":").last(),
+      )
+    }
+    else {
+      mapOf(
+        SchemaRegistryClientConfig.PROXY_HOST to null,
+        SchemaRegistryClientConfig.PROXY_PORT to null,
+      )
+
+    }
+    return default + ssl + auth + proxy + mapOf(SCHEMA_REGISTRY_URL_CONFIG to registryUrl.getTextComponent().text)
   }
 
   fun getDefaultFields(): List<WrappedComponent<in KafkaConnectionData>> =
