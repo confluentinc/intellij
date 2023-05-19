@@ -30,11 +30,11 @@ class JsonSchemaTree(private val schema: JsonSchema) : SchemaTree {
   }
 
   companion object {
-    // TODO: CombinedSchema ConditionalSchema ConstSchema EmptySchema EnumSchema FalseSchema NotSchema ReferenceSchema TrueSchema
+    // TODO: CombinedSchema ConditionalSchema ConstSchema EmptySchema NotSchema ReferenceSchema
     fun resolveJsonFieldType(schemaValue: Schema) = when (schemaValue) {
       is NullSchema -> "null"
       is ArraySchema -> "array"
-      is BooleanSchema -> "boolean"
+      is BooleanSchema, is TrueSchema, is FalseSchema -> "boolean"
       is NumberSchema -> when {
         schemaValue.requiresInteger() -> "integer"
         schemaValue.isRequiresNumber -> "number"
@@ -42,6 +42,7 @@ class JsonSchemaTree(private val schema: JsonSchema) : SchemaTree {
       }
       is ObjectSchema -> "object"
       is StringSchema -> "string"
+      is EnumSchema -> "enum"
       else -> ""
     }
   }
