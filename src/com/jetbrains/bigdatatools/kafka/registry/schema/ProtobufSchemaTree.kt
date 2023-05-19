@@ -13,14 +13,14 @@ class ProtobufSchemaTree(private val schema: ProtobufSchema) : SchemaTree {
         val messageType = field.messageType ?: return
 
         val typeName = if (field.isMapField) "map" else messageType.fullName
-        val child = createMutableNode(field.name, typeName, optional = field.isOptional)
+        val child = createMutableNode(field.name, typeName, required = !field.isOptional)
         parent.add(child)
 
         messageType.fields.forEach { buildProtobufTree(child, it) }
       }
       ENUM -> {
         val enumType = field.enumType ?: return
-        val child = createMutableNode(field.name, field.typeName(), field.defaultValue, optional = field.isOptional)
+        val child = createMutableNode(field.name, field.typeName(), field.defaultValue, required = !field.isOptional)
         parent.add(child)
 
         enumType.values.forEachIndexed { index, enum ->
@@ -28,7 +28,7 @@ class ProtobufSchemaTree(private val schema: ProtobufSchema) : SchemaTree {
         }
       }
       else -> {
-        parent.add(createMutableNode(field.name, field.typeName(), field.defaultValue, optional = field.isOptional))
+        parent.add(createMutableNode(field.name, field.typeName(), field.defaultValue, required = !field.isOptional))
       }
     }
   }

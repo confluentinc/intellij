@@ -24,7 +24,7 @@ class SchemaTreePanel {
     SchemaRegistryColumn(KafkaMessagesBundle.message("column.name.type")) { it.type },
     SchemaRegistryColumn(KafkaMessagesBundle.message("column.name.default")) { it.default },
     SchemaRegistryColumn(KafkaMessagesBundle.message("column.name.documentation")) { it.description },
-    SchemaRegistryColumn(KafkaMessagesBundle.message("column.name.optional")) { it.optional },
+    SchemaRegistryColumn(KafkaMessagesBundle.message("column.name.required")) { it.required },
   )
 
   private val treeTableModel = ListTreeTableModel(DefaultMutableTreeNode(), commonColumns)
