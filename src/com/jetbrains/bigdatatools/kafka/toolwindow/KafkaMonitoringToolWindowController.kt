@@ -9,6 +9,7 @@ import com.jetbrains.bigdatatools.common.rfs.driver.RfsPath
 import com.jetbrains.bigdatatools.common.settings.connections.ConnectionData
 import com.jetbrains.bigdatatools.common.settings.connections.ConnectionFactory
 import com.jetbrains.bigdatatools.common.settings.manager.RfsConnectionDataManager
+import com.jetbrains.bigdatatools.common.util.BdIdeRegistryUtil
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryUtil
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaConnectionData
 import com.jetbrains.bigdatatools.kafka.settings.KafkaConnectionGroup
@@ -16,8 +17,12 @@ import com.jetbrains.bigdatatools.kafka.toolwindow.config.KafkaToolWindowSetting
 import com.jetbrains.bigdatatools.kafka.toolwindow.controllers.KafkaMainController
 
 class KafkaMonitoringToolWindowController(project: Project) : MonitoringToolWindowController(project) {
+  override val settings
+    get() = KafkaToolWindowSettings.getInstance()
+
   override val helpTopicId: String = "big.data.tools.kafka"
-  override val settings = KafkaToolWindowSettings.getInstance()
+
+  override val toolWindowId: String = TOOL_WINDOW_ID
 
   private val settingsListener = KafkaConnectionSettingsListener()
 
@@ -39,7 +44,16 @@ class KafkaMonitoringToolWindowController(project: Project) : MonitoringToolWind
     KafkaRegistryUtil.disableLoggers()
   }
 
+  override fun focusOn(connectionId: String) = focusOn(connectionId, null)
+
   fun focusOn(connectionId: String, rfsPath: RfsPath?) {
+
+    // ToDo Temporary code for services integration, which will not focus on datatable.
+    if (BdIdeRegistryUtil.isServicesIntegrationEnabled()) {
+      super.focusOn(connectionId)
+      return
+    }
+
     val toolWindow = ToolWindowManager.getInstance(project).getToolWindow(TOOL_WINDOW_ID) ?: return
 
     toolWindow.show {
@@ -52,10 +66,6 @@ class KafkaMonitoringToolWindowController(project: Project) : MonitoringToolWind
         mainController.open(rfsPath)
       }
     }
-  }
-
-  override fun focusOn(connectionId: String) {
-    focusOn(connectionId, null)
   }
 
   companion object {

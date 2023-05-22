@@ -9,7 +9,7 @@ import com.jetbrains.bigdatatools.common.settings.manager.RfsConnectionDataManag
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 
 class KafkaToolWindowFactory : MonitoringToolWindowFactory() {
-  override val controllerId = KafkaMonitoringToolWindowController.TOOL_WINDOW_ID
+  override val toolWindowId = KafkaMonitoringToolWindowController.TOOL_WINDOW_ID
   override val connectionType = BdtConnectionType.KAFKA
   override val title: String = KafkaMessagesBundle.message("toolwindow.title")
 
