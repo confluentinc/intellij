@@ -25,7 +25,6 @@ import com.intellij.ui.dsl.builder.panel
 import com.intellij.ui.dsl.gridLayout.UnscaledGaps
 import com.intellij.ui.tabs.JBTabs
 import com.intellij.ui.tree.AsyncTreeModel
-import com.intellij.util.ui.EmptyIcon
 import com.jetbrains.bigdatatools.common.monitoring.toolwindow.ComponentController
 import com.jetbrains.bigdatatools.common.rfs.driver.DriverConnectionStatus
 import com.jetbrains.bigdatatools.common.rfs.driver.RfsPath
@@ -90,7 +89,7 @@ class KafkaMainController(private val project: Project, private val connectionDa
   private lateinit var myTree: ProjectViewTree
   private val normalPanel = createNormalPanel()
   private var prevError: Throwable? = null
-  private val errorPanel = JPanel()
+  private val errorPanel = JPanel(BorderLayout())
   private val panel = panel {
     row {
       cell(normalPanel).align(Align.FILL)
@@ -99,7 +98,6 @@ class KafkaMainController(private val project: Project, private val connectionDa
       cell(errorPanel).align(Align.FILL)
     }.resizableRow().visibleIf(isErrorView)
   }
-
 
   private val driverListener = object : DriverRfsListener {
     override fun driverRefreshFinished(status: DriverConnectionStatus) {
@@ -121,7 +119,6 @@ class KafkaMainController(private val project: Project, private val connectionDa
         else -> null
       }
     }
-
   }
 
   override fun dispose() {}
@@ -134,7 +131,6 @@ class KafkaMainController(private val project: Project, private val connectionDa
 
   private fun showDetailsComponent(rfsPath: RfsPath) {
     val label = dataManager.activeComponentLabel
-    label.icon = EmptyIcon.ICON_8
     when {
       rfsPath.isRoot -> {
         showDetailsComponent(null)
@@ -289,6 +285,8 @@ class KafkaMainController(private val project: Project, private val connectionDa
     errorPanel.add(RfsEditorErrorPanel(exception, this), BorderLayout.CENTER)
     errorPanel.revalidate()
     errorPanel.repaint()
+
+    dataManager.activeComponentLabel.text = ""
   }
 
   private fun updateMainPanel(exception: Throwable?) {
@@ -312,6 +310,5 @@ class KafkaMainController(private val project: Project, private val connectionDa
 
     val AnActionEvent.rfsPath
       get() = dataContext.getData(RFS_PATH)
-
   }
 }
