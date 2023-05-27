@@ -95,7 +95,8 @@
                 icon="AllIcons.General.Add">
           <keyboard-shortcut keymap="$default" first-keystroke="alt INSERT"/>
         </action>
-        <action id="kafka.CloneSchemaAction" class="com.jetbrains.bigdatatools.kafka.toolwindow.actions.CloneSchemaAction"/>
+        <action id="kafka.CloneSchemaAction" class="com.jetbrains.bigdatatools.kafka.toolwindow.actions.CloneSchemaAction"
+                icon="AllIcons.Actions.Copy"/>
 
         <action id="Kafka.DeleteSchemaAction"
                 class="com.jetbrains.bigdatatools.kafka.toolwindow.actions.DeleteSchemaAction"
