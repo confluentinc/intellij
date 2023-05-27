@@ -28,5 +28,14 @@ data class KafkaSchemaInfo(val name: String,
     val renderableColumns: List<KProperty1<KafkaSchemaInfo, *>> by lazy {
       KafkaSchemaInfo::class.declaredMemberProperties.filter { DataRenderingUtil.shouldRenderFrom(it.javaField?.annotations) }
     }
+
+    fun createEmpty(name: String) = KafkaSchemaInfo(
+      name = name,
+      type = KafkaRegistryFormat.DELETED,
+      version = -1,
+      compatibility = "",
+      description = "",
+      schemaStatus = ""
+    )
   }
 }

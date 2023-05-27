@@ -82,7 +82,6 @@ class BdtGlueRegistryClient(val project: Project?,
         return totalResult to false
 
       val response = client.listSchemas(request)
-
       val clusters = response.schemas()
         .filter { filterRegex == null || it.schemaName().contains(filterRegex) }
         .map {

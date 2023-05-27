@@ -6,7 +6,6 @@ import com.jetbrains.bigdatatools.common.rfs.driver.FileInfoBase
 import com.jetbrains.bigdatatools.common.rfs.driver.RfsPath
 import com.jetbrains.bigdatatools.common.rfs.driver.task.RemoteFsDeleteTask
 import com.jetbrains.bigdatatools.common.rfs.driver.task.RfsCopyMoveTask
-import com.jetbrains.bigdatatools.kafka.registry.common.KafkaSchemaInfo
 import java.io.InputStream
 
 class KafkaFileInfo(override val driver: KafkaDriver, override val path: RfsPath) : FileInfoBase() {
@@ -15,7 +14,7 @@ class KafkaFileInfo(override val driver: KafkaDriver, override val path: RfsPath
   override val modificationTime: Long = -1
 
   override val isCopySupport: Boolean = false
-  override val isActionDeleteSupport: Boolean = path.size == 2
+  override val isActionDeleteSupport: Boolean = false
   override val isMoveSupport: Boolean = false
 
   override fun isMetaInfoSupport(): Boolean = false
@@ -24,7 +23,7 @@ class KafkaFileInfo(override val driver: KafkaDriver, override val path: RfsPath
     override fun run(indicator: ProgressIndicator) {
       when (path.parent) {
         KafkaDriver.topicPath -> driver.dataManager.deleteTopic(listOf(path.name))
-        KafkaDriver.schemasPath -> driver.dataManager.deleteSchema(KafkaSchemaInfo(path.name))
+        KafkaDriver.schemasPath -> driver.dataManager.deleteSchema(path.name)
       }
     }
   }

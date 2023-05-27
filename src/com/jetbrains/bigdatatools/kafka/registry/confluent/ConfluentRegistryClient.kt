@@ -43,10 +43,10 @@ class ConfluentRegistryClient(restService: RestService, props: Map<String, Strin
       internalClient.getLatestSchemaMetadata(schemaName)
     }
     catch (t: Throwable) {
-      thisLogger().warn("Cannot request schemaMeta", t)
+      thisLogger().info("Cannot request schemaMeta for $schemaName")
       null
     }
-    meta ?: return KafkaSchemaInfo(schemaName)
+    meta ?: return KafkaSchemaInfo.createEmpty(schemaName)
     return KafkaSchemaInfo(name = schemaName,
                            type = KafkaRegistryFormat.parse(meta.schemaType),
                            version = meta.version.toLong())

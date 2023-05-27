@@ -9,9 +9,12 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.Messages
 import com.intellij.ui.DocumentAdapter
 import com.intellij.ui.SearchTextField
+import com.intellij.ui.SimpleTextAttributes
+import com.intellij.util.ui.StatusText
 import com.jetbrains.bigdatatools.common.monitoring.data.model.FilterAdapter
 import com.jetbrains.bigdatatools.common.monitoring.data.model.FilterKey
 import com.jetbrains.bigdatatools.common.monitoring.table.DataTable
+import com.jetbrains.bigdatatools.common.monitoring.table.extension.CustomEmptyTextProvider
 import com.jetbrains.bigdatatools.common.monitoring.table.model.DataTableModel
 import com.jetbrains.bigdatatools.common.monitoring.toolwindow.AbstractTableController
 import com.jetbrains.bigdatatools.common.table.renderers.LinkRenderer
@@ -132,13 +135,28 @@ class TopicsController(val project: Project,
       dataManager.updater.invokeRefreshModel(dataManager.topicModel)
     }
 
+
     val toolbar = DefaultActionGroup(CustomComponentActionImpl(searchTextField),
                                      CustomComponentActionImpl(countFilter),
-                                     showInternalTopicsAction,
-                                     Separator(),
-                                     createTopicAction, deleteTopicAction
-    )
+                                     showInternalTopicsAction)
+
     return ToolbarUtils.createActionToolbar("BDTKafkaTopicsTopToolbar", toolbar, true)
+  }
+
+  override fun createTopRightToolBar(): ActionToolbar {
+    val createProducer = ActionManager.getInstance().getAction("kafka.create.producer")
+    val createConsumer = ActionManager.getInstance().getAction("kafka.create.consumer")
+    val toolbar = DefaultActionGroup(createProducer, createConsumer)
+    return ToolbarUtils.createActionToolbar("BDTKafkaTopicsRightTopToolbar", toolbar, true)
+  }
+
+  override fun emptyTextProvider() = CustomEmptyTextProvider { emptyText: StatusText ->
+    emptyText.appendText(KafkaMessagesBundle.message("topics.empty.text"), StatusText.DEFAULT_ATTRIBUTES)
+    emptyText.appendLine(KafkaMessagesBundle.message("topics.text.create.link"),
+                         SimpleTextAttributes.LINK_ATTRIBUTES) {
+      KafkaDialogFactory.showCreateTopicDialog(dataManager)
+    }
+    emptyText.isShowAboveCenter = false
   }
 
   override fun getColumnSettings() = KafkaToolWindowSettings.getInstance().topicColumnSettings
