@@ -41,9 +41,9 @@ class KafkaSettingsCustomizer(project: Project, connectionData: KafkaConnectionD
   override fun getDefaultComponent(fields: List<WrappedComponent<in KafkaConnectionData>>, conn: KafkaConnectionData) = panel {
     row(nameField).topGap(TopGap.SMALL).bottomGap(BottomGap.SMALL)
     brokerSettings.setPanelComponent(this)
-    registrySettings.setPanelComponent(this)
+    registrySettings.setPanelComponent(this).visibleIf(brokerSettings.isRegistryVisible)
 
-    block(tunnelField.getComponent()).topGap(TopGap.SMALL)
+    block(tunnelField.getComponent()).topGap(TopGap.SMALL).visibleIf(brokerSettings.isRegistryVisible)
   }
 
   private fun validateBrokerNames(names: String): String? {
@@ -59,6 +59,7 @@ class KafkaSettingsCustomizer(project: Project, connectionData: KafkaConnectionD
     val REGISTRY_PROPERTIES_KEY = ModificationKey(KafkaMessagesBundle.message("settings.properties"))
     val PROPERTIES_FILE_KEY = ModificationKey(KafkaMessagesBundle.message("settings.properties.file"))
     val CONFIGURATION_SOURCE_KEY = ModificationKey(KafkaMessagesBundle.message("settings.property.source"))
+    val CLOUD_PROVIDER = ModificationKey(KafkaMessagesBundle.message("settings.cloud.provider"))
     val PROPERTIES_SOURCE_KEY = ModificationKey(KafkaMessagesBundle.message("kafka.property.source.label"))
     val REGISTRY_PROPERTIES_SOURCE_KEY = ModificationKey(KafkaMessagesBundle.message("settings.property.source"))
   }

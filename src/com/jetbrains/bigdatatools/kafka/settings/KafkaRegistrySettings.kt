@@ -132,7 +132,7 @@ class KafkaRegistrySettings(val project: Project,
 
   fun setPanelComponent(panel: Panel) = panel.setComponent()
 
-  private fun Panel.setComponent() {
+  private fun Panel.setComponent(): CollapsibleRow {
     val group = collapsibleGroup(KafkaMessagesBundle.message("settings.registry.title")) {
       shortRow(registryType)
       confluentGroup = confluentSettings()
@@ -146,6 +146,7 @@ class KafkaRegistrySettings(val project: Project,
     }
     group.expanded = connectionData.registryType != KafkaRegistryType.NONE
     group.topGap(TopGap.NONE)
+    return group
   }
 
   private fun Panel.confluentSettings() = rowsRange {

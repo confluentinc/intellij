@@ -5,6 +5,7 @@ import com.intellij.bigdatatools.aws.ui.external.AwsSettingsComponentForKafka
 import com.intellij.bigdatatools.aws.ui.external.StaticAwsSettingsInfo
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory
+import com.intellij.openapi.observable.properties.AtomicBooleanProperty
 import com.intellij.openapi.observable.util.whenFocusLost
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.ComboBox
@@ -40,12 +41,23 @@ class KafkaBrokerSettings(val project: Project,
                           val connectionData: KafkaConnectionData,
                           private val uiDisposable: Disposable,
                           val url: StringNamedField<ConnectionData>) {
+  val isRegistryVisible = AtomicBooleanProperty(connectionData.brokerConfigurationSource != KafkaConfigurationSource.CLOUD)
+
   private val confSource = RadioGroupField(KafkaConnectionData::brokerConfigurationSource,
                                            KafkaSettingsCustomizer.KafkaSettingsKeys.CONFIGURATION_SOURCE_KEY,
                                            connectionData,
                                            KafkaConfigurationSource.values()).apply {
     addItemListener {
       updateConfVisibility()
+    }
+  }
+
+  private val cloudSource = RadioGroupField(KafkaConnectionData::brokerCloudSource,
+                                            KafkaSettingsCustomizer.KafkaSettingsKeys.CLOUD_PROVIDER,
+                                            connectionData,
+                                            KafkaCloudType.values()).apply {
+    addItemListener {
+      updateCloudVisibility()
     }
   }
 
@@ -86,8 +98,14 @@ class KafkaBrokerSettings(val project: Project,
     withEmptyOrFileExistValidator(uiDisposable, canBeEmpty = false)
   }
 
+
+  private val confluentSettings = KafkaConfluentSettings(project, connectionData, uiDisposable, url, propertiesEditor)
   private lateinit var propertiesKerberosLinkRow: Row
 
+  private lateinit var cloudGroup: RowsRange
+  private lateinit var confluentGroup: RowsRange
+  private lateinit var awsMskGroup: RowsRange
+  private lateinit var mskUrl: Cell<JBTextField>
   private lateinit var implicitClientSettingsGroup: RowsRange
   private lateinit var propertiesClientSettingsGroup: RowsRange
 
@@ -125,7 +143,12 @@ class KafkaBrokerSettings(val project: Project,
   private lateinit var saslUsername: Cell<JBTextField>
   private lateinit var saslPassword: Cell<JBPasswordField>
 
-  private val awsMskSettings = AwsSettingsComponentForKafka {
+  private val awsMskCloudSettings = AwsSettingsComponentForKafka {
+    updatePropertiesField()
+  }
+
+
+  private val awsMskAuthSettings = AwsSettingsComponentForKafka {
     updatePropertiesField()
   }
   private lateinit var awsMskSettingsRows: RowsRange
@@ -141,7 +164,30 @@ class KafkaBrokerSettings(val project: Project,
         cell(confSource.getComponent())
       }
 
-      row(url)
+      cloudGroup = rowsRange {
+        row {
+          label(cloudSource.labelComponent.text)
+          cell(cloudSource.getComponent())
+        }
+        confluentGroup = confluentSettings.setPanelComponent(this)
+        awsMskGroup = rowsRange {
+          row {
+            label(KafkaMessagesBundle.message("settings.url"))
+            mskUrl = textField().resizableColumn().align(AlignX.FILL).onChanged {
+              url.getTextComponent().text = it.text
+              updatePropertiesField()
+            }
+            contextHelp(KafkaMessagesBundle.message("settings.msk.setup.desc"),
+                        KafkaMessagesBundle.message("settings.cloud.setup.title")).align(AlignX.RIGHT)
+          }
+          awsMskCloudSettings.getComponentRows(this)
+        }
+      }
+
+      row {
+        cell(url.labelComponent)
+        cell(url.getComponent()).align(AlignX.FILL)
+      }
       implicitClientSettingsGroup = createImplicitSettingsGroup()
 
       propertiesClientSettingsGroup = rowsRange {
@@ -158,9 +204,7 @@ class KafkaBrokerSettings(val project: Project,
             KerberosSettingsDialog(project).showAndGet()
           }
         }
-
       }
-
     }
 
     updateConfVisibility()
@@ -236,7 +280,7 @@ class KafkaBrokerSettings(val project: Project,
 
     sslGroupTitle = group(KafkaMessagesBundle.message("border.title.ssl.settings")) {}.bottomGap(BottomGap.NONE)
     sslGroup = sslComponent.create(this)
-    awsMskSettingsRows = indent { awsMskSettings.getComponentRows(this) }
+    awsMskSettingsRows = indent { awsMskAuthSettings.getComponentRows(this) }
   }
 
   private fun updatePropertiesField() {
@@ -262,6 +306,12 @@ class KafkaBrokerSettings(val project: Project,
 
   private fun getKafkaPropertiesFromUi(): Map<String, String?> {
     val result = mutableMapOf<String, String?>(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG to url.getTextComponent().text)
+    if (confSource.getValue() == KafkaConfigurationSource.CLOUD && cloudSource.getValue() == KafkaCloudType.AWS_MSK) {
+      setAwsSettings(result, awsMskCloudSettings)
+      result += CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG to mskUrl.component.text
+      return result
+    }
+
     when (authMethod.selectedItem) {
       KafkaAuthMethod.NOT_SPECIFIED -> {}
       KafkaAuthMethod.SASL -> {
@@ -303,21 +353,25 @@ class KafkaBrokerSettings(val project: Project,
         addSslProperties(result)
       }
       KafkaAuthMethod.AWS_IAM -> {
-        val info = awsMskSettings.getInfo()
-        val jaasConfig = when (info.authenticationType) {
-          AuthenticationType.KEY_PAIR.id, AuthenticationType.DEFAULT.id -> "software.amazon.msk.auth.iam.IAMLoginModule required ;"
-          AuthenticationType.PROFILE_FROM_CREDENTIALS_FILE.id -> "software.amazon.msk.auth.iam.IAMLoginModule required awsProfileName='${info.profile ?: "<NOT_SELECTED>"}';"
-          else -> null
-        }
-        result += mapOf(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG to SecurityProtocol.SASL_SSL.name,
-                        SaslConfigs.SASL_MECHANISM to AwsSettingsComponentForKafka.AWS_MECHANISM,
-                        SaslConfigs.SASL_JAAS_CONFIG to jaasConfig,
-                        SASL_CLIENT_CALLBACK_HANDLER_CLASS to "software.amazon.msk.auth.iam.IAMClientCallbackHandler",
-                        AwsSettingsComponentForKafka.AWS_ACCESS_KEY to info.accessKey,
-                        AwsSettingsComponentForKafka.AWS_SECRET_KEY to info.secretKey)
+        setAwsSettings(result, awsMskAuthSettings)
       }
     }
     return result.entries.associate { it.key to it.value }
+  }
+
+  private fun setAwsSettings(result: MutableMap<String, String?>, awsMskAuthSettings: AwsSettingsComponentForKafka) {
+    val info = awsMskAuthSettings.getInfo()
+    val jaasConfig = when (info.authenticationType) {
+      AuthenticationType.KEY_PAIR.id, AuthenticationType.DEFAULT.id -> "software.amazon.msk.auth.iam.IAMLoginModule required ;"
+      AuthenticationType.PROFILE_FROM_CREDENTIALS_FILE.id -> "software.amazon.msk.auth.iam.IAMLoginModule required awsProfileName='${info.profile ?: "<NOT_SELECTED>"}';"
+      else -> null
+    }
+    result += mapOf(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG to SecurityProtocol.SASL_SSL.name,
+                    SaslConfigs.SASL_MECHANISM to AwsSettingsComponentForKafka.AWS_MECHANISM,
+                    SaslConfigs.SASL_JAAS_CONFIG to jaasConfig,
+                    SASL_CLIENT_CALLBACK_HANDLER_CLASS to "software.amazon.msk.auth.iam.IAMClientCallbackHandler",
+                    AwsSettingsComponentForKafka.AWS_ACCESS_KEY to info.accessKey,
+                    AwsSettingsComponentForKafka.AWS_SECRET_KEY to info.secretKey)
   }
 
   private fun addSslProperties(result: MutableMap<String, String?>) {
@@ -337,6 +391,15 @@ class KafkaBrokerSettings(val project: Project,
     try {
       isUpdatedFromProperties.set(true)
       val properties: Map<String, String> = propertiesEditor.getProperties() ?: emptyMap()
+
+      if (confSource.getValue() == KafkaConfigurationSource.CLOUD && cloudSource.getValue() == KafkaCloudType.AWS_MSK) {
+        setAwsProperties(properties, awsMskAuthSettings)
+        properties[CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG]?.let {
+          mskUrl.component.text = it
+        }
+        return
+      }
+
       properties[CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG]?.let {
         url.getTextComponent().text = it
       }
@@ -348,7 +411,7 @@ class KafkaBrokerSettings(val project: Project,
         }
         SecurityProtocol.SASL_PLAINTEXT, SecurityProtocol.SASL_SSL -> {
           if (properties[SaslConfigs.SASL_MECHANISM] == AwsSettingsComponentForKafka.AWS_MECHANISM) {
-            setAwsProperties(properties)
+            setAwsProperties(properties, awsMskAuthSettings)
             return
           }
           authMethod.selectedItem = KafkaAuthMethod.SASL
@@ -402,7 +465,7 @@ class KafkaBrokerSettings(val project: Project,
     )
   }
 
-  private fun setAwsProperties(properties: Map<String, String>) {
+  private fun setAwsProperties(properties: Map<String, String>, settingsUi: AwsSettingsComponentForKafka) {
     authMethod.selectedItem = KafkaAuthMethod.AWS_IAM
 
     val jaasConfig = properties[SaslConfigs.SASL_JAAS_CONFIG] ?: return
@@ -429,14 +492,17 @@ class KafkaBrokerSettings(val project: Project,
       secretKey = secretKey,
       region = null,
     )
-    awsMskSettings.loadInfo(info)
+    settingsUi.loadInfo(info)
   }
 
   private fun updateConfVisibility() {
+    cloudGroup.visible(confSource.getValue() == KafkaConfigurationSource.CLOUD)
     implicitClientSettingsGroup.visible(confSource.getValue() == KafkaConfigurationSource.FROM_UI)
     propertiesClientSettingsGroup.visible(confSource.getValue() == KafkaConfigurationSource.FROM_PROPERTIES)
 
     updateUrlVisibility()
+
+    isRegistryVisible.set(confSource.getValue() != KafkaConfigurationSource.CLOUD || cloudSource.getValue() != KafkaCloudType.CONFLUENT)
 
     when (confSource.getValue()) {
       KafkaConfigurationSource.FROM_UI -> {
@@ -446,6 +512,17 @@ class KafkaBrokerSettings(val project: Project,
       KafkaConfigurationSource.FROM_PROPERTIES -> {
         onUpdatePropertiesSource()
       }
+      KafkaConfigurationSource.CLOUD -> {
+        updateCloudVisibility()
+      }
+    }
+  }
+
+  private fun updateCloudVisibility() {
+    confluentGroup.visible(cloudSource.getValue() == KafkaCloudType.CONFLUENT)
+    awsMskGroup.visible(cloudSource.getValue() == KafkaCloudType.AWS_MSK)
+    if (cloudSource.getValue() == KafkaCloudType.AWS_MSK) {
+      awsMskCloudSettings.updateVisibility()
     }
   }
 
@@ -456,7 +533,8 @@ class KafkaBrokerSettings(val project: Project,
   }
 
   private fun updateUrlVisibility() {
-    url.isVisible = confSource.getValue() == KafkaConfigurationSource.FROM_UI || propertiesSource.getValue() == KafkaPropertySource.DIRECT
+    url.isVisible = confSource.getValue() == KafkaConfigurationSource.FROM_UI ||
+                    (propertiesSource.getValue() == KafkaPropertySource.DIRECT && confSource.getValue() == KafkaConfigurationSource.FROM_PROPERTIES)
   }
 
   private fun updateVisibilityOfAuth() {
@@ -476,7 +554,7 @@ class KafkaBrokerSettings(val project: Project,
       KafkaAuthMethod.SSL -> {
       }
       KafkaAuthMethod.AWS_IAM -> {
-        awsMskSettings.updateVisibility()
+        awsMskAuthSettings.updateVisibility()
       }
     }
   }
@@ -495,7 +573,8 @@ class KafkaBrokerSettings(val project: Project,
   }
 
   fun getDefaultFields(): List<WrappedComponent<in KafkaConnectionData>> = listOf(propertiesEditor, propertiesFile,
-                                                                                  propertiesSource, confSource)
+                                                                                  propertiesSource, confSource,
+                                                                                  cloudSource) + confluentSettings.getDefaultFields()
 
   private fun getSaslMechanism(properties: Map<String, String>): KafkaSaslMechanism? {
     val saslMechanismKey = properties[SaslConfigs.SASL_MECHANISM] ?: SaslConfigs.DEFAULT_SASL_MECHANISM
