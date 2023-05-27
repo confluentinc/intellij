@@ -27,8 +27,6 @@ class CloneSchemaAction : DumbAwareAction() {
         }.show()
       }
     }
-
-    KafkaRegistryAddSchemaDialog(project, dataManager).show()
   }
 
   override fun update(e: AnActionEvent) {
