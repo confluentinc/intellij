@@ -44,6 +44,7 @@ class KafkaRegistryAddSchemaDialog(project: Project, val dataManager: KafkaDataM
 
   private val keyValueCombobox = ComboBox(KafkaRegistryKeyValue.values()).apply {
     renderer = CustomListCellRenderer<KafkaRegistryKeyValue> { it.presentable }
+    selectedItem = KafkaRegistryKeyValue.VALUE
     addActionListener {
       onChangeStrategy()
     }

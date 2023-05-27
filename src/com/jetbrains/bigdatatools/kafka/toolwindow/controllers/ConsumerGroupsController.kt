@@ -1,5 +1,6 @@
 package com.jetbrains.bigdatatools.kafka.toolwindow.controllers
 
+import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.ActionToolbar
 import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.ui.DocumentAdapter
@@ -52,6 +53,13 @@ class ConsumerGroupsController(val dataManager: KafkaDataManager) : AbstractTabl
     val toolbar = DefaultActionGroup(CustomComponentActionImpl(searchTextField),
                                      CustomComponentActionImpl(countFilter))
     return ToolbarUtils.createActionToolbar("BDTKafkaConsumersTopToolbar", toolbar, true)
+  }
+
+  override fun createTopRightToolBar(): ActionToolbar {
+    val createProducer = ActionManager.getInstance().getAction("kafka.create.producer")
+    val createConsumer = ActionManager.getInstance().getAction("kafka.create.consumer")
+    val toolbar = DefaultActionGroup(createProducer, createConsumer)
+    return ToolbarUtils.createActionToolbar("BDTKafkaTopicsRightTopToolbar", toolbar, true)
   }
 
   companion object {

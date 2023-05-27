@@ -1,6 +1,7 @@
 package com.jetbrains.bigdatatools.kafka.toolwindow.config
 
 class KafkaClusterConfig {
+  var showSoftDeleted: Boolean = false
   var isStructure: Boolean = true
 
   var topicLimit: Int? = 100

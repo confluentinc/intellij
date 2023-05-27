@@ -2,6 +2,7 @@ package com.jetbrains.bigdatatools.kafka.data
 
 import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.util.Disposer
 import com.jetbrains.bigdatatools.common.connection.updater.IntervalUpdateSettings
 import com.jetbrains.bigdatatools.common.monitoring.data.MonitoringDataManager
@@ -195,8 +196,32 @@ class KafkaDataManager(project: Project?,
     updater.invokeRefreshModel(schemaVersionModels[versionInfo.schemaName])
   }
 
-  fun deleteSchema(info: KafkaSchemaInfo) = actionWrapper {
-    client.confluentRegistryClient?.deleteSchema(info.name, false) ?: client.glueRegistryClient?.deleteSchema(info.name)
+  fun deleteSchema(schemaName: String) {
+    val registryInfo = getCachedSchema(schemaName) ?: return
+    if (registryInfo.isSoftDeleted) {
+      if (Messages.showOkCancelDialog(project,
+                                      KafkaMessagesBundle.message("action.remove.schema.confirm.dialog.msg.permanent", registryInfo.name),
+                                      KafkaMessagesBundle.message("action.remove.schema.confirm.dialog.title"),
+                                      Messages.getOkButton(),
+                                      Messages.getCancelButton(),
+                                      Messages.getQuestionIcon()) == Messages.OK) {
+        deleteSchemaWithoutConfirmation(registryInfo.name, permanent = true)
+      }
+    }
+    else {
+      if (Messages.showOkCancelDialog(project,
+                                      KafkaMessagesBundle.message("action.remove.schema.confirm.dialog.msg.soft", registryInfo.name),
+                                      KafkaMessagesBundle.message("action.remove.schema.confirm.dialog.title"),
+                                      Messages.getOkButton(),
+                                      Messages.getCancelButton(),
+                                      Messages.getQuestionIcon()) == Messages.OK) {
+        deleteSchemaWithoutConfirmation(registryInfo.name, permanent = false)
+      }
+    }
+  }
+
+  private fun deleteSchemaWithoutConfirmation(schemaName: String, permanent: Boolean) = actionWrapper {
+    client.confluentRegistryClient?.deleteSchema(schemaName, permanent) ?: client.glueRegistryClient?.deleteSchema(schemaName)
     schemaRegistryModel?.let { updater.invokeRefreshModel(it) }
   }
 
@@ -219,7 +244,8 @@ class KafkaDataManager(project: Project?,
     }) {
       val filter = KafkaToolWindowSettings.getInstance().getOrCreateConfig(connectionId).schemaFilterName
       val limit = KafkaToolWindowSettings.getInstance().getOrCreateConfig(connectionId).registryLimit
-      listSchemas(limit, filter)
+      val showSoftDeleted = KafkaToolWindowSettings.getInstance().getOrCreateConfig(connectionId).showSoftDeleted
+      listSchemas(limit, filter, showSoftDeleted)
 
     }
     return dataModel

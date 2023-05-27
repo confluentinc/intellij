@@ -111,11 +111,10 @@ object KafkaEditorUtils {
   }
 
   internal class KafkaDataModelListener<T>(private val comboBox: ComboBox<T>,
-                                           val onListUpdate: (List<T>) -> Unit = {},
+                                           private val onListUpdate: (List<T>) -> Unit = {},
                                            private val dataSupplier: () -> Pair<List<T>?, Int?>) : DataModelListener {
     override fun onChanged() = updateComboBox(comboBox, onListUpdate, dataSupplier)
     override fun onError(msg: String, e: Throwable?) = updateComboBox(comboBox, onListUpdate, dataSupplier)
-
   }
 
 
@@ -280,6 +279,7 @@ object KafkaEditorUtils {
       KafkaRegistryFormat.AVRO -> selectedFieldType == FieldType.AVRO_REGISTRY
       KafkaRegistryFormat.PROTOBUF -> selectedFieldType == FieldType.PROTOBUF_REGISTRY
       KafkaRegistryFormat.JSON -> selectedFieldType == FieldType.JSON_REGISTRY
+      else -> false
     }
     if (isCorrect)
       return null
@@ -299,6 +299,7 @@ object KafkaEditorUtils {
       KafkaRegistryFormat.AVRO -> FieldType.AVRO_REGISTRY
       KafkaRegistryFormat.PROTOBUF -> FieldType.PROTOBUF_REGISTRY
       KafkaRegistryFormat.JSON -> FieldType.JSON_REGISTRY
+      KafkaRegistryFormat.DELETED -> null
       null -> null
     }
   }
