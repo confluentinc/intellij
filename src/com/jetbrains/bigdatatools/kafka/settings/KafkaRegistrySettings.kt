@@ -58,7 +58,8 @@ class KafkaRegistrySettings(val project: Project,
   private val registrySourceTypeChooser = RadioGroupField(KafkaConnectionData::registryConfSource,
                                                           KafkaSettingsCustomizer.KafkaSettingsKeys.REGISTRY_PROPERTIES_SOURCE_KEY,
                                                           connectionData,
-                                                          KafkaConfigurationSource.values()).apply {
+                                                          arrayOf(KafkaConfigurationSource.FROM_UI,
+                                                                  KafkaConfigurationSource.FROM_PROPERTIES)).apply {
     addItemListener {
       updateRegistryAuthStatus()
     }
