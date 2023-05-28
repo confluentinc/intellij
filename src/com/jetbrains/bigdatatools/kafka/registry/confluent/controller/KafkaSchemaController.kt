@@ -23,6 +23,7 @@ import com.intellij.ui.layout.migLayout.patched.MigLayout
 import com.jetbrains.bigdatatools.common.monitoring.toolwindow.ComponentController
 import com.jetbrains.bigdatatools.common.monitoring.toolwindow.DetailsMonitoringController
 import com.jetbrains.bigdatatools.common.ui.CustomComponentActionImpl
+import com.jetbrains.bigdatatools.common.ui.SimpleDumbAwareAction
 import com.jetbrains.bigdatatools.common.util.ToolbarUtils
 import com.jetbrains.bigdatatools.common.util.invokeLater
 import com.jetbrains.bigdatatools.kafka.common.editor.SchemaVersionDiffController
@@ -222,42 +223,39 @@ class KafkaSchemaController(private val project: Project,
 
 
   private fun createRightActionGroup(): DefaultActionGroup {
+    val updateSchemaAction = SimpleDumbAwareAction(KafkaMessagesBundle.message("action.create.new.version"),
+                                                   description = null,
+                                                   icon = AllIcons.Actions.EditScheme,
+                                                   showText = true) {
+      val versionInfo = version1Schema ?: return@SimpleDumbAwareAction
 
-    val panel = panel {
-      row {
-        button(KafkaMessagesBundle.message("action.create.new.version")) {
-          val versionInfo = version1Schema ?: return@button
+      KafkaSchemaInfoDialog.showDiff(KafkaMessagesBundle.message("update.dialog.title"), project, versionInfo) { newText ->
+        dataManager.updateSchema(versionInfo, newText)
+      }
 
-          KafkaSchemaInfoDialog.showDiff(KafkaMessagesBundle.message("update.dialog.title"), project, versionInfo) { newText ->
-            dataManager.updateSchema(versionInfo, newText)
-          }
-        }
-        val moreAction = MoreActionGroup()
-        moreAction.add(object : DumbAwareAction(KafkaMessagesBundle.message("action.delete.version.text")) {
-          override fun actionPerformed(e: AnActionEvent) {
-            val versionSchema = version1Schema ?: return
-            Messages.showCheckboxMessageDialog(
-              KafkaMessagesBundle.message("action.remove.version.confirm.dialog.msg", versionSchema.version,
-                                          versionSchema.schemaName),
-              KafkaMessagesBundle.message("action.delete.version.text"),
-              arrayOf(Messages.getOkButton(), Messages.getCancelButton()),
-              KafkaMessagesBundle.message("action.remove.version.confirm.dialog.option"),
-              false, 0, 0,
-              Messages.getQuestionIcon(),
-              BiFunction { exitCode: Int, _: JCheckBox ->
-                if (exitCode == Messages.OK) {
-                  dataManager.deleteRegistrySchemaVersion(versionSchema)
-                }
-                exitCode
-              })
-          }
-        })
-        actionButton(moreAction)
-
-      }.bottomGap(BottomGap.NONE).topGap(TopGap.NONE)
     }
 
-    return DefaultActionGroup(CustomComponentActionImpl(panel))
+    val moreAction = MoreActionGroup()
+    moreAction.add(object : DumbAwareAction(KafkaMessagesBundle.message("action.delete.version.text")) {
+      override fun actionPerformed(e: AnActionEvent) {
+        val versionSchema = version1Schema ?: return
+        Messages.showCheckboxMessageDialog(
+          KafkaMessagesBundle.message("action.remove.version.confirm.dialog.msg", versionSchema.version,
+                                      versionSchema.schemaName),
+          KafkaMessagesBundle.message("action.delete.version.text"),
+          arrayOf(Messages.getOkButton(), Messages.getCancelButton()),
+          KafkaMessagesBundle.message("action.remove.version.confirm.dialog.option"),
+          false, 0, 0,
+          Messages.getQuestionIcon(),
+          BiFunction { exitCode: Int, _: JCheckBox ->
+            if (exitCode == Messages.OK) {
+              dataManager.deleteRegistrySchemaVersion(versionSchema)
+            }
+            exitCode
+          })
+      }
+    })
+    return DefaultActionGroup(updateSchemaAction, moreAction)
   }
 
   private fun onViewTypeUpdate() {

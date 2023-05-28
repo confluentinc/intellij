@@ -38,7 +38,7 @@ import software.amazon.awssdk.services.glue.model.Compatibility
 import java.util.concurrent.TimeUnit
 
 class KafkaDataManager(project: Project?,
-                       val connectionData: KafkaConnectionData,
+                       override val connectionData: KafkaConnectionData,
                        settings: IntervalUpdateSettings) : MonitoringDataManager(project, settings) {
   val registryType = connectionData.registryType
 

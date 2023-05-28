@@ -188,8 +188,6 @@ class KafkaMainController(private val project: Project, private val connectionDa
       details.add(it.getComponent(), KafkaGroupType.SCHEMA_DETAIL.name)
     }
 
-    showDetailsComponent(KafkaDriver.topicPath)
-
     val scroll = JBScrollPane(myTree).apply {
       border = IdeBorderFactory.createBorder(SideBorder.BOTTOM)
     }
