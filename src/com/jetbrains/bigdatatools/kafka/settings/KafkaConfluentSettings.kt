@@ -9,12 +9,15 @@ import com.intellij.ui.dsl.builder.Panel
 import com.jetbrains.bigdatatools.common.settings.ModificationKey
 import com.jetbrains.bigdatatools.common.settings.connections.ConnectionData
 import com.jetbrains.bigdatatools.common.settings.fields.PropertiesFieldComponent
+import com.jetbrains.bigdatatools.common.settings.fields.RadioGroupField
 import com.jetbrains.bigdatatools.common.settings.fields.StringNamedField
 import com.jetbrains.bigdatatools.common.settings.fields.WrappedComponent
 import com.jetbrains.bigdatatools.common.ui.components.ConnectionPropertiesEditor
+import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryType
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaConnectionData
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import com.jetbrains.bigdatatools.kafka.util.KafkaPropertiesUtils
+import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig
 
 class KafkaConfluentSettings(
   val project: Project,
@@ -22,12 +25,20 @@ class KafkaConfluentSettings(
   uiDisposable: Disposable,
   val url: StringNamedField<ConnectionData>,
   propertiesEditor: PropertiesFieldComponent<KafkaConnectionData>,
+  registryType: RadioGroupField<KafkaConnectionData, KafkaRegistryType>,
 ) {
 
   private val confluentConf = ConnectionPropertiesEditor(project, KafkaPropertiesUtils.getAdminPropertiesDescriptions()).apply {
+    this.getComponent().text = connectionData.properties
     val value = object : DocumentListener {
       override fun documentChanged(event: com.intellij.openapi.editor.event.DocumentEvent) {
-        propertiesEditor.getComponent().text = this@apply.getComponent().text
+        val text: String = this@apply.getComponent().text
+        propertiesEditor.getComponent().text = text
+        if (text.contains(AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG))
+          registryType.setValue(KafkaRegistryType.CONFLUENT)
+        else
+          registryType.setValue(KafkaRegistryType.NONE)
+
       }
     }
     this.getComponent().addDocumentListener(value)

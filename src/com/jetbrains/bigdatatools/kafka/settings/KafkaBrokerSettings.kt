@@ -26,6 +26,7 @@ import com.jetbrains.bigdatatools.common.ui.components.RadioComboBox
 import com.jetbrains.bigdatatools.common.ui.row
 import com.jetbrains.bigdatatools.common.util.MessagesBundle
 import com.jetbrains.bigdatatools.common.util.PathUtils
+import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryType
 import com.jetbrains.bigdatatools.kafka.rfs.*
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import com.jetbrains.bigdatatools.kafka.util.KafkaPropertiesUtils
@@ -40,7 +41,8 @@ import java.util.concurrent.atomic.AtomicBoolean
 class KafkaBrokerSettings(val project: Project,
                           val connectionData: KafkaConnectionData,
                           private val uiDisposable: Disposable,
-                          val url: StringNamedField<ConnectionData>) {
+                          val url: StringNamedField<ConnectionData>,
+                          registryType: RadioGroupField<KafkaConnectionData, KafkaRegistryType>) {
   val isRegistryVisible = AtomicBooleanProperty(connectionData.brokerConfigurationSource != KafkaConfigurationSource.CLOUD)
 
   private val confSource = RadioGroupField(KafkaConnectionData::brokerConfigurationSource,
@@ -99,7 +101,7 @@ class KafkaBrokerSettings(val project: Project,
   }
 
 
-  private val confluentSettings = KafkaConfluentSettings(project, connectionData, uiDisposable, url, propertiesEditor)
+  private val confluentSettings = KafkaConfluentSettings(project, connectionData, uiDisposable, url, propertiesEditor, registryType)
   private lateinit var propertiesKerberosLinkRow: Row
 
   private lateinit var cloudGroup: RowsRange
@@ -524,6 +526,7 @@ class KafkaBrokerSettings(val project: Project,
     if (cloudSource.getValue() == KafkaCloudType.AWS_MSK) {
       awsMskCloudSettings.updateVisibility()
     }
+    isRegistryVisible.set(cloudSource.getValue() == KafkaCloudType.AWS_MSK)
   }
 
   private fun onUpdatePropertiesSource() {

@@ -21,8 +21,6 @@ import com.jetbrains.bigdatatools.kafka.producer.client.KafkaProducerClient
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryType
 import com.jetbrains.bigdatatools.kafka.registry.confluent.ConfluentRegistryClient
 import com.jetbrains.bigdatatools.kafka.registry.glue.BdtGlueRegistryClient
-import com.jetbrains.bigdatatools.kafka.rfs.KafkaCloudType
-import com.jetbrains.bigdatatools.kafka.rfs.KafkaConfigurationSource
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaConnectionData
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaPropertySource
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
@@ -89,26 +87,19 @@ class KafkaClient(project: Project?,
     confluentRegistryClient = null
     glueRegistryClient = null
 
-    if (connectionData.brokerConfigurationSource == KafkaConfigurationSource.CLOUD &&
-        connectionData.brokerCloudSource == KafkaCloudType.CONFLUENT) {
-      confluentRegistryClient = ConfluentRegistryClient.createFor(project, connectionData, testConnection)?.also {
-        Disposer.register(this, it)
+
+    when (connectionData.registryType) {
+      KafkaRegistryType.NONE -> {}
+      KafkaRegistryType.CONFLUENT -> {
+        confluentRegistryClient = ConfluentRegistryClient.createFor(project, connectionData, testConnection)?.also {
+          Disposer.register(this, it)
+        }
       }
-    }
-    else {
-      when (connectionData.registryType) {
-        KafkaRegistryType.NONE -> {}
-        KafkaRegistryType.CONFLUENT -> {
-          confluentRegistryClient = ConfluentRegistryClient.createFor(project, connectionData, testConnection)?.also {
-            Disposer.register(this, it)
-          }
+      KafkaRegistryType.AWS_GLUE -> {
+        glueRegistryClient = createGlueClient()?.also {
+          Disposer.register(this, it)
         }
-        KafkaRegistryType.AWS_GLUE -> {
-          glueRegistryClient = createGlueClient()?.also {
-            Disposer.register(this, it)
-          }
-          glueRegistryClient?.connect(calledByUser)
-        }
+        glueRegistryClient?.connect(calledByUser)
       }
     }
 

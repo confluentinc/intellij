@@ -35,14 +35,8 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 class KafkaRegistrySettings(val project: Project,
                             val connectionData: KafkaConnectionData,
-                            uiDisposable: Disposable) {
-  private val registryType = RadioGroupField(KafkaConnectionData::registryType,
-                                             ModificationKey(KafkaMessagesBundle.message("schema.registry.type.label")), connectionData,
-                                             KafkaRegistryType.values()).apply {
-    addItemListener {
-      updateRegistryType()
-    }
-  }
+                            uiDisposable: Disposable,
+                            val registryType: RadioGroupField<KafkaConnectionData, KafkaRegistryType>) {
 
   private val registryPropertiesEditor = PropertiesFieldComponent.create(
     project,
@@ -130,6 +124,15 @@ class KafkaRegistrySettings(val project: Project,
   private lateinit var proxyUrl: Cell<JBTextField>
 
   private val isUpdatingFromProperties = AtomicBoolean(false)
+
+  init {
+    registryType.apply {
+      addItemListener {
+        updateRegistryType()
+      }
+    }
+
+  }
 
   fun setPanelComponent(panel: Panel) = panel.setComponent()
 

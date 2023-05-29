@@ -9,6 +9,7 @@ import com.jetbrains.bigdatatools.common.connection.tunnel.ui.SshTunnelComponent
 import com.jetbrains.bigdatatools.common.monitoring.TunnableSettingsCustomizer
 import com.jetbrains.bigdatatools.common.settings.ModificationKey
 import com.jetbrains.bigdatatools.common.settings.connections.ConnectionData
+import com.jetbrains.bigdatatools.common.settings.fields.RadioGroupField
 import com.jetbrains.bigdatatools.common.settings.fields.StringNamedField
 import com.jetbrains.bigdatatools.common.settings.fields.WrappedComponent
 import com.jetbrains.bigdatatools.common.settings.withValidator
@@ -16,6 +17,7 @@ import com.jetbrains.bigdatatools.common.ui.block
 import com.jetbrains.bigdatatools.common.ui.row
 import com.jetbrains.bigdatatools.common.util.BdtUrlUtils
 import com.jetbrains.bigdatatools.common.util.MessagesBundle
+import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryType
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaConnectionData
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 
@@ -30,8 +32,12 @@ class KafkaSettingsCustomizer(project: Project, connectionData: KafkaConnectionD
       getTextComponent().toolTipText = KafkaMessagesBundle.message("settings.url.text.hint")
     }.withValidator(uiDisposable, ::validateBrokerNames) as StringNamedField
 
-  private val brokerSettings = KafkaBrokerSettings(project, connectionData, uiDisposable, url)
-  private val registrySettings = KafkaRegistrySettings(project, connectionData, uiDisposable)
+  private val registryType = RadioGroupField(KafkaConnectionData::registryType,
+                                             ModificationKey(KafkaMessagesBundle.message("schema.registry.type.label")), connectionData,
+                                             KafkaRegistryType.values())
+
+  private val brokerSettings = KafkaBrokerSettings(project, connectionData, uiDisposable, url, registryType)
+  private val registrySettings = KafkaRegistrySettings(project, connectionData, uiDisposable, registryType)
 
   override fun getDefaultFields(): List<WrappedComponent<in KafkaConnectionData>> {
     return listOf<WrappedComponent<in KafkaConnectionData>>(nameField, url,
