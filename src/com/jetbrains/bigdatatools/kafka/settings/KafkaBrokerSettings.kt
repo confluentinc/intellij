@@ -206,6 +206,7 @@ class KafkaBrokerSettings(val project: Project,
             KerberosSettingsDialog(project).showAndGet()
           }
         }
+        updateVisibilityOfPropertiesKrb5Conf()
       }
     }
 
