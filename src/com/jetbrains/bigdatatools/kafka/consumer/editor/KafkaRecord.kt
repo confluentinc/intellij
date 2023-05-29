@@ -39,7 +39,9 @@ data class KafkaRecord(val keyType: FieldType, val valueType: FieldType,
           timestamp = rec.timestamp(),
           keySize = rec.serializedKeySize(),
           valueSize = rec.serializedValueSize(),
-          headers = rec.headers().toList().map { Property(name = it.key(), value = String(it.value(), StandardCharsets.UTF_8)) })
+          headers = rec.headers()?.toList()?.map {
+            Property(name = it.key() ?: "", value = String(it.value() ?: byteArrayOf(0), StandardCharsets.UTF_8))
+          } ?: emptyList())
       }
       else {
         KafkaRecord(

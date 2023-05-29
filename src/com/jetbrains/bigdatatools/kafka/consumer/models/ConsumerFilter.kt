@@ -11,8 +11,8 @@ data class ConsumerFilter(val filterKey: String?,
   fun isRecordPassFilter(record: ConsumerRecord<Any, Any>): Boolean =
     isPassFilter(record.key()?.toString(), filterKey) &&
     isPassFilter(record.value()?.toString(), filterValue) &&
-    isPassFilterHeaders(record.headers().map { it.key() }, filterHeadKey) &&
-    isPassFilterHeaders(record.headers().map { it.value().decodeToString() }, filterHeadValue)
+    isPassFilterHeaders(record.headers()?.mapNotNull { it.key() ?: "" } ?: emptyList(), filterHeadKey) &&
+    isPassFilterHeaders(record.headers()?.mapNotNull { it.value()?.decodeToString() } ?: emptyList(), filterHeadValue)
 
   private fun isPassFilter(value: String?, filterValue: String?): Boolean {
     if (filterValue == null)
