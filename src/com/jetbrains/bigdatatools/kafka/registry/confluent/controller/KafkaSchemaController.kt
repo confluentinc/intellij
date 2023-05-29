@@ -12,6 +12,7 @@ import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.Messages
+import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.NlsSafe
 import com.intellij.ui.IdeBorderFactory
 import com.intellij.ui.SideBorder
@@ -62,8 +63,13 @@ class KafkaSchemaController(private val project: Project,
   private var schemaName: String? = null
   private val version1Controller = SchemaVersionsComboboxController(this, dataManager) {
     isEditModeAvailable.set(it.size > 1)
+  }.also {
+    Disposer.register(this, it)
   }
-  private val version2Controller = SchemaVersionsComboboxController(this, dataManager) {}
+
+  private val version2Controller = SchemaVersionsComboboxController(this, dataManager) {}.also {
+    Disposer.register(this, it)
+  }
   private lateinit var version1: Cell<ComboBox<Long>>
   private lateinit var version2: Cell<ComboBox<Long>>
   private lateinit var viewType: SegmentedButton<ViewType>
@@ -77,7 +83,9 @@ class KafkaSchemaController(private val project: Project,
   private val schemaView = KafkaRegistrySchemaEditor(project, isEditable = false)
   private val structureView = SchemaTreePanel()
 
-  private val diffViewController = SchemaVersionDiffController(project)
+  private val diffViewController = SchemaVersionDiffController(project).also {
+    Disposer.register(this, it)
+  }
 
   private val internalComponent = panel {
     row {
