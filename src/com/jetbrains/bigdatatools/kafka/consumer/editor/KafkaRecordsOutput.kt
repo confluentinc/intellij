@@ -122,7 +122,7 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
     dividerPositionStrategy = Splitter.DividerPositionStrategy.KEEP_SECOND_SIZE
   }
 
-  val detailsPanel: ExpansionPanel
+  private val detailsPanel: ExpansionPanel
 
   init {
     val dataExpanded = PropertiesComponent.getInstance().getBoolean(DATA_SHOW_ID, true)

@@ -1,16 +1,19 @@
 package com.jetbrains.bigdatatools.kafka.common.settings
 
 import com.jetbrains.bigdatatools.common.settings.connections.Property
-import com.jetbrains.bigdatatools.kafka.common.models.FieldType
+import com.jetbrains.bigdatatools.kafka.common.models.KafkaFieldType
 import com.jetbrains.bigdatatools.kafka.producer.models.AcksType
 import com.jetbrains.bigdatatools.kafka.producer.models.ProducerFlowParams
 import com.jetbrains.bigdatatools.kafka.producer.models.RecordCompression
 import com.jetbrains.bigdatatools.kafka.registry.ConfluentRegistryStrategy
+import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryFormat
 
 data class StorageProducerConfig(var topic: String = "",
                                  var keyType: String = "",
                                  var key: String = "",
+                                 var keyFormat: String = "",
                                  var valueType: String = "",
+                                 var valueFormat: String = "",
                                  var value: String = "",
                                  var properties: List<Property> = emptyList(),
                                  var compression: String = "",
@@ -24,8 +27,10 @@ data class StorageProducerConfig(var topic: String = "",
                                  val flowParams: ProducerFlowParams? = null) : StorageConfig {
 
 
-  fun getKeyType(): FieldType = FieldType.values().find { it.name == keyType } ?: FieldType.STRING
-  fun getValueType(): FieldType = FieldType.values().find { it.name == valueType } ?: FieldType.STRING
+  fun getKeyType(): KafkaFieldType = KafkaFieldType.values().find { it.name == keyType } ?: KafkaFieldType.SCHEMA_REGISTRY
+  fun getValueType(): KafkaFieldType = KafkaFieldType.values().find { it.name == valueType } ?: KafkaFieldType.SCHEMA_REGISTRY
+  fun getKeyFormat(): KafkaRegistryFormat = KafkaRegistryFormat.values().find { it.name == keyFormat } ?: KafkaRegistryFormat.AVRO
+  fun getValueFormat(): KafkaRegistryFormat = KafkaRegistryFormat.values().find { it.name == valueFormat } ?: KafkaRegistryFormat.AVRO
   fun getCompression(): RecordCompression = RecordCompression.values().find { it.name == compression } ?: RecordCompression.NONE
   fun getAsks(): AcksType = AcksType.values().find { it.name == acks } ?: AcksType.NONE
 }

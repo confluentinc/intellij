@@ -23,10 +23,11 @@ import com.jetbrains.bigdatatools.common.util.executeNotOnEdt
 import com.jetbrains.bigdatatools.common.util.invokeLater
 import com.jetbrains.bigdatatools.common.util.toPresentableText
 import com.jetbrains.bigdatatools.kafka.common.editor.KafkaEditorUtils
-import com.jetbrains.bigdatatools.kafka.common.models.FieldType
+import com.jetbrains.bigdatatools.kafka.common.models.KafkaFieldType
 import com.jetbrains.bigdatatools.kafka.common.models.RegistrySchemaInEditor
 import com.jetbrains.bigdatatools.kafka.common.settings.StorageProducerConfig
 import com.jetbrains.bigdatatools.kafka.consumer.models.ConsumerProducerFieldConfig
+import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryFormat
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryUtil
 import com.jetbrains.bigdatatools.kafka.registry.ui.KafkaSchemaInfoDialog
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
@@ -61,7 +62,7 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
   }
 
   val schemaComboBox = KafkaEditorUtils.createSchemaComboBox(this, kafkaManager,
-                                                             producedEditor.topicComboBox, fieldTypeComboBox, isKey)
+                                                             producedEditor.topicComboBox, isKey)
 
   private val textField: EditorTextField by lazy {
     KafkaEditorUtils.createTextArea(project, language = PlainTextLanguage.INSTANCE).withValidator(this, ::validateValue).also {
@@ -112,6 +113,7 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
     val fieldType = fieldTypeComboBox.item
     val registryType = kafkaManager.registryType
     val schemaName = schemaComboBox.item?.schemaName ?: ""
+    val schemaFormat = schemaComboBox.item?.schemaFormat ?: KafkaRegistryFormat.UNKNOWN
     val schema = KafkaRegistryUtil.loadSchema(schemaName, fieldType, kafkaManager)
 
     return ConsumerProducerFieldConfig(type = fieldType,
@@ -120,6 +122,7 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
                                        topic = producedEditor.topicComboBox.item.name,
                                        registryType = registryType,
                                        schemaName = schemaName,
+                                       schemaFormat = schemaFormat,
                                        parsedSchema = schema)
   }
 
@@ -194,7 +197,7 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
   }
 
 
-  private fun updateFieldsText(type: FieldType, newText: String) {
+  private fun updateFieldsText(type: KafkaFieldType, newText: String) {
     if (type in jsonFieldTypes)
       jsonField.text = newText
     else
@@ -210,10 +213,10 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
   }
 
   fun getValueText(): String = when (fieldTypeComboBox.item!!) {
-    FieldType.JSON -> jsonField.text
-    FieldType.STRING, FieldType.LONG, FieldType.DOUBLE, FieldType.FLOAT, FieldType.BASE64 -> textField.text
-    FieldType.NULL -> ""
-    FieldType.AVRO_REGISTRY, FieldType.JSON_REGISTRY, FieldType.PROTOBUF_REGISTRY -> jsonField.text
+    KafkaFieldType.JSON -> jsonField.text
+    KafkaFieldType.STRING, KafkaFieldType.LONG, KafkaFieldType.DOUBLE, KafkaFieldType.FLOAT, KafkaFieldType.BASE64 -> textField.text
+    KafkaFieldType.NULL -> ""
+    KafkaFieldType.SCHEMA_REGISTRY -> jsonField.text
   }
 
 
@@ -222,9 +225,9 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
 
     jsonRow.visible(fieldType in jsonFieldTypes)
     textRow.visible(fieldType in textFieldTypes)
-    loadFileLinkRow.visible(fieldType == FieldType.BASE64)
+    loadFileLinkRow.visible(fieldType == KafkaFieldType.BASE64)
 
-    val isRegistryType = fieldType in FieldType.registryValues
+    val isRegistryType = fieldType in KafkaFieldType.registryValues
     registryRows.visible(isRegistryType)
 
     invokeLater {
@@ -235,19 +238,19 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
   }
 
 
-  private fun validate(type: FieldType, value: String) = when (type) {
-    FieldType.JSON -> try {
+  private fun validate(type: KafkaFieldType, value: String) = when (type) {
+    KafkaFieldType.JSON -> try {
       JsonParser.parseString(value)
       null
     }
     catch (iae: Exception) {
       iae.cause?.message ?: iae.message
     }
-    FieldType.STRING -> null
-    FieldType.LONG -> if (value.toLongOrNull() != null) null else "'$value' is not a valid long value"
-    FieldType.DOUBLE -> if (value.toDoubleOrNull() != null) null else "'$value' is not a valid double value"
-    FieldType.FLOAT -> if (value.toFloatOrNull() != null) null else "'$value' is not a valid float value"
-    FieldType.BASE64 -> {
+    KafkaFieldType.STRING -> null
+    KafkaFieldType.LONG -> if (value.toLongOrNull() != null) null else "'$value' is not a valid long value"
+    KafkaFieldType.DOUBLE -> if (value.toDoubleOrNull() != null) null else "'$value' is not a valid double value"
+    KafkaFieldType.FLOAT -> if (value.toFloatOrNull() != null) null else "'$value' is not a valid float value"
+    KafkaFieldType.BASE64 -> {
       val decoder = Base64.getDecoder()
       try {
         decoder.decode(value)
@@ -257,8 +260,8 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
         iae.message
       }
     }
-    FieldType.NULL -> null // Any value match null type
-    FieldType.AVRO_REGISTRY, FieldType.PROTOBUF_REGISTRY, FieldType.JSON_REGISTRY -> try {
+    KafkaFieldType.NULL -> null // Any value match null type
+    KafkaFieldType.SCHEMA_REGISTRY -> try {
       JsonParser.parseString(value)
       null
     }
@@ -274,23 +277,23 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
 
     val text = if (isKey) config.key else config.value
     when (config.getKeyType()) {
-      FieldType.JSON -> jsonField.text = text
-      FieldType.STRING, FieldType.LONG, FieldType.DOUBLE, FieldType.FLOAT, FieldType.BASE64 -> textField.text = text
-      FieldType.NULL -> Unit
-      FieldType.AVRO_REGISTRY, FieldType.JSON_REGISTRY, FieldType.PROTOBUF_REGISTRY -> {
+      KafkaFieldType.JSON -> jsonField.text = text
+      KafkaFieldType.STRING, KafkaFieldType.LONG, KafkaFieldType.DOUBLE, KafkaFieldType.FLOAT, KafkaFieldType.BASE64 -> textField.text = text
+      KafkaFieldType.NULL -> Unit
+      KafkaFieldType.SCHEMA_REGISTRY -> {
         jsonField.text = text
         schemaComboBox.item = if (isKey)
-          RegistrySchemaInEditor(config.keySubject)
+          RegistrySchemaInEditor(config.keySubject, config.getKeyFormat())
         else
-          RegistrySchemaInEditor(config.valueSubject)
+          RegistrySchemaInEditor(config.valueSubject, config.getValueFormat())
       }
     }
   }
 
   private fun updateJsonComment() {
     jsonCell.comment?.text = when (fieldTypeComboBox.item) {
-      null, FieldType.STRING, FieldType.JSON, FieldType.LONG, FieldType.DOUBLE, FieldType.FLOAT, FieldType.BASE64, FieldType.NULL -> ""
-      FieldType.JSON_REGISTRY, FieldType.PROTOBUF_REGISTRY, FieldType.AVRO_REGISTRY -> KafkaMessagesBundle.message(
+      null, KafkaFieldType.STRING, KafkaFieldType.JSON, KafkaFieldType.LONG, KafkaFieldType.DOUBLE, KafkaFieldType.FLOAT, KafkaFieldType.BASE64, KafkaFieldType.NULL -> ""
+      KafkaFieldType.SCHEMA_REGISTRY -> KafkaMessagesBundle.message(
         "producer.json.value.comment")
     }
   }
@@ -310,32 +313,26 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
 
     override fun update(e: AnActionEvent) {
       when (fieldTypeComboBox.item) {
-        FieldType.STRING,
-        FieldType.LONG,
-        FieldType.DOUBLE,
-        FieldType.FLOAT,
-        FieldType.BASE64,
-        FieldType.JSON,
-        FieldType.AVRO_REGISTRY,
-        FieldType.PROTOBUF_REGISTRY,
+        KafkaFieldType.STRING,
+        KafkaFieldType.LONG,
+        KafkaFieldType.DOUBLE,
+        KafkaFieldType.FLOAT,
+        KafkaFieldType.BASE64,
+        KafkaFieldType.JSON,
+        KafkaFieldType.SCHEMA_REGISTRY,
         -> {
           e.presentation.isEnabledAndVisible = true
           e.presentation.text = KafkaMessagesBundle.message("generate.random.data")
         }
-        FieldType.JSON_REGISTRY -> {
-          e.presentation.isVisible = true
-          e.presentation.isEnabled = false
-          @Suppress("DialogTitleCapitalization")
-          e.presentation.text = KafkaMessagesBundle.message("generate.random.data.not.supported")
-        }
-        null, FieldType.NULL -> e.presentation.isVisible = false
+        null, KafkaFieldType.NULL -> e.presentation.isVisible = false
       }
     }
   }
 
 
   companion object {
-    private val jsonFieldTypes = setOf(FieldType.JSON) + FieldType.registryValues
-    private val textFieldTypes = setOf(FieldType.STRING, FieldType.LONG, FieldType.DOUBLE, FieldType.FLOAT, FieldType.BASE64)
+    private val jsonFieldTypes = setOf(KafkaFieldType.JSON) + KafkaFieldType.registryValues
+    private val textFieldTypes = setOf(KafkaFieldType.STRING, KafkaFieldType.LONG, KafkaFieldType.DOUBLE, KafkaFieldType.FLOAT,
+                                       KafkaFieldType.BASE64)
   }
 }

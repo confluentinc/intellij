@@ -1,7 +1,8 @@
 package com.jetbrains.bigdatatools.kafka.consumer.models
 
 import com.amazonaws.services.schemaregistry.serializers.json.JsonDataWithSchema
-import com.jetbrains.bigdatatools.kafka.common.models.FieldType
+import com.jetbrains.bigdatatools.kafka.common.models.KafkaFieldType
+import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryFormat
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryType
 import io.confluent.kafka.schemaregistry.ParsedSchema
 import io.confluent.kafka.schemaregistry.avro.AvroSchema
@@ -12,31 +13,34 @@ import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchema
 import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchemaUtils
 import java.util.*
 
-data class ConsumerProducerFieldConfig(val type: FieldType,
+data class ConsumerProducerFieldConfig(val type: KafkaFieldType,
                                        val valueText: String,
                                        val isKey: Boolean,
                                        val topic: String,
 
                                        val registryType: KafkaRegistryType,
                                        val schemaName: String,
+                                       val schemaFormat: KafkaRegistryFormat,
                                        val parsedSchema: ParsedSchema?) {
   fun getValueObj() = when (type) {
-    FieldType.STRING -> valueText
-    FieldType.JSON -> valueText
-    FieldType.LONG -> valueText.toLong()
-    FieldType.DOUBLE -> valueText.toDouble()
-    FieldType.FLOAT -> valueText.toFloat()
-    FieldType.BASE64 -> Base64.getDecoder().decode(valueText)
-    FieldType.NULL -> null
-    FieldType.AVRO_REGISTRY -> AvroSchemaUtils.toObject(valueText, parsedSchema as AvroSchema)
-    FieldType.PROTOBUF_REGISTRY -> ProtobufSchemaUtils.toObject(valueText, parsedSchema as ProtobufSchema)
-    FieldType.JSON_REGISTRY -> {
-      when (registryType) {
+    KafkaFieldType.STRING -> valueText
+    KafkaFieldType.JSON -> valueText
+    KafkaFieldType.LONG -> valueText.toLong()
+    KafkaFieldType.DOUBLE -> valueText.toDouble()
+    KafkaFieldType.FLOAT -> valueText.toFloat()
+    KafkaFieldType.BASE64 -> Base64.getDecoder().decode(valueText)
+    KafkaFieldType.NULL -> null
+    KafkaFieldType.SCHEMA_REGISTRY -> when (schemaFormat) {
+      KafkaRegistryFormat.AVRO -> AvroSchemaUtils.toObject(valueText, parsedSchema as AvroSchema)
+      KafkaRegistryFormat.PROTOBUF -> ProtobufSchemaUtils.toObject(valueText, parsedSchema as ProtobufSchema)
+      KafkaRegistryFormat.JSON -> when (registryType) {
         KafkaRegistryType.NONE -> error("Not allowed")
         KafkaRegistryType.CONFLUENT -> JsonSchemaUtils.toObject(valueText, parsedSchema as JsonSchema)
         KafkaRegistryType.AWS_GLUE -> JsonDataWithSchema.builder(parsedSchema?.canonicalString(), valueText).build()
       }
+      KafkaRegistryFormat.UNKNOWN -> {
+        error("Schema is removed")
+      }
     }
   }
-
 }

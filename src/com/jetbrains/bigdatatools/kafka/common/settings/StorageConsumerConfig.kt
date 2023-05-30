@@ -1,7 +1,8 @@
 package com.jetbrains.bigdatatools.kafka.common.settings
 
-import com.jetbrains.bigdatatools.kafka.common.models.FieldType
+import com.jetbrains.bigdatatools.kafka.common.models.KafkaFieldType
 import com.jetbrains.bigdatatools.kafka.consumer.models.*
+import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryFormat
 
 data class StorageConsumerConfig(var topic: String? = "",
                                  var keyType: String? = "",
@@ -22,9 +23,12 @@ data class StorageConsumerConfig(var topic: String? = "",
 
                                  val keySubject: String = "",
                                  val keyRegistry: String = "",
+
                                  val valueSubject: String = "",
                                  val valueRegistry: String = "",
 
+                                 val keyFormat: String = "",
+                                 val valueFormat: String = "",
                                  val keyCustomSchema: String = "",
                                  val valueCustomSchema: String = "",
 
@@ -33,8 +37,8 @@ data class StorageConsumerConfig(var topic: String? = "",
 
   constructor(
     topic: String,
-    keyType: FieldType,
-    valueType: FieldType,
+    keyType: KafkaFieldType,
+    valueType: KafkaFieldType,
     filter: ConsumerFilter,
     limit: ConsumerLimit,
     partitions: String,
@@ -42,6 +46,8 @@ data class StorageConsumerConfig(var topic: String? = "",
     properties: Map<String, String>,
     settings: Map<String, String>,
 
+    keyFormat: KafkaRegistryFormat,
+    valueFormat: KafkaRegistryFormat,
     keySubject: String = "",
     valueSubject: String = "",
 
@@ -57,6 +63,9 @@ data class StorageConsumerConfig(var topic: String? = "",
     settings = settings,
     keySubject = keySubject,
     valueSubject = valueSubject,
+
+    keyFormat = keyFormat.name,
+    valueFormat = valueFormat.name,
   )
 
   companion object {
@@ -112,6 +121,9 @@ data class StorageConsumerConfig(var topic: String? = "",
                              startWith["consumerGroup"])
   }
 
-  fun getKeyType(): FieldType = FieldType.values().firstOrNull { it.name == keyType } ?: FieldType.STRING
-  fun getValueType(): FieldType = FieldType.values().firstOrNull { it.name == valueType } ?: FieldType.STRING
+  fun getKeyType(): KafkaFieldType = KafkaFieldType.values().firstOrNull { it.name == keyType } ?: KafkaFieldType.STRING
+  fun getValueType(): KafkaFieldType = KafkaFieldType.values().firstOrNull { it.name == valueType } ?: KafkaFieldType.STRING
+
+  fun getKeyFormat(): KafkaRegistryFormat = KafkaRegistryFormat.parse(keyFormat)
+  fun getValueFormat(): KafkaRegistryFormat = KafkaRegistryFormat.parse(valueFormat)
 }

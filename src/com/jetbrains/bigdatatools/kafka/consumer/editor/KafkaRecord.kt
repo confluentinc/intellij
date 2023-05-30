@@ -2,28 +2,36 @@ package com.jetbrains.bigdatatools.kafka.consumer.editor
 
 import com.jetbrains.bigdatatools.common.settings.connections.Property
 import com.jetbrains.bigdatatools.kafka.common.editor.KafkaEditorUtils
-import com.jetbrains.bigdatatools.kafka.common.models.FieldType
+import com.jetbrains.bigdatatools.kafka.common.models.KafkaFieldType
 import com.jetbrains.bigdatatools.kafka.consumer.models.ConsumerProducerFieldConfig
+import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryFormat
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.clients.producer.RecordMetadata
 import java.nio.charset.StandardCharsets
 
-data class KafkaRecord(val keyType: FieldType, val valueType: FieldType,
+data class KafkaRecord(val keyType: KafkaFieldType,
+                       val valueType: KafkaFieldType,
                        val error: Throwable?,
-                       val key: Any?, val value: Any?,
+                       val key: Any?,
+                       val value: Any?,
                        val topic: String,
                        val partition: Int,
                        val offset: Long,
                        val duration: Long,
                        val timestamp: Long,
                        val keySize: Int,
-                       val valueSize: Int, val headers: List<Property>) {
-  val keyText = if (error == null) KafkaEditorUtils.getValueAsString(keyType, key) else null
-  val valueText = if (error == null) KafkaEditorUtils.getValueAsString(valueType, value) else null
+                       val valueSize: Int,
+                       val headers: List<Property>,
+                       val keyFormat: KafkaRegistryFormat,
+                       val valueFormat: KafkaRegistryFormat) {
+  val keyText = if (error == null) KafkaEditorUtils.getValueAsString(keyType, key, keyFormat) else null
+  val valueText = if (error == null) KafkaEditorUtils.getValueAsString(valueType, value, valueFormat) else null
   val errorText = error?.message ?: error?.let { it::class.java.simpleName } ?: "<Unknown>"
 
   companion object {
-    fun createFor(keyType: FieldType, valueType: FieldType, record: Result<ConsumerRecord<Any, Any>>) =
+    fun createFor(keyType: KafkaFieldType, valueType: KafkaFieldType,
+                  keyFormat: KafkaRegistryFormat, valueFormat: KafkaRegistryFormat,
+                  record: Result<ConsumerRecord<Any, Any>>) =
       if (record.isSuccess) {
         val rec = record.getOrNull()!!
         KafkaRecord(
@@ -41,7 +49,9 @@ data class KafkaRecord(val keyType: FieldType, val valueType: FieldType,
           valueSize = rec.serializedValueSize(),
           headers = rec.headers()?.toList()?.map {
             Property(name = it.key() ?: "", value = String(it.value() ?: byteArrayOf(0), StandardCharsets.UTF_8))
-          } ?: emptyList())
+          } ?: emptyList(),
+          keyFormat = keyFormat,
+          valueFormat = valueFormat)
       }
       else {
         KafkaRecord(
@@ -57,7 +67,9 @@ data class KafkaRecord(val keyType: FieldType, val valueType: FieldType,
           timestamp = System.currentTimeMillis(),
           keySize = 0,
           valueSize = 0,
-          headers = emptyList())
+          headers = emptyList(),
+          keyFormat = keyFormat,
+          valueFormat = keyFormat)
       }
 
     fun createFor(keyConfig: ConsumerProducerFieldConfig,
@@ -67,6 +79,8 @@ data class KafkaRecord(val keyType: FieldType, val valueType: FieldType,
                   headers: List<Property>) = KafkaRecord(
       keyType = keyConfig.type,
       valueType = valueConfig.type,
+      keyFormat = keyConfig.schemaFormat,
+      valueFormat = valueConfig.schemaFormat,
       error = null,
       key = keyConfig.getValueObj(),
       value = valueConfig.getValueObj(),

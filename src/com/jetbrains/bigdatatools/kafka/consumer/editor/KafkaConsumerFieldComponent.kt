@@ -11,10 +11,11 @@ import com.jetbrains.bigdatatools.common.settings.getValidationInfo
 import com.jetbrains.bigdatatools.common.ui.SimpleDumbAwareAction
 import com.jetbrains.bigdatatools.common.util.executeNotOnEdt
 import com.jetbrains.bigdatatools.kafka.common.editor.KafkaEditorUtils
-import com.jetbrains.bigdatatools.kafka.common.models.FieldType
+import com.jetbrains.bigdatatools.kafka.common.models.KafkaFieldType
 import com.jetbrains.bigdatatools.kafka.common.models.RegistrySchemaInEditor
 import com.jetbrains.bigdatatools.kafka.common.settings.StorageConsumerConfig
 import com.jetbrains.bigdatatools.kafka.consumer.models.ConsumerProducerFieldConfig
+import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryFormat
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryUtil
 import com.jetbrains.bigdatatools.kafka.registry.ui.KafkaSchemaInfoDialog
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
@@ -34,7 +35,6 @@ class KafkaConsumerFieldComponent(private val project: Project,
     consumerPanel,
     consumerPanel.kafkaManager,
     consumerPanel.topicComboBox,
-    fieldTypeComboBox,
     isKey)
 
   private lateinit var registryRows: RowsRange
@@ -74,7 +74,7 @@ class KafkaConsumerFieldComponent(private val project: Project,
   }
 
   private fun updateRegistryFieldsVisibility() {
-    val isRegistryField = fieldTypeComboBox.item in FieldType.registryValues
+    val isRegistryField = fieldTypeComboBox.item in KafkaFieldType.registryValues
     registryRows.visible(isRegistryField)
     if (!isRegistryField)
       return
@@ -84,9 +84,9 @@ class KafkaConsumerFieldComponent(private val project: Project,
     fieldTypeComboBox.item = if (isKey) config.getKeyType() else config.getValueType()
 
     schemaComboBox.item = if (isKey)
-      RegistrySchemaInEditor(schemaName = config.keySubject)
+      RegistrySchemaInEditor(schemaName = config.keySubject, schemaFormat = config.getKeyFormat())
     else
-      RegistrySchemaInEditor(schemaName = config.valueSubject)
+      RegistrySchemaInEditor(schemaName = config.valueSubject, schemaFormat = config.getValueFormat())
   }
 
   fun updateIsEnabled(isEnabled: Boolean) {
@@ -108,6 +108,7 @@ class KafkaConsumerFieldComponent(private val project: Project,
                                        topic = consumerPanel.topicComboBox.item.name,
                                        registryType = registryType,
                                        schemaName = schemaName,
+                                       schemaFormat = KafkaRegistryFormat.parse(schema?.schemaType()),
                                        parsedSchema = schema)
   }
 

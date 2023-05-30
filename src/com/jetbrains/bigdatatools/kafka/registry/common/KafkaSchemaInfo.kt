@@ -31,7 +31,7 @@ data class KafkaSchemaInfo(val name: String,
 
     fun createEmpty(name: String) = KafkaSchemaInfo(
       name = name,
-      type = KafkaRegistryFormat.DELETED,
+      type = KafkaRegistryFormat.UNKNOWN,
       version = -1,
       compatibility = "",
       description = "",

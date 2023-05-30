@@ -11,9 +11,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.ValidationInfo
 import com.intellij.openapi.util.Disposer
-import com.intellij.ui.EditorCustomization
-import com.intellij.ui.EditorTextFieldProvider
-import com.intellij.ui.MonospaceEditorCustomization
+import com.intellij.ui.*
 import com.intellij.util.ui.UIUtil
 import com.jetbrains.bigdatatools.common.monitoring.data.listener.DataModelListener
 import com.jetbrains.bigdatatools.common.settings.getValidator
@@ -22,8 +20,7 @@ import com.jetbrains.bigdatatools.common.ui.ComponentColoredBorder
 import com.jetbrains.bigdatatools.common.ui.CustomListCellRenderer
 import com.jetbrains.bigdatatools.common.ui.DarculaTextAreaBorder
 import com.jetbrains.bigdatatools.common.util.executeNotOnEdt
-import com.jetbrains.bigdatatools.common.util.invokeLater
-import com.jetbrains.bigdatatools.kafka.common.models.FieldType
+import com.jetbrains.bigdatatools.kafka.common.models.KafkaFieldType
 import com.jetbrains.bigdatatools.kafka.common.models.RegistrySchemaInEditor
 import com.jetbrains.bigdatatools.kafka.common.models.TopicInEditor
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
@@ -37,10 +34,10 @@ import io.confluent.kafka.schemaregistry.json.JsonSchemaUtils
 import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchemaUtils
 import org.apache.kafka.common.ConsumerGroupState
 import java.awt.event.ItemEvent.SELECTED
-import java.awt.event.ItemListener
 import java.nio.charset.Charset
 import java.util.*
 import javax.swing.BorderFactory
+import javax.swing.JList
 
 object KafkaEditorUtils {
   fun createTextArea(project: Project,
@@ -66,41 +63,45 @@ object KafkaEditorUtils {
         setCaretPosition(0)
       }
 
-  fun getValueAsString(type: FieldType, value: Any?): String = when {
+  fun getValueAsString(type: KafkaFieldType, value: Any?, format: KafkaRegistryFormat): String = when {
     value == null -> ""
-    type == FieldType.BASE64 && value is ByteArray -> try {
+    type == KafkaFieldType.BASE64 && value is ByteArray -> try {
       Base64.getEncoder().withoutPadding().encodeToString(value)
     }
     catch (e: Exception) {
       value.toString()
     }
-    type == FieldType.JSON -> try {
+    type == KafkaFieldType.JSON -> try {
       toPrettyJson(value.toString())
     }
     catch (e: Exception) {
       value.toString()
     }
-    type == FieldType.AVRO_REGISTRY -> {
-      val avro = AvroSchemaUtils.toJson(value).toString(Charset.defaultCharset())
-      toPrettyJson(avro)
-    }
-    type == FieldType.PROTOBUF_REGISTRY -> {
-      try {
-        val message = value as Message
-        toPrettyJson(ProtobufSchemaUtils.toJson(message).toString(Charset.defaultCharset()))
+    type == KafkaFieldType.SCHEMA_REGISTRY -> {
+      when (format) {
+        KafkaRegistryFormat.AVRO -> {
+          val avro = AvroSchemaUtils.toJson(value).toString(Charset.defaultCharset())
+          toPrettyJson(avro)
+        }
+        KafkaRegistryFormat.PROTOBUF -> try {
+          val message = value as Message
+          toPrettyJson(ProtobufSchemaUtils.toJson(message).toString(Charset.defaultCharset()))
+        }
+        catch (t: Throwable) {
+          value.toString()
+        }
+
+        KafkaRegistryFormat.JSON -> {
+          val jsonString = if (value is JsonDataWithSchema) {
+            value.payload
+          }
+          else {
+            JsonSchemaUtils.toJson(value).toString(Charset.defaultCharset())
+          }
+          toPrettyJson(jsonString)
+        }
+        KafkaRegistryFormat.UNKNOWN -> value.toString()
       }
-      catch (t: Throwable) {
-        value.toString()
-      }
-    }
-    type == FieldType.JSON_REGISTRY -> {
-      val jsonString = if (value is JsonDataWithSchema) {
-        value.payload
-      }
-      else {
-        JsonSchemaUtils.toJson(value).toString(Charset.defaultCharset())
-      }
-      toPrettyJson(jsonString)
     }
     else -> value.toString()
   }
@@ -121,16 +122,16 @@ object KafkaEditorUtils {
   fun createFieldTypeComboBox(topicCombobox: ComboBox<TopicInEditor>,
                               dataManager: KafkaDataManager,
                               isKey: Boolean,
-                              onChange: (ComboBox<FieldType>) -> Unit): ComboBox<FieldType> {
+                              onChange: (ComboBox<KafkaFieldType>) -> Unit): ComboBox<KafkaFieldType> {
     val fieldTypes = if (dataManager.registryType != KafkaRegistryType.NONE)
-      FieldType.allValues
+      KafkaFieldType.allValues
     else
-      FieldType.defaultValues
+      KafkaFieldType.defaultValues
 
 
-    val defaultFieldType = if (isKey) FieldType.STRING else FieldType.JSON
-    val fieldsCombobox = ComboBox(fieldTypes.toTypedArray<FieldType>()).apply<ComboBox<FieldType>> {
-      renderer = CustomListCellRenderer<FieldType> { it.title }
+    val defaultFieldType = if (isKey) KafkaFieldType.STRING else KafkaFieldType.JSON
+    val fieldsCombobox = ComboBox(fieldTypes.toTypedArray<KafkaFieldType>()).apply<ComboBox<KafkaFieldType>> {
+      renderer = CustomListCellRenderer<KafkaFieldType> { it.title }
       selectedItem = defaultFieldType
       addActionListener {
         onChange(this)
@@ -204,7 +205,6 @@ object KafkaEditorUtils {
   fun createSchemaComboBox(rootDisposable: Disposable,
                            kafkaManager: KafkaDataManager,
                            topicComboBox: ComboBox<TopicInEditor>,
-                           fieldTypeComboBox: ComboBox<FieldType>,
                            isKey: Boolean): ComboBox<RegistrySchemaInEditor> {
     val (initSchemas, preferedIndex) = calculateSchemasForCombobox(kafkaManager, topicComboBox, isKey)
     val schemaCombobox = ComboBox(initSchemas.toTypedArray())
@@ -212,7 +212,18 @@ object KafkaEditorUtils {
     topicComboBox.name
     schemaCombobox.isSwingPopup = false
     schemaCombobox.toolTipText = KafkaMessagesBundle.message("registry.subject.combobox.default.name")
-    schemaCombobox.renderer = CustomListCellRenderer<RegistrySchemaInEditor> { it.toString() }
+    schemaCombobox.renderer = object : ColoredListCellRenderer<RegistrySchemaInEditor>() {
+      override fun customizeCellRenderer(list: JList<out RegistrySchemaInEditor>,
+                                         value: RegistrySchemaInEditor?,
+                                         index: Int,
+                                         selected: Boolean,
+                                         hasFocus: Boolean) {
+        val registrySchemaInEditor = value ?: return
+
+        append(registrySchemaInEditor.schemaName + "  ")
+        append(registrySchemaInEditor.schemaFormat.presentable, SimpleTextAttributes.GRAYED_ATTRIBUTES)
+      }
+    }
 
     schemaCombobox.selectedIndex = when {
       preferedIndex != null -> preferedIndex
@@ -229,23 +240,8 @@ object KafkaEditorUtils {
       kafkaManager.schemaRegistryModel?.removeListener(listener)
     }
 
-    var validationInfo: ValidationInfo? = null
 
 
-    val updateListener = ItemListener {
-      if (it.stateChange != SELECTED)
-        return@ItemListener
-
-      executeNotOnEdt {
-        val newValidation = validateSchemaType(kafkaManager, schemaCombobox, fieldTypeComboBox)
-        if (newValidation != validationInfo) {
-          validationInfo = newValidation
-          invokeLater {
-            schemaCombobox.getValidator()?.revalidate()
-          }
-        }
-      }
-    }
 
     topicComboBox.addItemListener {
       if (it.stateChange != SELECTED)
@@ -254,54 +250,21 @@ object KafkaEditorUtils {
       updateComboBox(schemaCombobox) { calculateSchemasForCombobox(kafkaManager, topicComboBox, isKey) }
     }
 
-    schemaCombobox.addItemListener(updateListener)
-    fieldTypeComboBox.addItemListener(updateListener)
-
 
     kafkaManager.initRefreshSchemasIfRequired()
-    schemaCombobox.withValidator(rootDisposable) { validationInfo }
-    schemaCombobox.getValidator()?.enableValidation()
-
     return schemaCombobox
-  }
-
-
-  private fun validateSchemaType(kafkaManager: KafkaDataManager,
-                                 schemaCombobox: ComboBox<RegistrySchemaInEditor>,
-                                 fieldTypeComboBox: ComboBox<FieldType>): ValidationInfo? {
-    val registry = schemaCombobox.item ?: return null
-    val registryType = KafkaRegistryUtil.getSchemaType(registry.schemaName,
-                                                       kafkaManager) ?: return null
-
-    val selectedFieldType = fieldTypeComboBox.item ?: return null
-
-    val isCorrect = when (registryType) {
-      KafkaRegistryFormat.AVRO -> selectedFieldType == FieldType.AVRO_REGISTRY
-      KafkaRegistryFormat.PROTOBUF -> selectedFieldType == FieldType.PROTOBUF_REGISTRY
-      KafkaRegistryFormat.JSON -> selectedFieldType == FieldType.JSON_REGISTRY
-      else -> false
-    }
-    if (isCorrect)
-      return null
-    val message = KafkaMessagesBundle.message("producer.validation.incorrect.schema.format",
-                                              schemaCombobox.item?.schemaName ?: "",
-                                              registryType.presentable)
-    return ValidationInfo(message, schemaCombobox)
   }
 
 
   private fun calculateSchemaTypeForTopic(kafkaManager: KafkaDataManager,
                                           topicComboBox: ComboBox<TopicInEditor>,
-                                          isKey: Boolean): FieldType? {
+                                          isKey: Boolean): KafkaFieldType? {
     val schema = calculateTopicSchemaName(kafkaManager, topicComboBox.item?.name ?: "", isKey) ?: return null
     val type = KafkaRegistryUtil.getSchemaType(schema, kafkaManager)
-    return when (type) {
-      KafkaRegistryFormat.AVRO -> FieldType.AVRO_REGISTRY
-      KafkaRegistryFormat.PROTOBUF -> FieldType.PROTOBUF_REGISTRY
-      KafkaRegistryFormat.JSON -> FieldType.JSON_REGISTRY
-      KafkaRegistryFormat.DELETED -> null
-      null -> null
-    }
+    return if (type != null)
+      KafkaFieldType.SCHEMA_REGISTRY
+    else
+      null
   }
 
 

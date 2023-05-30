@@ -4,7 +4,7 @@ import com.google.gson.GsonBuilder
 import com.google.gson.JsonElement
 import com.intellij.openapi.util.NlsSafe
 import com.intellij.util.concurrency.annotations.RequiresBackgroundThread
-import com.jetbrains.bigdatatools.kafka.common.models.FieldType
+import com.jetbrains.bigdatatools.kafka.common.models.KafkaFieldType
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.registry.serde.BdtJsonSchemaProvider
 import com.jetbrains.bigdatatools.kafka.registry.serde.BdtProtobufSchemaProvider
@@ -29,9 +29,9 @@ object KafkaRegistryUtil {
 
   @RequiresBackgroundThread
   fun loadSchema(schemaName: String,
-                 fieldType: FieldType,
+                 fieldType: KafkaFieldType,
                  dataManager: KafkaDataManager): ParsedSchema? {
-    if (fieldType !in FieldType.registryValues)
+    if (fieldType !in KafkaFieldType.registryValues)
       return null
 
     val versionInfo = dataManager.getLatestVersionInfo(schemaName) ?: return null

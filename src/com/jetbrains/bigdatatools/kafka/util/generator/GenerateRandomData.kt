@@ -2,8 +2,9 @@ package com.jetbrains.bigdatatools.kafka.util.generator
 
 import com.google.gson.GsonBuilder
 import com.intellij.openapi.diagnostic.Logger
-import com.jetbrains.bigdatatools.kafka.common.models.FieldType
+import com.jetbrains.bigdatatools.kafka.common.models.KafkaFieldType
 import com.jetbrains.bigdatatools.kafka.consumer.models.ConsumerProducerFieldConfig
+import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryFormat
 import io.confluent.kafka.schemaregistry.ParsedSchema
 
 object GenerateRandomData {
@@ -11,15 +12,23 @@ object GenerateRandomData {
 
   fun generate(config: ConsumerProducerFieldConfig): String = generate(config.type, config.parsedSchema)
 
-  fun generate(fieldType: FieldType, parsedSchema: ParsedSchema?): String = when (fieldType) {
-    FieldType.STRING -> PrimitivesGenerator.generateString()
-    FieldType.LONG -> PrimitivesGenerator.generateLong().toString()
-    FieldType.DOUBLE -> PrimitivesGenerator.generateDouble().toString()
-    FieldType.FLOAT -> PrimitivesGenerator.generateFloat().toString()
-    FieldType.BASE64 -> PrimitivesGenerator.generateBytes().toString()
-    FieldType.AVRO_REGISTRY -> AvroGenerator.generateAvroMessage(parsedSchema)
-    FieldType.JSON -> GsonBuilder().setPrettyPrinting().create().toJson(JsonGenerator.generateJson())
-    FieldType.PROTOBUF_REGISTRY -> ProtobufGenerator.generateProtobufMessage(parsedSchema)
-    else -> ""
+  fun generate(fieldType: KafkaFieldType, parsedSchema: ParsedSchema?): String = when (fieldType) {
+    KafkaFieldType.STRING -> PrimitivesGenerator.generateString()
+    KafkaFieldType.LONG -> PrimitivesGenerator.generateLong().toString()
+    KafkaFieldType.DOUBLE -> PrimitivesGenerator.generateDouble().toString()
+    KafkaFieldType.FLOAT -> PrimitivesGenerator.generateFloat().toString()
+    KafkaFieldType.BASE64 -> PrimitivesGenerator.generateBytes().toString()
+    KafkaFieldType.SCHEMA_REGISTRY -> {
+      val schemaType = parsedSchema?.schemaType()
+      val format = KafkaRegistryFormat.parse(schemaType ?: error("Schema is not provided for generation data"))
+      when (format) {
+        KafkaRegistryFormat.AVRO -> AvroGenerator.generateAvroMessage(parsedSchema)
+        KafkaRegistryFormat.PROTOBUF -> ProtobufGenerator.generateProtobufMessage(parsedSchema)
+        KafkaRegistryFormat.JSON -> ""
+        KafkaRegistryFormat.UNKNOWN -> error("Schema is unknown for $parsedSchema")
+      }
+    }
+    KafkaFieldType.JSON -> GsonBuilder().setPrettyPrinting().create().toJson(JsonGenerator.generateJson())
+    KafkaFieldType.NULL -> ""
   }
 }

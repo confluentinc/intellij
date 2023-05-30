@@ -20,7 +20,7 @@ import com.jetbrains.bigdatatools.common.util.TimeUtils
 import com.jetbrains.bigdatatools.kafka.common.editor.FieldViewerType
 import com.jetbrains.bigdatatools.kafka.common.editor.KafkaEditorUtils
 import com.jetbrains.bigdatatools.kafka.common.editor.PropertiesTable
-import com.jetbrains.bigdatatools.kafka.common.models.FieldType
+import com.jetbrains.bigdatatools.kafka.common.models.KafkaFieldType
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import java.awt.Container
 import java.awt.Dimension
@@ -72,8 +72,8 @@ class KafkaRecordDetails(project: Project, parentDisposable: Disposable) {
   private val keyTypeLabel = SelectableLabel("")
   private val valueTypeLabel = SelectableLabel("")
 
-  private var keyType = FieldType.JSON
-  private var valueType = FieldType.JSON
+  private var keyType = KafkaFieldType.JSON
+  private var valueType = KafkaFieldType.JSON
 
   init {
     keyFieldJson = KafkaEditorUtils.createTextArea(project, additionalCustomization = listOf(ConsumerEditorCustomization())).apply {
@@ -137,7 +137,7 @@ class KafkaRecordDetails(project: Project, parentDisposable: Disposable) {
 
     val metainfoGroup = collapsibleGroup(title = KafkaMessagesBundle.message("record.info.metadata"), indent = true) {
       row(KafkaMessagesBundle.message("consumer.record.topic")) {
-        cell(topicField)
+        cell(topicField).align(AlignX.FILL)
       }
 
       row(KafkaMessagesBundle.message("consumer.record.partition")) {
@@ -182,13 +182,13 @@ class KafkaRecordDetails(project: Project, parentDisposable: Disposable) {
   }
 
   fun update(row: KafkaRecord?) {
-    keyType = row?.keyType ?: FieldType.STRING
-    valueType = row?.valueType ?: FieldType.JSON
+    keyType = row?.keyType ?: KafkaFieldType.STRING
+    valueType = row?.valueType ?: KafkaFieldType.JSON
 
 
     if (row == null) {
-      setFieldValue(FieldType.STRING, "", true)
-      setFieldValue(FieldType.STRING, "", false)
+      setFieldValue(KafkaFieldType.STRING, "", true)
+      setFieldValue(KafkaFieldType.STRING, "", false)
 
       topicField.text = ""
       partition.text = ""
@@ -222,7 +222,7 @@ class KafkaRecordDetails(project: Project, parentDisposable: Disposable) {
     component.revalidate()
   }
 
-  private fun setFieldValue(fieldType: FieldType, value: String, isKey: Boolean) {
+  private fun setFieldValue(fieldType: KafkaFieldType, value: String, isKey: Boolean) {
     val viewerType = if (isKey) keyViewerType else valueViewerType
     val textField = if (isKey) keyFieldText else valueFieldText
     val textScrollableField = if (isKey) keyFieldTextScroll else valueFieldTextScroll
@@ -240,7 +240,7 @@ class KafkaRecordDetails(project: Project, parentDisposable: Disposable) {
 
 
   private fun updateViewerVisible(viewerType: ComboBox<FieldViewerType>,
-                                  fieldType: FieldType,
+                                  fieldType: KafkaFieldType,
                                   textField: AdjustableScrollPanel,
                                   jsonField: EditorTextField,
                                   linkRow: Row) {
@@ -256,17 +256,15 @@ class KafkaRecordDetails(project: Project, parentDisposable: Disposable) {
     linkRow.visible(visibleFieldType == FieldViewerType.DECODED_BASE64)
   }
 
-  private fun detectAutoType(fieldType: FieldType, text: String): FieldViewerType = when (fieldType) {
-    FieldType.STRING -> if (KafkaEditorUtils.isJsonString(text)) FieldViewerType.JSON else FieldViewerType.TEXT
-    FieldType.JSON -> FieldViewerType.JSON
-    FieldType.LONG -> FieldViewerType.TEXT
-    FieldType.DOUBLE -> FieldViewerType.TEXT
-    FieldType.FLOAT -> FieldViewerType.TEXT
-    FieldType.BASE64 -> FieldViewerType.DECODED_BASE64
-    FieldType.NULL -> FieldViewerType.TEXT
-    FieldType.AVRO_REGISTRY -> FieldViewerType.JSON
-    FieldType.PROTOBUF_REGISTRY -> FieldViewerType.JSON
-    FieldType.JSON_REGISTRY -> FieldViewerType.JSON
+  private fun detectAutoType(fieldType: KafkaFieldType, text: String): FieldViewerType = when (fieldType) {
+    KafkaFieldType.STRING -> if (KafkaEditorUtils.isJsonString(text)) FieldViewerType.JSON else FieldViewerType.TEXT
+    KafkaFieldType.JSON -> FieldViewerType.JSON
+    KafkaFieldType.LONG -> FieldViewerType.TEXT
+    KafkaFieldType.DOUBLE -> FieldViewerType.TEXT
+    KafkaFieldType.FLOAT -> FieldViewerType.TEXT
+    KafkaFieldType.BASE64 -> FieldViewerType.DECODED_BASE64
+    KafkaFieldType.NULL -> FieldViewerType.TEXT
+    KafkaFieldType.SCHEMA_REGISTRY -> FieldViewerType.JSON
   }
 
   inner class ConsumerEditorCustomization : EditorCustomization {

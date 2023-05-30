@@ -34,6 +34,7 @@ import com.jetbrains.bigdatatools.kafka.common.settings.StorageConsumerConfig
 import com.jetbrains.bigdatatools.kafka.consumer.client.KafkaConsumerClient
 import com.jetbrains.bigdatatools.kafka.consumer.models.*
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
+import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryFormat
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import com.michaelbaranov.microba.calendar.DatePicker
 import java.awt.BorderLayout
@@ -318,6 +319,8 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
                              valueConfig = value.loadFieldConfig(),
                              consume = {
                                val element = KafkaRecord.createFor(key.fieldTypeComboBox.item, value.fieldTypeComboBox.item,
+                                                                   key.schemaComboBox.item.schemaFormat,
+                                                                   value.schemaComboBox.item.schemaFormat,
                                                                    Result.success(it))
                                invokeLater {
                                  output.addRow(element)
@@ -331,6 +334,8 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
                                progress.onError()
 
                                val element = KafkaRecord.createFor(key.fieldTypeComboBox.item, value.fieldTypeComboBox.item,
+                                                                   key.schemaComboBox.item.schemaFormat,
+                                                                   value.schemaComboBox.item.schemaFormat,
                                                                    Result.failure(it))
                                invokeLater {
                                  output.addError(element)
@@ -369,9 +374,11 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
       topic = topicName,
       keyType = key.fieldTypeComboBox.item,
       keySubject = key.schemaComboBox.item?.schemaName ?: "",
+      keyFormat = key.schemaComboBox.item?.schemaFormat ?: KafkaRegistryFormat.AVRO,
 
       valueType = value.fieldTypeComboBox.item,
       valueSubject = value.schemaComboBox.item?.schemaName ?: "",
+      valueFormat = value.schemaComboBox.item?.schemaFormat ?: KafkaRegistryFormat.AVRO,
 
       partitions = partitionField.text,
       limit = consumerLimit,
