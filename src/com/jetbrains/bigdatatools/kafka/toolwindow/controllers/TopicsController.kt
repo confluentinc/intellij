@@ -59,7 +59,6 @@ class TopicsController(val project: Project,
     override fun getActionUpdateThread() = ActionUpdateThread.BGT
   }
 
-  @Suppress("DialogTitleCapitalization")
   private val deleteTopicAction = object : DumbAwareAction(KafkaMessagesBundle.message("action.kafka.DeleteTopicAction.text"),
                                                            null,
                                                            AllIcons.General.Remove) {
@@ -153,8 +152,8 @@ class TopicsController(val project: Project,
   }
 
   override fun emptyTextProvider() = CustomEmptyTextProvider { emptyText: StatusText ->
-    val topicFilterName = KafkaToolWindowSettings.getInstance().getOrCreateConfig(dataManager.connectionId).topicFilterName
-    if (topicFilterName == null) {
+    val clusterConfig = KafkaToolWindowSettings.getInstance().getOrCreateConfig(dataManager.connectionId)
+    if (clusterConfig.topicFilterName.isNullOrBlank()) {
       emptyText.appendText(KafkaMessagesBundle.message("topics.empty.text"), StatusText.DEFAULT_ATTRIBUTES)
       emptyText.appendLine(KafkaMessagesBundle.message("topics.text.create.link"),
                            SimpleTextAttributes.LINK_PLAIN_ATTRIBUTES) {
@@ -163,7 +162,11 @@ class TopicsController(val project: Project,
     }
     else {
       emptyText.appendText(KafkaMessagesBundle.message("topics.empty.text.filter"), StatusText.DEFAULT_ATTRIBUTES)
-      emptyText.appendSecondaryText(KafkaMessagesBundle.message("topics.empty.text.filter.additional"), StatusText.DEFAULT_ATTRIBUTES, null)
+      emptyText.appendSecondaryText(KafkaMessagesBundle.message("topics.empty.text.filter.additional"),
+                                    SimpleTextAttributes.LINK_PLAIN_ATTRIBUTES) {
+        clusterConfig.topicFilterName = null
+        dataManager.updater.invokeRefreshModel(dataManager.topicModel)
+      }
     }
 
     emptyText.isShowAboveCenter = false
