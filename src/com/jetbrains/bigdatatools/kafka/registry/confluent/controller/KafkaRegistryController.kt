@@ -108,8 +108,8 @@ class KafkaRegistryController(val project: Project,
   }
 
   override fun emptyTextProvider() = CustomEmptyTextProvider { emptyText: StatusText ->
-    val filterName = KafkaToolWindowSettings.getInstance().getOrCreateConfig(dataManager.connectionId).schemaFilterName
-    if (filterName == null) {
+    val clusterConfig = KafkaToolWindowSettings.getInstance().getOrCreateConfig(dataManager.connectionId)
+    if (clusterConfig.schemaFilterName.isNullOrBlank()) {
       emptyText.appendText(KafkaMessagesBundle.message("schemas.empty.text"), StatusText.DEFAULT_ATTRIBUTES)
       emptyText.appendLine(KafkaMessagesBundle.message("schemas.empty.text.create.link"),
                            SimpleTextAttributes.LINK_PLAIN_ATTRIBUTES) {
@@ -118,8 +118,11 @@ class KafkaRegistryController(val project: Project,
     }
     else {
       emptyText.appendText(KafkaMessagesBundle.message("schemas.empty.text.filter"), StatusText.DEFAULT_ATTRIBUTES)
-      emptyText.appendSecondaryText(KafkaMessagesBundle.message("schemas.empty.text.filter.additional"), StatusText.DEFAULT_ATTRIBUTES,
-                                    null)
+      emptyText.appendSecondaryText(KafkaMessagesBundle.message("topics.empty.text.filter.additional"),
+                                    SimpleTextAttributes.LINK_PLAIN_ATTRIBUTES) {
+        clusterConfig.schemaFilterName = null
+        dataManager.schemaRegistryModel?.let { dataModel -> dataManager.updater.invokeRefreshModel(dataModel) }
+      }
     }
     emptyText.isShowAboveCenter = false
   }
