@@ -19,6 +19,7 @@ import com.jetbrains.bigdatatools.common.settings.revalidateComponent
 import com.jetbrains.bigdatatools.common.settings.withValidator
 import com.jetbrains.bigdatatools.common.ui.SimpleDumbAwareAction
 import com.jetbrains.bigdatatools.common.ui.chooser.FileChooserUtil
+import com.jetbrains.bigdatatools.common.ui.revalidateOnLinesChanged
 import com.jetbrains.bigdatatools.common.util.executeNotOnEdt
 import com.jetbrains.bigdatatools.common.util.invokeLater
 import com.jetbrains.bigdatatools.common.util.toPresentableText
@@ -72,6 +73,7 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
           schemaValidationError = null
         }
       }, this)
+      it.revalidateOnLinesChanged()
     }
   }
 
@@ -83,9 +85,9 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
           schemaValidationError = null
         }
       }, this)
+      it.revalidateOnLinesChanged()
     }
   }
-
 
   override fun dispose() {}
 
@@ -196,13 +198,11 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
     updateVisibility()
   }
 
-
   private fun updateFieldsText(type: KafkaFieldType, newText: String) {
     if (type in jsonFieldTypes)
       jsonField.text = newText
     else
       textField.text = newText
-
   }
 
   @Suppress("UNUSED_PARAMETER")
@@ -218,7 +218,6 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
     KafkaFieldType.NULL -> ""
     KafkaFieldType.SCHEMA_REGISTRY -> jsonField.text
   }
-
 
   private fun updateVisibility(): Unit = invokeLater {
     val fieldType = fieldTypeComboBox.item
@@ -236,7 +235,6 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
 
     updateJsonComment()
   }
-
 
   private fun validate(type: KafkaFieldType, value: String) = when (type) {
     KafkaFieldType.JSON -> try {
@@ -268,9 +266,7 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
     catch (iae: Exception) {
       iae.cause?.message ?: iae.message
     }
-
   }
-
 
   fun applyConfig(config: StorageProducerConfig) {
     fieldTypeComboBox.item = if (isKey) config.getKeyType() else config.getValueType()
@@ -328,7 +324,6 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
       }
     }
   }
-
 
   companion object {
     private val jsonFieldTypes = setOf(KafkaFieldType.JSON) + KafkaFieldType.registryValues

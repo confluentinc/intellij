@@ -23,6 +23,7 @@ import com.jetbrains.bigdatatools.common.settings.withEmptyOrFileExistValidator
 import com.jetbrains.bigdatatools.common.ui.CustomListCellRenderer
 import com.jetbrains.bigdatatools.common.ui.block
 import com.jetbrains.bigdatatools.common.ui.components.RadioComboBox
+import com.jetbrains.bigdatatools.common.ui.revalidateOnLinesChanged
 import com.jetbrains.bigdatatools.common.ui.row
 import com.jetbrains.bigdatatools.common.util.MessagesBundle
 import com.jetbrains.bigdatatools.common.util.PathUtils
@@ -82,6 +83,8 @@ class KafkaBrokerSettings(val project: Project,
       setKafkaPropertiesToUi()
       updateVisibilityOfPropertiesKrb5Conf()
     }
+  }.apply {
+    getComponent().revalidateOnLinesChanged()
   }
 
   private fun updateVisibilityOfPropertiesKrb5Conf() {
@@ -199,7 +202,7 @@ class KafkaBrokerSettings(val project: Project,
         }
 
         filePropertiesGroup = row(propertiesFile)
-        directPropertiesGroup = block(propertiesEditor.getComponent())
+        directPropertiesGroup = block(propertiesEditor.getComponent()).resizableRow()
 
         propertiesKerberosLinkRow = row {
           link(MessagesBundle.message("kerberos.settings.open.button")) {
