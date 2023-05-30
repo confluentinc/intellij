@@ -1,5 +1,6 @@
 package com.jetbrains.bigdatatools.kafka.util.generator
 
+import com.google.protobuf.ByteString
 import com.google.protobuf.Descriptors.*
 import com.google.protobuf.Descriptors.FieldDescriptor.Type.*
 import com.google.protobuf.DynamicMessage
@@ -16,14 +17,14 @@ class ProtobufGenerator(private val schema: ProtobufSchema) {
       DOUBLE -> PrimitivesGenerator.generateDouble()
       FLOAT -> PrimitivesGenerator.generateFloat()
       INT64 -> PrimitivesGenerator.generateLong()
-      UINT64 -> PrimitivesGenerator.generateUlong()
+      UINT64 -> PrimitivesGenerator.generateUlong().toLong()
       INT32 -> PrimitivesGenerator.generateInt()
-      FIXED64 -> PrimitivesGenerator.generateUlong()
-      FIXED32 -> PrimitivesGenerator.generateUint()
+      FIXED64 -> PrimitivesGenerator.generateUlong().toLong()
+      FIXED32 -> PrimitivesGenerator.generateUint().toInt()
       BOOL -> PrimitivesGenerator.generateBoolean()
       STRING -> PrimitivesGenerator.generateString()
-      BYTES -> PrimitivesGenerator.generateBytes()
-      UINT32 -> PrimitivesGenerator.generateInt()
+      BYTES -> ByteString.copyFrom(PrimitivesGenerator.generateBytes())
+      UINT32 -> PrimitivesGenerator.generateUint().toInt()
       SFIXED32 -> PrimitivesGenerator.generateInt()
       SFIXED64 -> PrimitivesGenerator.generateLong()
       SINT32 -> PrimitivesGenerator.generateInt()

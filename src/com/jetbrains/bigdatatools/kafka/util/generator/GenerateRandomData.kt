@@ -17,7 +17,7 @@ object GenerateRandomData {
     KafkaFieldType.LONG -> PrimitivesGenerator.generateLong().toString()
     KafkaFieldType.DOUBLE -> PrimitivesGenerator.generateDouble().toString()
     KafkaFieldType.FLOAT -> PrimitivesGenerator.generateFloat().toString()
-    KafkaFieldType.BASE64 -> PrimitivesGenerator.generateBytes().toString()
+    KafkaFieldType.BASE64 -> PrimitivesGenerator.generateBytesBase64().toString()
     KafkaFieldType.SCHEMA_REGISTRY -> {
       val schemaType = parsedSchema?.schemaType()
       val format = KafkaRegistryFormat.parse(schemaType ?: error("Schema is not provided for generation data"))

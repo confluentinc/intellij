@@ -17,8 +17,10 @@ object PrimitivesGenerator {
 
   fun generateFloat(from: Float = Float.MIN_VALUE, until: Float = Float.MAX_VALUE) = (from + Random.nextFloat() * (until - from))
 
-  fun generateBytes(minSize: Int = 10, maxSize: Int = 100): ByteArray =
+  fun generateBytesBase64(minSize: Int = 10, maxSize: Int = 100): ByteArray =
     Base64.getEncoder().encode(Random.nextBytes(Random.nextInt(minSize, maxSize)))
+
+  fun generateBytes(minSize: Int = 10, maxSize: Int = 100): ByteArray = Random.nextBytes(Random.nextInt(minSize, maxSize))
 
   fun generateInt(from: Int = Int.MIN_VALUE, until: Int = Int.MAX_VALUE) = Random.nextInt(from, until)
 
