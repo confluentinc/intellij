@@ -324,7 +324,7 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
           e.presentation.isEnabledAndVisible = true
           e.presentation.text = KafkaMessagesBundle.message("generate.random.data")
         }
-        null, KafkaFieldType.NULL -> e.presentation.isVisible = false
+        null, KafkaFieldType.NULL -> e.presentation.isEnabledAndVisible = false
       }
     }
   }
