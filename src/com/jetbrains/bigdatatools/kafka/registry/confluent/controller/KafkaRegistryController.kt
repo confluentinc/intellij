@@ -108,10 +108,18 @@ class KafkaRegistryController(val project: Project,
   }
 
   override fun emptyTextProvider() = CustomEmptyTextProvider { emptyText: StatusText ->
-    emptyText.appendText(KafkaMessagesBundle.message("schemas.empty.text"), StatusText.DEFAULT_ATTRIBUTES)
-    emptyText.appendLine(KafkaMessagesBundle.message("schemas.empty.text.create.link"),
-                         SimpleTextAttributes.LINK_ATTRIBUTES) {
-      KafkaRegistryAddSchemaDialog(project, dataManager).show()
+    val filterName = KafkaToolWindowSettings.getInstance().getOrCreateConfig(dataManager.connectionId).schemaFilterName
+    if (filterName == null) {
+      emptyText.appendText(KafkaMessagesBundle.message("schemas.empty.text"), StatusText.DEFAULT_ATTRIBUTES)
+      emptyText.appendLine(KafkaMessagesBundle.message("schemas.empty.text.create.link"),
+                           SimpleTextAttributes.LINK_PLAIN_ATTRIBUTES) {
+        KafkaRegistryAddSchemaDialog(project, dataManager).show()
+      }
+    }
+    else {
+      emptyText.appendText(KafkaMessagesBundle.message("schemas.empty.text.filter"), StatusText.DEFAULT_ATTRIBUTES)
+      emptyText.appendSecondaryText(KafkaMessagesBundle.message("schemas.empty.text.filter.additional"), StatusText.DEFAULT_ATTRIBUTES,
+                                    null)
     }
     emptyText.isShowAboveCenter = false
   }
@@ -132,7 +140,7 @@ class KafkaRegistryController(val project: Project,
   override fun createTopRightToolBar(): ActionToolbar {
     val createProducer = ActionManager.getInstance().getAction("kafka.create.producer")
     val createConsumer = ActionManager.getInstance().getAction("kafka.create.consumer")
-    val toolbar = DefaultActionGroup(createProducer, createConsumer)
+    val toolbar = DefaultActionGroup(createConsumer, createProducer)
     return ToolbarUtils.createActionToolbar("BDTKafkaTopicsRightTopToolbar", toolbar, true)
   }
 
@@ -160,6 +168,8 @@ class KafkaRegistryController(val project: Project,
 
     val toolbar = DefaultActionGroup(CustomComponentActionImpl(searchTextField), CustomComponentActionImpl(countFilter))
     showSoftDeletedAction?.let { toolbar.add(it) }
+    toolbar.add(Separator())
+    toolbar.add(addSchema)
     return ToolbarUtils.createActionToolbar("BDTKafkaTopicsTopToolbar", toolbar, true)
   }
 

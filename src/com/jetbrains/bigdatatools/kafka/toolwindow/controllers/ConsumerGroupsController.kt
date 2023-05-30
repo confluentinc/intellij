@@ -58,7 +58,7 @@ class ConsumerGroupsController(val dataManager: KafkaDataManager) : AbstractTabl
   override fun createTopRightToolBar(): ActionToolbar {
     val createProducer = ActionManager.getInstance().getAction("kafka.create.producer")
     val createConsumer = ActionManager.getInstance().getAction("kafka.create.consumer")
-    val toolbar = DefaultActionGroup(createProducer, createConsumer)
+    val toolbar = DefaultActionGroup(createConsumer, createProducer)
     return ToolbarUtils.createActionToolbar("BDTKafkaTopicsRightTopToolbar", toolbar, true)
   }
 

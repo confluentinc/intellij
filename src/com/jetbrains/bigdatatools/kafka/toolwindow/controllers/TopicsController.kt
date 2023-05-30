@@ -138,7 +138,9 @@ class TopicsController(val project: Project,
 
     val toolbar = DefaultActionGroup(CustomComponentActionImpl(searchTextField),
                                      CustomComponentActionImpl(countFilter),
-                                     showInternalTopicsAction)
+                                     showInternalTopicsAction,
+                                     Separator(),
+                                     createTopicAction)
 
     return ToolbarUtils.createActionToolbar("BDTKafkaTopicsTopToolbar", toolbar, true)
   }
@@ -146,16 +148,24 @@ class TopicsController(val project: Project,
   override fun createTopRightToolBar(): ActionToolbar {
     val createProducer = ActionManager.getInstance().getAction("kafka.create.producer")
     val createConsumer = ActionManager.getInstance().getAction("kafka.create.consumer")
-    val toolbar = DefaultActionGroup(createProducer, createConsumer)
+    val toolbar = DefaultActionGroup(createConsumer, createProducer)
     return ToolbarUtils.createActionToolbar("BDTKafkaTopicsRightTopToolbar", toolbar, true)
   }
 
   override fun emptyTextProvider() = CustomEmptyTextProvider { emptyText: StatusText ->
-    emptyText.appendText(KafkaMessagesBundle.message("topics.empty.text"), StatusText.DEFAULT_ATTRIBUTES)
-    emptyText.appendLine(KafkaMessagesBundle.message("topics.text.create.link"),
-                         SimpleTextAttributes.LINK_ATTRIBUTES) {
-      KafkaDialogFactory.showCreateTopicDialog(dataManager)
+    val topicFilterName = KafkaToolWindowSettings.getInstance().getOrCreateConfig(dataManager.connectionId).topicFilterName
+    if (topicFilterName == null) {
+      emptyText.appendText(KafkaMessagesBundle.message("topics.empty.text"), StatusText.DEFAULT_ATTRIBUTES)
+      emptyText.appendLine(KafkaMessagesBundle.message("topics.text.create.link"),
+                           SimpleTextAttributes.LINK_PLAIN_ATTRIBUTES) {
+        KafkaDialogFactory.showCreateTopicDialog(dataManager)
+      }
     }
+    else {
+      emptyText.appendText(KafkaMessagesBundle.message("topics.empty.text.filter"), StatusText.DEFAULT_ATTRIBUTES)
+      emptyText.appendSecondaryText(KafkaMessagesBundle.message("topics.empty.text.filter.additional"), StatusText.DEFAULT_ATTRIBUTES, null)
+    }
+
     emptyText.isShowAboveCenter = false
   }
 
