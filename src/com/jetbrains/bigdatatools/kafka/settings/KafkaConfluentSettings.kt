@@ -29,21 +29,21 @@ class KafkaConfluentSettings(
 ) {
 
   private val confluentConf = ConnectionPropertiesEditor(project, KafkaPropertiesUtils.getAdminPropertiesDescriptions()).apply {
-    this.getComponent().text = connectionData.properties
-    val value = object : DocumentListener {
+    getComponent().setTextWithoutScroll(connectionData.properties)
+    getComponent().setCaretPosition(0)
+    val listener = object : DocumentListener {
       override fun documentChanged(event: com.intellij.openapi.editor.event.DocumentEvent) {
-        val text: String = this@apply.getComponent().text
+        val text: String = getComponent().text
         propertiesEditor.getComponent().text = text
         if (text.contains(AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG))
           registryType.setValue(KafkaRegistryType.CONFLUENT)
         else
           registryType.setValue(KafkaRegistryType.NONE)
-
       }
     }
-    this.getComponent().addDocumentListener(value)
+    getComponent().addDocumentListener(listener)
     Disposer.register(uiDisposable, Disposable {
-      this.getComponent().removeDocumentListener(value)
+      getComponent().removeDocumentListener(listener)
     })
   }
 
