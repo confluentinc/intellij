@@ -57,7 +57,7 @@ class KafkaSettingsCustomizer(project: Project, connectionData: KafkaConnectionD
       return KafkaMessagesBundle.message("settings.url.must.be.non.empty.hint")
     val brokers = names.split(",").map { it.trim() }
     val errors = brokers.map { it to BdtUrlUtils.validateUrl(it) }.filter { it.second != null }
-    return errors.firstOrNull()?.let { "${it.first}: ${it.second ?: MessagesBundle.message("unexpected.error")}" }
+    return errors.firstOrNull()?.let { "${it.first}: ${MessagesBundle.message("url.format.error")}" }
   }
 
   object KafkaSettingsKeys {
