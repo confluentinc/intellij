@@ -45,6 +45,7 @@ class TopicsController(val project: Project,
     }
   }
 
+  private val clearTopicAction = ActionManager.getInstance().getAction("kafka.ClearTopicAction")
   private val createTopicAction = object : DumbAwareAction(KafkaMessagesBundle.message("action.kafka.CreateTopicAction.text"),
                                                            null,
                                                            AllIcons.General.Add) {
@@ -100,6 +101,14 @@ class TopicsController(val project: Project,
   init {
     init()
     dataTable.selectionModel.selectionMode = ListSelectionModel.MULTIPLE_INTERVAL_SELECTION
+
+    dataTable.customDataProvider = DataProvider { dataId ->
+      when {
+        KafkaMainController.DATA_MANAGER.`is`(dataId) -> dataManager
+        KafkaMainController.RFS_PATH.`is`(dataId) -> getSelectedItem()?.name?.let { KafkaDriver.topicPath.child(it, false) }
+        else -> null
+      }
+    }
   }
 
   override fun customTableInit(table: DataTable<TopicPresentable>) {
@@ -177,7 +186,7 @@ class TopicsController(val project: Project,
   override fun getDataModel() = dataManager.topicModel
   override fun getAdditionalActions(): List<AnAction> = listOf()
   override fun showColumnFilter(): Boolean = false
-  override fun getAdditionalContextActions(): List<AnAction> = listOf(createTopicAction, deleteTopicAction)
+  override fun getAdditionalContextActions(): List<AnAction> = listOf(createTopicAction, deleteTopicAction, clearTopicAction)
 
   companion object {
     val LIMIT_FILTER = FilterKey("topicLimit")

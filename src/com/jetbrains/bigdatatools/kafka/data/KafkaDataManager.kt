@@ -1,5 +1,6 @@
 package com.jetbrains.bigdatatools.kafka.data
 
+import com.intellij.CommonBundle
 import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.Messages
@@ -285,6 +286,61 @@ class KafkaDataManager(project: Project?,
 
   fun getLatestVersionInfo(schemaName: String) =
     client.confluentRegistryClient?.getLatestVersionInfo(schemaName) ?: client.glueRegistryClient?.getLatestVersionInfo(schemaName)
+
+  fun clearTopic(topicName: String) {
+    val topic = getCachedTopicInfo(topicName) ?: return
+    val msg = KafkaMessagesBundle.message("action.clear.topic.single.message", topic.name)
+    val res = Messages.showOkCancelDialog(project,
+                                          msg,
+                                          KafkaMessagesBundle.message("action.kafka.ClearTopicAction.text"),
+                                          CommonBundle.getOkButtonText(),
+                                          CommonBundle.getCancelButtonText(),
+                                          Messages.getQuestionIcon())
+    if (res != Messages.OK)
+      return
+
+    clearPartitionsInternal(topic.partitionList)
+  }
+
+  private fun getCachedTopicInfo(topicName: String) =
+    topicModel.data?.firstOrNull { it.name == topicName }
+
+
+  fun clearPartitions(partitions: List<BdtTopicPartition>) {
+    if (partitions.isEmpty()) {
+      return
+    }
+
+    val msg = if (partitions.size == 1)
+      KafkaMessagesBundle.message("action.clear.partition.single.message", partitions.first().let { "${it.topic}-${it.partitionId}" })
+    else
+      KafkaMessagesBundle.message("action.clear.partition.multi.message", partitions.size)
+
+    val res = Messages.showOkCancelDialog(project,
+                                          msg,
+                                          KafkaMessagesBundle.message("action.clear.partition.title"),
+                                          CommonBundle.getOkButtonText(),
+                                          CommonBundle.getCancelButtonText(),
+                                          Messages.getQuestionIcon())
+    if (res != Messages.OK)
+      return
+
+    clearPartitionsInternal(partitions)
+  }
+
+  private fun clearPartitionsInternal(partitions: List<BdtTopicPartition>) {
+    runAsyncSuspend {
+      try {
+        client.clearPartitions(partitions)
+      }
+      catch (t: Throwable) {
+        RfsNotificationUtils.showExceptionMessage(project, t)
+      }
+      finally {
+        updater.invokeRefreshModel(topicModel)
+      }
+    }
+  }
 
   companion object {
     fun getInstance(connectionId: String,
