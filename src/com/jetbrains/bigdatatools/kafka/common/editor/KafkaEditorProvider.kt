@@ -19,9 +19,10 @@ class KafkaEditorProvider : WeighedFileEditorProvider(), DumbAware {
   override fun createEditor(project: Project, file: VirtualFile): FileEditor {
     val manager = file.getUserData(KAFKA_MANAGER_KEY) ?: error("Kafka manager is not found")
     val type = file.getUserData(KAFKA_EDITOR_TYPE) ?: error("Kafka editor type is not found")
+    val topic = file.getUserData(KAFKA_DEFAULT_TOPIC)
     return when (type) {
-      KafkaEditorType.CONSUMER -> KafkaConsumerEditor(project, manager, file)
-      KafkaEditorType.PRODUCER -> KafkaProducerEditor(project, manager, file)
+      KafkaEditorType.CONSUMER -> KafkaConsumerEditor(project, manager, file, topic)
+      KafkaEditorType.PRODUCER -> KafkaProducerEditor(project, manager, file, topic)
     }
   }
 
@@ -34,6 +35,7 @@ class KafkaEditorProvider : WeighedFileEditorProvider(), DumbAware {
 
     val KAFKA_MANAGER_KEY = Key<KafkaDataManager>("KAFKA_MANAGER")
     val KAFKA_EDITOR_TYPE = Key<KafkaEditorType>("KAFKA_EDITOR_TYPE")
+    val KAFKA_DEFAULT_TOPIC = Key<String>("KAFKA_DEFAULT_TOPIC")
   }
 }
 

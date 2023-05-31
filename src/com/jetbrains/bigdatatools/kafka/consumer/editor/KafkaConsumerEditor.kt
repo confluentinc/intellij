@@ -6,6 +6,7 @@ import com.intellij.openapi.fileEditor.FileEditorState
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.UserDataHolderBase
 import com.intellij.openapi.vfs.VirtualFile
+import com.jetbrains.bigdatatools.kafka.common.models.TopicInEditor
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import java.beans.PropertyChangeListener
@@ -13,9 +14,14 @@ import javax.swing.JComponent
 
 class KafkaConsumerEditor(val project: Project,
                           private val kafkaManager: KafkaDataManager,
-                          private val file: VirtualFile) : FileEditor, UserDataHolderBase() {
+                          private val file: VirtualFile,
+                          topic: String?) : FileEditor, UserDataHolderBase() {
   private val customizable = kafkaManager.consumerPanelStorage.getOrCreate(project, file)
   private val mainComponent = customizable.getComponent()
+
+  init {
+    customizable.topicComboBox.item = topic?.let { TopicInEditor(it) }
+  }
 
   override fun dispose() {
     kafkaManager.consumerPanelStorage.unsubscribe(file)
