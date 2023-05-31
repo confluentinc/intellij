@@ -4,9 +4,11 @@ import io.confluent.kafka.schemaregistry.avro.AvroSchema
 import org.apache.avro.Schema
 import org.apache.avro.Schema.Field
 import org.apache.avro.Schema.Type
+import javax.swing.event.TreeExpansionEvent
 import javax.swing.tree.DefaultMutableTreeNode
+import javax.swing.tree.DefaultTreeModel
 
-class AvroSchemaTree(private val schema: AvroSchema) : SchemaTree {
+class AvroSchemaTree(model: DefaultTreeModel, private val schema: AvroSchema) : SchemaTree(model) {
   private fun buildAvroSchemaTree(parent: DefaultMutableTreeNode, fieldName: String, schema: Schema, field: Field? = null) {
     val nameOfField = if (schema.type == Type.FIXED)
       "$fieldName size=${schema.fixedSize}"
@@ -30,8 +32,8 @@ class AvroSchemaTree(private val schema: AvroSchema) : SchemaTree {
       buildAvroSchemaTree(parent, "value", schema.valueType)
     }
     Type.ARRAY -> buildAvroSchemaTree(parent, "value", schema.elementType)
-    Type.ENUM -> schema.enumSymbols?.forEachIndexed { index, enum ->
-      parent.add(createMutableNode("[$index]", enum))
+    Type.ENUM -> schema.enumSymbols?.forEach { enum ->
+      parent.add(createMutableNode(enum, ""))
     }
     else -> {}
   }
@@ -41,5 +43,9 @@ class AvroSchemaTree(private val schema: AvroSchema) : SchemaTree {
   override fun buildTree(root: DefaultMutableTreeNode) {
     val rawSchema = schema.rawSchema()
     addNestedTypes(root, rawSchema)
+  }
+
+  override fun treeExpanded(event: TreeExpansionEvent?) {
+    //TODO
   }
 }

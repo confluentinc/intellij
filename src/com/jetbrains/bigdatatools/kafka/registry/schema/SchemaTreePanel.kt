@@ -16,6 +16,7 @@ import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchema
 import java.awt.Dimension
 import javax.swing.BorderFactory
 import javax.swing.ScrollPaneConstants
+import javax.swing.event.TreeExpansionListener
 import javax.swing.tree.DefaultMutableTreeNode
 
 class SchemaTreePanel {
@@ -29,12 +30,14 @@ class SchemaTreePanel {
 
   private val treeTableModel = ListTreeTableModel(DefaultMutableTreeNode(), commonColumns)
 
-  private var treeTable = RfsTreeTable(treeTableModel)
+  private val treeTable = RfsTreeTable(treeTableModel)
   private val scrollPanel = ScrollPaneFactory.createScrollPane(treeTable,
                                                                ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED,
                                                                ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER).apply {
     border = BorderFactory.createEmptyBorder()
   }
+
+  private var listener: TreeExpansionListener? = null
 
   init {
     val tree = treeTable.tree
@@ -47,26 +50,29 @@ class SchemaTreePanel {
     tree.isRootVisible = false
 
     MaterialTableUtils.fitColumnsWidth(treeTable.table)
-
-    //treeTable.setTableHeader(null);
-    //
-    //TreeTableSpeedSearch.installOn(treeTable) { o: TreePath ->
-    //  val userObject = (o.lastPathComponent as DefaultMutableTreeNode).userObject
-    //  if (userObject is CompilerOptionInfo) (userObject as CompilerOptionInfo).DISPLAY_NAME else ""
-    //}.comparator = SpeedSearchComparator(false)
   }
 
   fun update(schema: ParsedSchema) {
     val root = DefaultMutableTreeNode()
 
     val schemaTree = when (schema) {
-                       is AvroSchema -> AvroSchemaTree(schema)
-                       is JsonSchema -> JsonSchemaTree(schema)
-                       is ProtobufSchema -> ProtobufSchemaTree(schema)
+                       is AvroSchema -> AvroSchemaTree(treeTableModel, schema)
+                       is JsonSchema -> JsonSchemaTree(treeTableModel, schema)
+                       is ProtobufSchema -> ProtobufSchemaTree(treeTableModel, schema)
                        else -> null
                      } ?: return
+    updateListener(schemaTree)
     schemaTree.buildTree(root)
     treeTableModel.setRoot(root)
+  }
+
+  private fun updateListener(newListener: TreeExpansionListener) {
+    if (listener != null) {
+      treeTable.tree.removeTreeExpansionListener(listener)
+    }
+
+    listener = newListener
+    treeTable.tree.addTreeExpansionListener(listener)
   }
 
   fun getComponent() = scrollPanel
