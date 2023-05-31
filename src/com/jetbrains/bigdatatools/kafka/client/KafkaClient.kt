@@ -123,8 +123,16 @@ class KafkaClient(project: Project?,
 
   fun createProducerClient() = KafkaProducerClient(client = this)
 
-
   override fun getRealUri(): String = kafkaProps.getProperty(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG) ?: "<NOT_FOUND>"
+
+
+  suspend fun clearPartitions(partitionList: List<BdtTopicPartition>) {
+    val partitions = partitionList.map { TopicPartition(it.topic, it.partitionId) }
+    val offsets = listOffsets(partitions, OffsetSpec.latest())
+
+    val deleteRequest = offsets.entries.associate { it.key to RecordsToDelete.beforeOffset(it.value.offset()) }
+    kafkaAdminNotNull.deleteRecords(deleteRequest).all().await()
+  }
 
   fun getConsumerGroups(): List<ConsumerGroupPresentable> {
     return kafkaAdminNotNull.listConsumerGroups().all().get().map {
@@ -174,7 +182,8 @@ class KafkaClient(project: Project?,
         val replicas: List<InternalReplica> = partition.replicas().filterNotNull().map {
           InternalReplica(it.id(), partition.leader()?.id() != it.id(), partition.isr()?.contains(it) == true)
         }
-        BdtTopicPartition(leader = partition.leader()?.id(),
+        BdtTopicPartition(topic = topic.name(),
+                          leader = partition.leader()?.id(),
                           partitionId = partition.partition(),
                           inSyncReplicasCount = partition.isr().size,
                           replicas = partition.replicas()?.joinToString(separator = ", ") { it.idString() } ?: "",
@@ -360,6 +369,11 @@ class KafkaClient(project: Project?,
     secretKey?.let { System.setProperty(AwsSettingsComponentForKafka.AWS_SECRET_KEY, it) }
   }
 
+  private suspend fun listOffsets(partitions: List<TopicPartition>,
+                                  offsetSpec: OffsetSpec): MutableMap<TopicPartition, ListOffsetsResult.ListOffsetsResultInfo> {
+    val offsets = partitions.associateWith { offsetSpec }
+    return kafkaAdminNotNull.listOffsets(offsets).all().await() ?: mutableMapOf()
+  }
 
   private fun createGlueClient(): BdtGlueRegistryClient? {
     val awsSettingsInfo = connectionData.loadAwsGlueSettings() ?: return null

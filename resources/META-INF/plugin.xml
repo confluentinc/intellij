@@ -88,6 +88,10 @@
                 icon="AllIcons.General.Add">
           <keyboard-shortcut keymap="$default" first-keystroke="alt INSERT"/>
         </action>
+        <action id="kafka.ClearTopicAction" class="com.jetbrains.bigdatatools.kafka.toolwindow.actions.ClearTopicAction"
+                icon="AllIcons.Actions.GC">
+        </action>
+
       </group>
 
       <group id="Kafka.Schema.Actions">
