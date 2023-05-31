@@ -2,9 +2,11 @@ package com.jetbrains.bigdatatools.kafka.registry.schema
 
 import io.confluent.kafka.schemaregistry.json.JsonSchema
 import org.everit.json.schema.*
+import javax.swing.event.TreeExpansionEvent
 import javax.swing.tree.DefaultMutableTreeNode
+import javax.swing.tree.DefaultTreeModel
 
-class JsonSchemaTree(private val schema: JsonSchema) : SchemaTree {
+class JsonSchemaTree(model: DefaultTreeModel, private val schema: JsonSchema) : SchemaTree(model) {
   private lateinit var requiredFields: List<String>
 
   private fun buildJsonSchemaTree(parent: DefaultMutableTreeNode, fieldName: String, schema: Schema) {
@@ -52,5 +54,9 @@ class JsonSchemaTree(private val schema: JsonSchema) : SchemaTree {
     requiredFields = objectSchema.requiredProperties
 
     objectSchema.propertySchemas?.forEach { buildJsonSchemaTree(root, it.key, it.value) }
+  }
+
+  override fun treeExpanded(event: TreeExpansionEvent?) {
+    //TODO
   }
 }
