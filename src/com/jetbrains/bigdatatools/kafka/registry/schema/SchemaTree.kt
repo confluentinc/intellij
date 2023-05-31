@@ -10,10 +10,7 @@ abstract class SchemaTree(protected val model: DefaultTreeModel) : TreeExpansion
   abstract fun buildTree(root: DefaultMutableTreeNode)
 
   fun createMutableNode(name: String, type: String, default: Any? = null, description: String? = null, required: Boolean? = null) =
-    DefaultMutableTreeNode(
-      SchemaRegistryFieldsInfo(name, type, default?.toString() ?: "", description ?: "", required?.toString() ?: "")).also {
-      it.children()
-    }
+    DefaultMutableTreeNode(SchemaRegistryFieldsInfo(name, type, default?.toString() ?: "", description ?: "", required?.toString() ?: ""))
 
   fun createEmptyChild(): DefaultMutableTreeNode = createMutableNode("", "")
 
