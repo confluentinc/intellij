@@ -282,7 +282,7 @@ object KafkaEditorUtils {
     val confluentSchemaName = if (isKey) "$topic-key" else "$topic-value"
     if (confluentSchemaName in schemas)
       return confluentSchemaName
-    if (topic in schemas)
+    if (!isKey && topic in schemas)
       return topic
     return null
   }

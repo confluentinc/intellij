@@ -1,5 +1,7 @@
 package com.jetbrains.bigdatatools.kafka.toolwindow.controllers
 
+import com.intellij.openapi.actionSystem.ActionGroup
+import com.intellij.openapi.actionSystem.DataProvider
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.jetbrains.bigdatatools.common.monitoring.toolwindow.DetailsMonitoringController
@@ -8,6 +10,8 @@ import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryType
 import com.jetbrains.bigdatatools.kafka.registry.confluent.controller.KafkaTopicSchemaController
 import com.jetbrains.bigdatatools.kafka.registry.confluent.controller.TopicSchemaViewType
+import com.jetbrains.bigdatatools.kafka.rfs.KafkaDriver
+import com.jetbrains.bigdatatools.kafka.util.KafkaControllerUtils
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 
 class TopicDetailsController(project: Project, dataManager: KafkaDataManager) : TabbedDetailsMonitoringController<String>(project) {
@@ -35,7 +39,18 @@ class TopicDetailsController(project: Project, dataManager: KafkaDataManager) : 
     origin + schemas
   }
 
+  override val dataProvider = DataProvider { dataId ->
+    when {
+      KafkaMainController.DATA_MANAGER.`is`(dataId) -> dataManager
+      KafkaMainController.RFS_PATH.`is`(dataId) -> detailsId?.let { KafkaDriver.topicPath.child(it, false) }
+      else -> null
+    }
+  }
+
   init {
     init()
   }
+
+  override fun getActions(): ActionGroup = KafkaControllerUtils.createTopicToolbar()
+
 }

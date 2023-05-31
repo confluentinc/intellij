@@ -1,6 +1,7 @@
 package com.jetbrains.bigdatatools.kafka.toolwindow.controllers
 
 import com.intellij.icons.AllIcons
+import com.intellij.openapi.actionSystem.ActionGroup
 import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
@@ -9,6 +10,7 @@ import com.jetbrains.bigdatatools.common.monitoring.toolwindow.DetailsTableMonit
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.model.BdtTopicPartition
 import com.jetbrains.bigdatatools.kafka.toolwindow.config.KafkaToolWindowSettings
+import com.jetbrains.bigdatatools.kafka.util.KafkaControllerUtils
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 
 class TopicPartitionsController(private val dataManager: KafkaDataManager) : DetailsTableMonitoringController<BdtTopicPartition, String>() {
@@ -39,9 +41,7 @@ class TopicPartitionsController(private val dataManager: KafkaDataManager) : Det
   }
 
 
-  override fun getAdditionalActions(): List<AnAction> {
-    return listOf(clearPartition)
-  }
+  override fun getAdditionalContextActions(): List<AnAction> = listOf(clearPartition)
 
   override fun getColumnSettings() = KafkaToolWindowSettings.getInstance().topicPartitionsColumnSettings
 
@@ -50,4 +50,6 @@ class TopicPartitionsController(private val dataManager: KafkaDataManager) : Det
   override fun getDataModel() = selectedId?.let { dataManager.topicPartitionsModels[it] }
 
   override fun showColumnFilter(): Boolean = false
+
+  override fun getActions(): ActionGroup = KafkaControllerUtils.createTopicToolbar()
 }

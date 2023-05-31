@@ -48,7 +48,8 @@ import kotlin.math.max
 
 class KafkaProducerEditor(val project: Project,
                           internal val kafkaManager: KafkaDataManager,
-                          private val file: VirtualFile) : FileEditor, UserDataHolderBase() {
+                          private val file: VirtualFile,
+                          topic: String?) : FileEditor, UserDataHolderBase() {
   private var isRestoring = false
 
   private val output = KafkaRecordsOutput(project, isProducer = true).also { Disposer.register(this, it) }
@@ -286,6 +287,8 @@ class KafkaProducerEditor(val project: Project,
     presetsSplitter.setResizeEnabled(presetsExpanded)
 
     restoreFromFile()
+
+    topicComboBox.item = topic?.let { TopicInEditor(it) }
   }
 
   override fun dispose() {

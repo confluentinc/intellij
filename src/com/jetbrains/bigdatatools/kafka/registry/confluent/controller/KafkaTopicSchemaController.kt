@@ -1,5 +1,6 @@
 package com.jetbrains.bigdatatools.kafka.registry.confluent.controller
 
+import com.intellij.openapi.actionSystem.ActionGroup
 import com.intellij.openapi.project.Project
 import com.intellij.ui.SimpleTextAttributes
 import com.intellij.ui.components.JBPanelWithEmptyText
@@ -8,6 +9,7 @@ import com.jetbrains.bigdatatools.common.monitoring.data.listener.DataModelListe
 import com.jetbrains.bigdatatools.common.monitoring.toolwindow.DetailsMonitoringController
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryAddSchemaDialog
+import com.jetbrains.bigdatatools.kafka.util.KafkaControllerUtils
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import java.awt.BorderLayout
 import javax.swing.JComponent
@@ -81,4 +83,6 @@ class KafkaTopicSchemaController(private val project: Project,
     }
     curComponent.emptyText.isShowAboveCenter = false
   }
+
+  override fun getActions(): ActionGroup = KafkaControllerUtils.createTopicToolbar()
 }
