@@ -313,17 +313,21 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
 
       withPluginClassLoader {
         // Callbacks called in Kafka client threads. That's why, to properly update UI we calling invokeLater
+        output.onStartConsume()
         consumerClient.start(runConfig,
                              dataManager = kafkaManager,
                              keyConfig = key.loadFieldConfig(),
                              valueConfig = value.loadFieldConfig(),
-                             consume = {
-                               val element = KafkaRecord.createFor(key.fieldTypeComboBox.item, value.fieldTypeComboBox.item,
-                                                                   key.schemaComboBox.item.schemaFormat,
-                                                                   value.schemaComboBox.item.schemaFormat,
-                                                                   Result.success(it))
+                             consume = { pollTime, records ->
+                               val convertedRecords = records.map {
+                                 KafkaRecord.createFor(key.fieldTypeComboBox.item, value.fieldTypeComboBox.item,
+                                                       key.schemaComboBox.item.schemaFormat,
+                                                       value.schemaComboBox.item.schemaFormat,
+                                                       Result.success(it))
+                               }
+
                                invokeLater {
-                                 output.addRow(element)
+                                 output.addBatchRows(pollTime, convertedRecords)
                                }
                              },
                              timestampUpdate = {

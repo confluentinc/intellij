@@ -20,8 +20,8 @@ class KafkaCreateProducerAction : DumbAwareAction() {
   override fun actionPerformed(e: AnActionEvent) {
     val dataManager = e.dataManager
     val project = e.project ?: return
-    val rfsPath = e.rfsPath ?: return
-    val defaultTopic = if (rfsPath.parent?.isTopicFolder == true)
+    val rfsPath = e.rfsPath
+    val defaultTopic = if (rfsPath?.parent?.isTopicFolder == true)
       rfsPath.name
     else
       null

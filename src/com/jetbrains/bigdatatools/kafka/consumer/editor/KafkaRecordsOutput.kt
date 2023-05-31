@@ -96,19 +96,13 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
         border = BorderFactory.createEmptyBorder()
       }, BorderLayout.CENTER)
       if (PropertiesComponent.getInstance().getBoolean(TABLE_STATS_ID, false)) {
-        setSouthComponent(outputTableStatus.component)
+        setSouthComponent(this@KafkaRecordsOutput.statisticPanel.component)
       }
     }
   }
   private val outputTablePanel: JPanel by outputTablePanelDelegate
 
-  private val outputTableStatusDelegate = lazy {
-    ConsumerTableStats().apply {
-      setModel(outputTable, outputModel)
-    }
-  }
-  private val outputTableStatus: ConsumerTableStats by outputTableStatusDelegate
-
+  private val statisticPanel = ConsumerTableStats()
 
   private val detailsDelegate: Lazy<KafkaRecordDetails> = lazy {
     KafkaRecordDetails(project, this)
@@ -134,11 +128,11 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
 
     val tableStatusButton = object : DumbAwareToggleAction(KafkaMessagesBundle.message("action.table.stats"), null,
                                                            AllIcons.General.ShowInfos) {
-      override fun isSelected(e: AnActionEvent) = outputTableStatusDelegate.isInitialized() && outputTableStatus.component.parent != null
+      override fun isSelected(e: AnActionEvent) = this@KafkaRecordsOutput.statisticPanel.component.parent != null
       override fun getActionUpdateThread() = ActionUpdateThread.BGT
       override fun setSelected(e: AnActionEvent, state: Boolean) {
         if (state) {
-          outputTablePanel.setSouthComponent(outputTableStatus.component)
+          outputTablePanel.setSouthComponent(this@KafkaRecordsOutput.statisticPanel.component)
         }
         else {
           outputTablePanel.removeSouthComponent()
@@ -211,12 +205,13 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
     outputModel.maxElementsCount = limit
   }
 
-  fun addRow(element: KafkaRecord) {
-    outputModel.addElement(element)
-    if (outputTableStatusDelegate.isInitialized()) {
-      outputTableStatus.addRecord(element)
+  fun addBatchRows(pollTime: Long, elements: List<KafkaRecord>) {
+    elements.forEach {
+      outputModel.addElement(it)
     }
+    statisticPanel.addRecordsBatch(pollTime, elements)
   }
+
 
   fun addError(element: KafkaRecord) {
     outputModel.addElement(element)
@@ -248,6 +243,8 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
       details.update(row)
     }
   }
+
+  fun onStartConsume() = statisticPanel.start()
 
   companion object {
     private val TIMESTAMP_FIELD = KafkaMessagesBundle.message("output.column.timestamp")

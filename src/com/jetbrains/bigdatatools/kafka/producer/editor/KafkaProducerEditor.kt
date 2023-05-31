@@ -206,10 +206,10 @@ class KafkaProducerEditor(val project: Project,
                              idempotenceCheckBox.isSelected,
                              forcePartitionField.value,
                              flowParams = flowController.getParams()
-        ) {
+        ) { time, records ->
           invokeLater {
             progress.onUpdate()
-            output.addRow(it)
+            output.addBatchRows(time, records)
           }
         }
       }

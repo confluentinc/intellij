@@ -35,7 +35,7 @@ class KafkaConsumerClient(val dataManager: KafkaDataManager,
             dataManager: KafkaDataManager,
             valueConfig: ConsumerProducerFieldConfig,
             keyConfig: ConsumerProducerFieldConfig,
-            consume: (ConsumerRecord<Any, Any>) -> Unit,
+            consume: (Long, List<ConsumerRecord<Any, Any>>) -> Unit,
             timestampUpdate: () -> Unit,
             consumeError: (Throwable) -> Unit) {
     isRunning.set(true)
@@ -76,6 +76,7 @@ class KafkaConsumerClient(val dataManager: KafkaDataManager,
           if (curRunId.get() != taskRunId)
             return
 
+          val startPoll = System.currentTimeMillis()
           val records = try {
             kafkaConsumer.poll(Duration.ofMillis(2000))
           }
@@ -99,7 +100,9 @@ class KafkaConsumerClient(val dataManager: KafkaDataManager,
             timestampUpdate()
             return
           }
+          val endPoll = System.currentTimeMillis()
 
+          val processedRecords = mutableListOf<ConsumerRecord<Any, Any>>()
           var consumedRecords = 0
           timestampUpdate()
           records.forEach { record: ConsumerRecord<Any, Any> ->
@@ -148,13 +151,14 @@ class KafkaConsumerClient(val dataManager: KafkaDataManager,
               }
             }
 
-            consume(record)
+            processedRecords.add(record)
             consumedRecords++
           }
 
-          if (consumedRecords > 0) {
+          if (processedRecords.size > 0)
             KafkaUsagesCollector.consumedKeyValue.log(config.getKeyType(), config.getValueType(), consumedRecords)
-          }
+
+          consume(endPoll - startPoll, processedRecords)
         }
       }
     }

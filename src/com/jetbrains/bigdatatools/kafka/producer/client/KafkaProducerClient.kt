@@ -41,7 +41,7 @@ class KafkaProducerClient(val client: KafkaClient) {
             enableIdempotence: Boolean,
             forcePartition: Int,
             flowParams: ProducerFlowParams,
-            onUpdate: (KafkaRecord) -> Unit) {
+            onUpdate: (Long, List<KafkaRecord>) -> Unit) {
     try {
       if (isRunning())
         error("Producer is already run")
@@ -99,13 +99,17 @@ class KafkaProducerClient(val client: KafkaClient) {
                                  key: ConsumerProducerFieldConfig,
                                  value: ConsumerProducerFieldConfig,
                                  headers: List<Property>,
-                                 onUpdate: (KafkaRecord) -> Unit) {
+                                 onUpdate: (Long, List<KafkaRecord>) -> Unit) {
+    val startTime = System.currentTimeMillis()
+    val produced = mutableListOf<KafkaRecord>()
     repeat(flowParams.flowRecordsCountPerRequest) {
       if (!isRunning())
         return
       val result = sentMessage(flowParams, partition, producer, topic, key, value, headers) ?: return
-      onUpdate(result)
+      produced.add(result)
     }
+    val endTime = System.currentTimeMillis()
+    onUpdate(endTime - startTime, produced)
   }
 
   private fun setupPartitions(forcePartition: Int,
