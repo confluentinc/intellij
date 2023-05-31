@@ -11,6 +11,7 @@ import com.intellij.ui.dsl.builder.Align
 import com.intellij.ui.dsl.builder.Row
 import com.intellij.ui.dsl.builder.panel
 import com.intellij.util.ui.UIUtil
+import com.jetbrains.bigdatatools.common.settings.withNonEmptyValidator
 import com.jetbrains.bigdatatools.common.ui.CustomListCellRenderer
 import com.jetbrains.bigdatatools.common.util.toPresentableText
 import com.jetbrains.bigdatatools.kafka.common.editor.KafkaEditorUtils
@@ -60,7 +61,7 @@ class KafkaRegistryAddSchemaDialog(project: Project, val dataManager: KafkaDataM
     it.isEditable = false
   }
 
-  private val subjectNameField = JTextField("")
+  private val subjectNameField = JTextField("").withNonEmptyValidator(disposable)
   private val subjectNameLabel = JBLabel("")
 
   private var cachedParsedSchema: ParsedSchema? = null
