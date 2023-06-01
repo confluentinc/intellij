@@ -4,6 +4,7 @@ import com.intellij.icons.AllIcons
 import com.intellij.ide.util.PropertiesComponent
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.*
+import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.DumbAwareToggleAction
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.Splitter
@@ -21,7 +22,10 @@ import com.jetbrains.bigdatatools.common.table.extension.TableLoadingDecorator
 import com.jetbrains.bigdatatools.common.table.filters.TableFilterHeader
 import com.jetbrains.bigdatatools.common.table.renderers.DateRenderer
 import com.jetbrains.bigdatatools.common.table.renderers.DurationRenderer
-import com.jetbrains.bigdatatools.common.ui.*
+import com.jetbrains.bigdatatools.common.ui.ExpansionPanel
+import com.jetbrains.bigdatatools.common.ui.onDoubleClick
+import com.jetbrains.bigdatatools.common.ui.removeSouthComponent
+import com.jetbrains.bigdatatools.common.ui.setSouthComponent
 import com.jetbrains.bigdatatools.kafka.common.editor.ListTableModel
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import java.awt.BorderLayout
@@ -110,7 +114,6 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
 
   private val details: KafkaRecordDetails by detailsDelegate
 
-
   internal val resultsSplitter = OnePixelSplitter().apply {
     lackOfSpaceStrategy = Splitter.LackOfSpaceStrategy.HONOR_THE_SECOND_MIN_SIZE
     dividerPositionStrategy = Splitter.DividerPositionStrategy.KEEP_SECOND_SIZE
@@ -121,10 +124,9 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
   init {
     val dataExpanded = PropertiesComponent.getInstance().getBoolean(DATA_SHOW_ID, true)
 
-    val clearButton = SimpleDumbAwareAction(KafkaMessagesBundle.message("action.clear.output"), AllIcons.Actions.GC) {
+    val clearButton = DumbAwareAction.create(KafkaMessagesBundle.message("action.clear.output"), AllIcons.Actions.GC) {
       outputModel.clear()
     }
-
 
     val tableStatusButton = object : DumbAwareToggleAction(KafkaMessagesBundle.message("action.table.stats"), null,
                                                            AllIcons.General.ShowInfos) {
@@ -212,7 +214,6 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
     statisticPanel.addRecordsBatch(pollTime, elements)
   }
 
-
   fun addError(element: KafkaRecord) {
     outputModel.addElement(element)
   }
@@ -222,8 +223,8 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
   }
 
   private fun setupTablePopupMenu(table: JTable) {
-    val clearAction = SimpleDumbAwareAction(KafkaMessagesBundle.message("action.clear.output")) { outputModel.clear() }
-    val openDetails = SimpleDumbAwareAction(KafkaMessagesBundle.message("action.open.details")) { detailsPanel.expanded = true }
+    val clearAction = DumbAwareAction.create(KafkaMessagesBundle.message("action.clear.output")) { outputModel.clear() }
+    val openDetails = DumbAwareAction.create(KafkaMessagesBundle.message("action.open.details")) { detailsPanel.expanded = true }
 
     PopupHandler.installPopupMenu(table, DefaultActionGroup().apply {
       addAction(openDetails)

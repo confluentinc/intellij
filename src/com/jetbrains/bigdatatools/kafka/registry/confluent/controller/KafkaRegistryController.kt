@@ -1,7 +1,10 @@
 package com.jetbrains.bigdatatools.kafka.registry.confluent.controller
 
 import com.intellij.icons.AllIcons
-import com.intellij.openapi.actionSystem.*
+import com.intellij.openapi.actionSystem.ActionUpdateThread
+import com.intellij.openapi.actionSystem.AnAction
+import com.intellij.openapi.actionSystem.AnActionEvent
+import com.intellij.openapi.actionSystem.Separator
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.DumbAwareToggleAction
 import com.intellij.openapi.project.Project
@@ -20,7 +23,6 @@ import com.jetbrains.bigdatatools.common.settings.ColumnVisibilitySettings
 import com.jetbrains.bigdatatools.common.table.renderers.LinkRenderer
 import com.jetbrains.bigdatatools.common.ui.CustomComponentActionImpl
 import com.jetbrains.bigdatatools.common.ui.filter.CountFilterPopupComponent
-import com.jetbrains.bigdatatools.common.util.ToolbarUtils
 import com.jetbrains.bigdatatools.common.util.invokeLater
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryAddSchemaDialog
@@ -38,13 +40,9 @@ class KafkaRegistryController(val project: Project,
   val registryType = dataManager.registryType
   private val model: ObjectDataModel<KafkaSchemaInfo> = dataManager.schemaRegistryModel!!
 
-  private val addSchema = object : DumbAwareAction(KafkaMessagesBundle.message("action.kafka.CreateSchemaAction.text"), null,
-                                                   AllIcons.General.Add) {
-    override fun actionPerformed(e: AnActionEvent) {
-      KafkaRegistryAddSchemaDialog(project, dataManager).show()
-    }
-
-    override fun getActionUpdateThread() = ActionUpdateThread.BGT
+  private val addSchema = DumbAwareAction.create(KafkaMessagesBundle.message("action.kafka.CreateSchemaAction.text"),
+                                                 AllIcons.General.Add) {
+    KafkaRegistryAddSchemaDialog(project, dataManager).show()
   }
 
   private val deleteSchema = object : DumbAwareAction(KafkaMessagesBundle.message("action.Kafka.DeleteSchemaAction.text"), null,
@@ -53,7 +51,6 @@ class KafkaRegistryController(val project: Project,
       val registryInfo = getSelectedItem() ?: return
       dataManager.deleteSchema(registryInfo.name)
     }
-
 
     override fun update(e: AnActionEvent) {
       e.presentation.isEnabled = getSelectedItem() != null
@@ -78,7 +75,6 @@ class KafkaRegistryController(val project: Project,
   else {
     null
   }
-
 
   private val cloneSchema = object : DumbAwareAction(KafkaMessagesBundle.message("action.kafka.CloneSchemaAction.text"), null,
                                                      AllIcons.Actions.Copy) {
@@ -127,7 +123,6 @@ class KafkaRegistryController(val project: Project,
     emptyText.isShowAboveCenter = false
   }
 
-
   override fun customTableInit(table: DataTable<KafkaSchemaInfo>) {
     LinkRenderer.installOnColumn(table, columnModel.getColumn(0)).apply {
       onClick = { row, _ ->
@@ -140,8 +135,7 @@ class KafkaRegistryController(val project: Project,
     }
   }
 
-
-  override fun createTopToolBar(): ActionToolbar {
+  override fun createTopLeftToolbarActions(): List<AnAction> {
     val searchTextField = SearchTextField(false).apply {
       addDocumentListener(object : DocumentAdapter() {
         override fun textChanged(e: DocumentEvent) {
@@ -152,7 +146,6 @@ class KafkaRegistryController(val project: Project,
       })
     }
 
-
     val countFilter = CountFilterPopupComponent(KafkaMessagesBundle.message("label.filter.limit"),
                                                 KafkaToolWindowSettings.getInstance().getOrCreateConfig(
                                                   dataManager.connectionId).registryLimit)
@@ -162,12 +155,10 @@ class KafkaRegistryController(val project: Project,
       dataManager.schemaRegistryModel?.let { dataManager.updater.invokeRefreshModel(it) }
     }
 
-
-    val toolbar = DefaultActionGroup(CustomComponentActionImpl(searchTextField), CustomComponentActionImpl(countFilter))
-    showSoftDeletedAction?.let { toolbar.add(it) }
-    toolbar.add(Separator())
-    toolbar.add(addSchema)
-    return ToolbarUtils.createActionToolbar("BDTKafkaTopicsTopToolbar", toolbar, true)
+    return listOfNotNull(CustomComponentActionImpl(searchTextField), CustomComponentActionImpl(countFilter),
+                         showSoftDeletedAction,
+                         Separator(),
+                         addSchema)
   }
 
   override fun getAdditionalContextActions(): List<AnAction> = listOf(addSchema, deleteSchema, cloneSchema)

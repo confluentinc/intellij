@@ -24,7 +24,6 @@ import com.intellij.ui.layout.migLayout.patched.MigLayout
 import com.jetbrains.bigdatatools.common.monitoring.toolwindow.ComponentController
 import com.jetbrains.bigdatatools.common.monitoring.toolwindow.DetailsMonitoringController
 import com.jetbrains.bigdatatools.common.ui.CustomComponentActionImpl
-import com.jetbrains.bigdatatools.common.ui.SimpleDumbAwareAction
 import com.jetbrains.bigdatatools.common.util.ToolbarUtils
 import com.jetbrains.bigdatatools.common.util.invokeLater
 import com.jetbrains.bigdatatools.kafka.common.editor.SchemaVersionDiffController
@@ -77,7 +76,6 @@ class KafkaSchemaController(private val project: Project,
   private var version1Schema: SchemaVersionInfo? = null
   private var version2Schema: SchemaVersionInfo? = null
 
-
   private val curComponent = JBPanelWithEmptyText(BorderLayout())
 
   private val schemaView = KafkaRegistrySchemaEditor(project, isEditable = false)
@@ -102,7 +100,6 @@ class KafkaSchemaController(private val project: Project,
     }.resizableRow().visibleIf(isEditMode)
   }
 
-
   init {
     init()
   }
@@ -126,7 +123,6 @@ class KafkaSchemaController(private val project: Project,
     updateVersion1Info()
     updateVersion2Info()
   }
-
 
   private fun updateVersion1Info() {
     val schemaName = schemaName
@@ -165,7 +161,6 @@ class KafkaSchemaController(private val project: Project,
     }
   }
 
-
   private fun createToolbar(targetComponent: JComponent): JPanel {
     val leftActionGroup = createLeftActionGroup()
     val rightActionGroup = createRightActionGroup()
@@ -187,7 +182,6 @@ class KafkaSchemaController(private val project: Project,
     }
     return toolbarPanel
   }
-
 
   private fun createLeftActionGroup(): DefaultActionGroup {
 
@@ -216,11 +210,9 @@ class KafkaSchemaController(private val project: Project,
           updateVersion2Info()
         }.customize(UnscaledGaps(top = 0, left = 0, bottom = 0, right = 0))
 
-        actionButton(object : DumbAwareAction(AllIcons.Windows.CloseInactive) {
-          override fun actionPerformed(e: AnActionEvent) {
-            isNotEditMode.set(true)
-            isEditMode.set(false)
-          }
+        actionButton(DumbAwareAction.create(AllIcons.Windows.CloseInactive) {
+          isNotEditMode.set(true)
+          isEditMode.set(false)
         }, ActionPlaces.TOOLBAR).visibleIf(isEditMode)
           .customize(UnscaledGaps(top = 0, left = 0, bottom = 0, right = 0))
       }.bottomGap(BottomGap.NONE).topGap(TopGap.NONE)
@@ -229,18 +221,19 @@ class KafkaSchemaController(private val project: Project,
     return DefaultActionGroup(CustomComponentActionImpl(panel))
   }
 
-
   private fun createRightActionGroup(): DefaultActionGroup {
-    val updateSchemaAction = SimpleDumbAwareAction(KafkaMessagesBundle.message("action.create.new.version"),
-                                                   description = null,
-                                                   icon = AllIcons.Actions.EditScheme,
-                                                   showText = true) {
-      val versionInfo = version1Schema ?: return@SimpleDumbAwareAction
+    val updateSchemaAction = object : DumbAwareAction(KafkaMessagesBundle.message("action.create.new.version"),
+                                                      null,
+                                                      AllIcons.Actions.EditScheme) {
+      override fun actionPerformed(e: AnActionEvent) {
+        val versionInfo = version1Schema ?: return
 
-      KafkaSchemaInfoDialog.showDiff(KafkaMessagesBundle.message("update.dialog.title"), project, versionInfo) { newText ->
-        dataManager.updateSchema(versionInfo, newText)
+        KafkaSchemaInfoDialog.showDiff(KafkaMessagesBundle.message("update.dialog.title"), project, versionInfo) { newText ->
+          dataManager.updateSchema(versionInfo, newText)
+        }
       }
 
+      override fun displayTextInToolbar(): Boolean = true
     }
 
     val moreAction = MoreActionGroup()
