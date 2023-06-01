@@ -303,12 +303,11 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
     try {
       output.start()
 
-      output.setMaxRows(10)
       if (kafkaConsumerSettingsDelegate.isInitialized()) {
         val maxElementsCount = kafkaConsumerSettings.getSettings()[KafkaConsumerSettings.MAX_CONSUMER_RECORDS]
         maxElementsCount?.toIntOrNull()?.let {
           output.setMaxRows(it)
-        }
+        } ?: output.setMaxRows(0)
       }
 
       withPluginClassLoader {
