@@ -2,7 +2,6 @@ package com.jetbrains.bigdatatools.kafka.toolwindow.controllers
 
 import com.intellij.ide.DataManager
 import com.intellij.ide.projectView.impl.ProjectViewTree
-import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.ActionToolbar
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.DataKey
@@ -99,7 +98,7 @@ class KafkaMainController(private val project: Project, private val connectionDa
 
   init {
     driver.addListener(driverListener)
-    Disposer.register(this, Disposable { driver.removeListener(driverListener) })
+    Disposer.register(this) { driver.removeListener(driverListener) }
     updateMainPanel(driver.dataManager.client.connectionError)
 
     DataManager.registerDataProvider(panel) { dataId ->
@@ -156,7 +155,11 @@ class KafkaMainController(private val project: Project, private val connectionDa
       rfsPath.parent?.isSchemas == true -> {
         showDetailsComponent(KafkaGroupType.SCHEMA_DETAIL)
         schemaInfoController?.setDetailsId(rfsPath.name)
-        label.text = KafkaMessagesBundle.message("active.component.schema.detail", rfsPath.name)
+        val schemaType = dataManager.getCachedSchema(rfsPath.name)?.type?.presentable
+        label.text = if (schemaType != null)
+          KafkaMessagesBundle.message("active.component.schema.detail.with.type", schemaType, rfsPath.name)
+        else
+          KafkaMessagesBundle.message("active.component.schema.detail", rfsPath.name)
       }
     }
   }

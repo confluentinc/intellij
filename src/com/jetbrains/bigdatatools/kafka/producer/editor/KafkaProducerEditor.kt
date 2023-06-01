@@ -2,7 +2,6 @@ package com.jetbrains.bigdatatools.kafka.producer.editor
 
 import com.intellij.icons.AllIcons
 import com.intellij.ide.util.PropertiesComponent
-import com.intellij.openapi.Disposable
 import com.intellij.openapi.fileEditor.FileEditor
 import com.intellij.openapi.fileEditor.FileEditorLocation
 import com.intellij.openapi.fileEditor.FileEditorState
@@ -58,9 +57,9 @@ class KafkaProducerEditor(val project: Project,
   private val progress = KafkaProducerConsumerProgressComponent()
 
   private val producerClient = kafkaManager.client.createProducerClient().also {
-    Disposer.register(this, Disposable {
+    Disposer.register(this) {
       it.isRunning.set(false)
-    })
+    }
   }
   val topics = kafkaManager.getTopics()
 
@@ -174,8 +173,8 @@ class KafkaProducerEditor(val project: Project,
     val topic = topicComboBox.item
 
     val validationInfo = topicComboBox.getValidationInfo()
-                         ?: keyFieldComponent.getValidationInfo()
-                         ?: valueFieldComponent.getValidationInfo()
+                         ?: keyFieldComponent.getValidationInfo()?.takeIf { !flowController.getParams().generateRandomKeys }
+                         ?: valueFieldComponent.getValidationInfo()?.takeIf { !flowController.getParams().generateRandomValues }
 
     if (validationInfo != null) {
       progress.onValidationError()
@@ -186,9 +185,9 @@ class KafkaProducerEditor(val project: Project,
     val selectedTopicName = topic.name
 
     executeNotOnEdt {
-      if (!keyFieldComponent.validateSchema())
+      if (!flowController.getParams().generateRandomKeys && !keyFieldComponent.validateSchema())
         return@executeNotOnEdt
-      if (!valueFieldComponent.validateSchema())
+      if (!flowController.getParams().generateRandomKeys && !valueFieldComponent.validateSchema())
         return@executeNotOnEdt
 
       val key = keyFieldComponent.getProducerField()

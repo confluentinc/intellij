@@ -61,8 +61,9 @@ class KafkaDriver(override val connectionData: KafkaConnectionData, project: Pro
       throw it
     }
     val children = when {
-      rfsPath.isRoot -> listOfNotNull(topicPath, consumerPath,
-                                      if (dataManager.registryType != KafkaRegistryType.NONE) schemasPath else null)
+      rfsPath.isRoot -> listOfNotNull(topicPath,
+                                      if (dataManager.registryType != KafkaRegistryType.NONE) schemasPath else null,
+                                      consumerPath)
       rfsPath.isTopicFolder -> {
         dataManager.topicModel.error?.let { throw Exception(it.msg, it.e) }
         dataManager.topicModel.data?.map { topicPath.child(it.name, false) } ?: emptyList()
