@@ -6,6 +6,7 @@ import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.impl.ActionButton
+import com.intellij.openapi.application.runWriteAction
 import com.intellij.openapi.editor.event.DocumentEvent
 import com.intellij.openapi.editor.event.DocumentListener
 import com.intellij.openapi.fileTypes.PlainTextLanguage
@@ -205,7 +206,7 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
     updateVisibility()
   }
 
-  private fun updateFieldsText(type: KafkaFieldType, newText: String) {
+  private fun updateFieldsText(type: KafkaFieldType, newText: String) = runWriteAction {
     if (type in jsonFieldTypes)
       jsonField.text = newText
     else
