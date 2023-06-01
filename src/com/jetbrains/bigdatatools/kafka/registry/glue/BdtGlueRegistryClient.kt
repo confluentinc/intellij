@@ -29,7 +29,12 @@ class BdtGlueRegistryClient(val project: Project?,
 
 
   override fun dispose() {
-    client.close()
+    try {
+      client.close()
+    }
+    catch (t: Throwable) {
+      //ignore
+    }
   }
 
   fun connect(calledByUser: Boolean) {
