@@ -20,7 +20,6 @@ import com.jetbrains.bigdatatools.common.monitoring.toolwindow.AbstractTableCont
 import com.jetbrains.bigdatatools.common.table.renderers.LinkRenderer
 import com.jetbrains.bigdatatools.common.ui.CustomComponentActionImpl
 import com.jetbrains.bigdatatools.common.ui.filter.CountFilterPopupComponent
-import com.jetbrains.bigdatatools.common.util.ToolbarUtils
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.model.TopicPresentable
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaDriver
@@ -33,8 +32,7 @@ import javax.swing.event.DocumentEvent
 class TopicsController(val project: Project,
                        private val dataManager: KafkaDataManager,
                        private val mainController: KafkaMainController) : AbstractTableController<TopicPresentable>() {
-  private val showInternalTopicsAction = object : DumbAwareToggleAction(KafkaMessagesBundle.message("show.internal.topic"),
-                                                                        KafkaMessagesBundle.message("show.internal.topic.hint"),
+  private val showInternalTopicsAction = object : DumbAwareToggleAction(KafkaMessagesBundle.message("show.internal.topic"), null,
                                                                         AllIcons.Actions.ToggleVisibility) {
     override fun isSelected(e: AnActionEvent) = KafkaToolWindowSettings.getInstance().showInternalTopics
     override fun getActionUpdateThread() = ActionUpdateThread.BGT
@@ -46,8 +44,7 @@ class TopicsController(val project: Project,
   }
 
   private val clearTopicAction = ActionManager.getInstance().getAction("kafka.ClearTopicAction")
-  private val createTopicAction = object : DumbAwareAction(KafkaMessagesBundle.message("action.kafka.CreateTopicAction.text"),
-                                                           null,
+  private val createTopicAction = object : DumbAwareAction(KafkaMessagesBundle.message("action.kafka.CreateTopicAction.text"), null,
                                                            AllIcons.General.Add) {
     override fun actionPerformed(e: AnActionEvent) {
       KafkaDialogFactory.showCreateTopicDialog(dataManager)
@@ -60,8 +57,7 @@ class TopicsController(val project: Project,
     override fun getActionUpdateThread() = ActionUpdateThread.BGT
   }
 
-  private val deleteTopicAction = object : DumbAwareAction(KafkaMessagesBundle.message("action.kafka.DeleteTopicAction.text"),
-                                                           null,
+  private val deleteTopicAction = object : DumbAwareAction(KafkaMessagesBundle.message("action.kafka.DeleteTopicAction.text"), null,
                                                            AllIcons.General.Remove) {
     override fun actionPerformed(e: AnActionEvent) {
       val selectedRows = dataTable.selectedRows
@@ -123,7 +119,7 @@ class TopicsController(val project: Project,
     }
   }
 
-  override fun createTopToolBar(): ActionToolbar {
+  override fun createTopLeftToolbarActions(): List<AnAction> {
     val searchTextField = SearchTextField(false).apply {
       addDocumentListener(object : DocumentAdapter() {
         override fun textChanged(e: DocumentEvent) {
@@ -143,14 +139,11 @@ class TopicsController(val project: Project,
       dataManager.updater.invokeRefreshModel(dataManager.topicModel)
     }
 
-
-    val toolbar = DefaultActionGroup(CustomComponentActionImpl(searchTextField),
-                                     CustomComponentActionImpl(countFilter),
-                                     showInternalTopicsAction,
-                                     Separator(),
-                                     createTopicAction)
-
-    return ToolbarUtils.createActionToolbar("BDTKafkaTopicsTopToolbar", toolbar, true)
+    return listOf(CustomComponentActionImpl(searchTextField),
+                  CustomComponentActionImpl(countFilter),
+                  showInternalTopicsAction,
+                  Separator(),
+                  createTopicAction)
   }
 
   override fun emptyTextProvider() = CustomEmptyTextProvider { emptyText: StatusText ->
@@ -184,5 +177,4 @@ class TopicsController(val project: Project,
   companion object {
     val LIMIT_FILTER = FilterKey("topicLimit")
   }
-
 }

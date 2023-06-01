@@ -1,7 +1,6 @@
 package com.jetbrains.bigdatatools.kafka.toolwindow.controllers
 
-import com.intellij.openapi.actionSystem.ActionToolbar
-import com.intellij.openapi.actionSystem.DefaultActionGroup
+import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.ui.DocumentAdapter
 import com.intellij.ui.SearchTextField
 import com.jetbrains.bigdatatools.common.monitoring.data.model.FilterAdapter
@@ -9,7 +8,6 @@ import com.jetbrains.bigdatatools.common.monitoring.data.model.FilterKey
 import com.jetbrains.bigdatatools.common.monitoring.toolwindow.AbstractTableController
 import com.jetbrains.bigdatatools.common.ui.CustomComponentActionImpl
 import com.jetbrains.bigdatatools.common.ui.filter.CountFilterPopupComponent
-import com.jetbrains.bigdatatools.common.util.ToolbarUtils
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.model.ConsumerGroupPresentable
 import com.jetbrains.bigdatatools.kafka.toolwindow.config.KafkaToolWindowSettings
@@ -29,7 +27,7 @@ class ConsumerGroupsController(val dataManager: KafkaDataManager) : AbstractTabl
 
   override fun getDataModel() = dataManager.consumerGroupsModel
 
-  override fun createTopToolBar(): ActionToolbar {
+  override fun createTopLeftToolbarActions(): List<AnAction> {
     val searchTextField = SearchTextField(false).apply {
       addDocumentListener(object : DocumentAdapter() {
         override fun textChanged(e: DocumentEvent) {
@@ -49,11 +47,8 @@ class ConsumerGroupsController(val dataManager: KafkaDataManager) : AbstractTabl
       dataManager.updater.invokeRefreshModel(dataManager.consumerGroupsModel)
     }
 
-    val toolbar = DefaultActionGroup(CustomComponentActionImpl(searchTextField),
-                                     CustomComponentActionImpl(countFilter))
-    return ToolbarUtils.createActionToolbar("BDTKafkaConsumersTopToolbar", toolbar, true)
+    return listOf(CustomComponentActionImpl(searchTextField), CustomComponentActionImpl(countFilter))
   }
-
 
   companion object {
     val LIMIT_FILTER = FilterKey("consumersLimit")

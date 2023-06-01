@@ -18,7 +18,6 @@ import com.jetbrains.bigdatatools.common.rfs.util.RfsNotificationUtils
 import com.jetbrains.bigdatatools.common.settings.getValidationInfo
 import com.jetbrains.bigdatatools.common.settings.revalidateComponent
 import com.jetbrains.bigdatatools.common.settings.withValidator
-import com.jetbrains.bigdatatools.common.ui.SimpleDumbAwareAction
 import com.jetbrains.bigdatatools.common.ui.chooser.FileChooserUtil
 import com.jetbrains.bigdatatools.common.ui.revalidateOnLinesChanged
 import com.jetbrains.bigdatatools.common.util.executeNotOnEdt
@@ -164,8 +163,7 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
         registryRows = rowsRange {
           row(KafkaMessagesBundle.message("settings.format.registry.schema")) {
             cell(schemaComboBox).onChanged { schemaValidationError = null }.resizableColumn().gap(RightGap.SMALL)
-            actionButton(SimpleDumbAwareAction(KafkaMessagesBundle.message("show.schema.info"),
-                                               AllIcons.Actions.ToggleVisibility) {
+            actionButton(DumbAwareAction.create(KafkaMessagesBundle.message("show.schema.info"), AllIcons.Actions.ToggleVisibility) {
               executeNotOnEdt {
                 try {
                   val config = getProducerField()

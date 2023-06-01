@@ -1,6 +1,7 @@
 package com.jetbrains.bigdatatools.kafka.consumer.editor
 
 import com.intellij.icons.AllIcons
+import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
 import com.intellij.ui.dsl.builder.Align
 import com.intellij.ui.dsl.builder.Panel
@@ -8,7 +9,6 @@ import com.intellij.ui.dsl.builder.RightGap
 import com.intellij.ui.dsl.builder.RowsRange
 import com.jetbrains.bigdatatools.common.rfs.util.RfsNotificationUtils
 import com.jetbrains.bigdatatools.common.settings.getValidationInfo
-import com.jetbrains.bigdatatools.common.ui.SimpleDumbAwareAction
 import com.jetbrains.bigdatatools.common.util.executeNotOnEdt
 import com.jetbrains.bigdatatools.kafka.common.editor.KafkaEditorUtils
 import com.jetbrains.bigdatatools.kafka.common.models.KafkaFieldType
@@ -24,12 +24,10 @@ class KafkaConsumerFieldComponent(private val project: Project,
                                   private val consumerPanel: KafkaConsumerPanel, val isKey: Boolean) {
   private val kafkaManager = consumerPanel.kafkaManager
 
-
   val fieldTypeComboBox = KafkaEditorUtils.createFieldTypeComboBox(consumerPanel.topicComboBox, consumerPanel.kafkaManager, isKey) {
     consumerPanel.updateVisibility()
     consumerPanel.storeToUserData()
   }
-
 
   val schemaComboBox = KafkaEditorUtils.createSchemaComboBox(
     consumerPanel,
@@ -51,8 +49,7 @@ class KafkaConsumerFieldComponent(private val project: Project,
         registryRows = rowsRange {
           row(KafkaMessagesBundle.message("settings.format.registry.schema")) {
             cell(schemaComboBox).align(Align.FILL).resizableColumn().gap(RightGap.SMALL)
-            actionButton(SimpleDumbAwareAction(KafkaMessagesBundle.message("show.schema.info"),
-                                               AllIcons.Actions.ToggleVisibility) {
+            actionButton(DumbAwareAction.create(KafkaMessagesBundle.message("show.schema.info"), AllIcons.Actions.ToggleVisibility) {
               executeNotOnEdt {
                 try {
                   val config = loadFieldConfig()
