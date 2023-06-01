@@ -13,6 +13,7 @@ import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.vfs.readBytes
 import com.intellij.ui.EditorTextField
 import com.intellij.ui.dsl.builder.*
+import com.intellij.util.concurrency.annotations.RequiresBackgroundThread
 import com.jetbrains.bigdatatools.common.rfs.util.RfsNotificationUtils
 import com.jetbrains.bigdatatools.common.settings.getValidationInfo
 import com.jetbrains.bigdatatools.common.settings.revalidateComponent
@@ -97,9 +98,15 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
   }
 
   fun validateSchema(): Boolean {
-    schemaValidationError = null
+    val oldValidationError = schemaValidationError?.toPresentableText()
+
     return try {
-      getProducerField()
+      val producerField = getProducerField()
+      if (producerField.type == KafkaFieldType.SCHEMA_REGISTRY) {
+        producerField.parsedSchema?.validate()
+        producerField.getValueObj()
+      }
+      schemaValidationError = null
       true
     }
     catch (t: Throwable) {
@@ -107,10 +114,12 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
       false
     }
     finally {
-      revalidateFields()
+      if (schemaValidationError?.toPresentableText() != oldValidationError)
+        revalidateFields()
     }
   }
 
+  @RequiresBackgroundThread
   fun getProducerField(): ConsumerProducerFieldConfig {
     val fieldType = fieldTypeComboBox.item
     val registryType = kafkaManager.registryType
@@ -206,11 +215,10 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
   }
 
   @Suppress("UNUSED_PARAMETER")
-  private fun validateValue(text: String): String? {
-    if (schemaValidationError != null)
-      return schemaValidationError?.toPresentableText()
-    return validate(fieldTypeComboBox.item, getValueText())
-  }
+  private fun validateValue(text: String) = if (schemaValidationError != null)
+    schemaValidationError?.message ?: schemaValidationError?.toPresentableText()
+  else
+    validate(fieldTypeComboBox.item, getValueText())
 
   fun getValueText(): String = when (fieldTypeComboBox.item!!) {
     KafkaFieldType.JSON -> jsonField.text
@@ -261,6 +269,9 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
     KafkaFieldType.NULL -> null // Any value match null type
     KafkaFieldType.SCHEMA_REGISTRY -> try {
       JsonParser.parseString(value)
+      executeNotOnEdt {
+        validateSchema()
+      }
       null
     }
     catch (iae: Exception) {

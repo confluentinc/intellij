@@ -288,7 +288,7 @@ class KafkaProducerEditor(val project: Project,
 
     restoreFromFile()
 
-    topicComboBox.item = topic?.let { TopicInEditor(it) }
+    topic?.let { topicComboBox.item = TopicInEditor(it) }
   }
 
   override fun dispose() {
