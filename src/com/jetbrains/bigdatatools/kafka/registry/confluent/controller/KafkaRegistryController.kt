@@ -140,12 +140,6 @@ class KafkaRegistryController(val project: Project,
     }
   }
 
-  override fun createTopRightToolBar(): ActionToolbar {
-    val createProducer = ActionManager.getInstance().getAction("kafka.create.producer")
-    val createConsumer = ActionManager.getInstance().getAction("kafka.create.consumer")
-    val toolbar = DefaultActionGroup(createConsumer, createProducer)
-    return ToolbarUtils.createActionToolbar("BDTKafkaTopicsRightTopToolbar", toolbar, true)
-  }
 
   override fun createTopToolBar(): ActionToolbar {
     val searchTextField = SearchTextField(false).apply {

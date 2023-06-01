@@ -80,18 +80,17 @@
 
       <group id="Kafka.Topic.Actions">
         <!--suppress PluginXmlCapitalization -->
-        <action id="kafka.DeleteTopicAction" class="com.jetbrains.bigdatatools.kafka.toolwindow.actions.DeleteTopicAction"
-                icon="AllIcons.General.Remove">
-          <keyboard-shortcut keymap="$default" first-keystroke="DELETE"/>
-        </action>
         <action id="kafka.CreateTopicAction" class="com.jetbrains.bigdatatools.kafka.toolwindow.actions.CreateTopicAction"
                 icon="AllIcons.General.Add">
           <keyboard-shortcut keymap="$default" first-keystroke="alt INSERT"/>
         </action>
+        <action id="kafka.DeleteTopicAction" class="com.jetbrains.bigdatatools.kafka.toolwindow.actions.DeleteTopicAction"
+                icon="AllIcons.General.Remove">
+          <keyboard-shortcut keymap="$default" first-keystroke="DELETE"/>
+        </action>
         <action id="kafka.ClearTopicAction" class="com.jetbrains.bigdatatools.kafka.toolwindow.actions.ClearTopicAction"
                 icon="AllIcons.Actions.GC">
         </action>
-
       </group>
 
       <group id="Kafka.Schema.Actions">
@@ -99,14 +98,13 @@
                 icon="AllIcons.General.Add">
           <keyboard-shortcut keymap="$default" first-keystroke="alt INSERT"/>
         </action>
-        <action id="kafka.CloneSchemaAction" class="com.jetbrains.bigdatatools.kafka.toolwindow.actions.CloneSchemaAction"
-                icon="AllIcons.Actions.Copy"/>
-
         <action id="Kafka.DeleteSchemaAction"
                 class="com.jetbrains.bigdatatools.kafka.toolwindow.actions.DeleteSchemaAction"
                 icon="AllIcons.General.Remove">
           <keyboard-shortcut keymap="$default" first-keystroke="DELETE"/>
         </action>
+        <action id="kafka.CloneSchemaAction" class="com.jetbrains.bigdatatools.kafka.toolwindow.actions.CloneSchemaAction"
+                icon="AllIcons.Actions.Copy"/>
       </group>
     </group>
 

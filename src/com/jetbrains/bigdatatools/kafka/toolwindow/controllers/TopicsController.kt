@@ -153,13 +153,6 @@ class TopicsController(val project: Project,
     return ToolbarUtils.createActionToolbar("BDTKafkaTopicsTopToolbar", toolbar, true)
   }
 
-  override fun createTopRightToolBar(): ActionToolbar {
-    val createProducer = ActionManager.getInstance().getAction("kafka.create.producer")
-    val createConsumer = ActionManager.getInstance().getAction("kafka.create.consumer")
-    val toolbar = DefaultActionGroup(createConsumer, createProducer)
-    return ToolbarUtils.createActionToolbar("BDTKafkaTopicsRightTopToolbar", toolbar, true)
-  }
-
   override fun emptyTextProvider() = CustomEmptyTextProvider { emptyText: StatusText ->
     val clusterConfig = KafkaToolWindowSettings.getInstance().getOrCreateConfig(dataManager.connectionId)
     if (clusterConfig.topicFilterName.isNullOrBlank()) {

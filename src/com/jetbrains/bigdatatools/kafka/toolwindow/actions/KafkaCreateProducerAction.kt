@@ -31,8 +31,6 @@ class KafkaCreateProducerAction : DumbAwareAction() {
     KafkaUsagesCollector.openProducerEvent.log(project)
   }
 
-  override fun displayTextInToolbar() = true
-
   override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
 
   private fun openProducer(dataManager: KafkaDataManager, project: Project, defaultTopic: String?): Array<FileEditor> {

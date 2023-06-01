@@ -1,7 +1,6 @@
 package com.jetbrains.bigdatatools.kafka.toolwindow.controllers
 
 import com.intellij.icons.AllIcons
-import com.intellij.openapi.actionSystem.ActionGroup
 import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
@@ -12,7 +11,6 @@ import com.jetbrains.bigdatatools.common.util.executeOnPooledThread
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.model.TopicConfig
 import com.jetbrains.bigdatatools.kafka.toolwindow.config.KafkaToolWindowSettings
-import com.jetbrains.bigdatatools.kafka.util.KafkaControllerUtils
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 
 class TopicConfigsController(val project: Project,
@@ -58,7 +56,4 @@ class TopicConfigsController(val project: Project,
 
     return listOf(showFullConfig)
   }
-
-  override fun getActions(): ActionGroup = KafkaControllerUtils.createTopicToolbar()
-
 }

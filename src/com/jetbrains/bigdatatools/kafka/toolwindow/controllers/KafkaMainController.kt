@@ -3,10 +3,12 @@ package com.jetbrains.bigdatatools.kafka.toolwindow.controllers
 import com.intellij.ide.DataManager
 import com.intellij.ide.projectView.impl.ProjectViewTree
 import com.intellij.openapi.Disposable
+import com.intellij.openapi.actionSystem.ActionToolbar
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.DataKey
 import com.intellij.openapi.observable.properties.AtomicBooleanProperty
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.ui.SimpleToolWindowPanel
 import com.intellij.openapi.ui.Splitter
 import com.intellij.openapi.util.Disposer
 import com.intellij.ui.IdeBorderFactory
@@ -28,6 +30,7 @@ import com.jetbrains.bigdatatools.common.rfs.projectview.actions.RfsActionPlaces
 import com.jetbrains.bigdatatools.common.rfs.tree.DriverRfsTreeModel
 import com.jetbrains.bigdatatools.common.rfs.util.RfsUtil
 import com.jetbrains.bigdatatools.common.rfs.viewer.utils.DriverRfsTreeUtil.lastDriverNode
+import com.jetbrains.bigdatatools.common.util.ToolbarUtils
 import com.jetbrains.bigdatatools.common.util.invokeLater
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryType
@@ -38,6 +41,7 @@ import com.jetbrains.bigdatatools.kafka.rfs.KafkaDriver
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaDriver.Companion.isConsumers
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaDriver.Companion.isSchemas
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaDriver.Companion.isTopicFolder
+import com.jetbrains.bigdatatools.kafka.util.KafkaControllerUtils
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import java.awt.BorderLayout
 import java.awt.CardLayout
@@ -105,6 +109,11 @@ class KafkaMainController(private val project: Project, private val connectionDa
         else -> null
       }
     }
+
+    createToolbar().let {
+      it.targetComponent = panel
+      (normalPanel.firstComponent as SimpleToolWindowPanel).toolbar = it.component
+    }
   }
 
   override fun dispose() {}
@@ -114,6 +123,11 @@ class KafkaMainController(private val project: Project, private val connectionDa
   fun open(rfsPath: RfsPath) {
     RfsUtil.select(driver.getExternalId(), rfsPath, myTree)
   }
+
+  private fun createToolbar(): ActionToolbar {
+    return ToolbarUtils.createActionToolbar("KafkaMainController", KafkaControllerUtils.createTopicToolbar(), false)
+  }
+
 
   private fun showDetailsComponent(rfsPath: RfsPath) {
     val label = dataManager.activeComponentLabel
@@ -152,7 +166,7 @@ class KafkaMainController(private val project: Project, private val connectionDa
   }
 
 
-  private fun createNormalPanel(): JPanel {
+  private fun createNormalPanel(): OnePixelSplitter {
     val driver = DriverManager.getDriverById(project, connectionData.innerId) as KafkaDriver
     val treeModel = driver.createTreeModel(driver.root, project)
     val asyncTreeModel = AsyncTreeModel(treeModel, this)
@@ -189,10 +203,10 @@ class KafkaMainController(private val project: Project, private val connectionDa
     }
 
     val scroll = JBScrollPane(myTree).apply {
-      border = IdeBorderFactory.createBorder(SideBorder.BOTTOM)
+      border = IdeBorderFactory.createBorder(SideBorder.LEFT)
     }
 
-    val leftPanel = JPanel(BorderLayout()).apply {
+    val leftPanel = SimpleToolWindowPanel(false, false).apply {
       add(scroll, BorderLayout.CENTER)
     }
 

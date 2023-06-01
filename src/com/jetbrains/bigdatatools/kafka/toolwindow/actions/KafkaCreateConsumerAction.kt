@@ -27,7 +27,6 @@ class KafkaCreateConsumerAction : DumbAwareAction() {
     KafkaUsagesCollector.openConsumerEvent.log(project)
   }
 
-  override fun displayTextInToolbar() = true
 
   override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
 
