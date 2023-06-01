@@ -29,7 +29,7 @@ class KafkaRegistryAddSchemaDialog(project: Project, val dataManager: KafkaDataM
   DialogWrapper(project, false, IdeModalityType.MODELESS) {
   private val isConfluentSchema = dataManager.connectionData.registryType == KafkaRegistryType.CONFLUENT
 
-  private val formatCombobox = ComboBox(KafkaRegistryFormat.values()).apply {
+  private val formatCombobox = ComboBox((KafkaRegistryFormat.values().toList() - KafkaRegistryFormat.UNKNOWN).toTypedArray()).apply {
     renderer = CustomListCellRenderer<KafkaRegistryFormat> { it.presentable }
     addActionListener {
       onChangeFormat()
@@ -164,7 +164,7 @@ class KafkaRegistryAddSchemaDialog(project: Project, val dataManager: KafkaDataM
     val newDefault = KafkaRegistryTemplates.getDefaultIfNotConfigured(textScrollPane.text, getFormat())
     newDefault?.let {
       textScrollPane.setText(it, isJson = formatCombobox.selectedItem != KafkaRegistryFormat.PROTOBUF)
-    }
+    } ?: textScrollPane.setText(textScrollPane.text, isJson = formatCombobox.selectedItem != KafkaRegistryFormat.PROTOBUF)
     updateRecordFieldText()
   }
 
