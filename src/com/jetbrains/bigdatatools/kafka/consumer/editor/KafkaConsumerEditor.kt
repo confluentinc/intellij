@@ -20,7 +20,7 @@ class KafkaConsumerEditor(val project: Project,
   private val mainComponent = customizable.getComponent()
 
   init {
-    customizable.topicComboBox.item = topic?.let { TopicInEditor(it) }
+     topic?.let { customizable.topicComboBox.item = TopicInEditor(it) }
   }
 
   override fun dispose() {
