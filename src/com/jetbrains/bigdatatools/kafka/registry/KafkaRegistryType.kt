@@ -1,6 +1,6 @@
 package com.jetbrains.bigdatatools.kafka.registry
 
-import com.jetbrains.bigdatatools.common.settings.components.RenderableEntity
+import com.jetbrains.bigdatatools.core.settings.components.RenderableEntity
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import org.jetbrains.annotations.Nls
 

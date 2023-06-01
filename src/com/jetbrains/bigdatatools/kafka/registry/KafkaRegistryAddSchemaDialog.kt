@@ -11,9 +11,9 @@ import com.intellij.ui.dsl.builder.Align
 import com.intellij.ui.dsl.builder.Row
 import com.intellij.ui.dsl.builder.panel
 import com.intellij.util.ui.UIUtil
-import com.jetbrains.bigdatatools.common.settings.withNonEmptyValidator
-import com.jetbrains.bigdatatools.common.ui.CustomListCellRenderer
-import com.jetbrains.bigdatatools.common.util.toPresentableText
+import com.jetbrains.bigdatatools.core.settings.withNonEmptyValidator
+import com.jetbrains.bigdatatools.core.ui.CustomListCellRenderer
+import com.jetbrains.bigdatatools.core.util.toPresentableText
 import com.jetbrains.bigdatatools.kafka.common.editor.KafkaEditorUtils
 import com.jetbrains.bigdatatools.kafka.common.models.TopicInEditor
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager

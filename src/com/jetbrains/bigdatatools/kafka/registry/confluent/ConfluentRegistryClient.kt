@@ -5,8 +5,8 @@ import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.NlsSafe
-import com.jetbrains.bigdatatools.common.connection.tunnel.BdtSshTunnelService
-import com.jetbrains.bigdatatools.common.settings.components.BdtPropertyComponent
+import com.jetbrains.bigdatatools.core.connection.tunnel.BdtSshTunnelService
+import com.jetbrains.bigdatatools.core.settings.components.BdtPropertyComponent
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryFormat
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryUtil
 import com.jetbrains.bigdatatools.kafka.registry.SchemaVersionInfo

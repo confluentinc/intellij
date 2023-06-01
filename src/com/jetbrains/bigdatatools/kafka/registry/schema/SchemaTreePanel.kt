@@ -5,8 +5,8 @@ import com.intellij.ui.ScrollPaneFactory
 import com.intellij.ui.treeStructure.treetable.ListTreeTableModel
 import com.intellij.ui.treeStructure.treetable.TreeTableModel
 import com.intellij.util.ui.ColumnInfo
-import com.jetbrains.bigdatatools.common.rfs.editorviewer.RfsTreeTable
-import com.jetbrains.bigdatatools.common.table.MaterialTableUtils
+import com.jetbrains.bigdatatools.core.rfs.editorviewer.RfsTreeTable
+import com.jetbrains.bigdatatools.core.table.MaterialTableUtils
 import com.jetbrains.bigdatatools.kafka.model.SchemaRegistryFieldsInfo
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import io.confluent.kafka.schemaregistry.ParsedSchema

@@ -2,7 +2,7 @@ package com.jetbrains.bigdatatools.kafka.consumer.editor
 
 import com.intellij.openapi.ui.DialogBuilder
 import com.intellij.ui.components.JBScrollPane
-import com.jetbrains.bigdatatools.common.ui.MigPanel
+import com.jetbrains.bigdatatools.core.ui.MigPanel
 import com.jetbrains.bigdatatools.kafka.common.settings.StorageConsumerConfig
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import org.apache.kafka.clients.consumer.ConsumerConfig

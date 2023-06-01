@@ -3,9 +3,9 @@ package com.jetbrains.bigdatatools.kafka.common.editor
 import com.intellij.ui.JBColor
 import com.intellij.ui.TableUtil
 import com.intellij.ui.ToolbarDecorator
-import com.jetbrains.bigdatatools.common.settings.components.BdtPropertyComponent
-import com.jetbrains.bigdatatools.common.settings.connections.Property
-import com.jetbrains.bigdatatools.common.table.MaterialTable
+import com.jetbrains.bigdatatools.core.settings.components.BdtPropertyComponent
+import com.jetbrains.bigdatatools.core.settings.connections.Property
+import com.jetbrains.bigdatatools.core.table.MaterialTable
 import javax.swing.BorderFactory
 import javax.swing.JPanel
 import javax.swing.JTable

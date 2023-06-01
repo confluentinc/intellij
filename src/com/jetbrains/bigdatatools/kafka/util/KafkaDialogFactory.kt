@@ -5,11 +5,11 @@ import com.intellij.openapi.ui.InputValidatorEx
 import com.intellij.ui.components.JBTextField
 import com.intellij.ui.dsl.builder.AlignX
 import com.intellij.ui.dsl.builder.panel
-import com.jetbrains.bigdatatools.common.settings.buildValidator
-import com.jetbrains.bigdatatools.common.settings.registerValidator
-import com.jetbrains.bigdatatools.common.settings.withNumberOrEmptyValidator
-import com.jetbrains.bigdatatools.common.ui.doOnChange
-import com.jetbrains.bigdatatools.common.util.MessagesBundle
+import com.jetbrains.bigdatatools.core.settings.buildValidator
+import com.jetbrains.bigdatatools.core.settings.registerValidator
+import com.jetbrains.bigdatatools.core.settings.withNumberOrEmptyValidator
+import com.jetbrains.bigdatatools.core.ui.doOnChange
+import com.jetbrains.bigdatatools.core.util.MessagesBundle
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import javax.swing.JTextField
 

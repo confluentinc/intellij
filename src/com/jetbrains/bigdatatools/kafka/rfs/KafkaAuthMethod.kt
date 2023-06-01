@@ -1,6 +1,6 @@
 package com.jetbrains.bigdatatools.kafka.rfs
 
-import com.jetbrains.bigdatatools.common.settings.components.RenderableEntity
+import com.jetbrains.bigdatatools.core.settings.components.RenderableEntity
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 
 enum class KafkaAuthMethod(override val title: String) : RenderableEntity {

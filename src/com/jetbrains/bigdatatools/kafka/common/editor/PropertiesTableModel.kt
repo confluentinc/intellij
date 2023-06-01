@@ -1,6 +1,6 @@
 package com.jetbrains.bigdatatools.kafka.common.editor
 
-import com.jetbrains.bigdatatools.common.settings.connections.Property
+import com.jetbrains.bigdatatools.core.settings.connections.Property
 import javax.swing.table.AbstractTableModel
 import javax.swing.table.DefaultTableColumnModel
 import javax.swing.table.TableColumn

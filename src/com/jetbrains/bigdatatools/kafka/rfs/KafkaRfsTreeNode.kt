@@ -1,8 +1,8 @@
 package com.jetbrains.bigdatatools.kafka.rfs
 
 import com.intellij.openapi.project.Project
-import com.jetbrains.bigdatatools.common.monitoring.rfs.MonitoringRfsTreeNode
-import com.jetbrains.bigdatatools.common.rfs.driver.RfsPath
+import com.jetbrains.bigdatatools.core.monitoring.rfs.MonitoringRfsTreeNode
+import com.jetbrains.bigdatatools.core.rfs.driver.RfsPath
 import com.jetbrains.bigdatatools.kafka.toolwindow.KafkaMonitoringToolWindowController
 
 class KafkaRfsTreeNode(

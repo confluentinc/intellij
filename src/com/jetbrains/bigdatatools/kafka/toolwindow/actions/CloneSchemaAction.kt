@@ -3,7 +3,7 @@ package com.jetbrains.bigdatatools.kafka.toolwindow.actions
 import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.project.DumbAwareAction
-import com.jetbrains.bigdatatools.common.util.invokeLater
+import com.jetbrains.bigdatatools.core.util.invokeLater
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryAddSchemaDialog
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaDriver.Companion.isSchemas
 import com.jetbrains.bigdatatools.kafka.toolwindow.controllers.KafkaMainController.Companion.dataManager

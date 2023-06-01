@@ -7,8 +7,8 @@ import com.intellij.openapi.ui.DialogBuilder
 import com.intellij.openapi.util.NlsSafe
 import com.intellij.openapi.util.use
 import com.intellij.util.ui.UI
-import com.jetbrains.bigdatatools.common.ui.CustomListCellRenderer
-import com.jetbrains.bigdatatools.common.util.invokeAndWaitSwing
+import com.jetbrains.bigdatatools.core.ui.CustomListCellRenderer
+import com.jetbrains.bigdatatools.core.util.invokeAndWaitSwing
 import com.jetbrains.bigdatatools.kafka.registry.glue.BdtGlueRegistryClient
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 

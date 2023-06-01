@@ -7,7 +7,7 @@ import com.intellij.bigdatatools.aws.ui.external.AwsSettingsInfo
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.NlsSafe
-import com.jetbrains.bigdatatools.common.util.TimeUtils
+import com.jetbrains.bigdatatools.core.util.TimeUtils
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryFormat
 import com.jetbrains.bigdatatools.kafka.registry.SchemaVersionInfo
 import com.jetbrains.bigdatatools.kafka.registry.common.KafkaSchemaInfo

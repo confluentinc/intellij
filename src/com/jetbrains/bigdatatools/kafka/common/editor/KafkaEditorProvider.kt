@@ -7,7 +7,7 @@ import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Key
 import com.intellij.openapi.vfs.VirtualFile
-import com.jetbrains.bigdatatools.common.data.StructuredFilesUtil
+import com.jetbrains.bigdatatools.core.data.StructuredFilesUtil
 import com.jetbrains.bigdatatools.kafka.common.models.KafkaEditorType
 import com.jetbrains.bigdatatools.kafka.consumer.editor.KafkaConsumerEditor
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager

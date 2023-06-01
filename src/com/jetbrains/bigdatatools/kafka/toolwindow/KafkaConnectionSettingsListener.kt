@@ -3,9 +3,9 @@ package com.jetbrains.bigdatatools.kafka.toolwindow
 import com.intellij.openapi.fileEditor.ex.FileEditorManagerEx
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.ProjectManager
-import com.jetbrains.bigdatatools.common.settings.ConnectionSettingsListener
-import com.jetbrains.bigdatatools.common.settings.ModificationKey
-import com.jetbrains.bigdatatools.common.settings.connections.ConnectionData
+import com.jetbrains.bigdatatools.core.settings.ConnectionSettingsListener
+import com.jetbrains.bigdatatools.core.settings.ModificationKey
+import com.jetbrains.bigdatatools.core.settings.connections.ConnectionData
 import com.jetbrains.bigdatatools.kafka.common.editor.KafkaEditorProvider
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaConnectionData
 

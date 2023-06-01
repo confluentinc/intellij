@@ -5,7 +5,7 @@ import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.project.DumbAwareAction
-import com.jetbrains.bigdatatools.common.monitoring.toolwindow.DetailsTableMonitoringController
+import com.jetbrains.bigdatatools.core.monitoring.toolwindow.DetailsTableMonitoringController
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.model.BdtTopicPartition
 import com.jetbrains.bigdatatools.kafka.toolwindow.config.KafkaToolWindowSettings

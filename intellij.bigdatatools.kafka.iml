@@ -43,7 +43,7 @@
         </SOURCES>
       </library>
     </orderEntry>
-    <orderEntry type="module" module-name="intellij.bigdatatools.common" />
+    <orderEntry type="module" module-name="intellij.bigdatatools.core" />
     <orderEntry type="module-library">
       <library name="software.amazon.msk.aws.iam.auth" type="repository">
         <properties maven-id="software.amazon.msk:aws-msk-iam-auth:1.1.4">

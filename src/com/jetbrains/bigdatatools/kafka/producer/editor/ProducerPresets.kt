@@ -4,7 +4,7 @@ import com.jetbrains.bigdatatools.kafka.common.editor.Presets
 import com.jetbrains.bigdatatools.kafka.common.settings.KafkaConfigStorage
 import com.jetbrains.bigdatatools.kafka.common.settings.StorageProducerConfig
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
-import com.jetbrains.bigdatatools.common.ui.MigPanel
+import com.jetbrains.bigdatatools.core.ui.MigPanel
 import java.awt.Component
 import javax.swing.JLabel
 import javax.swing.JList

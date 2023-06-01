@@ -1,10 +1,10 @@
 package com.jetbrains.bigdatatools.kafka.registry.glue.models
 
-import com.jetbrains.bigdatatools.common.monitoring.data.model.RemoteInfo
-import com.jetbrains.bigdatatools.common.table.renderers.DataRenderingUtil
-import com.jetbrains.bigdatatools.common.table.renderers.DateRendering
-import com.jetbrains.bigdatatools.common.table.renderers.LoadingRendering
-import com.jetbrains.bigdatatools.common.table.renderers.NoRendering
+import com.jetbrains.bigdatatools.core.monitoring.data.model.RemoteInfo
+import com.jetbrains.bigdatatools.core.table.renderers.DataRenderingUtil
+import com.jetbrains.bigdatatools.core.table.renderers.DateRendering
+import com.jetbrains.bigdatatools.core.table.renderers.LoadingRendering
+import com.jetbrains.bigdatatools.core.table.renderers.NoRendering
 import software.amazon.awssdk.services.glue.model.SchemaId
 import java.util.*
 import kotlin.reflect.KProperty1

@@ -3,8 +3,8 @@ package com.jetbrains.bigdatatools.kafka.toolwindow.controllers
 import com.intellij.openapi.actionSystem.DataProvider
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
-import com.jetbrains.bigdatatools.common.monitoring.toolwindow.DetailsMonitoringController
-import com.jetbrains.bigdatatools.common.monitoring.toolwindow.TabbedDetailsMonitoringController
+import com.jetbrains.bigdatatools.core.monitoring.toolwindow.DetailsMonitoringController
+import com.jetbrains.bigdatatools.core.monitoring.toolwindow.TabbedDetailsMonitoringController
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryType
 import com.jetbrains.bigdatatools.kafka.registry.confluent.controller.KafkaTopicSchemaController

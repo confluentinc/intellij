@@ -2,7 +2,7 @@ package com.jetbrains.bigdatatools.kafka.client
 
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.diagnostic.Logger
-import com.jetbrains.bigdatatools.common.util.executeOnPooledThread
+import com.jetbrains.bigdatatools.core.util.executeOnPooledThread
 import org.apache.kafka.clients.admin.Admin
 import org.apache.kafka.clients.admin.AdminClient
 import java.time.Duration

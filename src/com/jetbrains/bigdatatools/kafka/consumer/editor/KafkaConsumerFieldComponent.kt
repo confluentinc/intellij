@@ -7,9 +7,9 @@ import com.intellij.ui.dsl.builder.Align
 import com.intellij.ui.dsl.builder.Panel
 import com.intellij.ui.dsl.builder.RightGap
 import com.intellij.ui.dsl.builder.RowsRange
-import com.jetbrains.bigdatatools.common.rfs.util.RfsNotificationUtils
-import com.jetbrains.bigdatatools.common.settings.getValidationInfo
-import com.jetbrains.bigdatatools.common.util.executeNotOnEdt
+import com.jetbrains.bigdatatools.core.rfs.util.RfsNotificationUtils
+import com.jetbrains.bigdatatools.core.settings.getValidationInfo
+import com.jetbrains.bigdatatools.core.util.executeNotOnEdt
 import com.jetbrains.bigdatatools.kafka.common.editor.KafkaEditorUtils
 import com.jetbrains.bigdatatools.kafka.common.models.KafkaFieldType
 import com.jetbrains.bigdatatools.kafka.common.models.RegistrySchemaInEditor
