@@ -34,8 +34,20 @@ class ProtobufSchemaTree(model: DefaultTreeModel, private val schema: ProtobufSc
         }
       }
       else -> {
-        parent.add(createMutableNode(field.name, field.typeName(), field.defaultValue, required = !field.isOptional))
+        parent.add(createMutableNode(field.name, field.typeName(), getReadableVal(field.defaultValue), required = !field.isOptional))
       }
+    }
+  }
+
+  private fun getReadableVal(defaultValue: Any?): String {
+    if (defaultValue == null)
+      return ""
+
+    val value = defaultValue.toString()
+    return when {
+      value.contains("Byte") -> "bytes[]"
+      value.contains("Null") -> "null"
+      else -> value
     }
   }
 
