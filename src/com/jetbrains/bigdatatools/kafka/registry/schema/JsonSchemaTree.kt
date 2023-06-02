@@ -1,5 +1,6 @@
 package com.jetbrains.bigdatatools.kafka.registry.schema
 
+import com.jetbrains.bigdatatools.kafka.model.SchemaRegistryFieldsInfo
 import io.confluent.kafka.schemaregistry.json.JsonSchema
 import org.everit.json.schema.*
 import javax.swing.event.TreeExpansionEvent
@@ -7,13 +8,16 @@ import javax.swing.tree.DefaultMutableTreeNode
 import javax.swing.tree.DefaultTreeModel
 
 class JsonSchemaTree(model: DefaultTreeModel, private val schema: JsonSchema) : SchemaTree(model) {
+  private val objects = hashMapOf<String, ObjectSchema>()
+
   private fun addChildren(parent: DefaultMutableTreeNode, fieldName: String, schema: Schema, isRequired: Boolean = false) {
     val child = createMutableNode(fieldName, schema.resolveFieldType(), schema.defaultValue, schema.description,
                                   isRequired)
     parent.add(child)
     when (schema) {
-      is ObjectSchema -> schema.propertySchemas?.forEach {
-        addChildren(child, it.key, it.value, isRequiredField(schema, it.key))
+      is ObjectSchema -> {
+        child.add(createEmptyChild())
+        objects[fieldName] = schema
       }
       is CombinedSchema -> schema.subschemas.forEachIndexed { index, value ->
         addChildren(child, "type $index", value)
@@ -31,7 +35,7 @@ class JsonSchemaTree(model: DefaultTreeModel, private val schema: JsonSchema) : 
   }
 
   private fun Schema.resolveFieldType() = when (this) {
-    // TODO: CombinedSchema ConditionalSchema EmptySchema NotSchema ReferenceSchema
+    // TODO: CombinedSchema ConditionalSchema NotSchema ReferenceSchema
     is NullSchema -> "null"
     is ArraySchema -> "array"
     is BooleanSchema, is TrueSchema, is FalseSchema -> "boolean"
@@ -53,7 +57,16 @@ class JsonSchemaTree(model: DefaultTreeModel, private val schema: JsonSchema) : 
   }
 
   override fun treeExpanded(event: TreeExpansionEvent?) {
-    //TODO
+    if (event == null)
+      return
+
+    val expandedNode = event.path.lastPathComponent as? DefaultMutableTreeNode ?: return
+    val node = expandedNode.userObject as? SchemaRegistryFieldsInfo ?: return
+
+    val objectSchema = objects[node.name] ?: return
+    expandedNode.removeAllChildren()
+    objectSchema.propertySchemas?.forEach { addChildren(expandedNode, it.key, it.value, isRequiredField(objectSchema, it.key)) }
+    model.nodeStructureChanged(expandedNode)
   }
 
   private fun isRequiredField(schema: ObjectSchema, fieldName: String): Boolean = schema.requiredProperties.contains(fieldName)
