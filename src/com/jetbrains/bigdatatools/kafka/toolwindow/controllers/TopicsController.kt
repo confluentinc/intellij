@@ -11,6 +11,8 @@ import com.intellij.ui.DocumentAdapter
 import com.intellij.ui.SearchTextField
 import com.intellij.ui.SimpleTextAttributes
 import com.intellij.util.ui.StatusText
+import com.intellij.util.ui.UIUtil
+import com.jetbrains.bigdatatools.common.monitoring.data.listener.DataModelListener
 import com.jetbrains.bigdatatools.core.monitoring.data.model.FilterAdapter
 import com.jetbrains.bigdatatools.core.monitoring.data.model.FilterKey
 import com.jetbrains.bigdatatools.core.monitoring.table.DataTable
@@ -22,16 +24,24 @@ import com.jetbrains.bigdatatools.core.ui.CustomComponentActionImpl
 import com.jetbrains.bigdatatools.core.ui.filter.CountFilterPopupComponent
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.model.TopicPresentable
+import com.jetbrains.bigdatatools.kafka.model.TopicStatisticInfo
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaDriver
 import com.jetbrains.bigdatatools.kafka.toolwindow.config.KafkaToolWindowSettings
 import com.jetbrains.bigdatatools.kafka.util.KafkaDialogFactory
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import javax.swing.JLabel
 import javax.swing.ListSelectionModel
 import javax.swing.event.DocumentEvent
 
 class TopicsController(val project: Project,
                        private val dataManager: KafkaDataManager,
                        private val mainController: KafkaMainController) : AbstractTableController<TopicPresentable>() {
+  val infoPanel = JLabel("Topics: 1, Partitions: 1, URP: 10, < Min ISR>: 0, No Leader: 0").apply {
+    foreground = UIUtil.getLabelInfoForeground()
+    font = UIUtil.getLabelFont(UIUtil.FontSize.SMALL)
+  }
+
+
   private val showInternalTopicsAction = object : DumbAwareToggleAction(KafkaMessagesBundle.message("show.internal.topic"), null,
                                                                         AllIcons.Actions.ToggleVisibility) {
     override fun isSelected(e: AnActionEvent) = KafkaToolWindowSettings.getInstance().showInternalTopics
@@ -105,6 +115,19 @@ class TopicsController(val project: Project,
         else -> null
       }
     }
+
+    dataManager.topicModel.addListener(object : DataModelListener {
+      override fun onChanged() {
+        super.onChanged()
+
+        infoPanel.text = TopicStatisticInfo.createFor(dataManager.getTopics()).toString()
+      }
+
+      override fun onError(msg: String, e: Throwable?) {
+        infoPanel.text = TopicStatisticInfo.createFor(dataManager.getTopics()).toString()
+
+      }
+    })
   }
 
   override fun customTableInit(table: DataTable<TopicPresentable>) {
@@ -141,9 +164,7 @@ class TopicsController(val project: Project,
 
     return listOf(CustomComponentActionImpl(searchTextField),
                   CustomComponentActionImpl(countFilter),
-                  showInternalTopicsAction,
-                  Separator(),
-                  createTopicAction)
+                  showInternalTopicsAction)
   }
 
   override fun emptyTextProvider() = CustomEmptyTextProvider { emptyText: StatusText ->
@@ -173,6 +194,11 @@ class TopicsController(val project: Project,
   override fun getAdditionalActions(): List<AnAction> = listOf()
   override fun showColumnFilter(): Boolean = false
   override fun getAdditionalContextActions(): List<AnAction> = listOf(createTopicAction, deleteTopicAction, clearTopicAction)
+
+  override fun createTopRightToolBar(): ActionToolbar {
+    val defaultActionGroup = DefaultActionGroup(CustomComponentActionImpl(infoPanel))
+    return ToolbarUtils.createActionToolbar("TopicListInfo", defaultActionGroup, true)
+  }
 
   companion object {
     val LIMIT_FILTER = FilterKey("topicLimit")

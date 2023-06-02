@@ -115,6 +115,7 @@ class KafkaDataManager(project: Project?,
     val topics = client.getTopics(toolWindowSettings.showInternalTopics).filter {
       topicFilterName == null || it.name.lowercase().contains(topicFilterName.lowercase())
     }
+
     val topicLimit = KafkaToolWindowSettings.getInstance().getOrCreateConfig(connectionId).topicLimit
     (topicLimit?.let { topics.take(it) } ?: topics) to (topicLimit != null && topics.size > topicLimit)
   }
