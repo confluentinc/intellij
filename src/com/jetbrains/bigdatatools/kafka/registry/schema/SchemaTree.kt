@@ -26,5 +26,7 @@ abstract class SchemaTree(protected val model: DefaultTreeModel) : TreeExpansion
     }
   }
 
+  fun DefaultMutableTreeNode.getID() = (this.userObject as SchemaRegistryFieldsInfo).id
+
   override fun treeCollapsed(event: TreeExpansionEvent?) {}
 }

@@ -2,6 +2,7 @@ package com.jetbrains.bigdatatools.kafka.model
 
 import com.jetbrains.bigdatatools.common.monitoring.data.model.RemoteInfo
 import com.jetbrains.bigdatatools.common.table.renderers.DataRenderingUtil
+import com.jetbrains.bigdatatools.kafka.util.generator.PrimitivesGenerator
 import kotlin.reflect.KProperty1
 import kotlin.reflect.full.declaredMemberProperties
 import kotlin.reflect.jvm.javaField
@@ -13,6 +14,8 @@ data class SchemaRegistryFieldsInfo(
   val description: String,
   val required: String
 ) : RemoteInfo {
+  val id = "$name${PrimitivesGenerator.generateLong()}"
+
   override fun toString(): String = name
 
   companion object {

@@ -18,13 +18,13 @@ class AvroSchemaTree(model: DefaultTreeModel, private val schema: AvroSchema) : 
     else createMutableNode(fieldName, schema.getSchemaName())
 
     parent.add(child)
-    addNestedTypes(child, fieldName, schema)
+    addNestedTypes(child, schema)
   }
 
-  private fun addNestedTypes(parent: DefaultMutableTreeNode, fieldName: String, schema: Schema) = when (schema.type) {
+  private fun addNestedTypes(parent: DefaultMutableTreeNode, schema: Schema) = when (schema.type) {
     Type.RECORD -> {
       parent.add(createEmptyChild())
-      records[fieldName] = schema
+      records[parent.getID()] = schema
     }
     Type.UNION -> schema.types?.forEachIndexed { index, schemaItem ->
       addChildren(parent, "type $index", schemaItem)
@@ -65,7 +65,7 @@ class AvroSchemaTree(model: DefaultTreeModel, private val schema: AvroSchema) : 
     val expandedNode = event.path.lastPathComponent as? DefaultMutableTreeNode ?: return
     val node = expandedNode.userObject as? SchemaRegistryFieldsInfo ?: return
 
-    val record = records[node.name] ?: return
+    val record = records[node.id] ?: return
     expandedNode.removeAllChildren()
     record.fields.forEach { addChildren(expandedNode, it.name(), it.schema(), it) }
     model.nodeStructureChanged(expandedNode)

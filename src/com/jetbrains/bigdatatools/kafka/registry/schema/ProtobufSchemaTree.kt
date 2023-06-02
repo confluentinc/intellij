@@ -22,7 +22,7 @@ class ProtobufSchemaTree(model: DefaultTreeModel, private val schema: ProtobufSc
         parent.add(child)
 
         child.add(createEmptyChild())
-        messages[messageType.name] = messageType
+        messages[child.getID()] = messageType
       }
       ENUM -> {
         val enumType = field.enumType ?: return
@@ -53,7 +53,7 @@ class ProtobufSchemaTree(model: DefaultTreeModel, private val schema: ProtobufSc
     val expandedNode = event.path.lastPathComponent as? DefaultMutableTreeNode ?: return
     val node = expandedNode.userObject as? SchemaRegistryFieldsInfo ?: return
 
-    val descriptor = messages[node.type] ?: messages["${node.name}Entry"] ?: return
+    val descriptor = messages[node.id] ?: return
     expandedNode.removeAllChildren()
     descriptor.fields.forEach { addChildren(expandedNode, it) }
     model.nodeStructureChanged(expandedNode)

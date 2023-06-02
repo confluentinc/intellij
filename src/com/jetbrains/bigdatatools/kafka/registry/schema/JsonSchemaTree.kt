@@ -17,7 +17,7 @@ class JsonSchemaTree(model: DefaultTreeModel, private val schema: JsonSchema) : 
     when (schema) {
       is ObjectSchema -> {
         child.add(createEmptyChild())
-        objects[fieldName] = schema
+        objects[child.getID()] = schema
       }
       is CombinedSchema -> schema.subschemas.forEachIndexed { index, value ->
         addChildren(child, "type $index", value)
@@ -35,7 +35,7 @@ class JsonSchemaTree(model: DefaultTreeModel, private val schema: JsonSchema) : 
   }
 
   private fun Schema.resolveFieldType() = when (this) {
-    // TODO: CombinedSchema ConditionalSchema NotSchema ReferenceSchema
+    // TODO: ConditionalSchema NotSchema ReferenceSchema
     is NullSchema -> "null"
     is ArraySchema -> "array"
     is BooleanSchema, is TrueSchema, is FalseSchema -> "boolean"
@@ -63,7 +63,7 @@ class JsonSchemaTree(model: DefaultTreeModel, private val schema: JsonSchema) : 
     val expandedNode = event.path.lastPathComponent as? DefaultMutableTreeNode ?: return
     val node = expandedNode.userObject as? SchemaRegistryFieldsInfo ?: return
 
-    val objectSchema = objects[node.name] ?: return
+    val objectSchema = objects[node.id] ?: return
     expandedNode.removeAllChildren()
     objectSchema.propertySchemas?.forEach { addChildren(expandedNode, it.key, it.value, isRequiredField(objectSchema, it.key)) }
     model.nodeStructureChanged(expandedNode)
