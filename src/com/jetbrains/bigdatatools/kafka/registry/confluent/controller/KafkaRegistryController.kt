@@ -156,9 +156,7 @@ class KafkaRegistryController(val project: Project,
     }
 
     return listOfNotNull(CustomComponentActionImpl(searchTextField), CustomComponentActionImpl(countFilter),
-                         showSoftDeletedAction,
-                         Separator(),
-                         addSchema)
+                         showSoftDeletedAction)
   }
 
   override fun getAdditionalContextActions(): List<AnAction> = listOf(addSchema, deleteSchema, cloneSchema)

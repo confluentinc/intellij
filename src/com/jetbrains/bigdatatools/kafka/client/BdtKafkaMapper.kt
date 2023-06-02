@@ -48,7 +48,8 @@ object BdtKafkaMapper {
                             inSyncReplicas = inSyncReplicasCount,
                             replicationFactor = replicationFactor,
                             messageCount = messageCount,
-                            underReplicatedPartitions = underReplicatedPartitionsCount)
+                            underReplicatedPartitions = underReplicatedPartitionsCount,
+                            noLeaders = partitions.count { it.leader == null })
   }
 
 
