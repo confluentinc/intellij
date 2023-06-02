@@ -3,11 +3,11 @@ package com.jetbrains.bigdatatools.kafka.toolwindow.controllers
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.ui.DocumentAdapter
 import com.intellij.ui.SearchTextField
-import com.jetbrains.bigdatatools.core.monitoring.data.model.FilterAdapter
-import com.jetbrains.bigdatatools.core.monitoring.data.model.FilterKey
-import com.jetbrains.bigdatatools.core.monitoring.toolwindow.AbstractTableController
-import com.jetbrains.bigdatatools.core.ui.CustomComponentActionImpl
-import com.jetbrains.bigdatatools.core.ui.filter.CountFilterPopupComponent
+import com.jetbrains.bigdatatools.common.monitoring.data.model.FilterAdapter
+import com.jetbrains.bigdatatools.common.monitoring.data.model.FilterKey
+import com.jetbrains.bigdatatools.common.monitoring.toolwindow.AbstractTableController
+import com.jetbrains.bigdatatools.common.ui.CustomComponentActionImpl
+import com.jetbrains.bigdatatools.common.ui.filter.CountFilterPopupComponent
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.model.ConsumerGroupPresentable
 import com.jetbrains.bigdatatools.kafka.toolwindow.config.KafkaToolWindowSettings

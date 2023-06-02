@@ -21,11 +21,11 @@ import com.intellij.ui.dsl.builder.*
 import com.intellij.ui.dsl.gridLayout.UnscaledGaps
 import com.intellij.ui.layout.migLayout.createLayoutConstraints
 import com.intellij.ui.layout.migLayout.patched.MigLayout
-import com.jetbrains.bigdatatools.core.monitoring.toolwindow.ComponentController
-import com.jetbrains.bigdatatools.core.monitoring.toolwindow.DetailsMonitoringController
-import com.jetbrains.bigdatatools.core.ui.CustomComponentActionImpl
-import com.jetbrains.bigdatatools.core.util.ToolbarUtils
-import com.jetbrains.bigdatatools.core.util.invokeLater
+import com.jetbrains.bigdatatools.common.monitoring.toolwindow.ComponentController
+import com.jetbrains.bigdatatools.common.monitoring.toolwindow.DetailsMonitoringController
+import com.jetbrains.bigdatatools.common.ui.CustomComponentActionImpl
+import com.jetbrains.bigdatatools.common.util.ToolbarUtils
+import com.jetbrains.bigdatatools.common.util.invokeLater
 import com.jetbrains.bigdatatools.kafka.common.editor.SchemaVersionDiffController
 import com.jetbrains.bigdatatools.kafka.common.editor.SchemaVersionsComboboxController
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager

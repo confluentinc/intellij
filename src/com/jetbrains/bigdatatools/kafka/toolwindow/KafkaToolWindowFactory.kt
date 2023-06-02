@@ -2,10 +2,10 @@ package com.jetbrains.bigdatatools.kafka.toolwindow
 
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.wm.ToolWindow
-import com.jetbrains.bigdatatools.core.constants.BdtConnectionType
-import com.jetbrains.bigdatatools.core.constants.BdtPlugins
-import com.jetbrains.bigdatatools.core.monitoring.toolwindow.MonitoringToolWindowFactory
-import com.jetbrains.bigdatatools.core.settings.manager.RfsConnectionDataManager
+import com.jetbrains.bigdatatools.common.constants.BdtConnectionType
+import com.jetbrains.bigdatatools.common.constants.BdtPlugins
+import com.jetbrains.bigdatatools.common.monitoring.toolwindow.MonitoringToolWindowFactory
+import com.jetbrains.bigdatatools.common.settings.manager.RfsConnectionDataManager
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 
 class KafkaToolWindowFactory : MonitoringToolWindowFactory() {

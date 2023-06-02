@@ -1,6 +1,6 @@
 package com.jetbrains.bigdatatools.kafka.client
 
-import com.jetbrains.bigdatatools.core.settings.kerberos.BdtKerberosManager
+import com.jetbrains.bigdatatools.common.settings.kerberos.BdtKerberosManager
 import org.apache.kafka.clients.CommonClientConfigs.SECURITY_PROTOCOL_CONFIG
 import org.apache.kafka.clients.admin.AdminClient
 import org.apache.kafka.common.KafkaException

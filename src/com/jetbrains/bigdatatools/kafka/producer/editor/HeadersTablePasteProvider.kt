@@ -4,7 +4,7 @@ import com.intellij.ide.PasteProvider
 import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.DataContext
 import com.intellij.openapi.ide.CopyPasteManager
-import com.jetbrains.bigdatatools.core.serializer.BdtJson
+import com.jetbrains.bigdatatools.common.serializer.BdtJson
 import com.jetbrains.bigdatatools.kafka.common.editor.PropertiesTable
 import java.awt.datatransfer.DataFlavor
 

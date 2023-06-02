@@ -1,6 +1,6 @@
 package com.jetbrains.bigdatatools.kafka.consumer.editor
 
-import com.jetbrains.bigdatatools.core.settings.connections.Property
+import com.jetbrains.bigdatatools.common.settings.connections.Property
 import com.jetbrains.bigdatatools.kafka.common.editor.KafkaEditorUtils
 import com.jetbrains.bigdatatools.kafka.common.models.KafkaFieldType
 import com.jetbrains.bigdatatools.kafka.consumer.models.ConsumerProducerFieldConfig

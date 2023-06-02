@@ -2,8 +2,8 @@ package com.jetbrains.bigdatatools.kafka.consumer.editor
 
 import com.intellij.ui.IdeBorderFactory
 import com.intellij.ui.SideBorder
-import com.jetbrains.bigdatatools.core.util.SizeUtils
-import com.jetbrains.bigdatatools.core.util.TimeUtils
+import com.jetbrains.bigdatatools.common.util.SizeUtils
+import com.jetbrains.bigdatatools.common.util.TimeUtils
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import java.awt.FlowLayout
 import javax.swing.JLabel

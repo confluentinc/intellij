@@ -1,8 +1,8 @@
 package com.jetbrains.bigdatatools.kafka.producer.client
 
-import com.jetbrains.bigdatatools.core.rfs.util.RfsNotificationUtils
-import com.jetbrains.bigdatatools.core.settings.connections.Property
-import com.jetbrains.bigdatatools.core.util.withPluginClassLoader
+import com.jetbrains.bigdatatools.common.rfs.util.RfsNotificationUtils
+import com.jetbrains.bigdatatools.common.settings.connections.Property
+import com.jetbrains.bigdatatools.common.util.withPluginClassLoader
 import com.jetbrains.bigdatatools.kafka.client.KafkaClient
 import com.jetbrains.bigdatatools.kafka.consumer.editor.KafkaRecord
 import com.jetbrains.bigdatatools.kafka.consumer.models.ConsumerProducerFieldConfig

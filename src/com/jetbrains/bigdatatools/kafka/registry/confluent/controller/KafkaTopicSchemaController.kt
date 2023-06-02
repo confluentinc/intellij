@@ -4,8 +4,8 @@ import com.intellij.openapi.project.Project
 import com.intellij.ui.SimpleTextAttributes
 import com.intellij.ui.components.JBPanelWithEmptyText
 import com.intellij.util.ui.StatusText
-import com.jetbrains.bigdatatools.core.monitoring.data.listener.DataModelListener
-import com.jetbrains.bigdatatools.core.monitoring.toolwindow.DetailsMonitoringController
+import com.jetbrains.bigdatatools.common.monitoring.data.listener.DataModelListener
+import com.jetbrains.bigdatatools.common.monitoring.toolwindow.DetailsMonitoringController
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryAddSchemaDialog
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle

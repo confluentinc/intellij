@@ -1,9 +1,9 @@
 package com.jetbrains.bigdatatools.kafka.registry.common
 
-import com.jetbrains.bigdatatools.core.monitoring.data.model.RemoteInfo
-import com.jetbrains.bigdatatools.core.table.renderers.DataRenderingUtil
-import com.jetbrains.bigdatatools.core.table.renderers.DateRendering
-import com.jetbrains.bigdatatools.core.table.renderers.LoadingRendering
+import com.jetbrains.bigdatatools.common.monitoring.data.model.RemoteInfo
+import com.jetbrains.bigdatatools.common.table.renderers.DataRenderingUtil
+import com.jetbrains.bigdatatools.common.table.renderers.DateRendering
+import com.jetbrains.bigdatatools.common.table.renderers.LoadingRendering
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryFormat
 import java.util.*
 import kotlin.reflect.KProperty1

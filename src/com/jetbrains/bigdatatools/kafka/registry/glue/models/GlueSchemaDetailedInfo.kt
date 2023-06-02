@@ -1,7 +1,7 @@
 package com.jetbrains.bigdatatools.kafka.registry.glue.models
 
-import com.jetbrains.bigdatatools.core.monitoring.data.model.RemoteInfo
-import com.jetbrains.bigdatatools.core.table.renderers.DataRenderingUtil
+import com.jetbrains.bigdatatools.common.monitoring.data.model.RemoteInfo
+import com.jetbrains.bigdatatools.common.table.renderers.DataRenderingUtil
 import software.amazon.awssdk.services.glue.model.GetSchemaResponse
 import software.amazon.awssdk.services.glue.model.GetSchemaVersionResponse
 import kotlin.reflect.KProperty1

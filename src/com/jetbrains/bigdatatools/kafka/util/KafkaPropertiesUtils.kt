@@ -1,7 +1,7 @@
 package com.jetbrains.bigdatatools.kafka.util
 
-import com.jetbrains.bigdatatools.core.ui.components.ConnectionProperty
-import com.jetbrains.bigdatatools.core.util.withPluginClassLoader
+import com.jetbrains.bigdatatools.common.ui.components.ConnectionProperty
+import com.jetbrains.bigdatatools.common.util.withPluginClassLoader
 import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig
 import org.apache.kafka.clients.admin.AdminClientConfig
 import org.apache.kafka.common.config.ConfigDef.NO_DEFAULT_VALUE

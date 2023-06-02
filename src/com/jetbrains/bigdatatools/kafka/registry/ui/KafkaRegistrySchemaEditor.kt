@@ -8,7 +8,7 @@ import com.intellij.ui.EditorCustomization
 import com.intellij.ui.EditorTextField
 import com.intellij.ui.EditorTextFieldProvider
 import com.intellij.ui.MonospaceEditorCustomization
-import com.jetbrains.bigdatatools.core.ui.doOnChange
+import com.jetbrains.bigdatatools.common.ui.doOnChange
 import java.awt.BorderLayout
 import javax.swing.BorderFactory
 import javax.swing.JPanel

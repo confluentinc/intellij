@@ -1,8 +1,8 @@
 package com.jetbrains.bigdatatools.kafka.model
 
-import com.jetbrains.bigdatatools.core.monitoring.data.model.RemoteInfo
-import com.jetbrains.bigdatatools.core.table.renderers.DataRenderingUtil
-import com.jetbrains.bigdatatools.core.table.renderers.LoadingRendering
+import com.jetbrains.bigdatatools.common.monitoring.data.model.RemoteInfo
+import com.jetbrains.bigdatatools.common.table.renderers.DataRenderingUtil
+import com.jetbrains.bigdatatools.common.table.renderers.LoadingRendering
 import org.apache.kafka.common.ConsumerGroupState
 import kotlin.reflect.KProperty1
 import kotlin.reflect.full.declaredMemberProperties

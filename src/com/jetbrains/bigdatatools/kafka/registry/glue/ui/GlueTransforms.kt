@@ -1,6 +1,6 @@
 package com.jetbrains.bigdatatools.kafka.registry.glue.ui
 
-import com.jetbrains.bigdatatools.core.monitoring.data.model.FieldsDataModel
+import com.jetbrains.bigdatatools.common.monitoring.data.model.FieldsDataModel
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import software.amazon.awssdk.services.glue.model.GetSchemaResponse
 
