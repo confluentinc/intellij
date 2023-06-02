@@ -12,7 +12,7 @@ import javax.swing.tree.DefaultTreeModel
 class ProtobufSchemaTree(model: DefaultTreeModel, private val schema: ProtobufSchema) : SchemaTree(model) {
   private val messages = hashMapOf<String, Descriptor>()
 
-  private fun buildProtobufTree(parent: DefaultMutableTreeNode, field: FieldDescriptor) {
+  private fun addChildren(parent: DefaultMutableTreeNode, field: FieldDescriptor) {
     when (field.type) {
       GROUP, MESSAGE -> {
         val messageType = field.messageType ?: return
@@ -39,23 +39,11 @@ class ProtobufSchemaTree(model: DefaultTreeModel, private val schema: ProtobufSc
     }
   }
 
-  private fun getReadableVal(defaultValue: Any?): String {
-    if (defaultValue == null)
-      return ""
-
-    val value = defaultValue.toString()
-    return when {
-      value.contains("Byte") -> "bytes[]"
-      value.contains("Null") -> "null"
-      else -> value
-    }
-  }
-
   private fun FieldDescriptor.typeName() = this.type.name.lowercase()
 
   override fun buildTree(root: DefaultMutableTreeNode) {
     val descriptor = schema.toDescriptor()
-    descriptor.fields.forEach { buildProtobufTree(root, it) }
+    descriptor.fields.forEach { addChildren(root, it) }
   }
 
   override fun treeExpanded(event: TreeExpansionEvent?) {
@@ -67,7 +55,7 @@ class ProtobufSchemaTree(model: DefaultTreeModel, private val schema: ProtobufSc
 
     val descriptor = messages[node.type] ?: messages["${node.name}Entry"] ?: return
     expandedNode.removeAllChildren()
-    descriptor.fields.forEach { buildProtobufTree(expandedNode, it) }
+    descriptor.fields.forEach { addChildren(expandedNode, it) }
     model.nodeStructureChanged(expandedNode)
   }
 }

@@ -14,5 +14,17 @@ abstract class SchemaTree(protected val model: DefaultTreeModel) : TreeExpansion
 
   fun createEmptyChild(): DefaultMutableTreeNode = createMutableNode("", "")
 
+  fun getReadableVal(defaultValue: Any?): String {
+    if (defaultValue == null)
+      return ""
+
+    val value = defaultValue.toString()
+    return when {
+      value.contains("Byte") -> "bytes[]"
+      value.contains("Null") -> "null"
+      else -> value
+    }
+  }
+
   override fun treeCollapsed(event: TreeExpansionEvent?) {}
 }

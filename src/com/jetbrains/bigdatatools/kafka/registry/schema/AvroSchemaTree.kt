@@ -1,5 +1,6 @@
 package com.jetbrains.bigdatatools.kafka.registry.schema
 
+import com.jetbrains.bigdatatools.kafka.model.SchemaRegistryFieldsInfo
 import io.confluent.kafka.schemaregistry.avro.AvroSchema
 import org.apache.avro.Schema
 import org.apache.avro.Schema.Field
@@ -9,29 +10,34 @@ import javax.swing.tree.DefaultMutableTreeNode
 import javax.swing.tree.DefaultTreeModel
 
 class AvroSchemaTree(model: DefaultTreeModel, private val schema: AvroSchema) : SchemaTree(model) {
-  private fun buildAvroSchemaTree(parent: DefaultMutableTreeNode, fieldName: String, schema: Schema, field: Field? = null) {
+  private val records = hashMapOf<String, Schema>()
+
+  private fun addChildren(parent: DefaultMutableTreeNode, fieldName: String, schema: Schema, field: Field? = null) {
     val nameOfField = if (schema.type == Type.FIXED)
-      "$fieldName size=${schema.fixedSize}"
+      "$fieldName [${schema.fixedSize}]"
     else fieldName
 
     val child = if (field != null)
-      createMutableNode(nameOfField, schema.typeName(), field.defaultVal(), field.doc())
+      createMutableNode(nameOfField, schema.typeName(), getReadableVal(field.defaultVal()), field.doc())
     else createMutableNode(nameOfField, schema.typeName())
 
     parent.add(child)
-    addNestedTypes(child, schema)
+    addNestedTypes(child, fieldName, schema)
   }
 
-  private fun addNestedTypes(parent: DefaultMutableTreeNode, schema: Schema) = when (schema.type) {
-    Type.RECORD -> schema.fields?.forEach { buildAvroSchemaTree(parent, it.name(), it.schema(), it) }
+  private fun addNestedTypes(parent: DefaultMutableTreeNode, fieldName: String, schema: Schema) = when (schema.type) {
+    Type.RECORD -> {
+      parent.add(createEmptyChild())
+      records[fieldName] = schema
+    }
     Type.UNION -> schema.types?.forEachIndexed { index, schemaItem ->
-      buildAvroSchemaTree(parent, "[$index]", schemaItem)
+      addChildren(parent, "[$index]", schemaItem)
     }
     Type.MAP -> {
       parent.add(createMutableNode("key", "string"))
-      buildAvroSchemaTree(parent, "value", schema.valueType)
+      addChildren(parent, "value", schema.valueType)
     }
-    Type.ARRAY -> buildAvroSchemaTree(parent, "value", schema.elementType)
+    Type.ARRAY -> addChildren(parent, "value", schema.elementType)
     Type.ENUM -> schema.enumSymbols?.forEach { enum ->
       parent.add(createMutableNode(enum, ""))
     }
@@ -42,10 +48,22 @@ class AvroSchemaTree(model: DefaultTreeModel, private val schema: AvroSchema) : 
 
   override fun buildTree(root: DefaultMutableTreeNode) {
     val rawSchema = schema.rawSchema()
-    addNestedTypes(root, rawSchema)
+    if (rawSchema.type == Type.RECORD) {
+      rawSchema.fields.forEach { addChildren(root, it.name(), it.schema(), it) }
+    }
+    else addChildren(root, rawSchema.name, rawSchema)
   }
 
   override fun treeExpanded(event: TreeExpansionEvent?) {
-    //TODO
+    if (event == null)
+      return
+
+    val expandedNode = event.path.lastPathComponent as? DefaultMutableTreeNode ?: return
+    val node = expandedNode.userObject as? SchemaRegistryFieldsInfo ?: return
+
+    val record = records[node.name] ?: return
+    expandedNode.removeAllChildren()
+    record.fields.forEach { addChildren(expandedNode, it.name(), it.schema(), it) }
+    model.nodeStructureChanged(expandedNode)
   }
 }
