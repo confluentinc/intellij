@@ -13,13 +13,9 @@ class AvroSchemaTree(model: DefaultTreeModel, private val schema: AvroSchema) : 
   private val records = hashMapOf<String, Schema>()
 
   private fun addChildren(parent: DefaultMutableTreeNode, fieldName: String, schema: Schema, field: Field? = null) {
-    val nameOfField = if (schema.type == Type.FIXED)
-      "$fieldName [${schema.fixedSize}]"
-    else fieldName
-
     val child = if (field != null)
-      createMutableNode(nameOfField, schema.typeName(), getReadableVal(field.defaultVal()), field.doc())
-    else createMutableNode(nameOfField, schema.typeName())
+      createMutableNode(fieldName, schema.getSchemaName(), getReadableVal(field.defaultVal()), field.doc())
+    else createMutableNode(fieldName, schema.getSchemaName())
 
     parent.add(child)
     addNestedTypes(child, fieldName, schema)
@@ -31,7 +27,7 @@ class AvroSchemaTree(model: DefaultTreeModel, private val schema: AvroSchema) : 
       records[fieldName] = schema
     }
     Type.UNION -> schema.types?.forEachIndexed { index, schemaItem ->
-      addChildren(parent, "[$index]", schemaItem)
+      addChildren(parent, "type $index", schemaItem)
     }
     Type.MAP -> {
       parent.add(createMutableNode("key", "string"))
@@ -42,6 +38,14 @@ class AvroSchemaTree(model: DefaultTreeModel, private val schema: AvroSchema) : 
       parent.add(createMutableNode(enum, ""))
     }
     else -> {}
+  }
+
+  private fun Schema.getSchemaName(): String = when (this.type) {
+    Type.FIXED -> "fixed [${this.fixedSize}]"
+    Type.ARRAY -> "array<${this.elementType.typeName()}>"
+    Type.MAP -> "map<string, ${this.valueType.typeName()}>"
+    Type.UNION -> this.types?.joinToString(" | ") { it.typeName() } ?: this.typeName()
+    else -> this.typeName()
   }
 
   private fun Schema.typeName() = this.type.getName().lowercase()
