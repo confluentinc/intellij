@@ -12,7 +12,7 @@ import com.intellij.ui.SearchTextField
 import com.intellij.ui.SimpleTextAttributes
 import com.intellij.util.ui.StatusText
 import com.intellij.util.ui.UIUtil
-import com.jetbrains.bigdatatools.common.monitoring.data.listener.DataModelListener
+import com.jetbrains.bigdatatools.core.monitoring.data.listener.DataModelListener
 import com.jetbrains.bigdatatools.core.monitoring.data.model.FilterAdapter
 import com.jetbrains.bigdatatools.core.monitoring.data.model.FilterKey
 import com.jetbrains.bigdatatools.core.monitoring.table.DataTable
@@ -36,7 +36,7 @@ import javax.swing.event.DocumentEvent
 class TopicsController(val project: Project,
                        private val dataManager: KafkaDataManager,
                        private val mainController: KafkaMainController) : AbstractTableController<TopicPresentable>() {
-  val infoPanel = JLabel("Topics: 1, Partitions: 1, URP: 10, < Min ISR>: 0, No Leader: 0").apply {
+  val infoPanel = JLabel("").apply {
     foreground = UIUtil.getLabelInfoForeground()
     font = UIUtil.getLabelFont(UIUtil.FontSize.SMALL)
   }
@@ -194,11 +194,7 @@ class TopicsController(val project: Project,
   override fun getAdditionalActions(): List<AnAction> = listOf()
   override fun showColumnFilter(): Boolean = false
   override fun getAdditionalContextActions(): List<AnAction> = listOf(createTopicAction, deleteTopicAction, clearTopicAction)
-
-  override fun createTopRightToolBar(): ActionToolbar {
-    val defaultActionGroup = DefaultActionGroup(CustomComponentActionImpl(infoPanel))
-    return ToolbarUtils.createActionToolbar("TopicListInfo", defaultActionGroup, true)
-  }
+  override fun createTopRightToolbarActions() = listOf(CustomComponentActionImpl(infoPanel))
 
   companion object {
     val LIMIT_FILTER = FilterKey("topicLimit")
