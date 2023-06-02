@@ -7,18 +7,16 @@ import javax.swing.tree.DefaultMutableTreeNode
 import javax.swing.tree.DefaultTreeModel
 
 class JsonSchemaTree(model: DefaultTreeModel, private val schema: JsonSchema) : SchemaTree(model) {
-  private lateinit var requiredFields: List<String>
-
-  private fun buildJsonSchemaTree(parent: DefaultMutableTreeNode, fieldName: String, schema: Schema) {
+  private fun addChildren(parent: DefaultMutableTreeNode, fieldName: String, schema: Schema, isRequired: Boolean = false) {
     val child = createMutableNode(fieldName, schema.resolveFieldType(), schema.defaultValue, schema.description,
-                                  requiredFields.contains(fieldName))
+                                  isRequired)
     parent.add(child)
     when (schema) {
       is ObjectSchema -> schema.propertySchemas?.forEach {
-        buildJsonSchemaTree(child, it.key, it.value)
+        addChildren(child, it.key, it.value, isRequiredField(schema, it.key))
       }
       is CombinedSchema -> schema.subschemas.forEachIndexed { index, value ->
-        buildJsonSchemaTree(child, "[$index]", value)
+        addChildren(child, "type $index", value)
       }
       is ArraySchema -> {
         if (schema.allItemSchema != null) {
@@ -51,12 +49,12 @@ class JsonSchemaTree(model: DefaultTreeModel, private val schema: JsonSchema) : 
 
   override fun buildTree(root: DefaultMutableTreeNode) {
     val objectSchema = schema.rawSchema() as? ObjectSchema ?: return
-    requiredFields = objectSchema.requiredProperties
-
-    objectSchema.propertySchemas?.forEach { buildJsonSchemaTree(root, it.key, it.value) }
+    objectSchema.propertySchemas?.forEach { addChildren(root, it.key, it.value, isRequiredField(objectSchema, it.key)) }
   }
 
   override fun treeExpanded(event: TreeExpansionEvent?) {
     //TODO
   }
+
+  private fun isRequiredField(schema: ObjectSchema, fieldName: String): Boolean = schema.requiredProperties.contains(fieldName)
 }
