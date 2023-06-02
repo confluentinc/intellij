@@ -117,7 +117,11 @@ class KafkaProducerEditor(val project: Project,
       valueFieldComponent.createComponent(this)
 
       collapsibleGroup(KafkaMessagesBundle.message("producer.title.headers")) {
-        row { cell(propertiesComponent.getComponent()).align(AlignX.FILL).resizableColumn() }
+        row {
+          cell(propertiesComponent.getComponent()).align(AlignX.FILL).resizableColumn().comment(
+            KafkaMessagesBundle.message("text.pasting.json.or.csv.available"))
+        }
+
       }.topGap(TopGap.NONE).bottomGap(BottomGap.NONE)
 
 

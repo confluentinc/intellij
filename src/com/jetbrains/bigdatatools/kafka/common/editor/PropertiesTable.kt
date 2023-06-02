@@ -1,11 +1,14 @@
 package com.jetbrains.bigdatatools.kafka.common.editor
 
+import com.intellij.openapi.actionSystem.DataProvider
+import com.intellij.openapi.actionSystem.PlatformDataKeys
 import com.intellij.ui.JBColor
 import com.intellij.ui.TableUtil
 import com.intellij.ui.ToolbarDecorator
 import com.jetbrains.bigdatatools.core.settings.components.BdtPropertyComponent
 import com.jetbrains.bigdatatools.core.settings.connections.Property
 import com.jetbrains.bigdatatools.core.table.MaterialTable
+import com.jetbrains.bigdatatools.kafka.producer.editor.HeadersTablePasteProvider
 import javax.swing.BorderFactory
 import javax.swing.JPanel
 import javax.swing.JTable
@@ -21,6 +24,23 @@ class PropertiesTable(data: List<Property>, val isEditable: Boolean = true) {
     tableHeader.background = JBColor.WHITE
   }
   private val component = createDecoratedTable()
+
+  private val pasteProvider = if (isEditable) HeadersTablePasteProvider(this) else null
+
+  init {
+    table.customDataProvider = DataProvider {
+      when {
+        PlatformDataKeys.PASTE_PROVIDER.`is`(it) -> pasteProvider
+        else -> null
+      }
+    }
+  }
+
+  fun addEntries(rows: List<Pair<String, String>>) {
+    rows.forEach {
+      tableModel.addRow(Property(it.first, it.second))
+    }
+  }
 
   var properties: MutableList<Property>
     get() = tableModel.properties
@@ -38,8 +58,8 @@ class PropertiesTable(data: List<Property>, val isEditable: Boolean = true) {
         table.editCellAt(tableIndex, 0)
         TableUtil.scrollSelectionToVisible(table)
       }.setRemoveAction {
-        if (table.selectedRow != -1) {
-          val modelIndex = table.convertRowIndexToModel(table.selectedRow)
+        table.selectedRows.sortedDescending().forEach {
+          val modelIndex = table.convertRowIndexToModel(it)
           tableModel.removeRow(modelIndex)
         }
       }
