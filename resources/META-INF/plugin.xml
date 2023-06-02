@@ -81,8 +81,7 @@
       <group id="Kafka.Topic.Actions">
         <!--suppress PluginXmlCapitalization -->
         <action id="kafka.CreateTopicAction" class="com.jetbrains.bigdatatools.kafka.toolwindow.actions.CreateTopicAction"
-                icon="AllIcons.General.Add">
-          <keyboard-shortcut keymap="$default" first-keystroke="alt INSERT"/>
+                icon="AllIcons.General.Add" use-shortcut-of="NewElement">
         </action>
         <action id="kafka.DeleteTopicAction" class="com.jetbrains.bigdatatools.kafka.toolwindow.actions.DeleteTopicAction"
                 icon="AllIcons.General.Remove">
@@ -95,8 +94,7 @@
 
       <group id="Kafka.Schema.Actions">
         <action id="kafka.CreateSchemaAction" class="com.jetbrains.bigdatatools.kafka.toolwindow.actions.CreateSchemaAction"
-                icon="AllIcons.General.Add">
-          <keyboard-shortcut keymap="$default" first-keystroke="alt INSERT"/>
+                icon="AllIcons.General.Add" use-shortcut-of="NewElement">
         </action>
         <action id="Kafka.DeleteSchemaAction"
                 class="com.jetbrains.bigdatatools.kafka.toolwindow.actions.DeleteSchemaAction"
