@@ -11,6 +11,11 @@ class JsonSchemaTree(model: DefaultTreeModel, private val schema: JsonSchema) : 
   private val objects = hashMapOf<String, ObjectSchema>()
 
   private fun addChildren(parent: DefaultMutableTreeNode, fieldName: String, schema: Schema, isRequired: Boolean = false) {
+    getConstOrEnumSchema(schema)?.let {
+      addChildren(parent, fieldName, it, isRequired)
+      return
+    }
+
     val child = createMutableNode(fieldName, schema.resolveFieldType(), schema.defaultValue, schema.description,
                                   isRequired)
     parent.add(child)
@@ -30,8 +35,15 @@ class JsonSchemaTree(model: DefaultTreeModel, private val schema: JsonSchema) : 
           child.add(createMutableNode("[$index]", value.resolveFieldType()))
         }
       }
+      is EnumSchema -> schema.possibleValues.forEach { child.add(createMutableNode(it.toString(), "")) }
+      is ConstSchema -> child.add(createMutableNode(schema.permittedValue.toString(), ""))
       else -> {}
     }
+  }
+
+  private fun getConstOrEnumSchema(schema: Schema): Schema? {
+    val subSchemas = (schema as? CombinedSchema)?.subschemas ?: return null
+    return subSchemas.firstOrNull { it is ConstSchema } ?: subSchemas.firstOrNull { it is EnumSchema }
   }
 
   private fun Schema.resolveFieldType() = when (this) {
@@ -51,6 +63,8 @@ class JsonSchemaTree(model: DefaultTreeModel, private val schema: JsonSchema) : 
     else -> ""
   }
 
+  private fun isRequiredField(schema: ObjectSchema, fieldName: String): Boolean = schema.requiredProperties.contains(fieldName)
+
   override fun buildTree(root: DefaultMutableTreeNode) {
     val objectSchema = schema.rawSchema() as? ObjectSchema ?: return
     objectSchema.propertySchemas?.forEach { addChildren(root, it.key, it.value, isRequiredField(objectSchema, it.key)) }
@@ -68,6 +82,4 @@ class JsonSchemaTree(model: DefaultTreeModel, private val schema: JsonSchema) : 
     objectSchema.propertySchemas?.forEach { addChildren(expandedNode, it.key, it.value, isRequiredField(objectSchema, it.key)) }
     model.nodeStructureChanged(expandedNode)
   }
-
-  private fun isRequiredField(schema: ObjectSchema, fieldName: String): Boolean = schema.requiredProperties.contains(fieldName)
 }
