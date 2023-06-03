@@ -5,18 +5,18 @@ import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.testFramework.LightVirtualFile
+import com.jetbrains.bigdatatools.common.monitoring.toolwindow.MainTreeController.Companion.dataManager
+import com.jetbrains.bigdatatools.common.monitoring.toolwindow.MainTreeController.Companion.rfsPath
 import com.jetbrains.bigdatatools.kafka.common.editor.KafkaEditorProvider
 import com.jetbrains.bigdatatools.kafka.common.models.KafkaEditorType
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaDriver.Companion.isTopicFolder
 import com.jetbrains.bigdatatools.kafka.statistics.KafkaUsagesCollector
 import com.jetbrains.bigdatatools.kafka.toolwindow.controllers.KafkaFileType
-import com.jetbrains.bigdatatools.kafka.toolwindow.controllers.KafkaMainController.Companion.dataManager
-import com.jetbrains.bigdatatools.kafka.toolwindow.controllers.KafkaMainController.Companion.rfsPath
 
 class KafkaCreateConsumerAction : DumbAwareAction() {
   override fun actionPerformed(e: AnActionEvent) {
-    val dataManager = e.dataManager
+    val dataManager = e.dataManager as KafkaDataManager
     val project = e.project ?: return
     val rfsPath = e.rfsPath
     val defaultTopic = if (rfsPath?.parent?.isTopicFolder == true)

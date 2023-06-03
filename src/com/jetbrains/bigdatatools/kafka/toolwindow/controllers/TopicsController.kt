@@ -19,6 +19,7 @@ import com.jetbrains.bigdatatools.common.monitoring.table.DataTable
 import com.jetbrains.bigdatatools.common.monitoring.table.extension.CustomEmptyTextProvider
 import com.jetbrains.bigdatatools.common.monitoring.table.model.DataTableModel
 import com.jetbrains.bigdatatools.common.monitoring.toolwindow.AbstractTableController
+import com.jetbrains.bigdatatools.common.monitoring.toolwindow.MainTreeController
 import com.jetbrains.bigdatatools.common.table.renderers.LinkRenderer
 import com.jetbrains.bigdatatools.common.ui.CustomComponentActionImpl
 import com.jetbrains.bigdatatools.common.ui.filter.CountFilterPopupComponent
@@ -110,8 +111,8 @@ class TopicsController(val project: Project,
 
     dataTable.customDataProvider = DataProvider { dataId ->
       when {
-        KafkaMainController.DATA_MANAGER.`is`(dataId) -> dataManager
-        KafkaMainController.RFS_PATH.`is`(dataId) -> getSelectedItem()?.name?.let { KafkaDriver.topicPath.child(it, false) }
+        MainTreeController.DATA_MANAGER.`is`(dataId) -> dataManager
+        MainTreeController.RFS_PATH.`is`(dataId) -> getSelectedItem()?.name?.let { KafkaDriver.topicPath.child(it, false) }
         else -> null
       }
     }
