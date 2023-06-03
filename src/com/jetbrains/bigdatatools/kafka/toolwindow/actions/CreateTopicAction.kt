@@ -3,14 +3,15 @@ package com.jetbrains.bigdatatools.kafka.toolwindow.actions
 import com.intellij.ide.actions.NewElementAction
 import com.intellij.openapi.actionSystem.*
 import com.intellij.openapi.project.DumbAware
+import com.jetbrains.bigdatatools.common.monitoring.toolwindow.MainTreeController.Companion.dataManager
+import com.jetbrains.bigdatatools.common.monitoring.toolwindow.MainTreeController.Companion.rfsPath
+import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaDriver.Companion.isTopicFolder
-import com.jetbrains.bigdatatools.kafka.toolwindow.controllers.KafkaMainController.Companion.dataManager
-import com.jetbrains.bigdatatools.kafka.toolwindow.controllers.KafkaMainController.Companion.rfsPath
 import com.jetbrains.bigdatatools.kafka.util.KafkaDialogFactory
 
 class CreateTopicAction : NewElementAction(), ActionPromoter, DumbAware {
   override fun actionPerformed(e: AnActionEvent) {
-    val dataManager = e.dataManager
+    val dataManager = e.dataManager as KafkaDataManager
     KafkaDialogFactory.showCreateTopicDialog(dataManager)
   }
 

@@ -4,6 +4,7 @@ import com.intellij.openapi.actionSystem.DataProvider
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.jetbrains.bigdatatools.common.monitoring.toolwindow.DetailsMonitoringController
+import com.jetbrains.bigdatatools.common.monitoring.toolwindow.MainTreeController
 import com.jetbrains.bigdatatools.common.monitoring.toolwindow.TabbedDetailsMonitoringController
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryType
@@ -39,8 +40,8 @@ class TopicDetailsController(project: Project, dataManager: KafkaDataManager) : 
 
   override val dataProvider = DataProvider { dataId ->
     when {
-      KafkaMainController.DATA_MANAGER.`is`(dataId) -> dataManager
-      KafkaMainController.RFS_PATH.`is`(dataId) -> detailsId?.let { KafkaDriver.topicPath.child(it, false) }
+      MainTreeController.DATA_MANAGER.`is`(dataId) -> dataManager
+      MainTreeController.RFS_PATH.`is`(dataId) -> detailsId?.let { KafkaDriver.topicPath.child(it, false) }
       else -> null
     }
   }
