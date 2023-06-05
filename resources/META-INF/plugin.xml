@@ -65,13 +65,13 @@
 
 
   <actions resource-bundle="messages.KafkaBundle">
+    <action id="Kafka.GlobalCreateKafkaConnection"
+            class="com.jetbrains.bigdatatools.kafka.actions.CreateKafkaConnectionAction"/>
+    <action id="Kafka.GlobalCreateKafkaProducer"
+            class="com.jetbrains.bigdatatools.kafka.actions.CreateKafkaProducerAction"/>
+    <action id="Kafka.GlobalCreateKafkaConsumer"
+            class="com.jetbrains.bigdatatools.kafka.actions.CreateKafkaConsumerAction"/>
     <group id="Kafka.Actions">
-      <action id="Kafka.GlobalCreateKafkaConnection"
-              class="com.jetbrains.bigdatatools.kafka.actions.CreateKafkaConnectionAction"/>
-      <action id="Kafka.GlobalCreateKafkaProducer"
-              class="com.jetbrains.bigdatatools.kafka.actions.CreateKafkaProducerAction"/>
-      <action id="Kafka.GlobalCreateKafkaConsumer"
-              class="com.jetbrains.bigdatatools.kafka.actions.CreateKafkaConsumerAction"/>
 
       <group id="Kafka.General.Actions">
         <action id="kafka.create.consumer"
