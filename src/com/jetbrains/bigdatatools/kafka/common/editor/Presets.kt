@@ -4,7 +4,7 @@ import com.intellij.icons.AllIcons
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnActionEvent
-import com.intellij.ui.AnActionButton
+import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.ui.ToolbarDecorator
 import com.intellij.ui.components.JBList
 import com.jetbrains.bigdatatools.kafka.common.settings.ConfigChangeListener
@@ -30,9 +30,8 @@ open class Presets<T : StorageConfig>(private val runConfig: KafkaRunConfig,
   val component: JPanel = ToolbarDecorator.createDecorator(presetsList)
     .setMoveDownAction(null)
     .setMoveUpAction(null)
-    .addExtraAction(object : AnActionButton(KafkaMessagesBundle.message("producer.preset.apply"), AllIcons.Actions.Commit) {
-
-      override fun updateButton(e: AnActionEvent) {
+    .addExtraAction(object : DumbAwareAction(KafkaMessagesBundle.message("producer.preset.apply"), null, AllIcons.Actions.Checked) {
+      override fun update(e: AnActionEvent) {
         e.presentation.isEnabled = presetsList.selectedIndex != -1
       }
 
