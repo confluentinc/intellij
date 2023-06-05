@@ -1,10 +1,17 @@
 package com.jetbrains.bigdatatools.kafka.registry.schema
 
+import com.intellij.openapi.ui.Divider
+import com.intellij.openapi.ui.OnePixelDivider
+import com.intellij.openapi.ui.Splitter.DividerPositionStrategy
 import com.intellij.openapi.util.NlsContexts
+import com.intellij.ui.IdeBorderFactory
+import com.intellij.ui.OnePixelSplitter
 import com.intellij.ui.ScrollPaneFactory
+import com.intellij.ui.SideBorder
 import com.intellij.ui.treeStructure.treetable.ListTreeTableModel
 import com.intellij.ui.treeStructure.treetable.TreeTableModel
 import com.intellij.util.ui.ColumnInfo
+import com.intellij.util.ui.JBUI
 import com.jetbrains.bigdatatools.common.rfs.editorviewer.RfsTreeTable
 import com.jetbrains.bigdatatools.common.table.MaterialTableUtils
 import com.jetbrains.bigdatatools.kafka.model.SchemaRegistryFieldsInfo
@@ -13,10 +20,16 @@ import io.confluent.kafka.schemaregistry.ParsedSchema
 import io.confluent.kafka.schemaregistry.avro.AvroSchema
 import io.confluent.kafka.schemaregistry.json.JsonSchema
 import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchema
+import java.awt.Component
 import java.awt.Dimension
+import java.awt.Graphics
 import javax.swing.BorderFactory
+import javax.swing.JLabel
+import javax.swing.JTable
 import javax.swing.ScrollPaneConstants
+import javax.swing.border.CompoundBorder
 import javax.swing.event.TreeExpansionListener
+import javax.swing.table.TableCellRenderer
 import javax.swing.tree.DefaultMutableTreeNode
 
 class SchemaTreePanel {
@@ -30,7 +43,16 @@ class SchemaTreePanel {
 
   private val treeTableModel = ListTreeTableModel(DefaultMutableTreeNode(), commonColumns)
 
-  private val treeTable = RfsTreeTable(treeTableModel)
+  private val treeTable = object : RfsTreeTable(treeTableModel) {
+    // Only because we don't want to draw vertical line between tree and table.
+    override fun createSplitter() = object : OnePixelSplitter() {
+      override fun createDivider(): Divider {
+        return object : OnePixelDivider(isVertical, this) {
+          override fun paint(g: Graphics) {}
+        }
+      }
+    }
+  }
   private val scrollPanel = ScrollPaneFactory.createScrollPane(treeTable,
                                                                ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED,
                                                                ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER).apply {
@@ -39,17 +61,42 @@ class SchemaTreePanel {
 
   private var listener: TreeExpansionListener? = null
 
+  class TreeHeaderRenderer : JLabel(), TableCellRenderer {
+
+    init {
+      border = CompoundBorder(JBUI.Borders.emptyRight(1), IdeBorderFactory.createBorder(SideBorder.RIGHT))
+    }
+
+    override fun getTableCellRendererComponent(table: JTable,
+                                               value: Any?,
+                                               isSelected: Boolean,
+                                               hasFocus: Boolean,
+                                               row: Int,
+                                               column: Int): Component {
+      font = table.font
+      text = " ${value.toString()} "
+      return this
+    }
+  }
+
   init {
+    treeTable.split.dividerPositionStrategy = DividerPositionStrategy.KEEP_FIRST_SIZE
+
     val tree = treeTable.tree
     treeTable.table.emptyText.text = ""
 
     // We need to set max size explicitly because by default maxSize == preferredSize
     // and this leads to TreeTable first column resize problem.
     treeTable.tree.maximumSize = Dimension(Int.MAX_VALUE, Int.MAX_VALUE)
-
+    val headerRenderer = TreeHeaderRenderer()
+    treeTable.setupFirstColumnRenderer(headerRenderer)
     tree.isRootVisible = false
 
-    MaterialTableUtils.fitColumnsWidth(treeTable.table)
+    treeTable.table.autoResizeMode = JTable.AUTO_RESIZE_OFF
+
+    // Setting the width of first column (tree component)
+    val comp = headerRenderer.getTableCellRendererComponent(treeTable.table, "A".repeat(32), false, false, 0, 0)
+    treeTable.tree.preferredSize = Dimension(comp.preferredSize.width, treeTable.tree.preferredSize.height)
   }
 
   fun update(schema: ParsedSchema) {
@@ -64,6 +111,9 @@ class SchemaTreePanel {
     updateListener(schemaTree)
     schemaTree.buildTree(root)
     treeTableModel.setRoot(root)
+    treeTable.split.proportion = treeTable.tree.preferredSize.width.toFloat() / treeTable.size.width
+
+    MaterialTableUtils.fitColumnsWidth(treeTable.table)
   }
 
   private fun updateListener(newListener: TreeExpansionListener) {
