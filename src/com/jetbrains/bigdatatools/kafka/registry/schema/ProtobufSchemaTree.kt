@@ -17,7 +17,7 @@ class ProtobufSchemaTree(model: DefaultTreeModel, private val schema: ProtobufSc
       GROUP, MESSAGE -> {
         val messageType = field.messageType ?: return
 
-        val typeName = if (field.isMapField) "map" else messageType.name
+        val typeName = if (field.isMapField) "map<string, ${messageType.mapKeyName()}>" else messageType.name
         val child = createMutableNode(field.name, typeName, required = !field.isOptional)
         parent.add(child)
 
@@ -36,6 +36,14 @@ class ProtobufSchemaTree(model: DefaultTreeModel, private val schema: ProtobufSc
       else -> {
         parent.add(createMutableNode(field.name, field.typeName(), getReadableVal(field.defaultValue), required = !field.isOptional))
       }
+    }
+  }
+
+  private fun Descriptor.mapKeyName(): String {
+    val keyType = this.fields[1]
+    return when (keyType.type) {
+      GROUP, MESSAGE -> keyType.messageType.name
+      else -> keyType.typeName()
     }
   }
 

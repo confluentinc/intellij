@@ -41,7 +41,7 @@ class AvroSchemaTree(model: DefaultTreeModel, private val schema: AvroSchema) : 
   }
 
   private fun Schema.getSchemaName(): String = when (this.type) {
-    Type.FIXED -> "fixed [${this.fixedSize}]"
+    Type.FIXED -> "fixed[${this.fixedSize}]"
     Type.ARRAY -> "array<${this.elementType.typeName()}>"
     Type.MAP -> "map<string, ${this.valueType.typeName()}>"
     Type.UNION -> this.types?.joinToString(" | ") { it.typeName() } ?: this.typeName()

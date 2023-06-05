@@ -46,10 +46,10 @@ class JsonSchemaTree(model: DefaultTreeModel, private val schema: JsonSchema) : 
     return subSchemas.firstOrNull { it is ConstSchema } ?: subSchemas.firstOrNull { it is EnumSchema }
   }
 
-  private fun Schema.resolveFieldType() = when (this) {
+  private fun Schema.resolveFieldType(): String = when (this) {
     // TODO: ConditionalSchema NotSchema ReferenceSchema
     is NullSchema -> "null"
-    is ArraySchema -> "array"
+    is ArraySchema -> if (this.allItemSchema != null) "array<${this.allItemSchema.resolveFieldType()}>" else "array<>"
     is BooleanSchema, is TrueSchema, is FalseSchema -> "boolean"
     is NumberSchema -> when {
       this.requiresInteger() -> "integer"
@@ -60,6 +60,7 @@ class JsonSchemaTree(model: DefaultTreeModel, private val schema: JsonSchema) : 
     is StringSchema -> "string"
     is EnumSchema -> "enum"
     is ConstSchema -> "const"
+    is CombinedSchema -> this.subschemas.joinToString(" | ") { it.resolveFieldType() }
     else -> ""
   }
 
