@@ -32,7 +32,7 @@ class CloneSchemaAction : DumbAwareAction() {
 
   override fun update(e: AnActionEvent) {
     val rfsPath = e.rfsPath
-    e.presentation.isEnabledAndVisible = rfsPath?.parent?.isSchemas == true
+    e.presentation.isEnabledAndVisible = e.dataManager != null && rfsPath?.parent?.isSchemas == true
   }
 
   override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT

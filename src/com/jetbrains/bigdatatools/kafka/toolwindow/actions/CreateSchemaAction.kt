@@ -18,7 +18,7 @@ class CreateSchemaAction : NewElementAction(), ActionPromoter, DumbAware {
 
   override fun update(e: AnActionEvent) {
     val rfsPath = e.rfsPath
-    e.presentation.isEnabledAndVisible = rfsPath?.parent?.isSchemas == true || rfsPath?.isSchemas == true
+    e.presentation.isEnabledAndVisible = e.dataManager != null && rfsPath?.parent?.isSchemas == true || rfsPath?.isSchemas == true
   }
 
   override fun promote(actions: List<AnAction>, context: DataContext): List<AnAction> {

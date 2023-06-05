@@ -4,6 +4,7 @@ import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.project.DumbAwareAction
+import com.intellij.openapi.project.Project
 import com.intellij.testFramework.LightVirtualFile
 import com.jetbrains.bigdatatools.common.monitoring.toolwindow.MainTreeController.Companion.dataManager
 import com.jetbrains.bigdatatools.common.monitoring.toolwindow.MainTreeController.Companion.rfsPath
@@ -23,21 +24,26 @@ class KafkaCreateConsumerAction : DumbAwareAction() {
       rfsPath.name
     else
       null
-    FileEditorManager.getInstance(project).openFile(createConsumerFile(dataManager, defaultTopic), true)
-    KafkaUsagesCollector.openConsumerEvent.log(project)
+    createConsumer(project, dataManager, defaultTopic)
   }
 
+  override fun update(e: AnActionEvent) {
+    e.presentation.isEnabledAndVisible = e.dataManager != null
+  }
 
   override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
 
-  private fun createConsumerFile(dataManager: KafkaDataManager, defaultTopic: String?): LightVirtualFile {
-    val connectionData = dataManager.connectionData
+  companion object {
+    fun createConsumer(project: Project, dataManager: KafkaDataManager, defaultTopic: String?) {
+      KafkaUsagesCollector.openConsumerEvent.log(dataManager.project)
 
-    return LightVirtualFile("${connectionData.name} Consumer", KafkaFileType(), "").apply {
-      putUserData(KafkaEditorProvider.KAFKA_MANAGER_KEY, dataManager)
-      putUserData(KafkaEditorProvider.KAFKA_EDITOR_TYPE, KafkaEditorType.CONSUMER)
-      putUserData(KafkaEditorProvider.KAFKA_DEFAULT_TOPIC, defaultTopic)
+      val connectionData = dataManager.connectionData
+      val file = LightVirtualFile("${connectionData.name} Consumer", KafkaFileType(), "").apply {
+        putUserData(KafkaEditorProvider.KAFKA_MANAGER_KEY, dataManager)
+        putUserData(KafkaEditorProvider.KAFKA_EDITOR_TYPE, KafkaEditorType.CONSUMER)
+        putUserData(KafkaEditorProvider.KAFKA_DEFAULT_TOPIC, defaultTopic)
+      }
+      FileEditorManager.getInstance(project).openFile(file, true)
     }
   }
-
 }

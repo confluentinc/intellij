@@ -18,7 +18,7 @@ class ClearTopicAction : DumbAwareAction() {
 
   override fun update(e: AnActionEvent) {
     val rfsPath = e.rfsPath
-    e.presentation.isEnabledAndVisible = rfsPath?.parent?.isTopicFolder == true
+    e.presentation.isEnabledAndVisible = e.dataManager != null && rfsPath?.parent?.isTopicFolder == true
   }
 
   override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT

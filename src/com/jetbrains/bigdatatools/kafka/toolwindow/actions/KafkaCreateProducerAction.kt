@@ -26,20 +26,25 @@ class KafkaCreateProducerAction : DumbAwareAction() {
     else
       null
 
-
     openProducer(dataManager, project, defaultTopic)
-    KafkaUsagesCollector.openProducerEvent.log(project)
   }
 
   override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
 
-  private fun openProducer(dataManager: KafkaDataManager, project: Project, defaultTopic: String?): Array<FileEditor> {
-    val connectionData = dataManager.connectionData
-    val file = LightVirtualFile("${connectionData.name} Producer", KafkaFileType(), "").apply {
-      putUserData(KafkaEditorProvider.KAFKA_MANAGER_KEY, dataManager)
-      putUserData(KafkaEditorProvider.KAFKA_EDITOR_TYPE, KafkaEditorType.PRODUCER)
-      putUserData(KafkaEditorProvider.KAFKA_DEFAULT_TOPIC, defaultTopic)
+  override fun update(e: AnActionEvent) {
+    e.presentation.isEnabledAndVisible = e.dataManager != null
+  }
+
+  companion object {
+    fun openProducer(dataManager: KafkaDataManager, project: Project, defaultTopic: String?): Array<FileEditor> {
+      KafkaUsagesCollector.openConsumerEvent.log(dataManager.project)
+      val connectionData = dataManager.connectionData
+      val file = LightVirtualFile("${connectionData.name} Producer", KafkaFileType(), "").apply {
+        putUserData(KafkaEditorProvider.KAFKA_MANAGER_KEY, dataManager)
+        putUserData(KafkaEditorProvider.KAFKA_EDITOR_TYPE, KafkaEditorType.PRODUCER)
+        putUserData(KafkaEditorProvider.KAFKA_DEFAULT_TOPIC, defaultTopic)
+      }
+      return FileEditorManager.getInstance(project).openFile(file, true)
     }
-    return FileEditorManager.getInstance(project).openFile(file, true)
   }
 }
