@@ -1,11 +1,7 @@
 package com.jetbrains.bigdatatools.kafka.registry.confluent.controller
 
 import com.intellij.icons.AllIcons
-import com.intellij.openapi.actionSystem.ActionUpdateThread
-import com.intellij.openapi.actionSystem.AnAction
-import com.intellij.openapi.actionSystem.AnActionEvent
-import com.intellij.openapi.actionSystem.Separator
-import com.intellij.openapi.project.DumbAwareAction
+import com.intellij.openapi.actionSystem.*
 import com.intellij.openapi.project.DumbAwareToggleAction
 import com.intellij.openapi.project.Project
 import com.intellij.ui.DocumentAdapter
@@ -19,11 +15,11 @@ import com.jetbrains.bigdatatools.common.monitoring.table.DataTable
 import com.jetbrains.bigdatatools.common.monitoring.table.extension.CustomEmptyTextProvider
 import com.jetbrains.bigdatatools.common.monitoring.table.model.DataTableModel
 import com.jetbrains.bigdatatools.common.monitoring.toolwindow.AbstractTableController
+import com.jetbrains.bigdatatools.common.monitoring.toolwindow.MainTreeController
 import com.jetbrains.bigdatatools.common.settings.ColumnVisibilitySettings
 import com.jetbrains.bigdatatools.common.table.renderers.LinkRenderer
 import com.jetbrains.bigdatatools.common.ui.CustomComponentActionImpl
 import com.jetbrains.bigdatatools.common.ui.filter.CountFilterPopupComponent
-import com.jetbrains.bigdatatools.common.util.invokeLater
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryAddSchemaDialog
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryType
@@ -32,6 +28,7 @@ import com.jetbrains.bigdatatools.kafka.rfs.KafkaDriver
 import com.jetbrains.bigdatatools.kafka.toolwindow.config.KafkaToolWindowSettings
 import com.jetbrains.bigdatatools.kafka.toolwindow.controllers.KafkaMainController
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import javax.swing.ListSelectionModel
 import javax.swing.event.DocumentEvent
 
 class KafkaRegistryController(val project: Project,
@@ -40,24 +37,6 @@ class KafkaRegistryController(val project: Project,
   val registryType = dataManager.registryType
   private val model: ObjectDataModel<KafkaSchemaInfo> = dataManager.schemaRegistryModel!!
 
-  private val addSchema = DumbAwareAction.create(KafkaMessagesBundle.message("action.kafka.CreateSchemaAction.text"),
-                                                 AllIcons.General.Add) {
-    KafkaRegistryAddSchemaDialog(project, dataManager).show()
-  }
-
-  private val deleteSchema = object : DumbAwareAction(KafkaMessagesBundle.message("action.Kafka.DeleteSchemaAction.text"), null,
-                                                      AllIcons.General.Remove) {
-    override fun actionPerformed(e: AnActionEvent) {
-      val registryInfo = getSelectedItem() ?: return
-      dataManager.deleteSchema(registryInfo.name)
-    }
-
-    override fun update(e: AnActionEvent) {
-      e.presentation.isEnabled = getSelectedItem() != null
-    }
-
-    override fun getActionUpdateThread() = ActionUpdateThread.BGT
-  }
 
   private val showSoftDeletedAction = if (dataManager.connectionData.registryType == KafkaRegistryType.CONFLUENT)
     object : DumbAwareToggleAction(KafkaMessagesBundle.message("action.show.deleted.subject.title"), null,
@@ -76,31 +55,18 @@ class KafkaRegistryController(val project: Project,
     null
   }
 
-  private val cloneSchema = object : DumbAwareAction(KafkaMessagesBundle.message("action.kafka.CloneSchemaAction.text"), null,
-                                                     AllIcons.Actions.Copy) {
-    override fun actionPerformed(e: AnActionEvent) {
-      val schemaInfo = getSelectedItem() ?: return
-      val schemaFormat = schemaInfo.type ?: return
-      val version = schemaInfo.version ?: return
-
-      dataManager.getSchemaVersionInfo(schemaInfo.name, version).onSuccess { versionInfo ->
-        invokeLater {
-          KafkaRegistryAddSchemaDialog(project, dataManager).apply {
-            applyRegistryInfo(schemaFormat, versionInfo.schema)
-          }.show()
-        }
-      }
-    }
-
-    override fun update(e: AnActionEvent) {
-      e.presentation.isEnabled = getSelectedItem()?.isSoftDeleted == false
-    }
-
-    override fun getActionUpdateThread() = ActionUpdateThread.BGT
-  }
-
   init {
     init()
+
+    dataTable.selectionModel.selectionMode = ListSelectionModel.MULTIPLE_INTERVAL_SELECTION
+
+    dataTable.customDataProvider = DataProvider { dataId ->
+      when {
+        MainTreeController.DATA_MANAGER.`is`(dataId) -> dataManager
+        MainTreeController.RFS_PATH.`is`(dataId) -> getSelectedItem()?.name?.let { KafkaDriver.schemasPath.child(it, false) }
+        else -> null
+      }
+    }
   }
 
   override fun emptyTextProvider() = CustomEmptyTextProvider { emptyText: StatusText ->
@@ -159,7 +125,8 @@ class KafkaRegistryController(val project: Project,
                          showSoftDeletedAction)
   }
 
-  override fun getAdditionalContextActions(): List<AnAction> = listOf(addSchema, deleteSchema, cloneSchema)
+  override fun getAdditionalContextActions() = (ActionManager.getInstance().getAction("Kafka.Schema.Actions") as ActionGroup).getChildren(
+    null).toList()
 
   override fun getColumnSettings(): ColumnVisibilitySettings = when (registryType) {
     KafkaRegistryType.NONE -> error("Should not be invoked")

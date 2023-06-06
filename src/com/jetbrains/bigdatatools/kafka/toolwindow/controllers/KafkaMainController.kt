@@ -3,9 +3,11 @@ package com.jetbrains.bigdatatools.kafka.toolwindow.controllers
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.intellij.ui.PopupHandler
+import com.intellij.util.ui.tree.TreeModelAdapter
 import com.jetbrains.bigdatatools.common.monitoring.toolwindow.MainTreeController
 import com.jetbrains.bigdatatools.common.rfs.driver.RfsPath
 import com.jetbrains.bigdatatools.common.rfs.projectview.actions.RfsActionPlaces
+import com.jetbrains.bigdatatools.common.rfs.viewer.utils.DriverRfsTreeUtil.lastDriverNode
 import com.jetbrains.bigdatatools.common.util.ToolbarUtils
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryType
@@ -17,6 +19,7 @@ import com.jetbrains.bigdatatools.kafka.rfs.KafkaDriver.Companion.isConsumers
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaDriver.Companion.isSchemas
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaDriver.Companion.isTopicFolder
 import com.jetbrains.bigdatatools.kafka.util.KafkaControllerUtils
+import javax.swing.event.TreeModelEvent
 
 /**
  * Main controller for Kafka Cluster.
@@ -44,6 +47,14 @@ class KafkaMainController(project: Project, connectionData: KafkaConnectionData)
 
   init {
     init()
+
+    treeModel.addTreeModelListener(object : TreeModelAdapter() {
+      override fun process(event: TreeModelEvent, type: EventType) {
+        if (type != EventType.NodesRemoved && (myTree.selectionPath == null || myTree.selectionPath?.lastDriverNode?.rfsPath?.isRoot == true)) {
+          myTree.selectionPath = treeModel.getTreePath(KafkaDriver.topicPath)
+        }
+      }
+    })
   }
 
   override fun createToolbar() = ToolbarUtils.createActionToolbar("KafkaMainController", KafkaControllerUtils.createTopicToolbar(), false)

@@ -1,12 +1,10 @@
 package com.jetbrains.bigdatatools.kafka.toolwindow.controllers
 
-import com.intellij.CommonBundle
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.actionSystem.*
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.DumbAwareToggleAction
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.ui.Messages
 import com.intellij.ui.DocumentAdapter
 import com.intellij.ui.SearchTextField
 import com.intellij.ui.SimpleTextAttributes
@@ -78,23 +76,6 @@ class TopicsController(val project: Project,
         dataTable.tableModel.getInfoAt(modelIndex)?.name
       }.mapNotNull { it }
 
-      if (selectedNames.isEmpty()) {
-        return
-      }
-
-      val msg = if (selectedNames.size == 1)
-        KafkaMessagesBundle.message("action.delete.topic.single.message", selectedNames.first())
-      else
-        KafkaMessagesBundle.message("action.delete.topic.multi.message", selectedNames.size)
-
-      val res = Messages.showOkCancelDialog(project,
-                                            msg,
-                                            KafkaMessagesBundle.message("action.delete.topic.title"),
-                                            CommonBundle.getOkButtonText(),
-                                            CommonBundle.getCancelButtonText(),
-                                            Messages.getQuestionIcon())
-      if (res != Messages.OK)
-        return
       dataManager.deleteTopic(selectedNames)
     }
 
@@ -194,7 +175,9 @@ class TopicsController(val project: Project,
   override fun getDataModel() = dataManager.topicModel
   override fun getAdditionalActions(): List<AnAction> = listOf()
   override fun showColumnFilter(): Boolean = false
-  override fun getAdditionalContextActions(): List<AnAction> = listOf(createTopicAction, deleteTopicAction, clearTopicAction)
+  override fun getAdditionalContextActions(): List<AnAction> = (ActionManager.getInstance().getAction(
+    "Kafka.Topic.Actions") as ActionGroup).getChildren(null).toList()
+
   override fun createTopRightToolbarActions() = listOf(CustomComponentActionImpl(infoPanel))
 
   companion object {

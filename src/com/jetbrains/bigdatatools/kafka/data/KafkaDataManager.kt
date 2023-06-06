@@ -89,14 +89,36 @@ class KafkaDataManager(project: Project?,
     RegistrySchemaInEditor(schemaName = it.name, schemaFormat = it.type ?: KafkaRegistryFormat.AVRO)
   }?.sorted() ?: emptyList()
 
-  fun deleteTopic(topicNames: List<String>) = actionWrapper {
-    topicNames.forEach {
-      client.deleteTopic(it)
+  fun deleteTopic(topicNames: List<String>) {
+    if (topicNames.isEmpty()) {
+      return
     }
 
-    updater.invokeRefreshModel(topicModel)
+    val msg = if (topicNames.size == 1)
+      KafkaMessagesBundle.message("action.delete.topic.single.message", topicNames.first())
+    else
+      KafkaMessagesBundle.message("action.delete.topic.multi.message", topicNames.size)
 
-    KafkaUsagesCollector.topicDeletedEvent.log(project)
+    val res = Messages.showOkCancelDialog(project,
+                                          msg,
+                                          KafkaMessagesBundle.message("action.delete.topic.title"),
+                                          CommonBundle.getOkButtonText(),
+                                          CommonBundle.getCancelButtonText(),
+                                          Messages.getQuestionIcon())
+    if (res != Messages.OK)
+      return
+
+    actionWrapper {
+
+
+      topicNames.forEach {
+        client.deleteTopic(it)
+      }
+
+      updater.invokeRefreshModel(topicModel)
+
+      KafkaUsagesCollector.topicDeletedEvent.log(project)
+    }
   }
 
   private fun createTopicsDataModel() = ObjectDataModel(TopicPresentable::name, additionalInfoLoading = { model ->
