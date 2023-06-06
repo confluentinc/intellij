@@ -40,7 +40,6 @@ class TopicsController(val project: Project,
     font = UIUtil.getLabelFont(UIUtil.FontSize.SMALL)
   }
 
-
   private val showInternalTopicsAction = object : DumbAwareToggleAction(KafkaMessagesBundle.message("show.internal.topic"), null,
                                                                         AllIcons.Actions.ToggleVisibility) {
     override fun isSelected(e: AnActionEvent) = KafkaToolWindowSettings.getInstance().showInternalTopics
@@ -88,6 +87,7 @@ class TopicsController(val project: Project,
 
   init {
     init()
+
     dataTable.selectionModel.selectionMode = ListSelectionModel.MULTIPLE_INTERVAL_SELECTION
 
     dataTable.customDataProvider = DataProvider { dataId ->
@@ -107,7 +107,6 @@ class TopicsController(val project: Project,
 
       override fun onError(msg: String, e: Throwable?) {
         infoPanel.text = TopicStatisticInfo.createFor(dataManager.getTopics()).toString()
-
       }
     })
   }
