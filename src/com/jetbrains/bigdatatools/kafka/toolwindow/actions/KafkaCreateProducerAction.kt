@@ -37,7 +37,7 @@ class KafkaCreateProducerAction : DumbAwareAction() {
 
   companion object {
     fun openProducer(dataManager: KafkaDataManager, project: Project, defaultTopic: String?): Array<FileEditor> {
-      KafkaUsagesCollector.openConsumerEvent.log(dataManager.project)
+      KafkaUsagesCollector.openProducerEvent.log(dataManager.project)
       val connectionData = dataManager.connectionData
       val file = LightVirtualFile("${connectionData.name} Producer", KafkaFileType(), "").apply {
         putUserData(KafkaEditorProvider.KAFKA_MANAGER_KEY, dataManager)
