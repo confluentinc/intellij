@@ -51,7 +51,7 @@ class JsonSchemaGenerator(private val topLevelSchema: JsonSchema) {
 
   private fun generateCriterionCombined(schema: CombinedSchema, criterion: CombinedSchema.ValidationCriterion): JsonElement {
     return if (criterion.toString() == "allOf") {
-      // TODO - Need to generate the data so that it matches each subSchema
+      // Need to generate the data so that it matches each subSchema
       JsonObject()
     }
     else generate(schema.subschemas.random())
@@ -63,7 +63,7 @@ class JsonSchemaGenerator(private val topLevelSchema: JsonSchema) {
   }
 
   private fun generateForConditionalSchema(): JsonElement {
-    // TODO
+    // Conditional schema comes after the all fields -- if (ifSchema matches) then (add thenSchema) else (add elseSchema)
     return JsonObject()
   }
 
