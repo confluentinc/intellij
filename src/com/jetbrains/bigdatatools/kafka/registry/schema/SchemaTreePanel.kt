@@ -29,6 +29,7 @@ import javax.swing.JTable
 import javax.swing.ScrollPaneConstants
 import javax.swing.border.CompoundBorder
 import javax.swing.event.TreeExpansionListener
+import javax.swing.table.DefaultTableCellRenderer
 import javax.swing.table.TableCellRenderer
 import javax.swing.tree.DefaultMutableTreeNode
 
@@ -53,8 +54,7 @@ class SchemaTreePanel {
       }
     }
   }
-  private val scrollPanel = ScrollPaneFactory.createScrollPane(treeTable,
-                                                               ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED,
+  private val scrollPanel = ScrollPaneFactory.createScrollPane(treeTable, ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED,
                                                                ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER).apply {
     border = BorderFactory.createEmptyBorder()
   }
@@ -96,7 +96,12 @@ class SchemaTreePanel {
 
     // Setting the width of first column (tree component)
     val comp = headerRenderer.getTableCellRendererComponent(treeTable.table, "A".repeat(32), false, false, 0, 0)
+
     treeTable.tree.preferredSize = Dimension(comp.preferredSize.width, treeTable.tree.preferredSize.height)
+
+    treeTable.table.columnModel.columns.asIterator().forEach {
+      it.cellRenderer = CellRendererWithBackground()
+    }
   }
 
   fun update(schema: ParsedSchema) {
@@ -127,15 +132,30 @@ class SchemaTreePanel {
 
   fun getComponent() = scrollPanel
 
+  // We have a problems rendering selection in standard cell renderer from TreeTable table.
+  class CellRendererWithBackground : DefaultTableCellRenderer() {
+    override fun getTableCellRendererComponent(table: JTable,
+                                               value: Any?,
+                                               isSelected: Boolean,
+                                               hasFocus: Boolean,
+                                               row: Int,
+                                               column: Int): Component {
+      val component = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column)
+      component.background = if (isSelected) table.selectionBackground else null
+      return component
+    }
+  }
+
   companion object {
-    class SchemaRegistryNameColumn<T : Comparable<T>>(val getValue: (SchemaRegistryFieldsInfo) -> T)
-      : ColumnInfo<DefaultMutableTreeNode, T>(KafkaMessagesBundle.message("column.name.name")) {
+    class SchemaRegistryNameColumn<T : Comparable<T>>(val getValue: (SchemaRegistryFieldsInfo) -> T) : ColumnInfo<DefaultMutableTreeNode, T>(
+      KafkaMessagesBundle.message("column.name.name")) {
       override fun valueOf(item: DefaultMutableTreeNode): T = getValue((item.userObject as SchemaRegistryFieldsInfo))
       override fun getColumnClass(): Class<*> = TreeTableModel::class.java
     }
 
-    class SchemaRegistryColumn<T : Comparable<T>>(@NlsContexts.ColumnName name: String, val getValue: (SchemaRegistryFieldsInfo) -> T)
-      : ColumnInfo<DefaultMutableTreeNode, T>(name) {
+    class SchemaRegistryColumn<T : Comparable<T>>(@NlsContexts.ColumnName name: String,
+                                                  val getValue: (SchemaRegistryFieldsInfo) -> T) : ColumnInfo<DefaultMutableTreeNode, T>(
+      name) {
       override fun valueOf(item: DefaultMutableTreeNode): T = getValue((item.userObject as SchemaRegistryFieldsInfo))
     }
   }
