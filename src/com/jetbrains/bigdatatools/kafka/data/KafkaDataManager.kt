@@ -12,8 +12,10 @@ import com.jetbrains.bigdatatools.common.monitoring.data.model.ObjectDataModel
 import com.jetbrains.bigdatatools.common.monitoring.data.storage.FieldGroupsDataModelStorage
 import com.jetbrains.bigdatatools.common.monitoring.data.storage.ObjectDataModelStorage
 import com.jetbrains.bigdatatools.common.monitoring.data.storage.RootDataModelStorage
+import com.jetbrains.bigdatatools.common.rfs.driver.SafeExecutor
 import com.jetbrains.bigdatatools.common.rfs.driver.manager.DriverManager
 import com.jetbrains.bigdatatools.common.rfs.util.RfsNotificationUtils
+import com.jetbrains.bigdatatools.common.util.asSilent
 import com.jetbrains.bigdatatools.common.util.executeOnPooledThread
 import com.jetbrains.bigdatatools.common.util.runAsync
 import com.jetbrains.bigdatatools.common.util.runAsyncSuspend
@@ -34,10 +36,15 @@ import com.jetbrains.bigdatatools.kafka.statistics.KafkaUsagesCollector
 import com.jetbrains.bigdatatools.kafka.toolwindow.config.KafkaToolWindowSettings
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import io.confluent.kafka.schemaregistry.ParsedSchema
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.future.asCompletableFuture
+import kotlinx.coroutines.runInterruptible
 import org.jetbrains.concurrency.Promise
+import org.jetbrains.concurrency.asPromise
 import org.jetbrains.concurrency.await
 import software.amazon.awssdk.services.glue.model.Compatibility
 import java.util.concurrent.TimeUnit
+import kotlin.time.Duration
 
 class KafkaDataManager(project: Project?,
                        override val connectionData: KafkaConnectionData,
@@ -214,12 +221,14 @@ class KafkaDataManager(project: Project?,
 
   }
 
-  fun updateSchema(versionInfo: SchemaVersionInfo, newText: String) = runAsync {
-    client.confluentRegistryClient?.updateSchema(versionInfo, newText) ?: client.glueRegistryClient?.updateSchema(versionInfo, newText)
-    ?: error("Not Fond registry")
-    schemaRegistryModel?.let { updater.invokeRefreshModel(it) }
-    updater.invokeRefreshModel(schemaVersionModels[versionInfo.schemaName])
-  }
+  fun updateSchema(versionInfo: SchemaVersionInfo, newText: String) = SafeExecutor.instance.asyncSuspend(taskName = null, timeout = Duration.INFINITE) {
+    runInterruptible(Dispatchers.IO) {
+      client.confluentRegistryClient?.updateSchema(versionInfo, newText) ?: client.glueRegistryClient?.updateSchema(versionInfo, newText)
+      ?: error("Not Fond registry")
+      schemaRegistryModel?.let { updater.invokeRefreshModel(it) }
+    }
+    updater.invokeRefreshModel(schemaVersionModels[versionInfo.schemaName]).awaitOwn()
+  }.deferred.asCompletableFuture().asPromise().asSilent()
 
   fun deleteSchema(schemaName: String) {
     val registryInfo = getCachedSchema(schemaName) ?: return
