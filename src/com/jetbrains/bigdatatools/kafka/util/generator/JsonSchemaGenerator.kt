@@ -76,13 +76,13 @@ class JsonSchemaGenerator(private val topLevelSchema: JsonSchema) {
   private fun generateArray(schema: ArraySchema): JsonArray {
     val jsonArray = JsonArray()
 
-    val minItems = schema.minItems ?: 8
-    val maxItems = schema.maxItems ?: 21
+    val maxItems = schema.maxItems ?: 13
+    val minItems = schema.minItems ?: if (maxItems > 5) 5 else PrimitivesGenerator.generateInt(0, maxItems)
 
     val itemCount = PrimitivesGenerator.generateInt(minItems, maxItems)
     val uniqueItems = schema.needsUniqueItems()
 
-    repeat(itemCount) {
+    for (i in 0 until itemCount) {
       var uniqueItem = generate(getItemSchema(schema))
       // if requires unique items, uniqueItem will be regenerated
       while (uniqueItems && jsonArray.contains(uniqueItem)) {
@@ -101,8 +101,8 @@ class JsonSchemaGenerator(private val topLevelSchema: JsonSchema) {
   }
 
   private fun generateString(schema: StringSchema): String {
-    val minLength = schema.minLength ?: 8
     val maxLength = schema.maxLength ?: 21
+    val minLength = schema.minLength ?: if (maxLength > 8) 8 else PrimitivesGenerator.generateInt(0, maxLength)
 
     return when {
       schema.formatValidator != null && schema.formatValidator != FormatValidator.NONE -> generateFormattedString(schema.formatValidator)
