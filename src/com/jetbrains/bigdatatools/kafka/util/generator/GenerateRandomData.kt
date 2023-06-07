@@ -20,11 +20,10 @@ object GenerateRandomData {
     KafkaFieldType.BASE64 -> PrimitivesGenerator.generateBytesBase64().toString()
     KafkaFieldType.SCHEMA_REGISTRY -> {
       val schemaType = parsedSchema?.schemaType()
-      val format = KafkaRegistryFormat.parse(schemaType ?: error("Schema is not provided for generation data"))
-      when (format) {
+      when (KafkaRegistryFormat.parse(schemaType ?: error("Schema is not provided for generation data"))) {
         KafkaRegistryFormat.AVRO -> AvroGenerator.generateAvroMessage(parsedSchema)
         KafkaRegistryFormat.PROTOBUF -> ProtobufGenerator.generateProtobufMessage(parsedSchema)
-        KafkaRegistryFormat.JSON -> ""
+        KafkaRegistryFormat.JSON -> JsonSchemaGenerator.generateJsonMessage(parsedSchema)
         KafkaRegistryFormat.UNKNOWN -> error("Schema is unknown for $parsedSchema")
       }
     }
