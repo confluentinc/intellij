@@ -1,6 +1,6 @@
 package com.jetbrains.bigdatatools.kafka.common.editor
 
-import com.intellij.bigdatatools.kafka.BigdatatoolsKafkaIcons
+import com.intellij.bigdatatools.kafka.icons.BigdatatoolsKafkaIcons
 import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.project.DumbAwareAction

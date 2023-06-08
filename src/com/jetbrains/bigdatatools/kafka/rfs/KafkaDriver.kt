@@ -1,6 +1,6 @@
 package com.jetbrains.bigdatatools.kafka.rfs
 
-import com.intellij.bigdatatools.kafka.BigdatatoolsKafkaIcons
+import com.intellij.bigdatatools.kafka.icons.BigdatatoolsKafkaIcons
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.jetbrains.bigdatatools.common.monitoring.data.listener.DataModelListener

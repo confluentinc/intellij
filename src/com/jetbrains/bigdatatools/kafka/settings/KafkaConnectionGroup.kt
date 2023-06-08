@@ -1,6 +1,6 @@
 package com.jetbrains.bigdatatools.kafka.settings
 
-import com.intellij.bigdatatools.kafka.BigdatatoolsKafkaIcons
+import com.intellij.bigdatatools.kafka.icons.BigdatatoolsKafkaIcons
 import com.jetbrains.bigdatatools.common.constants.BdtConnectionType
 import com.jetbrains.bigdatatools.common.settings.connections.ConnectionFactory
 import com.jetbrains.bigdatatools.common.settings.connections.MonitoringConnectionGroup
