@@ -3,7 +3,7 @@ package com.jetbrains.bigdatatools.kafka.rfs
 import com.amazonaws.services.schemaregistry.utils.AWSSchemaRegistryConstants
 import com.intellij.bigdatatools.aws.settings.AwsCompatibleConnectionData
 import com.intellij.bigdatatools.aws.ui.external.StaticAwsSettingsInfo
-import com.intellij.bigdatatools.kafka.BigdatatoolsKafkaIcons
+import com.intellij.bigdatatools.kafka.icons.BigdatatoolsKafkaIcons
 import com.intellij.openapi.project.Project
 import com.jetbrains.bigdatatools.common.connection.exception.BdtConfigurationException
 import com.jetbrains.bigdatatools.common.connection.tunnel.model.ConnectionSshTunnelData
