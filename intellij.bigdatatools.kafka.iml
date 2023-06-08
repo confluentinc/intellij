@@ -101,13 +101,12 @@
         </SOURCES>
       </library>
     </orderEntry>
-    <orderEntry type="module-library">
+    <orderEntry type="module-library" exported="">
       <library name="io.confluent.kafka.json.schema.serializer" type="repository">
         <properties maven-id="io.confluent:kafka-json-schema-serializer:7.0.1">
           <exclude>
             <dependency maven-id="io.confluent:kafka-schema-registry-client" />
             <dependency maven-id="org.json:json" />
-            <dependency maven-id="commons-validator:commons-validator" />
             <dependency maven-id="joda-time:joda-time" />
             <dependency maven-id="com.google.re2j:re2j" />
             <dependency maven-id="com.google.guava:guava" />
@@ -119,14 +118,17 @@
             <dependency maven-id="org.slf4j:slf4j-api" />
             <dependency maven-id="io.github.classgraph:classgraph" />
             <dependency maven-id="org.jetbrains.kotlin:kotlin-stdlib" />
-            <dependency maven-id="org.jetbrains.kotlin:kotlin-scripting-jvm" />
             <dependency maven-id="io.confluent:common-utils" />
+            <dependency maven-id="commons-collections:commons-collections" />
+            <dependency maven-id="commons-logging:commons-logging" />
           </exclude>
         </properties>
         <CLASSES>
           <root url="jar://$MAVEN_REPOSITORY$/io/confluent/kafka-json-schema-serializer/7.0.1/kafka-json-schema-serializer-7.0.1.jar!/" />
           <root url="jar://$MAVEN_REPOSITORY$/io/confluent/kafka-json-schema-provider/7.0.1/kafka-json-schema-provider-7.0.1.jar!/" />
           <root url="jar://$MAVEN_REPOSITORY$/com/github/everit-org/json-schema/org.everit.json.schema/1.12.2/org.everit.json.schema-1.12.2.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/commons-validator/commons-validator/1.6/commons-validator-1.6.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/commons-digester/commons-digester/1.8.1/commons-digester-1.8.1.jar!/" />
           <root url="jar://$MAVEN_REPOSITORY$/com/damnhandy/handy-uri-templates/2.1.8/handy-uri-templates-2.1.8.jar!/" />
           <root url="jar://$MAVEN_REPOSITORY$/com/fasterxml/jackson/datatype/jackson-datatype-guava/2.12.3/jackson-datatype-guava-2.12.3.jar!/" />
           <root url="jar://$MAVEN_REPOSITORY$/com/fasterxml/jackson/datatype/jackson-datatype-jdk8/2.12.3/jackson-datatype-jdk8-2.12.3.jar!/" />
@@ -144,6 +146,8 @@
           <root url="jar://$MAVEN_REPOSITORY$/io/confluent/kafka-json-schema-serializer/7.0.1/kafka-json-schema-serializer-7.0.1-sources.jar!/" />
           <root url="jar://$MAVEN_REPOSITORY$/io/confluent/kafka-json-schema-provider/7.0.1/kafka-json-schema-provider-7.0.1-sources.jar!/" />
           <root url="jar://$MAVEN_REPOSITORY$/com/github/everit-org/json-schema/org.everit.json.schema/1.12.2/org.everit.json.schema-1.12.2-sources.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/commons-validator/commons-validator/1.6/commons-validator-1.6-sources.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/commons-digester/commons-digester/1.8.1/commons-digester-1.8.1-sources.jar!/" />
           <root url="jar://$MAVEN_REPOSITORY$/com/damnhandy/handy-uri-templates/2.1.8/handy-uri-templates-2.1.8-sources.jar!/" />
           <root url="jar://$MAVEN_REPOSITORY$/com/fasterxml/jackson/datatype/jackson-datatype-guava/2.12.3/jackson-datatype-guava-2.12.3-sources.jar!/" />
           <root url="jar://$MAVEN_REPOSITORY$/com/fasterxml/jackson/datatype/jackson-datatype-jdk8/2.12.3/jackson-datatype-jdk8-2.12.3-sources.jar!/" />
@@ -158,7 +162,7 @@
         </SOURCES>
       </library>
     </orderEntry>
-    <orderEntry type="module-library">
+    <orderEntry type="module-library" exported="">
       <library name="io.confluent.kafka.protobuf.serializer" type="repository">
         <properties maven-id="io.confluent:kafka-protobuf-serializer:7.0.1">
           <exclude>
