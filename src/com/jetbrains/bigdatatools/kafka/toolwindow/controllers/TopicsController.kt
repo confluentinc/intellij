@@ -114,8 +114,10 @@ class TopicsController(val project: Project,
   override fun customTableInit(table: DataTable<TopicPresentable>) {
     LinkRenderer.installOnColumn(table, columnModel.getColumn(0)).apply {
       onClick = { row, _ ->
+        val modelRowIndex = table.convertRowIndexToModel(row)
+
         @Suppress("UNCHECKED_CAST")
-        val topicName = (table.model as? DataTableModel<TopicPresentable>)?.getInfoAt(row)?.name
+        val topicName = (table.model as? DataTableModel<TopicPresentable>)?.getInfoAt(modelRowIndex)?.name
         topicName?.let {
           mainController.open(KafkaDriver.topicPath.child(it, false))
         }

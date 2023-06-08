@@ -92,8 +92,9 @@ class KafkaRegistryController(val project: Project,
   override fun customTableInit(table: DataTable<KafkaSchemaInfo>) {
     LinkRenderer.installOnColumn(table, columnModel.getColumn(0)).apply {
       onClick = { row, _ ->
+        val modelRowIndex = table.convertRowIndexToModel(row)
         @Suppress("UNCHECKED_CAST")
-        val schema = (table.model as? DataTableModel<KafkaSchemaInfo>)?.getInfoAt(row)?.name
+        val schema = (table.model as? DataTableModel<KafkaSchemaInfo>)?.getInfoAt(modelRowIndex)?.name
         schema?.let {
           mainController.open(KafkaDriver.schemasPath.child(it, false))
         }
