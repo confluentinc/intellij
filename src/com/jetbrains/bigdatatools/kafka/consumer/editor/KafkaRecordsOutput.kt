@@ -12,7 +12,7 @@ import com.intellij.openapi.util.Disposer
 import com.intellij.ui.JBColor
 import com.intellij.ui.OnePixelSplitter
 import com.intellij.ui.PopupHandler
-import com.intellij.ui.components.JBScrollPane
+import com.intellij.ui.ScrollPaneFactory
 import com.jetbrains.bigdatatools.common.table.MaterialTable
 import com.jetbrains.bigdatatools.common.table.MaterialTableUtils
 import com.jetbrains.bigdatatools.common.table.TableResizeController
@@ -96,9 +96,7 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
 
   private val outputTablePanelDelegate = lazy {
     JPanel(BorderLayout()).apply {
-      add(JBScrollPane(outputTable).apply {
-        border = BorderFactory.createEmptyBorder()
-      }, BorderLayout.CENTER)
+      add(ScrollPaneFactory.createScrollPane(outputTable, true), BorderLayout.CENTER)
       if (PropertiesComponent.getInstance().getBoolean(TABLE_STATS_ID, false)) {
         setSouthComponent(this@KafkaRecordsOutput.statisticPanel.component)
       }

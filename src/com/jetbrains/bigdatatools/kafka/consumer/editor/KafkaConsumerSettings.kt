@@ -1,12 +1,11 @@
 package com.jetbrains.bigdatatools.kafka.consumer.editor
 
 import com.intellij.openapi.ui.DialogBuilder
-import com.intellij.ui.components.JBScrollPane
+import com.intellij.ui.ScrollPaneFactory
 import com.jetbrains.bigdatatools.common.ui.MigPanel
 import com.jetbrains.bigdatatools.kafka.common.settings.StorageConsumerConfig
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import org.apache.kafka.clients.consumer.ConsumerConfig
-import javax.swing.BorderFactory
 import javax.swing.JLabel
 import javax.swing.JSeparator
 import javax.swing.JTextField
@@ -99,9 +98,7 @@ class KafkaConsumerSettings {
 
     DialogBuilder().apply {
       setTitle(KafkaMessagesBundle.message("settings.advanced"))
-      setCenterPanel(JBScrollPane(panel).apply {
-        border = BorderFactory.createEmptyBorder()
-      })
+      setCenterPanel(ScrollPaneFactory.createScrollPane(panel, true))
 
       if (!showAndGet()) {
         propertiesFields.forEach { it.value.text = oldProperties[it.key] }
