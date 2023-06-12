@@ -1,5 +1,6 @@
 package com.jetbrains.bigdatatools.kafka.toolwindow.controllers
 
+import com.intellij.openapi.application.runInEdt
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.intellij.ui.PopupHandler
@@ -51,7 +52,9 @@ class KafkaMainController(project: Project, connectionData: KafkaConnectionData)
     treeModel.addTreeModelListener(object : TreeModelAdapter() {
       override fun process(event: TreeModelEvent, type: EventType) {
         if (type != EventType.NodesRemoved && (myTree.selectionPath == null || myTree.selectionPath?.lastDriverNode?.rfsPath?.isRoot == true)) {
-          myTree.selectionPath = treeModel.getTreePath(KafkaDriver.topicPath)
+          runInEdt {
+            myTree.selectionPath = treeModel.getTreePath(KafkaDriver.topicPath)
+          }
         }
       }
     })
