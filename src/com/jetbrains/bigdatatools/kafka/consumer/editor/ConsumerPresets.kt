@@ -1,12 +1,12 @@
 package com.jetbrains.bigdatatools.kafka.consumer.editor
 
+import com.jetbrains.bigdatatools.common.ui.MigPanel
 import com.jetbrains.bigdatatools.kafka.common.editor.Presets
 import com.jetbrains.bigdatatools.kafka.common.settings.KafkaConfigStorage
 import com.jetbrains.bigdatatools.kafka.common.settings.StorageConsumerConfig
 import com.jetbrains.bigdatatools.kafka.consumer.models.ConsumerFilterType
 import com.jetbrains.bigdatatools.kafka.consumer.models.ConsumerLimitType
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
-import com.jetbrains.bigdatatools.common.ui.MigPanel
 import java.awt.Component
 import java.text.SimpleDateFormat
 import javax.swing.JLabel
@@ -54,8 +54,9 @@ class RunConsumerConfigCellRenderer : ListCellRenderer<StorageConsumerConfig> {
       labels.forEach { it.foreground = list.foreground }
     }
 
-    @Suppress("HardCodedStringLiteral") // Topic is user defined name and cannot be i18.
-    topicLabel.text = value.topic?.ifEmpty { KafkaMessagesBundle.message("consumer.preset.no.topic") }
+    topicLabel.text = KafkaMessagesBundle.message("consumer.preset.topic", if (value.topic.isNullOrEmpty()) KafkaMessagesBundle.message(
+      "consumer.preset.no.topic")
+    else value.topic ?: "")
 
     keyLabel.text = KafkaMessagesBundle.message("consumer.preset.key", value.getKeyType().title)
     valueLabel.text = KafkaMessagesBundle.message("consumer.preset.value", value.getValueType().title)
