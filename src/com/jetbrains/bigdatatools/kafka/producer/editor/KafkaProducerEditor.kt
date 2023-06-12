@@ -328,10 +328,12 @@ class KafkaProducerEditor(val project: Project,
 
     keyType = keyFieldComponent.fieldTypeComboBox.item.name,
     key = keyFieldComponent.getValueText(),
-    keySubject = valueFieldComponent.schemaComboBox.item?.schemaName ?: "",
+    keyFormat = keyFieldComponent.schemaComboBox.item?.schemaFormat?.toString() ?: "",
+    keySubject = keyFieldComponent.schemaComboBox.item?.schemaName ?: "",
 
     valueType = valueFieldComponent.fieldTypeComboBox.item.name,
     value = valueFieldComponent.getValueText(),
+    valueFormat = valueFieldComponent.schemaComboBox.item?.schemaFormat?.toString() ?: "",
     valueSubject = valueFieldComponent.schemaComboBox.item?.schemaName ?: "",
 
     properties = propertiesComponent.properties,
