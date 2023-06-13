@@ -127,10 +127,11 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
     val schemaFormat = schemaComboBox.item?.schemaFormat ?: KafkaRegistryFormat.UNKNOWN
     val schema = KafkaRegistryUtil.loadSchema(schemaName, fieldType, kafkaManager)
 
+    val topic = producedEditor.topicComboBox.item ?: error(KafkaMessagesBundle.message("error.topic.is.not.chosen"))
     return ConsumerProducerFieldConfig(type = fieldType,
                                        valueText = getValueText(),
                                        isKey = isKey,
-                                       topic = producedEditor.topicComboBox.item.name,
+                                       topic = topic.name,
                                        registryType = registryType,
                                        schemaName = schemaName,
                                        schemaFormat = schemaFormat,
@@ -308,7 +309,18 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
                                                                 AllIcons.Diff.MagicResolveToolbar) {
     override fun actionPerformed(e: AnActionEvent) {
       executeNotOnEdt {
-        val config = getProducerField()
+        val config = try {
+          getProducerField()
+        }
+        catch (t: Throwable) {
+          invokeLater {
+            RfsNotificationUtils.showErrorMessage(project,
+                                                  KafkaMessagesBundle.message("error.topic.is.not.chosen"),
+                                                  KafkaMessagesBundle.message("message.title"))
+          }
+          null
+        }
+        config ?: return@executeNotOnEdt
         invokeLater {
           updateFieldsText(config.type, GenerateRandomData.generate(config.type, config.parsedSchema))
         }
