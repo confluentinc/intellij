@@ -1,10 +1,7 @@
 package com.jetbrains.bigdatatools.kafka.registry.confluent.controller
 
 import com.intellij.icons.AllIcons
-import com.intellij.openapi.actionSystem.ActionPlaces
-import com.intellij.openapi.actionSystem.ActionToolbar
-import com.intellij.openapi.actionSystem.AnActionEvent
-import com.intellij.openapi.actionSystem.DefaultActionGroup
+import com.intellij.openapi.actionSystem.*
 import com.intellij.openapi.actionSystem.impl.MoreActionGroup
 import com.intellij.openapi.observable.properties.AtomicBooleanProperty
 import com.intellij.openapi.observable.util.and
@@ -12,6 +9,7 @@ import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.Messages
+import com.intellij.openapi.ui.getUserData
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.NlsSafe
 import com.intellij.ui.IdeBorderFactory
@@ -30,6 +28,7 @@ import com.jetbrains.bigdatatools.kafka.common.editor.SchemaVersionDiffControlle
 import com.jetbrains.bigdatatools.kafka.common.editor.SchemaVersionsComboboxController
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryFormat
+import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryType
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryUtil
 import com.jetbrains.bigdatatools.kafka.registry.SchemaVersionInfo
 import com.jetbrains.bigdatatools.kafka.registry.schema.SchemaTreePanel
@@ -255,6 +254,18 @@ class KafkaSchemaController(private val project: Project,
             exitCode
           })
       }
+
+      override fun update(e: AnActionEvent) {
+        e.presentation.description = ""
+        e.presentation.isEnabledAndVisible = version1Schema != null && version1.component.itemCount > 1
+        if (e.presentation.isEnabledAndVisible && dataManager.connectionData.registryType == KafkaRegistryType.AWS_GLUE) {
+          val versions = version1.component.getUserData(SchemaVersionsComboboxController.VERSIONS_LIST_KEY)
+          val selectedItem = version1.component.item
+          e.presentation.isEnabledAndVisible = selectedItem != versions?.lastOrNull()
+        }
+      }
+
+      override fun getActionUpdateThread() = ActionUpdateThread.BGT
     })
     return DefaultActionGroup(updateSchemaAction, moreAction)
   }

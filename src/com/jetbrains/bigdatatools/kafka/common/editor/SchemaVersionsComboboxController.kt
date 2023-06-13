@@ -2,7 +2,9 @@ package com.jetbrains.bigdatatools.kafka.common.editor
 
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.ui.ComboBox
+import com.intellij.openapi.ui.putUserData
 import com.intellij.openapi.util.Disposer
+import com.intellij.openapi.util.Key
 import com.intellij.ui.SimpleListCellRenderer
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
@@ -39,11 +41,16 @@ class SchemaVersionsComboboxController(rootDisposable: Disposable,
 
     val listener = KafkaEditorUtils.KafkaDataModelListener(versionCombobox, onListUpdate) {
       val newVersions = versionModel.originObject
+      versionCombobox.putUserData(VERSIONS_LIST_KEY, newVersions)
       newVersions to null
     }
     versionModel.addListener(listener)
     Disposer.register(disposable) {
       versionModel.removeListener(listener)
     }
+  }
+
+  companion object {
+    val VERSIONS_LIST_KEY = Key<List<Long>?>("VERSIONS_LIST_KEY")
   }
 }
