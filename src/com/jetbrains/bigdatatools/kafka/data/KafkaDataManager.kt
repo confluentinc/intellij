@@ -227,7 +227,7 @@ class KafkaDataManager(project: Project?,
       ?: error("Not Fond registry")
       schemaRegistryModel?.let { updater.invokeRefreshModel(it) }
     }
-    updater.invokeRefreshModel(schemaVersionModels[versionInfo.schemaName]).awaitOwn()
+    updater.invokeRefreshModel(schemaVersionModels[versionInfo.schemaName])
   }.deferred.asCompletableFuture().asPromise().asSilent()
 
   fun deleteSchema(schemaName: String) {
