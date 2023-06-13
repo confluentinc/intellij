@@ -2,15 +2,15 @@ package com.jetbrains.bigdatatools.kafka.settings
 
 import com.intellij.bigdatatools.kafka.icons.BigdatatoolsKafkaIcons
 import com.jetbrains.bigdatatools.common.constants.BdtConnectionType
+import com.jetbrains.bigdatatools.common.settings.connections.BrokerConnectionGroup
 import com.jetbrains.bigdatatools.common.settings.connections.ConnectionFactory
-import com.jetbrains.bigdatatools.common.settings.connections.MonitoringConnectionGroup
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaConnectionData
 
 class KafkaConnectionGroup : ConnectionFactory<KafkaConnectionData>(
   id = BdtConnectionType.KAFKA.id,
   name = BdtConnectionType.KAFKA.connName,
   icon = BigdatatoolsKafkaIcons.Kafka,
-  parentGroupId = MonitoringConnectionGroup.GROUP_ID
+  parentGroupId = BrokerConnectionGroup.GROUP_ID
 ) {
   override fun newData() = KafkaConnectionData().apply {
     name = BdtConnectionType.KAFKA.connName
