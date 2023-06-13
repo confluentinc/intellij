@@ -178,7 +178,9 @@ class KafkaBrokerSettings(val project: Project,
         awsMskGroup = rowsRange {
           row {
             label(KafkaMessagesBundle.message("settings.url"))
-            mskUrl = textField().resizableColumn().align(AlignX.FILL).onChanged {
+            mskUrl = textField().resizableColumn().align(AlignX.FILL)
+            mskUrl.text(propertiesEditor.getProperties()?.get(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG) ?: "")
+            mskUrl.onChanged {
               url.getTextComponent().text = it.text
               updatePropertiesField()
             }

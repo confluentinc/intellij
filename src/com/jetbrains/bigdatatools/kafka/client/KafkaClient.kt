@@ -58,7 +58,8 @@ class KafkaClient(project: Project?,
   override fun connectInner(calledByUser: Boolean) {
     disposeKafkaAdminClient()
 
-    createIfRequired(project, connectionData.getTunnelData(), connectionData.uri, connectionData.innerId, testConnection)
+    createIfRequired(project, connectionData.getTunnelData(), kafkaProps.getProperty(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG),
+                     connectionData.innerId, testConnection)
       ?.let { tunnelHandler ->
         Disposer.register(this, tunnelHandler)
         val urlForTunnel = tunnelHandler.tunnelledUri.split("//:").last()
