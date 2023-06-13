@@ -1,6 +1,7 @@
 package com.jetbrains.bigdatatools.kafka.common.editor
 
 import com.amazonaws.services.schemaregistry.serializers.json.JsonDataWithSchema
+import com.fasterxml.jackson.databind.node.ObjectNode
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonParser
 import com.google.protobuf.Message
@@ -92,11 +93,20 @@ object KafkaEditorUtils {
         }
 
         KafkaRegistryFormat.JSON -> {
-          val jsonString = if (value is JsonDataWithSchema) {
-            value.payload
-          }
-          else {
-            JsonSchemaUtils.toJson(value).toString(Charset.defaultCharset())
+          val jsonString = when (value) {
+            is JsonDataWithSchema -> {
+              value.payload
+            }
+            is ObjectNode -> {
+              if (value.get("payload") != null)
+                JsonSchemaUtils.toJson(value.get("payload")).toString(Charset.defaultCharset())
+              else
+                JsonSchemaUtils.toJson(value).toString(Charset.defaultCharset())
+            }
+
+            else -> {
+              JsonSchemaUtils.toJson(value).toString(Charset.defaultCharset())
+            }
           }
           toPrettyJson(jsonString)
         }
