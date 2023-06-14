@@ -239,20 +239,34 @@ class KafkaSchemaController(private val project: Project,
     moreAction.add(object : DumbAwareAction(KafkaMessagesBundle.message("action.delete.version.text")) {
       override fun actionPerformed(e: AnActionEvent) {
         val versionSchema = version1Schema ?: return
-        Messages.showCheckboxMessageDialog(
-          KafkaMessagesBundle.message("action.remove.version.confirm.dialog.msg", versionSchema.version,
-                                      versionSchema.schemaName),
-          KafkaMessagesBundle.message("action.delete.version.text"),
-          arrayOf(Messages.getOkButton(), Messages.getCancelButton()),
-          KafkaMessagesBundle.message("action.remove.version.confirm.dialog.option"),
-          false, 0, 0,
-          Messages.getQuestionIcon(),
-          BiFunction { exitCode: Int, _: JCheckBox ->
-            if (exitCode == Messages.OK) {
-              dataManager.deleteRegistrySchemaVersion(versionSchema)
-            }
-            exitCode
-          })
+        if (dataManager.registryType == KafkaRegistryType.AWS_GLUE) {
+          val askRes = Messages.showOkCancelDialog(
+            project,
+            KafkaMessagesBundle.message("action.remove.version.confirm.dialog.msg", versionSchema.version,
+                                        versionSchema.schemaName),
+            KafkaMessagesBundle.message("action.delete.version.text"),
+            Messages.getOkButton(),
+            Messages.getOkButton(), Messages.getQuestionIcon())
+          if (askRes == Messages.OK) {
+            dataManager.deleteRegistrySchemaVersion(versionSchema)
+          }
+        }
+        else {
+          Messages.showCheckboxMessageDialog(
+            KafkaMessagesBundle.message("action.remove.version.confirm.dialog.msg", versionSchema.version,
+                                        versionSchema.schemaName),
+            KafkaMessagesBundle.message("action.delete.version.text"),
+            arrayOf(Messages.getOkButton(), Messages.getCancelButton()),
+            KafkaMessagesBundle.message("action.remove.version.confirm.dialog.option"),
+            false, 0, 0,
+            Messages.getQuestionIcon(),
+            BiFunction { exitCode: Int, _: JCheckBox ->
+              if (exitCode == Messages.OK) {
+                dataManager.deleteRegistrySchemaVersion(versionSchema)
+              }
+              exitCode
+            })
+        }
       }
 
       override fun update(e: AnActionEvent) {
