@@ -20,6 +20,7 @@ import com.jetbrains.bigdatatools.common.settings.withValidator
 import com.jetbrains.bigdatatools.common.ui.ComponentColoredBorder
 import com.jetbrains.bigdatatools.common.ui.CustomListCellRenderer
 import com.jetbrains.bigdatatools.common.ui.DarculaTextAreaBorder
+import com.jetbrains.bigdatatools.common.util.MessagesBundle
 import com.jetbrains.bigdatatools.common.util.executeNotOnEdt
 import com.jetbrains.bigdatatools.kafka.common.models.KafkaFieldType
 import com.jetbrains.bigdatatools.kafka.common.models.RegistrySchemaInEditor
@@ -262,6 +263,12 @@ object KafkaEditorUtils {
 
 
     kafkaManager.initRefreshSchemasIfRequired()
+    schemaCombobox.withValidator(rootDisposable) {
+      if (schemaCombobox.item == null)
+        ValidationInfo(MessagesBundle.message("validator.notEmpty"))
+      else
+        null
+    }
     return schemaCombobox
   }
 

@@ -29,14 +29,14 @@ data class KafkaRecord(val keyType: KafkaFieldType,
   val errorText = error?.message ?: error?.let { it::class.java.simpleName } ?: "<Unknown>"
 
   companion object {
-    fun createFor(keyType: KafkaFieldType, valueType: KafkaFieldType,
-                  keyFormat: KafkaRegistryFormat, valueFormat: KafkaRegistryFormat,
+    fun createFor(keyType: KafkaFieldType?, valueType: KafkaFieldType?,
+                  keyFormat: KafkaRegistryFormat?, valueFormat: KafkaRegistryFormat?,
                   record: Result<ConsumerRecord<Any, Any>>) =
       if (record.isSuccess) {
         val rec = record.getOrNull()!!
         KafkaRecord(
-          keyType = keyType,
-          valueType = valueType,
+          keyType = keyType ?: KafkaFieldType.STRING,
+          valueType = valueType ?: KafkaFieldType.STRING,
           error = null,
           key = rec.key(),
           value = rec.value(),
@@ -50,13 +50,13 @@ data class KafkaRecord(val keyType: KafkaFieldType,
           headers = rec.headers()?.toList()?.map {
             Property(name = it.key() ?: "", value = String(it.value() ?: byteArrayOf(0), StandardCharsets.UTF_8))
           } ?: emptyList(),
-          keyFormat = keyFormat,
-          valueFormat = valueFormat)
+          keyFormat = keyFormat ?: KafkaRegistryFormat.UNKNOWN,
+          valueFormat = valueFormat ?: KafkaRegistryFormat.UNKNOWN)
       }
       else {
         KafkaRecord(
-          keyType = keyType,
-          valueType = valueType,
+          keyType = keyType ?: KafkaFieldType.STRING,
+          valueType = valueType ?: KafkaFieldType.STRING,
           error = record.exceptionOrNull(),
           key = null,
           value = null,
@@ -68,8 +68,8 @@ data class KafkaRecord(val keyType: KafkaFieldType,
           keySize = 0,
           valueSize = 0,
           headers = emptyList(),
-          keyFormat = keyFormat,
-          valueFormat = keyFormat)
+          keyFormat = keyFormat ?: KafkaRegistryFormat.UNKNOWN,
+          valueFormat = keyFormat ?: KafkaRegistryFormat.UNKNOWN)
       }
 
     fun createFor(keyConfig: ConsumerProducerFieldConfig,

@@ -193,7 +193,7 @@ class KafkaRegistryAddSchemaDialog(project: Project, val dataManager: KafkaDataM
         topicFieldVisible.set(true)
         recordFieldVisible.set(false)
 
-        subjectNameField.text = topicField.item?.name?.ifBlank { "<topic>" } + "-" + keyValueCombobox.item.name.lowercase()
+        subjectNameField.text = topicField.item?.name?.ifBlank { "<topic>" } + "-" + keyValueCombobox.item?.name?.lowercase()
       }
       ConfluentRegistryStrategy.RECORD_NAME -> {
         subjectFieldVisible.set(false)

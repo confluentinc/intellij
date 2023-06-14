@@ -218,7 +218,7 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
   private fun validateValue(text: String) = if (schemaValidationError != null)
     schemaValidationError?.message ?: schemaValidationError?.toPresentableText()
   else
-    validate(fieldTypeComboBox.item, getValueText())
+    validate(fieldTypeComboBox.item ?: KafkaFieldType.STRING, getValueText())
 
   fun getValueText(): String = when (fieldTypeComboBox.item!!) {
     KafkaFieldType.JSON -> jsonField.text
@@ -308,6 +308,21 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
   private fun createGenerateAction() = object : DumbAwareAction(KafkaMessagesBundle.message("generate.random.data"), null,
                                                                 AllIcons.Diff.MagicResolveToolbar) {
     override fun actionPerformed(e: AnActionEvent) {
+      if (producedEditor.topicComboBox.item == null) {
+        RfsNotificationUtils.showErrorMessage(project,
+                                              KafkaMessagesBundle.message("error.topic.is.not.chosen"),
+                                              KafkaMessagesBundle.message("message.title"))
+        return
+      }
+
+      if (schemaComboBox.isVisible && schemaComboBox.item == null) {
+        RfsNotificationUtils.showErrorMessage(project,
+                                              KafkaMessagesBundle.message("error.schema.is.not.chosen"),
+                                              KafkaMessagesBundle.message("message.title"))
+        return
+      }
+
+
       executeNotOnEdt {
         val config = try {
           getProducerField()
@@ -315,7 +330,7 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
         catch (t: Throwable) {
           invokeLater {
             RfsNotificationUtils.showErrorMessage(project,
-                                                  KafkaMessagesBundle.message("error.topic.is.not.chosen"),
+                                                  t.message ?: t.toPresentableText(),
                                                   KafkaMessagesBundle.message("message.title"))
           }
           null

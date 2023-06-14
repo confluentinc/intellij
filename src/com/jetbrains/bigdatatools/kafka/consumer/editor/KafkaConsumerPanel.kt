@@ -320,8 +320,8 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
                              consume = { pollTime, records ->
                                val convertedRecords = records.map {
                                  KafkaRecord.createFor(key.fieldTypeComboBox.item, value.fieldTypeComboBox.item,
-                                                       key.schemaComboBox.item.schemaFormat,
-                                                       value.schemaComboBox.item.schemaFormat,
+                                                       key.schemaComboBox.item?.schemaFormat,
+                                                       value.schemaComboBox.item?.schemaFormat,
                                                        Result.success(it))
                                }
 
@@ -337,8 +337,8 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
                                progress.onError()
 
                                val element = KafkaRecord.createFor(key.fieldTypeComboBox.item, value.fieldTypeComboBox.item,
-                                                                   key.schemaComboBox.item.schemaFormat,
-                                                                   value.schemaComboBox.item.schemaFormat,
+                                                                   key.schemaComboBox.item?.schemaFormat,
+                                                                   value.schemaComboBox.item?.schemaFormat,
                                                                    Result.failure(it))
                                invokeLater {
                                  output.addError(element)

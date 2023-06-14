@@ -326,18 +326,18 @@ class KafkaProducerEditor(val project: Project,
   private fun getConfig() = StorageProducerConfig(
     topic = topicComboBox.item?.name ?: "",
 
-    keyType = keyFieldComponent.fieldTypeComboBox.item.name,
+    keyType = keyFieldComponent.fieldTypeComboBox.item?.name ?: "",
     key = keyFieldComponent.getValueText(),
     keyFormat = keyFieldComponent.schemaComboBox.item?.schemaFormat?.toString() ?: "",
     keySubject = keyFieldComponent.schemaComboBox.item?.schemaName ?: "",
 
-    valueType = valueFieldComponent.fieldTypeComboBox.item.name,
+    valueType = valueFieldComponent.fieldTypeComboBox.item?.name ?: "",
     value = valueFieldComponent.getValueText(),
     valueFormat = valueFieldComponent.schemaComboBox.item?.schemaFormat?.toString() ?: "",
     valueSubject = valueFieldComponent.schemaComboBox.item?.schemaName ?: "",
 
     properties = propertiesComponent.properties,
-    compression = compressionComboBox.item.name,
+    compression = compressionComboBox.item?.name ?: "",
     acks = acksComboBox.selectedItem?.name ?: AcksType.NONE.name,
     idempotence = idempotenceCheckBox.isSelected,
     forcePartition = forcePartitionField.value,
