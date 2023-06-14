@@ -338,6 +338,7 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
         config ?: return@executeNotOnEdt
         invokeLater {
           updateFieldsText(config.type, GenerateRandomData.generate(config.type, config.parsedSchema))
+          revalidateFields()
         }
       }
     }
