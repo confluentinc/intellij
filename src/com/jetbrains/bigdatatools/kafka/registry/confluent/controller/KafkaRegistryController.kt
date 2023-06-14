@@ -37,6 +37,16 @@ class KafkaRegistryController(val project: Project,
   val registryType = dataManager.registryType
   private val model: ObjectDataModel<KafkaSchemaInfo> = dataManager.schemaRegistryModel!!
 
+  private val searchTextField: SearchTextField = SearchTextField(false).apply {
+    addDocumentListener(object : DocumentAdapter() {
+      override fun textChanged(e: DocumentEvent) {
+        val config = KafkaToolWindowSettings.getInstance().getOrCreateConfig(dataManager.connectionId)
+        config.schemaFilterName = this@apply.text
+        dataManager.schemaRegistryModel?.let { dataManager.updater.invokeRefreshModel(it) }
+      }
+    })
+  }
+
 
   private val showSoftDeletedAction = if (dataManager.connectionData.registryType == KafkaRegistryType.CONFLUENT)
     object : DumbAwareToggleAction(KafkaMessagesBundle.message("action.show.deleted.subject.title"), null,
@@ -83,6 +93,7 @@ class KafkaRegistryController(val project: Project,
       emptyText.appendSecondaryText(KafkaMessagesBundle.message("topics.empty.text.filter.additional"),
                                     SimpleTextAttributes.LINK_PLAIN_ATTRIBUTES) {
         clusterConfig.schemaFilterName = null
+        searchTextField.text = ""
         dataManager.schemaRegistryModel?.let { dataModel -> dataManager.updater.invokeRefreshModel(dataModel) }
       }
     }
@@ -103,15 +114,6 @@ class KafkaRegistryController(val project: Project,
   }
 
   override fun createTopLeftToolbarActions(): List<AnAction> {
-    val searchTextField = SearchTextField(false).apply {
-      addDocumentListener(object : DocumentAdapter() {
-        override fun textChanged(e: DocumentEvent) {
-          val config = KafkaToolWindowSettings.getInstance().getOrCreateConfig(dataManager.connectionId)
-          config.schemaFilterName = this@apply.text
-          dataManager.schemaRegistryModel?.let { dataManager.updater.invokeRefreshModel(it) }
-        }
-      })
-    }
 
     val countFilter = CountFilterPopupComponent(KafkaMessagesBundle.message("label.filter.limit"),
                                                 KafkaToolWindowSettings.getInstance().getOrCreateConfig(

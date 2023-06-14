@@ -40,6 +40,17 @@ class TopicsController(val project: Project,
     font = UIUtil.getLabelFont(UIUtil.FontSize.SMALL)
   }
 
+  private val searchTextField = SearchTextField(false).apply {
+    addDocumentListener(object : DocumentAdapter() {
+      override fun textChanged(e: DocumentEvent) {
+        val config = KafkaToolWindowSettings.getInstance().getOrCreateConfig(dataManager.connectionId)
+        config.topicFilterName = this@apply.text
+        dataManager.updater.invokeRefreshModel(dataManager.topicModel)
+      }
+    })
+  }
+
+
   private val showInternalTopicsAction = object : DumbAwareToggleAction(KafkaMessagesBundle.message("show.internal.topic"), null,
                                                                         AllIcons.Actions.ToggleVisibility) {
     override fun isSelected(e: AnActionEvent) = KafkaToolWindowSettings.getInstance().showInternalTopics
@@ -126,15 +137,6 @@ class TopicsController(val project: Project,
   }
 
   override fun createTopLeftToolbarActions(): List<AnAction> {
-    val searchTextField = SearchTextField(false).apply {
-      addDocumentListener(object : DocumentAdapter() {
-        override fun textChanged(e: DocumentEvent) {
-          val config = KafkaToolWindowSettings.getInstance().getOrCreateConfig(dataManager.connectionId)
-          config.topicFilterName = this@apply.text
-          dataManager.updater.invokeRefreshModel(dataManager.topicModel)
-        }
-      })
-    }
 
     val countFilter = CountFilterPopupComponent(KafkaMessagesBundle.message("label.filter.limit"),
                                                 KafkaToolWindowSettings.getInstance().getOrCreateConfig(
@@ -164,6 +166,7 @@ class TopicsController(val project: Project,
       emptyText.appendSecondaryText(KafkaMessagesBundle.message("topics.empty.text.filter.additional"),
                                     SimpleTextAttributes.LINK_PLAIN_ATTRIBUTES) {
         clusterConfig.topicFilterName = null
+        searchTextField.text = ""
         dataManager.updater.invokeRefreshModel(dataManager.topicModel)
       }
     }
