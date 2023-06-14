@@ -6,6 +6,7 @@ import com.intellij.openapi.observable.properties.AtomicBooleanProperty
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.DialogWrapper
+import com.intellij.openapi.ui.ValidationInfo
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.dsl.builder.Align
 import com.intellij.ui.dsl.builder.Row
@@ -103,7 +104,16 @@ class KafkaRegistryAddSchemaDialog(project: Project, val dataManager: KafkaDataM
     }
 
 
-    row(subjectNameLabel) { cell(subjectNameField).align(Align.FILL).resizableColumn() }.visibleIf(subjectFieldVisible)
+    row(subjectNameLabel) {
+      cell(subjectNameField).align(Align.FILL).resizableColumn().validationOnApply {
+        if (it.text.isBlank()) {
+          ValidationInfo(KafkaMessagesBundle.message("schema.name.must.be.not.blank"))
+        }
+        else {
+          null
+        }
+      }
+    }.visibleIf(subjectFieldVisible)
 
     row { cell(textScrollPane.component).align(Align.FILL).resizableColumn() }.resizableRow()
     errorRow = row {
