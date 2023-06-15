@@ -1,6 +1,7 @@
 package com.jetbrains.bigdatatools.kafka.common.editor
 
 import com.intellij.openapi.Disposable
+import com.intellij.openapi.observable.properties.AtomicBooleanProperty
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.putUserData
 import com.intellij.openapi.util.Disposer
@@ -22,6 +23,8 @@ class SchemaVersionsComboboxController(rootDisposable: Disposable,
     renderer = SimpleListCellRenderer.create(KafkaMessagesBundle.message("schema.version.is.not.found")) { "Version $it" }
   }
 
+  val isVisible = AtomicBooleanProperty(true)
+
   init {
     Disposer.register(rootDisposable, this)
   }
@@ -36,14 +39,18 @@ class SchemaVersionsComboboxController(rootDisposable: Disposable,
     val versionModel = kafkaManager.getSchemaVersionsModel(schemaName)
 
     KafkaEditorUtils.updateComboBox(versionCombobox, onListUpdate = onListUpdate) {
+      isVisible.set(!versionModel.originObject.isNullOrEmpty())
+      versionCombobox.putUserData(VERSIONS_LIST_KEY, versionModel.originObject)
       versionModel.originObject to null
     }
 
     val listener = KafkaEditorUtils.KafkaDataModelListener(versionCombobox, onListUpdate) {
       val newVersions = versionModel.originObject
       versionCombobox.putUserData(VERSIONS_LIST_KEY, newVersions)
+      isVisible.set(!versionModel.originObject.isNullOrEmpty())
       newVersions to null
     }
+
     versionModel.addListener(listener)
     Disposer.register(disposable) {
       versionModel.removeListener(listener)
