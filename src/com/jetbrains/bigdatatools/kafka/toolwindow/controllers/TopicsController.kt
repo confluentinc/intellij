@@ -61,6 +61,17 @@ class TopicsController(val project: Project,
     }
   }
 
+  private val showFavoriteTopicsAction = object : DumbAwareToggleAction(KafkaMessagesBundle.message("show.favorite.topic"), null,
+                                                                        AllIcons.Toolwindows.ToolWindowFavorites) {
+    override fun isSelected(e: AnActionEvent) = KafkaToolWindowSettings.getInstance().showFavoriteTopics
+    override fun getActionUpdateThread() = ActionUpdateThread.BGT
+    override fun displayTextInToolbar() = false
+    override fun setSelected(e: AnActionEvent, state: Boolean) {
+      KafkaToolWindowSettings.getInstance().showFavoriteTopics = state
+      dataManager.updater.invokeRefreshModel(dataManager.topicModel)
+    }
+  }
+
   init {
     init()
 
@@ -114,6 +125,7 @@ class TopicsController(val project: Project,
 
     return listOf(CustomComponentActionImpl(searchTextField),
                   CustomComponentActionImpl(countFilter),
+                  showFavoriteTopicsAction,
                   showInternalTopicsAction)
   }
 

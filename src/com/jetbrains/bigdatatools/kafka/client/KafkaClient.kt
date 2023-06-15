@@ -393,10 +393,13 @@ class KafkaClient(project: Project?,
   }
 
   private fun List<TopicPresentable>.sortedTopics(): List<TopicPresentable> {
-    val config = KafkaToolWindowSettings.getInstance().getOrCreateConfig(connectionData.innerId)
+    val kafkaSettings = KafkaToolWindowSettings.getInstance()
+    val config = kafkaSettings.getOrCreateConfig(connectionData.innerId)
     val topics = this.map { topic -> topic.copy(isFavorite = config.topicsPined.contains(topic.name)) }
-    // sort firstly by favourite topics then by name
-    return topics.sortedWith(compareByDescending<TopicPresentable> { it.isFavorite }.thenBy { it.name.lowercase() })
+
+    val finalTopics = if (kafkaSettings.showFavoriteTopics) topics.filter { it.isFavorite } else topics
+    // sort firstly by favorite topics then by name
+    return finalTopics.sortedWith(compareByDescending<TopicPresentable> { it.isFavorite }.thenBy { it.name.lowercase() })
   }
 
   fun getTopicConfig(topicName: String): List<TopicConfig> = loadTopicConfigs(listOf(topicName)).values.first()
