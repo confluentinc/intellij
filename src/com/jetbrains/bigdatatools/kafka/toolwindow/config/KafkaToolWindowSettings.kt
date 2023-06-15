@@ -36,6 +36,7 @@ class KafkaToolWindowSettings : PersistentStateComponent<KafkaToolWindowSettings
   val topicColumnSettings = ColumnVisibilitySettings(topicTableColumns)
 
   var showInternalTopics: Boolean = false
+  var showFavoriteTopics: Boolean = false
 
   private val consumerGroupsTableColumns = mutableListOf(
     ConsumerGroupPresentable::consumerGroup.name,
