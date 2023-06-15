@@ -23,6 +23,7 @@ import com.jetbrains.bigdatatools.kafka.registry.confluent.ConfluentRegistryClie
 import com.jetbrains.bigdatatools.kafka.registry.glue.BdtGlueRegistryClient
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaConnectionData
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaPropertySource
+import com.jetbrains.bigdatatools.kafka.toolwindow.config.KafkaToolWindowSettings
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import org.apache.kafka.clients.CommonClientConfigs
 import org.apache.kafka.clients.admin.*
@@ -392,7 +393,10 @@ class KafkaClient(project: Project?,
   }
 
   private fun List<TopicPresentable>.sortedTopics(): List<TopicPresentable> {
-    return this.sortedBy { it.name.lowercase() }
+    val config = KafkaToolWindowSettings.getInstance().getOrCreateConfig(connectionData.innerId)
+    val topics = this.map { topic -> topic.copy(isFavorite = config.topicsPined.contains(topic.name)) }
+    // sort firstly by favourite topics then by name
+    return topics.sortedWith(compareByDescending<TopicPresentable> { it.isFavorite }.thenBy { it.name.lowercase() })
   }
 
   fun getTopicConfig(topicName: String): List<TopicConfig> = loadTopicConfigs(listOf(topicName)).values.first()
