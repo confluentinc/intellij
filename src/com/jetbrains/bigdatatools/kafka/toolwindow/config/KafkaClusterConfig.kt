@@ -1,6 +1,8 @@
 package com.jetbrains.bigdatatools.kafka.toolwindow.config
 
-class KafkaClusterConfig {
+import java.io.Serializable
+
+class KafkaClusterConfig : Serializable {
   var showSoftDeleted: Boolean = false
   var isStructure: Boolean = true
 
@@ -12,4 +14,6 @@ class KafkaClusterConfig {
 
   var consumerFilterName: String? = null
   var consumerLimit: Int? = 100
+
+  var topicsPined: MutableSet<String> = mutableSetOf()
 }

@@ -2,7 +2,6 @@ package com.jetbrains.bigdatatools.kafka.toolwindow.controllers
 
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.actionSystem.*
-import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.DumbAwareToggleAction
 import com.intellij.openapi.project.Project
 import com.intellij.ui.DocumentAdapter
@@ -60,40 +59,6 @@ class TopicsController(val project: Project,
       KafkaToolWindowSettings.getInstance().showInternalTopics = state
       dataManager.updater.invokeRefreshModel(dataManager.topicModel)
     }
-  }
-
-  private val clearTopicAction = ActionManager.getInstance().getAction("kafka.ClearTopicAction")
-  private val createTopicAction = object : DumbAwareAction(KafkaMessagesBundle.message("action.kafka.CreateTopicAction.text"), null,
-                                                           AllIcons.General.Add) {
-    override fun actionPerformed(e: AnActionEvent) {
-      KafkaDialogFactory.showCreateTopicDialog(dataManager)
-    }
-
-    override fun update(e: AnActionEvent) {
-      e.presentation.isEnabled = dataManager.client.isConnected()
-    }
-
-    override fun getActionUpdateThread() = ActionUpdateThread.BGT
-  }
-
-  private val deleteTopicAction = object : DumbAwareAction(KafkaMessagesBundle.message("action.kafka.DeleteTopicAction.text"), null,
-                                                           AllIcons.General.Remove) {
-    override fun actionPerformed(e: AnActionEvent) {
-      val selectedRows = dataTable.selectedRows
-
-      val selectedNames = selectedRows.map {
-        val modelIndex = dataTable.convertRowIndexToModel(it)
-        dataTable.tableModel.getInfoAt(modelIndex)?.name
-      }.mapNotNull { it }
-
-      dataManager.deleteTopic(selectedNames)
-    }
-
-    override fun update(e: AnActionEvent) {
-      e.presentation.isEnabled = dataManager.client.isConnected() && getSelectedItem() != null
-    }
-
-    override fun getActionUpdateThread() = ActionUpdateThread.BGT
   }
 
   init {
@@ -179,8 +144,11 @@ class TopicsController(val project: Project,
   override fun getDataModel() = dataManager.topicModel
   override fun getAdditionalActions(): List<AnAction> = listOf()
   override fun showColumnFilter(): Boolean = false
-  override fun getAdditionalContextActions(): List<AnAction> = (ActionManager.getInstance().getAction(
-    "Kafka.Topic.Actions") as ActionGroup).getChildren(null).toList()
+  override fun getAdditionalContextActions(): List<AnAction> {
+    val actionManager = ActionManager.getInstance()
+    return (actionManager.getAction("Kafka.Topic.Actions") as ActionGroup).getChildren(null).toList() +
+           actionManager.getAction("Kafka.AddToFavoriteAction")
+  }
 
   override fun createTopRightToolbarActions() = listOf(CustomComponentActionImpl(infoPanel))
 
