@@ -78,6 +78,8 @@ class KafkaDataManager(project: Project?,
 
   fun getTopics() = topicModel.data ?: emptyList()
 
+  fun getTopicByName(name: String) = getTopics().firstOrNull { it.name == name }
+
   fun createTopic(name: String, numPartition: Int?, replicaFactor: Int?) = actionWrapper {
     client.createTopic(name, numPartition, replicaFactor)
     updater.invokeRefreshModel(topicModel)
