@@ -1,5 +1,6 @@
 package com.jetbrains.bigdatatools.kafka.toolwindow.actions
 
+import com.intellij.openapi.actionSystem.ActionPlaces
 import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.Toggleable
@@ -43,7 +44,11 @@ class AddToFavoriteAction : DumbAwareToggleAction() {
     presentation.isEnabledAndVisible = e.dataManager != null && rfsPath?.parent?.isTopicFolder == true
 
     val selected = isSelected(e)
-    Toggleable.setSelected(presentation, selected)
+    // not selected icons in the context menu
+    if (!ActionPlaces.isPopupPlace(e.place)) {
+      Toggleable.setSelected(presentation, selected)
+    }
+
     if (selected) {
       presentation.text = KafkaMessagesBundle.message("action.Kafka.RemoveFromFavoriteAction.text")
     }
