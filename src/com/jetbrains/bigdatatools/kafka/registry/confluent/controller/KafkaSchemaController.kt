@@ -195,7 +195,7 @@ class KafkaSchemaController(private val project: Project,
 
         version1 = cell(version1Controller.getComponent()).onChanged {
           updateVersion1Info()
-        }.customize(UnscaledGaps(top = 0, left = 0, bottom = 0, right = 0))
+        }.customize(UnscaledGaps(top = 0, left = 0, bottom = 0, right = 0)).visibleIf(version1Controller.isVisible)
 
         link(KafkaMessagesBundle.message("link.label.compare")) {
           isNotEditMode.set(false)
