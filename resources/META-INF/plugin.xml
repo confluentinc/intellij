@@ -95,7 +95,7 @@
           <keyboard-shortcut keymap="$default" first-keystroke="DELETE"/>
         </action>
         <action id="kafka.ClearTopicAction" class="com.jetbrains.bigdatatools.kafka.toolwindow.actions.ClearTopicAction"
-                icon="AllIcons.Actions.GC">
+                icon="com.jetbrains.bigdatatools.common.BigdatatoolsCoreIcons.ClearOutputs">
         </action>
       </group>
 
