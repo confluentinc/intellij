@@ -1,8 +1,9 @@
 package com.jetbrains.bigdatatools.kafka.registry.confluent.controller
 
-import com.intellij.icons.AllIcons
-import com.intellij.openapi.actionSystem.*
-import com.intellij.openapi.project.DumbAwareToggleAction
+import com.intellij.openapi.actionSystem.ActionGroup
+import com.intellij.openapi.actionSystem.ActionManager
+import com.intellij.openapi.actionSystem.AnAction
+import com.intellij.openapi.actionSystem.DataProvider
 import com.intellij.openapi.project.Project
 import com.intellij.ui.DocumentAdapter
 import com.intellij.ui.SearchTextField
@@ -47,24 +48,6 @@ class KafkaRegistryController(val project: Project,
     })
   }
 
-
-  private val showSoftDeletedAction = if (dataManager.connectionData.registryType == KafkaRegistryType.CONFLUENT)
-    object : DumbAwareToggleAction(KafkaMessagesBundle.message("action.show.deleted.subject.title"), null,
-                                   AllIcons.Actions.ToggleVisibility) {
-      override fun isSelected(e: AnActionEvent) =
-        KafkaToolWindowSettings.getInstance().getOrCreateConfig(dataManager.connectionId).showSoftDeleted
-
-      override fun getActionUpdateThread() = ActionUpdateThread.BGT
-      override fun displayTextInToolbar() = false
-      override fun setSelected(e: AnActionEvent, state: Boolean) {
-        KafkaToolWindowSettings.getInstance().getOrCreateConfig(dataManager.connectionId).showSoftDeleted = state
-        dataManager.schemaRegistryModel?.let { dataManager.updater.invokeRefreshModel(it) }
-      }
-    }
-  else {
-    null
-  }
-
   init {
     init()
 
@@ -104,6 +87,7 @@ class KafkaRegistryController(val project: Project,
     LinkRenderer.installOnColumn(table, columnModel.getColumn(0)).apply {
       onClick = { row, _ ->
         val modelRowIndex = table.convertRowIndexToModel(row)
+
         @Suppress("UNCHECKED_CAST")
         val schema = (table.model as? DataTableModel<KafkaSchemaInfo>)?.getInfoAt(modelRowIndex)?.name
         schema?.let {
@@ -124,8 +108,7 @@ class KafkaRegistryController(val project: Project,
       dataManager.schemaRegistryModel?.let { dataManager.updater.invokeRefreshModel(it) }
     }
 
-    return listOfNotNull(CustomComponentActionImpl(searchTextField), CustomComponentActionImpl(countFilter),
-                         showSoftDeletedAction)
+    return listOfNotNull(CustomComponentActionImpl(searchTextField), CustomComponentActionImpl(countFilter))
   }
 
   override fun getAdditionalContextActions() = (ActionManager.getInstance().getAction("Kafka.Schema.Actions") as ActionGroup).getChildren(
