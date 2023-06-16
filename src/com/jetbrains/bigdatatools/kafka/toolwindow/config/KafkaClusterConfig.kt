@@ -15,5 +15,6 @@ class KafkaClusterConfig : Serializable {
   var consumerFilterName: String? = null
   var consumerLimit: Int? = 100
 
-  var topicsPined: MutableSet<String> = mutableSetOf()
+  val topicsPined: MutableSet<String> = mutableSetOf()
+  val schemasPined: MutableSet<String> = mutableSetOf()
 }

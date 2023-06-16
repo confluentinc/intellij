@@ -80,6 +80,8 @@ class KafkaDataManager(project: Project?,
 
   fun getTopicByName(name: String) = getTopics().firstOrNull { it.name == name }
 
+  fun getSchemaByName(name: String) = schemaRegistryModel?.data?.firstOrNull { it.name == name }
+
   fun createTopic(name: String, numPartition: Int?, replicaFactor: Int?) = actionWrapper {
     client.createTopic(name, numPartition, replicaFactor)
     updater.invokeRefreshModel(topicModel)
@@ -288,8 +290,8 @@ class KafkaDataManager(project: Project?,
   }
 
   private fun listSchemas(limit: Int?, filter: String?, registryShowDeletedSubjects: Boolean = false) =
-    client.confluentRegistryClient?.listSchemas(limit, filter, registryShowDeletedSubjects)
-    ?: client.glueRegistryClient?.listSchemas(limit, filter)
+    client.confluentRegistryClient?.listSchemas(limit, filter, registryShowDeletedSubjects, connectionId)
+    ?: client.glueRegistryClient?.listSchemas(limit, filter, connectionId)
     ?: (emptyList<KafkaSchemaInfo>() to false)
 
   private suspend fun updateSchemaList(dataModel: ObjectDataModel<KafkaSchemaInfo>): List<KafkaSchemaInfo> {
@@ -306,7 +308,7 @@ class KafkaDataManager(project: Project?,
         }
       }
     }.map { it.await() }
-    return loadedInfo
+    return loadedInfo.sortedSchemas(connectionId)
   }
 
   private fun loadSchema(schemaName: String) =
@@ -379,5 +381,15 @@ class KafkaDataManager(project: Project?,
   companion object {
     fun getInstance(connectionId: String,
                     project: Project) = (DriverManager.getDriverById(project, connectionId) as? KafkaDriver)?.dataManager
+
+    fun List<KafkaSchemaInfo>.sortedSchemas(connectionId: String): List<KafkaSchemaInfo> {
+      val kafkaSettings = KafkaToolWindowSettings.getInstance()
+      val config = kafkaSettings.getOrCreateConfig(connectionId)
+      val schemas = this.map { schema -> schema.copy(isFavorite = config.schemasPined.contains(schema.name)) }
+
+      val finalSchemas = if (kafkaSettings.showFavoriteSchema) schemas.filter { it.isFavorite } else schemas
+      // sort firstly by favorite schema then by name
+      return finalSchemas.sortedWith(compareByDescending<KafkaSchemaInfo> { it.isFavorite }.thenBy { it.name.lowercase() })
+    }
   }
 }

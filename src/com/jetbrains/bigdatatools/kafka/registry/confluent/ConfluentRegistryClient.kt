@@ -7,6 +7,7 @@ import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.NlsSafe
 import com.jetbrains.bigdatatools.common.connection.tunnel.BdtSshTunnelService
 import com.jetbrains.bigdatatools.common.settings.components.BdtPropertyComponent
+import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager.Companion.sortedSchemas
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryFormat
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryUtil
 import com.jetbrains.bigdatatools.kafka.registry.SchemaVersionInfo
@@ -31,11 +32,15 @@ class ConfluentRegistryClient(restService: RestService, props: Map<String, Strin
     internalClient.mode
   }
 
-  fun listSchemas(limit: Int?, filter: String?, registryShowDeletedSubjects: Boolean): Pair<List<KafkaSchemaInfo>, Boolean> {
+  fun listSchemas(limit: Int?,
+                  filter: String?,
+                  registryShowDeletedSubjects: Boolean,
+                  connectionId: String): Pair<List<KafkaSchemaInfo>, Boolean> {
     val names = internalClient.getAllSubjects(registryShowDeletedSubjects)?.sortedBy { it.lowercase() } ?: emptyList()
     val regex = filter?.let { Regex(it) }
     val filteredNames = names.filter { regex == null || it.contains(regex) }
-    return filteredNames.map { KafkaSchemaInfo(it) }.take(limit ?: Int.MAX_VALUE) to (limit != null && names.size > limit)
+    return filteredNames.map { KafkaSchemaInfo(it) }.sortedSchemas(connectionId).take(
+      limit ?: Int.MAX_VALUE) to (limit != null && names.size > limit)
   }
 
   fun loadSchemaInfo(schemaName: String): KafkaSchemaInfo {

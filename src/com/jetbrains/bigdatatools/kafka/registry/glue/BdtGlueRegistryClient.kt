@@ -8,6 +8,7 @@ import com.intellij.openapi.Disposable
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.NlsSafe
 import com.jetbrains.bigdatatools.common.util.TimeUtils
+import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager.Companion.sortedSchemas
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryFormat
 import com.jetbrains.bigdatatools.kafka.registry.SchemaVersionInfo
 import com.jetbrains.bigdatatools.kafka.registry.common.KafkaSchemaInfo
@@ -71,7 +72,7 @@ class BdtGlueRegistryClient(val project: Project?,
     return client.listRegistries(request).registries()
   }
 
-  fun listSchemas(size: Int? = null, filter: String?): Pair<List<KafkaSchemaInfo>, Boolean> {
+  fun listSchemas(size: Int? = null, filter: String?, connectionId: String? = null): Pair<List<KafkaSchemaInfo>, Boolean> {
     val registryId = registryName.let { RegistryId.builder().registryName(registryName).build() }
     val requestBuilder = ListSchemasRequest.builder().registryId(registryId)
     if (size != null) {
@@ -99,16 +100,17 @@ class BdtGlueRegistryClient(val project: Project?,
                           schemaStatus = it.schemaStatusAsString() ?: "",
                           updatedTime = TimeUtils.parseIsoTime(it.updatedTime()))
         }
+      val sortedCluster = if (connectionId != null) clusters.sortedSchemas(connectionId) else clusters
       if (left == null) {
-        totalResult.addAll(clusters)
+        totalResult.addAll(sortedCluster)
       }
-      if (left != null && clusters.size >= left) {
-        totalResult.addAll(clusters.subList(0, left))
+      if (left != null && sortedCluster.size >= left) {
+        totalResult.addAll(sortedCluster.subList(0, left))
         return totalResult to true
       }
-      if (left != null && clusters.size < left) {
-        totalResult.addAll(clusters)
-        left -= clusters.size
+      if (left != null && sortedCluster.size < left) {
+        totalResult.addAll(sortedCluster)
+        left -= sortedCluster.size
       }
       val nextMarker = response.nextToken()
       if (nextMarker == null)
