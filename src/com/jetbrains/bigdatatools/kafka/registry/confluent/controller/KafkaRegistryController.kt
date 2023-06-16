@@ -121,8 +121,11 @@ class KafkaRegistryController(val project: Project,
     return listOfNotNull(CustomComponentActionImpl(searchTextField), CustomComponentActionImpl(countFilter), showFavoriteSchemasAction)
   }
 
-  override fun getAdditionalContextActions() = (ActionManager.getInstance().getAction("Kafka.Schema.Actions") as ActionGroup).getChildren(
-    null).toList()
+  override fun getAdditionalContextActions(): List<AnAction> {
+    val actionManager = ActionManager.getInstance()
+    return listOf(actionManager.getAction("Kafka.AddToFavoriteAction")) +
+           (actionManager.getAction("Kafka.Schema.Actions") as ActionGroup).getChildren(null)
+  }
 
   override fun getColumnSettings(): ColumnVisibilitySettings = when (registryType) {
     KafkaRegistryType.NONE -> error("Should not be invoked")
