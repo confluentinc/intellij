@@ -1,9 +1,8 @@
 package com.jetbrains.bigdatatools.kafka.registry.confluent.controller
 
-import com.intellij.openapi.actionSystem.ActionGroup
-import com.intellij.openapi.actionSystem.ActionManager
-import com.intellij.openapi.actionSystem.AnAction
-import com.intellij.openapi.actionSystem.DataProvider
+import com.intellij.icons.AllIcons
+import com.intellij.openapi.actionSystem.*
+import com.intellij.openapi.project.DumbAwareToggleAction
 import com.intellij.openapi.project.Project
 import com.intellij.ui.DocumentAdapter
 import com.intellij.ui.SearchTextField
@@ -46,6 +45,17 @@ class KafkaRegistryController(val project: Project,
         dataManager.schemaRegistryModel?.let { dataManager.updater.invokeRefreshModel(it) }
       }
     })
+  }
+
+  private val showFavoriteSchemasAction = object : DumbAwareToggleAction(KafkaMessagesBundle.message("action.show.favorite.schemas"), null,
+                                                                         AllIcons.Toolwindows.ToolWindowFavorites) {
+    override fun isSelected(e: AnActionEvent) = KafkaToolWindowSettings.getInstance().showFavoriteSchema
+    override fun getActionUpdateThread() = ActionUpdateThread.BGT
+    override fun displayTextInToolbar() = false
+    override fun setSelected(e: AnActionEvent, state: Boolean) {
+      KafkaToolWindowSettings.getInstance().showFavoriteSchema = state
+      dataManager.schemaRegistryModel?.let { dataManager.updater.invokeRefreshModel(it) }
+    }
   }
 
   init {
@@ -108,7 +118,7 @@ class KafkaRegistryController(val project: Project,
       dataManager.schemaRegistryModel?.let { dataManager.updater.invokeRefreshModel(it) }
     }
 
-    return listOfNotNull(CustomComponentActionImpl(searchTextField), CustomComponentActionImpl(countFilter))
+    return listOfNotNull(CustomComponentActionImpl(searchTextField), CustomComponentActionImpl(countFilter), showFavoriteSchemasAction)
   }
 
   override fun getAdditionalContextActions() = (ActionManager.getInstance().getAction("Kafka.Schema.Actions") as ActionGroup).getChildren(
