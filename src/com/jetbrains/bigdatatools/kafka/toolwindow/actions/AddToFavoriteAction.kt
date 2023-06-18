@@ -11,7 +11,6 @@ import com.jetbrains.bigdatatools.common.rfs.driver.RfsPath
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaDriver.Companion.isSchemas
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaDriver.Companion.isTopicFolder
-import com.jetbrains.bigdatatools.kafka.toolwindow.config.KafkaClusterConfig
 import com.jetbrains.bigdatatools.kafka.toolwindow.config.KafkaToolWindowSettings
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 
@@ -32,32 +31,9 @@ class AddToFavoriteAction : DumbAwareToggleAction() {
     val rfsPath = e.rfsPath ?: return
     val dataManager = e.dataManager as? KafkaDataManager ?: return
 
-    val config = KafkaToolWindowSettings.getInstance().getOrCreateConfig(dataManager.connectionId)
     if (rfsPath.isTopic())
-      updateTopics(dataManager, config, rfsPath, state)
-    else updateSchemas(dataManager, config, rfsPath, state)
-  }
-
-  private fun updateTopics(dataManager: KafkaDataManager, config: KafkaClusterConfig, rfsPath: RfsPath, state: Boolean) {
-    if (state) {
-      config.topicsPined += rfsPath.name
-    }
-    else {
-      config.topicsPined -= rfsPath.name
-    }
-    dataManager.getTopicByName(rfsPath.name)?.let { it.isFavorite = state }
-    dataManager.updater.invokeRefreshModel(dataManager.topicModel)
-  }
-
-  private fun updateSchemas(dataManager: KafkaDataManager, config: KafkaClusterConfig, rfsPath: RfsPath, state: Boolean) {
-    if (state) {
-      config.schemasPined += rfsPath.name
-    }
-    else {
-      config.schemasPined -= rfsPath.name
-    }
-    dataManager.getSchemaByName(rfsPath.name)?.let { it.isFavorite = state }
-    dataManager.schemaRegistryModel?.let { dataManager.updater.invokeRefreshModel(it) }
+      dataManager.updatePinedTopics(rfsPath.name, state)
+    else dataManager.updatePinedSchemas(rfsPath.name, state)
   }
 
   override fun update(e: AnActionEvent) {

@@ -17,6 +17,7 @@ import com.jetbrains.bigdatatools.common.monitoring.table.extension.CustomEmptyT
 import com.jetbrains.bigdatatools.common.monitoring.table.model.DataTableModel
 import com.jetbrains.bigdatatools.common.monitoring.toolwindow.AbstractTableController
 import com.jetbrains.bigdatatools.common.monitoring.toolwindow.MainTreeController
+import com.jetbrains.bigdatatools.common.table.renderers.FavoriteRenderer
 import com.jetbrains.bigdatatools.common.table.renderers.LinkRenderer
 import com.jetbrains.bigdatatools.common.ui.CustomComponentActionImpl
 import com.jetbrains.bigdatatools.common.ui.filter.CountFilterPopupComponent
@@ -99,7 +100,15 @@ class TopicsController(val project: Project,
   }
 
   override fun customTableInit(table: DataTable<TopicPresentable>) {
-    LinkRenderer.installOnColumn(table, columnModel.getColumn(0)).apply {
+    FavoriteRenderer.installOnColumn(table, columnModel.getColumn(0)).apply {
+      onClick = { row, _ ->
+        @Suppress("UNCHECKED_CAST")
+        val topic = (table.model as? DataTableModel<TopicPresentable>)?.getInfoAt(table.convertRowIndexToModel(row))
+        topic?.let { dataManager.updatePinedTopics(it.name, !it.isFavorite) }
+      }
+    }
+
+    LinkRenderer.installOnColumn(table, columnModel.getColumn(1)).apply {
       onClick = { row, _ ->
         val modelRowIndex = table.convertRowIndexToModel(row)
 
@@ -156,11 +165,8 @@ class TopicsController(val project: Project,
   override fun getDataModel() = dataManager.topicModel
   override fun getAdditionalActions(): List<AnAction> = listOf()
   override fun showColumnFilter(): Boolean = false
-  override fun getAdditionalContextActions(): List<AnAction> {
-    val actionManager = ActionManager.getInstance()
-    return listOf(actionManager.getAction("Kafka.AddToFavoriteAction")) +
-           (actionManager.getAction("Kafka.Topic.Actions") as ActionGroup).getChildren(null)
-  }
+  override fun getAdditionalContextActions(): List<AnAction> = (ActionManager.getInstance().getAction(
+    "Kafka.Topic.Actions") as ActionGroup).getChildren(null).toList()
 
   override fun createTopRightToolbarActions() = listOf(CustomComponentActionImpl(infoPanel))
 
