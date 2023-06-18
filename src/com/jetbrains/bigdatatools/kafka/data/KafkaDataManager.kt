@@ -378,6 +378,28 @@ class KafkaDataManager(project: Project?,
     }
   }
 
+  fun updatePinedTopics(topicName: String, isForAdding: Boolean) {
+    val config = KafkaToolWindowSettings.getInstance().getOrCreateConfig(connectionId)
+    if (isForAdding) {
+      config.topicsPined += topicName
+    }
+    else {
+      config.topicsPined -= topicName
+    }
+    updater.invokeRefreshModel(topicModel)
+  }
+
+  fun updatePinedSchemas(schemaName: String, isForAdding: Boolean) {
+    val config = KafkaToolWindowSettings.getInstance().getOrCreateConfig(connectionId)
+    if (isForAdding) {
+      config.schemasPined += schemaName
+    }
+    else {
+      config.schemasPined -= schemaName
+    }
+    schemaRegistryModel?.let { updater.invokeRefreshModel(it) }
+  }
+
   companion object {
     fun getInstance(connectionId: String,
                     project: Project) = (DriverManager.getDriverById(project, connectionId) as? KafkaDriver)?.dataManager
