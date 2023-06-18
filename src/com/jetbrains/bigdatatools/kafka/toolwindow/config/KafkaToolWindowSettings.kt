@@ -48,13 +48,15 @@ class KafkaToolWindowSettings : PersistentStateComponent<KafkaToolWindowSettings
     ConsumerGroupPresentable::partitions.name)
   val consumerGroupsColumnSettings = ColumnVisibilitySettings(consumerGroupsTableColumns)
 
-  private val confluentSchemaTableColumns = mutableListOf(KafkaSchemaInfo::name.name,
+  private val confluentSchemaTableColumns = mutableListOf(KafkaSchemaInfo::isFavorite.name,
+                                                          KafkaSchemaInfo::name.name,
                                                           KafkaSchemaInfo::type.name,
                                                           KafkaSchemaInfo::version.name)
 
   val confluentSchemaTableColumnSettings = ColumnVisibilitySettings(confluentSchemaTableColumns)
 
   private val glueSchemaTableColumns = confluentSchemaTableColumns + mutableListOf(
+    KafkaSchemaInfo::isFavorite.name,
     KafkaSchemaInfo::compatibility.name,
     KafkaSchemaInfo::updatedTime.name,
     KafkaSchemaInfo::description.name,
