@@ -28,6 +28,7 @@ class KafkaToolWindowSettings : PersistentStateComponent<KafkaToolWindowSettings
   val topicPartitionsColumnSettings = ColumnVisibilitySettings(topicPartitionsTableColumns)
 
   private val topicTableColumns = mutableListOf(
+    TopicPresentable::isFavorite.name,
     TopicPresentable::name.name,
     TopicPresentable::messageCount.name,
     TopicPresentable::partitions.name,

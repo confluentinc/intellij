@@ -27,7 +27,7 @@ data class TopicPresentable(val name: String,
                             val noLeaders: Int? = null,
                             @field:LoadingRendering
                             val messageCount: Long? = null,
-                            var isFavorite: Boolean = false) : RemoteInfo {
+                            val isFavorite: Boolean = false) : RemoteInfo {
 
   fun toEditorTopic() = TopicInEditor(name)
 
