@@ -139,21 +139,24 @@ class TopicsController(val project: Project,
   }
 
   override fun emptyTextProvider() = CustomEmptyTextProvider { emptyText: StatusText ->
-    val clusterConfig = KafkaToolWindowSettings.getInstance().getOrCreateConfig(dataManager.connectionId)
-    if (clusterConfig.topicFilterName.isNullOrBlank()) {
-      emptyText.appendText(KafkaMessagesBundle.message("topics.empty.text"), StatusText.DEFAULT_ATTRIBUTES)
-      emptyText.appendLine(KafkaMessagesBundle.message("topics.text.create.link"),
-                           SimpleTextAttributes.LINK_PLAIN_ATTRIBUTES) {
-        KafkaDialogFactory.showCreateTopicDialog(dataManager)
-      }
-    }
-    else {
+    val toolWindowSettings = KafkaToolWindowSettings.getInstance()
+    val clusterConfig = toolWindowSettings.getOrCreateConfig(dataManager.connectionId)
+    if (!clusterConfig.topicFilterName.isNullOrBlank() || toolWindowSettings.showFavoriteTopics || toolWindowSettings.showInternalTopics) {
       emptyText.appendText(KafkaMessagesBundle.message("topics.empty.text.filter"), StatusText.DEFAULT_ATTRIBUTES)
       emptyText.appendSecondaryText(KafkaMessagesBundle.message("topics.empty.text.filter.additional"),
                                     SimpleTextAttributes.LINK_PLAIN_ATTRIBUTES) {
         clusterConfig.topicFilterName = null
+        toolWindowSettings.showFavoriteTopics = false
+        toolWindowSettings.showInternalTopics = false
         searchTextField.text = ""
         dataManager.updater.invokeRefreshModel(dataManager.topicModel)
+      }
+    }
+    else {
+      emptyText.appendText(KafkaMessagesBundle.message("topics.empty.text"), StatusText.DEFAULT_ATTRIBUTES)
+      emptyText.appendLine(KafkaMessagesBundle.message("topics.text.create.link"),
+                           SimpleTextAttributes.LINK_PLAIN_ATTRIBUTES) {
+        KafkaDialogFactory.showCreateTopicDialog(dataManager)
       }
     }
 
