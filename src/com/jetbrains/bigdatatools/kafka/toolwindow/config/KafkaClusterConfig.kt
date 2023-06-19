@@ -9,8 +9,8 @@ data class KafkaClusterConfig(
   var registryLimit: Int? = 100,
   var schemaFilterName: String? = null,
 
-  var consumerFilterName: String? = null,
   var consumerLimit: Int? = 100,
+  var consumerFilterName: String? = null,
 
   var topicsPined: MutableSet<String> = mutableSetOf(),
   var schemasPined: MutableSet<String> = mutableSetOf()

@@ -36,11 +36,13 @@ class ConsumerGroupsController(val dataManager: KafkaDataManager) : AbstractTabl
           dataManager.updater.invokeRefreshModel(dataManager.consumerGroupsModel)
         }
       })
+
+      text = KafkaToolWindowSettings.getInstance().getOrCreateConfig(dataManager.connectionId).consumerFilterName ?: ""
     }
 
     val countFilter = CountFilterPopupComponent(KafkaMessagesBundle.message("label.filter.limit"),
                                                 KafkaToolWindowSettings.getInstance().getOrCreateConfig(
-                                                  dataManager.connectionId).topicLimit)
+                                                  dataManager.connectionId).consumerLimit)
     FilterAdapter.install(dataTable.tableModel, countFilter, LIMIT_FILTER) { limit ->
       val config = KafkaToolWindowSettings.getInstance().getOrCreateConfig(dataManager.connectionId)
       config.consumerLimit = limit
