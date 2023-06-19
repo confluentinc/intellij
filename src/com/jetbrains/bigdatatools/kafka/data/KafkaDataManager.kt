@@ -282,8 +282,7 @@ class KafkaDataManager(project: Project?,
     }) {
       val filter = KafkaToolWindowSettings.getInstance().getOrCreateConfig(connectionId).schemaFilterName
       val limit = KafkaToolWindowSettings.getInstance().getOrCreateConfig(connectionId).registryLimit
-      val showSoftDeleted = KafkaToolWindowSettings.getInstance().getOrCreateConfig(connectionId).showSoftDeleted
-      listSchemas(limit, filter, showSoftDeleted)
+      listSchemas(limit, filter)
 
     }
     return dataModel

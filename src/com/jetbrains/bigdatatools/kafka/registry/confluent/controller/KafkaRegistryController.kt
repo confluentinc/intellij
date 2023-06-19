@@ -81,7 +81,7 @@ class KafkaRegistryController(val project: Project,
       emptyText.appendSecondaryText(KafkaMessagesBundle.message("topics.empty.text.filter.additional"),
                                     SimpleTextAttributes.LINK_PLAIN_ATTRIBUTES) {
         clusterConfig.schemaFilterName = null
-        toolWindowSettings.showFavoriteTopics = false
+        toolWindowSettings.showFavoriteSchema = false
         searchTextField.text = ""
         dataManager.schemaRegistryModel?.let { dataModel -> dataManager.updater.invokeRefreshModel(dataModel) }
       }
