@@ -64,8 +64,7 @@ class KafkaToolWindowSettings : PersistentStateComponent<KafkaToolWindowSettings
 
   val glueSchemaTableColumnSettings = ColumnVisibilitySettings(glueSchemaTableColumns.toMutableList())
 
-
-  override val configs: MutableMap<String, KafkaClusterConfig> = mutableMapOf()
+  override var configs: MutableMap<String, KafkaClusterConfig> = mutableMapOf()
 
   override var dataUpdateIntervalMillis: Int = 0
 
