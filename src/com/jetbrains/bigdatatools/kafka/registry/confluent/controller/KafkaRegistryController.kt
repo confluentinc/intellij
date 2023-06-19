@@ -46,6 +46,8 @@ class KafkaRegistryController(val project: Project,
         dataManager.schemaRegistryModel?.let { dataManager.updater.invokeRefreshModel(it) }
       }
     })
+
+    text = KafkaToolWindowSettings.getInstance().getOrCreateConfig(dataManager.connectionId).schemaFilterName ?: ""
   }
 
   private val showFavoriteSchemasAction = object : DumbAwareToggleAction(KafkaMessagesBundle.message("action.show.favorite.schemas"), null,

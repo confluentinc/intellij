@@ -48,6 +48,8 @@ class TopicsController(val project: Project,
         dataManager.updater.invokeRefreshModel(dataManager.topicModel)
       }
     })
+
+    text = KafkaToolWindowSettings.getInstance().getOrCreateConfig(dataManager.connectionId).topicFilterName ?: ""
   }
 
 
