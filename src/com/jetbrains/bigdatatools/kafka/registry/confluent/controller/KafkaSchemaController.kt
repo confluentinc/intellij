@@ -246,7 +246,7 @@ class KafkaSchemaController(private val project: Project,
                                         versionSchema.schemaName),
             KafkaMessagesBundle.message("action.delete.version.text"),
             Messages.getOkButton(),
-            Messages.getOkButton(), Messages.getQuestionIcon())
+            Messages.getCancelButton(), Messages.getQuestionIcon())
           if (askRes == Messages.OK) {
             dataManager.deleteRegistrySchemaVersion(versionSchema)
           }
