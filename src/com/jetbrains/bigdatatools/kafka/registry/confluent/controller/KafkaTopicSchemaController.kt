@@ -1,6 +1,7 @@
 package com.jetbrains.bigdatatools.kafka.registry.confluent.controller
 
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.util.Disposer
 import com.intellij.ui.SimpleTextAttributes
 import com.intellij.ui.components.JBPanelWithEmptyText
 import com.intellij.util.ui.StatusText
@@ -17,7 +18,9 @@ class KafkaTopicSchemaController(private val project: Project,
                                  private val viewType: TopicSchemaViewType) : DetailsMonitoringController<String> {
   private var topicName: String? = null
 
-  private val schemaController = KafkaSchemaController(project, dataManager)
+  private val schemaController = KafkaSchemaController(project, dataManager).also {
+    Disposer.register(this, it)
+  }
   private val curComponent = JBPanelWithEmptyText(BorderLayout())
   private val internalComponent = schemaController.getComponent()
 
@@ -25,7 +28,6 @@ class KafkaTopicSchemaController(private val project: Project,
     override fun onChanged() {
       setDetailsId(topicName ?: "")
     }
-
   }
 
   init {
@@ -35,7 +37,6 @@ class KafkaTopicSchemaController(private val project: Project,
 
   override fun dispose() {
     dataManager.schemaRegistryModel?.removeListener(listener)
-
   }
 
   fun init() {
