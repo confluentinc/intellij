@@ -21,6 +21,7 @@ import com.jetbrains.bigdatatools.kafka.producer.client.KafkaProducerClient
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryType
 import com.jetbrains.bigdatatools.kafka.registry.confluent.ConfluentRegistryClient
 import com.jetbrains.bigdatatools.kafka.registry.glue.BdtGlueRegistryClient
+import com.jetbrains.bigdatatools.kafka.rfs.KafkaConfigurationSource
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaConnectionData
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaPropertySource
 import com.jetbrains.bigdatatools.kafka.toolwindow.config.KafkaToolWindowSettings
@@ -285,12 +286,12 @@ class KafkaClient(project: Project?,
       props[it.name ?: ""] = it.value ?: ""
     }
 
-    val properties = when (connectionData.propertySource) {
-      KafkaPropertySource.DIRECT -> connectionData.properties
-      KafkaPropertySource.FILE -> {
-        val propertyFilePath = connectionData.propertyFilePath ?: error(KafkaMessagesBundle.message("property.file.is.not.found", ""))
-        loadPropertyFile(propertyFilePath)
-      }
+    val properties = if (connectionData.propertySource == KafkaPropertySource.FILE && connectionData.brokerConfigurationSource == KafkaConfigurationSource.FROM_PROPERTIES) {
+      val propertyFilePath = connectionData.propertyFilePath ?: error(KafkaMessagesBundle.message("property.file.is.not.found", ""))
+      loadPropertyFile(propertyFilePath)
+    }
+    else {
+      connectionData.properties
     }
 
     when (connectionData.registryType) {
