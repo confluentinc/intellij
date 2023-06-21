@@ -18,6 +18,7 @@ import com.intellij.ui.dsl.builder.panel
 import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.UIUtil
 import com.jetbrains.bigdatatools.common.util.invokeAndWaitSwing
+import com.jetbrains.bigdatatools.common.util.invokeLater
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryFormat
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryUtil
 import com.jetbrains.bigdatatools.kafka.registry.SchemaVersionInfo
@@ -36,12 +37,14 @@ object KafkaSchemaInfoDialog {
 
     val isJson = KafkaRegistryFormat.valueOf(schemaType) != KafkaRegistryFormat.PROTOBUF
 
-    val dialogWrapper = DialogBuilder(project)
-    dialogWrapper.title(KafkaMessagesBundle.message("registry.info.dialog.title", schemaName))
-    dialogWrapper.centerPanel(KafkaRegistrySchemaEditor(project).apply {
-      setText(schema, isJson)
-    }.component).addOkAction()
-    dialogWrapper.show()
+    invokeLater {
+      val dialogWrapper = DialogBuilder(project)
+      dialogWrapper.title(KafkaMessagesBundle.message("registry.info.dialog.title", schemaName))
+      dialogWrapper.centerPanel(KafkaRegistrySchemaEditor(project).apply {
+        setText(schema, isJson)
+      }.component).addOkAction()
+      dialogWrapper.show()
+    }
   }
 
   // Suitable for both "Diff between schema versions" and "Update schema".
