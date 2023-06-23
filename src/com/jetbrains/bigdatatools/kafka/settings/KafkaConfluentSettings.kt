@@ -13,6 +13,7 @@ import com.jetbrains.bigdatatools.common.settings.fields.RadioGroupField
 import com.jetbrains.bigdatatools.common.settings.fields.StringNamedField
 import com.jetbrains.bigdatatools.common.settings.fields.WrappedComponent
 import com.jetbrains.bigdatatools.common.ui.components.ConnectionPropertiesEditor
+import com.jetbrains.bigdatatools.common.ui.doOnChange
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryType
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaConnectionData
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
@@ -27,24 +28,41 @@ class KafkaConfluentSettings(
   propertiesEditor: PropertiesFieldComponent<KafkaConnectionData>,
   registryType: RadioGroupField<KafkaConnectionData, KafkaRegistryType>,
 ) {
+  var updateFromCloud = false
 
   private val confluentConf = ConnectionPropertiesEditor(project, KafkaPropertiesUtils.getAdminPropertiesDescriptions()).apply {
     getComponent().setTextWithoutScroll(connectionData.properties)
     getComponent().setCaretPosition(0)
     val listener = object : DocumentListener {
       override fun documentChanged(event: com.intellij.openapi.editor.event.DocumentEvent) {
-        val text: String = getComponent().text
-        propertiesEditor.getComponent().text = text
-        if (text.contains(AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG))
-          registryType.setValue(KafkaRegistryType.CONFLUENT)
-        else
-          registryType.setValue(KafkaRegistryType.NONE)
+        updateFromCloud = true
+        try {
+          val text: String = getComponent().text
+          propertiesEditor.getComponent().text = text
+          if (text.contains(AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG))
+            registryType.setValue(KafkaRegistryType.CONFLUENT)
+          else
+            registryType.setValue(KafkaRegistryType.NONE)
+        }
+        finally {
+          updateFromCloud = false
+        }
+
       }
     }
     getComponent().addDocumentListener(listener)
     Disposer.register(uiDisposable, Disposable {
       getComponent().removeDocumentListener(listener)
     })
+  }
+
+  init {
+
+    propertiesEditor.getComponent().doOnChange {
+      if (updateFromCloud)
+        return@doOnChange
+      confluentConf.getComponent().text = propertiesEditor.getComponent().text
+    }
   }
 
   fun setPanelComponent(panel: Panel) = panel.setComponent()
