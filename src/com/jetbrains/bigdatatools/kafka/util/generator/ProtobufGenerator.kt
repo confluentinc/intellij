@@ -12,7 +12,9 @@ import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchema
 import kotlin.random.Random
 
 class ProtobufGenerator(private val schema: ProtobufSchema) {
-  private fun generate(field: FieldDescriptor): Any {
+  private val messages = mutableSetOf<String>()
+
+  private fun generate(field: FieldDescriptor): Any? {
     return when (field.type) {
       DOUBLE -> PrimitivesGenerator.generateDouble()
       FLOAT -> PrimitivesGenerator.generateFloat()
@@ -30,7 +32,10 @@ class ProtobufGenerator(private val schema: ProtobufSchema) {
       SINT32 -> PrimitivesGenerator.generateInt()
       SINT64 -> PrimitivesGenerator.generateLong()
       ENUM -> generateEnum(field.enumType)
-      GROUP, MESSAGE -> generateMessage(field.messageType)
+      GROUP, MESSAGE -> {
+        val messageType = field.messageType
+        if (messages.contains(messageType.fullName)) null else generateMessage(messageType)
+      }
       else -> throw RuntimeException("Unrecognized schema type: " + field.type)
     }
   }
@@ -41,16 +46,18 @@ class ProtobufGenerator(private val schema: ProtobufSchema) {
   }
 
   private fun generateMessage(message: Descriptor): Message {
+    messages.add(message.fullName)
+
     // Also possible builder.setUnknownFields()
     val builder = DynamicMessage.newBuilder(message)
-    message.fields.forEach {
-      if (it.isRepeated) {
+    message.fields.forEach { field ->
+      if (field.isRepeated) {
         val repeatedItemsSize = Random.nextInt(3, 8)
         for (i in 0..repeatedItemsSize) {
-          builder.addRepeatedField(it, generate(it))
+          generate(field)?.let { data -> builder.addRepeatedField(field, data) }
         }
       }
-      else builder.setField(it, generate(it))
+      else generate(field)?.let { data -> builder.setField(field, data) }
     }
 
     return builder.build()
