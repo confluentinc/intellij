@@ -26,6 +26,7 @@ import com.jetbrains.bigdatatools.kafka.rfs.KafkaConnectionData
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaPropertySource
 import com.jetbrains.bigdatatools.kafka.toolwindow.config.KafkaToolWindowSettings
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import kotlinx.coroutines.TimeoutCancellationException
 import org.apache.kafka.clients.CommonClientConfigs
 import org.apache.kafka.clients.admin.*
 import org.apache.kafka.common.ConsumerGroupState
@@ -354,7 +355,10 @@ class KafkaClient(project: Project?,
       val clusterOptions = DescribeClusterOptions().timeoutMs(BdIdeRegistryUtil.RFS_DEFAULT_TIMEOUT)
       kafkaAdmin.describeCluster(clusterOptions).clusterId().get()
     }
-    catch (t: Throwable) {
+    catch (t: TimeoutCancellationException) {
+      throw BdtConnectionException(KafkaMessagesBundle.message("connection.check.port.success.but.next.error"), t)
+    }
+    catch (t: InterruptedException) {
       throw BdtConnectionException(KafkaMessagesBundle.message("connection.check.port.success.but.next.error"), t)
     }
   }

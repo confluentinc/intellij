@@ -91,6 +91,6 @@ data class KafkaRecord(val keyType: KafkaFieldType,
       timestamp = metadata?.timestamp() ?: -1,
       keySize = metadata?.serializedKeySize() ?: 0,
       valueSize = metadata?.serializedValueSize() ?: 0,
-      headers = headers)
+      headers = headers.toList())
   }
 }
