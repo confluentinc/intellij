@@ -18,6 +18,8 @@ import com.intellij.ui.components.CheckBox
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.components.fields.IntegerField
 import com.intellij.ui.dsl.builder.*
+import com.intellij.ui.layout.not
+import com.intellij.ui.layout.selected
 import com.jetbrains.bigdatatools.common.rfs.util.RfsNotificationUtils
 import com.jetbrains.bigdatatools.common.settings.getValidationInfo
 import com.jetbrains.bigdatatools.common.ui.CustomListCellRenderer
@@ -69,11 +71,7 @@ class KafkaProducerEditor(val project: Project,
 
   private lateinit var acksComboBox: SegmentedButton<AcksType>
 
-  private val idempotenceCheckBox = CheckBox(KafkaMessagesBundle.message("producer.idempotence.label")).apply {
-    addChangeListener {
-      acksComboBox.enabled(!isSelected)
-    }
-  }
+  private val idempotenceCheckBox = CheckBox(KafkaMessagesBundle.message("producer.idempotence.label"))
 
   private val compressionComboBox = ComboBox(RecordCompression.values()).apply {
     renderer = CustomListCellRenderer<RecordCompression> { StringUtil.wordsToBeginFromUpperCase(it.name.lowercase()) }
@@ -134,6 +132,7 @@ class KafkaProducerEditor(val project: Project,
         row(KafkaMessagesBundle.message("producer.compression")) {
           cell(compressionComboBox).align(AlignX.FILL).resizableColumn()
         }
+
         row {
           cell(idempotenceCheckBox).align(AlignX.FILL).resizableColumn().comment(
             KafkaMessagesBundle.message("producer.idempotence.comment"))
@@ -141,7 +140,7 @@ class KafkaProducerEditor(val project: Project,
         row(KafkaMessagesBundle.message("producer.asks")) {
           acksComboBox = segmentedButton(AcksType.values().toList()) { StringUtil.wordsToBeginFromUpperCase(it.name.lowercase()) }
           acksComboBox.selectedItem = AcksType.NONE
-        }
+        }.visibleIf(idempotenceCheckBox.selected.not())
       }.topGap(TopGap.NONE)
     }
 
