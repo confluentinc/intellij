@@ -401,7 +401,7 @@ class KafkaBrokerSettings(val project: Project,
       val properties: Map<String, String> = propertiesEditor.getProperties() ?: emptyMap()
 
       if (confSource.getValue() == KafkaConfigurationSource.CLOUD && cloudSource.getValue() == KafkaCloudType.AWS_MSK) {
-        setAwsProperties(properties, awsMskAuthSettings)
+        setAwsProperties(properties, awsMskCloudSettings)
         properties[CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG]?.let {
           mskUrl.component.text = it
         }
@@ -483,7 +483,7 @@ class KafkaBrokerSettings(val project: Project,
     catch (t: Throwable) {
       return
     }
-    val profile = bdtJaasConfig["awsProfileName"]
+    val profile = bdtJaasConfig["awsprofilename"]
 
     val secretKey = properties[AwsSettingsComponentForKafka.AWS_SECRET_KEY]
     val accessKey = properties[AwsSettingsComponentForKafka.AWS_ACCESS_KEY]
@@ -522,6 +522,7 @@ class KafkaBrokerSettings(val project: Project,
       }
       KafkaConfigurationSource.CLOUD -> {
         updateCloudVisibility()
+        setKafkaPropertiesToUi()
       }
     }
   }
