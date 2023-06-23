@@ -10,15 +10,17 @@ import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
 class JsonSchemaGenerator(private val topLevelSchema: JsonSchema) {
+  private val locations = mutableSetOf<String>()
+
   fun generate(): String {
     val schema = topLevelSchema.rawSchema() as? ObjectSchema ?: return ""
     val jsonObject = JsonObject()
 
-    schema.propertySchemas?.forEach { jsonObject.add(it.key, generate(it.value)) }
+    schema.propertySchemas?.forEach { generate(it.value)?.let { data -> jsonObject.add(it.key, data) } }
     return GsonBuilder().setPrettyPrinting().create().toJson(jsonObject)
   }
 
-  private fun generate(schema: Schema): JsonElement = when (schema) {
+  private fun generate(schema: Schema): JsonElement? = when (schema) {
     is ArraySchema -> generateArray(schema)
     is BooleanSchema -> JsonPrimitive(PrimitivesGenerator.generateBoolean())
     is CombinedSchema -> generateForCombinedSchema(schema)
@@ -30,12 +32,20 @@ class JsonSchemaGenerator(private val topLevelSchema: JsonSchema) {
     is NullSchema -> JsonNull.INSTANCE
     is NumberSchema -> JsonPrimitive(generateNumber(schema))
     is ObjectSchema -> generateObject(schema)
-    is ReferenceSchema -> generate(schema.referredSchema)
+    is ReferenceSchema -> {
+      val referenceSchema = schema.referredSchema
+      if (locations.contains(referenceSchema.schemaLocation))
+        null
+      else {
+        locations.add(referenceSchema.schemaLocation)
+        generate(referenceSchema)
+      }
+    }
     is StringSchema -> JsonPrimitive(generateString(schema))
     else -> JsonNull.INSTANCE
   }
 
-  private fun generateForCombinedSchema(schema: CombinedSchema): JsonElement {
+  private fun generateForCombinedSchema(schema: CombinedSchema): JsonElement? {
     val constOrEnumSchema = getConstOrEnumSchema(schema)
     if (constOrEnumSchema != null)
       return generate(constOrEnumSchema)
@@ -49,7 +59,7 @@ class JsonSchemaGenerator(private val topLevelSchema: JsonSchema) {
     }
   }
 
-  private fun generateCriterionCombined(schema: CombinedSchema, criterion: CombinedSchema.ValidationCriterion): JsonElement {
+  private fun generateCriterionCombined(schema: CombinedSchema, criterion: CombinedSchema.ValidationCriterion): JsonElement? {
     return if (criterion.toString() == "allOf") {
       // Need to generate the data so that it matches each subSchema
       JsonObject()
@@ -69,7 +79,7 @@ class JsonSchemaGenerator(private val topLevelSchema: JsonSchema) {
 
   private fun generateObject(schema: ObjectSchema): JsonObject {
     val jsonObject = JsonObject()
-    schema.propertySchemas?.forEach { jsonObject.add(it.key, generate(it.value)) }
+    schema.propertySchemas?.forEach { generate(it.value)?.let { data -> jsonObject.add(it.key, data) } }
     return jsonObject
   }
 
@@ -80,12 +90,12 @@ class JsonSchemaGenerator(private val topLevelSchema: JsonSchema) {
     val minItems = schema.minItems ?: if (maxItems > 5) 5 else PrimitivesGenerator.generateInt(0, maxItems)
 
     val itemCount = PrimitivesGenerator.generateInt(minItems, maxItems)
-    val uniqueItems = schema.needsUniqueItems()
+    val needsUniqueItems = schema.needsUniqueItems()
 
     for (i in 0 until itemCount) {
       var uniqueItem = generate(getItemSchema(schema))
       // if requires unique items, uniqueItem will be regenerated
-      while (uniqueItems && jsonArray.contains(uniqueItem)) {
+      while (needsUniqueItems && jsonArray.contains(uniqueItem)) {
         uniqueItem = generate(getItemSchema(schema))
       }
       jsonArray.add(uniqueItem)
