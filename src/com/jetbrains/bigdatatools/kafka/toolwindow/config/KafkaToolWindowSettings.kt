@@ -56,7 +56,6 @@ class KafkaToolWindowSettings : PersistentStateComponent<KafkaToolWindowSettings
   val confluentSchemaTableColumnSettings = ColumnVisibilitySettings(confluentSchemaTableColumns)
 
   private val glueSchemaTableColumns = confluentSchemaTableColumns + mutableListOf(
-    KafkaSchemaInfo::isFavorite.name,
     KafkaSchemaInfo::compatibility.name,
     KafkaSchemaInfo::updatedTime.name,
     KafkaSchemaInfo::description.name,
