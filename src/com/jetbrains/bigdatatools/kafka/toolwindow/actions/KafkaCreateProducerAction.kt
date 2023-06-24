@@ -1,7 +1,6 @@
 package com.jetbrains.bigdatatools.kafka.toolwindow.actions
 
-import com.intellij.openapi.actionSystem.ActionUpdateThread
-import com.intellij.openapi.actionSystem.AnActionEvent
+import com.intellij.openapi.actionSystem.*
 import com.intellij.openapi.fileEditor.FileEditor
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.project.DumbAwareAction
@@ -9,31 +8,42 @@ import com.intellij.openapi.project.Project
 import com.intellij.testFramework.LightVirtualFile
 import com.jetbrains.bigdatatools.common.monitoring.toolwindow.MainTreeController.Companion.dataManager
 import com.jetbrains.bigdatatools.common.monitoring.toolwindow.MainTreeController.Companion.rfsPath
+import com.jetbrains.bigdatatools.common.rfs.driver.manager.DriverManager
+import com.jetbrains.bigdatatools.common.settings.actions.CreateConnectionPopup
 import com.jetbrains.bigdatatools.kafka.common.editor.KafkaEditorProvider
 import com.jetbrains.bigdatatools.kafka.common.models.KafkaEditorType
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
+import com.jetbrains.bigdatatools.kafka.rfs.KafkaDriver
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaDriver.Companion.isTopicFolder
 import com.jetbrains.bigdatatools.kafka.statistics.KafkaUsagesCollector
 import com.jetbrains.bigdatatools.kafka.toolwindow.controllers.KafkaFileType
 
 class KafkaCreateProducerAction : DumbAwareAction() {
   override fun actionPerformed(e: AnActionEvent) {
-    val dataManager = e.dataManager as KafkaDataManager
     val project = e.project ?: return
-    val rfsPath = e.rfsPath
-    val defaultTopic = if (rfsPath?.parent?.isTopicFolder == true)
-      rfsPath.name
-    else
-      null
+    val dataManager = e.dataManager as? KafkaDataManager
+    if (dataManager != null) {
+      val rfsPath = e.rfsPath
+      val defaultTopic = if (rfsPath?.parent?.isTopicFolder == true)
+        rfsPath.name
+      else
+        null
 
-    openProducer(dataManager, project, defaultTopic)
+      openProducer(dataManager, project, defaultTopic)
+    }
+    else {
+      val actions = DriverManager.getDrivers(project).filterIsInstance<KafkaDriver>().map { driver ->
+        create(driver.connectionData.name) {
+          openProducer(driver.dataManager, project, null)
+        }
+      }
+
+      val additional = listOf(Separator(), ActionManager.getInstance().getAction("Kafka.GlobalCreateKafkaConnection"))
+      CreateConnectionPopup.createPopup(DefaultActionGroup(actions + additional), e).showCenteredInCurrentWindow(project)
+    }
   }
 
   override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
-
-  override fun update(e: AnActionEvent) {
-    e.presentation.isEnabledAndVisible = e.dataManager != null
-  }
 
   companion object {
     fun openProducer(dataManager: KafkaDataManager, project: Project, defaultTopic: String?): Array<FileEditor> {
