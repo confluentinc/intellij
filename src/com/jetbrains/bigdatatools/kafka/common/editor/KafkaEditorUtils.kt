@@ -232,7 +232,7 @@ object KafkaEditorUtils {
         val registrySchemaInEditor = value ?: return
 
         append(registrySchemaInEditor.schemaName + "  ")
-        append(registrySchemaInEditor.schemaFormat.presentable, SimpleTextAttributes.GRAYED_ATTRIBUTES)
+        append(registrySchemaInEditor.schemaFormat?.presentable ?: "", SimpleTextAttributes.GRAYED_ATTRIBUTES)
       }
     }
 

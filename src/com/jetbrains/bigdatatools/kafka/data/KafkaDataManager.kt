@@ -26,7 +26,6 @@ import com.jetbrains.bigdatatools.kafka.model.BdtTopicPartition
 import com.jetbrains.bigdatatools.kafka.model.ConsumerGroupPresentable
 import com.jetbrains.bigdatatools.kafka.model.TopicConfig
 import com.jetbrains.bigdatatools.kafka.model.TopicPresentable
-import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryFormat
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryType
 import com.jetbrains.bigdatatools.kafka.registry.SchemaVersionInfo
 import com.jetbrains.bigdatatools.kafka.registry.common.KafkaSchemaInfo
@@ -97,7 +96,7 @@ class KafkaDataManager(project: Project?,
   }
 
   fun getSchemasForEditor() = schemaRegistryModel?.data?.map {
-    RegistrySchemaInEditor(schemaName = it.name, schemaFormat = it.type ?: KafkaRegistryFormat.AVRO)
+    RegistrySchemaInEditor(schemaName = it.name, schemaFormat = it.type)
   }?.sorted() ?: emptyList()
 
   fun deleteTopic(topicNames: List<String>) {
