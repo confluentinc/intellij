@@ -35,10 +35,6 @@
     <dependencySupport kind="java" coordinate="java:com.typesafe.akka:akka-stream-kafka_3" displayName="akka-stream-kafka_3"/>
     <dependencySupport kind="java" coordinate="java:org.apache.flink:flink-connector-kafka" displayName="flink-connector-kafka"/>
 
-    <dependencySupport kind="javascript" coordinate="npm:node-rdkafka" displayName="node-rdkafka"/>
-    <dependencySupport kind="javascript" coordinate="npm:kafkajs" displayName="kafkajs"/>
-    <dependencySupport kind="javascript" coordinate="npm:@kafkajs/confluent-schema-registry"
-                       displayName="kafkajs/confluent-schema-registry"/>
 
     <dependencySupport kind="dotnet" coordinate="Confluent.Kafka" displayName="Confluent.Kafka"/>
     <dependencySupport kind="dotnet" coordinate="AWSSDK.Kafka" displayName="AWSSDK.Kafka"/>
