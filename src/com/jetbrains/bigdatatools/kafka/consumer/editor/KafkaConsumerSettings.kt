@@ -2,12 +2,11 @@ package com.jetbrains.bigdatatools.kafka.consumer.editor
 
 import com.intellij.openapi.ui.DialogBuilder
 import com.intellij.ui.ScrollPaneFactory
-import com.jetbrains.bigdatatools.common.ui.MigPanel
+import com.intellij.ui.dsl.builder.panel
+import com.jetbrains.bigdatatools.common.ui.row
 import com.jetbrains.bigdatatools.kafka.common.settings.StorageConsumerConfig
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import org.apache.kafka.clients.consumer.ConsumerConfig
-import javax.swing.JLabel
-import javax.swing.JSeparator
 import javax.swing.JTextField
 import javax.swing.text.JTextComponent
 
@@ -80,19 +79,15 @@ class KafkaConsumerSettings {
     val oldProperties = propertiesFields.mapValues { it.value.text }
     val oldSettings = settingsFields.mapValues { it.value.text }
 
-    val panel = MigPanel().apply {
+    val panel = panel {
       settingsFields.forEach {
-        row(JLabel(KafkaMessagesBundle.messageOrKey(it.key)).apply {
-          toolTipText = it.value.toolTipText
-        }, it.value)
+        row(KafkaMessagesBundle.messageOrKey(it.key), it.value)
       }
 
-      block(JSeparator())
+      separator()
 
       propertiesFields.forEach {
-        row(JLabel(KafkaMessagesBundle.messageOrKey(it.key)).apply {
-          toolTipText = it.value.toolTipText
-        }, it.value)
+        row(KafkaMessagesBundle.messageOrKey(it.key), it.value)
       }
     }
 

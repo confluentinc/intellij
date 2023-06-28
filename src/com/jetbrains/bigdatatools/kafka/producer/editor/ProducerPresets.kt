@@ -1,14 +1,14 @@
 package com.jetbrains.bigdatatools.kafka.producer.editor
 
+import com.intellij.ui.dsl.builder.panel
 import com.jetbrains.bigdatatools.kafka.common.editor.Presets
 import com.jetbrains.bigdatatools.kafka.common.settings.KafkaConfigStorage
 import com.jetbrains.bigdatatools.kafka.common.settings.StorageProducerConfig
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
-import com.jetbrains.bigdatatools.common.ui.MigPanel
 import java.awt.Component
+import javax.swing.BorderFactory
 import javax.swing.JLabel
 import javax.swing.JList
-import javax.swing.JSeparator
 import javax.swing.ListCellRenderer
 
 class RunProducerConfigCellRenderer : ListCellRenderer<StorageProducerConfig> {
@@ -16,11 +16,11 @@ class RunProducerConfigCellRenderer : ListCellRenderer<StorageProducerConfig> {
   private val keyLabel = JLabel()
   private val valueLabel = JLabel()
 
-  private val component = MigPanel().apply {
-    row(topicLabel)
-    row(keyLabel)
-    row(valueLabel)
-    row(JSeparator())
+  private val component = panel {
+    row { cell(topicLabel) }
+    row { cell(keyLabel) }
+    row { cell(valueLabel) }
+    separator()
   }
 
   override fun getListCellRendererComponent(list: JList<out StorageProducerConfig>,
@@ -30,15 +30,9 @@ class RunProducerConfigCellRenderer : ListCellRenderer<StorageProducerConfig> {
                                             cellHasFocus: Boolean): Component {
     if (isSelected) {
       component.background = list.selectionBackground
-      topicLabel.foreground = list.selectionForeground
-      keyLabel.foreground = list.selectionForeground
-      valueLabel.foreground = list.selectionForeground
     }
     else {
       component.background = list.background
-      topicLabel.foreground = list.foreground
-      keyLabel.foreground = list.foreground
-      valueLabel.foreground = list.foreground
     }
 
     topicLabel.text = KafkaMessagesBundle.message("producer.preset.topic", if (value?.topic.isNullOrEmpty()) KafkaMessagesBundle.message(
@@ -53,6 +47,8 @@ class RunProducerConfigCellRenderer : ListCellRenderer<StorageProducerConfig> {
                                                   if (value?.value.isNullOrEmpty()) KafkaMessagesBundle.message(
                                                     "producer.preset.no.value")
                                                   else value?.value ?: "")
+
+    component.border = BorderFactory.createEmptyBorder(0, 10, 0, 5)
     return component
   }
 }
