@@ -26,23 +26,26 @@
   <depends>com.intellij.bigdatatools.core</depends>
 
   <extensions defaultExtensionNs="com.intellij">
-    <dependencySupport kind="java" coordinate="org.apache.kafka:kafka_2.13" displayName="Kafka"/>
-    <dependencySupport kind="java" coordinate="org.apache.kafka:kafka_2.12" displayName="Kafka"/>
-    <dependencySupport kind="java" coordinate="org.apache.kafka:kafka-clients" displayName="Kafka"/>
-    <dependencySupport kind="java" coordinate="io.confluent:kafka-schema-registry-client" displayName="Kafka"/>
+    <dependencySupport kind="java" coordinate="java:org.springframework.kafka:spring-kafka" displayName="spring-kafka"/>
+    <dependencySupport kind="java" coordinate="java:io.micronaut.kafka:micronaut-kafka" displayName="micronaut-kafka"/>
+    <dependencySupport kind="java" coordinate="java:org.apache.spark:spark-sql-kafka-0-10_2.13" displayName="spark-sql-kafka"/>
+    <dependencySupport kind="java" coordinate="java:org.apache.kafka:kafka-streams" displayName="kafka-streams"/>
+    <dependencySupport kind="java" coordinate="java:io.confluent:kafka-schema-registry" displayName="kafka-schema-registry"/>
+    <dependencySupport kind="java" coordinate="java:io.confluent:kafka-schema-registry-client" displayName="kafka-schema-registry-client"/>
+    <dependencySupport kind="java" coordinate="java:com.typesafe.akka:akka-stream-kafka_3" displayName="akka-stream-kafka_3"/>
+    <dependencySupport kind="java" coordinate="java:org.apache.flink:flink-connector-kafka" displayName="flink-connector-kafka"/>
 
-    <dependencySupport kind="javascript" coordinate="npm:node-rdkafka" displayName="Kafka"/>
-    <dependencySupport kind="javascript" coordinate="npm:kafkajs" displayName="Kafka"/>
-    <dependencySupport kind="javascript" coordinate="npm:@kafkajs/confluent-schema-registry" displayName="Kafka"/>
+    <dependencySupport kind="javascript" coordinate="npm:node-rdkafka" displayName="node-rdkafka"/>
+    <dependencySupport kind="javascript" coordinate="npm:kafkajs" displayName="kafkajs"/>
+    <dependencySupport kind="javascript" coordinate="npm:@kafkajs/confluent-schema-registry"
+                       displayName="kafkajs/confluent-schema-registry"/>
 
-    <dependencySupport kind="dotnet" coordinate="Confluent.Kafka" displayName="Kafka"/>
-    <dependencySupport kind="dotnet" coordinate="AWSSDK.Kafka" displayName="Kafka"/>
-    <dependencySupport kind="dotnet" coordinate="Confluent.SchemaRegistry" displayName="Kafka"/>
+    <dependencySupport kind="dotnet" coordinate="Confluent.Kafka" displayName="Confluent.Kafka"/>
+    <dependencySupport kind="dotnet" coordinate="AWSSDK.Kafka" displayName="AWSSDK.Kafka"/>
+    <dependencySupport kind="dotnet" coordinate="Confluent.SchemaRegistry" displayName="Confluent.SchemaRegistry"/>
 
-    <dependencySupport kind="python" coordinate="confluent-kafka" displayName="Kafka"/>
-    <dependencySupport kind="python" coordinate="librdkafka" displayName="Kafka"/>
-    <dependencySupport kind="python" coordinate="python-schema-registry-client" displayName="Kafka"/>
-    <dependencySupport kind="python" coordinate="kafka-python" displayName="Kafka"/>
+    <dependencySupport kind="python" coordinate="confluent-kafka" displayName="confluent-kafka"/>
+    <dependencySupport kind="python" coordinate="boto3-kafka" displayName="boto3-kafka"/>
   </extensions>
 
   <extensions defaultExtensionNs="com.intellij">
