@@ -1,6 +1,6 @@
 package com.jetbrains.bigdatatools.kafka.consumer.editor
 
-import com.jetbrains.bigdatatools.common.ui.MigPanel
+import com.intellij.ui.dsl.builder.panel
 import com.jetbrains.bigdatatools.kafka.common.editor.Presets
 import com.jetbrains.bigdatatools.kafka.common.settings.KafkaConfigStorage
 import com.jetbrains.bigdatatools.kafka.common.settings.StorageConsumerConfig
@@ -9,9 +9,9 @@ import com.jetbrains.bigdatatools.kafka.consumer.models.ConsumerLimitType
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import java.awt.Component
 import java.text.SimpleDateFormat
+import javax.swing.BorderFactory
 import javax.swing.JLabel
 import javax.swing.JList
-import javax.swing.JSeparator
 import javax.swing.ListCellRenderer
 
 class RunConsumerConfigCellRenderer : ListCellRenderer<StorageConsumerConfig> {
@@ -34,9 +34,9 @@ class RunConsumerConfigCellRenderer : ListCellRenderer<StorageConsumerConfig> {
   private val labels = listOf(topicLabel, keyLabel, valueLabel, startFromLabel, limitLabel, filterLabel, filterKeyLabel, filterValueLabel,
                               filterHeaderKeyLabel, filterHeaderValueLabel)
 
-  private val component = MigPanel().apply {
-    labels.forEach { row(it) }
-    row(JSeparator())
+  private val component = panel {
+    labels.forEach { row { cell(it) } }
+    separator()
   }
 
   override fun getListCellRendererComponent(list: JList<out StorageConsumerConfig>,
@@ -96,6 +96,7 @@ class RunConsumerConfigCellRenderer : ListCellRenderer<StorageConsumerConfig> {
     if (filterHeaderValueLabel.isVisible)
       filterHeaderValueLabel.text = KafkaMessagesBundle.message("consumer.preset.header.value", filter.filterHeadValue ?: "")
 
+    component.border = BorderFactory.createEmptyBorder(0, 10, 0, 5)
     return component
   }
 }
