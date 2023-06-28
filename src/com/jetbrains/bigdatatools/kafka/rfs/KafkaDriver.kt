@@ -65,15 +65,15 @@ class KafkaDriver(override val connectionData: KafkaConnectionData, project: Pro
                                       if (dataManager.registryType != KafkaRegistryType.NONE) schemasPath else null,
                                       consumerPath)
       rfsPath.isTopicFolder -> {
-        dataManager.topicModel.error?.let { throw Exception(it.msg, it.e) }
+        dataManager.topicModel.error?.let { throw it }
         dataManager.topicModel.data?.map { topicPath.child(it.name, false) } ?: emptyList()
       }
       rfsPath.isConsumers -> {
-        dataManager.consumerGroupsModel.error?.let { throw Exception(it.msg, it.e) }
+        dataManager.consumerGroupsModel.error?.let { throw it }
         dataManager.consumerGroupsModel.data?.map { consumerPath.child(it.consumerGroup, false) } ?: emptyList()
       }
       rfsPath.isSchemas -> {
-        dataManager.schemaRegistryModel?.error?.let { throw Exception(it.msg, it.e) }
+        dataManager.schemaRegistryModel?.error?.let { throw it }
         dataManager.schemaRegistryModel?.data?.map { schemasPath.child(it.name, false) } ?: emptyList()
       }
       else -> null
