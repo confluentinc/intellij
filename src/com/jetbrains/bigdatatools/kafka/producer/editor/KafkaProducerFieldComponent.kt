@@ -109,6 +109,10 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
       schemaValidationError = null
       true
     }
+    catch (_: StackOverflowError) {
+      schemaValidationError = StackOverflowError(KafkaMessagesBundle.message("error.schema.infinite.recursion"))
+      false
+    }
     catch (t: Throwable) {
       schemaValidationError = t
       false
