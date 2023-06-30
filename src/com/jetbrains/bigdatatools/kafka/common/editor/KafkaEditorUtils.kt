@@ -12,7 +12,10 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.ValidationInfo
 import com.intellij.openapi.util.Disposer
-import com.intellij.ui.*
+import com.intellij.ui.ColoredListCellRenderer
+import com.intellij.ui.EditorCustomization
+import com.intellij.ui.EditorTextFieldProvider
+import com.intellij.ui.SimpleTextAttributes
 import com.intellij.util.ui.UIUtil
 import com.jetbrains.bigdatatools.common.monitoring.data.listener.DataModelListener
 import com.jetbrains.bigdatatools.common.settings.getValidator
@@ -58,7 +61,7 @@ object KafkaEditorUtils {
                           isAdditionalPageAtBottom = false
                           isShowIntentionBulb = false
                         }
-                      }, MonospaceEditorCustomization.getInstance()) + additionalCustomization).apply {
+                      }) + additionalCustomization).apply {
         border = BorderFactory.createCompoundBorder(DarculaTextAreaBorder(), ComponentColoredBorder(3, 5, 3, 5))
         background = UIUtil.getTextFieldBackground()
         autoscrolls = false

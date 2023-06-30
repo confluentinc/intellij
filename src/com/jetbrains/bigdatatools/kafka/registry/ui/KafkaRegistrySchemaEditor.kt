@@ -3,11 +3,11 @@ package com.jetbrains.bigdatatools.kafka.registry.ui
 import com.intellij.json.JsonFileType
 import com.intellij.json.JsonLanguage
 import com.intellij.lang.Language
+import com.intellij.openapi.editor.ex.EditorEx
 import com.intellij.openapi.project.Project
 import com.intellij.ui.EditorCustomization
 import com.intellij.ui.EditorTextField
 import com.intellij.ui.EditorTextFieldProvider
-import com.intellij.ui.MonospaceEditorCustomization
 import com.jetbrains.bigdatatools.common.ui.doOnChange
 import java.awt.BorderLayout
 import javax.swing.BorderFactory
@@ -30,7 +30,6 @@ class KafkaRegistrySchemaEditor(private val project: Project,
     editor = if (editor == null) {
       val newEditor = createEditor(project, isJson)
       onChange?.let { newEditor.document.doOnChange(it) }
-
       component.add(newEditor, BorderLayout.CENTER)
       newEditor
     }
@@ -41,7 +40,6 @@ class KafkaRegistrySchemaEditor(private val project: Project,
       }
       else {
         val newEditor = createEditor(project, isJson)
-
         onChange?.let { newEditor.document.doOnChange(it) }
         component.removeAll()
         component.add(newEditor, BorderLayout.CENTER)
@@ -67,10 +65,13 @@ class KafkaRegistrySchemaEditor(private val project: Project,
         isAdditionalPageAtBottom = false
         isShowIntentionBulb = false
       }
-    }, MonospaceEditorCustomization.getInstance())).apply {
+    }, object : EditorCustomization {
+    override fun customize(editor: EditorEx) {
+      editor.scrollPane.border = BorderFactory.createEmptyBorder()
+    }
+  })).apply {
     autoscrolls = false
     setCaretPosition(0)
-
     document.setReadOnly(!isEditable)
   }
 }
