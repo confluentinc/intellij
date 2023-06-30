@@ -199,6 +199,8 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
                                                               this@KafkaRecordsOutput,
                                                               KafkaMessagesBundle.message("consumer.table.awaiting"))
     }
+
+    statisticPanel.start()
   }
 
   fun setMaxRows(limit: Int) {
@@ -243,7 +245,6 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
     }
   }
 
-  fun onStartConsume() = statisticPanel.start()
 
   companion object {
     private val TIMESTAMP_FIELD = KafkaMessagesBundle.message("output.column.timestamp")

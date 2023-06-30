@@ -234,12 +234,14 @@ class KafkaProducerEditor(val project: Project,
     produceButton.text = KafkaMessagesBundle.message("action.produce.stop")
     produceButton.icon = AllIcons.Actions.Suspend
     progress.onStart()
+    output.start()
   }
 
   private fun onStop() = invokeLater {
     produceButton.text = KafkaMessagesBundle.message("kafka.producer.action.produce.title")
     produceButton.icon = AllIcons.Actions.Execute
     progress.onStop()
+    output.stop()
   }
 
   private val settingsPanel: JPanel by settingsPanelDelegate
