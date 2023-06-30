@@ -1,17 +1,19 @@
 package com.jetbrains.bigdatatools.kafka.registry.common
 
 import com.jetbrains.bigdatatools.common.monitoring.data.model.RemoteInfo
+import com.jetbrains.bigdatatools.common.table.renderers.CustomRendering
 import com.jetbrains.bigdatatools.common.table.renderers.DataRenderingUtil
 import com.jetbrains.bigdatatools.common.table.renderers.DateRendering
 import com.jetbrains.bigdatatools.common.table.renderers.LoadingRendering
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryFormat
+import com.jetbrains.bigdatatools.kafka.util.RegistyFormatRenderer
 import java.util.*
 import kotlin.reflect.KProperty1
 import kotlin.reflect.full.declaredMemberProperties
 import kotlin.reflect.jvm.javaField
 
 data class KafkaSchemaInfo(val name: String,
-                           @field:LoadingRendering
+                           @field:CustomRendering(RegistyFormatRenderer::class)
                            val type: KafkaRegistryFormat? = null,
                            @field:LoadingRendering
                            val version: Long? = null,
