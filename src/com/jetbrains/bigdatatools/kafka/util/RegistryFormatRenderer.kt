@@ -4,7 +4,7 @@ import com.jetbrains.bigdatatools.common.table.renderers.MaterialTableCellRender
 import com.jetbrains.bigdatatools.common.util.MessagesBundle
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryFormat
 
-class RegistyFormatRenderer : MaterialTableCellRenderer() {
+class RegistryFormatRenderer : MaterialTableCellRenderer() {
   override fun setValue(value: Any?) {
     if (value == null) {
       super.setValue(MessagesBundle.message("monitoring.log.loading"))
