@@ -9,8 +9,6 @@ enum class KafkaRegistryFormat(@Nls val presentable: String) {
   JSON(KafkaMessagesBundle.message("registry.format.json")),
   UNKNOWN(KafkaMessagesBundle.message("registry.format.deleted"));
 
-  override fun toString(): String = presentable
-
   companion object {
     fun parse(s: String?) = values().firstOrNull { it.name.lowercase() == s?.lowercase() } ?: UNKNOWN
   }

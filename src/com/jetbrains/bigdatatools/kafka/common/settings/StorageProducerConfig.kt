@@ -22,9 +22,9 @@ data class StorageProducerConfig(var topic: String = "",
                                  var forcePartition: Int = -1,
                                  var keyStrategy: ConfluentRegistryStrategy = ConfluentRegistryStrategy.TOPIC_NAME,
                                  var valueStrategy: ConfluentRegistryStrategy = ConfluentRegistryStrategy.TOPIC_NAME,
-                                 val keySubject: String = "",
-                                 val valueSubject: String = "",
-                                 val flowParams: ProducerFlowParams? = null) : StorageConfig {
+                                 var keySubject: String = "",
+                                 var valueSubject: String = "",
+                                 var flowParams: ProducerFlowParams? = null) : StorageConfig {
 
 
   fun getKeyType(): KafkaFieldType = KafkaFieldType.values().find { it.name == keyType } ?: KafkaFieldType.SCHEMA_REGISTRY
