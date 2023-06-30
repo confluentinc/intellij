@@ -105,7 +105,7 @@ class KafkaProducerClient(val client: KafkaClient) {
     repeat(flowParams.flowRecordsCountPerRequest) {
       if (!isRunning())
         return
-      val result = sentMessage(flowParams, partition, producer, topic, key, value, headers) ?: return
+      val result = sentMessage(flowParams, partition, producer, topic, key, value, headers.map { it.copy() }) ?: return
       produced.add(result)
     }
     val endTime = System.currentTimeMillis()
