@@ -5,6 +5,7 @@ import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.NlsSafe
+import com.jetbrains.bigdatatools.common.connection.exception.BdtConfigurationException
 import com.jetbrains.bigdatatools.common.connection.tunnel.BdtSshTunnelService
 import com.jetbrains.bigdatatools.common.settings.components.BdtPropertyComponent
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager.Companion.sortedSchemas
@@ -13,6 +14,7 @@ import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryUtil
 import com.jetbrains.bigdatatools.kafka.registry.SchemaVersionInfo
 import com.jetbrains.bigdatatools.kafka.registry.common.KafkaSchemaInfo
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaConnectionData
+import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import io.confluent.kafka.schemaregistry.ParsedSchema
 import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClientConfig
@@ -107,7 +109,7 @@ class ConfluentRegistryClient(restService: RestService, props: Map<String, Strin
 
     private fun createConfluentClient(connectionData: KafkaConnectionData,
                                       project: Project?,
-                                      testConnection: Boolean): ConfluentRegistryClient? {
+                                      testConnection: Boolean): ConfluentRegistryClient {
       val brokerSettings = BdtPropertyComponent.parseProperties(connectionData.properties).associate {
         (it.name ?: "") to (it.value ?: "")
       }
@@ -127,7 +129,8 @@ class ConfluentRegistryClient(restService: RestService, props: Map<String, Strin
       val props = brokerSettings + brokerSsl + registryProps
 
       val url = props[AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG]?.ifBlank { null }
-                ?: connectionData.registryUrl?.ifBlank { null } ?: return null
+                ?: connectionData.registryUrl?.ifBlank { null }
+                ?: throw BdtConfigurationException(KafkaMessagesBundle.message("error.confluent.registry.url.empty"))
 
       val tunnel = BdtSshTunnelService.createIfRequired(project, connectionData.getTunnelData(),
                                                         url, connectionData.innerId,
