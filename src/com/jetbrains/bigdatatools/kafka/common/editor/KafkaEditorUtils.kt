@@ -220,7 +220,8 @@ object KafkaEditorUtils {
                            kafkaManager: KafkaDataManager,
                            topicComboBox: ComboBox<TopicInEditor>,
                            isKey: Boolean): ComboBox<RegistrySchemaInEditor> {
-    val (initSchemas, preferedIndex) = calculateSchemasForCombobox(kafkaManager, topicComboBox, isKey)
+    var prevSchemaName: String? = null
+    val (initSchemas, preferedIndex) = calculateSchemasForCombobox(kafkaManager, topicComboBox, isKey, prevSchemaName)
     val schemaCombobox = ComboBox(initSchemas.toTypedArray())
 
     topicComboBox.name
@@ -246,7 +247,11 @@ object KafkaEditorUtils {
     }
 
     val listener = KafkaDataModelListener(schemaCombobox) {
-      calculateSchemasForCombobox(kafkaManager, topicComboBox, isKey)
+      val prevSchema = schemaCombobox.item?.schemaName?.takeIf { it.isNotEmpty() }
+      prevSchema?.let { prevSchemaName = it }
+
+
+      calculateSchemasForCombobox(kafkaManager, topicComboBox, isKey, prevSchemaName)
     }
 
     kafkaManager.schemaRegistryModel?.addListener(listener)
@@ -260,8 +265,8 @@ object KafkaEditorUtils {
     topicComboBox.addItemListener {
       if (it.stateChange != SELECTED)
         return@addItemListener
-
-      updateComboBox(schemaCombobox) { calculateSchemasForCombobox(kafkaManager, topicComboBox, isKey) }
+      prevSchemaName = null
+      updateComboBox(schemaCombobox) { calculateSchemasForCombobox(kafkaManager, topicComboBox, isKey, prevSchemaName) }
     }
 
 
@@ -290,9 +295,11 @@ object KafkaEditorUtils {
 
   private fun calculateSchemasForCombobox(kafkaManager: KafkaDataManager,
                                           topicComboBox: ComboBox<TopicInEditor>,
-                                          isKey: Boolean): Pair<List<RegistrySchemaInEditor>, Int?> {
+                                          isKey: Boolean,
+                                          prevSchema: String?): Pair<List<RegistrySchemaInEditor>, Int?> {
     val schemas = kafkaManager.getSchemasForEditor()
-    val preferSchemaName = calculateTopicSchemaName(kafkaManager, topicComboBox.item?.name ?: "", isKey)
+
+    val preferSchemaName = prevSchema ?: calculateTopicSchemaName(kafkaManager, topicComboBox.item?.name ?: "", isKey)
     val index = schemas.indexOfFirst { it.schemaName == preferSchemaName }.takeIf { it >= 0 }
     return schemas to index
   }
