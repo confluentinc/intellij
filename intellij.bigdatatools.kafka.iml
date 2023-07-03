@@ -26,6 +26,14 @@
     <orderEntry type="module-library" exported="">
       <library name="apache.kafka.clients" type="repository">
         <properties maven-id="org.apache.kafka:kafka-clients:3.4.0">
+          <verification>
+            <artifact url="file://$MAVEN_REPOSITORY$/org/apache/kafka/kafka-clients/3.4.0/kafka-clients-3.4.0.jar">
+              <sha256sum>48f38dede69bf2ed3709e270afb6b72fac869651fc258997727dba350333ac64</sha256sum>
+            </artifact>
+            <artifact url="file://$MAVEN_REPOSITORY$/com/github/luben/zstd-jni/1.5.2-1/zstd-jni-1.5.2-1.jar">
+              <sha256sum>93f7e4cbc907c2650f89f9f0bec94873735a58f1e4b66a54973294e4ec1878e8</sha256sum>
+            </artifact>
+          </verification>
           <exclude>
             <dependency maven-id="org.slf4j:slf4j-api" />
             <dependency maven-id="org.lz4:lz4-java" />
@@ -47,6 +55,20 @@
     <orderEntry type="module-library">
       <library name="software.amazon.msk.aws.iam.auth" type="repository">
         <properties maven-id="software.amazon.msk:aws-msk-iam-auth:1.1.4">
+          <verification>
+            <artifact url="file://$MAVEN_REPOSITORY$/software/amazon/msk/aws-msk-iam-auth/1.1.4/aws-msk-iam-auth-1.1.4.jar">
+              <sha256sum>5820cc8057ceb53d2a0a23bd4bfc644a205916ecbb62c1f6667f95c53b531049</sha256sum>
+            </artifact>
+            <artifact url="file://$MAVEN_REPOSITORY$/com/amazonaws/aws-java-sdk-core/1.11.986/aws-java-sdk-core-1.11.986.jar">
+              <sha256sum>4a76ce2eef42c7478f6cdc772fb4f99f5973c2c55e76f22cda4f8649ae9155bc</sha256sum>
+            </artifact>
+            <artifact url="file://$MAVEN_REPOSITORY$/com/amazonaws/aws-java-sdk-sts/1.11.986/aws-java-sdk-sts-1.11.986.jar">
+              <sha256sum>2d570b06ef6947dfbddbb13e92055274116f051595000fe5c3549fc100a4fa1c</sha256sum>
+            </artifact>
+            <artifact url="file://$MAVEN_REPOSITORY$/com/amazonaws/jmespath-java/1.11.986/jmespath-java-1.11.986.jar">
+              <sha256sum>bb7309e8dee3155ae27942fc9ac80a7672908619f53b2d68f3f5ec45fe1848ce</sha256sum>
+            </artifact>
+          </verification>
           <exclude>
             <dependency maven-id="org.apache.httpcomponents:httpclient" />
             <dependency maven-id="com.fasterxml.jackson.core:jackson-databind" />
@@ -83,6 +105,11 @@
     <orderEntry type="module-library">
       <library name="io.confluent.kafka.avro.serializer" type="repository">
         <properties maven-id="io.confluent:kafka-avro-serializer:7.0.1">
+          <verification>
+            <artifact url="file://$MAVEN_REPOSITORY$/io/confluent/kafka-avro-serializer/7.0.1/kafka-avro-serializer-7.0.1.jar">
+              <sha256sum>9777fcf729a1185e513cb9a62708c799ab80fdd2e6cdd58b736946363e60d32a</sha256sum>
+            </artifact>
+          </verification>
           <exclude>
             <dependency maven-id="org.apache.avro:avro" />
             <dependency maven-id="org.apache.commons:commons-compress" />
@@ -104,6 +131,56 @@
     <orderEntry type="module-library" exported="">
       <library name="io.confluent.kafka.json.schema.serializer" type="repository">
         <properties maven-id="io.confluent:kafka-json-schema-serializer:7.0.1">
+          <verification>
+            <artifact url="file://$MAVEN_REPOSITORY$/io/confluent/kafka-json-schema-serializer/7.0.1/kafka-json-schema-serializer-7.0.1.jar">
+              <sha256sum>c2baf2b9eae539f1477a1ed0104fe465c1fc471f0882c2c85ce5d397d7bbdeba</sha256sum>
+            </artifact>
+            <artifact url="file://$MAVEN_REPOSITORY$/io/confluent/kafka-json-schema-provider/7.0.1/kafka-json-schema-provider-7.0.1.jar">
+              <sha256sum>2990a8c0328b5dc82185f37c3fc0f39323127e839d0f09dddee69da1f6f39f2f</sha256sum>
+            </artifact>
+            <artifact url="file://$MAVEN_REPOSITORY$/com/github/everit-org/json-schema/org.everit.json.schema/1.12.2/org.everit.json.schema-1.12.2.jar">
+              <sha256sum>b8df44b274c3230bdc004f138f4a820cb86ea09a42d1ca9f5074dd432aeea198</sha256sum>
+            </artifact>
+            <artifact url="file://$MAVEN_REPOSITORY$/commons-validator/commons-validator/1.6/commons-validator-1.6.jar">
+              <sha256sum>bd62795d7068a69cbea333f6dbf9c9c1a6ad7521443fb57202a44874f240ba25</sha256sum>
+            </artifact>
+            <artifact url="file://$MAVEN_REPOSITORY$/commons-digester/commons-digester/1.8.1/commons-digester-1.8.1.jar">
+              <sha256sum>b97b72b4201137262215dca60ceb84e6b664bf7fe428a4d62729de0239cafdb6</sha256sum>
+            </artifact>
+            <artifact url="file://$MAVEN_REPOSITORY$/com/damnhandy/handy-uri-templates/2.1.8/handy-uri-templates-2.1.8.jar">
+              <sha256sum>6b83846f2ff61d0aaa66997b64b883ec7b65cf13b50a4d7f58250996d429be2e</sha256sum>
+            </artifact>
+            <artifact url="file://$MAVEN_REPOSITORY$/com/fasterxml/jackson/datatype/jackson-datatype-guava/2.12.3/jackson-datatype-guava-2.12.3.jar">
+              <sha256sum>9def1bfe8b31c0ab313c88dc2c1aab164c5fcc83b583c13a639a4d5f37cf71c7</sha256sum>
+            </artifact>
+            <artifact url="file://$MAVEN_REPOSITORY$/com/fasterxml/jackson/datatype/jackson-datatype-jdk8/2.12.3/jackson-datatype-jdk8-2.12.3.jar">
+              <sha256sum>1d131cf0f20c13cffb4f8bb5c2afd68c413c4e1b76fe7384e4fecc8a8c36cb1a</sha256sum>
+            </artifact>
+            <artifact url="file://$MAVEN_REPOSITORY$/com/fasterxml/jackson/datatype/jackson-datatype-joda/2.12.3/jackson-datatype-joda-2.12.3.jar">
+              <sha256sum>a5389803e9b4e00b17c253be019701c06fc9b6aea89f04cc066254af462c6362</sha256sum>
+            </artifact>
+            <artifact url="file://$MAVEN_REPOSITORY$/com/fasterxml/jackson/module/jackson-module-parameter-names/2.12.3/jackson-module-parameter-names-2.12.3.jar">
+              <sha256sum>f9655527c39093ba744d02d09d6e254285d1447d3ffbd15ef8f6326907382063</sha256sum>
+            </artifact>
+            <artifact url="file://$MAVEN_REPOSITORY$/com/kjetland/mbknor-jackson-jsonschema_2.13/1.0.39/mbknor-jackson-jsonschema_2.13-1.0.39.jar">
+              <sha256sum>f1d0cb875bcb398d10158ae68f962ea83499991445125779b8b999b6af969cd1</sha256sum>
+            </artifact>
+            <artifact url="file://$MAVEN_REPOSITORY$/org/scala-lang/scala-library/2.13.1/scala-library-2.13.1.jar">
+              <sha256sum>711dcb0ba3d8d8392a52162c1f251d89787148981d2823e30697bc08282521ae</sha256sum>
+            </artifact>
+            <artifact url="file://$MAVEN_REPOSITORY$/javax/validation/validation-api/2.0.1.Final/validation-api-2.0.1.Final.jar">
+              <sha256sum>9873b46df1833c9ee8f5bc1ff6853375115dadd8897bcb5a0dffb5848835ee6c</sha256sum>
+            </artifact>
+            <artifact url="file://$MAVEN_REPOSITORY$/io/confluent/kafka-schema-serializer/7.0.1/kafka-schema-serializer-7.0.1.jar">
+              <sha256sum>d9592c4368f369538ce70cb77b99cf13aa172baf642ca681f2d03793a3822391</sha256sum>
+            </artifact>
+            <artifact url="file://$MAVEN_REPOSITORY$/io/confluent/kafka-json-serializer/7.0.1/kafka-json-serializer-7.0.1.jar">
+              <sha256sum>5c7f68a88b5e3fb4acea9e94a52c357775389782dc787ac1312ac57298a705d1</sha256sum>
+            </artifact>
+            <artifact url="file://$MAVEN_REPOSITORY$/io/confluent/common-config/7.0.1/common-config-7.0.1.jar">
+              <sha256sum>cdf909b7278931f22b14da79758bbe55a28edfa0e4268886283e8c87c6340b56</sha256sum>
+            </artifact>
+          </verification>
           <exclude>
             <dependency maven-id="io.confluent:kafka-schema-registry-client" />
             <dependency maven-id="org.json:json" />
@@ -165,6 +242,17 @@
     <orderEntry type="module-library" exported="">
       <library name="io.confluent.kafka.protobuf.serializer" type="repository">
         <properties maven-id="io.confluent:kafka-protobuf-serializer:7.0.1">
+          <verification>
+            <artifact url="file://$MAVEN_REPOSITORY$/io/confluent/kafka-protobuf-serializer/7.0.1/kafka-protobuf-serializer-7.0.1.jar">
+              <sha256sum>504bdb60d2b3cd097d5c427cd8e16d6ba829bad7906115a36feda65c41d87a03</sha256sum>
+            </artifact>
+            <artifact url="file://$MAVEN_REPOSITORY$/io/confluent/kafka-protobuf-provider/7.0.1/kafka-protobuf-provider-7.0.1.jar">
+              <sha256sum>572eb7210202f69530dc1a4a0c29af57710d48b425fc979f50cbf4f0db990cf8</sha256sum>
+            </artifact>
+            <artifact url="file://$MAVEN_REPOSITORY$/io/confluent/kafka-protobuf-types/7.0.1/kafka-protobuf-types-7.0.1.jar">
+              <sha256sum>dc4633f37d4915e1743d008894c390043afbcca8248f936fc80c99f2d025ce4a</sha256sum>
+            </artifact>
+          </verification>
           <exclude>
             <dependency maven-id="com.squareup.wire:wire-schema" />
             <dependency maven-id="org.jetbrains.kotlin:kotlin-stdlib" />
@@ -192,6 +280,17 @@
     <orderEntry type="module-library" exported="">
       <library name="io.confluent.kafka.schema.registry.client" type="repository">
         <properties maven-id="io.confluent:kafka-schema-registry-client:7.2.0">
+          <verification>
+            <artifact url="file://$MAVEN_REPOSITORY$/io/confluent/kafka-schema-registry-client/7.2.0/kafka-schema-registry-client-7.2.0.jar">
+              <sha256sum>fc45118f9cde8e2a096c706b101692355a23a231d246e145d4aeba01e93cd630</sha256sum>
+            </artifact>
+            <artifact url="file://$MAVEN_REPOSITORY$/io/swagger/core/v3/swagger-annotations/2.1.10/swagger-annotations-2.1.10.jar">
+              <sha256sum>59573c4d6357c2121d40069959879cf008783cc8208dc5123f759b0e6a0077ad</sha256sum>
+            </artifact>
+            <artifact url="file://$MAVEN_REPOSITORY$/io/confluent/common-utils/7.2.0/common-utils-7.2.0.jar">
+              <sha256sum>2ad28e179006acf1e52735aa5ff0e58c7b1efe064ca17a5442628443d6ccae2b</sha256sum>
+            </artifact>
+          </verification>
           <exclude>
             <dependency maven-id="org.apache.kafka:kafka-clients" />
             <dependency maven-id="org.apache.avro:avro" />
@@ -229,6 +328,26 @@
     <orderEntry type="module-library">
       <library name="software.amazon.glue.schema.registry.serde" type="repository">
         <properties maven-id="software.amazon.glue:schema-registry-serde:1.1.15">
+          <verification>
+            <artifact url="file://$MAVEN_REPOSITORY$/software/amazon/glue/schema-registry-serde/1.1.15/schema-registry-serde-1.1.15.jar">
+              <sha256sum>80962fb8bb7f35a180fbe831df8025958d04ec2c6e2eb802a4112db26eb496e3</sha256sum>
+            </artifact>
+            <artifact url="file://$MAVEN_REPOSITORY$/software/amazon/glue/schema-registry-common/1.1.15/schema-registry-common-1.1.15.jar">
+              <sha256sum>5ec76353ebca6c44a4e43ea87bae8738d31356652c398375d17ec6cdb7e7387f</sha256sum>
+            </artifact>
+            <artifact url="file://$MAVEN_REPOSITORY$/software/amazon/glue/schema-registry-build-tools/1.1.15/schema-registry-build-tools-1.1.15.jar">
+              <sha256sum>eb980b2e54f6d2a207031fe59772f99678866662b3b629f97ef15b3983944635</sha256sum>
+            </artifact>
+            <artifact url="file://$MAVEN_REPOSITORY$/software/amazon/awssdk/url-connection-client/2.17.122/url-connection-client-2.17.122.jar">
+              <sha256sum>e34ae835563cf3f3d1c94768cc8fc33e0a1d039d483eb72ab62147ba015b3f84</sha256sum>
+            </artifact>
+            <artifact url="file://$MAVEN_REPOSITORY$/software/amazon/awssdk/arns/2.17.122/arns-2.17.122.jar">
+              <sha256sum>8e3a7506341d41c90d3d16452eee42ecac7a31d2731e625c39a34a6fc93acf87</sha256sum>
+            </artifact>
+            <artifact url="file://$MAVEN_REPOSITORY$/com/google/jimfs/jimfs/1.1/jimfs-1.1.jar">
+              <sha256sum>c4828e28d7c0a930af9387510b3bada7daa5c04d7c25a75c7b8b081f1c257ddd</sha256sum>
+            </artifact>
+          </verification>
           <exclude>
             <dependency maven-id="com.amazonaws:aws-java-sdk-sts" />
             <dependency maven-id="software.amazon.awssdk:sts" />
@@ -282,6 +401,47 @@
     <orderEntry type="module-library">
       <library name="squareup.wire.compiler" type="repository">
         <properties maven-id="com.squareup.wire:wire-compiler:3.7.1">
+          <verification>
+            <artifact url="file://$MAVEN_REPOSITORY$/com/squareup/wire/wire-compiler/3.7.1/wire-compiler-3.7.1.jar">
+              <sha256sum>d19f51919b8c92eecfc5640ba7890bcf5a7193ca01a3729b9fecdcc258df5fff</sha256sum>
+            </artifact>
+            <artifact url="file://$MAVEN_REPOSITORY$/com/squareup/wire/wire-schema/3.7.1/wire-schema-3.7.1.jar">
+              <sha256sum>55619ec5caf933343eb1588973e92ca8e8a81c8ab0aff3f5119ad895c12ac6dc</sha256sum>
+            </artifact>
+            <artifact url="file://$MAVEN_REPOSITORY$/com/squareup/wire/wire-runtime/3.7.1/wire-runtime-3.7.1.jar">
+              <sha256sum>f5a6beeff5fcb81d6bf11443a963e1e23ca8975803361c5a561bbe4c9c8424a0</sha256sum>
+            </artifact>
+            <artifact url="file://$MAVEN_REPOSITORY$/com/squareup/wire/wire-kotlin-generator/3.7.1/wire-kotlin-generator-3.7.1.jar">
+              <sha256sum>1a41ee3b5397f43e5436b1394544d50be1718bae555ae9b0a0cd2cdea6c413f1</sha256sum>
+            </artifact>
+            <artifact url="file://$MAVEN_REPOSITORY$/com/squareup/kotlinpoet/1.7.2/kotlinpoet-1.7.2.jar">
+              <sha256sum>4d22b70c4b77fc0aa499158e7bb085af9882ffbdc69331325e7869aebe4fb69d</sha256sum>
+            </artifact>
+            <artifact url="file://$MAVEN_REPOSITORY$/com/squareup/wire/wire-grpc-client/3.7.1/wire-grpc-client-3.7.1.jar">
+              <sha256sum>cb762d88a44caa27e1b279c1b6f26c606d3f5763c7a6b53ae220ffc8b5a5a5dc</sha256sum>
+            </artifact>
+            <artifact url="file://$MAVEN_REPOSITORY$/com/squareup/wire/wire-grpc-server-generator/3.7.1/wire-grpc-server-generator-3.7.1.jar">
+              <sha256sum>8cf57ef634d940455f27c19d7812a9d2213403d3037c08ff3b1e229e64560c62</sha256sum>
+            </artifact>
+            <artifact url="file://$MAVEN_REPOSITORY$/com/squareup/wire/wire-java-generator/3.7.1/wire-java-generator-3.7.1.jar">
+              <sha256sum>89feb9d367ce95d4788bde81a344eb29938cadb20dd20f709700e532c2d65a14</sha256sum>
+            </artifact>
+            <artifact url="file://$MAVEN_REPOSITORY$/com/squareup/javapoet/1.13.0/javapoet-1.13.0.jar">
+              <sha256sum>4c7517e848a71b36d069d12bb3bf46a70fd4cda3105d822b0ed2e19c00b69291</sha256sum>
+            </artifact>
+            <artifact url="file://$MAVEN_REPOSITORY$/com/squareup/wire/wire-swift-generator/3.7.1/wire-swift-generator-3.7.1.jar">
+              <sha256sum>84e720696b96294276ee09117e1b568d7456d8b851a084ade3bdbd5f12c3e74a</sha256sum>
+            </artifact>
+            <artifact url="file://$MAVEN_REPOSITORY$/io/outfoxx/swiftpoet/1.0.0/swiftpoet-1.0.0.jar">
+              <sha256sum>efd414bf35dedfaebeca3418ac6759083de2ade8bb7236492171cc68e30ada40</sha256sum>
+            </artifact>
+            <artifact url="file://$MAVEN_REPOSITORY$/com/squareup/wire/wire-profiles/3.7.1/wire-profiles-3.7.1.jar">
+              <sha256sum>872773cfa14aca37cb79cffebb83306148c954dcb9e9dc3e2df454b568b8fa1c</sha256sum>
+            </artifact>
+            <artifact url="file://$MAVEN_REPOSITORY$/com/charleskorn/kaml/kaml/0.20.0/kaml-0.20.0.jar">
+              <sha256sum>0746f87e0668e41bbd086d34e7d207df21b6d290d1c203950cb7c79f55245884</sha256sum>
+            </artifact>
+          </verification>
           <exclude>
             <dependency maven-id="com.google.guava:guava" />
             <dependency maven-id="org.jetbrains.kotlin:kotlin-stdlib-common" />
@@ -332,7 +492,16 @@
     <orderEntry type="library" name="snakeyaml" level="project" />
     <orderEntry type="module-library">
       <library name="bigdatatools: github.mifmif.generex" type="repository">
-        <properties maven-id="com.github.mifmif:generex:1.0.2" />
+        <properties maven-id="com.github.mifmif:generex:1.0.2">
+          <verification>
+            <artifact url="file://$MAVEN_REPOSITORY$/com/github/mifmif/generex/1.0.2/generex-1.0.2.jar">
+              <sha256sum>8f8ce233c335e08e113a3f9579de1046fb19927e82468b1bbebcd6cba8760b81</sha256sum>
+            </artifact>
+            <artifact url="file://$MAVEN_REPOSITORY$/dk/brics/automaton/automaton/1.11-8/automaton-1.11-8.jar">
+              <sha256sum>a24475f6ccfe1cc7a4fe9e34e05ce687b0ce0c6e8cb781e0eced3b186482c61e</sha256sum>
+            </artifact>
+          </verification>
+        </properties>
         <CLASSES>
           <root url="jar://$MAVEN_REPOSITORY$/com/github/mifmif/generex/1.0.2/generex-1.0.2.jar!/" />
           <root url="jar://$MAVEN_REPOSITORY$/dk/brics/automaton/automaton/1.11-8/automaton-1.11-8.jar!/" />
