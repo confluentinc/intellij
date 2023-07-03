@@ -13,7 +13,6 @@ import com.jetbrains.bigdatatools.common.monitoring.data.model.FilterKey
 import com.jetbrains.bigdatatools.common.monitoring.data.model.ObjectDataModel
 import com.jetbrains.bigdatatools.common.monitoring.table.DataTable
 import com.jetbrains.bigdatatools.common.monitoring.table.extension.CustomEmptyTextProvider
-import com.jetbrains.bigdatatools.common.monitoring.table.model.DataTableModel
 import com.jetbrains.bigdatatools.common.monitoring.toolwindow.AbstractTableController
 import com.jetbrains.bigdatatools.common.monitoring.toolwindow.MainTreeController
 import com.jetbrains.bigdatatools.common.settings.ColumnVisibilitySettings
@@ -101,18 +100,14 @@ class KafkaRegistryController(val project: Project,
   override fun customTableInit(table: DataTable<KafkaSchemaInfo>) {
     FavoriteRenderer.installOnColumn(table, columnModel.getColumn(0)).apply {
       onClick = { row, _ ->
-        @Suppress("UNCHECKED_CAST")
-        val schemaInfo = (table.model as? DataTableModel<KafkaSchemaInfo>)?.getInfoAt(table.convertRowIndexToModel(row))
+        val schemaInfo = table.getDataAt(row)
         schemaInfo?.let { dataManager.updatePinedSchemas(it.name, !it.isFavorite) }
       }
     }
 
     LinkRenderer.installOnColumn(table, columnModel.getColumn(1)).apply {
       onClick = { row, _ ->
-        val modelRowIndex = table.convertRowIndexToModel(row)
-
-        @Suppress("UNCHECKED_CAST")
-        val schema = (table.model as? DataTableModel<KafkaSchemaInfo>)?.getInfoAt(modelRowIndex)?.name
+        val schema = table.getDataAt(row)?.name
         schema?.let {
           mainController.open(KafkaDriver.schemasPath.child(it, false))
         }

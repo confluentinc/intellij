@@ -14,7 +14,6 @@ import com.jetbrains.bigdatatools.common.monitoring.data.model.FilterAdapter
 import com.jetbrains.bigdatatools.common.monitoring.data.model.FilterKey
 import com.jetbrains.bigdatatools.common.monitoring.table.DataTable
 import com.jetbrains.bigdatatools.common.monitoring.table.extension.CustomEmptyTextProvider
-import com.jetbrains.bigdatatools.common.monitoring.table.model.DataTableModel
 import com.jetbrains.bigdatatools.common.monitoring.toolwindow.AbstractTableController
 import com.jetbrains.bigdatatools.common.monitoring.toolwindow.MainTreeController
 import com.jetbrains.bigdatatools.common.table.renderers.FavoriteRenderer
@@ -104,18 +103,14 @@ class TopicsController(val project: Project,
   override fun customTableInit(table: DataTable<TopicPresentable>) {
     FavoriteRenderer.installOnColumn(table, columnModel.getColumn(0)).apply {
       onClick = { row, _ ->
-        @Suppress("UNCHECKED_CAST")
-        val topic = (table.model as? DataTableModel<TopicPresentable>)?.getInfoAt(table.convertRowIndexToModel(row))
+        val topic = table.getDataAt(row)
         topic?.let { dataManager.updatePinedTopics(it.name, !it.isFavorite) }
       }
     }
 
     LinkRenderer.installOnColumn(table, columnModel.getColumn(1)).apply {
       onClick = { row, _ ->
-        val modelRowIndex = table.convertRowIndexToModel(row)
-
-        @Suppress("UNCHECKED_CAST")
-        val topicName = (table.model as? DataTableModel<TopicPresentable>)?.getInfoAt(modelRowIndex)?.name
+        val topicName = table.getDataAt(row)?.name
         topicName?.let {
           mainController.open(KafkaDriver.topicPath.child(it, false))
         }
