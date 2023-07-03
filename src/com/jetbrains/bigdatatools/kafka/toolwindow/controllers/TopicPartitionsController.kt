@@ -19,10 +19,8 @@ class TopicPartitionsController(private val dataManager: KafkaDataManager) : Det
       val selectedRows = dataTable.selectedRows
 
       val selectedPartitions = selectedRows.map {
-        val modelIndex = dataTable.convertRowIndexToModel(it)
-        dataTable.tableModel.getInfoAt(modelIndex)
+        dataTable.getDataAt(it)
       }.mapNotNull { it }
-
 
       dataManager.clearPartitions(selectedPartitions)
     }
@@ -37,7 +35,6 @@ class TopicPartitionsController(private val dataManager: KafkaDataManager) : Det
   init {
     init()
   }
-
 
   override fun getAdditionalContextActions(): List<AnAction> = listOf(clearPartition)
 
