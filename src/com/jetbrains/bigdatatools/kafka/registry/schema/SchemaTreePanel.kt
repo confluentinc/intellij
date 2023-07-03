@@ -10,6 +10,7 @@ import com.intellij.ui.ScrollPaneFactory
 import com.intellij.ui.SideBorder
 import com.intellij.ui.treeStructure.treetable.ListTreeTableModel
 import com.intellij.ui.treeStructure.treetable.TreeTableModel
+import com.intellij.ui.util.preferredWidth
 import com.intellij.util.ui.ColumnInfo
 import com.intellij.util.ui.JBUI
 import com.jetbrains.bigdatatools.common.rfs.editorviewer.RfsTreeTable
@@ -57,6 +58,7 @@ class SchemaTreePanel {
   private val scrollPanel = ScrollPaneFactory.createScrollPane(treeTable, ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED,
                                                                ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER).apply {
     border = BorderFactory.createEmptyBorder()
+    preferredWidth = 400
   }
 
   private var listener: TreeExpansionListener? = null

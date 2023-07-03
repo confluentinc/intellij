@@ -72,6 +72,7 @@ class KafkaRegistrySchemaEditor(private val project: Project,
   })).apply {
     autoscrolls = false
     setCaretPosition(0)
+    setPreferredWidth(600)
     document.setReadOnly(!isEditable)
   }
 }
