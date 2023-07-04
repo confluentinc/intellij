@@ -43,10 +43,10 @@ class KafkaBrokerSettings(val project: Project,
                           val connectionData: KafkaConnectionData,
                           private val uiDisposable: Disposable,
                           val url: StringNamedField<ConnectionData>,
-                          registryType: RadioGroupField<KafkaConnectionData, KafkaRegistryType>) {
-  val isRegistryVisible = AtomicBooleanProperty(connectionData.brokerConfigurationSource != KafkaConfigurationSource.CLOUD)
+                          val registryType: RadioGroupField<KafkaConnectionData, KafkaRegistryType>) {
+  val isRegistryVisible = AtomicBooleanProperty(true)
 
-  private val confSource = RadioGroupField(KafkaConnectionData::brokerConfigurationSource,
+  internal val confSource = RadioGroupField(KafkaConnectionData::brokerConfigurationSource,
                                            KafkaSettingsCustomizer.KafkaSettingsKeys.CONFIGURATION_SOURCE_KEY,
                                            connectionData,
                                            KafkaConfigurationSource.values()).apply {
@@ -55,7 +55,7 @@ class KafkaBrokerSettings(val project: Project,
     }
   }
 
-  private val cloudSource = RadioGroupField(KafkaConnectionData::brokerCloudSource,
+  internal val cloudSource = RadioGroupField(KafkaConnectionData::brokerCloudSource,
                                             KafkaSettingsCustomizer.KafkaSettingsKeys.CLOUD_PROVIDER,
                                             connectionData,
                                             KafkaCloudType.values()).apply {
@@ -104,7 +104,7 @@ class KafkaBrokerSettings(val project: Project,
   }
 
 
-  private val confluentSettings = KafkaConfluentSettings(project, connectionData, uiDisposable, url, propertiesEditor, registryType)
+  private val confluentSettings = KafkaConfluentSettings(project, connectionData, uiDisposable, url, propertiesEditor, this)
   private lateinit var propertiesKerberosLinkRow: Row
 
   private lateinit var cloudGroup: RowsRange
@@ -510,7 +510,7 @@ class KafkaBrokerSettings(val project: Project,
 
     updateUrlVisibility()
 
-    isRegistryVisible.set(confSource.getValue() != KafkaConfigurationSource.CLOUD || cloudSource.getValue() != KafkaCloudType.CONFLUENT)
+    isRegistryVisible.set(isSchemaVisible())
 
     when (confSource.getValue()) {
       KafkaConfigurationSource.FROM_UI -> {
@@ -533,7 +533,7 @@ class KafkaBrokerSettings(val project: Project,
     if (cloudSource.getValue() == KafkaCloudType.AWS_MSK) {
       awsMskCloudSettings.updateVisibility()
     }
-    isRegistryVisible.set(cloudSource.getValue() == KafkaCloudType.AWS_MSK)
+    isRegistryVisible.set(isSchemaVisible())
   }
 
   private fun onUpdatePropertiesSource() {
@@ -595,4 +595,7 @@ class KafkaBrokerSettings(val project: Project,
     properties[CommonClientConfigs.SECURITY_PROTOCOL_CONFIG]?.let {
       SecurityProtocol.values().firstOrNull { protocol -> protocol.name == it }
     }
+
+  private fun isSchemaVisible(): Boolean =
+    confSource.getValue() != KafkaConfigurationSource.CLOUD || cloudSource.getValue() != KafkaCloudType.CONFLUENT
 }
