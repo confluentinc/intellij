@@ -105,47 +105,47 @@ class KafkaConsumerClient(val dataManager: KafkaDataManager,
           val processedRecords = mutableListOf<ConsumerRecord<Any, Any>>()
           var consumedRecords = 0
           timestampUpdate()
-          records.forEach { record: ConsumerRecord<Any, Any> ->
+          val shouldConfinue = records.all { record: ConsumerRecord<Any, Any> ->
             if (limit.time != null && record.timestamp() > limit.time) {
-              return
+              return@all false
             }
 
             if (!config.getFilter().isRecordPassFilter(record))
-              return@forEach
+              return@all true
 
             val recordSize = record.serializedValueSize() + record.serializedKeySize()
 
             if (needToReadTopicSize != null && needToReadTopicSize!! <= 0L) {
-              return
+              return@all false
             }
             needToReadTopicSize = needToReadTopicSize?.minus(recordSize)
 
             if (needToReadPartitionSize != null) {
               if (needToReadPartitionSize.isEmpty()) {
-                return
+                return@all false
               }
 
               val left = needToReadPartitionSize[record.partition()]
               when {
-                left == null -> return@forEach
+                left == null -> return@all true
                 left > 0 -> needToReadPartitionSize[record.partition()] = left - 1
                 else -> needToReadPartitionSize.remove(record.partition())
               }
             }
 
             if (needToReadTopicCount == 0L) {
-              return
+              return@all false
             }
             needToReadTopicCount = needToReadTopicCount?.minus(1)
 
             if (needToReadPartitionCount != null) {
               if (needToReadPartitionCount.isEmpty()) {
-                return
+                return@all false
               }
 
               val left = needToReadPartitionCount[record.partition()]
               when {
-                left == null -> return@forEach
+                left == null -> return@all true
                 left > 1 -> needToReadPartitionCount[record.partition()] = left - 1
                 else -> needToReadPartitionCount.remove(record.partition())
               }
@@ -153,12 +153,15 @@ class KafkaConsumerClient(val dataManager: KafkaDataManager,
 
             processedRecords.add(record)
             consumedRecords++
+            return@all true
           }
 
           if (processedRecords.size > 0)
             KafkaUsagesCollector.consumedKeyValue.log(config.getKeyType(), config.getValueType(), consumedRecords)
 
           consume(endPoll - startPoll, processedRecords)
+          if (!shouldConfinue)
+            return
         }
       }
     }
