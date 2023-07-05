@@ -5,12 +5,12 @@
 
   <description><![CDATA[
 <p>Monitor your <a href="https://kafka.apache.org/">Kafka</a> event streaming processes:
-<dl>
-   <dd>- Connect to Kafka cluster</dd>
-   <dd>- Produce and consume messages in different formats including Avro and Protobuf</dd>
-   <dd>- Manage topics, and monitor consumer groups</dd>
-   <dd>- Use Confluent Schema Registry and AWS Glue Schema Registry</dd>
-</dl>
+<ul>
+   <li>Connect to Kafka cluster</li>
+   <li>Produce and consume messages in different formats including Avro and Protobuf</li>
+   <li>Manage topics, and monitor consumer groups</li>
+   <li>Use Confluent Schema Registry and AWS Glue Schema Registry</li>
+</ul>
 </p>
 
 <p>This plugin is a part of the <a href="https://plugins.jetbrains.com/plugin/12494-big-data-tools">Big Data Tools</a> plugin bundle.</p>
