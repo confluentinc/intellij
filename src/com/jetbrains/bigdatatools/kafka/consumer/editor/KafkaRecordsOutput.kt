@@ -24,7 +24,6 @@ import com.jetbrains.bigdatatools.common.table.renderers.DateRenderer
 import com.jetbrains.bigdatatools.common.table.renderers.DurationRenderer
 import com.jetbrains.bigdatatools.common.ui.ExpansionPanel
 import com.jetbrains.bigdatatools.common.ui.onDoubleClick
-import com.jetbrains.bigdatatools.common.ui.removeSouthComponent
 import com.jetbrains.bigdatatools.common.ui.setSouthComponent
 import com.jetbrains.bigdatatools.kafka.common.editor.ListTableModel
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
@@ -97,9 +96,8 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
   private val outputTablePanelDelegate = lazy {
     JPanel(BorderLayout()).apply {
       add(ScrollPaneFactory.createScrollPane(outputTable, true), BorderLayout.CENTER)
-      if (PropertiesComponent.getInstance().getBoolean(TABLE_STATS_ID, false)) {
-        setSouthComponent(this@KafkaRecordsOutput.statisticPanel.component)
-      }
+      setSouthComponent(statisticPanel.component)
+      statisticPanel.component.isVisible = PropertiesComponent.getInstance().getBoolean(TABLE_STATS_ID, false)
     }
   }
   private val outputTablePanel: JPanel by outputTablePanelDelegate
@@ -128,15 +126,10 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
 
     val tableStatusButton = object : DumbAwareToggleAction(KafkaMessagesBundle.message("action.table.stats"), null,
                                                            AllIcons.General.ShowInfos) {
-      override fun isSelected(e: AnActionEvent) = this@KafkaRecordsOutput.statisticPanel.component.parent != null
+      override fun isSelected(e: AnActionEvent) = statisticPanel.component.isVisible
       override fun getActionUpdateThread() = ActionUpdateThread.BGT
       override fun setSelected(e: AnActionEvent, state: Boolean) {
-        if (state) {
-          outputTablePanel.setSouthComponent(this@KafkaRecordsOutput.statisticPanel.component)
-        }
-        else {
-          outputTablePanel.removeSouthComponent()
-        }
+        statisticPanel.component.isVisible = state
         PropertiesComponent.getInstance().setValue(TABLE_STATS_ID, state)
         outputTablePanel.revalidate()
       }
@@ -149,8 +142,8 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
     ).apply {
       expandedServiceKey = DATA_SHOW_ID
       addChangeListener {
-        resultsSplitter.proportion = if (this.expanded) 1f else 0.0001f
-        resultsSplitter.setResizeEnabled(this.expanded)
+        resultsSplitter.proportion = if (expanded) 1f else 0.0001f
+        resultsSplitter.setResizeEnabled(expanded)
       }
     }
 
@@ -162,7 +155,7 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
       expandedServiceKey = DETAILS_SHOW_ID
       addChangeListener {
         resultsSplitter.proportion = 1f
-        if (this.expanded) {
+        if (expanded) {
           updateDetails()
         }
       }
@@ -244,7 +237,6 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
       details.update(row)
     }
   }
-
 
   companion object {
     private val TIMESTAMP_FIELD = KafkaMessagesBundle.message("output.column.timestamp")

@@ -1,13 +1,13 @@
 package com.jetbrains.bigdatatools.kafka.consumer.editor
 
-import com.intellij.ui.IdeBorderFactory
-import com.intellij.ui.SideBorder
+import com.intellij.openapi.actionSystem.DefaultActionGroup
+import com.jetbrains.bigdatatools.common.ui.CustomComponentActionImpl
+import com.jetbrains.bigdatatools.common.ui.ToolbarGreyLabelActionImpl
 import com.jetbrains.bigdatatools.common.util.SizeUtils
 import com.jetbrains.bigdatatools.common.util.TimeUtils
+import com.jetbrains.bigdatatools.common.util.ToolbarUtils
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
-import java.awt.FlowLayout
 import javax.swing.JLabel
-import javax.swing.JPanel
 
 class ConsumerTableStats {
   private var totalMessageCount: Long = 0
@@ -16,24 +16,32 @@ class ConsumerTableStats {
   private var totalPollTime: Long = 0
   private var startTime: Long = System.currentTimeMillis()
 
-  private val totalTimeLabel = JLabel()
+  private val totalTimeLabel = JLabel("?")
 
-  private val messagesTotalCountLabel = JLabel()
-  private val messagesTotalSizeLabel = JLabel()
-  private val messagesPerSecondLabel = JLabel()
+  private val messagesTotalCountLabel = JLabel("?")
+  private val messagesTotalSizeLabel = JLabel("?")
+  private val messagesPerSecondLabel = JLabel("?")
 
-  private val totalFetchLabel = JLabel()
-  private val averageFetchPerSecLabel = JLabel()
+  private val totalFetchLabel = JLabel("?")
+  private val averageFetchPerSecLabel = JLabel("?")
 
-  val component = JPanel(FlowLayout(FlowLayout.LEFT)).apply {
-    border = IdeBorderFactory.createBorder(SideBorder.TOP)
-    add(JLabel(KafkaMessagesBundle.message("table.stats.count")).apply { isEnabled = false }); add(messagesTotalCountLabel)
-    add(JLabel(KafkaMessagesBundle.message("table.stats.size")).apply { isEnabled = false }); add(messagesTotalSizeLabel)
-    add(JLabel(KafkaMessagesBundle.message("table.stats.count.per.sec")).apply { isEnabled = false }); add(messagesPerSecondLabel)
-    add(JLabel(KafkaMessagesBundle.message("table.stats.count.updates")).apply { isEnabled = false }); add(totalFetchLabel)
-    add(JLabel(KafkaMessagesBundle.message("table.stats.count.updates.per.sec")).apply { isEnabled = false }); add(averageFetchPerSecLabel)
-    add(JLabel(KafkaMessagesBundle.message("table.stats.elapsed")).apply { isEnabled = false }); add(totalTimeLabel)
+  @Suppress("DialogTitleCapitalization") // This is a special toolbar and this items should not be capitalized.
+  val group = DefaultActionGroup().apply {
+    add(ToolbarGreyLabelActionImpl(KafkaMessagesBundle.message("table.stats.count")))
+    add(CustomComponentActionImpl(messagesTotalCountLabel))
+    add(ToolbarGreyLabelActionImpl(KafkaMessagesBundle.message("table.stats.size")))
+    add(CustomComponentActionImpl(messagesTotalSizeLabel))
+    add(ToolbarGreyLabelActionImpl(KafkaMessagesBundle.message("table.stats.count.per.sec")))
+    add(CustomComponentActionImpl(messagesPerSecondLabel))
+    add(ToolbarGreyLabelActionImpl(KafkaMessagesBundle.message("table.stats.count.updates")))
+    add(CustomComponentActionImpl(totalFetchLabel))
+    add(ToolbarGreyLabelActionImpl(KafkaMessagesBundle.message("table.stats.count.updates.per.sec")))
+    add(CustomComponentActionImpl(averageFetchPerSecLabel))
+    add(ToolbarGreyLabelActionImpl(KafkaMessagesBundle.message("table.stats.elapsed")))
+    add(CustomComponentActionImpl(totalTimeLabel))
   }
+
+  val component = ToolbarUtils.createActionToolbar("BDTCollapsiblePanel", group, horizontal = true).component
 
   fun start() {
     totalMessageCount = 0
