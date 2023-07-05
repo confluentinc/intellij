@@ -1,7 +1,10 @@
 package com.jetbrains.bigdatatools.kafka.registry
 
 import com.intellij.icons.AllIcons
+import com.intellij.json.JsonLanguage
+import com.intellij.lang.Language
 import com.intellij.openapi.application.runInEdt
+import com.intellij.openapi.fileTypes.PlainTextLanguage
 import com.intellij.openapi.observable.properties.AtomicBooleanProperty
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.ComboBox
@@ -72,7 +75,7 @@ class KafkaRegistryAddSchemaDialog(project: Project, val dataManager: KafkaDataM
   private val recordFieldVisible = AtomicBooleanProperty(false)
   private val subjectFieldVisible = AtomicBooleanProperty(false)
 
-  private val textScrollPane = KafkaRegistrySchemaEditor(project) {
+  private val textScrollPane = KafkaRegistrySchemaEditor(project, disposable) {
     updateParsedSchema()
     updateRecordFieldText()
   }
@@ -89,7 +92,6 @@ class KafkaRegistryAddSchemaDialog(project: Project, val dataManager: KafkaDataM
       if (isConfluentSchema) {
         label(KafkaMessagesBundle.message("schema.registry.add.schema.dialog.field.strategy"))
         cell(strategyCombobox)
-
       }
     }
 
@@ -102,7 +104,6 @@ class KafkaRegistryAddSchemaDialog(project: Project, val dataManager: KafkaDataM
         cell(recordField).align(Align.FILL).resizableColumn()
       }.visibleIf(recordFieldVisible)
     }
-
 
     row(subjectNameLabel) {
       cell(subjectNameField).align(Align.FILL).resizableColumn().validationOnApply {
@@ -117,9 +118,10 @@ class KafkaRegistryAddSchemaDialog(project: Project, val dataManager: KafkaDataM
 
     row { cell(textScrollPane.component).align(Align.FILL).resizableColumn() }.resizableRow()
     errorRow = row {
-      label("").component.icon = AllIcons.General.Error; errorLabel = comment("").component.apply {
-      foreground = UIUtil.getLabelForeground()
-    }
+      label("").component.icon = AllIcons.General.Error
+      errorLabel = comment("").component.apply {
+        foreground = UIUtil.getLabelForeground()
+      }
     }
     errorRow.visible(false)
   }
@@ -156,13 +158,12 @@ class KafkaRegistryAddSchemaDialog(project: Project, val dataManager: KafkaDataM
   fun applyRegistryInfo(schemaFormat: KafkaRegistryFormat, schemaDefinition: String) {
     formatCombobox.selectedItem = schemaFormat
     if (schemaFormat == KafkaRegistryFormat.PROTOBUF) {
-      textScrollPane.setText(schemaDefinition, isJson = false)
+      textScrollPane.setText(schemaDefinition, Language.findLanguageByID("protobuf") ?: PlainTextLanguage.INSTANCE)
     }
     else {
-      textScrollPane.setText(KafkaEditorUtils.toPrettyJson(schemaDefinition), isJson = true)
+      textScrollPane.setText(KafkaEditorUtils.tryFormatJson(schemaDefinition), JsonLanguage.INSTANCE)
     }
   }
-
 
   override fun createCenterPanel(): JComponent = panel
 
@@ -172,9 +173,9 @@ class KafkaRegistryAddSchemaDialog(project: Project, val dataManager: KafkaDataM
 
   private fun onChangeFormat() {
     val newDefault = KafkaRegistryTemplates.getDefaultIfNotConfigured(textScrollPane.text, getFormat())
-    newDefault?.let {
-      textScrollPane.setText(it, isJson = formatCombobox.selectedItem != KafkaRegistryFormat.PROTOBUF)
-    } ?: textScrollPane.setText(textScrollPane.text, isJson = formatCombobox.selectedItem != KafkaRegistryFormat.PROTOBUF)
+    textScrollPane.setText(newDefault ?: textScrollPane.text,
+                           if (formatCombobox.selectedItem != KafkaRegistryFormat.PROTOBUF) JsonLanguage.INSTANCE
+                           else Language.findLanguageByID("protobuf") ?: PlainTextLanguage.INSTANCE)
     updateRecordFieldText()
   }
 

@@ -1,8 +1,11 @@
 package com.jetbrains.bigdatatools.kafka.registry.confluent.controller
 
 import com.intellij.icons.AllIcons
+import com.intellij.json.JsonLanguage
+import com.intellij.lang.Language
 import com.intellij.openapi.actionSystem.*
 import com.intellij.openapi.actionSystem.impl.MoreActionGroup
+import com.intellij.openapi.fileTypes.PlainTextLanguage
 import com.intellij.openapi.observable.properties.AtomicBooleanProperty
 import com.intellij.openapi.observable.util.and
 import com.intellij.openapi.project.DumbAwareAction
@@ -77,7 +80,7 @@ class KafkaSchemaController(private val project: Project,
 
   private val curComponent = JBPanelWithEmptyText(BorderLayout())
 
-  private val schemaView = KafkaRegistrySchemaEditor(project, isEditable = false)
+  private val schemaView = KafkaRegistrySchemaEditor(project, parentDisposable = this, isEditable = false)
   private val structureView = SchemaTreePanel()
 
   private val diffViewController = SchemaVersionDiffController(project).also {
@@ -88,7 +91,6 @@ class KafkaSchemaController(private val project: Project,
     row {
       cell(structureView.getComponent()).align(Align.FILL)
     }.resizableRow().visibleIf(isStructure)
-
 
     row {
       cell(schemaView.component).align(Align.FILL)
@@ -137,7 +139,8 @@ class KafkaSchemaController(private val project: Project,
       val parsedSchema = KafkaRegistryUtil.parseSchema(schemaType = it.type, newText = it.schema, references = it.references).getOrNull()
                          ?: return@onSuccess
       invokeLater {
-        schemaView.setText(prettySchema, it.type != KafkaRegistryFormat.PROTOBUF)
+        schemaView.setText(prettySchema, if (it.type != KafkaRegistryFormat.PROTOBUF) JsonLanguage.INSTANCE
+        else Language.findLanguageByID("protobuf") ?: PlainTextLanguage.INSTANCE)
         structureView.update(parsedSchema)
         diffViewController.updateVersion1(it)
       }
