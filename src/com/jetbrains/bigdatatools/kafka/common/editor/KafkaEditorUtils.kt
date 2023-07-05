@@ -76,21 +76,17 @@ object KafkaEditorUtils {
     catch (e: Exception) {
       value.toString()
     }
-    type == KafkaFieldType.JSON -> try {
-      toPrettyJson(value.toString())
-    }
-    catch (e: Exception) {
-      value.toString()
-    }
+    type == KafkaFieldType.JSON -> tryFormatJson(value.toString())
+
     type == KafkaFieldType.SCHEMA_REGISTRY -> {
       when (format) {
         KafkaRegistryFormat.AVRO -> {
           val avro = AvroSchemaUtils.toJson(value).toString(Charset.defaultCharset())
-          toPrettyJson(avro)
+          tryFormatJson(avro)
         }
         KafkaRegistryFormat.PROTOBUF -> try {
           val message = value as Message
-          toPrettyJson(ProtobufSchemaUtils.toJson(message).toString(Charset.defaultCharset()))
+          tryFormatJson(ProtobufSchemaUtils.toJson(message).toString(Charset.defaultCharset()))
         }
         catch (t: Throwable) {
           value.toString()
@@ -112,17 +108,12 @@ object KafkaEditorUtils {
               JsonSchemaUtils.toJson(value).toString(Charset.defaultCharset())
             }
           }
-          toPrettyJson(jsonString)
+          tryFormatJson(jsonString)
         }
         KafkaRegistryFormat.UNKNOWN -> value.toString()
       }
     }
     else -> value.toString()
-  }
-
-  fun toPrettyJson(jsonString: String): String {
-    val gson = GsonBuilder().disableHtmlEscaping().setPrettyPrinting().serializeNulls().create()
-    return gson.toJson(JsonParser.parseString(jsonString))
   }
 
   internal class KafkaDataModelListener<T>(private val comboBox: ComboBox<T>,
@@ -132,7 +123,6 @@ object KafkaEditorUtils {
     override fun onError(msg: String, e: Throwable?) = updateComboBox(comboBox, onListUpdate, dataSupplier)
   }
 
-
   fun createFieldTypeComboBox(topicCombobox: ComboBox<TopicInEditor>,
                               dataManager: KafkaDataManager,
                               isKey: Boolean,
@@ -141,7 +131,6 @@ object KafkaEditorUtils {
       KafkaFieldType.allValues
     else
       KafkaFieldType.defaultValues
-
 
     val defaultFieldType = if (isKey) KafkaFieldType.STRING else KafkaFieldType.JSON
     val fieldsCombobox = ComboBox(fieldTypes.toTypedArray<KafkaFieldType>()).apply<ComboBox<KafkaFieldType>> {
@@ -168,7 +157,6 @@ object KafkaEditorUtils {
     return fieldsCombobox
   }
 
-
   fun createConsumerGroups(rootDisposable: Disposable, kafkaManager: KafkaDataManager): ComboBox<ConsumerGroupPresentable> {
     val groups = kafkaManager.consumerGroupsModel
     val comboBox = ComboBox(groups.data?.map { it }?.toTypedArray() ?: emptyArray())
@@ -186,7 +174,6 @@ object KafkaEditorUtils {
 
     return comboBox
   }
-
 
   fun createTopicComboBox(rootDisposable: Disposable, kafkaManager: KafkaDataManager): ComboBox<TopicInEditor> {
     val topics = kafkaManager.getTopics()
@@ -214,7 +201,6 @@ object KafkaEditorUtils {
     topicComboBox.getValidator()?.enableValidation()
     return topicComboBox
   }
-
 
   fun createSchemaComboBox(rootDisposable: Disposable,
                            kafkaManager: KafkaDataManager,
@@ -259,16 +245,12 @@ object KafkaEditorUtils {
       kafkaManager.schemaRegistryModel?.removeListener(listener)
     }
 
-
-
-
     topicComboBox.addItemListener {
       if (it.stateChange != SELECTED)
         return@addItemListener
       prevSchemaName = null
       updateComboBox(schemaCombobox) { calculateSchemasForCombobox(kafkaManager, topicComboBox, isKey, prevSchemaName) }
     }
-
 
     kafkaManager.initRefreshSchemasIfRequired()
     schemaCombobox.withValidator(rootDisposable) {
@@ -280,7 +262,6 @@ object KafkaEditorUtils {
     return schemaCombobox
   }
 
-
   private fun calculateSchemaTypeForTopic(kafkaManager: KafkaDataManager,
                                           topicComboBox: ComboBox<TopicInEditor>,
                                           isKey: Boolean): KafkaFieldType? {
@@ -291,7 +272,6 @@ object KafkaEditorUtils {
     else
       null
   }
-
 
   private fun calculateSchemasForCombobox(kafkaManager: KafkaDataManager,
                                           topicComboBox: ComboBox<TopicInEditor>,

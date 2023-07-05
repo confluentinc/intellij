@@ -6,7 +6,10 @@ import com.intellij.diff.chains.SimpleDiffRequestChain
 import com.intellij.diff.impl.CacheDiffRequestChainProcessor
 import com.intellij.diff.requests.SimpleDiffRequest
 import com.intellij.json.JsonFileType
+import com.intellij.json.JsonLanguage
+import com.intellij.lang.Language
 import com.intellij.openapi.fileTypes.FileTypeManager
+import com.intellij.openapi.fileTypes.PlainTextLanguage
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.DialogBuilder
 import com.intellij.openapi.ui.DialogWrapper
@@ -35,15 +38,14 @@ object KafkaSchemaInfoDialog {
            schemaName: String) {
     val schema = KafkaRegistryUtil.getPrettySchema(schemaType = schemaType, schema = schemaDefinition)
 
-    val isJson = KafkaRegistryFormat.valueOf(schemaType) != KafkaRegistryFormat.PROTOBUF
-
     invokeLater {
-      val dialogWrapper = DialogBuilder(project)
-      dialogWrapper.title(KafkaMessagesBundle.message("registry.info.dialog.title", schemaName))
-      dialogWrapper.centerPanel(KafkaRegistrySchemaEditor(project).apply {
-        setText(schema, isJson)
+      val dialogBuilder = DialogBuilder(project)
+      dialogBuilder.title(KafkaMessagesBundle.message("registry.info.dialog.title", schemaName))
+      dialogBuilder.centerPanel(KafkaRegistrySchemaEditor(project, parentDisposable = dialogBuilder).apply {
+        setText(schema, if (KafkaRegistryFormat.valueOf(schemaType) != KafkaRegistryFormat.PROTOBUF) JsonLanguage.INSTANCE
+        else Language.findLanguageByID("protobuf") ?: PlainTextLanguage.INSTANCE)
       }.component).addOkAction()
-      dialogWrapper.show()
+      dialogBuilder.show()
     }
   }
 
@@ -72,7 +74,6 @@ object KafkaSchemaInfoDialog {
     else
       FileTypeManager.getInstance().findFileTypeByName("protobuf")
 
-
     val schemaFirst = KafkaRegistryUtil.getPrettySchema(schemaType = schemaType, schema = schemaDefinition1)
     val schemaSecond = KafkaRegistryUtil.getPrettySchema(schemaType = schemaType, schema = schemaDefinition2)
 
@@ -81,7 +82,6 @@ object KafkaSchemaInfoDialog {
 
     val new = DiffContentFactory.getInstance().create(schemaSecond, fileType)
     new.document.setReadOnly(false)
-
 
     val diffData = SimpleDiffRequest(KafkaMessagesBundle.message("show.edit.schema.diff.title", schemaName),
                                      prev,
@@ -95,7 +95,6 @@ object KafkaSchemaInfoDialog {
 
     var errorLabel: JEditorPane? = null
 
-
     val panel = panel {
       row { cell(processor.component).align(Align.FILL).resizableColumn() }.resizableRow()
       row {
@@ -104,7 +103,6 @@ object KafkaSchemaInfoDialog {
         }
       }
     }
-
 
     val dialogWrapper = DialogBuilder(project)
     Disposer.register(dialogWrapper, processor)
