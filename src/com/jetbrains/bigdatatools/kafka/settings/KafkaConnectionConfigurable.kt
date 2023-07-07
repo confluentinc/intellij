@@ -10,6 +10,7 @@ class KafkaConnectionConfigurable(connectionData: KafkaConnectionData, project: 
   private val settingsCustomizer: KafkaSettingsCustomizer
     get() = KafkaSettingsCustomizer(project, connectionData, disposable)
 
+  override fun getHelpTopic() = "big.data.tools.kafka"
   override fun createSettingsCustomizer() = settingsCustomizer
   override fun createConnectionTesting() = KafkaTestingBase(project, settingsCustomizer)
 }
