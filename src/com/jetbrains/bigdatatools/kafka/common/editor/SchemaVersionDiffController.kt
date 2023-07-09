@@ -14,13 +14,16 @@ import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryFormat
 import com.jetbrains.bigdatatools.kafka.registry.SchemaVersionInfo
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import java.awt.BorderLayout
+import java.awt.Dimension
 
 class SchemaVersionDiffController(val project: Project) : Disposable {
   private var schema1: SchemaVersionInfo? = null
   private var schema2: SchemaVersionInfo? = null
   private var disposable = Disposer.newDisposable(this)
 
-  val component = JBPanelWithEmptyText(BorderLayout())
+  val component = JBPanelWithEmptyText(BorderLayout()).also {
+    it.preferredSize = Dimension(800, 400)
+  }
 
   fun updateVersion1(schema: SchemaVersionInfo) {
     schema1 = schema
