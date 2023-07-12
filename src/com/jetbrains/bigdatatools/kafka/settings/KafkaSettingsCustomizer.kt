@@ -1,24 +1,32 @@
 package com.jetbrains.bigdatatools.kafka.settings
 
+import com.intellij.bigdatatools.aws.connection.auth.AuthenticationType
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.ui.ComboBox
+import com.intellij.openapi.ui.TextFieldWithBrowseButton
+import com.intellij.ui.components.JBCheckBox
+import com.intellij.ui.components.JBPasswordField
+import com.intellij.ui.components.JBTextField
 import com.intellij.ui.dsl.builder.BottomGap
+import com.intellij.ui.dsl.builder.Cell
 import com.intellij.ui.dsl.builder.TopGap
 import com.intellij.ui.dsl.builder.panel
 import com.jetbrains.bigdatatools.common.connection.tunnel.ui.SshTunnelComponent
 import com.jetbrains.bigdatatools.common.monitoring.TunnableSettingsCustomizer
 import com.jetbrains.bigdatatools.common.settings.ModificationKey
 import com.jetbrains.bigdatatools.common.settings.connections.ConnectionData
-import com.jetbrains.bigdatatools.common.settings.fields.RadioGroupField
-import com.jetbrains.bigdatatools.common.settings.fields.StringNamedField
-import com.jetbrains.bigdatatools.common.settings.fields.WrappedComponent
+import com.jetbrains.bigdatatools.common.settings.fields.*
 import com.jetbrains.bigdatatools.common.settings.withValidator
 import com.jetbrains.bigdatatools.common.ui.block
+import com.jetbrains.bigdatatools.common.ui.components.ConnectionPropertiesEditor
+import com.jetbrains.bigdatatools.common.ui.components.RadioComboBox
 import com.jetbrains.bigdatatools.common.ui.row
 import com.jetbrains.bigdatatools.common.util.BdtUrlUtils
 import com.jetbrains.bigdatatools.common.util.MessagesBundle
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryType
-import com.jetbrains.bigdatatools.kafka.rfs.KafkaConnectionData
+import com.jetbrains.bigdatatools.kafka.rfs.*
+import com.jetbrains.bigdatatools.kafka.statistics.KafkaSettingsCollector
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 
 class KafkaSettingsCustomizer(project: Project, connectionData: KafkaConnectionData, uiDisposable: Disposable) :
@@ -32,12 +40,78 @@ class KafkaSettingsCustomizer(project: Project, connectionData: KafkaConnectionD
       getTextComponent().toolTipText = KafkaMessagesBundle.message("settings.url.text.hint")
     }.withValidator(uiDisposable, ::validateBrokerNames) as StringNamedField
 
-  private val registryType = RadioGroupField(KafkaConnectionData::registryType,
-                                             ModificationKey(KafkaMessagesBundle.message("schema.registry.type.label")), connectionData,
-                                             KafkaRegistryType.values())
+  internal val registryType = RadioGroupField(KafkaConnectionData::registryType,
+                                              ModificationKey(KafkaMessagesBundle.message("schema.registry.type.label")), connectionData,
+                                              KafkaRegistryType.values())
 
   private val brokerSettings = KafkaBrokerSettings(project, connectionData, uiDisposable, url, registryType)
   private val registrySettings = KafkaRegistrySettings(project, connectionData, uiDisposable, registryType)
+
+  internal lateinit var brokerConfSource: RadioGroupField<KafkaConnectionData, KafkaConfigurationSource>
+  internal lateinit var brokerCloudSource: RadioGroupField<KafkaConnectionData, KafkaCloudType>
+  internal lateinit var brokerPropertiesSource: RadioGroupField<KafkaConnectionData, KafkaPropertySource>
+  internal lateinit var brokerPropertiesEditor: PropertiesFieldComponent<KafkaConnectionData>
+  internal lateinit var brokerPropertiesFile: BrowseTextField<KafkaConnectionData>
+  internal lateinit var brokerConfluentConf: ConnectionPropertiesEditor
+  internal lateinit var brokerMskUrl: Cell<JBTextField>
+  internal lateinit var brokerAuthType: RadioComboBox<KafkaAuthMethod>
+
+  internal lateinit var brokerMskCloudAccessKey: Cell<JBTextField>
+  internal lateinit var brokerMskCloudSecretKey: Cell<JBPasswordField>
+  internal lateinit var brokerMskCloudAuthType: Cell<ComboBox<AuthenticationType>>
+  internal lateinit var brokerMskCloudProfile: Cell<ComboBox<String>>
+
+  internal lateinit var brokerAwsIamAccess: Cell<JBTextField>
+  internal lateinit var brokerAwsIamSecretKey: Cell<JBPasswordField>
+  internal lateinit var brokerAwsIamAuthType: Cell<ComboBox<AuthenticationType>>
+  internal lateinit var brokerAwsIamProfile: Cell<ComboBox<String>>
+
+
+  internal lateinit var brokerSaslKeytab: Cell<TextFieldWithBrowseButton>
+  internal lateinit var brokerSaslMechanism: Cell<ComboBox<KafkaSaslMechanism>>
+  internal lateinit var brokerSaslPassword: Cell<JBPasswordField>
+  internal lateinit var brokerSaslPrincipal: Cell<JBTextField>
+  internal lateinit var brokerSaslUsername: Cell<JBTextField>
+  internal lateinit var brokerSaslUseTicketCache: Cell<JBCheckBox>
+  internal lateinit var brokerSaslSecurityProtocol: Cell<JBCheckBox>
+
+
+  internal lateinit var brokerSslKeyPassword: Cell<JBPasswordField>
+  internal lateinit var brokerSslKeystorePassword: Cell<JBPasswordField>
+  internal lateinit var brokerSslTruststorePassword: Cell<JBPasswordField>
+  internal lateinit var brokerSslKeystoreLocation: Cell<TextFieldWithBrowseButton>
+  internal lateinit var brokerSslTrustoreLocation: Cell<TextFieldWithBrowseButton>
+  internal lateinit var brokerSslUseKeystore: Cell<JBCheckBox>
+  internal lateinit var brokerSslEnableValidation: Cell<JBCheckBox>
+
+
+  internal lateinit var registryConfluentUrl: WrappedTextComponent<KafkaConnectionData, *>
+  internal lateinit var registryConfluentSource: RadioGroupField<KafkaConnectionData, KafkaConfigurationSource>
+  internal lateinit var registryConfluentProperties: PropertiesFieldComponent<KafkaConnectionData>
+  internal lateinit var registryConfluentAuth: RadioComboBox<SchemaRegistryAuthType>
+  internal lateinit var registryConfluentBasicAuth: Cell<JBTextField>
+  internal lateinit var registryConfluentBasicPassword: Cell<JBPasswordField>
+  internal lateinit var registryConfluentBearerToken: Cell<JBTextField>
+  internal lateinit var registryConfluentUseProxy: Cell<JBCheckBox>
+  internal lateinit var registryConfluentProxyUrl: Cell<JBTextField>
+  internal lateinit var registryConfluentUseBrokerSsl: Cell<JBCheckBox>
+  internal lateinit var registryConfluentSslKeyPassword: Cell<JBPasswordField>
+  internal lateinit var registryConfluentSslKeystorePassword: Cell<JBPasswordField>
+  internal lateinit var registryConfluentSslTruststorePassword: Cell<JBPasswordField>
+  internal lateinit var registryConfluentSslKeystoreLocation: Cell<TextFieldWithBrowseButton>
+  internal lateinit var registryConfluentSslTrustoreLocation: Cell<TextFieldWithBrowseButton>
+  internal lateinit var registryConfluentSslUseKeystore: Cell<JBCheckBox>
+  internal lateinit var registryConfluentSslEnableValidation: Cell<JBCheckBox>
+
+  internal lateinit var registryGlueAccessKey: Cell<JBTextField>
+  internal lateinit var registryGlueSecretKey: Cell<JBPasswordField>
+  internal lateinit var registryGlueAuthType: Cell<ComboBox<AuthenticationType>>
+  internal lateinit var registryGlueProfile: Cell<ComboBox<String>>
+  internal lateinit var registryGlueRegion: Cell<ComboBox<String>>
+  internal lateinit var registryGlueRegistryName: LoadingChooserComponent<KafkaConnectionData>
+
+  val schema = registrySettings.getDefaultFields()
+
 
   override fun getDefaultFields(): List<WrappedComponent<in KafkaConnectionData>> {
     return listOf<WrappedComponent<in KafkaConnectionData>>(nameField, url,
@@ -50,6 +124,8 @@ class KafkaSettingsCustomizer(project: Project, connectionData: KafkaConnectionD
     registrySettings.setPanelComponent(this).visibleIf(brokerSettings.isRegistryVisible)
 
     block(tunnelField.getComponent()).topGap(TopGap.SMALL).visibleIf(brokerSettings.isRegistryVisible)
+
+    initFields()
   }
 
   private fun validateBrokerNames(names: String): String? {
@@ -58,6 +134,73 @@ class KafkaSettingsCustomizer(project: Project, connectionData: KafkaConnectionD
     val brokers = names.split(",").map { it.trim() }
     val errors = brokers.map { it to BdtUrlUtils.validateUrl(it) }.filter { it.second != null }
     return errors.firstOrNull()?.let { "${it.first}: ${MessagesBundle.message("url.format.error")}" }
+  }
+
+  private fun initFields() {
+    brokerConfSource = brokerSettings.confSource
+    brokerCloudSource = brokerSettings.cloudSource
+    brokerPropertiesSource = brokerSettings.propertiesSource
+    brokerPropertiesEditor = brokerSettings.propertiesEditor
+    brokerPropertiesFile = brokerSettings.propertiesFile
+    brokerConfluentConf = brokerSettings.confluentSettings.confluentConf
+    brokerMskUrl = brokerSettings.mskUrl
+    brokerAuthType = brokerSettings.authMethod
+
+    brokerMskCloudAccessKey = brokerSettings.awsMskCloudSettings.accessKey
+    brokerMskCloudSecretKey = brokerSettings.awsMskCloudSettings.secretKey
+    brokerMskCloudAuthType = brokerSettings.awsMskCloudSettings.authTypeChooser
+    brokerMskCloudProfile = brokerSettings.awsMskCloudSettings.profileComboBox
+
+    brokerAwsIamAccess = brokerSettings.awsMskAuthSettings.accessKey
+    brokerAwsIamSecretKey = brokerSettings.awsMskAuthSettings.secretKey
+    brokerAwsIamAuthType = brokerSettings.awsMskAuthSettings.authTypeChooser
+    brokerAwsIamProfile = brokerSettings.awsMskAuthSettings.profileComboBox
+
+
+    brokerSaslKeytab = brokerSettings.saslKeytab
+    brokerSaslMechanism = brokerSettings.saslMechanism
+    brokerSaslPassword = brokerSettings.saslPassword
+    brokerSaslPrincipal = brokerSettings.saslPrincipal
+    brokerSaslUsername = brokerSettings.saslUsername
+    brokerSaslUseTicketCache = brokerSettings.saslKerberosUseTicketCache
+    brokerSaslSecurityProtocol = brokerSettings.saslSecurityProtocol
+
+
+    brokerSslKeyPassword = brokerSettings.sslComponent.sslKeyPassword
+    brokerSslKeystorePassword = brokerSettings.sslComponent.sslKeystorePassword
+    brokerSslTruststorePassword = brokerSettings.sslComponent.sslTruststorePassword
+    brokerSslKeystoreLocation = brokerSettings.sslComponent.sslKeystoreLocation
+    brokerSslTrustoreLocation = brokerSettings.sslComponent.sslTruststoreLocation
+    brokerSslUseKeystore = brokerSettings.sslComponent.sslUseKeystore
+    brokerSslEnableValidation = brokerSettings.sslComponent.sslEnableValidateHostname
+
+
+    registryConfluentUrl = registrySettings.confluentUrl
+    registryConfluentSource = registrySettings.confluentSource
+    registryConfluentProperties = registrySettings.confluentPropertiesEditor
+    registryConfluentAuth = registrySettings.confluentSchemaAuth
+    registryConfluentBasicAuth = registrySettings.confluentBasicLogin
+    registryConfluentBasicPassword = registrySettings.confluentBasicPassword
+    registryConfluentBearerToken = registrySettings.confluentBearerToken
+    registryConfluentUseProxy = registrySettings.confluentUseProxy
+    registryConfluentProxyUrl = registrySettings.confluentProxyUrl
+    registryConfluentUseBrokerSsl = registrySettings.confluentUseBrokerSsl
+    registryConfluentSslKeyPassword = registrySettings.confluentSslComponent.sslKeyPassword
+    registryConfluentSslKeystorePassword = registrySettings.confluentSslComponent.sslKeystorePassword
+    registryConfluentSslTruststorePassword = registrySettings.confluentSslComponent.sslTruststorePassword
+    registryConfluentSslKeystoreLocation = registrySettings.confluentSslComponent.sslKeystoreLocation
+    registryConfluentSslTrustoreLocation = registrySettings.confluentSslComponent.sslTruststoreLocation
+    registryConfluentSslUseKeystore = registrySettings.confluentSslComponent.sslUseKeystore
+    registryConfluentSslEnableValidation = registrySettings.confluentSslComponent.sslEnableValidateHostname
+
+    registryGlueAccessKey = registrySettings.awsGlueSettings.accessKey
+    registryGlueSecretKey = registrySettings.awsGlueSettings.secretKey
+    registryGlueAuthType = registrySettings.awsGlueSettings.authTypeChooser
+    registryGlueProfile = registrySettings.awsGlueSettings.profileComboBox
+    registryGlueRegion = registrySettings.awsGlueSettings.profileComboBox
+    registryGlueRegistryName = registrySettings.glueRegistryName
+
+    KafkaSettingsCollector.getInstance().initPanel(this)
   }
 
   object KafkaSettingsKeys {

@@ -64,16 +64,16 @@ class KafkaBrokerSettings(val project: Project,
     }
   }
 
-  private val propertiesSource = RadioGroupField(KafkaConnectionData::propertySource,
-                                                 KafkaSettingsCustomizer.KafkaSettingsKeys.PROPERTIES_SOURCE_KEY,
-                                                 connectionData,
-                                                 KafkaPropertySource.values()).apply {
+  internal val propertiesSource = RadioGroupField(KafkaConnectionData::propertySource,
+                                                  KafkaSettingsCustomizer.KafkaSettingsKeys.PROPERTIES_SOURCE_KEY,
+                                                  connectionData,
+                                                  KafkaPropertySource.values()).apply {
     addItemListener {
       onUpdatePropertiesSource()
     }
   }
 
-  private val propertiesEditor = PropertiesFieldComponent.create(
+  internal val propertiesEditor = PropertiesFieldComponent.create(
     project,
     KafkaPropertiesUtils.getAdminPropertiesDescriptions(),
     KafkaConnectionData::properties,
@@ -95,36 +95,36 @@ class KafkaBrokerSettings(val project: Project,
     propertiesKerberosLinkRow.visible(isKrb5LinkActive)
   }
 
-  private val propertiesFile = BrowseTextField(KafkaConnectionData::propertyFilePath,
-                                               KafkaSettingsCustomizer.KafkaSettingsKeys.PROPERTIES_FILE_KEY,
-                                               connectionData,
-                                               browseTitle = KafkaMessagesBundle.message("settings.properties.file.browse"),
-                                               fileChooserDescriptor = FileChooserDescriptorFactory.createSingleFileDescriptor()).apply {
+  internal val propertiesFile = BrowseTextField(KafkaConnectionData::propertyFilePath,
+                                                KafkaSettingsCustomizer.KafkaSettingsKeys.PROPERTIES_FILE_KEY,
+                                                connectionData,
+                                                browseTitle = KafkaMessagesBundle.message("settings.properties.file.browse"),
+                                                fileChooserDescriptor = FileChooserDescriptorFactory.createSingleFileDescriptor()).apply {
     withEmptyOrFileExistValidator(uiDisposable, canBeEmpty = false)
   }
 
 
-  private val confluentSettings = KafkaConfluentSettings(project, connectionData, uiDisposable, url, propertiesEditor, this)
+  internal val confluentSettings = KafkaConfluentSettings(project, connectionData, uiDisposable, url, propertiesEditor, this)
   private lateinit var propertiesKerberosLinkRow: Row
 
   private lateinit var cloudGroup: RowsRange
   private lateinit var confluentGroup: RowsRange
   private lateinit var awsMskGroup: RowsRange
-  private lateinit var mskUrl: Cell<JBTextField>
+  internal lateinit var mskUrl: Cell<JBTextField>
   private lateinit var implicitClientSettingsGroup: RowsRange
   private lateinit var propertiesClientSettingsGroup: RowsRange
 
   private lateinit var directPropertiesGroup: Row
   private lateinit var filePropertiesGroup: Row
 
-  private val authMethod = RadioComboBox(KafkaAuthMethod.values(), KafkaAuthMethod.NOT_SPECIFIED).apply {
+  internal val authMethod = RadioComboBox(KafkaAuthMethod.values(), KafkaAuthMethod.NOT_SPECIFIED).apply {
     addItemListener {
       updateVisibilityOfAuth()
       updatePropertiesField()
     }
   }
 
-  private val sslComponent = KafkaSslSettingsComponent(project, ::updatePropertiesField)
+  internal val sslComponent = KafkaSslSettingsComponent(project, ::updatePropertiesField)
 
   init {
     url.apply {
@@ -140,20 +140,20 @@ class KafkaBrokerSettings(val project: Project,
   private lateinit var saslCredentialsGroup: RowsRange
   private lateinit var saslKerberosGroup: RowsRange
   private lateinit var saslAdditionalKerberosGroup: RowsRange
-  private lateinit var saslSecurityProtocol: Cell<JBCheckBox>
-  private lateinit var saslMechanism: Cell<ComboBox<KafkaSaslMechanism>>
-  private lateinit var saslPrincipal: Cell<JBTextField>
-  private lateinit var saslKeytab: Cell<TextFieldWithBrowseButton>
-  private lateinit var saslKerberosUseTicketCache: Cell<JBCheckBox>
-  private lateinit var saslUsername: Cell<JBTextField>
-  private lateinit var saslPassword: Cell<JBPasswordField>
+  internal lateinit var saslSecurityProtocol: Cell<JBCheckBox>
+  internal lateinit var saslMechanism: Cell<ComboBox<KafkaSaslMechanism>>
+  internal lateinit var saslPrincipal: Cell<JBTextField>
+  internal lateinit var saslKeytab: Cell<TextFieldWithBrowseButton>
+  internal lateinit var saslKerberosUseTicketCache: Cell<JBCheckBox>
+  internal lateinit var saslUsername: Cell<JBTextField>
+  internal lateinit var saslPassword: Cell<JBPasswordField>
 
-  private val awsMskCloudSettings = AwsSettingsComponentForKafka {
+  internal val awsMskCloudSettings = AwsSettingsComponentForKafka {
     updatePropertiesField()
   }
 
 
-  private val awsMskAuthSettings = AwsSettingsComponentForKafka {
+  internal val awsMskAuthSettings = AwsSettingsComponentForKafka {
     updatePropertiesField()
   }
   private lateinit var awsMskSettingsRows: RowsRange

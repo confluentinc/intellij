@@ -38,7 +38,7 @@ class KafkaRegistrySettings(val project: Project,
                             uiDisposable: Disposable,
                             val registryType: RadioGroupField<KafkaConnectionData, KafkaRegistryType>) {
 
-  private val registryPropertiesEditor = PropertiesFieldComponent.create(
+  internal val confluentPropertiesEditor = PropertiesFieldComponent.create(
     project,
     KafkaPropertiesUtils.getRegistryPropertiesDescriptions(),
     KafkaConnectionData::registryProperties,
@@ -49,17 +49,17 @@ class KafkaRegistrySettings(val project: Project,
     }
   }
 
-  private val registrySourceTypeChooser = RadioGroupField(KafkaConnectionData::registryConfSource,
-                                                          KafkaSettingsCustomizer.KafkaSettingsKeys.REGISTRY_PROPERTIES_SOURCE_KEY,
-                                                          connectionData,
-                                                          arrayOf(KafkaConfigurationSource.FROM_UI,
+  internal val confluentSource = RadioGroupField(KafkaConnectionData::registryConfSource,
+                                                 KafkaSettingsCustomizer.KafkaSettingsKeys.REGISTRY_PROPERTIES_SOURCE_KEY,
+                                                 connectionData,
+                                                 arrayOf(KafkaConfigurationSource.FROM_UI,
                                                                   KafkaConfigurationSource.FROM_PROPERTIES)).apply {
     addItemListener {
       updateRegistryAuthStatus()
     }
   }
 
-  private val registryUrl = StringNonRequiredField(
+  internal val confluentUrl = StringNonRequiredField(
     KafkaConnectionData::registryUrl,
     ModificationKey(KafkaMessagesBundle.message("settings.registry.url")), connectionData)
     .apply {
@@ -72,24 +72,24 @@ class KafkaRegistrySettings(val project: Project,
       }
     }
 
-  private val schemaAuth = RadioComboBox(SchemaRegistryAuthType.values(), SchemaRegistryAuthType.NOT_SPECIFIED).apply {
+  internal val confluentSchemaAuth = RadioComboBox(SchemaRegistryAuthType.values(), SchemaRegistryAuthType.NOT_SPECIFIED).apply {
     addItemListener {
       updateSchemaRegistryAuth()
       updateRegistryPropertiesField()
     }
   }
 
-  private val awsAccessKey = UsernameNamedField(AwsSettingsConst.S3_ACCESS_KEY, connectionData,
+  internal val awsAccessKey = UsernameNamedField(AwsSettingsConst.S3_ACCESS_KEY, connectionData,
                                                 AwsCompatibleConnectionData.SECRET_KEY_ID)
 
-  private val awsSecretKey = PasswordNamedField(AwsSettingsConst.S3_SECRET_KEY, connectionData,
+  internal val awsSecretKey = PasswordNamedField(AwsSettingsConst.S3_SECRET_KEY, connectionData,
                                                 AwsCompatibleConnectionData.SECRET_KEY_ID)
 
   private val glueSettings = StringNonRequiredField(
     KafkaConnectionData::glueSettings,
     ModificationKey("GlueSettings"), connectionData)
 
-  private val glueRegistryName = LoadingChooserComponent(
+  internal val glueRegistryName = LoadingChooserComponent(
     KafkaConnectionData::glueRegistryName,
     ModificationKey(KafkaMessagesBundle.message("settings.glue.registry.name")),
     connectionData,
@@ -99,14 +99,14 @@ class KafkaRegistrySettings(val project: Project,
     KafkaUIUtils.showAndGetGlueRegistry(project, awsGlueSettings.getInfo())
   }
 
-  private val useBrokerSslCheckbox = CheckBoxField(KafkaConnectionData::registryUseBrokerSsl, USE_BROKER_SSL,
+  internal val useBrokerSslCheckbox = CheckBoxField(KafkaConnectionData::registryUseBrokerSsl, USE_BROKER_SSL,
                                                    connectionData)
 
-  private val awsGlueSettings = AwsSettingsComponentForKafka(includeRegionSetting = true) {
+  internal val awsGlueSettings = AwsSettingsComponentForKafka(includeRegionSetting = true) {
     saveGlueSettings()
   }
 
-  private val sslComponent = KafkaSslSettingsComponent(project, ::updateRegistryPropertiesField)
+  internal val confluentSslComponent = KafkaSslSettingsComponent(project, ::updateRegistryPropertiesField)
 
   private lateinit var confluentGroup: RowsRange
   private lateinit var glueGroup: RowsRange
@@ -116,12 +116,13 @@ class KafkaRegistrySettings(val project: Project,
 
   private lateinit var schemaBasicAuthGroup: RowsRange
   private lateinit var schemaBearerhGroup: Row
-  private lateinit var schemaBasicLogin: Cell<JBTextField>
-  private lateinit var schemaBasicPassword: Cell<JBPasswordField>
-  private lateinit var schemaBearerToken: Cell<JBTextField>
+  internal lateinit var confluentBasicLogin: Cell<JBTextField>
+  internal lateinit var confluentBasicPassword: Cell<JBPasswordField>
+  internal lateinit var confluentBearerToken: Cell<JBTextField>
 
-  private lateinit var useProxy: Cell<JBCheckBox>
-  private lateinit var proxyUrl: Cell<JBTextField>
+  internal lateinit var confluentUseProxy: Cell<JBCheckBox>
+  internal lateinit var confluentProxyUrl: Cell<JBTextField>
+  internal lateinit var confluentUseBrokerSsl: Cell<JBCheckBox>
 
   private val isUpdatingFromProperties = AtomicBoolean(false)
 
@@ -154,52 +155,52 @@ class KafkaRegistrySettings(val project: Project,
   }
 
   private fun Panel.confluentSettings() = rowsRange {
-    row(registryUrl).bottomGap(BottomGap.SMALL)
+    row(confluentUrl).bottomGap(BottomGap.SMALL)
 
-    shortRow(registrySourceTypeChooser)
+    shortRow(confluentSource)
 
-    registryPropertiesGroup = block(registryPropertiesEditor.getComponent())
+    registryPropertiesGroup = block(confluentPropertiesEditor.getComponent())
 
     implicitRegistryClientSettingsGroup = indent {
       row(KafkaMessagesBundle.message("kafka.auth.method.label")) {
-        cell(schemaAuth.getComponent())
+        cell(confluentSchemaAuth.getComponent())
       }
       indent {
         schemaBasicAuthGroup = rowsRange {
           row(KafkaMessagesBundle.message("kafka.username")) {
-            schemaBasicLogin = textField().align(AlignX.FILL)
+            confluentBasicLogin = textField().align(AlignX.FILL)
           }
           row(KafkaMessagesBundle.message("kafka.password")) {
-            schemaBasicPassword = passwordField().align(AlignX.FILL)
+            confluentBasicPassword = passwordField().align(AlignX.FILL)
           }
         }
 
         schemaBearerhGroup = row(KafkaMessagesBundle.message("kafka.token")) {
-          schemaBearerToken = textField().align(AlignX.FILL)
+          confluentBearerToken = textField().align(AlignX.FILL)
         }
       }
-      lateinit var useBrokerSsl: Cell<JBCheckBox>
+
       row {
-        useBrokerSsl = cell(useBrokerSslCheckbox.checkBoxField)
-        useBrokerSsl.onChanged {
+        confluentUseBrokerSsl = cell(useBrokerSslCheckbox.checkBoxField)
+        confluentUseBrokerSsl.onChanged {
           updateRegistryPropertiesField()
         }
       }
-      sslComponent.create(this).visibleIf(useBrokerSsl.selected.not())
+      confluentSslComponent.create(this).visibleIf(confluentUseBrokerSsl.selected.not())
 
       row {
-        useProxy = checkBox(KafkaMessagesBundle.message("kafka.registry.use.proxy"))
-        useProxy.onChanged {
+        confluentUseProxy = checkBox(KafkaMessagesBundle.message("kafka.registry.use.proxy"))
+        confluentUseProxy.onChanged {
           updateRegistryPropertiesField()
         }
       }
       indent {
         row(KafkaMessagesBundle.message("kafka.registry.proxy.label")) {
-          proxyUrl = textField().align(AlignX.FILL).onChanged {
+          confluentProxyUrl = textField().align(AlignX.FILL).onChanged {
             updateRegistryPropertiesField()
           }
         }
-      }.visibleIf(useProxy.selected)
+      }.visibleIf(confluentUseProxy.selected)
 
     }
 
@@ -207,33 +208,33 @@ class KafkaRegistrySettings(val project: Project,
     updateRegistryAuthStatus()
     updateRegistryUiFromProperties()
 
-    schemaBasicLogin.onChanged {
+    confluentBasicLogin.onChanged {
       updateRegistryPropertiesField()
     }
-    schemaBasicPassword.onChanged {
+    confluentBasicPassword.onChanged {
       updateRegistryPropertiesField()
     }
-    schemaBearerToken.onChanged {
+    confluentBearerToken.onChanged {
       updateRegistryPropertiesField()
     }
   }
 
   private fun updateRegistryAuthStatus() {
-    val authType = registrySourceTypeChooser.getValue()
+    val authType = confluentSource.getValue()
     registryPropertiesGroup.visible(authType == KafkaConfigurationSource.FROM_PROPERTIES)
     implicitRegistryClientSettingsGroup.visible(authType == KafkaConfigurationSource.FROM_UI)
     updateSchemaRegistryAuth()
   }
 
   private fun updateSchemaRegistryAuth() {
-    val selectedAuthType = schemaAuth.selectedItem
+    val selectedAuthType = confluentSchemaAuth.selectedItem
     schemaBasicAuthGroup.visible(selectedAuthType == SchemaRegistryAuthType.BASIC_AUTH)
     schemaBearerhGroup.visible(selectedAuthType == SchemaRegistryAuthType.BEARER)
   }
 
   private fun updateRegistryUiFromProperties(): Unit = try {
     isUpdatingFromProperties.set(true)
-    setRegistryProperties(registryPropertiesEditor.getProperties() ?: emptyMap())
+    setRegistryProperties(confluentPropertiesEditor.getProperties() ?: emptyMap())
   }
   finally {
     isUpdatingFromProperties.set(false)
@@ -244,33 +245,33 @@ class KafkaRegistrySettings(val project: Project,
       return
 
     val uiProps = getRegistryProperties()
-    registryPropertiesEditor.mergeConfig(uiProps)
+    confluentPropertiesEditor.mergeConfig(uiProps)
   }
 
   private fun setRegistryProperties(properties: Map<String, String>) {
     properties[SCHEMA_REGISTRY_URL_CONFIG]?.let {
-      registryUrl.getTextComponent().text = it
+      confluentUrl.getTextComponent().text = it
     }
     val isBasicAuth = properties[SchemaRegistryClientConfig.BASIC_AUTH_CREDENTIALS_SOURCE] == SUPPORT_REGISTRY_BASIC_AUTH_TYPE
     val isBearerAuth = properties[SchemaRegistryClientConfig.BEARER_AUTH_CREDENTIALS_SOURCE] == SUPPORT_REGISTRY_BEARER_AUTH_TYPE
     when {
       isBasicAuth -> {
-        schemaAuth.selectedItem = SchemaRegistryAuthType.BASIC_AUTH
+        confluentSchemaAuth.selectedItem = SchemaRegistryAuthType.BASIC_AUTH
         val userInfo = properties[SchemaRegistryClientConfig.USER_INFO_CONFIG] ?: ""
-        schemaBasicLogin.component.text = userInfo.takeWhile { it != ':' }
-        schemaBasicPassword.component.text = userInfo.takeLastWhile { it != ':' }
+        confluentBasicLogin.component.text = userInfo.takeWhile { it != ':' }
+        confluentBasicPassword.component.text = userInfo.takeLastWhile { it != ':' }
       }
       isBearerAuth -> {
-        schemaAuth.selectedItem = SchemaRegistryAuthType.BEARER
-        schemaBearerToken.component.text = properties[SchemaRegistryClientConfig.BEARER_AUTH_TOKEN_CONFIG] ?: ""
+        confluentSchemaAuth.selectedItem = SchemaRegistryAuthType.BEARER
+        confluentBearerToken.component.text = properties[SchemaRegistryClientConfig.BEARER_AUTH_TOKEN_CONFIG] ?: ""
       }
       else -> {
-        schemaAuth.selectedItem = SchemaRegistryAuthType.NOT_SPECIFIED
+        confluentSchemaAuth.selectedItem = SchemaRegistryAuthType.NOT_SPECIFIED
       }
     }
 
     val keystoreLocation = properties[SchemaRegistryClientConfig.CLIENT_NAMESPACE + SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG] ?: ""
-    sslComponent.applyConfig(KafkaSslConfig(
+    confluentSslComponent.applyConfig(KafkaSslConfig(
       validateHostName = properties[SchemaRegistryClientConfig.CLIENT_NAMESPACE + SslConfigs.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG] != "",
       truststoreLocation = properties[SchemaRegistryClientConfig.CLIENT_NAMESPACE + SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG] ?: "",
       truststorePassword = properties[SchemaRegistryClientConfig.CLIENT_NAMESPACE + SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG] ?: "",
@@ -283,9 +284,9 @@ class KafkaRegistrySettings(val project: Project,
     val proxyHost = properties[SchemaRegistryClientConfig.PROXY_HOST]
     val proxyPort = properties[SchemaRegistryClientConfig.PROXY_PORT]
     val isProxySetup = proxyHost != null && proxyPort != null
-    useProxy.selected(isProxySetup)
+    confluentUseProxy.selected(isProxySetup)
     if (isProxySetup)
-      proxyUrl.text("$proxyHost:$proxyPort")
+      confluentProxyUrl.text("$proxyHost:$proxyPort")
   }
 
   private fun getRegistryProperties(): Map<String, String?> {
@@ -297,23 +298,23 @@ class KafkaRegistrySettings(val project: Project,
     )
 
     @Suppress("DEPRECATION")
-    val auth = when (schemaAuth.selectedItem) {
+    val auth = when (confluentSchemaAuth.selectedItem) {
       SchemaRegistryAuthType.NOT_SPECIFIED -> emptyMap<String, String?>()
       SchemaRegistryAuthType.BASIC_AUTH -> {
         mapOf(
           SchemaRegistryClientConfig.BASIC_AUTH_CREDENTIALS_SOURCE to SUPPORT_REGISTRY_BASIC_AUTH_TYPE,
-          SchemaRegistryClientConfig.USER_INFO_CONFIG to "${schemaBasicLogin.component.text}:${schemaBasicPassword.component.text}"
+          SchemaRegistryClientConfig.USER_INFO_CONFIG to "${confluentBasicLogin.component.text}:${confluentBasicPassword.component.text}"
         )
       }
       SchemaRegistryAuthType.BEARER -> {
         mapOf(
           SchemaRegistryClientConfig.BEARER_AUTH_CREDENTIALS_SOURCE to SUPPORT_REGISTRY_BEARER_AUTH_TYPE,
-          SchemaRegistryClientConfig.BEARER_AUTH_TOKEN_CONFIG to schemaBearerToken.component.text
+          SchemaRegistryClientConfig.BEARER_AUTH_TOKEN_CONFIG to confluentBearerToken.component.text
         )
       }
     }
     val ssl = if (!useBrokerSslCheckbox.checkBoxField.isSelected) {
-      val config = sslComponent.getConfig()
+      val config = confluentSslComponent.getConfig()
       val result = mutableMapOf<String, String?>()
       result += mapOf(
         SchemaRegistryClientConfig.CLIENT_NAMESPACE + SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG to config.truststoreLocation.ifBlank { null },
@@ -336,10 +337,10 @@ class KafkaRegistrySettings(val project: Project,
             SchemaRegistryClientConfig.CLIENT_NAMESPACE + SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG to null,
             SchemaRegistryClientConfig.CLIENT_NAMESPACE + SslConfigs.SSL_KEY_PASSWORD_CONFIG to null)
 
-    val proxy = if (useProxy.selected.invoke()) {
+    val proxy = if (confluentUseProxy.selected.invoke()) {
       mapOf(
-        SchemaRegistryClientConfig.PROXY_HOST to proxyUrl.component.text.split(":").first(),
-        SchemaRegistryClientConfig.PROXY_PORT to proxyUrl.component.text.split(":").last(),
+        SchemaRegistryClientConfig.PROXY_HOST to confluentProxyUrl.component.text.split(":").first(),
+        SchemaRegistryClientConfig.PROXY_PORT to confluentProxyUrl.component.text.split(":").last(),
       )
     }
     else {
@@ -349,11 +350,11 @@ class KafkaRegistrySettings(val project: Project,
       )
 
     }
-    return default + ssl + auth + proxy + mapOf(SCHEMA_REGISTRY_URL_CONFIG to registryUrl.getTextComponent().text)
+    return default + ssl + auth + proxy + mapOf(SCHEMA_REGISTRY_URL_CONFIG to confluentUrl.getTextComponent().text)
   }
 
   fun getDefaultFields(): List<WrappedComponent<in KafkaConnectionData>> =
-    listOf(registryType, registrySourceTypeChooser, registryPropertiesEditor, registryUrl, glueSettings, awsAccessKey, awsSecretKey,
+    listOf(registryType, confluentSource, confluentPropertiesEditor, confluentUrl, glueSettings, awsAccessKey, awsSecretKey,
            glueRegistryName, useBrokerSslCheckbox)
 
   private fun updateRegistryType() {

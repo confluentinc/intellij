@@ -8,15 +8,15 @@ import com.intellij.ui.dsl.builder.*
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 
 class KafkaSslSettingsComponent(val project: Project, val onUpdate: () -> Unit) {
-  private lateinit var sslTruststoreLocation: Cell<TextFieldWithBrowseButton>
-  private lateinit var sslTruststorePassword: Cell<JBPasswordField>
+  internal lateinit var sslTruststoreLocation: Cell<TextFieldWithBrowseButton>
+  internal lateinit var sslTruststorePassword: Cell<JBPasswordField>
 
-  private lateinit var sslEnableValidateHostname: Cell<JBCheckBox>
-  private lateinit var sslKeystoreLocation: Cell<TextFieldWithBrowseButton>
-  private lateinit var sslKeystorePassword: Cell<JBPasswordField>
-  private lateinit var sslKeyPassword: Cell<JBPasswordField>
+  internal lateinit var sslEnableValidateHostname: Cell<JBCheckBox>
+  internal lateinit var sslKeystoreLocation: Cell<TextFieldWithBrowseButton>
+  internal lateinit var sslKeystorePassword: Cell<JBPasswordField>
+  internal lateinit var sslKeyPassword: Cell<JBPasswordField>
 
-  private lateinit var sslUseKeystore: Cell<JBCheckBox>
+  internal lateinit var sslUseKeystore: Cell<JBCheckBox>
   private lateinit var sslKeystoreGroup: RowsRange
 
   fun create(panel: Panel) = panel.indent {

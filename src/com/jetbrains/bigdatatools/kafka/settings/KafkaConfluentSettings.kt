@@ -32,7 +32,7 @@ class KafkaConfluentSettings(
 ) {
   var updateFromCloud = false
 
-  private val confluentConf = ConnectionPropertiesEditor(project, KafkaPropertiesUtils.getAdminPropertiesDescriptions()).apply {
+  internal val confluentConf = ConnectionPropertiesEditor(project, KafkaPropertiesUtils.getAdminPropertiesDescriptions()).apply {
     getComponent().setTextWithoutScroll(connectionData.properties)
     getComponent().setCaretPosition(0)
     val listener = object : DocumentListener {
