@@ -1,5 +1,7 @@
 package com.jetbrains.bigdatatools.kafka.toolwindow
 
+import com.intellij.notification.NotificationGroup
+import com.intellij.notification.NotificationGroupManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ToolWindowManager
@@ -61,6 +63,10 @@ class KafkaMonitoringToolWindowController(project: Project) : MonitoringToolWind
   }
 
   companion object {
+    fun getNotificationGroup(): NotificationGroup {
+      return NotificationGroupManager.getInstance().getNotificationGroup("Kafka Notification")
+    }
+
     fun getInstance(project: Project): KafkaMonitoringToolWindowController? = project.getService(
       KafkaMonitoringToolWindowController::class.java)
 
