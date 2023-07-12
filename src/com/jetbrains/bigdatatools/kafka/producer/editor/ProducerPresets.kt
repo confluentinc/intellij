@@ -39,11 +39,11 @@ class RunProducerConfigCellRenderer : ListCellRenderer<StorageProducerConfig> {
       "producer.preset.no.topic")
     else value?.topic ?: "")
     keyLabel.text = KafkaMessagesBundle.message("producer.preset.key",
-                                                value?.getKeyType()?.title ?: KafkaMessagesBundle.message("producer.preset.none"),
+                                                value?.takeKeyType()?.title ?: KafkaMessagesBundle.message("producer.preset.none"),
                                                 if (value?.key.isNullOrEmpty()) KafkaMessagesBundle.message("producer.preset.no.key")
                                                 else value?.key ?: "")
     valueLabel.text = KafkaMessagesBundle.message("producer.preset.value",
-                                                  value?.getValueType()?.title ?: KafkaMessagesBundle.message("producer.preset.none"),
+                                                  value?.takeValueType()?.title ?: KafkaMessagesBundle.message("producer.preset.none"),
                                                   if (value?.value.isNullOrEmpty()) KafkaMessagesBundle.message(
                                                     "producer.preset.no.value")
                                                   else value?.value ?: "")

@@ -41,8 +41,8 @@ class KafkaRunConfig(val configsGetter: () -> List<StorageConfig>,
 class KafkaConfigStorage : PersistentStateComponent<KafkaConfigStorage> {
 
   // Never access this fields directly. Use consumerConfig and producerConfig
-  var consumerRunConfigs: List<StorageConsumerConfig> = emptyList()
-  var producerRunConfigs: List<StorageProducerConfig> = emptyList()
+  var consumerRunConfigs: List<StorageConsumerConfig> = mutableListOf()
+  var producerRunConfigs: List<StorageProducerConfig> = mutableListOf()
 
   private val consumerChangeListeners = mutableListOf<ConfigChangeListener<StorageConfig>>()
   private val producerChangeListeners = mutableListOf<ConfigChangeListener<StorageConfig>>()
