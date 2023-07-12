@@ -27,10 +27,10 @@ data class StorageProducerConfig(var topic: String = "",
                                  var flowParams: ProducerFlowParams? = null) : StorageConfig {
 
 
-  fun getKeyType(): KafkaFieldType = KafkaFieldType.values().find { it.name == keyType } ?: KafkaFieldType.SCHEMA_REGISTRY
-  fun getValueType(): KafkaFieldType = KafkaFieldType.values().find { it.name == valueType } ?: KafkaFieldType.SCHEMA_REGISTRY
-  fun getKeyFormat(): KafkaRegistryFormat = KafkaRegistryFormat.values().find { it.name == keyFormat } ?: KafkaRegistryFormat.AVRO
-  fun getValueFormat(): KafkaRegistryFormat = KafkaRegistryFormat.values().find { it.name == valueFormat } ?: KafkaRegistryFormat.AVRO
+  fun takeKeyType(): KafkaFieldType = KafkaFieldType.values().find { it.name == keyType } ?: KafkaFieldType.SCHEMA_REGISTRY
+  fun takeValueType(): KafkaFieldType = KafkaFieldType.values().find { it.name == valueType } ?: KafkaFieldType.SCHEMA_REGISTRY
+  fun takeKeyFormat(): KafkaRegistryFormat = KafkaRegistryFormat.values().find { it.name == keyFormat } ?: KafkaRegistryFormat.AVRO
+  fun takeValueFormat(): KafkaRegistryFormat = KafkaRegistryFormat.values().find { it.name == valueFormat } ?: KafkaRegistryFormat.AVRO
   fun getCompression(): RecordCompression = RecordCompression.values().find { it.name == compression } ?: RecordCompression.NONE
   fun getAsks(): AcksType = AcksType.values().find { it.name == acks } ?: AcksType.NONE
 }

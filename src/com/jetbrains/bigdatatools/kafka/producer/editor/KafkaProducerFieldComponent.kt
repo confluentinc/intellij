@@ -284,19 +284,19 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
   }
 
   fun applyConfig(config: StorageProducerConfig) {
-    fieldTypeComboBox.item = if (isKey) config.getKeyType() else config.getValueType()
+    fieldTypeComboBox.item = if (isKey) config.takeKeyType() else config.takeValueType()
 
     val text = if (isKey) config.key else config.value
-    when (config.getKeyType()) {
+    when (config.takeKeyType()) {
       KafkaFieldType.JSON -> jsonField.text = text
       KafkaFieldType.STRING, KafkaFieldType.LONG, KafkaFieldType.DOUBLE, KafkaFieldType.FLOAT, KafkaFieldType.BASE64 -> textField.text = text
       KafkaFieldType.NULL -> Unit
       KafkaFieldType.SCHEMA_REGISTRY -> {
         jsonField.text = text
         schemaComboBox.item = if (isKey)
-          RegistrySchemaInEditor(config.keySubject, config.getKeyFormat())
+          RegistrySchemaInEditor(config.keySubject, config.takeKeyFormat())
         else
-          RegistrySchemaInEditor(config.valueSubject, config.getValueFormat())
+          RegistrySchemaInEditor(config.valueSubject, config.takeValueFormat())
       }
     }
   }
