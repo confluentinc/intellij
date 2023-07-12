@@ -1,8 +1,11 @@
 package com.jetbrains.bigdatatools.kafka.statistics
 
+import com.intellij.bigdatatools.aws.connection.auth.AuthenticationType
 import com.intellij.internal.statistic.eventLog.EventLogGroup
 import com.jetbrains.bigdatatools.common.constants.BdtConnectionType
 import com.jetbrains.bigdatatools.common.rfs.statistics.v2.BdtSettingsCollector
+import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryType
+import com.jetbrains.bigdatatools.kafka.rfs.*
 import com.jetbrains.bigdatatools.kafka.settings.KafkaSettingsCustomizer
 
 class KafkaSettingsCollector : BdtSettingsCollector(BdtConnectionType.KAFKA) {
@@ -13,64 +16,64 @@ class KafkaSettingsCollector : BdtSettingsCollector(BdtConnectionType.KAFKA) {
   init {
     registryField(KafkaSettingsCustomizer::nameField)
     registryField(KafkaSettingsCustomizer::url)
-    registryField(KafkaSettingsCustomizer::registryType)
-    registryField(KafkaSettingsCustomizer::brokerConfSource)
-    registryField(KafkaSettingsCustomizer::brokerCloudSource)
-    registryField(KafkaSettingsCustomizer::brokerPropertiesSource)
+    registryStringEnumField(KafkaSettingsCustomizer::registryType, KafkaRegistryType.values().map { it.id })
+    registryStringEnumField(KafkaSettingsCustomizer::brokerConfSource, KafkaConfigurationSource.values().map { it.id })
+    registryStringEnumField(KafkaSettingsCustomizer::brokerCloudSource, KafkaCloudType.values().map { it.id })
+    registryStringEnumField(KafkaSettingsCustomizer::brokerPropertiesSource, KafkaPropertySource.values().map { it.id })
     registryField(KafkaSettingsCustomizer::brokerPropertiesEditor)
     registryField(KafkaSettingsCustomizer::brokerPropertiesFile)
     registryField(KafkaSettingsCustomizer::brokerConfluentConf)
     registryField(KafkaSettingsCustomizer::brokerMskUrl)
-    registryField(KafkaSettingsCustomizer::brokerAuthType)
+    registryStringEnumField(KafkaSettingsCustomizer::brokerAuthType, KafkaAuthMethod.values().map { it.id })
 
     registryField(KafkaSettingsCustomizer::brokerMskCloudAccessKey)
     registryField(KafkaSettingsCustomizer::brokerMskCloudSecretKey)
-    registryField(KafkaSettingsCustomizer::brokerMskCloudAuthType)
+    registryStringEnumField(KafkaSettingsCustomizer::brokerMskCloudAuthType, AuthenticationType.values.map { it.id })
     registryField(KafkaSettingsCustomizer::brokerMskCloudProfile)
 
     registryField(KafkaSettingsCustomizer::brokerAwsIamAccess)
     registryField(KafkaSettingsCustomizer::brokerAwsIamSecretKey)
-    registryField(KafkaSettingsCustomizer::brokerAwsIamAuthType)
+    registryStringEnumField(KafkaSettingsCustomizer::brokerAwsIamAuthType, AuthenticationType.values.map { it.id })
     registryField(KafkaSettingsCustomizer::brokerAwsIamProfile)
 
     registryField(KafkaSettingsCustomizer::brokerSaslKeytab)
-    registryField(KafkaSettingsCustomizer::brokerSaslMechanism)
+    registryStringEnumField(KafkaSettingsCustomizer::brokerSaslMechanism, KafkaSaslMechanism.values().map { it.name })
     registryField(KafkaSettingsCustomizer::brokerSaslPassword)
     registryField(KafkaSettingsCustomizer::brokerSaslPrincipal)
     registryField(KafkaSettingsCustomizer::brokerSaslUsername)
-    registryField(KafkaSettingsCustomizer::brokerSaslUseTicketCache)
-    registryField(KafkaSettingsCustomizer::brokerSaslSecurityProtocol)
+    registryCheckboxField(KafkaSettingsCustomizer::brokerSaslUseTicketCache)
+    registryCheckboxField(KafkaSettingsCustomizer::brokerSaslSecurityProtocol)
 
     registryField(KafkaSettingsCustomizer::brokerSslKeyPassword)
     registryField(KafkaSettingsCustomizer::brokerSslKeystorePassword)
     registryField(KafkaSettingsCustomizer::brokerSslTruststorePassword)
     registryField(KafkaSettingsCustomizer::brokerSslKeystoreLocation)
     registryField(KafkaSettingsCustomizer::brokerSslTrustoreLocation)
-    registryField(KafkaSettingsCustomizer::brokerSslUseKeystore)
-    registryField(KafkaSettingsCustomizer::brokerSslEnableValidation)
+    registryCheckboxField(KafkaSettingsCustomizer::brokerSslUseKeystore)
+    registryCheckboxField(KafkaSettingsCustomizer::brokerSslEnableValidation)
 
     registryField(KafkaSettingsCustomizer::registryConfluentUrl)
-    registryField(KafkaSettingsCustomizer::registryConfluentSource)
+    registryStringEnumField(KafkaSettingsCustomizer::registryConfluentSource, KafkaConfigurationSource.values().map { it.id })
     registryField(KafkaSettingsCustomizer::registryConfluentProperties)
-    registryField(KafkaSettingsCustomizer::registryConfluentAuth)
+    registryStringEnumField(KafkaSettingsCustomizer::registryConfluentAuth, SchemaRegistryAuthType.values().map { it.name })
     registryField(KafkaSettingsCustomizer::registryConfluentBasicAuth)
     registryField(KafkaSettingsCustomizer::registryConfluentBasicPassword)
     registryField(KafkaSettingsCustomizer::registryConfluentBearerToken)
-    registryField(KafkaSettingsCustomizer::registryConfluentUseProxy)
+    registryCheckboxField(KafkaSettingsCustomizer::registryConfluentUseProxy)
     registryField(KafkaSettingsCustomizer::registryConfluentProxyUrl)
-    registryField(KafkaSettingsCustomizer::registryConfluentUseBrokerSsl)
+    registryCheckboxField(KafkaSettingsCustomizer::registryConfluentUseBrokerSsl)
     registryField(KafkaSettingsCustomizer::registryConfluentSslKeyPassword)
     registryField(KafkaSettingsCustomizer::registryConfluentSslKeystorePassword)
     registryField(KafkaSettingsCustomizer::registryConfluentSslTruststorePassword)
     registryField(KafkaSettingsCustomizer::registryConfluentSslKeystoreLocation)
     registryField(KafkaSettingsCustomizer::registryConfluentSslKeystoreLocation)
     registryField(KafkaSettingsCustomizer::registryConfluentSslTrustoreLocation)
-    registryField(KafkaSettingsCustomizer::registryConfluentSslUseKeystore)
-    registryField(KafkaSettingsCustomizer::registryConfluentSslEnableValidation)
+    registryCheckboxField(KafkaSettingsCustomizer::registryConfluentSslUseKeystore)
+    registryCheckboxField(KafkaSettingsCustomizer::registryConfluentSslEnableValidation)
 
     registryField(KafkaSettingsCustomizer::registryGlueAccessKey)
     registryField(KafkaSettingsCustomizer::registryGlueSecretKey)
-    registryField(KafkaSettingsCustomizer::registryGlueAuthType)
+    registryStringEnumField(KafkaSettingsCustomizer::registryGlueAuthType, AuthenticationType.values.map { it.id })
     registryField(KafkaSettingsCustomizer::registryGlueProfile)
     registryField(KafkaSettingsCustomizer::registryGlueRegion)
     registryField(KafkaSettingsCustomizer::registryGlueRegistryName)
