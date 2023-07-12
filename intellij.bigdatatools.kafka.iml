@@ -141,6 +141,9 @@
             <artifact url="file://$MAVEN_REPOSITORY$/com/github/everit-org/json-schema/org.everit.json.schema/1.12.2/org.everit.json.schema-1.12.2.jar">
               <sha256sum>b8df44b274c3230bdc004f138f4a820cb86ea09a42d1ca9f5074dd432aeea198</sha256sum>
             </artifact>
+            <artifact url="file://$MAVEN_REPOSITORY$/org/json/json/20201115/json-20201115.jar">
+              <sha256sum>bd2322a4ddf46e2612104f091aa14d4406393ef3a46f270f69c2abb5ce1d147c</sha256sum>
+            </artifact>
             <artifact url="file://$MAVEN_REPOSITORY$/commons-validator/commons-validator/1.6/commons-validator-1.6.jar">
               <sha256sum>bd62795d7068a69cbea333f6dbf9c9c1a6ad7521443fb57202a44874f240ba25</sha256sum>
             </artifact>
@@ -183,7 +186,8 @@
           </verification>
           <exclude>
             <dependency maven-id="io.confluent:kafka-schema-registry-client" />
-            <dependency maven-id="org.json:json" />
+            <dependency maven-id="commons-logging:commons-logging" />
+            <dependency maven-id="commons-collections:commons-collections" />
             <dependency maven-id="joda-time:joda-time" />
             <dependency maven-id="com.google.re2j:re2j" />
             <dependency maven-id="com.google.guava:guava" />
@@ -196,14 +200,13 @@
             <dependency maven-id="io.github.classgraph:classgraph" />
             <dependency maven-id="org.jetbrains.kotlin:kotlin-stdlib" />
             <dependency maven-id="io.confluent:common-utils" />
-            <dependency maven-id="commons-collections:commons-collections" />
-            <dependency maven-id="commons-logging:commons-logging" />
           </exclude>
         </properties>
         <CLASSES>
           <root url="jar://$MAVEN_REPOSITORY$/io/confluent/kafka-json-schema-serializer/7.0.1/kafka-json-schema-serializer-7.0.1.jar!/" />
           <root url="jar://$MAVEN_REPOSITORY$/io/confluent/kafka-json-schema-provider/7.0.1/kafka-json-schema-provider-7.0.1.jar!/" />
           <root url="jar://$MAVEN_REPOSITORY$/com/github/everit-org/json-schema/org.everit.json.schema/1.12.2/org.everit.json.schema-1.12.2.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/org/json/json/20201115/json-20201115.jar!/" />
           <root url="jar://$MAVEN_REPOSITORY$/commons-validator/commons-validator/1.6/commons-validator-1.6.jar!/" />
           <root url="jar://$MAVEN_REPOSITORY$/commons-digester/commons-digester/1.8.1/commons-digester-1.8.1.jar!/" />
           <root url="jar://$MAVEN_REPOSITORY$/com/damnhandy/handy-uri-templates/2.1.8/handy-uri-templates-2.1.8.jar!/" />
@@ -223,6 +226,7 @@
           <root url="jar://$MAVEN_REPOSITORY$/io/confluent/kafka-json-schema-serializer/7.0.1/kafka-json-schema-serializer-7.0.1-sources.jar!/" />
           <root url="jar://$MAVEN_REPOSITORY$/io/confluent/kafka-json-schema-provider/7.0.1/kafka-json-schema-provider-7.0.1-sources.jar!/" />
           <root url="jar://$MAVEN_REPOSITORY$/com/github/everit-org/json-schema/org.everit.json.schema/1.12.2/org.everit.json.schema-1.12.2-sources.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/org/json/json/20201115/json-20201115-sources.jar!/" />
           <root url="jar://$MAVEN_REPOSITORY$/commons-validator/commons-validator/1.6/commons-validator-1.6-sources.jar!/" />
           <root url="jar://$MAVEN_REPOSITORY$/commons-digester/commons-digester/1.8.1/commons-digester-1.8.1-sources.jar!/" />
           <root url="jar://$MAVEN_REPOSITORY$/com/damnhandy/handy-uri-templates/2.1.8/handy-uri-templates-2.1.8-sources.jar!/" />
