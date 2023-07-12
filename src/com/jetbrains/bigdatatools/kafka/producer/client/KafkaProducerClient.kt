@@ -169,12 +169,12 @@ class KafkaProducerClient(val client: KafkaClient) {
     headers: List<Property>,
   ): KafkaRecord? {
     val correctKey = if (flowParams.generateRandomKeys)
-      key.copy(valueText = GenerateRandomData.generate(key))
+      key.copy(valueText = GenerateRandomData.generate(client.project, key))
     else
       key
 
     val correctValue = if (flowParams.generateRandomValues)
-      value.copy(valueText = GenerateRandomData.generate(value))
+      value.copy(valueText = GenerateRandomData.generate(client.project, value))
     else
       value
 
