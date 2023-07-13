@@ -9,7 +9,7 @@ import com.jetbrains.bigdatatools.kafka.rfs.*
 import com.jetbrains.bigdatatools.kafka.settings.KafkaSettingsCustomizer
 
 class KafkaSettingsCollector : BdtSettingsCollector(BdtConnectionType.KAFKA) {
-  private val GROUP = EventLogGroup(GROUP_ID, 1)
+  private val GROUP = EventLogGroup(bdtGroupId, 1)
 
   override val groupDescription: String = "Kafka"
 
@@ -83,9 +83,7 @@ class KafkaSettingsCollector : BdtSettingsCollector(BdtConnectionType.KAFKA) {
 
   override fun getGroup(): EventLogGroup = GROUP
 
-  companion object {
-    const val GROUP_ID: String = "bigdatatools.settings.kafka"
-
-    fun getInstance() = getInstance(GROUP_ID) as? KafkaSettingsCollector ?: KafkaSettingsCollector()
+  object Util {
+    fun getInstance() = getInstance(BdtConnectionType.KAFKA) as? KafkaSettingsCollector ?: KafkaSettingsCollector()
   }
 }
