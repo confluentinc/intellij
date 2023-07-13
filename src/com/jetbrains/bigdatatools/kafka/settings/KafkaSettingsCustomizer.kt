@@ -200,7 +200,7 @@ class KafkaSettingsCustomizer(project: Project, connectionData: KafkaConnectionD
     registryGlueRegion = registrySettings.awsGlueSettings.profileComboBox
     registryGlueRegistryName = registrySettings.glueRegistryName
 
-    KafkaSettingsCollector.getInstance().initPanel(this)
+    KafkaSettingsCollector.Util.getInstance().initPanel(this)
   }
 
   object KafkaSettingsKeys {
