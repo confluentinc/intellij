@@ -1,7 +1,10 @@
 package com.jetbrains.bigdatatools.kafka.producer.editor
 
+import com.intellij.feedback.kafka.state.KafkaConsumerProducerFeedbackService
 import com.intellij.icons.AllIcons
 import com.intellij.ide.util.PropertiesComponent
+import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.components.service
 import com.intellij.openapi.fileEditor.FileEditor
 import com.intellij.openapi.fileEditor.FileEditorLocation
 import com.intellij.openapi.fileEditor.FileEditorState
@@ -165,6 +168,12 @@ class KafkaProducerEditor(val project: Project,
     JPanel(BorderLayout()).apply {
       add(scroll, BorderLayout.CENTER)
       add(bottomPanel, BorderLayout.SOUTH)
+    }
+  }
+
+  init {
+    executeNotOnEdt {
+      ApplicationManager.getApplication().service<KafkaConsumerProducerFeedbackService>().state.producerDialogIsOpened = true
     }
   }
 

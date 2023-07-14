@@ -517,5 +517,6 @@
       </library>
     </orderEntry>
     <orderEntry type="library" name="google.protobuf.java.util" level="project" />
+    <orderEntry type="module" module-name="intellij.platform.feedback" />
   </component>
 </module>

@@ -1,11 +1,15 @@
 package com.jetbrains.bigdatatools.kafka.consumer.editor
 
+import com.intellij.feedback.kafka.state.KafkaConsumerProducerFeedbackService
+import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.components.service
 import com.intellij.openapi.fileEditor.FileEditor
 import com.intellij.openapi.fileEditor.FileEditorLocation
 import com.intellij.openapi.fileEditor.FileEditorState
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.UserDataHolderBase
 import com.intellij.openapi.vfs.VirtualFile
+import com.jetbrains.bigdatatools.common.util.executeNotOnEdt
 import com.jetbrains.bigdatatools.kafka.common.models.TopicInEditor
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
@@ -21,6 +25,10 @@ class KafkaConsumerEditor(val project: Project,
 
   init {
      topic?.let { customizable.topicComboBox.item = TopicInEditor(it) }
+
+    executeNotOnEdt {
+      ApplicationManager.getApplication().service<KafkaConsumerProducerFeedbackService>().state.consumerDialogIsOpened = true
+    }
   }
 
   override fun dispose() {
