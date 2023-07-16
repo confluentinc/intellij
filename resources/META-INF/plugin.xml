@@ -22,8 +22,8 @@
     ]]></description>
 
   <depends>com.intellij.modules.ultimate</depends>
-
   <depends>com.intellij.bigdatatools.core</depends>
+  <depends config-file="spring-boot.xml" optional="true">com.intellij.spring.boot</depends>
 
   <extensions defaultExtensionNs="com.intellij">
     <dependencySupport kind="java" coordinate="java:org.springframework.kafka:spring-kafka" displayName="spring-kafka"/>
@@ -61,10 +61,10 @@
                 factoryClass="com.jetbrains.bigdatatools.kafka.toolwindow.KafkaToolWindowFactory"/>
 
     <fileEditorProvider implementation="com.jetbrains.bigdatatools.kafka.common.editor.KafkaEditorProvider"/>
+
     <iconMapper mappingFile="KafkaIconMappings.json"/>
     <notificationGroup id="Kafka Notification" displayType="BALLOON" bundle="messages.KafkaBundle" key="notification.group.kafka"/>
   </extensions>
-
 
   <actions resource-bundle="messages.KafkaBundle">
     <action id="Kafka.GlobalCreateKafkaConnection"
