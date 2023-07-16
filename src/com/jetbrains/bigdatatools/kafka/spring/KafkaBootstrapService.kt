@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.service
+package com.jetbrains.bigdatatools.kafka.spring
 
 import com.intellij.openapi.actionSystem.DataContext
 import com.intellij.openapi.actionSystem.DefaultActionGroup
@@ -18,7 +18,7 @@ import com.jetbrains.bigdatatools.kafka.toolwindow.actions.KafkaCreateProducerAc
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 
 @Service(Service.Level.PROJECT)
-class KafkaPluginService(val project: Project) {
+internal class KafkaBootstrapService(val project: Project) {
   fun showConsumerWithPopup(brokerServers: String?, defaultTopic: String?, dataContext: DataContext?) {
     val actions = DriverManager.getDrivers(project).filterIsInstance<KafkaDriver>().map { driver ->
       DumbAwareAction.create(driver.connectionData.name) {
@@ -43,7 +43,7 @@ class KafkaPluginService(val project: Project) {
       .showCenteredInCurrentWindow(project)
   }
 
-  fun showKafkaSettingsPopup(defaultTopic: String?, brokerServers: String?, dataContext: DataContext?) {
+  fun showKafkaSettingsPopup(brokerServers: String?, defaultTopic: String?, dataContext: DataContext?) {
     val actions = DriverManager.getDrivers(project).filterIsInstance<KafkaDriver>().map { driver ->
       DumbAwareAction.create(driver.connectionData.name) {
         ConnectionSettings.open(project, connectionId = driver.connectionData.innerId)
@@ -67,8 +67,7 @@ class KafkaPluginService(val project: Project) {
     ConnectionSettings.create(project, group, connectionData, applyIfOk = true)
   }
 
-
-  object Utils {
-    fun getInstance(project: Project) = project.service<KafkaPluginService>()
+  companion object {
+    fun getInstance(project: Project) = project.service<KafkaBootstrapService>()
   }
 }
