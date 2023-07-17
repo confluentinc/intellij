@@ -14,18 +14,18 @@ data class TopicPresentable(val name: String,
                             val internal: Boolean = false,
                             @field:NoRendering
                             val partitionList: List<BdtTopicPartition> = emptyList(),
-                            @field:LoadingRendering
+                            @field:LoadingRendering(rightAligned = true)
                             val replicas: Int? = null,
-                            @field:LoadingRendering
+                            @field:LoadingRendering(rightAligned = true)
                             val partitions: Int? = null,
                             @field:LoadingRendering
                             val inSyncReplicas: Int? = null,
-                            @field:LoadingRendering
+                            @field:LoadingRendering(rightAligned = true)
                             val replicationFactor: Int? = null,
-                            @field:LoadingRendering
+                            @field:LoadingRendering(rightAligned = true)
                             val underReplicatedPartitions: Int? = null,
                             val noLeaders: Int? = null,
-                            @field:LoadingRendering
+                            @field:LoadingRendering(rightAligned = true)
                             val messageCount: Long? = null,
                             val isFavorite: Boolean = false) : RemoteInfo {
 

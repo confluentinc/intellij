@@ -10,9 +10,9 @@ import kotlin.reflect.jvm.javaField
 
 data class ConsumerGroupPresentable(val state: ConsumerGroupState,
                                     val consumerGroup: String,
-                                    @field:LoadingRendering
+                                    @field:LoadingRendering(rightAligned = true)
                                     val consumers: Int? = null,
-                                    @field:LoadingRendering
+                                    @field:LoadingRendering(rightAligned = true)
                                     val topics: Int? = null,
                                     @field:LoadingRendering
                                     val partitions: Int? = null) : RemoteInfo {
