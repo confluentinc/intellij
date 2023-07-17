@@ -17,7 +17,6 @@ import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.NlsSafe
 import com.intellij.ui.IdeBorderFactory
 import com.intellij.ui.SideBorder
-import com.intellij.ui.components.JBPanelWithEmptyText
 import com.intellij.ui.dsl.builder.*
 import com.intellij.ui.dsl.gridLayout.UnscaledGaps
 import com.intellij.ui.layout.migLayout.createLayoutConstraints
@@ -43,6 +42,7 @@ import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import net.miginfocom.layout.ConstraintParser
 import org.jetbrains.annotations.Nls
 import java.awt.BorderLayout
+import java.awt.Dimension
 import java.util.function.BiFunction
 import javax.swing.JCheckBox
 import javax.swing.JComponent
@@ -78,9 +78,11 @@ class KafkaSchemaController(private val project: Project,
   private var version1Schema: SchemaVersionInfo? = null
   private var version2Schema: SchemaVersionInfo? = null
 
-  private val curComponent = JBPanelWithEmptyText(BorderLayout())
+  private val component = JPanel(BorderLayout())
 
-  private val schemaView = KafkaRegistrySchemaEditor(project, parentDisposable = this, isEditable = false)
+  private val schemaView = KafkaRegistrySchemaEditor(project, parentDisposable = this, isEditable = false).apply {
+    component.preferredSize = Dimension(20, 20)
+  }
   private val structureView = SchemaTreePanel()
 
   private val diffViewController = SchemaVersionDiffController(project).also {
@@ -108,14 +110,12 @@ class KafkaSchemaController(private val project: Project,
   override fun dispose() {}
 
   fun init() {
-    curComponent.add(createToolbar(internalComponent), BorderLayout.NORTH)
-    curComponent.add(internalComponent, BorderLayout.CENTER)
-    curComponent.revalidate()
-    curComponent.repaint()
+    component.add(createToolbar(internalComponent), BorderLayout.NORTH)
+    component.add(internalComponent, BorderLayout.CENTER)
     onViewTypeUpdate()
   }
 
-  override fun getComponent(): JComponent = curComponent
+  override fun getComponent(): JComponent = component
 
   override fun setDetailsId(@NlsSafe id: String) {
     version1Controller.setSchema(id)
