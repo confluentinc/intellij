@@ -16,6 +16,7 @@ import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.NlsContexts
 import com.intellij.ui.LightColors
+import com.intellij.ui.ScreenUtil
 import com.intellij.ui.dsl.builder.Align
 import com.intellij.ui.dsl.builder.panel
 import com.intellij.util.ui.JBUI
@@ -28,7 +29,9 @@ import com.jetbrains.bigdatatools.kafka.registry.SchemaVersionInfo
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import org.jetbrains.annotations.Nls
 import org.jetbrains.concurrency.Promise
+import java.awt.Dimension
 import javax.swing.JEditorPane
+import kotlin.math.min
 
 object KafkaSchemaInfoDialog {
 
@@ -44,7 +47,11 @@ object KafkaSchemaInfoDialog {
       dialogBuilder.centerPanel(KafkaRegistrySchemaEditor(project, parentDisposable = dialogBuilder).apply {
         setText(schema, if (KafkaRegistryFormat.valueOf(schemaType) != KafkaRegistryFormat.PROTOBUF) JsonLanguage.INSTANCE
         else Language.findLanguageByID("protobuf") ?: PlainTextLanguage.INSTANCE)
-      }.component).addOkAction()
+      }.component.apply {
+        preferredSize = Dimension(min(preferredSize.width, ScreenUtil.getMainScreenBounds().width / 4),
+                                  min(preferredSize.height, ScreenUtil.getMainScreenBounds().height / 4))
+      }).addOkAction()
+      dialogBuilder.setDimensionServiceKey("kafka.schema.info.dialog")
       dialogBuilder.show()
     }
   }

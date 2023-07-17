@@ -10,6 +10,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.openapi.ui.ValidationInfo
+import com.intellij.ui.IdeBorderFactory
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.dsl.builder.Align
 import com.intellij.ui.dsl.builder.Row
@@ -78,6 +79,8 @@ class KafkaRegistryAddSchemaDialog(project: Project, val dataManager: KafkaDataM
   private val textScrollPane = KafkaRegistrySchemaEditor(project, disposable) {
     updateParsedSchema()
     updateRecordFieldText()
+  }.apply {
+    component.border = IdeBorderFactory.createBorder()
   }
 
   private lateinit var errorRow: Row

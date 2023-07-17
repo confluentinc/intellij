@@ -9,7 +9,6 @@ import com.intellij.ui.EditorTextField
 import com.intellij.ui.EditorTextFieldProvider
 import com.jetbrains.bigdatatools.common.ui.doOnChange
 import java.awt.BorderLayout
-import java.awt.Dimension
 import javax.swing.BorderFactory
 import javax.swing.JPanel
 
@@ -87,7 +86,6 @@ class KafkaRegistrySchemaEditor(private val project: Project,
     })).apply {
       autoscrolls = false
       setCaretPosition(0)
-      preferredSize = Dimension(600, 500)
       document.setReadOnly(!isEditable)
       setDisposedWith(parentDisposable)
     }
