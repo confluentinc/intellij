@@ -31,7 +31,7 @@ class KafkaFlowController {
         generateRandomValues = checkBox(KafkaMessagesBundle.message("producer.flow.generate.random.value"))
       }
       row(KafkaMessagesBundle.message("producer.flow.mode.label")) {
-        mode = this.segmentedButton(Mode.values().toList()) { it.label }
+        mode = this.segmentedButton(Mode.values().toList()) { text = it.label }
         mode.selectedItem = Mode.MANUAL
       }
       autoParams = panel {

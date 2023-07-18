@@ -141,7 +141,7 @@ class KafkaProducerEditor(val project: Project,
             KafkaMessagesBundle.message("producer.idempotence.comment"))
         }
         row(KafkaMessagesBundle.message("producer.asks")) {
-          acksComboBox = segmentedButton(AcksType.values().toList()) { StringUtil.wordsToBeginFromUpperCase(it.name.lowercase()) }
+          acksComboBox = segmentedButton(AcksType.values().toList()) { text = StringUtil.wordsToBeginFromUpperCase(it.name.lowercase()) }
           acksComboBox.selectedItem = AcksType.NONE
         }.visibleIf(idempotenceCheckBox.selected.not())
       }.topGap(TopGap.NONE)

@@ -189,7 +189,7 @@ class KafkaSchemaController(private val project: Project,
 
     val panel = panel {
       row {
-        viewType = segmentedButton(ViewType.values().toList()) { it.title }
+        viewType = segmentedButton(ViewType.values().toList()) { text = it.title }
           .customize(UnscaledGaps(top = 0, left = 0, bottom = 0, right = 25))
         viewType.selectedItem = if (config.isStructure) ViewType.STRUCTURE else ViewType.SCHEMA
         viewType.whenItemSelected {
