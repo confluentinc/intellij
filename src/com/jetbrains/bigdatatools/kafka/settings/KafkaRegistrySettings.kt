@@ -382,6 +382,7 @@ class KafkaRegistrySettings(val project: Project,
 
     settings.loadInfo(info.copy(accessKey = awsAccessKey.getComponent().text, secretKey = awsSecretKey.getComponent().text))
     awsGlueSettings.updateVisibility()
+    saveGlueSettings()
   }
 
   private fun saveGlueSettings() {
