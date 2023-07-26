@@ -30,6 +30,17 @@ class KafkaRfsTreeNode(
     return true
   }
 
+  override fun getGrayText(): String? {
+    val kafkaFileInfo = fileInfo as? KafkaFileInfo ?: return null
+    return when {
+      rfsPath.parent?.isSchemas == true -> {
+        kafkaFileInfo.driver.dataManager.getCachedSchema(rfsPath.name)?.type?.presentable
+      }
+      else -> null
+    }
+  }
+
+
   override fun getIdleIcon() = when {
     rfsPath.isRoot -> super.getIdleIcon()
     rfsPath.parent?.isTopicFolder == true && topic?.isFavorite == true -> AllIcons.Nodes.Favorite
