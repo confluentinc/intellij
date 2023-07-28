@@ -78,6 +78,10 @@ class KafkaTopicSchemaController(private val project: Project,
       val topicName = topicName ?: return@appendSecondaryText
       val dialog = KafkaRegistryAddSchemaDialog(project, dataManager)
       dialog.applySchemaName(topicName, viewType)
+      dialog.topicField.isEnabled = false
+      dialog.strategyCombobox.isEnabled = false
+      dialog.keyValueCombobox.isEnabled = false
+      dialog.subjectNameField.isEnabled = false
       dialog.show()
     }
     curComponent.emptyText.isShowAboveCenter = false

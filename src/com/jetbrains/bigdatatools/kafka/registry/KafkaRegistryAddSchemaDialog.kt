@@ -41,14 +41,14 @@ class KafkaRegistryAddSchemaDialog(project: Project, val dataManager: KafkaDataM
     }
   }
 
-  private val strategyCombobox = ComboBox(ConfluentRegistryStrategy.values()).apply {
+  internal val strategyCombobox = ComboBox(ConfluentRegistryStrategy.values()).apply {
     renderer = CustomListCellRenderer<ConfluentRegistryStrategy> { it.presentable }
     addActionListener {
       onChangeStrategy()
     }
   }
 
-  private val keyValueCombobox = ComboBox(KafkaRegistryKeyValue.values()).apply {
+  internal val keyValueCombobox = ComboBox(KafkaRegistryKeyValue.values()).apply {
     renderer = CustomListCellRenderer<KafkaRegistryKeyValue> { it.presentable }
     selectedItem = KafkaRegistryKeyValue.VALUE
     addActionListener {
@@ -56,7 +56,7 @@ class KafkaRegistryAddSchemaDialog(project: Project, val dataManager: KafkaDataM
     }
   }
 
-  private val topicField = KafkaEditorUtils.createTopicComboBox(disposable, dataManager).also {
+  internal val topicField = KafkaEditorUtils.createTopicComboBox(disposable, dataManager).also {
     it.addActionListener {
       onChangeStrategy()
     }
@@ -66,7 +66,7 @@ class KafkaRegistryAddSchemaDialog(project: Project, val dataManager: KafkaDataM
     it.isEditable = false
   }
 
-  private val subjectNameField = JTextField("").withNonEmptyValidator(disposable)
+  internal val subjectNameField = JTextField("").withNonEmptyValidator(disposable)
   private val subjectNameLabel = JBLabel("")
 
   private var cachedParsedSchema: ParsedSchema? = null
