@@ -1,6 +1,7 @@
 package com.jetbrains.bigdatatools.kafka.rfs
 
 import com.intellij.openapi.progress.ProgressIndicator
+import com.intellij.openapi.progress.runBlockingCancellable
 import com.jetbrains.bigdatatools.common.rfs.driver.ExportFormat
 import com.jetbrains.bigdatatools.common.rfs.driver.FileInfoBase
 import com.jetbrains.bigdatatools.common.rfs.driver.RfsPath
@@ -23,7 +24,9 @@ class KafkaFileInfo(override val driver: KafkaDriver, override val path: RfsPath
     override fun run(indicator: ProgressIndicator) {
       when (path.parent) {
         KafkaDriver.topicPath -> driver.dataManager.deleteTopic(listOf(path.name))
-        KafkaDriver.schemasPath -> driver.dataManager.deleteSchema(path.name)
+        KafkaDriver.schemasPath -> runBlockingCancellable {
+          driver.dataManager.deleteSchema(path.name).join()
+        }
       }
     }
   }

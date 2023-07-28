@@ -1,6 +1,7 @@
 package com.jetbrains.bigdatatools.kafka.data
 
 import com.intellij.CommonBundle
+import com.intellij.openapi.application.EDT
 import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.Messages
@@ -38,6 +39,7 @@ import io.confluent.kafka.schemaregistry.ParsedSchema
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.future.asCompletableFuture
 import kotlinx.coroutines.runInterruptible
+import kotlinx.coroutines.withContext
 import org.jetbrains.concurrency.Promise
 import org.jetbrains.concurrency.asPromise
 import org.jetbrains.concurrency.await
@@ -224,7 +226,8 @@ class KafkaDataManager(project: Project?,
 
   }
 
-  fun updateSchema(versionInfo: SchemaVersionInfo, newText: String) = SafeExecutor.instance.asyncSuspend(taskName = null, timeout = Duration.INFINITE) {
+  fun updateSchema(versionInfo: SchemaVersionInfo, newText: String) = SafeExecutor.instance.asyncSuspend(taskName = null,
+                                                                                                         timeout = Duration.INFINITE) {
     runInterruptible(Dispatchers.IO) {
       client.confluentRegistryClient?.updateSchema(versionInfo, newText) ?: client.glueRegistryClient?.updateSchema(versionInfo, newText)
       ?: error("Not Fond registry")
@@ -233,31 +236,39 @@ class KafkaDataManager(project: Project?,
     updater.invokeRefreshModel(schemaVersionModels[versionInfo.schemaName])
   }.deferred.asCompletableFuture().asPromise().asSilent()
 
-  fun deleteSchema(schemaName: String) {
-    val registryInfo = getCachedSchema(schemaName) ?: return
+  fun deleteSchema(schemaName: String) = actionWrapperSuspend {
+    val registryInfo = getCachedSchema(schemaName) ?: return@actionWrapperSuspend
     if (registryInfo.isSoftDeleted) {
-      if (Messages.showOkCancelDialog(project,
-                                      KafkaMessagesBundle.message("action.remove.schema.confirm.dialog.msg.permanent", registryInfo.name),
-                                      KafkaMessagesBundle.message("action.remove.schema.confirm.dialog.title"),
-                                      Messages.getOkButton(),
-                                      Messages.getCancelButton(),
-                                      Messages.getQuestionIcon()) == Messages.OK) {
-        deleteSchemaWithoutConfirmation(registryInfo.name, permanent = true)
+      val confirm = withContext(Dispatchers.IO) {
+        Messages.showOkCancelDialog(project,
+                                    KafkaMessagesBundle.message("action.remove.schema.confirm.dialog.msg.permanent",
+                                                                registryInfo.name),
+                                    KafkaMessagesBundle.message("action.remove.schema.confirm.dialog.title"),
+                                    Messages.getOkButton(),
+                                    Messages.getCancelButton(),
+                                    Messages.getQuestionIcon())
       }
+
+      if (confirm != Messages.OK)
+        return@actionWrapperSuspend
+      deleteSchemaWithoutConfirmation(registryInfo.name, permanent = true)
     }
     else {
-      if (Messages.showOkCancelDialog(project,
-                                      KafkaMessagesBundle.message("action.remove.schema.confirm.dialog.msg.soft", registryInfo.name),
-                                      KafkaMessagesBundle.message("action.remove.schema.confirm.dialog.title"),
-                                      Messages.getOkButton(),
-                                      Messages.getCancelButton(),
-                                      Messages.getQuestionIcon()) == Messages.OK) {
-        deleteSchemaWithoutConfirmation(registryInfo.name, permanent = false)
+      val confirm = withContext(Dispatchers.EDT) {
+        Messages.showOkCancelDialog(project,
+                                    KafkaMessagesBundle.message("action.remove.schema.confirm.dialog.msg.soft", registryInfo.name),
+                                    KafkaMessagesBundle.message("action.remove.schema.confirm.dialog.title"),
+                                    Messages.getOkButton(),
+                                    Messages.getCancelButton(),
+                                    Messages.getQuestionIcon()) == Messages.OK
       }
+      if (!confirm)
+        return@actionWrapperSuspend
+      deleteSchemaWithoutConfirmation(registryInfo.name, permanent = false)
     }
   }
 
-  private fun deleteSchemaWithoutConfirmation(schemaName: String, permanent: Boolean) = actionWrapper {
+  private suspend fun deleteSchemaWithoutConfirmation(schemaName: String, permanent: Boolean) = withContext(Dispatchers.IO) {
     client.confluentRegistryClient?.deleteSchema(schemaName, permanent) ?: client.glueRegistryClient?.deleteSchema(schemaName)
     schemaRegistryModel?.let { updater.invokeRefreshModel(it) }
   }

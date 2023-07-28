@@ -12,6 +12,7 @@ import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager.Companion.sortedSc
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryFormat
 import com.jetbrains.bigdatatools.kafka.registry.SchemaVersionInfo
 import com.jetbrains.bigdatatools.kafka.registry.common.KafkaSchemaInfo
+import kotlinx.coroutines.delay
 import software.amazon.awssdk.core.client.config.ClientOverrideConfiguration
 import software.amazon.awssdk.profiles.ProfileFile
 import software.amazon.awssdk.regions.Region
@@ -60,11 +61,11 @@ class BdtGlueRegistryClient(val project: Project?,
     client.deleteSchemaVersions(request)
   }
 
-  fun deleteSchema(name: String) {
+  suspend fun deleteSchema(name: String) {
     val schemaId = SchemaId.builder().schemaName(name).registryName(registryName).build()
     val request = DeleteSchemaRequest.builder().schemaId(schemaId).build()
     client.deleteSchema(request)
-
+    delay(2000)
   }
 
   fun listRegistries(): List<RegistryListItem> {
