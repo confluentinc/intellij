@@ -109,7 +109,7 @@ class KafkaRegistryAddSchemaDialog(project: Project, val dataManager: KafkaDataM
     }
 
     row(subjectNameLabel) {
-      cell(subjectNameField).align(Align.FILL).resizableColumn().validationOnApply {
+      cell(subjectNameField).align(Align.FILL).resizableColumn().validationOnInput {
         if (it.text.isBlank()) {
           ValidationInfo(KafkaMessagesBundle.message("schema.name.must.be.not.blank"))
         }
