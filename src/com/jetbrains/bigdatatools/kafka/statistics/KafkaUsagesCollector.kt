@@ -6,26 +6,24 @@ import com.intellij.internal.statistic.eventLog.events.RoundedIntEventField
 import com.intellij.internal.statistic.service.fus.collectors.CounterUsagesCollector
 import com.jetbrains.bigdatatools.kafka.common.models.KafkaFieldType
 
-class KafkaUsagesCollector : CounterUsagesCollector() {
+object KafkaUsagesCollector : CounterUsagesCollector() {
 
   override fun getGroup() = GROUP
 
-  companion object {
-    private val GROUP = EventLogGroup("bigdatatools.kafka", 3)
+  private val GROUP = EventLogGroup("bigdatatools.kafka", 3)
 
-    val openProducerEvent = GROUP.registerEvent("open.producer")
-    val openConsumerEvent = GROUP.registerEvent("open.consumer")
+  val openProducerEvent = GROUP.registerEvent("open.producer")
+  val openConsumerEvent = GROUP.registerEvent("open.consumer")
 
-    val topicCreatedEvent = GROUP.registerEvent("topic.created")
-    val topicDeletedEvent = GROUP.registerEvent("topic.deleted")
+  val topicCreatedEvent = GROUP.registerEvent("topic.created")
+  val topicDeletedEvent = GROUP.registerEvent("topic.deleted")
 
-    val producedKeyValue = GROUP.registerEvent("produced.keyvalue",
-                                               EventFields.Enum<KafkaFieldType>("key_type"),
-                                               EventFields.Enum<KafkaFieldType>("value_type"))
+  val producedKeyValue = GROUP.registerEvent("produced.keyvalue",
+                                             EventFields.Enum<KafkaFieldType>("key_type"),
+                                             EventFields.Enum<KafkaFieldType>("value_type"))
 
-    val consumedKeyValue = GROUP.registerEvent("consumed.keyvalue",
-                                               EventFields.Enum<KafkaFieldType>("key_type"),
-                                               EventFields.Enum<KafkaFieldType>("value_type"),
-                                               RoundedIntEventField("count"))
-  }
+  val consumedKeyValue = GROUP.registerEvent("consumed.keyvalue",
+                                             EventFields.Enum<KafkaFieldType>("key_type"),
+                                             EventFields.Enum<KafkaFieldType>("value_type"),
+                                             RoundedIntEventField("count"))
 }
