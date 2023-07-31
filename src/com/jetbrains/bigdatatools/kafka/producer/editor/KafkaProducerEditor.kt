@@ -1,6 +1,5 @@
 package com.jetbrains.bigdatatools.kafka.producer.editor
 
-import com.intellij.feedback.kafka.state.KafkaConsumerProducerFeedbackService
 import com.intellij.icons.AllIcons
 import com.intellij.ide.util.PropertiesComponent
 import com.intellij.openapi.application.ApplicationManager
@@ -16,6 +15,7 @@ import com.intellij.openapi.util.Key
 import com.intellij.openapi.util.UserDataHolderBase
 import com.intellij.openapi.util.text.StringUtil
 import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.platform.feedback.kafka.state.KafkaConsumerProducerFeedbackService
 import com.intellij.ui.OnePixelSplitter
 import com.intellij.ui.components.CheckBox
 import com.intellij.ui.components.JBScrollPane

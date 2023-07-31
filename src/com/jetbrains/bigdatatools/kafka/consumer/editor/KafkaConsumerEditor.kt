@@ -1,6 +1,5 @@
 package com.jetbrains.bigdatatools.kafka.consumer.editor
 
-import com.intellij.feedback.kafka.state.KafkaConsumerProducerFeedbackService
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.service
 import com.intellij.openapi.fileEditor.FileEditor
@@ -9,6 +8,7 @@ import com.intellij.openapi.fileEditor.FileEditorState
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.UserDataHolderBase
 import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.platform.feedback.kafka.state.KafkaConsumerProducerFeedbackService
 import com.jetbrains.bigdatatools.common.util.executeNotOnEdt
 import com.jetbrains.bigdatatools.kafka.common.models.TopicInEditor
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
