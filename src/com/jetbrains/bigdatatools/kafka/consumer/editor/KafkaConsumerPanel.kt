@@ -99,8 +99,8 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
     prototypeDisplayValue = TopicInEditor("AverageName")
   }
 
-  private val key = KafkaConsumerFieldComponent(project, this, isKey = true)
-  private val value = KafkaConsumerFieldComponent(project, this, isKey = false)
+  private val key = KafkaConsumerFieldComponent(project, this, isKey = true).also { Disposer.register(this, it) }
+  private val value = KafkaConsumerFieldComponent(project, this, isKey = false).also { Disposer.register(this, it) }
 
 
   private val kafkaConsumerSettingsDelegate = lazy { KafkaConsumerSettings() }

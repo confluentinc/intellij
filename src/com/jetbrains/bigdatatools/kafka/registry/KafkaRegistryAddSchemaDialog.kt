@@ -2,9 +2,7 @@ package com.jetbrains.bigdatatools.kafka.registry
 
 import com.intellij.icons.AllIcons
 import com.intellij.json.JsonLanguage
-import com.intellij.lang.Language
 import com.intellij.openapi.application.runInEdt
-import com.intellij.openapi.fileTypes.PlainTextLanguage
 import com.intellij.openapi.observable.properties.AtomicBooleanProperty
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.ComboBox
@@ -161,7 +159,7 @@ class KafkaRegistryAddSchemaDialog(project: Project, val dataManager: KafkaDataM
   fun applyRegistryInfo(schemaFormat: KafkaRegistryFormat, schemaDefinition: String) {
     formatCombobox.selectedItem = schemaFormat
     if (schemaFormat == KafkaRegistryFormat.PROTOBUF) {
-      textScrollPane.setText(schemaDefinition, Language.findLanguageByID("protobuf") ?: PlainTextLanguage.INSTANCE)
+      textScrollPane.setText(schemaDefinition, KafkaRegistryUtil.protobufLanguage)
     }
     else {
       textScrollPane.setText(KafkaEditorUtils.tryFormatJson(schemaDefinition), JsonLanguage.INSTANCE)
@@ -178,7 +176,7 @@ class KafkaRegistryAddSchemaDialog(project: Project, val dataManager: KafkaDataM
     val newDefault = KafkaRegistryTemplates.getDefaultIfNotConfigured(textScrollPane.text, getFormat())
     textScrollPane.setText(newDefault ?: textScrollPane.text,
                            if (formatCombobox.selectedItem != KafkaRegistryFormat.PROTOBUF) JsonLanguage.INSTANCE
-                           else Language.findLanguageByID("protobuf") ?: PlainTextLanguage.INSTANCE)
+                           else KafkaRegistryUtil.protobufLanguage)
     updateRecordFieldText()
   }
 

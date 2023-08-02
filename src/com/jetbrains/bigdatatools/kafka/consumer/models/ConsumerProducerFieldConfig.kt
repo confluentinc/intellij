@@ -42,5 +42,7 @@ data class ConsumerProducerFieldConfig(val type: KafkaFieldType,
         error("Schema is removed")
       }
     }
+    KafkaFieldType.PROTOBUF_CUSTOM -> ProtobufSchemaUtils.toObject(valueText, parsedSchema as ProtobufSchema)
+    KafkaFieldType.AVRO_CUSTOM -> AvroSchemaUtils.toObject(valueText, parsedSchema as AvroSchema)
   }
 }

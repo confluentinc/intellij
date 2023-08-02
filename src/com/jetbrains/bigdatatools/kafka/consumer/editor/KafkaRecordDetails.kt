@@ -235,6 +235,8 @@ class KafkaRecordDetails(project: Project, parentDisposable: Disposable) {
     KafkaFieldType.BASE64 -> FieldViewerType.DECODED_BASE64
     KafkaFieldType.NULL -> FieldViewerType.TEXT
     KafkaFieldType.SCHEMA_REGISTRY -> FieldViewerType.JSON
+    KafkaFieldType.PROTOBUF_CUSTOM -> FieldViewerType.JSON
+    KafkaFieldType.AVRO_CUSTOM -> FieldViewerType.JSON
   }
 
   private fun loadBinaryFile(project: Project, defaultFileName: String, fieldText: KafkaRegistrySchemaEditor) {

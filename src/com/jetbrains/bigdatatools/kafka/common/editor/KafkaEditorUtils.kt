@@ -77,7 +77,13 @@ object KafkaEditorUtils {
       value.toString()
     }
     type == KafkaFieldType.JSON -> tryFormatJson(value.toString())
-
+    type == KafkaFieldType.PROTOBUF_CUSTOM -> try {
+      val message = value as Message
+      tryFormatJson(ProtobufSchemaUtils.toJson(message).toString(Charset.defaultCharset()))
+    }
+    catch (t: Throwable) {
+      value.toString()
+    }
     type == KafkaFieldType.SCHEMA_REGISTRY -> {
       when (format) {
         KafkaRegistryFormat.AVRO -> {

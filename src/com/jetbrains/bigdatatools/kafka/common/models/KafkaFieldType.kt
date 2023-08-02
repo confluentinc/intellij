@@ -25,7 +25,8 @@ enum class KafkaFieldType(@Nls val title: String) {
   FLOAT(KafkaMessagesBundle.message("field.type.float")),
   BASE64(KafkaMessagesBundle.message("field.type.base64")),
   NULL(KafkaMessagesBundle.message("field.type.null")),
-
+  PROTOBUF_CUSTOM(KafkaMessagesBundle.message("field.type.custom.protobuf")),
+  AVRO_CUSTOM(KafkaMessagesBundle.message("field.type.custom.avro")),
   SCHEMA_REGISTRY(KafkaMessagesBundle.message("field.type.registry"));
 
   fun getDeserializationClass(dataManager: KafkaDataManager, consumerField: ConsumerProducerFieldConfig) = when (this) {
@@ -76,6 +77,8 @@ enum class KafkaFieldType(@Nls val title: String) {
         }
       }
     }
+    PROTOBUF_CUSTOM -> BdtKafkaCustomProtobufDeserializer(consumerField)
+    AVRO_CUSTOM -> BdtKafkaCustomAvroDeserializer(consumerField)
   }
 
   fun getSerializer(dataManager: KafkaDataManager, producerField: ConsumerProducerFieldConfig) = when (this) {
@@ -116,11 +119,13 @@ enum class KafkaFieldType(@Nls val title: String) {
           ))
       }
     }
+    PROTOBUF_CUSTOM -> BdtKafkaCustomProtobufSerializer()
+    AVRO_CUSTOM -> BdtKafkaCustomAvroSerializer(producerField)
   }
 
 
   companion object {
-    val defaultValues = listOf(STRING, JSON, LONG, DOUBLE, FLOAT, BASE64, NULL)
+    val defaultValues = listOf(STRING, JSON, LONG, DOUBLE, FLOAT, BASE64, NULL, PROTOBUF_CUSTOM, AVRO_CUSTOM)
     val registryValues = listOf(SCHEMA_REGISTRY)
     val allValues = defaultValues + registryValues
   }
