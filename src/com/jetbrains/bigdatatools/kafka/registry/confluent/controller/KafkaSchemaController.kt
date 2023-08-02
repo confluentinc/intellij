@@ -2,10 +2,8 @@ package com.jetbrains.bigdatatools.kafka.registry.confluent.controller
 
 import com.intellij.icons.AllIcons
 import com.intellij.json.JsonLanguage
-import com.intellij.lang.Language
 import com.intellij.openapi.actionSystem.*
 import com.intellij.openapi.actionSystem.impl.MoreActionGroup
-import com.intellij.openapi.fileTypes.PlainTextLanguage
 import com.intellij.openapi.observable.properties.AtomicBooleanProperty
 import com.intellij.openapi.observable.util.and
 import com.intellij.openapi.project.DumbAwareAction
@@ -140,7 +138,7 @@ class KafkaSchemaController(private val project: Project,
                          ?: return@onSuccess
       invokeLater {
         schemaView.setText(prettySchema, if (it.type != KafkaRegistryFormat.PROTOBUF) JsonLanguage.INSTANCE
-        else Language.findLanguageByID("protobuf") ?: PlainTextLanguage.INSTANCE)
+        else KafkaRegistryUtil.protobufLanguage)
         structureView.update(parsedSchema)
         diffViewController.updateVersion1(it)
       }

@@ -7,9 +7,7 @@ import com.intellij.diff.impl.CacheDiffRequestChainProcessor
 import com.intellij.diff.requests.SimpleDiffRequest
 import com.intellij.json.JsonFileType
 import com.intellij.json.JsonLanguage
-import com.intellij.lang.Language
 import com.intellij.openapi.fileTypes.FileTypeManager
-import com.intellij.openapi.fileTypes.PlainTextLanguage
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.DialogBuilder
 import com.intellij.openapi.ui.DialogWrapper
@@ -46,7 +44,7 @@ object KafkaSchemaInfoDialog {
       dialogBuilder.title(KafkaMessagesBundle.message("registry.info.dialog.title", schemaName))
       dialogBuilder.centerPanel(KafkaRegistrySchemaEditor(project, parentDisposable = dialogBuilder).apply {
         setText(schema, if (KafkaRegistryFormat.valueOf(schemaType) != KafkaRegistryFormat.PROTOBUF) JsonLanguage.INSTANCE
-        else Language.findLanguageByID("protobuf") ?: PlainTextLanguage.INSTANCE)
+        else KafkaRegistryUtil.protobufLanguage)
       }.component.apply {
         preferredSize = Dimension(min(preferredSize.width, ScreenUtil.getMainScreenBounds().width / 4),
                                   min(preferredSize.height, ScreenUtil.getMainScreenBounds().height / 4))

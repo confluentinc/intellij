@@ -1,39 +1,49 @@
 package com.jetbrains.bigdatatools.kafka.common.settings
 
+import com.jetbrains.bigdatatools.kafka.common.models.KafkaCustomSchemaSource
 import com.jetbrains.bigdatatools.kafka.common.models.KafkaFieldType
 import com.jetbrains.bigdatatools.kafka.consumer.models.*
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryFormat
 
-data class StorageConsumerConfig(var topic: String? = "",
-                                 var keyType: String? = "",
-                                 var valueType: String? = "",
-                                 var filter: Map<String, String> = emptyMap(),
-                                 var limit: Map<String, String> = emptyMap(),
-                                 var partitions: String? = "",
-                                 var startWith: Map<String, String> = emptyMap(),
+data class StorageConsumerConfig(
+  var topic: String? = "",
+  var keyType: String? = "",
+  var valueType: String? = "",
+  var filter: Map<String, String> = emptyMap(),
+  var limit: Map<String, String> = emptyMap(),
+  var partitions: String? = "",
+  var startWith: Map<String, String> = emptyMap(),
   // Properties from org.apache.kafka.clients.consumer.ConsumerConfig.
   // All properties stored as string even when they are Int. Conversion to proper type done in
   // KafkaConsumerClient.createConsumer().
-                                 var properties: Map<String, String> = emptyMap(),
+  var properties: Map<String, String> = emptyMap(),
   // Our settings like "Display only last 100 records".
-                                 var settings: Map<String, String> = emptyMap(),
+  var settings: Map<String, String> = emptyMap(),
 
-                                 val keyRegistryType: String = "",
-                                 val valueRegistryType: String = "",
+  val keyRegistryType: String = "",
+  val valueRegistryType: String = "",
 
-                                 val keySubject: String = "",
-                                 val keyRegistry: String = "",
+  val keySubject: String = "",
+  val keyRegistry: String = "",
 
-                                 val valueSubject: String = "",
-                                 val valueRegistry: String = "",
+  val valueSubject: String = "",
+  val valueRegistry: String = "",
 
-                                 val keyFormat: String = "",
-                                 val valueFormat: String = "",
-                                 val keyCustomSchema: String = "",
-                                 val valueCustomSchema: String = "",
+  val keyFormat: String = "",
+  val valueFormat: String = "",
+  val keyCustomSchema: String = "",
+  val valueCustomSchema: String = "",
 
-                                 val keySchemaId: String = "",
-                                 val valueSchemaId: String = "") : StorageConfig {
+  val keySchemaId: String = "",
+  val valueSchemaId: String = "",
+
+  val customKeyFile: String? = null,
+  val customValueFile: String? = null,
+  val customKeySchemaSource: KafkaCustomSchemaSource? = null,
+  val customValueSchemaSource: KafkaCustomSchemaSource? = null,
+  val customKeySchemaImplicit: String? = null,
+  val customValueSchemaImplicit: String? = null,
+) : StorageConfig {
 
   constructor(
     topic: String,

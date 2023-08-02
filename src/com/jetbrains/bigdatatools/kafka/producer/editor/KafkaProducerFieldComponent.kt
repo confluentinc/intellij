@@ -6,14 +6,16 @@ import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.impl.ActionButton
-import com.intellij.openapi.application.runWriteAction
+import com.intellij.openapi.application.invokeAndWaitIfNeeded
 import com.intellij.openapi.editor.event.DocumentEvent
 import com.intellij.openapi.editor.event.DocumentListener
 import com.intellij.openapi.fileTypes.PlainTextLanguage
 import com.intellij.openapi.project.DumbAwareAction
+import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.vfs.readBytes
 import com.intellij.ui.EditorTextField
 import com.intellij.ui.dsl.builder.*
+import com.intellij.ui.layout.selectedValueMatches
 import com.intellij.util.concurrency.annotations.RequiresBackgroundThread
 import com.jetbrains.bigdatatools.common.rfs.util.RfsNotificationUtils
 import com.jetbrains.bigdatatools.common.settings.getValidationInfo
@@ -37,15 +39,17 @@ import com.jetbrains.bigdatatools.kafka.util.generator.GenerateRandomData
 import java.util.*
 
 class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEditor, val isKey: Boolean) : Disposable {
-  private var isInited: Boolean = false
+  private var isInitialized: Boolean = false
   val project = producedEditor.project
   private val kafkaManager = producedEditor.kafkaManager
 
   private var schemaValidationError: Throwable? = null
   private var curIsJsonView: Boolean = !isKey
 
+  private val customSchemaController = CustomSchemaController(project, isKey).also { Disposer.register(this, it) }
+
   val fieldTypeComboBox = KafkaEditorUtils.createFieldTypeComboBox(producedEditor.topicComboBox, kafkaManager, isKey) {
-    if (!isInited)
+    if (!isInitialized)
       return@createFieldTypeComboBox
 
     updateVisibility()
@@ -61,10 +65,14 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
 
     revalidateFields()
     producedEditor.mainComponent.revalidate()
+    customSchemaController.setLanguage(it.item)
   }
 
   val schemaComboBox = KafkaEditorUtils.createSchemaComboBox(this, kafkaManager,
                                                              producedEditor.topicComboBox, isKey)
+  private val customSchemaPredicate = fieldTypeComboBox.selectedValueMatches {
+    it in setOf(KafkaFieldType.AVRO_CUSTOM, KafkaFieldType.PROTOBUF_CUSTOM)
+  }
 
   private val textField: EditorTextField by lazy {
     KafkaEditorUtils.createTextArea(project, language = PlainTextLanguage.INSTANCE).withValidator(this, ::validateValue).also {
@@ -88,6 +96,10 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
       }, this)
       it.revalidateOnLinesChanged()
     }
+  }
+
+  init {
+    customSchemaController.setLanguage(fieldTypeComboBox.item)
   }
 
   override fun dispose() {}
@@ -129,7 +141,13 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
     val registryType = kafkaManager.registryType
     val schemaName = schemaComboBox.item?.schemaName ?: ""
     val schemaFormat = schemaComboBox.item?.schemaFormat ?: KafkaRegistryFormat.UNKNOWN
-    val schema = KafkaRegistryUtil.loadSchema(schemaName, fieldType, kafkaManager)
+
+    val schema = when (fieldType) {
+      null, KafkaFieldType.STRING, KafkaFieldType.JSON, KafkaFieldType.LONG,
+      KafkaFieldType.DOUBLE, KafkaFieldType.FLOAT, KafkaFieldType.BASE64, KafkaFieldType.NULL -> null
+      KafkaFieldType.SCHEMA_REGISTRY -> KafkaRegistryUtil.loadSchema(schemaName, fieldType, kafkaManager)
+      KafkaFieldType.AVRO_CUSTOM, KafkaFieldType.PROTOBUF_CUSTOM -> customSchemaController.getSchema()
+    }
 
     val topic = producedEditor.topicComboBox.item ?: error(KafkaMessagesBundle.message("error.topic.is.not.chosen"))
     return ConsumerProducerFieldConfig(type = fieldType,
@@ -142,7 +160,6 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
                                        parsedSchema = schema)
   }
 
-  private lateinit var registryRows: RowsRange
 
   private lateinit var textRow: Row
   private lateinit var jsonRow: Row
@@ -166,7 +183,7 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
           cell(fieldTypeComboBox).resizableColumn().gap(RightGap.SMALL)
           generateDataAction = actionButton(createGenerateAction())
         }
-        registryRows = rowsRange {
+        rowsRange {
           row(KafkaMessagesBundle.message("settings.format.registry.schema")) {
             cell(schemaComboBox).onChanged { schemaValidationError = null }.resizableColumn().gap(RightGap.SMALL)
             actionButton(DumbAwareAction.create(KafkaMessagesBundle.message("show.schema.info"), AllIcons.Actions.ToggleVisibility) {
@@ -186,8 +203,9 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
               }
             })
           }
-        }
-
+        }.visibleIf(fieldTypeComboBox.selectedValueMatches { it == KafkaFieldType.SCHEMA_REGISTRY })
+        customSchemaController.initComponent(this).visibleIf(customSchemaPredicate)
+        row(KafkaMessagesBundle.message("settings.payload.row.label")) {}.visibleIf(customSchemaPredicate)
         jsonRow = row {
           jsonCell = cell(jsonField).align(AlignX.FILL).resizableColumn().comment("")
         }
@@ -207,11 +225,11 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
         }.topGap(TopGap.NONE)
       }
     }
-    isInited = true
+    isInitialized = true
     updateVisibility()
   }
 
-  private fun updateFieldsText(type: KafkaFieldType, newText: String) = runWriteAction {
+  private fun updateFieldsText(type: KafkaFieldType, newText: String) = invokeAndWaitIfNeeded {
     if (type in jsonFieldTypes)
       jsonField.text = newText
     else
@@ -228,7 +246,7 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
     KafkaFieldType.JSON -> jsonField.text
     KafkaFieldType.STRING, KafkaFieldType.LONG, KafkaFieldType.DOUBLE, KafkaFieldType.FLOAT, KafkaFieldType.BASE64 -> textField.text
     KafkaFieldType.NULL -> ""
-    KafkaFieldType.SCHEMA_REGISTRY -> jsonField.text
+    KafkaFieldType.AVRO_CUSTOM, KafkaFieldType.PROTOBUF_CUSTOM, KafkaFieldType.SCHEMA_REGISTRY -> jsonField.text
   }
 
   private fun updateVisibility(): Unit = invokeLater {
@@ -237,9 +255,6 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
     jsonRow.visible(fieldType in jsonFieldTypes)
     textRow.visible(fieldType in textFieldTypes)
     loadFileLinkRow.visible(fieldType == KafkaFieldType.BASE64)
-
-    val isRegistryType = fieldType in KafkaFieldType.registryValues
-    registryRows.visible(isRegistryType)
 
     invokeLater {
       generateDataAction.component.update()
@@ -271,7 +286,7 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
       }
     }
     KafkaFieldType.NULL -> null // Any value match null type
-    KafkaFieldType.SCHEMA_REGISTRY -> try {
+    KafkaFieldType.AVRO_CUSTOM, KafkaFieldType.PROTOBUF_CUSTOM, KafkaFieldType.SCHEMA_REGISTRY -> try {
       JsonParser.parseString(value)
       executeNotOnEdt {
         validateSchema()
@@ -298,13 +313,17 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
         else
           RegistrySchemaInEditor(config.valueSubject, config.takeValueFormat())
       }
+      KafkaFieldType.AVRO_CUSTOM, KafkaFieldType.PROTOBUF_CUSTOM -> {
+        jsonField.text = text
+        customSchemaController.setConfig(config)
+      }
     }
   }
 
   private fun updateJsonComment() {
     jsonCell.comment?.text = when (fieldTypeComboBox.item) {
       null, KafkaFieldType.STRING, KafkaFieldType.JSON, KafkaFieldType.LONG, KafkaFieldType.DOUBLE, KafkaFieldType.FLOAT, KafkaFieldType.BASE64, KafkaFieldType.NULL -> ""
-      KafkaFieldType.SCHEMA_REGISTRY -> KafkaMessagesBundle.message(
+      KafkaFieldType.AVRO_CUSTOM, KafkaFieldType.PROTOBUF_CUSTOM, KafkaFieldType.SCHEMA_REGISTRY -> KafkaMessagesBundle.message(
         "producer.json.value.comment")
     }
   }
@@ -358,6 +377,8 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
         KafkaFieldType.BASE64,
         KafkaFieldType.JSON,
         KafkaFieldType.SCHEMA_REGISTRY,
+        KafkaFieldType.AVRO_CUSTOM,
+        KafkaFieldType.PROTOBUF_CUSTOM
         -> {
           e.presentation.isEnabledAndVisible = true
           e.presentation.text = KafkaMessagesBundle.message("generate.random.data")
@@ -368,7 +389,8 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
   }
 
   companion object {
-    private val jsonFieldTypes = setOf(KafkaFieldType.JSON) + KafkaFieldType.registryValues
+    private val jsonFieldTypes = setOf(KafkaFieldType.JSON, KafkaFieldType.AVRO_CUSTOM,
+                                       KafkaFieldType.PROTOBUF_CUSTOM) + KafkaFieldType.registryValues
     private val textFieldTypes = setOf(KafkaFieldType.STRING, KafkaFieldType.LONG, KafkaFieldType.DOUBLE, KafkaFieldType.FLOAT,
                                        KafkaFieldType.BASE64)
   }

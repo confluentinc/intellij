@@ -2,6 +2,8 @@ package com.jetbrains.bigdatatools.kafka.registry
 
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonElement
+import com.intellij.lang.Language
+import com.intellij.openapi.fileTypes.PlainTextLanguage
 import com.intellij.openapi.util.NlsSafe
 import com.intellij.util.concurrency.annotations.RequiresBackgroundThread
 import com.jetbrains.bigdatatools.kafka.common.models.KafkaFieldType
@@ -17,6 +19,9 @@ import java.util.logging.Logger
 
 object KafkaRegistryUtil {
   val registrySchemaProviders = listOf(AvroSchemaProvider(), BdtProtobufSchemaProvider(), BdtJsonSchemaProvider())
+
+  val protobufLanguage: Language
+    get() = Language.findLanguageByID("protobuf") ?: PlainTextLanguage.INSTANCE
 
   // We need to disable loggers in schemaregistry, because there was a lot ot error messages (for example AvroSchemaProvider) in case of exceptions,
   // while we are processing that exceptions on our own. And every error message in log produces IDE error notification.
