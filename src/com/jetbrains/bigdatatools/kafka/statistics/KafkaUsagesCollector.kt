@@ -10,7 +10,7 @@ object KafkaUsagesCollector : CounterUsagesCollector() {
 
   override fun getGroup() = GROUP
 
-  private val GROUP = EventLogGroup("bigdatatools.kafka", 3)
+  private val GROUP = EventLogGroup("bigdatatools.kafka", 4)
 
   val openProducerEvent = GROUP.registerEvent("open.producer")
   val openConsumerEvent = GROUP.registerEvent("open.consumer")
