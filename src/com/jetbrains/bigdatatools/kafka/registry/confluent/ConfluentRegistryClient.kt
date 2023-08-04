@@ -31,7 +31,7 @@ class ConfluentRegistryClient(restService: RestService, props: Map<String, Strin
   override fun dispose() {}
 
   fun checkConnection() {
-    internalClient.mode
+    internalClient.allSubjects
   }
 
   fun listSchemas(limit: Int?,
