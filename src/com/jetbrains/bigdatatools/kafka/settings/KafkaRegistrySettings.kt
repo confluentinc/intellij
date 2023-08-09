@@ -53,7 +53,7 @@ class KafkaRegistrySettings(val project: Project,
                                                  KafkaSettingsCustomizer.KafkaSettingsKeys.REGISTRY_PROPERTIES_SOURCE_KEY,
                                                  connectionData,
                                                  arrayOf(KafkaConfigurationSource.FROM_UI,
-                                                                  KafkaConfigurationSource.FROM_PROPERTIES)).apply {
+                                                         KafkaConfigurationSource.FROM_PROPERTIES)).apply {
     addItemListener {
       updateRegistryAuthStatus()
     }
@@ -79,11 +79,11 @@ class KafkaRegistrySettings(val project: Project,
     }
   }
 
-  private val awsAccessKey = UsernameNamedField(AwsSettingsConst.S3_ACCESS_KEY, connectionData,
-                                                AwsCompatibleConnectionData.SECRET_KEY_ID)
+  private val awsCredentials = CredentialsHolder(connectionData, AwsCompatibleConnectionData.SECRET_KEY_ID, project)
 
-  private val awsSecretKey = PasswordNamedField(AwsSettingsConst.S3_SECRET_KEY, connectionData,
-                                                AwsCompatibleConnectionData.SECRET_KEY_ID)
+  private val awsAccessKey = UsernameNamedField(AwsSettingsConst.S3_ACCESS_KEY, awsCredentials)
+
+  private val awsSecretKey = PasswordNamedField(AwsSettingsConst.S3_SECRET_KEY, awsCredentials)
 
   private val glueSettings = StringNonRequiredField(
     KafkaConnectionData::glueSettings,
@@ -100,7 +100,7 @@ class KafkaRegistrySettings(val project: Project,
   }
 
   private val useBrokerSslCheckbox = CheckBoxField(KafkaConnectionData::registryUseBrokerSsl, USE_BROKER_SSL,
-                                                   connectionData)
+                                                    connectionData)
 
   internal val awsGlueSettings = AwsSettingsComponentForKafka(includeRegionSetting = true) {
     saveGlueSettings()
