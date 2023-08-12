@@ -30,12 +30,14 @@ import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import com.jetbrains.bigdatatools.kafka.util.KafkaPropertiesUtils
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClientConfig
 import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG
+import kotlinx.coroutines.CoroutineScope
 import org.apache.kafka.common.config.SslConfigs
 import java.util.concurrent.atomic.AtomicBoolean
 
 class KafkaRegistrySettings(val project: Project,
                             val connectionData: KafkaConnectionData,
                             uiDisposable: Disposable,
+                            coroutineScope: CoroutineScope,
                             val registryType: RadioGroupField<KafkaConnectionData, KafkaRegistryType>) {
 
   internal val confluentPropertiesEditor = PropertiesFieldComponent.create(
@@ -94,6 +96,7 @@ class KafkaRegistrySettings(val project: Project,
     ModificationKey(KafkaMessagesBundle.message("settings.glue.registry.name")),
     connectionData,
     AWSSchemaRegistryConstants.DEFAULT_REGISTRY_NAME,
+    coroutineScope,
     isEditable = true,
   ) {
     KafkaUIUtils.showAndGetGlueRegistry(project, awsGlueSettings.getInfo())

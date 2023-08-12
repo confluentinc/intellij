@@ -1,6 +1,8 @@
 package com.jetbrains.bigdatatools.kafka.settings
 
 import com.intellij.bigdatatools.aws.ui.external.AwsSettingsInfo
+import com.intellij.openapi.application.EDT
+import com.intellij.openapi.progress.blockingContext
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.DialogBuilder
@@ -11,21 +13,23 @@ import com.jetbrains.bigdatatools.common.ui.CustomListCellRenderer
 import com.jetbrains.bigdatatools.common.util.invokeAndWaitSwing
 import com.jetbrains.bigdatatools.kafka.registry.glue.BdtGlueRegistryClient
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 object KafkaUIUtils {
-  fun showAndGetGlueRegistry(project: Project?, awsSettingsInfo: AwsSettingsInfo): String? {
-    val client = BdtGlueRegistryClient(project, "", awsSettingsInfo)
-
+  suspend fun showAndGetGlueRegistry(project: Project?, awsSettingsInfo: AwsSettingsInfo): String? {
     @NlsSafe
-    val names =  client.use {
-      client.connect(true)
-      val registries = client.listRegistries()
-      registries.map { it.registryName() }.toTypedArray()
+    val names = blockingContext {
+      val client = BdtGlueRegistryClient(project, "", awsSettingsInfo)
+      client.use {
+        client.connect(true)
+        val registries = client.listRegistries()
+        registries.map { it.registryName() }.toTypedArray()
+      }
     }
 
 
-
-    return invokeAndWaitSwing {
+    return withContext(Dispatchers.EDT) {
       @Suppress("HardCodedStringLiteral")
       val input = ComboBox(names).apply {
         renderer = CustomListCellRenderer<String> { it }

@@ -28,8 +28,9 @@ import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryType
 import com.jetbrains.bigdatatools.kafka.rfs.*
 import com.jetbrains.bigdatatools.kafka.statistics.KafkaSettingsCollector
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import kotlinx.coroutines.CoroutineScope
 
-class KafkaSettingsCustomizer(project: Project, connectionData: KafkaConnectionData, uiDisposable: Disposable) :
+class KafkaSettingsCustomizer(project: Project, connectionData: KafkaConnectionData, uiDisposable: Disposable, coroutineScope: CoroutineScope) :
   TunnableSettingsCustomizer<KafkaConnectionData>(connectionData, project, uiDisposable) {
   override val tunnelField: SshTunnelComponent<KafkaConnectionData> = SshTunnelComponent(project, uiDisposable, connectionData,
                                                                                          hostAndPortProvider)
@@ -45,7 +46,7 @@ class KafkaSettingsCustomizer(project: Project, connectionData: KafkaConnectionD
                                               KafkaRegistryType.values())
 
   private val brokerSettings = KafkaBrokerSettings(project, connectionData, uiDisposable, url, registryType)
-  private val registrySettings = KafkaRegistrySettings(project, connectionData, uiDisposable, registryType)
+  private val registrySettings = KafkaRegistrySettings(project, connectionData, uiDisposable, coroutineScope, registryType)
 
   internal lateinit var brokerConfSource: RadioGroupField<KafkaConnectionData, KafkaConfigurationSource>
   internal lateinit var brokerCloudSource: RadioGroupField<KafkaConnectionData, KafkaCloudType>
