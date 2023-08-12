@@ -47,7 +47,7 @@ class CustomSchemaController(project: Project, private val isKey: Boolean) : Dis
     customSchemaSource.selectedItem = KafkaCustomSchemaSource.FILE
   }
 
-  var innerType: KafkaFieldType = KafkaFieldType.PROTOBUF_CUSTOM
+  private var innerType: KafkaFieldType = KafkaFieldType.PROTOBUF_CUSTOM
 
   init {
     setLanguage(KafkaFieldType.PROTOBUF_CUSTOM)

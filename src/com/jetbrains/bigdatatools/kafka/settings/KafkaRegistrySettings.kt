@@ -79,10 +79,10 @@ class KafkaRegistrySettings(val project: Project,
     }
   }
 
-  internal val awsAccessKey = UsernameNamedField(AwsSettingsConst.S3_ACCESS_KEY, connectionData,
+  private val awsAccessKey = UsernameNamedField(AwsSettingsConst.S3_ACCESS_KEY, connectionData,
                                                 AwsCompatibleConnectionData.SECRET_KEY_ID)
 
-  internal val awsSecretKey = PasswordNamedField(AwsSettingsConst.S3_SECRET_KEY, connectionData,
+  private val awsSecretKey = PasswordNamedField(AwsSettingsConst.S3_SECRET_KEY, connectionData,
                                                 AwsCompatibleConnectionData.SECRET_KEY_ID)
 
   private val glueSettings = StringNonRequiredField(
@@ -99,7 +99,7 @@ class KafkaRegistrySettings(val project: Project,
     KafkaUIUtils.showAndGetGlueRegistry(project, awsGlueSettings.getInfo())
   }
 
-  internal val useBrokerSslCheckbox = CheckBoxField(KafkaConnectionData::registryUseBrokerSsl, USE_BROKER_SSL,
+  private val useBrokerSslCheckbox = CheckBoxField(KafkaConnectionData::registryUseBrokerSsl, USE_BROKER_SSL,
                                                    connectionData)
 
   internal val awsGlueSettings = AwsSettingsComponentForKafka(includeRegionSetting = true) {
