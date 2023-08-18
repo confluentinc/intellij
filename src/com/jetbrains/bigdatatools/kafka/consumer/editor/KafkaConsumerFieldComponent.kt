@@ -8,6 +8,7 @@ import com.intellij.openapi.util.Disposer
 import com.intellij.ui.dsl.builder.Align
 import com.intellij.ui.dsl.builder.Panel
 import com.intellij.ui.dsl.builder.RightGap
+import com.intellij.ui.dsl.builder.actionButton
 import com.intellij.ui.layout.selectedValueMatches
 import com.jetbrains.bigdatatools.common.rfs.util.RfsNotificationUtils
 import com.jetbrains.bigdatatools.common.settings.getValidationInfo
