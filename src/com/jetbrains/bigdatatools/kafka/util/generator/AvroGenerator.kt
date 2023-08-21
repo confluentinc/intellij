@@ -994,15 +994,12 @@ class AvroGenerator private constructor(private val topLevelSchema: Schema) {
       LONG
     }
 
-    private val start: BigInteger
-    private val restart: BigInteger
-    private val step: BigInteger
+    private val start: BigInteger = BigInteger.valueOf(start)
+    private val restart: BigInteger = BigInteger.valueOf(restart)
+    private val step: BigInteger = BigInteger.valueOf(step)
     private var current: BigInteger
 
     init {
-      this.start = BigInteger.valueOf(start)
-      this.restart = BigInteger.valueOf(restart)
-      this.step = BigInteger.valueOf(step)
       current = BigInteger.valueOf(initial).subtract(this.start)
       if (count > 0) {
         // This is essentially the following expression when ignoring negative values:
@@ -1045,17 +1042,13 @@ class AvroGenerator private constructor(private val topLevelSchema: Schema) {
       DOUBLE
     }
 
-    private val start: BigDecimal
-    private val restart: BigDecimal
-    private val modulo: BigDecimal
-    private val step: BigDecimal
+    private val start: BigDecimal = BigDecimal.valueOf(start)
+    private val restart: BigDecimal = BigDecimal.valueOf(restart)
+    private val modulo: BigDecimal = this.restart.subtract(this.start)
+    private val step: BigDecimal = BigDecimal.valueOf(step)
     private var current: BigDecimal
 
     init {
-      this.start = BigDecimal.valueOf(start)
-      this.restart = BigDecimal.valueOf(restart)
-      modulo = this.restart.subtract(this.start)
-      this.step = BigDecimal.valueOf(step)
       current = BigDecimal.valueOf(initial).subtract(this.start)
       if (count > 0) {
         current = BigDecimal.valueOf(count)
