@@ -186,7 +186,7 @@ class KafkaBrokerSettings(val project: Project,
             }
             contextHelp(KafkaMessagesBundle.message("settings.msk.setup.desc"),
                         KafkaMessagesBundle.message("settings.cloud.setup.title")).align(AlignX.RIGHT)
-          }
+          }.layout(RowLayout.PARENT_GRID)
           awsMskCloudSettings.getComponentRows(this)
         }
       }
