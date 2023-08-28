@@ -1,17 +1,14 @@
 package com.jetbrains.bigdatatools.kafka.statistics
 
 import com.intellij.bigdatatools.aws.connection.auth.AuthenticationType
-import com.intellij.internal.statistic.eventLog.EventLogGroup
 import com.jetbrains.bigdatatools.common.constants.BdtConnectionType
 import com.jetbrains.bigdatatools.common.rfs.statistics.v2.BdtSettingsCollector
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryType
 import com.jetbrains.bigdatatools.kafka.rfs.*
 import com.jetbrains.bigdatatools.kafka.settings.KafkaSettingsCustomizer
 
-class KafkaSettingsCollector : BdtSettingsCollector(BdtConnectionType.KAFKA) {
-  private val GROUP = EventLogGroup(bdtGroupId, 1)
-
-  override val groupDescription: String = "Kafka"
+class KafkaSettingsCollector : BdtSettingsCollector() {
+  override val connectionType: BdtConnectionType = BdtConnectionType.KAFKA
 
   init {
     registryEvent(KafkaSettingsCustomizer::nameField)
@@ -80,8 +77,6 @@ class KafkaSettingsCollector : BdtSettingsCollector(BdtConnectionType.KAFKA) {
 
     init()
   }
-
-  override fun getGroup(): EventLogGroup = GROUP
 
   object Util {
     fun getInstance() = getInstance(BdtConnectionType.KAFKA) as? KafkaSettingsCollector ?: KafkaSettingsCollector()
