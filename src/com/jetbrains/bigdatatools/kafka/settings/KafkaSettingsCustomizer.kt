@@ -13,7 +13,7 @@ import com.intellij.ui.dsl.builder.Cell
 import com.intellij.ui.dsl.builder.TopGap
 import com.intellij.ui.dsl.builder.panel
 import com.jetbrains.bigdatatools.common.connection.tunnel.ui.SshTunnelComponent
-import com.jetbrains.bigdatatools.common.monitoring.TunnableSettingsCustomizer
+import com.jetbrains.bigdatatools.common.monitoring.TunnelableSettingsCustomizer
 import com.jetbrains.bigdatatools.common.settings.ModificationKey
 import com.jetbrains.bigdatatools.common.settings.connections.ConnectionData
 import com.jetbrains.bigdatatools.common.settings.fields.*
@@ -34,7 +34,7 @@ class KafkaSettingsCustomizer(project: Project,
                               connectionData: KafkaConnectionData,
                               uiDisposable: Disposable,
                               coroutineScope: CoroutineScope) :
-  TunnableSettingsCustomizer<KafkaConnectionData>(connectionData, project, uiDisposable) {
+  TunnelableSettingsCustomizer<KafkaConnectionData>(connectionData, project, uiDisposable) {
   override val tunnelField: SshTunnelComponent<KafkaConnectionData> = SshTunnelComponent(project, uiDisposable, connectionData,
                                                                                          hostAndPortProvider,
                                                                                          enabledNotification = KafkaMessagesBundle.message(
