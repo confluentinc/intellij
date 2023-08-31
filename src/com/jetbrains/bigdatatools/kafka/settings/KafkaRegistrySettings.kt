@@ -81,7 +81,7 @@ class KafkaRegistrySettings(val project: Project,
     }
   }
 
-  private val awsCredentials = CredentialsHolder(connectionData, AwsCompatibleConnectionData.SECRET_KEY_ID, project)
+  private val awsCredentials = CredentialsHolder(connectionData, AwsCompatibleConnectionData.SECRET_KEY_ID, uiDisposable, coroutineScope)
 
   private val awsAccessKey = UsernameNamedField(AwsSettingsConst.S3_ACCESS_KEY, awsCredentials)
 
@@ -384,15 +384,15 @@ class KafkaRegistrySettings(val project: Project,
     val info = jsonSettings?.let { BdtJson.fromJsonToClass(it, StaticAwsSettingsInfo::class.java) } ?: StaticAwsSettingsInfo(
       AuthenticationType.DEFAULT.id)
 
-    settings.loadInfo(info.copy(accessKey = awsAccessKey.getComponent().text, secretKey = awsSecretKey.getComponent().text))
+    settings.loadInfo(info.copy(accessKey = awsAccessKey.getValue(), secretKey = String(awsSecretKey.getValue())))
     awsGlueSettings.updateVisibility()
     saveGlueSettings()
   }
 
   private fun saveGlueSettings() {
     val awsSettingsInfo = awsGlueSettings.getInfo()
-    awsAccessKey.getComponent().text = awsSettingsInfo.accessKey
-    awsSecretKey.getComponent().text = awsSettingsInfo.secretKey
+    awsAccessKey.getTextComponent().text = awsSettingsInfo.accessKey
+    awsSecretKey.getTextComponent().text = awsSettingsInfo.secretKey
     val newValue = BdtJson.toJson(awsSettingsInfo.copy(accessKey = null, secretKey = null))
     glueSettings.getTextComponent().text = newValue
   }
