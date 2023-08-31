@@ -76,7 +76,7 @@ class KafkaBrokerSettings(val project: Project,
   internal val propertiesEditor = PropertiesFieldComponent.create(
     project,
     KafkaPropertiesUtils.getAdminPropertiesDescriptions(),
-    KafkaConnectionData::properties,
+    KafkaConnectionData::secretProperties,
     KafkaSettingsCustomizer.KafkaSettingsKeys.PROPERTIES_KEY,
     connectionData, uiDisposable).also { editor ->
     editor.getComponent().whenFocusLost {

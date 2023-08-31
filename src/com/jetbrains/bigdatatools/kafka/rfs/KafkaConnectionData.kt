@@ -4,6 +4,7 @@ import com.amazonaws.services.schemaregistry.utils.AWSSchemaRegistryConstants
 import com.intellij.bigdatatools.aws.settings.AwsCompatibleConnectionData
 import com.intellij.bigdatatools.aws.ui.external.StaticAwsSettingsInfo
 import com.intellij.bigdatatools.kafka.icons.BigdatatoolsKafkaIcons
+import com.intellij.credentialStore.Credentials
 import com.intellij.openapi.project.Project
 import com.jetbrains.bigdatatools.common.connection.exception.BdtConfigurationException
 import com.jetbrains.bigdatatools.common.connection.tunnel.model.ConnectionSshTunnelData
@@ -20,8 +21,16 @@ import com.jetbrains.bigdatatools.kafka.settings.KafkaConnectionConfigurable
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import javax.swing.Icon
 
-class KafkaConnectionData : RemoteFsDriverProvider(KafkaMessagesBundle.message("config.name.default")), TunnelableData {
+class KafkaConnectionData(var version: Int? = null) : RemoteFsDriverProvider(
+  KafkaMessagesBundle.message("config.name.default")), TunnelableData {
+  @Deprecated("Start use secret config")
   var properties: String = ""
+
+  var secretProperties: String
+    get() = getCredentials(CONFIG_KEY)?.userName ?: ""
+    set(value) {
+      setCredentials(Credentials(value, null as? String?), CONFIG_KEY)
+    }
 
   var brokerConfigurationSource: KafkaConfigurationSource = KafkaConfigurationSource.CLOUD
   var brokerCloudSource: KafkaCloudType = KafkaCloudType.CONFLUENT
@@ -37,7 +46,7 @@ class KafkaConnectionData : RemoteFsDriverProvider(KafkaMessagesBundle.message("
   var registryUseBrokerSsl: Boolean = true
   var glueRegistryName: String? = null
 
-  var version: Int? = null
+
 
 
   var glueSettings: String? = null
@@ -71,11 +80,23 @@ class KafkaConnectionData : RemoteFsDriverProvider(KafkaMessagesBundle.message("
   }
 
   override fun migrate() {
-    if (version != 3) {
+    if (version == null || version!! < 3) {
       version = 3
       if (registryUrl != null || registryProperties.isNotBlank()) {
         registryType = KafkaRegistryType.CONFLUENT
       }
     }
+
+    @Suppress("DEPRECATION")
+    if (version!! < 4) {
+      version = 4
+
+      secretProperties = properties
+      properties = ""
+    }
+  }
+
+  companion object {
+    const val CONFIG_KEY = "broker.secret.properties"
   }
 }

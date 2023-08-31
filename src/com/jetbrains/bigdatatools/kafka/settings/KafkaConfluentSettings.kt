@@ -33,7 +33,7 @@ class KafkaConfluentSettings(
   var updateFromCloud = false
 
   internal val confluentConf = ConnectionPropertiesEditor(project, KafkaPropertiesUtils.getAdminPropertiesDescriptions()).apply {
-    getComponent().setTextWithoutScroll(connectionData.properties)
+    getComponent().setTextWithoutScroll(connectionData.secretProperties)
     getComponent().setCaretPosition(0)
     val listener = object : DocumentListener {
       override fun documentChanged(event: com.intellij.openapi.editor.event.DocumentEvent) {

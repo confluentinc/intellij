@@ -95,7 +95,7 @@ class KafkaClient(project: Project?,
     when (connectionData.registryType) {
       KafkaRegistryType.NONE -> {}
       KafkaRegistryType.CONFLUENT -> {
-        confluentRegistryClient = ConfluentRegistryClient.createFor(project, connectionData, testConnection)?.also {
+        confluentRegistryClient = ConfluentRegistryClient.createFor(project, connectionData, testConnection).also {
           Disposer.register(this, it)
         }
       }
@@ -292,7 +292,7 @@ class KafkaClient(project: Project?,
       loadPropertyFile(propertyFilePath)
     }
     else {
-      connectionData.properties
+      connectionData.secretProperties
     }
 
     when (connectionData.registryType) {
