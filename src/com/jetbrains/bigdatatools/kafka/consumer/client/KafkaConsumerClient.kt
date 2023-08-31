@@ -58,6 +58,7 @@ class KafkaConsumerClient(val dataManager: KafkaDataManager,
 
     val taskRunId = curRunId.incrementAndGet()
 
+    var consumedRecords = 0
     try {
       val limit = config.getLimit()
 
@@ -103,7 +104,7 @@ class KafkaConsumerClient(val dataManager: KafkaDataManager,
           val endPoll = System.currentTimeMillis()
 
           val processedRecords = mutableListOf<ConsumerRecord<Any, Any>>()
-          var consumedRecords = 0
+
           timestampUpdate()
           val shouldConfinue = records.all { record: ConsumerRecord<Any, Any> ->
             if (limit.time != null && record.timestamp() > limit.time) {
@@ -156,9 +157,6 @@ class KafkaConsumerClient(val dataManager: KafkaDataManager,
             return@all true
           }
 
-          if (processedRecords.size > 0)
-            KafkaUsagesCollector.consumedKeyValue.log(config.getKeyType(), config.getValueType(), consumedRecords)
-
           consume(endPoll - startPoll, processedRecords)
           if (!shouldConfinue)
             return
@@ -166,6 +164,7 @@ class KafkaConsumerClient(val dataManager: KafkaDataManager,
       }
     }
     finally {
+      KafkaUsagesCollector.consumedKeyValue.log(config.getKeyType(), config.getValueType(), consumedRecords)
       stop()
     }
   }
