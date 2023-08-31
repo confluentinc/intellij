@@ -132,7 +132,7 @@ class ConfluentRegistryClient(restService: RestService, props: Map<String, Strin
                 ?: connectionData.registryUrl?.ifBlank { null }
                 ?: throw BdtConfigurationException(KafkaMessagesBundle.message("error.confluent.registry.url.empty"))
 
-      val tunnel = BdtSshTunnelService.createIfRequired(project, connectionData.getTunnelData(),
+      val tunnel = BdtSshTunnelService.createIfRequired(project, connectionData.getTunnelData().copy(localPort = null),
                                                         url, connectionData.innerId,
                                                         testConnection)
       val tunneledUrl = tunnel?.tunnelledUri ?: url
