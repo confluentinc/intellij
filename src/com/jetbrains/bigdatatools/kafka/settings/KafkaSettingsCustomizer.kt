@@ -30,10 +30,15 @@ import com.jetbrains.bigdatatools.kafka.statistics.KafkaSettingsCollector
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import kotlinx.coroutines.CoroutineScope
 
-class KafkaSettingsCustomizer(project: Project, connectionData: KafkaConnectionData, uiDisposable: Disposable, coroutineScope: CoroutineScope) :
+class KafkaSettingsCustomizer(project: Project,
+                              connectionData: KafkaConnectionData,
+                              uiDisposable: Disposable,
+                              coroutineScope: CoroutineScope) :
   TunnableSettingsCustomizer<KafkaConnectionData>(connectionData, project, uiDisposable) {
   override val tunnelField: SshTunnelComponent<KafkaConnectionData> = SshTunnelComponent(project, uiDisposable, connectionData,
-                                                                                         hostAndPortProvider)
+                                                                                         hostAndPortProvider,
+                                                                                         enabledNotification = KafkaMessagesBundle.message(
+                                                                                           "ssh.tunnel.enable.notification"))
 
   override val url = StringNamedField(ConnectionData::uri, ModificationKey(KafkaMessagesBundle.message("settings.url")), connectionData)
     .apply {
@@ -125,7 +130,6 @@ class KafkaSettingsCustomizer(project: Project, connectionData: KafkaConnectionD
     registrySettings.setPanelComponent(this).visibleIf(brokerSettings.isRegistryVisible)
 
     block(tunnelField.getComponent()).topGap(TopGap.SMALL).visibleIf(brokerSettings.isRegistryVisible)
-
     initFields()
   }
 
