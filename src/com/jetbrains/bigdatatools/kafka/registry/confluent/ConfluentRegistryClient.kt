@@ -110,7 +110,7 @@ class ConfluentRegistryClient(restService: RestService, props: Map<String, Strin
     private fun createConfluentClient(connectionData: KafkaConnectionData,
                                       project: Project?,
                                       testConnection: Boolean): ConfluentRegistryClient {
-      val brokerSettings = BdtPropertyComponent.parseProperties(connectionData.properties).associate {
+      val brokerSettings = BdtPropertyComponent.parseProperties(connectionData.secretProperties).associate {
         (it.name ?: "") to (it.value ?: "")
       }
       val brokerSsl = if (connectionData.registryUseBrokerSsl) {
