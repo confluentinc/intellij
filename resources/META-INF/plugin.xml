@@ -35,17 +35,16 @@
     <dependencySupport kind="java" coordinate="java:com.typesafe.akka:akka-stream-kafka_3" displayName="akka-stream-kafka_3"/>
     <dependencySupport kind="java" coordinate="java:org.apache.flink:flink-connector-kafka" displayName="flink-connector-kafka"/>
 
-
     <dependencySupport kind="dotnet" coordinate="Confluent.Kafka" displayName="Confluent.Kafka"/>
     <dependencySupport kind="dotnet" coordinate="AWSSDK.Kafka" displayName="AWSSDK.Kafka"/>
     <dependencySupport kind="dotnet" coordinate="Confluent.SchemaRegistry" displayName="Confluent.SchemaRegistry"/>
 
     <dependencySupport kind="python" coordinate="confluent-kafka" displayName="confluent-kafka"/>
     <dependencySupport kind="python" coordinate="boto3-kafka" displayName="boto3-kafka"/>
-  </extensions>
 
-  <extensions defaultExtensionNs="com.intellij">
-      <statistics.counterUsagesCollector implementationClass="com.jetbrains.bigdatatools.kafka.statistics.KafkaSettingsCollector"/>
+    <postStartupActivity implementation="com.jetbrains.bigdatatools.kafka.updater.BDTKafkaPostStartupActivity"/>
+
+    <statistics.counterUsagesCollector implementationClass="com.jetbrains.bigdatatools.kafka.statistics.KafkaSettingsCollector"/>
 
     <applicationService serviceImplementation="com.jetbrains.bigdatatools.kafka.common.settings.KafkaConfigStorage"/>
 
@@ -113,6 +112,5 @@
                 icon="AllIcons.Actions.Copy"/>
       </group>
     </group>
-
   </actions>
 </idea-plugin>
