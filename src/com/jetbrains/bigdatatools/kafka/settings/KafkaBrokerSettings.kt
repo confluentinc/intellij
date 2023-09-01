@@ -29,8 +29,10 @@ import com.jetbrains.bigdatatools.common.util.MessagesBundle
 import com.jetbrains.bigdatatools.common.util.PathUtils
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryType
 import com.jetbrains.bigdatatools.kafka.rfs.*
+import com.jetbrains.bigdatatools.kafka.rfs.KafkaConnectionData.Companion.CONFIG_KEY
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import com.jetbrains.bigdatatools.kafka.util.KafkaPropertiesUtils
+import kotlinx.coroutines.CoroutineScope
 import org.apache.kafka.clients.CommonClientConfigs
 import org.apache.kafka.common.config.SaslConfigs
 import org.apache.kafka.common.config.SaslConfigs.SASL_CLIENT_CALLBACK_HANDLER_CLASS
@@ -42,6 +44,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 class KafkaBrokerSettings(val project: Project,
                           val connectionData: KafkaConnectionData,
                           private val uiDisposable: Disposable,
+                          coroutineScope: CoroutineScope,
                           val url: StringNamedField<ConnectionData>,
                           val registryType: RadioGroupField<KafkaConnectionData, KafkaRegistryType>) {
   val isRegistryVisible = AtomicBooleanProperty(true)
@@ -73,10 +76,12 @@ class KafkaBrokerSettings(val project: Project,
     }
   }
 
-  internal val propertiesEditor = PropertiesFieldComponent.create(
+  val propertiesCredentialsHolder = CredentialsHolder(connectionData, CONFIG_KEY, uiDisposable, coroutineScope)
+
+  internal val propertiesEditor = SecretPropertiesFieldComponent(
     project,
     KafkaPropertiesUtils.getAdminPropertiesDescriptions(),
-    KafkaConnectionData::secretProperties,
+    propertiesCredentialsHolder,
     KafkaSettingsCustomizer.KafkaSettingsKeys.PROPERTIES_KEY,
     connectionData, uiDisposable).also { editor ->
     editor.getComponent().whenFocusLost {

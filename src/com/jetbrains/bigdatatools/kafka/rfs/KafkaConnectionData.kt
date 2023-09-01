@@ -2,6 +2,7 @@ package com.jetbrains.bigdatatools.kafka.rfs
 
 import com.amazonaws.services.schemaregistry.utils.AWSSchemaRegistryConstants
 import com.intellij.bigdatatools.aws.settings.AwsCompatibleConnectionData
+import com.intellij.bigdatatools.aws.settings.AwsCompatibleConnectionData.Companion.SECRET_KEY_ID
 import com.intellij.bigdatatools.aws.ui.external.StaticAwsSettingsInfo
 import com.intellij.bigdatatools.kafka.icons.BigdatatoolsKafkaIcons
 import com.intellij.credentialStore.Credentials
@@ -15,6 +16,7 @@ import com.jetbrains.bigdatatools.common.constants.BdtConnectionType
 import com.jetbrains.bigdatatools.common.rfs.driver.Driver
 import com.jetbrains.bigdatatools.common.rfs.settings.RemoteFsDriverProvider
 import com.jetbrains.bigdatatools.common.serializer.BdtJson
+import com.jetbrains.bigdatatools.common.settings.DoNotSerialize
 import com.jetbrains.bigdatatools.common.settings.connections.ConnectionGroup
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryType
 import com.jetbrains.bigdatatools.kafka.settings.KafkaConnectionConfigurable
@@ -26,11 +28,14 @@ class KafkaConnectionData(var version: Int? = null) : RemoteFsDriverProvider(
   @Deprecated("Start use secret config")
   var properties: String = ""
 
+  @DoNotSerialize
   var secretProperties: String
     get() = getCredentials(CONFIG_KEY)?.userName ?: ""
     set(value) {
       setCredentials(Credentials(value, null as? String?), CONFIG_KEY)
     }
+
+  override fun credentialIds() = super.credentialIds() + listOf(CONFIG_KEY, SECRET_KEY_ID)
 
   var brokerConfigurationSource: KafkaConfigurationSource = KafkaConfigurationSource.CLOUD
   var brokerCloudSource: KafkaCloudType = KafkaCloudType.CONFLUENT

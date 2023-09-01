@@ -40,12 +40,14 @@ class KafkaRegistrySettings(val project: Project,
                             coroutineScope: CoroutineScope,
                             val registryType: RadioGroupField<KafkaConnectionData, KafkaRegistryType>) {
 
-  internal val confluentPropertiesEditor = PropertiesFieldComponent.create(
+  internal val confluentPropertiesEditor = PropertiesFieldComponent(
     project,
     KafkaPropertiesUtils.getRegistryPropertiesDescriptions(),
     KafkaConnectionData::registryProperties,
     KafkaSettingsCustomizer.KafkaSettingsKeys.REGISTRY_PROPERTIES_KEY,
-    connectionData, uiDisposable).also { editor ->
+    connectionData,
+    uiDisposable
+  ).also { editor ->
     editor.getComponent().whenFocusLost {
       updateRegistryUiFromProperties()
     }

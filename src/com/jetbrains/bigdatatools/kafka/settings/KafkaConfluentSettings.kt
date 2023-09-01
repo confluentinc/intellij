@@ -8,7 +8,7 @@ import com.intellij.ui.dsl.builder.Align
 import com.intellij.ui.dsl.builder.Panel
 import com.jetbrains.bigdatatools.common.settings.ModificationKey
 import com.jetbrains.bigdatatools.common.settings.connections.ConnectionData
-import com.jetbrains.bigdatatools.common.settings.fields.PropertiesFieldComponent
+import com.jetbrains.bigdatatools.common.settings.fields.AbstractPropertiesFieldComponent
 import com.jetbrains.bigdatatools.common.settings.fields.StringNamedField
 import com.jetbrains.bigdatatools.common.settings.fields.WrappedComponent
 import com.jetbrains.bigdatatools.common.ui.components.ConnectionPropertiesEditor
@@ -27,13 +27,12 @@ class KafkaConfluentSettings(
   val connectionData: KafkaConnectionData,
   uiDisposable: Disposable,
   val url: StringNamedField<ConnectionData>,
-  propertiesEditor: PropertiesFieldComponent<KafkaConnectionData>,
+  propertiesEditor: AbstractPropertiesFieldComponent<KafkaConnectionData>,
   brokerSettings: KafkaBrokerSettings,
 ) {
   var updateFromCloud = false
 
   internal val confluentConf = ConnectionPropertiesEditor(project, KafkaPropertiesUtils.getAdminPropertiesDescriptions()).apply {
-    getComponent().setTextWithoutScroll(connectionData.secretProperties)
     getComponent().setCaretPosition(0)
     val listener = object : DocumentListener {
       override fun documentChanged(event: com.intellij.openapi.editor.event.DocumentEvent) {

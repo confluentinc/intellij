@@ -50,13 +50,13 @@ class KafkaSettingsCustomizer(project: Project,
                                               ModificationKey(KafkaMessagesBundle.message("schema.registry.type.label")), connectionData,
                                               KafkaRegistryType.values())
 
-  private val brokerSettings = KafkaBrokerSettings(project, connectionData, uiDisposable, url, registryType)
+  private val brokerSettings = KafkaBrokerSettings(project, connectionData, uiDisposable, coroutineScope, url, registryType)
   private val registrySettings = KafkaRegistrySettings(project, connectionData, uiDisposable, coroutineScope, registryType)
 
   internal lateinit var brokerConfSource: RadioGroupField<KafkaConnectionData, KafkaConfigurationSource>
   internal lateinit var brokerCloudSource: RadioGroupField<KafkaConnectionData, KafkaCloudType>
   internal lateinit var brokerPropertiesSource: RadioGroupField<KafkaConnectionData, KafkaPropertySource>
-  internal lateinit var brokerPropertiesEditor: PropertiesFieldComponent<KafkaConnectionData>
+  internal lateinit var brokerPropertiesEditor: AbstractPropertiesFieldComponent<KafkaConnectionData>
   internal lateinit var brokerPropertiesFile: BrowseTextField<KafkaConnectionData>
   internal lateinit var brokerConfluentConf: ConnectionPropertiesEditor
   internal lateinit var brokerMskUrl: Cell<JBTextField>
@@ -93,7 +93,7 @@ class KafkaSettingsCustomizer(project: Project,
 
   internal lateinit var registryConfluentUrl: WrappedTextComponent<KafkaConnectionData, *>
   internal lateinit var registryConfluentSource: RadioGroupField<KafkaConnectionData, KafkaConfigurationSource>
-  internal lateinit var registryConfluentProperties: PropertiesFieldComponent<KafkaConnectionData>
+  internal lateinit var registryConfluentProperties: AbstractPropertiesFieldComponent<KafkaConnectionData>
   internal lateinit var registryConfluentAuth: RadioComboBox<SchemaRegistryAuthType>
   internal lateinit var registryConfluentBasicAuth: Cell<JBTextField>
   internal lateinit var registryConfluentBasicPassword: Cell<JBPasswordField>
