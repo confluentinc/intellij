@@ -75,6 +75,9 @@ class KafkaSettingsCollector : BdtSettingsCollector() {
     registryEvent(KafkaSettingsCustomizer::registryGlueRegion)
     registryEvent(KafkaSettingsCustomizer::registryGlueRegistryName)
 
+    registryEvent(KafkaSettingsCustomizer::tunnelField)
+    registryCheckboxEvent(KafkaSettingsCustomizer::enableTunnelField)
+
     init()
   }
 
