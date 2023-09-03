@@ -298,7 +298,7 @@ class KafkaClient(project: Project?,
     when (connectionData.registryType) {
       KafkaRegistryType.NONE -> {}
       KafkaRegistryType.CONFLUENT -> {
-        BdtPropertyComponent.parseProperties(connectionData.registryProperties).forEach {
+        BdtPropertyComponent.parseProperties(connectionData.secretRegistryProperties).forEach {
           props[it.name ?: ""] = it.value ?: ""
         }
       }
