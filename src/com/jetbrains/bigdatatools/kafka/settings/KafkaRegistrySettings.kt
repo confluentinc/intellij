@@ -43,7 +43,7 @@ class KafkaRegistrySettings(val project: Project,
   internal val confluentPropertiesEditor = PropertiesFieldComponent(
     project,
     KafkaPropertiesUtils.getRegistryPropertiesDescriptions(),
-    KafkaConnectionData::registryProperties,
+    KafkaConnectionData::secretRegistryProperties,
     KafkaSettingsCustomizer.KafkaSettingsKeys.REGISTRY_PROPERTIES_KEY,
     connectionData,
     uiDisposable

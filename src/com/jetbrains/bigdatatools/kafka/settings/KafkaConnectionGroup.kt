@@ -12,7 +12,7 @@ class KafkaConnectionGroup : ConnectionFactory<KafkaConnectionData>(
   icon = BigdatatoolsKafkaIcons.Kafka,
   parentGroupId = BrokerConnectionGroup.GROUP_ID
 ) {
-  override fun newData() = KafkaConnectionData(version = 4).apply {
+  override fun newData() = KafkaConnectionData(version = 5).apply {
     name = BdtConnectionType.KAFKA.connName
     uri = "127.0.0.1:9092"
   }

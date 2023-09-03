@@ -123,7 +123,7 @@ class ConfluentRegistryClient(restService: RestService, props: Map<String, Strin
       }
       else
         mapOf()
-      val registryProps = BdtPropertyComponent.parseProperties(connectionData.registryProperties).associate {
+      val registryProps = BdtPropertyComponent.parseProperties(connectionData.secretRegistryProperties).associate {
         (it.name ?: "") to (it.value ?: "")
       }
       val props = brokerSettings + brokerSsl + registryProps

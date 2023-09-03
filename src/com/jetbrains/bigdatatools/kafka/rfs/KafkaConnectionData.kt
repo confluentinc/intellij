@@ -47,7 +47,17 @@ class KafkaConnectionData(var version: Int? = null) : RemoteFsDriverProvider(
 
   var registryType = KafkaRegistryType.NONE
   var registryUrl: String? = null
+
+  @Deprecated("Start use secret config")
   var registryProperties: String = ""
+
+  @DoNotSerialize
+  var secretRegistryProperties: String
+    get() = getCredentials(CONFIG_REGISTRY_KEY)?.userName ?: ""
+    set(value) {
+      setCredentials(Credentials(value, null as? String?), CONFIG_REGISTRY_KEY)
+    }
+
   var registryUseBrokerSsl: Boolean = true
   var glueRegistryName: String? = null
 
@@ -87,6 +97,7 @@ class KafkaConnectionData(var version: Int? = null) : RemoteFsDriverProvider(
   override fun migrate() {
     if (version == null || version!! < 3) {
       version = 3
+      @Suppress("DEPRECATION")
       if (registryUrl != null || registryProperties.isNotBlank()) {
         registryType = KafkaRegistryType.CONFLUENT
       }
@@ -99,9 +110,19 @@ class KafkaConnectionData(var version: Int? = null) : RemoteFsDriverProvider(
       secretProperties = properties
       properties = ""
     }
+
+    @Suppress("DEPRECATION")
+    if (version!! < 5) {
+      version = 5
+
+      secretRegistryProperties = registryProperties
+      registryProperties = ""
+    }
+
   }
 
   companion object {
     const val CONFIG_KEY = "broker.secret.properties"
+    const val CONFIG_REGISTRY_KEY = "registry.secret.properties"
   }
 }
