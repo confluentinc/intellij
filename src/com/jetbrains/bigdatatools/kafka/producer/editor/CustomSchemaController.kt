@@ -12,6 +12,7 @@ import com.jetbrains.bigdatatools.kafka.common.models.KafkaCustomSchemaSource
 import com.jetbrains.bigdatatools.kafka.common.models.KafkaFieldType
 import com.jetbrains.bigdatatools.kafka.common.settings.StorageConsumerConfig
 import com.jetbrains.bigdatatools.kafka.common.settings.StorageProducerConfig
+import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryFormat
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryUtil
 import com.jetbrains.bigdatatools.kafka.registry.ui.KafkaRegistrySchemaEditor
@@ -20,7 +21,7 @@ import io.confluent.kafka.schemaregistry.ParsedSchema
 import java.io.File
 import javax.swing.JPanel
 
-class CustomSchemaController(project: Project, private val isKey: Boolean) : Disposable {
+class CustomSchemaController(project: Project, private val isKey: Boolean, val kafkaManager: KafkaDataManager) : Disposable {
   private lateinit var customSchemaSource: SegmentedButton<KafkaCustomSchemaSource>
   private lateinit var customSchemaFile: Cell<TextFieldWithBrowseButton>
   private val customSchema = KafkaRegistrySchemaEditor(project, parentDisposable = this, lineBorder = true).apply {
@@ -72,7 +73,7 @@ class CustomSchemaController(project: Project, private val isKey: Boolean) : Dis
       KafkaFieldType.AVRO_CUSTOM -> KafkaRegistryFormat.AVRO
       else -> error("Wrong type")
     }
-    return KafkaRegistryUtil.parseSchema(format, schemaText).getOrThrow()
+    return KafkaRegistryUtil.parseSchema(format, schemaText, kafkaManager).getOrThrow()
   }
 
   fun setConfig(config: StorageProducerConfig) {

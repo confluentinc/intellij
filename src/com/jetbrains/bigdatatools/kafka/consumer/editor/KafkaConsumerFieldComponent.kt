@@ -28,7 +28,7 @@ class KafkaConsumerFieldComponent(private val project: Project,
                                   private val consumerPanel: KafkaConsumerPanel, val isKey: Boolean) : Disposable {
   private val kafkaManager = consumerPanel.kafkaManager
 
-  private val customSchemaController = CustomSchemaController(project, isKey).also { Disposer.register(this, it) }
+  private val customSchemaController = CustomSchemaController(project, isKey, kafkaManager).also { Disposer.register(this, it) }
 
 
   val fieldTypeComboBox = KafkaEditorUtils.createFieldTypeComboBox(consumerPanel.topicComboBox, consumerPanel.kafkaManager, isKey) {

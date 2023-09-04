@@ -134,7 +134,8 @@ class KafkaSchemaController(private val project: Project,
 
       version1Schema = it
       val prettySchema = KafkaRegistryUtil.getPrettySchema(schemaType = it.type.name, schema = it.schema)
-      val parsedSchema = KafkaRegistryUtil.parseSchema(schemaType = it.type, newText = it.schema, references = it.references).getOrNull()
+      val parsedSchema = KafkaRegistryUtil.parseSchema(schemaType = it.type, newText = it.schema, references = it.references,
+                                                       dataManager = dataManager).getOrNull()
                          ?: return@onSuccess
       invokeLater {
         schemaView.setText(prettySchema, if (it.type != KafkaRegistryFormat.PROTOBUF) JsonLanguage.INSTANCE

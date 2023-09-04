@@ -46,7 +46,7 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
   private var schemaValidationError: Throwable? = null
   private var curIsJsonView: Boolean = !isKey
 
-  private val customSchemaController = CustomSchemaController(project, isKey).also { Disposer.register(this, it) }
+  private val customSchemaController = CustomSchemaController(project, isKey, kafkaManager).also { Disposer.register(this, it) }
 
   val fieldTypeComboBox = KafkaEditorUtils.createFieldTypeComboBox(producedEditor.topicComboBox, kafkaManager, isKey) {
     if (!isInitialized)

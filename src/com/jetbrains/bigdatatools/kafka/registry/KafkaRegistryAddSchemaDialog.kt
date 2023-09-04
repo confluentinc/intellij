@@ -254,7 +254,7 @@ class KafkaRegistryAddSchemaDialog(project: Project, val dataManager: KafkaDataM
   private fun getStrategy(): ConfluentRegistryStrategy = strategyCombobox.item
 
   private fun updateParsedSchema() {
-    val parsedSchemaResult = KafkaRegistryUtil.parseSchema(getFormat(), textScrollPane.text)
+    val parsedSchemaResult = KafkaRegistryUtil.parseSchema(getFormat(), textScrollPane.text, dataManager, emptyList())
 
     if (parsedSchemaResult.isSuccess) {
       cachedParsedSchema = parsedSchemaResult.getOrNull()

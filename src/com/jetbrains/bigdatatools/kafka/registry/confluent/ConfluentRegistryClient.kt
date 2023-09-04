@@ -25,7 +25,7 @@ import org.apache.kafka.common.config.ConfigDef
 class ConfluentRegistryClient(restService: RestService, props: Map<String, String>) : Disposable {
   val internalClient = CachedSchemaRegistryClient(restService,
                                                   100,
-                                                  KafkaRegistryUtil.registrySchemaProviders,
+                                                  KafkaRegistryUtil.getRegistrySchemaProviders(),
                                                   props, null)
 
   override fun dispose() {}
@@ -74,7 +74,7 @@ class ConfluentRegistryClient(restService: RestService, props: Map<String, Strin
 
 
   fun updateSchema(registryInfo: SchemaVersionInfo, newText: @NlsSafe String) {
-    val parsedSchema = KafkaRegistryUtil.parseSchema(registryInfo.type, newText, registryInfo.references).getOrThrow()
+    val parsedSchema = KafkaRegistryUtil.parseSchema(registryInfo.type, newText, this, registryInfo.references).getOrThrow()
     try {
       internalClient.register(registryInfo.schemaName, parsedSchema)
     }
@@ -100,7 +100,8 @@ class ConfluentRegistryClient(restService: RestService, props: Map<String, Strin
     return SchemaVersionInfo(schemaName = schemaName,
                              version = metadata.version.toLong(),
                              type = KafkaRegistryFormat.parse(metadata.schemaType),
-                             schema = metadata.schema)
+                             schema = metadata.schema,
+                             references = metadata.references)
   }
 
   companion object {

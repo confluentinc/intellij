@@ -96,7 +96,7 @@ enum class KafkaFieldType(@Nls val title: String) {
         KafkaRegistryType.NONE -> error("Non exists")
         KafkaRegistryType.CONFLUENT -> when (registryFormat) {
           KafkaRegistryFormat.AVRO -> BdtKafkaAvroSerializer(dataManager.client.confluentRegistryClient?.internalClient,
-                                                             producerField.schemaName)
+                                                             producerField.schemaName, producerField.parsedSchema)
           KafkaRegistryFormat.PROTOBUF -> BdtKafkaProtobufSerializer(dataManager.client.confluentRegistryClient?.internalClient,
                                                                      producerField.schemaName)
           KafkaRegistryFormat.JSON -> BdtKafkaJsonSchemaSerializer(dataManager.client.confluentRegistryClient?.internalClient,

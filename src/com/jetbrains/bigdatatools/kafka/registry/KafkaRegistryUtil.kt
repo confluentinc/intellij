@@ -8,6 +8,7 @@ import com.intellij.openapi.util.NlsSafe
 import com.intellij.util.concurrency.annotations.RequiresBackgroundThread
 import com.jetbrains.bigdatatools.kafka.common.models.KafkaFieldType
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
+import com.jetbrains.bigdatatools.kafka.registry.confluent.ConfluentRegistryClient
 import com.jetbrains.bigdatatools.kafka.registry.serde.BdtJsonSchemaProvider
 import com.jetbrains.bigdatatools.kafka.registry.serde.BdtProtobufSchemaProvider
 import io.confluent.kafka.schemaregistry.ParsedSchema
@@ -18,7 +19,7 @@ import java.util.logging.Level
 import java.util.logging.Logger
 
 object KafkaRegistryUtil {
-  val registrySchemaProviders = listOf(AvroSchemaProvider(), BdtProtobufSchemaProvider(), BdtJsonSchemaProvider())
+  fun getRegistrySchemaProviders() = listOf(AvroSchemaProvider(), BdtProtobufSchemaProvider(), BdtJsonSchemaProvider())
 
   val protobufLanguage: Language
     get() = Language.findLanguageByID("protobuf") ?: PlainTextLanguage.INSTANCE
@@ -40,15 +41,22 @@ object KafkaRegistryUtil {
       return null
 
     val versionInfo = dataManager.getLatestVersionInfo(schemaName) ?: return null
-    return parseSchema(versionInfo.type, versionInfo.schema, versionInfo.references).getOrThrow()
+    return parseSchema(versionInfo.type, versionInfo.schema, dataManager, versionInfo.references).getOrThrow()
   }
-
 
   fun parseSchema(schemaType: KafkaRegistryFormat,
                   newText: @NlsSafe String,
+                  dataManager: KafkaDataManager,
+                  references: List<SchemaReference> = emptyList()): Result<ParsedSchema> =
+    parseSchema(schemaType, newText, dataManager.client.confluentRegistryClient, references)
+
+  fun parseSchema(schemaType: KafkaRegistryFormat,
+                  newText: @NlsSafe String,
+                  client: ConfluentRegistryClient?,
                   references: List<SchemaReference> = emptyList()): Result<ParsedSchema> {
     return try {
-      val provider = registrySchemaProviders.firstOrNull {
+      val providers = client?.internalClient?.schemaProviders?.values ?: getRegistrySchemaProviders()
+      val provider = providers.firstOrNull {
         it.schemaType() == schemaType.name
       } ?: error("Schema type is not found ${schemaType}")
 

@@ -8,8 +8,4 @@ data class SchemaVersionInfo(val schemaName: String,
                              val schema: String,
                              val references: List<SchemaReference> = emptyList()) {
   fun getPretty() = KafkaRegistryUtil.getPrettySchema(schemaType = type.name, schema = schema)
-
-  val parsedSchema by lazy {
-    KafkaRegistryUtil.parseSchema(type, schema, references)
-  }
 }
