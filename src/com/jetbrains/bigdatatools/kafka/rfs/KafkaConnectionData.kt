@@ -1,7 +1,6 @@
 package com.jetbrains.bigdatatools.kafka.rfs
 
 import com.amazonaws.services.schemaregistry.utils.AWSSchemaRegistryConstants
-import com.intellij.bigdatatools.aws.settings.AwsCompatibleConnectionData
 import com.intellij.bigdatatools.aws.settings.AwsCompatibleConnectionData.Companion.SECRET_KEY_ID
 import com.intellij.bigdatatools.aws.ui.external.StaticAwsSettingsInfo
 import com.intellij.bigdatatools.kafka.icons.BigdatatoolsKafkaIcons
@@ -35,7 +34,7 @@ class KafkaConnectionData(var version: Int? = null) : RemoteFsDriverProvider(
       setCredentials(Credentials(value, null as? String?), CONFIG_KEY)
     }
 
-  override fun credentialIds() = super.credentialIds() + listOf(CONFIG_KEY, SECRET_KEY_ID)
+  override fun credentialIds() = super.credentialIds() + listOf(CONFIG_KEY, CONFIG_REGISTRY_KEY, SECRET_KEY_ID)
 
   var brokerConfigurationSource: KafkaConfigurationSource = KafkaConfigurationSource.CLOUD
   var brokerCloudSource: KafkaCloudType = KafkaCloudType.CONFLUENT
@@ -62,8 +61,6 @@ class KafkaConnectionData(var version: Int? = null) : RemoteFsDriverProvider(
   var glueRegistryName: String? = null
 
 
-
-
   var glueSettings: String? = null
 
 
@@ -71,7 +68,7 @@ class KafkaConnectionData(var version: Int? = null) : RemoteFsDriverProvider(
     return if (registryType == KafkaRegistryType.AWS_GLUE) {
       val settingsInfo = glueSettings?.ifBlank { null }?.let { BdtJson.fromJsonToClass(it, StaticAwsSettingsInfo::class.java) }
       settingsInfo ?: throw BdtConfigurationException(KafkaMessagesBundle.message("error.configuration.glue.is.not.setup"))
-      val awsCred = getCredentials(AwsCompatibleConnectionData.SECRET_KEY_ID)
+      val awsCred = getCredentials(SECRET_KEY_ID)
       settingsInfo.copy(accessKey = awsCred?.userName ?: "", secretKey = awsCred?.getPasswordAsString() ?: "")
     }
     else {

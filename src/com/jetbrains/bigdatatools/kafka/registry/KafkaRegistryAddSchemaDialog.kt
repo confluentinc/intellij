@@ -170,7 +170,13 @@ class KafkaRegistryAddSchemaDialog(project: Project, val dataManager: KafkaDataM
 
   override fun getDimensionServiceKey() = "com.jetbrains.bigdatatools.common.ui.add.kafka.registry.dialog.bounds"
 
-  private fun getSchemaName(): String = subjectNameField.text
+  private fun getSchemaName(): String = when (strategyCombobox.item) {
+    ConfluentRegistryStrategy.TOPIC_NAME -> subjectNameField.text
+    ConfluentRegistryStrategy.RECORD_NAME -> recordField.text
+    ConfluentRegistryStrategy.TOPIC_RECORD_NAME -> subjectNameField.text
+    ConfluentRegistryStrategy.CUSTOM -> subjectNameField.text
+    else -> subjectNameField.text
+  }
 
   private fun onChangeFormat() {
     val newDefault = KafkaRegistryTemplates.getDefaultIfNotConfigured(textScrollPane.text, getFormat())
