@@ -98,7 +98,7 @@ enum class KafkaFieldType(@Nls val title: String) {
           KafkaRegistryFormat.AVRO -> BdtKafkaAvroSerializer(dataManager.client.confluentRegistryClient?.internalClient,
                                                              producerField.schemaName, producerField.parsedSchema)
           KafkaRegistryFormat.PROTOBUF -> BdtKafkaProtobufSerializer(dataManager.client.confluentRegistryClient?.internalClient,
-                                                                     producerField.schemaName)
+                                                                     producerField.schemaName, producerField.parsedSchema)
           KafkaRegistryFormat.JSON -> BdtKafkaJsonSchemaSerializer(dataManager.client.confluentRegistryClient?.internalClient,
                                                                    producerField.schemaName)
           KafkaRegistryFormat.UNKNOWN -> error("Schema deleted")
