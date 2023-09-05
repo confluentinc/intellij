@@ -48,9 +48,9 @@ internal class KafkaLineMarkerActionsProvider : MQLineMarkerActionsProvider {
 internal class OpenConsumerAction(
   private val brokerServers: String? = null,
   private val topicName: String? = null
-) :  DumbAwareAction(), MQLineMarkerActionsProvider.Action, HighPriorityAction {
+) : DumbAwareAction(), MQLineMarkerActionsProvider.Action, HighPriorityAction {
   override fun actionPerformed(e: AnActionEvent) {
-    KafkaBootstrapService.getInstance(e.project!!).showConsumerWithPopup(brokerServers, topicName, e.dataContext)
+    KafkaBootstrapService.getInstance(e.project!!).showConsumerWithPopup(brokerServers, topicName, e)
   }
 
   override fun getLineMarkerName(): String = KafkaMessagesBundle.message("gutter.action.observe.messages.in.topic")
@@ -64,9 +64,9 @@ internal class OpenConsumerAction(
 internal class OpenProducerAction(
   private val brokerServers: String? = null,
   private val topicName: String? = null
-) :  DumbAwareAction(), MQLineMarkerActionsProvider.Action, HighPriorityAction {
+) : DumbAwareAction(), MQLineMarkerActionsProvider.Action, HighPriorityAction {
   override fun actionPerformed(e: AnActionEvent) {
-    KafkaBootstrapService.getInstance(e.project!!).showProducerWithPopup(brokerServers, topicName, e.dataContext)
+    KafkaBootstrapService.getInstance(e.project!!).showProducerWithPopup(brokerServers, topicName, e)
   }
 
   override fun getLineMarkerName(): String = KafkaMessagesBundle.message("gutter.action.send.messages.to.topic")

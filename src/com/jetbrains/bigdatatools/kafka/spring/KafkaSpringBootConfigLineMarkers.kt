@@ -100,7 +100,7 @@ internal class KafkaSpringBootConfigLineMarkers : LineMarkerProviderDescriptor()
     private val brokerServers: String? = null
   ) : DumbAwareAction(), MQLineMarkerActionsProvider.Action, HighPriorityAction {
     override fun actionPerformed(e: AnActionEvent) {
-      KafkaBootstrapService.getInstance(e.project!!).showKafkaSettingsPopup(brokerServers, null, e.dataContext)
+      KafkaBootstrapService.getInstance(e.project!!).showKafkaSettingsPopup(brokerServers, null, e)
     }
 
     override fun getLineMarkerName(): String = KafkaMessagesBundle.message("gutter.action.setup.connection")

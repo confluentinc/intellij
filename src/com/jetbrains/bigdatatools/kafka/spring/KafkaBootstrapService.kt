@@ -1,12 +1,13 @@
 package com.jetbrains.bigdatatools.kafka.spring
 
-import com.intellij.openapi.actionSystem.DataContext
+import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.actionSystem.Separator
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
+import com.intellij.ui.awt.RelativePoint
 import com.jetbrains.bigdatatools.common.rfs.driver.manager.DriverManager
 import com.jetbrains.bigdatatools.common.settings.ConnectionSettings
 import com.jetbrains.bigdatatools.common.settings.actions.CreateConnectionPopup
@@ -16,10 +17,11 @@ import com.jetbrains.bigdatatools.kafka.settings.KafkaConnectionGroup
 import com.jetbrains.bigdatatools.kafka.toolwindow.actions.KafkaCreateConsumerAction
 import com.jetbrains.bigdatatools.kafka.toolwindow.actions.KafkaCreateProducerAction
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import java.awt.event.MouseEvent
 
 @Service(Service.Level.PROJECT)
 internal class KafkaBootstrapService(val project: Project) {
-  fun showConsumerWithPopup(brokerServers: String?, defaultTopic: String?, dataContext: DataContext?) {
+  fun showConsumerWithPopup(brokerServers: String?, defaultTopic: String?, e: AnActionEvent) {
     val actions = DriverManager.getDrivers(project).filterIsInstance<KafkaDriver>().map { driver ->
       DumbAwareAction.create(driver.connectionData.name) {
         KafkaCreateConsumerAction.createConsumer(project, driver.dataManager, defaultTopic)
@@ -27,11 +29,11 @@ internal class KafkaBootstrapService(val project: Project) {
     }
     val additional = listOf(Separator(), createKafkaSettingsAction(brokerServers))
 
-    CreateConnectionPopup.createPopup(DefaultActionGroup(actions + additional), dataContext ?: DataContext.EMPTY_CONTEXT)
-      .showCenteredInCurrentWindow(project)
+    CreateConnectionPopup.createPopup(DefaultActionGroup(actions + additional), e.dataContext)
+      .show(RelativePoint(e.inputEvent as MouseEvent))
   }
 
-  fun showProducerWithPopup(brokerServers: String?, defaultTopic: String?, dataContext: DataContext?) {
+  fun showProducerWithPopup(brokerServers: String?, defaultTopic: String?, e: AnActionEvent) {
     val actions = DriverManager.getDrivers(project).filterIsInstance<KafkaDriver>().map { driver ->
       DumbAwareAction.create(driver.connectionData.name) {
         KafkaCreateProducerAction.openProducer(driver.dataManager, project, defaultTopic)
@@ -39,11 +41,11 @@ internal class KafkaBootstrapService(val project: Project) {
     }
     val additional = listOf(Separator(), createKafkaSettingsAction(brokerServers))
 
-    CreateConnectionPopup.createPopup(DefaultActionGroup(actions + additional), dataContext ?: DataContext.EMPTY_CONTEXT)
-      .showCenteredInCurrentWindow(project)
+    CreateConnectionPopup.createPopup(DefaultActionGroup(actions + additional), e.dataContext)
+      .show(RelativePoint(e.inputEvent as MouseEvent))
   }
 
-  fun showKafkaSettingsPopup(brokerServers: String?, defaultTopic: String?, dataContext: DataContext?) {
+  fun showKafkaSettingsPopup(brokerServers: String?, defaultTopic: String?, e: AnActionEvent) {
     val actions = DriverManager.getDrivers(project).filterIsInstance<KafkaDriver>().map { driver ->
       DumbAwareAction.create(driver.connectionData.name) {
         ConnectionSettings.open(project, connectionId = driver.connectionData.innerId)
@@ -52,8 +54,8 @@ internal class KafkaBootstrapService(val project: Project) {
     }
     val additional = listOf(Separator(), createKafkaSettingsAction(brokerServers))
 
-    CreateConnectionPopup.createPopup(DefaultActionGroup(actions + additional), dataContext ?: DataContext.EMPTY_CONTEXT)
-      .showCenteredInCurrentWindow(project)
+    CreateConnectionPopup.createPopup(DefaultActionGroup(actions + additional), e.dataContext)
+      .show(RelativePoint(e.inputEvent as MouseEvent))
   }
 
   private fun createKafkaSettingsAction(brokerServers: String?) = DumbAwareAction.create(
