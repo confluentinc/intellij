@@ -416,10 +416,11 @@ class KafkaBrokerSettings(val project: Project,
       properties[CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG]?.let {
         url.getTextComponent().text = it
       }
-      val securityProtocol = getSecurityProtocol(properties) ?: SecurityProtocol.PLAINTEXT
-      when (securityProtocol) {
+      when (val securityProtocol = getSecurityProtocol(properties) ?: SecurityProtocol.PLAINTEXT) {
         SecurityProtocol.PLAINTEXT -> {
-          authMethod.selectedItem = KafkaAuthMethod.NOT_SPECIFIED
+          if (authMethod.selectedItem != KafkaAuthMethod.NOT_SPECIFIED) {
+            authMethod.selectedItem = KafkaAuthMethod.NOT_SPECIFIED
+          }
           return
         }
         SecurityProtocol.SASL_PLAINTEXT, SecurityProtocol.SASL_SSL -> {
@@ -427,12 +428,15 @@ class KafkaBrokerSettings(val project: Project,
             setAwsProperties(properties, awsMskAuthSettings)
             return
           }
-          authMethod.selectedItem = KafkaAuthMethod.SASL
+          if (authMethod.selectedItem != KafkaAuthMethod.SASL) {
+            authMethod.selectedItem = KafkaAuthMethod.SASL
+          }
           setSaslToUi(securityProtocol, properties)
         }
         SecurityProtocol.SSL -> {
-          authMethod.selectedItem = KafkaAuthMethod.SSL
-
+          if (authMethod.selectedItem != KafkaAuthMethod.SSL) {
+            authMethod.selectedItem = KafkaAuthMethod.SSL
+          }
         }
       }
       setSslToUi(properties)
@@ -479,7 +483,9 @@ class KafkaBrokerSettings(val project: Project,
   }
 
   private fun setAwsProperties(properties: Map<String, String>, settingsUi: AwsSettingsComponentForKafka) {
-    authMethod.selectedItem = KafkaAuthMethod.AWS_IAM
+    if (authMethod.selectedItem != KafkaAuthMethod.AWS_IAM) {
+      authMethod.selectedItem = KafkaAuthMethod.AWS_IAM
+    }
 
     val jaasConfig = properties[SaslConfigs.SASL_JAAS_CONFIG] ?: return
     val bdtJaasConfig = try {
