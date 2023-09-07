@@ -17,6 +17,7 @@ import com.jetbrains.bigdatatools.common.rfs.settings.RemoteFsDriverProvider
 import com.jetbrains.bigdatatools.common.serializer.BdtJson
 import com.jetbrains.bigdatatools.common.settings.DoNotSerialize
 import com.jetbrains.bigdatatools.common.settings.connections.ConnectionGroup
+import com.jetbrains.bigdatatools.common.settings.connections.CredentialId
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryType
 import com.jetbrains.bigdatatools.kafka.settings.KafkaConnectionConfigurable
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
@@ -34,7 +35,7 @@ class KafkaConnectionData(var version: Int? = null) : RemoteFsDriverProvider(
       setCredentials(Credentials(value, null as? String?), CONFIG_KEY)
     }
 
-  override fun credentialIds() = super.credentialIds() + listOf(CONFIG_KEY, CONFIG_REGISTRY_KEY, SECRET_KEY_ID)
+  override fun credentialIds() = super.credentialIds() + CONFIG_KEY + CONFIG_REGISTRY_KEY + SECRET_KEY_ID
 
   var brokerConfigurationSource: KafkaConfigurationSource = KafkaConfigurationSource.CLOUD
   var brokerCloudSource: KafkaCloudType = KafkaCloudType.CONFLUENT
@@ -119,7 +120,7 @@ class KafkaConnectionData(var version: Int? = null) : RemoteFsDriverProvider(
   }
 
   companion object {
-    const val CONFIG_KEY = "broker.secret.properties"
-    const val CONFIG_REGISTRY_KEY = "registry.secret.properties"
+    val CONFIG_KEY = CredentialId("broker.secret.properties")
+    val CONFIG_REGISTRY_KEY = CredentialId("registry.secret.properties")
   }
 }
