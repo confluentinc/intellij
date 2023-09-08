@@ -90,7 +90,6 @@ class KafkaProducerEditor(val project: Project,
     emptyText.text = KafkaMessagesBundle.message("producer.forcePartition.emptytext")
   }
 
-
   private val presetsDelegate = lazy {
     val presets = ProducerPresets()
     Disposer.register(this, presets)
@@ -109,7 +108,6 @@ class KafkaProducerEditor(val project: Project,
     }
   }
 
-
   private val settingsPanelDelegate = lazy {
     val panel = panel {
       row(KafkaMessagesBundle.message("producer.topics")) { cell(topicComboBox).align(AlignX.FILL).resizableColumn() }
@@ -124,7 +122,6 @@ class KafkaProducerEditor(val project: Project,
         }
 
       }.topGap(TopGap.NONE).bottomGap(BottomGap.NONE)
-
 
       flowController.getComponent(this)
 
@@ -192,7 +189,6 @@ class KafkaProducerEditor(val project: Project,
       progress.onValidationError()
       return true
     }
-
 
     val selectedTopicName = topic.name
 
@@ -308,9 +304,7 @@ class KafkaProducerEditor(val project: Project,
     storeToFile()
   }
 
-
   private fun createCenterPanel(): JComponent = presetsSplitter
-
 
   private fun storeToFile() {
     if (isRestoring) {
@@ -353,7 +347,6 @@ class KafkaProducerEditor(val project: Project,
     forcePartition = forcePartitionField.value,
     flowParams = flowController.getParams())
 
-
   private fun applyConfig(config: StorageProducerConfig) {
     topicComboBox.item = TopicInEditor(config.topic)
     keyFieldComponent.applyConfig(config)
@@ -368,7 +361,6 @@ class KafkaProducerEditor(val project: Project,
 
     flowController.setParams(config.flowParams ?: ProducerFlowParams())
   }
-
 
   override fun getName(): String = KafkaMessagesBundle.message("produce.to.topic")
   override fun getComponent(): JComponent = mainComponent

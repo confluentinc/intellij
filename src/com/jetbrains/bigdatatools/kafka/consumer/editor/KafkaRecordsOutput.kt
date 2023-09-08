@@ -122,6 +122,12 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
 
     val clearButton = DumbAwareAction.create(KafkaMessagesBundle.message("action.clear.output"), AllIcons.Actions.GC) {
       outputModel.clear()
+      if (outputTableDelegate.isInitialized()) {
+        TableFirstRowAdded(outputTable) {
+          MaterialTableUtils.fitColumnsWidth(outputTable)
+          TableResizeController.getFor(outputTable)?.componentResized()
+        }
+      }
     }
 
     val tableStatusButton = object : DumbAwareToggleAction(KafkaMessagesBundle.message("action.table.stats"), null,
