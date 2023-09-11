@@ -40,10 +40,12 @@ class KafkaRegistrySettings(val project: Project,
                             coroutineScope: CoroutineScope,
                             val registryType: RadioGroupField<KafkaConnectionData, KafkaRegistryType>) {
 
-  internal val confluentPropertiesEditor = PropertiesFieldComponent(
+  private val confluentPropertiesCredentialsHolder = CredentialsHolder(connectionData, KafkaConnectionData.CONFIG_REGISTRY_KEY, uiDisposable, coroutineScope)
+
+  internal val confluentPropertiesEditor = SecretPropertiesFieldComponent(
     project,
     KafkaPropertiesUtils.getRegistryPropertiesDescriptions(),
-    KafkaConnectionData::secretRegistryProperties,
+    confluentPropertiesCredentialsHolder,
     KafkaSettingsCustomizer.KafkaSettingsKeys.REGISTRY_PROPERTIES_KEY,
     connectionData,
     uiDisposable
