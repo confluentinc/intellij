@@ -5,6 +5,7 @@ import com.google.protobuf.Descriptors.*
 import com.google.protobuf.Descriptors.FieldDescriptor.Type.*
 import com.google.protobuf.DynamicMessage
 import com.google.protobuf.Message
+import com.google.protobuf.Message.Builder
 import com.google.protobuf.util.JsonFormat
 import com.google.protobuf.util.JsonFormat.TypeRegistry
 import io.confluent.kafka.schemaregistry.ParsedSchema
@@ -13,6 +14,7 @@ import kotlin.random.Random
 
 class ProtobufGenerator(private val schema: ProtobufSchema) {
   private val messages = mutableSetOf<String>()
+  private val oneOfFields = mutableSetOf<String>()
 
   private fun generate(field: FieldDescriptor): Any? {
     return when (field.type) {
@@ -51,7 +53,10 @@ class ProtobufGenerator(private val schema: ProtobufSchema) {
     // Also possible builder.setUnknownFields()
     val builder = DynamicMessage.newBuilder(message)
     message.fields.forEach { field ->
-      if (field.isRepeated) {
+      if (field.realContainingOneof != null) {
+        handleOneOfFields(field.realContainingOneof, builder)
+      }
+      else if (field.isRepeated) {
         val repeatedItemsSize = Random.nextInt(3, 8)
         for (i in 0..repeatedItemsSize) {
           generate(field)?.let { data -> builder.addRepeatedField(field, data) }
@@ -61,6 +66,19 @@ class ProtobufGenerator(private val schema: ProtobufSchema) {
     }
 
     return builder.build()
+  }
+
+  private fun handleOneOfFields(oneOf: OneofDescriptor, builder: Builder) {
+    if (oneOfFields.contains(oneOf.fullName)) {
+      return
+    }
+    else {
+      oneOfFields.add(oneOf.fullName)
+
+      val size = oneOf.fields.size
+      val randomField = oneOf.fields[Random.nextInt(0, size)]
+      generate(randomField)?.let { data -> builder.setField(randomField, data) }
+    }
   }
 
   private fun generate(): String {
@@ -77,7 +95,7 @@ class ProtobufGenerator(private val schema: ProtobufSchema) {
     fun generateProtobufMessage(schema: ParsedSchema?): String {
       val protobufSchema = schema as? ProtobufSchema
       if (protobufSchema == null) {
-        GenerateRandomData.logger.warn("Schema could not be null and the type of it should be AVRO")
+        GenerateRandomData.logger.warn("Schema could not be null and the type of it should be Protobuf")
         return ""
       }
 

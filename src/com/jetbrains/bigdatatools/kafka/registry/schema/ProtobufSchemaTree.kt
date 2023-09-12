@@ -1,7 +1,6 @@
 package com.jetbrains.bigdatatools.kafka.registry.schema
 
-import com.google.protobuf.Descriptors.Descriptor
-import com.google.protobuf.Descriptors.FieldDescriptor
+import com.google.protobuf.Descriptors.*
 import com.google.protobuf.Descriptors.FieldDescriptor.Type.*
 import com.jetbrains.bigdatatools.kafka.model.SchemaRegistryFieldsInfo
 import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchema
@@ -11,6 +10,7 @@ import javax.swing.tree.DefaultTreeModel
 
 class ProtobufSchemaTree(model: DefaultTreeModel, private val schema: ProtobufSchema) : SchemaTree(model) {
   private val messages = hashMapOf<String, Descriptor>()
+  private val oneOfFields = mutableSetOf<String>()
 
   private fun addChildren(parent: DefaultMutableTreeNode, field: FieldDescriptor) {
     when (field.type) {
@@ -50,8 +50,7 @@ class ProtobufSchemaTree(model: DefaultTreeModel, private val schema: ProtobufSc
   private fun FieldDescriptor.typeName() = this.type.name.lowercase()
 
   override fun buildTree(root: DefaultMutableTreeNode) {
-    val descriptor = schema.toDescriptor()
-    descriptor.fields.forEach { addChildren(root, it) }
+    initFields(root, schema.toDescriptor().fields)
   }
 
   override fun treeExpanded(event: TreeExpansionEvent?) {
@@ -63,7 +62,28 @@ class ProtobufSchemaTree(model: DefaultTreeModel, private val schema: ProtobufSc
 
     val descriptor = messages[node.id] ?: return
     expandedNode.removeAllChildren()
-    descriptor.fields.forEach { addChildren(expandedNode, it) }
+    initFields(expandedNode, descriptor.fields)
     model.nodeStructureChanged(expandedNode)
+  }
+
+  private fun initFields(parent: DefaultMutableTreeNode, fields: List<FieldDescriptor>) {
+    fields.forEach { field ->
+      field.realContainingOneof?.let {
+        handleOneOfFields(parent, it)
+      } ?: addChildren(parent, field)
+    }
+  }
+
+  private fun handleOneOfFields(parent: DefaultMutableTreeNode, oneOf: OneofDescriptor) {
+    if (oneOfFields.contains(oneOf.fullName)) {
+      return
+    }
+    else {
+      oneOfFields.add(oneOf.fullName)
+
+      val node = createMutableNode(oneOf.name, "oneOf")
+      parent.add(node)
+      oneOf.fields.forEach { addChildren(node, it) }
+    }
   }
 }
