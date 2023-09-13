@@ -9,17 +9,17 @@ import com.intellij.util.concurrency.annotations.RequiresBackgroundThread
 import com.jetbrains.bigdatatools.kafka.common.models.KafkaFieldType
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.registry.confluent.ConfluentRegistryClient
+import com.jetbrains.bigdatatools.kafka.registry.serde.BdtAvroSchemaProvider
 import com.jetbrains.bigdatatools.kafka.registry.serde.BdtJsonSchemaProvider
 import com.jetbrains.bigdatatools.kafka.registry.serde.BdtProtobufSchemaProvider
 import io.confluent.kafka.schemaregistry.ParsedSchema
-import io.confluent.kafka.schemaregistry.avro.AvroSchemaProvider
 import io.confluent.kafka.schemaregistry.client.rest.entities.SchemaReference
 import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchema
 import java.util.logging.Level
 import java.util.logging.Logger
 
 object KafkaRegistryUtil {
-  fun getRegistrySchemaProviders() = listOf(AvroSchemaProvider(), BdtProtobufSchemaProvider(), BdtJsonSchemaProvider())
+  fun getRegistrySchemaProviders() = listOf(BdtAvroSchemaProvider(), BdtProtobufSchemaProvider(), BdtJsonSchemaProvider())
 
   val protobufLanguage: Language
     get() = Language.findLanguageByID("protobuf") ?: PlainTextLanguage.INSTANCE
