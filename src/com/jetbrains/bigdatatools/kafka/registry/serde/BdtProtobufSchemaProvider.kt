@@ -18,6 +18,9 @@ class BdtProtobufSchemaProvider : ProtobufSchemaProvider() {
         null
       )
     }
+    catch (e: IllegalArgumentException) {
+      throw IllegalArgumentException("${e.message}.\n${e.cause?.message}")
+    }
     catch (e: Exception) {
       throw e
     }
