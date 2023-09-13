@@ -16,6 +16,11 @@ class JsonSchemaTree(model: DefaultTreeModel, private val schema: JsonSchema) : 
       return
     }
 
+    if (schema is ReferenceSchema) {
+      addChildren(parent, fieldName, schema.referredSchema)
+      return
+    }
+
     val child = createMutableNode(fieldName, schema.resolveFieldType(), schema.defaultValue, schema.description,
                                   isRequired)
     parent.add(child)
@@ -47,7 +52,7 @@ class JsonSchemaTree(model: DefaultTreeModel, private val schema: JsonSchema) : 
   }
 
   private fun Schema.resolveFieldType(): String = when (this) {
-    // TODO: ConditionalSchema NotSchema ReferenceSchema
+    // TODO: ConditionalSchema NotSchema
     is NullSchema -> "null"
     is ArraySchema -> if (this.allItemSchema != null) "array<${this.allItemSchema.resolveFieldType()}>" else "array<>"
     is BooleanSchema, is TrueSchema, is FalseSchema -> "boolean"
@@ -61,14 +66,20 @@ class JsonSchemaTree(model: DefaultTreeModel, private val schema: JsonSchema) : 
     is EnumSchema -> "enum"
     is ConstSchema -> "const"
     is CombinedSchema -> this.subschemas.joinToString(" | ") { it.resolveFieldType() }
+    is ReferenceSchema -> this.referredSchema.resolveFieldType()
     else -> ""
   }
 
   private fun isRequiredField(schema: ObjectSchema, fieldName: String): Boolean = schema.requiredProperties.contains(fieldName)
 
   override fun buildTree(root: DefaultMutableTreeNode) {
-    val objectSchema = schema.rawSchema() as? ObjectSchema ?: return
-    objectSchema.propertySchemas?.forEach { addChildren(root, it.key, it.value, isRequiredField(objectSchema, it.key)) }
+    val objectSchema = schema.rawSchema()
+    if (objectSchema is ObjectSchema) {
+      objectSchema.propertySchemas?.forEach { addChildren(root, it.key, it.value, isRequiredField(objectSchema, it.key)) }
+    }
+    else {
+      addChildren(root, "field", objectSchema)
+    }
   }
 
   override fun treeExpanded(event: TreeExpansionEvent?) {

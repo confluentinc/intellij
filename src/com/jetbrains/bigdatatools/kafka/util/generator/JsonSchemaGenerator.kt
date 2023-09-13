@@ -13,11 +13,8 @@ class JsonSchemaGenerator(private val topLevelSchema: JsonSchema) {
   private val locations = mutableSetOf<String>()
 
   fun generate(): String {
-    val schema = topLevelSchema.rawSchema() as? ObjectSchema ?: return ""
-    val jsonObject = JsonObject()
-
-    schema.propertySchemas?.forEach { generate(it.value)?.let { data -> jsonObject.add(it.key, data) } }
-    return GsonBuilder().setPrettyPrinting().create().toJson(jsonObject)
+    val schema = topLevelSchema.rawSchema()
+    return GsonBuilder().setPrettyPrinting().create().toJson(generate(schema))
   }
 
   private fun generate(schema: Schema): JsonElement? = when (schema) {
