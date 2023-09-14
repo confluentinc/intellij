@@ -12,7 +12,7 @@ class BdtAvroSchemaProvider : AvroSchemaProvider() {
     super.parseSchemaOrElseThrow(schemaString, references, isNew)
   }
   catch (e: SchemaParseException) {
-    val message = e.message?.replace("<", "&lt")?.replace(">", "&gt")
+    val message = e.message?.replace("<", "&lt;")?.replace(">", "&gt;")
     throw SchemaParseException(message)
   }
 }

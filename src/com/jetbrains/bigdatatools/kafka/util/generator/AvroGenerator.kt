@@ -1,5 +1,7 @@
 package com.jetbrains.bigdatatools.kafka.util.generator
 
+import com.intellij.openapi.project.Project
+import com.jetbrains.bigdatatools.kafka.util.generator.GenerateRandomData.isValidSchema
 import com.jetbrains.bigdatatools.kafka.util.generator.GenerateRandomData.logger
 import com.mifmif.common.regex.Generex
 import io.confluent.kafka.schemaregistry.ParsedSchema
@@ -1213,7 +1215,11 @@ class AvroGenerator private constructor(private val topLevelSchema: Schema) {
     private const val PRETTY_FORMAT = true
     private const val ITERATION_NUM: Long = 1
 
-    fun generateAvroMessage(schema: ParsedSchema?): String {
+    fun generateAvroMessage(project: Project?, schema: ParsedSchema?): String {
+      if (schema?.isValidSchema(project) == false) {
+        return ""
+      }
+
       val avroSchema = schema?.rawSchema() as? Schema
       if (schema?.schemaType() != "AVRO" || avroSchema == null) {
         logger.warn("Schema could not be null and the type of it should be AVRO")

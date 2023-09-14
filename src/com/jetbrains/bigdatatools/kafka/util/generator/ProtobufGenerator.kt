@@ -8,6 +8,8 @@ import com.google.protobuf.Message
 import com.google.protobuf.Message.Builder
 import com.google.protobuf.util.JsonFormat
 import com.google.protobuf.util.JsonFormat.TypeRegistry
+import com.intellij.openapi.project.Project
+import com.jetbrains.bigdatatools.kafka.util.generator.GenerateRandomData.isValidSchema
 import io.confluent.kafka.schemaregistry.ParsedSchema
 import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchema
 import kotlin.random.Random
@@ -92,7 +94,11 @@ class ProtobufGenerator(private val schema: ProtobufSchema) {
   }
 
   companion object {
-    fun generateProtobufMessage(schema: ParsedSchema?): String {
+    fun generateProtobufMessage(project: Project?, schema: ParsedSchema?): String {
+      if (schema?.isValidSchema(project) == false) {
+        return ""
+      }
+
       val protobufSchema = schema as? ProtobufSchema
       if (protobufSchema == null) {
         GenerateRandomData.logger.warn("Schema could not be null and the type of it should be Protobuf")
