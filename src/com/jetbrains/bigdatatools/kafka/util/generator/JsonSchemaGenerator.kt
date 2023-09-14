@@ -1,6 +1,8 @@
 package com.jetbrains.bigdatatools.kafka.util.generator
 
 import com.google.gson.*
+import com.intellij.openapi.project.Project
+import com.jetbrains.bigdatatools.kafka.util.generator.GenerateRandomData.isValidSchema
 import com.mifmif.common.regex.Generex
 import io.confluent.kafka.schemaregistry.ParsedSchema
 import io.confluent.kafka.schemaregistry.json.JsonSchema
@@ -207,7 +209,11 @@ class JsonSchemaGenerator(private val topLevelSchema: JsonSchema) {
   }
 
   companion object {
-    fun generateJsonMessage(schema: ParsedSchema?): String {
+    fun generateJsonMessage(project: Project?, schema: ParsedSchema?): String {
+      if (schema?.isValidSchema(project) == false) {
+        return ""
+      }
+
       val jsonSchema = schema as? JsonSchema
       if (jsonSchema == null) {
         error("Schema could not be null and the type of it should be JSON")
