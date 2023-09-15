@@ -17,7 +17,6 @@ import com.intellij.ui.layout.not
 import com.jetbrains.bigdatatools.common.serializer.BdtJson
 import com.jetbrains.bigdatatools.common.settings.ModificationKey
 import com.jetbrains.bigdatatools.common.settings.fields.*
-import com.jetbrains.bigdatatools.common.settings.withUrlValidator
 import com.jetbrains.bigdatatools.common.ui.block
 import com.jetbrains.bigdatatools.common.ui.components.RadioComboBox
 import com.jetbrains.bigdatatools.common.ui.row
@@ -71,7 +70,6 @@ class KafkaRegistrySettings(val project: Project,
     .apply {
       emptyText = KafkaMessagesBundle.message("settings.registry.url.hint")
     }
-    .withUrlValidator(uiDisposable, allowEmpty = true)
     .also { editor ->
       editor.getComponent().whenFocusLost {
         updateRegistryPropertiesField()
