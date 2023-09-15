@@ -42,7 +42,7 @@ object KafkaSchemaInfoDialog {
     invokeLater {
       val dialogBuilder = DialogBuilder(project)
       dialogBuilder.title(KafkaMessagesBundle.message("registry.info.dialog.title", schemaName))
-      dialogBuilder.centerPanel(KafkaRegistrySchemaEditor(project, parentDisposable = dialogBuilder).apply {
+      dialogBuilder.centerPanel(KafkaRegistrySchemaEditor(project, parentDisposable = dialogBuilder, isEditable = false).apply {
         setText(schema, if (KafkaRegistryFormat.valueOf(schemaType) != KafkaRegistryFormat.PROTOBUF) JsonLanguage.INSTANCE
         else KafkaRegistryUtil.protobufLanguage)
       }.component.apply {
