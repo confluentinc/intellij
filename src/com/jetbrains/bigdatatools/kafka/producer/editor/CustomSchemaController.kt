@@ -27,6 +27,7 @@ import com.jetbrains.bigdatatools.kafka.registry.ui.KafkaSchemaInfoDialog
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import io.confluent.kafka.schemaregistry.ParsedSchema
 import java.io.File
+import java.io.FileNotFoundException
 import javax.swing.JPanel
 
 class CustomSchemaController(private val project: Project,
@@ -89,7 +90,11 @@ class CustomSchemaController(private val project: Project,
   fun getSchema(): ParsedSchema {
     val schemaText = when (customSchemaSource.selectedItem) {
       KafkaCustomSchemaSource.FILE -> {
-        File(customSchemaFile.component.text).readText()
+        val file = File(customSchemaFile.component.text)
+        if (file.exists()) {
+          file.readText()
+        }
+        else throw FileNotFoundException("File not found")
       }
       KafkaCustomSchemaSource.IMPLICIT -> customSchema.text
       null -> ""
