@@ -19,6 +19,7 @@ import com.jetbrains.bigdatatools.common.settings.ModificationKey
 import com.jetbrains.bigdatatools.common.settings.fields.*
 import com.jetbrains.bigdatatools.common.ui.block
 import com.jetbrains.bigdatatools.common.ui.components.RadioComboBox
+import com.jetbrains.bigdatatools.common.ui.doOnChange
 import com.jetbrains.bigdatatools.common.ui.row
 import com.jetbrains.bigdatatools.common.ui.shortRow
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryType
@@ -49,6 +50,14 @@ class KafkaRegistrySettings(val project: Project,
     connectionData,
     uiDisposable
   ).also { editor ->
+    var isInited = false
+    editor.getComponent().doOnChange {
+      if (isInited || editor.getComponent().text.isBlank())
+        return@doOnChange
+      isInited = true
+      updateRegistryUiFromProperties()
+    }
+
     editor.getComponent().whenFocusLost {
       updateRegistryUiFromProperties()
     }
