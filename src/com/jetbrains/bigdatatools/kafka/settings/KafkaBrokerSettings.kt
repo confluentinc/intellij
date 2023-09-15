@@ -20,11 +20,8 @@ import com.jetbrains.bigdatatools.common.settings.fields.*
 import com.jetbrains.bigdatatools.common.settings.kerberos.BdtJaasConfig
 import com.jetbrains.bigdatatools.common.settings.kerberos.KerberosSettingsDialog
 import com.jetbrains.bigdatatools.common.settings.withEmptyOrFileExistValidator
-import com.jetbrains.bigdatatools.common.ui.CustomListCellRenderer
-import com.jetbrains.bigdatatools.common.ui.block
+import com.jetbrains.bigdatatools.common.ui.*
 import com.jetbrains.bigdatatools.common.ui.components.RadioComboBox
-import com.jetbrains.bigdatatools.common.ui.revalidateOnLinesChanged
-import com.jetbrains.bigdatatools.common.ui.row
 import com.jetbrains.bigdatatools.common.util.MessagesBundle
 import com.jetbrains.bigdatatools.common.util.PathUtils
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryType
@@ -50,18 +47,18 @@ class KafkaBrokerSettings(val project: Project,
   val isRegistryVisible = AtomicBooleanProperty(true)
 
   internal val confSource = RadioGroupField(KafkaConnectionData::brokerConfigurationSource,
-                                           KafkaSettingsCustomizer.KafkaSettingsKeys.CONFIGURATION_SOURCE_KEY,
-                                           connectionData,
-                                           KafkaConfigurationSource.values()).apply {
+                                            KafkaSettingsCustomizer.KafkaSettingsKeys.CONFIGURATION_SOURCE_KEY,
+                                            connectionData,
+                                            KafkaConfigurationSource.values()).apply {
     addItemListener {
       updateConfVisibility()
     }
   }
 
   internal val cloudSource = RadioGroupField(KafkaConnectionData::brokerCloudSource,
-                                            KafkaSettingsCustomizer.KafkaSettingsKeys.CLOUD_PROVIDER,
-                                            connectionData,
-                                            KafkaCloudType.values()).apply {
+                                             KafkaSettingsCustomizer.KafkaSettingsKeys.CLOUD_PROVIDER,
+                                             connectionData,
+                                             KafkaCloudType.values()).apply {
     addItemListener {
       updateCloudVisibility()
     }
@@ -84,6 +81,15 @@ class KafkaBrokerSettings(val project: Project,
     propertiesCredentialsHolder,
     KafkaSettingsCustomizer.KafkaSettingsKeys.PROPERTIES_KEY,
     connectionData, uiDisposable).also { editor ->
+
+    var isInited = false
+    editor.getComponent().doOnChange {
+      if (isInited || editor.getComponent().text.isBlank())
+        return@doOnChange
+      isInited = true
+      setKafkaPropertiesToUi()
+      updateVisibilityOfPropertiesKrb5Conf()
+    }
     editor.getComponent().whenFocusLost {
       setKafkaPropertiesToUi()
       updateVisibilityOfPropertiesKrb5Conf()
