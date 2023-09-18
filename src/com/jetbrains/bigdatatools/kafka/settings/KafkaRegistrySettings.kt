@@ -17,11 +17,8 @@ import com.intellij.ui.layout.not
 import com.jetbrains.bigdatatools.common.serializer.BdtJson
 import com.jetbrains.bigdatatools.common.settings.ModificationKey
 import com.jetbrains.bigdatatools.common.settings.fields.*
-import com.jetbrains.bigdatatools.common.ui.block
+import com.jetbrains.bigdatatools.common.ui.*
 import com.jetbrains.bigdatatools.common.ui.components.RadioComboBox
-import com.jetbrains.bigdatatools.common.ui.doOnChange
-import com.jetbrains.bigdatatools.common.ui.row
-import com.jetbrains.bigdatatools.common.ui.shortRow
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryType
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaConfigurationSource
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaConnectionData
@@ -40,7 +37,8 @@ class KafkaRegistrySettings(val project: Project,
                             coroutineScope: CoroutineScope,
                             val registryType: RadioGroupField<KafkaConnectionData, KafkaRegistryType>) {
 
-  private val confluentPropertiesCredentialsHolder = CredentialsHolder(connectionData, KafkaConnectionData.CONFIG_REGISTRY_KEY, uiDisposable, coroutineScope)
+  private val confluentPropertiesCredentialsHolder = CredentialsHolder(connectionData, KafkaConnectionData.CONFIG_REGISTRY_KEY,
+                                                                       uiDisposable, coroutineScope)
 
   internal val confluentPropertiesEditor = SecretPropertiesFieldComponent(
     project,
@@ -49,19 +47,22 @@ class KafkaRegistrySettings(val project: Project,
     KafkaSettingsCustomizer.KafkaSettingsKeys.REGISTRY_PROPERTIES_KEY,
     connectionData,
     uiDisposable
-  ).also { editor ->
-    var isInited = false
-    editor.getComponent().doOnChange {
-      if (isInited || editor.getComponent().text.isBlank())
-        return@doOnChange
-      isInited = true
-      updateRegistryUiFromProperties()
-    }
+  )
+    .apply {
+      var isInited = false
+      getComponent().doOnChange {
+        if (isInited || getComponent().text.isBlank())
+          return@doOnChange
+        isInited = true
+        updateRegistryUiFromProperties()
+      }
 
-    editor.getComponent().whenFocusLost {
-      updateRegistryUiFromProperties()
+      getComponent().whenFocusLost {
+        updateRegistryUiFromProperties()
+      }
+
+      getComponent().revalidateOnLinesChanged()
     }
-  }
 
   internal val confluentSource = RadioGroupField(KafkaConnectionData::registryConfSource,
                                                  KafkaSettingsCustomizer.KafkaSettingsKeys.REGISTRY_PROPERTIES_SOURCE_KEY,
@@ -114,7 +115,7 @@ class KafkaRegistrySettings(val project: Project,
   }
 
   private val useBrokerSslCheckbox = CheckBoxField(KafkaConnectionData::registryUseBrokerSsl, USE_BROKER_SSL,
-                                                    connectionData)
+                                                   connectionData)
 
   internal val awsGlueSettings = AwsSettingsComponentForKafka(includeRegionSetting = true) {
     saveGlueSettings()
@@ -146,7 +147,6 @@ class KafkaRegistrySettings(val project: Project,
         updateRegistryType()
       }
     }
-
   }
 
   fun setPanelComponent(panel: Panel) = panel.setComponent()
@@ -154,10 +154,12 @@ class KafkaRegistrySettings(val project: Project,
   private fun Panel.setComponent(): CollapsibleRow {
     val group = collapsibleGroup(KafkaMessagesBundle.message("settings.registry.title")) {
       shortRow(registryType)
-      confluentGroup = confluentSettings()
-      glueGroup = rowsRange {
-        awsGlueSettings.getComponentRows(this)
-        row(glueRegistryName)
+      panel {
+        confluentGroup = confluentSettings()
+        glueGroup = rowsRange {
+          awsGlueSettings.getComponentRows(this)
+          row(glueRegistryName)
+        }
       }
 
       initGlueSettings(awsGlueSettings)
@@ -169,8 +171,9 @@ class KafkaRegistrySettings(val project: Project,
   }
 
   private fun Panel.confluentSettings() = rowsRange {
-    row(confluentUrl).bottomGap(BottomGap.SMALL)
-
+    panel {
+      row(confluentUrl).bottomGap(BottomGap.SMALL)
+    }
     shortRow(confluentSource)
 
     registryPropertiesGroup = block(confluentPropertiesEditor.getComponent())
@@ -362,7 +365,6 @@ class KafkaRegistrySettings(val project: Project,
         SchemaRegistryClientConfig.PROXY_HOST to null,
         SchemaRegistryClientConfig.PROXY_PORT to null,
       )
-
     }
     return default + ssl + auth + proxy + mapOf(SCHEMA_REGISTRY_URL_CONFIG to confluentUrl.getTextComponent().text)
   }
@@ -376,12 +378,10 @@ class KafkaRegistrySettings(val project: Project,
       KafkaRegistryType.NONE -> {
         confluentGroup.visible(false)
         glueGroup.visible(false)
-
       }
       KafkaRegistryType.CONFLUENT -> {
         confluentGroup.visible(true)
         glueGroup.visible(false)
-
       }
       KafkaRegistryType.AWS_GLUE -> {
         confluentGroup.visible(false)
