@@ -80,23 +80,24 @@ class KafkaBrokerSettings(val project: Project,
     KafkaPropertiesUtils.getAdminPropertiesDescriptions(),
     propertiesCredentialsHolder,
     KafkaSettingsCustomizer.KafkaSettingsKeys.PROPERTIES_KEY,
-    connectionData, uiDisposable).also { editor ->
+    connectionData, uiDisposable)
+    .apply {
+      var isInited = false
+      getComponent().doOnChange {
+        if (isInited || getComponent().text.isBlank())
+          return@doOnChange
+        isInited = true
+        setKafkaPropertiesToUi()
+        updateVisibilityOfPropertiesKrb5Conf()
+      }
 
-    var isInited = false
-    editor.getComponent().doOnChange {
-      if (isInited || editor.getComponent().text.isBlank())
-        return@doOnChange
-      isInited = true
-      setKafkaPropertiesToUi()
-      updateVisibilityOfPropertiesKrb5Conf()
+      getComponent().whenFocusLost {
+        setKafkaPropertiesToUi()
+        updateVisibilityOfPropertiesKrb5Conf()
+      }
+
+      getComponent().revalidateOnLinesChanged()
     }
-    editor.getComponent().whenFocusLost {
-      setKafkaPropertiesToUi()
-      updateVisibilityOfPropertiesKrb5Conf()
-    }
-  }.apply {
-    getComponent().revalidateOnLinesChanged()
-  }
 
   private fun updateVisibilityOfPropertiesKrb5Conf() {
     val properties: Map<String, String> = propertiesEditor.getProperties() ?: emptyMap()
@@ -113,7 +114,6 @@ class KafkaBrokerSettings(val project: Project,
                                                 fileChooserDescriptor = FileChooserDescriptorFactory.createSingleFileDescriptor()).apply {
     withEmptyOrFileExistValidator(uiDisposable, canBeEmpty = false)
   }
-
 
   internal val confluentSettings = KafkaConfluentSettings(project, connectionData, uiDisposable, url, propertiesEditor, this)
   private lateinit var propertiesKerberosLinkRow: Row
@@ -162,7 +162,6 @@ class KafkaBrokerSettings(val project: Project,
   internal val awsMskCloudSettings = AwsSettingsComponentForKafka {
     updatePropertiesField()
   }
-
 
   internal val awsMskAuthSettings = AwsSettingsComponentForKafka {
     updatePropertiesField()
@@ -365,7 +364,6 @@ class KafkaBrokerSettings(val project: Project,
 
         if (securityProtocol == SecurityProtocol.SASL_SSL)
           addSslProperties(result)
-
       }
       KafkaAuthMethod.SSL -> {
         result[CommonClientConfigs.SECURITY_PROTOCOL_CONFIG] = SecurityProtocol.SSL.name
