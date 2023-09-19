@@ -1,20 +1,16 @@
 package com.jetbrains.bigdatatools.kafka.consumer.editor
 
 import com.intellij.icons.AllIcons
-import com.intellij.ide.util.PropertiesComponent
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.invokeAndWaitIfNeeded
 import com.intellij.openapi.observable.properties.AtomicBooleanProperty
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.Messages
-import com.intellij.openapi.ui.Splitter
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.Key
 import com.intellij.openapi.vfs.VirtualFile
-import com.intellij.ui.OnePixelSplitter
 import com.intellij.ui.components.ActionLink
-import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.components.JBTextField
 import com.intellij.ui.dsl.builder.AlignX
 import com.intellij.ui.dsl.builder.panel
@@ -22,10 +18,12 @@ import com.jetbrains.bigdatatools.common.rfs.util.RfsNotificationUtils
 import com.jetbrains.bigdatatools.common.settings.getValidationInfo
 import com.jetbrains.bigdatatools.common.ui.CustomListCellRenderer
 import com.jetbrains.bigdatatools.common.ui.ExpansionPanel
+import com.jetbrains.bigdatatools.common.ui.MultiSplitter
 import com.jetbrains.bigdatatools.common.util.executeOnPooledThread
 import com.jetbrains.bigdatatools.common.util.invokeLater
 import com.jetbrains.bigdatatools.common.util.withPluginClassLoader
 import com.jetbrains.bigdatatools.kafka.common.editor.KafkaEditorUtils
+import com.jetbrains.bigdatatools.kafka.common.editor.KafkaProducerConsumerPanel
 import com.jetbrains.bigdatatools.kafka.common.editor.KafkaProducerConsumerProgressComponent
 import com.jetbrains.bigdatatools.kafka.common.editor.SavePresetAction
 import com.jetbrains.bigdatatools.kafka.common.models.TopicInEditor
@@ -37,10 +35,11 @@ import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryFormat
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import com.michaelbaranov.microba.calendar.DatePicker
-import java.awt.BorderLayout
 import java.awt.Dimension
 import java.util.*
-import javax.swing.*
+import javax.swing.JButton
+import javax.swing.JComponent
+import javax.swing.JPanel
 import kotlin.math.max
 
 class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaDataManager, private val file: VirtualFile) : Disposable {
@@ -102,7 +101,6 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
   private val key = KafkaConsumerFieldComponent(project, this, isKey = true).also { Disposer.register(this, it) }
   private val value = KafkaConsumerFieldComponent(project, this, isKey = false).also { Disposer.register(this, it) }
 
-
   private val kafkaConsumerSettingsDelegate = lazy { KafkaConsumerSettings() }
   private val kafkaConsumerSettings: KafkaConsumerSettings by kafkaConsumerSettingsDelegate
 
@@ -148,7 +146,6 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
     row(KafkaMessagesBundle.message("label.filter.head.value")) { cell(filterHeadValueField).align(AlignX.FILL).resizableColumn() }
   }
 
-
   private val startSpecificDateBlock = AtomicBooleanProperty(false)
   private val startOffsetBlock = AtomicBooleanProperty(false)
   private val startConsumerGroupBlock = AtomicBooleanProperty(false)
@@ -191,28 +188,7 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
       row { cell(advancedSettings) }
     }
 
-    panel.border = BorderFactory.createEmptyBorder(0, 10, 0, 0)
-
-    val scroll = JBScrollPane(panel, JScrollPane.VERTICAL_SCROLLBAR_ALWAYS, JScrollPane.HORIZONTAL_SCROLLBAR_NEVER).apply {
-      minimumSize = Dimension(panel.minimumSize.width, minimumSize.height)
-      border = BorderFactory.createEmptyBorder()
-    }
-
-    val bottomWidthGroup = "ButtonAndComment"
-    val bottomPanel = panel {
-      row {
-        cell(consumeButton).widthGroup(bottomWidthGroup)
-        progress.initCell(this, bottomWidthGroup)
-
-      }
-    }.apply {
-      border = BorderFactory.createEmptyBorder(10, 10, 10, 10)
-    }
-
-    JPanel(BorderLayout()).apply {
-      add(scroll, BorderLayout.CENTER)
-      add(bottomPanel, BorderLayout.SOUTH)
-    }
+    KafkaProducerConsumerPanel.createPanel(panel, consumeButton, progress)
   }
 
   private val settingsPanel: JPanel by settingsPanelDelegate
@@ -221,58 +197,31 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
     val presets = ConsumerPresets()
     Disposer.register(this, presets)
     presets.onApply = { applyConfig(it) }
+    presets.component.apply {
+      minimumSize = Dimension(max(minimumSize.width, 290), minimumSize.height)
+    }
     presets
   }
 
   private val presets: ConsumerPresets by presetsDelegate
 
-
-  private val settingsSplitter = OnePixelSplitter().apply {
-    lackOfSpaceStrategy = Splitter.LackOfSpaceStrategy.HONOR_THE_FIRST_MIN_SIZE
-    dividerPositionStrategy = Splitter.DividerPositionStrategy.KEEP_FIRST_SIZE
-    secondComponent = output.resultsSplitter
-    proportion = 0.0001f
-  }
-
-  private val presetsSplitter = OnePixelSplitter().apply {
-    lackOfSpaceStrategy = Splitter.LackOfSpaceStrategy.HONOR_THE_FIRST_MIN_SIZE
-    dividerPositionStrategy = Splitter.DividerPositionStrategy.KEEP_FIRST_SIZE
-    secondComponent = settingsSplitter
-    proportion = 0.0001f
-  }
+  private val presetsSplitter = MultiSplitter()
 
   init {
     Disposer.register(this, consumerClient)
 
     restoreFromFile()
 
+    presetsSplitter.proportionsKey = "kafka.consumer.multisplitter.proportions"
+    presetsSplitter.add(ExpansionPanel(KafkaMessagesBundle.message("toggle.presets"), { presets.component }, PRESETS_SHOW_ID, false))
+    presetsSplitter.add(ExpansionPanel(KafkaMessagesBundle.message("toggle.settings"), { settingsPanel },
+                                       SETTINGS_SHOW_ID, true,
+                                       listOf(SavePresetAction(KafkaConfigStorage.instance.consumerConfig) { getRunConfig() })
+    ))
+    presetsSplitter.add(output.dataPanel)
+    presetsSplitter.add(output.detailsPanel)
 
-    val settingsExpanded = PropertiesComponent.getInstance().getBoolean(SETTINGS_SHOW_ID, true)
-    settingsSplitter.firstComponent = ExpansionPanel(KafkaMessagesBundle.message("toggle.settings"), { settingsPanel },
-                                                     settingsExpanded,
-                                                     listOf(SavePresetAction(KafkaConfigStorage.instance.consumerConfig) { getRunConfig() })
-    ).apply {
-      expandedServiceKey = SETTINGS_SHOW_ID
-      addChangeListener {
-        settingsSplitter.proportion = 0.0001f
-        settingsSplitter.setResizeEnabled(this.expanded)
-      }
-    }
-    settingsSplitter.setResizeEnabled(settingsExpanded)
-
-    val presetsExpanded = PropertiesComponent.getInstance().getBoolean(PRESETS_SHOW_ID, false)
-    presetsSplitter.firstComponent = ExpansionPanel(KafkaMessagesBundle.message("toggle.presets"), {
-      presets.component.apply {
-        minimumSize = Dimension(max(minimumSize.width, 290), minimumSize.height)
-      }
-    }, presetsExpanded).apply {
-      expandedServiceKey = PRESETS_SHOW_ID
-      addChangeListener {
-        presetsSplitter.proportion = 0.0001f
-        presetsSplitter.setResizeEnabled(this.expanded)
-      }
-    }
-    presetsSplitter.setResizeEnabled(presetsExpanded)
+    presetsSplitter.centralComponent = output.dataPanel
 
     updateVisibility()
     updateLimit()
@@ -280,9 +229,7 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
     updateFilter()
 
     storeToUserData()
-
   }
-
 
   override fun dispose() {
     storeToUserData()
@@ -387,12 +334,10 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
       filter = filter,
       startWith = startWith,
       properties = properties,
-      settings = settings,
-    )
+      settings = settings)
   }
 
   fun getComponent(): JComponent = presetsSplitter
-
 
   private fun getFilter() = ConsumerFilter(
     type = filterComboBox.item,
@@ -529,6 +474,5 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
     // A number of string keys for PropertiesComponent.getInstance().getBoolean(**_**_ID, false)
     private const val SETTINGS_SHOW_ID = "com.jetbrains.bigdatatools.kafka.consumer.settings.show"
     private const val PRESETS_SHOW_ID = "com.jetbrains.bigdatatools.kafka.consumer.presets.show"
-
   }
 }

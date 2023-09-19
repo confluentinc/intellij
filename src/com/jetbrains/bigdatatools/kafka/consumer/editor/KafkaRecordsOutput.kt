@@ -7,10 +7,8 @@ import com.intellij.openapi.actionSystem.*
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.DumbAwareToggleAction
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.ui.Splitter
 import com.intellij.openapi.util.Disposer
 import com.intellij.ui.JBColor
-import com.intellij.ui.OnePixelSplitter
 import com.intellij.ui.PopupHandler
 import com.intellij.ui.ScrollPaneFactory
 import com.jetbrains.bigdatatools.common.table.MaterialTable
@@ -110,16 +108,10 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
 
   private val details: KafkaRecordDetails by detailsDelegate
 
-  internal val resultsSplitter = OnePixelSplitter().apply {
-    lackOfSpaceStrategy = Splitter.LackOfSpaceStrategy.HONOR_THE_SECOND_MIN_SIZE
-    dividerPositionStrategy = Splitter.DividerPositionStrategy.KEEP_SECOND_SIZE
-  }
-
-  private val detailsPanel: ExpansionPanel
+  val dataPanel: ExpansionPanel
+  val detailsPanel: ExpansionPanel
 
   init {
-    val dataExpanded = PropertiesComponent.getInstance().getBoolean(DATA_SHOW_ID, true)
-
     val clearButton = DumbAwareAction.create(KafkaMessagesBundle.message("action.clear.output"), AllIcons.Actions.GC) {
       outputModel.clear()
       if (outputTableDelegate.isInitialized()) {
@@ -141,35 +133,21 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
       }
     }
 
-    resultsSplitter.firstComponent = ExpansionPanel(KafkaMessagesBundle.message("toggle.data"),
-                                                    { outputTablePanel },
-                                                    dataExpanded,
-                                                    listOf(tableStatusButton, clearButton)
-    ).apply {
-      expandedServiceKey = DATA_SHOW_ID
-      addChangeListener {
-        resultsSplitter.proportion = if (expanded) 1f else 0.0001f
-        resultsSplitter.setResizeEnabled(expanded)
-      }
-    }
+    dataPanel = ExpansionPanel(KafkaMessagesBundle.message("toggle.data"), { outputTablePanel },
+                               DATA_SHOW_ID, true,
+                               listOf(tableStatusButton, clearButton))
 
     detailsPanel = ExpansionPanel(KafkaMessagesBundle.message("toggle.details"), {
       details.component.apply {
         minimumSize = Dimension(max(details.component.minimumSize.width, 250), minimumSize.height)
       }
-    }, PropertiesComponent.getInstance().getBoolean(DETAILS_SHOW_ID, false)).apply {
-      expandedServiceKey = DETAILS_SHOW_ID
+    }, DETAILS_SHOW_ID, false).apply {
       addChangeListener {
-        resultsSplitter.proportion = 1f
         if (expanded) {
           updateDetails()
         }
       }
     }
-    resultsSplitter.secondComponent = detailsPanel
-    resultsSplitter.proportion = if (dataExpanded) 1f else 0.0001f
-    resultsSplitter.setResizeEnabled(dataExpanded)
-
 
     outputTable.selectionModel.addListSelectionListener { event ->
       if (!event.valueIsAdjusting) {

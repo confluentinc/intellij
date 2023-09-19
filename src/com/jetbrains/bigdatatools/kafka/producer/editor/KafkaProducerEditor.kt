@@ -1,7 +1,6 @@
 package com.jetbrains.bigdatatools.kafka.producer.editor
 
 import com.intellij.icons.AllIcons
-import com.intellij.ide.util.PropertiesComponent
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.service
 import com.intellij.openapi.fileEditor.FileEditor
@@ -9,16 +8,13 @@ import com.intellij.openapi.fileEditor.FileEditorLocation
 import com.intellij.openapi.fileEditor.FileEditorState
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.ComboBox
-import com.intellij.openapi.ui.Splitter
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.Key
 import com.intellij.openapi.util.UserDataHolderBase
 import com.intellij.openapi.util.text.StringUtil
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.platform.feedback.kafka.state.KafkaConsumerProducerFeedbackService
-import com.intellij.ui.OnePixelSplitter
 import com.intellij.ui.components.CheckBox
-import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.components.fields.IntegerField
 import com.intellij.ui.dsl.builder.*
 import com.intellij.ui.layout.not
@@ -27,12 +23,10 @@ import com.jetbrains.bigdatatools.common.rfs.util.RfsNotificationUtils
 import com.jetbrains.bigdatatools.common.settings.getValidationInfo
 import com.jetbrains.bigdatatools.common.ui.CustomListCellRenderer
 import com.jetbrains.bigdatatools.common.ui.ExpansionPanel
+import com.jetbrains.bigdatatools.common.ui.MultiSplitter
 import com.jetbrains.bigdatatools.common.util.executeNotOnEdt
 import com.jetbrains.bigdatatools.common.util.invokeLater
-import com.jetbrains.bigdatatools.kafka.common.editor.KafkaEditorUtils
-import com.jetbrains.bigdatatools.kafka.common.editor.KafkaProducerConsumerProgressComponent
-import com.jetbrains.bigdatatools.kafka.common.editor.PropertiesTable
-import com.jetbrains.bigdatatools.kafka.common.editor.SavePresetAction
+import com.jetbrains.bigdatatools.kafka.common.editor.*
 import com.jetbrains.bigdatatools.kafka.common.models.TopicInEditor
 import com.jetbrains.bigdatatools.kafka.common.settings.KafkaConfigStorage
 import com.jetbrains.bigdatatools.kafka.common.settings.StorageProducerConfig
@@ -44,10 +38,11 @@ import com.jetbrains.bigdatatools.kafka.producer.models.ProducerFlowParams
 import com.jetbrains.bigdatatools.kafka.producer.models.RecordCompression
 import com.jetbrains.bigdatatools.kafka.statistics.KafkaUsagesCollector
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
-import java.awt.BorderLayout
 import java.awt.Dimension
 import java.beans.PropertyChangeListener
-import javax.swing.*
+import javax.swing.JButton
+import javax.swing.JComponent
+import javax.swing.JPanel
 import kotlin.math.max
 
 class KafkaProducerEditor(val project: Project,
@@ -94,6 +89,9 @@ class KafkaProducerEditor(val project: Project,
     val presets = ProducerPresets()
     Disposer.register(this, presets)
     presets.onApply = { applyConfig(it) }
+    presets.component.apply {
+      minimumSize = Dimension(max(minimumSize.width, 200), minimumSize.height)
+    }
     presets
   }
 
@@ -144,34 +142,32 @@ class KafkaProducerEditor(val project: Project,
       }.topGap(TopGap.NONE)
     }
 
-    panel.border = BorderFactory.createEmptyBorder(0, 10, 0, 0)
-
-    val scroll = JBScrollPane(panel, JScrollPane.VERTICAL_SCROLLBAR_ALWAYS, JScrollPane.HORIZONTAL_SCROLLBAR_NEVER).apply {
-      minimumSize = Dimension(panel.minimumSize.width, minimumSize.height)
-      border = BorderFactory.createEmptyBorder()
-    }
-
-    val bottomWidthGroup = "ButtonAndComment"
-    val bottomPanel = panel {
-      row {
-        cell(produceButton).widthGroup(bottomWidthGroup)
-        progress.initCell(this, bottomWidthGroup)
-
-      }
-    }.apply {
-      border = BorderFactory.createEmptyBorder(10, 10, 10, 10)
-    }
-
-    JPanel(BorderLayout()).apply {
-      add(scroll, BorderLayout.CENTER)
-      add(bottomPanel, BorderLayout.SOUTH)
-    }
+    KafkaProducerConsumerPanel.createPanel(panel, produceButton, progress)
   }
+
+  private val settingsPanel: JPanel by settingsPanelDelegate
+
+  private val presetsSplitter = MultiSplitter()
 
   init {
     executeNotOnEdt {
       ApplicationManager.getApplication().service<KafkaConsumerProducerFeedbackService>().state.producerDialogIsOpened = true
     }
+
+    presetsSplitter.proportionsKey = "kafka.producer.multisplitter.proportions"
+    presetsSplitter.add(ExpansionPanel(KafkaMessagesBundle.message("toggle.presets"), { presets.component }, PRESETS_SHOW_ID, false))
+    presetsSplitter.add(ExpansionPanel(KafkaMessagesBundle.message("toggle.settings"), { settingsPanel },
+                                       SETTINGS_SHOW_ID, true,
+                                       listOf(SavePresetAction(
+                                         KafkaConfigStorage.instance.producerConfig) { getConfig() })))
+    presetsSplitter.add(output.dataPanel)
+    presetsSplitter.add(output.detailsPanel)
+
+    presetsSplitter.centralComponent = output.dataPanel
+
+    restoreFromFile()
+
+    topic?.let { topicComboBox.item = TopicInEditor(it) }
   }
 
   private fun stopProduce() {
@@ -249,62 +245,9 @@ class KafkaProducerEditor(val project: Project,
     output.stop()
   }
 
-  private val settingsPanel: JPanel by settingsPanelDelegate
-
-  private val settingsSplitter = OnePixelSplitter().apply {
-    lackOfSpaceStrategy = Splitter.LackOfSpaceStrategy.HONOR_THE_FIRST_MIN_SIZE
-    dividerPositionStrategy = Splitter.DividerPositionStrategy.KEEP_FIRST_SIZE
-    proportion = 0.0001f
-  }
-
-  private val presetsSplitter = OnePixelSplitter().apply {
-    lackOfSpaceStrategy = Splitter.LackOfSpaceStrategy.HONOR_THE_FIRST_MIN_SIZE
-    dividerPositionStrategy = Splitter.DividerPositionStrategy.KEEP_FIRST_SIZE
-    proportion = 0.0001f
-
-    secondComponent = settingsSplitter
-  }
-
-  internal val mainComponent = createCenterPanel()
-
-  init {
-    val settingsExpanded = PropertiesComponent.getInstance().getBoolean(SETTINGS_SHOW_ID, true)
-    settingsSplitter.firstComponent = ExpansionPanel(KafkaMessagesBundle.message("toggle.settings"), { settingsPanel },
-                                                     settingsExpanded,
-                                                     listOf(SavePresetAction(
-                                                       KafkaConfigStorage.instance.producerConfig) { getConfig() })).apply {
-      addChangeListener {
-        settingsSplitter.proportion = 0.0001f
-        settingsSplitter.setResizeEnabled(this.expanded)
-      }
-    }
-    settingsSplitter.setResizeEnabled(settingsExpanded)
-
-    settingsSplitter.secondComponent = output.resultsSplitter
-
-    val presetsExpanded = PropertiesComponent.getInstance().getBoolean(PRESETS_SHOW_ID, false)
-    presetsSplitter.firstComponent = ExpansionPanel(KafkaMessagesBundle.message("toggle.presets"), {
-      presets.component.apply {
-        minimumSize = Dimension(max(minimumSize.width, 200), minimumSize.height)
-      }
-    }, presetsExpanded).apply {
-      addChangeListener {
-        presetsSplitter.proportion = 0.0001f
-        presetsSplitter.setResizeEnabled(this.expanded)
-      }
-    }
-    presetsSplitter.setResizeEnabled(presetsExpanded)
-
-    restoreFromFile()
-
-    topic?.let { topicComboBox.item = TopicInEditor(it) }
-  }
-
   override fun dispose() {
     storeToFile()
   }
-
-  private fun createCenterPanel(): JComponent = presetsSplitter
 
   private fun storeToFile() {
     if (isRestoring) {
@@ -352,7 +295,6 @@ class KafkaProducerEditor(val project: Project,
     keyFieldComponent.applyConfig(config)
     valueFieldComponent.applyConfig(config)
 
-
     acksComboBox.selectedItem = config.getAsks()
     propertiesComponent.properties = config.properties.toMutableList()
     compressionComboBox.item = config.getCompression()
@@ -363,8 +305,8 @@ class KafkaProducerEditor(val project: Project,
   }
 
   override fun getName(): String = KafkaMessagesBundle.message("produce.to.topic")
-  override fun getComponent(): JComponent = mainComponent
-  override fun getPreferredFocusedComponent(): JComponent = mainComponent
+  override fun getComponent(): JComponent = presetsSplitter
+  override fun getPreferredFocusedComponent(): JComponent = presetsSplitter
   override fun getFile(): VirtualFile = file
   override fun setState(state: FileEditorState) = Unit
   override fun isModified(): Boolean = false

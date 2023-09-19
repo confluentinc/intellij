@@ -6,6 +6,7 @@ import com.intellij.ui.components.JBLabel
 import com.intellij.ui.dsl.builder.Cell
 import com.intellij.ui.dsl.builder.Row
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import java.awt.Dimension
 import java.text.SimpleDateFormat
 import java.util.*
 import javax.swing.JComponent
@@ -14,9 +15,10 @@ class KafkaProducerConsumerProgressComponent {
   private val dateFormat = SimpleDateFormat("HH:mm:ss")
 
   var timestamp = 0L
-  private val timestampLabel = JBLabel()
+  private val timestampLabel = JBLabel().apply {
+    preferredSize = Dimension(0, preferredSize.height)
+  }
   private lateinit var timestampCell: Cell<JComponent>
-
 
   fun initCell(row: Row, bottomWidthGroup: String) {
     timestampCell = row.cell(timestampLabel).widthGroup(bottomWidthGroup).comment(
@@ -34,7 +36,6 @@ class KafkaProducerConsumerProgressComponent {
     timestampLabel.icon = AllIcons.General.Error
     timestampLabel.text = KafkaMessagesBundle.message("kafka.validation.error.label")
     timestampCell.comment?.isVisible = false
-
   }
 
   fun onError() {

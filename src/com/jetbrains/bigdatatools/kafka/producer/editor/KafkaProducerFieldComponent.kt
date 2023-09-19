@@ -63,8 +63,7 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
     }
     curIsJsonView = newIsJsonView
 
-    revalidateFields()
-    producedEditor.mainComponent.revalidate()
+    producedEditor.getComponent().revalidate()
     customSchemaController.setLanguage(it.item)
   }
 
