@@ -7,11 +7,14 @@ import com.intellij.openapi.fileTypes.PlainTextLanguage
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.vfs.writeBytes
-import com.intellij.ui.JBColor
+import com.intellij.ui.IdeBorderFactory
+import com.intellij.ui.SideBorder
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.dsl.builder.*
 import com.jetbrains.bigdatatools.common.rfs.driver.metainfo.components.SelectableLabel
+import com.jetbrains.bigdatatools.common.ui.ComponentColoredBorder
 import com.jetbrains.bigdatatools.common.ui.CustomListCellRenderer
+import com.jetbrains.bigdatatools.common.ui.DarculaTextAreaBorder
 import com.jetbrains.bigdatatools.common.ui.chooser.FileChooserUtil
 import com.jetbrains.bigdatatools.common.util.SizeUtils
 import com.jetbrains.bigdatatools.common.util.TimeUtils
@@ -21,9 +24,10 @@ import com.jetbrains.bigdatatools.kafka.common.editor.PropertiesTable
 import com.jetbrains.bigdatatools.kafka.common.models.KafkaFieldType
 import com.jetbrains.bigdatatools.kafka.registry.ui.KafkaRegistrySchemaEditor
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import java.awt.BorderLayout
+import java.awt.CardLayout
 import java.util.*
-import javax.swing.BorderFactory
-import javax.swing.ScrollPaneConstants
+import javax.swing.*
 
 class KafkaRecordDetails(project: Project, parentDisposable: Disposable) {
   private val topicField = SelectableLabel("")
@@ -31,18 +35,18 @@ class KafkaRecordDetails(project: Project, parentDisposable: Disposable) {
   private lateinit var keyLoadFileLinkRow: Row
   private lateinit var valueLoadFileLinkRow: Row
 
-  private val keyViewerType = ComboBox(FieldViewerType.values()).apply {
+  private val keyViewerType = ComboBox(FieldViewerType.entries.toTypedArray()).apply {
     renderer = CustomListCellRenderer<FieldViewerType> { it.title }
   }
   private val keyFieldJson = KafkaRegistrySchemaEditor(project, parentDisposable, isEditable = false).apply {
-    component.border = BorderFactory.createLineBorder(JBColor.border())
+    component.border = BorderFactory.createCompoundBorder(DarculaTextAreaBorder(), ComponentColoredBorder(3, 5, 3, 5))
   }
 
-  private val valueViewerType = ComboBox(FieldViewerType.values()).apply {
+  private val valueViewerType = ComboBox(FieldViewerType.entries.toTypedArray()).apply {
     renderer = CustomListCellRenderer<FieldViewerType> { it.title }
   }
   private val valueFieldJson = KafkaRegistrySchemaEditor(project, parentDisposable, isEditable = false).apply {
-    component.border = BorderFactory.createLineBorder(JBColor.border())
+    component.border = BorderFactory.createCompoundBorder(DarculaTextAreaBorder(), ComponentColoredBorder(3, 5, 3, 5))
   }
 
   private val headers = PropertiesTable(emptyList(), isEditable = false)
@@ -60,7 +64,14 @@ class KafkaRecordDetails(project: Project, parentDisposable: Disposable) {
   private var keyType = KafkaFieldType.JSON
   private var valueType = KafkaFieldType.JSON
 
-  val component = JBScrollPane(panel {
+  private val emptyStatePanel = JPanel(BorderLayout()).apply {
+    border = BorderFactory.createEmptyBorder(0, 5, 0, 5)
+    add(JLabel("<html>${KafkaMessagesBundle.message("consumer.details.empty")}</html>", SwingConstants.CENTER).apply {
+      isEnabled = false
+    })
+  }
+
+  private val detailsPanel = JBScrollPane(panel {
     row(KafkaMessagesBundle.message("consumer.record.key")) {
       cell(keyViewerType).align(AlignX.RIGHT)
     }
@@ -113,18 +124,25 @@ class KafkaRecordDetails(project: Project, parentDisposable: Disposable) {
     horizontalScrollBarPolicy = ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER
   }
 
+  val component = JPanel(CardLayout()).apply {
+    add(emptyStatePanel, "emptyState")
+    add(detailsPanel, "details")
+  }
+
   init {
     keyViewerType.addActionListener {
       updateViewerVisible(keyViewerType, keyType, keyFieldJson)
       updateLinkRow(keyViewerType, keyType, keyFieldJson, keyLoadFileLinkRow)
-      component.revalidate()
+      emptyStatePanel.revalidate()
     }
 
     valueViewerType.addActionListener {
       updateViewerVisible(valueViewerType, valueType, valueFieldJson)
       updateLinkRow(valueViewerType, valueType, valueFieldJson, valueLoadFileLinkRow)
-      component.revalidate()
+      emptyStatePanel.revalidate()
     }
+
+    headers.getComponent().border = IdeBorderFactory.createBorder(SideBorder.RIGHT or SideBorder.BOTTOM or SideBorder.LEFT)
 
     update(null)
 
@@ -144,23 +162,9 @@ class KafkaRecordDetails(project: Project, parentDisposable: Disposable) {
     keyType = row?.keyType ?: KafkaFieldType.STRING
     valueType = row?.valueType ?: KafkaFieldType.JSON
 
-    if (row == null) {
-      setKeyText("", KafkaFieldType.STRING)
-      setValueText("", KafkaFieldType.STRING)
+    (component.layout as? CardLayout)?.show(component, if (row == null) "emptyState" else "details")
 
-      topicField.text = ""
-      partition.text = ""
-      offset.text = ""
-      timestamp.text = ""
-      keySize.text = ""
-      valueSize.text = ""
-
-      keyTypeLabel.text = ""
-      valueTypeLabel.text = ""
-
-      headers.clear()
-    }
-    else {
+    if (row != null) {
       setKeyText(row.keyText ?: "", row.keyType)
       setValueText(row.valueText ?: "", row.valueType)
 
@@ -174,10 +178,10 @@ class KafkaRecordDetails(project: Project, parentDisposable: Disposable) {
       valueTypeLabel.text = valueType.title
 
       headers.properties = row.headers.toMutableList()
-    }
 
-    // Key and value Fields could contain multiline JSON
-    component.revalidate()
+      // Key and value Fields could contain multiline JSON
+      detailsPanel.revalidate()
+    }
   }
 
   private fun updateLinkRow(viewerType: ComboBox<FieldViewerType>,
@@ -207,7 +211,7 @@ class KafkaRecordDetails(project: Project, parentDisposable: Disposable) {
     }
   }
 
-  // Real field type depends of original consumer field type and additional Details field type which can override consumer values.
+  // Real field type depends on original consumer field type and additional Details field type which can override consumer values.
   private fun getFieldType(viewerType: ComboBox<FieldViewerType>,
                            fieldType: KafkaFieldType,
                            jsonField: KafkaRegistrySchemaEditor): FieldViewerType {
