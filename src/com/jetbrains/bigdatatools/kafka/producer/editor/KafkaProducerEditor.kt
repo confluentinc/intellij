@@ -130,7 +130,6 @@ class KafkaProducerEditor(val project: Project,
         row(KafkaMessagesBundle.message("producer.compression")) {
           cell(compressionComboBox).align(AlignX.FILL).resizableColumn()
         }
-
         row {
           cell(idempotenceCheckBox).align(AlignX.FILL).resizableColumn().comment(
             KafkaMessagesBundle.message("producer.idempotence.comment"))
