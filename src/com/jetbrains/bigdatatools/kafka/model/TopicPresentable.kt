@@ -1,14 +1,10 @@
 package com.jetbrains.bigdatatools.kafka.model
 
 import com.jetbrains.bigdatatools.common.monitoring.data.model.RemoteInfo
-import com.jetbrains.bigdatatools.common.table.renderers.DataRenderingUtil
 import com.jetbrains.bigdatatools.common.table.renderers.LoadingRendering
 import com.jetbrains.bigdatatools.common.table.renderers.NoRendering
 import com.jetbrains.bigdatatools.kafka.common.models.TopicInEditor
 import com.jetbrains.bigdatatools.kafka.util.KafkaLocalizedField
-import kotlin.reflect.KProperty1
-import kotlin.reflect.full.declaredMemberProperties
-import kotlin.reflect.jvm.javaField
 
 data class TopicPresentable(val name: String,
                             @field:NoRendering
@@ -33,11 +29,7 @@ data class TopicPresentable(val name: String,
   fun toEditorTopic() = TopicInEditor(name)
 
   companion object {
-    val renderableColumns: List<KProperty1<TopicPresentable, *>> by lazy {
-      TopicPresentable::class.declaredMemberProperties.filter { DataRenderingUtil.shouldRenderFrom(it.javaField?.annotations) }
-    }
-
-    val localizedField: List<KafkaLocalizedField<TopicPresentable>> by lazy {
+    val renderableColumns: List<KafkaLocalizedField<TopicPresentable>> by lazy {
       listOf()
     }
   }
