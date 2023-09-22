@@ -5,6 +5,7 @@ import com.jetbrains.bigdatatools.common.table.renderers.DataRenderingUtil
 import com.jetbrains.bigdatatools.common.table.renderers.DateRendering
 import com.jetbrains.bigdatatools.common.table.renderers.LoadingRendering
 import com.jetbrains.bigdatatools.common.table.renderers.NoRendering
+import com.jetbrains.bigdatatools.kafka.util.KafkaLocalizedField
 import software.amazon.awssdk.services.glue.model.SchemaId
 import java.util.*
 import kotlin.reflect.KProperty1
@@ -33,6 +34,10 @@ data class GlueSchemaInfo(val schemaName: String,
   companion object {
     val renderableColumns: List<KProperty1<GlueSchemaInfo, *>> by lazy {
       GlueSchemaInfo::class.declaredMemberProperties.filter { DataRenderingUtil.shouldRenderFrom(it.javaField?.annotations) }
+    }
+
+    val localizedField: List<KafkaLocalizedField<GlueSchemaInfo>> by lazy {
+      listOf()
     }
   }
 }
