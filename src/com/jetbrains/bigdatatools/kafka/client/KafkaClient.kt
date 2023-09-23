@@ -61,7 +61,12 @@ class KafkaClient(project: Project?,
   override fun connectInner(calledByUser: Boolean) {
     disposeKafkaAdminClient()
 
-    createIfRequired(project, connectionData.getTunnelData(), kafkaProps.getProperty(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG),
+    val tunnelData = connectionData.getTunnelData()
+    val urls = kafkaProps.getProperty(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG)
+    if (tunnelData.isEnabled && urls.contains(",")) {
+      throw BdtConnectionException(KafkaMessagesBundle.message("connection.error.tunnel.for.sinlgle.broker"))
+    }
+    createIfRequired(project, tunnelData, urls,
                      connectionData.innerId, testConnection)
       ?.let { tunnelHandler ->
         Disposer.register(this, tunnelHandler)
