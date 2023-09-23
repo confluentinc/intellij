@@ -345,6 +345,7 @@ class KafkaDataManager(project: Project?,
       return
 
     clearPartitionsInternal(topic.partitionList)
+    KafkaUsagesCollector.topicClearEvent.log(project)
   }
 
   private fun getCachedTopicInfo(topicName: String) =
@@ -371,6 +372,7 @@ class KafkaDataManager(project: Project?,
       return
 
     clearPartitionsInternal(partitions)
+    KafkaUsagesCollector.partitionsClearEvent.log(project)
   }
 
   private fun clearPartitionsInternal(partitions: List<BdtTopicPartition>) {
