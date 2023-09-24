@@ -17,7 +17,14 @@ data class SchemaRegistryFieldsInfo(
 
   companion object {
     val renderableColumns: List<KafkaLocalizedField<SchemaRegistryFieldsInfo>> by lazy {
-      listOf()
+      listOf(
+        KafkaLocalizedField(SchemaRegistryFieldsInfo::name, "data.SchemaRegistryFieldsInfo.name"),
+        KafkaLocalizedField(SchemaRegistryFieldsInfo::type, "data.SchemaRegistryFieldsInfo.type"),
+        KafkaLocalizedField(SchemaRegistryFieldsInfo::default, "data.SchemaRegistryFieldsInfo.default"),
+        KafkaLocalizedField(SchemaRegistryFieldsInfo::description, "data.SchemaRegistryFieldsInfo.description"),
+        KafkaLocalizedField(SchemaRegistryFieldsInfo::required, "data.SchemaRegistryFieldsInfo.required"),
+        KafkaLocalizedField(SchemaRegistryFieldsInfo::id, "data.SchemaRegistryFieldsInfo.id")
+      )
     }
   }
 }
