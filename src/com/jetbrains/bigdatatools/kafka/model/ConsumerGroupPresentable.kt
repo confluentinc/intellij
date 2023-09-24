@@ -15,7 +15,13 @@ data class ConsumerGroupPresentable(val state: ConsumerGroupState,
                                     val partitions: Int? = null) : RemoteInfo {
   companion object {
     val renderableColumns: List<KafkaLocalizedField<ConsumerGroupPresentable>> by lazy {
-      listOf()
+      listOf(
+        KafkaLocalizedField(ConsumerGroupPresentable::state, "data.ConsumerGroupPresentable.state"),
+        KafkaLocalizedField(ConsumerGroupPresentable::consumerGroup, "data.ConsumerGroupPresentable.consumerGroup"),
+        KafkaLocalizedField(ConsumerGroupPresentable::consumers, "data.ConsumerGroupPresentable.consumers"),
+        KafkaLocalizedField(ConsumerGroupPresentable::topics, "data.ConsumerGroupPresentable.topics"),
+        KafkaLocalizedField(ConsumerGroupPresentable::partitions, "data.ConsumerGroupPresentable.partitions")
+      )
     }
   }
 }

@@ -9,7 +9,11 @@ data class TopicConfig(
   val defaultValue: String = "") : RemoteInfo {
   companion object {
     val renderableColumns: List<KafkaLocalizedField<TopicConfig>> by lazy {
-      listOf()
+      listOf(
+        KafkaLocalizedField(TopicConfig::name, "data.TopicConfig.name"),
+        KafkaLocalizedField(TopicConfig::value, "data.TopicConfig.value"),
+        KafkaLocalizedField(TopicConfig::defaultValue, "data.TopicConfig.defaultValue")
+      )
     }
   }
 }

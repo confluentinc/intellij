@@ -30,7 +30,17 @@ data class TopicPresentable(val name: String,
 
   companion object {
     val renderableColumns: List<KafkaLocalizedField<TopicPresentable>> by lazy {
-      listOf()
+      listOf(
+        KafkaLocalizedField(TopicPresentable::name, "data.TopicPresentable.name"),
+        KafkaLocalizedField(TopicPresentable::replicas, "data.TopicPresentable.replicas"),
+        KafkaLocalizedField(TopicPresentable::partitions, "data.TopicPresentable.partitions"),
+        KafkaLocalizedField(TopicPresentable::inSyncReplicas, "data.TopicPresentable.inSyncReplicas"),
+        KafkaLocalizedField(TopicPresentable::replicationFactor, "data.TopicPresentable.replicationFactor"),
+        KafkaLocalizedField(TopicPresentable::underReplicatedPartitions, "data.TopicPresentable.underReplicatedPartitions"),
+        KafkaLocalizedField(TopicPresentable::noLeaders, "data.TopicPresentable.noLeaders"),
+        KafkaLocalizedField(TopicPresentable::messageCount, "data.TopicPresentable.messageCount"),
+        KafkaLocalizedField(TopicPresentable::isFavorite, i18Key = null)
+      )
     }
   }
 }

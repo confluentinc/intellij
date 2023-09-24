@@ -4,7 +4,6 @@ import com.jetbrains.bigdatatools.common.monitoring.data.model.RemoteInfo
 import com.jetbrains.bigdatatools.common.table.renderers.NoRendering
 import com.jetbrains.bigdatatools.kafka.util.KafkaLocalizedField
 
-@Suppress("unused")
 data class BdtTopicPartition(
   val topic: String,
   val partitionId: Int,
@@ -19,7 +18,16 @@ data class BdtTopicPartition(
 
   companion object {
     val renderableColumns: List<KafkaLocalizedField<BdtTopicPartition>> by lazy {
-      listOf()
+      listOf(
+        KafkaLocalizedField(BdtTopicPartition::topic, "data.BdtTopicPartition.topic"),
+        KafkaLocalizedField(BdtTopicPartition::partitionId, "data.BdtTopicPartition.partitionId"),
+        KafkaLocalizedField(BdtTopicPartition::leader, "data.BdtTopicPartition.leader"),
+        KafkaLocalizedField(BdtTopicPartition::inSyncReplicasCount, "data.BdtTopicPartition.inSyncReplicasCount"),
+        KafkaLocalizedField(BdtTopicPartition::replicas, "data.BdtTopicPartition.replicas"),
+        KafkaLocalizedField(BdtTopicPartition::endOffset, "data.BdtTopicPartition.endOffset"),
+        KafkaLocalizedField(BdtTopicPartition::startOffset, "data.BdtTopicPartition.startOffset"),
+        KafkaLocalizedField(BdtTopicPartition::offsets, "data.BdtTopicPartition.offsets")
+      )
     }
   }
 }
