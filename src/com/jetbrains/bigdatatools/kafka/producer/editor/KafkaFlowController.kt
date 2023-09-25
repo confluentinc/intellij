@@ -13,19 +13,18 @@ class KafkaFlowController {
   private lateinit var requestInterval: Cell<JBIntSpinner>
   private lateinit var totalRequest: Cell<JBIntSpinner>
   private lateinit var totalElapsedTime: Cell<JBIntSpinner>
-  private lateinit var generateRandomKeys: Cell<JBCheckBox>
-  private lateinit var generateRandomValues: Cell<JBCheckBox>
+  lateinit var generateRandomKeys: Cell<JBCheckBox>
+  lateinit var generateRandomValues: Cell<JBCheckBox>
   private lateinit var mode: SegmentedButton<Mode>
   private lateinit var autoParams: Panel
 
-  fun getComponent(panel: Panel) = panel.apply {
+  fun createComponent(panel: Panel) = panel.apply {
     collapsibleGroup(KafkaMessagesBundle.message("producer.group.flow")) {
       row(KafkaMessagesBundle.message("producer.flow.records.count")) {
         flowRecordsCountPerRequest = spinner(1..1000, 1)
       }
       row {
         generateRandomKeys = checkBox(KafkaMessagesBundle.message("producer.flow.generate.random.key"))
-
       }
       row {
         generateRandomValues = checkBox(KafkaMessagesBundle.message("producer.flow.generate.random.value"))

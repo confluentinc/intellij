@@ -121,7 +121,15 @@ class KafkaProducerEditor(val project: Project,
 
       }.topGap(TopGap.NONE).bottomGap(BottomGap.NONE)
 
-      flowController.getComponent(this)
+      flowController.createComponent(this)
+
+      flowController.generateRandomKeys.onChanged {
+        keyFieldComponent.randomGenerationEnabled.set(it.model.isSelected)
+      }
+
+      flowController.generateRandomValues.onChanged {
+        valueFieldComponent.randomGenerationEnabled.set(it.model.isSelected)
+      }
 
       collapsibleGroup(KafkaMessagesBundle.message("producer.title.options")) {
         row(KafkaMessagesBundle.message("producer.forcePartition")) {
