@@ -2,6 +2,7 @@ package com.jetbrains.bigdatatools.kafka.toolwindow
 
 import com.intellij.notification.NotificationGroup
 import com.intellij.notification.NotificationGroupManager
+import com.intellij.openapi.components.Service
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ToolWindowManager
@@ -17,6 +18,7 @@ import com.jetbrains.bigdatatools.kafka.settings.KafkaConnectionGroup
 import com.jetbrains.bigdatatools.kafka.toolwindow.config.KafkaToolWindowSettings
 import com.jetbrains.bigdatatools.kafka.toolwindow.controllers.KafkaMainController
 
+@Service(Service.Level.PROJECT)
 class KafkaMonitoringToolWindowController(project: Project) : MonitoringToolWindowController(project) {
   override val settings
     get() = KafkaToolWindowSettings.getInstance()

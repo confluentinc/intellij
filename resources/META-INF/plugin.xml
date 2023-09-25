@@ -53,8 +53,6 @@
 
     <statistics.counterUsagesCollector implementationClass="com.jetbrains.bigdatatools.kafka.statistics.KafkaUsagesCollector"/>
 
-    <projectService serviceImplementation="com.jetbrains.bigdatatools.kafka.toolwindow.KafkaMonitoringToolWindowController"/>
-
     <toolWindow id="KafkaToolWindow" anchor="bottom" canCloseContents="true"
                 icon="/icons/kafkaToolWindow.svg"
                 factoryClass="com.jetbrains.bigdatatools.kafka.toolwindow.KafkaToolWindowFactory"/>
