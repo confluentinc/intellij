@@ -10,6 +10,7 @@ import com.intellij.openapi.application.invokeAndWaitIfNeeded
 import com.intellij.openapi.editor.event.DocumentEvent
 import com.intellij.openapi.editor.event.DocumentListener
 import com.intellij.openapi.fileTypes.PlainTextLanguage
+import com.intellij.openapi.observable.properties.AtomicBooleanProperty
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.vfs.readBytes
@@ -45,6 +46,12 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
 
   private var schemaValidationError: Throwable? = null
   private var curIsJsonView: Boolean = !isKey
+
+  var randomGenerationEnabled = AtomicBooleanProperty(false).apply {
+    afterChange {
+      updateVisibility()
+    }
+  }
 
   private val customSchemaController = CustomSchemaController(project, isKey, kafkaManager).also { Disposer.register(this, it) }
 
@@ -101,7 +108,7 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
     customSchemaController.setLanguage(fieldTypeComboBox.item)
   }
 
-  override fun dispose() {}
+  override fun dispose() = Unit
 
   private fun revalidateFields() {
     textField.revalidateComponent()
@@ -159,7 +166,6 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
                                        parsedSchema = schema)
   }
 
-
   private lateinit var textRow: Row
   private lateinit var jsonRow: Row
   private lateinit var loadFileLinkRow: Row
@@ -211,6 +217,9 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
         textRow = row {
           cell(textField).align(AlignX.FILL).resizableColumn()
         }
+        row {
+          comment(KafkaMessagesBundle.message("producer.config.random.generation.enabled"))
+        }.visibleIf(randomGenerationEnabled)
         loadFileLinkRow = row {
           link(KafkaMessagesBundle.message("producer.config.link.upload.file")) {
             val vf = FileChooserUtil.selectSingleFile(project) ?: return@link
@@ -251,9 +260,9 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
   private fun updateVisibility(): Unit = invokeLater {
     val fieldType = fieldTypeComboBox.item
 
-    jsonRow.visible(fieldType in jsonFieldTypes)
-    textRow.visible(fieldType in textFieldTypes)
-    loadFileLinkRow.visible(fieldType == KafkaFieldType.BASE64)
+    jsonRow.visible(!randomGenerationEnabled.get() && fieldType in jsonFieldTypes)
+    textRow.visible(!randomGenerationEnabled.get() && fieldType in textFieldTypes)
+    loadFileLinkRow.visible(!randomGenerationEnabled.get() && fieldType == KafkaFieldType.BASE64)
 
     invokeLater {
       generateDataAction.component.update()
