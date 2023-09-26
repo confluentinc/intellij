@@ -12,6 +12,8 @@ import com.intellij.openapi.editor.event.DocumentListener
 import com.intellij.openapi.fileTypes.PlainTextLanguage
 import com.intellij.openapi.observable.properties.AtomicBooleanProperty
 import com.intellij.openapi.project.DumbAwareAction
+import com.intellij.openapi.ui.getUserData
+import com.intellij.openapi.ui.putUserData
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.vfs.readBytes
 import com.intellij.ui.EditorTextField
@@ -19,9 +21,7 @@ import com.intellij.ui.dsl.builder.*
 import com.intellij.ui.layout.selectedValueMatches
 import com.intellij.util.concurrency.annotations.RequiresBackgroundThread
 import com.jetbrains.bigdatatools.common.rfs.util.RfsNotificationUtils
-import com.jetbrains.bigdatatools.common.settings.getValidationInfo
-import com.jetbrains.bigdatatools.common.settings.revalidateComponent
-import com.jetbrains.bigdatatools.common.settings.withValidator
+import com.jetbrains.bigdatatools.common.settings.*
 import com.jetbrains.bigdatatools.common.ui.chooser.FileChooserUtil
 import com.jetbrains.bigdatatools.common.ui.revalidateOnLinesChanged
 import com.jetbrains.bigdatatools.common.util.executeNotOnEdt
@@ -38,6 +38,7 @@ import com.jetbrains.bigdatatools.kafka.registry.ui.KafkaSchemaInfoDialog
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import com.jetbrains.bigdatatools.kafka.util.generator.GenerateRandomData
 import java.util.*
+import javax.swing.JComponent
 
 class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEditor, val isKey: Boolean) : Disposable {
   private var isInitialized: Boolean = false
@@ -59,6 +60,9 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
     if (!isInitialized)
       return@createFieldTypeComboBox
 
+    jsonField.putUserData(SKIP_VALIDATION, true)
+    textField.putUserData(SKIP_VALIDATION, true)
+
     updateVisibility()
 
     val newIsJsonView = it.item in jsonFieldTypes
@@ -69,6 +73,9 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
         updateFieldsText(it.item, textField.text)
     }
     curIsJsonView = newIsJsonView
+
+    textField.getValidator()?.revalidate()
+    jsonField.getValidator()?.revalidate()
 
     producedEditor.getComponent().revalidate()
     customSchemaController.setLanguage(it.item)
@@ -81,26 +88,26 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
   }
 
   private val textField: EditorTextField by lazy {
-    KafkaEditorUtils.createTextArea(project, language = PlainTextLanguage.INSTANCE).withValidator(this, ::validateValue).also {
-      it.setDisposedWith(this@KafkaProducerFieldComponent)
-      it.document.addDocumentListener(object : DocumentListener {
+    KafkaEditorUtils.createTextArea(project, language = PlainTextLanguage.INSTANCE).withValidator(this, ::validateValue).apply {
+      setDisposedWith(this@KafkaProducerFieldComponent)
+      document.addDocumentListener(object : DocumentListener {
         override fun documentChanged(event: DocumentEvent) {
           schemaValidationError = null
         }
-      }, this)
-      it.revalidateOnLinesChanged()
+      }, this@KafkaProducerFieldComponent)
+      revalidateOnLinesChanged()
     }
   }
 
   private val jsonField: EditorTextField by lazy {
-    KafkaEditorUtils.createTextArea(project).withValidator(this, ::validateValue).also {
-      it.setDisposedWith(this@KafkaProducerFieldComponent)
-      it.document.addDocumentListener(object : DocumentListener {
+    KafkaEditorUtils.createTextArea(project).withValidator(this, ::validateValue).apply {
+      setDisposedWith(this@KafkaProducerFieldComponent)
+      document.addDocumentListener(object : DocumentListener {
         override fun documentChanged(event: DocumentEvent) {
           schemaValidationError = null
         }
-      }, this)
-      it.revalidateOnLinesChanged()
+      }, this@KafkaProducerFieldComponent)
+      revalidateOnLinesChanged()
     }
   }
 
@@ -245,10 +252,16 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
   }
 
   @Suppress("UNUSED_PARAMETER")
-  private fun validateValue(text: String) = if (schemaValidationError != null)
-    schemaValidationError?.message ?: schemaValidationError?.toPresentableText()
-  else
-    validate(fieldTypeComboBox.item ?: KafkaFieldType.STRING, getValueText())
+  private fun validateValue(component: JComponent, text: String) : String? {
+    if(component.getUserData(SKIP_VALIDATION) == true) {
+      component.putUserData(SKIP_VALIDATION, false)
+      return null
+    }
+    return if (schemaValidationError != null)
+      schemaValidationError?.message ?: schemaValidationError?.toPresentableText()
+    else
+      validate(fieldTypeComboBox.item ?: KafkaFieldType.STRING, getValueText())
+  }
 
   fun getValueText(): String = when (fieldTypeComboBox.item!!) {
     KafkaFieldType.JSON -> jsonField.text
@@ -280,9 +293,9 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
       iae.cause?.message ?: iae.message
     }
     KafkaFieldType.STRING -> null
-    KafkaFieldType.LONG -> if (value.toLongOrNull() != null) null else "'$value' is not a valid long value"
-    KafkaFieldType.DOUBLE -> if (value.toDoubleOrNull() != null) null else "'$value' is not a valid double value"
-    KafkaFieldType.FLOAT -> if (value.toFloatOrNull() != null) null else "'$value' is not a valid float value"
+    KafkaFieldType.LONG -> if (value.toLongOrNull() != null) null else KafkaMessagesBundle.message("producer.field.long.invalid", value)
+    KafkaFieldType.DOUBLE -> if (value.toDoubleOrNull() != null) null else KafkaMessagesBundle.message("producer.field.double.invalid", value)
+    KafkaFieldType.FLOAT -> if (value.toFloatOrNull() != null) null else KafkaMessagesBundle.message("producer.field.float.invalid", value)
     KafkaFieldType.BASE64 -> {
       val decoder = Base64.getDecoder()
       try {
