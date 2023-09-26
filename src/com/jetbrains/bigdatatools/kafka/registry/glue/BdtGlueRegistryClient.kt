@@ -89,7 +89,7 @@ class BdtGlueRegistryClient(val project: Project?,
         return totalResult to false
 
       val response = client.listSchemas(request)
-      val clusters = response.schemas()
+      val schemas = response.schemas()
         .filter { filterRegex == null || it.schemaName().contains(filterRegex) }
         .map {
           val schemaName = it.schemaName()
@@ -101,17 +101,17 @@ class BdtGlueRegistryClient(val project: Project?,
                           schemaStatus = it.schemaStatusAsString() ?: "",
                           updatedTime = TimeUtils.parseIsoTime(it.updatedTime()))
         }
-      val sortedCluster = if (connectionId != null) clusters.sortedSchemas(connectionId) else clusters
+      val sortedSchemas = if (connectionId != null) schemas.sortedSchemas(connectionId) else schemas
       if (left == null) {
-        totalResult.addAll(sortedCluster)
+        totalResult.addAll(sortedSchemas)
       }
-      if (left != null && sortedCluster.size >= left) {
-        totalResult.addAll(sortedCluster.subList(0, left))
+      if (left != null && sortedSchemas.size >= left) {
+        totalResult.addAll(sortedSchemas.subList(0, left))
         return totalResult to true
       }
-      if (left != null && sortedCluster.size < left) {
-        totalResult.addAll(sortedCluster)
-        left -= sortedCluster.size
+      if (left != null && sortedSchemas.size < left) {
+        totalResult.addAll(sortedSchemas)
+        left -= sortedSchemas.size
       }
       val nextMarker = response.nextToken()
       if (nextMarker == null)

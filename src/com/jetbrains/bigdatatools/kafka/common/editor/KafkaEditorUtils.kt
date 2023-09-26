@@ -189,7 +189,7 @@ object KafkaEditorUtils {
     topicComboBox.renderer = CustomListCellRenderer<TopicInEditor> { it.name }
 
     val listener = KafkaDataModelListener(topicComboBox) {
-      kafkaManager.getTopics().map { it.toEditorTopic() }.sortedBy { it.name } to null
+      kafkaManager.loadTopicNames().map { it.toEditorTopic() }.sortedBy { it.name } to null
     }
     kafkaManager.topicModel.addListener(listener)
     Disposer.register(rootDisposable) {
@@ -205,6 +205,11 @@ object KafkaEditorUtils {
     }
 
     topicComboBox.getValidator()?.enableValidation()
+
+    executeNotOnEdt {
+      listener.onChanged()
+    }
+
     return topicComboBox
   }
 
@@ -213,8 +218,7 @@ object KafkaEditorUtils {
                            topicComboBox: ComboBox<TopicInEditor>,
                            isKey: Boolean): ComboBox<RegistrySchemaInEditor> {
     var prevSchemaName: String? = null
-    val (initSchemas, preferedIndex) = calculateSchemasForCombobox(kafkaManager, topicComboBox, isKey, prevSchemaName)
-    val schemaCombobox = ComboBox(initSchemas.toTypedArray())
+    val schemaCombobox = ComboBox(arrayOf<RegistrySchemaInEditor>())
 
     topicComboBox.name
     schemaCombobox.isSwingPopup = false
@@ -232,11 +236,6 @@ object KafkaEditorUtils {
       }
     }
 
-    schemaCombobox.selectedIndex = when {
-      preferedIndex != null -> preferedIndex
-      initSchemas.isNotEmpty() -> 0
-      else -> -1
-    }
 
     val listener = KafkaDataModelListener(schemaCombobox) {
       val prevSchema = schemaCombobox.item?.schemaName?.takeIf { it.isNotEmpty() }
@@ -246,6 +245,9 @@ object KafkaEditorUtils {
       calculateSchemasForCombobox(kafkaManager, topicComboBox, isKey, prevSchemaName)
     }
 
+    executeNotOnEdt {
+      listener.onChanged()
+    }
     kafkaManager.schemaRegistryModel?.addListener(listener)
     Disposer.register(rootDisposable) {
       kafkaManager.schemaRegistryModel?.removeListener(listener)
@@ -271,7 +273,7 @@ object KafkaEditorUtils {
   private fun calculateSchemaTypeForTopic(kafkaManager: KafkaDataManager,
                                           topicComboBox: ComboBox<TopicInEditor>,
                                           isKey: Boolean): KafkaFieldType? {
-    val schema = calculateTopicSchemaName(kafkaManager, topicComboBox.item?.name ?: "", isKey) ?: return null
+    val schema = calculateTopicSchemaName(kafkaManager, topicComboBox.item?.name ?: "", isKey, schemas = null) ?: return null
     val type = KafkaRegistryUtil.getSchemaType(schema, kafkaManager)
     return if (type != null)
       KafkaFieldType.SCHEMA_REGISTRY
@@ -285,17 +287,20 @@ object KafkaEditorUtils {
                                           prevSchema: String?): Pair<List<RegistrySchemaInEditor>, Int?> {
     val schemas = kafkaManager.getSchemasForEditor()
 
-    val preferSchemaName = prevSchema ?: calculateTopicSchemaName(kafkaManager, topicComboBox.item?.name ?: "", isKey)
+    val preferSchemaName = prevSchema ?: calculateTopicSchemaName(kafkaManager, topicComboBox.item?.name ?: "", isKey, schemas)
     val index = schemas.indexOfFirst { it.schemaName == preferSchemaName }.takeIf { it >= 0 }
     return schemas to index
   }
 
-  private fun calculateTopicSchemaName(kafkaManager: KafkaDataManager, topic: String, isKey: Boolean): String? {
-    val schemas = kafkaManager.getSchemasForEditor().map { it.schemaName }
+  private fun calculateTopicSchemaName(kafkaManager: KafkaDataManager,
+                                       topic: String,
+                                       isKey: Boolean,
+                                       schemas: List<RegistrySchemaInEditor>?): String? {
+    val schemasNames = (schemas ?: kafkaManager.getSchemasForEditor()).map { it.schemaName }
     val confluentSchemaName = if (isKey) "$topic-key" else "$topic-value"
-    if (confluentSchemaName in schemas)
+    if (confluentSchemaName in schemasNames)
       return confluentSchemaName
-    if (!isKey && topic in schemas)
+    if (!isKey && topic in schemasNames)
       return topic
     return null
   }

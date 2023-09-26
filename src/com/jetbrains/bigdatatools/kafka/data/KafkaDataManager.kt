@@ -6,6 +6,7 @@ import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.util.Disposer
+import com.intellij.util.concurrency.annotations.RequiresBackgroundThread
 import com.jetbrains.bigdatatools.common.connection.updater.IntervalUpdateSettings
 import com.jetbrains.bigdatatools.common.monitoring.data.MonitoringDataManager
 import com.jetbrains.bigdatatools.common.monitoring.data.model.FieldGroupsData
@@ -79,6 +80,15 @@ class KafkaDataManager(project: Project?,
 
   fun getTopics() = topicModel.data ?: emptyList()
 
+  @RequiresBackgroundThread
+  fun loadTopicNames() = try {
+    client.getTopics(false)
+  }
+  catch (t: Throwable) {
+    thisLogger().warn(t)
+    emptyList()
+  }
+
   fun getTopicByName(name: String) = getTopics().firstOrNull { it.name == name }
 
   fun getSchemaByName(name: String) = schemaRegistryModel?.data?.firstOrNull { it.name == name }
@@ -97,9 +107,16 @@ class KafkaDataManager(project: Project?,
     }
   }
 
-  fun getSchemasForEditor() = schemaRegistryModel?.data?.map {
-    RegistrySchemaInEditor(schemaName = it.name, schemaFormat = it.type)
-  }?.sorted() ?: emptyList()
+  @RequiresBackgroundThread
+  fun getSchemasForEditor() = try {
+    listSchemas(null, null).first.map {
+      RegistrySchemaInEditor(schemaName = it.name, schemaFormat = it.type)
+    }.sorted()
+  }
+  catch (t: Throwable) {
+    thisLogger().warn(t)
+    emptyList()
+  }
 
   fun deleteTopic(topicNames: List<String>) {
     if (topicNames.isEmpty()) {
