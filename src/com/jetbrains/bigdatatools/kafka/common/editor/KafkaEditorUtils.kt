@@ -37,6 +37,7 @@ import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import io.confluent.kafka.schemaregistry.avro.AvroSchemaUtils
 import io.confluent.kafka.schemaregistry.json.JsonSchemaUtils
 import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchemaUtils
+import org.apache.avro.generic.GenericData
 import org.apache.kafka.common.ConsumerGroupState
 import java.awt.event.ItemEvent.SELECTED
 import java.nio.charset.Charset
@@ -88,7 +89,8 @@ object KafkaEditorUtils {
       when (format) {
         KafkaRegistryFormat.AVRO -> {
           val avro = AvroSchemaUtils.toJson(value).toString(Charset.defaultCharset())
-          tryFormatJson(avro)
+          val name = (value as? GenericData.Record)?.schema?.fullName
+          tryFormatJson(avro, name)
         }
         KafkaRegistryFormat.PROTOBUF -> try {
           val message = value as Message
@@ -334,12 +336,21 @@ object KafkaEditorUtils {
     }
   }
 
-  fun tryFormatJson(text: String): String {
+  fun tryFormatJson(text: String, shemaName: String? = null): String {
     if (!isJsonString(text))
       return text
     return try {
       val gson = GsonBuilder().disableHtmlEscaping().setPrettyPrinting().serializeNulls().create()
-      gson.toJson(JsonParser.parseString(text))
+      val parseString = JsonParser.parseString(text)
+      try {
+        shemaName?.let {
+          parseString.asJsonObject.addProperty("\$\$\$SchemaName\$\$\$", shemaName)
+        }
+      }
+      catch (t: Throwable) {
+        //Ignore
+      }
+      gson.toJson(parseString)
     }
     catch (e: Exception) {
       text

@@ -28,6 +28,7 @@ import com.jetbrains.bigdatatools.kafka.model.BdtTopicPartition
 import com.jetbrains.bigdatatools.kafka.model.ConsumerGroupPresentable
 import com.jetbrains.bigdatatools.kafka.model.TopicConfig
 import com.jetbrains.bigdatatools.kafka.model.TopicPresentable
+import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryFormat
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryType
 import com.jetbrains.bigdatatools.kafka.registry.SchemaVersionInfo
 import com.jetbrains.bigdatatools.kafka.registry.common.KafkaSchemaInfo
@@ -45,6 +46,7 @@ import org.jetbrains.concurrency.Promise
 import org.jetbrains.concurrency.asPromise
 import org.jetbrains.concurrency.await
 import software.amazon.awssdk.services.glue.model.Compatibility
+import java.util.concurrent.ConcurrentSkipListMap
 import java.util.concurrent.TimeUnit
 import kotlin.time.Duration
 
@@ -57,7 +59,7 @@ class KafkaDataManager(project: Project?,
   override val client = KafkaClient(project, connectionData, false).also { Disposer.register(this, it) }
   val consumerPanelStorage = KafkaConsumerPanelStorage(this).also { Disposer.register(this, it) }
 
-
+  val schemaType = ConcurrentSkipListMap<String, KafkaRegistryFormat>()
   internal val topicModel = createTopicsDataModel().also { Disposer.register(this, it) }
 
   internal val consumerGroupsModel = createConsumerGroupsDataModel().also { Disposer.register(this, it) }
@@ -109,8 +111,8 @@ class KafkaDataManager(project: Project?,
 
   @RequiresBackgroundThread
   fun getSchemasForEditor() = try {
-    listSchemas(null, null).first.map {
-      RegistrySchemaInEditor(schemaName = it.name, schemaFormat = it.type)
+    listSchemasNames(null, null).first.map {
+      RegistrySchemaInEditor(schemaName = it.name, schemaFormat = getCachedOrLoadSchemaType(it.name))
     }.sorted()
   }
   catch (t: Throwable) {
@@ -309,13 +311,13 @@ class KafkaDataManager(project: Project?,
     }) {
       val filter = KafkaToolWindowSettings.getInstance().getOrCreateConfig(connectionId).schemaFilterName
       val limit = KafkaToolWindowSettings.getInstance().getOrCreateConfig(connectionId).registryLimit
-      listSchemas(limit, filter)
+      listSchemasNames(limit, filter)
 
     }
     return dataModel
   }
 
-  private fun listSchemas(limit: Int?, filter: String?, registryShowDeletedSubjects: Boolean = false) =
+  private fun listSchemasNames(limit: Int?, filter: String?, registryShowDeletedSubjects: Boolean = false) =
     client.confluentRegistryClient?.listSchemas(limit, filter, registryShowDeletedSubjects, connectionId)
     ?: client.glueRegistryClient?.listSchemas(limit, filter, connectionId)
     ?: (emptyList<KafkaSchemaInfo>() to false)
@@ -343,6 +345,10 @@ class KafkaDataManager(project: Project?,
   fun isSchemaExists(name: String) = getCachedSchema(name) != null
 
   fun getCachedOrLoadSchema(name: String): KafkaSchemaInfo = getCachedSchema(name)?.takeIf { it.type != null } ?: loadSchema(name)
+
+  private fun getCachedOrLoadSchemaType(name: String) = schemaType[name] ?: getCachedOrLoadSchema(name).type?.also {
+    schemaType[name] = it
+  }
 
   fun getCachedSchema(name: String) = schemaRegistryModel?.data?.firstOrNull { it.name == name }
 

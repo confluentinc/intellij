@@ -55,7 +55,7 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
   private val startOffset = JBTextField(15)
   private val startConsumerGroup = KafkaEditorUtils.createConsumerGroups(this, kafkaManager)
 
-  private val startFromComboBox = ComboBox(ConsumerStartType.values()).apply {
+  private val startFromComboBox = ComboBox(ConsumerStartType.entries.toTypedArray()).apply {
     renderer = CustomListCellRenderer<ConsumerStartType> { it.title }
     item = ConsumerStartType.NOW
     addActionListener {
@@ -65,7 +65,7 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
     }
   }
 
-  private val limitComboBox = ComboBox(ConsumerLimitType.values()).apply {
+  private val limitComboBox = ComboBox(ConsumerLimitType.entries.toTypedArray()).apply {
     renderer = CustomListCellRenderer<ConsumerLimitType> { it.title }
     item = ConsumerLimitType.NONE
     addActionListener {
@@ -75,7 +75,7 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
     }
   }
 
-  private val filterComboBox = ComboBox(ConsumerFilterType.values()).apply {
+  private val filterComboBox = ComboBox(ConsumerFilterType.entries.toTypedArray()).apply {
     renderer = CustomListCellRenderer<ConsumerFilterType> { it.title }
     item = ConsumerFilterType.NONE
     addActionListener {
@@ -270,7 +270,8 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
                                                        value.schemaComboBox.item?.schemaFormat,
                                                        Result.success(it))
                                }
-
+                               if (convertedRecords.isEmpty())
+                                 return@start
                                invokeLater {
                                  output.addBatchRows(pollTime, convertedRecords)
                                }
