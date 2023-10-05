@@ -4,13 +4,20 @@ import com.jetbrains.bigdatatools.kafka.model.BdtTopicPartition
 import com.jetbrains.bigdatatools.kafka.model.ConsumerGroupPresentable
 import com.jetbrains.bigdatatools.kafka.model.TopicConfig
 import com.jetbrains.bigdatatools.kafka.model.TopicPresentable
+import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryFormat
+import com.jetbrains.bigdatatools.kafka.registry.common.KafkaSchemaInfo
 import org.apache.kafka.clients.admin.ConfigEntry
 import org.apache.kafka.clients.admin.ConsumerGroupDescription
 import org.apache.kafka.clients.admin.TopicDescription
+import org.apache.kafka.common.ConsumerGroupState
 import org.apache.kafka.common.config.TopicConfig.MESSAGE_FORMAT_VERSION_CONFIG
 
 
 object BdtKafkaMapper {
+  fun mockConsumerGroup(id: String, state: ConsumerGroupState): ConsumerGroupPresentable {
+    return ConsumerGroupPresentable(state = state, consumerGroup = id, consumers = -1, topics = -1, partitions = -1)
+  }
+
   fun mapToConsumerGroup(detailedGroup: ConsumerGroupDescription): ConsumerGroupPresentable {
     val topicsToPartitions = detailedGroup.members().flatMap {
       it.assignment().topicPartitions().map { topicPartition -> topicPartition.topic() to topicPartition.partition() }
@@ -71,5 +78,9 @@ object BdtKafkaMapper {
       KafkaConstants.TOPIC_DEFAULT_CONFIGS[configEntry.name()]
 
     return TopicConfig(name = configEntry.name(), value = configEntry.value(), defaultValue = defaultValue ?: "")
+  }
+
+  fun mockKafkaSchemaInfo(info: KafkaSchemaInfo): KafkaSchemaInfo {
+    return info.copy(version = -1, type = KafkaRegistryFormat.UNKNOWN, compatibility = "", description = "", schemaStatus = "")
   }
 }

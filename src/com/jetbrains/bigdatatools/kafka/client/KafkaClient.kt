@@ -143,17 +143,28 @@ class KafkaClient(project: Project?,
     kafkaAdminNotNull.deleteRecords(deleteRequest).all().await()
   }
 
-  fun getConsumerGroups(): List<ConsumerGroupPresentable> {
-    return kafkaAdminNotNull.listConsumerGroups().all().get().map {
-      ConsumerGroupPresentable(state = it.state().getOrNull() ?: ConsumerGroupState.UNKNOWN, consumerGroup = it.groupId())
-    }.sortedBy { it.consumerGroup }
-  }
+  fun getConsumerGroups() = kafkaAdminNotNull.listConsumerGroups().all().get().map {
+    ConsumerGroupPresentable(state = it.state().getOrNull() ?: ConsumerGroupState.UNKNOWN, consumerGroup = it.groupId())
+  }.sortedBy { it.consumerGroup }
 
-  fun getDetailedConsumerGroups(consumerGroupsIds: List<String>): List<ConsumerGroupPresentable> {
-    val detailedGroups = kafkaAdminNotNull.describeConsumerGroups(consumerGroupsIds).all().get()
-    return detailedGroups.map { (_, detailedGroup) ->
-      BdtKafkaMapper.mapToConsumerGroup(detailedGroup)
-    }.sortedBy { it.consumerGroup }
+  suspend fun getDetailedConsumerGroups(consumerGroups: List<ConsumerGroupPresentable>): Pair<List<ConsumerGroupPresentable>, Throwable?> {
+    val options = DescribeConsumerGroupsOptions()
+    options.timeoutMs(maxOf(BdIdeRegistryUtil.RFS_DEFAULT_TIMEOUT, 60_000))
+    val groupRequests = kafkaAdminNotNull.describeConsumerGroups(consumerGroups.map { it.consumerGroup }, options)
+
+    val parsed = mutableListOf<ConsumerGroupPresentable>()
+    var throwable: Throwable? = null
+    groupRequests.describedGroups().values.zip(consumerGroups).forEach {
+      val groupDescription = it.first.await()
+      try {
+        parsed.add(BdtKafkaMapper.mapToConsumerGroup(groupDescription))
+      }
+      catch (t: Throwable) {
+        throwable = t
+        parsed.add(ConsumerGroupPresentable(it.second.state, it.second.consumerGroup))
+      }
+    }
+    return parsed.sortedBy { it.consumerGroup } to throwable
   }
 
   fun getConsumerGroupOffsets(consumerGroup: String) =
@@ -219,29 +230,21 @@ class KafkaClient(project: Project?,
     deleteTopicsResult.all().get()
   }
 
-  private fun describeTopics(topicNames: List<String>): Pair<List<TopicDescription>, List<String>> = try {
-    val allTopicNames = kafkaAdminNotNull.describeTopics(topicNames.toMutableList()).allTopicNames()
-    allTopicNames.get().values.toList() to emptyList()
-  }
-  catch (t: Throwable) {
+  private suspend fun describeTopics(topicNames: List<String>): Pair<List<TopicDescription>, List<String>> {
+    val futures = kafkaAdminNotNull.describeTopics(topicNames.toMutableList()).topicNameValues()
     val topics = mutableListOf<TopicDescription>()
     val nonParsed = mutableListOf<String>()
 
-    topicNames.map {
+    for ((name, topicDetailsFuture) in futures) {
       try {
-        val topicDescription = kafkaAdminNotNull.describeTopics(listOf(it)).allTopicNames().get().values.firstOrNull()
-        if (topicDescription != null)
-          topics.add(topicDescription)
-        else
-          nonParsed.add(it)
+        topics.add(topicDetailsFuture.await())
       }
       catch (t: Throwable) {
         logger.warn(t)
-        nonParsed.add(it)
+        nonParsed.add(name)
       }
     }
-
-    topics to nonParsed
+    return topics to nonParsed
   }
 
   private fun loadTopicConfigs(topicNames: List<String>): Map<String, List<TopicConfig>> {
@@ -281,9 +284,11 @@ class KafkaClient(project: Project?,
     val defaultProps = listOf(
       Property(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, connectionData.uri.removeSuffix("/")),
       Property(CommonClientConfigs.CONNECTIONS_MAX_IDLE_MS_CONFIG, 10000.toString()),
-      Property(CommonClientConfigs.REQUEST_TIMEOUT_MS_CONFIG, BdIdeRegistryUtil.RFS_DEFAULT_TIMEOUT.toString()),
+      Property(CommonClientConfigs.REQUEST_TIMEOUT_MS_CONFIG, maxOf(BdIdeRegistryUtil.RFS_DEFAULT_TIMEOUT, 30_000).toString()),
       Property(CommonClientConfigs.RETRY_BACKOFF_MS_CONFIG, 30000.toString()),
-      Property(CommonClientConfigs.METADATA_MAX_AGE_CONFIG, 60000.toString())
+      Property(CommonClientConfigs.METADATA_MAX_AGE_CONFIG, 60000.toString()),
+      //Add 2 times more because Kafka
+      Property(CommonClientConfigs.DEFAULT_API_TIMEOUT_MS_CONFIG, maxOf(BdIdeRegistryUtil.RFS_DEFAULT_TIMEOUT, 30_000).toString())
     )
 
     val props = Properties()

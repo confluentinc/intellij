@@ -21,6 +21,7 @@ import com.jetbrains.bigdatatools.common.util.asSilent
 import com.jetbrains.bigdatatools.common.util.executeOnPooledThread
 import com.jetbrains.bigdatatools.common.util.runAsync
 import com.jetbrains.bigdatatools.common.util.runAsyncSuspend
+import com.jetbrains.bigdatatools.kafka.client.BdtKafkaMapper
 import com.jetbrains.bigdatatools.kafka.client.KafkaClient
 import com.jetbrains.bigdatatools.kafka.common.models.RegistrySchemaInEditor
 import com.jetbrains.bigdatatools.kafka.consumer.editor.KafkaConsumerPanelStorage
@@ -47,7 +48,6 @@ import org.jetbrains.concurrency.asPromise
 import org.jetbrains.concurrency.await
 import software.amazon.awssdk.services.glue.model.Compatibility
 import java.util.concurrent.ConcurrentSkipListMap
-import java.util.concurrent.TimeUnit
 import kotlin.time.Duration
 
 class KafkaDataManager(project: Project?,
@@ -154,13 +154,10 @@ class KafkaDataManager(project: Project?,
 
   private fun createTopicsDataModel() = ObjectDataModel(TopicPresentable::name, additionalInfoLoading = { model ->
     try {
-      runAsyncSuspend {
-        client.getDetailedTopicsInfo(model.data?.map { it.name } ?: emptyList())
-      }.blockingGet(20, TimeUnit.SECONDS) ?: emptyList()
+      client.getDetailedTopicsInfo(model.data?.map { it.name } ?: emptyList()) to null
     }
     catch (t: Throwable) {
-      thisLogger().warn(t)
-      model.data ?: emptyList()
+      (model.data?.map { BdtKafkaMapper.mockInternalTopic(it.name) } ?: emptyList()) to t
     }
   }) {
     val toolWindowSettings = KafkaToolWindowSettings.getInstance()
@@ -176,12 +173,12 @@ class KafkaDataManager(project: Project?,
   private fun createConsumerGroupsDataModel() =
     ObjectDataModel(ConsumerGroupPresentable::consumerGroup, additionalInfoLoading = { dataObject ->
       try {
-        val groupIds = dataObject.data?.map { it.consumerGroup } ?: emptyList()
-        client.getDetailedConsumerGroups(groupIds)
+        val groups = dataObject.data ?: emptyList()
+        client.getDetailedConsumerGroups(groups)
       }
       catch (t: Throwable) {
         thisLogger().warn(t)
-        dataObject.data ?: emptyList()
+        (dataObject.data?.map { BdtKafkaMapper.mockConsumerGroup(it.consumerGroup, state = it.state) } ?: emptyList()) to t
       }
     }) {
       val toolWindowSettings = KafkaToolWindowSettings.getInstance()
@@ -304,10 +301,13 @@ class KafkaDataManager(project: Project?,
   private fun createSchemaRegistryDataModel(): ObjectDataModel<KafkaSchemaInfo>? {
     if (registryType == KafkaRegistryType.NONE)
       return null
-    val dataModel = ObjectDataModel(KafkaSchemaInfo::name, additionalInfoLoading = {
-      runAsyncSuspend {
-        updateSchemaList(it)
-      }.blockingGet(20, TimeUnit.SECONDS) ?: emptyList()
+    val dataModel = ObjectDataModel(KafkaSchemaInfo::name, additionalInfoLoading = { dataModel ->
+      try {
+        updateSchemaList(dataModel) to null
+      }
+      catch (t: Throwable) {
+        (dataModel.data?.map { BdtKafkaMapper.mockKafkaSchemaInfo(it) } ?: emptyList()) to t
+      }
     }) {
       val filter = KafkaToolWindowSettings.getInstance().getOrCreateConfig(connectionId).schemaFilterName
       val limit = KafkaToolWindowSettings.getInstance().getOrCreateConfig(connectionId).registryLimit
