@@ -49,7 +49,7 @@ class KafkaBrokerSettings(val project: Project,
   internal val confSource = RadioGroupField(KafkaConnectionData::brokerConfigurationSource,
                                             KafkaSettingsCustomizer.KafkaSettingsKeys.CONFIGURATION_SOURCE_KEY,
                                             connectionData,
-                                            KafkaConfigurationSource.values()).apply {
+                                            KafkaConfigurationSource.entries).apply {
     addItemListener {
       updateConfVisibility()
     }
@@ -58,7 +58,7 @@ class KafkaBrokerSettings(val project: Project,
   internal val cloudSource = RadioGroupField(KafkaConnectionData::brokerCloudSource,
                                              KafkaSettingsCustomizer.KafkaSettingsKeys.CLOUD_PROVIDER,
                                              connectionData,
-                                             KafkaCloudType.values()).apply {
+                                             KafkaCloudType.entries).apply {
     addItemListener {
       updateCloudVisibility()
     }
@@ -67,13 +67,13 @@ class KafkaBrokerSettings(val project: Project,
   internal val propertiesSource = RadioGroupField(KafkaConnectionData::propertySource,
                                                   KafkaSettingsCustomizer.KafkaSettingsKeys.PROPERTIES_SOURCE_KEY,
                                                   connectionData,
-                                                  KafkaPropertySource.values()).apply {
+                                                  KafkaPropertySource.entries).apply {
     addItemListener {
       onUpdatePropertiesSource()
     }
   }
 
-  val propertiesCredentialsHolder = CredentialsHolder(connectionData, CONFIG_KEY, uiDisposable, coroutineScope)
+  private val propertiesCredentialsHolder = CredentialsHolder(connectionData, CONFIG_KEY, uiDisposable, coroutineScope)
 
   internal val propertiesEditor = SecretPropertiesFieldComponent(
     project,
@@ -128,7 +128,7 @@ class KafkaBrokerSettings(val project: Project,
   private lateinit var directPropertiesGroup: Row
   private lateinit var filePropertiesGroup: Row
 
-  internal val authMethod = RadioComboBox(KafkaAuthMethod.values(), KafkaAuthMethod.NOT_SPECIFIED).apply {
+  internal val authMethod = RadioComboBox(KafkaAuthMethod.entries.toTypedArray(), KafkaAuthMethod.NOT_SPECIFIED).apply {
     addItemListener {
       updateVisibilityOfAuth()
       updatePropertiesField()
@@ -236,7 +236,7 @@ class KafkaBrokerSettings(val project: Project,
 
     saslGroup = indent {
       row(KafkaMessagesBundle.message("kafka.sasl.mechanism")) {
-        saslMechanism = comboBox(KafkaSaslMechanism.values().toList(),
+        saslMechanism = comboBox(KafkaSaslMechanism.entries,
                                  CustomListCellRenderer<KafkaSaslMechanism> { it.title }).align(AlignX.FILL).onChanged {
           updateVisibilityOfSasl()
           updatePropertiesField()
@@ -603,12 +603,12 @@ class KafkaBrokerSettings(val project: Project,
 
   private fun getSaslMechanism(properties: Map<String, String>): KafkaSaslMechanism? {
     val saslMechanismKey = properties[SaslConfigs.SASL_MECHANISM] ?: SaslConfigs.DEFAULT_SASL_MECHANISM
-    return KafkaSaslMechanism.values().firstOrNull { it.saslMechanism == saslMechanismKey }
+    return KafkaSaslMechanism.entries.firstOrNull { it.saslMechanism == saslMechanismKey }
   }
 
   private fun getSecurityProtocol(properties: Map<String, String>) =
     properties[CommonClientConfigs.SECURITY_PROTOCOL_CONFIG]?.let {
-      SecurityProtocol.values().firstOrNull { protocol -> protocol.name == it }
+      SecurityProtocol.entries.firstOrNull { protocol -> protocol.name == it }
     }
 
   private fun isSchemaVisible(): Boolean =

@@ -48,7 +48,7 @@ class KafkaSettingsCustomizer(project: Project,
 
   internal val registryType = RadioGroupField(KafkaConnectionData::registryType,
                                               ModificationKey(KafkaMessagesBundle.message("schema.registry.type.label")), connectionData,
-                                              KafkaRegistryType.values())
+                                              KafkaRegistryType.entries)
 
   private val brokerSettings = KafkaBrokerSettings(project, connectionData, uiDisposable, coroutineScope, url, registryType)
   private val registrySettings = KafkaRegistrySettings(project, connectionData, uiDisposable, coroutineScope, registryType)
@@ -72,7 +72,6 @@ class KafkaSettingsCustomizer(project: Project,
   internal lateinit var brokerAwsIamAuthType: Cell<ComboBox<AuthenticationType>>
   internal lateinit var brokerAwsIamProfile: Cell<ComboBox<String>>
 
-
   internal lateinit var brokerSaslKeytab: Cell<TextFieldWithBrowseButton>
   internal lateinit var brokerSaslMechanism: Cell<ComboBox<KafkaSaslMechanism>>
   internal lateinit var brokerSaslPassword: Cell<JBPasswordField>
@@ -81,7 +80,6 @@ class KafkaSettingsCustomizer(project: Project,
   internal lateinit var brokerSaslUseTicketCache: Cell<JBCheckBox>
   internal lateinit var brokerSaslSecurityProtocol: Cell<JBCheckBox>
 
-
   internal lateinit var brokerSslKeyPassword: Cell<JBPasswordField>
   internal lateinit var brokerSslKeystorePassword: Cell<JBPasswordField>
   internal lateinit var brokerSslTruststorePassword: Cell<JBPasswordField>
@@ -89,7 +87,6 @@ class KafkaSettingsCustomizer(project: Project,
   internal lateinit var brokerSslTrustoreLocation: Cell<TextFieldWithBrowseButton>
   internal lateinit var brokerSslUseKeystore: Cell<JBCheckBox>
   internal lateinit var brokerSslEnableValidation: Cell<JBCheckBox>
-
 
   internal lateinit var registryConfluentUrl: WrappedTextComponent<KafkaConnectionData, *>
   internal lateinit var registryConfluentSource: RadioGroupField<KafkaConnectionData, KafkaConfigurationSource>
@@ -117,7 +114,6 @@ class KafkaSettingsCustomizer(project: Project,
   internal lateinit var registryGlueRegistryName: LoadingChooserComponent<KafkaConnectionData>
 
   val schema = registrySettings.getDefaultFields()
-
 
   override fun getDefaultFields(): List<WrappedComponent<in KafkaConnectionData>> {
     return listOf<WrappedComponent<in KafkaConnectionData>>(nameField, url,

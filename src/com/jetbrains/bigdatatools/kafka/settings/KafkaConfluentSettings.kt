@@ -22,14 +22,12 @@ import com.jetbrains.bigdatatools.kafka.util.KafkaPropertiesUtils
 import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig
 import javax.swing.SwingUtilities
 
-class KafkaConfluentSettings(
-  val project: Project,
-  val connectionData: KafkaConnectionData,
-  uiDisposable: Disposable,
-  val url: StringNamedField<ConnectionData>,
-  propertiesEditor: AbstractPropertiesFieldComponent<KafkaConnectionData>,
-  brokerSettings: KafkaBrokerSettings,
-) {
+class KafkaConfluentSettings(val project: Project,
+                             val connectionData: KafkaConnectionData,
+                             uiDisposable: Disposable,
+                             val url: StringNamedField<ConnectionData>,
+                             propertiesEditor: AbstractPropertiesFieldComponent<KafkaConnectionData>,
+                             brokerSettings: KafkaBrokerSettings) {
   var updateFromCloud = false
 
   internal val confluentConf = ConnectionPropertiesEditor(project, KafkaPropertiesUtils.getAdminPropertiesDescriptions()).apply {
@@ -57,18 +55,15 @@ class KafkaConfluentSettings(
           brokerSettings.registryType.setValue(KafkaRegistryType.CONFLUENT)
         else
           brokerSettings.registryType.setValue(KafkaRegistryType.NONE)
-
       }
     }
     getComponent().addDocumentListener(listener)
-    Disposer.register(uiDisposable, Disposable
-    {
+    Disposer.register(uiDisposable, Disposable {
       getComponent().removeDocumentListener(listener)
     })
   }
 
   init {
-
     propertiesEditor.getComponent().doOnChange {
       if (updateFromCloud)
         return@doOnChange

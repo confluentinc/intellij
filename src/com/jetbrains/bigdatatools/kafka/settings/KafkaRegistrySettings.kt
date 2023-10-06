@@ -49,11 +49,11 @@ class KafkaRegistrySettings(val project: Project,
     uiDisposable
   )
     .apply {
-      var isInited = false
+      var isInitialized = false
       getComponent().doOnChange {
-        if (isInited || getComponent().text.isBlank())
+        if (isInitialized || getComponent().text.isBlank())
           return@doOnChange
-        isInited = true
+        isInitialized = true
         updateRegistryUiFromProperties()
       }
 
@@ -67,8 +67,8 @@ class KafkaRegistrySettings(val project: Project,
   internal val confluentSource = RadioGroupField(KafkaConnectionData::registryConfSource,
                                                  KafkaSettingsCustomizer.KafkaSettingsKeys.REGISTRY_PROPERTIES_SOURCE_KEY,
                                                  connectionData,
-                                                 arrayOf(KafkaConfigurationSource.FROM_UI,
-                                                         KafkaConfigurationSource.FROM_PROPERTIES)).apply {
+                                                 listOf(KafkaConfigurationSource.FROM_UI,
+                                                        KafkaConfigurationSource.FROM_PROPERTIES)).apply {
     addItemListener {
       updateRegistryAuthStatus()
     }
@@ -86,7 +86,8 @@ class KafkaRegistrySettings(val project: Project,
       }
     }
 
-  internal val confluentSchemaAuth = RadioComboBox(SchemaRegistryAuthType.values(), SchemaRegistryAuthType.NOT_SPECIFIED).apply {
+  internal val confluentSchemaAuth = RadioComboBox(SchemaRegistryAuthType.entries.toTypedArray(),
+                                                   SchemaRegistryAuthType.NOT_SPECIFIED).apply {
     addItemListener {
       updateSchemaRegistryAuth()
       updateRegistryPropertiesField()
@@ -130,7 +131,7 @@ class KafkaRegistrySettings(val project: Project,
   private lateinit var implicitRegistryClientSettingsGroup: RowsRange
 
   private lateinit var schemaBasicAuthGroup: RowsRange
-  private lateinit var schemaBearerhGroup: Row
+  private lateinit var schemaBearerGroup: Row
   internal lateinit var confluentBasicLogin: Cell<JBTextField>
   internal lateinit var confluentBasicPassword: Cell<JBPasswordField>
   internal lateinit var confluentBearerToken: Cell<JBTextField>
@@ -144,7 +145,7 @@ class KafkaRegistrySettings(val project: Project,
   init {
     registryType.apply {
       addItemListener {
-        updateRegistryType()
+        onRegistryTypeChanged()
       }
     }
   }
@@ -153,17 +154,16 @@ class KafkaRegistrySettings(val project: Project,
 
   private fun Panel.setComponent(): CollapsibleRow {
     val group = collapsibleGroup(KafkaMessagesBundle.message("settings.registry.title")) {
-      shortRow(registryType)
-      panel {
-        confluentGroup = confluentSettings()
-        glueGroup = rowsRange {
-          awsGlueSettings.getComponentRows(this)
-          row(glueRegistryName)
-        }
+      shortRow(registryType).layout(RowLayout.INDEPENDENT)
+
+      confluentGroup = confluentSettings()
+      glueGroup = rowsRange {
+        awsGlueSettings.getComponentRows(this)
+        row(glueRegistryName)
       }
 
       initGlueSettings(awsGlueSettings)
-      updateRegistryType()
+      onRegistryTypeChanged()
     }
     group.expanded = connectionData.registryType != KafkaRegistryType.NONE
     group.topGap(TopGap.NONE)
@@ -171,30 +171,32 @@ class KafkaRegistrySettings(val project: Project,
   }
 
   private fun Panel.confluentSettings() = rowsRange {
-    panel {
-      row(confluentUrl).bottomGap(BottomGap.SMALL)
-    }
-    shortRow(confluentSource)
+
+    row(confluentUrl).bottomGap(BottomGap.SMALL).layout(RowLayout.INDEPENDENT)
+    shortRow(confluentSource).layout(RowLayout.INDEPENDENT)
 
     registryPropertiesGroup = block(confluentPropertiesEditor.getComponent())
 
     implicitRegistryClientSettingsGroup = indent {
       row(KafkaMessagesBundle.message("kafka.auth.method.label")) {
         cell(confluentSchemaAuth.getComponent())
-      }
+      }.layout(RowLayout.INDEPENDENT)
+
       indent {
         schemaBasicAuthGroup = rowsRange {
-          row(KafkaMessagesBundle.message("kafka.username")) {
+          row {
+            label(KafkaMessagesBundle.message("kafka.username")).widthGroup("A")
             confluentBasicLogin = textField().align(AlignX.FILL)
           }
-          row(KafkaMessagesBundle.message("kafka.password")) {
+          row {
+            label(KafkaMessagesBundle.message("kafka.password")).widthGroup("A")
             confluentBasicPassword = passwordField().align(AlignX.FILL)
           }
         }
 
-        schemaBearerhGroup = row(KafkaMessagesBundle.message("kafka.token")) {
+        schemaBearerGroup = row(KafkaMessagesBundle.message("kafka.token")) {
           confluentBearerToken = textField().align(AlignX.FILL)
-        }
+        }.layout(RowLayout.INDEPENDENT)
       }
 
       row {
@@ -218,9 +220,7 @@ class KafkaRegistrySettings(val project: Project,
           }
         }
       }.visibleIf(confluentUseProxy.selected)
-
     }
-
 
     updateRegistryAuthStatus()
     updateRegistryUiFromProperties()
@@ -246,7 +246,7 @@ class KafkaRegistrySettings(val project: Project,
   private fun updateSchemaRegistryAuth() {
     val selectedAuthType = confluentSchemaAuth.selectedItem
     schemaBasicAuthGroup.visible(selectedAuthType == SchemaRegistryAuthType.BASIC_AUTH)
-    schemaBearerhGroup.visible(selectedAuthType == SchemaRegistryAuthType.BEARER)
+    schemaBearerGroup.visible(selectedAuthType == SchemaRegistryAuthType.BEARER)
   }
 
   private fun updateRegistryUiFromProperties(): Unit = try {
@@ -373,7 +373,7 @@ class KafkaRegistrySettings(val project: Project,
     listOf(registryType, confluentSource, confluentPropertiesEditor, confluentUrl, glueSettings, awsAccessKey, awsSecretKey,
            glueRegistryName, useBrokerSslCheckbox)
 
-  private fun updateRegistryType() {
+  private fun onRegistryTypeChanged() {
     when (registryType.getValue()) {
       KafkaRegistryType.NONE -> {
         confluentGroup.visible(false)
