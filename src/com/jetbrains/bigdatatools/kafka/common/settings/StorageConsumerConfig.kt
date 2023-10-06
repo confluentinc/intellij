@@ -43,6 +43,7 @@ data class StorageConsumerConfig(
   val customValueSchemaSource: KafkaCustomSchemaSource? = null,
   val customKeySchemaImplicit: String? = null,
   val customValueSchemaImplicit: String? = null,
+  val consumerGroup: String? = null
 ) : StorageConfig {
 
   constructor(
@@ -60,6 +61,7 @@ data class StorageConsumerConfig(
     valueFormat: KafkaRegistryFormat,
     keySubject: String = "",
     valueSubject: String = "",
+    consumerGroup: String? = null
 
     ) : this(
     topic = topic,
@@ -76,6 +78,7 @@ data class StorageConsumerConfig(
 
     keyFormat = keyFormat.name,
     valueFormat = valueFormat.name,
+    consumerGroup = consumerGroup
   )
 
   companion object {
@@ -107,7 +110,7 @@ data class StorageConsumerConfig(
   fun getInnerTopic(): String = topic ?: ""
 
   fun getLimit(): ConsumerLimit {
-    val consumerLimitType = ConsumerLimitType.values().firstOrNull { it.name == limit["type"] } ?: ConsumerLimitType.NONE
+    val consumerLimitType = ConsumerLimitType.entries.firstOrNull { it.name == limit["type"] } ?: ConsumerLimitType.NONE
 
     return ConsumerLimit(
       type = consumerLimitType,
@@ -117,7 +120,7 @@ data class StorageConsumerConfig(
 
   fun getFilter(): ConsumerFilter {
     return ConsumerFilter(
-      type = ConsumerFilterType.values().firstOrNull { it.name == filter["type"] } ?: ConsumerFilterType.NONE,
+      type = ConsumerFilterType.entries.firstOrNull { it.name == filter["type"] } ?: ConsumerFilterType.NONE,
       filterKey = filter["key"],
       filterValue = filter["value"],
       filterHeadKey = filter["headKey"],
@@ -125,14 +128,14 @@ data class StorageConsumerConfig(
   }
 
   fun getStartsWith(): ConsumerStartWith {
-    return ConsumerStartWith(ConsumerStartType.values().firstOrNull { it.name == startWith["type"] } ?: ConsumerStartType.NOW,
+    return ConsumerStartWith(ConsumerStartType.entries.firstOrNull { it.name == startWith["type"] } ?: ConsumerStartType.NOW,
                              startWith["time"]?.toLongOrNull(),
                              startWith["offset"]?.toLongOrNull(),
                              startWith["consumerGroup"])
   }
 
-  fun getKeyType(): KafkaFieldType = KafkaFieldType.values().firstOrNull { it.name == keyType } ?: KafkaFieldType.STRING
-  fun getValueType(): KafkaFieldType = KafkaFieldType.values().firstOrNull { it.name == valueType } ?: KafkaFieldType.STRING
+  fun getKeyType(): KafkaFieldType = KafkaFieldType.entries.firstOrNull { it.name == keyType } ?: KafkaFieldType.STRING
+  fun getValueType(): KafkaFieldType = KafkaFieldType.entries.firstOrNull { it.name == valueType } ?: KafkaFieldType.STRING
 
   fun getKeyFormat(): KafkaRegistryFormat = KafkaRegistryFormat.parse(keyFormat)
   fun getValueFormat(): KafkaRegistryFormat = KafkaRegistryFormat.parse(valueFormat)

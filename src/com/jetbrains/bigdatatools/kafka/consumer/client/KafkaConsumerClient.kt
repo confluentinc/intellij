@@ -10,6 +10,7 @@ import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.statistics.KafkaUsagesCollector
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig
+import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.clients.consumer.KafkaConsumer
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
@@ -38,9 +39,28 @@ class KafkaConsumerClient(val dataManager: KafkaDataManager,
             consume: (Long, List<ConsumerRecord<Any, Any>>) -> Unit,
             timestampUpdate: () -> Unit,
             consumeError: (Throwable) -> Unit) {
-    isRunning.set(true)
-    onStart()
+    var consumedRecords = 0
 
+    try {
+      isRunning.set(true)
+      onStart()
+      consumedRecords = startInner(config, dataManager, keyConfig, valueConfig, consumeError, timestampUpdate, consumedRecords, consume)
+    }
+    finally {
+      KafkaUsagesCollector.consumedKeyValue.log(config.getKeyType(), config.getValueType(), consumedRecords)
+      stop()
+    }
+  }
+
+  private fun startInner(config: StorageConsumerConfig,
+                         dataManager: KafkaDataManager,
+                         keyConfig: ConsumerProducerFieldConfig,
+                         valueConfig: ConsumerProducerFieldConfig,
+                         consumeError: (Throwable) -> Unit,
+                         timestampUpdate: () -> Unit,
+                         consumedRecords: Int,
+                         consume: (Long, List<ConsumerRecord<Any, Any>>) -> Unit): Int {
+    var consumedRecords1 = consumedRecords
     if (config.topic.isNullOrBlank()) {
       error(KafkaMessagesBundle.message("consumer.error.topic.empty"))
     }
@@ -48,125 +68,128 @@ class KafkaConsumerClient(val dataManager: KafkaDataManager,
     val consumer = createConsumer(config, dataManager, keyConfig, valueConfig)
     runConsumer = consumer
 
-    val parsedPartitionFilter = ConsumerEditorUtils.parsePartitionsText(config.partitions).ifEmpty { null }
-    val partitions = calculatePartitions(consumer, config.getInnerTopic(), parsedPartitionFilter)
-    if (partitions.isEmpty()) {
-      error(KafkaMessagesBundle.message("consumer.partition.not.found", config.getInnerTopic()))
-    }
-    consumer.assign(partitions)
-    seekPartitions(consumer, partitions, config.getStartsWith())
-
     val taskRunId = curRunId.incrementAndGet()
+    val limit = config.getLimit()
 
-    var consumedRecords = 0
-    try {
-      val limit = config.getLimit()
+    var needToReadTopicCount = limit.topicRecordsCount
+    var needToReadTopicSize = limit.topicRecordsSize
 
-      var needToReadTopicCount = limit.topicRecordsCount
-      val needToReadPartitionCount = limit.partitionRecordsCount?.let { count ->
+    var needToReadPartitionCount: MutableMap<Int, Long>? = null
+    var needToReadPartitionSize: MutableMap<Int, Long>? = null
+
+    if (config.consumerGroup == null) {
+      val parsedPartitionFilter = ConsumerEditorUtils.parsePartitionsText(config.partitions).ifEmpty { null }
+      val partitions = calculatePartitions(consumer, config.getInnerTopic(), parsedPartitionFilter)
+      if (partitions.isEmpty()) {
+        error(KafkaMessagesBundle.message("consumer.partition.not.found", config.getInnerTopic()))
+      }
+
+      consumer.assign(partitions)
+      seekPartitions(consumer, partitions, config.getStartsWith())
+
+      needToReadPartitionCount = limit.partitionRecordsCount?.let { count ->
         partitions.associate { it.partition() to count }.toMutableMap()
       }
 
-      var needToReadTopicSize = limit.topicRecordsSize
-      val needToReadPartitionSize = limit.partitionRecordsSize?.let { size ->
+      needToReadPartitionSize = limit.partitionRecordsSize?.let { size ->
         partitions.associate { it.partition() to size }.toMutableMap()
       }
+    }
+    else
+      consumer.subscribe(listOf(config.getInnerTopic()))
 
-      consumer.use { kafkaConsumer ->
-        while (isRunning.get()) {
-          if (curRunId.get() != taskRunId)
-            return
 
-          val startPoll = System.currentTimeMillis()
-          val records = try {
-            kafkaConsumer.poll(Duration.ofMillis(2000))
-          }
-          catch (t: SerializationException) {
-            val shortMessage = t.message?.removePrefix("Error deserializing key/value for partition ")
-                                 ?.removeSuffix(". If needed, please seek past the record to continue consumption.") ?: ""
-            val offset = shortMessage.substringAfterLast(" ", "").toLongOrNull()
-            val topicPartitionPart = shortMessage.substringBeforeLast(" at offset", "")
-            val topic = topicPartitionPart.substringBeforeLast("-").ifBlank { null }
-            val partition = topicPartitionPart.substringAfterLast("-").toIntOrNull()
-            if (offset == null || topic == null || partition == null) {
-              consumeError(t)
-              return
-            }
-            kafkaConsumer.seek(TopicPartition(topic, partition), offset + 1)
-            consumeError(t)
-            emptyList()
-          }
-          catch (t: Throwable) {
-            consumeError(t)
-            timestampUpdate()
-            return
-          }
-          val endPoll = System.currentTimeMillis()
+    consumer.use { kafkaConsumer ->
+      while (isRunning.get()) {
+        if (curRunId.get() != taskRunId)
+          return@use
 
-          val processedRecords = mutableListOf<ConsumerRecord<Any, Any>>()
-
-          timestampUpdate()
-          val shouldConfinue = records.all { record: ConsumerRecord<Any, Any> ->
-            if (limit.time != null && record.timestamp() > limit.time) {
-              return@all false
-            }
-
-            if (!config.getFilter().isRecordPassFilter(record))
-              return@all true
-
-            val recordSize = record.serializedValueSize() + record.serializedKeySize()
-
-            if (needToReadTopicSize != null && needToReadTopicSize!! <= 0L) {
-              return@all false
-            }
-            needToReadTopicSize = needToReadTopicSize?.minus(recordSize)
-
-            if (needToReadPartitionSize != null) {
-              if (needToReadPartitionSize.isEmpty()) {
-                return@all false
-              }
-
-              val left = needToReadPartitionSize[record.partition()]
-              when {
-                left == null -> return@all true
-                left > 0 -> needToReadPartitionSize[record.partition()] = left - 1
-                else -> needToReadPartitionSize.remove(record.partition())
-              }
-            }
-
-            if (needToReadTopicCount == 0L) {
-              return@all false
-            }
-            needToReadTopicCount = needToReadTopicCount?.minus(1)
-
-            if (needToReadPartitionCount != null) {
-              if (needToReadPartitionCount.isEmpty()) {
-                return@all false
-              }
-
-              val left = needToReadPartitionCount[record.partition()]
-              when {
-                left == null -> return@all true
-                left > 1 -> needToReadPartitionCount[record.partition()] = left - 1
-                else -> needToReadPartitionCount.remove(record.partition())
-              }
-            }
-
-            processedRecords.add(record)
-            consumedRecords++
-            return@all true
-          }
-
-          consume(endPoll - startPoll, processedRecords)
-          if (!shouldConfinue)
-            return
+        val startPoll = System.currentTimeMillis()
+        val records = try {
+          kafkaConsumer.poll(Duration.ofMillis(2000))
         }
+        catch (t: SerializationException) {
+          val shortMessage = t.message?.removePrefix("Error deserializing key/value for partition ")
+                               ?.removeSuffix(". If needed, please seek past the record to continue consumption.") ?: ""
+          val offset = shortMessage.substringAfterLast(" ", "").toLongOrNull()
+          val topicPartitionPart = shortMessage.substringBeforeLast(" at offset", "")
+          val topic = topicPartitionPart.substringBeforeLast("-").ifBlank { null }
+          val partition = topicPartitionPart.substringAfterLast("-").toIntOrNull()
+          if (offset == null || topic == null || partition == null) {
+            consumeError(t)
+            return@use
+          }
+          kafkaConsumer.seek(TopicPartition(topic, partition), offset + 1)
+          consumeError(t)
+          emptyList()
+        }
+        catch (t: Throwable) {
+          consumeError(t)
+          timestampUpdate()
+          return@use
+        }
+        val endPoll = System.currentTimeMillis()
+
+        val processedRecords = mutableListOf<ConsumerRecord<Any, Any>>()
+
+        timestampUpdate()
+        val shouldContinue = records.all { record: ConsumerRecord<Any, Any> ->
+          if (limit.time != null && record.timestamp() > limit.time) {
+            return@all false
+          }
+
+          if (!config.getFilter().isRecordPassFilter(record))
+            return@all true
+
+          val recordSize = record.serializedValueSize() + record.serializedKeySize()
+
+          if (needToReadTopicSize != null && needToReadTopicSize!! <= 0L) {
+            return@all false
+          }
+          needToReadTopicSize = needToReadTopicSize?.minus(recordSize)
+
+          if (needToReadPartitionSize != null) {
+            if (needToReadPartitionSize.isEmpty()) {
+              return@all false
+            }
+
+            val left = needToReadPartitionSize[record.partition()]
+            when {
+              left == null -> return@all true
+              left > 0 -> needToReadPartitionSize[record.partition()] = left - 1
+              else -> needToReadPartitionSize.remove(record.partition())
+            }
+          }
+
+          if (needToReadTopicCount == 0L) {
+            return@all false
+          }
+          needToReadTopicCount = needToReadTopicCount?.minus(1)
+
+          if (needToReadPartitionCount != null) {
+            if (needToReadPartitionCount.isEmpty()) {
+              return@all false
+            }
+
+            val left = needToReadPartitionCount[record.partition()]
+            when {
+              left == null -> return@all true
+              left > 1 -> needToReadPartitionCount[record.partition()] = left - 1
+              else -> needToReadPartitionCount.remove(record.partition())
+            }
+          }
+
+          processedRecords.add(record)
+          consumedRecords1++
+          return@all true
+        }
+
+        consume(endPoll - startPoll, processedRecords)
+        if (!shouldContinue)
+          return@use
       }
     }
-    finally {
-      KafkaUsagesCollector.consumedKeyValue.log(config.getKeyType(), config.getValueType(), consumedRecords)
-      stop()
-    }
+    return consumedRecords1
   }
 
   private fun seekPartitions(consumer: KafkaConsumer<Any, Any>,
@@ -197,6 +220,10 @@ class KafkaConsumerClient(val dataManager: KafkaDataManager,
 
     config.properties.forEach {
       it.value.toIntOrNull()?.let { value -> props[it.key] = value }
+    }
+
+    config.consumerGroup?.let {
+      props[ConsumerConfig.GROUP_ID_CONFIG] = it
     }
 
     val keyDeserializer = config.getKeyType().getDeserializationClass(dataManager, keyConfig)

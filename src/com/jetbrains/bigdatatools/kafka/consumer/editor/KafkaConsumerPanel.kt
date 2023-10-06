@@ -13,7 +13,11 @@ import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.ui.components.ActionLink
 import com.intellij.ui.components.JBTextField
 import com.intellij.ui.dsl.builder.AlignX
+import com.intellij.ui.dsl.builder.BottomGap
+import com.intellij.ui.dsl.builder.TopGap
 import com.intellij.ui.dsl.builder.panel
+import com.intellij.ui.layout.enteredTextSatisfies
+import com.intellij.ui.layout.not
 import com.jetbrains.bigdatatools.common.rfs.util.RfsNotificationUtils
 import com.jetbrains.bigdatatools.common.settings.getValidationInfo
 import com.jetbrains.bigdatatools.common.ui.CustomListCellRenderer
@@ -40,6 +44,7 @@ import java.util.*
 import javax.swing.JButton
 import javax.swing.JComponent
 import javax.swing.JPanel
+import javax.swing.JTextField
 import kotlin.math.max
 
 class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaDataManager, private val file: VirtualFile) : Disposable {
@@ -53,7 +58,7 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
   private val limitOffset = JBTextField(15)
 
   private val startOffset = JBTextField(15)
-  private val startConsumerGroup = KafkaEditorUtils.createConsumerGroups(this, kafkaManager)
+  private val startConsumerGroup = KafkaEditorUtils.createConsumerGroups(this, kafkaManager, withEmpty = false)
 
   private val startFromComboBox = ComboBox(ConsumerStartType.entries.toTypedArray()).apply {
     renderer = CustomListCellRenderer<ConsumerStartType> { it.title }
@@ -93,6 +98,7 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
   private val filterHeadValueField = JBTextField()
 
   private val partitionField = JBTextField()
+  private val consumerGroup = KafkaEditorUtils.createConsumerGroups(this, kafkaManager, withEmpty = true)
 
   val topicComboBox = KafkaEditorUtils.createTopicComboBox(this, kafkaManager).apply {
     prototypeDisplayValue = TopicInEditor("AverageName")
@@ -155,6 +161,8 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
   private val filterPanelBlock = AtomicBooleanProperty(false)
 
   private val settingsPanelDelegate = lazy {
+    val isConsumerSetup = (consumerGroup.editor.editorComponent as JTextField).enteredTextSatisfies { !it.trim().isEmpty() }
+
     val panel = panel {
       row(KafkaMessagesBundle.message("settings.label.topics")) { cell(topicComboBox).align(AlignX.FILL).resizableColumn() }
 
@@ -162,11 +170,19 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
       value.createComponent(this)
 
       group(KafkaMessagesBundle.message("settings.title.range.filters")) {
-        row(KafkaMessagesBundle.message("settings.filters.from")) { cell(startFromComboBox).align(AlignX.FILL).resizableColumn() }
+        row(KafkaMessagesBundle.message("settings.filters.from")) {
+          cell(startFromComboBox).align(AlignX.FILL).resizableColumn()
+        }.enabledIf(isConsumerSetup.not())
+        row {
+          comment(KafkaMessagesBundle.message("settings.filters.from.not.available.with.consumer.group")).visibleIf(isConsumerSetup)
+        }.topGap(TopGap.NONE)
+
         indent {
           row { cell(startSpecificDate) }.visibleIf(startSpecificDateBlock)
           row { cell(startOffset) }.visibleIf(startOffsetBlock)
-          row { cell(startConsumerGroup) }.visibleIf(startConsumerGroupBlock)
+          row {
+            cell(startConsumerGroup).align(AlignX.FILL).resizableColumn()
+          }.visibleIf(startConsumerGroupBlock)
         }
 
         row(KafkaMessagesBundle.message("settings.filters.limit")) { cell(limitComboBox).align(AlignX.FILL).resizableColumn() }
@@ -181,8 +197,18 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
         }
       }
 
-      group(KafkaMessagesBundle.message("settings.title.partitions")) {
-        row(KafkaMessagesBundle.message("settings.partitions")) { cell(partitionField).align(AlignX.FILL).resizableColumn() }
+
+      collapsibleGroup(KafkaMessagesBundle.message("settings.title.other")) {
+        row(KafkaMessagesBundle.message("settings.partitions")) {
+          cell(partitionField).align(AlignX.FILL).resizableColumn().enabledIf(isConsumerSetup.not())
+        }.bottomGap(BottomGap.NONE)
+        row {
+          comment(KafkaMessagesBundle.message("settings.partitions.not.available.if.consumer.group.setup.comment"))
+        }.topGap(TopGap.NONE).visibleIf(isConsumerSetup).bottomGap(BottomGap.NONE)
+
+        row(KafkaMessagesBundle.message("settings.consumer.group.label")) {
+          cell(consumerGroup).align(AlignX.FILL).resizableColumn()
+        }.topGap(TopGap.SMALL)
       }
 
       row { cell(advancedSettings) }
@@ -307,7 +333,7 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
     val startWith = ConsumerEditorUtils.getStartWith(startFromComboBox.item,
                                                      startOffset.text,
                                                      startSpecificDate.date,
-                                                     startConsumerGroup.item?.consumerGroup)
+                                                     startConsumerGroup.item)
     val filter = getFilter()
 
     val consumerLimit = ConsumerLimit(limitComboBox.item, limitOffset.text,
@@ -335,7 +361,8 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
       filter = filter,
       startWith = startWith,
       properties = properties,
-      settings = settings)
+      settings = settings,
+      consumerGroup = consumerGroup.item.takeIf { it.isNotBlank() })
   }
 
   fun getComponent(): JComponent = presetsSplitter
@@ -353,12 +380,13 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
 
     topicComboBox.isEnabled = isEnabled
 
-    partitionField.isEnabled = isEnabled
+    partitionField.isEnabled = isEnabled && consumerGroup.item.isEmpty()
+    consumerGroup.isEnabled = isEnabled
 
     key.updateIsEnabled(isEnabled)
     value.updateIsEnabled(isEnabled)
 
-    startFromComboBox.isEnabled = isEnabled
+    startFromComboBox.isEnabled = isEnabled && consumerGroup.item.isEmpty()
     startSpecificDate.isEnabled = isEnabled
     startConsumerGroup.isEnabled = isEnabled
     startOffset.isEnabled = isEnabled
@@ -406,7 +434,6 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
 
     progress.onStop()
 
-
     updateVisibility()
   }
 
@@ -450,7 +477,7 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
     startFromComboBox.item = startWith.type
     startOffset.text = startWith.offset?.toString() ?: ""
     startSpecificDate.date = startWith.time?.let { Date(it) }
-    startConsumerGroup.item = kafkaManager.consumerGroupsModel.entries.firstOrNull { it.consumerGroup == startWith.consumerGroup }
+    startConsumerGroup.item = startWith.consumerGroup ?: ""
 
     val limit = config.getLimit()
     limitComboBox.item = limit.type

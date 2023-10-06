@@ -29,7 +29,6 @@ import com.jetbrains.bigdatatools.kafka.common.models.KafkaFieldType
 import com.jetbrains.bigdatatools.kafka.common.models.RegistrySchemaInEditor
 import com.jetbrains.bigdatatools.kafka.common.models.TopicInEditor
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
-import com.jetbrains.bigdatatools.kafka.model.ConsumerGroupPresentable
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryFormat
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryType
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryUtil
@@ -38,7 +37,6 @@ import io.confluent.kafka.schemaregistry.avro.AvroSchemaUtils
 import io.confluent.kafka.schemaregistry.json.JsonSchemaUtils
 import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchemaUtils
 import org.apache.avro.generic.GenericData
-import org.apache.kafka.common.ConsumerGroupState
 import java.awt.event.ItemEvent.SELECTED
 import java.nio.charset.Charset
 import java.util.*
@@ -165,21 +163,26 @@ object KafkaEditorUtils {
     return fieldsCombobox
   }
 
-  fun createConsumerGroups(rootDisposable: Disposable, kafkaManager: KafkaDataManager): ComboBox<ConsumerGroupPresentable> {
-    val groups = kafkaManager.consumerGroupsModel
-    val comboBox = ComboBox(groups.data?.map { it }?.toTypedArray() ?: emptyArray())
-    comboBox.prototypeDisplayValue = ConsumerGroupPresentable(state = ConsumerGroupState.UNKNOWN,
-                                                              consumerGroup = "Group sample name",
-                                                              consumers = 0,
-                                                              topics = 0,
-                                                              partitions = 0) // Field is set for limiting combobox width.
-    comboBox.renderer = CustomListCellRenderer<ConsumerGroupPresentable> { it.consumerGroup }
-    val listener = KafkaDataModelListener(comboBox) { kafkaManager.consumerGroupsModel.data?.map { it } to null }
+  fun createConsumerGroups(rootDisposable: Disposable, kafkaManager: KafkaDataManager, withEmpty: Boolean): ComboBox<String> {
+    val calcData = {
+      val prefix = if (withEmpty) listOf("") else listOf()
+      val cachedData = kafkaManager.consumerGroupsModel.data?.map { it.consumerGroup } ?: emptyList()
+      prefix + cachedData
+    }
+
+    val comboBox = ComboBox((calcData()).toTypedArray())
+    comboBox.prototypeDisplayValue = "       " // Field is set for limiting combobox width.
+    comboBox.renderer = CustomListCellRenderer<String> { it }
+
+    val listener = object : DataModelListener {
+      override fun onChanged() = updateEditableComboBox(comboBox, calcData())
+    }
+
     kafkaManager.consumerGroupsModel.addListener(listener)
     Disposer.register(rootDisposable) {
       kafkaManager.consumerGroupsModel.removeListener(listener)
     }
-
+    comboBox.isEditable = true
     return comboBox
   }
 
@@ -306,6 +309,25 @@ object KafkaEditorUtils {
       return topic
     return null
   }
+
+  fun <T> updateEditableComboBox(comboBox: ComboBox<T>, newData: List<T>) {
+    val oldValues = (0 until comboBox.model.size).map {
+      comboBox.model.getElementAt(it)
+    }
+    if (oldValues == newData) {
+      return
+    }
+    val oldValue = comboBox.item
+    comboBox.removeAllItems()
+    newData.forEach {
+      comboBox.addItem(it)
+    }
+    comboBox.item = oldValue
+
+    comboBox.invalidate()
+    comboBox.repaint()
+  }
+
 
   fun <T> updateComboBox(comboBox: ComboBox<T>, onListUpdate: (List<T>) -> Unit = {}, dataSupplier: () -> Pair<List<T>?, Int?>) {
     val oldTopics = (0 until comboBox.model.size).map {
