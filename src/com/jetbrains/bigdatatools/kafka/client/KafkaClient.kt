@@ -29,6 +29,7 @@ import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import kotlinx.coroutines.TimeoutCancellationException
 import org.apache.kafka.clients.CommonClientConfigs
 import org.apache.kafka.clients.admin.*
+import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.ConsumerGroupState
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.config.ConfigResource
@@ -161,7 +162,7 @@ class KafkaClient(project: Project?,
       }
       catch (t: Throwable) {
         throwable = t
-        parsed.add(ConsumerGroupPresentable(it.second.state, it.second.consumerGroup))
+        parsed.add(BdtKafkaMapper.mockConsumerGroup(it.second.consumerGroup, it.second.state))
       }
     }
     return parsed.sortedBy { it.consumerGroup } to throwable
@@ -418,6 +419,20 @@ class KafkaClient(project: Project?,
   }
 
   fun getTopicConfig(topicName: String): List<TopicConfig> = loadTopicConfigs(listOf(topicName)).values.first()
+
+  fun deleteConsumerGroup(name: String) {
+    kafkaAdminNotNull.deleteConsumerGroups(listOf(name))
+  }
+
+  suspend fun getOffsetsForData(partitions: List<TopicPartition>, timestamp: Long): Map<TopicPartition, OffsetAndMetadata> {
+    val request = partitions.map { it to OffsetSpec.forTimestamp(timestamp) }.toMap()
+    val results = kafkaAdminNotNull.listOffsets(request).all().await()
+    return results.map { it.key to OffsetAndMetadata(it.value.offset()) }.toMap()
+  }
+
+  suspend fun resetOffsets(consumeGroupId: String, offsets: Map<TopicPartition, OffsetAndMetadata>) {
+    kafkaAdminNotNull.alterConsumerGroupOffsets(consumeGroupId, offsets).all().await()
+  }
 
   companion object {
     fun loadPropertyFile(propertyFilePath: String): String {

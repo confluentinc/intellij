@@ -15,7 +15,7 @@ import org.apache.kafka.common.config.TopicConfig.MESSAGE_FORMAT_VERSION_CONFIG
 
 object BdtKafkaMapper {
   fun mockConsumerGroup(id: String, state: ConsumerGroupState): ConsumerGroupPresentable {
-    return ConsumerGroupPresentable(state = state, consumerGroup = id, consumers = -1, topics = -1, partitions = -1)
+    return ConsumerGroupPresentable(state = state, consumerGroup = id, consumers = -1, topicValues = emptyList(), partitions = -1)
   }
 
   fun mapToConsumerGroup(detailedGroup: ConsumerGroupDescription): ConsumerGroupPresentable {
@@ -23,13 +23,13 @@ object BdtKafkaMapper {
       it.assignment().topicPartitions().map { topicPartition -> topicPartition.topic() to topicPartition.partition() }
     }.distinct()
 
-    val numTopics = topicsToPartitions.map { it.first }.distinct().size
+    val topics: List<String> = topicsToPartitions.map { it.first }.distinct()
     val numTopicPartitions = topicsToPartitions.size
 
     return ConsumerGroupPresentable(state = detailedGroup.state(),
                                     consumerGroup = detailedGroup.groupId().ifBlank { "(blank)" },
                                     consumers = detailedGroup.members().size,
-                                    topics = numTopics,
+                                    topicValues = topics,
                                     partitions = numTopicPartitions)
   }
 

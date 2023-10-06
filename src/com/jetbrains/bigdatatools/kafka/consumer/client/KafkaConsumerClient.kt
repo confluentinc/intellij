@@ -4,11 +4,11 @@ import com.intellij.openapi.Disposable
 import com.jetbrains.bigdatatools.kafka.common.settings.StorageConsumerConfig
 import com.jetbrains.bigdatatools.kafka.consumer.editor.ConsumerEditorUtils
 import com.jetbrains.bigdatatools.kafka.consumer.models.ConsumerProducerFieldConfig
-import com.jetbrains.bigdatatools.kafka.consumer.models.ConsumerStartType
 import com.jetbrains.bigdatatools.kafka.consumer.models.ConsumerStartWith
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.statistics.KafkaUsagesCollector
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import com.jetbrains.bigdatatools.kafka.util.KafkaOffsetUtils
 import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig
 import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.clients.consumer.ConsumerRecord
@@ -197,7 +197,7 @@ class KafkaConsumerClient(val dataManager: KafkaDataManager,
                              startWith: ConsumerStartWith) {
     val startFromOffsetSeek = startWith.offset?.let { partitionOffsetsForStartOffset(consumer, partitions, it) }
 
-    val startTime = calculateStartTime(startWith)
+    val startTime = KafkaOffsetUtils.calculateStartTime(startWith)
     val startFromDateSeek: Map<TopicPartition, Long?>? = startTime?.let { partitionOffsetsForStartDate(it, partitions, consumer) }
 
     val startFromConsumerGroupSeek = startWith.consumerGroup?.let { consumerGroupId ->
@@ -269,37 +269,4 @@ class KafkaConsumerClient(val dataManager: KafkaDataManager,
     return offsetsForTimes?.map { it.key to it.value?.offset() }?.toMap()
   }
 
-  private fun calculateStartTime(startWith: ConsumerStartWith): Long? {
-    val calendar = Calendar.getInstance()
-    calendar.time = Date()
-
-    startWith.time?.let {
-      return it
-    }
-
-    return when (startWith.type) {
-      ConsumerStartType.NOW -> null
-      ConsumerStartType.LAST_HOUR -> {
-        calendar.add(Calendar.HOUR_OF_DAY, -1)
-        calendar.time
-      }
-      ConsumerStartType.TODAY -> {
-        calendar.set(Calendar.HOUR_OF_DAY, 0)
-        calendar.set(Calendar.MINUTE, 0)
-        calendar.set(Calendar.SECOND, 0)
-        calendar.time
-      }
-      ConsumerStartType.YESTERDAY -> {
-        calendar.set(Calendar.HOUR_OF_DAY, 0)
-        calendar.set(Calendar.MINUTE, 0)
-        calendar.set(Calendar.SECOND, 0)
-        calendar.add(Calendar.DAY_OF_YEAR, -1)
-        calendar.time
-      }
-      ConsumerStartType.THE_BEGINNING -> {
-        Date(0)
-      }
-      else -> null
-    }?.time
-  }
 }

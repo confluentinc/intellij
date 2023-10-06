@@ -1,15 +1,20 @@
 package com.jetbrains.bigdatatools.kafka.toolwindow.controllers
 
+import com.intellij.openapi.actionSystem.ActionGroup
+import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.AnAction
+import com.intellij.openapi.actionSystem.DataProvider
 import com.intellij.ui.DocumentAdapter
 import com.intellij.ui.SearchTextField
 import com.jetbrains.bigdatatools.common.monitoring.data.model.FilterAdapter
 import com.jetbrains.bigdatatools.common.monitoring.data.model.FilterKey
 import com.jetbrains.bigdatatools.common.monitoring.toolwindow.AbstractTableController
+import com.jetbrains.bigdatatools.common.monitoring.toolwindow.MainTreeController
 import com.jetbrains.bigdatatools.common.ui.CustomComponentActionImpl
 import com.jetbrains.bigdatatools.common.ui.filter.CountFilterPopupComponent
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.model.ConsumerGroupPresentable
+import com.jetbrains.bigdatatools.kafka.rfs.KafkaDriver
 import com.jetbrains.bigdatatools.kafka.toolwindow.config.KafkaToolWindowSettings
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import javax.swing.event.DocumentEvent
@@ -17,7 +22,21 @@ import javax.swing.event.DocumentEvent
 class ConsumerGroupsController(val dataManager: KafkaDataManager) : AbstractTableController<ConsumerGroupPresentable>() {
   init {
     init()
+
+    dataTable.customDataProvider = DataProvider { dataId ->
+      when {
+        MainTreeController.DATA_MANAGER.`is`(dataId) -> dataManager
+        MainTreeController.RFS_PATH.`is`(dataId) -> {
+          val consumerGroup = getSelectedItem()?.consumerGroup
+          consumerGroup?.let { KafkaDriver.consumerPath.child(it, false) }
+        }
+        else -> null
+      }
+    }
   }
+
+  override fun getAdditionalContextActions(): List<AnAction> =
+    (ActionManager.getInstance().getAction("Kafka.Consumer.Group.Actions") as ActionGroup).getChildren(null).toList()
 
   override fun getColumnSettings() = KafkaToolWindowSettings.getInstance().consumerGroupsColumnSettings
 

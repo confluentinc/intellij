@@ -26,7 +26,7 @@ class KafkaDriver(override val connectionData: KafkaConnectionData, project: Pro
 
   override val treeNodeBuilder: RfsDriverTreeNodeBuilder = object : RfsDriverTreeNodeBuilder() {
     override fun createNode(project: Project, path: RfsPath, driver: Driver) =
-      KafkaRfsTreeNode(project, path, dataManager.getTopicByName(path.name), dataManager.getSchemaByName(path.name), this@KafkaDriver)
+      KafkaRfsTreeNode(project, path, dataManager.getCachedTopicByName(path.name), dataManager.getSchemaByName(path.name), this@KafkaDriver)
   }
 
   init {

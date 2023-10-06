@@ -56,3 +56,4 @@ object KafkaDialogFactory {
     dataManager.createTopic(nameField.text, numPartition.text.toIntOrNull(), replicationFactor.text.toIntOrNull())
   }
 }
+

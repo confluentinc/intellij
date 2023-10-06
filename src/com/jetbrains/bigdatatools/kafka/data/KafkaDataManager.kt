@@ -18,7 +18,6 @@ import com.jetbrains.bigdatatools.common.rfs.driver.SafeExecutor
 import com.jetbrains.bigdatatools.common.rfs.driver.manager.DriverManager
 import com.jetbrains.bigdatatools.common.rfs.util.RfsNotificationUtils
 import com.jetbrains.bigdatatools.common.util.asSilent
-import com.jetbrains.bigdatatools.common.util.executeOnPooledThread
 import com.jetbrains.bigdatatools.common.util.runAsync
 import com.jetbrains.bigdatatools.common.util.runAsyncSuspend
 import com.jetbrains.bigdatatools.kafka.client.BdtKafkaMapper
@@ -41,8 +40,12 @@ import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import io.confluent.kafka.schemaregistry.ParsedSchema
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.future.asCompletableFuture
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runInterruptible
 import kotlinx.coroutines.withContext
+import org.apache.kafka.clients.consumer.OffsetAndMetadata
+import org.apache.kafka.common.ConsumerGroupState
+import org.apache.kafka.common.TopicPartition
 import org.jetbrains.concurrency.Promise
 import org.jetbrains.concurrency.asPromise
 import org.jetbrains.concurrency.await
@@ -91,7 +94,21 @@ class KafkaDataManager(project: Project?,
     emptyList()
   }
 
-  fun getTopicByName(name: String) = getTopics().firstOrNull { it.name == name }
+  fun getCachedTopicByName(name: String) = getTopics().firstOrNull { it.name == name }
+
+  @RequiresBackgroundThread
+  suspend fun getFromCacheOrLoadTopicInfo(name: String) = getCachedTopicByName(name) ?: loadTopicInfo(name)
+
+  @RequiresBackgroundThread
+  suspend fun loadTopicInfo(name: String) = client.getDetailedTopicsInfo(listOf(name)).first()
+
+  @RequiresBackgroundThread
+  suspend fun loadConsumerGroup(name: String): ConsumerGroupPresentable {
+    val groups = client.getDetailedConsumerGroups(
+      listOf(ConsumerGroupPresentable(state = ConsumerGroupState.UNKNOWN, consumerGroup = name)))
+    return groups.first.firstOrNull() ?: throw groups.second!!
+  }
+
 
   fun getSchemaByName(name: String) = schemaRegistryModel?.data?.firstOrNull { it.name == name }
 
@@ -140,8 +157,6 @@ class KafkaDataManager(project: Project?,
       return
 
     actionWrapper {
-
-
       topicNames.forEach {
         client.deleteTopic(it)
       }
@@ -191,7 +206,7 @@ class KafkaDataManager(project: Project?,
       (limit?.let { groups.take(it) } ?: groups) to (limit != null && groups.size > limit)
     }
 
-  private fun actionWrapper(body: () -> Unit) = executeOnPooledThread {
+  private fun actionWrapper(body: () -> Unit) = driver.coroutineScope.launch {
     try {
       body()
     }
@@ -432,6 +447,37 @@ class KafkaDataManager(project: Project?,
       config.schemasPined -= schemaName
     }
     schemaRegistryModel?.let { updater.invokeRefreshModel(it) }
+  }
+
+  suspend fun resetOffsets(consumeGroupId: String, offsets: Map<TopicPartition, OffsetAndMetadata>) {
+    client.resetOffsets(consumeGroupId, offsets)
+    updater.invokeRefreshModel(consumerGroupsModel)
+    KafkaUsagesCollector.consumerGroupChangeOffsetsEvent.log(project)
+
+  }
+
+  suspend fun getOffsetsForData(partitions: List<TopicPartition>, timestamp: Long): Map<TopicPartition, OffsetAndMetadata> {
+    return client.getOffsetsForData(partitions, timestamp)
+  }
+
+  fun deleteConsumerGroup(name: String) {
+    val msg = KafkaMessagesBundle.message("action.delete.consumer.group.single.message", name)
+    val res = Messages.showOkCancelDialog(project,
+                                          msg,
+                                          KafkaMessagesBundle.message("action.kafka.DeleteConsumerGroupAction.text"),
+                                          CommonBundle.getOkButtonText(),
+                                          CommonBundle.getCancelButtonText(),
+                                          Messages.getQuestionIcon())
+    if (res != Messages.OK)
+      return
+
+    actionWrapper {
+      client.deleteConsumerGroup(name)
+      updater.invokeRefreshModel(consumerGroupsModel)
+    }
+
+    KafkaUsagesCollector.consumerGroupDeleteEvent.log(project)
+
   }
 
   companion object {
