@@ -16,6 +16,7 @@ import com.intellij.ui.ColoredListCellRenderer
 import com.intellij.ui.EditorCustomization
 import com.intellij.ui.EditorTextFieldProvider
 import com.intellij.ui.SimpleTextAttributes
+import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.intellij.util.ui.UIUtil
 import com.jetbrains.bigdatatools.common.monitoring.data.listener.DataModelListener
 import com.jetbrains.bigdatatools.common.settings.getValidator
@@ -125,6 +126,7 @@ object KafkaEditorUtils {
   internal class KafkaDataModelListener<T>(private val comboBox: ComboBox<T>,
                                            private val onListUpdate: (List<T>) -> Unit = {},
                                            private val dataSupplier: () -> Pair<List<T>?, Int?>) : DataModelListener {
+    @RequiresEdt
     override fun onChanged() = updateComboBox(comboBox, onListUpdate, dataSupplier)
     override fun onError(msg: String, e: Throwable?) = updateComboBox(comboBox, onListUpdate, dataSupplier)
   }
@@ -241,18 +243,14 @@ object KafkaEditorUtils {
       }
     }
 
-
     val listener = KafkaDataModelListener(schemaCombobox) {
       val prevSchema = schemaCombobox.item?.schemaName?.takeIf { it.isNotEmpty() }
       prevSchema?.let { prevSchemaName = it }
-
-
       calculateSchemasForCombobox(kafkaManager, topicComboBox, isKey, prevSchemaName)
     }
 
-    executeNotOnEdt {
-      listener.onChanged()
-    }
+    listener.onChanged()
+
     kafkaManager.schemaRegistryModel?.addListener(listener)
     Disposer.register(rootDisposable) {
       kafkaManager.schemaRegistryModel?.removeListener(listener)
@@ -327,7 +325,6 @@ object KafkaEditorUtils {
     comboBox.invalidate()
     comboBox.repaint()
   }
-
 
   fun <T> updateComboBox(comboBox: ComboBox<T>, onListUpdate: (List<T>) -> Unit = {}, dataSupplier: () -> Pair<List<T>?, Int?>) {
     val oldTopics = (0 until comboBox.model.size).map {

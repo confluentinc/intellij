@@ -32,21 +32,21 @@ class KafkaRegistryAddSchemaDialog(project: Project, val dataManager: KafkaDataM
   DialogWrapper(project, false, IdeModalityType.MODELESS) {
   private val isConfluentSchema = dataManager.connectionData.registryType == KafkaRegistryType.CONFLUENT
 
-  private val formatCombobox = ComboBox((KafkaRegistryFormat.values().toList() - KafkaRegistryFormat.UNKNOWN).toTypedArray()).apply {
+  private val formatCombobox = ComboBox((KafkaRegistryFormat.entries - KafkaRegistryFormat.UNKNOWN).toTypedArray()).apply {
     renderer = CustomListCellRenderer<KafkaRegistryFormat> { it.presentable }
     addActionListener {
       onChangeFormat()
     }
   }
 
-  internal val strategyCombobox = ComboBox(ConfluentRegistryStrategy.values()).apply {
+  internal val strategyCombobox = ComboBox(ConfluentRegistryStrategy.entries.toTypedArray()).apply {
     renderer = CustomListCellRenderer<ConfluentRegistryStrategy> { it.presentable }
     addActionListener {
       onChangeStrategy()
     }
   }
 
-  internal val keyValueCombobox = ComboBox(KafkaRegistryKeyValue.values()).apply {
+  internal val keyValueCombobox = ComboBox(KafkaRegistryKeyValue.entries.toTypedArray()).apply {
     renderer = CustomListCellRenderer<KafkaRegistryKeyValue> { it.presentable }
     selectedItem = KafkaRegistryKeyValue.VALUE
     addActionListener {
