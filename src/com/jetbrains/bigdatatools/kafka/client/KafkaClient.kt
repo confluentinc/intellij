@@ -144,28 +144,18 @@ class KafkaClient(project: Project?,
     kafkaAdminNotNull.deleteRecords(deleteRequest).all().await()
   }
 
-  fun getConsumerGroups() = kafkaAdminNotNull.listConsumerGroups().all().get().map {
-    ConsumerGroupPresentable(state = it.state().getOrNull() ?: ConsumerGroupState.UNKNOWN, consumerGroup = it.groupId())
-  }.sortedBy { it.consumerGroup }
+  fun getConsumerGroups(): List<ConsumerGroupPresentable> {
+    val result = kafkaAdminNotNull.listConsumerGroups().valid().get()
+    return result.map {
+      ConsumerGroupPresentable(state = it.state().getOrNull() ?: ConsumerGroupState.UNKNOWN, consumerGroup = it.groupId())
+    }.sortedBy { it.consumerGroup }
+  }
 
-  suspend fun getDetailedConsumerGroups(consumerGroups: List<ConsumerGroupPresentable>): Pair<List<ConsumerGroupPresentable>, Throwable?> {
-    val options = DescribeConsumerGroupsOptions()
-    options.timeoutMs(maxOf(BdIdeRegistryUtil.RFS_DEFAULT_TIMEOUT, 60_000))
-    val groupRequests = kafkaAdminNotNull.describeConsumerGroups(consumerGroups.map { it.consumerGroup }, options)
+  suspend fun listConsumerGroupOffsets(consumerGroup: String): List<ConsumerGroupOffsetInfo> {
+    val offsetResults = kafkaAdminNotNull.listConsumerGroupOffsets(consumerGroup).all().await().entries.firstOrNull()?.value
+                        ?: return emptyList()
 
-    val parsed = mutableListOf<ConsumerGroupPresentable>()
-    var throwable: Throwable? = null
-    groupRequests.describedGroups().values.zip(consumerGroups).forEach {
-      val groupDescription = it.first.await()
-      try {
-        parsed.add(BdtKafkaMapper.mapToConsumerGroup(groupDescription))
-      }
-      catch (t: Throwable) {
-        throwable = t
-        parsed.add(BdtKafkaMapper.mockConsumerGroup(it.second.consumerGroup, it.second.state))
-      }
-    }
-    return parsed.sortedBy { it.consumerGroup } to throwable
+    return BdtKafkaMapper.getConsumerGroupOffsets(offsetResults)
   }
 
   fun getConsumerGroupOffsets(consumerGroup: String) =
@@ -424,10 +414,10 @@ class KafkaClient(project: Project?,
     kafkaAdminNotNull.deleteConsumerGroups(listOf(name))
   }
 
-  suspend fun getOffsetsForData(partitions: List<TopicPartition>, timestamp: Long): Map<TopicPartition, OffsetAndMetadata> {
-    val request = partitions.map { it to OffsetSpec.forTimestamp(timestamp) }.toMap()
+  suspend fun getOffsetsForDate(partitions: List<TopicPartition>, timestamp: Long): Map<TopicPartition, Long> {
+    val request = partitions.associateWith { OffsetSpec.forTimestamp(timestamp) }
     val results = kafkaAdminNotNull.listOffsets(request).all().await()
-    return results.map { it.key to OffsetAndMetadata(it.value.offset()) }.toMap()
+    return results.map { it.key to it.value.offset() }.toMap()
   }
 
   suspend fun resetOffsets(consumeGroupId: String, offsets: Map<TopicPartition, OffsetAndMetadata>) {

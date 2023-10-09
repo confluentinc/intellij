@@ -24,13 +24,12 @@ import com.jetbrains.bigdatatools.kafka.consumer.models.ConsumerStartType
 import com.jetbrains.bigdatatools.kafka.consumer.models.ConsumerStartWith
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.model.BdtTopicPartition
-import com.jetbrains.bigdatatools.kafka.model.ConsumerGroupPresentable
 import com.michaelbaranov.microba.calendar.DatePicker
 import kotlinx.coroutines.*
 import java.util.*
 import javax.swing.BorderFactory
 
-class ChangeOffsetController(val project: Project, val dataManager: KafkaDataManager, val consumerGroup: String) {
+class KafkaConsumerGroupChangeOffsetProcess(val project: Project, val dataManager: KafkaDataManager, val consumerGroup: String) {
   private val coroutineScope = dataManager.driver.coroutineScope
   private val startSpecificDate = DatePicker()
   private val startType = AtomicProperty(ConsumerStartType.NOW)
@@ -69,14 +68,17 @@ class ChangeOffsetController(val project: Project, val dataManager: KafkaDataMan
   }
 
   private suspend fun internalChangeOffsetWithDialog() {
-    val consumerGroupInfo: ConsumerGroupPresentable = withContext(Dispatchers.IO) {
-      dataManager.loadConsumerGroup(consumerGroup)
+    val consumerGroupOffset = withContext(Dispatchers.IO) {
+      dataManager.loadConsumerGroupOffset(consumerGroup)
     }
 
 
-    val topics: Collection<String> = consumerGroupInfo.topicValues ?: emptyList()
+    val topics: List<String> = consumerGroupOffset.map { it.topic }.distinct()
     val allTopicName = KafkaMessagesBundle.message("all.topics")
-    val allSelectableTopics = listOf(allTopicName) + topics
+    val allSelectableTopics = if (topics.size <= 1)
+      topics
+    else
+      listOf(allTopicName) + topics
 
     val res = createAndShowDialog(allSelectableTopics)
     if (res)
@@ -91,7 +93,7 @@ class ChangeOffsetController(val project: Project, val dataManager: KafkaDataMan
 
     val topicInfos = selectedNames.map {
       coroutineScope.async {
-        dataManager.getFromCacheOrLoadTopicInfo(it)
+        dataManager.loadTopicInfo(it)
       }
     }.awaitAll()
     val partitions = topicInfos.flatMap { it.partitionList }

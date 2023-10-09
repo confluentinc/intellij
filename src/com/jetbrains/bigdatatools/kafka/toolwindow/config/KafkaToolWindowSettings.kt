@@ -8,6 +8,7 @@ import com.intellij.util.xmlb.XmlSerializerUtil
 import com.jetbrains.bigdatatools.common.connection.updater.IntervalUpdateSettings
 import com.jetbrains.bigdatatools.common.settings.ColumnVisibilitySettings
 import com.jetbrains.bigdatatools.kafka.model.BdtTopicPartition
+import com.jetbrains.bigdatatools.kafka.model.ConsumerGroupOffsetInfo
 import com.jetbrains.bigdatatools.kafka.model.ConsumerGroupPresentable
 import com.jetbrains.bigdatatools.kafka.model.TopicPresentable
 import com.jetbrains.bigdatatools.kafka.registry.common.KafkaSchemaInfo
@@ -42,11 +43,14 @@ class KafkaToolWindowSettings : PersistentStateComponent<KafkaToolWindowSettings
 
   private val consumerGroupsTableColumns = mutableListOf(
     ConsumerGroupPresentable::consumerGroup.name,
-    ConsumerGroupPresentable::state.name,
-    ConsumerGroupPresentable::consumers.name,
-    ConsumerGroupPresentable::topics.name,
-    ConsumerGroupPresentable::partitions.name)
+    ConsumerGroupPresentable::state.name)
   val consumerGroupsColumnSettings = ColumnVisibilitySettings(consumerGroupsTableColumns)
+
+  private val consumerGroupOffsetTableColumns = mutableListOf(
+    ConsumerGroupOffsetInfo::topic.name,
+    ConsumerGroupOffsetInfo::partition.name,
+    ConsumerGroupOffsetInfo::offset.name)
+  val consumerGroupOffsetColumnSettings = ColumnVisibilitySettings(consumerGroupOffsetTableColumns)
 
   private val confluentSchemaTableColumns = mutableListOf(KafkaSchemaInfo::isFavorite.name,
                                                           KafkaSchemaInfo::name.name,

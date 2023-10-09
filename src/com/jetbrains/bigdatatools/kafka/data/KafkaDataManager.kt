@@ -3,6 +3,7 @@ package com.jetbrains.bigdatatools.kafka.data
 import com.intellij.CommonBundle
 import com.intellij.openapi.application.EDT
 import com.intellij.openapi.diagnostic.thisLogger
+import com.intellij.openapi.progress.runBlockingMaybeCancellable
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.util.Disposer
@@ -24,10 +25,7 @@ import com.jetbrains.bigdatatools.kafka.client.BdtKafkaMapper
 import com.jetbrains.bigdatatools.kafka.client.KafkaClient
 import com.jetbrains.bigdatatools.kafka.common.models.RegistrySchemaInEditor
 import com.jetbrains.bigdatatools.kafka.consumer.editor.KafkaConsumerPanelStorage
-import com.jetbrains.bigdatatools.kafka.model.BdtTopicPartition
-import com.jetbrains.bigdatatools.kafka.model.ConsumerGroupPresentable
-import com.jetbrains.bigdatatools.kafka.model.TopicConfig
-import com.jetbrains.bigdatatools.kafka.model.TopicPresentable
+import com.jetbrains.bigdatatools.kafka.model.*
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryFormat
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryType
 import com.jetbrains.bigdatatools.kafka.registry.SchemaVersionInfo
@@ -44,7 +42,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runInterruptible
 import kotlinx.coroutines.withContext
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
-import org.apache.kafka.common.ConsumerGroupState
 import org.apache.kafka.common.TopicPartition
 import org.jetbrains.concurrency.Promise
 import org.jetbrains.concurrency.asPromise
@@ -66,6 +63,7 @@ class KafkaDataManager(project: Project?,
   internal val topicModel = createTopicsDataModel().also { Disposer.register(this, it) }
 
   internal val consumerGroupsModel = createConsumerGroupsDataModel().also { Disposer.register(this, it) }
+  internal val consumerGroupsOffsets = createConsumerGroupOffsetsStorage().also { Disposer.register(this, it) }
   var topicPartitionsModels = createTopicPartitionsStorage().also { Disposer.register(this, it) }
   val topicConfigsModels = createTopicConfigsStorage().also { Disposer.register(this, it) }
 
@@ -97,16 +95,13 @@ class KafkaDataManager(project: Project?,
   fun getCachedTopicByName(name: String) = getTopics().firstOrNull { it.name == name }
 
   @RequiresBackgroundThread
-  suspend fun getFromCacheOrLoadTopicInfo(name: String) = getCachedTopicByName(name) ?: loadTopicInfo(name)
-
-  @RequiresBackgroundThread
   suspend fun loadTopicInfo(name: String) = client.getDetailedTopicsInfo(listOf(name)).first()
 
   @RequiresBackgroundThread
-  suspend fun loadConsumerGroup(name: String): ConsumerGroupPresentable {
-    val groups = client.getDetailedConsumerGroups(
-      listOf(ConsumerGroupPresentable(state = ConsumerGroupState.UNKNOWN, consumerGroup = name)))
-    return groups.first.firstOrNull() ?: throw groups.second!!
+  fun loadConsumerGroupOffset(name: String): List<ConsumerGroupOffsetInfo> {
+    return runBlockingMaybeCancellable {
+      client.listConsumerGroupOffsets(name)
+    }
   }
 
 
@@ -186,16 +181,7 @@ class KafkaDataManager(project: Project?,
   }
 
   private fun createConsumerGroupsDataModel() =
-    ObjectDataModel(ConsumerGroupPresentable::consumerGroup, additionalInfoLoading = { dataObject ->
-      try {
-        val groups = dataObject.data ?: emptyList()
-        client.getDetailedConsumerGroups(groups)
-      }
-      catch (t: Throwable) {
-        thisLogger().warn(t)
-        (dataObject.data?.map { BdtKafkaMapper.mockConsumerGroup(it.consumerGroup, state = it.state) } ?: emptyList()) to t
-      }
-    }) {
+    ObjectDataModel(ConsumerGroupPresentable::consumerGroup) {
       val toolWindowSettings = KafkaToolWindowSettings.getInstance()
       val filterName = toolWindowSettings.getOrCreateConfig(connectionId).consumerFilterName
 
@@ -213,6 +199,12 @@ class KafkaDataManager(project: Project?,
     catch (t: Throwable) {
       RfsNotificationUtils.showExceptionMessage(project, t)
     }
+  }
+
+
+  private fun createConsumerGroupOffsetsStorage() = ObjectDataModelStorage<String, ConsumerGroupOffsetInfo>(updater,
+                                                                                                            ConsumerGroupOffsetInfo::fullId) { consumerGroup ->
+    loadConsumerGroupOffset(consumerGroup)
   }
 
 
@@ -452,12 +444,13 @@ class KafkaDataManager(project: Project?,
   suspend fun resetOffsets(consumeGroupId: String, offsets: Map<TopicPartition, OffsetAndMetadata>) {
     client.resetOffsets(consumeGroupId, offsets)
     updater.invokeRefreshModel(consumerGroupsModel)
+    updater.invokeRefreshModel(consumerGroupsOffsets[consumeGroupId])
     KafkaUsagesCollector.consumerGroupChangeOffsetsEvent.log(project)
 
   }
 
-  suspend fun getOffsetsForData(partitions: List<TopicPartition>, timestamp: Long): Map<TopicPartition, OffsetAndMetadata> {
-    return client.getOffsetsForData(partitions, timestamp)
+  suspend fun getOffsetsForData(partitions: Set<TopicPartition>, timestamp: Long): Map<TopicPartition, Long> {
+    return client.getOffsetsForDate(partitions.toList(), timestamp)
   }
 
   fun deleteConsumerGroup(name: String) {
