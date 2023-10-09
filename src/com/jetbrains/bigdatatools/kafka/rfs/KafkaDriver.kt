@@ -85,7 +85,7 @@ class KafkaDriver(override val connectionData: KafkaConnectionData, project: Pro
 
   companion object {
     val topicPath = RfsPath(listOf(KafkaGroupType.TOPIC.title), true)
-    val consumerPath = RfsPath(listOf(KafkaGroupType.CONSUMER_GROUP.title), false)
+    val consumerPath = RfsPath(listOf(KafkaGroupType.CONSUMER_GROUP.title), true)
     val schemasPath = RfsPath(listOf(KafkaGroupType.SCHEMA_REGISTRY_GROUP.title), true)
 
     val RfsPath.isTopicFolder

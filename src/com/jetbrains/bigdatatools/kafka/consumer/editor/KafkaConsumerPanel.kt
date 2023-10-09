@@ -37,6 +37,7 @@ import com.jetbrains.bigdatatools.kafka.consumer.client.KafkaConsumerClient
 import com.jetbrains.bigdatatools.kafka.consumer.models.*
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryFormat
+import com.jetbrains.bigdatatools.kafka.util.KafkaConsumerGroupChangeOffsetProcess
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import com.michaelbaranov.microba.calendar.DatePicker
 import java.awt.Dimension
@@ -208,7 +209,12 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
 
         row(KafkaMessagesBundle.message("settings.consumer.group.label")) {
           cell(consumerGroup).align(AlignX.FILL).resizableColumn()
-        }.topGap(TopGap.SMALL)
+        }.topGap(TopGap.SMALL).bottomGap(BottomGap.SMALL)
+        row {
+          link(KafkaMessagesBundle.message("task.change.offset")) {
+            KafkaConsumerGroupChangeOffsetProcess(project, kafkaManager, consumerGroup.item).showAndUpdate()
+          }
+        }.topGap(TopGap.NONE).visibleIf(isConsumerSetup)
       }
 
       row { cell(advancedSettings) }

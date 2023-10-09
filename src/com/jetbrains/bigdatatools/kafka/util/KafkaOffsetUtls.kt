@@ -12,11 +12,20 @@ object KafkaOffsetUtils {
   suspend fun calculateOffsets(partitions: List<BdtTopicPartition>,
                                startWith: ConsumerStartWith,
                                dataManager: KafkaDataManager): Map<TopicPartition, OffsetAndMetadata> {
-    val topicPartitions = partitions.map { TopicPartition(it.topic, it.partitionId) }
+    val topicPartitions: Map<TopicPartition, BdtTopicPartition> = partitions.associateBy { TopicPartition(it.topic, it.partitionId) }
 
     val timestamp = calculateStartTime(startWith)
     if (timestamp != null) {
-      return dataManager.getOffsetsForData(topicPartitions, timestamp)
+      val offsetsForData = dataManager.getOffsetsForData(topicPartitions.keys, timestamp)
+      val res = offsetsForData.entries.map {
+        if (it.value > -1) {
+          return@map it.key to OffsetAndMetadata(it.value)
+        }
+        else {
+          return@map it.key to OffsetAndMetadata(topicPartitions[it.key]!!.startOffset!!)
+        }
+      }.toMap()
+      return res
     }
 
     val offsets = partitions.map {
@@ -34,41 +43,35 @@ object KafkaOffsetUtils {
       }
     }
 
-    return topicPartitions.zip(offsets).toMap()
+    return topicPartitions.keys.zip(offsets).toMap()
   }
 
   fun calculateStartTime(startWith: ConsumerStartWith): Long? {
     val calendar = Calendar.getInstance()
     calendar.time = Date()
 
-    startWith.time?.let {
-      return it
-    }
-
     return when (startWith.type) {
       ConsumerStartType.NOW -> null
       ConsumerStartType.LAST_HOUR -> {
         calendar.add(Calendar.HOUR_OF_DAY, -1)
-        calendar.time
+        calendar.time.time
       }
       ConsumerStartType.TODAY -> {
         calendar.set(Calendar.HOUR_OF_DAY, 0)
         calendar.set(Calendar.MINUTE, 0)
         calendar.set(Calendar.SECOND, 0)
-        calendar.time
+        calendar.time.time
       }
       ConsumerStartType.YESTERDAY -> {
         calendar.set(Calendar.HOUR_OF_DAY, 0)
         calendar.set(Calendar.MINUTE, 0)
         calendar.set(Calendar.SECOND, 0)
         calendar.add(Calendar.DAY_OF_YEAR, -1)
-        calendar.time
+        calendar.time.time
       }
-      ConsumerStartType.THE_BEGINNING -> {
-        Date(0)
-      }
+      ConsumerStartType.SPECIFIC_DATE -> startWith.time
       else -> null
-    }?.time
+    }
   }
 
 }

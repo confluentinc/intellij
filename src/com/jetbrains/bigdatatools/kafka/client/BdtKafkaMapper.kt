@@ -1,36 +1,25 @@
 package com.jetbrains.bigdatatools.kafka.client
 
 import com.jetbrains.bigdatatools.kafka.model.BdtTopicPartition
-import com.jetbrains.bigdatatools.kafka.model.ConsumerGroupPresentable
+import com.jetbrains.bigdatatools.kafka.model.ConsumerGroupOffsetInfo
 import com.jetbrains.bigdatatools.kafka.model.TopicConfig
 import com.jetbrains.bigdatatools.kafka.model.TopicPresentable
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryFormat
 import com.jetbrains.bigdatatools.kafka.registry.common.KafkaSchemaInfo
 import org.apache.kafka.clients.admin.ConfigEntry
-import org.apache.kafka.clients.admin.ConsumerGroupDescription
 import org.apache.kafka.clients.admin.TopicDescription
-import org.apache.kafka.common.ConsumerGroupState
+import org.apache.kafka.clients.consumer.OffsetAndMetadata
+import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.config.TopicConfig.MESSAGE_FORMAT_VERSION_CONFIG
 
 
 object BdtKafkaMapper {
-  fun mockConsumerGroup(id: String, state: ConsumerGroupState): ConsumerGroupPresentable {
-    return ConsumerGroupPresentable(state = state, consumerGroup = id, consumers = -1, topicValues = emptyList(), partitions = -1)
-  }
-
-  fun mapToConsumerGroup(detailedGroup: ConsumerGroupDescription): ConsumerGroupPresentable {
-    val topicsToPartitions = detailedGroup.members().flatMap {
-      it.assignment().topicPartitions().map { topicPartition -> topicPartition.topic() to topicPartition.partition() }
+  fun getConsumerGroupOffsets(detailedGroup: MutableMap<TopicPartition, OffsetAndMetadata>): List<ConsumerGroupOffsetInfo> {
+    val topicsToPartitions = detailedGroup.map {
+      ConsumerGroupOffsetInfo(topic = it.key.topic(), partition = it.key.partition(), offset = it.value.offset())
     }.distinct()
 
-    val topics: List<String> = topicsToPartitions.map { it.first }.distinct()
-    val numTopicPartitions = topicsToPartitions.size
-
-    return ConsumerGroupPresentable(state = detailedGroup.state(),
-                                    consumerGroup = detailedGroup.groupId().ifBlank { "(blank)" },
-                                    consumers = detailedGroup.members().size,
-                                    topicValues = topics,
-                                    partitions = numTopicPartitions)
+    return topicsToPartitions
   }
 
   fun topicDescriptionToInternalTopic(topicDescription: TopicDescription,

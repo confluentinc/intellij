@@ -8,8 +8,10 @@ import com.intellij.ui.DocumentAdapter
 import com.intellij.ui.SearchTextField
 import com.jetbrains.bigdatatools.common.monitoring.data.model.FilterAdapter
 import com.jetbrains.bigdatatools.common.monitoring.data.model.FilterKey
+import com.jetbrains.bigdatatools.common.monitoring.table.DataTable
 import com.jetbrains.bigdatatools.common.monitoring.toolwindow.AbstractTableController
 import com.jetbrains.bigdatatools.common.monitoring.toolwindow.MainTreeController
+import com.jetbrains.bigdatatools.common.table.renderers.LinkRenderer
 import com.jetbrains.bigdatatools.common.ui.CustomComponentActionImpl
 import com.jetbrains.bigdatatools.common.ui.filter.CountFilterPopupComponent
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
@@ -19,7 +21,8 @@ import com.jetbrains.bigdatatools.kafka.toolwindow.config.KafkaToolWindowSetting
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import javax.swing.event.DocumentEvent
 
-class ConsumerGroupsController(val dataManager: KafkaDataManager) : AbstractTableController<ConsumerGroupPresentable>() {
+class ConsumerGroupsController(val dataManager: KafkaDataManager,
+                               private val mainController: KafkaMainController) : AbstractTableController<ConsumerGroupPresentable>() {
   init {
     init()
 
@@ -31,6 +34,18 @@ class ConsumerGroupsController(val dataManager: KafkaDataManager) : AbstractTabl
           consumerGroup?.let { KafkaDriver.consumerPath.child(it, false) }
         }
         else -> null
+      }
+    }
+  }
+
+
+  override fun customTableInit(table: DataTable<ConsumerGroupPresentable>) {
+    LinkRenderer.installOnColumn(table, columnModel.getColumn(0)).apply {
+      onClick = { row, _ ->
+        val schema = table.getDataAt(row)?.consumerGroup
+        schema?.let {
+          mainController.open(KafkaDriver.consumerPath.child(it, false))
+        }
       }
     }
   }

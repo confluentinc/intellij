@@ -28,7 +28,7 @@ class KafkaMainController(project: Project, connectionData: KafkaConnectionData)
 
   private val topicsController = TopicsController(project, dataManager, this).also { Disposer.register(this, it) }
 
-  private val consumerGroupsController = ConsumerGroupsController(dataManager).also { Disposer.register(this, it) }
+  private val consumerGroupsController = ConsumerGroupsController(dataManager, this).also { Disposer.register(this, it) }
 
   private val registryController = if (dataManager.registryType != KafkaRegistryType.NONE)
     KafkaRegistryController(project, dataManager, this).also { Disposer.register(this, it) }
@@ -36,6 +36,7 @@ class KafkaMainController(project: Project, connectionData: KafkaConnectionData)
     null
 
   private val topicInfoController = TopicDetailsController(project, dataManager).also { Disposer.register(this, it) }
+  private val consumerOffsetsController = ConsumerGroupOffsetsController(dataManager).also { Disposer.register(this, it) }
 
   private val schemaInfoController = if (dataManager.registryType != KafkaRegistryType.NONE)
     KafkaSchemaController(project, dataManager).also { Disposer.register(this, it) }
@@ -57,6 +58,7 @@ class KafkaMainController(project: Project, connectionData: KafkaConnectionData)
     details.add(topicsController.getComponent(), KafkaGroupType.TOPIC.name)
     details.add(topicInfoController.getComponent(), KafkaGroupType.TOPIC_DETAIL.name)
     details.add(consumerGroupsController.getComponent(), KafkaGroupType.CONSUMER_GROUP.name)
+    details.add(consumerOffsetsController.getComponent(), KafkaGroupType.CONSUMER_GROUP_OFFSET.name)
     registryController?.let {
       details.add(it.getComponent(), KafkaGroupType.SCHEMA_REGISTRY_GROUP.name)
     }
@@ -73,11 +75,15 @@ class KafkaMainController(project: Project, connectionData: KafkaConnectionData)
       rfsPath.isTopicFolder -> {
         showDetailsComponent(KafkaGroupType.TOPIC)
       }
-      rfsPath.isConsumers || rfsPath.parent?.isConsumers == true -> {
+      rfsPath.isConsumers -> {
         showDetailsComponent(KafkaGroupType.CONSUMER_GROUP)
       }
       rfsPath.isSchemas -> {
         showDetailsComponent(KafkaGroupType.SCHEMA_REGISTRY_GROUP)
+      }
+      rfsPath.parent?.isConsumers == true -> {
+        showDetailsComponent(KafkaGroupType.CONSUMER_GROUP_OFFSET)
+        consumerOffsetsController.setDetailsId(rfsPath.name)
       }
       rfsPath.parent?.isTopicFolder == true -> {
         showDetailsComponent(KafkaGroupType.TOPIC_DETAIL)

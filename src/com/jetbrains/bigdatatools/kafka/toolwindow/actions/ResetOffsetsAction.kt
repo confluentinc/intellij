@@ -7,14 +7,14 @@ import com.jetbrains.bigdatatools.common.monitoring.toolwindow.MainTreeControlle
 import com.jetbrains.bigdatatools.common.monitoring.toolwindow.MainTreeController.Companion.rfsPath
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaDriver.Companion.isConsumers
-import com.jetbrains.bigdatatools.kafka.util.ChangeOffsetController
+import com.jetbrains.bigdatatools.kafka.util.KafkaConsumerGroupChangeOffsetProcess
 
 class ResetOffsetsAction : DumbAwareAction() {
   override fun actionPerformed(e: AnActionEvent) {
     val rfsPath = e.rfsPath ?: return
     val dataManager = e.dataManager as KafkaDataManager
 
-    ChangeOffsetController(e.project ?: return, dataManager, rfsPath.name).showAndUpdate()
+    KafkaConsumerGroupChangeOffsetProcess(e.project ?: return, dataManager, rfsPath.name).showAndUpdate()
   }
 
   override fun update(e: AnActionEvent) {
