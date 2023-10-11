@@ -97,7 +97,6 @@ class KafkaRegistrySettings(val project: Project,
   private val awsCredentials = CredentialsHolder(connectionData, AwsCompatibleConnectionData.SECRET_KEY_ID, uiDisposable, coroutineScope)
 
   private val awsAccessKey = UsernameNamedField(AwsSettingsConst.S3_ACCESS_KEY, awsCredentials)
-
   private val awsSecretKey = PasswordNamedField(AwsSettingsConst.S3_SECRET_KEY, awsCredentials)
 
   private val glueSettings = StringNonRequiredField(
@@ -160,6 +159,13 @@ class KafkaRegistrySettings(val project: Project,
       glueGroup = rowsRange {
         awsGlueSettings.getComponentRows(this)
         row(glueRegistryName)
+      }
+
+      awsAccessKey.isInitialized.afterChange {
+        initGlueSettings(awsGlueSettings)
+      }
+      awsSecretKey.isInitialized.afterChange {
+        initGlueSettings(awsGlueSettings)
       }
 
       initGlueSettings(awsGlueSettings)
