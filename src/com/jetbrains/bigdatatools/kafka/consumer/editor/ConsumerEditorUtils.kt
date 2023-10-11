@@ -27,6 +27,7 @@ object ConsumerEditorUtils {
     val startOffset: Long? = when (startWithType) {
       ConsumerStartType.OFFSET -> startOffsetText.ifBlank { null }?.toLongOrNull()
       ConsumerStartType.LATEST_OFFSET_MINUS_X -> startOffsetText.ifBlank { null }?.toLongOrNull()?.times(-1)
+      ConsumerStartType.THE_BEGINNING -> 0
       else -> null
     }
 

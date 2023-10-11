@@ -1,11 +1,11 @@
 package com.jetbrains.bigdatatools.kafka.consumer.editor
 
 import com.intellij.icons.AllIcons
-import com.intellij.ide.util.PropertiesComponent
 import com.intellij.openapi.Disposable
-import com.intellij.openapi.actionSystem.*
+import com.intellij.openapi.actionSystem.ActionGroup
+import com.intellij.openapi.actionSystem.ActionManager
+import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.project.DumbAwareAction
-import com.intellij.openapi.project.DumbAwareToggleAction
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.intellij.ui.JBColor
@@ -95,7 +95,6 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
     JPanel(BorderLayout()).apply {
       add(ScrollPaneFactory.createScrollPane(outputTable, true), BorderLayout.CENTER)
       setSouthComponent(statisticPanel.component)
-      statisticPanel.component.isVisible = PropertiesComponent.getInstance().getBoolean(TABLE_STATS_ID, false)
     }
   }
   private val outputTablePanel: JPanel by outputTablePanelDelegate
@@ -122,20 +121,9 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
       }
     }
 
-    val tableStatusButton = object : DumbAwareToggleAction(KafkaMessagesBundle.message("action.table.stats"), null,
-                                                           AllIcons.General.ShowInfos) {
-      override fun isSelected(e: AnActionEvent) = statisticPanel.component.isVisible
-      override fun getActionUpdateThread() = ActionUpdateThread.BGT
-      override fun setSelected(e: AnActionEvent, state: Boolean) {
-        statisticPanel.component.isVisible = state
-        PropertiesComponent.getInstance().setValue(TABLE_STATS_ID, state)
-        outputTablePanel.revalidate()
-      }
-    }
-
     dataPanel = ExpansionPanel(KafkaMessagesBundle.message("toggle.data"), { outputTablePanel },
                                DATA_SHOW_ID, true,
-                               listOf(tableStatusButton, clearButton))
+                               listOf(clearButton))
 
     detailsPanel = ExpansionPanel(KafkaMessagesBundle.message("toggle.details"), {
       details.component.apply {
@@ -232,6 +220,5 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
 
     internal const val DATA_SHOW_ID = "com.jetbrains.bigdatatools.kafka.consumer.data.show"
     internal const val DETAILS_SHOW_ID = "com.jetbrains.bigdatatools.kafka.consumer.details.show"
-    internal const val TABLE_STATS_ID = "com.jetbrains.bigdatatools.kafka.consumer.table.stats.show"
   }
 }

@@ -3,43 +3,33 @@ package com.jetbrains.bigdatatools.kafka.common.editor
 import com.intellij.icons.AllIcons
 import com.intellij.ui.AnimatedIcon
 import com.intellij.ui.components.JBLabel
-import com.intellij.ui.dsl.builder.Cell
 import com.intellij.ui.dsl.builder.Row
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
-import java.awt.Dimension
 import java.text.SimpleDateFormat
 import java.util.*
-import javax.swing.JComponent
 
 class KafkaProducerConsumerProgressComponent {
   private val dateFormat = SimpleDateFormat("HH:mm:ss")
 
   var timestamp = 0L
-  private val timestampLabel = JBLabel().apply {
-    preferredSize = Dimension(0, preferredSize.height)
-  }
-  private lateinit var timestampCell: Cell<JComponent>
-
+  private val timestampLabel = JBLabel()
   fun initCell(row: Row, bottomWidthGroup: String) {
-    timestampCell = row.cell(timestampLabel).widthGroup(bottomWidthGroup).comment(
-      KafkaMessagesBundle.message("consumer.last.update.label.comment"))
-    timestampCell.visible(false)
+    row.cell(timestampLabel).widthGroup(bottomWidthGroup)
   }
 
   fun onUpdate() {
     timestamp = System.currentTimeMillis()
-    timestampLabel.text = dateFormat.format(Date(timestamp))
+    timestampLabel.text = KafkaMessagesBundle.message("consumer.last.update.label.comment", dateFormat.format(Date(timestamp)))
   }
 
   fun onValidationError() {
-    timestampCell.visible(true)
     timestampLabel.icon = AllIcons.General.Error
     timestampLabel.text = KafkaMessagesBundle.message("kafka.validation.error.label")
-    timestampCell.comment?.isVisible = false
   }
 
   fun onError() {
     timestampLabel.icon = null
+    timestampLabel.text = KafkaMessagesBundle.message("consumer.last.update.label.error")
   }
 
   fun onStop() {
@@ -53,6 +43,5 @@ class KafkaProducerConsumerProgressComponent {
     timestamp = 0
     timestampLabel.icon = AnimatedIcon.Default.INSTANCE
     timestampLabel.text = KafkaMessagesBundle.message("consumer.last.update.label.initializing")
-    timestampCell.visible(true)
   }
 }
