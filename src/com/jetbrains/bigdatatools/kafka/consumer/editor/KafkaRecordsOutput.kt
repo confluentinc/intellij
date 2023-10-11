@@ -94,7 +94,8 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
   private val outputTablePanelDelegate = lazy {
     JPanel(BorderLayout()).apply {
       add(ScrollPaneFactory.createScrollPane(outputTable, true), BorderLayout.CENTER)
-      setSouthComponent(statisticPanel.component)
+      statisticPanel.toolbar.targetComponent = outputTable
+      setSouthComponent(statisticPanel.toolbar.component)
     }
   }
   private val outputTablePanel: JPanel by outputTablePanelDelegate

@@ -41,7 +41,7 @@ class ConsumerTableStats {
     add(CustomComponentActionImpl(totalTimeLabel))
   }
 
-  val component = ToolbarUtils.createActionToolbar("BDTCollapsiblePanel", group, horizontal = true).component
+  val toolbar = ToolbarUtils.createActionToolbar("BDTCollapsiblePanel", group, horizontal = true)
 
   fun start() {
     totalMessageCount = 0
