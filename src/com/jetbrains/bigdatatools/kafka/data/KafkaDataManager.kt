@@ -59,7 +59,7 @@ class KafkaDataManager(project: Project?,
   override val client = KafkaClient(project, connectionData, false).also { Disposer.register(this, it) }
   val consumerPanelStorage = KafkaConsumerPanelStorage(this).also { Disposer.register(this, it) }
 
-  val schemaType = ConcurrentSkipListMap<String, KafkaRegistryFormat>()
+  val cacheSchemaType = ConcurrentSkipListMap<String, KafkaRegistryFormat>()
   internal val topicModel = createTopicsDataModel().also { Disposer.register(this, it) }
 
   internal val consumerGroupsModel = createConsumerGroupsDataModel().also { Disposer.register(this, it) }
@@ -310,6 +310,7 @@ class KafkaDataManager(project: Project?,
       return null
     val dataModel = ObjectDataModel(KafkaSchemaInfo::name, additionalInfoLoading = { dataModel ->
       try {
+        cacheSchemaType.clear()
         updateSchemaList(dataModel) to null
       }
       catch (t: Throwable) {
@@ -353,8 +354,8 @@ class KafkaDataManager(project: Project?,
 
   fun getCachedOrLoadSchema(name: String): KafkaSchemaInfo = getCachedSchema(name)?.takeIf { it.type != null } ?: loadSchema(name)
 
-  private fun getCachedOrLoadSchemaType(name: String) = schemaType[name] ?: getCachedOrLoadSchema(name).type?.also {
-    schemaType[name] = it
+  private fun getCachedOrLoadSchemaType(name: String) = cacheSchemaType[name] ?: getCachedOrLoadSchema(name).type?.also {
+    cacheSchemaType[name] = it
   }
 
   fun getCachedSchema(name: String) = schemaRegistryModel?.data?.firstOrNull { it.name == name }
