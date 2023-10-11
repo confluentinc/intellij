@@ -8,6 +8,7 @@ import com.google.protobuf.Message
 import com.intellij.json.JsonLanguage
 import com.intellij.lang.Language
 import com.intellij.openapi.Disposable
+import com.intellij.openapi.application.runInEdt
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.ValidationInfo
@@ -159,7 +160,10 @@ object KafkaEditorUtils {
     }
 
     executeNotOnEdt {
-      fieldsCombobox.selectedItem = calculateSchemaTypeForTopic(dataManager, topicCombobox, isKey) ?: return@executeNotOnEdt
+      val schemaType = calculateSchemaTypeForTopic(dataManager, topicCombobox, isKey) ?: return@executeNotOnEdt
+      runInEdt {
+        fieldsCombobox.selectedItem = schemaType
+      }
     }
 
     return fieldsCombobox
@@ -213,9 +217,7 @@ object KafkaEditorUtils {
 
     topicComboBox.getValidator()?.enableValidation()
 
-    executeNotOnEdt {
-      listener.onChanged()
-    }
+    listener.onChanged()
 
     return topicComboBox
   }
