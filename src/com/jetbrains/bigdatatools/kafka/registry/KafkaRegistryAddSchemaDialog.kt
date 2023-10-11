@@ -54,8 +54,8 @@ class KafkaRegistryAddSchemaDialog(project: Project, val dataManager: KafkaDataM
     }
   }
 
-  internal val topicField = KafkaEditorUtils.createTopicComboBox(disposable, dataManager).also {
-    it.addActionListener {
+  internal val topicField = KafkaEditorUtils.createTopicComboBox(disposable, dataManager).apply {
+    addActionListener {
       onChangeStrategy()
     }
   }
