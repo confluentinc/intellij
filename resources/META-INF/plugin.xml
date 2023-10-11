@@ -6,9 +6,9 @@
   <description><![CDATA[
 <p>Monitor your <a href="https://kafka.apache.org/">Kafka</a> event streaming processes:
 <ul>
-   <li>Connect to Kafka cluster</li>
+   <li>Connect to Kafka clusters</li>
    <li>Produce and consume messages in different formats including Avro and Protobuf</li>
-   <li>Manage topics, and monitor consumer groups</li>
+   <li>Manage topics and monitor consumer groups</li>
    <li>Use Confluent Schema Registry and AWS Glue Schema Registry</li>
 </ul>
 </p>
