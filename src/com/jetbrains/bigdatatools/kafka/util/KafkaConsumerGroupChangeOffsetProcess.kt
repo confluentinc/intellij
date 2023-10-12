@@ -15,8 +15,8 @@ import com.intellij.ui.dsl.builder.panel
 import com.jetbrains.bigdatatools.common.rfs.util.RfsNotificationUtils
 import com.jetbrains.bigdatatools.common.table.MaterialTable
 import com.jetbrains.bigdatatools.common.table.MaterialTableUtils
-import com.jetbrains.bigdatatools.common.table.TableResizeController
 import com.jetbrains.bigdatatools.common.table.extension.TableFirstRowAdded
+import com.jetbrains.bigdatatools.common.table.extension.TableResizeController
 import com.jetbrains.bigdatatools.common.table.filters.TableFilterHeader
 import com.jetbrains.bigdatatools.common.ui.CustomListCellRenderer
 import com.jetbrains.bigdatatools.kafka.common.editor.ListTableModel

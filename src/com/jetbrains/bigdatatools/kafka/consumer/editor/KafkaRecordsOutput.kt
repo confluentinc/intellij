@@ -13,7 +13,7 @@ import com.intellij.ui.PopupHandler
 import com.intellij.ui.ScrollPaneFactory
 import com.jetbrains.bigdatatools.common.table.MaterialTable
 import com.jetbrains.bigdatatools.common.table.MaterialTableUtils
-import com.jetbrains.bigdatatools.common.table.TableResizeController
+import com.jetbrains.bigdatatools.common.table.extension.TableResizeController
 import com.jetbrains.bigdatatools.common.table.extension.TableCellPreview
 import com.jetbrains.bigdatatools.common.table.extension.TableFirstRowAdded
 import com.jetbrains.bigdatatools.common.table.extension.TableLoadingDecorator
