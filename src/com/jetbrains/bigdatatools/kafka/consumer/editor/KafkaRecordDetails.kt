@@ -12,6 +12,7 @@ import com.intellij.ui.SideBorder
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.dsl.builder.*
 import com.jetbrains.bigdatatools.common.rfs.driver.metainfo.components.SelectableLabel
+import com.jetbrains.bigdatatools.common.rfs.util.RfsNotificationUtils
 import com.jetbrains.bigdatatools.common.ui.ComponentColoredBorder
 import com.jetbrains.bigdatatools.common.ui.CustomListCellRenderer
 import com.jetbrains.bigdatatools.common.ui.DarculaTextAreaBorder
@@ -77,7 +78,12 @@ class KafkaRecordDetails(project: Project, parentDisposable: Disposable) {
     }
     keyLoadFileLinkRow = row {
       link(KafkaMessagesBundle.message("producer.config.link.load.file")) {
-        loadBinaryFile(project, "key", keyFieldJson)
+        try {
+          loadBinaryFile(project, "key", keyFieldJson)
+        }
+        catch (t: Throwable) {
+          RfsNotificationUtils.showExceptionMessage(project, t)
+        }
       }
     }
 
