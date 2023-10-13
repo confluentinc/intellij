@@ -248,7 +248,7 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
     presetsSplitter.add(ExpansionPanel(KafkaMessagesBundle.message("toggle.presets"), { presets.component }, PRESETS_SHOW_ID, false))
     presetsSplitter.add(ExpansionPanel(KafkaMessagesBundle.message("toggle.settings"), { settingsPanel },
                                        SETTINGS_SHOW_ID, true,
-                                       listOf(SavePresetAction(KafkaConfigStorage.instance.consumerConfig) { getRunConfig() })
+                                       listOf(SavePresetAction(KafkaConfigStorage.getInstance().consumerConfig) { getRunConfig() })
     ))
     presetsSplitter.add(output.dataPanel)
     presetsSplitter.add(output.detailsPanel)

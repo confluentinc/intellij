@@ -101,4 +101,4 @@ class RunConsumerConfigCellRenderer : ListCellRenderer<StorageConsumerConfig> {
   }
 }
 
-class ConsumerPresets : Presets<StorageConsumerConfig>(KafkaConfigStorage.instance.consumerConfig, RunConsumerConfigCellRenderer())
+class ConsumerPresets : Presets<StorageConsumerConfig>(KafkaConfigStorage.getInstance().consumerConfig, RunConsumerConfigCellRenderer())

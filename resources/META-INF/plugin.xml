@@ -25,6 +25,8 @@
   <depends>com.intellij.bigdatatools.core</depends>
   <depends config-file="spring-boot.xml" optional="true">com.intellij.spring.boot</depends>
 
+  <resource-bundle>messages.KafkaBundle</resource-bundle>
+
   <extensions defaultExtensionNs="com.intellij">
     <dependencySupport kind="java" coordinate="java:org.springframework.kafka:spring-kafka" displayName="spring-kafka"/>
     <dependencySupport kind="java" coordinate="java:io.micronaut.kafka:micronaut-kafka" displayName="micronaut-kafka"/>

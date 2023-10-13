@@ -53,4 +53,4 @@ class RunProducerConfigCellRenderer : ListCellRenderer<StorageProducerConfig> {
   }
 }
 
-class ProducerPresets : Presets<StorageProducerConfig>(KafkaConfigStorage.instance.producerConfig, RunProducerConfigCellRenderer())
+class ProducerPresets : Presets<StorageProducerConfig>(KafkaConfigStorage.getInstance().producerConfig, RunProducerConfigCellRenderer())

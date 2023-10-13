@@ -166,7 +166,7 @@ class KafkaProducerEditor(val project: Project,
     presetsSplitter.add(ExpansionPanel(KafkaMessagesBundle.message("toggle.settings"), { settingsPanel },
                                        SETTINGS_SHOW_ID, true,
                                        listOf(SavePresetAction(
-                                         KafkaConfigStorage.instance.producerConfig) { getConfig() })))
+                                         KafkaConfigStorage.getInstance().producerConfig) { getConfig() })))
     presetsSplitter.add(output.dataPanel)
     presetsSplitter.add(output.detailsPanel)
 

@@ -58,7 +58,6 @@ class KafkaConfigStorage : PersistentStateComponent<KafkaConfigStorage> {
   override fun loadState(state: KafkaConfigStorage) = XmlSerializerUtil.copyBean(state, this)
 
   companion object {
-    val instance: KafkaConfigStorage
-      get() = service()
+    fun getInstance(): KafkaConfigStorage = service()
   }
 }
