@@ -1,6 +1,7 @@
 package com.jetbrains.bigdatatools.kafka.util.generator
 
 import com.intellij.openapi.project.Project
+import com.jetbrains.bigdatatools.common.util.messageOrDefault
 import com.jetbrains.bigdatatools.kafka.util.generator.GenerateRandomData.isValidSchema
 import com.jetbrains.bigdatatools.kafka.util.generator.GenerateRandomData.logger
 import com.mifmif.common.regex.Generex
@@ -1243,7 +1244,7 @@ class AvroGenerator private constructor(private val topLevelSchema: Schema) {
         }
       }
       catch (ioe: IOException) {
-        logger.warn("Error occurred while trying to generate avro: " + ioe.localizedMessage)
+        logger.warn("Error occurred while trying to generate avro: " + ioe.messageOrDefault())
         return ""
       }
     }
