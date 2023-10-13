@@ -3,10 +3,10 @@ package com.jetbrains.bigdatatools.kafka.util
 import com.intellij.openapi.application.EDT
 import com.intellij.openapi.observable.properties.AtomicProperty
 import com.intellij.openapi.observable.util.equalsTo
-import com.intellij.openapi.progress.withBackgroundProgress
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.DialogBuilder
 import com.intellij.openapi.ui.DialogPanel
+import com.intellij.platform.ide.progress.withBackgroundProgress
 import com.intellij.ui.JBColor
 import com.intellij.ui.dsl.builder.AlignX
 import com.intellij.ui.dsl.builder.bindIntText
