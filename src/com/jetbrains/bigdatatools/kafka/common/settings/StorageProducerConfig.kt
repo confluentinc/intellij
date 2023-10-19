@@ -34,10 +34,10 @@ data class StorageProducerConfig(
   val customKeySchemaImplicit: String? = null,
   val customValueSchemaImplicit: String? = null,
 ) : StorageConfig {
-  fun takeKeyType(): KafkaFieldType = KafkaFieldType.values().find { it.name == keyType } ?: KafkaFieldType.SCHEMA_REGISTRY
-  fun takeValueType(): KafkaFieldType = KafkaFieldType.values().find { it.name == valueType } ?: KafkaFieldType.SCHEMA_REGISTRY
-  fun takeKeyFormat(): KafkaRegistryFormat = KafkaRegistryFormat.values().find { it.name == keyFormat } ?: KafkaRegistryFormat.AVRO
-  fun takeValueFormat(): KafkaRegistryFormat = KafkaRegistryFormat.values().find { it.name == valueFormat } ?: KafkaRegistryFormat.AVRO
-  fun getCompression(): RecordCompression = RecordCompression.values().find { it.name == compression } ?: RecordCompression.NONE
-  fun getAsks(): AcksType = AcksType.values().find { it.name == acks } ?: AcksType.NONE
+  fun takeKeyType(): KafkaFieldType = KafkaFieldType.entries.find { it.name == keyType } ?: KafkaFieldType.SCHEMA_REGISTRY
+  fun takeValueType(): KafkaFieldType = KafkaFieldType.entries.find { it.name == valueType } ?: KafkaFieldType.SCHEMA_REGISTRY
+  fun takeKeyFormat(): KafkaRegistryFormat = KafkaRegistryFormat.entries.find { it.name == keyFormat } ?: KafkaRegistryFormat.AVRO
+  fun takeValueFormat(): KafkaRegistryFormat = KafkaRegistryFormat.entries.find { it.name == valueFormat } ?: KafkaRegistryFormat.AVRO
+  fun getCompression(): RecordCompression = RecordCompression.entries.find { it.name == compression } ?: RecordCompression.NONE
+  fun getAsks(): AcksType = AcksType.entries.find { it.name == acks } ?: AcksType.NONE
 }

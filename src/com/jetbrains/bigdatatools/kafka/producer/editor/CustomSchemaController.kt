@@ -46,7 +46,7 @@ class CustomSchemaController(private val project: Project,
   fun initComponent(panel: Panel) = panel.rowsRange {
     row(KafkaMessagesBundle.message("settings.format.registry.schema")) {
       customSchemaSource = segmentedButton(
-        KafkaCustomSchemaSource.values().toList()) { this.text = it.title }.whenItemSelected { source ->
+        KafkaCustomSchemaSource.entries) { this.text = it.title }.whenItemSelected { source ->
         updateVisibility(source)
       }.resizableColumn()
       showSchema = actionButton(DumbAwareAction.create(KafkaMessagesBundle.message("show.schema.info"), AllIcons.Actions.ToggleVisibility) {

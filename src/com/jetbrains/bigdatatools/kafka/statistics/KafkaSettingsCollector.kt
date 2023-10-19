@@ -50,9 +50,9 @@ class KafkaSettingsCollector : BdtSettingsCollector() {
     registryCheckboxEvent(KafkaSettingsCustomizer::brokerSslEnableValidation)
 
     registryEvent(KafkaSettingsCustomizer::registryConfluentUrl)
-    registryStringEnumEvent(KafkaSettingsCustomizer::registryConfluentSource, KafkaConfigurationSource.values().map { it.id })
+    registryStringEnumEvent(KafkaSettingsCustomizer::registryConfluentSource, KafkaConfigurationSource.entries.map { it.id })
     registryEvent(KafkaSettingsCustomizer::registryConfluentProperties)
-    registryStringEnumEvent(KafkaSettingsCustomizer::registryConfluentAuth, SchemaRegistryAuthType.values().map { it.name })
+    registryStringEnumEvent(KafkaSettingsCustomizer::registryConfluentAuth, SchemaRegistryAuthType.entries.map { it.name })
     registryEvent(KafkaSettingsCustomizer::registryConfluentBasicAuth)
     registryEvent(KafkaSettingsCustomizer::registryConfluentBasicPassword)
     registryEvent(KafkaSettingsCustomizer::registryConfluentBearerToken)
