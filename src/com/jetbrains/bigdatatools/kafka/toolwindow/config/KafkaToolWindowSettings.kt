@@ -7,10 +7,7 @@ import com.intellij.openapi.components.service
 import com.intellij.util.xmlb.XmlSerializerUtil
 import com.jetbrains.bigdatatools.common.connection.updater.IntervalUpdateSettings
 import com.jetbrains.bigdatatools.common.settings.ColumnVisibilitySettings
-import com.jetbrains.bigdatatools.kafka.model.BdtTopicPartition
-import com.jetbrains.bigdatatools.kafka.model.ConsumerGroupOffsetInfo
-import com.jetbrains.bigdatatools.kafka.model.ConsumerGroupPresentable
-import com.jetbrains.bigdatatools.kafka.model.TopicPresentable
+import com.jetbrains.bigdatatools.kafka.model.*
 import com.jetbrains.bigdatatools.kafka.registry.common.KafkaSchemaInfo
 
 @State(name = "KafkaSettings", storages = [Storage("kafka.xml")])
@@ -18,13 +15,19 @@ class KafkaToolWindowSettings : PersistentStateComponent<KafkaToolWindowSettings
   var showFullTopicConfig: Boolean = false
   override var selectedConnectionId: String? = null
 
-  private val topicConfigsTableColumns = mutableListOf("name", "value", "defaultValue")
+  private val topicConfigsTableColumns = mutableListOf(TopicConfig::name.name,
+                                                       TopicConfig::name.name,
+                                                       TopicConfig::defaultValue.name)
   val topicConfigsColumnSettings = ColumnVisibilitySettings(topicConfigsTableColumns)
 
-  private val topicPartitionsTableColumns = mutableListOf(BdtTopicPartition::partitionId.name,
-                                                          BdtTopicPartition::leader.name,
-                                                          BdtTopicPartition::replicas.name,
-                                                          BdtTopicPartition::offsets.name)
+  private val topicPartitionsTableColumns = mutableListOf(
+    BdtTopicPartition::partitionId.name,
+    BdtTopicPartition::messageCount.name,
+    BdtTopicPartition::startOffset.name,
+    BdtTopicPartition::endOffset.name,
+    BdtTopicPartition::leader.name,
+    BdtTopicPartition::replicas.name,
+  )
 
   val topicPartitionsColumnSettings = ColumnVisibilitySettings(topicPartitionsTableColumns)
 
@@ -49,6 +52,7 @@ class KafkaToolWindowSettings : PersistentStateComponent<KafkaToolWindowSettings
   private val consumerGroupOffsetTableColumns = mutableListOf(
     ConsumerGroupOffsetInfo::topic.name,
     ConsumerGroupOffsetInfo::partition.name,
+    ConsumerGroupOffsetInfo::lag.name,
     ConsumerGroupOffsetInfo::offset.name)
   val consumerGroupOffsetColumnSettings = ColumnVisibilitySettings(consumerGroupOffsetTableColumns)
 

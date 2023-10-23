@@ -1,26 +1,16 @@
 package com.jetbrains.bigdatatools.kafka.client
 
 import com.jetbrains.bigdatatools.kafka.model.BdtTopicPartition
-import com.jetbrains.bigdatatools.kafka.model.ConsumerGroupOffsetInfo
 import com.jetbrains.bigdatatools.kafka.model.TopicConfig
 import com.jetbrains.bigdatatools.kafka.model.TopicPresentable
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryFormat
 import com.jetbrains.bigdatatools.kafka.registry.common.KafkaSchemaInfo
 import org.apache.kafka.clients.admin.ConfigEntry
 import org.apache.kafka.clients.admin.TopicDescription
-import org.apache.kafka.clients.consumer.OffsetAndMetadata
-import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.config.TopicConfig.MESSAGE_FORMAT_VERSION_CONFIG
 
 
 object BdtKafkaMapper {
-  fun getConsumerGroupOffsets(detailedGroup: MutableMap<TopicPartition, OffsetAndMetadata>): List<ConsumerGroupOffsetInfo> {
-    val topicsToPartitions = detailedGroup.map {
-      ConsumerGroupOffsetInfo(topic = it.key.topic(), partition = it.key.partition(), offset = it.value.offset())
-    }.distinct()
-
-    return topicsToPartitions
-  }
 
   fun topicDescriptionToInternalTopic(topicDescription: TopicDescription,
                                       partitions: List<BdtTopicPartition>): TopicPresentable {

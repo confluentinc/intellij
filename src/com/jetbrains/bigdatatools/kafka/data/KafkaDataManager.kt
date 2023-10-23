@@ -59,7 +59,7 @@ class KafkaDataManager(project: Project?,
   override val client = KafkaClient(project, connectionData, false).also { Disposer.register(this, it) }
   val consumerPanelStorage = KafkaConsumerPanelStorage(this).also { Disposer.register(this, it) }
 
-  val cacheSchemaType = ConcurrentSkipListMap<String, KafkaRegistryFormat>()
+  private val cacheSchemaType = ConcurrentSkipListMap<String, KafkaRegistryFormat>()
   internal val topicModel = createTopicsDataModel().also { Disposer.register(this, it) }
 
   internal val consumerGroupsModel = createConsumerGroupsDataModel().also { Disposer.register(this, it) }
@@ -100,7 +100,26 @@ class KafkaDataManager(project: Project?,
   @RequiresBackgroundThread
   fun loadConsumerGroupOffset(name: String): List<ConsumerGroupOffsetInfo> {
     return runBlockingMaybeCancellable {
-      client.listConsumerGroupOffsets(name)
+      val listConsumerGroupOffsets = client.listConsumerGroupOffsets(name)
+      val cachedOffsets = topicModel.data
+                            ?.flatMap { it.partitionList }
+                            ?.associate { TopicPartition(it.topic, it.partitionId) to it.endOffset }
+                          ?: emptyMap()
+      val notLoadedOffsets = listConsumerGroupOffsets.keys - cachedOffsets.keys
+      val loaded = client.loadLatestOffsets(notLoadedOffsets)
+      val allOffsets = cachedOffsets + loaded
+      val topicsToPartitions = listConsumerGroupOffsets.map {
+        val topic = it.key.topic()
+        val partition = it.key.partition()
+        val offset = it.value.offset()
+        val topicEndOffset = allOffsets[it.key]?.minus(offset)
+
+        ConsumerGroupOffsetInfo(topic = topic,
+                                partition = partition,
+                                offset = offset,
+                                lag = topicEndOffset)
+      }.distinct()
+      topicsToPartitions
     }
   }
 

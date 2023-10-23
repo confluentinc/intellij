@@ -1,6 +1,7 @@
 package com.jetbrains.bigdatatools.kafka.client
 
 import com.intellij.bigdatatools.aws.ui.external.AwsSettingsComponentForKafka
+import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.vfs.VirtualFileManager
@@ -151,11 +152,9 @@ class KafkaClient(project: Project?,
     }.sortedBy { it.consumerGroup }
   }
 
-  suspend fun listConsumerGroupOffsets(consumerGroup: String): List<ConsumerGroupOffsetInfo> {
-    val offsetResults = kafkaAdminNotNull.listConsumerGroupOffsets(consumerGroup).all().await().entries.firstOrNull()?.value
-                        ?: return emptyList()
-
-    return BdtKafkaMapper.getConsumerGroupOffsets(offsetResults)
+  suspend fun listConsumerGroupOffsets(consumerGroup: String): Map<TopicPartition, OffsetAndMetadata> {
+    val offsetResults = kafkaAdminNotNull.listConsumerGroupOffsets(consumerGroup).all().await().entries.firstOrNull()?.value ?: emptyMap()
+    return offsetResults
   }
 
   fun getConsumerGroupOffsets(consumerGroup: String) =
@@ -176,6 +175,22 @@ class KafkaClient(project: Project?,
 
     val nonParsedInternal = nonParsed.map { BdtKafkaMapper.mockInternalTopic(it) }
     return (parsedInternal + nonParsedInternal).toList().sortedTopics()
+  }
+
+  suspend fun loadLatestOffsets(topicPartitions: Set<TopicPartition>): Map<TopicPartition, Long> {
+    if (topicPartitions.isEmpty())
+      return emptyMap()
+
+    val request = kafkaAdminNotNull.listOffsets(topicPartitions.associateWith { OffsetSpec.latest() }.toMutableMap())
+    return topicPartitions.mapNotNull {
+      try {
+        it to request.partitionResult(it).await().offset()
+      }
+      catch (t: Throwable) {
+        thisLogger().warn("Cannot load offset for $it", t)
+        null
+      }
+    }.toMap()
   }
 
   private suspend fun requestTopicOffsets(topics: List<TopicDescription>): Map<String, List<BdtTopicPartition>> {
