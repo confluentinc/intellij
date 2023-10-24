@@ -2,6 +2,7 @@ package com.jetbrains.bigdatatools.kafka.client
 
 import com.intellij.bigdatatools.aws.ui.external.AwsSettingsComponentForKafka
 import com.intellij.openapi.diagnostic.thisLogger
+import com.intellij.openapi.progress.runBlockingCancellable
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.vfs.VirtualFileManager
@@ -114,7 +115,9 @@ class KafkaClient(project: Project?,
       }
     }
 
-    longBrokerCheckConnection()
+    runBlockingCancellable {
+      longBrokerCheckConnection()
+    }
   }
 
   override fun checkConnectionInner() {
@@ -361,7 +364,7 @@ class KafkaClient(project: Project?,
     }
   }
 
-  private fun longBrokerCheckConnection() = try {
+  private suspend fun longBrokerCheckConnection() = try {
     val url = kafkaProps.getProperty(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG)
               ?: throw BdtUnexpectedConnectionException(null, KafkaMessagesBundle.message("connection.is.not.found.in.config",
                                                                                           CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG))
@@ -369,7 +372,7 @@ class KafkaClient(project: Project?,
     try {
       val kafkaAdmin = kafkaAdmin ?: error(KafkaMessagesBundle.message("connection.admin.is.not.initialized"))
       val clusterOptions = DescribeClusterOptions().timeoutMs(BdIdeRegistryUtil.RFS_DEFAULT_TIMEOUT)
-      kafkaAdmin.describeCluster(clusterOptions).clusterId().get()
+      kafkaAdmin.describeCluster(clusterOptions).clusterId().await()
     }
     catch (t: TimeoutCancellationException) {
       throw BdtConnectionException(KafkaMessagesBundle.message("connection.check.port.success.but.next.error"), t)
