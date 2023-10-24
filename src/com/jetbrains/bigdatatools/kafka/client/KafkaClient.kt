@@ -146,7 +146,7 @@ class KafkaClient(project: Project?,
   }
 
   fun getConsumerGroups(): List<ConsumerGroupPresentable> {
-    val result = kafkaAdminNotNull.listConsumerGroups().valid().get()
+    val result = kafkaAdminNotNull.listConsumerGroups().valid().get().filter { !it.groupId().endsWith("/") }
     return result.map {
       ConsumerGroupPresentable(state = it.state().getOrNull() ?: ConsumerGroupState.UNKNOWN, consumerGroup = it.groupId())
     }.sortedBy { it.consumerGroup }
@@ -283,7 +283,7 @@ class KafkaClient(project: Project?,
       names
     else
       names.filter { !it.startsWith("_") }
-    return filteredNames.sorted()
+    return filteredNames.sorted().filter { !it.endsWith("/") }
   }
 
   private fun getKafkaProps(connectionData: KafkaConnectionData): Properties {

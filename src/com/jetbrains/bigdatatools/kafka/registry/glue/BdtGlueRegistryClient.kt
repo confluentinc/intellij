@@ -92,6 +92,7 @@ class BdtGlueRegistryClient(val project: Project?,
       val response = client.listSchemas(request)
       val schemas = response.schemas()
         .filter { filterRegex == null || it.schemaName().contains(filterRegex) }
+        .filter { !it.schemaName().endsWith("/") }
         .map {
           val schemaName = it.schemaName()
           KafkaSchemaInfo(name = schemaName ?: "",

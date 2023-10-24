@@ -40,7 +40,7 @@ class ConfluentRegistryClient(restService: RestService, props: Map<String, Strin
                   connectionId: String): Pair<List<KafkaSchemaInfo>, Boolean> {
     val names = internalClient.getAllSubjects(registryShowDeletedSubjects)?.sortedBy { it.lowercase() } ?: emptyList()
     val regex = filter?.let { Regex(it) }
-    val filteredNames = names.filter { regex == null || it.contains(regex) }
+    val filteredNames = names.filter { regex == null || it.contains(regex) }.filter { !it.endsWith("/") }
     return filteredNames.map { KafkaSchemaInfo(it) }.sortedSchemas(connectionId).take(
       limit ?: Int.MAX_VALUE) to (limit != null && names.size > limit)
   }
