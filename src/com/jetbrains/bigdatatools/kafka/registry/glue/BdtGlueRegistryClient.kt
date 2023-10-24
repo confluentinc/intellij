@@ -29,10 +29,11 @@ class BdtGlueRegistryClient(val project: Project?,
 
   lateinit var client: GlueClient
 
-
   override fun dispose() {
     try {
-      client.close()
+      if (::client.isInitialized) {
+        client.close()
+      }
     }
     catch (t: Throwable) {
       //ignore
