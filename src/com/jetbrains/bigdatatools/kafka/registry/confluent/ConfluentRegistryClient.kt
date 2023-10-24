@@ -2,6 +2,7 @@ package com.jetbrains.bigdatatools.kafka.registry.confluent
 
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.diagnostic.thisLogger
+import com.intellij.openapi.progress.runBlockingCancellable
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.NlsSafe
@@ -20,6 +21,7 @@ import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClientConfig
 import io.confluent.kafka.schemaregistry.client.rest.RestService
 import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig
+import kotlinx.coroutines.runInterruptible
 import org.apache.kafka.common.config.ConfigDef
 
 class ConfluentRegistryClient(restService: RestService, props: Map<String, String>) : Disposable {
@@ -31,7 +33,11 @@ class ConfluentRegistryClient(restService: RestService, props: Map<String, Strin
   override fun dispose() {}
 
   fun checkConnection() {
-    internalClient.allSubjects
+    runBlockingCancellable {
+      runInterruptible {
+        internalClient.getAllSubjects()
+      }
+    }
   }
 
   fun listSchemas(limit: Int?,
