@@ -7,10 +7,9 @@ import com.intellij.internal.statistic.service.fus.collectors.CounterUsagesColle
 import com.jetbrains.bigdatatools.kafka.common.models.KafkaFieldType
 
 object KafkaUsagesCollector : CounterUsagesCollector() {
-
   override fun getGroup() = GROUP
 
-  private val GROUP = EventLogGroup("bigdatatools.kafka", 6)
+  private val GROUP = EventLogGroup("bigdatatools.kafka", 7)
 
   val topicClearEvent = GROUP.registerEvent("topic.clear")
   val consumerGroupDeleteEvent = GROUP.registerEvent("consumer.group.delete")

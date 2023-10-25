@@ -51,6 +51,7 @@ object GenerateRandomData {
   private fun generate(project: Project?, fieldType: KafkaFieldType, parsedSchema: ParsedSchema?): String = when (fieldType) {
     KafkaFieldType.STRING -> PrimitivesGenerator.generateString()
     KafkaFieldType.LONG -> PrimitivesGenerator.generateLong().toString()
+    KafkaFieldType.INTEGER -> PrimitivesGenerator.generateInt().toString()
     KafkaFieldType.DOUBLE -> PrimitivesGenerator.generateDouble().toString()
     KafkaFieldType.FLOAT -> PrimitivesGenerator.generateFloat().toString()
     KafkaFieldType.BASE64 -> PrimitivesGenerator.generateBytesBase64()
