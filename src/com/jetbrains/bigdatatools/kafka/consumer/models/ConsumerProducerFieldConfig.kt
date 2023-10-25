@@ -26,6 +26,7 @@ data class ConsumerProducerFieldConfig(val type: KafkaFieldType,
     KafkaFieldType.STRING -> valueText
     KafkaFieldType.JSON -> valueText
     KafkaFieldType.LONG -> valueText.toLong()
+    KafkaFieldType.INTEGER -> valueText.toInt()
     KafkaFieldType.DOUBLE -> valueText.toDouble()
     KafkaFieldType.FLOAT -> valueText.toFloat()
     KafkaFieldType.BASE64 -> Base64.getDecoder().decode(valueText)

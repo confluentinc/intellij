@@ -156,7 +156,7 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
     val schemaFormat = schemaComboBox.item?.schemaFormat ?: KafkaRegistryFormat.UNKNOWN
 
     val schema = when (fieldType) {
-      null, KafkaFieldType.STRING, KafkaFieldType.JSON, KafkaFieldType.LONG,
+      null, KafkaFieldType.STRING, KafkaFieldType.JSON, KafkaFieldType.LONG, KafkaFieldType.INTEGER,
       KafkaFieldType.DOUBLE, KafkaFieldType.FLOAT, KafkaFieldType.BASE64, KafkaFieldType.NULL -> null
       KafkaFieldType.SCHEMA_REGISTRY -> KafkaRegistryUtil.loadSchema(schemaName, fieldType, kafkaManager)
       KafkaFieldType.AVRO_CUSTOM, KafkaFieldType.PROTOBUF_CUSTOM -> customSchemaController.getSchema()
@@ -265,7 +265,7 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
 
   fun getValueText(): String = when (fieldTypeComboBox.item!!) {
     KafkaFieldType.JSON -> jsonField.text
-    KafkaFieldType.STRING, KafkaFieldType.LONG, KafkaFieldType.DOUBLE, KafkaFieldType.FLOAT, KafkaFieldType.BASE64 -> textField.text
+    KafkaFieldType.STRING, KafkaFieldType.INTEGER, KafkaFieldType.LONG, KafkaFieldType.DOUBLE, KafkaFieldType.FLOAT, KafkaFieldType.BASE64 -> textField.text
     KafkaFieldType.NULL -> ""
     KafkaFieldType.AVRO_CUSTOM, KafkaFieldType.PROTOBUF_CUSTOM, KafkaFieldType.SCHEMA_REGISTRY -> jsonField.text
   }
@@ -293,6 +293,7 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
       iae.cause?.message ?: iae.message
     }
     KafkaFieldType.STRING -> null
+    KafkaFieldType.INTEGER -> if (value.toIntOrNull() != null) null else KafkaMessagesBundle.message("producer.field.int.invalid", value)
     KafkaFieldType.LONG -> if (value.toLongOrNull() != null) null else KafkaMessagesBundle.message("producer.field.long.invalid", value)
     KafkaFieldType.DOUBLE -> if (value.toDoubleOrNull() != null) null else KafkaMessagesBundle.message("producer.field.double.invalid", value)
     KafkaFieldType.FLOAT -> if (value.toFloatOrNull() != null) null else KafkaMessagesBundle.message("producer.field.float.invalid", value)
@@ -325,7 +326,7 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
     val text = if (isKey) config.key else config.value
     when (config.takeKeyType()) {
       KafkaFieldType.JSON -> jsonField.text = text
-      KafkaFieldType.STRING, KafkaFieldType.LONG, KafkaFieldType.DOUBLE, KafkaFieldType.FLOAT, KafkaFieldType.BASE64 -> textField.text = text
+      KafkaFieldType.STRING, KafkaFieldType.INTEGER, KafkaFieldType.LONG, KafkaFieldType.DOUBLE, KafkaFieldType.FLOAT, KafkaFieldType.BASE64 -> textField.text = text
       KafkaFieldType.NULL -> Unit
       KafkaFieldType.SCHEMA_REGISTRY -> {
         jsonField.text = text
@@ -343,7 +344,7 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
 
   private fun updateJsonComment() {
     jsonCell.comment?.text = when (fieldTypeComboBox.item) {
-      null, KafkaFieldType.STRING, KafkaFieldType.JSON, KafkaFieldType.LONG, KafkaFieldType.DOUBLE, KafkaFieldType.FLOAT, KafkaFieldType.BASE64, KafkaFieldType.NULL -> ""
+      null, KafkaFieldType.STRING, KafkaFieldType.JSON, KafkaFieldType.INTEGER, KafkaFieldType.LONG, KafkaFieldType.DOUBLE, KafkaFieldType.FLOAT, KafkaFieldType.BASE64, KafkaFieldType.NULL -> ""
       KafkaFieldType.AVRO_CUSTOM, KafkaFieldType.PROTOBUF_CUSTOM, KafkaFieldType.SCHEMA_REGISTRY -> KafkaMessagesBundle.message(
         "producer.json.value.comment")
     }
@@ -393,6 +394,7 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
       when (fieldTypeComboBox.item) {
         KafkaFieldType.STRING,
         KafkaFieldType.LONG,
+        KafkaFieldType.INTEGER,
         KafkaFieldType.DOUBLE,
         KafkaFieldType.FLOAT,
         KafkaFieldType.BASE64,
@@ -412,7 +414,8 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
   companion object {
     private val jsonFieldTypes = setOf(KafkaFieldType.JSON, KafkaFieldType.AVRO_CUSTOM,
                                        KafkaFieldType.PROTOBUF_CUSTOM) + KafkaFieldType.registryValues
-    private val textFieldTypes = setOf(KafkaFieldType.STRING, KafkaFieldType.LONG, KafkaFieldType.DOUBLE, KafkaFieldType.FLOAT,
+    private val textFieldTypes = setOf(KafkaFieldType.STRING, KafkaFieldType.LONG, KafkaFieldType.INTEGER, KafkaFieldType.DOUBLE,
+                                       KafkaFieldType.FLOAT,
                                        KafkaFieldType.BASE64)
   }
 }

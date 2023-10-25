@@ -105,7 +105,7 @@ class KafkaConsumerFieldComponent(private val project: Project,
     val registryType = kafkaManager.registryType
     val schemaName = schemaComboBox.item?.schemaName ?: ""
     val schema = when (fieldType) {
-      null, KafkaFieldType.STRING, KafkaFieldType.JSON, KafkaFieldType.LONG,
+      null, KafkaFieldType.STRING, KafkaFieldType.JSON, KafkaFieldType.LONG, KafkaFieldType.INTEGER,
       KafkaFieldType.DOUBLE, KafkaFieldType.FLOAT, KafkaFieldType.BASE64, KafkaFieldType.NULL -> null
       KafkaFieldType.SCHEMA_REGISTRY -> KafkaRegistryUtil.loadSchema(schemaName, fieldType, kafkaManager)
       KafkaFieldType.AVRO_CUSTOM, KafkaFieldType.PROTOBUF_CUSTOM -> customSchemaController.getSchema()

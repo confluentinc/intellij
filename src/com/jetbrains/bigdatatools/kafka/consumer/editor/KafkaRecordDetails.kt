@@ -240,6 +240,7 @@ class KafkaRecordDetails(project: Project, parentDisposable: Disposable) {
     KafkaFieldType.STRING -> if (KafkaEditorUtils.isJsonString(text)) FieldViewerType.JSON else FieldViewerType.TEXT
     KafkaFieldType.JSON -> FieldViewerType.JSON
     KafkaFieldType.LONG -> FieldViewerType.TEXT
+    KafkaFieldType.INTEGER -> FieldViewerType.TEXT
     KafkaFieldType.DOUBLE -> FieldViewerType.TEXT
     KafkaFieldType.FLOAT -> FieldViewerType.TEXT
     KafkaFieldType.BASE64 -> FieldViewerType.DECODED_BASE64

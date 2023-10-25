@@ -20,6 +20,7 @@ import software.amazon.awssdk.services.glue.model.DataFormat
 enum class KafkaFieldType(@Nls val title: String) {
   STRING(KafkaMessagesBundle.message("field.type.string")),
   JSON(KafkaMessagesBundle.message("field.type.json")),
+  INTEGER(KafkaMessagesBundle.message("field.type.integer")),
   LONG(KafkaMessagesBundle.message("field.type.long")),
   DOUBLE(KafkaMessagesBundle.message("field.type.double")),
   FLOAT(KafkaMessagesBundle.message("field.type.float")),
@@ -33,6 +34,7 @@ enum class KafkaFieldType(@Nls val title: String) {
     STRING, JSON -> StringDeserializer()
     LONG -> LongDeserializer()
     DOUBLE -> DoubleDeserializer()
+    INTEGER -> IntegerDeserializer()
     FLOAT -> FloatDeserializer()
     BASE64 -> ByteArrayDeserializer()
     NULL -> VoidDeserializer()
@@ -85,6 +87,7 @@ enum class KafkaFieldType(@Nls val title: String) {
     STRING -> StringSerializer()
     JSON -> StringSerializer()
     LONG -> LongSerializer()
+    INTEGER -> IntegerSerializer()
     DOUBLE -> DoubleSerializer()
     FLOAT -> FloatSerializer()
     BASE64 -> ByteArraySerializer()
@@ -125,7 +128,7 @@ enum class KafkaFieldType(@Nls val title: String) {
 
 
   companion object {
-    val defaultValues = listOf(STRING, JSON, LONG, DOUBLE, FLOAT, BASE64, NULL, PROTOBUF_CUSTOM, AVRO_CUSTOM)
+    val defaultValues = listOf(STRING, JSON, INTEGER, LONG, DOUBLE, FLOAT, BASE64, NULL, PROTOBUF_CUSTOM, AVRO_CUSTOM)
     val registryValues = listOf(SCHEMA_REGISTRY)
     val allValues = defaultValues + registryValues
   }
