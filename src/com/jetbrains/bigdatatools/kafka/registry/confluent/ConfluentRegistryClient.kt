@@ -2,12 +2,12 @@ package com.jetbrains.bigdatatools.kafka.registry.confluent
 
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.diagnostic.thisLogger
-import com.intellij.openapi.progress.runBlockingCancellable
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.NlsSafe
 import com.jetbrains.bigdatatools.common.connection.exception.BdtConfigurationException
 import com.jetbrains.bigdatatools.common.connection.tunnel.BdtSshTunnelService
+import com.jetbrains.bigdatatools.common.rfs.driver.runBlockingInterruptible
 import com.jetbrains.bigdatatools.common.settings.components.BdtPropertyComponent
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager.Companion.sortedSchemas
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryFormat
@@ -21,7 +21,6 @@ import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClientConfig
 import io.confluent.kafka.schemaregistry.client.rest.RestService
 import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig
-import kotlinx.coroutines.runInterruptible
 import org.apache.kafka.common.config.ConfigDef
 
 class ConfluentRegistryClient(restService: RestService, props: Map<String, String>) : Disposable {
@@ -33,10 +32,8 @@ class ConfluentRegistryClient(restService: RestService, props: Map<String, Strin
   override fun dispose() {}
 
   fun checkConnection() {
-    runBlockingCancellable {
-      runInterruptible {
-        internalClient.getAllSubjects()
-      }
+    runBlockingInterruptible {
+      internalClient.getAllSubjects()
     }
   }
 
