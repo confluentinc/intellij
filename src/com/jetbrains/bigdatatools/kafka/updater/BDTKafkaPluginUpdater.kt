@@ -8,13 +8,14 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.extensions.PluginId
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.startup.ProjectActivity
-import com.jetbrains.bigdatatools.common.BigdatatoolsCoreIcons
+import com.intellij.ui.IconManager
 import com.jetbrains.bigdatatools.common.constants.BdtPluginType
 import com.jetbrains.bigdatatools.common.constants.BdtPlugins
 import com.jetbrains.bigdatatools.common.settings.connections.connType
 import com.jetbrains.bigdatatools.common.settings.manager.RfsConnectionDataManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import javax.swing.Icon
 
 class BDTKafkaPostStartupActivity : ProjectActivity {
   override suspend fun execute(project: Project) {
@@ -29,15 +30,23 @@ class BDTKafkaPostStartupActivity : ProjectActivity {
   }
 }
 
+object BDTKafkaPluginIcon {
+
+}
+
 @Service
 class BDTKafkaPluginUpdater : StandalonePluginUpdateChecker(
   PluginId.getId(BdtPlugins.KAFKA_ID),
   "bdt.kafka.lastUpdateCheck",
   NotificationGroupManager.getInstance().getNotificationGroup("BDT Updates"),
-  BigdatatoolsCoreIcons.BigData) {
+  PluginIcon) {
 
   companion object {
     val instance: BDTKafkaPluginUpdater
       get() = service()
+
+    val PluginIcon: Icon = IconManager.getInstance().loadRasterizedIcon("META-INF/pluginIcon.svg",
+                                                                        this::class.java.getClassLoader(),
+                                                                        -1441897985, 0)
   }
 }
