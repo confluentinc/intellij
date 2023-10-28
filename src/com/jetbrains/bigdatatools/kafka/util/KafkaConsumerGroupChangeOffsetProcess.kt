@@ -3,6 +3,7 @@ package com.jetbrains.bigdatatools.kafka.util
 import com.intellij.openapi.application.EDT
 import com.intellij.openapi.observable.properties.AtomicProperty
 import com.intellij.openapi.observable.util.equalsTo
+import com.intellij.openapi.observable.util.or
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.DialogBuilder
 import com.intellij.openapi.ui.DialogPanel
@@ -104,7 +105,7 @@ class KafkaConsumerGroupChangeOffsetProcess(val project: Project, val dataManage
       }.visibleIf(startType.equalsTo(ConsumerStartType.SPECIFIC_DATE))
       row(KafkaMessagesBundle.message("consumer.group.dialog.change.offset.offset.label")) {
         intTextField().bindIntText(startOffset).align(AlignX.FILL).resizableColumn()
-      }.visibleIf(startType.equalsTo(ConsumerStartType.OFFSET))
+      }.visibleIf(startType.equalsTo(ConsumerStartType.OFFSET).or(startType.equalsTo(ConsumerStartType.LATEST_OFFSET_MINUS_X)))
     }
     return centralPanel
   }
