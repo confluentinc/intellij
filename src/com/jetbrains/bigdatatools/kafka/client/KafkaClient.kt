@@ -292,12 +292,9 @@ class KafkaClient(project: Project?,
   private fun getKafkaProps(connectionData: KafkaConnectionData): Properties {
     val defaultProps = listOf(
       Property(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, connectionData.uri.removeSuffix("/")),
-      Property(CommonClientConfigs.CONNECTIONS_MAX_IDLE_MS_CONFIG, 10000.toString()),
       Property(CommonClientConfigs.REQUEST_TIMEOUT_MS_CONFIG, maxOf(BdIdeRegistryUtil.RFS_DEFAULT_TIMEOUT, 30_000).toString()),
-      Property(CommonClientConfigs.RETRY_BACKOFF_MS_CONFIG, 30000.toString()),
-      Property(CommonClientConfigs.METADATA_MAX_AGE_CONFIG, 60000.toString()),
-      //Add 2 times more because Kafka
-      Property(CommonClientConfigs.DEFAULT_API_TIMEOUT_MS_CONFIG, maxOf(BdIdeRegistryUtil.RFS_DEFAULT_TIMEOUT, 30_000).toString())
+      Property(CommonClientConfigs.RETRIES_CONFIG, 3.toString()),
+      Property(CommonClientConfigs.DEFAULT_API_TIMEOUT_MS_CONFIG, maxOf(3 * BdIdeRegistryUtil.RFS_DEFAULT_TIMEOUT, 30_000).toString())
     )
 
     val props = Properties()

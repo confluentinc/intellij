@@ -17,7 +17,6 @@ import com.intellij.ui.ColoredListCellRenderer
 import com.intellij.ui.EditorCustomization
 import com.intellij.ui.EditorTextFieldProvider
 import com.intellij.ui.SimpleTextAttributes
-import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.intellij.util.ui.UIUtil
 import com.jetbrains.bigdatatools.common.monitoring.data.listener.DataModelListener
 import com.jetbrains.bigdatatools.common.settings.getValidator
@@ -27,6 +26,7 @@ import com.jetbrains.bigdatatools.common.ui.CustomListCellRenderer
 import com.jetbrains.bigdatatools.common.ui.DarculaTextAreaBorder
 import com.jetbrains.bigdatatools.common.util.MessagesBundle
 import com.jetbrains.bigdatatools.common.util.executeNotOnEdt
+import com.jetbrains.bigdatatools.common.util.invokeLater
 import com.jetbrains.bigdatatools.kafka.common.models.KafkaFieldType
 import com.jetbrains.bigdatatools.kafka.common.models.RegistrySchemaInEditor
 import com.jetbrains.bigdatatools.kafka.common.models.TopicInEditor
@@ -127,9 +127,13 @@ object KafkaEditorUtils {
   internal class KafkaDataModelListener<T>(private val comboBox: ComboBox<T>,
                                            private val onListUpdate: (List<T>) -> Unit = {},
                                            private val dataSupplier: () -> Pair<List<T>?, Int?>) : DataModelListener {
-    @RequiresEdt
-    override fun onChanged() = updateComboBox(comboBox, onListUpdate, dataSupplier)
-    override fun onError(msg: String, e: Throwable?) = updateComboBox(comboBox, onListUpdate, dataSupplier)
+    override fun onChangedNonEdt() {
+      updateComboBox(comboBox, onListUpdate, dataSupplier)
+    }
+
+    override fun onError(msg: String, e: Throwable?) = executeNotOnEdt {
+      updateComboBox(comboBox, onListUpdate, dataSupplier)
+    }
   }
 
   fun createFieldTypeComboBox(topicCombobox: ComboBox<TopicInEditor>,
@@ -217,7 +221,7 @@ object KafkaEditorUtils {
 
     topicComboBox.getValidator()?.enableValidation()
 
-    listener.onChanged()
+    listener.onChangedNonEdt()
 
     return topicComboBox
   }
@@ -251,7 +255,9 @@ object KafkaEditorUtils {
       calculateSchemasForCombobox(kafkaManager, topicComboBox, isKey, prevSchemaName)
     }
 
-    listener.onChanged()
+    executeNotOnEdt {
+      listener.onChangedNonEdt()
+    }
 
     kafkaManager.schemaRegistryModel?.addListener(listener)
     Disposer.register(rootDisposable) {
@@ -328,25 +334,31 @@ object KafkaEditorUtils {
     comboBox.repaint()
   }
 
-  fun <T> updateComboBox(comboBox: ComboBox<T>, onListUpdate: (List<T>) -> Unit = {}, dataSupplier: () -> Pair<List<T>?, Int?>) {
-    val oldTopics = (0 until comboBox.model.size).map {
+  fun <T> updateComboBox(comboBox: ComboBox<T>,
+                         onListUpdate: (List<T>) -> Unit = {},
+                         dataSupplier: () -> Pair<List<T>?, Int?>) = executeNotOnEdt {
+    val oldElements = (0 until comboBox.model.size).map {
       comboBox.model.getElementAt(it)
     }
-    val (newTopics, selectedItemIndex) = dataSupplier()
-    if (oldTopics == newTopics) {
+    val (newElements, selectedItemIndex) = dataSupplier()
+    invokeLater {
+      if (oldElements == newElements) {
+        updateSelectedIndex(comboBox, selectedItemIndex)
+        return@invokeLater
+      }
+
+
+      comboBox.removeAllItems()
+      newElements?.forEach {
+        comboBox.addItem(it)
+      }
+
       updateSelectedIndex(comboBox, selectedItemIndex)
-      return
-    }
-    comboBox.removeAllItems()
-    newTopics?.forEach {
-      comboBox.addItem(it)
-    }
 
-    updateSelectedIndex(comboBox, selectedItemIndex)
-
-    comboBox.invalidate()
-    comboBox.repaint()
-    onListUpdate(newTopics ?: emptyList())
+      comboBox.invalidate()
+      comboBox.repaint()
+      onListUpdate(newElements ?: emptyList())
+    }
   }
 
   private fun <T> updateSelectedIndex(comboBox: ComboBox<T>,
