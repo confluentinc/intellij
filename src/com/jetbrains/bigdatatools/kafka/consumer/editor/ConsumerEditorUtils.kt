@@ -35,6 +35,8 @@ object ConsumerEditorUtils {
       startDate
     else
       null
+
+    @Suppress("HardCodedStringLiteral") // consumerGroup - user defined name and cannot be localized.
     return ConsumerStartWith(startWithType, time = startTime?.time, offset = startOffset, consumerGroup)
   }
 }
