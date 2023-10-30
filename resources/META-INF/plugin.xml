@@ -100,11 +100,12 @@
       </group>
 
       <group id="Kafka.Consumer.Group.Actions">
-        <action id="kafka.ResetOffsetsAction" class="com.jetbrains.bigdatatools.kafka.toolwindow.actions.ResetOffsetsAction"/>
+        <action id="kafka.ResetOffsetsAction" class="com.jetbrains.bigdatatools.kafka.toolwindow.actions.ResetOffsetsAction"
+                icon="AllIcons.General.Reset"/>
 
-        <action id="kafka.DeleteConsumerGroupAction" class="com.jetbrains.bigdatatools.kafka.toolwindow.actions.DeleteConsumerGroupAction"/>
+        <action id="kafka.DeleteConsumerGroupAction" class="com.jetbrains.bigdatatools.kafka.toolwindow.actions.DeleteConsumerGroupAction"
+                icon="AllIcons.General.Remove"/>
       </group>
-
 
       <group id="Kafka.Schema.Actions">
         <action id="kafka.CreateSchemaAction" class="com.jetbrains.bigdatatools.kafka.toolwindow.actions.CreateSchemaAction"
