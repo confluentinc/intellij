@@ -89,8 +89,6 @@ class TopicsController(val project: Project,
 
     dataManager.topicModel.addListener(object : DataModelListener {
       override fun onChanged() {
-        super.onChanged()
-
         infoPanel.text = TopicStatisticInfo.createFor(dataManager.getTopics()).toString()
       }
 
