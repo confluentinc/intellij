@@ -1,6 +1,7 @@
 package com.jetbrains.bigdatatools.kafka.util
 
 import com.intellij.openapi.application.EDT
+import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.observable.properties.AtomicProperty
 import com.intellij.openapi.observable.util.equalsTo
 import com.intellij.openapi.observable.util.or
@@ -20,6 +21,11 @@ import com.jetbrains.bigdatatools.kafka.consumer.models.ConsumerStartWith
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.michaelbaranov.microba.calendar.DatePicker
 import kotlinx.coroutines.*
+import java.awt.Component
+import java.awt.Container
+import java.awt.event.ComponentEvent
+import java.awt.event.ComponentListener
+import java.util.*
 
 class KafkaConsumerGroupChangeOffsetProcess(val project: Project, val dataManager: KafkaDataManager, val consumerGroup: String) {
   private val coroutineScope = dataManager.driver.coroutineScope
@@ -47,7 +53,6 @@ class KafkaConsumerGroupChangeOffsetProcess(val project: Project, val dataManage
     val consumerGroupOffset = withContext(Dispatchers.IO) {
       dataManager.loadConsumerGroupOffset(consumerGroup)
     }
-
 
     val topics: List<String> = consumerGroupOffset.map { it.topic }.distinct()
     val allTopicName = KafkaMessagesBundle.message("all.topics")
@@ -82,17 +87,46 @@ class KafkaConsumerGroupChangeOffsetProcess(val project: Project, val dataManage
     dataManager.resetOffsets(consumerGroup, partitionsWithNewOffsets)
   }
 
+  private fun doOnChildVisibilityChange(container: Component, runnable: () -> Unit) {
+    if (container !is Container) {
+      return
+    }
+
+    val componentListener = object : ComponentListener {
+      override fun componentResized(e: ComponentEvent?) = Unit
+      override fun componentMoved(e: ComponentEvent?) = Unit
+      override fun componentShown(e: ComponentEvent?) = runnable()
+      override fun componentHidden(e: ComponentEvent?) = runnable()
+    }
+
+    val stack = Stack<Component>()
+    container.components.forEach { stack.push(it) }
+    while (!stack.isEmpty()) {
+      val component = stack.pop()
+      component.addComponentListener(componentListener)
+      if (component is Container) {
+        component.components.forEach { stack.push(it) }
+      }
+    }
+  }
+
   private suspend fun createAndShowDialog(allSelectableTopics: List<String>) = withContext(Dispatchers.EDT) {
-    val builder = DialogBuilder()
-    builder.addOkAction()
-    builder.addCancelAction()
-    builder.title(KafkaMessagesBundle.message("action.kafka.ResetOffsetsAction.text"))
-    builder.centerPanel(createPanel(allSelectableTopics))
+    val builder = DialogBuilder().apply {
+      addOkAction()
+      addCancelAction()
+      title(KafkaMessagesBundle.message("action.kafka.ResetOffsetsAction.text"))
+      centerPanel(createPanel(allSelectableTopics))
+    }
+    doOnChildVisibilityChange(builder.centerPanel) {
+      invokeLater {
+        builder.dialogWrapper.pack()
+      }
+    }
     !builder.showAndGet()
   }
 
   private fun createPanel(allSelectableTopics: List<String>): DialogPanel {
-    val centralPanel = panel {
+    return panel {
       row(KafkaMessagesBundle.message("consumer.record.topic")) {
         comboBox(allSelectableTopics).align(AlignX.FILL).resizableColumn().bindItem(topic)
       }
@@ -117,7 +151,6 @@ class KafkaConsumerGroupChangeOffsetProcess(val project: Project, val dataManage
         }
       }.visibleIf(startType.equalsTo(ConsumerStartType.OFFSET).or(startType.equalsTo(ConsumerStartType.LATEST_OFFSET_MINUS_X)))
     }
-    return centralPanel
   }
 }
 
