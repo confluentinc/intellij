@@ -8,6 +8,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.DialogBuilder
 import com.intellij.openapi.ui.DialogPanel
 import com.intellij.platform.ide.progress.withBackgroundProgress
+import com.intellij.ui.UIBundle
 import com.intellij.ui.dsl.builder.AlignX
 import com.intellij.ui.dsl.builder.bindIntText
 import com.intellij.ui.dsl.builder.bindItem
@@ -104,7 +105,16 @@ class KafkaConsumerGroupChangeOffsetProcess(val project: Project, val dataManage
         cell(startSpecificDate).align(AlignX.FILL).resizableColumn()
       }.visibleIf(startType.equalsTo(ConsumerStartType.SPECIFIC_DATE))
       row(KafkaMessagesBundle.message("consumer.group.dialog.change.offset.offset.label")) {
-        intTextField().bindIntText(startOffset).align(AlignX.FILL).resizableColumn()
+        textField().bindIntText(startOffset).align(AlignX.FILL).resizableColumn().validationOnInput {
+          val range = LongRange(0, Long.MAX_VALUE - 1)
+          val value = it.text.toLongOrNull()
+          when (value) {
+            null -> error(UIBundle.message("please.enter.a.number"))
+            !in range -> error(
+              UIBundle.message("please.enter.a.number.from.0.to.1", range.first, range.last))
+            else -> null
+          }
+        }
       }.visibleIf(startType.equalsTo(ConsumerStartType.OFFSET).or(startType.equalsTo(ConsumerStartType.LATEST_OFFSET_MINUS_X)))
     }
     return centralPanel
