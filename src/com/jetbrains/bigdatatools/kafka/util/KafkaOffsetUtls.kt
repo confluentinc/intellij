@@ -31,11 +31,28 @@ object KafkaOffsetUtils {
     val offsets = partitions.map {
       val endOffset = it.endOffset ?: error("Cannot detect latest offset")
       val startOffset = it.startOffset ?: error("Cannot detect beginning offset")
+
       when (startWith.type) {
         ConsumerStartType.NOW -> OffsetAndMetadata(endOffset)
         ConsumerStartType.THE_BEGINNING -> OffsetAndMetadata(startOffset)
-        ConsumerStartType.LATEST_OFFSET_MINUS_X -> OffsetAndMetadata(it.endOffset - startWith.offset!!)
-        ConsumerStartType.OFFSET -> OffsetAndMetadata(it.startOffset + startWith.offset!!)
+        ConsumerStartType.LATEST_OFFSET_MINUS_X -> {
+          val newOffset = endOffset - startWith.offset!!
+          if (newOffset < startOffset) {
+            throw KafkaOffsetException(
+              KafkaMessagesBundle.message("exception.message.kafka.change.offset.min.offset.limit",
+                                          it.topic, it.partitionId, newOffset, endOffset))
+          }
+          OffsetAndMetadata(newOffset)
+        }
+        ConsumerStartType.OFFSET -> {
+          val newOffset = startOffset + startWith.offset!!
+          if (newOffset > endOffset) {
+            throw KafkaOffsetException(
+              KafkaMessagesBundle.message("exception.message.kafka.change.offset.max.offset.limit",
+                                          it.topic, it.partitionId, newOffset, endOffset))
+          }
+          OffsetAndMetadata(newOffset)
+        }
 
         ConsumerStartType.SPECIFIC_DATE, ConsumerStartType.LAST_HOUR,
         ConsumerStartType.TODAY, ConsumerStartType.YESTERDAY -> error("Internal Error. Must be calculated for timestamp")
@@ -73,5 +90,5 @@ object KafkaOffsetUtils {
       else -> null
     }
   }
-
 }
+
