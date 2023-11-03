@@ -18,6 +18,8 @@ import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.vfs.readBytes
 import com.intellij.ui.EditorTextField
 import com.intellij.ui.dsl.builder.*
+import com.intellij.ui.layout.ComponentPredicate
+import com.intellij.ui.layout.not
 import com.intellij.ui.layout.selectedValueMatches
 import com.intellij.util.concurrency.annotations.RequiresBackgroundThread
 import com.jetbrains.bigdatatools.common.rfs.util.RfsNotificationUtils
@@ -193,7 +195,8 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
       group(title, indent = false) {
         row(KafkaMessagesBundle.message("consumer.producer.format.type")) {
           cell(fieldTypeComboBox).resizableColumn().gap(RightGap.SMALL)
-          generateDataAction = actionButton(createGenerateAction())
+          val predicate = ComponentPredicate.fromObservableProperty(randomGenerationEnabled)
+          generateDataAction = actionButton(createGenerateAction()).visibleIf(!predicate)
         }
         rowsRange {
           row(KafkaMessagesBundle.message("settings.format.registry.schema")) {
@@ -252,8 +255,8 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
   }
 
   @Suppress("UNUSED_PARAMETER")
-  private fun validateValue(component: JComponent, text: String) : String? {
-    if(component.getUserData(SKIP_VALIDATION) == true) {
+  private fun validateValue(component: JComponent, text: String): String? {
+    if (component.getUserData(SKIP_VALIDATION) == true) {
       component.putUserData(SKIP_VALIDATION, false)
       return null
     }
@@ -295,7 +298,8 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
     KafkaFieldType.STRING -> null
     KafkaFieldType.INTEGER -> if (value.toIntOrNull() != null) null else KafkaMessagesBundle.message("producer.field.int.invalid", value)
     KafkaFieldType.LONG -> if (value.toLongOrNull() != null) null else KafkaMessagesBundle.message("producer.field.long.invalid", value)
-    KafkaFieldType.DOUBLE -> if (value.toDoubleOrNull() != null) null else KafkaMessagesBundle.message("producer.field.double.invalid", value)
+    KafkaFieldType.DOUBLE -> if (value.toDoubleOrNull() != null) null
+    else KafkaMessagesBundle.message("producer.field.double.invalid", value)
     KafkaFieldType.FLOAT -> if (value.toFloatOrNull() != null) null else KafkaMessagesBundle.message("producer.field.float.invalid", value)
     KafkaFieldType.BASE64 -> {
       val decoder = Base64.getDecoder()
@@ -367,7 +371,6 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
         return
       }
 
-
       executeNotOnEdt {
         val config = try {
           getProducerField()
@@ -403,7 +406,7 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
         KafkaFieldType.AVRO_CUSTOM,
         KafkaFieldType.PROTOBUF_CUSTOM
         -> {
-          e.presentation.isEnabledAndVisible = true
+          e.presentation.isEnabledAndVisible = !randomGenerationEnabled.get()
           e.presentation.text = KafkaMessagesBundle.message("generate.random.data")
         }
         null, KafkaFieldType.NULL -> e.presentation.isEnabledAndVisible = false
