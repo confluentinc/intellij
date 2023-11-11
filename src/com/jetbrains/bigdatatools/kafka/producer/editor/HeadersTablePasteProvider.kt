@@ -11,7 +11,12 @@ import java.awt.datatransfer.DataFlavor
 class HeadersTablePasteProvider(private val table: PropertiesTable) : PasteProvider {
   override fun performPaste(dataContext: DataContext) {
     val contents = CopyPasteManager.getInstance().contents ?: return
-    val data = contents.getTransferData(DataFlavor.stringFlavor) as? String ?: return
+    val data = try {
+      contents.getTransferData(DataFlavor.stringFlavor) as? String ?: return
+    }
+    catch (t: Throwable) {
+      return
+    }
 
     //Parse JSON
     try {
