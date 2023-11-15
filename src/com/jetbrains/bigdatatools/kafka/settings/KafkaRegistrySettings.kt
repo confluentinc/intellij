@@ -25,6 +25,7 @@ import com.jetbrains.bigdatatools.kafka.rfs.KafkaConnectionData
 import com.jetbrains.bigdatatools.kafka.rfs.SchemaRegistryAuthType
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import com.jetbrains.bigdatatools.kafka.util.KafkaPropertiesUtils
+import com.jetbrains.bigdatatools.kafka.util.KafkaSslUtils
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClientConfig
 import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG
 import kotlinx.coroutines.CoroutineScope
@@ -301,7 +302,10 @@ class KafkaRegistrySettings(val project: Project,
       useKeyStore = keystoreLocation.isNotBlank(),
       keyPassword = properties[SslConfigs.SSL_KEY_PASSWORD_CONFIG] ?: "",
       keystoreLocation = keystoreLocation,
-      keystorePassword = properties[SchemaRegistryClientConfig.CLIENT_NAMESPACE + SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG] ?: ""
+      keystorePassword = properties[SchemaRegistryClientConfig.CLIENT_NAMESPACE + SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG] ?: "",
+      caCertificate = properties[KafkaSslUtils.SSL_CA_LOCATION] ?: "",
+      accessKey = properties[KafkaSslUtils.SSL_KEY_LOCATION] ?: "",
+      accessCertificate = properties[KafkaSslUtils.SSL_CERTIFICATE_LOCATION] ?: "",
     ))
 
     val proxyHost = properties[SchemaRegistryClientConfig.PROXY_HOST]
@@ -350,6 +354,10 @@ class KafkaRegistrySettings(val project: Project,
           SchemaRegistryClientConfig.CLIENT_NAMESPACE + SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG to config.keystorePassword.ifBlank { null },
           SchemaRegistryClientConfig.CLIENT_NAMESPACE + SslConfigs.SSL_KEY_PASSWORD_CONFIG to config.keyPassword.ifBlank { null })
       }
+
+      result += mapOf(KafkaSslUtils.SSL_CA_LOCATION to config.caCertificate.ifBlank { null },
+                      KafkaSslUtils.SSL_KEY_LOCATION to config.accessKey.ifBlank { null },
+                      KafkaSslUtils.SSL_CERTIFICATE_LOCATION to config.accessCertificate.ifBlank { null })
       result
     }
     else

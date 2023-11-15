@@ -29,6 +29,7 @@ import com.jetbrains.bigdatatools.kafka.rfs.*
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaConnectionData.Companion.CONFIG_KEY
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import com.jetbrains.bigdatatools.kafka.util.KafkaPropertiesUtils
+import com.jetbrains.bigdatatools.kafka.util.KafkaSslUtils
 import kotlinx.coroutines.CoroutineScope
 import org.apache.kafka.clients.CommonClientConfigs
 import org.apache.kafka.common.config.SaslConfigs
@@ -402,6 +403,10 @@ class KafkaBrokerSettings(val project: Project,
                       SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG to config.keystorePassword.ifBlank { null },
                       SslConfigs.SSL_KEY_PASSWORD_CONFIG to config.keyPassword.ifBlank { null })
     }
+
+    result += mapOf(KafkaSslUtils.SSL_CA_LOCATION to config.caCertificate.ifBlank { null },
+                    KafkaSslUtils.SSL_KEY_LOCATION to config.accessKey.ifBlank { null },
+                    KafkaSslUtils.SSL_CERTIFICATE_LOCATION to config.accessCertificate.ifBlank { null })
   }
 
   private fun setKafkaPropertiesToUi() {
@@ -481,7 +486,10 @@ class KafkaBrokerSettings(val project: Project,
         useKeyStore = keystoreLocation.isNotBlank(),
         keyPassword = properties[SslConfigs.SSL_KEY_PASSWORD_CONFIG] ?: "",
         keystoreLocation = keystoreLocation,
-        keystorePassword = properties[SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG] ?: ""
+        keystorePassword = properties[SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG] ?: "",
+        caCertificate = properties[KafkaSslUtils.SSL_CA_LOCATION] ?: "",
+        accessKey = properties[KafkaSslUtils.SSL_KEY_LOCATION] ?: "",
+        accessCertificate = properties[KafkaSslUtils.SSL_CERTIFICATE_LOCATION] ?: "",
       )
     )
   }
