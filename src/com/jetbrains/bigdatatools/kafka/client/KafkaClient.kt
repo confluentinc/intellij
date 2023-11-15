@@ -28,6 +28,7 @@ import com.jetbrains.bigdatatools.kafka.rfs.KafkaConnectionData
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaPropertySource
 import com.jetbrains.bigdatatools.kafka.toolwindow.config.KafkaToolWindowSettings
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import com.jetbrains.bigdatatools.kafka.util.KafkaSslUtils
 import kotlinx.coroutines.TimeoutCancellationException
 import org.apache.kafka.clients.CommonClientConfigs
 import org.apache.kafka.clients.admin.*
@@ -76,6 +77,9 @@ class KafkaClient(project: Project?,
         val urlForTunnel = tunnelHandler.tunnelledUri.split("//:").last()
         kafkaProps.setProperty(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, urlForTunnel)
       }
+
+    KafkaSslUtils.addMigratedToProperties(kafkaProps)
+
     withPluginClassLoader {
       setSystemPropertiesForAwsIam()
       try {
