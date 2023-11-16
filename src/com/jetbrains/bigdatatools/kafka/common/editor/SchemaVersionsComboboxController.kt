@@ -20,7 +20,9 @@ class SchemaVersionsComboboxController(rootDisposable: Disposable,
   private val versionCombobox = ComboBox<Long>(emptyArray()).apply {
     isSwingPopup = false
     prototypeDisplayValue = 11111
-    renderer = SimpleListCellRenderer.create(KafkaMessagesBundle.message("schema.version.is.not.found")) { "Version $it" }
+    renderer = SimpleListCellRenderer.create(KafkaMessagesBundle.message("schema.version.is.not.found")) {
+      KafkaMessagesBundle.message("schema.version", it)
+    }
   }
 
   val isVisible = AtomicBooleanProperty(true)
