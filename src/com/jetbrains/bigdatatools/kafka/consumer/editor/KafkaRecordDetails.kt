@@ -11,6 +11,7 @@ import com.intellij.ui.IdeBorderFactory
 import com.intellij.ui.SideBorder
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.dsl.builder.*
+import com.intellij.ui.layout.enteredTextSatisfies
 import com.jetbrains.bigdatatools.common.rfs.driver.metainfo.components.SelectableLabel
 import com.jetbrains.bigdatatools.common.rfs.util.RfsNotificationUtils
 import com.jetbrains.bigdatatools.common.ui.ComponentColoredBorder
@@ -115,6 +116,7 @@ class KafkaRecordDetails(project: Project, parentDisposable: Disposable) {
       row(KafkaMessagesBundle.message("consumer.record.topic")) { cell(topicField).align(AlignX.FILL) }
       row(KafkaMessagesBundle.message("consumer.record.partition")) { cell(partition).align(AlignX.FILL) }
       row(KafkaMessagesBundle.message("consumer.record.offset")) { cell(offset).align(AlignX.FILL) }
+        .visibleIf(offset.enteredTextSatisfies { it.isNotEmpty() })
       row(KafkaMessagesBundle.message("consumer.record.timestamp")) { cell(timestamp).align(AlignX.FILL) }
       row(KafkaMessagesBundle.message("consumer.record.keysize")) { cell(keySize).align(AlignX.FILL) }
       row(KafkaMessagesBundle.message("consumer.record.valuesize")) { cell(valueSize).align(AlignX.FILL) }
@@ -178,8 +180,8 @@ class KafkaRecordDetails(project: Project, parentDisposable: Disposable) {
       partition.text = if (row.partition >= 0) row.partition.toString() else ""
       offset.text = if (row.offset >= 0) row.offset.toString() else ""
       timestamp.text = TimeUtils.unixTimeToString(row.timestamp)
-      keySize.text = SizeUtils.toString(row.keySize)
-      valueSize.text = SizeUtils.toString(row.valueSize)
+      keySize.text = SizeUtils.toString(maxOf(row.keySize, 0))
+      valueSize.text = SizeUtils.toString(maxOf(row.valueSize, 0))
       keyTypeLabel.text = keyType.title
       valueTypeLabel.text = valueType.title
 
