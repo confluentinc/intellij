@@ -154,9 +154,11 @@ class KafkaClient(project: Project?,
 
   fun getConsumerGroups(): List<ConsumerGroupPresentable> {
     val result = kafkaAdminNotNull.listConsumerGroups().valid().get().filter { !it.groupId().endsWith("/") }
+    val config = KafkaToolWindowSettings.getInstance().getOrCreateConfig(connectionData.innerId)
     return result.map {
-      ConsumerGroupPresentable(state = it.state().getOrNull() ?: ConsumerGroupState.UNKNOWN, consumerGroup = it.groupId())
-    }.sortedBy { it.consumerGroup }
+      ConsumerGroupPresentable(state = it.state().getOrNull() ?: ConsumerGroupState.UNKNOWN, consumerGroup = it.groupId(),
+                               isFavorite = config.consumerGroupPined.contains(it.groupId()))
+    }.sortedWith(compareByDescending<ConsumerGroupPresentable> { it.isFavorite }.thenBy { it.consumerGroup.lowercase() })
   }
 
   suspend fun listConsumerGroupOffsets(consumerGroup: String): Map<TopicPartition, OffsetAndMetadata> {

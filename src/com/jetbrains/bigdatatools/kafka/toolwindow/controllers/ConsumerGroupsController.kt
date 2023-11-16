@@ -11,6 +11,7 @@ import com.jetbrains.bigdatatools.common.monitoring.data.model.FilterKey
 import com.jetbrains.bigdatatools.common.monitoring.table.DataTable
 import com.jetbrains.bigdatatools.common.monitoring.toolwindow.AbstractTableController
 import com.jetbrains.bigdatatools.common.monitoring.toolwindow.MainTreeController
+import com.jetbrains.bigdatatools.common.table.renderers.FavoriteRenderer
 import com.jetbrains.bigdatatools.common.table.renderers.LinkRenderer
 import com.jetbrains.bigdatatools.common.ui.CustomComponentActionImpl
 import com.jetbrains.bigdatatools.common.ui.filter.CountFilterPopupComponent
@@ -40,7 +41,15 @@ class ConsumerGroupsController(val dataManager: KafkaDataManager,
 
 
   override fun customTableInit(table: DataTable<ConsumerGroupPresentable>) {
-    LinkRenderer.installOnColumn(table, columnModel.getColumn(0)).apply {
+    FavoriteRenderer.installOnColumn(table, columnModel.getColumn(0)).apply {
+      onClick = { row, _ ->
+        val consumerGroupPresentable = table.getDataAt(row)
+        consumerGroupPresentable?.let { dataManager.updatePinedConsumerGroups(it.consumerGroup, !it.isFavorite) }
+      }
+    }
+
+
+    LinkRenderer.installOnColumn(table, columnModel.getColumn(1)).apply {
       onClick = { row, _ ->
         val schema = table.getDataAt(row)?.consumerGroup
         schema?.let {

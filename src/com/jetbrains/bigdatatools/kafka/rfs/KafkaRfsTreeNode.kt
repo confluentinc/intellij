@@ -4,8 +4,10 @@ import com.intellij.icons.AllIcons
 import com.intellij.openapi.project.Project
 import com.jetbrains.bigdatatools.common.monitoring.rfs.MonitoringRfsTreeNode
 import com.jetbrains.bigdatatools.common.rfs.driver.RfsPath
+import com.jetbrains.bigdatatools.kafka.model.ConsumerGroupPresentable
 import com.jetbrains.bigdatatools.kafka.model.TopicPresentable
 import com.jetbrains.bigdatatools.kafka.registry.common.KafkaSchemaInfo
+import com.jetbrains.bigdatatools.kafka.rfs.KafkaDriver.Companion.isConsumers
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaDriver.Companion.isSchemas
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaDriver.Companion.isTopicFolder
 import com.jetbrains.bigdatatools.kafka.toolwindow.KafkaMonitoringToolWindowController
@@ -15,6 +17,7 @@ class KafkaRfsTreeNode(
   rfsPath: RfsPath,
   private val topic: TopicPresentable?,
   private val schema: KafkaSchemaInfo?,
+  private val consumerGroup: ConsumerGroupPresentable?,
   driver: KafkaDriver,
 ) : MonitoringRfsTreeNode(project, rfsPath, driver) {
   init {
@@ -45,6 +48,7 @@ class KafkaRfsTreeNode(
     rfsPath.isRoot -> super.getIdleIcon()
     rfsPath.parent?.isTopicFolder == true && topic?.isFavorite == true -> AllIcons.Nodes.Favorite
     rfsPath.parent?.isSchemas == true && schema?.isFavorite == true -> AllIcons.Nodes.Favorite
+    rfsPath.parent?.isConsumers == true && consumerGroup?.isFavorite == true -> AllIcons.Nodes.Favorite
     else -> null
   }
 }

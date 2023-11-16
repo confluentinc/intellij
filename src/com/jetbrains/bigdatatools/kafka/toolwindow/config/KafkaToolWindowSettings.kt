@@ -45,6 +45,7 @@ class KafkaToolWindowSettings : PersistentStateComponent<KafkaToolWindowSettings
   var showFavoriteSchema: Boolean = false
 
   private val consumerGroupsTableColumns = mutableListOf(
+    ConsumerGroupPresentable::isFavorite.name,
     ConsumerGroupPresentable::consumerGroup.name,
     ConsumerGroupPresentable::state.name)
   val consumerGroupsColumnSettings = ColumnVisibilitySettings(consumerGroupsTableColumns)

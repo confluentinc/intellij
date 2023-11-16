@@ -450,6 +450,17 @@ class KafkaDataManager(project: Project?,
     updater.invokeRefreshModel(topicModel)
   }
 
+  fun updatePinedConsumerGroups(consumerGorup: String, isForAdding: Boolean) {
+    val config = KafkaToolWindowSettings.getInstance().getOrCreateConfig(connectionId)
+    if (isForAdding) {
+      config.consumerGroupPined += consumerGorup
+    }
+    else {
+      config.consumerGroupPined -= consumerGorup
+    }
+    updater.invokeRefreshModel(consumerGroupsModel)
+  }
+
   fun updatePinedSchemas(schemaName: String, isForAdding: Boolean) {
     val config = KafkaToolWindowSettings.getInstance().getOrCreateConfig(connectionId)
     if (isForAdding) {
@@ -491,6 +502,10 @@ class KafkaDataManager(project: Project?,
 
     KafkaUsagesCollector.consumerGroupDeleteEvent.log(project)
 
+  }
+
+  fun getCachedConsumerGroup(consumerGroup: String): ConsumerGroupPresentable? {
+    return consumerGroupsModel.data?.firstOrNull { it.consumerGroup == consumerGroup }
   }
 
   companion object {
