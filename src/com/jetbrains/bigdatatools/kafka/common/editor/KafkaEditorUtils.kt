@@ -181,6 +181,7 @@ object KafkaEditorUtils {
     }
 
     val comboBox = ComboBox((calcData()).toTypedArray())
+    comboBox.isSwingPopup = false
     comboBox.prototypeDisplayValue = "       " // Field is set for limiting combobox width.
     comboBox.renderer = CustomListCellRenderer<String> { it }
 
