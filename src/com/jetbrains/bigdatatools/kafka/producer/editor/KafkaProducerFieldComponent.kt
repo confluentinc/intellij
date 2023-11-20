@@ -9,6 +9,7 @@ import com.intellij.openapi.actionSystem.impl.ActionButton
 import com.intellij.openapi.application.invokeAndWaitIfNeeded
 import com.intellij.openapi.editor.event.DocumentEvent
 import com.intellij.openapi.editor.event.DocumentListener
+import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.fileTypes.PlainTextLanguage
 import com.intellij.openapi.observable.properties.AtomicBooleanProperty
 import com.intellij.openapi.project.DumbAwareAction
@@ -33,6 +34,7 @@ import com.jetbrains.bigdatatools.kafka.common.editor.KafkaEditorUtils
 import com.jetbrains.bigdatatools.kafka.common.models.KafkaFieldType
 import com.jetbrains.bigdatatools.kafka.common.models.RegistrySchemaInEditor
 import com.jetbrains.bigdatatools.kafka.common.settings.StorageProducerConfig
+import com.jetbrains.bigdatatools.kafka.completion.KafkaProducerGeneratorCompletionProvider
 import com.jetbrains.bigdatatools.kafka.consumer.models.ConsumerProducerFieldConfig
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryFormat
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryUtil
@@ -110,6 +112,9 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
         }
       }, this@KafkaProducerFieldComponent)
       revalidateOnLinesChanged()
+
+      val virtualFile = FileDocumentManager.getInstance().getFile(document)
+      virtualFile?.putUserData(KafkaProducerGeneratorCompletionProvider.KAFKA_JSON_WITH_GENERATOR, true)
     }
   }
 
@@ -184,6 +189,7 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
 
   fun getValidationInfo() =
     textField.getValidationInfo() ?: jsonField.getValidationInfo() ?: schemaComboBox.getValidationInfo()
+
 
   fun createComponent(panel: Panel) {
     panel.apply {

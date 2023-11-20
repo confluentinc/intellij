@@ -28,6 +28,10 @@
   <resource-bundle>messages.KafkaBundle</resource-bundle>
 
   <extensions defaultExtensionNs="com.intellij">
+    <completion.contributor language="JSON"
+                            implementationClass="com.jetbrains.bigdatatools.kafka.completion.KafkaProducerGeneratorCompletionContributor"/>
+
+
     <dependencySupport kind="java" coordinate="java:org.springframework.kafka:spring-kafka" displayName="spring-kafka"/>
     <dependencySupport kind="java" coordinate="java:io.micronaut.kafka:micronaut-kafka" displayName="micronaut-kafka"/>
     <dependencySupport kind="java" coordinate="java:org.apache.spark:spark-sql-kafka-0-10_2.13" displayName="spark-sql-kafka"/>
