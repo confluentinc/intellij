@@ -53,7 +53,7 @@ class KafkaProducerEditor(val project: Project,
 
   private val output = KafkaRecordsOutput(project, isProducer = true).also { Disposer.register(this, it) }
 
-  private val flowController = KafkaFlowController()
+  private val flowController = KafkaFlowController(project)
   private val progress = KafkaProducerConsumerProgressComponent()
 
   private val producerClient = kafkaManager.client.createProducerClient().also {
@@ -122,6 +122,7 @@ class KafkaProducerEditor(val project: Project,
       }.topGap(TopGap.NONE).bottomGap(BottomGap.NONE)
 
       flowController.createComponent(this)
+
 
       flowController.generateRandomKeys.onChanged {
         keyFieldComponent.randomGenerationEnabled.set(it.model.isSelected)

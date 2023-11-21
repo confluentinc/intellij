@@ -1,5 +1,6 @@
 package com.jetbrains.bigdatatools.kafka.producer.client
 
+import com.intellij.bigdatatools.visualization.dataframe.DataFrame
 import com.jetbrains.bigdatatools.common.rfs.util.RfsNotificationUtils
 import com.jetbrains.bigdatatools.common.settings.connections.Property
 import com.jetbrains.bigdatatools.common.util.withPluginClassLoader
@@ -13,6 +14,7 @@ import com.jetbrains.bigdatatools.kafka.producer.models.ProducerFlowParams
 import com.jetbrains.bigdatatools.kafka.producer.models.RecordCompression
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryType
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import com.jetbrains.bigdatatools.kafka.util.csv.KafkaCsvUtils
 import com.jetbrains.bigdatatools.kafka.util.generator.GenerateRandomData
 import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig
 import io.confluent.kafka.serializers.context.NullContextNameStrategy
@@ -55,15 +57,22 @@ class KafkaProducerClient(val client: KafkaClient) {
       }
       try {
         isRunning.set(true)
+
+        val csvDataFrame = flowParams.csvFile?.let {
+          KafkaCsvUtils.readDataFrame(it)
+        }
         val partition = setupPartitions(forcePartition, producer, topic)
         if (!isRunning())
           return
 
+        var produced = 0
         when (flowParams.mode) {
-          Mode.MANUAL -> sentSeveralMessage(flowParams, partition, producer, topic, key, value, headers, onUpdate)
+          Mode.MANUAL -> sentSeveralMessage(flowParams, partition, producer, topic, key, value, headers,
+                                            alreadyProducedCount = produced,
+                                            csvDf = csvDataFrame,
+                                            onUpdate)
           Mode.AUTO -> {
             val start = System.currentTimeMillis()
-            var produced = 0
             val totalElapsedTime = flowParams.totalElapsedTime
             val totalRequests = flowParams.totalRequests
             while (true) {
@@ -74,7 +83,10 @@ class KafkaProducerClient(val client: KafkaClient) {
               if (totalElapsedTime != 0 && (System.currentTimeMillis() - start) >= totalElapsedTime)
                 return
 
-              sentSeveralMessage(flowParams, partition, producer, topic, key, value, headers, onUpdate)
+              sentSeveralMessage(flowParams, partition, producer, topic, key, value, headers,
+                                 alreadyProducedCount = produced,
+                                 csvDf = csvDataFrame,
+                                 onUpdate)
               produced += flowParams.flowRecordsCountPerRequest
               Thread.sleep(flowParams.requestInterval.toLong())
             }
@@ -99,13 +111,17 @@ class KafkaProducerClient(val client: KafkaClient) {
                                  key: ConsumerProducerFieldConfig,
                                  value: ConsumerProducerFieldConfig,
                                  headers: List<Property>,
+                                 alreadyProducedCount: Int,
+                                 csvDf: DataFrame?,
                                  onUpdate: (Long, List<KafkaRecord>) -> Unit) {
     val startTime = System.currentTimeMillis()
     val produced = mutableListOf<KafkaRecord>()
     repeat(flowParams.flowRecordsCountPerRequest) {
       if (!isRunning())
         return
-      val result = sentMessage(flowParams, partition, producer, topic, key, value, headers.map { it.copy() }) ?: return
+      val result = sentMessage(flowParams, partition, producer, topic, key, value, headers.map { it.copy() },
+                               alreadyProducedCount = alreadyProducedCount + it,
+                               csvDf = csvDf) ?: return
       produced.add(result)
     }
     val endTime = System.currentTimeMillis()
@@ -167,16 +183,20 @@ class KafkaProducerClient(val client: KafkaClient) {
     key: ConsumerProducerFieldConfig,
     value: ConsumerProducerFieldConfig,
     headers: List<Property>,
+    csvDf: DataFrame?,
+    alreadyProducedCount: Int,
   ): KafkaRecord? {
-    val correctKey = if (flowParams.generateRandomKeys)
-      key.copy(valueText = GenerateRandomData.generate(client.project, key))
-    else
-      key
+    val correctKey = when {
+      csvDf != null -> key.copy(valueText = KafkaCsvUtils.getKey(csvDf, alreadyProducedCount))
+      flowParams.generateRandomKeys -> key.copy(valueText = GenerateRandomData.generate(client.project, key))
+      else -> key
+    }
 
-    val correctValue = if (flowParams.generateRandomValues)
-      value.copy(valueText = GenerateRandomData.generate(client.project, value))
-    else
-      value
+    val correctValue = when {
+      csvDf != null -> value.copy(valueText = KafkaCsvUtils.getValue(csvDf, alreadyProducedCount))
+      flowParams.generateRandomValues -> value.copy(valueText = GenerateRandomData.generate(client.project, value))
+      else -> value
+    }
 
     val record = ProducerRecord(topic, partition, correctKey.getValueObj(), correctValue.getValueObj())
     headers.forEach {
