@@ -8,4 +8,5 @@ data class ProducerFlowParams(
   val requestInterval: Int = 1000,
   val totalRequests: Int = 0,
   val totalElapsedTime: Int = 0,
+  val csvFile: String? = null,
 )

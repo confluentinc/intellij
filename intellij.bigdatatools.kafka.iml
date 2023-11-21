@@ -24,10 +24,10 @@
     <orderEntry type="module" module-name="intellij.platform.lang.impl" />
     <orderEntry type="module-library" exported="">
       <library name="apache.kafka.clients" type="repository">
-        <properties maven-id="org.apache.kafka:kafka-clients:3.4.0">
+        <properties maven-id="org.apache.kafka:kafka-clients:3.6.0">
           <verification>
-            <artifact url="file://$MAVEN_REPOSITORY$/org/apache/kafka/kafka-clients/3.4.0/kafka-clients-3.4.0.jar">
-              <sha256sum>48f38dede69bf2ed3709e270afb6b72fac869651fc258997727dba350333ac64</sha256sum>
+            <artifact url="file://$MAVEN_REPOSITORY$/org/apache/kafka/kafka-clients/3.6.0/kafka-clients-3.6.0.jar">
+              <sha256sum>e0704f68b18ebc5478db1194cc32be9388f69d72ce0a83aac21b1d81dff8845c</sha256sum>
             </artifact>
           </verification>
           <exclude>
@@ -38,11 +38,11 @@
           </exclude>
         </properties>
         <CLASSES>
-          <root url="jar://$MAVEN_REPOSITORY$/org/apache/kafka/kafka-clients/3.4.0/kafka-clients-3.4.0.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/org/apache/kafka/kafka-clients/3.6.0/kafka-clients-3.6.0.jar!/" />
         </CLASSES>
         <JAVADOC />
         <SOURCES>
-          <root url="jar://$MAVEN_REPOSITORY$/org/apache/kafka/kafka-clients/3.4.0/kafka-clients-3.4.0-sources.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/org/apache/kafka/kafka-clients/3.6.0/kafka-clients-3.6.0-sources.jar!/" />
         </SOURCES>
       </library>
     </orderEntry>
@@ -519,5 +519,6 @@
     <orderEntry type="module" module-name="intellij.spring.boot" scope="PROVIDED" />
     <orderEntry type="module" module-name="intellij.properties.psi.impl" scope="PROVIDED" />
     <orderEntry type="module" module-name="intellij.microservices.config" scope="PROVIDED" />
+    <orderEntry type="module" module-name="intellij.charts" />
   </component>
 </module>
