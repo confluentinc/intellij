@@ -1,11 +1,11 @@
 package com.jetbrains.bigdatatools.kafka.consumer.editor
 
-import com.intellij.CommonBundle
+import com.intellij.execution.impl.ConsoleViewUtil
+import com.intellij.ide.IdeBundle
 import com.intellij.json.JsonLanguage
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.runWriteAction
 import com.intellij.openapi.fileTypes.PlainTextLanguage
-import com.intellij.openapi.ide.CopyPasteManager
 import com.intellij.openapi.observable.properties.AtomicProperty
 import com.intellij.openapi.observable.util.isNotNull
 import com.intellij.openapi.observable.util.isNull
@@ -13,11 +13,11 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.vfs.writeBytes
 import com.intellij.ui.IdeBorderFactory
-import com.intellij.ui.ScrollPaneFactory
 import com.intellij.ui.SideBorder
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.dsl.builder.*
 import com.intellij.ui.layout.enteredTextSatisfies
+import com.intellij.unscramble.AnalyzeStacktraceUtil
 import com.jetbrains.bigdatatools.common.rfs.driver.metainfo.components.SelectableLabel
 import com.jetbrains.bigdatatools.common.rfs.util.RfsNotificationUtils
 import com.jetbrains.bigdatatools.common.ui.ComponentColoredBorder
@@ -36,7 +36,6 @@ import java.awt.BorderLayout
 import java.awt.CardLayout
 import java.awt.Dimension
 import java.awt.Toolkit
-import java.awt.datatransfer.StringSelection
 import java.util.*
 import javax.swing.*
 import kotlin.math.max
@@ -73,17 +72,16 @@ class KafkaRecordDetails(project: Project, parentDisposable: Disposable) {
   private val keyTypeLabel = SelectableLabel("")
   private val valueTypeLabel = SelectableLabel("")
 
-  private val error = AtomicProperty<Throwable?>(null)
+  private val error = AtomicProperty<String?>(null)
 
-  private val errorPanel = ScrollPaneFactory.createScrollPane(
-    JTextArea().apply {
-      lineWrap = false
-      text = error.get()?.stackTraceToString() ?: ""
-      error.afterChange {
-        this.text = it?.stackTraceToString() ?: ""
-      }
-      caretPosition = 0
-    }, true).apply {
+  private val errorConsole = ConsoleViewUtil.setupConsoleEditor(project, false, false).apply {
+
+    this.document.setText(error.get() ?: "")
+    error.afterChange {
+      this.document.setText(it ?: "")
+    }
+  }
+  private val errorPanel = errorConsole.scrollPane.apply {
     border = BorderFactory.createCompoundBorder(DarculaTextAreaBorder(), ComponentColoredBorder(3, 5, 3, 5))
     preferredSize = Dimension(preferredSize.width,
                               max(300, Toolkit.getDefaultToolkit().screenSize.height / 5))
@@ -99,11 +97,11 @@ class KafkaRecordDetails(project: Project, parentDisposable: Disposable) {
     })
   }
 
+  @Suppress("DialogTitleCapitalization")
   private val detailsPanel = JBScrollPane(panel {
     row(KafkaMessagesBundle.message("consumer.record.error")) {
-      link(CommonBundle.message("button.copy")) {
-        CopyPasteManager.getInstance().setContents(
-          StringSelection(error.get()?.stackTraceToString()))
+      link(IdeBundle.message("unscramble.dialog.title")) {
+        AnalyzeStacktraceUtil.addConsole(project, null, IdeBundle.message("tab.title.stacktrace"), error.get())
 
       }
     }.visibleIf(error.isNotNull())
@@ -209,7 +207,7 @@ class KafkaRecordDetails(project: Project, parentDisposable: Disposable) {
   fun update(row: KafkaRecord?) {
     keyType = row?.keyType ?: KafkaFieldType.STRING
     valueType = row?.valueType ?: KafkaFieldType.JSON
-    error.set(row?.error)
+    error.set(row?.error?.stackTraceToString()?.replace("\r\n", "\n"))
 
     (component.layout as? CardLayout)?.show(component, if (row == null) "emptyState" else "details")
 
