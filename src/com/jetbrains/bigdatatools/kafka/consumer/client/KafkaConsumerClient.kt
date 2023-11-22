@@ -15,6 +15,7 @@ import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.clients.consumer.KafkaConsumer
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.TopicPartition
+import org.apache.kafka.common.errors.RecordDeserializationException
 import org.apache.kafka.common.errors.SerializationException
 import java.time.Duration
 import java.util.*
@@ -38,7 +39,7 @@ class KafkaConsumerClient(val dataManager: KafkaDataManager,
             keyConfig: ConsumerProducerFieldConfig,
             consume: (Long, List<ConsumerRecord<Any, Any>>) -> Unit,
             timestampUpdate: () -> Unit,
-            consumeError: (Throwable) -> Unit) {
+            consumeError: (Throwable, Int?, Long?) -> Unit) {
     var consumedRecords = 0
 
     try {
@@ -56,7 +57,7 @@ class KafkaConsumerClient(val dataManager: KafkaDataManager,
                          dataManager: KafkaDataManager,
                          keyConfig: ConsumerProducerFieldConfig,
                          valueConfig: ConsumerProducerFieldConfig,
-                         consumeError: (Throwable) -> Unit,
+                         consumeError: (Throwable, Int?, Long?) -> Unit,
                          timestampUpdate: () -> Unit,
                          consumedRecords: Int,
                          consume: (Long, List<ConsumerRecord<Any, Any>>) -> Unit): Int {
@@ -108,7 +109,15 @@ class KafkaConsumerClient(val dataManager: KafkaDataManager,
         val records = try {
           kafkaConsumer.poll(Duration.ofMillis(2000))
         }
+        catch (t: RecordDeserializationException) {
+          val offset = t.offset()
+          val partition = t.topicPartition()?.partition()
+          kafkaConsumer.seek(t.topicPartition(), offset + 1)
+          consumeError(t.cause ?: t, partition, offset)
+          emptyList()
+        }
         catch (t: SerializationException) {
+          //For compatibility
           val shortMessage = t.message?.removePrefix("Error deserializing key/value for partition ")
                                ?.removeSuffix(". If needed, please seek past the record to continue consumption.") ?: ""
           val offset = shortMessage.substringAfterLast(" ", "").toLongOrNull()
@@ -116,15 +125,15 @@ class KafkaConsumerClient(val dataManager: KafkaDataManager,
           val topic = topicPartitionPart.substringBeforeLast("-").ifBlank { null }
           val partition = topicPartitionPart.substringAfterLast("-").toIntOrNull()
           if (offset == null || topic == null || partition == null) {
-            consumeError(t)
+            consumeError(t, partition, offset)
             return@use
           }
           kafkaConsumer.seek(TopicPartition(topic, partition), offset + 1)
-          consumeError(t)
+          consumeError(t.cause ?: t, partition, offset)
           emptyList()
         }
         catch (t: Throwable) {
-          consumeError(t)
+          consumeError(t, null, null)
           timestampUpdate()
           return@use
         }

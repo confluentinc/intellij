@@ -23,7 +23,8 @@ data class KafkaRecord(val keyType: KafkaFieldType,
                        val valueSize: Int,
                        val headers: List<Property>,
                        val keyFormat: KafkaRegistryFormat,
-                       val valueFormat: KafkaRegistryFormat) {
+                       val valueFormat: KafkaRegistryFormat,
+                       val errror: Throwable?) {
   val keyText = if (error == null) KafkaEditorUtils.getValueAsString(keyType, key, keyFormat) else null
   val valueText = if (error == null) KafkaEditorUtils.getValueAsString(valueType, value, valueFormat) else null
   val errorText = error?.message ?: error?.let { it::class.java.simpleName } ?: "<Unknown>"
@@ -31,7 +32,9 @@ data class KafkaRecord(val keyType: KafkaFieldType,
   companion object {
     fun createFor(keyType: KafkaFieldType?, valueType: KafkaFieldType?,
                   keyFormat: KafkaRegistryFormat?, valueFormat: KafkaRegistryFormat?,
-                  record: Result<ConsumerRecord<Any, Any>>) =
+                  record: Result<ConsumerRecord<Any, Any>>,
+                  errorPartition: Int? = null,
+                  errorOffset: Long? = null) =
       if (record.isSuccess) {
         val rec = record.getOrNull()!!
         KafkaRecord(
@@ -51,18 +54,20 @@ data class KafkaRecord(val keyType: KafkaFieldType,
             Property(name = it.key() ?: "", value = String(it.value() ?: byteArrayOf(0), StandardCharsets.UTF_8))
           } ?: emptyList(),
           keyFormat = keyFormat ?: KafkaRegistryFormat.UNKNOWN,
-          valueFormat = valueFormat ?: KafkaRegistryFormat.UNKNOWN)
+          valueFormat = valueFormat ?: KafkaRegistryFormat.UNKNOWN,
+          errror = record.exceptionOrNull())
       }
       else {
         KafkaRecord(
+          errror = record.exceptionOrNull(),
           keyType = keyType ?: KafkaFieldType.STRING,
           valueType = valueType ?: KafkaFieldType.STRING,
           error = record.exceptionOrNull(),
           key = null,
           value = null,
           topic = "",
-          partition = -1,
-          offset = -1,
+          partition = errorPartition ?: -1,
+          offset = errorOffset ?: -1,
           duration = -1,
           timestamp = System.currentTimeMillis(),
           keySize = 0,
@@ -79,8 +84,6 @@ data class KafkaRecord(val keyType: KafkaFieldType,
                   headers: List<Property>) = KafkaRecord(
       keyType = keyConfig.type,
       valueType = valueConfig.type,
-      keyFormat = keyConfig.schemaFormat,
-      valueFormat = valueConfig.schemaFormat,
       error = null,
       key = keyConfig.getValueObj(),
       value = valueConfig.getValueObj(),
@@ -91,6 +94,9 @@ data class KafkaRecord(val keyType: KafkaFieldType,
       timestamp = metadata?.timestamp() ?: -1,
       keySize = metadata?.serializedKeySize() ?: 0,
       valueSize = metadata?.serializedValueSize() ?: 0,
-      headers = headers.toList())
+      headers = headers.toList(),
+      keyFormat = keyConfig.schemaFormat,
+      valueFormat = valueConfig.schemaFormat,
+      errror = null)
   }
 }

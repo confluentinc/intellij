@@ -1,12 +1,27 @@
 package com.jetbrains.bigdatatools.kafka.util.generator
 
 import com.intellij.util.applyIf
+import java.time.Instant
+import java.time.ZoneOffset
+import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
 import java.util.*
+import java.util.concurrent.ThreadLocalRandom
+import kotlin.random.*
 import kotlin.random.Random
-import kotlin.random.nextUInt
-import kotlin.random.nextULong
+import kotlin.streams.asSequence
 
 object PrimitivesGenerator {
+  private val random = ThreadLocalRandom.current()
+  private val lowercaseLetters = ('a'..'z').toList()
+  private val letters = lowercaseLetters + ('A'..'Z')
+  private val lettersAndDigits = letters + ('0'..'9') + '_'
+  private val domains = listOf("com", "org", "nl", "cz", "de", "io", "cy", "us", "uk", "cn", "it")
+  private val hexadecimal = ('0'..'9').toList() + ('A'..'F')
+
+  private val userNameLength = 5..20
+  private val hostNameLength = 3..7
+
   fun generateString(minLength: Int = 3, maxLength: Int = 20, requireLetters: Boolean = false): String {
     val allowedChars = (('A'..'Z') + ('a'..'z')).applyIf(!requireLetters) {
       this.plus('0'..'9')
@@ -34,4 +49,56 @@ object PrimitivesGenerator {
   fun generateUint(from: UInt = UInt.MIN_VALUE, until: UInt = UInt.MAX_VALUE) = Random.nextUInt(from, until)
 
   fun generateBoolean() = Random.nextBoolean()
+
+  fun generateUUID(): UUID = UUID.randomUUID()
+
+  fun generateEmail(): String {
+    val random = random.asKotlinRandom()
+    val domain = domains.random(random)
+
+    val userNameLength = random.nextInt(userNameLength)
+    val hostNameLength = random.nextInt(hostNameLength)
+
+    val userName = lettersAndDigits.chooseNTimes(userNameLength).collectString()
+    val hostName = letters.chooseNTimes(hostNameLength).collectString()
+
+    return "$userName@$hostName.$domain"
+
+  }
+
+  fun createTimestamp(): String = Instant.now().epochSecond.toString()
+
+  fun createIsoTimestamp(): String {
+    return ZonedDateTime.now(ZoneOffset.UTC).format(DateTimeFormatter.ISO_INSTANT)
+  }
+
+  fun createHex(): String {
+    val length = generateInt(1, 55)
+    return buildString {
+      append(hexadecimal[random.nextInt(1, hexadecimal.size)])
+      if (length > 1) {
+        for (c in hexadecimal.chooseNTimes(length - 1)) {
+          append(c)
+        }
+      }
+    }
+  }
+
+  fun createAlphaNum(): String {
+    val length = generateInt(1, 55)
+    return lettersAndDigits.chooseNTimes(length).collectString()
+  }
+
+  fun generateAlphabetic(): String {
+    val length = generateInt(1, 55)
+    return letters.chooseNTimes(length).collectString()
+
+  }
+
+  private fun Sequence<Char>.collectString(): String = joinToString("") { "$it" }
+
+  private fun <T> List<T>.chooseNTimes(n: Int): Sequence<T> =
+    random.ints(0, size).asSequence()
+      .take(n)
+      .map { this[it] }
 }

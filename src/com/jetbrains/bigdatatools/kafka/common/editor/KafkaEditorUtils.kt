@@ -159,7 +159,9 @@ object KafkaEditorUtils {
         if (it.stateChange != SELECTED)
           return@addItemListener
 
-        fieldsCombobox.selectedItem = calculateSchemaTypeForTopic(dataManager, topicCombobox, isKey) ?: defaultFieldType
+        executeNotOnEdt {
+          fieldsCombobox.selectedItem = calculateSchemaTypeForTopic(dataManager, topicCombobox, isKey) ?: defaultFieldType
+        }
       }
     }
 

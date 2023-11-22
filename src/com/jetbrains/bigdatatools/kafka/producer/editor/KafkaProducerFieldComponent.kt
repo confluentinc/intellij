@@ -40,6 +40,7 @@ import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryFormat
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryUtil
 import com.jetbrains.bigdatatools.kafka.registry.ui.KafkaSchemaInfoDialog
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import com.jetbrains.bigdatatools.kafka.util.generator.FieldTemplateGenerator
 import com.jetbrains.bigdatatools.kafka.util.generator.GenerateRandomData
 import java.util.*
 import javax.swing.JComponent
@@ -136,6 +137,9 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
       val producerField = getProducerField()
       if (producerField.type == KafkaFieldType.SCHEMA_REGISTRY) {
         producerField.parsedSchema?.validate()
+        //Random int in template is presented as text so we disable check object
+        if (FieldTemplateGenerator.hasTemplatesWithRemoveQuotas(producerField.valueText))
+          return true
         producerField.getValueObj()
       }
       schemaValidationError = null

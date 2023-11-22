@@ -8,24 +8,20 @@ import com.intellij.codeInsight.lookup.AutoCompletionPolicy
 import com.intellij.codeInsight.lookup.LookupElementBuilder
 import com.intellij.openapi.util.Key
 import com.intellij.util.ProcessingContext
+import com.jetbrains.bigdatatools.kafka.util.generator.FieldTemplateGenerator
 
-class KafkaProducerGeneratorCompletionProvider(val addQuotas: Boolean) : CompletionProvider<CompletionParameters>() {
-  private val variants = mapOf(
-    "random.int" to "Random Integer",
-    "random.email" to "Generate Email",
-  )
-
+class KafkaProducerGeneratorCompletionProvider(private val addQuotas: Boolean) : CompletionProvider<CompletionParameters>() {
   override fun addCompletions(parameters: CompletionParameters, context: ProcessingContext, result: CompletionResultSet) {
     val isKafkaJson = parameters.originalFile.virtualFile?.getUserData(KAFKA_JSON_WITH_GENERATOR) ?: false
     if (!isKafkaJson)
       return
 
-    variants.forEach {
-      val key = if (addQuotas) "\"\${{${it.key}}}\"" else "\${{${it.key}}}"
+    FieldTemplateGenerator.FieldType.entries.forEach {
+      val key = if (addQuotas) "\"${it.textRepresentation}\"" else it.textRepresentation
       val element = LookupElementBuilder.create(key)
-        .withTypeText(it.value)
+        .withBoldness(true)
+        .withTypeText(it.desc)
         .withAutoCompletionPolicy(AutoCompletionPolicy.GIVE_CHANCE_TO_OVERWRITE)
-
 
       result.addElement(PrioritizedLookupElement.withPriority(element, 1000500.0))
     }

@@ -1,13 +1,19 @@
 package com.jetbrains.bigdatatools.kafka.consumer.editor
 
+import com.intellij.CommonBundle
 import com.intellij.json.JsonLanguage
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.runWriteAction
 import com.intellij.openapi.fileTypes.PlainTextLanguage
+import com.intellij.openapi.ide.CopyPasteManager
+import com.intellij.openapi.observable.properties.AtomicProperty
+import com.intellij.openapi.observable.util.isNotNull
+import com.intellij.openapi.observable.util.isNull
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.vfs.writeBytes
 import com.intellij.ui.IdeBorderFactory
+import com.intellij.ui.ScrollPaneFactory
 import com.intellij.ui.SideBorder
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.dsl.builder.*
@@ -28,8 +34,12 @@ import com.jetbrains.bigdatatools.kafka.registry.ui.KafkaRegistrySchemaEditor
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import java.awt.BorderLayout
 import java.awt.CardLayout
+import java.awt.Dimension
+import java.awt.Toolkit
+import java.awt.datatransfer.StringSelection
 import java.util.*
 import javax.swing.*
+import kotlin.math.max
 
 class KafkaRecordDetails(project: Project, parentDisposable: Disposable) {
   private val topicField = SelectableLabel("")
@@ -63,6 +73,22 @@ class KafkaRecordDetails(project: Project, parentDisposable: Disposable) {
   private val keyTypeLabel = SelectableLabel("")
   private val valueTypeLabel = SelectableLabel("")
 
+  private val error = AtomicProperty<Throwable?>(null)
+
+  private val errorPanel = ScrollPaneFactory.createScrollPane(
+    JTextArea().apply {
+      lineWrap = false
+      text = error.get()?.stackTraceToString() ?: ""
+      error.afterChange {
+        this.text = it?.stackTraceToString() ?: ""
+      }
+      caretPosition = 0
+    }, true).apply {
+    border = BorderFactory.createCompoundBorder(DarculaTextAreaBorder(), ComponentColoredBorder(3, 5, 3, 5))
+    preferredSize = Dimension(preferredSize.width,
+                              max(300, Toolkit.getDefaultToolkit().screenSize.height / 5))
+  }
+
   private var keyType = KafkaFieldType.JSON
   private var valueType = KafkaFieldType.JSON
 
@@ -74,35 +100,49 @@ class KafkaRecordDetails(project: Project, parentDisposable: Disposable) {
   }
 
   private val detailsPanel = JBScrollPane(panel {
-    row(KafkaMessagesBundle.message("consumer.record.key")) {
-      cell(keyViewerType).align(AlignX.RIGHT)
-    }
-    keyLoadFileLinkRow = row {
-      link(KafkaMessagesBundle.message("producer.config.link.load.file")) {
-        try {
-          loadBinaryFile(project, "key", keyFieldJson)
-        }
-        catch (t: Throwable) {
-          RfsNotificationUtils.showExceptionMessage(project, t)
+    row(KafkaMessagesBundle.message("consumer.record.error")) {
+      link(CommonBundle.message("button.copy")) {
+        CopyPasteManager.getInstance().setContents(
+          StringSelection(error.get()?.stackTraceToString()))
+
+      }
+    }.visibleIf(error.isNotNull())
+    row {
+      cell(errorPanel).align(AlignX.FILL)
+    }.visibleIf(error.isNotNull())
+
+
+    rowsRange {
+      row(KafkaMessagesBundle.message("consumer.record.key")) {
+        cell(keyViewerType).align(AlignX.RIGHT)
+      }
+      keyLoadFileLinkRow = row {
+        link(KafkaMessagesBundle.message("producer.config.link.load.file")) {
+          try {
+            loadBinaryFile(project, "key", keyFieldJson)
+          }
+          catch (t: Throwable) {
+            RfsNotificationUtils.showExceptionMessage(project, t)
+          }
         }
       }
-    }
 
-    row {
-      cell(keyFieldJson.component).resizableColumn().align(AlignX.FILL)
-    }.bottomGap(BottomGap.SMALL)
+      row {
+        cell(keyFieldJson.component).resizableColumn().align(AlignX.FILL)
+      }.bottomGap(BottomGap.SMALL)
 
-    row(KafkaMessagesBundle.message("consumer.record.value")) {
-      cell(valueViewerType).align(AlignX.RIGHT)
-    }
-    valueLoadFileLinkRow = row {
-      link(KafkaMessagesBundle.message("producer.config.link.load.file")) {
-        loadBinaryFile(project, "value", valueFieldJson)
+      row(KafkaMessagesBundle.message("consumer.record.value")) {
+        cell(valueViewerType).align(AlignX.RIGHT)
       }
-    }
-    row {
-      cell(valueFieldJson.component).resizableColumn().align(AlignX.FILL)
-    }.bottomGap(BottomGap.SMALL)
+      valueLoadFileLinkRow = row {
+        link(KafkaMessagesBundle.message("producer.config.link.load.file")) {
+          loadBinaryFile(project, "value", valueFieldJson)
+        }
+      }
+      row {
+        cell(valueFieldJson.component).resizableColumn().align(AlignX.FILL)
+      }.bottomGap(BottomGap.SMALL)
+    }.visibleIf(error.isNull())
 
     val headerGroup = collapsibleGroup(title = KafkaMessagesBundle.message("record.info.headers"), indent = false) {
       row {
@@ -169,6 +209,7 @@ class KafkaRecordDetails(project: Project, parentDisposable: Disposable) {
   fun update(row: KafkaRecord?) {
     keyType = row?.keyType ?: KafkaFieldType.STRING
     valueType = row?.valueType ?: KafkaFieldType.JSON
+    error.set(row?.error)
 
     (component.layout as? CardLayout)?.show(component, if (row == null) "emptyState" else "details")
 

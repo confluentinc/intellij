@@ -312,13 +312,15 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
                                progress.onUpdate()
 
                              },
-                             consumeError = {
+                             consumeError = { error, partition, offset ->
                                progress.onError()
 
                                val element = KafkaRecord.createFor(key.fieldTypeComboBox.item, value.fieldTypeComboBox.item,
                                                                    key.schemaComboBox.item?.schemaFormat,
                                                                    value.schemaComboBox.item?.schemaFormat,
-                                                                   Result.failure(it))
+                                                                   Result.failure(error),
+                                                                   errorPartition = partition,
+                                                                   errorOffset = offset)
                                invokeLater {
                                  output.addError(element)
                                }

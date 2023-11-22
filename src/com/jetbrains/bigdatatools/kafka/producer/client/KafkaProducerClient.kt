@@ -15,6 +15,7 @@ import com.jetbrains.bigdatatools.kafka.producer.models.RecordCompression
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryType
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import com.jetbrains.bigdatatools.kafka.util.csv.KafkaCsvUtils
+import com.jetbrains.bigdatatools.kafka.util.generator.FieldTemplateGenerator
 import com.jetbrains.bigdatatools.kafka.util.generator.GenerateRandomData
 import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig
 import io.confluent.kafka.serializers.context.NullContextNameStrategy
@@ -190,17 +191,26 @@ class KafkaProducerClient(val client: KafkaClient) {
       csvDf != null -> key.copy(valueText = KafkaCsvUtils.getKey(csvDf, alreadyProducedCount))
       flowParams.generateRandomKeys -> key.copy(valueText = GenerateRandomData.generate(client.project, key))
       else -> key
+    }.let {
+      val generated = FieldTemplateGenerator.processTemplate(it.valueText)
+      it.copy(valueText = generated)
     }
 
     val correctValue = when {
       csvDf != null -> value.copy(valueText = KafkaCsvUtils.getValue(csvDf, alreadyProducedCount))
       flowParams.generateRandomValues -> value.copy(valueText = GenerateRandomData.generate(client.project, value))
       else -> value
+    }.let {
+      val generated = FieldTemplateGenerator.processTemplate(it.valueText)
+      it.copy(valueText = generated)
     }
 
     val record = ProducerRecord(topic, partition, correctKey.getValueObj(), correctValue.getValueObj())
-    headers.forEach {
-      record.headers().add((it.name ?: ""), (it.value ?: "").toByteArray())
+    val formedHeaders = headers.map {
+      val headerKey = FieldTemplateGenerator.processTemplate(it.name ?: "")
+      val headerValue = FieldTemplateGenerator.processTemplate(it.value ?: "")
+      record.headers().add(headerKey, headerValue.toByteArray())
+      Property(headerKey, headerValue)
     }
 
     val start = System.currentTimeMillis()
@@ -225,6 +235,6 @@ class KafkaProducerClient(val client: KafkaClient) {
 
     return KafkaRecord.createFor(keyConfig = correctKey, valueConfig = correctValue,
                                  metadata = metaInfo, duration = (end - start),
-                                 headers = headers)
+                                 headers = formedHeaders)
   }
 }
