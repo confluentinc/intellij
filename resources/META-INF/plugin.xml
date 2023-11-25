@@ -27,7 +27,16 @@
 
   <resource-bundle>messages.KafkaBundle</resource-bundle>
 
+  <applicationListeners>
+    <listener class="com.jetbrains.bigdatatools.kafka.updater.KafkaLoadPluginListener"
+              topic="com.intellij.ide.plugins.DynamicPluginListener"/>
+  </applicationListeners>
+
   <extensions defaultExtensionNs="com.intellij">
+    <notificationGroup id="kafka" displayType="STICKY_BALLOON"
+                       bundle="messages.KafkaBundle"
+                       key="kafka.plugin.installed"/>
+
     <completion.contributor language="JSON"
                             implementationClass="com.jetbrains.bigdatatools.kafka.completion.KafkaProducerGeneratorCompletionContributor"/>
 

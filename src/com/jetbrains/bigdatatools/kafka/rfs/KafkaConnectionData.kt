@@ -37,7 +37,7 @@ class KafkaConnectionData(var version: Int? = null) : RemoteFsDriverProvider(
 
   override fun credentialIds() = super.credentialIds() + CONFIG_KEY + CONFIG_REGISTRY_KEY + SECRET_KEY_ID
 
-  var brokerConfigurationSource: KafkaConfigurationSource = KafkaConfigurationSource.CLOUD
+  var brokerConfigurationSource: KafkaConfigurationSource = KafkaConfigurationSource.FROM_UI
   var brokerCloudSource: KafkaCloudType = KafkaCloudType.CONFLUENT
 
   var propertySource: KafkaPropertySource = KafkaPropertySource.DIRECT
