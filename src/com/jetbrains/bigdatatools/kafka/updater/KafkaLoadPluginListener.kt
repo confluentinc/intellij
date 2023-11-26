@@ -10,6 +10,7 @@ import com.intellij.openapi.actionSystem.CommonDataKeys
 import com.intellij.openapi.project.ProjectManager
 import com.intellij.openapi.wm.ToolWindowManager
 import com.jetbrains.bigdatatools.common.constants.BdtConnectionType
+import com.jetbrains.bigdatatools.common.constants.BdtPlugins
 import com.jetbrains.bigdatatools.common.settings.ConnectionSettings
 import com.jetbrains.bigdatatools.common.settings.manager.RfsConnectionDataManager
 import com.jetbrains.bigdatatools.common.util.executeOnPooledThread
@@ -23,6 +24,9 @@ private val defaultNotificationGroup =
 
 internal class KafkaLoadPluginListener : DynamicPluginListener {
   override fun pluginLoaded(pluginDescriptor: IdeaPluginDescriptor) {
+    if (pluginDescriptor.pluginId.idString != BdtPlugins.KAFKA_ID)
+      return
+
     val notification = defaultNotificationGroup.createNotification(
       KafkaMessagesBundle.message("kafka.plugin.installed"),
       NotificationType.INFORMATION
@@ -38,7 +42,7 @@ internal class KafkaLoadPluginListener : DynamicPluginListener {
                                    ?.filter { it.groupId == BdtConnectionType.KAFKA.id } ?: emptyList()
           if (kafkaConnections.isEmpty())
             invokeLater {
-              ConnectionSettings.create(project, KafkaConnectionGroup(), null, applyIfOk = true)
+              ConnectionSettings.create(project, KafkaConnectionGroup(), KafkaConnectionGroup().createBlankData(), applyIfOk = true)
             }
         }
         notification.expire()
