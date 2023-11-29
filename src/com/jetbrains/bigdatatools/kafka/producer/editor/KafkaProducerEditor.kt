@@ -1,8 +1,6 @@
 package com.jetbrains.bigdatatools.kafka.producer.editor
 
 import com.intellij.icons.AllIcons
-import com.intellij.openapi.application.ApplicationManager
-import com.intellij.openapi.components.service
 import com.intellij.openapi.fileEditor.FileEditor
 import com.intellij.openapi.fileEditor.FileEditorLocation
 import com.intellij.openapi.fileEditor.FileEditorState
@@ -159,7 +157,7 @@ class KafkaProducerEditor(val project: Project,
 
   init {
     executeNotOnEdt {
-      ApplicationManager.getApplication().service<KafkaConsumerProducerFeedbackService>().state.producerDialogIsOpened = true
+      KafkaConsumerProducerFeedbackService.getInstance().state.producerDialogIsOpened = true
     }
 
     presetsSplitter.proportionsKey = "kafka.producer.multisplitter.proportions"

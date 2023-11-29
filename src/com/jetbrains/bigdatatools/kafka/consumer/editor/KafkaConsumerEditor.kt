@@ -1,7 +1,5 @@
 package com.jetbrains.bigdatatools.kafka.consumer.editor
 
-import com.intellij.openapi.application.ApplicationManager
-import com.intellij.openapi.components.service
 import com.intellij.openapi.fileEditor.FileEditor
 import com.intellij.openapi.fileEditor.FileEditorLocation
 import com.intellij.openapi.fileEditor.FileEditorState
@@ -27,7 +25,7 @@ class KafkaConsumerEditor(val project: Project,
      topic?.let { customizable.topicComboBox.item = TopicInEditor(it) }
 
     executeNotOnEdt {
-      ApplicationManager.getApplication().service<KafkaConsumerProducerFeedbackService>().state.consumerDialogIsOpened = true
+      KafkaConsumerProducerFeedbackService.getInstance().state.consumerDialogIsOpened = true
     }
   }
 
