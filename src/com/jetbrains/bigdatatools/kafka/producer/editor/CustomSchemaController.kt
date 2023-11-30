@@ -9,8 +9,12 @@ import com.intellij.openapi.fileTypes.PlainTextLanguage
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.TextFieldWithBrowseButton
+import com.intellij.openapi.ui.ValidationInfo
+import com.intellij.openapi.ui.jbTextField
 import com.intellij.ui.dsl.builder.*
 import com.jetbrains.bigdatatools.common.rfs.util.RfsNotificationUtils
+import com.jetbrains.bigdatatools.common.settings.getValidationInfo
+import com.jetbrains.bigdatatools.common.settings.withNonEmptyValidator
 import com.jetbrains.bigdatatools.common.ui.revalidateOnLinesChanged
 import com.jetbrains.bigdatatools.common.util.executeNotOnEdt
 import com.jetbrains.bigdatatools.common.util.invokeLater
@@ -68,6 +72,7 @@ class CustomSchemaController(private val project: Project,
 
     row {
       customSchemaFile = textFieldWithBrowseButton().align(AlignX.FILL).resizableColumn()
+      customSchemaFile.component.jbTextField.withNonEmptyValidator(this@CustomSchemaController)
       customSchema.component.size.height = 100
 
       customSchemaImplicit = cell(customSchema.component).align(AlignX.FILL).resizableColumn()
@@ -142,5 +147,9 @@ class CustomSchemaController(private val project: Project,
     customSchemaFile.visible(source == KafkaCustomSchemaSource.FILE)
     customSchemaImplicit.visible(source == KafkaCustomSchemaSource.IMPLICIT)
     showSchema.visible(source == KafkaCustomSchemaSource.FILE)
+  }
+
+  fun getValidationInfo(): ValidationInfo? {
+    return customSchema.customSchemaEditor.getValidationInfo() ?: customSchemaFile.component.jbTextField.getValidationInfo()
   }
 }

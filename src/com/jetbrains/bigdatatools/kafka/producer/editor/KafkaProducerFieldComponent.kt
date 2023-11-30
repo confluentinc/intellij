@@ -194,6 +194,7 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
   fun getValidationInfo() =
     textField.getValidationInfo() ?: jsonField.getValidationInfo() ?: schemaComboBox.getValidationInfo()
 
+  fun getSchemaValidationInfo() = customSchemaController.getValidationInfo()
 
   fun createComponent(panel: Panel) {
     panel.apply {

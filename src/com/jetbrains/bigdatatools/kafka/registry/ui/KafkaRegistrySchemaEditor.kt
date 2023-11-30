@@ -8,9 +8,11 @@ import com.intellij.openapi.project.Project
 import com.intellij.ui.EditorCustomization
 import com.intellij.ui.EditorTextField
 import com.intellij.ui.EditorTextFieldProvider
+import com.jetbrains.bigdatatools.common.settings.withValidator
 import com.jetbrains.bigdatatools.common.ui.ComponentColoredBorder
 import com.jetbrains.bigdatatools.common.ui.DarculaTextAreaBorder
 import com.jetbrains.bigdatatools.common.ui.doOnChange
+import com.jetbrains.bigdatatools.common.util.MessagesBundle
 import java.awt.BorderLayout
 import javax.swing.BorderFactory
 import javax.swing.JPanel
@@ -67,8 +69,8 @@ class KafkaRegistrySchemaEditor(private val project: Project,
     return editor
   }
 
-  private fun createEditor(project: Project, language: Language) =
-    EditorTextFieldProvider.getInstance().getEditorField(language, project, listOf(
+  private fun createEditor(project: Project, language: Language): EditorTextField {
+    val editor = EditorTextFieldProvider.getInstance().getEditorField(language, project, listOf(
       EditorCustomization {
         it.settings.apply {
           isLineNumbersShown = false
@@ -91,4 +93,12 @@ class KafkaRegistrySchemaEditor(private val project: Project,
       document.setReadOnly(!isEditable)
       setDisposedWith(parentDisposable)
     }
+    editor.withValidator(parentDisposable) { s: String ->
+      if (s.isEmpty())
+        MessagesBundle.message("validator.notEmpty")
+      else
+        null
+    }
+    return editor
+  }
 }
