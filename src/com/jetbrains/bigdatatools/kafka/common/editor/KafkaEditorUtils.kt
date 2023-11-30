@@ -160,7 +160,10 @@ object KafkaEditorUtils {
           return@addItemListener
 
         executeNotOnEdt {
-          fieldsCombobox.selectedItem = calculateSchemaTypeForTopic(dataManager, topicCombobox, isKey) ?: defaultFieldType
+          val schemaType: Any = calculateSchemaTypeForTopic(dataManager, topicCombobox, isKey) ?: defaultFieldType
+          runInEdt {
+            fieldsCombobox.selectedItem = schemaType
+          }
         }
       }
     }

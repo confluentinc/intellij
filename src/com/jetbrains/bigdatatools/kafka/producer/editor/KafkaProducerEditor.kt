@@ -186,6 +186,8 @@ class KafkaProducerEditor(val project: Project,
     val validationInfo = topicComboBox.getValidationInfo()
                          ?: keyFieldComponent.getValidationInfo()?.takeIf { !flowController.getParams().generateRandomKeys }
                          ?: valueFieldComponent.getValidationInfo()?.takeIf { !flowController.getParams().generateRandomValues }
+                         ?: keyFieldComponent.getSchemaValidationInfo()
+                         ?: valueFieldComponent.getSchemaValidationInfo()
 
     if (validationInfo != null) {
       progress.onValidationError()
@@ -195,15 +197,16 @@ class KafkaProducerEditor(val project: Project,
     val selectedTopicName = topic.name
 
     executeNotOnEdt {
-      if (!flowController.getParams().generateRandomKeys && !keyFieldComponent.validateSchema())
-        return@executeNotOnEdt
-      if (!flowController.getParams().generateRandomKeys && !valueFieldComponent.validateSchema())
-        return@executeNotOnEdt
-
-      val key = keyFieldComponent.getProducerField()
-      val value = valueFieldComponent.getProducerField()
-
       try {
+        if (!flowController.getParams().generateRandomKeys && !keyFieldComponent.validateSchema())
+          return@executeNotOnEdt
+        if (!flowController.getParams().generateRandomKeys && !valueFieldComponent.validateSchema())
+          return@executeNotOnEdt
+
+
+        val key = keyFieldComponent.getProducerField()
+        val value = valueFieldComponent.getProducerField()
+
         onStart()
         producerClient.start(kafkaManager,
                              selectedTopicName,
