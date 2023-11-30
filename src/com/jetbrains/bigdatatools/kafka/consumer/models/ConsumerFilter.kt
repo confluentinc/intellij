@@ -22,7 +22,7 @@ data class ConsumerFilter(val filterKey: String?,
       ConsumerFilterType.NONE -> true
       ConsumerFilterType.CONTAINS -> value?.contains(filterValue) == true
       ConsumerFilterType.DOES_NOT_CONTAINS -> value?.contains(filterValue) == false
-      ConsumerFilterType.REGEX -> value?.contains(Regex(filterValue)) == false
+      ConsumerFilterType.REGEX -> value?.matches(Regex(filterValue)) == true
     }
   }
 
