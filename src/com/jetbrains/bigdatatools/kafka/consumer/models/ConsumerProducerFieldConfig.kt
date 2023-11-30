@@ -24,7 +24,7 @@ data class ConsumerProducerFieldConfig(val type: KafkaFieldType,
                                        val schemaFormat: KafkaRegistryFormat,
                                        val parsedSchema: ParsedSchema?) {
   fun getValueObj() = when (type) {
-    KafkaFieldType.STRING -> valueText
+    KafkaFieldType.STRING -> valueText.ifEmpty { null }
     KafkaFieldType.JSON -> valueText
     KafkaFieldType.LONG -> valueText.toLong()
     KafkaFieldType.INTEGER -> valueText.toInt()
