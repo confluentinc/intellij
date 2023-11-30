@@ -79,7 +79,7 @@ class KafkaConsumerGroupChangeOffsetProcess(val project: Project, val dataManage
     }.awaitAll()
     val partitions = topicInfos.flatMap { it.partitionList }
     val startWith = ConsumerStartWith(type = startType.get(),
-                                      time = startSpecificDate.date.time,
+                                      time = startSpecificDate.date?.time,
                                       offset = startOffset.get().toLong(),
                                       consumerGroup = null)
 
