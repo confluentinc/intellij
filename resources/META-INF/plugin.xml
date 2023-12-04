@@ -164,6 +164,6 @@
 <li>Fixed exception related to the slash symbol in a Topic or Schema name</li>
 </ul>
 
-<p>The full release notes are available <a href="https://youtrack.jetbrains.com/issues?q=project:%20BDIDE%20%20Milestone:%202023.3,%20%7B2023.3%20EAP%7D%20%20State:%20Fixed,%20Verified,%20%7BWithout%20verification%7D%20sort%20by:%20project,%20Type,%20votes%20BDT%20Plugin:%20Kafka">here</a>.</p>
+<p>The full release notes are available <a href="https://youtrack.jetbrains.com/issues?q=project:%20BDIDE%20%20Available%20in:%20%7BNEXT%202023.3%7D,%20%7B2023.3%20EAP%207%7D,%20%7B2023.3%20EAP%206%7D%20,%7B2023.3%20EAP%205%7D%20,%7B2023.3%20EAP%204%7D,%20%7B2023.3%20EAP%203%7D%20,%7B2023.3%20EAP%202%7D,%20%7B2023.3%20EAP%201%7D,%20%7B2023.3%20Beta%7D,%20%7B2023.3%20Beta%203%7D%20%20State:%20Fixed,%20Verified,%20%7BWithout%20verification%7D%20sort%20by:%20project,%20Type,%20votes%20BDT%20Plugin:%20Kafka">here</a>.</p>
 ]]></change-notes>
 </idea-plugin>
