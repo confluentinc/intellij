@@ -1,11 +1,13 @@
 package com.jetbrains.bigdatatools.kafka.util.generator
 
+import com.amazonaws.services.schemaregistry.serializers.json.JsonDataWithSchema
 import com.google.gson.*
 import com.intellij.openapi.project.Project
 import com.jetbrains.bigdatatools.kafka.util.generator.GenerateRandomData.isValidSchema
 import com.mifmif.common.regex.Generex
 import io.confluent.kafka.schemaregistry.ParsedSchema
 import io.confluent.kafka.schemaregistry.json.JsonSchema
+import io.confluent.kafka.schemaregistry.json.JsonSchemaUtils
 import org.everit.json.schema.*
 import org.everit.json.schema.internal.*
 import java.time.LocalDateTime
@@ -209,7 +211,7 @@ class JsonSchemaGenerator(private val topLevelSchema: JsonSchema) {
   }
 
   companion object {
-    fun generateJsonMessage(project: Project?, schema: ParsedSchema?): String {
+    fun generateJsonMessage(project: Project?, schema: ParsedSchema?, isConfluent: Boolean): String {
       if (schema?.isValidSchema(project) == false) {
         return ""
       }
@@ -219,7 +221,27 @@ class JsonSchemaGenerator(private val topLevelSchema: JsonSchema) {
         error("Schema could not be null and the type of it should be JSON")
       }
 
-      return JsonSchemaGenerator(jsonSchema).generate()
+      val numberOfAttempts = 10
+      var result = ""
+      for (i in 0 until numberOfAttempts) {
+        result = JsonSchemaGenerator(jsonSchema).generate()
+        if (result.isValidData(schema, isConfluent))
+          break
+      }
+      return result
+    }
+
+    private fun String.isValidData(schema: ParsedSchema, isConfluentSchema: Boolean): Boolean = try {
+      if (isConfluentSchema) {
+        JsonSchemaUtils.toObject(this, schema as JsonSchema)
+      }
+      else {
+        JsonDataWithSchema.builder(schema.canonicalString(), this).build()
+      }
+      true
+    }
+    catch (e: Exception) {
+      false
     }
   }
 }

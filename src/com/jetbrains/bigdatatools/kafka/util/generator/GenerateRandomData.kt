@@ -11,6 +11,7 @@ import com.jetbrains.bigdatatools.common.util.MessagesBundle
 import com.jetbrains.bigdatatools.kafka.common.models.KafkaFieldType
 import com.jetbrains.bigdatatools.kafka.consumer.models.ConsumerProducerFieldConfig
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryFormat
+import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryType
 import com.jetbrains.bigdatatools.kafka.toolwindow.KafkaMonitoringToolWindowController
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import io.confluent.kafka.schemaregistry.ParsedSchema
@@ -19,7 +20,7 @@ object GenerateRandomData {
   val logger = Logger.getInstance(this::class.java)
 
   fun generate(project: Project?, config: ConsumerProducerFieldConfig): String = try {
-    generate(project, config.type, config.parsedSchema)
+    generateData(project, config)
   }
   catch (_: Throwable) {
     val notificationGroup = KafkaMonitoringToolWindowController.getNotificationGroup()
@@ -48,25 +49,29 @@ object GenerateRandomData {
     false
   }
 
-  private fun generate(project: Project?, fieldType: KafkaFieldType, parsedSchema: ParsedSchema?): String = when (fieldType) {
-    KafkaFieldType.STRING -> PrimitivesGenerator.generateString()
-    KafkaFieldType.LONG -> PrimitivesGenerator.generateLong().toString()
-    KafkaFieldType.INTEGER -> PrimitivesGenerator.generateInt().toString()
-    KafkaFieldType.DOUBLE -> PrimitivesGenerator.generateDouble().toString()
-    KafkaFieldType.FLOAT -> PrimitivesGenerator.generateFloat().toString()
-    KafkaFieldType.BASE64 -> PrimitivesGenerator.generateBytesBase64()
-    KafkaFieldType.SCHEMA_REGISTRY -> {
-      val schemaType = parsedSchema?.schemaType()
-      when (KafkaRegistryFormat.parse(schemaType ?: error("Schema is not provided for generation data"))) {
-        KafkaRegistryFormat.AVRO -> AvroGenerator.generateAvroMessage(project, parsedSchema)
-        KafkaRegistryFormat.PROTOBUF -> ProtobufGenerator.generateProtobufMessage(project, parsedSchema)
-        KafkaRegistryFormat.JSON -> JsonSchemaGenerator.generateJsonMessage(project, parsedSchema)
-        KafkaRegistryFormat.UNKNOWN -> error("Schema is unknown for $parsedSchema")
+  private fun generateData(project: Project?, config: ConsumerProducerFieldConfig): String {
+    val parsedSchema = config.parsedSchema
+    return when (config.type) {
+      KafkaFieldType.STRING -> PrimitivesGenerator.generateString()
+      KafkaFieldType.LONG -> PrimitivesGenerator.generateLong().toString()
+      KafkaFieldType.INTEGER -> PrimitivesGenerator.generateInt().toString()
+      KafkaFieldType.DOUBLE -> PrimitivesGenerator.generateDouble().toString()
+      KafkaFieldType.FLOAT -> PrimitivesGenerator.generateFloat().toString()
+      KafkaFieldType.BASE64 -> PrimitivesGenerator.generateBytesBase64()
+      KafkaFieldType.SCHEMA_REGISTRY -> {
+        val schemaType = parsedSchema?.schemaType()
+        when (KafkaRegistryFormat.parse(schemaType ?: error("Schema is not provided for generation data"))) {
+          KafkaRegistryFormat.AVRO -> AvroGenerator.generateAvroMessage(project, parsedSchema)
+          KafkaRegistryFormat.PROTOBUF -> ProtobufGenerator.generateProtobufMessage(project, parsedSchema)
+          KafkaRegistryFormat.JSON -> JsonSchemaGenerator.generateJsonMessage(project, parsedSchema,
+                                                                              config.registryType == KafkaRegistryType.CONFLUENT)
+          KafkaRegistryFormat.UNKNOWN -> error("Schema is unknown for $parsedSchema")
+        }
       }
+      KafkaFieldType.JSON -> GsonBuilder().setPrettyPrinting().create().toJson(JsonGenerator.generateJson())
+      KafkaFieldType.NULL -> ""
+      KafkaFieldType.PROTOBUF_CUSTOM -> ProtobufGenerator.generateProtobufMessage(project, parsedSchema)
+      KafkaFieldType.AVRO_CUSTOM -> AvroGenerator.generateAvroMessage(project, parsedSchema)
     }
-    KafkaFieldType.JSON -> GsonBuilder().setPrettyPrinting().create().toJson(JsonGenerator.generateJson())
-    KafkaFieldType.NULL -> ""
-    KafkaFieldType.PROTOBUF_CUSTOM -> ProtobufGenerator.generateProtobufMessage(project, parsedSchema)
-    KafkaFieldType.AVRO_CUSTOM -> AvroGenerator.generateAvroMessage(project, parsedSchema)
   }
 }
