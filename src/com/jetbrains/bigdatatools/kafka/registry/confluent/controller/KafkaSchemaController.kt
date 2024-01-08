@@ -4,6 +4,7 @@ import com.intellij.icons.AllIcons
 import com.intellij.json.JsonLanguage
 import com.intellij.openapi.actionSystem.*
 import com.intellij.openapi.actionSystem.impl.MoreActionGroup
+import com.intellij.openapi.actionSystem.toolbarLayout.ToolbarLayoutStrategy
 import com.intellij.openapi.observable.properties.AtomicBooleanProperty
 import com.intellij.openapi.observable.util.and
 import com.intellij.openapi.project.DumbAwareAction
@@ -171,7 +172,7 @@ class KafkaSchemaController(private val project: Project,
     }
 
     val rightToolbar = ToolbarUtils.createActionToolbar("KafkaSchemaToolbarRight", rightActionGroup, true).apply {
-      layoutPolicy = ActionToolbar.NOWRAP_LAYOUT_POLICY // For removing empty space on the right.
+      layoutStrategy = ToolbarLayoutStrategy.HORIZONTAL_NOWRAP_STRATEGY // For removing empty space on the right.
       this.targetComponent = targetComponent
     }
 
