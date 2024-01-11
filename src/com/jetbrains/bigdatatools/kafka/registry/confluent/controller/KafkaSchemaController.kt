@@ -172,7 +172,7 @@ class KafkaSchemaController(private val project: Project,
     }
 
     val rightToolbar = ToolbarUtils.createActionToolbar("KafkaSchemaToolbarRight", rightActionGroup, true).apply {
-      layoutStrategy = ToolbarLayoutStrategy.HORIZONTAL_NOWRAP_STRATEGY // For removing empty space on the right.
+      layoutStrategy = ToolbarLayoutStrategy.NOWRAP_STRATEGY // For removing empty space on the right.
       this.targetComponent = targetComponent
     }
 
