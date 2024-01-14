@@ -49,6 +49,10 @@ internal class KafkaLoadPluginListener : DynamicPluginListener {
       }
     )
 
-    ProjectManager.getInstance().openProjects.forEach { notification.notify(it) }
+    ProjectManager.getInstance().openProjects.forEach {
+      invokeLater {
+        if (!it.isDisposed) notification.notify(it)
+      }
+    }
   }
 }
