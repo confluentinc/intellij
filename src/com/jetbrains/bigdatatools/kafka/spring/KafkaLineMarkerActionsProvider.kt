@@ -1,6 +1,7 @@
 package com.jetbrains.bigdatatools.kafka.spring
 
 import com.intellij.codeInsight.intention.HighPriorityAction
+import com.intellij.icons.AllIcons
 import com.intellij.microservices.mq.KAFKA_TOPIC_TYPE
 import com.intellij.microservices.mq.MQTargetInfo
 import com.intellij.microservices.mq.gutters.MQLineMarkerActionsProvider
@@ -55,7 +56,7 @@ internal class OpenConsumerAction(
 
   override fun getLineMarkerName(): String = KafkaMessagesBundle.message("gutter.action.observe.messages.in.topic")
   override fun getLineMarkerTooltipText(): String = KafkaMessagesBundle.message("gutter.action.opens.kafka.consumer.ui.description")
-  override fun getLineMarkerIcon(): Icon = MicroservicesIcons.MQ.Kafka
+  override fun getLineMarkerIcon(): Icon = AllIcons.Providers.Kafka
 
   override val action: AnAction
     get() = this
@@ -71,7 +72,7 @@ internal class OpenProducerAction(
 
   override fun getLineMarkerName(): String = KafkaMessagesBundle.message("gutter.action.send.messages.to.topic")
   override fun getLineMarkerTooltipText(): String = KafkaMessagesBundle.message("gutter.action.opens.kafka.producer.ui.description")
-  override fun getLineMarkerIcon(): Icon = MicroservicesIcons.MQ.Kafka
+  override fun getLineMarkerIcon(): Icon = AllIcons.Providers.Kafka
 
   override val action: AnAction
     get() = this

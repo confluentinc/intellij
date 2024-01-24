@@ -5,6 +5,7 @@ import com.intellij.codeInsight.daemon.LineMarkerProviderDescriptor
 import com.intellij.codeInsight.daemon.RelatedItemLineMarkerInfo
 import com.intellij.codeInsight.intention.HighPriorityAction
 import com.intellij.codeInsight.navigation.NavigationGutterIconBuilder
+import com.intellij.icons.AllIcons
 import com.intellij.ide.DataManager
 import com.intellij.lang.properties.psi.Property
 import com.intellij.lang.properties.psi.impl.PropertyKeyImpl
@@ -27,7 +28,7 @@ import javax.swing.Icon
 internal class KafkaSpringBootConfigLineMarkers : LineMarkerProviderDescriptor() {
   override fun getName(): String = KafkaMessagesBundle.message("gutter.name.kafka.configuration.in.spring.boot")
 
-  override fun getIcon(): Icon = MicroservicesIcons.MQ.Kafka
+  override fun getIcon(): Icon = AllIcons.Providers.Kafka
 
   override fun getLineMarkerInfo(element: PsiElement): LineMarkerInfo<*>? = null
 
@@ -105,7 +106,7 @@ internal class KafkaSpringBootConfigLineMarkers : LineMarkerProviderDescriptor()
 
     override fun getLineMarkerName(): String = KafkaMessagesBundle.message("gutter.action.setup.connection")
     override fun getLineMarkerTooltipText(): String = KafkaMessagesBundle.message("gutter.action.setup.connection.description")
-    override fun getLineMarkerIcon(): Icon = MicroservicesIcons.MQ.Kafka
+    override fun getLineMarkerIcon(): Icon = AllIcons.Providers.Kafka
 
     override val action: AnAction
       get() = this
