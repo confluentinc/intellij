@@ -6,8 +6,6 @@ import com.intellij.openapi.fileEditor.FileEditorState
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.UserDataHolderBase
 import com.intellij.openapi.vfs.VirtualFile
-import com.intellij.platform.feedback.kafka.state.KafkaConsumerProducerFeedbackService
-import com.jetbrains.bigdatatools.common.util.executeNotOnEdt
 import com.jetbrains.bigdatatools.kafka.common.models.TopicInEditor
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
@@ -23,10 +21,6 @@ class KafkaConsumerEditor(val project: Project,
 
   init {
      topic?.let { customizable.topicComboBox.item = TopicInEditor(it) }
-
-    executeNotOnEdt {
-      KafkaConsumerProducerFeedbackService.getInstance().state.consumerDialogIsOpened = true
-    }
   }
 
   override fun dispose() {

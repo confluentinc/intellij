@@ -11,7 +11,6 @@ import com.intellij.openapi.util.Key
 import com.intellij.openapi.util.UserDataHolderBase
 import com.intellij.openapi.util.text.StringUtil
 import com.intellij.openapi.vfs.VirtualFile
-import com.intellij.platform.feedback.kafka.state.KafkaConsumerProducerFeedbackService
 import com.intellij.ui.components.CheckBox
 import com.intellij.ui.components.fields.IntegerField
 import com.intellij.ui.dsl.builder.*
@@ -156,10 +155,6 @@ class KafkaProducerEditor(val project: Project,
   private val presetsSplitter = MultiSplitter()
 
   init {
-    executeNotOnEdt {
-      KafkaConsumerProducerFeedbackService.getInstance().state.producerDialogIsOpened = true
-    }
-
     presetsSplitter.proportionsKey = "kafka.producer.multisplitter.proportions"
     presetsSplitter.add(ExpansionPanel(KafkaMessagesBundle.message("toggle.presets"), { presets.component }, PRESETS_SHOW_ID, false))
     presetsSplitter.add(ExpansionPanel(KafkaMessagesBundle.message("toggle.settings"), { settingsPanel },
