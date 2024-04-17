@@ -1,9 +1,9 @@
 package com.jetbrains.bigdatatools.kafka.toolwindow.controllers
 
-import com.intellij.openapi.actionSystem.ActionGroup
 import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.DataProvider
+import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.ui.DocumentAdapter
 import com.intellij.ui.SearchTextField
 import com.jetbrains.bigdatatools.common.monitoring.data.model.FilterAdapter
@@ -59,8 +59,11 @@ class ConsumerGroupsController(val dataManager: KafkaDataManager,
     }
   }
 
-  override fun getAdditionalContextActions(): List<AnAction> =
-    (ActionManager.getInstance().getAction("Kafka.Consumer.Group.Actions") as ActionGroup).getChildren(null).toList()
+  override fun getAdditionalContextActions(): List<AnAction> {
+    val actionManager = ActionManager.getInstance()
+    val group = actionManager.getAction("Kafka.Consumer.Group.Actions") as DefaultActionGroup
+    return group.getChildren(actionManager).toList()
+  }
 
   override fun getColumnSettings() = KafkaToolWindowSettings.getInstance().consumerGroupsColumnSettings
 
