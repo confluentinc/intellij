@@ -1,9 +1,9 @@
 package com.jetbrains.bigdatatools.kafka.toolwindow.controllers
 
-import com.intellij.openapi.actionSystem.ActionGroup
 import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.DataProvider
+import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.jetbrains.bigdatatools.common.monitoring.toolwindow.DetailsTableMonitoringController
 import com.jetbrains.bigdatatools.common.monitoring.toolwindow.MainTreeController
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
@@ -27,8 +27,11 @@ class ConsumerGroupOffsetsController(val dataManager: KafkaDataManager) : Detail
     }
   }
 
-  override fun getAdditionalContextActions(): List<AnAction> =
-    (ActionManager.getInstance().getAction("Kafka.Consumer.Group.Actions") as ActionGroup).getChildren(null).toList()
+  override fun getAdditionalContextActions(): List<AnAction> {
+    val actionManager = ActionManager.getInstance()
+    val group = actionManager.getAction("Kafka.Consumer.Group.Actions") as DefaultActionGroup
+    return group.getChildren(actionManager).toList()
+  }
 
 
   override fun getColumnSettings() = KafkaToolWindowSettings.getInstance().consumerGroupOffsetColumnSettings
