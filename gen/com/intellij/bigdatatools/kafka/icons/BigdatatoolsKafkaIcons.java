@@ -13,8 +13,11 @@ public final class BigdatatoolsKafkaIcons {
   private static @NotNull Icon load(@NotNull String path, int cacheKey, int flags) {
     return IconManager.getInstance().loadRasterizedIcon(path, BigdatatoolsKafkaIcons.class.getClassLoader(), cacheKey, flags);
   }
+  private static @NotNull Icon load(@NotNull String path, @NotNull String expUIPath, int cacheKey, int flags) {
+    return IconManager.getInstance().loadRasterizedIcon(path, expUIPath, BigdatatoolsKafkaIcons.class.getClassLoader(), cacheKey, flags);
+  }
   /** 16x16 */ public static final @NotNull Icon Bookmark_off = load("icons/bookmark_off.svg", -1239210043, 0);
   /** 16x16 */ public static final @NotNull Icon Bookmark_on = load("icons/bookmark_on.svg", 735821885, 0);
   /** 16x16 */ public static final @NotNull Icon Kafka = load("icons/kafka.svg", -1738989288, 0);
-  /** 13x13 */ public static final @NotNull Icon KafkaToolWindow = load("icons/kafkaToolWindow.svg", -1317889509, 2);
+  /** 13x13 */ public static final @NotNull Icon KafkaToolWindow = load("icons/kafkaToolWindow.svg", "icons/expui/kafka.svg", -1317889509, 2);
 }
