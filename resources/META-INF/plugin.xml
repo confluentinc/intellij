@@ -69,7 +69,7 @@
     <statistics.counterUsagesCollector implementationClass="com.jetbrains.bigdatatools.kafka.statistics.KafkaUsagesCollector"/>
 
     <toolWindow id="KafkaToolWindow" anchor="bottom" canCloseContents="true"
-                icon="/icons/kafkaToolWindow.svg"
+                icon="com.intellij.bigdatatools.kafka.icons.BigdatatoolsKafkaIcons.KafkaToolWindow"
                 factoryClass="com.jetbrains.bigdatatools.kafka.toolwindow.KafkaToolWindowFactory"/>
 
     <fileEditorProvider implementation="com.jetbrains.bigdatatools.kafka.common.editor.KafkaEditorProvider"/>
