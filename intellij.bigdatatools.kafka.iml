@@ -19,7 +19,6 @@
     <orderEntry type="library" scope="PROVIDED" name="miglayout-swing" level="project" />
     <orderEntry type="module" module-name="intellij.json" />
     <orderEntry type="module" module-name="intellij.platform.testFramework" scope="TEST" />
-    <orderEntry type="library" scope="PROVIDED" name="microba" level="project" />
     <orderEntry type="library" name="gson" level="project" />
     <orderEntry type="module" module-name="intellij.platform.lang.impl" />
     <orderEntry type="module-library" exported="">
@@ -520,5 +519,6 @@
     <orderEntry type="module" module-name="intellij.properties.psi.impl" scope="PROVIDED" />
     <orderEntry type="module" module-name="intellij.microservices.config" scope="PROVIDED" />
     <orderEntry type="module" module-name="intellij.charts" />
+    <orderEntry type="module" module-name="intellij.libraries.microba" scope="PROVIDED" />
   </component>
 </module>
