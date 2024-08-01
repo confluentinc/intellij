@@ -2,8 +2,8 @@ package com.jetbrains.bigdatatools.kafka.toolwindow.controllers
 
 import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.AnAction
-import com.intellij.openapi.actionSystem.DataProvider
 import com.intellij.openapi.actionSystem.DefaultActionGroup
+import com.intellij.openapi.actionSystem.UiDataProvider
 import com.intellij.ui.DocumentAdapter
 import com.intellij.ui.SearchTextField
 import com.jetbrains.bigdatatools.common.monitoring.data.model.FilterAdapter
@@ -27,15 +27,10 @@ class ConsumerGroupsController(val dataManager: KafkaDataManager,
   init {
     init()
 
-    dataTable.customDataProvider = DataProvider { dataId ->
-      when {
-        MainTreeController.DATA_MANAGER.`is`(dataId) -> dataManager
-        MainTreeController.RFS_PATH.`is`(dataId) -> {
-          val consumerGroup = getSelectedItem()?.consumerGroup
-          consumerGroup?.let { KafkaDriver.consumerPath.child(it, false) }
-        }
-        else -> null
-      }
+    dataTable.customDataProvider = UiDataProvider { sink ->
+      sink[MainTreeController.DATA_MANAGER] = dataManager
+      sink[MainTreeController.RFS_PATH] = getSelectedItem()?.consumerGroup
+        ?.let { KafkaDriver.consumerPath.child(it, false) }
     }
   }
 
