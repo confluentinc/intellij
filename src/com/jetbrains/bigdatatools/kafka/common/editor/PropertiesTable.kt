@@ -1,6 +1,6 @@
 package com.jetbrains.bigdatatools.kafka.common.editor
 
-import com.intellij.openapi.actionSystem.DataProvider
+import com.intellij.openapi.actionSystem.DataSink
 import com.intellij.openapi.actionSystem.PlatformDataKeys
 import com.intellij.ui.JBColor
 import com.intellij.ui.TableUtil
@@ -17,24 +17,22 @@ class PropertiesTable(data: List<Property>, val isEditable: Boolean = true) {
   constructor(data: String) : this(BdtPropertyComponent.parseProperties(data))
 
   private val tableModel = PropertiesTableModel(data.toMutableList(), isEditable)
-  val table = MaterialTable(tableModel, tableModel.columnModel).apply {
-    autoResizeMode = JTable.AUTO_RESIZE_ALL_COLUMNS
-    tableHeader.border = BorderFactory.createEmptyBorder()
-    background = JBColor.WHITE
-    tableHeader.background = JBColor.WHITE
+  val table = object : MaterialTable(tableModel, tableModel.columnModel) {
+    init {
+      autoResizeMode = JTable.AUTO_RESIZE_ALL_COLUMNS
+      tableHeader.border = BorderFactory.createEmptyBorder()
+      background = JBColor.WHITE
+      tableHeader.background = JBColor.WHITE
+    }
+
+    override fun uiDataSnapshot(sink: DataSink) {
+      super.uiDataSnapshot(sink)
+      sink[PlatformDataKeys.PASTE_PROVIDER] = pasteProvider
+    }
   }
   private val component = createDecoratedTable()
 
   private val pasteProvider = if (isEditable) HeadersTablePasteProvider(this) else null
-
-  init {
-    table.customDataProvider = DataProvider {
-      when {
-        PlatformDataKeys.PASTE_PROVIDER.`is`(it) -> pasteProvider
-        else -> null
-      }
-    }
-  }
 
   fun addEntries(rows: List<Pair<String, String>>) {
     rows.forEach {

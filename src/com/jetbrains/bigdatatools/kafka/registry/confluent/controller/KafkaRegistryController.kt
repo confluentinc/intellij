@@ -65,12 +65,9 @@ class KafkaRegistryController(val project: Project,
 
     dataTable.selectionModel.selectionMode = ListSelectionModel.MULTIPLE_INTERVAL_SELECTION
 
-    dataTable.customDataProvider = DataProvider { dataId ->
-      when {
-        MainTreeController.DATA_MANAGER.`is`(dataId) -> dataManager
-        MainTreeController.RFS_PATH.`is`(dataId) -> getSelectedItem()?.name?.let { KafkaDriver.schemasPath.child(it, false) }
-        else -> null
-      }
+    dataTable.customDataProvider = UiDataProvider { sink ->
+      sink[MainTreeController.DATA_MANAGER] = dataManager
+      sink[MainTreeController.RFS_PATH] = getSelectedItem()?.name?.let { KafkaDriver.schemasPath.child(it, false) }
     }
   }
 

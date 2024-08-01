@@ -2,8 +2,8 @@ package com.jetbrains.bigdatatools.kafka.toolwindow.controllers
 
 import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.AnAction
-import com.intellij.openapi.actionSystem.DataProvider
 import com.intellij.openapi.actionSystem.DefaultActionGroup
+import com.intellij.openapi.actionSystem.UiDataProvider
 import com.jetbrains.bigdatatools.common.monitoring.toolwindow.DetailsTableMonitoringController
 import com.jetbrains.bigdatatools.common.monitoring.toolwindow.MainTreeController
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
@@ -15,15 +15,10 @@ class ConsumerGroupOffsetsController(val dataManager: KafkaDataManager) : Detail
   init {
     init()
 
-    dataTable.customDataProvider = DataProvider { dataId ->
-      when {
-        MainTreeController.DATA_MANAGER.`is`(dataId) -> dataManager
-        MainTreeController.RFS_PATH.`is`(dataId) -> {
-          val consumerGroup = selectedId ?: return@DataProvider null
-          KafkaDriver.consumerPath.child(consumerGroup, isDirectory = true)
-        }
-        else -> null
-      }
+    dataTable.customDataProvider = UiDataProvider { sink ->
+      sink[MainTreeController.DATA_MANAGER] = dataManager
+      sink[MainTreeController.RFS_PATH] = selectedId
+        ?.let { KafkaDriver.consumerPath.child(it, isDirectory = true) }
     }
   }
 
