@@ -1,6 +1,6 @@
 package com.jetbrains.bigdatatools.kafka.toolwindow.controllers
 
-import com.intellij.openapi.actionSystem.DataProvider
+import com.intellij.openapi.actionSystem.DataSink
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.jetbrains.bigdatatools.common.monitoring.toolwindow.DetailsMonitoringController
@@ -13,7 +13,8 @@ import com.jetbrains.bigdatatools.kafka.registry.confluent.controller.TopicSchem
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaDriver
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 
-class TopicDetailsController(project: Project, dataManager: KafkaDataManager) : TabbedDetailsMonitoringController<String>(project) {
+class TopicDetailsController(project: Project,
+                             private val dataManager: KafkaDataManager) : TabbedDetailsMonitoringController<String>(project) {
   private val configsController = TopicConfigsController(project, dataManager).also { Disposer.register(this, it) }
   private val partitionsController = TopicPartitionsController(dataManager).also { Disposer.register(this, it) }
 
@@ -38,12 +39,10 @@ class TopicDetailsController(project: Project, dataManager: KafkaDataManager) : 
     origin + schemas
   }
 
-  override val dataProvider = DataProvider { dataId ->
-    when {
-      MainTreeController.DATA_MANAGER.`is`(dataId) -> dataManager
-      MainTreeController.RFS_PATH.`is`(dataId) -> detailsId?.let { KafkaDriver.topicPath.child(it, false) }
-      else -> null
-    }
+  override fun uiDataSnapshot(sink: DataSink) {
+    super.uiDataSnapshot(sink)
+    sink[MainTreeController.DATA_MANAGER] = dataManager
+    sink[MainTreeController.RFS_PATH] = detailsId?.let { KafkaDriver.topicPath.child(it, false) }
   }
 
   init {
