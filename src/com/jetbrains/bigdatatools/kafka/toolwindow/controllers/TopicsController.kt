@@ -163,7 +163,7 @@ class TopicsController(val project: Project,
   override fun getAdditionalContextActions(): List<AnAction> {
     val actionManager = ActionManager.getInstance()
     val group = actionManager.getAction("Kafka.Topic.Actions") as DefaultActionGroup
-    return group.getChildren(null).toList()
+    return group.getChildren(actionManager).toList()
   }
 
   override fun createTopRightToolbarActions() = listOf(CustomComponentActionImpl(infoPanel))
