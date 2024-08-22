@@ -1,6 +1,5 @@
 package com.jetbrains.bigdatatools.kafka.toolwindow.actions
 
-import com.intellij.openapi.actionSystem.ActionPlaces
 import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.Toggleable
@@ -51,7 +50,7 @@ class AddToFavoriteAction : DumbAwareToggleAction() {
 
     val selected = isSelected(e)
     // not selected icons in the context menu
-    if (!ActionPlaces.isPopupPlace(e.place)) {
+    if (!e.isFromContextMenu) {
       Toggleable.setSelected(presentation, selected)
     }
 
