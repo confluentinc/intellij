@@ -71,7 +71,7 @@ class CustomSchemaController(private val project: Project,
     }.bottomGap(BottomGap.NONE)
 
     row {
-      customSchemaFile = textFieldWithBrowseButton().align(AlignX.FILL).resizableColumn()
+      customSchemaFile = textFieldWithBrowseButton(KafkaMessagesBundle.message("choose.schema.file")).align(AlignX.FILL).resizableColumn()
       customSchemaFile.component.jbTextField.withNonEmptyValidator(this@CustomSchemaController)
       customSchema.component.size.height = 100
 

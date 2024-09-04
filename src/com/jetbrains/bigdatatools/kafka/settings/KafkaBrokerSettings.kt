@@ -108,11 +108,12 @@ class KafkaBrokerSettings(val project: Project,
     propertiesKerberosLinkRow.visible(isKrb5LinkActive)
   }
 
-  internal val propertiesFile = BrowseTextField(KafkaConnectionData::propertyFilePath,
-                                                KafkaSettingsCustomizer.KafkaSettingsKeys.PROPERTIES_FILE_KEY,
-                                                connectionData,
-                                                browseTitle = KafkaMessagesBundle.message("settings.properties.file.browse"),
-                                                fileChooserDescriptor = FileChooserDescriptorFactory.createSingleFileDescriptor()).apply {
+  internal val propertiesFile = BrowseTextField(
+    prop = KafkaConnectionData::propertyFilePath,
+    KafkaSettingsCustomizer.KafkaSettingsKeys.PROPERTIES_FILE_KEY,
+    FileChooserDescriptorFactory.createSingleFileDescriptor().withTitle(KafkaMessagesBundle.message("settings.properties.file.browse")),
+    initSettings = connectionData,
+  ).apply {
     withEmptyOrFileExistValidator(uiDisposable, canBeEmpty = false)
   }
 
@@ -266,9 +267,7 @@ class KafkaBrokerSettings(val project: Project,
             }
           }
           row(MessagesBundle.message("kerberos.connection.settings.keytab.label")) {
-            saslKeytab = textFieldWithBrowseButton(project = project,
-                                                   browseDialogTitle = MessagesBundle.message(
-                                                     "kerberos.connection.settings.keytab.select.dialog.title")) {
+            saslKeytab = textFieldWithBrowseButton(browseDialogTitle = MessagesBundle.message("kerberos.connection.settings.keytab.select.dialog.title"), project) {
               PathUtils.toUnixPath(it.canonicalPath ?: "/")
             }.align(
               AlignX.FILL).onChanged {
