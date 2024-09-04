@@ -53,26 +53,17 @@ class KafkaSslSettingsComponent(val project: Project, val onUpdate: () -> Unit) 
 
     rowsRange {
       row(KafkaMessagesBundle.message("kafka.access.key.location")) {
-        accessKey = textFieldWithBrowseButton(
-          project = project,
-          browseDialogTitle = KafkaMessagesBundle.message(
-            "kafka.access.key.location.title")).align(AlignX.FILL).onChanged {
+        accessKey = textFieldWithBrowseButton(browseDialogTitle = KafkaMessagesBundle.message("kafka.access.key.location.title"), project).align(AlignX.FILL).onChanged {
           onUpdate()
         }
       }
       row(KafkaMessagesBundle.message("kafka.access.certificate.location")) {
-        accessCertificate = textFieldWithBrowseButton(
-          project = project,
-          browseDialogTitle = KafkaMessagesBundle.message(
-            "kafka.access.key.certificate.title")).align(AlignX.FILL).onChanged {
+        accessCertificate = textFieldWithBrowseButton(browseDialogTitle = KafkaMessagesBundle.message("kafka.access.key.certificate.title"), project).align(AlignX.FILL).onChanged {
           onUpdate()
         }
       }
       row(KafkaMessagesBundle.message("kafka.ca.certificate.location")) {
-        caCertificate = textFieldWithBrowseButton(
-          project = project,
-          browseDialogTitle = KafkaMessagesBundle.message(
-            "kafka.ca.certificate.title")).align(AlignX.FILL).onChanged {
+        caCertificate = textFieldWithBrowseButton(browseDialogTitle = KafkaMessagesBundle.message("kafka.ca.certificate.title"), project).align(AlignX.FILL).onChanged {
           onUpdate()
         }
       }
@@ -80,10 +71,7 @@ class KafkaSslSettingsComponent(val project: Project, val onUpdate: () -> Unit) 
 
     rowsRange {
       row(KafkaMessagesBundle.message("kafka.truststore.location")) {
-        sslTruststoreLocation = textFieldWithBrowseButton(
-          project = project,
-          browseDialogTitle = KafkaMessagesBundle.message(
-            "kafka.truststore.location.dialog.title")).align(AlignX.FILL).onChanged {
+        sslTruststoreLocation = textFieldWithBrowseButton(browseDialogTitle = KafkaMessagesBundle.message("kafka.truststore.location.dialog.title"), project).align(AlignX.FILL).onChanged {
           onUpdate()
         }
       }
@@ -100,10 +88,7 @@ class KafkaSslSettingsComponent(val project: Project, val onUpdate: () -> Unit) 
 
       sslKeystoreGroup = rowsRange {
         this.row(KafkaMessagesBundle.message("kafka.keystore.location")) {
-          sslKeystoreLocation = textFieldWithBrowseButton(
-            project = project,
-            browseDialogTitle = KafkaMessagesBundle.message(
-              "kafka.truststore.location.dialog.title")).align(AlignX.FILL).onChanged {
+          sslKeystoreLocation = textFieldWithBrowseButton(browseDialogTitle = KafkaMessagesBundle.message("kafka.truststore.location.dialog.title"), project).align(AlignX.FILL).onChanged {
             onUpdate()
           }
         }
