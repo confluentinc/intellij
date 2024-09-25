@@ -1,6 +1,6 @@
 package com.jetbrains.bigdatatools.kafka.producer.client
 
-import com.intellij.bigdatatools.visualization.dataframe.DataFrame
+import com.intellij.charts.dataframe.DataFrame
 import com.jetbrains.bigdatatools.common.rfs.util.RfsNotificationUtils
 import com.jetbrains.bigdatatools.common.settings.connections.Property
 import com.jetbrains.bigdatatools.common.util.withPluginClassLoader

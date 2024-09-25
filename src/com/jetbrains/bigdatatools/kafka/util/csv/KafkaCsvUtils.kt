@@ -1,7 +1,7 @@
 package com.jetbrains.bigdatatools.kafka.util.csv
 
-import com.intellij.bigdatatools.visualization.dataframe.DataFrame
-import com.intellij.bigdatatools.visualization.dataframe.DataFrameCSVAdapter
+import com.intellij.charts.dataframe.DataFrame
+import com.intellij.charts.dataframe.DataFrameCSVAdapter
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import java.io.File
 
