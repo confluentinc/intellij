@@ -7,7 +7,6 @@ import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
 import com.jetbrains.bigdatatools.common.rfs.util.RfsNotificationUtils
-import com.jetbrains.bigdatatools.common.util.MessagesBundle
 import com.jetbrains.bigdatatools.kafka.common.models.KafkaFieldType
 import com.jetbrains.bigdatatools.kafka.consumer.models.ConsumerProducerFieldConfig
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryFormat
@@ -27,13 +26,9 @@ object GenerateRandomData {
     val notification = notificationGroup.createNotification(KafkaMessagesBundle.message("notification.generate.failed.title"),
                                                             KafkaMessagesBundle.message("notification.generate.failed.text"),
                                                             NotificationType.WARNING)
-      .addAction(DumbAwareAction.create(MessagesBundle.message("feedback.youtrack")) {
-        BrowserUtil.open("https://youtrack.jetbrains.com/newIssue?project=BDIDE")
+      .addAction(DumbAwareAction.create(KafkaMessagesBundle.message("notification.create.issue")) {
+        BrowserUtil.open("https://youtrack.jetbrains.com/newIssue?project=IJPL")
       })
-      .addAction(DumbAwareAction.create(MessagesBundle.message("feedback.slack")) {
-        BrowserUtil.open("https://slack-bdt.mau.jetbrains.com/?_ga=2.181253743.913531920.1594027385-1936946878.1588841666")
-      })
-
     notification.notify(project)
     ""
   }
