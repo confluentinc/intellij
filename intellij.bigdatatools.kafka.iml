@@ -520,5 +520,6 @@
     <orderEntry type="module" module-name="intellij.microservices.config" scope="PROVIDED" />
     <orderEntry type="module" module-name="intellij.charts" />
     <orderEntry type="module" module-name="intellij.libraries.microba" scope="PROVIDED" />
+    <orderEntry type="module" module-name="intellij.platform.ide.ui" />
   </component>
 </module>
