@@ -10,7 +10,7 @@ import com.intellij.ide.DataManager
 import com.intellij.lang.properties.psi.Property
 import com.intellij.lang.properties.psi.impl.PropertyKeyImpl
 import com.intellij.microservices.jvm.config.MetaConfigKeyReference
-import com.intellij.microservices.mq.gutters.MQLineMarkerActionsProvider
+import com.intellij.microservices.jvm.mq.gutters.MQLineMarkerActionsProvider
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.editor.markup.GutterIconRenderer
@@ -22,7 +22,6 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiLanguageInjectionHost
 import com.intellij.spring.SpringLibraryUtil
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
-import icons.MicroservicesIcons
 import javax.swing.Icon
 
 internal class KafkaSpringBootConfigLineMarkers : LineMarkerProviderDescriptor() {
