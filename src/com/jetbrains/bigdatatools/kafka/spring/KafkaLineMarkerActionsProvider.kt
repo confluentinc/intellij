@@ -2,9 +2,9 @@ package com.jetbrains.bigdatatools.kafka.spring
 
 import com.intellij.codeInsight.intention.HighPriorityAction
 import com.intellij.icons.AllIcons
-import com.intellij.microservices.mq.KAFKA_TOPIC_TYPE
-import com.intellij.microservices.mq.MQTargetInfo
-import com.intellij.microservices.mq.gutters.MQLineMarkerActionsProvider
+import com.intellij.microservices.jvm.mq.KAFKA_TOPIC_TYPE
+import com.intellij.microservices.jvm.mq.MQTargetInfo
+import com.intellij.microservices.jvm.mq.gutters.MQLineMarkerActionsProvider
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.module.Module
@@ -13,7 +13,6 @@ import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.psi.PsiElement
 import com.intellij.spring.boot.model.SpringBootConfigValueSearcher
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
-import icons.MicroservicesIcons
 import javax.swing.Icon
 
 internal class KafkaLineMarkerActionsProvider : MQLineMarkerActionsProvider {
