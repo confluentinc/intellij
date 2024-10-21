@@ -7,7 +7,6 @@ import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.runWriteAction
 import com.intellij.openapi.fileTypes.PlainTextLanguage
 import com.intellij.openapi.observable.properties.AtomicProperty
-import com.intellij.openapi.observable.util.isNotNull
 import com.intellij.openapi.observable.util.isNull
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.ComboBox
@@ -99,16 +98,16 @@ class KafkaRecordDetails(project: Project, parentDisposable: Disposable) {
 
   @Suppress("DialogTitleCapitalization")
   private val detailsPanel = JBScrollPane(panel {
-    row(KafkaMessagesBundle.message("consumer.record.error")) {
-      link(IdeBundle.message("unscramble.dialog.title")) {
-        AnalyzeStacktraceUtil.addConsole(project, null, IdeBundle.message("tab.title.stacktrace"), error.get())
-
+    error.get()?.let { errorString ->
+      row(KafkaMessagesBundle.message("consumer.record.error")) {
+        link(IdeBundle.message("unscramble.dialog.title")) {
+          AnalyzeStacktraceUtil.addConsole(project, null, IdeBundle.message("tab.title.stacktrace"), errorString)
+        }
       }
-    }.visibleIf(error.isNotNull())
-    row {
-      cell(errorPanel).align(AlignX.FILL)
-    }.visibleIf(error.isNotNull())
-
+      row {
+        cell(errorPanel).align(AlignX.FILL)
+      }
+    }
 
     rowsRange {
       row(KafkaMessagesBundle.message("consumer.record.key")) {
