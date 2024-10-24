@@ -336,10 +336,11 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
   }
 
   fun applyConfig(config: StorageProducerConfig) {
-    fieldTypeComboBox.item = if (isKey) config.takeKeyType() else config.takeValueType()
-
+    val fieldType = if (isKey) config.takeKeyType() else config.takeValueType()
     val text = if (isKey) config.key else config.value
-    when (config.takeKeyType()) {
+
+    fieldTypeComboBox.item = fieldType
+    when (fieldType) {
       KafkaFieldType.JSON -> jsonField.text = text
       KafkaFieldType.STRING, KafkaFieldType.INTEGER, KafkaFieldType.LONG, KafkaFieldType.DOUBLE, KafkaFieldType.FLOAT, KafkaFieldType.BASE64 -> textField.text = text
       KafkaFieldType.NULL -> Unit
