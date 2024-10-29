@@ -16,7 +16,7 @@ class KafkaToolWindowSettings : PersistentStateComponent<KafkaToolWindowSettings
   override var selectedConnectionId: String? = null
 
   private val topicConfigsTableColumns = mutableListOf(TopicConfig::name.name,
-                                                       TopicConfig::name.name,
+                                                       TopicConfig::value.name,
                                                        TopicConfig::defaultValue.name)
   val topicConfigsColumnSettings = ColumnVisibilitySettings(topicConfigsTableColumns)
 
