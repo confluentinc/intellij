@@ -36,6 +36,7 @@ object KafkaDialogFactory {
       override fun getErrorText(inputString: String) = when {
         inputString.isBlank() -> MessagesBundle.message("validator.notEmpty")
         inputString.contains(Regex("[ \t\n]")) -> MessagesBundle.message("validator.notSpaces")
+        inputString in getTopicNames(dataManager) -> KafkaMessagesBundle.message("kafka.validator.already.exist.topic.name", inputString)
         else -> null
       }
     }
@@ -55,5 +56,7 @@ object KafkaDialogFactory {
 
     dataManager.createTopic(nameField.text, numPartition.text.toIntOrNull(), replicationFactor.text.toIntOrNull())
   }
+
+  private fun getTopicNames(dataManager: KafkaDataManager): List<String> = dataManager.getTopics().map { it.name }
 }
 
