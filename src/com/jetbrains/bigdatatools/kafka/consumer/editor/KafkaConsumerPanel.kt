@@ -18,6 +18,7 @@ import com.intellij.ui.dsl.builder.TopGap
 import com.intellij.ui.dsl.builder.panel
 import com.intellij.ui.layout.enteredTextSatisfies
 import com.intellij.ui.layout.not
+import com.intellij.util.ui.CalendarView
 import com.jetbrains.bigdatatools.common.rfs.util.RfsNotificationUtils
 import com.jetbrains.bigdatatools.common.settings.getValidationInfo
 import com.jetbrains.bigdatatools.common.ui.CustomListCellRenderer
@@ -54,7 +55,7 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
                                                                         onStop = ::onStopConsume)
   private val output = KafkaRecordsOutput(project, isProducer = false).also { Disposer.register(this, it) }
 
-  private val startSpecificDate = DatePicker()
+  private val startSpecificDateTime = CalendarView()
   private val limitSpecificDate = DatePicker()
   private val limitOffset = JBTextField(15)
 
@@ -179,7 +180,7 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
         }.topGap(TopGap.NONE)
 
         indent {
-          row { cell(startSpecificDate) }.visibleIf(startSpecificDateBlock)
+          row { cell(startSpecificDateTime) }.visibleIf(startSpecificDateBlock)
           row { cell(startOffset) }.visibleIf(startOffsetBlock)
           row {
             cell(startConsumerGroup).align(AlignX.FILL).resizableColumn()
@@ -340,7 +341,7 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
     val topicName = topicComboBox.item?.name ?: ""
     val startWith = ConsumerEditorUtils.getStartWith(startFromComboBox.item,
                                                      startOffset.text,
-                                                     startSpecificDate.date,
+                                                     startSpecificDateTime.date,
                                                      startConsumerGroup.item)
     val filter = getFilter()
 
@@ -395,7 +396,7 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
     value.updateIsEnabled(isEnabled)
 
     startFromComboBox.isEnabled = isEnabled && consumerGroup.item.isEmpty()
-    startSpecificDate.isEnabled = isEnabled
+    startSpecificDateTime.isEnabled = isEnabled
     startConsumerGroup.isEnabled = isEnabled
     startOffset.isEnabled = isEnabled
 
@@ -432,7 +433,8 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
       ConsumerLimitType.TOPIC_NUMBER_RECORDS,
       ConsumerLimitType.PARTITION_NUMBER_RECORDS,
       ConsumerLimitType.PARTITION_MAX_SIZE,
-      ConsumerLimitType.TOPIC_MAX_SIZE -> limitOffsetBlock.set(true)
+      ConsumerLimitType.TOPIC_MAX_SIZE,
+        -> limitOffsetBlock.set(true)
     }
   }
 
@@ -484,7 +486,7 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
     val startWith = config.getStartsWith()
     startFromComboBox.item = startWith.type
     startOffset.text = startWith.offset?.toString() ?: ""
-    startSpecificDate.date = startWith.time?.let { Date(it) }
+    startSpecificDateTime.date = startWith.time?.let { Date(it) }
     startConsumerGroup.item = startWith.consumerGroup ?: ""
 
     val limit = config.getLimit()
