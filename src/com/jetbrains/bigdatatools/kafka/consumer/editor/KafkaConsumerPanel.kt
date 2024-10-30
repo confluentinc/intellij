@@ -40,7 +40,6 @@ import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryFormat
 import com.jetbrains.bigdatatools.kafka.util.KafkaConsumerGroupChangeOffsetProcess
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
-import com.michaelbaranov.microba.calendar.DatePicker
 import java.awt.Dimension
 import java.util.*
 import javax.swing.JButton
@@ -56,7 +55,7 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
   private val output = KafkaRecordsOutput(project, isProducer = false).also { Disposer.register(this, it) }
 
   private val startSpecificDateTime = CalendarView()
-  private val limitSpecificDate = DatePicker()
+  private val limitSpecificDate = CalendarView()
   private val limitOffset = JBTextField(15)
 
   private val startOffset = JBTextField(15)

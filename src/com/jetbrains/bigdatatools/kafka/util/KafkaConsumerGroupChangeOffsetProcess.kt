@@ -14,12 +14,12 @@ import com.intellij.ui.dsl.builder.AlignX
 import com.intellij.ui.dsl.builder.bindIntText
 import com.intellij.ui.dsl.builder.bindItem
 import com.intellij.ui.dsl.builder.panel
+import com.intellij.util.ui.CalendarView
 import com.jetbrains.bigdatatools.common.rfs.util.RfsNotificationUtils
 import com.jetbrains.bigdatatools.common.ui.CustomListCellRenderer
 import com.jetbrains.bigdatatools.kafka.consumer.models.ConsumerStartType
 import com.jetbrains.bigdatatools.kafka.consumer.models.ConsumerStartWith
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
-import com.michaelbaranov.microba.calendar.DatePicker
 import kotlinx.coroutines.*
 import java.awt.Component
 import java.awt.Container
@@ -29,7 +29,7 @@ import java.util.*
 
 class KafkaConsumerGroupChangeOffsetProcess(val project: Project, val dataManager: KafkaDataManager, val consumerGroup: String) {
   private val coroutineScope = dataManager.driver.coroutineScope
-  private val startSpecificDate = DatePicker()
+  private val startSpecificDate = CalendarView()
   private val startType = AtomicProperty(ConsumerStartType.NOW)
   private val topic = AtomicProperty(KafkaMessagesBundle.message("all.topics"))
   private val startOffset = AtomicProperty(0)
