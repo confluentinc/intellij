@@ -154,7 +154,7 @@ class KafkaRecordDetails(project: Project, parentDisposable: Disposable) {
       row(KafkaMessagesBundle.message("consumer.record.partition")) { cell(partition).align(AlignX.FILL) }
       row(KafkaMessagesBundle.message("consumer.record.offset")) { cell(offset).align(AlignX.FILL) }
         .visibleIf(offset.enteredTextSatisfies { it.isNotEmpty() })
-      row(KafkaMessagesBundle.message("consumer.record.timestamp")) { cell(timestamp).align(AlignX.FILL) }
+      row(KafkaMessagesBundle.message("consumer.timestamp.label")) { cell(timestamp).align(AlignX.FILL) }
       row(KafkaMessagesBundle.message("consumer.record.keysize")) { cell(keySize).align(AlignX.FILL) }
       row(KafkaMessagesBundle.message("consumer.record.valuesize")) { cell(valueSize).align(AlignX.FILL) }
       row(KafkaMessagesBundle.message("label.key.type")) { cell(keyTypeLabel).align(AlignX.FILL) }
