@@ -1,0 +1,78 @@
+### auto-generated section `build intellij.bigdatatools.kafka` start
+load("@rules_jvm//:jvm.bzl", "jvm_resources")
+load("@rules_jvm//:rules.bzl", "jvm_library")
+
+jvm_resources(
+  name = "kafka_resources",
+  files = glob(["resources/**/*"]),
+  strip_prefix = "resources"
+)
+
+jvm_library(
+  name = "kafka",
+  module_name = "intellij.bigdatatools.kafka",
+  visibility = ["//visibility:public"],
+  srcs = glob(["src/**/*.kt", "src/**/*.java", "gen/**/*.kt", "gen/**/*.java"], allow_empty = True, exclude = ["**/module-info.java"]),
+  javac_opts = "@rules_jvm//:j17",
+  kotlinc_opts = "@rules_jvm//:k17",
+  deps = [
+    "@community//platform/core-api:core",
+    "@community//platform/core-impl",
+    "@community//platform/platform-api:ide",
+    "@community//platform/platform-impl:ide-impl",
+    "@lib//:kotlin-reflect",
+    "@community//platform/execution-impl",
+    "@community//platform/core-ui",
+    "@ultimate_lib//:miglayout-swing.provided",
+    "@community//json",
+    "@lib//:gson",
+    "@community//platform/lang-impl",
+    "@ultimate_lib//:bigdatatools_kafka_apache_kafka_clients",
+    "//plugins/bigdatatools/core",
+    "@ultimate_lib//:bigdatatools_kafka_software_amazon_msk_aws_iam_auth",
+    "@ultimate_lib//:apache_avro",
+    "@lib//:protobuf",
+    "@community//platform/diff-api:diff",
+    "@community//platform/util/diff",
+    "@ultimate_lib//:bigdatatools_kafka_io_confluent_kafka_avro_serializer",
+    "@ultimate_lib//:bigdatatools_kafka_io_confluent_kafka_json_schema_serializer",
+    "@ultimate_lib//:bigdatatools_kafka_io_confluent_kafka_protobuf_serializer",
+    "@ultimate_lib//:bigdatatools_kafka_io_confluent_kafka_schema_registry_client",
+    "@lib//:commons-compress",
+    "@lib//:grpc-protobuf",
+    "@ultimate_lib//:google_re2j",
+    "@lib//:classgraph",
+    "@ultimate_lib//:joda_time",
+    "@lib//:lz4-java",
+    "@lib//:jackson",
+    "@lib//:jackson-databind",
+    "@ultimate_lib//:xerial_snappy_java",
+    "@community//platform/diff-impl",
+    "@community//platform/platform-util-io:ide-util-io",
+    "@ultimate_lib//:software_amazon_awssdk_glue",
+    "@ultimate_lib//:bigdatatools_kafka_software_amazon_glue_schema_registry_serde",
+    "@lib//:snakeyaml-engine",
+    "//plugins/bigdatatools/aws",
+    "@ultimate_lib//:bigdatatools_kafka_squareup_wire_compiler",
+    "@lib//:snakeyaml",
+    "@ultimate_lib//:bigdatatools_kafka_bigdatatools_github_mifmif_generex",
+    "@lib//:google_protobuf_java_util",
+    "@community//platform/feedback",
+    "//plugins/microservices/microservices",
+    "//plugins/spring/spring",
+    "//plugins/spring/spring-boot/spring-boot",
+    "@community//plugins/properties/properties-psi-impl:psi-impl",
+    "//plugins/microservices/microservices-config:config",
+    "//plugins/charts",
+    "@community//platform/platform-impl/ui:ide-ui",
+    "//plugins/microservices/microservices-jvm:jvm",
+  ],
+  exports = [
+    "@ultimate_lib//:bigdatatools_kafka_apache_kafka_clients",
+    "@ultimate_lib//:bigdatatools_kafka_io_confluent_kafka_json_schema_serializer",
+    "@ultimate_lib//:bigdatatools_kafka_io_confluent_kafka_protobuf_serializer",
+    "@ultimate_lib//:bigdatatools_kafka_io_confluent_kafka_schema_registry_client",
+  ],
+  runtime_deps = [":kafka_resources"]
+)
+### auto-generated section `build intellij.bigdatatools.kafka` end
