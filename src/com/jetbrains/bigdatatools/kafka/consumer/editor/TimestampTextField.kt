@@ -15,7 +15,6 @@ internal class TimestampTextField(uiDisposable: Disposable) : JFormattedTextFiel
   }
 
   init {
-    columns = 15
     toolTipText = KafkaMessagesBundle.message("kafka.timestamp.tooltip.text")
     setDateTime(Date())
 

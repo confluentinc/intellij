@@ -176,26 +176,23 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
           comment(KafkaMessagesBundle.message("settings.filters.from.not.available.with.consumer.group")).visibleIf(isConsumerSetup)
         }.topGap(TopGap.NONE)
 
-        indent {
-          row(KafkaMessagesBundle.message("consumer.timestamp.label")) { cell(startSpecificDate) }.visibleIf(startSpecificDateBlock)
-          row { cell(startOffset) }.visibleIf(startOffsetBlock)
-          row {
-            cell(startConsumerGroup).align(AlignX.FILL).resizableColumn()
-          }.visibleIf(startConsumerGroupBlock)
-        }
+        row(KafkaMessagesBundle.message("consumer.timestamp.label")) {
+          cell(startSpecificDate).align(AlignX.FILL).resizableColumn()
+        }.visibleIf(startSpecificDateBlock)
+        row { cell(startOffset) }.visibleIf(startOffsetBlock)
+        row {
+          cell(startConsumerGroup).align(AlignX.FILL).resizableColumn()
+        }.visibleIf(startConsumerGroupBlock)
 
         row(KafkaMessagesBundle.message("settings.filters.limit")) { cell(limitComboBox).align(AlignX.FILL).resizableColumn() }
-        indent {
-          row(KafkaMessagesBundle.message("consumer.timestamp.label")) { cell(limitSpecificDate) }.visibleIf(limitSpecificDateBlock)
-          row { cell(limitOffset) }.visibleIf(limitOffsetBlock)
-        }
+        row(KafkaMessagesBundle.message("consumer.timestamp.label")) {
+          cell(limitSpecificDate).align(AlignX.FILL).resizableColumn()
+        }.visibleIf(limitSpecificDateBlock)
+        row { cell(limitOffset) }.visibleIf(limitOffsetBlock)
 
         row(KafkaMessagesBundle.message("settings.filter")) { cell(filterComboBox).align(AlignX.FILL).resizableColumn() }
-        indent {
-          row { cell(filterPanel).align(AlignX.FILL).resizableColumn() }.visibleIf(filterPanelBlock)
-        }
+        row { cell(filterPanel).align(AlignX.FILL).resizableColumn() }.visibleIf(filterPanelBlock)
       }
-
 
       collapsibleGroup(KafkaMessagesBundle.message("settings.title.other")) {
         row(KafkaMessagesBundle.message("settings.partitions")) {
@@ -430,8 +427,7 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
       ConsumerLimitType.TOPIC_NUMBER_RECORDS,
       ConsumerLimitType.PARTITION_NUMBER_RECORDS,
       ConsumerLimitType.PARTITION_MAX_SIZE,
-      ConsumerLimitType.TOPIC_MAX_SIZE,
-        -> limitOffsetBlock.set(true)
+      ConsumerLimitType.TOPIC_MAX_SIZE -> limitOffsetBlock.set(true)
     }
   }
 
