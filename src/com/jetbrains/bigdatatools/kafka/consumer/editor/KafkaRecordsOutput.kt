@@ -1,32 +1,43 @@
 package com.jetbrains.bigdatatools.kafka.consumer.editor
 
 import com.intellij.icons.AllIcons
+import com.intellij.ide.actions.RevealFileAction
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.ActionGroup
 import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.DefaultActionGroup
+import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.fileChooser.FileChooserFactory
+import com.intellij.openapi.fileChooser.FileSaverDescriptor
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
+import com.intellij.openapi.vfs.VirtualFileWrapper
 import com.intellij.ui.JBColor
 import com.intellij.ui.PopupHandler
 import com.intellij.ui.ScrollPaneFactory
+import com.jetbrains.bigdatatools.common.rfs.util.RfsNotificationUtils
 import com.jetbrains.bigdatatools.common.table.MaterialTable
 import com.jetbrains.bigdatatools.common.table.MaterialTableUtils
-import com.jetbrains.bigdatatools.common.table.extension.TableResizeController
 import com.jetbrains.bigdatatools.common.table.extension.TableCellPreview
 import com.jetbrains.bigdatatools.common.table.extension.TableFirstRowAdded
 import com.jetbrains.bigdatatools.common.table.extension.TableLoadingDecorator
+import com.jetbrains.bigdatatools.common.table.extension.TableResizeController
 import com.jetbrains.bigdatatools.common.table.filters.TableFilterHeader
 import com.jetbrains.bigdatatools.common.table.renderers.DateRenderer
 import com.jetbrains.bigdatatools.common.table.renderers.DurationRenderer
 import com.jetbrains.bigdatatools.common.ui.ExpansionPanel
 import com.jetbrains.bigdatatools.common.ui.onDoubleClick
 import com.jetbrains.bigdatatools.common.ui.setSouthComponent
+import com.jetbrains.bigdatatools.common.util.MessagesBundle
+import com.jetbrains.bigdatatools.common.util.invokeLater
 import com.jetbrains.bigdatatools.kafka.common.editor.ListTableModel
+import com.jetbrains.bigdatatools.kafka.consumer.editor.ConsumerEditorUtils.getTableContent
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import java.awt.BorderLayout
 import java.awt.Dimension
+import java.nio.file.Path
+import java.nio.file.Paths
 import java.util.*
 import javax.swing.BorderFactory
 import javax.swing.JPanel
@@ -124,7 +135,7 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
 
     dataPanel = ExpansionPanel(KafkaMessagesBundle.message("toggle.data"), { outputTablePanel },
                                DATA_SHOW_ID, true,
-                               listOf(clearButton))
+                               listOf(getExportDataAction(), clearButton))
 
     detailsPanel = ExpansionPanel(KafkaMessagesBundle.message("toggle.details"), {
       details.component.apply {
@@ -211,6 +222,47 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
     }
   }
 
+  private fun getExportDataAction() = DumbAwareAction.create(KafkaMessagesBundle.message("table.records.export.action.title"),
+                                                             AllIcons.Actions.Download) {
+    val fileWrapper = getSavedFile() ?: return@create
+    val file = fileWrapper.file
+    val text = getTableContent(outputTable, file.extension)
+
+    ApplicationManager.getApplication().runWriteAction {
+      try {
+        file.bufferedWriter().use { out -> out.write(text) }
+        invokeLater {
+          RfsNotificationUtils.notifySuccess(
+            MessagesBundle.message("rfs.dump.to.file.action.saved.notification.message", file.name),
+            MessagesBundle.message("rfs.dump.to.file.action.saved.notification.title"),
+            DumbAwareAction.create(KafkaMessagesBundle.message("table.records.reveal.saved.file")) { RevealFileAction.openFile(file) },
+            project
+          )
+        }
+      }
+      catch (e: Exception) {
+        invokeLater {
+          RfsNotificationUtils.notifyException(e, MessagesBundle.message("rfs.dump.to.file.action.saving.error.title"))
+        }
+      }
+    }
+  }
+
+  private fun getSavedFile(): VirtualFileWrapper? {
+    val dialog = FileChooserFactory.getInstance().createSaveFileDialog(
+      FileSaverDescriptor(
+        KafkaMessagesBundle.message("table.records.export.action.title"),
+        KafkaMessagesBundle.message("table.records.export.action.description"),
+        *EXPORT_EXTENSIONS
+      ),
+      project
+    )
+
+    val projectPath: String? = project.basePath
+    val baseDir: Path? = if (projectPath != null) Paths.get(projectPath) else null
+    return dialog.save(baseDir, EXPORT_FILE_NAME)
+  }
+
   companion object {
     private val TIMESTAMP_FIELD = KafkaMessagesBundle.message("output.column.timestamp")
     private val KEY_COLUMN = KafkaMessagesBundle.message("output.column.key")
@@ -218,6 +270,9 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
     private val PARTITION_COLUMN = KafkaMessagesBundle.message("output.column.partition")
     private val OFFSET_COLUMN = KafkaMessagesBundle.message("output.column.offset")
     private val DURATION_COLUMN = KafkaMessagesBundle.message("output.column.duration")
+
+    private val EXPORT_EXTENSIONS = arrayOf("csv", "tsv", "json")
+    private const val EXPORT_FILE_NAME = "records.csv"
 
     internal const val DATA_SHOW_ID = "com.jetbrains.bigdatatools.kafka.consumer.data.show"
     internal const val DETAILS_SHOW_ID = "com.jetbrains.bigdatatools.kafka.consumer.details.show"
