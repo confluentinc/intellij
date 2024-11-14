@@ -33,11 +33,14 @@ object KafkaDialogFactory {
     val validator = object : InputValidatorEx {
       override fun checkInput(inputString: String) = getErrorText(inputString) == null
       override fun canClose(inputString: String) = getErrorText(inputString) == null
-      override fun getErrorText(inputString: String) = when {
-        inputString.isBlank() -> MessagesBundle.message("validator.notEmpty")
-        inputString.contains(Regex("[ \t\n]")) -> MessagesBundle.message("validator.notSpaces")
-        inputString in getTopicNames(dataManager) -> KafkaMessagesBundle.message("kafka.validator.already.exist.topic.name", inputString)
-        else -> null
+      override fun getErrorText(inputString: String): String? {
+        val regex = Regex("[ \t\n]")
+        return when {
+          inputString.isBlank() -> MessagesBundle.message("validator.notEmpty")
+          inputString.contains(regex) -> MessagesBundle.message("validator.notSpaces")
+          inputString in getTopicNames(dataManager) -> KafkaMessagesBundle.message("kafka.validator.already.exist.topic.name", inputString)
+          else -> null
+        }
       }
     }
 
