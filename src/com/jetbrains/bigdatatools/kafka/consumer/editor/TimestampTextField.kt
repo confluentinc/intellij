@@ -16,7 +16,7 @@ internal class TimestampTextField(uiDisposable: Disposable) : JFormattedTextFiel
 
   init {
     toolTipText = KafkaMessagesBundle.message("kafka.timestamp.tooltip.text")
-    setDateTime(Date())
+    setDateTime(Date().time)
 
     val validator = buildValidator(
       this,
@@ -36,9 +36,9 @@ internal class TimestampTextField(uiDisposable: Disposable) : JFormattedTextFiel
     null
   }
 
-  fun setDateTime(date: Any?) {
+  fun setDateTime(time: Long?) {
     text = try {
-      dateFormat.format(date)
+      dateFormat.format(time)
     }
     catch (_: Exception) {
       ""
