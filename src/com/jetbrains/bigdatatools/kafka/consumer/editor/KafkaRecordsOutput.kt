@@ -79,6 +79,7 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
         detailsPanel.expanded = !detailsPanel.expanded
       }
 
+      MaterialTableUtils.setupSorters(this)
       TableFilterHeader(this)
 
       val resizeController = TableResizeController.installOn(this).apply {
