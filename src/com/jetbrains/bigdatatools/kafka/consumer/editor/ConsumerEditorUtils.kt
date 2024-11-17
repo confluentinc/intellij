@@ -1,10 +1,10 @@
 package com.jetbrains.bigdatatools.kafka.consumer.editor
 
 import com.google.gson.*
+import com.jetbrains.bigdatatools.kafka.common.editor.ListTableModel
 import com.jetbrains.bigdatatools.kafka.consumer.models.ConsumerStartType
 import com.jetbrains.bigdatatools.kafka.consumer.models.ConsumerStartWith
 import java.util.*
-import javax.swing.JTable
 
 object ConsumerEditorUtils {
   fun parsePartitionsText(partitionText: String?): List<Int> {
@@ -42,21 +42,21 @@ object ConsumerEditorUtils {
     return ConsumerStartWith(startWithType, time = startTime?.time, offset = startOffset, consumerGroup)
   }
 
-  fun getTableContent(table: JTable, fileExtension: String): String = when (fileExtension) {
-    "json" -> getJTableAsJson(table)
-    "tsv" -> getJTableAsCsv(table, "\t")
-    else -> getJTableAsCsv(table, ",")
+  fun <T> getTableContent(tableModel: ListTableModel<T>, fileExtension: String): String = when (fileExtension) {
+    "json" -> getJTableAsJson(tableModel)
+    "tsv" -> getJTableAsCsv(tableModel, "\t")
+    else -> getJTableAsCsv(tableModel, ",")
   }
 
-  private fun getJTableAsJson(table: JTable): String {
-    val columnNames = table.columnModel.columns.toList().map { it.headerValue.toString() }
+  private fun <T> getJTableAsJson(tableModel: ListTableModel<T>): String {
+    val columnNames = tableModel.columnModel.columns.toList().map { it.headerValue.toString() }
 
     val jsonArray = JsonArray()
-    for (row in 0 until table.rowCount) {
+    for (row in 0 until tableModel.rowCount) {
       val jsonObject = JsonObject()
 
-      for (column in 0 until table.columnCount) {
-        val cellValue = table.getValueAt(row, column)?.toString()
+      for (column in 0 until tableModel.columnCount) {
+        val cellValue = tableModel.getValueAt(row, column)?.toString()
 
         val parsedCell = try {
           JsonParser.parseString(cellValue)
@@ -73,17 +73,17 @@ object ConsumerEditorUtils {
     return GsonBuilder().setPrettyPrinting().create().toJson(jsonArray)
   }
 
-  private fun getJTableAsCsv(table: JTable, separator: String): String {
-    val columnNames = table.columnModel.columns.toList().map { it.headerValue.toString() }
+  private fun <T> getJTableAsCsv(tableModel: ListTableModel<T>, separator: String): String {
+    val columnNames = tableModel.columnModel.columns.toList().map { it.headerValue.toString() }
 
     val builder = StringBuilder()
     builder.append(columnNames.joinToString(separator))
     builder.appendLine()
 
-    for (row in 0 until table.rowCount) {
-      for (column in 0 until table.columnCount) {
-        builder.append(getCellValue(table, row, column))
-        if (column < table.columnCount - 1) {
+    for (row in 0 until tableModel.rowCount) {
+      for (column in 0 until tableModel.columnCount) {
+        builder.append(getCellValue(tableModel, row, column))
+        if (column < tableModel.columnCount - 1) {
           builder.append(separator)
         }
       }
@@ -93,8 +93,8 @@ object ConsumerEditorUtils {
     return builder.toString()
   }
 
-  private fun getCellValue(table: JTable, row: Int, column: Int): String {
-    val cellValue = table.getValueAt(row, column)?.toString()
+  private fun <T> getCellValue(tableModel: ListTableModel<T>, row: Int, column: Int): String {
+    val cellValue = tableModel.getValueAt(row, column)?.toString()
       ?.replace(LINE_SEPARATOR, " ")
       ?.replace(TAB_CHAR, " ")
       ?.replace("\\s+".toRegex(), " ")

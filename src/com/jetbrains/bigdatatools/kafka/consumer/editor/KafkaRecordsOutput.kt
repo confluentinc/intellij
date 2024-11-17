@@ -227,7 +227,7 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
                                                              AllIcons.Actions.Download) {
     val fileWrapper = getSavedFile() ?: return@create
     val file = fileWrapper.file
-    val text = getTableContent(outputTable, file.extension)
+    val text = getTableContent(outputModel, file.extension)
 
     ApplicationManager.getApplication().runWriteAction {
       try {
