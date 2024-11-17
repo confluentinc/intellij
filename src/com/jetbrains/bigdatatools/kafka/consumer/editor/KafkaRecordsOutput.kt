@@ -48,18 +48,19 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
   private var tableLoadingDecorator: TableLoadingDecorator? = null
 
   private val outputModel = ListTableModel(LinkedList<KafkaRecord>(),
-                                           listOf(TIMESTAMP_FIELD, KEY_COLUMN, VALUE_COLUMN, PARTITION_COLUMN) +
+                                           listOf(TOPIC_FIELD, TIMESTAMP_FIELD, KEY_COLUMN, VALUE_COLUMN, PARTITION_COLUMN) +
                                            if (isProducer) listOf(DURATION_COLUMN) else listOf(OFFSET_COLUMN)) { data, index ->
     when (index) {
-      0 -> Date(data.timestamp)
-      1 -> data.keyText ?: KafkaMessagesBundle.message("error.output.row.key")
-      2 -> data.valueText ?: data.errorText
-      3 -> data.partition
-      4 -> if (isProducer) data.duration else data.offset
+      0 -> data.topic
+      1 -> Date(data.timestamp)
+      2 -> data.keyText ?: KafkaMessagesBundle.message("error.output.row.key")
+      3 -> data.valueText ?: data.errorText
+      4 -> data.partition
+      5 -> if (isProducer) data.duration else data.offset
       else -> ""
     }
   }.apply {
-    columnClasses = listOf(Date::class.java, String::class.java, String::class.java, Long::class.java, Long::class.java)
+    columnClasses = listOf(String::class.java, Date::class.java, String::class.java, String::class.java, Int::class.java, Long::class.java)
   }
 
   private val outputTableDelegate = lazy {
@@ -265,6 +266,7 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
   }
 
   companion object {
+    private val TOPIC_FIELD = KafkaMessagesBundle.message("output.column.topic")
     private val TIMESTAMP_FIELD = KafkaMessagesBundle.message("output.column.timestamp")
     private val KEY_COLUMN = KafkaMessagesBundle.message("output.column.key")
     private val VALUE_COLUMN = KafkaMessagesBundle.message("output.column.value")
