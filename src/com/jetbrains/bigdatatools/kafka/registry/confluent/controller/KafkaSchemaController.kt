@@ -3,6 +3,7 @@ package com.jetbrains.bigdatatools.kafka.registry.confluent.controller
 import com.intellij.icons.AllIcons
 import com.intellij.json.JsonLanguage
 import com.intellij.openapi.actionSystem.*
+import com.intellij.openapi.actionSystem.ex.ActionUtil
 import com.intellij.openapi.actionSystem.impl.MoreActionGroup
 import com.intellij.openapi.actionSystem.toolbarLayout.ToolbarLayoutStrategy
 import com.intellij.openapi.observable.properties.AtomicBooleanProperty
@@ -227,6 +228,10 @@ class KafkaSchemaController(private val project: Project,
     val updateSchemaAction = object : DumbAwareAction(KafkaMessagesBundle.message("action.create.new.version"),
                                                       null,
                                                       AllIcons.Actions.EditScheme) {
+      init {
+        templatePresentation.putClientProperty(ActionUtil.SHOW_TEXT_IN_TOOLBAR, true)
+      }
+
       override fun actionPerformed(e: AnActionEvent) {
         val versionInfo = version1Schema ?: return
 
@@ -234,8 +239,6 @@ class KafkaSchemaController(private val project: Project,
           dataManager.updateSchema(versionInfo, newText)
         }
       }
-
-      override fun displayTextInToolbar(): Boolean = true
     }
 
     val moreAction = MoreActionGroup()
@@ -304,4 +307,3 @@ class KafkaSchemaController(private val project: Project,
     }
   }
 }
-

@@ -56,7 +56,6 @@ class TopicsController(val project: Project,
                                                                         AllIcons.Actions.ToggleVisibility) {
     override fun isSelected(e: AnActionEvent) = KafkaToolWindowSettings.getInstance().showInternalTopics
     override fun getActionUpdateThread() = ActionUpdateThread.BGT
-    override fun displayTextInToolbar() = false
     override fun setSelected(e: AnActionEvent, state: Boolean) {
       KafkaToolWindowSettings.getInstance().showInternalTopics = state
       dataManager.updater.invokeRefreshModel(dataManager.topicModel)
@@ -67,7 +66,6 @@ class TopicsController(val project: Project,
                                                                         AllIcons.Toolwindows.ToolWindowFavorites) {
     override fun isSelected(e: AnActionEvent) = KafkaToolWindowSettings.getInstance().showFavoriteTopics
     override fun getActionUpdateThread() = ActionUpdateThread.BGT
-    override fun displayTextInToolbar() = false
     override fun setSelected(e: AnActionEvent, state: Boolean) {
       KafkaToolWindowSettings.getInstance().showFavoriteTopics = state
       dataManager.updater.invokeRefreshModel(dataManager.topicModel)
