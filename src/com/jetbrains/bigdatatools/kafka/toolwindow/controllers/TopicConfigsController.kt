@@ -37,8 +37,6 @@ class TopicConfigsController(val project: Project,
 
       override fun getActionUpdateThread() = ActionUpdateThread.BGT
 
-      override fun displayTextInToolbar() = false
-
       override fun setSelected(e: AnActionEvent, state: Boolean) {
         settings.showFullTopicConfig = state
 
