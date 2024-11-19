@@ -23,10 +23,10 @@
     <orderEntry type="module" module-name="intellij.platform.lang.impl" />
     <orderEntry type="module-library" exported="">
       <library name="apache.kafka.clients" type="repository">
-        <properties maven-id="org.apache.kafka:kafka-clients:3.6.0">
+        <properties maven-id="org.apache.kafka:kafka-clients:3.9.0">
           <verification>
-            <artifact url="file://$MAVEN_REPOSITORY$/org/apache/kafka/kafka-clients/3.6.0/kafka-clients-3.6.0.jar">
-              <sha256sum>e0704f68b18ebc5478db1194cc32be9388f69d72ce0a83aac21b1d81dff8845c</sha256sum>
+            <artifact url="file://$MAVEN_REPOSITORY$/org/apache/kafka/kafka-clients/3.9.0/kafka-clients-3.9.0.jar">
+              <sha256sum>15c1e137f2c2c94398e27abc4060a03b6bde10bf9fac15e8f70c02320b202f18</sha256sum>
             </artifact>
           </verification>
           <exclude>
@@ -37,11 +37,11 @@
           </exclude>
         </properties>
         <CLASSES>
-          <root url="jar://$MAVEN_REPOSITORY$/org/apache/kafka/kafka-clients/3.6.0/kafka-clients-3.6.0.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/org/apache/kafka/kafka-clients/3.9.0/kafka-clients-3.9.0.jar!/" />
         </CLASSES>
         <JAVADOC />
         <SOURCES>
-          <root url="jar://$MAVEN_REPOSITORY$/org/apache/kafka/kafka-clients/3.6.0/kafka-clients-3.6.0-sources.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/org/apache/kafka/kafka-clients/3.9.0/kafka-clients-3.9.0-sources.jar!/" />
         </SOURCES>
       </library>
     </orderEntry>
