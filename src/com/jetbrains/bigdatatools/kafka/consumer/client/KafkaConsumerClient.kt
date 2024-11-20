@@ -232,7 +232,8 @@ class KafkaConsumerClient(val dataManager: KafkaDataManager,
     }
 
     config.consumerGroup?.let {
-      props[ConsumerConfig.GROUP_ID_CONFIG] = it
+      props[ConsumerConfig.GROUP_ID_CONFIG] = it.groupId
+      props[ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG] = it.isEnabledAutoCommit.toString()
     }
 
     val keyDeserializer = config.getKeyType().getDeserializationClass(dataManager, keyConfig)

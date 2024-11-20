@@ -43,7 +43,7 @@ data class StorageConsumerConfig(
   val customValueSchemaSource: KafkaCustomSchemaSource? = null,
   val customKeySchemaImplicit: String? = null,
   val customValueSchemaImplicit: String? = null,
-  val consumerGroup: String? = null
+  val consumerGroup: ConsumerGroup? = null
 ) : StorageConfig {
 
   constructor(
@@ -61,7 +61,7 @@ data class StorageConsumerConfig(
     valueFormat: KafkaRegistryFormat,
     keySubject: String = "",
     valueSubject: String = "",
-    consumerGroup: String? = null
+    consumerGroup: ConsumerGroup? = null
 
     ) : this(
     topic = topic,

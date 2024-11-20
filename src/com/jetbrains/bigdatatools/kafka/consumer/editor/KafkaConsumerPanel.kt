@@ -12,10 +12,7 @@ import com.intellij.openapi.util.Key
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.ui.components.ActionLink
 import com.intellij.ui.components.JBTextField
-import com.intellij.ui.dsl.builder.AlignX
-import com.intellij.ui.dsl.builder.BottomGap
-import com.intellij.ui.dsl.builder.TopGap
-import com.intellij.ui.dsl.builder.panel
+import com.intellij.ui.dsl.builder.*
 import com.intellij.ui.layout.enteredTextSatisfies
 import com.intellij.ui.layout.not
 import com.jetbrains.bigdatatools.common.rfs.util.RfsNotificationUtils
@@ -159,6 +156,8 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
   private val limitOffsetBlock = AtomicBooleanProperty(false)
   private val filterPanelBlock = AtomicBooleanProperty(false)
 
+  private val isEnabledAutoCommit = AtomicBooleanProperty(false)
+
   private val settingsPanelDelegate = lazy {
     val isConsumerSetup = (consumerGroup.editor.editorComponent as JTextField).enteredTextSatisfies { !it.trim().isEmpty() }
 
@@ -204,7 +203,10 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
 
         row(KafkaMessagesBundle.message("settings.consumer.group.label")) {
           cell(consumerGroup).align(AlignX.FILL).resizableColumn()
-        }.topGap(TopGap.SMALL).bottomGap(BottomGap.SMALL)
+        }.topGap(TopGap.SMALL)
+        row {
+          checkBox(KafkaMessagesBundle.message("settings.consumer.enable.auto.commit.label")).bindSelected(isEnabledAutoCommit)
+        }.bottomGap(BottomGap.SMALL)
         row {
           link(KafkaMessagesBundle.message("task.change.offset")) {
             KafkaConsumerGroupChangeOffsetProcess(project, kafkaManager, consumerGroup.item).showAndUpdate()
@@ -365,7 +367,7 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
       startWith = startWith,
       properties = properties,
       settings = settings,
-      consumerGroup = consumerGroup.item.takeIf { it.isNotBlank() })
+      consumerGroup = consumerGroup.item.takeIf { it.isNotBlank() }?.let { ConsumerGroup(it, isEnabledAutoCommit.get()) })
   }
 
   fun getComponent(): JComponent = presetsSplitter
