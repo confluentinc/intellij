@@ -34,10 +34,9 @@ object KafkaDialogFactory {
       override fun checkInput(inputString: String) = getErrorText(inputString) == null
       override fun canClose(inputString: String) = getErrorText(inputString) == null
       override fun getErrorText(inputString: String): String? {
-        val regex = Regex("[ \t\n]")
         return when {
           inputString.isBlank() -> MessagesBundle.message("validator.notEmpty")
-          inputString.contains(regex) -> MessagesBundle.message("validator.notSpaces")
+          inputString.contains(NOT_SPACES_PATTERN) -> MessagesBundle.message("validator.notSpaces")
           inputString in getTopicNames(dataManager) -> KafkaMessagesBundle.message("kafka.validator.already.exist.topic.name", inputString)
           else -> null
         }
@@ -63,3 +62,4 @@ object KafkaDialogFactory {
   private fun getTopicNames(dataManager: KafkaDataManager): List<String> = dataManager.getTopics().map { it.name }
 }
 
+private val NOT_SPACES_PATTERN = Regex("[ \t\n]")
