@@ -3,6 +3,7 @@ package com.jetbrains.bigdatatools.kafka.consumer.editor
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.invokeAndWaitIfNeeded
+import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.observable.properties.AtomicBooleanProperty
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.ComboBox
@@ -98,6 +99,10 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
 
   val topicComboBox = KafkaEditorUtils.createTopicComboBox(this, kafkaManager).apply {
     prototypeDisplayValue = TopicInEditor("AverageName")
+    addActionListener {
+      storeToUserData()
+      FileEditorManager.getInstance(project).updateFilePresentation(file)
+    }
   }
 
   private val key = KafkaConsumerFieldComponent(project, this, isKey = true).also { Disposer.register(this, it) }
