@@ -124,40 +124,40 @@
     </orderEntry>
     <orderEntry type="module-library" exported="">
       <library name="io.confluent.kafka.json.schema.serializer" type="repository">
-        <properties maven-id="io.confluent:kafka-json-schema-serializer:7.0.1">
+        <properties maven-id="io.confluent:kafka-json-schema-serializer:7.2.0">
           <verification>
-            <artifact url="file://$MAVEN_REPOSITORY$/io/confluent/kafka-json-schema-serializer/7.0.1/kafka-json-schema-serializer-7.0.1.jar">
-              <sha256sum>c2baf2b9eae539f1477a1ed0104fe465c1fc471f0882c2c85ce5d397d7bbdeba</sha256sum>
+            <artifact url="file://$MAVEN_REPOSITORY$/io/confluent/kafka-json-schema-serializer/7.2.0/kafka-json-schema-serializer-7.2.0.jar">
+              <sha256sum>0eed0b9f9824bed6a34857eee8772cb782cb1bad742dd8e583f5448e2fa19e0c</sha256sum>
             </artifact>
-            <artifact url="file://$MAVEN_REPOSITORY$/io/confluent/kafka-json-schema-provider/7.0.1/kafka-json-schema-provider-7.0.1.jar">
-              <sha256sum>2990a8c0328b5dc82185f37c3fc0f39323127e839d0f09dddee69da1f6f39f2f</sha256sum>
+            <artifact url="file://$MAVEN_REPOSITORY$/io/confluent/kafka-json-schema-provider/7.2.0/kafka-json-schema-provider-7.2.0.jar">
+              <sha256sum>cc5a0829460523387aacfd457b4fcceb0b577738e6bafc47ee830a3d7c389dce</sha256sum>
             </artifact>
-            <artifact url="file://$MAVEN_REPOSITORY$/com/github/everit-org/json-schema/org.everit.json.schema/1.12.2/org.everit.json.schema-1.12.2.jar">
-              <sha256sum>b8df44b274c3230bdc004f138f4a820cb86ea09a42d1ca9f5074dd432aeea198</sha256sum>
+            <artifact url="file://$MAVEN_REPOSITORY$/com/github/erosb/everit-json-schema/1.14.1/everit-json-schema-1.14.1.jar">
+              <sha256sum>1201bdf920b77d9a3238096258e763eb3266224b7012dfe8c4debc3dc2388145</sha256sum>
             </artifact>
-            <artifact url="file://$MAVEN_REPOSITORY$/org/json/json/20201115/json-20201115.jar">
-              <sha256sum>bd2322a4ddf46e2612104f091aa14d4406393ef3a46f270f69c2abb5ce1d147c</sha256sum>
+            <artifact url="file://$MAVEN_REPOSITORY$/org/json/json/20220320/json-20220320.jar">
+              <sha256sum>1edf7fcea79a16b8dfdd3bc988ddec7f8908b1f7762fdf00d39acb037542747a</sha256sum>
             </artifact>
-            <artifact url="file://$MAVEN_REPOSITORY$/commons-validator/commons-validator/1.6/commons-validator-1.6.jar">
-              <sha256sum>bd62795d7068a69cbea333f6dbf9c9c1a6ad7521443fb57202a44874f240ba25</sha256sum>
+            <artifact url="file://$MAVEN_REPOSITORY$/commons-validator/commons-validator/1.7/commons-validator-1.7.jar">
+              <sha256sum>4d74f4ce4fb68b2617edad086df6defdf9338467d2377d2c62e69038e1c4f02f</sha256sum>
             </artifact>
-            <artifact url="file://$MAVEN_REPOSITORY$/commons-digester/commons-digester/1.8.1/commons-digester-1.8.1.jar">
-              <sha256sum>b97b72b4201137262215dca60ceb84e6b664bf7fe428a4d62729de0239cafdb6</sha256sum>
+            <artifact url="file://$MAVEN_REPOSITORY$/commons-digester/commons-digester/2.1/commons-digester-2.1.jar">
+              <sha256sum>e0b2b980a84fc6533c5ce291f1917b32c507f62bcad64198fff44368c2196a3d</sha256sum>
             </artifact>
             <artifact url="file://$MAVEN_REPOSITORY$/com/damnhandy/handy-uri-templates/2.1.8/handy-uri-templates-2.1.8.jar">
               <sha256sum>6b83846f2ff61d0aaa66997b64b883ec7b65cf13b50a4d7f58250996d429be2e</sha256sum>
             </artifact>
-            <artifact url="file://$MAVEN_REPOSITORY$/com/fasterxml/jackson/datatype/jackson-datatype-guava/2.12.3/jackson-datatype-guava-2.12.3.jar">
-              <sha256sum>9def1bfe8b31c0ab313c88dc2c1aab164c5fcc83b583c13a639a4d5f37cf71c7</sha256sum>
+            <artifact url="file://$MAVEN_REPOSITORY$/com/fasterxml/jackson/datatype/jackson-datatype-guava/2.13.2/jackson-datatype-guava-2.13.2.jar">
+              <sha256sum>0b28e99f9a53c2cf9b8838ef8989f4bfcfe64cd5c9b7d377ce1b279c90754a17</sha256sum>
             </artifact>
-            <artifact url="file://$MAVEN_REPOSITORY$/com/fasterxml/jackson/datatype/jackson-datatype-jdk8/2.12.3/jackson-datatype-jdk8-2.12.3.jar">
-              <sha256sum>1d131cf0f20c13cffb4f8bb5c2afd68c413c4e1b76fe7384e4fecc8a8c36cb1a</sha256sum>
+            <artifact url="file://$MAVEN_REPOSITORY$/com/fasterxml/jackson/datatype/jackson-datatype-jdk8/2.13.2/jackson-datatype-jdk8-2.13.2.jar">
+              <sha256sum>f4ee57e072c32946d32602569f50dd6a5890e8e64260dbf5e1bff7ec10c74520</sha256sum>
             </artifact>
-            <artifact url="file://$MAVEN_REPOSITORY$/com/fasterxml/jackson/datatype/jackson-datatype-joda/2.12.3/jackson-datatype-joda-2.12.3.jar">
-              <sha256sum>a5389803e9b4e00b17c253be019701c06fc9b6aea89f04cc066254af462c6362</sha256sum>
+            <artifact url="file://$MAVEN_REPOSITORY$/com/fasterxml/jackson/datatype/jackson-datatype-joda/2.13.2/jackson-datatype-joda-2.13.2.jar">
+              <sha256sum>291121f8c6f62c6d2de4beba246ab525eddf5c0a6dd1c29885d7b121df0b785e</sha256sum>
             </artifact>
-            <artifact url="file://$MAVEN_REPOSITORY$/com/fasterxml/jackson/module/jackson-module-parameter-names/2.12.3/jackson-module-parameter-names-2.12.3.jar">
-              <sha256sum>f9655527c39093ba744d02d09d6e254285d1447d3ffbd15ef8f6326907382063</sha256sum>
+            <artifact url="file://$MAVEN_REPOSITORY$/com/fasterxml/jackson/module/jackson-module-parameter-names/2.13.2/jackson-module-parameter-names-2.13.2.jar">
+              <sha256sum>139f291ac982a1c1c27634e020ac0caa5657b06359b5a598fa4ed49ab6824e6a</sha256sum>
             </artifact>
             <artifact url="file://$MAVEN_REPOSITORY$/com/kjetland/mbknor-jackson-jsonschema_2.13/1.0.39/mbknor-jackson-jsonschema_2.13-1.0.39.jar">
               <sha256sum>f1d0cb875bcb398d10158ae68f962ea83499991445125779b8b999b6af969cd1</sha256sum>
@@ -168,14 +168,14 @@
             <artifact url="file://$MAVEN_REPOSITORY$/javax/validation/validation-api/2.0.1.Final/validation-api-2.0.1.Final.jar">
               <sha256sum>9873b46df1833c9ee8f5bc1ff6853375115dadd8897bcb5a0dffb5848835ee6c</sha256sum>
             </artifact>
-            <artifact url="file://$MAVEN_REPOSITORY$/io/confluent/kafka-schema-serializer/7.0.1/kafka-schema-serializer-7.0.1.jar">
-              <sha256sum>d9592c4368f369538ce70cb77b99cf13aa172baf642ca681f2d03793a3822391</sha256sum>
+            <artifact url="file://$MAVEN_REPOSITORY$/io/confluent/kafka-schema-serializer/7.2.0/kafka-schema-serializer-7.2.0.jar">
+              <sha256sum>9bc0a98cc5f3837aa78a4c8de580f76ac8c6d58e4be247e835895b6e746eda45</sha256sum>
             </artifact>
-            <artifact url="file://$MAVEN_REPOSITORY$/io/confluent/kafka-json-serializer/7.0.1/kafka-json-serializer-7.0.1.jar">
-              <sha256sum>5c7f68a88b5e3fb4acea9e94a52c357775389782dc787ac1312ac57298a705d1</sha256sum>
+            <artifact url="file://$MAVEN_REPOSITORY$/io/confluent/kafka-json-serializer/7.2.0/kafka-json-serializer-7.2.0.jar">
+              <sha256sum>68c0181cbac52e0bf4f1838e2b44fb8d6c9d95fd913a67aa26207eb8dcc5e496</sha256sum>
             </artifact>
-            <artifact url="file://$MAVEN_REPOSITORY$/io/confluent/common-config/7.0.1/common-config-7.0.1.jar">
-              <sha256sum>cdf909b7278931f22b14da79758bbe55a28edfa0e4268886283e8c87c6340b56</sha256sum>
+            <artifact url="file://$MAVEN_REPOSITORY$/io/confluent/common-config/7.2.0/common-config-7.2.0.jar">
+              <sha256sum>4bc2d58f244828cc85055fe71b6f8637d7393aaa7d9d92e71d7dd322654a4659</sha256sum>
             </artifact>
           </verification>
           <exclude>
@@ -193,66 +193,69 @@
             <dependency maven-id="org.slf4j:slf4j-api" />
             <dependency maven-id="io.github.classgraph:classgraph" />
             <dependency maven-id="org.jetbrains.kotlin:kotlin-stdlib" />
+            <dependency maven-id="org.jetbrains.kotlin:kotlin-scripting-jvm" />
             <dependency maven-id="io.confluent:common-utils" />
           </exclude>
         </properties>
         <CLASSES>
-          <root url="jar://$MAVEN_REPOSITORY$/io/confluent/kafka-json-schema-serializer/7.0.1/kafka-json-schema-serializer-7.0.1.jar!/" />
-          <root url="jar://$MAVEN_REPOSITORY$/io/confluent/kafka-json-schema-provider/7.0.1/kafka-json-schema-provider-7.0.1.jar!/" />
-          <root url="jar://$MAVEN_REPOSITORY$/com/github/everit-org/json-schema/org.everit.json.schema/1.12.2/org.everit.json.schema-1.12.2.jar!/" />
-          <root url="jar://$MAVEN_REPOSITORY$/org/json/json/20201115/json-20201115.jar!/" />
-          <root url="jar://$MAVEN_REPOSITORY$/commons-validator/commons-validator/1.6/commons-validator-1.6.jar!/" />
-          <root url="jar://$MAVEN_REPOSITORY$/commons-digester/commons-digester/1.8.1/commons-digester-1.8.1.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/io/confluent/kafka-json-schema-serializer/7.2.0/kafka-json-schema-serializer-7.2.0.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/io/confluent/kafka-json-schema-provider/7.2.0/kafka-json-schema-provider-7.2.0.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/com/github/erosb/everit-json-schema/1.14.1/everit-json-schema-1.14.1.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/org/json/json/20220320/json-20220320.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/commons-validator/commons-validator/1.7/commons-validator-1.7.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/commons-digester/commons-digester/2.1/commons-digester-2.1.jar!/" />
           <root url="jar://$MAVEN_REPOSITORY$/com/damnhandy/handy-uri-templates/2.1.8/handy-uri-templates-2.1.8.jar!/" />
-          <root url="jar://$MAVEN_REPOSITORY$/com/fasterxml/jackson/datatype/jackson-datatype-guava/2.12.3/jackson-datatype-guava-2.12.3.jar!/" />
-          <root url="jar://$MAVEN_REPOSITORY$/com/fasterxml/jackson/datatype/jackson-datatype-jdk8/2.12.3/jackson-datatype-jdk8-2.12.3.jar!/" />
-          <root url="jar://$MAVEN_REPOSITORY$/com/fasterxml/jackson/datatype/jackson-datatype-joda/2.12.3/jackson-datatype-joda-2.12.3.jar!/" />
-          <root url="jar://$MAVEN_REPOSITORY$/com/fasterxml/jackson/module/jackson-module-parameter-names/2.12.3/jackson-module-parameter-names-2.12.3.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/com/fasterxml/jackson/datatype/jackson-datatype-guava/2.13.2/jackson-datatype-guava-2.13.2.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/com/fasterxml/jackson/datatype/jackson-datatype-jdk8/2.13.2/jackson-datatype-jdk8-2.13.2.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/com/fasterxml/jackson/datatype/jackson-datatype-joda/2.13.2/jackson-datatype-joda-2.13.2.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/com/fasterxml/jackson/module/jackson-module-parameter-names/2.13.2/jackson-module-parameter-names-2.13.2.jar!/" />
           <root url="jar://$MAVEN_REPOSITORY$/com/kjetland/mbknor-jackson-jsonschema_2.13/1.0.39/mbknor-jackson-jsonschema_2.13-1.0.39.jar!/" />
           <root url="jar://$MAVEN_REPOSITORY$/org/scala-lang/scala-library/2.13.1/scala-library-2.13.1.jar!/" />
           <root url="jar://$MAVEN_REPOSITORY$/javax/validation/validation-api/2.0.1.Final/validation-api-2.0.1.Final.jar!/" />
-          <root url="jar://$MAVEN_REPOSITORY$/io/confluent/kafka-schema-serializer/7.0.1/kafka-schema-serializer-7.0.1.jar!/" />
-          <root url="jar://$MAVEN_REPOSITORY$/io/confluent/kafka-json-serializer/7.0.1/kafka-json-serializer-7.0.1.jar!/" />
-          <root url="jar://$MAVEN_REPOSITORY$/io/confluent/common-config/7.0.1/common-config-7.0.1.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/io/confluent/kafka-schema-serializer/7.2.0/kafka-schema-serializer-7.2.0.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/io/confluent/kafka-json-serializer/7.2.0/kafka-json-serializer-7.2.0.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/io/confluent/common-config/7.2.0/common-config-7.2.0.jar!/" />
         </CLASSES>
         <JAVADOC />
         <SOURCES>
-          <root url="jar://$MAVEN_REPOSITORY$/io/confluent/kafka-json-schema-serializer/7.0.1/kafka-json-schema-serializer-7.0.1-sources.jar!/" />
-          <root url="jar://$MAVEN_REPOSITORY$/io/confluent/kafka-json-schema-provider/7.0.1/kafka-json-schema-provider-7.0.1-sources.jar!/" />
-          <root url="jar://$MAVEN_REPOSITORY$/com/github/everit-org/json-schema/org.everit.json.schema/1.12.2/org.everit.json.schema-1.12.2-sources.jar!/" />
-          <root url="jar://$MAVEN_REPOSITORY$/org/json/json/20201115/json-20201115-sources.jar!/" />
-          <root url="jar://$MAVEN_REPOSITORY$/commons-validator/commons-validator/1.6/commons-validator-1.6-sources.jar!/" />
-          <root url="jar://$MAVEN_REPOSITORY$/commons-digester/commons-digester/1.8.1/commons-digester-1.8.1-sources.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/io/confluent/kafka-json-schema-serializer/7.2.0/kafka-json-schema-serializer-7.2.0-sources.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/io/confluent/kafka-json-schema-provider/7.2.0/kafka-json-schema-provider-7.2.0-sources.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/com/github/erosb/everit-json-schema/1.14.1/everit-json-schema-1.14.1-sources.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/org/json/json/20220320/json-20220320-sources.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/commons-validator/commons-validator/1.7/commons-validator-1.7-sources.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/commons-digester/commons-digester/2.1/commons-digester-2.1-sources.jar!/" />
           <root url="jar://$MAVEN_REPOSITORY$/com/damnhandy/handy-uri-templates/2.1.8/handy-uri-templates-2.1.8-sources.jar!/" />
-          <root url="jar://$MAVEN_REPOSITORY$/com/fasterxml/jackson/datatype/jackson-datatype-guava/2.12.3/jackson-datatype-guava-2.12.3-sources.jar!/" />
-          <root url="jar://$MAVEN_REPOSITORY$/com/fasterxml/jackson/datatype/jackson-datatype-jdk8/2.12.3/jackson-datatype-jdk8-2.12.3-sources.jar!/" />
-          <root url="jar://$MAVEN_REPOSITORY$/com/fasterxml/jackson/datatype/jackson-datatype-joda/2.12.3/jackson-datatype-joda-2.12.3-sources.jar!/" />
-          <root url="jar://$MAVEN_REPOSITORY$/com/fasterxml/jackson/module/jackson-module-parameter-names/2.12.3/jackson-module-parameter-names-2.12.3-sources.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/com/fasterxml/jackson/datatype/jackson-datatype-guava/2.13.2/jackson-datatype-guava-2.13.2-sources.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/com/fasterxml/jackson/datatype/jackson-datatype-jdk8/2.13.2/jackson-datatype-jdk8-2.13.2-sources.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/com/fasterxml/jackson/datatype/jackson-datatype-joda/2.13.2/jackson-datatype-joda-2.13.2-sources.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/com/fasterxml/jackson/module/jackson-module-parameter-names/2.13.2/jackson-module-parameter-names-2.13.2-sources.jar!/" />
           <root url="jar://$MAVEN_REPOSITORY$/com/kjetland/mbknor-jackson-jsonschema_2.13/1.0.39/mbknor-jackson-jsonschema_2.13-1.0.39-sources.jar!/" />
           <root url="jar://$MAVEN_REPOSITORY$/org/scala-lang/scala-library/2.13.1/scala-library-2.13.1-sources.jar!/" />
           <root url="jar://$MAVEN_REPOSITORY$/javax/validation/validation-api/2.0.1.Final/validation-api-2.0.1.Final-sources.jar!/" />
-          <root url="jar://$MAVEN_REPOSITORY$/io/confluent/kafka-schema-serializer/7.0.1/kafka-schema-serializer-7.0.1-sources.jar!/" />
-          <root url="jar://$MAVEN_REPOSITORY$/io/confluent/kafka-json-serializer/7.0.1/kafka-json-serializer-7.0.1-sources.jar!/" />
-          <root url="jar://$MAVEN_REPOSITORY$/io/confluent/common-config/7.0.1/common-config-7.0.1-sources.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/io/confluent/kafka-schema-serializer/7.2.0/kafka-schema-serializer-7.2.0-sources.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/io/confluent/kafka-json-serializer/7.2.0/kafka-json-serializer-7.2.0-sources.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/io/confluent/common-config/7.2.0/common-config-7.2.0-sources.jar!/" />
         </SOURCES>
       </library>
     </orderEntry>
     <orderEntry type="module-library" exported="">
       <library name="io.confluent.kafka.protobuf.serializer" type="repository">
-        <properties maven-id="io.confluent:kafka-protobuf-serializer:7.0.1">
+        <properties maven-id="io.confluent:kafka-protobuf-serializer:7.2.0">
           <verification>
-            <artifact url="file://$MAVEN_REPOSITORY$/io/confluent/kafka-protobuf-serializer/7.0.1/kafka-protobuf-serializer-7.0.1.jar">
-              <sha256sum>504bdb60d2b3cd097d5c427cd8e16d6ba829bad7906115a36feda65c41d87a03</sha256sum>
+            <artifact url="file://$MAVEN_REPOSITORY$/io/confluent/kafka-protobuf-serializer/7.2.0/kafka-protobuf-serializer-7.2.0.jar">
+              <sha256sum>68c714b64f4c8f1d5bd7328c6b18e5614b3f5d630ceea7a69ceac58225e58a98</sha256sum>
             </artifact>
-            <artifact url="file://$MAVEN_REPOSITORY$/io/confluent/kafka-protobuf-provider/7.0.1/kafka-protobuf-provider-7.0.1.jar">
-              <sha256sum>572eb7210202f69530dc1a4a0c29af57710d48b425fc979f50cbf4f0db990cf8</sha256sum>
+            <artifact url="file://$MAVEN_REPOSITORY$/io/confluent/kafka-protobuf-provider/7.2.0/kafka-protobuf-provider-7.2.0.jar">
+              <sha256sum>b698d92e3bae7879b2f247a10a6da372ae3805ad8c40db11a0ee8ced1c207fe8</sha256sum>
             </artifact>
-            <artifact url="file://$MAVEN_REPOSITORY$/io/confluent/kafka-protobuf-types/7.0.1/kafka-protobuf-types-7.0.1.jar">
-              <sha256sum>dc4633f37d4915e1743d008894c390043afbcca8248f936fc80c99f2d025ce4a</sha256sum>
+            <artifact url="file://$MAVEN_REPOSITORY$/io/confluent/kafka-protobuf-types/7.2.0/kafka-protobuf-types-7.2.0.jar">
+              <sha256sum>32e3559fc53362e1f2ea31c28aa6997242e839973c46e20e4795248b193aa0dc</sha256sum>
             </artifact>
           </verification>
           <exclude>
-            <dependency maven-id="com.squareup.wire:wire-schema" />
+            <dependency maven-id="com.squareup.wire:wire-schema-jvm" />
+            <dependency maven-id="com.squareup.wire:wire-runtime-jvm" />
+            <dependency maven-id="com.squareup.okio:okio-jvm" />
             <dependency maven-id="org.jetbrains.kotlin:kotlin-stdlib" />
             <dependency maven-id="com.google.protobuf:protobuf-java" />
             <dependency maven-id="com.google.protobuf:protobuf-java-util" />
@@ -263,15 +266,15 @@
           </exclude>
         </properties>
         <CLASSES>
-          <root url="jar://$MAVEN_REPOSITORY$/io/confluent/kafka-protobuf-serializer/7.0.1/kafka-protobuf-serializer-7.0.1.jar!/" />
-          <root url="jar://$MAVEN_REPOSITORY$/io/confluent/kafka-protobuf-provider/7.0.1/kafka-protobuf-provider-7.0.1.jar!/" />
-          <root url="jar://$MAVEN_REPOSITORY$/io/confluent/kafka-protobuf-types/7.0.1/kafka-protobuf-types-7.0.1.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/io/confluent/kafka-protobuf-serializer/7.2.0/kafka-protobuf-serializer-7.2.0.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/io/confluent/kafka-protobuf-provider/7.2.0/kafka-protobuf-provider-7.2.0.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/io/confluent/kafka-protobuf-types/7.2.0/kafka-protobuf-types-7.2.0.jar!/" />
         </CLASSES>
         <JAVADOC />
         <SOURCES>
-          <root url="jar://$MAVEN_REPOSITORY$/io/confluent/kafka-protobuf-serializer/7.0.1/kafka-protobuf-serializer-7.0.1-sources.jar!/" />
-          <root url="jar://$MAVEN_REPOSITORY$/io/confluent/kafka-protobuf-provider/7.0.1/kafka-protobuf-provider-7.0.1-sources.jar!/" />
-          <root url="jar://$MAVEN_REPOSITORY$/io/confluent/kafka-protobuf-types/7.0.1/kafka-protobuf-types-7.0.1-sources.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/io/confluent/kafka-protobuf-serializer/7.2.0/kafka-protobuf-serializer-7.2.0-sources.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/io/confluent/kafka-protobuf-provider/7.2.0/kafka-protobuf-provider-7.2.0-sources.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/io/confluent/kafka-protobuf-types/7.2.0/kafka-protobuf-types-7.2.0-sources.jar!/" />
         </SOURCES>
       </library>
     </orderEntry>

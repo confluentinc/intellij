@@ -29,10 +29,10 @@
       io.confluent.kafka.json.schema.serializer:
       - name: $MAVEN_REPOSITORY$/io/confluent/kafka-json-schema-serializer/7/kafka-json-schema-serializer-7.jar
       - name: $MAVEN_REPOSITORY$/io/confluent/kafka-json-schema-provider/7/kafka-json-schema-provider-7.jar
-      - name: $MAVEN_REPOSITORY$/com/github/everit-org/json-schema/org.everit.json.schema/1/org.everit.json.schema-1.jar
-      - name: $MAVEN_REPOSITORY$/org/json/json/20201115/json-20201115.jar
+      - name: $MAVEN_REPOSITORY$/com/github/erosb/everit-json-schema/1/everit-json-schema-1.jar
+      - name: $MAVEN_REPOSITORY$/org/json/json/20220320/json-20220320.jar
       - name: $MAVEN_REPOSITORY$/commons-validator/commons-validator/1/commons-validator-1.jar
-      - name: $MAVEN_REPOSITORY$/commons-digester/commons-digester/1/commons-digester-1.jar
+      - name: $MAVEN_REPOSITORY$/commons-digester/commons-digester/2/commons-digester-2.jar
       - name: $MAVEN_REPOSITORY$/com/damnhandy/handy-uri-templates/2/handy-uri-templates-2.jar
       - name: $MAVEN_REPOSITORY$/com/fasterxml/jackson/datatype/jackson-datatype-guava/2/jackson-datatype-guava-2.jar
       - name: $MAVEN_REPOSITORY$/com/fasterxml/jackson/datatype/jackson-datatype-jdk8/2/jackson-datatype-jdk8-2.jar
