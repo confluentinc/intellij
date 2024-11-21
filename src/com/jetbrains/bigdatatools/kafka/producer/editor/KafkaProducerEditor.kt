@@ -3,6 +3,7 @@ package com.jetbrains.bigdatatools.kafka.producer.editor
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.fileEditor.FileEditor
 import com.intellij.openapi.fileEditor.FileEditorLocation
+import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.fileEditor.FileEditorState
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.ComboBox
@@ -62,7 +63,12 @@ class KafkaProducerEditor(val project: Project,
 
   private val propertiesComponent = PropertiesTable("app.name=IntellijKafkaPlugin")
 
-  val topicComboBox = KafkaEditorUtils.createTopicComboBox(this, kafkaManager)
+  val topicComboBox = KafkaEditorUtils.createTopicComboBox(this, kafkaManager).apply {
+    addActionListener {
+      storeToFile()
+      FileEditorManager.getInstance(project).updateFilePresentation(file)
+    }
+  }
 
   private lateinit var acksComboBox: SegmentedButton<AcksType>
 
