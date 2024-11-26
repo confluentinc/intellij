@@ -246,6 +246,7 @@ class KafkaClient(project: Project?,
   }
 
   private suspend fun describeTopics(topicNames: List<String>): Pair<List<TopicDescription>, List<String>> {
+    // probable here some performance issue
     val futures = kafkaAdminNotNull.describeTopics(topicNames.toMutableList()).topicNameValues()
     val topics = mutableListOf<TopicDescription>()
     val nonParsed = mutableListOf<String>()
