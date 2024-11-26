@@ -6,7 +6,6 @@ import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.ActionGroup
 import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.DefaultActionGroup
-import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.fileChooser.FileChooserFactory
 import com.intellij.openapi.fileChooser.FileSaverDescriptor
 import com.intellij.openapi.project.DumbAwareAction
@@ -30,6 +29,7 @@ import com.jetbrains.bigdatatools.common.ui.ExpansionPanel
 import com.jetbrains.bigdatatools.common.ui.onDoubleClick
 import com.jetbrains.bigdatatools.common.ui.setSouthComponent
 import com.jetbrains.bigdatatools.common.util.MessagesBundle
+import com.jetbrains.bigdatatools.common.util.executeOnPooledThread
 import com.jetbrains.bigdatatools.common.util.invokeLater
 import com.jetbrains.bigdatatools.kafka.common.editor.ListTableModel
 import com.jetbrains.bigdatatools.kafka.consumer.editor.ConsumerEditorUtils.getTableContent
@@ -230,14 +230,14 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
     val file = fileWrapper.file
     val text = getTableContent(outputModel, file.extension)
 
-    ApplicationManager.getApplication().runWriteAction {
+    executeOnPooledThread {
       try {
         file.bufferedWriter().use { out -> out.write(text) }
         invokeLater {
           RfsNotificationUtils.notifySuccess(
             MessagesBundle.message("rfs.dump.to.file.action.saved.notification.message", file.name),
             MessagesBundle.message("rfs.dump.to.file.action.saved.notification.title"),
-            DumbAwareAction.create(KafkaMessagesBundle.message("table.records.reveal.saved.file")) { RevealFileAction.openFile(file) },
+            DumbAwareAction.create(RevealFileAction.getActionName()) { RevealFileAction.openFile(file) },
             project
           )
         }
