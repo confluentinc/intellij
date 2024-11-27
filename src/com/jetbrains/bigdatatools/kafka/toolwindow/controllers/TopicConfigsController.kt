@@ -50,6 +50,19 @@ class TopicConfigsController(val project: Project,
           dataManager.updater.invokeRefreshModels(modelsForRefresh)
         }
       }
+
+      override fun update(e: AnActionEvent) {
+        super.update(e)
+
+        val selected = isSelected(e)
+        if (selected) {
+          e.presentation.text = KafkaMessagesBundle.message("hide.full.topic.config")
+          e.presentation.description = KafkaMessagesBundle.message("hide.full.topic.config.hint")
+        } else {
+          e.presentation.text = KafkaMessagesBundle.message("show.full.topic.config")
+          e.presentation.description = KafkaMessagesBundle.message("show.full.topic.config.hint")
+        }
+      }
     }
 
     return listOf(showFullConfig)
