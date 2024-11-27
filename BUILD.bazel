@@ -1,6 +1,5 @@
 ### auto-generated section `build intellij.bigdatatools.kafka` start
-load("@rules_jvm//:jvm.bzl", "jvm_resources")
-load("@rules_jvm//:rules.bzl", "jvm_library")
+load("@rules_jvm//:jvm.bzl", "jvm_library", "jvm_provided_library", "jvm_resources")
 
 jvm_resources(
   name = "kafka_resources",
@@ -8,13 +7,31 @@ jvm_resources(
   strip_prefix = "resources"
 )
 
+jvm_provided_library(
+  name = "spring_provided",
+  lib = "//plugins/spring/spring"
+)
+
+jvm_provided_library(
+  name = "spring-boot_provided",
+  lib = "//plugins/spring/spring-boot/spring-boot"
+)
+
+jvm_provided_library(
+  name = "psi-impl_provided",
+  lib = "@community//plugins/properties/properties-psi-impl:psi-impl"
+)
+
+jvm_provided_library(
+  name = "config_provided",
+  lib = "//plugins/microservices/microservices-config:config"
+)
+
 jvm_library(
   name = "kafka",
   module_name = "intellij.bigdatatools.kafka",
   visibility = ["//visibility:public"],
-  srcs = glob(["src/**/*.kt", "src/**/*.java", "gen/**/*.kt", "gen/**/*.java"], allow_empty = True, exclude = ["**/module-info.java"]),
-  javac_opts = "@rules_jvm//:j17",
-  kotlinc_opts = "@rules_jvm//:k17",
+  srcs = glob(["src/**/*.kt", "src/**/*.java", "gen/**/*.kt", "gen/**/*.java"], allow_empty = True),
   deps = [
     "@community//platform/core-api:core",
     "@community//platform/core-impl",
@@ -23,7 +40,7 @@ jvm_library(
     "@lib//:kotlin-reflect",
     "@community//platform/execution-impl",
     "@community//platform/core-ui",
-    "@ultimate_lib//:miglayout-swing.provided",
+    "@lib//:miglayout-swing-provided",
     "@community//json",
     "@lib//:gson",
     "@community//platform/lang-impl",
@@ -59,13 +76,13 @@ jvm_library(
     "@lib//:google_protobuf_java_util",
     "@community//platform/feedback",
     "//plugins/microservices/microservices",
-    "//plugins/spring/spring",
-    "//plugins/spring/spring-boot/spring-boot",
-    "@community//plugins/properties/properties-psi-impl:psi-impl",
-    "//plugins/microservices/microservices-config:config",
     "//plugins/charts",
     "@community//platform/platform-impl/ui:ide-ui",
     "//plugins/microservices/microservices-jvm:jvm",
+    ":spring_provided",
+    ":spring-boot_provided",
+    ":psi-impl_provided",
+    ":config_provided",
   ],
   exports = [
     "@ultimate_lib//:bigdatatools_kafka_apache_kafka_clients",
