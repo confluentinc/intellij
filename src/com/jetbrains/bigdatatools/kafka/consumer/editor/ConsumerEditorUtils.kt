@@ -99,7 +99,7 @@ internal object ConsumerEditorUtils {
     if (cellValue == null)
       return "\"\""
 
-    return StringUtil.escapeChar(cellValue, '"')
+    return StringUtil.wrapWithDoubleQuote(StringUtil.replace(cellValue, "\"", "\"\""))
   }
 }
 

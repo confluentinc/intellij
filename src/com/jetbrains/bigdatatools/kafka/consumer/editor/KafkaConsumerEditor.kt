@@ -16,7 +16,7 @@ class KafkaConsumerEditor(val project: Project,
                           private val kafkaManager: KafkaDataManager,
                           private val file: VirtualFile,
                           topic: String?) : FileEditor, UserDataHolderBase() {
-  private val customizable = kafkaManager.consumerPanelStorage.getOrCreate(project, file)
+  internal val customizable = kafkaManager.consumerPanelStorage.getOrCreate(project, file)
   private val mainComponent = customizable.getComponent()
 
   init {

@@ -24,10 +24,7 @@ import com.jetbrains.bigdatatools.common.ui.MultiSplitter
 import com.jetbrains.bigdatatools.common.util.executeOnPooledThread
 import com.jetbrains.bigdatatools.common.util.invokeLater
 import com.jetbrains.bigdatatools.common.util.withPluginClassLoader
-import com.jetbrains.bigdatatools.kafka.common.editor.KafkaEditorUtils
-import com.jetbrains.bigdatatools.kafka.common.editor.KafkaProducerConsumerPanel
-import com.jetbrains.bigdatatools.kafka.common.editor.KafkaProducerConsumerProgressComponent
-import com.jetbrains.bigdatatools.kafka.common.editor.SavePresetAction
+import com.jetbrains.bigdatatools.kafka.common.editor.*
 import com.jetbrains.bigdatatools.kafka.common.models.TopicInEditor
 import com.jetbrains.bigdatatools.kafka.common.settings.KafkaConfigStorage
 import com.jetbrains.bigdatatools.kafka.common.settings.StorageConsumerConfig
@@ -505,6 +502,8 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
 
     kafkaConsumerSettings.applyConfig(config)
   }
+
+  internal fun getRecords(): ListTableModel<KafkaRecord> = output.outputModel
 
   companion object {
     val STATE_KEY = Key<ConsumerEditorState>("STATE")

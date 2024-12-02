@@ -75,6 +75,12 @@
     <action id="Kafka.GlobalCreateKafkaConnection"
             class="com.jetbrains.bigdatatools.kafka.actions.CreateKafkaConnectionAction"/>
 
+    <group id="Kafka.ExportRecords.Actions" popup="true" icon="AllIcons.Actions.Download">
+      <action id="Kafka.Export.ToCsv" class="com.jetbrains.bigdatatools.kafka.actions.CsvExportAction"/>
+      <action id="Kafka.Export.ToTsv" class="com.jetbrains.bigdatatools.kafka.actions.TsvExportAction"/>
+      <action id="Kafka.Export.ToJson" class="com.jetbrains.bigdatatools.kafka.actions.JsonExportAction"/>
+    </group>
+
     <group id="Kafka.Actions">
       <group id="Kafka.General.Actions">
         <action id="kafka.create.producer"
@@ -125,6 +131,7 @@
         <action id="kafka.CloneSchemaAction" class="com.jetbrains.bigdatatools.kafka.toolwindow.actions.CloneSchemaAction"
                 icon="AllIcons.Actions.Copy"/>
       </group>
+
     </group>
   </actions>
 

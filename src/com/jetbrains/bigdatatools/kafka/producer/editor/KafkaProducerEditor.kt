@@ -28,6 +28,7 @@ import com.jetbrains.bigdatatools.kafka.common.editor.*
 import com.jetbrains.bigdatatools.kafka.common.models.TopicInEditor
 import com.jetbrains.bigdatatools.kafka.common.settings.KafkaConfigStorage
 import com.jetbrains.bigdatatools.kafka.common.settings.StorageProducerConfig
+import com.jetbrains.bigdatatools.kafka.consumer.editor.KafkaRecord
 import com.jetbrains.bigdatatools.kafka.consumer.editor.KafkaRecordsOutput
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.producer.models.AcksType
@@ -313,6 +314,8 @@ class KafkaProducerEditor(val project: Project,
 
     flowController.setParams(config.flowParams ?: ProducerFlowParams())
   }
+
+  internal fun getRecords(): ListTableModel<KafkaRecord> = output.outputModel
 
   override fun getName(): String = KafkaMessagesBundle.message("produce.to.topic")
   override fun getComponent(): JComponent = presetsSplitter
