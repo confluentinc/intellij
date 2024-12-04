@@ -208,6 +208,7 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
         }.topGap(TopGap.SMALL)
         row {
           checkBox(KafkaMessagesBundle.message("settings.consumer.enable.auto.commit.label")).bindSelected(isEnabledAutoCommit)
+            .visibleIf(isConsumerSetup)
         }.bottomGap(BottomGap.SMALL)
         row {
           link(KafkaMessagesBundle.message("task.change.offset")) {
