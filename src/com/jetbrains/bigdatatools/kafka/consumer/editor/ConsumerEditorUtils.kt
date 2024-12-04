@@ -79,7 +79,7 @@ internal object ConsumerEditorUtils {
 
     for (row in 0 until tableModel.rowCount) {
       for (column in 0 until tableModel.columnCount) {
-        builder.append(escapedCellValue(tableModel, row, column))
+        builder.append(exportEntryAsCsv(tableModel, row, column))
         if (column < tableModel.columnCount - 1) {
           builder.append(separator)
         }
@@ -90,7 +90,7 @@ internal object ConsumerEditorUtils {
     return builder.toString()
   }
 
-  private fun <T> escapedCellValue(tableModel: ListTableModel<T>, row: Int, column: Int): String {
+  private fun <T> exportEntryAsCsv(tableModel: ListTableModel<T>, row: Int, column: Int): String {
     val cellValue = tableModel.getValueAt(row, column)?.toString()
       ?.replace(LINE_SEPARATOR, " ")
       ?.replace(TAB_CHAR, " ")
