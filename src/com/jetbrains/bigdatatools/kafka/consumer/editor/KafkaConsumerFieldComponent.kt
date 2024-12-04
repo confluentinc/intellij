@@ -18,6 +18,7 @@ import com.jetbrains.bigdatatools.kafka.common.models.KafkaFieldType
 import com.jetbrains.bigdatatools.kafka.common.models.RegistrySchemaInEditor
 import com.jetbrains.bigdatatools.kafka.common.settings.StorageConsumerConfig
 import com.jetbrains.bigdatatools.kafka.consumer.models.ConsumerProducerFieldConfig
+import com.jetbrains.bigdatatools.kafka.consumer.models.CustomSchemaData
 import com.jetbrains.bigdatatools.kafka.producer.editor.CustomSchemaController
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryFormat
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryUtil
@@ -50,6 +51,8 @@ class KafkaConsumerFieldComponent(private val project: Project,
   init {
     customSchemaController.setLanguage(fieldTypeComboBox.item)
   }
+
+  internal fun getCustomSchemaConfig(): CustomSchemaData? = customSchemaController.getSchemaConfig()
 
   override fun dispose() {}
 
@@ -88,7 +91,7 @@ class KafkaConsumerFieldComponent(private val project: Project,
 
   fun load(config: StorageConsumerConfig) {
     fieldTypeComboBox.item = if (isKey) config.getKeyType() else config.getValueType()
-    customSchemaController.setConfig(config)
+    customSchemaController.setConsumerConfig(config)
     schemaComboBox.item = if (isKey)
       RegistrySchemaInEditor(schemaName = config.keySubject, schemaFormat = config.getKeyFormat())
     else

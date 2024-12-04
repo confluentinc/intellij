@@ -370,7 +370,11 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
       startWith = startWith,
       properties = properties,
       settings = settings,
-      consumerGroup = consumerGroup.item.takeIf { it.isNotBlank() }?.let { ConsumerGroup(it, isEnabledAutoCommit.get()) })
+      consumerGroup = consumerGroup.item.takeIf { it.isNotBlank() }?.let { ConsumerGroup(it, isEnabledAutoCommit.get()) },
+
+      customKeySchema = key.getCustomSchemaConfig(),
+      customValueSchema = value.getCustomSchemaConfig()
+    )
   }
 
   fun getComponent(): JComponent = presetsSplitter
