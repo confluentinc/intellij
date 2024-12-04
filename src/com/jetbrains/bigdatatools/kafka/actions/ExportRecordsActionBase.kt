@@ -10,6 +10,7 @@ import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFileWrapper
+import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.jetbrains.bigdatatools.common.rfs.util.RfsNotificationUtils
 import com.jetbrains.bigdatatools.common.util.MessagesBundle
 import com.jetbrains.bigdatatools.common.util.executeOnPooledThread
@@ -52,10 +53,10 @@ internal abstract class ExportRecordsActionBase : DumbAwareAction() {
 
     val fileWrapper = getSavedFile(project) ?: return
     val file = fileWrapper.file
-    val text = getTableContent(records, type.extension)
 
     executeOnPooledThread {
       try {
+        val text = getTableContent(records, type.extension)
         file.bufferedWriter().use { out -> out.write(text) }
         invokeLater {
           RfsNotificationUtils.notifySuccess(
@@ -74,6 +75,7 @@ internal abstract class ExportRecordsActionBase : DumbAwareAction() {
     }
   }
 
+  @RequiresEdt
   private fun getSavedFile(project: Project): VirtualFileWrapper? {
     val fileDescriptor = FileSaverDescriptor(
       KafkaMessagesBundle.message("group.Kafka.ExportRecords.Actions.text"),
