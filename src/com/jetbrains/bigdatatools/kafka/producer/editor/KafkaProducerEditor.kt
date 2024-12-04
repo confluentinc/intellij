@@ -299,7 +299,10 @@ class KafkaProducerEditor(val project: Project,
     acks = acksComboBox.selectedItem?.name ?: AcksType.NONE.name,
     idempotence = idempotenceCheckBox.isSelected,
     forcePartition = forcePartitionField.value,
-    flowParams = flowController.getParams())
+    flowParams = flowController.getParams(),
+
+    customKeySchema = keyFieldComponent.getCustomSchemaConfig(),
+    customValueSchema = valueFieldComponent.getCustomSchemaConfig())
 
   private fun applyConfig(config: StorageProducerConfig) {
     topicComboBox.item = TopicInEditor(config.topic)

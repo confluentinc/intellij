@@ -1,8 +1,8 @@
 package com.jetbrains.bigdatatools.kafka.common.settings
 
 import com.jetbrains.bigdatatools.common.settings.connections.Property
-import com.jetbrains.bigdatatools.kafka.common.models.KafkaCustomSchemaSource
 import com.jetbrains.bigdatatools.kafka.common.models.KafkaFieldType
+import com.jetbrains.bigdatatools.kafka.consumer.models.CustomSchemaData
 import com.jetbrains.bigdatatools.kafka.producer.models.AcksType
 import com.jetbrains.bigdatatools.kafka.producer.models.ProducerFlowParams
 import com.jetbrains.bigdatatools.kafka.producer.models.RecordCompression
@@ -27,12 +27,9 @@ data class StorageProducerConfig(
   var keySubject: String = "",
   var valueSubject: String = "",
   var flowParams: ProducerFlowParams? = null,
-  val customKeyFile: String? = null,
-  val customValueFile: String? = null,
-  val customKeySchemaSource: KafkaCustomSchemaSource? = null,
-  val customValueSchemaSource: KafkaCustomSchemaSource? = null,
-  val customKeySchemaImplicit: String? = null,
-  val customValueSchemaImplicit: String? = null,
+
+  val customKeySchema: CustomSchemaData? = null,
+  val customValueSchema: CustomSchemaData? = null,
 ) : StorageConfig {
   fun takeKeyType(): KafkaFieldType = KafkaFieldType.entries.find { it.name == keyType } ?: KafkaFieldType.SCHEMA_REGISTRY
   fun takeValueType(): KafkaFieldType = KafkaFieldType.entries.find { it.name == valueType } ?: KafkaFieldType.SCHEMA_REGISTRY

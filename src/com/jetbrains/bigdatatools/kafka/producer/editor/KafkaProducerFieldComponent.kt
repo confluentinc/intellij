@@ -36,6 +36,7 @@ import com.jetbrains.bigdatatools.kafka.common.models.RegistrySchemaInEditor
 import com.jetbrains.bigdatatools.kafka.common.settings.StorageProducerConfig
 import com.jetbrains.bigdatatools.kafka.completion.KafkaProducerGeneratorCompletionProvider
 import com.jetbrains.bigdatatools.kafka.consumer.models.ConsumerProducerFieldConfig
+import com.jetbrains.bigdatatools.kafka.consumer.models.CustomSchemaData
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryFormat
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryUtil
 import com.jetbrains.bigdatatools.kafka.registry.ui.KafkaSchemaInfoDialog
@@ -335,6 +336,8 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
     }
   }
 
+  internal fun getCustomSchemaConfig(): CustomSchemaData? = customSchemaController.getSchemaConfig()
+
   fun applyConfig(config: StorageProducerConfig) {
     val fieldType = if (isKey) config.takeKeyType() else config.takeValueType()
     val text = if (isKey) config.key else config.value
@@ -353,7 +356,7 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
       }
       KafkaFieldType.AVRO_CUSTOM, KafkaFieldType.PROTOBUF_CUSTOM -> {
         jsonField.text = text
-        customSchemaController.setConfig(config)
+        customSchemaController.setProducerConfig(config)
       }
     }
   }

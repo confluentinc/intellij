@@ -1,6 +1,5 @@
 package com.jetbrains.bigdatatools.kafka.common.settings
 
-import com.jetbrains.bigdatatools.kafka.common.models.KafkaCustomSchemaSource
 import com.jetbrains.bigdatatools.kafka.common.models.KafkaFieldType
 import com.jetbrains.bigdatatools.kafka.consumer.models.*
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryFormat
@@ -31,19 +30,14 @@ data class StorageConsumerConfig(
 
   val keyFormat: String = "",
   val valueFormat: String = "",
-  val keyCustomSchema: String = "",
-  val valueCustomSchema: String = "",
 
   val keySchemaId: String = "",
   val valueSchemaId: String = "",
 
-  val customKeyFile: String? = null,
-  val customValueFile: String? = null,
-  val customKeySchemaSource: KafkaCustomSchemaSource? = null,
-  val customValueSchemaSource: KafkaCustomSchemaSource? = null,
-  val customKeySchemaImplicit: String? = null,
-  val customValueSchemaImplicit: String? = null,
-  val consumerGroup: ConsumerGroup? = null
+  val consumerGroup: ConsumerGroup? = null,
+
+  val customKeySchema: CustomSchemaData? = null,
+  val customValueSchema: CustomSchemaData? = null,
 ) : StorageConfig {
 
   constructor(
@@ -59,11 +53,13 @@ data class StorageConsumerConfig(
 
     keyFormat: KafkaRegistryFormat,
     valueFormat: KafkaRegistryFormat,
+    customKeySchema: CustomSchemaData?,
+    customValueSchema: CustomSchemaData?,
+
     keySubject: String = "",
     valueSubject: String = "",
-    consumerGroup: ConsumerGroup? = null
-
-    ) : this(
+    consumerGroup: ConsumerGroup? = null,
+  ) : this(
     topic = topic,
     keyType = keyType.name,
     valueType = valueType.name,
@@ -78,7 +74,10 @@ data class StorageConsumerConfig(
 
     keyFormat = keyFormat.name,
     valueFormat = valueFormat.name,
-    consumerGroup = consumerGroup
+    consumerGroup = consumerGroup,
+
+    customKeySchema = customKeySchema,
+    customValueSchema = customValueSchema
   )
 
   companion object {

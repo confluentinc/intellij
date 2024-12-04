@@ -23,6 +23,7 @@ import com.jetbrains.bigdatatools.kafka.common.models.KafkaCustomSchemaSource
 import com.jetbrains.bigdatatools.kafka.common.models.KafkaFieldType
 import com.jetbrains.bigdatatools.kafka.common.settings.StorageConsumerConfig
 import com.jetbrains.bigdatatools.kafka.common.settings.StorageProducerConfig
+import com.jetbrains.bigdatatools.kafka.consumer.models.CustomSchemaData
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryFormat
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryUtil
@@ -34,9 +35,11 @@ import java.io.File
 import java.io.FileNotFoundException
 import javax.swing.JPanel
 
-class CustomSchemaController(private val project: Project,
-                             private val isKey: Boolean,
-                             private val kafkaManager: KafkaDataManager) : Disposable {
+class CustomSchemaController(
+  private val project: Project,
+  private val isKey: Boolean,
+  private val kafkaManager: KafkaDataManager,
+) : Disposable {
   private lateinit var customSchemaSource: SegmentedButton<KafkaCustomSchemaSource>
   private lateinit var customSchemaFile: Cell<TextFieldWithBrowseButton>
   private val customSchema = KafkaRegistrySchemaEditor(project, parentDisposable = this, lineBorder = true).apply {
@@ -112,21 +115,15 @@ class CustomSchemaController(private val project: Project,
     return KafkaRegistryUtil.parseSchema(format, schemaText, kafkaManager).getOrThrow()
   }
 
-  fun setConfig(config: StorageProducerConfig) {
-    customSchemaSource.selectedItem = (if (isKey) config.customKeySchemaSource else config.customValueSchemaSource)
-                                      ?: KafkaCustomSchemaSource.FILE
-    customSchemaFile.component.text = (if (isKey) config.customKeyFile else config.customValueFile) ?: ""
-    customSchema.setText((if (isKey) config.customKeySchemaImplicit else config.customValueSchemaImplicit) ?: "", getInnerLang())
+  fun setProducerConfig(config: StorageProducerConfig) {
+    setConfig(if (isKey) config.customKeySchema else config.customValueSchema)
 
     val type = if (isKey) config.takeKeyType() else config.takeValueType()
     setLanguage(type)
   }
 
-  fun setConfig(config: StorageConsumerConfig) {
-    customSchemaSource.selectedItem = (if (isKey) config.customKeySchemaSource else config.customValueSchemaSource)
-                                      ?: KafkaCustomSchemaSource.FILE
-    customSchemaFile.component.text = (if (isKey) config.customKeyFile else config.customValueFile) ?: ""
-    customSchema.setText((if (isKey) config.customKeySchemaImplicit else config.customValueSchemaImplicit) ?: "", getInnerLang())
+  fun setConsumerConfig(config: StorageConsumerConfig) {
+    setConfig(if (isKey) config.customKeySchema else config.customValueSchema)
 
     val type = if (isKey) config.getKeyType() else config.getValueType()
     when (type) {
@@ -134,6 +131,18 @@ class CustomSchemaController(private val project: Project,
       KafkaFieldType.AVRO_CUSTOM -> JsonLanguage.INSTANCE
       else -> PlainTextLanguage.INSTANCE
     }
+  }
+
+  internal fun getSchemaConfig(): CustomSchemaData = CustomSchemaData(
+    customFile = customSchemaFile.component.text,
+    customSchemaSource = customSchemaSource.selectedItem,
+    customSchemaImplicit = customSchema.text
+  )
+
+  private fun setConfig(schemaData: CustomSchemaData?) {
+    customSchemaSource.selectedItem = schemaData?.customSchemaSource ?: KafkaCustomSchemaSource.FILE
+    customSchemaFile.component.text = schemaData?.customFile ?: ""
+    customSchema.setText(schemaData?.customSchemaImplicit ?: "", getInnerLang())
   }
 
   private fun getInnerLang(): Language = when (innerType) {
