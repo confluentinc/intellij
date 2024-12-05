@@ -79,9 +79,10 @@ internal abstract class ExportRecordsActionBase : DumbAwareAction() {
   private fun getSavedFile(project: Project): VirtualFileWrapper? {
     val fileDescriptor = FileSaverDescriptor(
       KafkaMessagesBundle.message("group.Kafka.ExportRecords.Actions.text"),
-      KafkaMessagesBundle.message("group.Kafka.ExportRecords.Actions.description"),
-      *ExportType.entries.map { it.extension }.toTypedArray()
-    )
+      KafkaMessagesBundle.message("group.Kafka.ExportRecords.Actions.description")
+    ).apply {
+      withExtensionFilter(KafkaMessagesBundle.message("group.Kafka.ExportRecords.Actions.label"), *ExportType.entries.map { it.extension }.toTypedArray())
+    }
     val dialog = FileChooserFactory.getInstance().createSaveFileDialog(fileDescriptor, project)
 
     val projectPath: String? = project.basePath
