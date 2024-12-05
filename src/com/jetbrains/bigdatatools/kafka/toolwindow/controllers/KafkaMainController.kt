@@ -1,8 +1,13 @@
 package com.jetbrains.bigdatatools.kafka.toolwindow.controllers
 
+import com.intellij.openapi.actionSystem.ActionToolbar
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.ui.SimpleToolWindowPanel
 import com.intellij.openapi.util.Disposer
+import com.intellij.ui.IdeBorderFactory
 import com.intellij.ui.PopupHandler
+import com.intellij.ui.SideBorder
+import com.intellij.ui.components.JBScrollPane
 import com.jetbrains.bigdatatools.common.monitoring.toolwindow.MainTreeController
 import com.jetbrains.bigdatatools.common.rfs.driver.RfsPath
 import com.jetbrains.bigdatatools.common.rfs.projectview.actions.RfsActionPlaces
@@ -17,6 +22,7 @@ import com.jetbrains.bigdatatools.kafka.rfs.KafkaDriver.Companion.isConsumers
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaDriver.Companion.isSchemas
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaDriver.Companion.isTopicFolder
 import com.jetbrains.bigdatatools.kafka.util.KafkaControllerUtils
+import java.awt.BorderLayout
 
 /**
  * Main controller for Kafka Cluster.
@@ -47,11 +53,21 @@ class KafkaMainController(project: Project, connectionData: KafkaConnectionData)
     init()
   }
 
+  override fun createTreePanel() : SimpleToolWindowPanel {
+    val scroll = JBScrollPane(myTree).apply {
+      border = IdeBorderFactory.createBorder(SideBorder.LEFT)
+    }
+
+    return SimpleToolWindowPanel(true, true).apply {
+      add(scroll, BorderLayout.CENTER)
+    }
+  }
+
   override fun selectDefaultPath() {
     myTree.selectionPath = treeModel.getTreePath(KafkaDriver.topicPath)
   }
 
-  override fun createToolbar() = ToolbarUtils.createActionToolbar("KafkaMainController", KafkaControllerUtils.createTopicToolbar(), false)
+  override fun createToolbar(): ActionToolbar? = ToolbarUtils.createActionToolbar("KafkaMainController", KafkaControllerUtils.createTopicToolbar(), true)
 
   override fun setupDriverSpecificTreeInit() {
     PopupHandler.installPopupMenu(myTree, "Kafka.Actions", RfsActionPlaces.RFS_PANE_POPUP)

@@ -85,10 +85,10 @@
       <group id="Kafka.General.Actions">
         <action id="kafka.create.producer"
                 class="com.jetbrains.bigdatatools.kafka.toolwindow.actions.KafkaCreateProducerAction"
-                icon="AllIcons.Ide.OutgoingChangesOn"/>
+                icon="AllIcons.General.Settings"/>
         <action id="kafka.create.consumer"
                 class="com.jetbrains.bigdatatools.kafka.toolwindow.actions.KafkaCreateConsumerAction"
-                icon="AllIcons.Ide.IncomingChangesOn"/>
+                icon="AllIcons.General.Settings"/>
 
         <separator/>
       </group>

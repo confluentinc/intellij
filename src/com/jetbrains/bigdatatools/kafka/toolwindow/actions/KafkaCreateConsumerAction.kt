@@ -1,6 +1,8 @@
 package com.jetbrains.bigdatatools.kafka.toolwindow.actions
 
 import com.intellij.openapi.actionSystem.*
+import com.intellij.openapi.actionSystem.ex.CustomComponentAction
+import com.intellij.openapi.actionSystem.impl.ActionButtonWithText
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
@@ -16,8 +18,14 @@ import com.jetbrains.bigdatatools.kafka.rfs.KafkaDriver
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaDriver.Companion.isTopicFolder
 import com.jetbrains.bigdatatools.kafka.statistics.KafkaUsagesCollector
 import com.jetbrains.bigdatatools.kafka.toolwindow.controllers.KafkaFileType
+import javax.swing.JComponent
 
-class KafkaCreateConsumerAction : DumbAwareAction() {
+class KafkaCreateConsumerAction : DumbAwareAction(), CustomComponentAction {
+
+  override fun createCustomComponent(presentation: Presentation, place: String): JComponent {
+    return ActionButtonWithText(this, presentation, place, ActionToolbar.DEFAULT_MINIMUM_BUTTON_SIZE)
+  }
+
   override fun actionPerformed(e: AnActionEvent) {
     val project = e.project ?: return
     val dataManager = e.dataManager as? KafkaDataManager
