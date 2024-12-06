@@ -12,6 +12,7 @@ import com.jetbrains.bigdatatools.kafka.registry.confluent.ConfluentRegistryClie
 import com.jetbrains.bigdatatools.kafka.registry.serde.BdtAvroSchemaProvider
 import com.jetbrains.bigdatatools.kafka.registry.serde.BdtJsonSchemaProvider
 import com.jetbrains.bigdatatools.kafka.registry.serde.BdtProtobufSchemaProvider
+import io.confluent.kafka.schemaregistry.AbstractSchemaProvider
 import io.confluent.kafka.schemaregistry.ParsedSchema
 import io.confluent.kafka.schemaregistry.client.rest.entities.SchemaReference
 import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchema
@@ -19,7 +20,7 @@ import java.util.logging.Level
 import java.util.logging.Logger
 
 object KafkaRegistryUtil {
-  fun getRegistrySchemaProviders() = listOf(BdtAvroSchemaProvider(), BdtProtobufSchemaProvider(), BdtJsonSchemaProvider())
+  fun getRegistrySchemaProviders(): List<AbstractSchemaProvider> = listOf(BdtAvroSchemaProvider(), BdtProtobufSchemaProvider(), BdtJsonSchemaProvider())
 
   val protobufLanguage: Language
     get() = Language.findLanguageByID("protobuf") ?: PlainTextLanguage.INSTANCE
@@ -31,7 +32,7 @@ object KafkaRegistryUtil {
   }
 
   fun getSchemaType(schemaName: String,
-                    dataManager: KafkaDataManager) = dataManager.getCachedOrLoadSchema(schemaName).type
+                    dataManager: KafkaDataManager): KafkaRegistryFormat? = dataManager.getCachedOrLoadSchema(schemaName).type
 
   @RequiresBackgroundThread
   fun loadSchema(schemaName: String,

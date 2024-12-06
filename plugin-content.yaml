@@ -47,6 +47,7 @@
       io.confluent.kafka.protobuf.serializer:
       - name: $MAVEN_REPOSITORY$/io/confluent/kafka-protobuf-serializer/7/kafka-protobuf-serializer-7.jar
       - name: $MAVEN_REPOSITORY$/io/confluent/kafka-protobuf-provider/7/kafka-protobuf-provider-7.jar
+      - name: $MAVEN_REPOSITORY$/com/squareup/wire/wire-schema-jvm/4/wire-schema-jvm-4.jar
       - name: $MAVEN_REPOSITORY$/io/confluent/kafka-protobuf-types/7/kafka-protobuf-types-7.jar
       io.confluent.kafka.schema.registry.client:
       - name: $MAVEN_REPOSITORY$/io/confluent/kafka-schema-registry-client/7/kafka-schema-registry-client-7.jar

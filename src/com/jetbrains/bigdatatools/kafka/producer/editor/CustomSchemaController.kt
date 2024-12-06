@@ -50,7 +50,7 @@ class CustomSchemaController(
 
   override fun dispose() {}
 
-  fun initComponent(panel: Panel) = panel.rowsRange {
+  fun initComponent(panel: Panel): RowsRange = panel.rowsRange {
     row(KafkaMessagesBundle.message("settings.format.registry.schema")) {
       customSchemaSource = segmentedButton(
         KafkaCustomSchemaSource.entries) { this.text = it.title }.whenItemSelected { source ->

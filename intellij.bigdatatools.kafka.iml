@@ -248,13 +248,19 @@
             <artifact url="file://$MAVEN_REPOSITORY$/io/confluent/kafka-protobuf-provider/7.2.0/kafka-protobuf-provider-7.2.0.jar">
               <sha256sum>b698d92e3bae7879b2f247a10a6da372ae3805ad8c40db11a0ee8ced1c207fe8</sha256sum>
             </artifact>
+            <artifact url="file://$MAVEN_REPOSITORY$/com/squareup/wire/wire-schema-jvm/4.3.0/wire-schema-jvm-4.3.0.jar">
+              <sha256sum>cce37f7e72a302bf4acfe07fcabd422ff2ab692a0a93be8ec66fc9d9e9bbfaac</sha256sum>
+            </artifact>
             <artifact url="file://$MAVEN_REPOSITORY$/io/confluent/kafka-protobuf-types/7.2.0/kafka-protobuf-types-7.2.0.jar">
               <sha256sum>32e3559fc53362e1f2ea31c28aa6997242e839973c46e20e4795248b193aa0dc</sha256sum>
             </artifact>
           </verification>
           <exclude>
-            <dependency maven-id="com.squareup.wire:wire-schema-jvm" />
             <dependency maven-id="com.squareup.wire:wire-runtime-jvm" />
+            <dependency maven-id="org.jetbrains.kotlin:kotlin-stdlib-common" />
+            <dependency maven-id="com.google.guava:guava" />
+            <dependency maven-id="org.jetbrains.kotlin:kotlin-stdlib-jdk8" />
+            <dependency maven-id="com.squareup.okio:okio" />
             <dependency maven-id="com.squareup.okio:okio-jvm" />
             <dependency maven-id="org.jetbrains.kotlin:kotlin-stdlib" />
             <dependency maven-id="com.google.protobuf:protobuf-java" />
@@ -268,12 +274,14 @@
         <CLASSES>
           <root url="jar://$MAVEN_REPOSITORY$/io/confluent/kafka-protobuf-serializer/7.2.0/kafka-protobuf-serializer-7.2.0.jar!/" />
           <root url="jar://$MAVEN_REPOSITORY$/io/confluent/kafka-protobuf-provider/7.2.0/kafka-protobuf-provider-7.2.0.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/com/squareup/wire/wire-schema-jvm/4.3.0/wire-schema-jvm-4.3.0.jar!/" />
           <root url="jar://$MAVEN_REPOSITORY$/io/confluent/kafka-protobuf-types/7.2.0/kafka-protobuf-types-7.2.0.jar!/" />
         </CLASSES>
         <JAVADOC />
         <SOURCES>
           <root url="jar://$MAVEN_REPOSITORY$/io/confluent/kafka-protobuf-serializer/7.2.0/kafka-protobuf-serializer-7.2.0-sources.jar!/" />
           <root url="jar://$MAVEN_REPOSITORY$/io/confluent/kafka-protobuf-provider/7.2.0/kafka-protobuf-provider-7.2.0-sources.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/com/squareup/wire/wire-schema-jvm/4.3.0/wire-schema-jvm-4.3.0-sources.jar!/" />
           <root url="jar://$MAVEN_REPOSITORY$/io/confluent/kafka-protobuf-types/7.2.0/kafka-protobuf-types-7.2.0-sources.jar!/" />
         </SOURCES>
       </library>

@@ -167,7 +167,7 @@ class KafkaRegistryAddSchemaDialog(project: Project, val dataManager: KafkaDataM
 
   override fun createCenterPanel(): JComponent = panel
 
-  override fun getDimensionServiceKey() = "com.jetbrains.bigdatatools.common.ui.add.kafka.registry.dialog.bounds"
+  override fun getDimensionServiceKey(): String = "com.jetbrains.bigdatatools.common.ui.add.kafka.registry.dialog.bounds"
 
   private fun getSchemaName(): String = when (strategyCombobox.item) {
     ConfluentRegistryStrategy.TOPIC_NAME -> subjectNameField.text
