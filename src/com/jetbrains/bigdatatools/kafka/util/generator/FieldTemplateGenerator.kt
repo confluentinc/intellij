@@ -1,39 +1,68 @@
 package com.jetbrains.bigdatatools.kafka.util.generator
 
-import org.jetbrains.annotations.Nls
+import com.intellij.openapi.util.text.StringUtil
+import com.intellij.util.applyIf
 
-object FieldTemplateGenerator {
-  enum class FieldType(val id: String, @Nls val desc: String, val removeQuotas: Boolean = false, val generator: () -> String) {
-    RANDOM_ALPHA("random.alphabetic", "String of letters", generator = { PrimitivesGenerator.generateAlphabetic() }),
-    RANDOM_FLOAT("random.float", "Float", removeQuotas = true, generator = { PrimitivesGenerator.generateFloat().toString() }),
-    RANDOM_INT("random.integer", "Integer", removeQuotas = true, generator = { PrimitivesGenerator.generateInt().toString() }),
-    RANDOM_UINT("random.uint", "UInteger", removeQuotas = true, generator = { PrimitivesGenerator.generateUint().toString() }),
-    RANDOM_UUID("random.uuid", "UUID-v4", generator = { PrimitivesGenerator.generateUUID().toString() }),
-    RANDOM_ALPHANUM("random.alphanumeric", "String of letters, digits and `_`", generator = { PrimitivesGenerator.createAlphaNum() }),
-    RANDOM_HEX("random.hexadecimal", "Hexadecimal string", generator = { PrimitivesGenerator.createHex() }),
-    RANDOM_EMAIL("random.email", "Email", generator = { PrimitivesGenerator.generateEmail() }),
-    TIMESTAMP("timestamp", "Unix timestamp", generator = { PrimitivesGenerator.createTimestamp() }),
-    ISO_TIMESTAMP("isoTimestamp", "ISO-8601 timestamp", generator = { PrimitivesGenerator.createIsoTimestamp() });
+internal object FieldTemplateGenerator {
 
-    val textRepresentation = "\${$id}"
+  enum class FieldType(
+    val type: String,
+    val description: String,
+    val parameters: String? = null,
+    // Numbers should not be wrapped with double quote in JSON as string
+    val wrapQuotes: Boolean = true,
+    val generator: (String?) -> String,
+  ) {
+    RANDOM_INT("random.integer", "Int", "(from: Int, to: Int)", wrapQuotes = false, { params ->
+      val (from, to) = params?.split(",")?.map { it.trim().toInt() } ?: listOf(-1000, 1000)
+      PrimitivesGenerator.generateInt(from, to).toString()
+    }),
+    RANDOM_UINT("random.uint", "UInt", "(from: UInt, to: UInt)", wrapQuotes = false, { params ->
+      val (from, to) = params?.split(",")?.map { it.trim().toUInt() } ?: listOf(100u, 1000u)
+      PrimitivesGenerator.generateUint(from, to).toString()
+    }),
+    RANDOM_FLOAT("random.float", "Float", "(from: Float, to: Float)", wrapQuotes = false, { params ->
+      val (from, to) = params?.split(",")?.map { it.trim().toFloat() } ?: listOf(-1000f, 1000f)
+      PrimitivesGenerator.generateFloat(from, to).toString()
+    }),
+
+    RANDOM_ALPHA("random.alphabetic", "String of letters", "(length: Int)", generator = { params ->
+      val length = params?.toIntOrNull() ?: 20
+      PrimitivesGenerator.generateAlphabetic(length)
+    }),
+    RANDOM_ALPHANUMERIC("random.alphanumeric", "String of letters, digits and `_`", "(length: Int)", generator = { params ->
+      val length = params?.toIntOrNull() ?: 20
+      PrimitivesGenerator.createAlphaNum(length)
+    }),
+    RANDOM_HEX("random.hexadecimal", "Hexadecimal string", "(length: Int)", generator = { params ->
+      val length = params?.toIntOrNull() ?: 20
+      PrimitivesGenerator.createHex(length)
+    }),
+
+    RANDOM_UUID("random.uuid", "UUID-v4", generator = { _ -> PrimitivesGenerator.generateUUID().toString() }),
+    RANDOM_EMAIL("random.email", "Email", generator = { _ -> PrimitivesGenerator.generateEmail() }),
+    TIMESTAMP("timestamp", "Unix timestamp", generator = { _ -> PrimitivesGenerator.createTimestamp() }),
+    ISO_TIMESTAMP("isoTimestamp", "ISO-8601 timestamp", generator = { _ -> PrimitivesGenerator.createIsoTimestamp() });
   }
 
   fun processTemplate(text: String): String {
-    var resText = text
-    while (FieldType.entries.any { it.textRepresentation in resText }) {
-      for (template in FieldType.entries) {
-        if (template.textRepresentation !in resText)
-          continue
-        if (template.removeQuotas && "\"${template.textRepresentation}\"" in resText)
-          resText = resText.replaceFirst("\"${template.textRepresentation}\"", template.generator())
-        else
-          resText = resText.replaceFirst(template.textRepresentation, template.generator())
+    var resultText = text
+
+    FieldType.entries.forEach { template ->
+      val regex = """"\$\{${template.type}\((.*?)\)}"""".toRegex()
+      val matches = regex.findAll(resultText)
+
+      matches.forEach { match ->
+        val parameters = match.groupValues[1]
+        val replacement = template.generator(parameters)
+        resultText = resultText.replace(match.value, replacement.applyIf(template.wrapQuotes) { StringUtil.wrapWithDoubleQuote(this) })
       }
     }
-    return resText
+
+    return resultText
   }
 
-  fun hasTemplatesWithRemoveQuotas(resText: String) = FieldType.entries
-    .filter { it.removeQuotas }
-    .any { it.textRepresentation in resText }
+  fun hasTemplatesWithRemoveQuotas(resText: String): Boolean = FieldType.entries
+    .filter { it.wrapQuotes }
+    .any { it.type in resText }
 }
