@@ -29,26 +29,26 @@ object PrimitivesGenerator {
     return (1..Random.nextInt(minLength, maxLength)).map { allowedChars.random() }.joinToString("")
   }
 
-  fun generateLong(from: Long = Long.MIN_VALUE, until: Long = Long.MAX_VALUE) = Random.nextLong(from, until)
+  fun generateLong(from: Long = Long.MIN_VALUE, until: Long = Long.MAX_VALUE): Long = Random.nextLong(from, until)
 
-  fun generateDouble(from: Double? = Double.MIN_VALUE, until: Double? = Double.MAX_VALUE) =
+  fun generateDouble(from: Double? = Double.MIN_VALUE, until: Double? = Double.MAX_VALUE): Double =
     Random.nextDouble(from ?: Double.MIN_VALUE, until ?: Double.MAX_VALUE)
 
-  fun generateFloat(from: Float = Float.MIN_VALUE, until: Float = Float.MAX_VALUE) = (from + Random.nextFloat() * (until - from))
+  fun generateFloat(from: Float = Float.MIN_VALUE, until: Float = Float.MAX_VALUE): Float = (from + Random.nextFloat() * (until - from))
 
   fun generateBytesBase64(minSize: Int = 10, maxSize: Int = 50): String =
     Base64.getEncoder().encodeToString(Random.nextBytes(Random.nextInt(minSize, maxSize)))
 
   fun generateBytes(minSize: Int = 10, maxSize: Int = 100): ByteArray = Random.nextBytes(Random.nextInt(minSize, maxSize))
 
-  fun generateInt(from: Int? = Int.MIN_VALUE, until: Int? = Int.MAX_VALUE) =
+  fun generateInt(from: Int? = Int.MIN_VALUE, until: Int? = Int.MAX_VALUE): Int =
     Random.nextInt(from ?: Int.MIN_VALUE, until ?: Int.MAX_VALUE)
 
-  fun generateUlong(from: ULong = ULong.MIN_VALUE, until: ULong = ULong.MAX_VALUE) = Random.nextULong(from, until)
+  fun generateUlong(from: ULong = ULong.MIN_VALUE, until: ULong = ULong.MAX_VALUE): ULong = Random.nextULong(from, until)
 
-  fun generateUint(from: UInt = UInt.MIN_VALUE, until: UInt = UInt.MAX_VALUE) = Random.nextUInt(from, until)
+  fun generateUint(from: UInt = UInt.MIN_VALUE, until: UInt = UInt.MAX_VALUE): UInt = Random.nextUInt(from, until)
 
-  fun generateBoolean() = Random.nextBoolean()
+  fun generateBoolean(): Boolean = Random.nextBoolean()
 
   fun generateUUID(): UUID = UUID.randomUUID()
 
@@ -72,28 +72,18 @@ object PrimitivesGenerator {
     return ZonedDateTime.now(ZoneOffset.UTC).format(DateTimeFormatter.ISO_INSTANT)
   }
 
-  fun createHex(): String {
-    val length = generateInt(1, 55)
-    return buildString {
-      append(hexadecimal[random.nextInt(1, hexadecimal.size)])
-      if (length > 1) {
-        for (c in hexadecimal.chooseNTimes(length - 1)) {
-          append(c)
-        }
+  fun createHex(length: Int): String = buildString {
+    append(hexadecimal[random.nextInt(1, hexadecimal.size)])
+    if (length > 1) {
+      for (c in hexadecimal.chooseNTimes(length - 1)) {
+        append(c)
       }
     }
   }
 
-  fun createAlphaNum(): String {
-    val length = generateInt(1, 55)
-    return lettersAndDigits.chooseNTimes(length).collectString()
-  }
+  fun createAlphaNum(length: Int): String = lettersAndDigits.chooseNTimes(length).collectString()
 
-  fun generateAlphabetic(): String {
-    val length = generateInt(1, 55)
-    return letters.chooseNTimes(length).collectString()
-
-  }
+  fun generateAlphabetic(length: Int): String = letters.chooseNTimes(length).collectString()
 
   private fun Sequence<Char>.collectString(): String = joinToString("") { "$it" }
 
