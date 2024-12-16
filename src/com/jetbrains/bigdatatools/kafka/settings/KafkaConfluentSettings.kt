@@ -22,7 +22,7 @@ import com.jetbrains.bigdatatools.kafka.util.KafkaPropertiesUtils
 import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig
 import javax.swing.SwingUtilities
 
-class KafkaConfluentSettings(val project: Project,
+internal class KafkaConfluentSettings(val project: Project,
                              val connectionData: KafkaConnectionData,
                              uiDisposable: Disposable,
                              val url: StringNamedField<ConnectionData>,
