@@ -39,7 +39,7 @@ import org.apache.kafka.common.config.SslConfigs
 import org.apache.kafka.common.security.auth.SecurityProtocol
 import java.util.concurrent.atomic.AtomicBoolean
 
-class KafkaBrokerSettings(val project: Project,
+internal class KafkaBrokerSettings(val project: Project,
                           val connectionData: KafkaConnectionData,
                           private val uiDisposable: Disposable,
                           coroutineScope: CoroutineScope,
