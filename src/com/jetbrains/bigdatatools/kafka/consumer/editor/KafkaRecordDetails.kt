@@ -39,7 +39,7 @@ import java.util.*
 import javax.swing.*
 import kotlin.math.max
 
-class KafkaRecordDetails(project: Project, parentDisposable: Disposable) {
+internal class KafkaRecordDetails(project: Project, parentDisposable: Disposable) {
   private val topicField = SelectableLabel("")
 
   private lateinit var keyLoadFileLinkRow: Row
