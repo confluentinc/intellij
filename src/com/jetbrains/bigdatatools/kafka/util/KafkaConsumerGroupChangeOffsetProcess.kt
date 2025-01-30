@@ -27,7 +27,7 @@ import java.awt.event.ComponentEvent
 import java.awt.event.ComponentListener
 import java.util.*
 
-class KafkaConsumerGroupChangeOffsetProcess(val project: Project, val dataManager: KafkaDataManager, val consumerGroup: String) {
+internal class KafkaConsumerGroupChangeOffsetProcess(val project: Project, val dataManager: KafkaDataManager, val consumerGroup: String) {
   private val coroutineScope = dataManager.driver.coroutineScope
   private val startSpecificDate = CalendarView()
   private val startType = AtomicProperty(ConsumerStartType.NOW)
