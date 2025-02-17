@@ -14,15 +14,15 @@ internal object FieldTemplateGenerator {
     val generator: (String?) -> String,
   ) {
     RANDOM_INT("random.integer", "Int", "(from: Int, to: Int)", wrapQuotes = false, { params ->
-      val (from, to) = params?.split(",")?.map { it.trim().toInt() } ?: listOf(-1000, 1000)
+      val (from, to) = parseRange(params, -1000, 1000) { it.toIntOrNull() }
       PrimitivesGenerator.generateInt(from, to).toString()
     }),
     RANDOM_UINT("random.uint", "UInt", "(from: UInt, to: UInt)", wrapQuotes = false, { params ->
-      val (from, to) = params?.split(",")?.map { it.trim().toUInt() } ?: listOf(100u, 1000u)
+      val (from, to) = parseRange(params, 100u, 1000u) { it.toUIntOrNull() }
       PrimitivesGenerator.generateUint(from, to).toString()
     }),
     RANDOM_FLOAT("random.float", "Float", "(from: Float, to: Float)", wrapQuotes = false, { params ->
-      val (from, to) = params?.split(",")?.map { it.trim().toFloat() } ?: listOf(-1000f, 1000f)
+      val (from, to) = parseRange(params, -1000f, 1000f) { it.toFloatOrNull() }
       PrimitivesGenerator.generateFloat(from, to).toString()
     }),
 
@@ -45,15 +45,22 @@ internal object FieldTemplateGenerator {
     ISO_TIMESTAMP("isoTimestamp", "ISO-8601 timestamp", generator = { _ -> PrimitivesGenerator.createIsoTimestamp() });
   }
 
+  private fun <T> parseRange(params: String?, defaultFrom: T, defaultTo: T, converter: (String) -> T?): Pair<T, T> {
+    val values = params?.split(",")?.mapNotNull { converter(it.trim()) }
+    return if (values?.size == 2)
+      values.first() to values.last()
+    else defaultFrom to defaultTo
+  }
+
   fun processTemplate(text: String): String {
     var resultText = text
 
     FieldType.entries.forEach { template ->
-      val regex = """"\$\{${template.type}\((.*?)\)}"""".toRegex()
+      val regex = """"\$\{${template.type}(?:\((.*?)\))?}"""".toRegex()
       val matches = regex.findAll(resultText)
 
       matches.forEach { match ->
-        val parameters = match.groupValues[1]
+        val parameters = match.groupValues.getOrNull(PARAMETERS_INDEX)
         val replacement = template.generator(parameters)
         resultText = resultText.replace(match.value, replacement.applyIf(template.wrapQuotes) { StringUtil.wrapWithDoubleQuote(this) })
       }
@@ -66,3 +73,5 @@ internal object FieldTemplateGenerator {
     .filter { it.wrapQuotes }
     .any { it.type in resText }
 }
+
+private const val PARAMETERS_INDEX = 1
