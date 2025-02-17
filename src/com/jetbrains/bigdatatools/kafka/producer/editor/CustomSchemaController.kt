@@ -141,8 +141,10 @@ class CustomSchemaController(
 
   private fun setConfig(schemaData: CustomSchemaData?) {
     customSchemaSource.selectedItem = schemaData?.customSchemaSource ?: KafkaCustomSchemaSource.FILE
-    customSchemaFile.component.text = schemaData?.customFile ?: ""
-    customSchema.setText(schemaData?.customSchemaImplicit ?: "", getInnerLang())
+    if (customSchemaSource.selectedItem == KafkaCustomSchemaSource.FILE) {
+      customSchemaFile.component.text = schemaData?.customFile ?: ""
+    }
+    else customSchema.setText(schemaData?.customSchemaImplicit ?: "", getInnerLang())
   }
 
   private fun getInnerLang(): Language = when (innerType) {

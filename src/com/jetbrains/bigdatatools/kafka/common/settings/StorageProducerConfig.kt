@@ -28,8 +28,8 @@ data class StorageProducerConfig(
   var valueSubject: String = "",
   var flowParams: ProducerFlowParams? = null,
 
-  val customKeySchema: CustomSchemaData? = null,
-  val customValueSchema: CustomSchemaData? = null,
+  var customKeySchema: CustomSchemaData? = null,
+  var customValueSchema: CustomSchemaData? = null,
 ) : StorageConfig {
   fun takeKeyType(): KafkaFieldType = KafkaFieldType.entries.find { it.name == keyType } ?: KafkaFieldType.SCHEMA_REGISTRY
   fun takeValueType(): KafkaFieldType = KafkaFieldType.entries.find { it.name == valueType } ?: KafkaFieldType.SCHEMA_REGISTRY
