@@ -36,8 +36,8 @@ data class StorageConsumerConfig(
 
   val consumerGroup: ConsumerGroup? = null,
 
-  val customKeySchema: CustomSchemaData? = null,
-  val customValueSchema: CustomSchemaData? = null,
+  var customKeySchema: CustomSchemaData? = null,
+  var customValueSchema: CustomSchemaData? = null,
 ) : StorageConfig {
 
   constructor(
