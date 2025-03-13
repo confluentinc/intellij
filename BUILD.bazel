@@ -18,8 +18,8 @@ jvm_provided_library(
 )
 
 jvm_provided_library(
-  name = "psi-impl_provided",
-  lib = "@community//plugins/properties/properties-psi-impl:psi-impl"
+  name = "backend-psi_provided",
+  lib = "@community//plugins/properties/properties-psi-impl:backend-psi"
 )
 
 jvm_provided_library(
@@ -81,7 +81,7 @@ jvm_library(
     "//plugins/microservices/microservices-jvm:jvm",
     ":spring_provided",
     ":spring-boot_provided",
-    ":psi-impl_provided",
+    ":backend-psi_provided",
     ":config_provided",
   ],
   exports = [
