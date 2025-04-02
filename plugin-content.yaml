@@ -1,107 +1,79 @@
-- name: lib/apache.kafka.clients.jar
-  library: apache.kafka.clients
-  module: intellij.bigdatatools.kafka
-  files:
-  - name: $MAVEN_REPOSITORY$/org/apache/kafka/kafka-clients/3/kafka-clients-3.jar
-- name: lib/bigdatatools- github.mifmif.generex.jar
-  library: 'bigdatatools: github.mifmif.generex'
-  module: intellij.bigdatatools.kafka
-  files:
-  - name: $MAVEN_REPOSITORY$/com/github/mifmif/generex/1/generex-1.jar
-  - name: $MAVEN_REPOSITORY$/dk/brics/automaton/automaton/1/automaton-1.jar
 - name: lib/bigdatatools-kafka.jar
+  projectLibraries:
+  - name: google.protobuf.java.util
+    files:
+    - name: $MAVEN_REPOSITORY$/com/google/protobuf/protobuf-java-util/3/protobuf-java-util-3.jar
+    reason: <- intellij.bigdatatools.kafka
+  - name: grpc-protobuf
+    files:
+    - name: $MAVEN_REPOSITORY$/io/grpc/grpc-protobuf/1/grpc-protobuf-1.jar
+    - name: $MAVEN_REPOSITORY$/com/google/api/grpc/proto-google-common-protos/2/proto-google-common-protos-2.jar
+    - name: $MAVEN_REPOSITORY$/io/grpc/grpc-protobuf-lite/1/grpc-protobuf-lite-1.jar
+    reason: <- intellij.bigdatatools.kafka
+  - name: joda.time
+    files:
+    - name: $MAVEN_REPOSITORY$/joda-time/joda-time/2/joda-time-2.jar
+    reason: <- intellij.bigdatatools.kafka
   modules:
   - name: intellij.bigdatatools.kafka
-- name: lib/google.protobuf.java.util.jar
-  library: google.protobuf.java.util
-  files:
-  - name: $MAVEN_REPOSITORY$/com/google/protobuf/protobuf-java-util/3/protobuf-java-util-3.jar
-  reason: <- intellij.bigdatatools.kafka
-- name: lib/grpc-protobuf.jar
-  library: grpc-protobuf
-  files:
-  - name: $MAVEN_REPOSITORY$/io/grpc/grpc-protobuf/1/grpc-protobuf-1.jar
-  - name: $MAVEN_REPOSITORY$/com/google/api/grpc/proto-google-common-protos/2/proto-google-common-protos-2.jar
-  - name: $MAVEN_REPOSITORY$/io/grpc/grpc-protobuf-lite/1/grpc-protobuf-lite-1.jar
-  reason: <- intellij.bigdatatools.kafka
-- name: lib/io.confluent.kafka.avro.serializer.jar
-  library: io.confluent.kafka.avro.serializer
-  module: intellij.bigdatatools.kafka
-  files:
-  - name: $MAVEN_REPOSITORY$/io/confluent/kafka-avro-serializer/7/kafka-avro-serializer-7.jar
-- name: lib/io.confluent.kafka.json.schema.serializer.jar
-  library: io.confluent.kafka.json.schema.serializer
-  module: intellij.bigdatatools.kafka
-  files:
-  - name: $MAVEN_REPOSITORY$/io/confluent/kafka-json-schema-serializer/7/kafka-json-schema-serializer-7.jar
-  - name: $MAVEN_REPOSITORY$/io/confluent/kafka-json-schema-provider/7/kafka-json-schema-provider-7.jar
-  - name: $MAVEN_REPOSITORY$/com/github/erosb/everit-json-schema/1/everit-json-schema-1.jar
-  - name: $MAVEN_REPOSITORY$/org/json/json/20220320/json-20220320.jar
-  - name: $MAVEN_REPOSITORY$/commons-validator/commons-validator/1/commons-validator-1.jar
-  - name: $MAVEN_REPOSITORY$/commons-digester/commons-digester/2/commons-digester-2.jar
-  - name: $MAVEN_REPOSITORY$/com/damnhandy/handy-uri-templates/2/handy-uri-templates-2.jar
-  - name: $MAVEN_REPOSITORY$/com/fasterxml/jackson/datatype/jackson-datatype-guava/2/jackson-datatype-guava-2.jar
-  - name: $MAVEN_REPOSITORY$/com/fasterxml/jackson/datatype/jackson-datatype-jdk8/2/jackson-datatype-jdk8-2.jar
-  - name: $MAVEN_REPOSITORY$/com/fasterxml/jackson/datatype/jackson-datatype-joda/2/jackson-datatype-joda-2.jar
-  - name: $MAVEN_REPOSITORY$/com/fasterxml/jackson/module/jackson-module-parameter-names/2/jackson-module-parameter-names-2.jar
-  - name: $MAVEN_REPOSITORY$/com/kjetland/mbknor-jackson-jsonschema_2.13/1/mbknor-jackson-jsonschema_2.13-1.jar
-  - name: $MAVEN_REPOSITORY$/org/scala-lang/scala-library/2/scala-library-2.jar
-  - name: $MAVEN_REPOSITORY$/javax/validation/validation-api/2/validation-api-2.jar
-  - name: $MAVEN_REPOSITORY$/io/confluent/kafka-schema-serializer/7/kafka-schema-serializer-7.jar
-  - name: $MAVEN_REPOSITORY$/io/confluent/kafka-json-serializer/7/kafka-json-serializer-7.jar
-  - name: $MAVEN_REPOSITORY$/io/confluent/common-config/7/common-config-7.jar
-- name: lib/io.confluent.kafka.protobuf.serializer.jar
-  library: io.confluent.kafka.protobuf.serializer
-  module: intellij.bigdatatools.kafka
-  files:
-  - name: $MAVEN_REPOSITORY$/io/confluent/kafka-protobuf-serializer/7/kafka-protobuf-serializer-7.jar
-  - name: $MAVEN_REPOSITORY$/io/confluent/kafka-protobuf-provider/7/kafka-protobuf-provider-7.jar
-  - name: $MAVEN_REPOSITORY$/com/squareup/wire/wire-schema-jvm/4/wire-schema-jvm-4.jar
-  - name: $MAVEN_REPOSITORY$/io/confluent/kafka-protobuf-types/7/kafka-protobuf-types-7.jar
-- name: lib/io.confluent.kafka.schema.registry.client.jar
-  library: io.confluent.kafka.schema.registry.client
-  module: intellij.bigdatatools.kafka
-  files:
-  - name: $MAVEN_REPOSITORY$/io/confluent/kafka-schema-registry-client/7/kafka-schema-registry-client-7.jar
-  - name: $MAVEN_REPOSITORY$/io/swagger/core/v3/swagger-annotations/2/swagger-annotations-2.jar
-  - name: $MAVEN_REPOSITORY$/io/confluent/common-utils/7/common-utils-7.jar
-- name: lib/joda.time.jar
-  library: joda.time
-  files:
-  - name: $MAVEN_REPOSITORY$/joda-time/joda-time/2/joda-time-2.jar
-  reason: <- intellij.bigdatatools.kafka
-- name: lib/software.amazon.glue.schema.registry.serde.jar
-  library: software.amazon.glue.schema.registry.serde
-  module: intellij.bigdatatools.kafka
-  files:
-  - name: $MAVEN_REPOSITORY$/software/amazon/glue/schema-registry-serde/1/schema-registry-serde-1.jar
-  - name: $MAVEN_REPOSITORY$/software/amazon/glue/schema-registry-common/1/schema-registry-common-1.jar
-  - name: $MAVEN_REPOSITORY$/software/amazon/glue/schema-registry-build-tools/1/schema-registry-build-tools-1.jar
-  - name: $MAVEN_REPOSITORY$/software/amazon/awssdk/url-connection-client/2/url-connection-client-2.jar
-  - name: $MAVEN_REPOSITORY$/software/amazon/awssdk/arns/2/arns-2.jar
-  - name: $MAVEN_REPOSITORY$/com/google/jimfs/jimfs/1/jimfs-1.jar
-- name: lib/software.amazon.msk.aws.iam.auth.jar
-  library: software.amazon.msk.aws.iam.auth
-  module: intellij.bigdatatools.kafka
-  files:
-  - name: $MAVEN_REPOSITORY$/software/amazon/msk/aws-msk-iam-auth/1/aws-msk-iam-auth-1.jar
-  - name: $MAVEN_REPOSITORY$/com/amazonaws/aws-java-sdk-core/1/aws-java-sdk-core-1.jar
-  - name: $MAVEN_REPOSITORY$/com/amazonaws/aws-java-sdk-sts/1/aws-java-sdk-sts-1.jar
-  - name: $MAVEN_REPOSITORY$/com/amazonaws/jmespath-java/1/jmespath-java-1.jar
-- name: lib/squareup.wire.compiler.jar
-  library: squareup.wire.compiler
-  module: intellij.bigdatatools.kafka
-  files:
-  - name: $MAVEN_REPOSITORY$/com/squareup/wire/wire-compiler/3/wire-compiler-3.jar
-  - name: $MAVEN_REPOSITORY$/com/squareup/wire/wire-schema/3/wire-schema-3.jar
-  - name: $MAVEN_REPOSITORY$/com/squareup/wire/wire-runtime/3/wire-runtime-3.jar
-  - name: $MAVEN_REPOSITORY$/com/squareup/wire/wire-kotlin-generator/3/wire-kotlin-generator-3.jar
-  - name: $MAVEN_REPOSITORY$/com/squareup/kotlinpoet/1/kotlinpoet-1.jar
-  - name: $MAVEN_REPOSITORY$/com/squareup/wire/wire-grpc-client/3/wire-grpc-client-3.jar
-  - name: $MAVEN_REPOSITORY$/com/squareup/wire/wire-grpc-server-generator/3/wire-grpc-server-generator-3.jar
-  - name: $MAVEN_REPOSITORY$/com/squareup/wire/wire-java-generator/3/wire-java-generator-3.jar
-  - name: $MAVEN_REPOSITORY$/com/squareup/javapoet/1/javapoet-1.jar
-  - name: $MAVEN_REPOSITORY$/com/squareup/wire/wire-swift-generator/3/wire-swift-generator-3.jar
-  - name: $MAVEN_REPOSITORY$/io/outfoxx/swiftpoet/1/swiftpoet-1.jar
-  - name: $MAVEN_REPOSITORY$/com/squareup/wire/wire-profiles/3/wire-profiles-3.jar
-  - name: $MAVEN_REPOSITORY$/com/charleskorn/kaml/kaml/0/kaml-0.jar
+    libraries:
+      apache.kafka.clients:
+      - name: $MAVEN_REPOSITORY$/org/apache/kafka/kafka-clients/3/kafka-clients-3.jar
+      software.amazon.msk.aws.iam.auth:
+      - name: $MAVEN_REPOSITORY$/software/amazon/msk/aws-msk-iam-auth/1/aws-msk-iam-auth-1.jar
+      - name: $MAVEN_REPOSITORY$/com/amazonaws/aws-java-sdk-core/1/aws-java-sdk-core-1.jar
+      - name: $MAVEN_REPOSITORY$/com/amazonaws/aws-java-sdk-sts/1/aws-java-sdk-sts-1.jar
+      - name: $MAVEN_REPOSITORY$/com/amazonaws/jmespath-java/1/jmespath-java-1.jar
+      io.confluent.kafka.avro.serializer:
+      - name: $MAVEN_REPOSITORY$/io/confluent/kafka-avro-serializer/7/kafka-avro-serializer-7.jar
+      io.confluent.kafka.json.schema.serializer:
+      - name: $MAVEN_REPOSITORY$/io/confluent/kafka-json-schema-serializer/7/kafka-json-schema-serializer-7.jar
+      - name: $MAVEN_REPOSITORY$/io/confluent/kafka-json-schema-provider/7/kafka-json-schema-provider-7.jar
+      - name: $MAVEN_REPOSITORY$/com/github/erosb/everit-json-schema/1/everit-json-schema-1.jar
+      - name: $MAVEN_REPOSITORY$/org/json/json/20220320/json-20220320.jar
+      - name: $MAVEN_REPOSITORY$/commons-validator/commons-validator/1/commons-validator-1.jar
+      - name: $MAVEN_REPOSITORY$/commons-digester/commons-digester/2/commons-digester-2.jar
+      - name: $MAVEN_REPOSITORY$/com/damnhandy/handy-uri-templates/2/handy-uri-templates-2.jar
+      - name: $MAVEN_REPOSITORY$/com/fasterxml/jackson/datatype/jackson-datatype-guava/2/jackson-datatype-guava-2.jar
+      - name: $MAVEN_REPOSITORY$/com/fasterxml/jackson/datatype/jackson-datatype-jdk8/2/jackson-datatype-jdk8-2.jar
+      - name: $MAVEN_REPOSITORY$/com/fasterxml/jackson/datatype/jackson-datatype-joda/2/jackson-datatype-joda-2.jar
+      - name: $MAVEN_REPOSITORY$/com/fasterxml/jackson/module/jackson-module-parameter-names/2/jackson-module-parameter-names-2.jar
+      - name: $MAVEN_REPOSITORY$/com/kjetland/mbknor-jackson-jsonschema_2.13/1/mbknor-jackson-jsonschema_2.13-1.jar
+      - name: $MAVEN_REPOSITORY$/org/scala-lang/scala-library/2/scala-library-2.jar
+      - name: $MAVEN_REPOSITORY$/javax/validation/validation-api/2/validation-api-2.jar
+      - name: $MAVEN_REPOSITORY$/io/confluent/kafka-schema-serializer/7/kafka-schema-serializer-7.jar
+      - name: $MAVEN_REPOSITORY$/io/confluent/kafka-json-serializer/7/kafka-json-serializer-7.jar
+      - name: $MAVEN_REPOSITORY$/io/confluent/common-config/7/common-config-7.jar
+      io.confluent.kafka.protobuf.serializer:
+      - name: $MAVEN_REPOSITORY$/io/confluent/kafka-protobuf-serializer/7/kafka-protobuf-serializer-7.jar
+      - name: $MAVEN_REPOSITORY$/io/confluent/kafka-protobuf-provider/7/kafka-protobuf-provider-7.jar
+      - name: $MAVEN_REPOSITORY$/com/squareup/wire/wire-schema-jvm/4/wire-schema-jvm-4.jar
+      - name: $MAVEN_REPOSITORY$/io/confluent/kafka-protobuf-types/7/kafka-protobuf-types-7.jar
+      io.confluent.kafka.schema.registry.client:
+      - name: $MAVEN_REPOSITORY$/io/confluent/kafka-schema-registry-client/7/kafka-schema-registry-client-7.jar
+      - name: $MAVEN_REPOSITORY$/io/swagger/core/v3/swagger-annotations/2/swagger-annotations-2.jar
+      - name: $MAVEN_REPOSITORY$/io/confluent/common-utils/7/common-utils-7.jar
+      software.amazon.glue.schema.registry.serde:
+      - name: $MAVEN_REPOSITORY$/software/amazon/glue/schema-registry-serde/1/schema-registry-serde-1.jar
+      - name: $MAVEN_REPOSITORY$/software/amazon/glue/schema-registry-common/1/schema-registry-common-1.jar
+      - name: $MAVEN_REPOSITORY$/software/amazon/glue/schema-registry-build-tools/1/schema-registry-build-tools-1.jar
+      - name: $MAVEN_REPOSITORY$/software/amazon/awssdk/url-connection-client/2/url-connection-client-2.jar
+      - name: $MAVEN_REPOSITORY$/software/amazon/awssdk/arns/2/arns-2.jar
+      - name: $MAVEN_REPOSITORY$/com/google/jimfs/jimfs/1/jimfs-1.jar
+      squareup.wire.compiler:
+      - name: $MAVEN_REPOSITORY$/com/squareup/wire/wire-compiler/3/wire-compiler-3.jar
+      - name: $MAVEN_REPOSITORY$/com/squareup/wire/wire-schema/3/wire-schema-3.jar
+      - name: $MAVEN_REPOSITORY$/com/squareup/wire/wire-runtime/3/wire-runtime-3.jar
+      - name: $MAVEN_REPOSITORY$/com/squareup/wire/wire-kotlin-generator/3/wire-kotlin-generator-3.jar
+      - name: $MAVEN_REPOSITORY$/com/squareup/kotlinpoet/1/kotlinpoet-1.jar
+      - name: $MAVEN_REPOSITORY$/com/squareup/wire/wire-grpc-client/3/wire-grpc-client-3.jar
+      - name: $MAVEN_REPOSITORY$/com/squareup/wire/wire-grpc-server-generator/3/wire-grpc-server-generator-3.jar
+      - name: $MAVEN_REPOSITORY$/com/squareup/wire/wire-java-generator/3/wire-java-generator-3.jar
+      - name: $MAVEN_REPOSITORY$/com/squareup/javapoet/1/javapoet-1.jar
+      - name: $MAVEN_REPOSITORY$/com/squareup/wire/wire-swift-generator/3/wire-swift-generator-3.jar
+      - name: $MAVEN_REPOSITORY$/io/outfoxx/swiftpoet/1/swiftpoet-1.jar
+      - name: $MAVEN_REPOSITORY$/com/squareup/wire/wire-profiles/3/wire-profiles-3.jar
+      - name: $MAVEN_REPOSITORY$/com/charleskorn/kaml/kaml/0/kaml-0.jar
+      'bigdatatools: github.mifmif.generex':
+      - name: $MAVEN_REPOSITORY$/com/github/mifmif/generex/1/generex-1.jar
+      - name: $MAVEN_REPOSITORY$/dk/brics/automaton/automaton/1/automaton-1.jar
