@@ -42,7 +42,7 @@ jvm_library(
     "@community//platform/core-ui",
     "@community//platform/observable:ide-observable",
     "@lib//:miglayout-swing-provided",
-    "@community//json",
+    "@community//json/backend",
     "@lib//:gson",
     "@community//platform/lang-impl",
     "@ultimate_lib//:bigdatatools-kafka-apache-kafka-clients",
