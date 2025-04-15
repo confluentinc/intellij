@@ -76,7 +76,7 @@ jvm_library(
     "@ultimate_lib//:bigdatatools-kafka-bigdatatools-github-mifmif-generex",
     "@lib//:google-protobuf-java-util",
     "@community//platform/feedback",
-    "//plugins/charts",
+    "//platform/charts",
     "@community//platform/platform-impl/ui:ide-ui",
     "//plugins/microservices/microservices-jvm:jvm",
     ":spring_provided",
