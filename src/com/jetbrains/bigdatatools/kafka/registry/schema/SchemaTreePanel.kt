@@ -47,7 +47,7 @@ class SchemaTreePanel {
   private val scrollPanel = ScrollPaneFactory.createScrollPane(treeTable, ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED,
                                                                ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER).apply {
     border = BorderFactory.createEmptyBorder()
-    preferredWidth = 400
+    preferredWidth = JBUI.scale(400)
   }
 
   private var listener: TreeExpansionListener? = null
