@@ -35,6 +35,7 @@ jvm_library(
   deps = [
     "@community//platform/core-api:core",
     "@community//platform/core-impl",
+    "@community//platform/editor-ui-api:editor-ui",
     "@community//platform/platform-api:ide",
     "@community//platform/platform-impl:ide-impl",
     "@lib//:kotlin-reflect",
