@@ -18,7 +18,7 @@ import kotlinx.coroutines.withContext
 object KafkaUIUtils {
   suspend fun showAndGetGlueRegistry(project: Project?, awsSettingsInfo: AwsSettingsInfo): String? {
     @NlsSafe
-    val names = blockingContext {
+    val names = run {
       val client = BdtGlueRegistryClient(project, "", awsSettingsInfo)
       client.use {
         client.connect(true)
