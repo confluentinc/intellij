@@ -8,8 +8,8 @@ jvm_resources(
 )
 
 jvm_provided_library(
-  name = "plugins_spring_spring_provided",
-  lib = "//plugins/spring/spring"
+  name = "plugins_spring_api_provided",
+  lib = "//plugins/spring/spring:api"
 )
 
 jvm_provided_library(
@@ -46,12 +46,13 @@ jvm_library(
     "@community//platform/execution-impl",
     "@community//platform/core-ui",
     "@community//platform/observable",
-    "@ultimate_lib//:miglayout-swing-provided",
+    "@lib//:miglayout-swing-provided",
     "@community//json/backend",
     "@community//platform/projectModel-api:projectModel",
     "@lib//:gson",
     "@community//platform/lang-impl",
     "@ultimate_lib//:bigdatatools-kafka-apache-kafka-clients",
+    "@ultimate_lib//:bigdatatools-kafka-software-amazon-msk-aws-iam-auth",
     "@ultimate_lib//:apache-avro",
     "@lib//:protobuf",
     "@community//platform/diff-api:diff",
@@ -61,6 +62,7 @@ jvm_library(
     "@ultimate_lib//:bigdatatools-kafka-io-confluent-kafka-protobuf-serializer",
     "@ultimate_lib//:bigdatatools-kafka-io-confluent-kafka-schema-registry-client",
     "@lib//:commons-compress",
+    "@lib//:grpc-protobuf",
     "@ultimate_lib//:google-re2j",
     "@lib//:classgraph",
     "@ultimate_lib//:joda-time",
@@ -100,9 +102,7 @@ jvm_library(
     "@community//platform/remote-core",
     "@community//platform/code-style-api:codeStyle",
     "@community//platform/testFramework/junit5",
-    "@community//libraries/grpc",
-    "//platform/ssh-core",
-    ":plugins_spring_spring_provided",
+    ":plugins_spring_api_provided",
     ":plugins_spring_spring-boot_spring-boot_provided",
     ":community_plugins_properties_backend-psi_provided",
     ":plugins_microservices_config_provided",
@@ -130,7 +130,7 @@ jvm_library(
     "@community//platform/execution-impl",
     "@community//platform/core-ui",
     "@community//platform/observable",
-    "@ultimate_lib//:miglayout-swing-provided",
+    "@lib//:miglayout-swing-provided",
     "@community//json/backend",
     "@community//platform/projectModel-api:projectModel",
     "@community//platform/testFramework",
@@ -138,6 +138,7 @@ jvm_library(
     "@lib//:gson",
     "@community//platform/lang-impl",
     "@ultimate_lib//:bigdatatools-kafka-apache-kafka-clients",
+    "@ultimate_lib//:bigdatatools-kafka-software-amazon-msk-aws-iam-auth",
     "@ultimate_lib//:apache-avro",
     "@lib//:protobuf",
     "@community//platform/diff-api:diff",
@@ -147,6 +148,7 @@ jvm_library(
     "@ultimate_lib//:bigdatatools-kafka-io-confluent-kafka-protobuf-serializer",
     "@ultimate_lib//:bigdatatools-kafka-io-confluent-kafka-schema-registry-client",
     "@lib//:commons-compress",
+    "@lib//:grpc-protobuf",
     "@ultimate_lib//:google-re2j",
     "@lib//:classgraph",
     "@ultimate_lib//:joda-time",
@@ -163,7 +165,7 @@ jvm_library(
     "@ultimate_lib//:bigdatatools-kafka-github-mifmif-generex",
     "@lib//:google-protobuf-java-util",
     "@community//platform/feedback",
-    "//plugins/spring/spring",
+    "//plugins/spring/spring:api",
     "//plugins/spring/spring-boot/spring-boot",
     "@community//plugins/properties/properties-psi-impl:backend-psi",
     "//plugins/microservices/microservices-config:config",
@@ -194,8 +196,6 @@ jvm_library(
     "@ultimate_lib//:bigdatatools-kafka-kotlinx-metadata-jvm",
     "@community//platform/testFramework/junit5",
     "@community//platform/testFramework/junit5:junit5_test_lib",
-    "@community//libraries/grpc",
-    "//platform/ssh-core",
   ],
   runtime_deps = [":kafka_resources"]
 )
