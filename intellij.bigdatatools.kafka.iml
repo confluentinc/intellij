@@ -505,7 +505,7 @@
     </orderEntry>
     <orderEntry type="library" name="snakeyaml" level="project" />
     <orderEntry type="module-library">
-      <library name="bigdatatools: github.mifmif.generex" type="repository">
+      <library name="github.mifmif.generex" type="repository">
         <properties maven-id="com.github.mifmif:generex:1.0.2">
           <verification>
             <artifact url="file://$MAVEN_REPOSITORY$/com/github/mifmif/generex/1.0.2/generex-1.0.2.jar">

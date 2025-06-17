@@ -3,15 +3,15 @@
   module: intellij.bigdatatools.kafka
   files:
   - name: $MAVEN_REPOSITORY$/org/apache/kafka/kafka-clients/3/kafka-clients-3.jar
-- name: lib/bigdatatools- github.mifmif.generex.jar
-  library: 'bigdatatools: github.mifmif.generex'
+- name: lib/bigdatatools-kafka.jar
+  modules:
+  - name: intellij.bigdatatools.kafka
+- name: lib/github.mifmif.generex.jar
+  library: github.mifmif.generex
   module: intellij.bigdatatools.kafka
   files:
   - name: $MAVEN_REPOSITORY$/com/github/mifmif/generex/1/generex-1.jar
   - name: $MAVEN_REPOSITORY$/dk/brics/automaton/automaton/1/automaton-1.jar
-- name: lib/bigdatatools-kafka.jar
-  modules:
-  - name: intellij.bigdatatools.kafka
 - name: lib/google.protobuf.java.util.jar
   library: google.protobuf.java.util
   files:

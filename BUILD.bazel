@@ -77,7 +77,7 @@ jvm_library(
     "@lib//:snakeyaml-engine",
     "@ultimate_lib//:bigdatatools-kafka-squareup-wire-compiler",
     "@lib//:snakeyaml",
-    "@ultimate_lib//:bigdatatools-kafka-bigdatatools-github-mifmif-generex",
+    "@ultimate_lib//:bigdatatools-kafka-github-mifmif-generex",
     "@lib//:google-protobuf-java-util",
     "@community//platform/feedback",
     "//platform/charts",
