@@ -1,6 +1,5 @@
 package com.jetbrains.bigdatatools.kafka.settings
 
-import com.intellij.bigdatatools.aws.connection.auth.AuthenticationType
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.ComboBox
@@ -24,6 +23,7 @@ import com.jetbrains.bigdatatools.common.ui.components.RadioComboBox
 import com.jetbrains.bigdatatools.common.ui.row
 import com.jetbrains.bigdatatools.common.util.BdtUrlUtils
 import com.jetbrains.bigdatatools.common.util.MessagesBundle
+import com.jetbrains.bigdatatools.kafka.aws.connection.auth.AuthenticationType
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryType
 import com.jetbrains.bigdatatools.kafka.rfs.*
 import com.jetbrains.bigdatatools.kafka.statistics.KafkaSettingsCollector

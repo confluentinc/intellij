@@ -1,6 +1,5 @@
 package com.jetbrains.bigdatatools.kafka.client
 
-import com.intellij.bigdatatools.aws.ui.external.AwsSettingsComponentForKafka
 import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.progress.runBlockingCancellable
 import com.intellij.openapi.project.Project
@@ -18,6 +17,7 @@ import com.jetbrains.bigdatatools.common.settings.connections.Property
 import com.jetbrains.bigdatatools.common.util.BdIdeRegistryUtil
 import com.jetbrains.bigdatatools.common.util.BdtUrlUtils
 import com.jetbrains.bigdatatools.common.util.withPluginClassLoader
+import com.jetbrains.bigdatatools.kafka.aws.ui.external.AwsSettingsComponentForKafka
 import com.jetbrains.bigdatatools.kafka.model.*
 import com.jetbrains.bigdatatools.kafka.producer.client.KafkaProducerClient
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryType

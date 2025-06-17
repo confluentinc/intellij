@@ -1,6 +1,7 @@
 package com.jetbrains.bigdatatools.kafka.client
 
 import com.jetbrains.bigdatatools.common.settings.kerberos.BdtKerberosManager
+import com.jetbrains.bigdatatools.common.util.withPluginClassLoader
 import org.apache.kafka.clients.CommonClientConfigs.SECURITY_PROTOCOL_CONFIG
 import org.apache.kafka.clients.admin.AdminClient
 import org.apache.kafka.common.KafkaException
@@ -15,7 +16,9 @@ object KafkaClientBuilder {
       BdtKerberosManager.instance.setupKerberosValues()
     }
     return try {
-      BdtKafkaAdminClient(AdminClient.create(properties))
+      withPluginClassLoader {
+        BdtKafkaAdminClient(AdminClient.create(properties))
+      }
     }
     catch (t: KafkaException) {
       throw t.cause ?: t

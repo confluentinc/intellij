@@ -412,7 +412,6 @@
       </library>
     </orderEntry>
     <orderEntry type="library" name="snakeyaml-engine" level="project" />
-    <orderEntry type="module" module-name="intellij.bigdatatools.aws" />
     <orderEntry type="module-library">
       <library name="squareup.wire.compiler" type="repository">
         <properties maven-id="com.squareup.wire:wire-compiler:3.7.1">
@@ -537,5 +536,186 @@
     <orderEntry type="module" module-name="intellij.charts" />
     <orderEntry type="module" module-name="intellij.platform.ide.ui" />
     <orderEntry type="module" module-name="intellij.microservices.jvm" />
+    <orderEntry type="library" name="jackson-datatype-jsr310" level="project" />
+    <orderEntry type="module-library">
+      <library name="software.amazon.awssdk.sso" type="repository">
+        <properties maven-id="software.amazon.awssdk:sso:2.20.158">
+          <verification>
+            <artifact url="file://$MAVEN_REPOSITORY$/software/amazon/awssdk/sso/2.20.158/sso-2.20.158.jar">
+              <sha256sum>a031b0380c590b593e76533b90842d0353b3f4c5afd85141a424554e396b73e7</sha256sum>
+            </artifact>
+            <artifact url="file://$MAVEN_REPOSITORY$/software/amazon/awssdk/protocol-core/2.20.158/protocol-core-2.20.158.jar">
+              <sha256sum>d31974cacfd834639f2c8834ce562d604a608389cbeec913525c4cb0813bebf6</sha256sum>
+            </artifact>
+            <artifact url="file://$MAVEN_REPOSITORY$/software/amazon/awssdk/aws-json-protocol/2.20.158/aws-json-protocol-2.20.158.jar">
+              <sha256sum>d34821561e57a26c10977730dd42d9f636a75075253f77cd46c1e2f6e255424c</sha256sum>
+            </artifact>
+            <artifact url="file://$MAVEN_REPOSITORY$/software/amazon/awssdk/third-party-jackson-core/2.20.158/third-party-jackson-core-2.20.158.jar">
+              <sha256sum>6aadd619d93a0d95bdb4be800d7b2420e9489b8730aec2632987998eedfd3111</sha256sum>
+            </artifact>
+            <artifact url="file://$MAVEN_REPOSITORY$/software/amazon/awssdk/json-utils/2.20.158/json-utils-2.20.158.jar">
+              <sha256sum>da8e2957ecc7b584c55e9d519b028810a67221580ec7e6f116fce1e1b73fa6af</sha256sum>
+            </artifact>
+            <artifact url="file://$MAVEN_REPOSITORY$/software/amazon/awssdk/profiles/2.20.158/profiles-2.20.158.jar">
+              <sha256sum>394c0e38fa6cf8ba8f117d55a98d75824848a14fbf34cb2753e606f0c9ead160</sha256sum>
+            </artifact>
+            <artifact url="file://$MAVEN_REPOSITORY$/software/amazon/awssdk/sdk-core/2.20.158/sdk-core-2.20.158.jar">
+              <sha256sum>30bd47185fc602d5abc799795f719ace571957342910a047054faeec182de6e3</sha256sum>
+            </artifact>
+            <artifact url="file://$MAVEN_REPOSITORY$/org/reactivestreams/reactive-streams/1.0.4/reactive-streams-1.0.4.jar">
+              <sha256sum>f75ca597789b3dac58f61857b9ac2e1034a68fa672db35055a8fb4509e325f28</sha256sum>
+            </artifact>
+            <artifact url="file://$MAVEN_REPOSITORY$/software/amazon/awssdk/auth/2.20.158/auth-2.20.158.jar">
+              <sha256sum>1a7371d6a2afd714ccfc4d1f67eba5ff30898a93b924a20b2cde104da904aa4d</sha256sum>
+            </artifact>
+            <artifact url="file://$MAVEN_REPOSITORY$/software/amazon/eventstream/eventstream/1.0.1/eventstream-1.0.1.jar">
+              <sha256sum>0c37d8e696117f02c302191b8110b0d0eb20fa412fce34c3a269ec73c16ce822</sha256sum>
+            </artifact>
+            <artifact url="file://$MAVEN_REPOSITORY$/software/amazon/awssdk/http-client-spi/2.20.158/http-client-spi-2.20.158.jar">
+              <sha256sum>e4964995ccfeff41e07cadca91c01c17ef85457bec652c4da7482d24a5aceabe</sha256sum>
+            </artifact>
+            <artifact url="file://$MAVEN_REPOSITORY$/software/amazon/awssdk/regions/2.20.158/regions-2.20.158.jar">
+              <sha256sum>a2caf5fb808369c83a63026b56cf44fb45b170aed79f3b9b67811024fbb54ed3</sha256sum>
+            </artifact>
+            <artifact url="file://$MAVEN_REPOSITORY$/software/amazon/awssdk/annotations/2.20.158/annotations-2.20.158.jar">
+              <sha256sum>642d6508610633680421887c7fc5e84cdb3e6f9e417a5d694b2fef3e0a041b97</sha256sum>
+            </artifact>
+            <artifact url="file://$MAVEN_REPOSITORY$/software/amazon/awssdk/utils/2.20.158/utils-2.20.158.jar">
+              <sha256sum>8a6bc941d75f35e1b76580a1c2b785ece26e76b6f230ef0b738327998730de1b</sha256sum>
+            </artifact>
+            <artifact url="file://$MAVEN_REPOSITORY$/software/amazon/awssdk/aws-core/2.20.158/aws-core-2.20.158.jar">
+              <sha256sum>3f3fd98be19fd53f4934b9d53bd4f58dc575d0dfcc7b4738cbdd5a14287b3884</sha256sum>
+            </artifact>
+            <artifact url="file://$MAVEN_REPOSITORY$/software/amazon/awssdk/metrics-spi/2.20.158/metrics-spi-2.20.158.jar">
+              <sha256sum>0e29e66333114a0c57ad9f4ad18700e51c9915892d797606f32f9a5be6aec8ca</sha256sum>
+            </artifact>
+            <artifact url="file://$MAVEN_REPOSITORY$/software/amazon/awssdk/endpoints-spi/2.20.158/endpoints-spi-2.20.158.jar">
+              <sha256sum>92280da88d520539522ccbef9df282a1211049b0d8b178e5b5d960786960d476</sha256sum>
+            </artifact>
+            <artifact url="file://$MAVEN_REPOSITORY$/software/amazon/awssdk/apache-client/2.20.158/apache-client-2.20.158.jar">
+              <sha256sum>0b9e5f4b557d8fd7b5c9695461bd437e1800bd8e51899fa6a6114f91ed9e1391</sha256sum>
+            </artifact>
+            <artifact url="file://$MAVEN_REPOSITORY$/software/amazon/awssdk/netty-nio-client/2.20.158/netty-nio-client-2.20.158.jar">
+              <sha256sum>abebdcbd083a044491d3e5271de667dca871054cd174aa717a6d0087a556caf0</sha256sum>
+            </artifact>
+          </verification>
+          <exclude>
+            <dependency maven-id="org.slf4j:slf4j-api" />
+            <dependency maven-id="org.apache.httpcomponents:httpclient" />
+            <dependency maven-id="org.apache.httpcomponents:httpcore" />
+            <dependency maven-id="commons-codec:commons-codec" />
+            <dependency maven-id="io.netty:netty-codec-http" />
+            <dependency maven-id="io.netty:netty-codec-http2" />
+            <dependency maven-id="io.netty:netty-codec" />
+            <dependency maven-id="io.netty:netty-transport" />
+            <dependency maven-id="io.netty:netty-common" />
+            <dependency maven-id="io.netty:netty-buffer" />
+            <dependency maven-id="io.netty:netty-handler" />
+            <dependency maven-id="io.netty:netty-transport-classes-epoll" />
+            <dependency maven-id="io.netty:netty-resolver" />
+          </exclude>
+        </properties>
+        <CLASSES>
+          <root url="jar://$MAVEN_REPOSITORY$/software/amazon/awssdk/sso/2.20.158/sso-2.20.158.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/software/amazon/awssdk/protocol-core/2.20.158/protocol-core-2.20.158.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/software/amazon/awssdk/aws-json-protocol/2.20.158/aws-json-protocol-2.20.158.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/software/amazon/awssdk/third-party-jackson-core/2.20.158/third-party-jackson-core-2.20.158.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/software/amazon/awssdk/json-utils/2.20.158/json-utils-2.20.158.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/software/amazon/awssdk/profiles/2.20.158/profiles-2.20.158.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/software/amazon/awssdk/sdk-core/2.20.158/sdk-core-2.20.158.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/org/reactivestreams/reactive-streams/1.0.4/reactive-streams-1.0.4.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/software/amazon/awssdk/auth/2.20.158/auth-2.20.158.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/software/amazon/eventstream/eventstream/1.0.1/eventstream-1.0.1.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/software/amazon/awssdk/http-client-spi/2.20.158/http-client-spi-2.20.158.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/software/amazon/awssdk/regions/2.20.158/regions-2.20.158.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/software/amazon/awssdk/annotations/2.20.158/annotations-2.20.158.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/software/amazon/awssdk/utils/2.20.158/utils-2.20.158.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/software/amazon/awssdk/aws-core/2.20.158/aws-core-2.20.158.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/software/amazon/awssdk/metrics-spi/2.20.158/metrics-spi-2.20.158.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/software/amazon/awssdk/endpoints-spi/2.20.158/endpoints-spi-2.20.158.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/software/amazon/awssdk/apache-client/2.20.158/apache-client-2.20.158.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/software/amazon/awssdk/netty-nio-client/2.20.158/netty-nio-client-2.20.158.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES>
+          <root url="jar://$MAVEN_REPOSITORY$/software/amazon/awssdk/sso/2.20.158/sso-2.20.158-sources.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/software/amazon/awssdk/protocol-core/2.20.158/protocol-core-2.20.158-sources.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/software/amazon/awssdk/aws-json-protocol/2.20.158/aws-json-protocol-2.20.158-sources.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/software/amazon/awssdk/third-party-jackson-core/2.20.158/third-party-jackson-core-2.20.158-sources.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/software/amazon/awssdk/json-utils/2.20.158/json-utils-2.20.158-sources.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/software/amazon/awssdk/profiles/2.20.158/profiles-2.20.158-sources.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/software/amazon/awssdk/sdk-core/2.20.158/sdk-core-2.20.158-sources.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/org/reactivestreams/reactive-streams/1.0.4/reactive-streams-1.0.4-sources.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/software/amazon/awssdk/auth/2.20.158/auth-2.20.158-sources.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/software/amazon/eventstream/eventstream/1.0.1/eventstream-1.0.1-sources.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/software/amazon/awssdk/http-client-spi/2.20.158/http-client-spi-2.20.158-sources.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/software/amazon/awssdk/regions/2.20.158/regions-2.20.158-sources.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/software/amazon/awssdk/annotations/2.20.158/annotations-2.20.158-sources.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/software/amazon/awssdk/utils/2.20.158/utils-2.20.158-sources.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/software/amazon/awssdk/aws-core/2.20.158/aws-core-2.20.158-sources.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/software/amazon/awssdk/metrics-spi/2.20.158/metrics-spi-2.20.158-sources.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/software/amazon/awssdk/endpoints-spi/2.20.158/endpoints-spi-2.20.158-sources.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/software/amazon/awssdk/apache-client/2.20.158/apache-client-2.20.158-sources.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/software/amazon/awssdk/netty-nio-client/2.20.158/netty-nio-client-2.20.158-sources.jar!/" />
+        </SOURCES>
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="software.amazon.awssdk.sts" type="repository">
+        <properties maven-id="software.amazon.awssdk:sts:2.20.158">
+          <verification>
+            <artifact url="file://$MAVEN_REPOSITORY$/software/amazon/awssdk/sts/2.20.158/sts-2.20.158.jar">
+              <sha256sum>ad618d86ea1b861bc54193a72aafaad466f3f64f5ae0ec0d8e298554848b0032</sha256sum>
+            </artifact>
+            <artifact url="file://$MAVEN_REPOSITORY$/software/amazon/awssdk/aws-query-protocol/2.20.158/aws-query-protocol-2.20.158.jar">
+              <sha256sum>549f27cdad353f18a19ffda25f17db73ebf5dd6415666cf76b796d5cf6fbbf0f</sha256sum>
+            </artifact>
+          </verification>
+          <exclude>
+            <dependency maven-id="software.amazon.awssdk:protocol-core" />
+            <dependency maven-id="software.amazon.awssdk:aws-core" />
+            <dependency maven-id="software.amazon.awssdk:sdk-core" />
+            <dependency maven-id="software.amazon.awssdk:annotations" />
+            <dependency maven-id="software.amazon.awssdk:http-client-spi" />
+            <dependency maven-id="software.amazon.awssdk:utils" />
+            <dependency maven-id="software.amazon.awssdk:profiles" />
+            <dependency maven-id="software.amazon.awssdk:auth" />
+            <dependency maven-id="software.amazon.awssdk:regions" />
+            <dependency maven-id="software.amazon.awssdk:metrics-spi" />
+            <dependency maven-id="software.amazon.awssdk:json-utils" />
+            <dependency maven-id="software.amazon.awssdk:endpoints-spi" />
+            <dependency maven-id="software.amazon.awssdk:apache-client" />
+            <dependency maven-id="software.amazon.awssdk:netty-nio-client" />
+          </exclude>
+        </properties>
+        <CLASSES>
+          <root url="jar://$MAVEN_REPOSITORY$/software/amazon/awssdk/sts/2.20.158/sts-2.20.158.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/software/amazon/awssdk/aws-query-protocol/2.20.158/aws-query-protocol-2.20.158.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES>
+          <root url="jar://$MAVEN_REPOSITORY$/software/amazon/awssdk/sts/2.20.158/sts-2.20.158-sources.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/software/amazon/awssdk/aws-query-protocol/2.20.158/aws-query-protocol-2.20.158-sources.jar!/" />
+        </SOURCES>
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="software.amazon.awssdk.ssooidc" type="repository">
+        <properties include-transitive-deps="false" maven-id="software.amazon.awssdk:ssooidc:2.20.158">
+          <verification>
+            <artifact url="file://$MAVEN_REPOSITORY$/software/amazon/awssdk/ssooidc/2.20.158/ssooidc-2.20.158.jar">
+              <sha256sum>f98ab681c4e0a6bb6555631349fcaec4c0dccfa2cb72a29af9b3b228f1b883e0</sha256sum>
+            </artifact>
+          </verification>
+        </properties>
+        <CLASSES>
+          <root url="jar://$MAVEN_REPOSITORY$/software/amazon/awssdk/ssooidc/2.20.158/ssooidc-2.20.158.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES>
+          <root url="jar://$MAVEN_REPOSITORY$/software/amazon/awssdk/ssooidc/2.20.158/ssooidc-2.20.158-sources.jar!/" />
+        </SOURCES>
+      </library>
+    </orderEntry>
   </component>
 </module>

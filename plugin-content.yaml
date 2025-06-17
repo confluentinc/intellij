@@ -65,11 +65,55 @@
   - name: $MAVEN_REPOSITORY$/io/confluent/kafka-schema-registry-client/7/kafka-schema-registry-client-7.jar
   - name: $MAVEN_REPOSITORY$/io/swagger/core/v3/swagger-annotations/2/swagger-annotations-2.jar
   - name: $MAVEN_REPOSITORY$/io/confluent/common-utils/7/common-utils-7.jar
+- name: lib/jackson-datatype-jsr310.jar
+  library: jackson-datatype-jsr310
+  files:
+  - name: $MAVEN_REPOSITORY$/com/fasterxml/jackson/datatype/jackson-datatype-jsr310/2/jackson-datatype-jsr310-2.jar
+  reason: <- intellij.bigdatatools.kafka
 - name: lib/joda.time.jar
   library: joda.time
   files:
   - name: $MAVEN_REPOSITORY$/joda-time/joda-time/2/joda-time-2.jar
   reason: <- intellij.bigdatatools.kafka
+- name: lib/software.amazon.awssdk.glue.jar
+  library: software.amazon.awssdk.glue
+  files:
+  - name: $MAVEN_REPOSITORY$/software/amazon/awssdk/glue/2/glue-2.jar
+  reason: <- intellij.bigdatatools.kafka
+- name: lib/software.amazon.awssdk.sso.jar
+  library: software.amazon.awssdk.sso
+  module: intellij.bigdatatools.kafka
+  files:
+  - name: $MAVEN_REPOSITORY$/software/amazon/awssdk/sso/2/sso-2.jar
+  - name: $MAVEN_REPOSITORY$/software/amazon/awssdk/protocol-core/2/protocol-core-2.jar
+  - name: $MAVEN_REPOSITORY$/software/amazon/awssdk/aws-json-protocol/2/aws-json-protocol-2.jar
+  - name: $MAVEN_REPOSITORY$/software/amazon/awssdk/third-party-jackson-core/2/third-party-jackson-core-2.jar
+  - name: $MAVEN_REPOSITORY$/software/amazon/awssdk/json-utils/2/json-utils-2.jar
+  - name: $MAVEN_REPOSITORY$/software/amazon/awssdk/profiles/2/profiles-2.jar
+  - name: $MAVEN_REPOSITORY$/software/amazon/awssdk/sdk-core/2/sdk-core-2.jar
+  - name: $MAVEN_REPOSITORY$/org/reactivestreams/reactive-streams/1/reactive-streams-1.jar
+  - name: $MAVEN_REPOSITORY$/software/amazon/awssdk/auth/2/auth-2.jar
+  - name: $MAVEN_REPOSITORY$/software/amazon/eventstream/eventstream/1/eventstream-1.jar
+  - name: $MAVEN_REPOSITORY$/software/amazon/awssdk/http-client-spi/2/http-client-spi-2.jar
+  - name: $MAVEN_REPOSITORY$/software/amazon/awssdk/regions/2/regions-2.jar
+  - name: $MAVEN_REPOSITORY$/software/amazon/awssdk/annotations/2/annotations-2.jar
+  - name: $MAVEN_REPOSITORY$/software/amazon/awssdk/utils/2/utils-2.jar
+  - name: $MAVEN_REPOSITORY$/software/amazon/awssdk/aws-core/2/aws-core-2.jar
+  - name: $MAVEN_REPOSITORY$/software/amazon/awssdk/metrics-spi/2/metrics-spi-2.jar
+  - name: $MAVEN_REPOSITORY$/software/amazon/awssdk/endpoints-spi/2/endpoints-spi-2.jar
+  - name: $MAVEN_REPOSITORY$/software/amazon/awssdk/apache-client/2/apache-client-2.jar
+  - name: $MAVEN_REPOSITORY$/software/amazon/awssdk/netty-nio-client/2/netty-nio-client-2.jar
+- name: lib/software.amazon.awssdk.ssooidc.jar
+  library: software.amazon.awssdk.ssooidc
+  module: intellij.bigdatatools.kafka
+  files:
+  - name: $MAVEN_REPOSITORY$/software/amazon/awssdk/ssooidc/2/ssooidc-2.jar
+- name: lib/software.amazon.awssdk.sts.jar
+  library: software.amazon.awssdk.sts
+  module: intellij.bigdatatools.kafka
+  files:
+  - name: $MAVEN_REPOSITORY$/software/amazon/awssdk/sts/2/sts-2.jar
+  - name: $MAVEN_REPOSITORY$/software/amazon/awssdk/aws-query-protocol/2/aws-query-protocol-2.jar
 - name: lib/software.amazon.glue.schema.registry.serde.jar
   library: software.amazon.glue.schema.registry.serde
   module: intellij.bigdatatools.kafka
@@ -105,3 +149,8 @@
   - name: $MAVEN_REPOSITORY$/io/outfoxx/swiftpoet/1/swiftpoet-1.jar
   - name: $MAVEN_REPOSITORY$/com/squareup/wire/wire-profiles/3/wire-profiles-3.jar
   - name: $MAVEN_REPOSITORY$/com/charleskorn/kaml/kaml/0/kaml-0.jar
+- name: lib/xerial.snappy.java.jar
+  library: xerial.snappy.java
+  files:
+  - name: $MAVEN_REPOSITORY$/org/xerial/snappy/snappy-java/1/snappy-java-1.jar
+  reason: <- intellij.bigdatatools.kafka

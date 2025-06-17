@@ -1,11 +1,6 @@
 package com.jetbrains.bigdatatools.kafka.settings
 
 import com.amazonaws.services.schemaregistry.utils.AWSSchemaRegistryConstants
-import com.intellij.bigdatatools.aws.connection.auth.AuthenticationType
-import com.intellij.bigdatatools.aws.settings.AwsCompatibleConnectionData
-import com.intellij.bigdatatools.aws.ui.external.AwsSettingsComponentForKafka
-import com.intellij.bigdatatools.aws.ui.external.StaticAwsSettingsInfo
-import com.intellij.bigdatatools.aws.utils.AwsSettingsConst
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.observable.util.whenFocusLost
 import com.intellij.openapi.project.Project
@@ -19,6 +14,11 @@ import com.jetbrains.bigdatatools.common.settings.ModificationKey
 import com.jetbrains.bigdatatools.common.settings.fields.*
 import com.jetbrains.bigdatatools.common.ui.*
 import com.jetbrains.bigdatatools.common.ui.components.RadioComboBox
+import com.jetbrains.bigdatatools.kafka.aws.connection.auth.AuthenticationType
+import com.jetbrains.bigdatatools.kafka.aws.settings.AwsCompatibleConnectionData
+import com.jetbrains.bigdatatools.kafka.aws.ui.external.AwsSettingsComponentForKafka
+import com.jetbrains.bigdatatools.kafka.aws.ui.external.StaticAwsSettingsInfo
+import com.jetbrains.bigdatatools.kafka.aws.utils.AwsSettingsConst
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryType
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaConfigurationSource
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaConnectionData

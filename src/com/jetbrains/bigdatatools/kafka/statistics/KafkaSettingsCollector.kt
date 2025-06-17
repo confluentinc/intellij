@@ -1,8 +1,8 @@
 package com.jetbrains.bigdatatools.kafka.statistics
 
-import com.intellij.bigdatatools.aws.connection.auth.AuthenticationType
 import com.jetbrains.bigdatatools.common.constants.BdtConnectionType
 import com.jetbrains.bigdatatools.common.rfs.statistics.v2.BdtSettingsCollector
+import com.jetbrains.bigdatatools.kafka.aws.connection.auth.AuthenticationType
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryType
 import com.jetbrains.bigdatatools.kafka.rfs.*
 import com.jetbrains.bigdatatools.kafka.settings.KafkaSettingsCustomizer

@@ -1,13 +1,13 @@
 package com.jetbrains.bigdatatools.kafka.registry.glue
 
-import com.intellij.bigdatatools.aws.connection.AwsConnectionUtils
-import com.intellij.bigdatatools.aws.connection.auth.AwsAuthUtil
-import com.intellij.bigdatatools.aws.driver.AwsCredentialController
-import com.intellij.bigdatatools.aws.ui.external.AwsSettingsInfo
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.NlsSafe
 import com.jetbrains.bigdatatools.common.util.TimeUtils
+import com.jetbrains.bigdatatools.kafka.aws.connection.AwsConnectionUtils
+import com.jetbrains.bigdatatools.kafka.aws.connection.auth.AwsAuthUtil
+import com.jetbrains.bigdatatools.kafka.aws.driver.AwsCredentialController
+import com.jetbrains.bigdatatools.kafka.aws.ui.external.AwsSettingsInfo
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager.Companion.sortedSchemas
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryFormat
 import com.jetbrains.bigdatatools.kafka.registry.SchemaVersionInfo
@@ -35,7 +35,7 @@ class BdtGlueRegistryClient(val project: Project?,
         client.close()
       }
     }
-    catch (t: Throwable) {
+    catch (_: Throwable) {
       //ignore
     }
   }
@@ -111,7 +111,7 @@ class BdtGlueRegistryClient(val project: Project?,
         totalResult.addAll(sortedSchemas.subList(0, left))
         return totalResult to true
       }
-      if (left != null && sortedSchemas.size < left) {
+      if (left != null) {
         totalResult.addAll(sortedSchemas)
         left -= sortedSchemas.size
       }

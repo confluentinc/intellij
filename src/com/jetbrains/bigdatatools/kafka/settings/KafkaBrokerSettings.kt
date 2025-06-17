@@ -1,8 +1,5 @@
 package com.jetbrains.bigdatatools.kafka.settings
 
-import com.intellij.bigdatatools.aws.connection.auth.AuthenticationType
-import com.intellij.bigdatatools.aws.ui.external.AwsSettingsComponentForKafka
-import com.intellij.bigdatatools.aws.ui.external.StaticAwsSettingsInfo
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory
 import com.intellij.openapi.observable.properties.AtomicBooleanProperty
@@ -24,6 +21,9 @@ import com.jetbrains.bigdatatools.common.ui.*
 import com.jetbrains.bigdatatools.common.ui.components.RadioComboBox
 import com.jetbrains.bigdatatools.common.util.MessagesBundle
 import com.jetbrains.bigdatatools.common.util.PathUtils
+import com.jetbrains.bigdatatools.kafka.aws.connection.auth.AuthenticationType
+import com.jetbrains.bigdatatools.kafka.aws.ui.external.AwsSettingsComponentForKafka
+import com.jetbrains.bigdatatools.kafka.aws.ui.external.StaticAwsSettingsInfo
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryType
 import com.jetbrains.bigdatatools.kafka.rfs.*
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaConnectionData.Companion.CONFIG_KEY
@@ -463,7 +463,7 @@ internal class KafkaBrokerSettings(val project: Project,
     val bdtJaasConfig = try {
       BdtJaasConfig(jaasConfig).config?.options?.map { it.key.lowercase() to (it.value?.toString() ?: "") }?.toMap() ?: return true
     }
-    catch (t: Throwable) {
+    catch (_: Throwable) {
       return true
     }
 
@@ -502,7 +502,7 @@ internal class KafkaBrokerSettings(val project: Project,
     val bdtJaasConfig = try {
       BdtJaasConfig(jaasConfig).config?.options?.map { it.key.lowercase() to (it.value?.toString() ?: "") }?.toMap() ?: return
     }
-    catch (t: Throwable) {
+    catch (_: Throwable) {
       return
     }
     val profile = bdtJaasConfig["awsprofilename"]

@@ -1,8 +1,6 @@
 package com.jetbrains.bigdatatools.kafka.rfs
 
 import com.amazonaws.services.schemaregistry.utils.AWSSchemaRegistryConstants
-import com.intellij.bigdatatools.aws.settings.AwsCompatibleConnectionData.Companion.SECRET_KEY_ID
-import com.intellij.bigdatatools.aws.ui.external.StaticAwsSettingsInfo
 import com.intellij.bigdatatools.kafka.icons.BigdatatoolsKafkaIcons
 import com.intellij.credentialStore.Credentials
 import com.intellij.openapi.project.Project
@@ -18,6 +16,8 @@ import com.jetbrains.bigdatatools.common.serializer.BdtJson
 import com.jetbrains.bigdatatools.common.settings.DoNotSerialize
 import com.jetbrains.bigdatatools.common.settings.connections.ConnectionGroup
 import com.jetbrains.bigdatatools.common.settings.connections.CredentialId
+import com.jetbrains.bigdatatools.kafka.aws.settings.AwsCompatibleConnectionData.Companion.SECRET_KEY_ID
+import com.jetbrains.bigdatatools.kafka.aws.ui.external.StaticAwsSettingsInfo
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryType
 import com.jetbrains.bigdatatools.kafka.settings.KafkaConnectionConfigurable
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
