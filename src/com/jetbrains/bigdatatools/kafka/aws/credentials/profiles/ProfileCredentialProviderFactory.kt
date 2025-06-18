@@ -4,10 +4,10 @@ import com.intellij.openapi.Disposable
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.util.Disposer
-import com.jetbrains.bigdatatools.common.util.executeOnPooledThread
 import com.jetbrains.bigdatatools.kafka.aws.credentials.ToolkitCredentialProcessProvider
 import com.jetbrains.bigdatatools.kafka.aws.credentials.profiles.BdtEc2MetadataConfigProvider.getEc2MedataEndpoint
 import com.jetbrains.bigdatatools.kafka.aws.credentials.profiles.loader.BdtProfileReader
+import com.jetbrains.bigdatatools.kafka.core.util.executeOnPooledThread
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import software.amazon.awssdk.auth.credentials.*
 import software.amazon.awssdk.profiles.Profile

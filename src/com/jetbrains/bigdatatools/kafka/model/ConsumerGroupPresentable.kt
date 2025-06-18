@@ -1,6 +1,6 @@
 package com.jetbrains.bigdatatools.kafka.model
 
-import com.jetbrains.bigdatatools.common.monitoring.data.model.RemoteInfo
+import com.jetbrains.bigdatatools.kafka.core.monitoring.data.model.RemoteInfo
 import com.jetbrains.bigdatatools.kafka.util.KafkaLocalizedField
 import org.apache.kafka.common.ConsumerGroupState
 

@@ -5,8 +5,8 @@ import com.intellij.openapi.components.State
 import com.intellij.openapi.components.Storage
 import com.intellij.openapi.components.service
 import com.intellij.util.xmlb.XmlSerializerUtil
-import com.jetbrains.bigdatatools.common.connection.updater.IntervalUpdateSettings
-import com.jetbrains.bigdatatools.common.settings.ColumnVisibilitySettings
+import com.jetbrains.bigdatatools.kafka.core.connection.updater.IntervalUpdateSettings
+import com.jetbrains.bigdatatools.kafka.core.settings.ColumnVisibilitySettings
 import com.jetbrains.bigdatatools.kafka.model.*
 import com.jetbrains.bigdatatools.kafka.registry.common.KafkaSchemaInfo
 

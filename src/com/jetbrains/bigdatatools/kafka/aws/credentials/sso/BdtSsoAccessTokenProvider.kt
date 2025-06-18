@@ -1,8 +1,8 @@
 package com.jetbrains.bigdatatools.kafka.aws.credentials.sso
 
 import com.intellij.openapi.progress.ProgressManager
-import com.jetbrains.bigdatatools.common.rfs.exception.RfsAuthRequiredError
-import com.jetbrains.bigdatatools.common.util.sleepWithCancellation
+import com.jetbrains.bigdatatools.kafka.core.rfs.exception.RfsAuthRequiredError
+import com.jetbrains.bigdatatools.kafka.core.util.sleepWithCancellation
 import software.amazon.awssdk.services.ssooidc.SsoOidcClient
 import software.amazon.awssdk.services.ssooidc.model.AuthorizationPendingException
 import software.amazon.awssdk.services.ssooidc.model.InvalidClientException

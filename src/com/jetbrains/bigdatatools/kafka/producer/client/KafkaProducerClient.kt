@@ -1,12 +1,12 @@
 package com.jetbrains.bigdatatools.kafka.producer.client
 
 import com.intellij.charts.dataframe.DataFrame
-import com.jetbrains.bigdatatools.common.rfs.util.RfsNotificationUtils
-import com.jetbrains.bigdatatools.common.settings.connections.Property
-import com.jetbrains.bigdatatools.common.util.withPluginClassLoader
 import com.jetbrains.bigdatatools.kafka.client.KafkaClient
 import com.jetbrains.bigdatatools.kafka.consumer.editor.KafkaRecord
 import com.jetbrains.bigdatatools.kafka.consumer.models.ConsumerProducerFieldConfig
+import com.jetbrains.bigdatatools.kafka.core.rfs.util.RfsNotificationUtils
+import com.jetbrains.bigdatatools.kafka.core.settings.connections.Property
+import com.jetbrains.bigdatatools.kafka.core.util.withPluginClassLoader
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.producer.models.AcksType
 import com.jetbrains.bigdatatools.kafka.producer.models.Mode

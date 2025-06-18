@@ -8,10 +8,10 @@ import com.intellij.ui.IdeBorderFactory
 import com.intellij.ui.PopupHandler
 import com.intellij.ui.SideBorder
 import com.intellij.ui.components.JBScrollPane
-import com.jetbrains.bigdatatools.common.monitoring.toolwindow.MainTreeController
-import com.jetbrains.bigdatatools.common.rfs.driver.RfsPath
-import com.jetbrains.bigdatatools.common.rfs.projectview.actions.RfsActionPlaces
-import com.jetbrains.bigdatatools.common.util.ToolbarUtils
+import com.jetbrains.bigdatatools.kafka.core.monitoring.toolwindow.MainTreeController
+import com.jetbrains.bigdatatools.kafka.core.rfs.driver.RfsPath
+import com.jetbrains.bigdatatools.kafka.core.rfs.projectview.actions.RfsActionPlaces
+import com.jetbrains.bigdatatools.kafka.core.util.ToolbarUtils
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryType
 import com.jetbrains.bigdatatools.kafka.registry.confluent.controller.KafkaRegistryController

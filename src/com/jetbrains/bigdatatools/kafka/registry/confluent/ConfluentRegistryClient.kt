@@ -5,10 +5,10 @@ import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.NlsSafe
-import com.jetbrains.bigdatatools.common.connection.exception.BdtConfigurationException
-import com.jetbrains.bigdatatools.common.connection.tunnel.BdtSshTunnelService
-import com.jetbrains.bigdatatools.common.rfs.driver.runBlockingInterruptible
-import com.jetbrains.bigdatatools.common.settings.components.BdtPropertyComponent
+import com.jetbrains.bigdatatools.kafka.core.connection.exception.BdtConfigurationException
+import com.jetbrains.bigdatatools.kafka.core.connection.tunnel.BdtSshTunnelService
+import com.jetbrains.bigdatatools.kafka.core.rfs.driver.runBlockingInterruptible
+import com.jetbrains.bigdatatools.kafka.core.settings.components.BdtPropertyComponent
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager.Companion.sortedSchemas
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryFormat
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryUtil

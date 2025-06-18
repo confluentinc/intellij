@@ -5,11 +5,10 @@ import com.intellij.openapi.ui.InputValidatorEx
 import com.intellij.ui.components.JBTextField
 import com.intellij.ui.dsl.builder.AlignX
 import com.intellij.ui.dsl.builder.panel
-import com.jetbrains.bigdatatools.common.settings.buildValidator
-import com.jetbrains.bigdatatools.common.settings.registerValidator
-import com.jetbrains.bigdatatools.common.settings.withNumberOrEmptyValidator
-import com.jetbrains.bigdatatools.common.ui.doOnChange
-import com.jetbrains.bigdatatools.common.util.MessagesBundle
+import com.jetbrains.bigdatatools.kafka.core.settings.buildValidator
+import com.jetbrains.bigdatatools.kafka.core.settings.registerValidator
+import com.jetbrains.bigdatatools.kafka.core.settings.withNumberOrEmptyValidator
+import com.jetbrains.bigdatatools.kafka.core.ui.doOnChange
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import javax.swing.JTextField
 
@@ -35,8 +34,8 @@ object KafkaDialogFactory {
       override fun canClose(inputString: String) = getErrorText(inputString) == null
       override fun getErrorText(inputString: String): String? {
         return when {
-          inputString.isBlank() -> MessagesBundle.message("validator.notEmpty")
-          inputString.contains(NOT_SPACES_PATTERN) -> MessagesBundle.message("validator.notSpaces")
+          inputString.isBlank() -> KafkaMessagesBundle.message("validator.notEmpty")
+          inputString.contains(NOT_SPACES_PATTERN) -> KafkaMessagesBundle.message("validator.notSpaces")
           inputString in getTopicNames(dataManager) -> KafkaMessagesBundle.message("kafka.validator.already.exist.topic.name", inputString)
           else -> null
         }

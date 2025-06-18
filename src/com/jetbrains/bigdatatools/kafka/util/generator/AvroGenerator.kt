@@ -1,7 +1,7 @@
 package com.jetbrains.bigdatatools.kafka.util.generator
 
 import com.intellij.openapi.project.Project
-import com.jetbrains.bigdatatools.common.util.messageOrDefault
+import com.jetbrains.bigdatatools.kafka.core.util.messageOrDefault
 import com.jetbrains.bigdatatools.kafka.util.generator.GenerateRandomData.isValidSchema
 import com.jetbrains.bigdatatools.kafka.util.generator.GenerateRandomData.logger
 import com.mifmif.common.regex.Generex

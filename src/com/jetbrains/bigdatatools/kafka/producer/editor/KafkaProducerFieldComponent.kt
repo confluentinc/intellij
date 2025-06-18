@@ -23,13 +23,6 @@ import com.intellij.ui.layout.ComponentPredicate
 import com.intellij.ui.layout.not
 import com.intellij.ui.layout.selectedValueMatches
 import com.intellij.util.concurrency.annotations.RequiresBackgroundThread
-import com.jetbrains.bigdatatools.common.rfs.util.RfsNotificationUtils
-import com.jetbrains.bigdatatools.common.settings.*
-import com.jetbrains.bigdatatools.common.ui.chooser.FileChooserUtil
-import com.jetbrains.bigdatatools.common.ui.revalidateOnLinesChanged
-import com.jetbrains.bigdatatools.common.util.executeNotOnEdt
-import com.jetbrains.bigdatatools.common.util.invokeLater
-import com.jetbrains.bigdatatools.common.util.toPresentableText
 import com.jetbrains.bigdatatools.kafka.common.editor.KafkaEditorUtils
 import com.jetbrains.bigdatatools.kafka.common.models.KafkaFieldType
 import com.jetbrains.bigdatatools.kafka.common.models.RegistrySchemaInEditor
@@ -37,6 +30,13 @@ import com.jetbrains.bigdatatools.kafka.common.settings.StorageProducerConfig
 import com.jetbrains.bigdatatools.kafka.completion.KafkaProducerGeneratorCompletionProvider
 import com.jetbrains.bigdatatools.kafka.consumer.models.ConsumerProducerFieldConfig
 import com.jetbrains.bigdatatools.kafka.consumer.models.CustomSchemaData
+import com.jetbrains.bigdatatools.kafka.core.rfs.util.RfsNotificationUtils
+import com.jetbrains.bigdatatools.kafka.core.settings.*
+import com.jetbrains.bigdatatools.kafka.core.ui.chooser.FileChooserUtil
+import com.jetbrains.bigdatatools.kafka.core.ui.revalidateOnLinesChanged
+import com.jetbrains.bigdatatools.kafka.core.util.executeNotOnEdt
+import com.jetbrains.bigdatatools.kafka.core.util.invokeLater
+import com.jetbrains.bigdatatools.kafka.core.util.toPresentableText
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryFormat
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryUtil
 import com.jetbrains.bigdatatools.kafka.registry.ui.KafkaSchemaInfoDialog

@@ -8,9 +8,9 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
 import com.intellij.ui.awt.RelativePoint
-import com.jetbrains.bigdatatools.common.rfs.driver.manager.DriverManager
-import com.jetbrains.bigdatatools.common.settings.ConnectionSettings
-import com.jetbrains.bigdatatools.common.settings.actions.CreateConnectionPopup
+import com.jetbrains.bigdatatools.kafka.core.rfs.driver.manager.DriverManager
+import com.jetbrains.bigdatatools.kafka.core.settings.ConnectionSettings
+import com.jetbrains.bigdatatools.kafka.core.settings.actions.CreateConnectionPopup
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaConfigurationSource
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaDriver
 import com.jetbrains.bigdatatools.kafka.settings.KafkaConnectionGroup

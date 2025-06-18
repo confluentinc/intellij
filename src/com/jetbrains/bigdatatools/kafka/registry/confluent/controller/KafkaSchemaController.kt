@@ -2,7 +2,10 @@ package com.jetbrains.bigdatatools.kafka.registry.confluent.controller
 
 import com.intellij.icons.AllIcons
 import com.intellij.json.JsonLanguage
-import com.intellij.openapi.actionSystem.*
+import com.intellij.openapi.actionSystem.ActionPlaces
+import com.intellij.openapi.actionSystem.ActionUpdateThread
+import com.intellij.openapi.actionSystem.AnActionEvent
+import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.actionSystem.ex.ActionUtil
 import com.intellij.openapi.actionSystem.impl.MoreActionGroup
 import com.intellij.openapi.actionSystem.toolbarLayout.ToolbarLayoutStrategy
@@ -21,13 +24,13 @@ import com.intellij.ui.dsl.builder.*
 import com.intellij.ui.dsl.gridLayout.UnscaledGaps
 import com.intellij.ui.layout.migLayout.createLayoutConstraints
 import com.intellij.ui.layout.migLayout.patched.MigLayout
-import com.jetbrains.bigdatatools.common.monitoring.toolwindow.ComponentController
-import com.jetbrains.bigdatatools.common.monitoring.toolwindow.DetailsMonitoringController
-import com.jetbrains.bigdatatools.common.ui.CustomComponentActionImpl
-import com.jetbrains.bigdatatools.common.util.ToolbarUtils
-import com.jetbrains.bigdatatools.common.util.invokeLater
 import com.jetbrains.bigdatatools.kafka.common.editor.SchemaVersionDiffController
 import com.jetbrains.bigdatatools.kafka.common.editor.SchemaVersionsComboboxController
+import com.jetbrains.bigdatatools.kafka.core.monitoring.toolwindow.ComponentController
+import com.jetbrains.bigdatatools.kafka.core.monitoring.toolwindow.DetailsMonitoringController
+import com.jetbrains.bigdatatools.kafka.core.ui.CustomComponentActionImpl
+import com.jetbrains.bigdatatools.kafka.core.util.ToolbarUtils
+import com.jetbrains.bigdatatools.kafka.core.util.invokeLater
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryFormat
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryType

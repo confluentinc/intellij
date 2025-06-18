@@ -10,9 +10,9 @@ import com.intellij.ui.treeStructure.treetable.TreeTableModel
 import com.intellij.ui.util.preferredWidth
 import com.intellij.util.ui.ColumnInfo
 import com.intellij.util.ui.JBUI
-import com.jetbrains.bigdatatools.common.rfs.editorviewer.RfsTreeTable
-import com.jetbrains.bigdatatools.common.table.MaterialTableUtils
-import com.jetbrains.bigdatatools.common.ui.onFirstSizeChange
+import com.jetbrains.bigdatatools.kafka.core.rfs.editorviewer.RfsTreeTable
+import com.jetbrains.bigdatatools.kafka.core.table.MaterialTableUtils
+import com.jetbrains.bigdatatools.kafka.core.ui.onFirstSizeChange
 import com.jetbrains.bigdatatools.kafka.model.SchemaRegistryFieldsInfo
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import io.confluent.kafka.schemaregistry.ParsedSchema

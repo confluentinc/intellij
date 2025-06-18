@@ -1,7 +1,7 @@
 package com.jetbrains.bigdatatools.kafka.model
 
-import com.jetbrains.bigdatatools.common.monitoring.data.model.RemoteInfo
-import com.jetbrains.bigdatatools.common.table.renderers.NoRendering
+import com.jetbrains.bigdatatools.kafka.core.monitoring.data.model.RemoteInfo
+import com.jetbrains.bigdatatools.kafka.core.table.renderers.NoRendering
 import com.jetbrains.bigdatatools.kafka.util.KafkaLocalizedField
 
 data class ConsumerGroupOffsetInfo(val topic: String,

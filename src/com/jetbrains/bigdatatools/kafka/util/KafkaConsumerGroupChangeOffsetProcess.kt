@@ -15,10 +15,10 @@ import com.intellij.ui.dsl.builder.bindIntText
 import com.intellij.ui.dsl.builder.bindItem
 import com.intellij.ui.dsl.builder.panel
 import com.intellij.util.ui.CalendarView
-import com.jetbrains.bigdatatools.common.rfs.util.RfsNotificationUtils
-import com.jetbrains.bigdatatools.common.ui.CustomListCellRenderer
 import com.jetbrains.bigdatatools.kafka.consumer.models.ConsumerStartType
 import com.jetbrains.bigdatatools.kafka.consumer.models.ConsumerStartWith
+import com.jetbrains.bigdatatools.kafka.core.rfs.util.RfsNotificationUtils
+import com.jetbrains.bigdatatools.kafka.core.ui.CustomListCellRenderer
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import kotlinx.coroutines.*
 import java.awt.Component

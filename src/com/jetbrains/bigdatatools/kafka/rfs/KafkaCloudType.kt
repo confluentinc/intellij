@@ -1,7 +1,7 @@
 package com.jetbrains.bigdatatools.kafka.rfs
 
 import com.intellij.openapi.util.NlsContexts
-import com.jetbrains.bigdatatools.common.settings.components.RenderableEntity
+import com.jetbrains.bigdatatools.kafka.core.settings.components.RenderableEntity
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 
 // The name does not reflect the meaning. This is only the connection settings type "user defined in UI" vs "taken from properties file".

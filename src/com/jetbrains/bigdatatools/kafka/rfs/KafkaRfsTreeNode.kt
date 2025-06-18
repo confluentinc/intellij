@@ -2,8 +2,8 @@ package com.jetbrains.bigdatatools.kafka.rfs
 
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.project.Project
-import com.jetbrains.bigdatatools.common.monitoring.rfs.MonitoringRfsTreeNode
-import com.jetbrains.bigdatatools.common.rfs.driver.RfsPath
+import com.jetbrains.bigdatatools.kafka.core.monitoring.rfs.MonitoringRfsTreeNode
+import com.jetbrains.bigdatatools.kafka.core.rfs.driver.RfsPath
 import com.jetbrains.bigdatatools.kafka.model.ConsumerGroupPresentable
 import com.jetbrains.bigdatatools.kafka.model.TopicPresentable
 import com.jetbrains.bigdatatools.kafka.registry.common.KafkaSchemaInfo

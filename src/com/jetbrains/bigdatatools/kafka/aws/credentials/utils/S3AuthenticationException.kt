@@ -1,6 +1,6 @@
 package com.jetbrains.bigdatatools.kafka.aws.credentials.utils
 
-import com.jetbrains.bigdatatools.common.connection.exception.BdtConfigurationException
+import com.jetbrains.bigdatatools.kafka.core.connection.exception.BdtConfigurationException
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 
 class S3MissingCredentialsException : BdtConfigurationException(KafkaMessagesBundle.message("connection.error.s3.access.key.is.not.found"))

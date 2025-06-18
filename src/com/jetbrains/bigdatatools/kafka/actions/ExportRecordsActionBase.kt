@@ -11,12 +11,11 @@ import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFileWrapper
 import com.intellij.util.concurrency.annotations.RequiresEdt
-import com.jetbrains.bigdatatools.common.rfs.util.RfsNotificationUtils
-import com.jetbrains.bigdatatools.common.util.MessagesBundle
-import com.jetbrains.bigdatatools.common.util.executeOnPooledThread
-import com.jetbrains.bigdatatools.common.util.invokeLater
 import com.jetbrains.bigdatatools.kafka.consumer.editor.ConsumerEditorUtils.getTableContent
 import com.jetbrains.bigdatatools.kafka.consumer.editor.KafkaConsumerEditor
+import com.jetbrains.bigdatatools.kafka.core.rfs.util.RfsNotificationUtils
+import com.jetbrains.bigdatatools.kafka.core.util.executeOnPooledThread
+import com.jetbrains.bigdatatools.kafka.core.util.invokeLater
 import com.jetbrains.bigdatatools.kafka.producer.editor.KafkaProducerEditor
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import java.nio.file.Path
@@ -60,8 +59,8 @@ internal abstract class ExportRecordsActionBase : DumbAwareAction() {
         file.bufferedWriter().use { out -> out.write(text) }
         invokeLater {
           RfsNotificationUtils.notifySuccess(
-            MessagesBundle.message("rfs.dump.to.file.action.saved.notification.message", file.name),
-            MessagesBundle.message("rfs.dump.to.file.action.saved.notification.title"),
+            KafkaMessagesBundle.message("rfs.dump.to.file.action.saved.notification.message", file.name),
+            KafkaMessagesBundle.message("rfs.dump.to.file.action.saved.notification.title"),
             create(RevealFileAction.getActionName()) { RevealFileAction.openFile(file) },
             project
           )
@@ -69,7 +68,7 @@ internal abstract class ExportRecordsActionBase : DumbAwareAction() {
       }
       catch (e: Exception) {
         invokeLater {
-          RfsNotificationUtils.notifyException(e, MessagesBundle.message("rfs.dump.to.file.action.saving.error.title"))
+          RfsNotificationUtils.notifyException(e, KafkaMessagesBundle.message("rfs.dump.to.file.action.saving.error.title"))
         }
       }
     }

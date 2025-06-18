@@ -1,8 +1,8 @@
 package com.jetbrains.bigdatatools.kafka.consumer.editor
 
 import com.intellij.openapi.Disposable
-import com.jetbrains.bigdatatools.common.settings.buildValidator
-import com.jetbrains.bigdatatools.common.settings.registerValidator
+import com.jetbrains.bigdatatools.kafka.core.settings.buildValidator
+import com.jetbrains.bigdatatools.kafka.core.settings.registerValidator
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import java.text.SimpleDateFormat
 import java.util.*

@@ -11,19 +11,18 @@ import com.intellij.ui.dsl.builder.BottomGap
 import com.intellij.ui.dsl.builder.Cell
 import com.intellij.ui.dsl.builder.TopGap
 import com.intellij.ui.dsl.builder.panel
-import com.jetbrains.bigdatatools.common.connection.tunnel.ui.SshTunnelComponent
-import com.jetbrains.bigdatatools.common.monitoring.TunnelableSettingsCustomizer
-import com.jetbrains.bigdatatools.common.settings.ModificationKey
-import com.jetbrains.bigdatatools.common.settings.connections.ConnectionData
-import com.jetbrains.bigdatatools.common.settings.fields.*
-import com.jetbrains.bigdatatools.common.settings.withValidator
-import com.jetbrains.bigdatatools.common.ui.block
-import com.jetbrains.bigdatatools.common.ui.components.ConnectionPropertiesEditor
-import com.jetbrains.bigdatatools.common.ui.components.RadioComboBox
-import com.jetbrains.bigdatatools.common.ui.row
-import com.jetbrains.bigdatatools.common.util.BdtUrlUtils
-import com.jetbrains.bigdatatools.common.util.MessagesBundle
 import com.jetbrains.bigdatatools.kafka.aws.connection.auth.AuthenticationType
+import com.jetbrains.bigdatatools.kafka.core.connection.tunnel.ui.SshTunnelComponent
+import com.jetbrains.bigdatatools.kafka.core.monitoring.TunnelableSettingsCustomizer
+import com.jetbrains.bigdatatools.kafka.core.settings.ModificationKey
+import com.jetbrains.bigdatatools.kafka.core.settings.connections.ConnectionData
+import com.jetbrains.bigdatatools.kafka.core.settings.fields.*
+import com.jetbrains.bigdatatools.kafka.core.settings.withValidator
+import com.jetbrains.bigdatatools.kafka.core.ui.block
+import com.jetbrains.bigdatatools.kafka.core.ui.components.ConnectionPropertiesEditor
+import com.jetbrains.bigdatatools.kafka.core.ui.components.RadioComboBox
+import com.jetbrains.bigdatatools.kafka.core.ui.row
+import com.jetbrains.bigdatatools.kafka.core.util.BdtUrlUtils
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryType
 import com.jetbrains.bigdatatools.kafka.rfs.*
 import com.jetbrains.bigdatatools.kafka.statistics.KafkaSettingsCollector
@@ -134,7 +133,7 @@ class KafkaSettingsCustomizer(project: Project,
       return KafkaMessagesBundle.message("settings.url.must.be.non.empty.hint")
     val brokers = names.split(",").map { it.trim() }
     val errors = brokers.map { it to BdtUrlUtils.validateUrl(it) }.filter { it.second != null }
-    return errors.firstOrNull()?.let { "${it.first}: ${MessagesBundle.message("url.format.error")}" }
+    return errors.firstOrNull()?.let { "${it.first}: ${KafkaMessagesBundle.message("url.format.error")}" }
   }
 
   private fun initFields() {

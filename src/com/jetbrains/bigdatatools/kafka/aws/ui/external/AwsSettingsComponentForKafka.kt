@@ -11,14 +11,14 @@ import com.intellij.ui.dsl.builder.Panel
 import com.intellij.ui.dsl.builder.RowsRange
 import com.intellij.ui.dsl.builder.text
 import com.intellij.ui.layout.selectedValueMatches
-import com.jetbrains.bigdatatools.common.rfs.util.RfsNotificationUtils
-import com.jetbrains.bigdatatools.common.ui.CustomListCellRenderer
-import com.jetbrains.bigdatatools.common.ui.components.BdtGroupRender
 import com.jetbrains.bigdatatools.kafka.aws.connection.AwsConnectionUtils
 import com.jetbrains.bigdatatools.kafka.aws.connection.auth.AuthenticationType
 import com.jetbrains.bigdatatools.kafka.aws.credentials.profiles.loader.BdtProfileReader
 import com.jetbrains.bigdatatools.kafka.aws.settings.models.AwsRegionEntity
 import com.jetbrains.bigdatatools.kafka.aws.ui.AwsComponentsBuilder
+import com.jetbrains.bigdatatools.kafka.core.rfs.util.RfsNotificationUtils
+import com.jetbrains.bigdatatools.kafka.core.ui.CustomListCellRenderer
+import com.jetbrains.bigdatatools.kafka.core.ui.components.BdtGroupRender
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import software.amazon.awssdk.regions.Region
 
@@ -42,8 +42,7 @@ class AwsSettingsComponentForKafka(val includeRegionSetting: Boolean = false, va
   private lateinit var profileRows: RowsRange
   private lateinit var credentialRows: RowsRange
 
-
-  fun getComponentRows(panel: Panel) = panel.apply {
+  fun getComponentRows(panel: Panel): Panel = panel.apply {
     if (includeRegionSetting) {
       row(KafkaMessagesBundle.message("settings.region")) {
         val groups = AwsComponentsBuilder.getAwsRegions(null)
@@ -157,8 +156,8 @@ class AwsSettingsComponentForKafka(val includeRegionSetting: Boolean = false, va
   companion object {
     private val logger = Logger.getInstance(this::class.java)
 
-    const val AWS_MECHANISM = "AWS_MSK_IAM"
-    const val AWS_ACCESS_KEY = "aws.accessKeyId"
-    const val AWS_SECRET_KEY = "aws.secretKey"
+    const val AWS_MECHANISM: String = "AWS_MSK_IAM"
+    const val AWS_ACCESS_KEY: String = "aws.accessKeyId"
+    const val AWS_SECRET_KEY: String = "aws.secretKey"
   }
 }

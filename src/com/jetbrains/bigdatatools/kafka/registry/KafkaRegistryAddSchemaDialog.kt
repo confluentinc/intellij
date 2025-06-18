@@ -14,11 +14,11 @@ import com.intellij.ui.dsl.builder.Align
 import com.intellij.ui.dsl.builder.Row
 import com.intellij.ui.dsl.builder.panel
 import com.intellij.util.ui.UIUtil
-import com.jetbrains.bigdatatools.common.settings.withNonEmptyValidator
-import com.jetbrains.bigdatatools.common.ui.CustomListCellRenderer
-import com.jetbrains.bigdatatools.common.util.toPresentableText
 import com.jetbrains.bigdatatools.kafka.common.editor.KafkaEditorUtils
 import com.jetbrains.bigdatatools.kafka.common.models.TopicInEditor
+import com.jetbrains.bigdatatools.kafka.core.settings.withNonEmptyValidator
+import com.jetbrains.bigdatatools.kafka.core.ui.CustomListCellRenderer
+import com.jetbrains.bigdatatools.kafka.core.util.toPresentableText
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.registry.confluent.controller.TopicSchemaViewType
 import com.jetbrains.bigdatatools.kafka.registry.ui.KafkaRegistrySchemaEditor
@@ -167,7 +167,7 @@ class KafkaRegistryAddSchemaDialog(project: Project, val dataManager: KafkaDataM
 
   override fun createCenterPanel(): JComponent = panel
 
-  override fun getDimensionServiceKey(): String = "com.jetbrains.bigdatatools.common.ui.add.kafka.registry.dialog.bounds"
+  override fun getDimensionServiceKey(): String = "com.jetbrains.bigdatatools.kafka.core.ui.add.kafka.registry.dialog.bounds"
 
   private fun getSchemaName(): String = when (strategyCombobox.item) {
     ConfluentRegistryStrategy.TOPIC_NAME -> subjectNameField.text

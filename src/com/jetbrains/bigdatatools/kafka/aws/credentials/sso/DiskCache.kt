@@ -3,11 +3,10 @@
 
 package com.jetbrains.bigdatatools.kafka.aws.credentials.sso
 
-import com.jetbrains.bigdatatools.common.util.filePermissions
-import com.jetbrains.bigdatatools.common.util.toHexString
-import com.jetbrains.bigdatatools.common.util.touch
-import com.jetbrains.bigdatatools.common.util.writeText
 import com.jetbrains.bigdatatools.kafka.aws.credentials.utils.AwsJson
+import com.jetbrains.bigdatatools.kafka.core.util.filePermissions
+import com.jetbrains.bigdatatools.kafka.core.util.touch
+import com.jetbrains.bigdatatools.kafka.core.util.writeText
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths

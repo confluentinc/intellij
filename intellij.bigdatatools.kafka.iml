@@ -52,7 +52,6 @@
         </SOURCES>
       </library>
     </orderEntry>
-    <orderEntry type="module" module-name="intellij.bigdatatools.core" />
     <orderEntry type="module-library">
       <library name="software.amazon.msk.aws.iam.auth" type="repository">
         <properties maven-id="software.amazon.msk:aws-msk-iam-auth:1.1.4">
@@ -718,5 +717,68 @@
         </SOURCES>
       </library>
     </orderEntry>
+    <orderEntry type="module-library">
+      <library name="moshi-adapters" type="repository">
+        <properties maven-id="com.squareup.moshi:moshi-adapters:1.15.0">
+          <verification>
+            <artifact url="file://$MAVEN_REPOSITORY$/com/squareup/moshi/moshi-adapters/1.15.0/moshi-adapters-1.15.0.jar">
+              <sha256sum>b747d391b59b58ae4f6ae157f67084645d5ad3e4d5d2cbb9f24e00772c06e34e</sha256sum>
+            </artifact>
+          </verification>
+          <exclude>
+            <dependency maven-id="com.squareup.moshi:moshi" />
+            <dependency maven-id="org.jetbrains.kotlin:kotlin-stdlib-jdk8" />
+          </exclude>
+        </properties>
+        <CLASSES>
+          <root url="jar://$MAVEN_REPOSITORY$/com/squareup/moshi/moshi-adapters/1.15.0/moshi-adapters-1.15.0.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES>
+          <root url="jar://$MAVEN_REPOSITORY$/com/squareup/moshi/moshi-adapters/1.15.0/moshi-adapters-1.15.0-sources.jar!/" />
+        </SOURCES>
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="moshi-kotlin" type="repository">
+        <properties maven-id="com.squareup.moshi:moshi-kotlin:1.15.0">
+          <verification>
+            <artifact url="file://$MAVEN_REPOSITORY$/com/squareup/moshi/moshi-kotlin/1.15.0/moshi-kotlin-1.15.0.jar">
+              <sha256sum>874029dcba5a558a57c86cbe91a6f9ea59dfbc2a17ee4bc41e2e5b9a106f0a5f</sha256sum>
+            </artifact>
+            <artifact url="file://$MAVEN_REPOSITORY$/com/squareup/moshi/moshi/1.15.0/moshi-1.15.0.jar">
+              <sha256sum>350d48c34df4a8ef4f1475aa65ef0e54c4d8302a71efc9f6c09d0e98fd4c63c6</sha256sum>
+            </artifact>
+          </verification>
+          <exclude>
+            <dependency maven-id="com.squareup.okio:okio" />
+            <dependency maven-id="org.jetbrains.kotlin:kotlin-stdlib-jdk8" />
+            <dependency maven-id="org.jetbrains.kotlin:kotlin-reflect" />
+          </exclude>
+        </properties>
+        <CLASSES>
+          <root url="jar://$MAVEN_REPOSITORY$/com/squareup/moshi/moshi-kotlin/1.15.0/moshi-kotlin-1.15.0.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/com/squareup/moshi/moshi/1.15.0/moshi-1.15.0.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES>
+          <root url="jar://$MAVEN_REPOSITORY$/com/squareup/moshi/moshi-kotlin/1.15.0/moshi-kotlin-1.15.0-sources.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/com/squareup/moshi/moshi/1.15.0/moshi-1.15.0-sources.jar!/" />
+        </SOURCES>
+      </library>
+    </orderEntry>
+    <orderEntry type="library" name="http-client" level="project" />
+    <orderEntry type="library" name="okhttp" level="project" />
+    <orderEntry type="module" module-name="intellij.platform.ssh" />
+    <orderEntry type="module" module-name="intellij.platform.ssh.ui" />
+    <orderEntry type="module" module-name="intellij.platform.util.coroutines" />
+    <orderEntry type="module" module-name="intellij.platform.refactoring" />
+    <orderEntry type="module" module-name="intellij.libraries.microba" />
+    <orderEntry type="module" module-name="intellij.platform.util.jdom" />
+    <orderEntry type="library" name="Guava" level="project" />
+    <orderEntry type="module" module-name="intellij.platform.lang.core" />
+    <orderEntry type="module" module-name="intellij.platform.util.text.matching" />
+    <orderEntry type="module" module-name="intellij.platform.remote.core" />
+    <orderEntry type="module" module-name="intellij.platform.codeStyle" />
   </component>
 </module>
