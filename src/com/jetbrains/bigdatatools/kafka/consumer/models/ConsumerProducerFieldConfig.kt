@@ -1,10 +1,10 @@
 package com.jetbrains.bigdatatools.kafka.consumer.models
 
 import com.amazonaws.services.schemaregistry.serializers.json.JsonDataWithSchema
-import com.jetbrains.bigdatatools.common.util.MessagesBundle
 import com.jetbrains.bigdatatools.kafka.common.models.KafkaFieldType
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryFormat
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryType
+import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import io.confluent.kafka.schemaregistry.ParsedSchema
 import io.confluent.kafka.schemaregistry.avro.AvroSchema
 import io.confluent.kafka.schemaregistry.avro.AvroSchemaUtils
@@ -34,7 +34,7 @@ data class ConsumerProducerFieldConfig(val type: KafkaFieldType,
     KafkaFieldType.NULL -> null
     KafkaFieldType.SCHEMA_REGISTRY -> {
       if (valueText.isBlank())
-        throw Exception(MessagesBundle.message("validator.notEmpty"))
+        throw Exception(KafkaMessagesBundle.message("validator.notEmpty"))
       when (schemaFormat) {
         KafkaRegistryFormat.AVRO -> AvroSchemaUtils.toObject(valueText, parsedSchema as AvroSchema)
         KafkaRegistryFormat.PROTOBUF -> ProtobufSchemaUtils.toObject(valueText, parsedSchema as ProtobufSchema)

@@ -18,18 +18,17 @@ import com.intellij.ui.EditorCustomization
 import com.intellij.ui.EditorTextFieldProvider
 import com.intellij.ui.SimpleTextAttributes
 import com.intellij.util.ui.UIUtil
-import com.jetbrains.bigdatatools.common.monitoring.data.listener.DataModelListener
-import com.jetbrains.bigdatatools.common.settings.getValidator
-import com.jetbrains.bigdatatools.common.settings.withValidator
-import com.jetbrains.bigdatatools.common.ui.ComponentColoredBorder
-import com.jetbrains.bigdatatools.common.ui.CustomListCellRenderer
-import com.jetbrains.bigdatatools.common.ui.DarculaTextAreaBorder
-import com.jetbrains.bigdatatools.common.util.MessagesBundle
-import com.jetbrains.bigdatatools.common.util.executeNotOnEdt
-import com.jetbrains.bigdatatools.common.util.invokeLater
 import com.jetbrains.bigdatatools.kafka.common.models.KafkaFieldType
 import com.jetbrains.bigdatatools.kafka.common.models.RegistrySchemaInEditor
 import com.jetbrains.bigdatatools.kafka.common.models.TopicInEditor
+import com.jetbrains.bigdatatools.kafka.core.monitoring.data.listener.DataModelListener
+import com.jetbrains.bigdatatools.kafka.core.settings.getValidator
+import com.jetbrains.bigdatatools.kafka.core.settings.withValidator
+import com.jetbrains.bigdatatools.kafka.core.ui.ComponentColoredBorder
+import com.jetbrains.bigdatatools.kafka.core.ui.CustomListCellRenderer
+import com.jetbrains.bigdatatools.kafka.core.ui.DarculaTextAreaBorder
+import com.jetbrains.bigdatatools.kafka.core.util.executeNotOnEdt
+import com.jetbrains.bigdatatools.kafka.core.util.invokeLater
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryFormat
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryType
@@ -280,7 +279,7 @@ object KafkaEditorUtils {
     kafkaManager.initRefreshSchemasIfRequired()
     schemaCombobox.withValidator(rootDisposable) {
       if (schemaCombobox.item == null)
-        ValidationInfo(MessagesBundle.message("validator.notEmpty"))
+        ValidationInfo(KafkaMessagesBundle.message("validator.notEmpty"))
       else
         null
     }

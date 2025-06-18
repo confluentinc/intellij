@@ -5,7 +5,7 @@ package com.jetbrains.bigdatatools.kafka.aws.credentials
 
 import com.intellij.openapi.progress.ProcessCanceledException
 import com.intellij.openapi.ui.Messages
-import com.jetbrains.bigdatatools.common.rfs.exception.RfsAuthRequiredError
+import com.jetbrains.bigdatatools.kafka.core.rfs.exception.RfsAuthRequiredError
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import javax.swing.SwingUtilities
 

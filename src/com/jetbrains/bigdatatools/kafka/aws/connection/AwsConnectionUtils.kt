@@ -1,8 +1,8 @@
 package com.jetbrains.bigdatatools.kafka.aws.connection
 
 import com.intellij.util.net.ssl.CertificateManager
-import com.jetbrains.bigdatatools.common.util.BdIdeRegistryUtil
 import com.jetbrains.bigdatatools.kafka.aws.settings.AwsProxySettings
+import com.jetbrains.bigdatatools.kafka.core.util.BdIdeRegistryUtil
 import software.amazon.awssdk.core.exception.SdkClientException
 import software.amazon.awssdk.http.SdkHttpConfigurationOption
 import software.amazon.awssdk.http.apache.ApacheHttpClient
@@ -14,7 +14,7 @@ import java.time.Duration
 import javax.net.ssl.TrustManager
 
 object AwsConnectionUtils {
-  fun getDefaultCredentialFile() = File(getAwsDirectory(), "credentials")
+  fun getDefaultCredentialFile(): File = File(getAwsDirectory(), "credentials")
 
   fun createHttpClient(proxySettings: AwsProxySettings?, trustAll: Boolean): ApacheHttpClient {
     val builder = ApacheHttpClient.builder()

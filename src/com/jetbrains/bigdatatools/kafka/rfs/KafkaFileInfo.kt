@@ -2,11 +2,11 @@ package com.jetbrains.bigdatatools.kafka.rfs
 
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.runBlockingCancellable
-import com.jetbrains.bigdatatools.common.rfs.driver.ExportFormat
-import com.jetbrains.bigdatatools.common.rfs.driver.FileInfoBase
-import com.jetbrains.bigdatatools.common.rfs.driver.RfsPath
-import com.jetbrains.bigdatatools.common.rfs.driver.task.RemoteFsDeleteTask
-import com.jetbrains.bigdatatools.common.rfs.driver.task.RfsCopyMoveTask
+import com.jetbrains.bigdatatools.kafka.core.rfs.driver.ExportFormat
+import com.jetbrains.bigdatatools.kafka.core.rfs.driver.FileInfoBase
+import com.jetbrains.bigdatatools.kafka.core.rfs.driver.RfsPath
+import com.jetbrains.bigdatatools.kafka.core.rfs.driver.task.RemoteFsDeleteTask
+import com.jetbrains.bigdatatools.kafka.core.rfs.driver.task.RfsCopyMoveTask
 import java.io.InputStream
 
 class KafkaFileInfo(override val driver: KafkaDriver, override val path: RfsPath) : FileInfoBase() {

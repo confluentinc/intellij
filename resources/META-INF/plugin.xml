@@ -17,10 +17,14 @@
     ]]></description>
 
   <depends>com.intellij.modules.ultimate</depends>
-  <depends>com.intellij.bigdatatools.core</depends>
   <depends config-file="spring-boot.xml" optional="true">com.intellij.spring.boot</depends>
 
   <resource-bundle>messages.KafkaBundle</resource-bundle>
+  <extensionPoints>
+    <extensionPoint dynamic="true"
+                    interface="com.jetbrains.bigdatatools.kafka.core.settings.connections.ConnectionSettingProvider"
+                    name="connectionSettingProvider"/>
+  </extensionPoints>
 
   <applicationListeners>
     <listener class="com.jetbrains.bigdatatools.kafka.updater.KafkaLoadPluginListener"
@@ -57,7 +61,7 @@
     <applicationService serviceImplementation="com.jetbrains.bigdatatools.kafka.common.settings.KafkaConfigStorage"/>
 
     <applicationService serviceImplementation="com.jetbrains.bigdatatools.kafka.toolwindow.config.KafkaToolWindowSettings"/>
-    <bigdatatools.bdiConnectionSettingProvider implementation="com.jetbrains.bigdatatools.kafka.settings.KafkaSettingsProvider"/>
+    <bigdatatools.kafka.connectionSettingProvider implementation="com.jetbrains.bigdatatools.kafka.settings.KafkaSettingsProvider"/>
 
     <statistics.counterUsagesCollector implementationClass="com.jetbrains.bigdatatools.kafka.statistics.KafkaUsagesCollector"/>
 
@@ -107,7 +111,7 @@
           <keyboard-shortcut keymap="$default" first-keystroke="DELETE"/>
         </action>
         <action id="kafka.ClearTopicAction" class="com.jetbrains.bigdatatools.kafka.toolwindow.actions.ClearTopicAction"
-                icon="com.jetbrains.bigdatatools.common.BigdatatoolsCoreIcons.ClearOutputs">
+                icon="com.intellij.bigdatatools.kafka.icons.BigdatatoolsKafkaIcons.ClearOutputs">
         </action>
       </group>
 

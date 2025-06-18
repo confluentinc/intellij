@@ -1,9 +1,9 @@
 package com.jetbrains.bigdatatools.kafka.consumer.editor
 
-import com.jetbrains.bigdatatools.common.settings.connections.Property
 import com.jetbrains.bigdatatools.kafka.common.editor.KafkaEditorUtils
 import com.jetbrains.bigdatatools.kafka.common.models.KafkaFieldType
 import com.jetbrains.bigdatatools.kafka.consumer.models.ConsumerProducerFieldConfig
+import com.jetbrains.bigdatatools.kafka.core.settings.connections.Property
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryFormat
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.clients.producer.RecordMetadata

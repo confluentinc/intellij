@@ -1,3 +1,8 @@
+- name: lib/apache.avro.jar
+  library: apache.avro
+  files:
+  - name: $MAVEN_REPOSITORY$/org/apache/avro/avro/1/avro-1.jar
+  reason: <- intellij.bigdatatools.kafka
 - name: lib/apache.kafka.clients.jar
   library: apache.kafka.clients
   module: intellij.bigdatatools.kafka
@@ -16,6 +21,11 @@
   library: google.protobuf.java.util
   files:
   - name: $MAVEN_REPOSITORY$/com/google/protobuf/protobuf-java-util/3/protobuf-java-util-3.jar
+  reason: <- intellij.bigdatatools.kafka
+- name: lib/google.re2j.jar
+  library: google.re2j
+  files:
+  - name: $MAVEN_REPOSITORY$/com/google/re2j/re2j/1/re2j-1.jar
   reason: <- intellij.bigdatatools.kafka
 - name: lib/grpc-protobuf.jar
   library: grpc-protobuf
@@ -75,6 +85,17 @@
   files:
   - name: $MAVEN_REPOSITORY$/joda-time/joda-time/2/joda-time-2.jar
   reason: <- intellij.bigdatatools.kafka
+- name: lib/moshi-adapters.jar
+  library: moshi-adapters
+  module: intellij.bigdatatools.kafka
+  files:
+  - name: $MAVEN_REPOSITORY$/com/squareup/moshi/moshi-adapters/1/moshi-adapters-1.jar
+- name: lib/moshi-kotlin.jar
+  library: moshi-kotlin
+  module: intellij.bigdatatools.kafka
+  files:
+  - name: $MAVEN_REPOSITORY$/com/squareup/moshi/moshi-kotlin/1/moshi-kotlin-1.jar
+  - name: $MAVEN_REPOSITORY$/com/squareup/moshi/moshi/1/moshi-1.jar
 - name: lib/software.amazon.awssdk.glue.jar
   library: software.amazon.awssdk.glue
   files:

@@ -3,8 +3,8 @@ package com.jetbrains.bigdatatools.kafka.toolwindow.actions
 import com.intellij.ide.actions.NewElementAction
 import com.intellij.openapi.actionSystem.*
 import com.intellij.openapi.project.DumbAware
-import com.jetbrains.bigdatatools.common.monitoring.toolwindow.MainTreeController.Companion.dataManager
-import com.jetbrains.bigdatatools.common.monitoring.toolwindow.MainTreeController.Companion.rfsPath
+import com.jetbrains.bigdatatools.kafka.core.monitoring.toolwindow.MainTreeController.Companion.dataManager
+import com.jetbrains.bigdatatools.kafka.core.monitoring.toolwindow.MainTreeController.Companion.rfsPath
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryAddSchemaDialog
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaDriver.Companion.isSchemas

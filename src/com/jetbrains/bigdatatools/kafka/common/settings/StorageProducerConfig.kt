@@ -1,8 +1,8 @@
 package com.jetbrains.bigdatatools.kafka.common.settings
 
-import com.jetbrains.bigdatatools.common.settings.connections.Property
 import com.jetbrains.bigdatatools.kafka.common.models.KafkaFieldType
 import com.jetbrains.bigdatatools.kafka.consumer.models.CustomSchemaData
+import com.jetbrains.bigdatatools.kafka.core.settings.connections.Property
 import com.jetbrains.bigdatatools.kafka.producer.models.AcksType
 import com.jetbrains.bigdatatools.kafka.producer.models.ProducerFlowParams
 import com.jetbrains.bigdatatools.kafka.producer.models.RecordCompression

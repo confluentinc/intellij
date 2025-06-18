@@ -1,11 +1,11 @@
 package com.jetbrains.bigdatatools.kafka.consumer.editor
 
 import com.intellij.openapi.actionSystem.DefaultActionGroup
-import com.jetbrains.bigdatatools.common.ui.CustomComponentActionImpl
-import com.jetbrains.bigdatatools.common.ui.ToolbarGreyLabelActionImpl
-import com.jetbrains.bigdatatools.common.util.SizeUtils
-import com.jetbrains.bigdatatools.common.util.TimeUtils
-import com.jetbrains.bigdatatools.common.util.ToolbarUtils
+import com.jetbrains.bigdatatools.kafka.core.ui.CustomComponentActionImpl
+import com.jetbrains.bigdatatools.kafka.core.ui.ToolbarGreyLabelActionImpl
+import com.jetbrains.bigdatatools.kafka.core.util.SizeUtils
+import com.jetbrains.bigdatatools.kafka.core.util.TimeUtils
+import com.jetbrains.bigdatatools.kafka.core.util.ToolbarUtils
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import javax.swing.JLabel
 

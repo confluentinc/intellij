@@ -1,0 +1,56 @@
+package com.jetbrains.bigdatatools.kafka.core.monitoring.connection
+
+import com.intellij.openapi.Disposable
+import com.intellij.openapi.project.Project
+import com.jetbrains.bigdatatools.kafka.core.connection.exception.BdtDriverNotInitializedException
+import com.jetbrains.bigdatatools.kafka.core.rfs.driver.ConnectedConnectionStatus
+import com.jetbrains.bigdatatools.kafka.core.rfs.driver.ConnectingConnectionStatus
+import com.jetbrains.bigdatatools.kafka.core.rfs.driver.DriverConnectionStatus
+import com.jetbrains.bigdatatools.kafka.core.rfs.driver.FailedConnectionStatus
+import com.jetbrains.bigdatatools.kafka.core.util.SmartLogger
+
+abstract class MonitoringClient(val project: Project?) : Disposable {
+  private var state: DriverConnectionStatus? = null
+
+  fun connect(calledByUser: Boolean, prepareConnection: () -> Unit = {}) {
+    try {
+      state = ConnectingConnectionStatus
+
+      prepareConnection()
+      connectInner(calledByUser)
+      checkConnectionInner()
+
+      logger.info("Successfully connected to ${getRealUri()}")
+      state = ConnectedConnectionStatus
+    }
+    catch (t: Throwable) {
+      logger.info("Connection error to ${getRealUri()}", t)
+      state = FailedConnectionStatus(t)
+      throw t
+    }
+  }
+
+  fun checkConnection() = try {
+    checkConnectionInner()
+    state = ConnectedConnectionStatus
+  }
+  catch (t: Throwable) {
+    state = FailedConnectionStatus(t)
+    throw t
+  }
+
+  fun getConnectionStatus(): DriverConnectionStatus = state ?: FailedConnectionStatus(BdtDriverNotInitializedException())
+  val connectionError: Throwable? get() = state?.getException()
+  fun isConnecting() = state == ConnectingConnectionStatus
+  fun isConnected() = state == ConnectedConnectionStatus
+  fun isInited() = state == ConnectedConnectionStatus || state is FailedConnectionStatus
+
+  abstract fun getRealUri(): String
+  protected abstract fun checkConnectionInner()
+  protected abstract fun connectInner(calledByUser: Boolean)
+
+  companion object {
+    val logger = SmartLogger(this::class.java)
+  }
+}
+

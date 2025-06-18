@@ -3,11 +3,11 @@ package com.jetbrains.bigdatatools.kafka.registry.glue
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.NlsSafe
-import com.jetbrains.bigdatatools.common.util.TimeUtils
 import com.jetbrains.bigdatatools.kafka.aws.connection.AwsConnectionUtils
 import com.jetbrains.bigdatatools.kafka.aws.connection.auth.AwsAuthUtil
 import com.jetbrains.bigdatatools.kafka.aws.driver.AwsCredentialController
 import com.jetbrains.bigdatatools.kafka.aws.ui.external.AwsSettingsInfo
+import com.jetbrains.bigdatatools.kafka.core.util.TimeUtils
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager.Companion.sortedSchemas
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryFormat
 import com.jetbrains.bigdatatools.kafka.registry.SchemaVersionInfo

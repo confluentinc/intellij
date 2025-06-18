@@ -4,8 +4,8 @@ import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.actionSystem.UiDataProvider
-import com.jetbrains.bigdatatools.common.monitoring.toolwindow.DetailsTableMonitoringController
-import com.jetbrains.bigdatatools.common.monitoring.toolwindow.MainTreeController
+import com.jetbrains.bigdatatools.kafka.core.monitoring.toolwindow.DetailsTableMonitoringController
+import com.jetbrains.bigdatatools.kafka.core.monitoring.toolwindow.MainTreeController
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.model.ConsumerGroupOffsetInfo
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaDriver

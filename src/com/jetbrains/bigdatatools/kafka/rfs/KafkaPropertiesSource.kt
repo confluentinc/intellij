@@ -1,6 +1,6 @@
 package com.jetbrains.bigdatatools.kafka.rfs
 
-import com.jetbrains.bigdatatools.common.settings.components.RenderableEntity
+import com.jetbrains.bigdatatools.kafka.core.settings.components.RenderableEntity
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 
 enum class KafkaPropertiesSource(override val title: String) : RenderableEntity {

@@ -3,7 +3,7 @@ package com.jetbrains.bigdatatools.kafka.aws.credentials.sso
 import com.intellij.ide.BrowserUtil
 import com.intellij.openapi.progress.ProcessCanceledException
 import com.intellij.openapi.ui.Messages
-import com.jetbrains.bigdatatools.common.rfs.util.RfsNotificationUtils
+import com.jetbrains.bigdatatools.kafka.core.rfs.util.RfsNotificationUtils
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import javax.swing.SwingUtilities
 

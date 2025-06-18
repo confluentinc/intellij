@@ -19,8 +19,8 @@ import com.intellij.ui.dsl.builder.Align
 import com.intellij.ui.dsl.builder.panel
 import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.UIUtil
-import com.jetbrains.bigdatatools.common.util.invokeAndWaitSwing
-import com.jetbrains.bigdatatools.common.util.invokeLater
+import com.jetbrains.bigdatatools.kafka.core.util.invokeAndWaitSwing
+import com.jetbrains.bigdatatools.kafka.core.util.invokeLater
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryFormat
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryUtil
 import com.jetbrains.bigdatatools.kafka.registry.SchemaVersionInfo

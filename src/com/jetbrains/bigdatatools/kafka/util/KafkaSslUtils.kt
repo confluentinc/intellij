@@ -2,7 +2,7 @@ package com.jetbrains.bigdatatools.kafka.util
 
 import com.intellij.execution.rmi.ssl.SslUtil
 import com.intellij.openapi.util.io.FileUtil
-import com.jetbrains.bigdatatools.common.connection.exception.BdtConfigurationException
+import com.jetbrains.bigdatatools.kafka.core.connection.exception.BdtConfigurationException
 import org.apache.kafka.common.config.SslConfigs
 import java.io.File
 import java.io.FileNotFoundException

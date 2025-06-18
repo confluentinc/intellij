@@ -1,5 +1,7 @@
 package com.jetbrains.bigdatatools.kafka.settings
 
+//import com.jetbrains.bigdatatools.kafka.core.settings.kerberos.BdtJaasConfig
+//import com.jetbrains.bigdatatools.kafka.core.settings.kerberos.KerberosSettingsDialog
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory
 import com.intellij.openapi.observable.properties.AtomicBooleanProperty
@@ -12,18 +14,17 @@ import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.components.JBPasswordField
 import com.intellij.ui.components.JBTextField
 import com.intellij.ui.dsl.builder.*
-import com.jetbrains.bigdatatools.common.settings.connections.ConnectionData
-import com.jetbrains.bigdatatools.common.settings.fields.*
-import com.jetbrains.bigdatatools.common.settings.kerberos.BdtJaasConfig
-import com.jetbrains.bigdatatools.common.settings.kerberos.KerberosSettingsDialog
-import com.jetbrains.bigdatatools.common.settings.withEmptyOrFileExistValidator
-import com.jetbrains.bigdatatools.common.ui.*
-import com.jetbrains.bigdatatools.common.ui.components.RadioComboBox
-import com.jetbrains.bigdatatools.common.util.MessagesBundle
-import com.jetbrains.bigdatatools.common.util.PathUtils
 import com.jetbrains.bigdatatools.kafka.aws.connection.auth.AuthenticationType
 import com.jetbrains.bigdatatools.kafka.aws.ui.external.AwsSettingsComponentForKafka
 import com.jetbrains.bigdatatools.kafka.aws.ui.external.StaticAwsSettingsInfo
+import com.jetbrains.bigdatatools.kafka.core.settings.connections.ConnectionData
+import com.jetbrains.bigdatatools.kafka.core.settings.fields.*
+import com.jetbrains.bigdatatools.kafka.core.settings.kerberos.BdtJaasConfig
+import com.jetbrains.bigdatatools.kafka.core.settings.kerberos.KerberosSettingsDialog
+import com.jetbrains.bigdatatools.kafka.core.settings.withEmptyOrFileExistValidator
+import com.jetbrains.bigdatatools.kafka.core.ui.*
+import com.jetbrains.bigdatatools.kafka.core.ui.components.RadioComboBox
+import com.jetbrains.bigdatatools.kafka.core.util.PathUtils
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryType
 import com.jetbrains.bigdatatools.kafka.rfs.*
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaConnectionData.Companion.CONFIG_KEY
@@ -219,7 +220,7 @@ internal class KafkaBrokerSettings(val project: Project,
         directPropertiesGroup = block(propertiesEditor.getComponent()).resizableRow()
 
         propertiesKerberosLinkRow = row {
-          link(MessagesBundle.message("kerberos.settings.open.button")) {
+          link(KafkaMessagesBundle.message("kerberos.settings.open.button")) {
             KerberosSettingsDialog(project).showAndGet()
           }
         }
@@ -252,22 +253,22 @@ internal class KafkaBrokerSettings(val project: Project,
 
       saslKerberosGroup = indent {
         row {
-          saslKerberosUseTicketCache = checkBox(MessagesBundle.message("settings.use.kerberos.cache")).onChanged {
+          saslKerberosUseTicketCache = checkBox(KafkaMessagesBundle.message("settings.use.kerberos.cache")).onChanged {
             updateVisibilityOfAdditionalKerberos()
             updatePropertiesField()
           }.gap(RightGap.SMALL)
-          cell(ContextHelpLabel.create(MessagesBundle.message("kerberos.settings.use.ticket.cache.tooltip")))
+          cell(ContextHelpLabel.create(KafkaMessagesBundle.message("kerberos.settings.use.ticket.cache.tooltip")))
         }
         saslAdditionalKerberosGroup = rowsRange {
-          row(MessagesBundle.message("kerberos.settings.principal.label")) {
+          row(KafkaMessagesBundle.message("kerberos.settings.principal.label")) {
             saslPrincipal = textField().align(AlignX.FILL).onChanged {
               updatePropertiesField()
             }.apply {
-              component.emptyText.text = MessagesBundle.message("kerberos.settings.principal.empty")
+              component.emptyText.text = KafkaMessagesBundle.message("kerberos.settings.principal.empty")
             }
           }
-          row(MessagesBundle.message("kerberos.connection.settings.keytab.label")) {
-            saslKeytab = textFieldWithBrowseButton(browseDialogTitle = MessagesBundle.message("kerberos.connection.settings.keytab.select.dialog.title"), project) {
+          row(KafkaMessagesBundle.message("kerberos.connection.settings.keytab.label")) {
+            saslKeytab = textFieldWithBrowseButton(browseDialogTitle = KafkaMessagesBundle.message("kerberos.connection.settings.keytab.select.dialog.title"), project) {
               PathUtils.toUnixPath(it.canonicalPath ?: "/")
             }.align(
               AlignX.FILL).onChanged {
@@ -276,7 +277,7 @@ internal class KafkaBrokerSettings(val project: Project,
           }
         }
         row {
-          link(MessagesBundle.message("kerberos.settings.open.button")) {
+          link(KafkaMessagesBundle.message("kerberos.settings.open.button")) {
             KerberosSettingsDialog(project).showAndGet()
           }
         }
@@ -460,18 +461,18 @@ internal class KafkaBrokerSettings(val project: Project,
     saslMechanismValue ?: return true
     saslMechanism.component.item = saslMechanismValue
     val jaasConfig = properties[SaslConfigs.SASL_JAAS_CONFIG] ?: return true
-    val bdtJaasConfig = try {
-      BdtJaasConfig(jaasConfig).config?.options?.map { it.key.lowercase() to (it.value?.toString() ?: "") }?.toMap() ?: return true
-    }
-    catch (_: Throwable) {
-      return true
-    }
+    //val bdtJaasConfig = try {
+    //  BdtJaasConfig(jaasConfig).config?.options?.map { it.key.lowercase() to (it.value?.toString() ?: "") }?.toMap() ?: return true
+    //}
+    //catch (_: Throwable) {
+    //  return true
+    //}
 
-    saslUsername.component.text = bdtJaasConfig["username"] ?: ""
-    saslPassword.component.text = bdtJaasConfig["password"] ?: ""
-    saslKeytab.component.text = bdtJaasConfig["keytab"] ?: ""
-    saslPrincipal.component.text = bdtJaasConfig["principal"] ?: ""
-    saslKerberosUseTicketCache.component.isSelected = bdtJaasConfig["useticketcache"]?.toBoolean() ?: false
+    //saslUsername.component.text = bdtJaasConfig["username"] ?: ""
+    //saslPassword.component.text = bdtJaasConfig["password"] ?: ""
+    //saslKeytab.component.text = bdtJaasConfig["keytab"] ?: ""
+    //saslPrincipal.component.text = bdtJaasConfig["principal"] ?: ""
+    //saslKerberosUseTicketCache.component.isSelected = bdtJaasConfig["useticketcache"]?.toBoolean() ?: false
     return false
   }
 

@@ -1,7 +1,7 @@
 package com.jetbrains.bigdatatools.kafka.aws.settings.models
 
 import com.intellij.openapi.diagnostic.thisLogger
-import com.jetbrains.bigdatatools.common.settings.components.RenderableEntity
+import com.jetbrains.bigdatatools.kafka.core.settings.components.RenderableEntity
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import software.amazon.awssdk.regions.Region
 

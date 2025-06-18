@@ -1,9 +1,9 @@
 package com.jetbrains.bigdatatools.kafka.registry.common
 
-import com.jetbrains.bigdatatools.common.monitoring.data.model.RemoteInfo
-import com.jetbrains.bigdatatools.common.table.renderers.CustomRendering
-import com.jetbrains.bigdatatools.common.table.renderers.DateRendering
-import com.jetbrains.bigdatatools.common.table.renderers.LoadingRendering
+import com.jetbrains.bigdatatools.kafka.core.monitoring.data.model.RemoteInfo
+import com.jetbrains.bigdatatools.kafka.core.table.renderers.CustomRendering
+import com.jetbrains.bigdatatools.kafka.core.table.renderers.DateRendering
+import com.jetbrains.bigdatatools.kafka.core.table.renderers.LoadingRendering
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryFormat
 import com.jetbrains.bigdatatools.kafka.util.KafkaLocalizedField
 import com.jetbrains.bigdatatools.kafka.util.RegistryFormatRenderer

@@ -8,23 +8,23 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.util.Disposer
 import com.intellij.util.concurrency.annotations.RequiresBackgroundThread
-import com.jetbrains.bigdatatools.common.connection.updater.IntervalUpdateSettings
-import com.jetbrains.bigdatatools.common.monitoring.data.MonitoringDataManager
-import com.jetbrains.bigdatatools.common.monitoring.data.model.FieldGroupsData
-import com.jetbrains.bigdatatools.common.monitoring.data.model.ObjectDataModel
-import com.jetbrains.bigdatatools.common.monitoring.data.storage.FieldGroupsDataModelStorage
-import com.jetbrains.bigdatatools.common.monitoring.data.storage.ObjectDataModelStorage
-import com.jetbrains.bigdatatools.common.monitoring.data.storage.RootDataModelStorage
-import com.jetbrains.bigdatatools.common.rfs.driver.SafeExecutor
-import com.jetbrains.bigdatatools.common.rfs.driver.manager.DriverManager
-import com.jetbrains.bigdatatools.common.rfs.util.RfsNotificationUtils
-import com.jetbrains.bigdatatools.common.util.asSilent
-import com.jetbrains.bigdatatools.common.util.runAsync
-import com.jetbrains.bigdatatools.common.util.runAsyncSuspend
 import com.jetbrains.bigdatatools.kafka.client.BdtKafkaMapper
 import com.jetbrains.bigdatatools.kafka.client.KafkaClient
 import com.jetbrains.bigdatatools.kafka.common.models.RegistrySchemaInEditor
 import com.jetbrains.bigdatatools.kafka.consumer.editor.KafkaConsumerPanelStorage
+import com.jetbrains.bigdatatools.kafka.core.connection.updater.IntervalUpdateSettings
+import com.jetbrains.bigdatatools.kafka.core.monitoring.data.MonitoringDataManager
+import com.jetbrains.bigdatatools.kafka.core.monitoring.data.model.FieldGroupsData
+import com.jetbrains.bigdatatools.kafka.core.monitoring.data.model.ObjectDataModel
+import com.jetbrains.bigdatatools.kafka.core.monitoring.data.storage.FieldGroupsDataModelStorage
+import com.jetbrains.bigdatatools.kafka.core.monitoring.data.storage.ObjectDataModelStorage
+import com.jetbrains.bigdatatools.kafka.core.monitoring.data.storage.RootDataModelStorage
+import com.jetbrains.bigdatatools.kafka.core.rfs.driver.SafeExecutor
+import com.jetbrains.bigdatatools.kafka.core.rfs.driver.manager.DriverManager
+import com.jetbrains.bigdatatools.kafka.core.rfs.util.RfsNotificationUtils
+import com.jetbrains.bigdatatools.kafka.core.util.asSilent
+import com.jetbrains.bigdatatools.kafka.core.util.runAsync
+import com.jetbrains.bigdatatools.kafka.core.util.runAsyncSuspend
 import com.jetbrains.bigdatatools.kafka.model.*
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryFormat
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryType
@@ -52,7 +52,8 @@ import kotlin.time.Duration
 
 class KafkaDataManager(project: Project?,
                        override val connectionData: KafkaConnectionData,
-                       settings: IntervalUpdateSettings) : MonitoringDataManager(project, settings) {
+                       settings: IntervalUpdateSettings
+) : MonitoringDataManager(project, settings) {
   val registryType = connectionData.registryType
 
   val connectionId = connectionData.innerId
