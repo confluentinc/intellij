@@ -31,7 +31,7 @@ import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import javax.swing.ListSelectionModel
 import javax.swing.event.DocumentEvent
 
-class KafkaRegistryController(val project: Project,
+internal class KafkaRegistryController(val project: Project,
                               val dataManager: KafkaDataManager,
                               private val mainController: KafkaMainController) : AbstractTableController<KafkaSchemaInfo>() {
   val registryType = dataManager.registryType

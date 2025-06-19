@@ -22,7 +22,7 @@ import com.jetbrains.bigdatatools.kafka.toolwindow.config.KafkaToolWindowSetting
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import javax.swing.event.DocumentEvent
 
-class ConsumerGroupsController(val dataManager: KafkaDataManager,
+internal class ConsumerGroupsController(val dataManager: KafkaDataManager,
                                private val mainController: KafkaMainController) : AbstractTableController<ConsumerGroupPresentable>() {
   init {
     init()

@@ -31,7 +31,7 @@ import javax.swing.JLabel
 import javax.swing.ListSelectionModel
 import javax.swing.event.DocumentEvent
 
-class TopicsController(val project: Project,
+internal class TopicsController(val project: Project,
                        private val dataManager: KafkaDataManager,
                        private val mainController: KafkaMainController) : AbstractTableController<TopicPresentable>() {
   val infoPanel = JLabel("").apply {
