@@ -28,7 +28,7 @@ import java.awt.BorderLayout
  * Main controller for Kafka Cluster.
  * Contains page control for Topics / ConsumerGroups / etc.
  */
-class KafkaMainController(project: Project, connectionData: KafkaConnectionData)
+internal class KafkaMainController(project: Project, connectionData: KafkaConnectionData)
   : MainTreeController<KafkaConnectionData, KafkaDriver>(project, connectionData) {
   override val dataManager: KafkaDataManager = driver.dataManager
 

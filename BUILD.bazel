@@ -42,6 +42,7 @@ jvm_library(
     "@community//platform/platform-api:ide",
     "@community//platform/platform-impl:ide-impl",
     "@lib//:kotlin-reflect",
+    "@community//platform/platform-impl/concurrency",
     "@community//platform/execution-impl",
     "@community//platform/core-ui",
     "@community//platform/observable",
