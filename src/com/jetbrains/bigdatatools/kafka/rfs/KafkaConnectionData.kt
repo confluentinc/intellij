@@ -85,7 +85,7 @@ class KafkaConnectionData(var version: Int? = null) : RemoteFsDriverProvider(
 
   override fun createConfigurable(project: Project, parentGroup: ConnectionGroup) = KafkaConnectionConfigurable(this, project)
 
-  override var tunnel = ConnectionSshTunnelDataLegacy.DEFAULT
+  override var tunnel: ConnectionSshTunnelDataLegacy = ConnectionSshTunnelDataLegacy.DEFAULT
 
   override fun getTunnelData(): ConnectionSshTunnelData {
     migrateTunnel(this::uri)
