@@ -131,7 +131,7 @@ abstract class BdtStatisticCollector : CounterUsagesCollector() {
   override fun getGroup(): EventLogGroup = GROUP
 
   companion object {
-    private val GROUP: EventLogGroup = EventLogGroup("bigdatatools.settings", 7)
+    private val GROUP: EventLogGroup = EventLogGroup("kafka.connection.settings", 1)
     private val events: MutableMap<String, BaseEventId> = mutableMapOf<String, BaseEventId>()
     val collectors: MutableMap<String, BdtStatisticCollector> = mutableMapOf<String, BdtStatisticCollector>()
 
