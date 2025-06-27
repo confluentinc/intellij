@@ -90,6 +90,7 @@ class DiskCache(
 
   private fun clientRegistrationCache(ssoRegion: String): Path = cacheDir.resolve("aws-toolkit-jetbrains-client-id-$ssoRegion.json")
 
+  @OptIn(ExperimentalStdlibApi::class)
   private fun accessTokenCache(ssoUrl: String): Path {
     val digest = MessageDigest.getInstance("SHA-1")
     val sha = digest.digest(ssoUrl.toByteArray(Charsets.UTF_8)).toHexString()
