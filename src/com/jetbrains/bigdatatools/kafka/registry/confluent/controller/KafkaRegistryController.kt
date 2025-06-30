@@ -50,7 +50,7 @@ internal class KafkaRegistryController(val project: Project,
   }
 
   private val showFavoriteSchemasAction = object : DumbAwareToggleAction(KafkaMessagesBundle.message("action.show.favorite.schemas"), null,
-                                                                         AllIcons.Toolwindows.ToolWindowFavorites) {
+                                                                         AllIcons.Nodes.Favorite) {
     override fun isSelected(e: AnActionEvent) = KafkaToolWindowSettings.getInstance().showFavoriteSchema
     override fun getActionUpdateThread() = ActionUpdateThread.BGT
     override fun setSelected(e: AnActionEvent, state: Boolean) {

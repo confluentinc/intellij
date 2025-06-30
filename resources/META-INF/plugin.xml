@@ -98,7 +98,7 @@
       </group>
 
       <action id="Kafka.AddToFavoriteAction" class="com.jetbrains.bigdatatools.kafka.toolwindow.actions.AddToFavoriteAction"
-              icon="AllIcons.Toolwindows.ToolWindowFavorites">
+              icon="AllIcons.Nodes.Favorite">
       </action>
 
       <group id="Kafka.Topic.Actions">
