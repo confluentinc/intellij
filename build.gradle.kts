@@ -27,10 +27,6 @@ intellijPlatform {
   }
 }
 
-tasks.test {
-  useJUnitPlatform()
-}
-
 sourceSets {
   main {
     java {
@@ -105,6 +101,9 @@ tasks {
   }
   wrapper {
     gradleVersion = ext("gradle.version")
+  }
+  test {
+    useJUnitPlatform()
   }
 }
 
