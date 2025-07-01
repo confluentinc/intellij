@@ -207,9 +207,9 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
     val manager = ActionManager.getInstance()
     return listOf(
       manager.getAction("\$Copy"),
-      manager.getAction("BigDataTools.BdiTableCopyRowAction"),
-      manager.getAction("BigDataTools.BdiTableCopyColumnAction"),
-      manager.getAction("BigDataTools.BdiTableDumpToClipboardAction")
+      manager.getAction("Kafka.BdiTableCopyRowAction"),
+      manager.getAction("Kafka.BdiTableCopyColumnAction"),
+      manager.getAction("Kafka.BdiTableDumpToClipboardAction")
     )
   }
 

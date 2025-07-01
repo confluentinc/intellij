@@ -1,15 +1,24 @@
 package com.jetbrains.bigdatatools.kafka.core.util
 
+import com.intellij.CommonBundle
+import com.intellij.openapi.actionSystem.DataKey
+import com.intellij.openapi.progress.runBlockingMaybeCancellable
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.wm.ToolWindowManager
 import com.intellij.openapi.wm.impl.ToolWindowManagerImpl
+import com.intellij.platform.ide.progress.runWithModalProgressBlocking
+import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.jetbrains.bigdatatools.kafka.core.monitoring.rfs.MonitoringDriver
+import com.jetbrains.bigdatatools.kafka.core.rfs.driver.ActivitySource
+import com.jetbrains.bigdatatools.kafka.core.rfs.driver.Driver
 import com.jetbrains.bigdatatools.kafka.core.rfs.driver.RfsPath
 import com.jetbrains.bigdatatools.kafka.core.rfs.driver.manager.DriverManager
 import com.jetbrains.bigdatatools.kafka.core.rfs.projectview.toolwindow.BigDataToolWindowController
 import com.jetbrains.bigdatatools.kafka.core.rfs.projectview.toolwindow.BigDataToolWindowFactory
+import com.jetbrains.bigdatatools.kafka.core.rfs.statistics.RfsConnectionUsageCollector
 import com.jetbrains.bigdatatools.kafka.core.rfs.tree.node.DisabledRfsTreeNode
+import com.jetbrains.bigdatatools.kafka.core.rfs.ui.BdtMessages
 import com.jetbrains.bigdatatools.kafka.core.rfs.util.RfsUtil
 import com.jetbrains.bigdatatools.kafka.core.settings.CommonSettingsKeys
 import com.jetbrains.bigdatatools.kafka.core.settings.connections.ConnectionData
@@ -19,6 +28,8 @@ import org.jetbrains.annotations.Nls
 import javax.swing.tree.TreePath
 
 object ConnectionUtil {
+  internal val CONNECTION_ID: DataKey<String> = DataKey.create("ConnectionId")
+
 
   @Suppress("unused")
   fun createBearerAuth(token: String): Map<String, String> = mapOf("Authorization" to "Bearer $token")
@@ -33,6 +44,12 @@ object ConnectionUtil {
 
   fun enableConnectionByData(project: Project, connectionData: ConnectionData) {
     enableConnectionsByData(project, listOf(connectionData))
+  }
+
+  fun enableConnectionsByIds(project: Project, connectionIds: List<String>) {
+    enableConnectionsByData(project, connectionIds.mapNotNull {
+      RfsConnectionDataManager.instance?.getConnectionById(project, it)
+    })
   }
 
   fun enableConnectionsByData(project: Project, connectionDataList: List<ConnectionData>) {
@@ -50,6 +67,106 @@ object ConnectionUtil {
         val driver = DriverManager.getDriverById(project, connectionData.innerId) as? MonitoringDriver
         val controller = driver?.getController(project)
         controller?.focusOn(connectionData.innerId)
+      }
+    }
+  }
+
+  private fun showRenameDialog(connData: ConnectionData, project: Project): String? {
+    return BdtMessages.showInputDialogWithDescription(project,
+                                                      KafkaMessagesBundle.message("action.rename.dialog.title", "connection"),
+                                                      KafkaMessagesBundle.message("action.rename.dialog.label", "connection"),
+                                                      null,
+                                                      connData.name) { newName ->
+      if (newName.isEmpty())
+        KafkaMessagesBundle.message("validation.connection.should.not.empty")
+      else
+        null
+    }
+  }
+
+  private fun getConnectionData(project: Project, connectionId: String): ConnectionData? {
+    val dataManager = RfsConnectionDataManager.instance ?: return null
+    return dataManager.getConnectionById(project, connectionId)
+  }
+
+  fun renameConnection(project: Project, connectionId: String) {
+    val connectionData = getConnectionData(project, connectionId) ?: return
+    val dataManager = RfsConnectionDataManager.instance ?: return
+    val newName = showRenameDialog(connectionData, project) ?: return
+    connectionData.name = newName
+    dataManager.modifyConnection(project, connectionData, listOf(CommonSettingsKeys.NAME_KEY))
+  }
+
+  @RequiresEdt
+  fun removeConnectionsWithConfirmation(project: Project, selectedConnectionsIds: List<String>) {
+    val selectedConnections = selectedConnectionsIds.mapNotNull {
+      RfsConnectionDataManager.instance?.getConnectionById(project, it)
+    }
+
+    val connectionNames = selectedConnections.joinToString { it.name }
+    val messageText = KafkaMessagesBundle.message(if (selectedConnectionsIds.size < 2)
+                                                    "deleteConnection.single.text"
+                                                  else
+                                                    "deleteConnection.multiple.text", connectionNames)
+
+    val askUser = Messages.showOkCancelDialog(project, messageText, "",
+                                              KafkaMessagesBundle.message("deleteConnection.okText"),
+                                              CommonBundle.getCancelButtonText(),
+                                              Messages.getQuestionIcon())
+    if (askUser != Messages.OK)
+      return
+
+    runWithModalProgressBlocking(project, KafkaMessagesBundle.message("progress.title.credentials.removing")) {
+      selectedConnections.forEach {
+        it.clearCredentials()
+      }
+    }
+    selectedConnections.forEach {
+      RfsConnectionDataManager.instance?.removeConnectionKeepingCredentials(project, it)
+    }
+  }
+
+  fun disableConnectionsByIds(project: Project, connectionIds: List<String>) {
+    val resultDataList = connectionIds.mapNotNull { RfsConnectionDataManager.instance?.getConnectionById(project, it) }
+    disableConnectionsByData(project, resultDataList)
+  }
+
+  private fun disableConnectionsByData(project: Project, connectionDataList: List<ConnectionData>) {
+    if (connectionDataList.isEmpty()) {
+      return
+    }
+    val connectionNames = connectionDataList.joinToString("\n") { it.name }
+
+    val res = Messages.showYesNoDialog(project,
+                                       KafkaMessagesBundle.message("disable.connection.text", if (connectionDataList.size == 1) 0 else 1,
+                                                                   connectionNames), "", Messages.getQuestionIcon())
+    if (res == Messages.OK) {
+      connectionDataList.forEach {
+        modifyConnection(project, it, false)
+      }
+    }
+  }
+
+  fun refreshConnectionsByIds(project: Project, connectionIds: List<String>) {
+    val toRefresh = connectionIds.mapNotNull {
+      DriverManager.getDriverById(project, it) as? MonitoringDriver
+    }.map { it to null as RfsPath? }
+    refreshConnections(toRefresh)
+  }
+
+  private fun refreshConnections(toRefresh: List<Pair<Driver, RfsPath?>>) {
+    executeNotOnEdt {
+      for ((driver, path) in toRefresh) {
+        if (path == null)
+          runBlockingMaybeCancellable {
+            driver.fileInfoManager.refreshDriver(ActivitySource.ACTION)
+          }
+        else
+          driver.fileInfoManager.refreshFiles(path)
+      }
+
+      for (driver in toRefresh.map { it.first }.distinctBy { it.getExternalId() }) {
+        RfsConnectionUsageCollector.collectRefreshAction(driver)
       }
     }
   }

@@ -20,6 +20,7 @@ import com.intellij.openapi.util.WriteExternalException
 import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ex.ToolWindowEx
 import com.intellij.ui.content.ContentManager
+import com.intellij.util.ui.tree.TreeUtil
 import com.jetbrains.bigdatatools.kafka.core.constants.BdtPlugins
 import com.jetbrains.bigdatatools.kafka.core.rfs.driver.RfsPath
 import com.jetbrains.bigdatatools.kafka.core.rfs.driver.depend.MasterSlaveConnectionRemoveListener
@@ -68,8 +69,8 @@ class BigDataToolWindowController(val project: Project) : PersistentStateCompone
 
   fun setUp(toolWindow: ToolWindow) {
     toolWindow.title = BdtPlugins.calculateTitle()
-    //projectPane.init()
-    //projectPane.installDoubleClickListener()
+    projectPane.init()
+    projectPane.installDoubleClickListener()
     contentManager = toolWindow.contentManager
     contentManager.addUiDataProvider { sink ->
       sink[PlatformDataKeys.HELP_ID] = "big.data.tools.overview"
@@ -88,7 +89,7 @@ class BigDataToolWindowController(val project: Project) : PersistentStateCompone
       }
 
       val collapseAction = DumbAwareAction.create(KafkaMessagesBundle.message("action.collapseAll.text"), AllIcons.Actions.Collapseall) {
-        //TreeUtil.collapseAll(projectPane.tree, 0)
+        TreeUtil.collapseAll(projectPane.tree, 0)
       }.apply {
         registerCustomShortcutSet(CustomShortcutSet(*KeymapManager.getInstance().activeKeymap.getShortcuts("CollapseAll")),
                                   projectPane.tree, projectPane)
@@ -106,8 +107,8 @@ class BigDataToolWindowController(val project: Project) : PersistentStateCompone
 
       DriverManager.onDriversInit(project) {
         invokeLater {
-          //projectPane.updateRoots()
-          //projectPane.restoreExpandedPaths()
+          projectPane.updateRoots()
+          projectPane.restoreExpandedPaths()
 
           RfsFileViewerSettings.getInstance().tabsInfo.forEach { tabInfo ->
             val node = projectPane.treeModel.root.children.firstOrNull { it.connId == tabInfo.driverId } as? DriverFileRfsTreeNode
@@ -135,7 +136,7 @@ class BigDataToolWindowController(val project: Project) : PersistentStateCompone
     }
   }
 
-  fun getMainPane() = projectPane
+  fun getMainPane(): RfsPane = projectPane
 
   override fun getState(): Element {
     val rootElement = Element(ROOT_ELEMENT)
@@ -163,7 +164,7 @@ class BigDataToolWindowController(val project: Project) : PersistentStateCompone
     try {
       projectPane.readExternal(paneElement)
     }
-    catch (ignore: InvalidDataException) {
+    catch (_: InvalidDataException) {
     }
     projectPane.restoreExpandedPaths()
   }

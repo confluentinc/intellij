@@ -11,15 +11,18 @@ import javax.swing.JTable
 /** Clipboard utils to realize Ctrl+C functionality in Table. */
 object ClipboardUtils {
 
-  const val LINE_SEPARATOR = "\r"
+  const val LINE_SEPARATOR: String = "\r"
 
   private const val CELL_BREAK = "\t"
 
   private fun getNotificationGroup() = NotificationGroupManager.getInstance().getNotificationGroup("BDT Table")
 
-  fun setStringContent(content: String) = CopyPasteManager.getInstance().setContents(StringSelection(content))
+  fun setStringContent(content: String): Unit = CopyPasteManager.getInstance().setContents(StringSelection(content))
 
-  fun getSelectedAsString(table: JTable) = getSelectedAsString(table, table.selectedRows, table.selectedColumns)
+  fun getAllAsString(table: JTable): String = getSelectedAsString(table, (0 until table.rowCount).toIntArray(),
+                                                          (0 until table.columnCount).toIntArray())
+
+  fun getSelectedAsString(table: JTable): String = getSelectedAsString(table, table.selectedRows, table.selectedColumns)
 
   fun IntRange.toIntArray(): IntArray {
     if (last < first)
@@ -32,17 +35,6 @@ object ClipboardUtils {
     }
 
     return result
-  }
-
-  private fun appendHeader(builder: StringBuilder, table: JTable, selectedColumns: IntArray) {
-    for (i in selectedColumns.indices) {
-      val column = table.columnModel.getColumn(selectedColumns[i])
-      column.headerValue?.let { builder.append(escape(it)) }
-      if (i < selectedColumns.size - 1) {
-        builder.append(CELL_BREAK)
-      }
-    }
-    builder.append(LINE_SEPARATOR)
   }
 
   fun appendData(builder: StringBuilder, table: JTable, selectedRows: IntArray, selectedColumns: IntArray) {
