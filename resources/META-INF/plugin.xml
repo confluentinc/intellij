@@ -61,6 +61,8 @@
     <applicationService serviceImplementation="com.jetbrains.bigdatatools.kafka.common.settings.KafkaConfigStorage"/>
 
     <applicationService serviceImplementation="com.jetbrains.bigdatatools.kafka.toolwindow.config.KafkaToolWindowSettings"/>
+    <bigdatatools.kafka.connectionSettingProvider
+      implementation="com.jetbrains.bigdatatools.kafka.core.settings.connections.GeneralConnectionSettingsProvider"/>
     <bigdatatools.kafka.connectionSettingProvider implementation="com.jetbrains.bigdatatools.kafka.settings.KafkaSettingsProvider"/>
 
     <statistics.counterUsagesCollector implementationClass="com.jetbrains.bigdatatools.kafka.statistics.KafkaUsagesCollector"/>
