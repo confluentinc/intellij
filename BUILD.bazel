@@ -101,6 +101,7 @@ jvm_library(
     "@community//platform/code-style-api:codeStyle",
     "@community//platform/testFramework/junit5",
     "@community//libraries/grpc",
+    "//platform/ssh-core",
     ":plugins_spring_spring_provided",
     ":plugins_spring_spring-boot_spring-boot_provided",
     ":community_plugins_properties_backend-psi_provided",
@@ -194,6 +195,7 @@ jvm_library(
     "@community//platform/testFramework/junit5",
     "@community//platform/testFramework/junit5:junit5_test_lib",
     "@community//libraries/grpc",
+    "//platform/ssh-core",
   ],
   runtime_deps = [":kafka_resources"]
 )
