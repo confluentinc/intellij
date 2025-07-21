@@ -32,7 +32,6 @@ import com.jetbrains.bigdatatools.kafka.registry.SchemaVersionInfo
 import com.jetbrains.bigdatatools.kafka.registry.common.KafkaSchemaInfo
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaConnectionData
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaDriver
-import com.jetbrains.bigdatatools.kafka.statistics.KafkaUsagesCollector
 import com.jetbrains.bigdatatools.kafka.toolwindow.config.KafkaToolWindowSettings
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import io.confluent.kafka.schemaregistry.ParsedSchema
@@ -130,8 +129,6 @@ class KafkaDataManager(project: Project?,
   fun createTopic(name: String, numPartition: Int?, replicaFactor: Int?) = actionWrapper {
     client.createTopic(name, numPartition, replicaFactor)
     updater.invokeRefreshModel(topicModel)
-
-    KafkaUsagesCollector.topicCreatedEvent.log(project)
   }
 
   fun initRefreshSchemasIfRequired() {
@@ -177,8 +174,6 @@ class KafkaDataManager(project: Project?,
       }
 
       updater.invokeRefreshModel(topicModel)
-
-      KafkaUsagesCollector.topicDeletedEvent.log(project)
     }
   }
 
@@ -396,7 +391,6 @@ class KafkaDataManager(project: Project?,
       return
 
     clearPartitionsInternal(topic.partitionList)
-    KafkaUsagesCollector.topicClearEvent.log(project)
   }
 
   private fun getCachedTopicInfo(topicName: String) =
@@ -423,7 +417,6 @@ class KafkaDataManager(project: Project?,
       return
 
     clearPartitionsInternal(partitions)
-    KafkaUsagesCollector.partitionsClearEvent.log(project)
   }
 
   private fun clearPartitionsInternal(partitions: List<BdtTopicPartition>) {
@@ -477,8 +470,6 @@ class KafkaDataManager(project: Project?,
     client.resetOffsets(consumeGroupId, offsets)
     updater.invokeRefreshModel(consumerGroupsModel)
     updater.invokeRefreshModel(consumerGroupsOffsets[consumeGroupId])
-    KafkaUsagesCollector.consumerGroupChangeOffsetsEvent.log(project)
-
   }
 
   suspend fun getOffsetsForData(partitions: Set<TopicPartition>, timestamp: Long): Map<TopicPartition, Long> {
@@ -500,9 +491,6 @@ class KafkaDataManager(project: Project?,
       client.deleteConsumerGroup(name)
       updater.invokeRefreshModel(consumerGroupsModel)
     }
-
-    KafkaUsagesCollector.consumerGroupDeleteEvent.log(project)
-
   }
 
   fun getCachedConsumerGroup(consumerGroup: String): ConsumerGroupPresentable? {

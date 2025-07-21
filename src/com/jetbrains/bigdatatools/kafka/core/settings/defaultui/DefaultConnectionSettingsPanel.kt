@@ -10,13 +10,11 @@ import com.intellij.ui.ScrollPaneFactory
 import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.intellij.util.ui.JBUI
 import com.jetbrains.bigdatatools.kafka.core.rfs.driver.depend.MasterConnectionData
-import com.jetbrains.bigdatatools.kafka.core.rfs.statistics.v2.BdtSettingsCollector
 import com.jetbrains.bigdatatools.kafka.core.settings.*
 import com.jetbrains.bigdatatools.kafka.core.settings.connections.ConnectionData
 import com.jetbrains.bigdatatools.kafka.core.settings.connections.ConnectionData.Companion.TEST_SUFFIX
 import com.jetbrains.bigdatatools.kafka.core.settings.connections.ConnectionSettingProviderEP
 import com.jetbrains.bigdatatools.kafka.core.settings.connections.ConnectionTesting
-import com.jetbrains.bigdatatools.kafka.core.settings.connections.connType
 import com.jetbrains.bigdatatools.kafka.core.settings.fields.*
 import com.jetbrains.bigdatatools.kafka.core.settings.manager.RfsConnectionDataManager
 import com.jetbrains.bigdatatools.kafka.core.ui.MigPanel
@@ -41,7 +39,6 @@ class DefaultConnectionSettingsPanel<D : ConnectionData>(
 
   private val enabledCheckbox = JCheckBox(KafkaMessagesBundle.message("connection.enable"), conn.isEnabled).also {
     it.addItemListener { _ ->
-      BdtSettingsCollector.getInstance(conn.connType)?.logSettingsIsEnabled(it.isSelected)
     }
   }
 
@@ -51,7 +48,6 @@ class DefaultConnectionSettingsPanel<D : ConnectionData>(
       it.toolTipText = KafkaMessagesBundle.message("settings.per.project.tooltip.is.depend")
 
     it.addItemListener { _ ->
-      BdtSettingsCollector.getInstance(conn.connType)?.logSettingsPerProject(it.isSelected)
     }
   }
 

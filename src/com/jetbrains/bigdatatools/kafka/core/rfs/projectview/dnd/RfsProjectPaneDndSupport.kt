@@ -15,7 +15,6 @@ import com.intellij.psi.PsiFileSystemItem
 import com.intellij.ui.awt.RelativeRectangle
 import com.jetbrains.bigdatatools.kafka.core.rfs.copypaste.RfsCopyPasteManager
 import com.jetbrains.bigdatatools.kafka.core.rfs.driver.local.LocalDriverManager
-import com.jetbrains.bigdatatools.kafka.core.rfs.statistics.RfsConnectionUsageCollector
 import java.awt.Rectangle
 import java.io.File
 import javax.swing.tree.TreePath
@@ -80,7 +79,6 @@ object RfsProjectPaneDndSupport {
                                                  sourceFiles = sourceFileInfos,
                                                  allowMove = false,
                                                  onResult = {
-                                                   RfsConnectionUsageCollector.collectDND(targetFileInfo.driver, sourceFileInfos)
                                                  })
           return true
         }

@@ -11,7 +11,6 @@ import com.jetbrains.bigdatatools.kafka.core.rfs.driver.*
 import com.jetbrains.bigdatatools.kafka.core.rfs.editorviewer.RfsViewerEditorProvider
 import com.jetbrains.bigdatatools.kafka.core.rfs.exception.RfsAuthRequiredError
 import com.jetbrains.bigdatatools.kafka.core.rfs.icons.RfsIcons
-import com.jetbrains.bigdatatools.kafka.core.rfs.statistics.RfsConnectionUsageCollector
 import com.jetbrains.bigdatatools.kafka.core.util.SizeUtils
 import com.jetbrains.bigdatatools.kafka.core.util.TimeUtils
 import com.jetbrains.bigdatatools.kafka.core.util.executeOnPooledThread
@@ -98,7 +97,6 @@ open class DriverFileRfsTreeNode(project: Project,
       runBlockingCancellable {
         driver.fileInfoManager.refreshDriver(ActivitySource.ACTION)
       }
-      RfsConnectionUsageCollector.collectRefreshAction(driver)
     }
     true
   }

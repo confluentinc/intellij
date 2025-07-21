@@ -10,7 +10,6 @@ import com.intellij.openapi.util.UserDataHolder
 import com.intellij.openapi.util.UserDataHolderBase
 import com.jetbrains.bigdatatools.kafka.core.rfs.driver.SafeExecutor
 import com.jetbrains.bigdatatools.kafka.core.rfs.settings.RfsConnectionTestingBase
-import com.jetbrains.bigdatatools.kafka.core.rfs.statistics.v2.BdtSettingsCollector
 import com.jetbrains.bigdatatools.kafka.core.settings.ConnectionSettingsPanel
 import com.jetbrains.bigdatatools.kafka.core.settings.defaultui.DefaultConnectionSettingsPanel
 import com.jetbrains.bigdatatools.kafka.core.settings.defaultui.SettingsPanelCustomizer
@@ -66,12 +65,10 @@ abstract class ConnectionConfigurable<D : ConnectionData, C: SettingsPanelCustom
 
   override fun apply() {
     val changedFields = checkNotNull(component).apply()
-    BdtSettingsCollector.getInstance(connectionData.connType)?.logSettingsApply()
     RfsConnectionDataManager.instance?.modifyConnection(project, connectionData, changedFields)
   }
 
   override fun cancel() {
-    BdtSettingsCollector.getInstance(connectionData.connType)?.logSettingsCancel()
     super.cancel()
   }
 

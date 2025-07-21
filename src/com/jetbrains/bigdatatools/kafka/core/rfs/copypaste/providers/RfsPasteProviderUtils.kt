@@ -7,7 +7,6 @@ import com.jetbrains.bigdatatools.kafka.core.rfs.copypaste.model.TransferableDes
 import com.jetbrains.bigdatatools.kafka.core.rfs.copypaste.model.rfsDataFlavor
 import com.jetbrains.bigdatatools.kafka.core.rfs.driver.FileInfo
 import com.jetbrains.bigdatatools.kafka.core.rfs.driver.local.LocalDriverManager
-import com.jetbrains.bigdatatools.kafka.core.rfs.statistics.RfsConnectionUsageCollector
 import java.awt.datatransfer.DataFlavor
 import java.io.File
 
@@ -22,9 +21,7 @@ object RfsPasteProviderUtils {
                                            targetDriver = destInfo.driver,
                                            sourceFiles = pasteInfos,
                                            allowMove = allowMove,
-                                           onResult = {
-                                             RfsConnectionUsageCollector.collectCopyPaste(destInfo.driver, pasteInfos)
-                                           })
+                                           onResult = {})
     return true
   }
 

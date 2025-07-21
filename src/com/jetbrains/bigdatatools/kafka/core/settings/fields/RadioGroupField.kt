@@ -1,19 +1,12 @@
 package com.jetbrains.bigdatatools.kafka.core.settings.fields
 
-import com.intellij.internal.statistic.eventLog.events.BaseEventId
-import com.intellij.internal.statistic.eventLog.events.EventId2
-import com.intellij.internal.statistic.eventLog.events.EventId3
 import com.intellij.ui.components.RadioButton
 import com.intellij.ui.scale.JBUIScale
-import com.jetbrains.bigdatatools.kafka.core.constants.BdtConnectionType
-import com.jetbrains.bigdatatools.kafka.core.rfs.statistics.v2.BdtStatisticUtils
-import com.jetbrains.bigdatatools.kafka.core.rfs.statistics.v2.StatisticInfoProvider
 import com.jetbrains.bigdatatools.kafka.core.settings.ModificationKey
 import com.jetbrains.bigdatatools.kafka.core.settings.components.RenderableEntity
 import com.jetbrains.bigdatatools.kafka.core.settings.connections.ConnectionData
 import java.awt.Dimension
 import java.awt.event.ItemEvent
-import java.util.concurrent.atomic.AtomicInteger
 import javax.swing.Box
 import javax.swing.ButtonGroup
 import javax.swing.JPanel
@@ -23,11 +16,12 @@ fun interface ChangeListener {
   fun onChange()
 }
 
-class RadioGroupField<D : ConnectionData, E : RenderableEntity>(private val prop: KMutableProperty1<D, E>,
-                                                                key: ModificationKey,
-                                                                initSettings: D,
-                                                                private val items: Collection<E>) : WrappedNamedComponent<D>(
-  key), StatisticInfoProvider {
+class RadioGroupField<D : ConnectionData, E : RenderableEntity>(
+  private val prop: KMutableProperty1<D, E>,
+  key: ModificationKey,
+  initSettings: D,
+  private val items: Collection<E>,
+) : WrappedNamedComponent<D>(key) {
 
   private val component = JPanel()
   private val group = ButtonGroup()
@@ -79,23 +73,4 @@ class RadioGroupField<D : ConnectionData, E : RenderableEntity>(private val prop
   override fun apply(conn: D) = prop.set(conn, getValue())
 
   override fun isModified(conn: D) = prop.get(conn) != getValue()
-
-  @Suppress("UNCHECKED_CAST")
-  override fun attachCollector(eventId: BaseEventId, index: AtomicInteger, type: BdtConnectionType) {
-    when (eventId) {
-      is EventId2<*, *> -> {
-        val event = eventId as EventId2<Int, BdtConnectionType>
-        addItemListener {
-          event.log(index.incrementAndGet(), type)
-        }
-      }
-      is EventId3<*, *, *> -> {
-        val event = eventId as EventId3<Int, BdtConnectionType, String>
-        addItemListener {
-          val s = BdtStatisticUtils.parseComboboxItem(getValue()) ?: return@addItemListener
-          event.log(index.incrementAndGet(), type, s)
-        }
-      }
-    }
-  }
 }

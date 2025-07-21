@@ -39,7 +39,6 @@
     <completion.contributor language="JSON"
                             implementationClass="com.jetbrains.bigdatatools.kafka.completion.KafkaProducerGeneratorCompletionContributor"/>
 
-
     <dependencySupport kind="java" coordinate="java:org.springframework.kafka:spring-kafka" displayName="spring-kafka"/>
     <dependencySupport kind="java" coordinate="java:io.micronaut.kafka:micronaut-kafka" displayName="micronaut-kafka"/>
     <dependencySupport kind="java" coordinate="java:org.apache.spark:spark-sql-kafka-0-10_2.13" displayName="spark-sql-kafka"/>
@@ -56,16 +55,12 @@
     <dependencySupport kind="python" coordinate="confluent-kafka" displayName="confluent-kafka"/>
     <dependencySupport kind="python" coordinate="boto3-kafka" displayName="boto3-kafka"/>
 
-    <statistics.counterUsagesCollector implementationClass="com.jetbrains.bigdatatools.kafka.statistics.KafkaSettingsCollector"/>
-
     <applicationService serviceImplementation="com.jetbrains.bigdatatools.kafka.common.settings.KafkaConfigStorage"/>
 
     <applicationService serviceImplementation="com.jetbrains.bigdatatools.kafka.toolwindow.config.KafkaToolWindowSettings"/>
     <bigdatatools.kafka.connectionSettingProvider
       implementation="com.jetbrains.bigdatatools.kafka.core.settings.connections.GeneralConnectionSettingsProvider"/>
     <bigdatatools.kafka.connectionSettingProvider implementation="com.jetbrains.bigdatatools.kafka.settings.KafkaSettingsProvider"/>
-
-    <statistics.counterUsagesCollector implementationClass="com.jetbrains.bigdatatools.kafka.statistics.KafkaUsagesCollector"/>
 
     <toolWindow id="KafkaToolWindow" anchor="bottom" canCloseContents="true"
                 icon="com.intellij.bigdatatools.kafka.icons.BigdatatoolsKafkaIcons.KafkaToolWindow"

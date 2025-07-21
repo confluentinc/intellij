@@ -16,7 +16,6 @@ import com.jetbrains.bigdatatools.kafka.core.rfs.driver.RfsPath
 import com.jetbrains.bigdatatools.kafka.core.rfs.driver.manager.DriverManager
 import com.jetbrains.bigdatatools.kafka.core.rfs.projectview.toolwindow.BigDataToolWindowController
 import com.jetbrains.bigdatatools.kafka.core.rfs.projectview.toolwindow.BigDataToolWindowFactory
-import com.jetbrains.bigdatatools.kafka.core.rfs.statistics.RfsConnectionUsageCollector
 import com.jetbrains.bigdatatools.kafka.core.rfs.tree.node.DisabledRfsTreeNode
 import com.jetbrains.bigdatatools.kafka.core.rfs.ui.BdtMessages
 import com.jetbrains.bigdatatools.kafka.core.rfs.util.RfsUtil
@@ -163,10 +162,6 @@ object ConnectionUtil {
           }
         else
           driver.fileInfoManager.refreshFiles(path)
-      }
-
-      for (driver in toRefresh.map { it.first }.distinctBy { it.getExternalId() }) {
-        RfsConnectionUsageCollector.collectRefreshAction(driver)
       }
     }
   }

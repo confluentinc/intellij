@@ -25,7 +25,6 @@ import com.jetbrains.bigdatatools.kafka.core.ui.row
 import com.jetbrains.bigdatatools.kafka.core.util.BdtUrlUtils
 import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryType
 import com.jetbrains.bigdatatools.kafka.rfs.*
-import com.jetbrains.bigdatatools.kafka.statistics.KafkaSettingsCollector
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import kotlinx.coroutines.CoroutineScope
 
@@ -200,7 +199,6 @@ class KafkaSettingsCustomizer(project: Project,
     registryGlueRegion = registrySettings.awsGlueSettings.profileComboBox
     registryGlueRegistryName = registrySettings.glueRegistryName
 
-    KafkaSettingsCollector.Util.getInstance().initPanel(this)
   }
 
   object KafkaSettingsKeys {

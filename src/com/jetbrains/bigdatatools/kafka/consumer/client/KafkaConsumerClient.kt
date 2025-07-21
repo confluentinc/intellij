@@ -6,7 +6,6 @@ import com.jetbrains.bigdatatools.kafka.consumer.editor.ConsumerEditorUtils
 import com.jetbrains.bigdatatools.kafka.consumer.models.ConsumerProducerFieldConfig
 import com.jetbrains.bigdatatools.kafka.consumer.models.ConsumerStartWith
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
-import com.jetbrains.bigdatatools.kafka.statistics.KafkaUsagesCollector
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import com.jetbrains.bigdatatools.kafka.util.KafkaOffsetUtils
 import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig
@@ -48,7 +47,6 @@ class KafkaConsumerClient(val dataManager: KafkaDataManager,
       consumedRecords = startInner(config, dataManager, keyConfig, valueConfig, consumeError, timestampUpdate, consumedRecords, consume)
     }
     finally {
-      KafkaUsagesCollector.consumedKeyValue.log(config.getKeyType(), config.getValueType(), consumedRecords)
       stop()
     }
   }

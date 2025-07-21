@@ -9,7 +9,6 @@ import com.jetbrains.bigdatatools.kafka.core.rfs.driver.Driver
 import com.jetbrains.bigdatatools.kafka.core.rfs.driver.RfsPath
 import com.jetbrains.bigdatatools.kafka.core.rfs.driver.copyhandler.InterDriverCopyManager
 import com.jetbrains.bigdatatools.kafka.core.rfs.projectview.actions.RfsPaneOwner
-import com.jetbrains.bigdatatools.kafka.core.rfs.statistics.RfsConnectionUsageCollector
 import com.jetbrains.bigdatatools.kafka.core.rfs.viewer.utils.DriverRfsTreeUtil.lastDriverNode
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -59,7 +58,6 @@ class RfsPaneDnDTarget(val pane: RfsPaneOwner, private val defaultDriver: Driver
                                            targetDriver = targetDriver,
                                            sourceFiles = sourceFileInfos,
                                            onResult = {
-                                             RfsConnectionUsageCollector.collectDND(targetDriver, sourceFileInfos)
                                              withContext(Dispatchers.IO) {
                                                LocalFileSystem.getInstance().refresh(false)
                                              }
