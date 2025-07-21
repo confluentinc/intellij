@@ -29,7 +29,6 @@ import com.jetbrains.bigdatatools.kafka.core.rfs.driver.FileInfo
 import com.jetbrains.bigdatatools.kafka.core.rfs.driver.RfsPath
 import com.jetbrains.bigdatatools.kafka.core.rfs.driver.local.LocalDriver
 import com.jetbrains.bigdatatools.kafka.core.rfs.driver.local.LocalDriverManager
-import com.jetbrains.bigdatatools.kafka.core.rfs.statistics.RfsConnectionUsageCollector
 import com.jetbrains.bigdatatools.kafka.core.rfs.util.RfsNotificationUtils
 import com.jetbrains.bigdatatools.kafka.core.util.executeNotOnEdt
 import com.jetbrains.bigdatatools.kafka.core.util.invokeLater
@@ -63,9 +62,7 @@ object RfsCopyPasteManager {
     RfsCopyPasteUtil.copyMove(project, targetInfo, sourceFileInfos,
                               move = false,
                               additionalParams = additionalParams,
-                              onFileLoad = {
-                                RfsConnectionUsageCollector.collectUploadFromDiskAction(targetDriver, sourceFileInfos)
-                              },
+                              onFileLoad = { },
                               runInBackground = false)
   }
 
@@ -98,8 +95,6 @@ object RfsCopyPasteManager {
                        sourceFiles = sourceFileInfos,
                        allowMove = false,
                        onResult = {
-                         RfsConnectionUsageCollector.collectUploadFromDiskAction(targetDriver,
-                                                                                 sourceFileInfos)
                          onResult(it)
                        },
                        runInBackground = runInBackground)
@@ -148,9 +143,7 @@ object RfsCopyPasteManager {
                            targetPath = targetFileInfo.path,
                            allowMove = false,
                            availableTargetDrivers = systemRootDrivers,
-                           onResult = {
-                             RfsConnectionUsageCollector.collectSaveToDiskAction(fileInfos)
-                           })
+                           onResult = { })
       }
     }
   }

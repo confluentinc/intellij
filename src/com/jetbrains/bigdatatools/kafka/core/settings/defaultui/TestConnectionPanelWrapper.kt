@@ -21,12 +21,9 @@ import com.intellij.ui.components.ActionLink
 import com.intellij.ui.dsl.builder.AlignX
 import com.intellij.ui.dsl.builder.panel
 import com.intellij.util.ui.UIUtil
-import com.jetbrains.bigdatatools.kafka.core.rfs.statistics.v2.BdtSettingsCollector
-import com.jetbrains.bigdatatools.kafka.core.rfs.statistics.v2.StatisticTestConnectionResult
 import com.jetbrains.bigdatatools.kafka.core.settings.connections.ConnectionData
 import com.jetbrains.bigdatatools.kafka.core.settings.connections.ConnectionTesting
 import com.jetbrains.bigdatatools.kafka.core.settings.connections.ConnectionTestingSession
-import com.jetbrains.bigdatatools.kafka.core.settings.connections.connType
 import com.jetbrains.bigdatatools.kafka.core.settings.fields.WrappedComponent
 import com.jetbrains.bigdatatools.kafka.core.settings.isValidateable
 import com.jetbrains.bigdatatools.kafka.core.ui.*
@@ -53,8 +50,6 @@ class TestConnectionPanelWrapper<D : ConnectionData>(private val connectionTesti
 
   private val statusIndicator = StatusIndicator(EmptyStatus)
 
-  private val statisticCollector = BdtSettingsCollector.getInstance(connProvider().connType)
-
   val testingProcess: JobHandle = JobHandle(coroutineScope)
 
   private val testButtonCardLayout = CardLayout()
@@ -64,8 +59,7 @@ class TestConnectionPanelWrapper<D : ConnectionData>(private val connectionTesti
   private val testCardId = "test"
   private val cancelCardId = "cancel"
 
-  private fun updateStatusFinished(connectionStatus: ConnectionStatus, statisticStatus: StatisticTestConnectionResult) {
-    statisticCollector?.logSettingsTestConnectionFinished(statisticStatus)
+  private fun updateStatusFinished(connectionStatus: ConnectionStatus, statisticStatus: TestConnectionResult) {
     if (statusIndicator.isVisible()) {
       statusIndicator.updateStatus(connectionStatus)
       testButtonCardLayout.show(testButtonPanel, testCardId)
@@ -77,7 +71,6 @@ class TestConnectionPanelWrapper<D : ConnectionData>(private val connectionTesti
     testButtonPanel.add(testButton, testCardId)
     testButtonPanel.add(cancelButton, cancelCardId)
     testButton.addActionListener {
-      statisticCollector?.logSettingsRunTestConnection()
       statusIndicator.updateStatus(TestingInProcess)
       testButtonCardLayout.show(testButtonPanel, cancelCardId)
       cancelButton.requestFocus()
@@ -87,13 +80,13 @@ class TestConnectionPanelWrapper<D : ConnectionData>(private val connectionTesti
         }
         catch (_: CancellationException) {
           withContext(NonCancellable + Dispatchers.EDT) {
-            updateStatusFinished(EmptyStatus, StatisticTestConnectionResult.CANCEL)
+            updateStatusFinished(EmptyStatus, TestConnectionResult.CANCEL)
           }
         }
         catch (e: Throwable) {
           thisLogger().error(e)
           withContext(Dispatchers.EDT) {
-            updateStatusFinished(ConnectionError(e), StatisticTestConnectionResult.ERROR)
+            updateStatusFinished(ConnectionError(e), TestConnectionResult.ERROR)
           }
         }
       }
@@ -129,7 +122,7 @@ class TestConnectionPanelWrapper<D : ConnectionData>(private val connectionTesti
                                     shortDescription = KafkaMessagesBundle.message("connection.invalid"),
                                     additionalErrorDescription = found.joinToString("\n") { it.first.key.label + " " + it.second.message })
 
-        updateStatusFinished(error, StatisticTestConnectionResult.VALIDATION_ERROR)
+        updateStatusFinished(error, TestConnectionResult.VALIDATION_ERROR)
       }
       found.isNotEmpty()
     }
@@ -147,10 +140,10 @@ class TestConnectionPanelWrapper<D : ConnectionData>(private val connectionTesti
         modalityState = modalityState,
         updateStatusIndicator = { status ->
           val statisticStatus = if (status is ConnectionSuccessful) {
-            StatisticTestConnectionResult.SUCCESS
+            TestConnectionResult.SUCCESS
           }
           else {
-            StatisticTestConnectionResult.ERROR
+            TestConnectionResult.ERROR
           }
           withContext(Dispatchers.EDT) {
             updateStatusFinished(status, statisticStatus)
@@ -364,4 +357,11 @@ object EmptyStatus : ConnectionStatus {
   override val error: Throwable? = null
 
   override val icon: Icon? = null
+}
+
+enum class TestConnectionResult {
+  SUCCESS,
+  VALIDATION_ERROR,
+  ERROR,
+  CANCEL
 }

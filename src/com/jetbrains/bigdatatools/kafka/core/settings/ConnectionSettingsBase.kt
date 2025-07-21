@@ -11,7 +11,6 @@ import com.jetbrains.bigdatatools.kafka.core.constants.BdtPlugins.isSupportedByP
 import com.jetbrains.bigdatatools.kafka.core.settings.connections.ConnectionData
 import com.jetbrains.bigdatatools.kafka.core.settings.connections.ConnectionFactory
 import com.jetbrains.bigdatatools.kafka.core.settings.connections.ConnectionSettingProviderEP
-import com.jetbrains.bigdatatools.kafka.core.settings.statistics.ConnectionUsagesCollector
 import com.jetbrains.bigdatatools.kafka.core.util.BdIdeRegistryUtil
 import com.jetbrains.bigdatatools.kafka.core.util.InternalFeature
 import org.jetbrains.annotations.VisibleForTesting
@@ -234,8 +233,6 @@ abstract class ConnectionSettingsBase : PersistentStateComponent<ConnectionPersi
 
       override fun endLoading() {
         if (errorsMap.isEmpty()) return
-
-        ConnectionUsagesCollector.logLoadErrors(errorsMap)
 
         val errorMessage = "Error while loading connections: " + errorsMap.keys.joinToString(separator = ", ") { cd ->
           "[" + cd.name + (if (cd is ExtendedConnectionData) ", " + cd.fqn else "") + "]"

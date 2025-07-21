@@ -16,7 +16,6 @@ import com.jetbrains.bigdatatools.kafka.core.settings.actions.CreateConnectionPo
 import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaDriver
 import com.jetbrains.bigdatatools.kafka.rfs.KafkaDriver.Companion.isTopicFolder
-import com.jetbrains.bigdatatools.kafka.statistics.KafkaUsagesCollector
 import com.jetbrains.bigdatatools.kafka.toolwindow.controllers.KafkaFileType
 import javax.swing.JComponent
 
@@ -53,8 +52,6 @@ class KafkaCreateConsumerAction : DumbAwareAction(), CustomComponentAction {
 
   companion object {
     fun createConsumer(project: Project, dataManager: KafkaDataManager, defaultTopic: String?) {
-      KafkaUsagesCollector.openConsumerEvent.log(dataManager.project)
-
       val connectionData = dataManager.connectionData
       val file = LightVirtualFile("${connectionData.name} Consumer", KafkaFileType(), "").apply {
         putUserData(KafkaEditorProvider.KAFKA_MANAGER_KEY, dataManager)

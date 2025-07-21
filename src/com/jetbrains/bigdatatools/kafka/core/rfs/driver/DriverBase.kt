@@ -18,7 +18,6 @@ import com.jetbrains.bigdatatools.kafka.core.rfs.fileInfo.*
 import com.jetbrains.bigdatatools.kafka.core.rfs.fileInfo.impl.DriverCacheFileInfoManager
 import com.jetbrains.bigdatatools.kafka.core.rfs.search.impl.ListResult
 import com.jetbrains.bigdatatools.kafka.core.rfs.search.impl.SearchResult
-import com.jetbrains.bigdatatools.kafka.core.rfs.statistics.RfsConnectionUsageCollector
 import com.jetbrains.bigdatatools.kafka.core.rfs.tree.DriverRfsTreeModel
 import com.jetbrains.bigdatatools.kafka.core.rfs.tree.SmartDriverRfsTreeModel
 import com.jetbrains.bigdatatools.kafka.core.rfs.tree.node.RfsDriverTreeNodeBuilder
@@ -112,8 +111,6 @@ abstract class DriverBase : AbstractDriver() {
       // - call driverRefreshFinished strictly before driverRefreshStarted of consequent invocation
       // - pass ProcessCanceledException instead of CancellationException to fus (because kotlin exceptions are not allowed to report)
       FailedConnectionStatus(CeProcessCanceledException(e))
-    }.also { result ->
-      RfsConnectionUsageCollector.collectConnectionRefreshed(this@DriverBase, result, refreshStarted.elapsedNow(), activitySource)
     }
   }
 

@@ -35,7 +35,6 @@ import com.jetbrains.bigdatatools.kafka.producer.models.AcksType
 import com.jetbrains.bigdatatools.kafka.producer.models.ProducerEditorState
 import com.jetbrains.bigdatatools.kafka.producer.models.ProducerFlowParams
 import com.jetbrains.bigdatatools.kafka.producer.models.RecordCompression
-import com.jetbrains.bigdatatools.kafka.statistics.KafkaUsagesCollector
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import java.awt.Dimension
 import java.beans.PropertyChangeListener
@@ -237,8 +236,6 @@ class KafkaProducerEditor(val project: Project,
       }
     }
 
-    KafkaUsagesCollector.producedKeyValue.log(project, keyFieldComponent.fieldTypeComboBox.item,
-                                              valueFieldComponent.fieldTypeComboBox.item)
     return false
   }
 

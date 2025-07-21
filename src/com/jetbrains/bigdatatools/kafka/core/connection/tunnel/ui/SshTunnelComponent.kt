@@ -1,6 +1,5 @@
 package com.jetbrains.bigdatatools.kafka.core.connection.tunnel.ui
 
-import com.intellij.internal.statistic.eventLog.events.BaseEventId
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.ComponentValidator
@@ -17,9 +16,6 @@ import com.intellij.ui.layout.selected
 import com.jetbrains.bigdatatools.kafka.core.connection.tunnel.model.ConnectionSshTunnelData
 import com.jetbrains.bigdatatools.kafka.core.connection.tunnel.model.TunnelableData
 import com.jetbrains.bigdatatools.kafka.core.connection.tunnel.model.getTunnelDataOrDefault
-import com.jetbrains.bigdatatools.kafka.core.constants.BdtConnectionType
-import com.jetbrains.bigdatatools.kafka.core.rfs.statistics.v2.BdtStatisticUtils
-import com.jetbrains.bigdatatools.kafka.core.rfs.statistics.v2.StatisticInfoProvider
 import com.jetbrains.bigdatatools.kafka.core.settings.ModificationKey
 import com.jetbrains.bigdatatools.kafka.core.settings.connections.ConnectionData
 import com.jetbrains.bigdatatools.kafka.core.settings.defaultui.HostAndPortChangeListener
@@ -30,7 +26,6 @@ import com.jetbrains.bigdatatools.kafka.core.ui.row
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 import org.jetbrains.annotations.Nls
 import java.util.concurrent.atomic.AtomicBoolean
-import java.util.concurrent.atomic.AtomicInteger
 import java.util.function.Supplier
 import javax.swing.JCheckBox
 
@@ -44,7 +39,7 @@ class SshTunnelComponent<T>(val project: Project,
                             private val additionalHelper: String = "",
                             @NlsContexts.DetailedDescription private val enabledNotification: String = "",
                             showLocalPort: Boolean = true) : WrappedComponent<T>(
-  KEY), HostAndPortChangeListener, StatisticInfoProvider
+  KEY), HostAndPortChangeListener
   where T : TunnelableData, T : ConnectionData {
 
   private var initialized: AtomicBoolean = AtomicBoolean(false)
@@ -186,10 +181,6 @@ class SshTunnelComponent<T>(val project: Project,
   override fun getValidators(): List<ComponentValidator> = listOfNotNull(
     ComponentValidator.getInstance(sshComboBox.comboBox).orElse(null)
   )
-
-  override fun attachCollector(eventId: BaseEventId, index: AtomicInteger, type: BdtConnectionType) {
-    BdtStatisticUtils.attachCollector(sshComboBox.comboBox, eventId, index, type)
-  }
 
   companion object {
     val KEY = ModificationKey("SSH_TUNNEL")
