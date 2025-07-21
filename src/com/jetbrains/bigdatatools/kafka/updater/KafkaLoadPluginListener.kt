@@ -4,6 +4,7 @@ import com.intellij.ide.plugins.DynamicPluginListener
 import com.intellij.ide.plugins.IdeaPluginDescriptor
 import com.intellij.notification.Notification.CollapseActionsDirection
 import com.intellij.notification.NotificationAction
+import com.intellij.notification.NotificationGroup
 import com.intellij.notification.NotificationGroupManager
 import com.intellij.notification.NotificationType
 import com.intellij.openapi.actionSystem.CommonDataKeys
@@ -19,7 +20,7 @@ import com.jetbrains.bigdatatools.kafka.settings.KafkaConnectionGroup
 import com.jetbrains.bigdatatools.kafka.toolwindow.KafkaMonitoringToolWindowController
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
 
-private val defaultNotificationGroup =
+private val defaultNotificationGroup: NotificationGroup get() =
   NotificationGroupManager.getInstance().getNotificationGroup("kafka")
 
 internal class KafkaLoadPluginListener : DynamicPluginListener {
