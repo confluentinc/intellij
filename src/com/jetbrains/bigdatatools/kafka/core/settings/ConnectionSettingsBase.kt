@@ -11,6 +11,7 @@ import com.jetbrains.bigdatatools.kafka.core.constants.BdtPlugins.isSupportedByP
 import com.jetbrains.bigdatatools.kafka.core.settings.connections.ConnectionData
 import com.jetbrains.bigdatatools.kafka.core.settings.connections.ConnectionFactory
 import com.jetbrains.bigdatatools.kafka.core.settings.connections.ConnectionSettingProviderEP
+import com.jetbrains.bigdatatools.kafka.core.settings.connections.connType
 import com.jetbrains.bigdatatools.kafka.core.util.BdIdeRegistryUtil
 import com.jetbrains.bigdatatools.kafka.core.util.InternalFeature
 import org.jetbrains.annotations.VisibleForTesting
@@ -25,7 +26,6 @@ import kotlin.Pair
 import kotlin.String
 import kotlin.Suppress
 import kotlin.Throwable
-import kotlin.Unit
 import kotlin.let
 import kotlin.reflect.KClass
 import kotlin.reflect.KMutableProperty
@@ -261,7 +261,7 @@ abstract class ConnectionSettingsBase : PersistentStateComponent<ConnectionPersi
 
   override fun loadState(state: ConnectionPersistentState) = synchronized(this) {
     val errorHandler = BufferingErrorHandler()
-    val connectionData = state.connections.map { unpackData(it, errorHandler) }
+    val connectionData = state.connections.filter { it.connType != null }.map { unpackData(it, errorHandler) }
 
     connectionData.forEach {
       try {
@@ -320,7 +320,7 @@ abstract class ConnectionSettingsBase : PersistentStateComponent<ConnectionPersi
     return@synchronized true
   }
 
-  override fun dispose() = Unit
+  override fun dispose() {}
 
   private class PluginObjectInputStream(inp: InputStream, private val forData: ExtendedConnectionData) : ObjectInputStream(inp) {
     private fun loadClassInner(loader: ClassLoader, fqn: String): Class<*>? {

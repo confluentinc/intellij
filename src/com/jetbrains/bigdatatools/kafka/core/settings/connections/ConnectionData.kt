@@ -30,8 +30,8 @@ abstract class ConnectionData(
 ) : Serializable {
   companion object {
     private val logger = Logger.getInstance(this::class.java)
-    const val SERVICE_PREFIX = "BigDataIDEConnectionSettings"
-    const val TEST_SUFFIX = ":test"
+    const val SERVICE_PREFIX: String = "BigDataIDEConnectionSettings"
+    const val TEST_SUFFIX: String = ":test"
 
     fun getUrlWithHttp(uri: String): String {
       fun withoutLasSlash(string: String): String {
@@ -125,13 +125,7 @@ class ConnectionTestingSession<D : ConnectionData>(
 @JvmInline
 value class CredentialId(val value: String)
 
-/** If uri already start with http, returns uri, else returns "http://$uri". Also trims last slash if  */
-@NlsSafe
-fun ConnectionData.httpUrl(): String {
-  return ConnectionData.getUrlWithHttp(uri)
-}
-
-val ConnectionData.connType: BdtConnectionType
+val ConnectionData.connType: BdtConnectionType?
   get() {
-    return BdtConnectionType.getForId(groupId)!!
+    return BdtConnectionType.getForId(groupId)
   }
