@@ -8,22 +8,22 @@ jvm_resources(
 )
 
 jvm_provided_library(
-  name = "spring_provided",
+  name = "plugins_spring_spring_provided",
   lib = "//plugins/spring/spring"
 )
 
 jvm_provided_library(
-  name = "spring-boot_provided",
+  name = "plugins_spring_spring-boot_spring-boot_provided",
   lib = "//plugins/spring/spring-boot/spring-boot"
 )
 
 jvm_provided_library(
-  name = "backend-psi_provided",
+  name = "community_plugins_properties_backend-psi_provided",
   lib = "@community//plugins/properties/properties-psi-impl:backend-psi"
 )
 
 jvm_provided_library(
-  name = "config_provided",
+  name = "plugins_microservices_config_provided",
   lib = "//plugins/microservices/microservices-config:config"
 )
 
@@ -102,10 +102,10 @@ jvm_library(
     "@community//platform/remote-core",
     "@community//platform/code-style-api:codeStyle",
     "@community//platform/testFramework/junit5",
-    ":spring_provided",
-    ":spring-boot_provided",
-    ":backend-psi_provided",
-    ":config_provided",
+    ":plugins_spring_spring_provided",
+    ":plugins_spring_spring-boot_spring-boot_provided",
+    ":community_plugins_properties_backend-psi_provided",
+    ":plugins_microservices_config_provided",
   ],
   runtime_deps = [":kafka_resources"]
 )
