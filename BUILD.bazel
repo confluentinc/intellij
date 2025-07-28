@@ -75,7 +75,6 @@ jvm_library(
     "@ultimate_lib//:software-amazon-awssdk-glue",
     "@ultimate_lib//:bigdatatools-kafka-software-amazon-glue-schema-registry-serde",
     "@lib//:snakeyaml-engine",
-    "@ultimate_lib//:bigdatatools-kafka-squareup-wire-compiler",
     "@lib//:snakeyaml",
     "@ultimate_lib//:bigdatatools-kafka-github-mifmif-generex",
     "@lib//:google-protobuf-java-util",
@@ -107,12 +106,6 @@ jvm_library(
     ":spring-boot_provided",
     ":backend-psi_provided",
     ":config_provided",
-  ],
-  exports = [
-    "@ultimate_lib//:bigdatatools-kafka-apache-kafka-clients",
-    "@ultimate_lib//:bigdatatools-kafka-io-confluent-kafka-json-schema-serializer",
-    "@ultimate_lib//:bigdatatools-kafka-io-confluent-kafka-protobuf-serializer",
-    "@ultimate_lib//:bigdatatools-kafka-io-confluent-kafka-schema-registry-client",
   ],
   runtime_deps = [":kafka_resources"]
 )
@@ -168,7 +161,6 @@ jvm_library(
     "@ultimate_lib//:software-amazon-awssdk-glue",
     "@ultimate_lib//:bigdatatools-kafka-software-amazon-glue-schema-registry-serde",
     "@lib//:snakeyaml-engine",
-    "@ultimate_lib//:bigdatatools-kafka-squareup-wire-compiler",
     "@lib//:snakeyaml",
     "@ultimate_lib//:bigdatatools-kafka-github-mifmif-generex",
     "@lib//:google-protobuf-java-util",

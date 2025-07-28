@@ -29,7 +29,7 @@
     <orderEntry type="module" module-name="intellij.platform.testFramework" scope="TEST" />
     <orderEntry type="library" name="gson" level="project" />
     <orderEntry type="module" module-name="intellij.platform.lang.impl" />
-    <orderEntry type="module-library" exported="">
+    <orderEntry type="module-library">
       <library name="apache.kafka.clients" type="repository">
         <properties maven-id="org.apache.kafka:kafka-clients:3.9.0">
           <verification>
@@ -105,10 +105,10 @@
     <orderEntry type="module" module-name="intellij.platform.util.diff" />
     <orderEntry type="module-library">
       <library name="io.confluent.kafka.avro.serializer" type="repository">
-        <properties maven-id="io.confluent:kafka-avro-serializer:7.0.1">
+        <properties maven-id="io.confluent:kafka-avro-serializer:7.2.0">
           <verification>
-            <artifact url="file://$MAVEN_REPOSITORY$/io/confluent/kafka-avro-serializer/7.0.1/kafka-avro-serializer-7.0.1.jar">
-              <sha256sum>9777fcf729a1185e513cb9a62708c799ab80fdd2e6cdd58b736946363e60d32a</sha256sum>
+            <artifact url="file://$MAVEN_REPOSITORY$/io/confluent/kafka-avro-serializer/7.2.0/kafka-avro-serializer-7.2.0.jar">
+              <sha256sum>25e9ba053d8dd0d00d652e7ab354f7d857b9be8dd87f05d6ef5e511645c0ac1d</sha256sum>
             </artifact>
           </verification>
           <exclude>
@@ -117,19 +117,20 @@
             <dependency maven-id="io.confluent:kafka-schema-serializer" />
             <dependency maven-id="io.confluent:kafka-schema-registry-client" />
             <dependency maven-id="com.google.guava:guava" />
+            <dependency maven-id="io.confluent:logredactor" />
             <dependency maven-id="io.confluent:common-utils" />
           </exclude>
         </properties>
         <CLASSES>
-          <root url="jar://$MAVEN_REPOSITORY$/io/confluent/kafka-avro-serializer/7.0.1/kafka-avro-serializer-7.0.1.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/io/confluent/kafka-avro-serializer/7.2.0/kafka-avro-serializer-7.2.0.jar!/" />
         </CLASSES>
         <JAVADOC />
         <SOURCES>
-          <root url="jar://$MAVEN_REPOSITORY$/io/confluent/kafka-avro-serializer/7.0.1/kafka-avro-serializer-7.0.1-sources.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/io/confluent/kafka-avro-serializer/7.2.0/kafka-avro-serializer-7.2.0-sources.jar!/" />
         </SOURCES>
       </library>
     </orderEntry>
-    <orderEntry type="module-library" exported="">
+    <orderEntry type="module-library">
       <library name="io.confluent.kafka.json.schema.serializer" type="repository">
         <properties maven-id="io.confluent:kafka-json-schema-serializer:7.2.0">
           <verification>
@@ -245,7 +246,7 @@
         </SOURCES>
       </library>
     </orderEntry>
-    <orderEntry type="module-library" exported="">
+    <orderEntry type="module-library">
       <library name="io.confluent.kafka.protobuf.serializer" type="repository">
         <properties maven-id="io.confluent:kafka-protobuf-serializer:7.2.0">
           <verification>
@@ -258,12 +259,14 @@
             <artifact url="file://$MAVEN_REPOSITORY$/com/squareup/wire/wire-schema-jvm/4.3.0/wire-schema-jvm-4.3.0.jar">
               <sha256sum>cce37f7e72a302bf4acfe07fcabd422ff2ab692a0a93be8ec66fc9d9e9bbfaac</sha256sum>
             </artifact>
+            <artifact url="file://$MAVEN_REPOSITORY$/com/squareup/wire/wire-runtime-jvm/4.3.0/wire-runtime-jvm-4.3.0.jar">
+              <sha256sum>821ebfe4817c132ea830ac2598953ef19e3579d53aab15018bf00b432d03aa45</sha256sum>
+            </artifact>
             <artifact url="file://$MAVEN_REPOSITORY$/io/confluent/kafka-protobuf-types/7.2.0/kafka-protobuf-types-7.2.0.jar">
               <sha256sum>32e3559fc53362e1f2ea31c28aa6997242e839973c46e20e4795248b193aa0dc</sha256sum>
             </artifact>
           </verification>
           <exclude>
-            <dependency maven-id="com.squareup.wire:wire-runtime-jvm" />
             <dependency maven-id="org.jetbrains.kotlin:kotlin-stdlib-common" />
             <dependency maven-id="com.google.guava:guava" />
             <dependency maven-id="org.jetbrains.kotlin:kotlin-stdlib-jdk8" />
@@ -282,6 +285,7 @@
           <root url="jar://$MAVEN_REPOSITORY$/io/confluent/kafka-protobuf-serializer/7.2.0/kafka-protobuf-serializer-7.2.0.jar!/" />
           <root url="jar://$MAVEN_REPOSITORY$/io/confluent/kafka-protobuf-provider/7.2.0/kafka-protobuf-provider-7.2.0.jar!/" />
           <root url="jar://$MAVEN_REPOSITORY$/com/squareup/wire/wire-schema-jvm/4.3.0/wire-schema-jvm-4.3.0.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/com/squareup/wire/wire-runtime-jvm/4.3.0/wire-runtime-jvm-4.3.0.jar!/" />
           <root url="jar://$MAVEN_REPOSITORY$/io/confluent/kafka-protobuf-types/7.2.0/kafka-protobuf-types-7.2.0.jar!/" />
         </CLASSES>
         <JAVADOC />
@@ -289,11 +293,12 @@
           <root url="jar://$MAVEN_REPOSITORY$/io/confluent/kafka-protobuf-serializer/7.2.0/kafka-protobuf-serializer-7.2.0-sources.jar!/" />
           <root url="jar://$MAVEN_REPOSITORY$/io/confluent/kafka-protobuf-provider/7.2.0/kafka-protobuf-provider-7.2.0-sources.jar!/" />
           <root url="jar://$MAVEN_REPOSITORY$/com/squareup/wire/wire-schema-jvm/4.3.0/wire-schema-jvm-4.3.0-sources.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/com/squareup/wire/wire-runtime-jvm/4.3.0/wire-runtime-jvm-4.3.0-sources.jar!/" />
           <root url="jar://$MAVEN_REPOSITORY$/io/confluent/kafka-protobuf-types/7.2.0/kafka-protobuf-types-7.2.0-sources.jar!/" />
         </SOURCES>
       </library>
     </orderEntry>
-    <orderEntry type="module-library" exported="">
+    <orderEntry type="module-library">
       <library name="io.confluent.kafka.schema.registry.client" type="repository">
         <properties maven-id="io.confluent:kafka-schema-registry-client:7.2.0">
           <verification>
@@ -413,97 +418,6 @@
       </library>
     </orderEntry>
     <orderEntry type="library" name="snakeyaml-engine" level="project" />
-    <orderEntry type="module-library">
-      <library name="squareup.wire.compiler" type="repository">
-        <properties maven-id="com.squareup.wire:wire-compiler:3.7.1">
-          <verification>
-            <artifact url="file://$MAVEN_REPOSITORY$/com/squareup/wire/wire-compiler/3.7.1/wire-compiler-3.7.1.jar">
-              <sha256sum>d19f51919b8c92eecfc5640ba7890bcf5a7193ca01a3729b9fecdcc258df5fff</sha256sum>
-            </artifact>
-            <artifact url="file://$MAVEN_REPOSITORY$/com/squareup/wire/wire-schema/3.7.1/wire-schema-3.7.1.jar">
-              <sha256sum>55619ec5caf933343eb1588973e92ca8e8a81c8ab0aff3f5119ad895c12ac6dc</sha256sum>
-            </artifact>
-            <artifact url="file://$MAVEN_REPOSITORY$/com/squareup/wire/wire-runtime/3.7.1/wire-runtime-3.7.1.jar">
-              <sha256sum>f5a6beeff5fcb81d6bf11443a963e1e23ca8975803361c5a561bbe4c9c8424a0</sha256sum>
-            </artifact>
-            <artifact url="file://$MAVEN_REPOSITORY$/com/squareup/wire/wire-kotlin-generator/3.7.1/wire-kotlin-generator-3.7.1.jar">
-              <sha256sum>1a41ee3b5397f43e5436b1394544d50be1718bae555ae9b0a0cd2cdea6c413f1</sha256sum>
-            </artifact>
-            <artifact url="file://$MAVEN_REPOSITORY$/com/squareup/kotlinpoet/1.7.2/kotlinpoet-1.7.2.jar">
-              <sha256sum>4d22b70c4b77fc0aa499158e7bb085af9882ffbdc69331325e7869aebe4fb69d</sha256sum>
-            </artifact>
-            <artifact url="file://$MAVEN_REPOSITORY$/com/squareup/wire/wire-grpc-client/3.7.1/wire-grpc-client-3.7.1.jar">
-              <sha256sum>cb762d88a44caa27e1b279c1b6f26c606d3f5763c7a6b53ae220ffc8b5a5a5dc</sha256sum>
-            </artifact>
-            <artifact url="file://$MAVEN_REPOSITORY$/com/squareup/wire/wire-grpc-server-generator/3.7.1/wire-grpc-server-generator-3.7.1.jar">
-              <sha256sum>8cf57ef634d940455f27c19d7812a9d2213403d3037c08ff3b1e229e64560c62</sha256sum>
-            </artifact>
-            <artifact url="file://$MAVEN_REPOSITORY$/com/squareup/wire/wire-java-generator/3.7.1/wire-java-generator-3.7.1.jar">
-              <sha256sum>89feb9d367ce95d4788bde81a344eb29938cadb20dd20f709700e532c2d65a14</sha256sum>
-            </artifact>
-            <artifact url="file://$MAVEN_REPOSITORY$/com/squareup/javapoet/1.13.0/javapoet-1.13.0.jar">
-              <sha256sum>4c7517e848a71b36d069d12bb3bf46a70fd4cda3105d822b0ed2e19c00b69291</sha256sum>
-            </artifact>
-            <artifact url="file://$MAVEN_REPOSITORY$/com/squareup/wire/wire-swift-generator/3.7.1/wire-swift-generator-3.7.1.jar">
-              <sha256sum>84e720696b96294276ee09117e1b568d7456d8b851a084ade3bdbd5f12c3e74a</sha256sum>
-            </artifact>
-            <artifact url="file://$MAVEN_REPOSITORY$/io/outfoxx/swiftpoet/1.0.0/swiftpoet-1.0.0.jar">
-              <sha256sum>efd414bf35dedfaebeca3418ac6759083de2ade8bb7236492171cc68e30ada40</sha256sum>
-            </artifact>
-            <artifact url="file://$MAVEN_REPOSITORY$/com/squareup/wire/wire-profiles/3.7.1/wire-profiles-3.7.1.jar">
-              <sha256sum>872773cfa14aca37cb79cffebb83306148c954dcb9e9dc3e2df454b568b8fa1c</sha256sum>
-            </artifact>
-            <artifact url="file://$MAVEN_REPOSITORY$/com/charleskorn/kaml/kaml/0.20.0/kaml-0.20.0.jar">
-              <sha256sum>0746f87e0668e41bbd086d34e7d207df21b6d290d1c203950cb7c79f55245884</sha256sum>
-            </artifact>
-          </verification>
-          <exclude>
-            <dependency maven-id="com.google.guava:guava" />
-            <dependency maven-id="org.jetbrains.kotlin:kotlin-stdlib-common" />
-            <dependency maven-id="com.squareup.okio:okio" />
-            <dependency maven-id="org.jetbrains.kotlin:kotlin-stdlib-jdk8" />
-            <dependency maven-id="org.jetbrains.kotlinx:kotlinx-serialization-core-jvm" />
-            <dependency maven-id="org.jetbrains.kotlin:kotlin-reflect" />
-            <dependency maven-id="org.jetbrains.kotlin:kotlin-stdlib" />
-            <dependency maven-id="org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm" />
-            <dependency maven-id="com.squareup.okhttp3:okhttp" />
-            <dependency maven-id="org.snakeyaml:snakeyaml-engine" />
-            <dependency maven-id="org.jetbrains:annotations" />
-          </exclude>
-        </properties>
-        <CLASSES>
-          <root url="jar://$MAVEN_REPOSITORY$/com/squareup/wire/wire-compiler/3.7.1/wire-compiler-3.7.1.jar!/" />
-          <root url="jar://$MAVEN_REPOSITORY$/com/squareup/wire/wire-schema/3.7.1/wire-schema-3.7.1.jar!/" />
-          <root url="jar://$MAVEN_REPOSITORY$/com/squareup/wire/wire-runtime/3.7.1/wire-runtime-3.7.1.jar!/" />
-          <root url="jar://$MAVEN_REPOSITORY$/com/squareup/wire/wire-kotlin-generator/3.7.1/wire-kotlin-generator-3.7.1.jar!/" />
-          <root url="jar://$MAVEN_REPOSITORY$/com/squareup/kotlinpoet/1.7.2/kotlinpoet-1.7.2.jar!/" />
-          <root url="jar://$MAVEN_REPOSITORY$/com/squareup/wire/wire-grpc-client/3.7.1/wire-grpc-client-3.7.1.jar!/" />
-          <root url="jar://$MAVEN_REPOSITORY$/com/squareup/wire/wire-grpc-server-generator/3.7.1/wire-grpc-server-generator-3.7.1.jar!/" />
-          <root url="jar://$MAVEN_REPOSITORY$/com/squareup/wire/wire-java-generator/3.7.1/wire-java-generator-3.7.1.jar!/" />
-          <root url="jar://$MAVEN_REPOSITORY$/com/squareup/javapoet/1.13.0/javapoet-1.13.0.jar!/" />
-          <root url="jar://$MAVEN_REPOSITORY$/com/squareup/wire/wire-swift-generator/3.7.1/wire-swift-generator-3.7.1.jar!/" />
-          <root url="jar://$MAVEN_REPOSITORY$/io/outfoxx/swiftpoet/1.0.0/swiftpoet-1.0.0.jar!/" />
-          <root url="jar://$MAVEN_REPOSITORY$/com/squareup/wire/wire-profiles/3.7.1/wire-profiles-3.7.1.jar!/" />
-          <root url="jar://$MAVEN_REPOSITORY$/com/charleskorn/kaml/kaml/0.20.0/kaml-0.20.0.jar!/" />
-        </CLASSES>
-        <JAVADOC />
-        <SOURCES>
-          <root url="jar://$MAVEN_REPOSITORY$/com/squareup/wire/wire-compiler/3.7.1/wire-compiler-3.7.1-sources.jar!/" />
-          <root url="jar://$MAVEN_REPOSITORY$/com/squareup/wire/wire-schema/3.7.1/wire-schema-3.7.1-sources.jar!/" />
-          <root url="jar://$MAVEN_REPOSITORY$/com/squareup/wire/wire-runtime/3.7.1/wire-runtime-3.7.1-sources.jar!/" />
-          <root url="jar://$MAVEN_REPOSITORY$/com/squareup/wire/wire-kotlin-generator/3.7.1/wire-kotlin-generator-3.7.1-sources.jar!/" />
-          <root url="jar://$MAVEN_REPOSITORY$/com/squareup/kotlinpoet/1.7.2/kotlinpoet-1.7.2-sources.jar!/" />
-          <root url="jar://$MAVEN_REPOSITORY$/com/squareup/wire/wire-grpc-client/3.7.1/wire-grpc-client-3.7.1-sources.jar!/" />
-          <root url="jar://$MAVEN_REPOSITORY$/com/squareup/wire/wire-grpc-server-generator/3.7.1/wire-grpc-server-generator-3.7.1-sources.jar!/" />
-          <root url="jar://$MAVEN_REPOSITORY$/com/squareup/wire/wire-java-generator/3.7.1/wire-java-generator-3.7.1-sources.jar!/" />
-          <root url="jar://$MAVEN_REPOSITORY$/com/squareup/javapoet/1.13.0/javapoet-1.13.0-sources.jar!/" />
-          <root url="jar://$MAVEN_REPOSITORY$/com/squareup/wire/wire-swift-generator/3.7.1/wire-swift-generator-3.7.1-sources.jar!/" />
-          <root url="jar://$MAVEN_REPOSITORY$/io/outfoxx/swiftpoet/1.0.0/swiftpoet-1.0.0-sources.jar!/" />
-          <root url="jar://$MAVEN_REPOSITORY$/com/squareup/wire/wire-profiles/3.7.1/wire-profiles-3.7.1-sources.jar!/" />
-          <root url="jar://$MAVEN_REPOSITORY$/com/charleskorn/kaml/kaml/0.20.0/kaml-0.20.0-sources.jar!/" />
-        </SOURCES>
-      </library>
-    </orderEntry>
     <orderEntry type="library" name="snakeyaml" level="project" />
     <orderEntry type="module-library">
       <library name="github.mifmif.generex" type="repository">

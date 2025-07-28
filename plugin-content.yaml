@@ -67,6 +67,7 @@
   - name: $MAVEN_REPOSITORY$/io/confluent/kafka-protobuf-serializer/7/kafka-protobuf-serializer-7.jar
   - name: $MAVEN_REPOSITORY$/io/confluent/kafka-protobuf-provider/7/kafka-protobuf-provider-7.jar
   - name: $MAVEN_REPOSITORY$/com/squareup/wire/wire-schema-jvm/4/wire-schema-jvm-4.jar
+  - name: $MAVEN_REPOSITORY$/com/squareup/wire/wire-runtime-jvm/4/wire-runtime-jvm-4.jar
   - name: $MAVEN_REPOSITORY$/io/confluent/kafka-protobuf-types/7/kafka-protobuf-types-7.jar
 - name: lib/io.confluent.kafka.schema.registry.client.jar
   library: io.confluent.kafka.schema.registry.client
@@ -153,23 +154,6 @@
   - name: $MAVEN_REPOSITORY$/com/amazonaws/aws-java-sdk-core/1/aws-java-sdk-core-1.jar
   - name: $MAVEN_REPOSITORY$/com/amazonaws/aws-java-sdk-sts/1/aws-java-sdk-sts-1.jar
   - name: $MAVEN_REPOSITORY$/com/amazonaws/jmespath-java/1/jmespath-java-1.jar
-- name: lib/squareup.wire.compiler.jar
-  library: squareup.wire.compiler
-  module: intellij.bigdatatools.kafka
-  files:
-  - name: $MAVEN_REPOSITORY$/com/squareup/wire/wire-compiler/3/wire-compiler-3.jar
-  - name: $MAVEN_REPOSITORY$/com/squareup/wire/wire-schema/3/wire-schema-3.jar
-  - name: $MAVEN_REPOSITORY$/com/squareup/wire/wire-runtime/3/wire-runtime-3.jar
-  - name: $MAVEN_REPOSITORY$/com/squareup/wire/wire-kotlin-generator/3/wire-kotlin-generator-3.jar
-  - name: $MAVEN_REPOSITORY$/com/squareup/kotlinpoet/1/kotlinpoet-1.jar
-  - name: $MAVEN_REPOSITORY$/com/squareup/wire/wire-grpc-client/3/wire-grpc-client-3.jar
-  - name: $MAVEN_REPOSITORY$/com/squareup/wire/wire-grpc-server-generator/3/wire-grpc-server-generator-3.jar
-  - name: $MAVEN_REPOSITORY$/com/squareup/wire/wire-java-generator/3/wire-java-generator-3.jar
-  - name: $MAVEN_REPOSITORY$/com/squareup/javapoet/1/javapoet-1.jar
-  - name: $MAVEN_REPOSITORY$/com/squareup/wire/wire-swift-generator/3/wire-swift-generator-3.jar
-  - name: $MAVEN_REPOSITORY$/io/outfoxx/swiftpoet/1/swiftpoet-1.jar
-  - name: $MAVEN_REPOSITORY$/com/squareup/wire/wire-profiles/3/wire-profiles-3.jar
-  - name: $MAVEN_REPOSITORY$/com/charleskorn/kaml/kaml/0/kaml-0.jar
 - name: lib/xerial.snappy.java.jar
   library: xerial.snappy.java
   files:

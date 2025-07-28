@@ -62,7 +62,7 @@ dependencies {
 
   implementation("org.apache.kafka:kafka-clients:4.0.0")
 
-  implementation("io.confluent:kafka-avro-serializer:7.0.1")
+  implementation("io.confluent:kafka-avro-serializer:7.2.0")
   implementation("io.confluent:kafka-json-schema-serializer:7.2.0")
   implementation("io.confluent:kafka-protobuf-serializer:7.2.0")
   implementation("io.confluent:kafka-schema-registry-client:7.2.0")
