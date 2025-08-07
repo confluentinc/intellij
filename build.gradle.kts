@@ -1,7 +1,11 @@
 import org.jetbrains.intellij.platform.gradle.TestFrameworkType
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
-apply(from = "../../../contrib/contrib-configuration/common.gradle.kts")
+rootProject.extensions.add("gradle.version", "8.5")
+rootProject.extensions.add("kotlin.jvmTarget", "21")
+rootProject.extensions.add("kotlin.freeCompilerArgs", listOf("-Xjvm-default=all"))
+rootProject.extensions.add("java.sourceCompatibility", "21")
+rootProject.extensions.add("java.targetCompatibility", "21")
 
 plugins {
   id("java")
@@ -14,11 +18,10 @@ repositories {
     defaultRepositories()
     snapshots()
   }
-  maven {
-    url = uri("https://packages.confluent.io/maven/")
-  }
 
   mavenCentral()
+  maven("https://oss.sonatype.org/content/repositories/snapshots/")
+  maven("https://packages.confluent.io/maven/")
 }
 
 intellijPlatform {
@@ -27,32 +30,16 @@ intellijPlatform {
   }
 }
 
-sourceSets {
-  main {
-    java {
-      setSrcDirs(listOf("src", "gen"))
-    }
-    resources {
-      setSrcDirs(listOf("resources"))
-    }
-  }
-  test {
-    java {
-      setSrcDirs(listOf("test"))
-    }
-  }
-}
-
 dependencies {
   intellijPlatform {
     jetbrainsRuntime()
-    intellijIdeaUltimate("2025.1.2", useInstaller = true)
+    intellijIdeaUltimate("2025.2", useInstaller = true)
 
     bundledPlugin("com.intellij.modules.json")
     bundledPlugin("com.intellij.microservices.jvm")
     bundledPlugin("com.intellij.spring")
     bundledPlugin("com.intellij.spring.boot")
-    bundledPlugin("intellij.charts")
+    bundledModule("intellij.charts")
 
     testFramework(TestFrameworkType.Platform)
     testFramework(TestFrameworkType.Bundled)
@@ -60,12 +47,18 @@ dependencies {
   }
   implementation("com.squareup.moshi:moshi-kotlin:1.15.0")
 
-  implementation("org.apache.kafka:kafka-clients:4.0.0")
+  implementation("org.apache.kafka:kafka-clients:3.9.0")
 
-  implementation("io.confluent:kafka-avro-serializer:7.2.0")
-  implementation("io.confluent:kafka-json-schema-serializer:7.2.0")
-  implementation("io.confluent:kafka-protobuf-serializer:7.2.0")
-  implementation("io.confluent:kafka-schema-registry-client:7.2.0")
+  listOf(
+    "io.confluent:kafka-avro-serializer:7.2.0",
+    "io.confluent:kafka-json-schema-serializer:7.2.0",
+    "io.confluent:kafka-protobuf-serializer:7.2.0",
+    "io.confluent:kafka-schema-registry-client:7.2.0"
+  ).forEach {
+    implementation(it) {
+      exclude("org.apache.kafka", "kafka-clients")
+    }
+  }
 
   implementation("software.amazon.awssdk:apache-client:2.20.158")
   implementation("software.amazon.awssdk:sso:2.20.158")
@@ -86,6 +79,23 @@ dependencies {
   testImplementation("junit:junit:4.13.2")
 }
 
+sourceSets {
+  main {
+    java.srcDirs(listOf("src", "gen"))
+    kotlin.srcDirs(listOf("src", "gen"))
+    resources.srcDirs(listOf("resources"))
+  }
+  test {
+    java.srcDirs(listOf("test"))
+    kotlin.srcDirs(listOf("test"))
+  }
+}
+
+java {
+  sourceCompatibility = JavaVersion.toVersion(ext("java.sourceCompatibility"))
+  targetCompatibility = JavaVersion.toVersion(ext("java.targetCompatibility"))
+}
+
 kotlin {
   compilerOptions {
     jvmTarget.set(JvmTarget.fromTarget(ext("kotlin.jvmTarget")))
@@ -95,15 +105,11 @@ kotlin {
 }
 
 tasks {
-  java {
-    sourceCompatibility = JavaVersion.toVersion(ext("java.sourceCompatibility"))
-    targetCompatibility = JavaVersion.toVersion(ext("java.targetCompatibility"))
-  }
   wrapper {
     gradleVersion = ext("gradle.version")
   }
   test {
-    useJUnitPlatform()
+    useJUnit()
   }
 }
 
