@@ -51,7 +51,7 @@ object ConnectionSettings {
 
   fun open(project: Project, action: ((ConnectionsConfigurable) -> Unit)? = null) {
     val groups = ShowSettingsUtilImpl.getConfigurableGroups(project, true).filter { it.configurables.isNotEmpty() }
-    val configurable = ConfigurableVisitor.findById("bigdataide_conn_settings", groups)
+    val configurable = ConfigurableVisitor.findById("kafka_conn_settings", groups)
     val dialog = SettingsDialogFactory.getInstance().create(project, groups, configurable, null)
     dialog.isModal = false
 
