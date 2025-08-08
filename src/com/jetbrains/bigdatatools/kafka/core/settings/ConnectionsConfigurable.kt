@@ -5,6 +5,7 @@ import com.intellij.openapi.options.SearchableConfigurable
 import com.intellij.openapi.project.Project
 import com.jetbrains.bigdatatools.kafka.core.settings.manager.RfsConnectionDataManager
 import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import javax.swing.JComponent
 
 class ConnectionsConfigurable(private val project: Project) : SearchableConfigurable, NoScroll {
 
@@ -13,9 +14,9 @@ class ConnectionsConfigurable(private val project: Project) : SearchableConfigur
 
   private fun getSettings(): RfsConnectionDataManager = RfsConnectionDataManager.instance ?: error("RfsConnectionDataManager is not found")
 
-  override fun getId() = "BdtConnectionsSettings"
+  override fun getId(): String = "KafkaConnectionsSettings"
 
-  override fun getDisplayName() = KafkaMessagesBundle.message("connections.settings.display.name")
+  override fun getDisplayName(): String = KafkaMessagesBundle.message("connections.settings.display.name")
 
   override fun getHelpTopic(): String {
     return if (myUiDelegate.isInitialized())
@@ -30,9 +31,9 @@ class ConnectionsConfigurable(private val project: Project) : SearchableConfigur
     }
   }
 
-  override fun createComponent() = myUi.component
+  override fun createComponent(): JComponent = myUi.component
 
-  override fun isModified() = myUiDelegate.isInitialized() && myUi.isModified(getSettings())
+  override fun isModified(): Boolean = myUiDelegate.isInitialized() && myUi.isModified(getSettings())
 
   override fun apply() {
     if (myUiDelegate.isInitialized()) {

@@ -62,6 +62,10 @@
       implementation="com.jetbrains.bigdatatools.kafka.core.settings.connections.GeneralConnectionSettingsProvider"/>
     <bigdatatools.kafka.connectionSettingProvider implementation="com.jetbrains.bigdatatools.kafka.settings.KafkaSettingsProvider"/>
 
+    <projectConfigurable parentId="tools" id="kafka_conn_settings"
+                         bundle="messages.KafkaBundle" key="connections.settings.display.name"
+                         provider="com.jetbrains.bigdatatools.kafka.core.settings.KafkaSettingsConfigurableProvider"/>
+
     <toolWindow id="KafkaToolWindow" anchor="bottom" canCloseContents="true"
                 icon="com.intellij.bigdatatools.kafka.icons.BigdatatoolsKafkaIcons.KafkaToolWindow"
                 factoryClass="com.jetbrains.bigdatatools.kafka.toolwindow.KafkaToolWindowFactory"/>
