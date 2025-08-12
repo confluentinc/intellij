@@ -3,8 +3,8 @@
 ### Overview
 
 The [Kafka plugin](https://plugins.jetbrains.com/plugin/21704-kafka/) is designed to help developers work
-with [Apache Kafka](https://kafka.apache.org/) directly from their IDE. It provides a comprehensive set of tools for monitoring and managing
-Kafka event streaming processes.
+with [Apache Kafka](https://kafka.apache.org/) directly from an IntelliJ-based IDE. It provides a comprehensive set of tools for monitoring
+and managing Kafka event streaming processes.
 
 Key features include:
 
@@ -202,8 +202,8 @@ Several key actions in the Kafka plugin are defined in `plugin.xml` and grouped 
 </actions>
 ```
 
-Actions use the `com.intellij.openapi.actionSystem.DataContext` mechanism to access data from the current context.
-DataKeys and extension properties are declared in the `MainTreeController` to simplify access:
+[Actions](https://plugins.jetbrains.com/docs/intellij/action-system.html) use the `com.intellij.openapi.actionSystem.DataContext` mechanism
+to access data from the current context. DataKeys and extension properties are declared in the `MainTreeController` to simplify access:
 
 ```kotlin
 // Companion object of MainTreeController 
@@ -248,6 +248,26 @@ The plugin supports various authentication methods:
 - SSL/TLS certificates
 - AWS IAM authentication for MSK
 - SSH tunneling for secure connections
+
+### Spring Boot Integration
+
+When the Spring Boot plugin is installed, the Kafka plugin
+[can connect](https://www.jetbrains.com/help/idea/big-data-tools-kafka.html#connect_from_spring) to a Kafka cluster (or reuse an
+existing connection) using configuration properties from your spring application.
+
+To connect:
+
+1. Open your `application.properties` or `application.yml` file with at least the `bootstrap-servers` property defined.
+2. In the gutter, click the Kafka icon and select **Create Kafka connection**.
+
+This integration is possible because the plugin declares an optional dependency on the Spring Boot plugin:
+
+```xml
+<depends config-file="spring-boot.xml" optional="true">com.intellij.spring.boot</depends>
+```
+
+If the Spring Boot plugin isn’t installed or enabled, the Kafka plugin will still work normally,
+but Spring-specific conveniences will be unavailable.
 
 ### Key Packages
 
