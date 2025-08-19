@@ -31,7 +31,7 @@ jvm_library(
   name = "kafka",
   module_name = "intellij.bigdatatools.kafka",
   visibility = ["//visibility:public"],
-  srcs = glob(["src/**/*.kt", "src/**/*.java", "gen/**/*.kt", "gen/**/*.java"], allow_empty = True),
+  srcs = glob(["src/**/*.kt", "src/**/*.java", "src/**/*.form", "gen/**/*.kt", "gen/**/*.java"], allow_empty = True),
   deps = [
     "@community//platform/analysis-api:analysis",
     "@community//platform/util/concurrency",
@@ -113,7 +113,7 @@ jvm_library(
 jvm_library(
   name = "kafka_test_lib",
   visibility = ["//visibility:public"],
-  srcs = glob(["test/**/*.kt", "test/**/*.java"], allow_empty = True),
+  srcs = glob(["test/**/*.kt", "test/**/*.java", "test/**/*.form"], allow_empty = True),
   associates = [":kafka"],
   deps = [
     "@community//platform/analysis-api:analysis",
