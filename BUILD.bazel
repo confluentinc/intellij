@@ -8,8 +8,8 @@ jvm_resources(
 )
 
 jvm_provided_library(
-  name = "plugins_spring_api_provided",
-  lib = "//plugins/spring/spring:api"
+  name = "plugins_spring_spring_provided",
+  lib = "//plugins/spring/spring"
 )
 
 jvm_provided_library(
@@ -102,7 +102,7 @@ jvm_library(
     "@community//platform/remote-core",
     "@community//platform/code-style-api:codeStyle",
     "@community//platform/testFramework/junit5",
-    ":plugins_spring_api_provided",
+    ":plugins_spring_spring_provided",
     ":plugins_spring_spring-boot_spring-boot_provided",
     ":community_plugins_properties_backend-psi_provided",
     ":plugins_microservices_config_provided",
@@ -165,7 +165,7 @@ jvm_library(
     "@ultimate_lib//:bigdatatools-kafka-github-mifmif-generex",
     "@lib//:google-protobuf-java-util",
     "@community//platform/feedback",
-    "//plugins/spring/spring:api",
+    "//plugins/spring/spring",
     "//plugins/spring/spring-boot/spring-boot",
     "@community//plugins/properties/properties-psi-impl:backend-psi",
     "//plugins/microservices/microservices-config:config",
