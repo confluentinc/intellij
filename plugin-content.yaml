@@ -27,13 +27,6 @@
   files:
   - name: $MAVEN_REPOSITORY$/com/google/re2j/re2j/1/re2j-1.jar
   reason: <- intellij.bigdatatools.kafka
-- name: lib/grpc-protobuf.jar
-  library: grpc-protobuf
-  files:
-  - name: $MAVEN_REPOSITORY$/io/grpc/grpc-protobuf/1/grpc-protobuf-1.jar
-  - name: $MAVEN_REPOSITORY$/com/google/api/grpc/proto-google-common-protos/2/proto-google-common-protos-2.jar
-  - name: $MAVEN_REPOSITORY$/io/grpc/grpc-protobuf-lite/1/grpc-protobuf-lite-1.jar
-  reason: <- intellij.bigdatatools.kafka
 - name: lib/io.confluent.kafka.avro.serializer.jar
   library: io.confluent.kafka.avro.serializer
   module: intellij.bigdatatools.kafka

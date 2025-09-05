@@ -61,7 +61,6 @@ jvm_library(
     "@ultimate_lib//:bigdatatools-kafka-io-confluent-kafka-protobuf-serializer",
     "@ultimate_lib//:bigdatatools-kafka-io-confluent-kafka-schema-registry-client",
     "@lib//:commons-compress",
-    "@lib//:grpc-protobuf",
     "@ultimate_lib//:google-re2j",
     "@lib//:classgraph",
     "@ultimate_lib//:joda-time",
@@ -101,6 +100,7 @@ jvm_library(
     "@community//platform/remote-core",
     "@community//platform/code-style-api:codeStyle",
     "@community//platform/testFramework/junit5",
+    "@community//libraries/grpc",
     ":plugins_spring_spring_provided",
     ":plugins_spring_spring-boot_spring-boot_provided",
     ":community_plugins_properties_backend-psi_provided",
@@ -146,7 +146,6 @@ jvm_library(
     "@ultimate_lib//:bigdatatools-kafka-io-confluent-kafka-protobuf-serializer",
     "@ultimate_lib//:bigdatatools-kafka-io-confluent-kafka-schema-registry-client",
     "@lib//:commons-compress",
-    "@lib//:grpc-protobuf",
     "@ultimate_lib//:google-re2j",
     "@lib//:classgraph",
     "@ultimate_lib//:joda-time",
@@ -194,6 +193,7 @@ jvm_library(
     "@ultimate_lib//:bigdatatools-kafka-kotlinx-metadata-jvm",
     "@community//platform/testFramework/junit5",
     "@community//platform/testFramework/junit5:junit5_test_lib",
+    "@community//libraries/grpc",
   ],
   runtime_deps = [":kafka_resources"]
 )
