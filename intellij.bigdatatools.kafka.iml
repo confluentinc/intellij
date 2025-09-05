@@ -53,52 +53,6 @@
         </SOURCES>
       </library>
     </orderEntry>
-    <orderEntry type="module-library">
-      <library name="software.amazon.msk.aws.iam.auth" type="repository">
-        <properties maven-id="software.amazon.msk:aws-msk-iam-auth:1.1.4">
-          <verification>
-            <artifact url="file://$MAVEN_REPOSITORY$/software/amazon/msk/aws-msk-iam-auth/1.1.4/aws-msk-iam-auth-1.1.4.jar">
-              <sha256sum>5820cc8057ceb53d2a0a23bd4bfc644a205916ecbb62c1f6667f95c53b531049</sha256sum>
-            </artifact>
-            <artifact url="file://$MAVEN_REPOSITORY$/com/amazonaws/aws-java-sdk-core/1.11.986/aws-java-sdk-core-1.11.986.jar">
-              <sha256sum>4a76ce2eef42c7478f6cdc772fb4f99f5973c2c55e76f22cda4f8649ae9155bc</sha256sum>
-            </artifact>
-            <artifact url="file://$MAVEN_REPOSITORY$/com/amazonaws/aws-java-sdk-sts/1.11.986/aws-java-sdk-sts-1.11.986.jar">
-              <sha256sum>2d570b06ef6947dfbddbb13e92055274116f051595000fe5c3549fc100a4fa1c</sha256sum>
-            </artifact>
-            <artifact url="file://$MAVEN_REPOSITORY$/com/amazonaws/jmespath-java/1.11.986/jmespath-java-1.11.986.jar">
-              <sha256sum>bb7309e8dee3155ae27942fc9ac80a7672908619f53b2d68f3f5ec45fe1848ce</sha256sum>
-            </artifact>
-          </verification>
-          <exclude>
-            <dependency maven-id="org.apache.httpcomponents:httpclient" />
-            <dependency maven-id="com.fasterxml.jackson.core:jackson-databind" />
-            <dependency maven-id="com.fasterxml.jackson.dataformat:jackson-dataformat-cbor" />
-            <dependency maven-id="joda-time:joda-time" />
-            <dependency maven-id="software.amazon.awssdk:auth" />
-            <dependency maven-id="software.amazon.awssdk:sso" />
-            <dependency maven-id="software.amazon.awssdk:sts" />
-            <dependency maven-id="org.slf4j:slf4j-api" />
-            <dependency maven-id="software.amazon.awssdk:apache-client" />
-            <dependency maven-id="commons-logging:commons-logging" />
-            <dependency maven-id="software.amazon.ion:ion-java" />
-          </exclude>
-        </properties>
-        <CLASSES>
-          <root url="jar://$MAVEN_REPOSITORY$/software/amazon/msk/aws-msk-iam-auth/1.1.4/aws-msk-iam-auth-1.1.4.jar!/" />
-          <root url="jar://$MAVEN_REPOSITORY$/com/amazonaws/aws-java-sdk-core/1.11.986/aws-java-sdk-core-1.11.986.jar!/" />
-          <root url="jar://$MAVEN_REPOSITORY$/com/amazonaws/aws-java-sdk-sts/1.11.986/aws-java-sdk-sts-1.11.986.jar!/" />
-          <root url="jar://$MAVEN_REPOSITORY$/com/amazonaws/jmespath-java/1.11.986/jmespath-java-1.11.986.jar!/" />
-        </CLASSES>
-        <JAVADOC />
-        <SOURCES>
-          <root url="jar://$MAVEN_REPOSITORY$/software/amazon/msk/aws-msk-iam-auth/1.1.4/aws-msk-iam-auth-1.1.4-sources.jar!/" />
-          <root url="jar://$MAVEN_REPOSITORY$/com/amazonaws/aws-java-sdk-core/1.11.986/aws-java-sdk-core-1.11.986-sources.jar!/" />
-          <root url="jar://$MAVEN_REPOSITORY$/com/amazonaws/aws-java-sdk-sts/1.11.986/aws-java-sdk-sts-1.11.986-sources.jar!/" />
-          <root url="jar://$MAVEN_REPOSITORY$/com/amazonaws/jmespath-java/1.11.986/jmespath-java-1.11.986-sources.jar!/" />
-        </SOURCES>
-      </library>
-    </orderEntry>
     <orderEntry type="library" name="apache.avro" level="project" />
     <orderEntry type="library" name="protobuf" level="project" />
     <orderEntry type="module" module-name="intellij.platform.diff" />

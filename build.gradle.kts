@@ -75,6 +75,8 @@ dependencies {
   testImplementation(libs.junit4)
 }
 
+configurations.all { exclude(group = "org.slf4j", module = "slf4j-api") }
+
 sourceSets {
   main {
     java.srcDirs(listOf("src", "gen"))

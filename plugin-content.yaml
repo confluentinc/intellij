@@ -146,14 +146,6 @@
   - name: $MAVEN_REPOSITORY$/software/amazon/awssdk/url-connection-client/2/url-connection-client-2.jar
   - name: $MAVEN_REPOSITORY$/software/amazon/awssdk/arns/2/arns-2.jar
   - name: $MAVEN_REPOSITORY$/com/google/jimfs/jimfs/1/jimfs-1.jar
-- name: lib/software.amazon.msk.aws.iam.auth.jar
-  library: software.amazon.msk.aws.iam.auth
-  module: intellij.bigdatatools.kafka
-  files:
-  - name: $MAVEN_REPOSITORY$/software/amazon/msk/aws-msk-iam-auth/1/aws-msk-iam-auth-1.jar
-  - name: $MAVEN_REPOSITORY$/com/amazonaws/aws-java-sdk-core/1/aws-java-sdk-core-1.jar
-  - name: $MAVEN_REPOSITORY$/com/amazonaws/aws-java-sdk-sts/1/aws-java-sdk-sts-1.jar
-  - name: $MAVEN_REPOSITORY$/com/amazonaws/jmespath-java/1/jmespath-java-1.jar
 - name: lib/xerial.snappy.java.jar
   library: xerial.snappy.java
   files:
