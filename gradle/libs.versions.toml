@@ -1,0 +1,36 @@
+[versions]
+moshi = "1.15.0"
+kafka-clients = "3.9.0"
+confluent = "7.2.0"
+aws-sdk = "2.20.158"
+glue-schema = "1.1.15"
+generex = "1.0.2"
+kotlinx-metadata = "0.9.0"
+junit-jupiter = "5.10.0"
+junit-jupiter-params = "5.10.2"
+junit4 = "4.13.2"
+
+[libraries]
+moshi-kotlin = { module = "com.squareup.moshi:moshi-kotlin", version.ref = "moshi" }
+kafka-clients = { module = "org.apache.kafka:kafka-clients", version.ref = "kafka-clients" }
+kafka-avro-serializer = { module = "io.confluent:kafka-avro-serializer", version.ref = "confluent" }
+kafka-json-schema-serializer = { module = "io.confluent:kafka-json-schema-serializer", version.ref = "confluent" }
+kafka-protobuf-serializer = { module = "io.confluent:kafka-protobuf-serializer", version.ref = "confluent" }
+kafka-schema-registry-client = { module = "io.confluent:kafka-schema-registry-client", version.ref = "confluent" }
+
+aws-apache-client = { module = "software.amazon.awssdk:apache-client", version.ref = "aws-sdk" }
+aws-sso = { module = "software.amazon.awssdk:sso", version.ref = "aws-sdk" }
+aws-sts = { module = "software.amazon.awssdk:sts", version.ref = "aws-sdk" }
+aws-ssooidc = { module = "software.amazon.awssdk:ssooidc", version.ref = "aws-sdk" }
+
+glue-schema-registry-serde = { module = "software.amazon.glue:schema-registry-serde", version.ref = "glue-schema" }
+
+generex = { module = "com.github.mifmif:generex", version.ref = "generex" }
+
+kotlinx-metadata-jvm = { module = "org.jetbrains.kotlinx:kotlinx-metadata-jvm", version.ref = "kotlinx-metadata" }
+
+junit-jupiter-api = { module = "org.junit.jupiter:junit-jupiter-api", version.ref = "junit-jupiter" }
+junit-jupiter-engine = { module = "org.junit.jupiter:junit-jupiter-engine", version.ref = "junit-jupiter" }
+junit-jupiter-params = { module = "org.junit.jupiter:junit-jupiter-params", version.ref = "junit-jupiter-params" }
+
+junit4 = { module = "junit:junit", version.ref = "junit4" }

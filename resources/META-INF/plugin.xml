@@ -1,0 +1,198 @@
+<idea-plugin>
+  <id>com.intellij.bigdatatools.kafka</id>
+  <name>Kafka</name>
+  <vendor>JetBrains</vendor>
+
+  <description><![CDATA[
+<p>Monitor your <a href="https://kafka.apache.org/">Kafka</a> event streaming processes:
+<ul>
+   <li>Connect to Kafka clusters</li>
+   <li>Produce and consume messages in different formats including Avro and Protobuf</li>
+   <li>Manage topics and monitor consumer groups</li>
+   <li>Use Confluent Schema Registry and AWS Glue Schema Registry</li>
+</ul>
+</p>
+
+<p>This plugin is a part of the <a href="https://plugins.jetbrains.com/bundles/8-big-data-tools">Big Data Tools</a> plugin bundle.</p>
+    ]]></description>
+
+  <depends>com.intellij.modules.ultimate</depends>
+  <depends config-file="spring-boot.xml" optional="true">com.intellij.spring.boot</depends>
+
+  <resource-bundle>messages.KafkaBundle</resource-bundle>
+  <extensionPoints>
+    <extensionPoint dynamic="true"
+                    interface="com.jetbrains.bigdatatools.kafka.core.settings.connections.ConnectionSettingProvider"
+                    name="connectionSettingProvider"/>
+  </extensionPoints>
+
+  <applicationListeners>
+    <listener class="com.jetbrains.bigdatatools.kafka.updater.KafkaLoadPluginListener"
+              topic="com.intellij.ide.plugins.DynamicPluginListener"/>
+  </applicationListeners>
+
+  <extensions defaultExtensionNs="com.intellij">
+    <notificationGroup id="kafka" displayType="STICKY_BALLOON"
+                       bundle="messages.KafkaBundle"
+                       key="kafka.plugin.installed"/>
+
+    <completion.contributor language="JSON"
+                            implementationClass="com.jetbrains.bigdatatools.kafka.completion.KafkaProducerGeneratorCompletionContributor"/>
+
+    <dependencySupport kind="java" coordinate="java:org.springframework.kafka:spring-kafka" displayName="spring-kafka"/>
+    <dependencySupport kind="java" coordinate="java:io.micronaut.kafka:micronaut-kafka" displayName="micronaut-kafka"/>
+    <dependencySupport kind="java" coordinate="java:org.apache.spark:spark-sql-kafka-0-10_2.13" displayName="spark-sql-kafka"/>
+    <dependencySupport kind="java" coordinate="java:org.apache.kafka:kafka-streams" displayName="kafka-streams"/>
+    <dependencySupport kind="java" coordinate="java:io.confluent:kafka-schema-registry" displayName="kafka-schema-registry"/>
+    <dependencySupport kind="java" coordinate="java:io.confluent:kafka-schema-registry-client" displayName="kafka-schema-registry-client"/>
+    <dependencySupport kind="java" coordinate="java:com.typesafe.akka:akka-stream-kafka_3" displayName="akka-stream-kafka_3"/>
+    <dependencySupport kind="java" coordinate="java:org.apache.flink:flink-connector-kafka" displayName="flink-connector-kafka"/>
+
+    <dependencySupport kind="dotnet" coordinate="Confluent.Kafka" displayName="Confluent.Kafka"/>
+    <dependencySupport kind="dotnet" coordinate="AWSSDK.Kafka" displayName="AWSSDK.Kafka"/>
+    <dependencySupport kind="dotnet" coordinate="Confluent.SchemaRegistry" displayName="Confluent.SchemaRegistry"/>
+
+    <dependencySupport kind="python" coordinate="confluent-kafka" displayName="confluent-kafka"/>
+    <dependencySupport kind="python" coordinate="boto3-kafka" displayName="boto3-kafka"/>
+
+    <applicationService serviceImplementation="com.jetbrains.bigdatatools.kafka.common.settings.KafkaConfigStorage"/>
+
+    <applicationService serviceImplementation="com.jetbrains.bigdatatools.kafka.toolwindow.config.KafkaToolWindowSettings"/>
+    <bigdatatools.kafka.connectionSettingProvider
+      implementation="com.jetbrains.bigdatatools.kafka.core.settings.connections.GeneralConnectionSettingsProvider"/>
+    <bigdatatools.kafka.connectionSettingProvider implementation="com.jetbrains.bigdatatools.kafka.settings.KafkaSettingsProvider"/>
+
+    <projectConfigurable parentId="tools" id="kafka_conn_settings"
+                         bundle="messages.KafkaBundle" key="connections.settings.display.name"
+                         provider="com.jetbrains.bigdatatools.kafka.core.settings.KafkaSettingsConfigurableProvider"/>
+
+    <toolWindow id="KafkaToolWindow" anchor="bottom" canCloseContents="true"
+                icon="com.intellij.bigdatatools.kafka.icons.BigdatatoolsKafkaIcons.KafkaToolWindow"
+                factoryClass="com.jetbrains.bigdatatools.kafka.toolwindow.KafkaToolWindowFactory"/>
+
+    <fileEditorProvider implementation="com.jetbrains.bigdatatools.kafka.common.editor.KafkaEditorProvider"/>
+    <editorTabTitleProvider implementation="com.jetbrains.bigdatatools.kafka.common.editor.KafkaTabTitleProvider"/>
+
+    <notificationGroup id="Kafka Notification" displayType="BALLOON" bundle="messages.KafkaBundle" key="notification.group.kafka"/>
+    <contentTabActionProvider implementation="com.jetbrains.bigdatatools.kafka.core.monitoring.toolwindow.MonitoringTabActionProvider"/>
+  </extensions>
+
+  <actions resource-bundle="messages.KafkaBundle">
+    <action id="Kafka.GlobalCreateKafkaConnection"
+            class="com.jetbrains.bigdatatools.kafka.actions.CreateKafkaConnectionAction"/>
+
+    <group id="Kafka.ExportRecords.Actions" popup="true" icon="AllIcons.Actions.Download">
+      <action id="Kafka.Export.ToCsv" class="com.jetbrains.bigdatatools.kafka.actions.CsvExportAction"/>
+      <action id="Kafka.Export.ToTsv" class="com.jetbrains.bigdatatools.kafka.actions.TsvExportAction"/>
+      <action id="Kafka.Export.ToJson" class="com.jetbrains.bigdatatools.kafka.actions.JsonExportAction"/>
+    </group>
+
+    <group id="Kafka.Actions">
+      <group id="Kafka.General.Actions">
+        <action id="kafka.create.producer"
+                class="com.jetbrains.bigdatatools.kafka.toolwindow.actions.KafkaCreateProducerAction"
+                icon="AllIcons.General.Settings"/>
+        <action id="kafka.create.consumer"
+                class="com.jetbrains.bigdatatools.kafka.toolwindow.actions.KafkaCreateConsumerAction"
+                icon="AllIcons.General.Settings"/>
+
+        <separator/>
+      </group>
+
+      <action id="Kafka.AddToFavoriteAction" class="com.jetbrains.bigdatatools.kafka.toolwindow.actions.AddToFavoriteAction"
+              icon="AllIcons.Nodes.Favorite">
+      </action>
+
+      <group id="Kafka.Topic.Actions">
+        <!--suppress PluginXmlCapitalization -->
+        <action id="kafka.CreateTopicAction" class="com.jetbrains.bigdatatools.kafka.toolwindow.actions.CreateTopicAction"
+                icon="AllIcons.General.Add" use-shortcut-of="NewElement">
+        </action>
+        <action id="kafka.DeleteTopicAction" class="com.jetbrains.bigdatatools.kafka.toolwindow.actions.DeleteTopicAction"
+                icon="AllIcons.General.Remove">
+          <keyboard-shortcut keymap="$default" first-keystroke="DELETE"/>
+        </action>
+        <action id="kafka.ClearTopicAction" class="com.jetbrains.bigdatatools.kafka.toolwindow.actions.ClearTopicAction"
+                icon="com.intellij.bigdatatools.kafka.icons.BigdatatoolsKafkaIcons.ClearOutputs">
+        </action>
+      </group>
+
+      <group id="Kafka.Consumer.Group.Actions">
+        <action id="kafka.ResetOffsetsAction" class="com.jetbrains.bigdatatools.kafka.toolwindow.actions.ResetOffsetsAction"
+                icon="AllIcons.General.Reset"/>
+
+        <action id="kafka.DeleteConsumerGroupAction" class="com.jetbrains.bigdatatools.kafka.toolwindow.actions.DeleteConsumerGroupAction"
+                icon="AllIcons.General.Remove"/>
+      </group>
+
+      <group id="Kafka.Schema.Actions">
+        <action id="kafka.CreateSchemaAction" class="com.jetbrains.bigdatatools.kafka.toolwindow.actions.CreateSchemaAction"
+                icon="AllIcons.General.Add" use-shortcut-of="NewElement">
+        </action>
+        <action id="Kafka.DeleteSchemaAction"
+                class="com.jetbrains.bigdatatools.kafka.toolwindow.actions.DeleteSchemaAction"
+                icon="AllIcons.General.Remove">
+          <keyboard-shortcut keymap="$default" first-keystroke="DELETE"/>
+        </action>
+        <action id="kafka.CloneSchemaAction" class="com.jetbrains.bigdatatools.kafka.toolwindow.actions.CloneSchemaAction"
+                icon="AllIcons.Actions.Copy"/>
+      </group>
+    </group>
+
+    <group id="Kafka.MonitoringTabsActions" popup="true">
+      <action id="Kafka.MonitoringTabsActions.RenameAction"
+              class="com.jetbrains.bigdatatools.kafka.core.monitoring.actions.tabs.MonitoringTabRenameConnection"
+              use-shortcut-of="RenameElement"/>
+      <separator/>
+      <action id="Kafka.MonitoringTabsActions.EnableAction"
+              class="com.jetbrains.bigdatatools.kafka.core.monitoring.actions.tabs.MonitoringTabEnableConnection"/>
+      <action id="Kafka.MonitoringTabsActions.DisableAction"
+              class="com.jetbrains.bigdatatools.kafka.core.monitoring.actions.tabs.MonitoringTabDisableConnection"/>
+      <action id="Kafka.MonitoringTabsActions.DeleteAction"
+              class="com.jetbrains.bigdatatools.kafka.core.monitoring.actions.tabs.MonitoringTabDeleteConnection"
+              use-shortcut-of="$Delete"/>
+      <action id="Kafka.MonitoringTabsActions.RefreshAction"
+              class="com.jetbrains.bigdatatools.kafka.core.monitoring.actions.tabs.MonitoringTabRefreshConnection"/>
+      <action id="Kafka.MonitoringTabsActions.OpenSettingsAction"
+              icon="AllIcons.General.Settings"
+              class="com.jetbrains.bigdatatools.kafka.core.monitoring.actions.tabs.MonitoringTabOpenConnectionSetting"
+              use-shortcut-of="EditSource"/>
+    </group>
+
+    <action id="Kafka.BdiTableCopyRowAction" class="com.jetbrains.bigdatatools.kafka.core.table.editor.BdiTableCopyRowAction"/>
+    <action id="Kafka.BdiTableCopyColumnAction" class="com.jetbrains.bigdatatools.kafka.core.table.editor.BdiTableCopyColumnAction"/>
+    <action id="Kafka.BdiTableDumpToClipboardAction"
+            class="com.jetbrains.bigdatatools.kafka.core.table.editor.BdiTableDumpToClipboardAction"/>
+  </actions>
+
+  <change-notes><![CDATA[
+<h2 style="padding:0;margin:0;line-height:0px">Changes in 2023.3</h2>
+<h4 style="padding:0;margin:0;line-height:0px">Features</h4>
+<ul>
+<li>Supported local Protobuf and Avro schema files</li>
+<li>Added the Show schema action for local schema files</li>
+<li>In Spring projects, Kafka connections can be created directly from the gutter</li>
+<li>Added ability to set and create consumer groups for Kafka consumer</li>
+<li>Extended the usability and functionality of the Consumer groups section of the Kafka plugin</li>
+<li>Added highlighting for avro messages for Consumer</li>
+<li>Added integer type for keys/values for Consumer and Producer</li>
+<li>Added Speed Search for Kafka tool window</li>
+<li>Added the Local port field for connections via SSH tunnel and a hint about limitation of such connections</li>
+<li>Now, installing the Kafka plugin does not require the IDE restart</li>
+</ul>
+
+<h4 style="padding:0;margin:0;line-height:0px">Fixed Bugs</h4>
+<ul>
+<li>Fixed issues with applying presets to Producer</li>
+<li>Improved validation warnings and error messages</li>
+<li>Better column sizing after changing the Producer options and table clearing</li>
+<li>Fixed generation and tree view for JSON and Protobuf schemas with references</li>
+<li>It’s possible now to put multiple schema registry URL in Kafka configuration</li>
+<li>Key/Value editor fields are hidden when random generation enabled</li>
+<li>Improved the Properties source field for Kafka connection settings</li>
+<li>Fixed exception related to the slash symbol in a Topic or Schema name</li>
+</ul>
+
+<p>The full release notes are available <a href="https://youtrack.jetbrains.com/issues?q=project:%20BDIDE%20%20Available%20in:%20%7B2023.3%7D%20State:%20Fixed,%20Verified,%20%7BWithout%20verification%7D%20sort%20by:%20project,%20Type,%20votes%20BDT%20Plugin:%20Kafka">here</a>.</p>
+]]></change-notes>
+</idea-plugin>

@@ -1,0 +1,211 @@
+### auto-generated section `build intellij.bigdatatools.kafka` start
+load("@rules_jvm//:jvm.bzl", "jvm_library", "jvm_provided_library", "jvm_resources")
+
+jvm_resources(
+  name = "kafka_resources",
+  files = glob(["resources/**/*"]),
+  strip_prefix = "resources"
+)
+
+jvm_provided_library(
+  name = "plugins_spring_spring_provided",
+  lib = "//plugins/spring/spring"
+)
+
+jvm_provided_library(
+  name = "plugins_spring_spring-boot_spring-boot_provided",
+  lib = "//plugins/spring/spring-boot/spring-boot"
+)
+
+jvm_provided_library(
+  name = "community_plugins_properties_backend-psi_provided",
+  lib = "@community//plugins/properties/properties-psi-impl:backend-psi"
+)
+
+jvm_provided_library(
+  name = "plugins_microservices_config_provided",
+  lib = "//plugins/microservices/microservices-config:config"
+)
+
+jvm_library(
+  name = "kafka",
+  module_name = "intellij.bigdatatools.kafka",
+  visibility = ["//visibility:public"],
+  srcs = glob(["src/**/*.kt", "src/**/*.java", "src/**/*.form", "gen/**/*.kt", "gen/**/*.java"], allow_empty = True),
+  deps = [
+    "@community//platform/analysis-api:analysis",
+    "@community//platform/util/concurrency",
+    "@community//platform/core-api:core",
+    "@community//platform/core-impl",
+    "@community//platform/credential-store",
+    "@community//platform/editor-ui-api:editor-ui",
+    "@community//platform/platform-api:ide",
+    "@community//platform/platform-impl:ide-impl",
+    "@lib//:kotlin-reflect",
+    "@community//platform/platform-impl/concurrency",
+    "@community//platform/execution-impl",
+    "@community//platform/core-ui",
+    "@community//platform/observable",
+    "@ultimate_lib//:miglayout-swing-provided",
+    "@community//json/backend",
+    "@community//platform/projectModel-api:projectModel",
+    "@lib//:gson",
+    "@community//platform/lang-impl",
+    "@ultimate_lib//:bigdatatools-kafka-apache-kafka-clients",
+    "@ultimate_lib//:apache-avro",
+    "@lib//:protobuf",
+    "@community//platform/diff-api:diff",
+    "@community//platform/util/diff",
+    "@ultimate_lib//:bigdatatools-kafka-io-confluent-kafka-avro-serializer",
+    "@ultimate_lib//:bigdatatools-kafka-io-confluent-kafka-json-schema-serializer",
+    "@ultimate_lib//:bigdatatools-kafka-io-confluent-kafka-protobuf-serializer",
+    "@ultimate_lib//:bigdatatools-kafka-io-confluent-kafka-schema-registry-client",
+    "@lib//:commons-compress",
+    "@ultimate_lib//:google-re2j",
+    "@lib//:classgraph",
+    "@ultimate_lib//:joda-time",
+    "@lib//:lz4-java",
+    "@lib//:jackson",
+    "@lib//:jackson-databind",
+    "@ultimate_lib//:xerial-snappy-java",
+    "@community//platform/diff-impl",
+    "@community//platform/platform-util-io:ide-util-io",
+    "@ultimate_lib//:software-amazon-awssdk-glue",
+    "@ultimate_lib//:bigdatatools-kafka-software-amazon-glue-schema-registry-serde",
+    "@lib//:snakeyaml-engine",
+    "@lib//:snakeyaml",
+    "@ultimate_lib//:bigdatatools-kafka-github-mifmif-generex",
+    "@lib//:google-protobuf-java-util",
+    "@community//platform/feedback",
+    "//platform/charts",
+    "@community//platform/platform-impl/ui",
+    "//plugins/microservices/microservices-jvm:jvm",
+    "@ultimate_lib//:jackson-datatype-jsr310",
+    "@ultimate_lib//:bigdatatools-kafka-software-amazon-awssdk-sso",
+    "@ultimate_lib//:bigdatatools-kafka-software-amazon-awssdk-sts",
+    "@ultimate_lib//:bigdatatools-kafka-software-amazon-awssdk-ssooidc",
+    "@ultimate_lib//:bigdatatools-kafka-moshi-adapters",
+    "@ultimate_lib//:bigdatatools-kafka-moshi-kotlin",
+    "@lib//:http-client",
+    "@lib//:okhttp",
+    "//platform/ssh",
+    "//platform/ssh-ui",
+    "@community//platform/util/coroutines",
+    "@community//platform/refactoring",
+    "@community//libraries/microba",
+    "@community//platform/util/jdom",
+    "@lib//:guava",
+    "@community//platform/lang-core",
+    "@community//platform/util/text-matching",
+    "@community//platform/remote-core",
+    "@community//platform/code-style-api:codeStyle",
+    "@community//platform/testFramework/junit5",
+    "@community//libraries/grpc",
+    "//platform/ssh-core",
+    ":plugins_spring_spring_provided",
+    ":plugins_spring_spring-boot_spring-boot_provided",
+    ":community_plugins_properties_backend-psi_provided",
+    ":plugins_microservices_config_provided",
+  ],
+  runtime_deps = [":kafka_resources"]
+)
+
+jvm_library(
+  name = "kafka_test_lib",
+  visibility = ["//visibility:public"],
+  srcs = glob(["test/**/*.kt", "test/**/*.java", "test/**/*.form"], allow_empty = True),
+  associates = [":kafka"],
+  deps = [
+    "@community//platform/analysis-api:analysis",
+    "@community//platform/util/concurrency",
+    "@community//platform/util/concurrency:concurrency_test_lib",
+    "@community//platform/core-api:core",
+    "@community//platform/core-impl",
+    "@community//platform/credential-store",
+    "@community//platform/editor-ui-api:editor-ui",
+    "@community//platform/platform-api:ide",
+    "@community//platform/platform-impl:ide-impl",
+    "@lib//:kotlin-reflect",
+    "@community//platform/platform-impl/concurrency",
+    "@community//platform/execution-impl",
+    "@community//platform/core-ui",
+    "@community//platform/observable",
+    "@ultimate_lib//:miglayout-swing-provided",
+    "@community//json/backend",
+    "@community//platform/projectModel-api:projectModel",
+    "@community//platform/testFramework",
+    "@community//platform/testFramework:testFramework_test_lib",
+    "@lib//:gson",
+    "@community//platform/lang-impl",
+    "@ultimate_lib//:bigdatatools-kafka-apache-kafka-clients",
+    "@ultimate_lib//:apache-avro",
+    "@lib//:protobuf",
+    "@community//platform/diff-api:diff",
+    "@community//platform/util/diff",
+    "@ultimate_lib//:bigdatatools-kafka-io-confluent-kafka-avro-serializer",
+    "@ultimate_lib//:bigdatatools-kafka-io-confluent-kafka-json-schema-serializer",
+    "@ultimate_lib//:bigdatatools-kafka-io-confluent-kafka-protobuf-serializer",
+    "@ultimate_lib//:bigdatatools-kafka-io-confluent-kafka-schema-registry-client",
+    "@lib//:commons-compress",
+    "@ultimate_lib//:google-re2j",
+    "@lib//:classgraph",
+    "@ultimate_lib//:joda-time",
+    "@lib//:lz4-java",
+    "@lib//:jackson",
+    "@lib//:jackson-databind",
+    "@ultimate_lib//:xerial-snappy-java",
+    "@community//platform/diff-impl",
+    "@community//platform/platform-util-io:ide-util-io",
+    "@ultimate_lib//:software-amazon-awssdk-glue",
+    "@ultimate_lib//:bigdatatools-kafka-software-amazon-glue-schema-registry-serde",
+    "@lib//:snakeyaml-engine",
+    "@lib//:snakeyaml",
+    "@ultimate_lib//:bigdatatools-kafka-github-mifmif-generex",
+    "@lib//:google-protobuf-java-util",
+    "@community//platform/feedback",
+    "//plugins/spring/spring",
+    "//plugins/spring/spring-boot/spring-boot",
+    "@community//plugins/properties/properties-psi-impl:backend-psi",
+    "//plugins/microservices/microservices-config:config",
+    "//plugins/microservices/microservices-config:config_test_lib",
+    "//platform/charts",
+    "@community//platform/platform-impl/ui",
+    "//plugins/microservices/microservices-jvm:jvm",
+    "//plugins/microservices/microservices-jvm:jvm_test_lib",
+    "@ultimate_lib//:jackson-datatype-jsr310",
+    "@ultimate_lib//:bigdatatools-kafka-software-amazon-awssdk-sso",
+    "@ultimate_lib//:bigdatatools-kafka-software-amazon-awssdk-sts",
+    "@ultimate_lib//:bigdatatools-kafka-software-amazon-awssdk-ssooidc",
+    "@ultimate_lib//:bigdatatools-kafka-moshi-adapters",
+    "@ultimate_lib//:bigdatatools-kafka-moshi-kotlin",
+    "@lib//:http-client",
+    "@lib//:okhttp",
+    "//platform/ssh",
+    "//platform/ssh-ui",
+    "@community//platform/util/coroutines",
+    "@community//platform/refactoring",
+    "@community//libraries/microba",
+    "@community//platform/util/jdom",
+    "@lib//:guava",
+    "@community//platform/lang-core",
+    "@community//platform/util/text-matching",
+    "@community//platform/remote-core",
+    "@community//platform/code-style-api:codeStyle",
+    "@ultimate_lib//:bigdatatools-kafka-kotlinx-metadata-jvm",
+    "@community//platform/testFramework/junit5",
+    "@community//platform/testFramework/junit5:junit5_test_lib",
+    "@community//libraries/grpc",
+    "//platform/ssh-core",
+  ],
+  runtime_deps = [":kafka_resources"]
+)
+### auto-generated section `build intellij.bigdatatools.kafka` end
+
+### auto-generated section `test intellij.bigdatatools.kafka` start
+load("@community//build:tests-options.bzl", "jps_test")
+
+jps_test(
+  name = "kafka_test",
+  runtime_deps = [":kafka_test_lib"]
+)
+### auto-generated section `test intellij.bigdatatools.kafka` end

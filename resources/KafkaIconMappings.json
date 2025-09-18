@@ -1,0 +1,7 @@
+{
+  "icons": {
+    "expui": {
+      "kafka.svg": "icons/kafkaToolWindow.svg"
+    }
+  }
+}
