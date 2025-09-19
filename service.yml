@@ -5,6 +5,8 @@ git:
   enable: true
 codeowners:
   enable: true
+make:
+  enable: true
 renovatebot:
   enable: true
   automerge:
