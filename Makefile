@@ -1,13 +1,3 @@
-### BEGIN HEADERS ###
-# This block is managed by ServiceBot plugin - Make. The content in this block is created using a common
-# template and configurations in service.yml.
-# Modifications in this block will be overwritten by generated content in the nightly run.
-# For more information, please refer to the page:
-# https://confluentinc.atlassian.net/wiki/spaces/Foundations/pages/2871328913/Add+Make
-SERVICE_NAME := intellij
-SERVICE_DEPLOY_NAME := intellij
-
-### END HEADERS ###
 ### BEGIN MK-INCLUDE UPDATE ###
 ### This section is managed by service-bot and should not be edited here.
 ### You can make changes upstream in https://github.com/confluentinc/cc-service-bot
@@ -95,6 +85,16 @@ endif
 .mk-include-check-FORCE:
 	@echo -n ""
 ### END MK-INCLUDE UPDATE ###
+### BEGIN HEADERS ###
+# This block is managed by ServiceBot plugin - Make. The content in this block is created using a common
+# template and configurations in service.yml.
+# Modifications in this block will be overwritten by generated content in the nightly run.
+# For more information, please refer to the page:
+# https://confluentinc.atlassian.net/wiki/spaces/Foundations/pages/2871328913/Add+Make
+SERVICE_NAME := intellij
+SERVICE_DEPLOY_NAME := intellij
+
+### END HEADERS ###
 ### BEGIN INCLUDES ###
 # This block is managed by ServiceBot plugin - Make. The content in this block is created using a common
 # template and configurations in service.yml.
@@ -107,6 +107,6 @@ include ./mk-include/cc-semver.mk
 include ./mk-include/cc-semaphore.mk
 include ./mk-include/cc-testbreak.mk
 include ./mk-include/cc-vault.mk
-include ./mk-include/cc-end.mk
 include ./mk-include/cc-sonarqube.mk
+include ./mk-include/cc-end.mk
 ### END INCLUDES ###
