@@ -15,3 +15,5 @@ semaphore:
   enable: true
 sonarqube:
   enable: true
+  languages:
+    - kotlin
