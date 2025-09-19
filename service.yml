@@ -13,3 +13,7 @@ renovatebot:
     enable: false
 semaphore:
   enable: true
+sonarqube:
+  enable: true
+  languages:
+    - kotlin
