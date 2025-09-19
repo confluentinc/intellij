@@ -108,4 +108,5 @@ include ./mk-include/cc-semaphore.mk
 include ./mk-include/cc-testbreak.mk
 include ./mk-include/cc-vault.mk
 include ./mk-include/cc-end.mk
+include ./mk-include/cc-sonarqube.mk
 ### END INCLUDES ###
