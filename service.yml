@@ -16,4 +16,6 @@ semaphore:
 sonarqube:
   enable: true
   languages:
+    - java
     - kotlin
+  main_branch: main
