@@ -37,6 +37,7 @@ in [bug tracker](https://youtrack.jetbrains.com/issues/IJPL?q=Subsystem:%20%7BTo
 - Gradle 8.5 or later
 
 You can install the prerequisites through [SDKMAN!](https://sdkman.io/) by running `sdk env install` in the root directory of this project.
+You can find instructions on how to install SDKMAN! in the [SDKMAN! docs](https://sdkman.io/install).
 
 #### Dependencies
 
