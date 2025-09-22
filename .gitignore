@@ -23,9 +23,6 @@
 *.tar.gz
 *.rar
 
-# Kotlin Gradle plugin data, see https://kotlinlang.org/docs/whatsnew20.html#new-directory-for-kotlin-data-in-gradle-projects
-.kotlin/
-
 # Ignore
 .tmp
 .DS_Store
@@ -35,8 +32,20 @@ target
 *.pid
 local_mode_test.log
 coverage.txt
-.idea
+
+# IntelliJ
 *.iml
+.idea
 
 # servicebot workdir
 .servicebot/
+
+# IntelliJ Platform (plugin development)
+.intellijPlatform/
+
+# Gradle
+.gradle/
+build/
+
+# Kotlin Gradle plugin data, see https://kotlinlang.org/docs/whatsnew20.html#new-directory-for-kotlin-data-in-gradle-projects
+.kotlin/
