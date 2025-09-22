@@ -53,7 +53,7 @@ The plugin depends on several libraries:
 1. Clone the repository and navigate to the root of the plugin directory:
 2. Build the plugin using Gradle:
    ```bash
-   gradle build
+   ./gradlew build
    ```
 
 ### Running in Development Mode
@@ -62,7 +62,7 @@ To run the plugin in development mode:
 
 1. Execute the Gradle task:
    ```bash
-   gradle runIde
+   ./gradlew runIde
    ```
 
    This will start a development instance of IntelliJ IDEA with the plugin installed.
@@ -74,7 +74,7 @@ To run the plugin in development mode:
 The plugin uses JUnit for testing. To run all tests:
 
 ```bash
-gradle test
+./gradlew test
 ```
 
 #### Test Structure
@@ -90,7 +90,7 @@ Tests are located in the `test` directory and include:
 To build the plugin for deployment:
 
 ```bash
-gradle buildPlugin
+./gradlew buildPlugin
 ```
 
 This creates a ZIP file in `build/distributions` that can be installed in IntelliJ IDEA `Settings -> Plugins -> Install Plugin from Disk`.
@@ -109,7 +109,7 @@ To publish using Gradle:
    `Personal Access Token` via Gradle
 2. Run the publishPlugin task:
    ```bash
-   gradle publishPlugin
+   ./gradlew publishPlugin
    ```
 
 #### Additional Helpful Gradle Tasks
@@ -117,7 +117,7 @@ To publish using Gradle:
 To explore other useful tasks, run:
 
 ```bash
-gradle tasks
+./gradlew tasks
 ```
 
 This will list all available tasks, including those provided by the plugin and the IntelliJ Platform
