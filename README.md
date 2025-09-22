@@ -36,6 +36,9 @@ in [bug tracker](https://youtrack.jetbrains.com/issues/IJPL?q=Subsystem:%20%7BTo
 - JDK 21 or later
 - Gradle 8.5 or later
 
+You can install the prerequisites through [SDKMAN!](https://sdkman.io/) by running `sdk env install` in the root directory of this project.
+You can find instructions on how to install SDKMAN! in the [SDKMAN! docs](https://sdkman.io/install).
+
 #### Dependencies
 
 The plugin depends on several libraries:
@@ -50,7 +53,7 @@ The plugin depends on several libraries:
 1. Clone the repository and navigate to the root of the plugin directory:
 2. Build the plugin using Gradle:
    ```bash
-   ./gradlew build
+   gradle build
    ```
 
 ### Running in Development Mode
@@ -59,7 +62,7 @@ To run the plugin in development mode:
 
 1. Execute the Gradle task:
    ```bash
-   ./gradlew runIde
+   gradle runIde
    ```
 
    This will start a development instance of IntelliJ IDEA with the plugin installed.
@@ -71,7 +74,7 @@ To run the plugin in development mode:
 The plugin uses JUnit for testing. To run all tests:
 
 ```bash
-./gradlew test
+gradle test
 ```
 
 #### Test Structure
@@ -87,7 +90,7 @@ Tests are located in the `test` directory and include:
 To build the plugin for deployment:
 
 ```bash
-./gradlew buildPlugin
+gradle buildPlugin
 ```
 
 This creates a ZIP file in `build/distributions` that can be installed in IntelliJ IDEA `Settings -> Plugins -> Install Plugin from Disk`.
@@ -106,7 +109,7 @@ To publish using Gradle:
    `Personal Access Token` via Gradle
 2. Run the publishPlugin task:
    ```bash
-   ./gradlew publishPlugin
+   gradle publishPlugin
    ```
 
 #### Additional Helpful Gradle Tasks
@@ -114,7 +117,7 @@ To publish using Gradle:
 To explore other useful tasks, run:
 
 ```bash
-./gradlew tasks
+gradle tasks
 ```
 
 This will list all available tasks, including those provided by the plugin and the IntelliJ Platform
