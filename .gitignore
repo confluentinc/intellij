@@ -1,2 +1,51 @@
+# Ignore the root bin directory since it generally contains build byproducts. If you want any wrapper scripts, be sure to exclude normal build files in the same directory.
+/bin/*
+
+# but do NOT ignore
+!bin/prepare-prod-release-pr.sh
+
+# mkinclude workdir
 /mk-include
 /.mk-include-timestamp
+
+# Compiled class file
+*.class
+
+# Log file
+*.log
+
+# Package Files #
+*.jar
+*.war
+*.nar
+*.ear
+*.zip
+*.tar.gz
+*.rar
+
+# Ignore
+.tmp
+.DS_Store
+target
+
+# Other build byproducts
+*.pid
+local_mode_test.log
+coverage.txt
+
+# IntelliJ
+*.iml
+.idea
+
+# servicebot workdir
+.servicebot/
+
+# IntelliJ Platform (plugin development)
+.intellijPlatform/
+
+# Gradle
+.gradle/
+build/
+
+# Kotlin Gradle plugin data, see https://kotlinlang.org/docs/whatsnew20.html#new-directory-for-kotlin-data-in-gradle-projects
+.kotlin/
