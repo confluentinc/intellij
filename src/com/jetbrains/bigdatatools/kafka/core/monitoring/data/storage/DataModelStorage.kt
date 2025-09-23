@@ -1,11 +1,11 @@
-package com.jetbrains.bigdatatools.kafka.core.monitoring.data.storage
+package io.confluent.kafka.core.monitoring.data.storage
 
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.util.Disposer
 import com.intellij.util.Alarm
-import com.jetbrains.bigdatatools.kafka.core.monitoring.data.model.DataModel
-import com.jetbrains.bigdatatools.kafka.core.monitoring.data.updater.BdtMonitoringUpdater
-import com.jetbrains.bigdatatools.kafka.core.util.executeOnPooledThread
+import io.confluent.kafka.core.monitoring.data.model.DataModel
+import io.confluent.kafka.core.monitoring.data.updater.BdtMonitoringUpdater
+import io.confluent.kafka.core.util.executeOnPooledThread
 import java.util.concurrent.atomic.AtomicBoolean
 
 abstract class DataModelStorage(val updater: BdtMonitoringUpdater) : Disposable {

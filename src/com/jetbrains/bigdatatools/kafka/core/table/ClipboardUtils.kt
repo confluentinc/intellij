@@ -1,10 +1,10 @@
-package com.jetbrains.bigdatatools.kafka.core.table
+package io.confluent.kafka.core.table
 
 import com.intellij.notification.NotificationGroupManager
 import com.intellij.notification.NotificationType
 import com.intellij.openapi.ide.CopyPasteManager
-import com.jetbrains.bigdatatools.kafka.core.table.model.DataFrameTableModel
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.core.table.model.DataFrameTableModel
+import io.confluent.kafka.util.KafkaMessagesBundle
 import java.awt.datatransfer.StringSelection
 import javax.swing.JTable
 

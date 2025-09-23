@@ -1,7 +1,7 @@
-package com.jetbrains.bigdatatools.kafka.core.monitoring.data.storage
+package io.confluent.kafka.core.monitoring.data.storage
 
-import com.jetbrains.bigdatatools.kafka.core.monitoring.data.model.DataModel
-import com.jetbrains.bigdatatools.kafka.core.monitoring.data.updater.BdtMonitoringUpdater
+import io.confluent.kafka.core.monitoring.data.model.DataModel
+import io.confluent.kafka.core.monitoring.data.updater.BdtMonitoringUpdater
 
 open class RootDataModelStorage(updater: BdtMonitoringUpdater, val models: List<DataModel<*>>) : DataModelStorage(updater) {
   init {

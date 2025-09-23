@@ -1,10 +1,10 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.tree.node
+package io.confluent.kafka.core.rfs.tree.node
 
 import com.intellij.ide.projectView.PresentationData
 import com.intellij.openapi.project.Project
-import com.jetbrains.bigdatatools.kafka.core.rfs.client.SchemaInfoPart
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.Driver
-import com.jetbrains.bigdatatools.kafka.core.util.toPresentableText
+import io.confluent.kafka.core.rfs.client.SchemaInfoPart
+import io.confluent.kafka.core.rfs.driver.Driver
+import io.confluent.kafka.core.util.toPresentableText
 
 class RfsMetaInfoNode(driver: Driver,
                       project: Project,

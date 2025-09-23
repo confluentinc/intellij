@@ -1,12 +1,12 @@
-package com.jetbrains.bigdatatools.kafka.registry.common
+package io.confluent.kafka.registry.common
 
-import com.jetbrains.bigdatatools.kafka.core.monitoring.data.model.RemoteInfo
-import com.jetbrains.bigdatatools.kafka.core.table.renderers.CustomRendering
-import com.jetbrains.bigdatatools.kafka.core.table.renderers.DateRendering
-import com.jetbrains.bigdatatools.kafka.core.table.renderers.LoadingRendering
-import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryFormat
-import com.jetbrains.bigdatatools.kafka.util.KafkaLocalizedField
-import com.jetbrains.bigdatatools.kafka.util.RegistryFormatRenderer
+import io.confluent.kafka.core.monitoring.data.model.RemoteInfo
+import io.confluent.kafka.core.table.renderers.CustomRendering
+import io.confluent.kafka.core.table.renderers.DateRendering
+import io.confluent.kafka.core.table.renderers.LoadingRendering
+import io.confluent.kafka.registry.KafkaRegistryFormat
+import io.confluent.kafka.util.KafkaLocalizedField
+import io.confluent.kafka.util.RegistryFormatRenderer
 import java.util.*
 
 data class KafkaSchemaInfo(val name: String,

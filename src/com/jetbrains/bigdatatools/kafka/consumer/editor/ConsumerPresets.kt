@@ -1,12 +1,12 @@
-package com.jetbrains.bigdatatools.kafka.consumer.editor
+package io.confluent.kafka.consumer.editor
 
 import com.intellij.ui.dsl.builder.panel
-import com.jetbrains.bigdatatools.kafka.common.editor.Presets
-import com.jetbrains.bigdatatools.kafka.common.settings.KafkaConfigStorage
-import com.jetbrains.bigdatatools.kafka.common.settings.StorageConsumerConfig
-import com.jetbrains.bigdatatools.kafka.consumer.models.ConsumerFilterType
-import com.jetbrains.bigdatatools.kafka.consumer.models.ConsumerLimitType
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.common.editor.Presets
+import io.confluent.kafka.common.settings.KafkaConfigStorage
+import io.confluent.kafka.common.settings.StorageConsumerConfig
+import io.confluent.kafka.consumer.models.ConsumerFilterType
+import io.confluent.kafka.consumer.models.ConsumerLimitType
+import io.confluent.kafka.util.KafkaMessagesBundle
 import java.awt.Component
 import java.text.SimpleDateFormat
 import javax.swing.BorderFactory

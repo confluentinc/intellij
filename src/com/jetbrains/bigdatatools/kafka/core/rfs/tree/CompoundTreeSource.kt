@@ -1,12 +1,12 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.tree
+package io.confluent.kafka.core.rfs.tree
 
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.intellij.util.concurrency.annotations.RequiresEdt
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.RfsPath
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.depend.MasterDriver
-import com.jetbrains.bigdatatools.kafka.core.settings.manager.RfsConnectionDataManager
+import io.confluent.kafka.core.rfs.driver.RfsPath
+import io.confluent.kafka.core.rfs.driver.depend.MasterDriver
+import io.confluent.kafka.core.settings.manager.RfsConnectionDataManager
 
 class CompoundTreeSource(val project: Project, val driver: MasterDriver, val rfsPath: RfsPath) : Disposable {
   private var rootSources: List<Pair<String, Boolean>> = emptyList()

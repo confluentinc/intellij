@@ -1,9 +1,9 @@
-package com.jetbrains.bigdatatools.kafka.core.monitoring.actions.tabs
+package io.confluent.kafka.core.monitoring.actions.tabs
 
 import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.project.DumbAwareAction
-import com.jetbrains.bigdatatools.kafka.core.util.ConnectionUtil
+import io.confluent.kafka.core.util.ConnectionUtil
 
 abstract class MonitoringTabConnectionAction : DumbAwareAction() {
   override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT

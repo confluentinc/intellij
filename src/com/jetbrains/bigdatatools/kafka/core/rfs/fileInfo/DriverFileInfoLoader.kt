@@ -1,12 +1,12 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.fileInfo
+package io.confluent.kafka.core.rfs.fileInfo
 
 import com.intellij.openapi.project.Project
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.*
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.fileinfo.ErrorResult
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.fileinfo.OkResult
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.fileinfo.SafeResult
-import com.jetbrains.bigdatatools.kafka.core.util.BdIdeRegistryUtil
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.core.rfs.driver.*
+import io.confluent.kafka.core.rfs.driver.fileinfo.ErrorResult
+import io.confluent.kafka.core.rfs.driver.fileinfo.OkResult
+import io.confluent.kafka.core.rfs.driver.fileinfo.SafeResult
+import io.confluent.kafka.core.util.BdIdeRegistryUtil
+import io.confluent.kafka.util.KafkaMessagesBundle
 import kotlinx.coroutines.flow.*
 
 abstract class DriverFileInfoLoader(private val project: Project?,

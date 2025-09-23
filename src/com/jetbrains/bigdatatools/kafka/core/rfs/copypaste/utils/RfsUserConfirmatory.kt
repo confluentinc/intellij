@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.copypaste.utils
+package io.confluent.kafka.core.rfs.copypaste.utils
 
 import com.intellij.CommonBundle
 import com.intellij.openapi.application.ApplicationManager
@@ -8,7 +8,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.DoNotAskOption
 import com.intellij.openapi.ui.MessageDialogBuilder
 import com.intellij.openapi.util.NlsContexts
-import com.jetbrains.bigdatatools.kafka.core.rfs.copypaste.settings.RfsCopySettings
+import io.confluent.kafka.core.rfs.copypaste.settings.RfsCopySettings
 import org.jetbrains.annotations.Nls
 
 object RfsUserConfirmatory {

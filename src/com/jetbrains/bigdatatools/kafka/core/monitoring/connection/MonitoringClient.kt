@@ -1,13 +1,13 @@
-package com.jetbrains.bigdatatools.kafka.core.monitoring.connection
+package io.confluent.kafka.core.monitoring.connection
 
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.project.Project
-import com.jetbrains.bigdatatools.kafka.core.connection.exception.BdtDriverNotInitializedException
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.ConnectedConnectionStatus
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.ConnectingConnectionStatus
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.DriverConnectionStatus
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.FailedConnectionStatus
-import com.jetbrains.bigdatatools.kafka.core.util.SmartLogger
+import io.confluent.kafka.core.connection.exception.BdtDriverNotInitializedException
+import io.confluent.kafka.core.rfs.driver.ConnectedConnectionStatus
+import io.confluent.kafka.core.rfs.driver.ConnectingConnectionStatus
+import io.confluent.kafka.core.rfs.driver.DriverConnectionStatus
+import io.confluent.kafka.core.rfs.driver.FailedConnectionStatus
+import io.confluent.kafka.core.util.SmartLogger
 
 abstract class MonitoringClient(val project: Project?) : Disposable {
   private var state: DriverConnectionStatus? = null

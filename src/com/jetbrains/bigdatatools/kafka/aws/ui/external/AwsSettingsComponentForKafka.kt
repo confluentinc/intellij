@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.aws.ui.external
+package io.confluent.kafka.aws.ui.external
 
 
 import com.intellij.ide.actions.RevealFileAction
@@ -11,15 +11,15 @@ import com.intellij.ui.dsl.builder.Panel
 import com.intellij.ui.dsl.builder.RowsRange
 import com.intellij.ui.dsl.builder.text
 import com.intellij.ui.layout.selectedValueMatches
-import com.jetbrains.bigdatatools.kafka.aws.connection.AwsConnectionUtils
-import com.jetbrains.bigdatatools.kafka.aws.connection.auth.AuthenticationType
-import com.jetbrains.bigdatatools.kafka.aws.credentials.profiles.loader.BdtProfileReader
-import com.jetbrains.bigdatatools.kafka.aws.settings.models.AwsRegionEntity
-import com.jetbrains.bigdatatools.kafka.aws.ui.AwsComponentsBuilder
-import com.jetbrains.bigdatatools.kafka.core.rfs.util.RfsNotificationUtils
-import com.jetbrains.bigdatatools.kafka.core.ui.CustomListCellRenderer
-import com.jetbrains.bigdatatools.kafka.core.ui.components.BdtGroupRender
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.aws.connection.AwsConnectionUtils
+import io.confluent.kafka.aws.connection.auth.AuthenticationType
+import io.confluent.kafka.aws.credentials.profiles.loader.BdtProfileReader
+import io.confluent.kafka.aws.settings.models.AwsRegionEntity
+import io.confluent.kafka.aws.ui.AwsComponentsBuilder
+import io.confluent.kafka.core.rfs.util.RfsNotificationUtils
+import io.confluent.kafka.core.ui.CustomListCellRenderer
+import io.confluent.kafka.core.ui.components.BdtGroupRender
+import io.confluent.kafka.util.KafkaMessagesBundle
 import software.amazon.awssdk.regions.Region
 
 class AwsSettingsComponentForKafka(val includeRegionSetting: Boolean = false, val onChanged: (AwsSettingsComponentForKafka) -> Unit) {

@@ -1,10 +1,10 @@
-package com.jetbrains.bigdatatools.kafka.client
+package io.confluent.kafka.client
 
-import com.jetbrains.bigdatatools.kafka.model.BdtTopicPartition
-import com.jetbrains.bigdatatools.kafka.model.TopicConfig
-import com.jetbrains.bigdatatools.kafka.model.TopicPresentable
-import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryFormat
-import com.jetbrains.bigdatatools.kafka.registry.common.KafkaSchemaInfo
+import io.confluent.kafka.model.BdtTopicPartition
+import io.confluent.kafka.model.TopicConfig
+import io.confluent.kafka.model.TopicPresentable
+import io.confluent.kafka.registry.KafkaRegistryFormat
+import io.confluent.kafka.registry.common.KafkaSchemaInfo
 import org.apache.kafka.clients.admin.ConfigEntry
 import org.apache.kafka.clients.admin.TopicDescription
 import org.apache.kafka.common.config.TopicConfig.MESSAGE_FORMAT_VERSION_CONFIG

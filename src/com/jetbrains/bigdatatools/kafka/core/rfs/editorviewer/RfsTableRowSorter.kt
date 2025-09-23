@@ -1,8 +1,8 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.editorviewer
+package io.confluent.kafka.core.rfs.editorviewer
 
-import com.jetbrains.bigdatatools.kafka.core.rfs.search.impl.BackListElement
-import com.jetbrains.bigdatatools.kafka.core.rfs.search.impl.ListElement
-import com.jetbrains.bigdatatools.kafka.core.rfs.search.impl.MoreListElement
+import io.confluent.kafka.core.rfs.search.impl.BackListElement
+import io.confluent.kafka.core.rfs.search.impl.ListElement
+import io.confluent.kafka.core.rfs.search.impl.MoreListElement
 import java.text.Collator
 import javax.swing.SortOrder
 import javax.swing.table.TableRowSorter

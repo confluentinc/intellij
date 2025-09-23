@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.core.settings.components
+package io.confluent.kafka.core.settings.components
 
 interface RenderableEntity {
   val id: String

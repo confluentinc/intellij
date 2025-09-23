@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.copypaste.providers
+package io.confluent.kafka.core.rfs.copypaste.providers
 
 import com.intellij.ide.PasteProvider
 import com.intellij.openapi.actionSystem.ActionUpdateThread
@@ -6,10 +6,10 @@ import com.intellij.openapi.actionSystem.DataContext
 import com.intellij.openapi.diagnostic.ControlFlowException
 import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.project.DumbAware
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.FileInfo
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.copyhandler.InterDriverCopyManager
-import com.jetbrains.bigdatatools.kafka.core.rfs.projectview.actions.RfsPaneOwner
-import com.jetbrains.bigdatatools.kafka.core.rfs.tree.node.DriverFileRfsTreeNode
+import io.confluent.kafka.core.rfs.driver.FileInfo
+import io.confluent.kafka.core.rfs.driver.copyhandler.InterDriverCopyManager
+import io.confluent.kafka.core.rfs.projectview.actions.RfsPaneOwner
+import io.confluent.kafka.core.rfs.tree.node.DriverFileRfsTreeNode
 import java.util.concurrent.CancellationException
 
 internal class RfsPasteProvider(private val pane: RfsPaneOwner) : PasteProvider, DumbAware {

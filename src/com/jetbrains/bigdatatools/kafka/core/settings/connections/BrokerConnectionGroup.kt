@@ -1,7 +1,7 @@
-package com.jetbrains.bigdatatools.kafka.core.settings.connections
+package io.confluent.kafka.core.settings.connections
 
 import com.intellij.icons.AllIcons
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.util.KafkaMessagesBundle
 
 class BrokerConnectionGroup : ConnectionGroup(
   id = GROUP_ID,

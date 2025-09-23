@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.core.monitoring.data.listener
+package io.confluent.kafka.core.monitoring.data.listener
 
 interface DataModelListener {
   fun beforeChanged() {}

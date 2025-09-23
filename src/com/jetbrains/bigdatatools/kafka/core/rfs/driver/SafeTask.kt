@@ -1,10 +1,10 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.driver
+package io.confluent.kafka.core.rfs.driver
 
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.Project
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.fileinfo.ErrorResult
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.fileinfo.OkResult
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.fileinfo.SafeResult
+import io.confluent.kafka.core.rfs.driver.fileinfo.ErrorResult
+import io.confluent.kafka.core.rfs.driver.fileinfo.OkResult
+import io.confluent.kafka.core.rfs.driver.fileinfo.SafeResult
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.TimeoutCancellationException

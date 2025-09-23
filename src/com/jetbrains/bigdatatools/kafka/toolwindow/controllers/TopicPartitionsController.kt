@@ -1,15 +1,15 @@
-package com.jetbrains.bigdatatools.kafka.toolwindow.controllers
+package io.confluent.kafka.toolwindow.controllers
 
-import com.intellij.bigdatatools.kafka.icons.BigdatatoolsKafkaIcons
+import io.confluent.kafka.icons.BigdatatoolsKafkaIcons
 import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.project.DumbAwareAction
-import com.jetbrains.bigdatatools.kafka.core.monitoring.toolwindow.DetailsTableMonitoringController
-import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
-import com.jetbrains.bigdatatools.kafka.model.BdtTopicPartition
-import com.jetbrains.bigdatatools.kafka.toolwindow.config.KafkaToolWindowSettings
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.core.monitoring.toolwindow.DetailsTableMonitoringController
+import io.confluent.kafka.data.KafkaDataManager
+import io.confluent.kafka.model.BdtTopicPartition
+import io.confluent.kafka.toolwindow.config.KafkaToolWindowSettings
+import io.confluent.kafka.util.KafkaMessagesBundle
 
 class TopicPartitionsController(private val dataManager: KafkaDataManager) : DetailsTableMonitoringController<BdtTopicPartition, String>() {
   private val clearPartition = object : DumbAwareAction(KafkaMessagesBundle.message("action.kafka.ClearPartition.text"),

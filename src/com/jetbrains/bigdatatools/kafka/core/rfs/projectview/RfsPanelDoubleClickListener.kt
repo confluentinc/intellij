@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.projectview
+package io.confluent.kafka.core.rfs.projectview
 
 import com.intellij.ide.DataManager
 import com.intellij.openapi.actionSystem.CommonDataKeys
@@ -8,9 +8,9 @@ import com.intellij.pom.Navigatable
 import com.intellij.util.EditSourceOnDoubleClickHandler.TreeMouseListener
 import com.intellij.util.OpenSourceUtil
 import com.intellij.util.ui.tree.TreeUtil
-import com.jetbrains.bigdatatools.kafka.core.rfs.tree.node.DriverFileRfsTreeNode
-import com.jetbrains.bigdatatools.kafka.core.rfs.viewer.utils.DriverRfsTreeUtil.lastDriverNode
-import com.jetbrains.bigdatatools.kafka.core.util.ConnectionUtil
+import io.confluent.kafka.core.rfs.tree.node.DriverFileRfsTreeNode
+import io.confluent.kafka.core.rfs.viewer.utils.DriverRfsTreeUtil.lastDriverNode
+import io.confluent.kafka.core.util.ConnectionUtil
 import java.awt.event.MouseEvent
 import javax.swing.JTree
 import javax.swing.plaf.basic.BasicTreeUI

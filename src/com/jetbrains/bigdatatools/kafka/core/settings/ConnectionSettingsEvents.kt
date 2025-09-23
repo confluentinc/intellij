@@ -1,9 +1,9 @@
-package com.jetbrains.bigdatatools.kafka.core.settings
+package io.confluent.kafka.core.settings
 
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.NlsContexts
-import com.jetbrains.bigdatatools.kafka.core.settings.connections.ConnectionData
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.core.settings.connections.ConnectionData
+import io.confluent.kafka.util.KafkaMessagesBundle
 
 /**
  * User: Dmitry.Naydanov

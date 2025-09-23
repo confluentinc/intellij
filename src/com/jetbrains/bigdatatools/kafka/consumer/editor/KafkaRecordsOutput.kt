@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.consumer.editor
+package io.confluent.kafka.consumer.editor
 
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.Disposable
@@ -11,20 +11,20 @@ import com.intellij.openapi.util.Disposer
 import com.intellij.ui.JBColor
 import com.intellij.ui.PopupHandler
 import com.intellij.ui.ScrollPaneFactory
-import com.jetbrains.bigdatatools.kafka.common.editor.ListTableModel
-import com.jetbrains.bigdatatools.kafka.core.table.MaterialTable
-import com.jetbrains.bigdatatools.kafka.core.table.MaterialTableUtils
-import com.jetbrains.bigdatatools.kafka.core.table.extension.TableCellPreview
-import com.jetbrains.bigdatatools.kafka.core.table.extension.TableFirstRowAdded
-import com.jetbrains.bigdatatools.kafka.core.table.extension.TableLoadingDecorator
-import com.jetbrains.bigdatatools.kafka.core.table.extension.TableResizeController
-import com.jetbrains.bigdatatools.kafka.core.table.filters.TableFilterHeader
-import com.jetbrains.bigdatatools.kafka.core.table.renderers.DateRenderer
-import com.jetbrains.bigdatatools.kafka.core.table.renderers.DurationRenderer
-import com.jetbrains.bigdatatools.kafka.core.ui.ExpansionPanel
-import com.jetbrains.bigdatatools.kafka.core.ui.onDoubleClick
-import com.jetbrains.bigdatatools.kafka.core.ui.setSouthComponent
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.common.editor.ListTableModel
+import io.confluent.kafka.core.table.MaterialTable
+import io.confluent.kafka.core.table.MaterialTableUtils
+import io.confluent.kafka.core.table.extension.TableCellPreview
+import io.confluent.kafka.core.table.extension.TableFirstRowAdded
+import io.confluent.kafka.core.table.extension.TableLoadingDecorator
+import io.confluent.kafka.core.table.extension.TableResizeController
+import io.confluent.kafka.core.table.filters.TableFilterHeader
+import io.confluent.kafka.core.table.renderers.DateRenderer
+import io.confluent.kafka.core.table.renderers.DurationRenderer
+import io.confluent.kafka.core.ui.ExpansionPanel
+import io.confluent.kafka.core.ui.onDoubleClick
+import io.confluent.kafka.core.ui.setSouthComponent
+import io.confluent.kafka.util.KafkaMessagesBundle
 import java.awt.BorderLayout
 import java.awt.Dimension
 import java.util.*
@@ -232,7 +232,7 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
     private val OFFSET_COLUMN = KafkaMessagesBundle.message("output.column.offset")
     private val DURATION_COLUMN = KafkaMessagesBundle.message("output.column.duration")
 
-    internal const val DATA_SHOW_ID = "com.jetbrains.bigdatatools.kafka.consumer.data.show"
-    internal const val DETAILS_SHOW_ID = "com.jetbrains.bigdatatools.kafka.consumer.details.show"
+    internal const val DATA_SHOW_ID = "io.confluent.kafka.consumer.data.show"
+    internal const val DETAILS_SHOW_ID = "io.confluent.kafka.consumer.details.show"
   }
 }

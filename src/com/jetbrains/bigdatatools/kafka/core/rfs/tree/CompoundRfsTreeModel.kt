@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.tree
+package io.confluent.kafka.core.rfs.tree
 
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.project.Project
@@ -9,13 +9,13 @@ import com.intellij.util.concurrency.Invoker
 import com.intellij.util.concurrency.InvokerSupplier
 import com.intellij.util.concurrency.ThreadingAssertions
 import com.intellij.util.concurrency.annotations.RequiresEdt
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.Driver
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.RfsPath
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.depend.MasterDriver
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.manager.DriverManager
-import com.jetbrains.bigdatatools.kafka.core.rfs.settings.RemoteFsDriverProvider
-import com.jetbrains.bigdatatools.kafka.core.rfs.tree.node.*
-import com.jetbrains.bigdatatools.kafka.core.settings.manager.RfsConnectionDataManager
+import io.confluent.kafka.core.rfs.driver.Driver
+import io.confluent.kafka.core.rfs.driver.RfsPath
+import io.confluent.kafka.core.rfs.driver.depend.MasterDriver
+import io.confluent.kafka.core.rfs.driver.manager.DriverManager
+import io.confluent.kafka.core.rfs.settings.RemoteFsDriverProvider
+import io.confluent.kafka.core.rfs.tree.node.*
+import io.confluent.kafka.core.settings.manager.RfsConnectionDataManager
 import java.util.concurrent.CopyOnWriteArrayList
 import javax.swing.event.TreeModelEvent
 import javax.swing.event.TreeModelListener

@@ -1,13 +1,13 @@
-package com.jetbrains.bigdatatools.kafka.toolwindow.actions
+package io.confluent.kafka.toolwindow.actions
 
 import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.project.DumbAwareAction
-import com.jetbrains.bigdatatools.kafka.core.monitoring.toolwindow.MainTreeController.Companion.dataManager
-import com.jetbrains.bigdatatools.kafka.core.monitoring.toolwindow.MainTreeController.Companion.rfsPath
-import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
-import com.jetbrains.bigdatatools.kafka.rfs.KafkaDriver.Companion.isConsumers
-import com.jetbrains.bigdatatools.kafka.util.KafkaConsumerGroupChangeOffsetProcess
+import io.confluent.kafka.core.monitoring.toolwindow.MainTreeController.Companion.dataManager
+import io.confluent.kafka.core.monitoring.toolwindow.MainTreeController.Companion.rfsPath
+import io.confluent.kafka.data.KafkaDataManager
+import io.confluent.kafka.rfs.KafkaDriver.Companion.isConsumers
+import io.confluent.kafka.util.KafkaConsumerGroupChangeOffsetProcess
 
 class ResetOffsetsAction : DumbAwareAction() {
   override fun actionPerformed(e: AnActionEvent) {

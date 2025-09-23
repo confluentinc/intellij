@@ -1,9 +1,9 @@
-package com.jetbrains.bigdatatools.kafka.core.connection.tunnel.model
+package io.confluent.kafka.core.connection.tunnel.model
 
 import com.intellij.openapi.project.Project
 import com.intellij.ssh.config.unified.SshConfig
 import com.intellij.ssh.config.unified.SshConfigManager
-import com.jetbrains.bigdatatools.kafka.core.connection.exception.SshConfigNotFoundException
+import io.confluent.kafka.core.connection.exception.SshConfigNotFoundException
 import java.io.Serializable
 
 /**
@@ -40,7 +40,7 @@ data class ConnectionSshTunnelData(val isEnabled: Boolean, val configId: String,
 }
 
 /**
- * Represents tunnel data ready for creating an SSH tunnel (see [com.jetbrains.bigdatatools.kafka.core.connection.tunnel.BdtSshTunnelService]). Can be formed from URI and [ConnectionSshTunnelData]
+ * Represents tunnel data ready for creating an SSH tunnel (see [io.confluent.kafka.core.connection.tunnel.BdtSshTunnelService]). Can be formed from URI and [ConnectionSshTunnelData]
  */
 data class ConnectionSshTunnelInfo(val sshConfig: SshConfig, val remoteHost: String, val remotePort: Int, val localPort: Int? = null) {
   constructor(configId: String, remoteHost: String, remotePort: Int, project: Project? = null,

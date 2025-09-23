@@ -1,6 +1,6 @@
-package com.jetbrains.bigdatatools.kafka.model
+package io.confluent.kafka.model
 
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.util.KafkaMessagesBundle
 import org.jetbrains.annotations.Nls
 
 data class TopicStatisticInfo(val topicCount: Int,

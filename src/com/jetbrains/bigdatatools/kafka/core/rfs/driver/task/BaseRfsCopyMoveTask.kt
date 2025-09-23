@@ -1,12 +1,12 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.driver.task
+package io.confluent.kafka.core.rfs.driver.task
 
-import com.jetbrains.bigdatatools.kafka.core.rfs.copypaste.RfsCopyPasteParams
-import com.jetbrains.bigdatatools.kafka.core.rfs.copypaste.RfsCopyPasteUtil
-import com.jetbrains.bigdatatools.kafka.core.rfs.copypaste.model.RfsCopyMoveContext
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.Driver
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.FileInfo
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.RfsPath
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.core.rfs.copypaste.RfsCopyPasteParams
+import io.confluent.kafka.core.rfs.copypaste.RfsCopyPasteUtil
+import io.confluent.kafka.core.rfs.copypaste.model.RfsCopyMoveContext
+import io.confluent.kafka.core.rfs.driver.Driver
+import io.confluent.kafka.core.rfs.driver.FileInfo
+import io.confluent.kafka.core.rfs.driver.RfsPath
+import io.confluent.kafka.util.KafkaMessagesBundle
 
 
 abstract class BaseRfsCopyMoveTask(val rootFromInfo: FileInfo,

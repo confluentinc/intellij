@@ -1,3 +1,3 @@
-package com.jetbrains.bigdatatools.kafka.core.monitoring.data.model
+package io.confluent.kafka.core.monitoring.data.model
 
 class FilterKey(val name: String)

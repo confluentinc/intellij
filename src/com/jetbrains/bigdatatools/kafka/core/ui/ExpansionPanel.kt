@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.core.ui
+package io.confluent.kafka.core.ui
 
 import com.intellij.ide.util.PropertiesComponent
 import com.intellij.openapi.actionSystem.AnAction
@@ -11,9 +11,9 @@ import com.intellij.ui.SideBorder
 import com.intellij.ui.layout.migLayout.createLayoutConstraints
 import com.intellij.ui.layout.migLayout.createUnitValue
 import com.intellij.ui.layout.migLayout.patched.MigLayout
-import com.jetbrains.bigdatatools.kafka.core.rfs.icons.RfsIcons
-import com.jetbrains.bigdatatools.kafka.core.util.ToolbarUtils
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.core.rfs.icons.RfsIcons
+import io.confluent.kafka.core.util.ToolbarUtils
+import io.confluent.kafka.util.KafkaMessagesBundle
 import net.miginfocom.layout.ConstraintParser
 import java.awt.BorderLayout
 import java.awt.Dimension

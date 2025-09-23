@@ -1,12 +1,12 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.fileInfo.impl
+package io.confluent.kafka.core.rfs.fileInfo.impl
 
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.components.serviceIfCreated
 import com.intellij.openapi.project.ProjectManager
-import com.jetbrains.bigdatatools.kafka.core.rfs.fileInfo.RfsChildrenPartId
-import com.jetbrains.bigdatatools.kafka.core.rfs.projectview.toolwindow.BigDataToolWindowController
-import com.jetbrains.bigdatatools.kafka.core.rfs.tree.node.DriverFileRfsTreeNode
-import com.jetbrains.bigdatatools.kafka.core.util.BdtRefresherService
+import io.confluent.kafka.core.rfs.fileInfo.RfsChildrenPartId
+import io.confluent.kafka.core.rfs.projectview.toolwindow.BigDataToolWindowController
+import io.confluent.kafka.core.rfs.tree.node.DriverFileRfsTreeNode
+import io.confluent.kafka.core.util.BdtRefresherService
 import kotlinx.coroutines.launch
 import javax.swing.tree.TreePath
 import kotlin.time.TimeSource

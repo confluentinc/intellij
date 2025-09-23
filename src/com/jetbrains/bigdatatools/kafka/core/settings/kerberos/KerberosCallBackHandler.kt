@@ -1,6 +1,6 @@
-package com.jetbrains.bigdatatools.kafka.core.settings.kerberos
+package io.confluent.kafka.core.settings.kerberos
 
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.util.KafkaMessagesBundle
 import javax.security.auth.callback.Callback
 import javax.security.auth.callback.CallbackHandler
 import javax.security.auth.callback.NameCallback

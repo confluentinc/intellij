@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.tree.node
+package io.confluent.kafka.core.rfs.tree.node
 
 import com.intellij.ide.projectView.PresentationData
 import com.intellij.openapi.project.Project

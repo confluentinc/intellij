@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.registry.serde
+package io.confluent.kafka.registry.serde
 
 import io.confluent.kafka.schemaregistry.ParsedSchema
 import io.confluent.kafka.schemaregistry.avro.AvroSchema

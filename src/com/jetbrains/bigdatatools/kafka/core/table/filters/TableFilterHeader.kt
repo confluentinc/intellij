@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.core.table.filters
+package io.confluent.kafka.core.table.filters
 
 import com.intellij.ui.IdeBorderFactory
 import com.intellij.ui.SideBorder

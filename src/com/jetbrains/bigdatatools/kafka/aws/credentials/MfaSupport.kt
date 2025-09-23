@@ -1,12 +1,12 @@
 // Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-package com.jetbrains.bigdatatools.kafka.aws.credentials
+package io.confluent.kafka.aws.credentials
 
 import com.intellij.openapi.progress.ProcessCanceledException
 import com.intellij.openapi.ui.Messages
-import com.jetbrains.bigdatatools.kafka.core.rfs.exception.RfsAuthRequiredError
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.core.rfs.exception.RfsAuthRequiredError
+import io.confluent.kafka.util.KafkaMessagesBundle
 import javax.swing.SwingUtilities
 
 fun promptForMfaToken(name: String, mfaSerial: String, allowMfaDialog: Boolean): String {

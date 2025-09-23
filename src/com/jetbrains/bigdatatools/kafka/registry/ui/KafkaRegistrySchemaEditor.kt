@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.registry.ui
+package io.confluent.kafka.registry.ui
 
 import com.intellij.lang.Language
 import com.intellij.openapi.Disposable
@@ -8,11 +8,11 @@ import com.intellij.openapi.project.Project
 import com.intellij.ui.EditorCustomization
 import com.intellij.ui.EditorTextField
 import com.intellij.ui.EditorTextFieldProvider
-import com.jetbrains.bigdatatools.kafka.core.settings.withValidator
-import com.jetbrains.bigdatatools.kafka.core.ui.ComponentColoredBorder
-import com.jetbrains.bigdatatools.kafka.core.ui.DarculaTextAreaBorder
-import com.jetbrains.bigdatatools.kafka.core.ui.doOnChange
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.core.settings.withValidator
+import io.confluent.kafka.core.ui.ComponentColoredBorder
+import io.confluent.kafka.core.ui.DarculaTextAreaBorder
+import io.confluent.kafka.core.ui.doOnChange
+import io.confluent.kafka.util.KafkaMessagesBundle
 import java.awt.BorderLayout
 import javax.swing.BorderFactory
 import javax.swing.JPanel

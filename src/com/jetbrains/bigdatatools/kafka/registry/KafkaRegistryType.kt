@@ -1,7 +1,7 @@
-package com.jetbrains.bigdatatools.kafka.registry
+package io.confluent.kafka.registry
 
-import com.jetbrains.bigdatatools.kafka.core.settings.components.RenderableEntity
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.core.settings.components.RenderableEntity
+import io.confluent.kafka.util.KafkaMessagesBundle
 import org.jetbrains.annotations.Nls
 
 enum class KafkaRegistryType(override val id: String, @Nls override val title: String) : RenderableEntity {

@@ -1,8 +1,8 @@
-package com.jetbrains.bigdatatools.kafka.aws.driver
+package io.confluent.kafka.aws.driver
 
-import com.jetbrains.bigdatatools.kafka.aws.connection.auth.common.BdtAwsCredentialsProvider
-import com.jetbrains.bigdatatools.kafka.aws.credentials.profiles.BdtProfileAssumeRoleProvider
-import com.jetbrains.bigdatatools.kafka.aws.credentials.profiles.BdtProfileSsoProvider
+import io.confluent.kafka.aws.connection.auth.common.BdtAwsCredentialsProvider
+import io.confluent.kafka.aws.credentials.profiles.BdtProfileAssumeRoleProvider
+import io.confluent.kafka.aws.credentials.profiles.BdtProfileSsoProvider
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider
 
 class AwsCredentialController(val credentialsProvider: BdtAwsCredentialsProvider) {

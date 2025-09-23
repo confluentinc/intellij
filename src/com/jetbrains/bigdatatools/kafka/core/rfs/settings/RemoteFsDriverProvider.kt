@@ -1,12 +1,12 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.settings
+package io.confluent.kafka.core.rfs.settings
 
 import com.intellij.openapi.project.Project
-import com.jetbrains.bigdatatools.kafka.core.constants.BdtConnectionType
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.BrokenDriver
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.Driver
-import com.jetbrains.bigdatatools.kafka.core.rfs.util.RfsNotificationUtils
-import com.jetbrains.bigdatatools.kafka.core.settings.connections.ConnectionData
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.core.constants.BdtConnectionType
+import io.confluent.kafka.core.rfs.driver.BrokenDriver
+import io.confluent.kafka.core.rfs.driver.Driver
+import io.confluent.kafka.core.rfs.util.RfsNotificationUtils
+import io.confluent.kafka.core.settings.connections.ConnectionData
+import io.confluent.kafka.util.KafkaMessagesBundle
 import javax.swing.Icon
 
 abstract class RemoteFsDriverProvider(name: String = "") : ConnectionData(name = name) {

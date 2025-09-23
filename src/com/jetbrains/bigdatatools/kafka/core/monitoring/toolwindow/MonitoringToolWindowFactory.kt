@@ -1,13 +1,13 @@
-package com.jetbrains.bigdatatools.kafka.core.monitoring.toolwindow
+package io.confluent.kafka.core.monitoring.toolwindow
 
 import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ToolWindowFactory
-import com.jetbrains.bigdatatools.kafka.core.constants.BdtConnectionType
-import com.jetbrains.bigdatatools.kafka.core.constants.BdtPlugins
-import com.jetbrains.bigdatatools.kafka.core.settings.manager.RfsConnectionDataManager
+import io.confluent.kafka.core.constants.BdtConnectionType
+import io.confluent.kafka.core.constants.BdtPlugins
+import io.confluent.kafka.core.settings.manager.RfsConnectionDataManager
 
 abstract class MonitoringToolWindowFactory : ToolWindowFactory, DumbAware {
   protected abstract val toolWindowId: String

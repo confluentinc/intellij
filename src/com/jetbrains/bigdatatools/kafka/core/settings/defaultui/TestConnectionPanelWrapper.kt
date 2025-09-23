@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.core.settings.defaultui
+package io.confluent.kafka.core.settings.defaultui
 
 import com.intellij.CommonBundle
 import com.intellij.icons.AllIcons
@@ -21,15 +21,15 @@ import com.intellij.ui.components.ActionLink
 import com.intellij.ui.dsl.builder.AlignX
 import com.intellij.ui.dsl.builder.panel
 import com.intellij.util.ui.UIUtil
-import com.jetbrains.bigdatatools.kafka.core.settings.connections.ConnectionData
-import com.jetbrains.bigdatatools.kafka.core.settings.connections.ConnectionTesting
-import com.jetbrains.bigdatatools.kafka.core.settings.connections.ConnectionTestingSession
-import com.jetbrains.bigdatatools.kafka.core.settings.fields.WrappedComponent
-import com.jetbrains.bigdatatools.kafka.core.settings.isValidateable
-import com.jetbrains.bigdatatools.kafka.core.ui.*
-import com.jetbrains.bigdatatools.kafka.core.util.async.JobHandle
-import com.jetbrains.bigdatatools.kafka.core.util.toPresentableText
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.core.settings.connections.ConnectionData
+import io.confluent.kafka.core.settings.connections.ConnectionTesting
+import io.confluent.kafka.core.settings.connections.ConnectionTestingSession
+import io.confluent.kafka.core.settings.fields.WrappedComponent
+import io.confluent.kafka.core.settings.isValidateable
+import io.confluent.kafka.core.ui.*
+import io.confluent.kafka.core.util.async.JobHandle
+import io.confluent.kafka.core.util.toPresentableText
+import io.confluent.kafka.util.KafkaMessagesBundle
 import kotlinx.coroutines.*
 import java.awt.*
 import java.awt.datatransfer.StringSelection

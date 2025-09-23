@@ -1,6 +1,6 @@
-package com.jetbrains.bigdatatools.kafka.common.models
+package io.confluent.kafka.common.models
 
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.util.KafkaMessagesBundle
 
 enum class KafkaCustomSchemaSource(val title: String) {
   FILE(KafkaMessagesBundle.message("custom.shema.source.type.file")),

@@ -1,13 +1,13 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.tree.node
+package io.confluent.kafka.core.rfs.tree.node
 
 import com.intellij.ide.projectView.PresentationData
 import com.intellij.openapi.project.Project
 import com.intellij.ui.SimpleColoredComponent
 import com.intellij.ui.SimpleTextAttributes
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.Driver
-import com.jetbrains.bigdatatools.kafka.core.rfs.editorviewer.RfsViewerEditorProvider
-import com.jetbrains.bigdatatools.kafka.core.rfs.fileInfo.RfsChildrenPartId
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.core.rfs.driver.Driver
+import io.confluent.kafka.core.rfs.editorviewer.RfsViewerEditorProvider
+import io.confluent.kafka.core.rfs.fileInfo.RfsChildrenPartId
+import io.confluent.kafka.util.KafkaMessagesBundle
 
 abstract class DriverRfsServiceNode(driver: Driver, project: Project) : DriverRfsTreeNode(driver, project) {
   override val isLoading: Boolean get() = true

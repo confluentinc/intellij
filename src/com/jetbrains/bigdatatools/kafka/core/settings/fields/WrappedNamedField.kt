@@ -1,9 +1,9 @@
-package com.jetbrains.bigdatatools.kafka.core.settings.fields
+package io.confluent.kafka.core.settings.fields
 
 import com.intellij.openapi.util.NlsContexts
 import com.intellij.ui.components.fields.ExtendableTextField
-import com.jetbrains.bigdatatools.kafka.core.settings.ModificationKey
-import com.jetbrains.bigdatatools.kafka.core.settings.connections.ConnectionData
+import io.confluent.kafka.core.settings.ModificationKey
+import io.confluent.kafka.core.settings.connections.ConnectionData
 import javax.swing.JComponent
 import kotlin.reflect.KMutableProperty1
 

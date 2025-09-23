@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.core.util
+package io.confluent.kafka.core.util
 
 import com.intellij.CommonBundle
 import com.intellij.openapi.actionSystem.DataKey
@@ -9,20 +9,20 @@ import com.intellij.openapi.wm.ToolWindowManager
 import com.intellij.openapi.wm.impl.ToolWindowManagerImpl
 import com.intellij.platform.ide.progress.runWithModalProgressBlocking
 import com.intellij.util.concurrency.annotations.RequiresEdt
-import com.jetbrains.bigdatatools.kafka.core.monitoring.rfs.MonitoringDriver
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.ActivitySource
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.Driver
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.RfsPath
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.manager.DriverManager
-import com.jetbrains.bigdatatools.kafka.core.rfs.projectview.toolwindow.BigDataToolWindowController
-import com.jetbrains.bigdatatools.kafka.core.rfs.projectview.toolwindow.BigDataToolWindowFactory
-import com.jetbrains.bigdatatools.kafka.core.rfs.tree.node.DisabledRfsTreeNode
-import com.jetbrains.bigdatatools.kafka.core.rfs.ui.BdtMessages
-import com.jetbrains.bigdatatools.kafka.core.rfs.util.RfsUtil
-import com.jetbrains.bigdatatools.kafka.core.settings.CommonSettingsKeys
-import com.jetbrains.bigdatatools.kafka.core.settings.connections.ConnectionData
-import com.jetbrains.bigdatatools.kafka.core.settings.manager.RfsConnectionDataManager
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.core.monitoring.rfs.MonitoringDriver
+import io.confluent.kafka.core.rfs.driver.ActivitySource
+import io.confluent.kafka.core.rfs.driver.Driver
+import io.confluent.kafka.core.rfs.driver.RfsPath
+import io.confluent.kafka.core.rfs.driver.manager.DriverManager
+import io.confluent.kafka.core.rfs.projectview.toolwindow.BigDataToolWindowController
+import io.confluent.kafka.core.rfs.projectview.toolwindow.BigDataToolWindowFactory
+import io.confluent.kafka.core.rfs.tree.node.DisabledRfsTreeNode
+import io.confluent.kafka.core.rfs.ui.BdtMessages
+import io.confluent.kafka.core.rfs.util.RfsUtil
+import io.confluent.kafka.core.settings.CommonSettingsKeys
+import io.confluent.kafka.core.settings.connections.ConnectionData
+import io.confluent.kafka.core.settings.manager.RfsConnectionDataManager
+import io.confluent.kafka.util.KafkaMessagesBundle
 import org.jetbrains.annotations.Nls
 import javax.swing.tree.TreePath
 

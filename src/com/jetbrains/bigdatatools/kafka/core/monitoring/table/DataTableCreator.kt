@@ -1,11 +1,11 @@
-package com.jetbrains.bigdatatools.kafka.core.monitoring.table
+package io.confluent.kafka.core.monitoring.table
 
 import com.intellij.openapi.util.Disposer
 import com.intellij.ui.TableSpeedSearch
-import com.jetbrains.bigdatatools.kafka.core.monitoring.data.model.RemoteInfo
-import com.jetbrains.bigdatatools.kafka.core.monitoring.table.extension.*
-import com.jetbrains.bigdatatools.kafka.core.monitoring.table.model.DataTableModel
-import com.jetbrains.bigdatatools.kafka.core.table.extension.TableResizeController
+import io.confluent.kafka.core.monitoring.data.model.RemoteInfo
+import io.confluent.kafka.core.monitoring.table.extension.*
+import io.confluent.kafka.core.monitoring.table.model.DataTableModel
+import io.confluent.kafka.core.table.extension.TableResizeController
 import java.util.*
 import javax.swing.BorderFactory
 import javax.swing.ListSelectionModel

@@ -1,9 +1,9 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.driver.task
+package io.confluent.kafka.core.rfs.driver.task
 
-import com.jetbrains.bigdatatools.kafka.core.rfs.copypaste.model.RfsCopyMoveContext
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.Driver
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.FileInfo
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.RfsPath
+import io.confluent.kafka.core.rfs.copypaste.model.RfsCopyMoveContext
+import io.confluent.kafka.core.rfs.driver.Driver
+import io.confluent.kafka.core.rfs.driver.FileInfo
+import io.confluent.kafka.core.rfs.driver.RfsPath
 
 abstract class RemoteFsMoveTask(fromInfo: FileInfo,
                                 toPath: RfsPath) : BaseRfsCopyMoveTask(fromInfo, toPath, fromInfo.driver) {

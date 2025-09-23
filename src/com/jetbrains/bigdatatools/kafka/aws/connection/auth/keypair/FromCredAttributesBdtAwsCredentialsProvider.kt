@@ -1,9 +1,9 @@
-package com.jetbrains.bigdatatools.kafka.aws.connection.auth.keypair
+package io.confluent.kafka.aws.connection.auth.keypair
 
-import com.jetbrains.bigdatatools.kafka.aws.connection.auth.common.BdtAwsCredentialsProvider
-import com.jetbrains.bigdatatools.kafka.aws.credentials.utils.S3MissingCredentialsException
-import com.jetbrains.bigdatatools.kafka.aws.credentials.utils.S3MissingSecretKeyException
-import com.jetbrains.bigdatatools.kafka.aws.ui.external.AwsSettingsInfo
+import io.confluent.kafka.aws.connection.auth.common.BdtAwsCredentialsProvider
+import io.confluent.kafka.aws.credentials.utils.S3MissingCredentialsException
+import io.confluent.kafka.aws.credentials.utils.S3MissingSecretKeyException
+import io.confluent.kafka.aws.ui.external.AwsSettingsInfo
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider

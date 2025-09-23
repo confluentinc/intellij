@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.util
+package io.confluent.kafka.util
 
 import com.intellij.openapi.actionSystem.ActionGroup
 import com.intellij.openapi.actionSystem.ActionManager

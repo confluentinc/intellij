@@ -1,9 +1,9 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.search.impl
+package io.confluent.kafka.core.rfs.search.impl
 
-import com.jetbrains.bigdatatools.kafka.core.monitoring.data.model.RemoteInfo
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.FileInfo
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.RfsPath
-import com.jetbrains.bigdatatools.kafka.core.table.renderers.DataRenderingUtil
+import io.confluent.kafka.core.monitoring.data.model.RemoteInfo
+import io.confluent.kafka.core.rfs.driver.FileInfo
+import io.confluent.kafka.core.rfs.driver.RfsPath
+import io.confluent.kafka.core.table.renderers.DataRenderingUtil
 import javax.swing.Icon
 import kotlin.reflect.KProperty1
 import kotlin.reflect.full.declaredMemberProperties

@@ -1,6 +1,6 @@
-package com.jetbrains.bigdatatools.kafka.core.table.renderers
+package io.confluent.kafka.core.table.renderers
 
-import com.jetbrains.bigdatatools.kafka.core.util.SizeUtils
+import io.confluent.kafka.core.util.SizeUtils
 import javax.swing.SwingConstants
 
 /** 1024 -> "1 kB" */

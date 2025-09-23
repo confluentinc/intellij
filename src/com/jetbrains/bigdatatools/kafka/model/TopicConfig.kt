@@ -1,7 +1,7 @@
-package com.jetbrains.bigdatatools.kafka.model
+package io.confluent.kafka.model
 
-import com.jetbrains.bigdatatools.kafka.core.monitoring.data.model.RemoteInfo
-import com.jetbrains.bigdatatools.kafka.util.KafkaLocalizedField
+import io.confluent.kafka.core.monitoring.data.model.RemoteInfo
+import io.confluent.kafka.util.KafkaLocalizedField
 
 data class TopicConfig(
   val name: String,

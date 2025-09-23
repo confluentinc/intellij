@@ -1,11 +1,11 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.editorviewer
+package io.confluent.kafka.core.rfs.editorviewer
 
 import com.intellij.openapi.Disposable
 import com.intellij.ui.tree.BaseTreeModel
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.Driver
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.RfsPath
-import com.jetbrains.bigdatatools.kafka.core.rfs.projectview.pane.NodesUpdateAnimator
-import com.jetbrains.bigdatatools.kafka.core.rfs.tree.node.RfsTreeNode
+import io.confluent.kafka.core.rfs.driver.Driver
+import io.confluent.kafka.core.rfs.driver.RfsPath
+import io.confluent.kafka.core.rfs.projectview.pane.NodesUpdateAnimator
+import io.confluent.kafka.core.rfs.tree.node.RfsTreeNode
 
 internal class RfsNodeAnimator(rfsTreeModel: BaseTreeModel<out RfsTreeNode>) : Disposable {
   private val animator = NodesUpdateAnimator(rfsTreeModel, this).also {

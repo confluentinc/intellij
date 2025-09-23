@@ -1,11 +1,11 @@
-package com.jetbrains.bigdatatools.kafka.aws.connection.auth.profile
+package io.confluent.kafka.aws.connection.auth.profile
 
-import com.jetbrains.bigdatatools.kafka.aws.connection.auth.AuthenticationType
-import com.jetbrains.bigdatatools.kafka.aws.connection.auth.common.AwsAuthenticationData
-import com.jetbrains.bigdatatools.kafka.aws.connection.auth.common.BdtAwsCredentialsProvider
-import com.jetbrains.bigdatatools.kafka.aws.credentials.profiles.ProfileCredentialProviderFactory
-import com.jetbrains.bigdatatools.kafka.aws.settings.AwsCompatibleConnectionData
-import com.jetbrains.bigdatatools.kafka.aws.ui.external.AwsSettingsInfo
+import io.confluent.kafka.aws.connection.auth.AuthenticationType
+import io.confluent.kafka.aws.connection.auth.common.AwsAuthenticationData
+import io.confluent.kafka.aws.connection.auth.common.BdtAwsCredentialsProvider
+import io.confluent.kafka.aws.credentials.profiles.ProfileCredentialProviderFactory
+import io.confluent.kafka.aws.settings.AwsCompatibleConnectionData
+import io.confluent.kafka.aws.ui.external.AwsSettingsInfo
 
 
 class ProfileFromConfigAwsAuthenticationData(private val awsInfo: AwsSettingsInfo) : AwsAuthenticationData() {

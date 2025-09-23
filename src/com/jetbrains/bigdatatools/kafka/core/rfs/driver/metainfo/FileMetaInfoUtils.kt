@@ -1,12 +1,12 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.driver.metainfo
+package io.confluent.kafka.core.rfs.driver.metainfo
 
 import com.intellij.openapi.util.NlsSafe
 import com.intellij.openapi.util.io.FileUtilRt
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.FileInfo
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.RfsPath
-import com.jetbrains.bigdatatools.kafka.core.util.SizeUtils
-import com.jetbrains.bigdatatools.kafka.core.util.TimeUtils
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.core.rfs.driver.FileInfo
+import io.confluent.kafka.core.rfs.driver.RfsPath
+import io.confluent.kafka.core.util.SizeUtils
+import io.confluent.kafka.core.util.TimeUtils
+import io.confluent.kafka.util.KafkaMessagesBundle
 import org.jetbrains.annotations.Nls
 
 object FileMetaInfoUtils {

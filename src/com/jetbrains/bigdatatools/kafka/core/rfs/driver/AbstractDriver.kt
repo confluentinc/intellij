@@ -1,16 +1,16 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.driver
+package io.confluent.kafka.core.rfs.driver
 
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.Project
 import com.intellij.util.Processor
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.depend.MasterDriver
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.fileinfo.SafeResult
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.manager.DriverManager
-import com.jetbrains.bigdatatools.kafka.core.rfs.fileInfo.DriverRfsListener
-import com.jetbrains.bigdatatools.kafka.core.rfs.fileInfo.RfsFileInfoChildren
-import com.jetbrains.bigdatatools.kafka.core.rfs.fileInfo.RfsListMarker
-import com.jetbrains.bigdatatools.kafka.core.util.SmartLogger
-import com.jetbrains.bigdatatools.kafka.core.util.async.DeferredJobHandle
+import io.confluent.kafka.core.rfs.driver.depend.MasterDriver
+import io.confluent.kafka.core.rfs.driver.fileinfo.SafeResult
+import io.confluent.kafka.core.rfs.driver.manager.DriverManager
+import io.confluent.kafka.core.rfs.fileInfo.DriverRfsListener
+import io.confluent.kafka.core.rfs.fileInfo.RfsFileInfoChildren
+import io.confluent.kafka.core.rfs.fileInfo.RfsListMarker
+import io.confluent.kafka.core.util.SmartLogger
+import io.confluent.kafka.core.util.async.DeferredJobHandle
 import java.util.concurrent.CompletableFuture
 
 abstract class AbstractDriver : Driver {

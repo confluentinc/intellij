@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.core.ui
+package io.confluent.kafka.core.ui
 
 import com.intellij.openapi.ui.ComboBox
 import javax.swing.ComboBoxModel

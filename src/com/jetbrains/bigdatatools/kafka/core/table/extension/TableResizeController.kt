@@ -1,8 +1,8 @@
-package com.jetbrains.bigdatatools.kafka.core.table.extension
+package io.confluent.kafka.core.table.extension
 
-import com.jetbrains.bigdatatools.kafka.core.table.ColumnWidthFittingStrategy
-import com.jetbrains.bigdatatools.kafka.core.table.MaterialTableUtils
-import com.jetbrains.bigdatatools.kafka.core.table.renderers.MaterialTableCellRenderer
+import io.confluent.kafka.core.table.ColumnWidthFittingStrategy
+import io.confluent.kafka.core.table.MaterialTableUtils
+import io.confluent.kafka.core.table.renderers.MaterialTableCellRenderer
 import java.awt.event.HierarchyBoundsAdapter
 import java.awt.event.HierarchyEvent
 import java.awt.event.MouseAdapter

@@ -1,13 +1,13 @@
-package com.jetbrains.bigdatatools.kafka.core.table.editor
+package io.confluent.kafka.core.table.editor
 
 import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.DataContext
 import com.intellij.openapi.project.DumbAware
-import com.jetbrains.bigdatatools.kafka.core.table.ClipboardUtils
-import com.jetbrains.bigdatatools.kafka.core.table.ClipboardUtils.toIntArray
-import com.jetbrains.bigdatatools.kafka.core.table.MaterialTable
+import io.confluent.kafka.core.table.ClipboardUtils
+import io.confluent.kafka.core.table.ClipboardUtils.toIntArray
+import io.confluent.kafka.core.table.MaterialTable
 
 abstract class BdiTableEditorActionBase : AnAction(), DumbAware {
 

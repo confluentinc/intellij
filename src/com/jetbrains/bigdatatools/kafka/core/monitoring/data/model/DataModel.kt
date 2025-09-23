@@ -1,11 +1,11 @@
-package com.jetbrains.bigdatatools.kafka.core.monitoring.data.model
+package io.confluent.kafka.core.monitoring.data.model
 
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.util.Disposer
-import com.jetbrains.bigdatatools.kafka.core.monitoring.data.listener.DataModelListener
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.core.monitoring.data.listener.DataModelListener
+import io.confluent.kafka.util.KafkaMessagesBundle
 
 abstract class DataModel<T>(val allowAutoUpdate: Boolean = true) : Disposable {
   abstract val updater: (DataModel<*>) -> Pair<T, Boolean>

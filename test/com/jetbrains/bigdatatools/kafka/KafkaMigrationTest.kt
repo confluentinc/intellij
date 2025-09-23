@@ -1,7 +1,7 @@
-package com.jetbrains.bigdatatools.kafka
+package io.confluent.kafka
 
 import com.intellij.testFramework.LightPlatformTestCase
-import com.jetbrains.bigdatatools.kafka.rfs.KafkaConnectionData
+import io.confluent.kafka.rfs.KafkaConnectionData
 
 internal class KafkaMigrationTest : LightPlatformTestCase() {
   @Suppress("DEPRECATION")

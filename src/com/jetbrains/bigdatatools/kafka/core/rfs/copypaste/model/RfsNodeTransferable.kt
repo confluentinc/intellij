@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.copypaste.model
+package io.confluent.kafka.core.rfs.copypaste.model
 
 import java.awt.datatransfer.DataFlavor
 import java.awt.datatransfer.Transferable

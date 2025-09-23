@@ -1,16 +1,16 @@
-package com.jetbrains.bigdatatools.kafka.core.monitoring.connection
+package io.confluent.kafka.core.monitoring.connection
 
-import com.jetbrains.bigdatatools.kafka.core.monitoring.data.MonitoringDataManager
-import com.jetbrains.bigdatatools.kafka.core.monitoring.rfs.MonitoringDriver
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.ActivitySource
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.DriverConnectionStatus
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.FileInfo
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.RfsPath
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.fileinfo.SafeResult
-import com.jetbrains.bigdatatools.kafka.core.rfs.fileInfo.DriverFileInfoManager
-import com.jetbrains.bigdatatools.kafka.core.rfs.fileInfo.DriverRfsListener
-import com.jetbrains.bigdatatools.kafka.core.rfs.fileInfo.RfsChildrenPartId
-import com.jetbrains.bigdatatools.kafka.core.rfs.fileInfo.RfsFileInfoChildren
+import io.confluent.kafka.core.monitoring.data.MonitoringDataManager
+import io.confluent.kafka.core.monitoring.rfs.MonitoringDriver
+import io.confluent.kafka.core.rfs.driver.ActivitySource
+import io.confluent.kafka.core.rfs.driver.DriverConnectionStatus
+import io.confluent.kafka.core.rfs.driver.FileInfo
+import io.confluent.kafka.core.rfs.driver.RfsPath
+import io.confluent.kafka.core.rfs.driver.fileinfo.SafeResult
+import io.confluent.kafka.core.rfs.fileInfo.DriverFileInfoManager
+import io.confluent.kafka.core.rfs.fileInfo.DriverRfsListener
+import io.confluent.kafka.core.rfs.fileInfo.RfsChildrenPartId
+import io.confluent.kafka.core.rfs.fileInfo.RfsFileInfoChildren
 import kotlinx.coroutines.flow.Flow
 
 class MonitoringFileInfoManager(override val driver: MonitoringDriver) : DriverFileInfoManager() {

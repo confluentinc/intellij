@@ -1,7 +1,7 @@
-package com.jetbrains.bigdatatools.kafka.core.connection.tunnel
+package io.confluent.kafka.core.connection.tunnel
 
-import com.jetbrains.bigdatatools.kafka.core.connection.tunnel.model.ConnectionSshTunnelDataLegacy
-import com.jetbrains.bigdatatools.kafka.core.util.BdtUrlUtils
+import io.confluent.kafka.core.connection.tunnel.model.ConnectionSshTunnelDataLegacy
+import io.confluent.kafka.core.util.BdtUrlUtils
 import java.net.URL
 
 object BdtSshTunnelConnectionUtils {

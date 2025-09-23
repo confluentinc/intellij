@@ -1,9 +1,9 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.fileInfo
+package io.confluent.kafka.core.rfs.fileInfo
 
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.DriverConnectionStatus
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.FileInfo
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.RfsPath
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.fileinfo.SafeResult
+import io.confluent.kafka.core.rfs.driver.DriverConnectionStatus
+import io.confluent.kafka.core.rfs.driver.FileInfo
+import io.confluent.kafka.core.rfs.driver.RfsPath
+import io.confluent.kafka.core.rfs.driver.fileinfo.SafeResult
 
 interface DriverRfsListener {
   fun nodeUpdated(path: RfsPath) {}

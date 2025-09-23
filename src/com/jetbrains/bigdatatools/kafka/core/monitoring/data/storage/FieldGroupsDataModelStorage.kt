@@ -1,11 +1,11 @@
-package com.jetbrains.bigdatatools.kafka.core.monitoring.data.storage
+package io.confluent.kafka.core.monitoring.data.storage
 
 import com.intellij.concurrency.ConcurrentCollectionFactory
 import com.intellij.openapi.util.Disposer
-import com.jetbrains.bigdatatools.kafka.core.monitoring.data.model.DataModel
-import com.jetbrains.bigdatatools.kafka.core.monitoring.data.model.FieldGroupsData
-import com.jetbrains.bigdatatools.kafka.core.monitoring.data.model.FieldsGroupModel
-import com.jetbrains.bigdatatools.kafka.core.monitoring.data.updater.BdtMonitoringUpdater
+import io.confluent.kafka.core.monitoring.data.model.DataModel
+import io.confluent.kafka.core.monitoring.data.model.FieldGroupsData
+import io.confluent.kafka.core.monitoring.data.model.FieldsGroupModel
+import io.confluent.kafka.core.monitoring.data.updater.BdtMonitoringUpdater
 
 open class FieldGroupsDataModelStorage<KEY_TYPE, OBJECT_TYPE>(updater: BdtMonitoringUpdater,
                                                               private val dependOn: DataModel<*>? = null,

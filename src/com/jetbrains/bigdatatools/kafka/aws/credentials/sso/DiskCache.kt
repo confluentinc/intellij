@@ -1,12 +1,12 @@
 // Copyright 2021 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-package com.jetbrains.bigdatatools.kafka.aws.credentials.sso
+package io.confluent.kafka.aws.credentials.sso
 
-import com.jetbrains.bigdatatools.kafka.aws.credentials.utils.AwsJson
-import com.jetbrains.bigdatatools.kafka.core.util.filePermissions
-import com.jetbrains.bigdatatools.kafka.core.util.touch
-import com.jetbrains.bigdatatools.kafka.core.util.writeText
+import io.confluent.kafka.aws.credentials.utils.AwsJson
+import io.confluent.kafka.core.util.filePermissions
+import io.confluent.kafka.core.util.touch
+import io.confluent.kafka.core.util.writeText
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths

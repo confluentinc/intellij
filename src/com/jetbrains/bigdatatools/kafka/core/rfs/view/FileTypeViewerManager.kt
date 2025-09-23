@@ -1,10 +1,10 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.view
+package io.confluent.kafka.core.rfs.view
 
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.project.Project
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.RfsPath
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.manager.DriverManager
-import com.jetbrains.bigdatatools.kafka.core.util.ConnectionUtil
+import io.confluent.kafka.core.rfs.driver.RfsPath
+import io.confluent.kafka.core.rfs.driver.manager.DriverManager
+import io.confluent.kafka.core.util.ConnectionUtil
 
 @Service(Service.Level.PROJECT)
 class FileTypeViewerManager(val project: Project) {

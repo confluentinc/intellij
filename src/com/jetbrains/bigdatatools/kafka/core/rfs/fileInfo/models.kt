@@ -1,7 +1,7 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.fileInfo
+package io.confluent.kafka.core.rfs.fileInfo
 
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.FileInfo
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.RfsPath
+import io.confluent.kafka.core.rfs.driver.FileInfo
+import io.confluent.kafka.core.rfs.driver.RfsPath
 
 /**
  * [marker] is a continuation token or a filename or null if there is no availability to load more

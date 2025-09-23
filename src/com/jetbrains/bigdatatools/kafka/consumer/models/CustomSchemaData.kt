@@ -1,6 +1,6 @@
-package com.jetbrains.bigdatatools.kafka.consumer.models
+package io.confluent.kafka.consumer.models
 
-import com.jetbrains.bigdatatools.kafka.common.models.KafkaCustomSchemaSource
+import io.confluent.kafka.common.models.KafkaCustomSchemaSource
 
 data class CustomSchemaData(
   var customFile: String? = null,

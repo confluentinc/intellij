@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.copypaste.dialog
+package io.confluent.kafka.core.rfs.copypaste.dialog
 
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.LogicalPosition
@@ -13,13 +13,13 @@ import com.intellij.ui.components.JBLabel
 import com.intellij.util.ui.FormBuilder
 import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.UIUtil
-import com.jetbrains.bigdatatools.kafka.core.rfs.copypaste.RfsCopyPasteUtil
-import com.jetbrains.bigdatatools.kafka.core.rfs.copypaste.model.TargetInfo
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.Driver
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.FileInfo
-import com.jetbrains.bigdatatools.kafka.core.settings.withValidator
-import com.jetbrains.bigdatatools.kafka.core.util.executeOnPooledThread
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.core.rfs.copypaste.RfsCopyPasteUtil
+import io.confluent.kafka.core.rfs.copypaste.model.TargetInfo
+import io.confluent.kafka.core.rfs.driver.Driver
+import io.confluent.kafka.core.rfs.driver.FileInfo
+import io.confluent.kafka.core.settings.withValidator
+import io.confluent.kafka.core.util.executeOnPooledThread
+import io.confluent.kafka.util.KafkaMessagesBundle
 import javax.swing.JComponent
 import kotlin.math.max
 import kotlin.properties.Delegates

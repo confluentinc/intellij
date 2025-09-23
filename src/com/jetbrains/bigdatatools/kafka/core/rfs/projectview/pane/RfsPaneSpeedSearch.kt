@@ -1,7 +1,7 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.projectview.pane
+package io.confluent.kafka.core.rfs.projectview.pane
 
 import com.intellij.ui.TreeSpeedSearch
-import com.jetbrains.bigdatatools.kafka.core.rfs.viewer.utils.DriverRfsTreeUtil.lastDriverNode
+import io.confluent.kafka.core.rfs.viewer.utils.DriverRfsTreeUtil.lastDriverNode
 import javax.swing.JTree
 import javax.swing.tree.TreePath
 

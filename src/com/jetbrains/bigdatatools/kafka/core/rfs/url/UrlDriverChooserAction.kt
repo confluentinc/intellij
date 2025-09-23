@@ -1,11 +1,11 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.url
+package io.confluent.kafka.core.rfs.url
 
 import com.intellij.ide.actions.SmartPopupActionGroup
 import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
-import com.jetbrains.bigdatatools.kafka.core.util.ConnectionUtil
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.core.util.ConnectionUtil
+import io.confluent.kafka.util.KafkaMessagesBundle
 
 class UrlDriverChooserAction(val project: Project, val url: String) : SmartPopupActionGroup(), DumbAware {
   private val openers = UrlFileOpener.getOpenersFor(url)

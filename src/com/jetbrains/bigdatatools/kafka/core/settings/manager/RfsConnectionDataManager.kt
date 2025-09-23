@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.core.settings.manager
+package io.confluent.kafka.core.settings.manager
 
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.invokeAndWaitIfNeeded
@@ -7,9 +7,9 @@ import com.intellij.openapi.components.serviceOrNull
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.ProjectManager
-import com.jetbrains.bigdatatools.kafka.core.settings.*
-import com.jetbrains.bigdatatools.kafka.core.settings.connections.ConnectionData
-import com.jetbrains.bigdatatools.kafka.core.util.executeOnPooledThread
+import io.confluent.kafka.core.settings.*
+import io.confluent.kafka.core.settings.connections.ConnectionData
+import io.confluent.kafka.core.util.executeOnPooledThread
 import org.jetbrains.annotations.TestOnly
 import java.util.concurrent.atomic.AtomicBoolean
 

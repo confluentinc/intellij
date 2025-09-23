@@ -1,9 +1,9 @@
-package com.jetbrains.bigdatatools.kafka.core.settings.actions
+package io.confluent.kafka.core.settings.actions
 
 import com.intellij.openapi.actionSystem.*
 import com.intellij.openapi.ui.popup.JBPopup
 import com.intellij.openapi.ui.popup.JBPopupFactory
-import com.jetbrains.bigdatatools.kafka.core.settings.paneadd.StandaloneCreateConnectionUtil
+import io.confluent.kafka.core.settings.paneadd.StandaloneCreateConnectionUtil
 import java.awt.Component
 
 object CreateConnectionPopup {

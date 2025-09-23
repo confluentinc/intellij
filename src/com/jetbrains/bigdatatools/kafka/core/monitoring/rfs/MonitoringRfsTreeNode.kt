@@ -1,9 +1,9 @@
-package com.jetbrains.bigdatatools.kafka.core.monitoring.rfs
+package io.confluent.kafka.core.monitoring.rfs
 
 import com.intellij.openapi.project.Project
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.RfsPath
-import com.jetbrains.bigdatatools.kafka.core.rfs.tree.node.CustomDoubleClickable
-import com.jetbrains.bigdatatools.kafka.core.rfs.tree.node.DriverFileRfsTreeNode
+import io.confluent.kafka.core.rfs.driver.RfsPath
+import io.confluent.kafka.core.rfs.tree.node.CustomDoubleClickable
+import io.confluent.kafka.core.rfs.tree.node.DriverFileRfsTreeNode
 
 open class MonitoringRfsTreeNode(project: Project, rfsPath: RfsPath,
                                  final override val driver: MonitoringDriver) : DriverFileRfsTreeNode(project, rfsPath, driver),

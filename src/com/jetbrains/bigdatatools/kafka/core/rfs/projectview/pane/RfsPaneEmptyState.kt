@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.projectview.pane
+package io.confluent.kafka.core.rfs.projectview.pane
 
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
@@ -7,10 +7,10 @@ import com.intellij.openapi.actionSystem.impl.SimpleDataContext
 import com.intellij.openapi.project.Project
 import com.intellij.ui.TitledSeparator
 import com.intellij.util.ui.JBUI
-import com.jetbrains.bigdatatools.kafka.core.rfs.ui.HoverButton
-import com.jetbrains.bigdatatools.kafka.core.settings.connections.ConnectionGroup
-import com.jetbrains.bigdatatools.kafka.core.settings.connections.ConnectionSettingProviderEP
-import com.jetbrains.bigdatatools.kafka.core.settings.paneadd.StandaloneCreateConnectionUtil
+import io.confluent.kafka.core.rfs.ui.HoverButton
+import io.confluent.kafka.core.settings.connections.ConnectionGroup
+import io.confluent.kafka.core.settings.connections.ConnectionSettingProviderEP
+import io.confluent.kafka.core.settings.paneadd.StandaloneCreateConnectionUtil
 import java.awt.BorderLayout
 import java.awt.GridLayout
 import javax.swing.JPanel

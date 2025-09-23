@@ -1,7 +1,7 @@
-package com.jetbrains.bigdatatools.kafka.core.monitoring.actions.tabs
+package io.confluent.kafka.core.monitoring.actions.tabs
 
 import com.intellij.openapi.actionSystem.AnActionEvent
-import com.jetbrains.bigdatatools.kafka.core.util.ConnectionUtil
+import io.confluent.kafka.core.util.ConnectionUtil
 
 class MonitoringTabRenameConnection : MonitoringTabConnectionAction() {
   override fun actionPerformed(e: AnActionEvent) {

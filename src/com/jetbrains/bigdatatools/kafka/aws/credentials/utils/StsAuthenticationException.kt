@@ -1,7 +1,7 @@
-package com.jetbrains.bigdatatools.kafka.aws.credentials.utils
+package io.confluent.kafka.aws.credentials.utils
 
-import com.jetbrains.bigdatatools.kafka.core.connection.exception.BdtAuthenticationException
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.core.connection.exception.BdtAuthenticationException
+import io.confluent.kafka.util.KafkaMessagesBundle
 import software.amazon.awssdk.awscore.exception.AwsServiceException
 
 class StsAuthenticationException(override val cause: AwsServiceException) : BdtAuthenticationException() {

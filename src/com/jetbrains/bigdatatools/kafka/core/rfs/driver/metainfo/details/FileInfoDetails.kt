@@ -1,12 +1,12 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.driver.metainfo.details
+package io.confluent.kafka.core.rfs.driver.metainfo.details
 
 import com.intellij.CommonBundle
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.util.Disposer
 import com.intellij.ui.components.JBTabbedPane
 import com.intellij.util.ui.TimerUtil
-import com.jetbrains.bigdatatools.kafka.core.ui.MigPanel
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.core.ui.MigPanel
+import io.confluent.kafka.util.KafkaMessagesBundle
 import net.miginfocom.layout.CC
 import javax.swing.JButton
 import javax.swing.JComponent

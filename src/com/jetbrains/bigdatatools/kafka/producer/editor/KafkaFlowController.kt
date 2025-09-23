@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.producer.editor
+package io.confluent.kafka.producer.editor
 
 import com.intellij.openapi.fileChooser.FileChooser
 import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory
@@ -10,9 +10,9 @@ import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.ui.JBIntSpinner
 import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.dsl.builder.*
-import com.jetbrains.bigdatatools.kafka.producer.models.Mode
-import com.jetbrains.bigdatatools.kafka.producer.models.ProducerFlowParams
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.producer.models.Mode
+import io.confluent.kafka.producer.models.ProducerFlowParams
+import io.confluent.kafka.util.KafkaMessagesBundle
 import java.io.File
 
 

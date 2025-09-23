@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.completion
+package io.confluent.kafka.completion
 
 import com.intellij.codeInsight.completion.*
 import com.intellij.codeInsight.lookup.AutoCompletionPolicy
@@ -9,7 +9,7 @@ import com.intellij.openapi.util.TextRange
 import com.intellij.openapi.util.text.StringUtil
 import com.intellij.util.ProcessingContext
 import com.intellij.util.applyIf
-import com.jetbrains.bigdatatools.kafka.util.generator.FieldTemplateGenerator
+import io.confluent.kafka.util.generator.FieldTemplateGenerator
 
 class KafkaProducerGeneratorCompletionProvider(private val addQuotas: Boolean) : CompletionProvider<CompletionParameters>() {
   override fun addCompletions(parameters: CompletionParameters, context: ProcessingContext, result: CompletionResultSet) {

@@ -1,17 +1,17 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.driver.metainfo.details
+package io.confluent.kafka.core.rfs.driver.metainfo.details
 
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.util.Disposer
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.FileInfo
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.metainfo.DirectorySizeAndCountComponentController
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.metainfo.FileMetaInfoUtils
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.metainfo.components.SelectableLabel
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.metainfo.rowIfNotBlank
-import com.jetbrains.bigdatatools.kafka.core.rfs.tree.node.DriverFileRfsTreeNode
-import com.jetbrains.bigdatatools.kafka.core.settings.defaultui.UiUtil
-import com.jetbrains.bigdatatools.kafka.core.ui.MigPanel
-import com.jetbrains.bigdatatools.kafka.core.util.toPresentableText
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.core.rfs.driver.FileInfo
+import io.confluent.kafka.core.rfs.driver.metainfo.DirectorySizeAndCountComponentController
+import io.confluent.kafka.core.rfs.driver.metainfo.FileMetaInfoUtils
+import io.confluent.kafka.core.rfs.driver.metainfo.components.SelectableLabel
+import io.confluent.kafka.core.rfs.driver.metainfo.rowIfNotBlank
+import io.confluent.kafka.core.rfs.tree.node.DriverFileRfsTreeNode
+import io.confluent.kafka.core.settings.defaultui.UiUtil
+import io.confluent.kafka.core.ui.MigPanel
+import io.confluent.kafka.core.util.toPresentableText
+import io.confluent.kafka.util.KafkaMessagesBundle
 import java.util.concurrent.atomic.AtomicBoolean
 
 open class FileInfoDetailsBase(val rfsTreeNode: DriverFileRfsTreeNode, parentDisposable: Disposable) : FileInfoDetails {

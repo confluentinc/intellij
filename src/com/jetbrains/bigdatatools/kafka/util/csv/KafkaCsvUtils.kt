@@ -1,8 +1,8 @@
-package com.jetbrains.bigdatatools.kafka.util.csv
+package io.confluent.kafka.util.csv
 
 import com.intellij.charts.dataframe.DataFrame
 import com.intellij.charts.dataframe.DataFrameCSVAdapter
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.util.KafkaMessagesBundle
 import java.io.File
 
 object KafkaCsvUtils {

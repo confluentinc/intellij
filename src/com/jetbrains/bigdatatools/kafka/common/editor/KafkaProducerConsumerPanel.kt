@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.common.editor
+package io.confluent.kafka.common.editor
 
 import com.intellij.openapi.ui.DialogPanel
 import com.intellij.ui.components.JBScrollPane

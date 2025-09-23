@@ -1,14 +1,14 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.driver.local.task
+package io.confluent.kafka.core.rfs.driver.local.task
 
 import com.intellij.openapi.util.io.FileUtil
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.VirtualFileManager
-import com.jetbrains.bigdatatools.kafka.core.rfs.copypaste.model.RfsCopyMoveContext
-import com.jetbrains.bigdatatools.kafka.core.rfs.copypaste.utils.RfsCopyPasteHelpers
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.RfsPath
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.local.LocalFileInfo
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.task.RemoteFsMoveTask
-import com.jetbrains.bigdatatools.kafka.core.util.exists
+import io.confluent.kafka.core.rfs.copypaste.model.RfsCopyMoveContext
+import io.confluent.kafka.core.rfs.copypaste.utils.RfsCopyPasteHelpers
+import io.confluent.kafka.core.rfs.driver.RfsPath
+import io.confluent.kafka.core.rfs.driver.local.LocalFileInfo
+import io.confluent.kafka.core.rfs.driver.task.RemoteFsMoveTask
+import io.confluent.kafka.core.util.exists
 import java.io.IOException
 import java.nio.file.*
 import java.nio.file.attribute.BasicFileAttributes

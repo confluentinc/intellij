@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.core.monitoring.table.extension
+package io.confluent.kafka.core.monitoring.table.extension
 
 enum class TableExtensionType {
   SPEED_SEARCH,

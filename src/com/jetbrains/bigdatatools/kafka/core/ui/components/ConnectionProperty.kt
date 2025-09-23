@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.core.ui.components
+package io.confluent.kafka.core.ui.components
 
 import com.squareup.moshi.Json
 

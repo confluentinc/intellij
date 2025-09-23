@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.driver.metainfo.components
+package io.confluent.kafka.core.rfs.driver.metainfo.components
 
 import com.intellij.ui.components.fields.ExpandableTextField
 import java.awt.Dimension

@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.core.table.renderers
+package io.confluent.kafka.core.table.renderers
 
 import com.intellij.icons.AllIcons
 import com.intellij.util.ui.EmptyIcon

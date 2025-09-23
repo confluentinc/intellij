@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.projectview.dnd
+package io.confluent.kafka.core.rfs.projectview.dnd
 
 import com.intellij.ide.dnd.DnDEvent
 import com.intellij.ide.dnd.DnDManager
@@ -13,8 +13,8 @@ import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFileSystemItem
 import com.intellij.ui.awt.RelativeRectangle
-import com.jetbrains.bigdatatools.kafka.core.rfs.copypaste.RfsCopyPasteManager
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.local.LocalDriverManager
+import io.confluent.kafka.core.rfs.copypaste.RfsCopyPasteManager
+import io.confluent.kafka.core.rfs.driver.local.LocalDriverManager
 import java.awt.Rectangle
 import java.io.File
 import javax.swing.tree.TreePath

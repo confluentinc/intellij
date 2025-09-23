@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.jetbrains.bigdatatools.kafka.core.settings.kerberos
+package io.confluent.kafka.core.settings.kerberos
 
-import com.jetbrains.bigdatatools.kafka.core.connection.exception.BdtConnectionException
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.core.connection.exception.BdtConnectionException
+import io.confluent.kafka.util.KafkaMessagesBundle
 import java.io.IOException
 import java.io.StreamTokenizer
 import java.io.StringReader

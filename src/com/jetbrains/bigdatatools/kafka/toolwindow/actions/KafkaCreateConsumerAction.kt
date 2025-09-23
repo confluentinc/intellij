@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.toolwindow.actions
+package io.confluent.kafka.toolwindow.actions
 
 import com.intellij.openapi.actionSystem.*
 import com.intellij.openapi.actionSystem.ex.CustomComponentAction
@@ -7,16 +7,16 @@ import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
 import com.intellij.testFramework.LightVirtualFile
-import com.jetbrains.bigdatatools.kafka.common.editor.KafkaEditorProvider
-import com.jetbrains.bigdatatools.kafka.common.models.KafkaEditorType
-import com.jetbrains.bigdatatools.kafka.core.monitoring.toolwindow.MainTreeController.Companion.dataManager
-import com.jetbrains.bigdatatools.kafka.core.monitoring.toolwindow.MainTreeController.Companion.rfsPath
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.manager.DriverManager
-import com.jetbrains.bigdatatools.kafka.core.settings.actions.CreateConnectionPopup
-import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
-import com.jetbrains.bigdatatools.kafka.rfs.KafkaDriver
-import com.jetbrains.bigdatatools.kafka.rfs.KafkaDriver.Companion.isTopicFolder
-import com.jetbrains.bigdatatools.kafka.toolwindow.controllers.KafkaFileType
+import io.confluent.kafka.common.editor.KafkaEditorProvider
+import io.confluent.kafka.common.models.KafkaEditorType
+import io.confluent.kafka.core.monitoring.toolwindow.MainTreeController.Companion.dataManager
+import io.confluent.kafka.core.monitoring.toolwindow.MainTreeController.Companion.rfsPath
+import io.confluent.kafka.core.rfs.driver.manager.DriverManager
+import io.confluent.kafka.core.settings.actions.CreateConnectionPopup
+import io.confluent.kafka.data.KafkaDataManager
+import io.confluent.kafka.rfs.KafkaDriver
+import io.confluent.kafka.rfs.KafkaDriver.Companion.isTopicFolder
+import io.confluent.kafka.toolwindow.controllers.KafkaFileType
 import javax.swing.JComponent
 
 class KafkaCreateConsumerAction : DumbAwareAction(), CustomComponentAction {

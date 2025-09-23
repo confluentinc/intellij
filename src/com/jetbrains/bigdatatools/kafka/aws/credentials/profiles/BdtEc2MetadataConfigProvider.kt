@@ -1,7 +1,7 @@
 // Copyright 2021 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-package com.jetbrains.bigdatatools.kafka.aws.credentials.profiles
+package io.confluent.kafka.aws.credentials.profiles
 
 import software.amazon.awssdk.core.SdkSystemSetting
 import software.amazon.awssdk.profiles.Profile

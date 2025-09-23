@@ -1,6 +1,6 @@
-package com.jetbrains.bigdatatools.kafka.core.monitoring.data.updater
+package io.confluent.kafka.core.monitoring.data.updater
 
-import com.jetbrains.bigdatatools.kafka.core.monitoring.data.model.DataModel
+import io.confluent.kafka.core.monitoring.data.model.DataModel
 
 interface MonitoringUpdateListener {
   fun onStartRefreshConnection()

@@ -1,9 +1,9 @@
-package com.jetbrains.bigdatatools.kafka.settings
+package io.confluent.kafka.settings
 
 import com.intellij.openapi.project.Project
-import com.jetbrains.bigdatatools.kafka.core.rfs.settings.RfsConnectionTestingBase
-import com.jetbrains.bigdatatools.kafka.core.settings.defaultui.SettingsPanelCustomizer
-import com.jetbrains.bigdatatools.kafka.rfs.KafkaConnectionData
+import io.confluent.kafka.core.rfs.settings.RfsConnectionTestingBase
+import io.confluent.kafka.core.settings.defaultui.SettingsPanelCustomizer
+import io.confluent.kafka.rfs.KafkaConnectionData
 
 class KafkaTestingBase(
   project: Project,

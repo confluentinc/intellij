@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.core.settings.fields
+package io.confluent.kafka.core.settings.fields
 
 import com.intellij.credentialStore.Credentials
 import com.intellij.openapi.Disposable
@@ -10,10 +10,10 @@ import com.intellij.ui.SimpleTextAttributes
 import com.intellij.ui.components.JBPasswordField
 import com.intellij.ui.components.JBTextField
 import com.intellij.util.concurrency.annotations.RequiresEdt
-import com.jetbrains.bigdatatools.kafka.core.settings.connections.ConnectionData
-import com.jetbrains.bigdatatools.kafka.core.settings.connections.CredentialId
-import com.jetbrains.bigdatatools.kafka.core.ui.components.MultilineTextFieldWithCompletion
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.core.settings.connections.ConnectionData
+import io.confluent.kafka.core.settings.connections.CredentialId
+import io.confluent.kafka.core.ui.components.MultilineTextFieldWithCompletion
+import io.confluent.kafka.util.KafkaMessagesBundle
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch

@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.common.editor
+package io.confluent.kafka.common.editor
 
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.Disposable
@@ -7,10 +7,10 @@ import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.ui.ToolbarDecorator
 import com.intellij.ui.components.JBList
-import com.jetbrains.bigdatatools.kafka.common.settings.ConfigChangeListener
-import com.jetbrains.bigdatatools.kafka.common.settings.KafkaRunConfig
-import com.jetbrains.bigdatatools.kafka.common.settings.StorageConfig
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.common.settings.ConfigChangeListener
+import io.confluent.kafka.common.settings.KafkaRunConfig
+import io.confluent.kafka.common.settings.StorageConfig
+import io.confluent.kafka.util.KafkaMessagesBundle
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
 import javax.swing.BorderFactory

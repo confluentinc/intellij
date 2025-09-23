@@ -1,10 +1,10 @@
-package com.jetbrains.bigdatatools.kafka.actions
+package io.confluent.kafka.actions
 
 import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.project.DumbAwareAction
-import com.jetbrains.bigdatatools.kafka.core.settings.ConnectionSettings
-import com.jetbrains.bigdatatools.kafka.settings.KafkaConnectionGroup
+import io.confluent.kafka.core.settings.ConnectionSettings
+import io.confluent.kafka.settings.KafkaConnectionGroup
 
 class CreateKafkaConnectionAction : DumbAwareAction() {
   override fun actionPerformed(e: AnActionEvent) {

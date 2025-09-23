@@ -1,12 +1,12 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.projectview.dnd
+package io.confluent.kafka.core.rfs.projectview.dnd
 
 import com.intellij.ide.dnd.DnDAction
 import com.intellij.ide.dnd.DnDDragStartBean
 import com.intellij.ide.dnd.DnDEvent
 import com.intellij.ide.dnd.DnDSource
 import com.intellij.util.ui.ImageUtil
-import com.jetbrains.bigdatatools.kafka.core.rfs.projectview.actions.RfsPaneOwner
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.core.rfs.projectview.actions.RfsPaneOwner
+import io.confluent.kafka.util.KafkaMessagesBundle
 import java.awt.AlphaComposite
 import java.awt.Graphics2D
 import java.awt.Image

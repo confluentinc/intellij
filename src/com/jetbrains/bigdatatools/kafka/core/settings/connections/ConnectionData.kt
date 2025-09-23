@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.core.settings.connections
+package io.confluent.kafka.core.settings.connections
 
 import com.intellij.credentialStore.CredentialAttributes
 import com.intellij.credentialStore.Credentials
@@ -8,10 +8,10 @@ import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.NlsSafe
-import com.jetbrains.bigdatatools.kafka.core.constants.BdtConnectionType
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.Driver
-import com.jetbrains.bigdatatools.kafka.core.settings.ModificationKey
-import com.jetbrains.bigdatatools.kafka.core.settings.defaultui.ConnectionStatus
+import io.confluent.kafka.core.constants.BdtConnectionType
+import io.confluent.kafka.core.rfs.driver.Driver
+import io.confluent.kafka.core.settings.ModificationKey
+import io.confluent.kafka.core.settings.defaultui.ConnectionStatus
 import java.io.Serializable
 
 abstract class ConnectionData(

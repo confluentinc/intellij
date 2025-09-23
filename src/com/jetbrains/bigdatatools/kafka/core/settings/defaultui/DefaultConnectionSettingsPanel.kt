@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.core.settings.defaultui
+package io.confluent.kafka.core.settings.defaultui
 
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ApplicationInfo
@@ -9,16 +9,16 @@ import com.intellij.openapi.ui.ComponentValidator
 import com.intellij.ui.ScrollPaneFactory
 import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.intellij.util.ui.JBUI
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.depend.MasterConnectionData
-import com.jetbrains.bigdatatools.kafka.core.settings.*
-import com.jetbrains.bigdatatools.kafka.core.settings.connections.ConnectionData
-import com.jetbrains.bigdatatools.kafka.core.settings.connections.ConnectionData.Companion.TEST_SUFFIX
-import com.jetbrains.bigdatatools.kafka.core.settings.connections.ConnectionSettingProviderEP
-import com.jetbrains.bigdatatools.kafka.core.settings.connections.ConnectionTesting
-import com.jetbrains.bigdatatools.kafka.core.settings.fields.*
-import com.jetbrains.bigdatatools.kafka.core.settings.manager.RfsConnectionDataManager
-import com.jetbrains.bigdatatools.kafka.core.ui.MigPanel
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.core.rfs.driver.depend.MasterConnectionData
+import io.confluent.kafka.core.settings.*
+import io.confluent.kafka.core.settings.connections.ConnectionData
+import io.confluent.kafka.core.settings.connections.ConnectionData.Companion.TEST_SUFFIX
+import io.confluent.kafka.core.settings.connections.ConnectionSettingProviderEP
+import io.confluent.kafka.core.settings.connections.ConnectionTesting
+import io.confluent.kafka.core.settings.fields.*
+import io.confluent.kafka.core.settings.manager.RfsConnectionDataManager
+import io.confluent.kafka.core.ui.MigPanel
+import io.confluent.kafka.util.KafkaMessagesBundle
 import kotlinx.coroutines.CoroutineScope
 import net.miginfocom.layout.LC
 import net.miginfocom.swing.MigLayout

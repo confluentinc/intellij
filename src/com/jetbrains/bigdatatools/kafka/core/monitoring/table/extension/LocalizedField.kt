@@ -1,6 +1,6 @@
-package com.jetbrains.bigdatatools.kafka.core.monitoring.table.extension
+package io.confluent.kafka.core.monitoring.table.extension
 
-import com.jetbrains.bigdatatools.kafka.core.monitoring.data.model.RemoteInfo
+import io.confluent.kafka.core.monitoring.data.model.RemoteInfo
 import org.jetbrains.annotations.Nls
 import kotlin.reflect.KProperty1
 import kotlin.reflect.jvm.javaField

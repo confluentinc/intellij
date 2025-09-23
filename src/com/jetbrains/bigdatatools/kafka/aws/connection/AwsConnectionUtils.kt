@@ -1,8 +1,8 @@
-package com.jetbrains.bigdatatools.kafka.aws.connection
+package io.confluent.kafka.aws.connection
 
 import com.intellij.util.net.ssl.CertificateManager
-import com.jetbrains.bigdatatools.kafka.aws.settings.AwsProxySettings
-import com.jetbrains.bigdatatools.kafka.core.util.BdIdeRegistryUtil
+import io.confluent.kafka.aws.settings.AwsProxySettings
+import io.confluent.kafka.core.util.BdIdeRegistryUtil
 import software.amazon.awssdk.core.exception.SdkClientException
 import software.amazon.awssdk.http.SdkHttpConfigurationOption
 import software.amazon.awssdk.http.apache.ApacheHttpClient

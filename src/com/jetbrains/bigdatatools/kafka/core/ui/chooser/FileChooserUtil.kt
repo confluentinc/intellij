@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.core.ui.chooser
+package io.confluent.kafka.core.ui.chooser
 
 import com.intellij.ide.IdeBundle
 import com.intellij.openapi.fileChooser.FileChooser
@@ -11,7 +11,7 @@ import com.intellij.openapi.util.NlsContexts.DialogTitle
 import com.intellij.openapi.vfs.VfsUtilCore
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.vfs.VirtualFileManager
-import com.jetbrains.bigdatatools.kafka.core.rfs.util.RfsNotificationUtils
+import io.confluent.kafka.core.rfs.util.RfsNotificationUtils
 
 object FileChooserUtil {
   fun selectSingleFile(project: Project, prevSelectedPath: String? = null, fileChooserTitle: @DialogTitle String? = null): VirtualFile? {

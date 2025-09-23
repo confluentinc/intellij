@@ -1,12 +1,12 @@
-package com.jetbrains.bigdatatools.kafka.common.editor
+package io.confluent.kafka.common.editor
 
-import com.intellij.bigdatatools.kafka.icons.BigdatatoolsKafkaIcons
+import io.confluent.kafka.icons.BigdatatoolsKafkaIcons
 import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.project.DumbAwareAction
-import com.jetbrains.bigdatatools.kafka.common.settings.KafkaRunConfig
-import com.jetbrains.bigdatatools.kafka.common.settings.StorageConfig
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.common.settings.KafkaRunConfig
+import io.confluent.kafka.common.settings.StorageConfig
+import io.confluent.kafka.util.KafkaMessagesBundle
 
 class SavePresetAction(private val runConfig: KafkaRunConfig, private val configSupplier: () -> StorageConfig)
   : DumbAwareAction(KafkaMessagesBundle.message("action.save.preset"), null, BigdatatoolsKafkaIcons.Bookmark_off) {

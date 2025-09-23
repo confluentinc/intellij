@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.core.constants
+package io.confluent.kafka.core.constants
 
 enum class BdtPluginType(val pluginId: String) {
   RFS(BdtPlugins.RFS_ID),

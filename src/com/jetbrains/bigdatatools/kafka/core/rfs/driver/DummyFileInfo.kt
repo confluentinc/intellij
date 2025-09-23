@@ -1,10 +1,10 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.driver
+package io.confluent.kafka.core.rfs.driver
 
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.fileinfo.ErrorResult
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.fileinfo.SafeResult
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.task.RemoteFsMoveTask
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.task.RemoteFsTask
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.core.rfs.driver.fileinfo.ErrorResult
+import io.confluent.kafka.core.rfs.driver.fileinfo.SafeResult
+import io.confluent.kafka.core.rfs.driver.task.RemoteFsMoveTask
+import io.confluent.kafka.core.rfs.driver.task.RemoteFsTask
+import io.confluent.kafka.util.KafkaMessagesBundle
 import java.io.InputStream
 
 class DummyFileInfo(override val name: String,

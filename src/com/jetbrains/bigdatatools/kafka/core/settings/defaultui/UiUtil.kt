@@ -1,8 +1,8 @@
-package com.jetbrains.bigdatatools.kafka.core.settings.defaultui
+package io.confluent.kafka.core.settings.defaultui
 
 import com.intellij.openapi.ui.ValidationInfo
 import com.intellij.ui.DocumentAdapter
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.util.KafkaMessagesBundle
 import net.miginfocom.layout.CC
 import net.miginfocom.layout.LC
 import java.awt.Component

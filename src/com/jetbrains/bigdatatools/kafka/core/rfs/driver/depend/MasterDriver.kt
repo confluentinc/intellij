@@ -1,7 +1,7 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.driver.depend
+package io.confluent.kafka.core.rfs.driver.depend
 
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.Driver
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.RfsPath
+import io.confluent.kafka.core.rfs.driver.Driver
+import io.confluent.kafka.core.rfs.driver.RfsPath
 
 
 interface MasterDriver : Driver {

@@ -1,10 +1,10 @@
-package com.jetbrains.bigdatatools.kafka
+package io.confluent.kafka
 
 import com.intellij.testFramework.UsefulTestCase
-import com.jetbrains.bigdatatools.kafka.util.generator.AvroGenerator
-import com.jetbrains.bigdatatools.kafka.util.generator.JsonSchemaGenerator
-import com.jetbrains.bigdatatools.kafka.util.generator.PrimitivesGenerator
-import com.jetbrains.bigdatatools.kafka.util.generator.ProtobufGenerator
+import io.confluent.kafka.util.generator.AvroGenerator
+import io.confluent.kafka.util.generator.JsonSchemaGenerator
+import io.confluent.kafka.util.generator.PrimitivesGenerator
+import io.confluent.kafka.util.generator.ProtobufGenerator
 import io.confluent.kafka.schemaregistry.avro.AvroSchema
 import io.confluent.kafka.schemaregistry.avro.AvroSchemaUtils
 import io.confluent.kafka.schemaregistry.json.JsonSchema

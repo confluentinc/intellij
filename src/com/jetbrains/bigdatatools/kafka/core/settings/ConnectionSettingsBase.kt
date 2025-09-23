@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.core.settings
+package io.confluent.kafka.core.settings
 
 import com.intellij.ide.plugins.PluginManager
 import com.intellij.ide.plugins.PluginManagerCore
@@ -6,14 +6,14 @@ import com.intellij.openapi.Disposable
 import com.intellij.openapi.components.PersistentStateComponent
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.extensions.PluginId
-import com.jetbrains.bigdatatools.kafka.core.constants.BdtConnectionType
-import com.jetbrains.bigdatatools.kafka.core.constants.BdtPlugins.isSupportedByPlugin
-import com.jetbrains.bigdatatools.kafka.core.settings.connections.ConnectionData
-import com.jetbrains.bigdatatools.kafka.core.settings.connections.ConnectionFactory
-import com.jetbrains.bigdatatools.kafka.core.settings.connections.ConnectionSettingProviderEP
-import com.jetbrains.bigdatatools.kafka.core.settings.connections.connType
-import com.jetbrains.bigdatatools.kafka.core.util.BdIdeRegistryUtil
-import com.jetbrains.bigdatatools.kafka.core.util.InternalFeature
+import io.confluent.kafka.core.constants.BdtConnectionType
+import io.confluent.kafka.core.constants.BdtPlugins.isSupportedByPlugin
+import io.confluent.kafka.core.settings.connections.ConnectionData
+import io.confluent.kafka.core.settings.connections.ConnectionFactory
+import io.confluent.kafka.core.settings.connections.ConnectionSettingProviderEP
+import io.confluent.kafka.core.settings.connections.connType
+import io.confluent.kafka.core.util.BdIdeRegistryUtil
+import io.confluent.kafka.core.util.InternalFeature
 import org.jetbrains.annotations.VisibleForTesting
 import java.io.*
 import java.lang.Long
@@ -44,23 +44,23 @@ abstract class ConnectionSettingsBase : PersistentStateComponent<ConnectionPersi
 
     private val RENAME_MAP = mapOf(
       Pair("com.jetbrains.bigdatatools.rfs.settings.local.RfsLocalConnectionData",
-           "com.jetbrains.bigdatatools.kafka.core.rfs.settings.local.RfsLocalConnectionData"),
+           "io.confluent.kafka.core.rfs.settings.local.RfsLocalConnectionData"),
       Pair("com.jetbrains.bigdatatools.databricks.rfs.DatabricksConnectionData",
            "com.intellij.bigdatatools.databricks.rfs.DatabricksConnectionData"),
       Pair("org.com.jetbrains.bigdatatools.filestorage.common.BucketFilterType",
-           "com.jetbrains.bigdatatools.kafka.core.filestorages.BucketFilterType"),
+           "io.confluent.kafka.core.filestorages.BucketFilterType"),
       Pair("org.jetbrains.hdfsplugin.hdfs.settings.BucketFilterType",
-           "com.jetbrains.bigdatatools.kafka.core.filestorages.BucketFilterType"),
+           "io.confluent.kafka.core.filestorages.BucketFilterType"),
       Pair("com.jetbrains.bigdatatools.settings.ExtendedConnectionData",
-           "com.jetbrains.bigdatatools.kafka.core.settings.ExtendedConnectionData"),
+           "io.confluent.kafka.core.settings.ExtendedConnectionData"),
       Pair("com.jetbrains.bigdatatools.connection.ProxyEnableType",
-           "com.jetbrains.bigdatatools.kafka.core.connection.ProxyEnableType"),
+           "io.confluent.kafka.core.connection.ProxyEnableType"),
       Pair("com.jetbrains.bigdatatools.connection.ProxyType",
-           "com.jetbrains.bigdatatools.kafka.core.connection.ProxyType"),
+           "io.confluent.kafka.core.connection.ProxyType"),
       Pair("com.jetbrains.bigdatatools.connection.tunnel.model.ConnectionSshTunnelInfo",
-           "com.jetbrains.bigdatatools.kafka.core.connection.tunnel.model.ConnectionSshTunnelDataLegacy"),
+           "io.confluent.kafka.core.connection.tunnel.model.ConnectionSshTunnelDataLegacy"),
       Pair("com.jetbrains.bigdatatools.connection.tunnel.model.ConnectionSshTunnelDataLegacy",
-           "com.jetbrains.bigdatatools.kafka.core.connection.tunnel.model.ConnectionSshTunnelDataLegacy"),
+           "io.confluent.kafka.core.connection.tunnel.model.ConnectionSshTunnelDataLegacy"),
     )
 
     fun findPluginByClassName(conn: ExtendedConnectionData): PluginId? {

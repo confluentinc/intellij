@@ -1,6 +1,6 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.search.impl
+package io.confluent.kafka.core.rfs.search.impl
 
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.FileInfo
+import io.confluent.kafka.core.rfs.driver.FileInfo
 
 class ListResult(val results: List<ListElement>,
                  val nextBatchId: String? = null,

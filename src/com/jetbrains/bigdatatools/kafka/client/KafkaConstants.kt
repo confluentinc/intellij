@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.client
+package io.confluent.kafka.client
 
 import org.apache.kafka.common.config.TopicConfig.*
 

@@ -1,13 +1,13 @@
-package com.jetbrains.bigdatatools.kafka.consumer.editor
+package io.confluent.kafka.consumer.editor
 
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonArray
 import com.google.gson.JsonObject
 import com.google.gson.JsonPrimitive
 import com.intellij.openapi.util.text.StringUtil
-import com.jetbrains.bigdatatools.kafka.common.editor.ListTableModel
-import com.jetbrains.bigdatatools.kafka.consumer.models.ConsumerStartType
-import com.jetbrains.bigdatatools.kafka.consumer.models.ConsumerStartWith
+import io.confluent.kafka.common.editor.ListTableModel
+import io.confluent.kafka.consumer.models.ConsumerStartType
+import io.confluent.kafka.consumer.models.ConsumerStartWith
 import java.util.*
 
 internal object ConsumerEditorUtils {

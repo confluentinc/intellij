@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.settings
+package io.confluent.kafka.settings
 
 data class KafkaSslConfig(
   val validateHostName: Boolean,

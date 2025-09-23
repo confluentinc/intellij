@@ -1,6 +1,6 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.driver
+package io.confluent.kafka.core.rfs.driver
 
-import com.jetbrains.bigdatatools.kafka.core.connection.exception.BdtConnectionException
+import io.confluent.kafka.core.connection.exception.BdtConnectionException
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.contract
 

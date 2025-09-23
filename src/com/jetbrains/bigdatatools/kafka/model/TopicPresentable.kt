@@ -1,10 +1,10 @@
-package com.jetbrains.bigdatatools.kafka.model
+package io.confluent.kafka.model
 
-import com.jetbrains.bigdatatools.kafka.common.models.TopicInEditor
-import com.jetbrains.bigdatatools.kafka.core.monitoring.data.model.RemoteInfo
-import com.jetbrains.bigdatatools.kafka.core.table.renderers.LoadingRendering
-import com.jetbrains.bigdatatools.kafka.core.table.renderers.NoRendering
-import com.jetbrains.bigdatatools.kafka.util.KafkaLocalizedField
+import io.confluent.kafka.common.models.TopicInEditor
+import io.confluent.kafka.core.monitoring.data.model.RemoteInfo
+import io.confluent.kafka.core.table.renderers.LoadingRendering
+import io.confluent.kafka.core.table.renderers.NoRendering
+import io.confluent.kafka.util.KafkaLocalizedField
 
 data class TopicPresentable(val name: String,
                             @field:NoRendering

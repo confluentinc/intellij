@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.projectview.toolwindow
+package io.confluent.kafka.core.rfs.projectview.toolwindow
 
 import com.intellij.ide.actions.ActivateToolWindowAction
 import com.intellij.openapi.actionSystem.KeyboardShortcut
@@ -8,8 +8,8 @@ import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ToolWindowFactory
-import com.jetbrains.bigdatatools.kafka.core.constants.BdtPlugins
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.core.constants.BdtPlugins
+import io.confluent.kafka.util.KafkaMessagesBundle
 import java.awt.event.InputEvent
 import java.awt.event.KeyEvent
 import javax.swing.KeyStroke

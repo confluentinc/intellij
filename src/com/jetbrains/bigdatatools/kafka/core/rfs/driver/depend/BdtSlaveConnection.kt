@@ -1,6 +1,6 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.driver.depend
+package io.confluent.kafka.core.rfs.driver.depend
 
-import com.jetbrains.bigdatatools.kafka.core.constants.BdtConnectionType
+import io.confluent.kafka.core.constants.BdtConnectionType
 
 interface BdtSlaveConnection {
   val connectionId: String

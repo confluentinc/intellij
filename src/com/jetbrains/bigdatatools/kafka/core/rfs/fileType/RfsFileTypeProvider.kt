@@ -1,8 +1,8 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.fileType
+package io.confluent.kafka.core.rfs.fileType
 
 import com.intellij.openapi.extensions.ExtensionPointName
-import com.jetbrains.bigdatatools.kafka.core.settings.connections.InternalConnectionSettingsProvider
-import com.jetbrains.bigdatatools.kafka.core.util.BdIdeRegistryUtil
+import io.confluent.kafka.core.settings.connections.InternalConnectionSettingsProvider
+import io.confluent.kafka.core.util.BdIdeRegistryUtil
 
 interface RfsFileTypeProvider {
   fun getFileType(): RfsFileType

@@ -1,7 +1,7 @@
-package com.jetbrains.bigdatatools.kafka.toolwindow.controllers
+package io.confluent.kafka.toolwindow.controllers
 
 import com.intellij.openapi.util.NlsSafe
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.util.KafkaMessagesBundle
 
 enum class KafkaGroupType(@NlsSafe val title: String) {
   TOPIC(KafkaMessagesBundle.message("settings.topics.tab")),

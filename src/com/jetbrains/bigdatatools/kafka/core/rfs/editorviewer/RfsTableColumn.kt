@@ -1,9 +1,9 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.editorviewer
+package io.confluent.kafka.core.rfs.editorviewer
 
 import com.intellij.openapi.util.NlsContexts
 import com.intellij.util.ui.ColumnInfo
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.FileInfo
-import com.jetbrains.bigdatatools.kafka.core.rfs.tree.node.DriverFileRfsTreeNode
+import io.confluent.kafka.core.rfs.driver.FileInfo
+import io.confluent.kafka.core.rfs.tree.node.DriverFileRfsTreeNode
 
 /**  columns - the total number of columns, used to calculate the preferred width. */
 abstract class RfsTableColumn<T : Comparable<T>>(@NlsContexts.ColumnName name: String,

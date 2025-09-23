@@ -1,9 +1,9 @@
-package com.jetbrains.bigdatatools.kafka.aws.credentials.utils
+package io.confluent.kafka.aws.credentials.utils
 
 import com.intellij.credentialStore.OneTimeString
-import com.jetbrains.bigdatatools.kafka.core.serializer.JsonDeserializeException
-import com.jetbrains.bigdatatools.kafka.core.serializer.JsonSerializeException
-import com.jetbrains.bigdatatools.kafka.core.serializer.OneTimeStringAdapter
+import io.confluent.kafka.core.serializer.JsonDeserializeException
+import io.confluent.kafka.core.serializer.JsonSerializeException
+import io.confluent.kafka.core.serializer.OneTimeStringAdapter
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import java.time.Instant

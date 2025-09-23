@@ -1,7 +1,7 @@
-package com.jetbrains.bigdatatools.kafka.rfs
+package io.confluent.kafka.rfs
 
-import com.jetbrains.bigdatatools.kafka.core.settings.components.RenderableEntity
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.core.settings.components.RenderableEntity
+import io.confluent.kafka.util.KafkaMessagesBundle
 
 enum class SchemaRegistryAuthType(override val title: String) : RenderableEntity {
   NOT_SPECIFIED(KafkaMessagesBundle.message("kafka.auth.none")),

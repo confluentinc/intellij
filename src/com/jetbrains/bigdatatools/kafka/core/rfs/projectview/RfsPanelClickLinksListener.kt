@@ -1,9 +1,9 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.projectview
+package io.confluent.kafka.core.rfs.projectview
 
 import com.intellij.ui.ClickListener
 import com.intellij.ui.SimpleColoredComponent
 import com.intellij.ui.treeStructure.Tree
-import com.jetbrains.bigdatatools.kafka.core.rfs.tree.node.DriverRfsLoadMoreNode
+import io.confluent.kafka.core.rfs.tree.node.DriverRfsLoadMoreNode
 import java.awt.event.MouseEvent
 import javax.swing.JTree
 

@@ -1,14 +1,14 @@
 // Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-package com.jetbrains.bigdatatools.kafka.aws.credentials.profiles.loader
+package io.confluent.kafka.aws.credentials.profiles.loader
 
 import com.intellij.openapi.diagnostic.thisLogger
-import com.jetbrains.bigdatatools.kafka.aws.credentials.profiles.BdtCredentialSourceType
-import com.jetbrains.bigdatatools.kafka.aws.credentials.profiles.propertyExists
-import com.jetbrains.bigdatatools.kafka.aws.credentials.profiles.requiredProperty
-import com.jetbrains.bigdatatools.kafka.aws.credentials.profiles.traverseCredentialChain
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.aws.credentials.profiles.BdtCredentialSourceType
+import io.confluent.kafka.aws.credentials.profiles.propertyExists
+import io.confluent.kafka.aws.credentials.profiles.requiredProperty
+import io.confluent.kafka.aws.credentials.profiles.traverseCredentialChain
+import io.confluent.kafka.util.KafkaMessagesBundle
 import software.amazon.awssdk.profiles.Profile
 import software.amazon.awssdk.profiles.ProfileFile
 import software.amazon.awssdk.profiles.ProfileProperty

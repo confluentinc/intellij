@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.core.settings
+package io.confluent.kafka.core.settings
 
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.observable.util.whenFocusGained
@@ -8,14 +8,14 @@ import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.Key
 import com.intellij.ui.EditorTextField
 import com.intellij.ui.dsl.builder.Cell
-import com.jetbrains.bigdatatools.kafka.core.connection.ProxyEnableType
-import com.jetbrains.bigdatatools.kafka.core.settings.connections.ConnectionData
-import com.jetbrains.bigdatatools.kafka.core.settings.fields.*
-import com.jetbrains.bigdatatools.kafka.core.ui.applyRecursively
-import com.jetbrains.bigdatatools.kafka.core.ui.doOnChange
-import com.jetbrains.bigdatatools.kafka.core.util.BdtUrlUtils
-import com.jetbrains.bigdatatools.kafka.core.util.toPresentableText
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.core.connection.ProxyEnableType
+import io.confluent.kafka.core.settings.connections.ConnectionData
+import io.confluent.kafka.core.settings.fields.*
+import io.confluent.kafka.core.ui.applyRecursively
+import io.confluent.kafka.core.ui.doOnChange
+import io.confluent.kafka.core.util.BdtUrlUtils
+import io.confluent.kafka.core.util.toPresentableText
+import io.confluent.kafka.util.KafkaMessagesBundle
 import org.jetbrains.annotations.Nls
 import java.awt.Container
 import java.awt.event.ItemListener

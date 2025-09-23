@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.common.models
+package io.confluent.kafka.common.models
 
 enum class KafkaEditorType {
   CONSUMER, PRODUCER

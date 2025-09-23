@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.projectview.pane
+package io.confluent.kafka.core.rfs.projectview.pane
 
 import com.intellij.ide.SelectInContext
 import com.intellij.ide.SelectInTarget
@@ -6,13 +6,13 @@ import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.wm.ToolWindowManager
 import com.intellij.openapi.wm.impl.ToolWindowManagerImpl
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.manager.DriverManager
-import com.jetbrains.bigdatatools.kafka.core.rfs.editorviewer.RfsViewerEditorProvider
-import com.jetbrains.bigdatatools.kafka.core.rfs.projectview.toolwindow.BigDataToolWindowController
-import com.jetbrains.bigdatatools.kafka.core.rfs.projectview.toolwindow.BigDataToolWindowFactory
-import com.jetbrains.bigdatatools.kafka.core.rfs.util.RfsFileUtil
-import com.jetbrains.bigdatatools.kafka.core.rfs.util.RfsUtil
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.core.rfs.driver.manager.DriverManager
+import io.confluent.kafka.core.rfs.editorviewer.RfsViewerEditorProvider
+import io.confluent.kafka.core.rfs.projectview.toolwindow.BigDataToolWindowController
+import io.confluent.kafka.core.rfs.projectview.toolwindow.BigDataToolWindowFactory
+import io.confluent.kafka.core.rfs.util.RfsFileUtil
+import io.confluent.kafka.core.rfs.util.RfsUtil
+import io.confluent.kafka.util.KafkaMessagesBundle
 
 class RfsSelectInTarget : SelectInTarget, DumbAware {
   override fun canSelect(context: SelectInContext?): Boolean {

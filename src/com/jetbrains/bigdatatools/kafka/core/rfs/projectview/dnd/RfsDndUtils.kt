@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.projectview.dnd
+package io.confluent.kafka.core.rfs.projectview.dnd
 
 import com.intellij.ide.dnd.DnDEvent
 import com.intellij.ide.dnd.TransferableWrapper
@@ -7,10 +7,10 @@ import com.intellij.ide.projectView.impl.AbstractProjectViewPane
 import com.intellij.ide.projectView.impl.ProjectViewPane
 import com.intellij.openapi.project.Project
 import com.intellij.util.PathUtil
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.FileInfo
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.local.LocalDriverManager
-import com.jetbrains.bigdatatools.kafka.core.rfs.projectview.actions.RfsActionUtil
-import com.jetbrains.bigdatatools.kafka.core.rfs.viewer.utils.DriverRfsTreeUtil.lastDriverNode
+import io.confluent.kafka.core.rfs.driver.FileInfo
+import io.confluent.kafka.core.rfs.driver.local.LocalDriverManager
+import io.confluent.kafka.core.rfs.projectview.actions.RfsActionUtil
+import io.confluent.kafka.core.rfs.viewer.utils.DriverRfsTreeUtil.lastDriverNode
 import java.io.File
 import javax.swing.tree.TreePath
 

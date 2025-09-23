@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.aws.ui.external
+package io.confluent.kafka.aws.ui.external
 
 interface AwsSettingsInfo {
   val authenticationType: String

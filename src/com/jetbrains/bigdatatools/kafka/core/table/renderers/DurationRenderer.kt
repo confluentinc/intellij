@@ -1,6 +1,6 @@
-package com.jetbrains.bigdatatools.kafka.core.table.renderers
+package io.confluent.kafka.core.table.renderers
 
-import com.jetbrains.bigdatatools.kafka.core.util.TimeUtils
+import io.confluent.kafka.core.util.TimeUtils
 import javax.swing.SwingConstants
 
 /** Renders seconds as readable interval description like "1d 5h" */

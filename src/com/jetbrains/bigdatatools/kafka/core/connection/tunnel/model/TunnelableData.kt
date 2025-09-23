@@ -1,7 +1,7 @@
-package com.jetbrains.bigdatatools.kafka.core.connection.tunnel.model
+package io.confluent.kafka.core.connection.tunnel.model
 
 import com.intellij.openapi.diagnostic.Logger
-import com.jetbrains.bigdatatools.kafka.core.connection.tunnel.BdtSshTunnelConnectionUtils
+import io.confluent.kafka.core.connection.tunnel.BdtSshTunnelConnectionUtils
 import kotlin.reflect.KMutableProperty0
 
 interface TunnelableData {

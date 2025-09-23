@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.copypaste
+package io.confluent.kafka.core.rfs.copypaste
 
 object RfsCopyPasteParams {
   const val FORCE_OVERWRITE = "FORCE_OVERWRITE"

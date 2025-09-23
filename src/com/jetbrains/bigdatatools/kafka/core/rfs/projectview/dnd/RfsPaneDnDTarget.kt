@@ -1,15 +1,15 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.projectview.dnd
+package io.confluent.kafka.core.rfs.projectview.dnd
 
 import com.intellij.ide.dnd.DnDEvent
 import com.intellij.ide.dnd.DnDTarget
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.ui.awt.RelativeRectangle
-import com.jetbrains.bigdatatools.kafka.core.rfs.copypaste.RfsCopyPasteManager
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.Driver
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.RfsPath
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.copyhandler.InterDriverCopyManager
-import com.jetbrains.bigdatatools.kafka.core.rfs.projectview.actions.RfsPaneOwner
-import com.jetbrains.bigdatatools.kafka.core.rfs.viewer.utils.DriverRfsTreeUtil.lastDriverNode
+import io.confluent.kafka.core.rfs.copypaste.RfsCopyPasteManager
+import io.confluent.kafka.core.rfs.driver.Driver
+import io.confluent.kafka.core.rfs.driver.RfsPath
+import io.confluent.kafka.core.rfs.driver.copyhandler.InterDriverCopyManager
+import io.confluent.kafka.core.rfs.projectview.actions.RfsPaneOwner
+import io.confluent.kafka.core.rfs.viewer.utils.DriverRfsTreeUtil.lastDriverNode
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.awt.Image

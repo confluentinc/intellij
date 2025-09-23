@@ -1,6 +1,6 @@
-package com.jetbrains.bigdatatools.kafka.common.models
+package io.confluent.kafka.common.models
 
-import com.jetbrains.bigdatatools.kafka.common.settings.StorageConfig
+import io.confluent.kafka.common.settings.StorageConfig
 
 /** Marker interface for RunConsumerConfig and  RunProducerConfig.*/
 interface RunConfig {

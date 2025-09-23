@@ -1,8 +1,8 @@
-package com.jetbrains.bigdatatools.kafka.util.generator
+package io.confluent.kafka.util.generator
 
 import com.google.gson.JsonObject
-import com.jetbrains.bigdatatools.kafka.util.generator.PrimitivesGenerator.generateInt
-import com.jetbrains.bigdatatools.kafka.util.generator.PrimitivesGenerator.generateLong
+import io.confluent.kafka.util.generator.PrimitivesGenerator.generateInt
+import io.confluent.kafka.util.generator.PrimitivesGenerator.generateLong
 import kotlin.random.Random
 
 object JsonGenerator {

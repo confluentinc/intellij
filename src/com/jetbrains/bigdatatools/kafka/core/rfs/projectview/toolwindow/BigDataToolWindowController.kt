@@ -1,6 +1,6 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.projectview.toolwindow
+package io.confluent.kafka.core.rfs.projectview.toolwindow
 
-//import com.jetbrains.bigdatatools.kafka.core.database.BdtDatabaseSettingsListener
+//import io.confluent.kafka.core.database.BdtDatabaseSettingsListener
 import com.intellij.icons.AllIcons
 import com.intellij.ide.FileSelectInContext
 import com.intellij.notebook.editor.BackedVirtualFile
@@ -21,21 +21,21 @@ import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ex.ToolWindowEx
 import com.intellij.ui.content.ContentManager
 import com.intellij.util.ui.tree.TreeUtil
-import com.jetbrains.bigdatatools.kafka.core.constants.BdtPlugins
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.RfsPath
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.depend.MasterSlaveConnectionRemoveListener
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.manager.DriverManager
-import com.jetbrains.bigdatatools.kafka.core.rfs.editorviewer.RfsFileViewerSettings
-import com.jetbrains.bigdatatools.kafka.core.rfs.editorviewer.RfsViewerEditorProvider
-import com.jetbrains.bigdatatools.kafka.core.rfs.projectview.actions.RfsActionPlaces
-import com.jetbrains.bigdatatools.kafka.core.rfs.projectview.pane.RfsPane
-import com.jetbrains.bigdatatools.kafka.core.rfs.tree.node.DriverFileRfsTreeNode
-import com.jetbrains.bigdatatools.kafka.core.settings.connections.ConnectionData
-import com.jetbrains.bigdatatools.kafka.core.settings.manager.RfsConnectionDataManager
-import com.jetbrains.bigdatatools.kafka.core.util.ToolbarUtils
-import com.jetbrains.bigdatatools.kafka.core.util.executeNotOnEdt
-import com.jetbrains.bigdatatools.kafka.core.util.invokeLater
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.core.constants.BdtPlugins
+import io.confluent.kafka.core.rfs.driver.RfsPath
+import io.confluent.kafka.core.rfs.driver.depend.MasterSlaveConnectionRemoveListener
+import io.confluent.kafka.core.rfs.driver.manager.DriverManager
+import io.confluent.kafka.core.rfs.editorviewer.RfsFileViewerSettings
+import io.confluent.kafka.core.rfs.editorviewer.RfsViewerEditorProvider
+import io.confluent.kafka.core.rfs.projectview.actions.RfsActionPlaces
+import io.confluent.kafka.core.rfs.projectview.pane.RfsPane
+import io.confluent.kafka.core.rfs.tree.node.DriverFileRfsTreeNode
+import io.confluent.kafka.core.settings.connections.ConnectionData
+import io.confluent.kafka.core.settings.manager.RfsConnectionDataManager
+import io.confluent.kafka.core.util.ToolbarUtils
+import io.confluent.kafka.core.util.executeNotOnEdt
+import io.confluent.kafka.core.util.invokeLater
+import io.confluent.kafka.util.KafkaMessagesBundle
 import org.jdom.Element
 import javax.swing.JComponent
 

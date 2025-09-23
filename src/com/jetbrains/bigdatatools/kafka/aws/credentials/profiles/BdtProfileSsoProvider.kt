@@ -1,11 +1,11 @@
-package com.jetbrains.bigdatatools.kafka.aws.credentials.profiles
+package io.confluent.kafka.aws.credentials.profiles
 
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.util.Disposer
-import com.jetbrains.bigdatatools.kafka.aws.credentials.sso.BdtSsoAccessTokenProvider
-import com.jetbrains.bigdatatools.kafka.aws.credentials.sso.BdtSsoCredentialProvider
-import com.jetbrains.bigdatatools.kafka.aws.credentials.sso.SsoPrompt
-import com.jetbrains.bigdatatools.kafka.aws.credentials.sso.SsoSupport
+import io.confluent.kafka.aws.credentials.sso.BdtSsoAccessTokenProvider
+import io.confluent.kafka.aws.credentials.sso.BdtSsoCredentialProvider
+import io.confluent.kafka.aws.credentials.sso.SsoPrompt
+import io.confluent.kafka.aws.credentials.sso.SsoSupport
 import software.amazon.awssdk.auth.credentials.AnonymousCredentialsProvider
 import software.amazon.awssdk.auth.credentials.AwsCredentials
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider

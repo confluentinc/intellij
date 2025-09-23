@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.aws.settings
+package io.confluent.kafka.aws.settings
 
 import com.intellij.credentialStore.Credentials
 

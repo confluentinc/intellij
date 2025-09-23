@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.util
+package io.confluent.kafka.core.rfs.util
 
 import com.intellij.openapi.util.Key
 import com.intellij.openapi.vfs.VirtualFile

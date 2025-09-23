@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.core.settings.kerberos
+package io.confluent.kafka.core.settings.kerberos
 
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.fileEditor.FileEditorManager
@@ -7,9 +7,9 @@ import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.ui.UIBundle
 import com.intellij.ui.components.fields.ExtendableTextComponent
 import com.intellij.ui.components.fields.ExtendableTextField
-import com.jetbrains.bigdatatools.kafka.core.ui.chooser.FileChooserUtil
-import com.jetbrains.bigdatatools.kafka.core.ui.doOnChange
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.core.ui.chooser.FileChooserUtil
+import io.confluent.kafka.core.ui.doOnChange
+import io.confluent.kafka.util.KafkaMessagesBundle
 import java.nio.file.Path
 import javax.swing.Icon
 

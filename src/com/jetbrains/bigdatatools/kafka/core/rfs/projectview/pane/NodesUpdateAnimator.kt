@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.projectview.pane
+package io.confluent.kafka.core.rfs.projectview.pane
 
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.diagnostic.Logger
@@ -6,12 +6,12 @@ import com.intellij.openapi.util.Disposer
 import com.intellij.ui.tree.BaseTreeModel
 import com.intellij.util.ui.Animator
 import com.intellij.util.ui.tree.TreeModelAdapter
-import com.jetbrains.bigdatatools.kafka.core.delegate.Delegate2
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.Driver
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.RfsPath
-import com.jetbrains.bigdatatools.kafka.core.rfs.tree.node.DriverFileRfsTreeNode
-import com.jetbrains.bigdatatools.kafka.core.rfs.tree.node.RfsTreeNode
-import com.jetbrains.bigdatatools.kafka.core.util.invokeLater
+import io.confluent.kafka.core.delegate.Delegate2
+import io.confluent.kafka.core.rfs.driver.Driver
+import io.confluent.kafka.core.rfs.driver.RfsPath
+import io.confluent.kafka.core.rfs.tree.node.DriverFileRfsTreeNode
+import io.confluent.kafka.core.rfs.tree.node.RfsTreeNode
+import io.confluent.kafka.core.util.invokeLater
 import javax.swing.event.TreeModelEvent
 
 class NodesUpdateAnimator(private val treeModel: BaseTreeModel<out RfsTreeNode>, disposable: Disposable)

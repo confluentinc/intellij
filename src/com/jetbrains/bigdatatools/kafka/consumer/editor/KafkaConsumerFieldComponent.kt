@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.consumer.editor
+package io.confluent.kafka.consumer.editor
 
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.Disposable
@@ -10,20 +10,20 @@ import com.intellij.ui.dsl.builder.Panel
 import com.intellij.ui.dsl.builder.RightGap
 import com.intellij.ui.dsl.builder.actionButton
 import com.intellij.ui.layout.selectedValueMatches
-import com.jetbrains.bigdatatools.kafka.common.editor.KafkaEditorUtils
-import com.jetbrains.bigdatatools.kafka.common.models.KafkaFieldType
-import com.jetbrains.bigdatatools.kafka.common.models.RegistrySchemaInEditor
-import com.jetbrains.bigdatatools.kafka.common.settings.StorageConsumerConfig
-import com.jetbrains.bigdatatools.kafka.consumer.models.ConsumerProducerFieldConfig
-import com.jetbrains.bigdatatools.kafka.consumer.models.CustomSchemaData
-import com.jetbrains.bigdatatools.kafka.core.rfs.util.RfsNotificationUtils
-import com.jetbrains.bigdatatools.kafka.core.settings.getValidationInfo
-import com.jetbrains.bigdatatools.kafka.core.util.executeNotOnEdt
-import com.jetbrains.bigdatatools.kafka.producer.editor.CustomSchemaController
-import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryFormat
-import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryUtil
-import com.jetbrains.bigdatatools.kafka.registry.ui.KafkaSchemaInfoDialog
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.common.editor.KafkaEditorUtils
+import io.confluent.kafka.common.models.KafkaFieldType
+import io.confluent.kafka.common.models.RegistrySchemaInEditor
+import io.confluent.kafka.common.settings.StorageConsumerConfig
+import io.confluent.kafka.consumer.models.ConsumerProducerFieldConfig
+import io.confluent.kafka.consumer.models.CustomSchemaData
+import io.confluent.kafka.core.rfs.util.RfsNotificationUtils
+import io.confluent.kafka.core.settings.getValidationInfo
+import io.confluent.kafka.core.util.executeNotOnEdt
+import io.confluent.kafka.producer.editor.CustomSchemaController
+import io.confluent.kafka.registry.KafkaRegistryFormat
+import io.confluent.kafka.registry.KafkaRegistryUtil
+import io.confluent.kafka.registry.ui.KafkaSchemaInfoDialog
+import io.confluent.kafka.util.KafkaMessagesBundle
 
 class KafkaConsumerFieldComponent(private val project: Project,
                                   private val consumerPanel: KafkaConsumerPanel, val isKey: Boolean) : Disposable {

@@ -1,12 +1,12 @@
-package com.jetbrains.bigdatatools.kafka.core.monitoring.table.model
+package io.confluent.kafka.core.monitoring.table.model
 
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.runInEdt
-import com.jetbrains.bigdatatools.kafka.core.monitoring.data.listener.DataModelListener
-import com.jetbrains.bigdatatools.kafka.core.monitoring.data.model.ObjectDataModel
-import com.jetbrains.bigdatatools.kafka.core.monitoring.data.model.RemoteInfo
-import com.jetbrains.bigdatatools.kafka.core.monitoring.table.TableEventListener
-import com.jetbrains.bigdatatools.kafka.core.table.DecoratableDataTableModel
+import io.confluent.kafka.core.monitoring.data.listener.DataModelListener
+import io.confluent.kafka.core.monitoring.data.model.ObjectDataModel
+import io.confluent.kafka.core.monitoring.data.model.RemoteInfo
+import io.confluent.kafka.core.monitoring.table.TableEventListener
+import io.confluent.kafka.core.table.DecoratableDataTableModel
 import javax.swing.table.AbstractTableModel
 import kotlin.reflect.KClass
 

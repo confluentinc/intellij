@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.core.ui.filter
+package io.confluent.kafka.core.ui.filter
 
 import com.intellij.icons.AllIcons
 import com.intellij.ide.DataManager

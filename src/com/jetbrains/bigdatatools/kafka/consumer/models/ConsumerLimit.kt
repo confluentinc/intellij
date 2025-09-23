@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.consumer.models
+package io.confluent.kafka.consumer.models
 
 data class ConsumerLimit(val type: ConsumerLimitType, val value: String, val time: Long?) {
   val topicRecordsCount = if (type == ConsumerLimitType.TOPIC_NUMBER_RECORDS) value.toLongOrNull() else null

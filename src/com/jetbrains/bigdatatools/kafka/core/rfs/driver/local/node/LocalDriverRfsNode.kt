@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.driver.local.node
+package io.confluent.kafka.core.rfs.driver.local.node
 
 import com.intellij.ide.projectView.impl.nodes.AbstractPsiBasedNode
 import com.intellij.openapi.application.ApplicationManager
@@ -11,12 +11,12 @@ import com.intellij.ui.DeferredIcon
 import com.intellij.ui.LayeredIcon
 import com.intellij.ui.icons.RowIcon
 import com.intellij.util.ui.EmptyIcon
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.Driver
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.RfsPath
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.local.LocalFileInfo
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.writeLocked
-import com.jetbrains.bigdatatools.kafka.core.rfs.icons.RfsIcons
-import com.jetbrains.bigdatatools.kafka.core.rfs.tree.node.DriverFileRfsTreeNode
+import io.confluent.kafka.core.rfs.driver.Driver
+import io.confluent.kafka.core.rfs.driver.RfsPath
+import io.confluent.kafka.core.rfs.driver.local.LocalFileInfo
+import io.confluent.kafka.core.rfs.driver.writeLocked
+import io.confluent.kafka.core.rfs.icons.RfsIcons
+import io.confluent.kafka.core.rfs.tree.node.DriverFileRfsTreeNode
 import javax.swing.Icon
 
 class LocalDriverRfsNode(private val localProject: Project,

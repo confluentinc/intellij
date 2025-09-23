@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.util
+package io.confluent.kafka.util
 
 import com.intellij.openapi.application.EDT
 import com.intellij.openapi.application.invokeLater
@@ -15,11 +15,11 @@ import com.intellij.ui.dsl.builder.bindIntText
 import com.intellij.ui.dsl.builder.bindItem
 import com.intellij.ui.dsl.builder.panel
 import com.intellij.util.ui.CalendarView
-import com.jetbrains.bigdatatools.kafka.consumer.models.ConsumerStartType
-import com.jetbrains.bigdatatools.kafka.consumer.models.ConsumerStartWith
-import com.jetbrains.bigdatatools.kafka.core.rfs.util.RfsNotificationUtils
-import com.jetbrains.bigdatatools.kafka.core.ui.CustomListCellRenderer
-import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
+import io.confluent.kafka.consumer.models.ConsumerStartType
+import io.confluent.kafka.consumer.models.ConsumerStartWith
+import io.confluent.kafka.core.rfs.util.RfsNotificationUtils
+import io.confluent.kafka.core.ui.CustomListCellRenderer
+import io.confluent.kafka.data.KafkaDataManager
 import kotlinx.coroutines.*
 import java.awt.Component
 import java.awt.Container

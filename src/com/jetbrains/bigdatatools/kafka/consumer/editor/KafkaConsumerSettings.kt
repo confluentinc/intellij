@@ -1,11 +1,11 @@
-package com.jetbrains.bigdatatools.kafka.consumer.editor
+package io.confluent.kafka.consumer.editor
 
 import com.intellij.openapi.ui.DialogBuilder
 import com.intellij.ui.ScrollPaneFactory
 import com.intellij.ui.dsl.builder.panel
-import com.jetbrains.bigdatatools.kafka.common.settings.StorageConsumerConfig
-import com.jetbrains.bigdatatools.kafka.core.ui.row
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.common.settings.StorageConsumerConfig
+import io.confluent.kafka.core.ui.row
+import io.confluent.kafka.util.KafkaMessagesBundle
 import org.apache.kafka.clients.consumer.ConsumerConfig
 import javax.swing.JTextField
 import javax.swing.text.JTextComponent

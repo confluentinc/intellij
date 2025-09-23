@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.settings
+package io.confluent.kafka.settings
 
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.editor.event.DocumentListener
@@ -6,19 +6,19 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.intellij.ui.dsl.builder.Align
 import com.intellij.ui.dsl.builder.Panel
-import com.jetbrains.bigdatatools.kafka.core.settings.ModificationKey
-import com.jetbrains.bigdatatools.kafka.core.settings.connections.ConnectionData
-import com.jetbrains.bigdatatools.kafka.core.settings.fields.AbstractPropertiesFieldComponent
-import com.jetbrains.bigdatatools.kafka.core.settings.fields.StringNamedField
-import com.jetbrains.bigdatatools.kafka.core.settings.fields.WrappedComponent
-import com.jetbrains.bigdatatools.kafka.core.ui.components.ConnectionPropertiesEditor
-import com.jetbrains.bigdatatools.kafka.core.ui.doOnChange
-import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryType
-import com.jetbrains.bigdatatools.kafka.rfs.KafkaCloudType
-import com.jetbrains.bigdatatools.kafka.rfs.KafkaConfigurationSource
-import com.jetbrains.bigdatatools.kafka.rfs.KafkaConnectionData
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
-import com.jetbrains.bigdatatools.kafka.util.KafkaPropertiesUtils
+import io.confluent.kafka.core.settings.ModificationKey
+import io.confluent.kafka.core.settings.connections.ConnectionData
+import io.confluent.kafka.core.settings.fields.AbstractPropertiesFieldComponent
+import io.confluent.kafka.core.settings.fields.StringNamedField
+import io.confluent.kafka.core.settings.fields.WrappedComponent
+import io.confluent.kafka.core.ui.components.ConnectionPropertiesEditor
+import io.confluent.kafka.core.ui.doOnChange
+import io.confluent.kafka.registry.KafkaRegistryType
+import io.confluent.kafka.rfs.KafkaCloudType
+import io.confluent.kafka.rfs.KafkaConfigurationSource
+import io.confluent.kafka.rfs.KafkaConnectionData
+import io.confluent.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.util.KafkaPropertiesUtils
 import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig
 import javax.swing.SwingUtilities
 

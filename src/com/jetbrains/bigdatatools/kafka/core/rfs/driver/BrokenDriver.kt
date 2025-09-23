@@ -1,8 +1,8 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.driver
+package io.confluent.kafka.core.rfs.driver
 
 import com.intellij.openapi.project.Project
-import com.jetbrains.bigdatatools.kafka.core.rfs.icons.RfsIcons
-import com.jetbrains.bigdatatools.kafka.core.settings.connections.ConnectionData
+import io.confluent.kafka.core.rfs.icons.RfsIcons
+import io.confluent.kafka.core.settings.connections.ConnectionData
 import java.io.OutputStream
 import javax.swing.Icon
 

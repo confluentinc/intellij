@@ -1,8 +1,8 @@
-package com.jetbrains.bigdatatools.kafka.core.ui.components
+package io.confluent.kafka.core.ui.components
 
 import com.intellij.ui.components.RadioButton
 import com.intellij.ui.scale.JBUIScale
-import com.jetbrains.bigdatatools.kafka.core.settings.components.RenderableEntity
+import io.confluent.kafka.core.settings.components.RenderableEntity
 import java.awt.Dimension
 import java.awt.event.ItemEvent
 import javax.swing.Box

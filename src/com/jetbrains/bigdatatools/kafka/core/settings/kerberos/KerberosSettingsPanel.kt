@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.core.settings.kerberos
+package io.confluent.kafka.core.settings.kerberos
 
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.Disposable
@@ -10,9 +10,9 @@ import com.intellij.ui.dsl.builder.AlignX
 import com.intellij.ui.dsl.builder.BottomGap
 import com.intellij.ui.dsl.builder.panel
 import com.intellij.util.ui.JBUI
-import com.jetbrains.bigdatatools.kafka.core.settings.withEmptyOrFileExistValidator
-import com.jetbrains.bigdatatools.kafka.core.ui.withTooltip
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.core.settings.withEmptyOrFileExistValidator
+import io.confluent.kafka.core.ui.withTooltip
+import io.confluent.kafka.util.KafkaMessagesBundle
 import javax.swing.JCheckBox
 import javax.swing.JComponent
 import kotlin.math.max

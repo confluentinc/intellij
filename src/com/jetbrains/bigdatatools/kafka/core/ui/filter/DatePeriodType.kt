@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.core.ui.filter
+package io.confluent.kafka.core.ui.filter
 
 enum class DatePeriodType {
   SPECIFIED,

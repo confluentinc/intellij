@@ -1,9 +1,9 @@
-package com.jetbrains.bigdatatools.kafka.core.filestorages.search
+package io.confluent.kafka.core.filestorages.search
 
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.Driver
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.FileInfo
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.RfsPath
-import com.jetbrains.bigdatatools.kafka.core.rfs.search.impl.SearchElement
+import io.confluent.kafka.core.rfs.driver.Driver
+import io.confluent.kafka.core.rfs.driver.FileInfo
+import io.confluent.kafka.core.rfs.driver.RfsPath
+import io.confluent.kafka.core.rfs.search.impl.SearchElement
 import javax.swing.Icon
 
 data class StorageSearchElement(override val query: String,

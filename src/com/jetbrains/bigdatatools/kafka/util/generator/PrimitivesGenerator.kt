@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.util.generator
+package io.confluent.kafka.util.generator
 
 import com.intellij.util.applyIf
 import java.time.Instant

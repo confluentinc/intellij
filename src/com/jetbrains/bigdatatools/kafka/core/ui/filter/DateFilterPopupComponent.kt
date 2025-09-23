@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.core.ui.filter
+package io.confluent.kafka.core.ui.filter
 
 import com.intellij.openapi.actionSystem.ActionGroup
 import com.intellij.openapi.actionSystem.AnActionEvent
@@ -7,9 +7,9 @@ import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.ui.DialogBuilder
 import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.ui.JBColor
-import com.jetbrains.bigdatatools.kafka.core.settings.defaultui.UiUtil
-import com.jetbrains.bigdatatools.kafka.core.ui.MigPanel
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.core.settings.defaultui.UiUtil
+import io.confluent.kafka.core.ui.MigPanel
+import io.confluent.kafka.util.KafkaMessagesBundle
 import com.michaelbaranov.microba.calendar.DatePicker
 import org.jetbrains.annotations.Nls
 import java.awt.event.ActionEvent

@@ -1,19 +1,19 @@
-package com.jetbrains.bigdatatools.kafka.core.monitoring
+package io.confluent.kafka.core.monitoring
 
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.project.Project
-import com.jetbrains.bigdatatools.kafka.core.connection.tunnel.model.TunnelableData
-import com.jetbrains.bigdatatools.kafka.core.connection.tunnel.ui.SshTunnelComponent
-import com.jetbrains.bigdatatools.kafka.core.settings.CommonSettingsKeys
-import com.jetbrains.bigdatatools.kafka.core.settings.connections.ConnectionData
-import com.jetbrains.bigdatatools.kafka.core.settings.defaultui.HostAndPortChangeListener
-import com.jetbrains.bigdatatools.kafka.core.settings.defaultui.HostAndPortProvider
-import com.jetbrains.bigdatatools.kafka.core.settings.defaultui.SettingsPanelCustomizer
-import com.jetbrains.bigdatatools.kafka.core.settings.defaultui.registerOnTextComponent
-import com.jetbrains.bigdatatools.kafka.core.settings.fields.StringNamedField
-import com.jetbrains.bigdatatools.kafka.core.settings.withNotEmptyValidator
-import com.jetbrains.bigdatatools.kafka.core.settings.withUrlValidator
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.core.connection.tunnel.model.TunnelableData
+import io.confluent.kafka.core.connection.tunnel.ui.SshTunnelComponent
+import io.confluent.kafka.core.settings.CommonSettingsKeys
+import io.confluent.kafka.core.settings.connections.ConnectionData
+import io.confluent.kafka.core.settings.defaultui.HostAndPortChangeListener
+import io.confluent.kafka.core.settings.defaultui.HostAndPortProvider
+import io.confluent.kafka.core.settings.defaultui.SettingsPanelCustomizer
+import io.confluent.kafka.core.settings.defaultui.registerOnTextComponent
+import io.confluent.kafka.core.settings.fields.StringNamedField
+import io.confluent.kafka.core.settings.withNotEmptyValidator
+import io.confluent.kafka.core.settings.withUrlValidator
+import io.confluent.kafka.util.KafkaMessagesBundle
 
 abstract class TunnelableSettingsCustomizer<D>(
   connectionData: D,

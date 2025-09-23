@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.aws.credentials;
+package io.confluent.kafka.aws.credentials;
 
 import java.time.Instant;
 

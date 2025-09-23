@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.core.util
+package io.confluent.kafka.core.util
 
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel

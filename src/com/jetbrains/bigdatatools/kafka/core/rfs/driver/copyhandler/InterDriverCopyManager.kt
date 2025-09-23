@@ -1,11 +1,11 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.driver.copyhandler
+package io.confluent.kafka.core.rfs.driver.copyhandler
 
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.Driver
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.ExportFormat
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.FileInfo
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.RfsPath
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.task.RfsCopyMoveTask
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.core.rfs.driver.Driver
+import io.confluent.kafka.core.rfs.driver.ExportFormat
+import io.confluent.kafka.core.rfs.driver.FileInfo
+import io.confluent.kafka.core.rfs.driver.RfsPath
+import io.confluent.kafka.core.rfs.driver.task.RfsCopyMoveTask
+import io.confluent.kafka.util.KafkaMessagesBundle
 
 object InterDriverCopyManager {
   fun buildCopyTask(fromInfo: FileInfo,

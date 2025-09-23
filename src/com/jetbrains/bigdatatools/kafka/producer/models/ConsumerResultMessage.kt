@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.producer.models
+package io.confluent.kafka.producer.models
 
 import java.util.*
 

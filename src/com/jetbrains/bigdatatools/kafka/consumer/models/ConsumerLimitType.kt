@@ -1,6 +1,6 @@
-package com.jetbrains.bigdatatools.kafka.consumer.models
+package io.confluent.kafka.consumer.models
 
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.util.KafkaMessagesBundle
 
 enum class ConsumerLimitType(val title: String) {
   NONE(KafkaMessagesBundle.message("consumer.limit.type.none")),

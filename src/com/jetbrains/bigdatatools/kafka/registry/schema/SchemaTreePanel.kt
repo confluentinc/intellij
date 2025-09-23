@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.registry.schema
+package io.confluent.kafka.registry.schema
 
 import com.intellij.openapi.ui.Splitter.DividerPositionStrategy
 import com.intellij.openapi.util.NlsContexts
@@ -10,11 +10,11 @@ import com.intellij.ui.treeStructure.treetable.TreeTableModel
 import com.intellij.ui.util.preferredWidth
 import com.intellij.util.ui.ColumnInfo
 import com.intellij.util.ui.JBUI
-import com.jetbrains.bigdatatools.kafka.core.rfs.editorviewer.RfsTreeTable
-import com.jetbrains.bigdatatools.kafka.core.table.MaterialTableUtils
-import com.jetbrains.bigdatatools.kafka.core.ui.onFirstSizeChange
-import com.jetbrains.bigdatatools.kafka.model.SchemaRegistryFieldsInfo
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.core.rfs.editorviewer.RfsTreeTable
+import io.confluent.kafka.core.table.MaterialTableUtils
+import io.confluent.kafka.core.ui.onFirstSizeChange
+import io.confluent.kafka.model.SchemaRegistryFieldsInfo
+import io.confluent.kafka.util.KafkaMessagesBundle
 import io.confluent.kafka.schemaregistry.ParsedSchema
 import io.confluent.kafka.schemaregistry.avro.AvroSchema
 import io.confluent.kafka.schemaregistry.json.JsonSchema

@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.core.settings.connections
+package io.confluent.kafka.core.settings.connections
 
 import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.application.asContextElement
@@ -8,13 +8,13 @@ import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.Key
 import com.intellij.openapi.util.UserDataHolder
 import com.intellij.openapi.util.UserDataHolderBase
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.SafeExecutor
-import com.jetbrains.bigdatatools.kafka.core.rfs.settings.RfsConnectionTestingBase
-import com.jetbrains.bigdatatools.kafka.core.settings.ConnectionSettingsPanel
-import com.jetbrains.bigdatatools.kafka.core.settings.defaultui.DefaultConnectionSettingsPanel
-import com.jetbrains.bigdatatools.kafka.core.settings.defaultui.SettingsPanelCustomizer
-import com.jetbrains.bigdatatools.kafka.core.settings.manager.RfsConnectionDataManager
-import com.jetbrains.bigdatatools.kafka.core.ui.doOnChange
+import io.confluent.kafka.core.rfs.driver.SafeExecutor
+import io.confluent.kafka.core.rfs.settings.RfsConnectionTestingBase
+import io.confluent.kafka.core.settings.ConnectionSettingsPanel
+import io.confluent.kafka.core.settings.defaultui.DefaultConnectionSettingsPanel
+import io.confluent.kafka.core.settings.defaultui.SettingsPanelCustomizer
+import io.confluent.kafka.core.settings.manager.RfsConnectionDataManager
+import io.confluent.kafka.core.ui.doOnChange
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.plus
 import javax.swing.Icon

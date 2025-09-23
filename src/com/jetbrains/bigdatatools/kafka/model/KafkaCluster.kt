@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.model
+package io.confluent.kafka.model
 
 import java.nio.file.Path
 import java.util.*

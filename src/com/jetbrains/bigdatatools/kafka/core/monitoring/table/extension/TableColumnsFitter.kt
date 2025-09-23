@@ -1,12 +1,12 @@
-package com.jetbrains.bigdatatools.kafka.core.monitoring.table.extension
+package io.confluent.kafka.core.monitoring.table.extension
 
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.util.Disposer
-import com.jetbrains.bigdatatools.kafka.core.monitoring.data.model.RemoteInfo
-import com.jetbrains.bigdatatools.kafka.core.monitoring.table.DataTable
-import com.jetbrains.bigdatatools.kafka.core.monitoring.table.TableEventListener
-import com.jetbrains.bigdatatools.kafka.core.settings.ColumnVisibilitySettings
-import com.jetbrains.bigdatatools.kafka.core.table.MaterialTableUtils
+import io.confluent.kafka.core.monitoring.data.model.RemoteInfo
+import io.confluent.kafka.core.monitoring.table.DataTable
+import io.confluent.kafka.core.monitoring.table.TableEventListener
+import io.confluent.kafka.core.settings.ColumnVisibilitySettings
+import io.confluent.kafka.core.table.MaterialTableUtils
 
 /**
  * Fits size of given table columns basing on guidelines.

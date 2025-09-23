@@ -1,11 +1,11 @@
-package com.jetbrains.bigdatatools.kafka.core.settings.components
+package io.confluent.kafka.core.settings.components
 
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.NlsContexts
-import com.jetbrains.bigdatatools.kafka.core.settings.connections.Property
-import com.jetbrains.bigdatatools.kafka.core.ui.components.ConnectionPropertiesEditor
-import com.jetbrains.bigdatatools.kafka.core.ui.components.ConnectionProperty
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.core.settings.connections.Property
+import io.confluent.kafka.core.ui.components.ConnectionPropertiesEditor
+import io.confluent.kafka.core.ui.components.ConnectionProperty
+import io.confluent.kafka.util.KafkaMessagesBundle
 import java.security.InvalidParameterException
 import javax.swing.JLabel
 

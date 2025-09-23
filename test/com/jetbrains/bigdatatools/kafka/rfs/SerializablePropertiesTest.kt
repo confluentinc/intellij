@@ -1,7 +1,7 @@
-package com.jetbrains.bigdatatools.kafka.rfs
+package io.confluent.kafka.rfs
 
-import com.jetbrains.bigdatatools.kafka.core.settings.DoNotSerialize
-import com.jetbrains.bigdatatools.kafka.core.settings.connections.ConnectionData
+import io.confluent.kafka.core.settings.DoNotSerialize
+import io.confluent.kafka.core.settings.connections.ConnectionData
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.params.ParameterizedTest

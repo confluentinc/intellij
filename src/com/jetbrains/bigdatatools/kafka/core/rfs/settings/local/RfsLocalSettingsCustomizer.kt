@@ -1,17 +1,17 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.settings.local
+package io.confluent.kafka.core.rfs.settings.local
 
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory
-import com.jetbrains.bigdatatools.kafka.core.settings.CommonSettingsKeys
-import com.jetbrains.bigdatatools.kafka.core.settings.CommonSettingsKeys.ROOT_PATH_KEY
-import com.jetbrains.bigdatatools.kafka.core.settings.connections.ConnectionData
-import com.jetbrains.bigdatatools.kafka.core.settings.defaultui.SettingsPanelCustomizer
-import com.jetbrains.bigdatatools.kafka.core.settings.fields.BrowseTextField
-import com.jetbrains.bigdatatools.kafka.core.settings.fields.StringNamedField
-import com.jetbrains.bigdatatools.kafka.core.settings.fields.WrappedComponent
-import com.jetbrains.bigdatatools.kafka.core.settings.withEmptyOrFileExistValidator
-import com.jetbrains.bigdatatools.kafka.core.settings.withNotEmptyValidator
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.core.settings.CommonSettingsKeys
+import io.confluent.kafka.core.settings.CommonSettingsKeys.ROOT_PATH_KEY
+import io.confluent.kafka.core.settings.connections.ConnectionData
+import io.confluent.kafka.core.settings.defaultui.SettingsPanelCustomizer
+import io.confluent.kafka.core.settings.fields.BrowseTextField
+import io.confluent.kafka.core.settings.fields.StringNamedField
+import io.confluent.kafka.core.settings.fields.WrappedComponent
+import io.confluent.kafka.core.settings.withEmptyOrFileExistValidator
+import io.confluent.kafka.core.settings.withNotEmptyValidator
+import io.confluent.kafka.util.KafkaMessagesBundle
 
 class RfsLocalSettingsCustomizer(connectionData: RfsLocalConnectionData, uiDisposable: Disposable)
   : SettingsPanelCustomizer<RfsLocalConnectionData>()

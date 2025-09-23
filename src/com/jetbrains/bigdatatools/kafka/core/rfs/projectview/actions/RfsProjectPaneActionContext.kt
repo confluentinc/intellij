@@ -1,10 +1,10 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.projectview.actions
+package io.confluent.kafka.core.rfs.projectview.actions
 
 import com.intellij.openapi.project.Project
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.isLocal
-import com.jetbrains.bigdatatools.kafka.core.rfs.tree.node.DisabledRfsTreeNode
-import com.jetbrains.bigdatatools.kafka.core.rfs.tree.node.DriverFileRfsTreeNode
-import com.jetbrains.bigdatatools.kafka.core.rfs.viewer.utils.DriverRfsTreeUtil.lastDriverNode
+import io.confluent.kafka.core.rfs.driver.isLocal
+import io.confluent.kafka.core.rfs.tree.node.DisabledRfsTreeNode
+import io.confluent.kafka.core.rfs.tree.node.DriverFileRfsTreeNode
+import io.confluent.kafka.core.rfs.viewer.utils.DriverRfsTreeUtil.lastDriverNode
 
 interface RfsProjectPaneActionContext {
   val pane: RfsPaneOwner

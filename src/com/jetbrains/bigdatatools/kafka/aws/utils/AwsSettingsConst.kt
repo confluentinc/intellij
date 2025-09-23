@@ -1,7 +1,7 @@
-package com.jetbrains.bigdatatools.kafka.aws.utils
+package io.confluent.kafka.aws.utils
 
-import com.jetbrains.bigdatatools.kafka.core.settings.ModificationKey
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.core.settings.ModificationKey
+import io.confluent.kafka.util.KafkaMessagesBundle
 
 object AwsSettingsConst {
   val S3_ACCESS_KEY: ModificationKey = ModificationKey(KafkaMessagesBundle.message("settings.s3.access.key"))

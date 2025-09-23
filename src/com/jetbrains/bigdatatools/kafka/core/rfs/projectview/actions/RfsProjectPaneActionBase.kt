@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.projectview.actions
+package io.confluent.kafka.core.rfs.projectview.actions
 
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
@@ -6,7 +6,7 @@ import com.intellij.openapi.actionSystem.DataContext
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.NlsActions
-import com.jetbrains.bigdatatools.kafka.core.rfs.tree.node.RfsTreeNode
+import io.confluent.kafka.core.rfs.tree.node.RfsTreeNode
 import javax.swing.Icon
 
 abstract class RfsProjectPaneActionBase : DumbAwareAction {

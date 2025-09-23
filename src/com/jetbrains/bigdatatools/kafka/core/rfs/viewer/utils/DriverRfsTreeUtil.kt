@@ -1,6 +1,6 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.viewer.utils
+package io.confluent.kafka.core.rfs.viewer.utils
 
-import com.jetbrains.bigdatatools.kafka.core.rfs.tree.node.DriverFileRfsTreeNode
+import io.confluent.kafka.core.rfs.tree.node.DriverFileRfsTreeNode
 import javax.swing.tree.TreePath
 
 object DriverRfsTreeUtil {

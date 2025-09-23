@@ -1,7 +1,7 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.search.impl
+package io.confluent.kafka.core.rfs.search.impl
 
-import com.jetbrains.bigdatatools.kafka.core.filestorages.search.StorageSearchElement
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.FileInfo
+import io.confluent.kafka.core.filestorages.search.StorageSearchElement
+import io.confluent.kafka.core.rfs.driver.FileInfo
 
 data class SearchResult(val results: List<SearchElement>,
                         val nextBatchId: String? = null,

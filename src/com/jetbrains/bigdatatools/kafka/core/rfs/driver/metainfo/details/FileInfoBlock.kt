@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.driver.metainfo.details
+package io.confluent.kafka.core.rfs.driver.metainfo.details
 
 import org.jetbrains.annotations.Nls
 import javax.swing.JComponent

@@ -1,6 +1,6 @@
-package com.jetbrains.bigdatatools.kafka.core.connection.tunnel.model
+package io.confluent.kafka.core.connection.tunnel.model
 
-import com.jetbrains.bigdatatools.kafka.core.settings.DoNotSerialize
+import io.confluent.kafka.core.settings.DoNotSerialize
 
 interface RestClientData {
   var operationTimeout: String?

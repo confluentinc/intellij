@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.spring
+package io.confluent.kafka.spring
 
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.DefaultActionGroup
@@ -8,15 +8,15 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
 import com.intellij.ui.awt.RelativePoint
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.manager.DriverManager
-import com.jetbrains.bigdatatools.kafka.core.settings.ConnectionSettings
-import com.jetbrains.bigdatatools.kafka.core.settings.actions.CreateConnectionPopup
-import com.jetbrains.bigdatatools.kafka.rfs.KafkaConfigurationSource
-import com.jetbrains.bigdatatools.kafka.rfs.KafkaDriver
-import com.jetbrains.bigdatatools.kafka.settings.KafkaConnectionGroup
-import com.jetbrains.bigdatatools.kafka.toolwindow.actions.KafkaCreateConsumerAction
-import com.jetbrains.bigdatatools.kafka.toolwindow.actions.KafkaCreateProducerAction
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.core.rfs.driver.manager.DriverManager
+import io.confluent.kafka.core.settings.ConnectionSettings
+import io.confluent.kafka.core.settings.actions.CreateConnectionPopup
+import io.confluent.kafka.rfs.KafkaConfigurationSource
+import io.confluent.kafka.rfs.KafkaDriver
+import io.confluent.kafka.settings.KafkaConnectionGroup
+import io.confluent.kafka.toolwindow.actions.KafkaCreateConsumerAction
+import io.confluent.kafka.toolwindow.actions.KafkaCreateProducerAction
+import io.confluent.kafka.util.KafkaMessagesBundle
 import java.awt.event.MouseEvent
 
 @Service(Service.Level.PROJECT)

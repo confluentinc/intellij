@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.registry.ui
+package io.confluent.kafka.registry.ui
 
 import com.intellij.CommonBundle
 import com.intellij.diff.DiffContentFactory
@@ -19,12 +19,12 @@ import com.intellij.ui.dsl.builder.Align
 import com.intellij.ui.dsl.builder.panel
 import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.UIUtil
-import com.jetbrains.bigdatatools.kafka.core.util.invokeAndWaitSwing
-import com.jetbrains.bigdatatools.kafka.core.util.invokeLater
-import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryFormat
-import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryUtil
-import com.jetbrains.bigdatatools.kafka.registry.SchemaVersionInfo
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.core.util.invokeAndWaitSwing
+import io.confluent.kafka.core.util.invokeLater
+import io.confluent.kafka.registry.KafkaRegistryFormat
+import io.confluent.kafka.registry.KafkaRegistryUtil
+import io.confluent.kafka.registry.SchemaVersionInfo
+import io.confluent.kafka.util.KafkaMessagesBundle
 import org.jetbrains.annotations.Nls
 import org.jetbrains.concurrency.Promise
 import java.awt.Dimension

@@ -1,8 +1,8 @@
-package com.jetbrains.bigdatatools.kafka.core.monitoring.data.model
+package io.confluent.kafka.core.monitoring.data.model
 
-import com.jetbrains.bigdatatools.kafka.core.monitoring.table.model.DataTableModel
-import com.jetbrains.bigdatatools.kafka.core.ui.filter.CountFilterListener
-import com.jetbrains.bigdatatools.kafka.core.ui.filter.CountFilterPopupComponent
+import io.confluent.kafka.core.monitoring.table.model.DataTableModel
+import io.confluent.kafka.core.ui.filter.CountFilterListener
+import io.confluent.kafka.core.ui.filter.CountFilterPopupComponent
 
 /** Adapts different filter components to update selected filter model. */
 object FilterAdapter {

@@ -1,7 +1,7 @@
-package com.jetbrains.bigdatatools.kafka.aws.credentials.utils
+package io.confluent.kafka.aws.credentials.utils
 
-import com.jetbrains.bigdatatools.kafka.core.connection.exception.BdtConfigurationException
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.core.connection.exception.BdtConfigurationException
+import io.confluent.kafka.util.KafkaMessagesBundle
 
 class S3MissingCredentialsException : BdtConfigurationException(KafkaMessagesBundle.message("connection.error.s3.access.key.is.not.found"))
 

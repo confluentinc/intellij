@@ -1,10 +1,10 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.url
+package io.confluent.kafka.core.rfs.url
 
 import com.intellij.openapi.extensions.ExtensionPointName
 import com.intellij.openapi.project.Project
 import com.intellij.util.io.URLUtil
-import com.jetbrains.bigdatatools.kafka.core.rfs.util.withPrefixSlash
-import com.jetbrains.bigdatatools.kafka.core.settings.connections.ConnectionData
+import io.confluent.kafka.core.rfs.util.withPrefixSlash
+import io.confluent.kafka.core.settings.connections.ConnectionData
 
 interface UrlFileOpener {
   val name: String

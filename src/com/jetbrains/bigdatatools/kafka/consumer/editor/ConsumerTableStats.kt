@@ -1,12 +1,12 @@
-package com.jetbrains.bigdatatools.kafka.consumer.editor
+package io.confluent.kafka.consumer.editor
 
 import com.intellij.openapi.actionSystem.DefaultActionGroup
-import com.jetbrains.bigdatatools.kafka.core.ui.CustomComponentActionImpl
-import com.jetbrains.bigdatatools.kafka.core.ui.ToolbarGreyLabelActionImpl
-import com.jetbrains.bigdatatools.kafka.core.util.SizeUtils
-import com.jetbrains.bigdatatools.kafka.core.util.TimeUtils
-import com.jetbrains.bigdatatools.kafka.core.util.ToolbarUtils
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.core.ui.CustomComponentActionImpl
+import io.confluent.kafka.core.ui.ToolbarGreyLabelActionImpl
+import io.confluent.kafka.core.util.SizeUtils
+import io.confluent.kafka.core.util.TimeUtils
+import io.confluent.kafka.core.util.ToolbarUtils
+import io.confluent.kafka.util.KafkaMessagesBundle
 import javax.swing.JLabel
 
 class ConsumerTableStats {

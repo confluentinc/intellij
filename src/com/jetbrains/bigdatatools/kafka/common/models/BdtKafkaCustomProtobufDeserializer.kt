@@ -1,8 +1,8 @@
-package com.jetbrains.bigdatatools.kafka.common.models
+package io.confluent.kafka.common.models
 
 import com.google.protobuf.DynamicMessage
 import com.google.protobuf.Message
-import com.jetbrains.bigdatatools.kafka.consumer.models.ConsumerProducerFieldConfig
+import io.confluent.kafka.consumer.models.ConsumerProducerFieldConfig
 import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchema
 import org.apache.kafka.common.serialization.Deserializer
 

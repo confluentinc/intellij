@@ -1,8 +1,8 @@
-package com.jetbrains.bigdatatools.kafka.aws.connection.auth.anon
+package io.confluent.kafka.aws.connection.auth.anon
 
-import com.jetbrains.bigdatatools.kafka.aws.connection.auth.AuthenticationType
-import com.jetbrains.bigdatatools.kafka.aws.connection.auth.common.AwsAuthenticationData
-import com.jetbrains.bigdatatools.kafka.aws.connection.auth.common.BdtAwsCredentialsProvider
+import io.confluent.kafka.aws.connection.auth.AuthenticationType
+import io.confluent.kafka.aws.connection.auth.common.AwsAuthenticationData
+import io.confluent.kafka.aws.connection.auth.common.BdtAwsCredentialsProvider
 import software.amazon.awssdk.auth.credentials.AnonymousCredentialsProvider
 
 class AnonAwsAuthenticationData : AwsAuthenticationData() {

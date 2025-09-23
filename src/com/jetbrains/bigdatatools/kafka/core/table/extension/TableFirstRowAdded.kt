@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.core.table.extension
+package io.confluent.kafka.core.table.extension
 
 import javax.swing.JTable
 import javax.swing.event.TableModelEvent

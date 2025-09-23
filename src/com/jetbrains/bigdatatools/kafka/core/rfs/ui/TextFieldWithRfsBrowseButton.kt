@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.ui
+package io.confluent.kafka.core.rfs.ui
 
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.Disposable
@@ -7,12 +7,12 @@ import com.intellij.openapi.util.NlsSafe
 import com.intellij.ui.UIBundle
 import com.intellij.ui.components.fields.ExtendableTextComponent
 import com.intellij.ui.components.fields.ExtendableTextField
-import com.jetbrains.bigdatatools.kafka.core.delegate.Delegate
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.Driver
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.RfsPath
-import com.jetbrains.bigdatatools.kafka.core.settings.buildValidator
-import com.jetbrains.bigdatatools.kafka.core.settings.registerValidator
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.core.delegate.Delegate
+import io.confluent.kafka.core.rfs.driver.Driver
+import io.confluent.kafka.core.rfs.driver.RfsPath
+import io.confluent.kafka.core.settings.buildValidator
+import io.confluent.kafka.core.settings.registerValidator
+import io.confluent.kafka.util.KafkaMessagesBundle
 
 class TextFieldWithRfsBrowseButton(private val project: Project,
                                    private var targetDriver: Driver,

@@ -1,15 +1,15 @@
-package com.jetbrains.bigdatatools.kafka.registry.confluent.controller
+package io.confluent.kafka.registry.confluent.controller
 
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.intellij.ui.SimpleTextAttributes
 import com.intellij.ui.components.JBPanelWithEmptyText
 import com.intellij.util.ui.StatusText
-import com.jetbrains.bigdatatools.kafka.core.monitoring.data.listener.DataModelListener
-import com.jetbrains.bigdatatools.kafka.core.monitoring.toolwindow.DetailsMonitoringController
-import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
-import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryAddSchemaDialog
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.core.monitoring.data.listener.DataModelListener
+import io.confluent.kafka.core.monitoring.toolwindow.DetailsMonitoringController
+import io.confluent.kafka.data.KafkaDataManager
+import io.confluent.kafka.registry.KafkaRegistryAddSchemaDialog
+import io.confluent.kafka.util.KafkaMessagesBundle
 import java.awt.BorderLayout
 import javax.swing.JComponent
 

@@ -1,14 +1,14 @@
-package com.jetbrains.bigdatatools.kafka.toolwindow.config
+package io.confluent.kafka.toolwindow.config
 
 import com.intellij.openapi.components.PersistentStateComponent
 import com.intellij.openapi.components.State
 import com.intellij.openapi.components.Storage
 import com.intellij.openapi.components.service
 import com.intellij.util.xmlb.XmlSerializerUtil
-import com.jetbrains.bigdatatools.kafka.core.connection.updater.IntervalUpdateSettings
-import com.jetbrains.bigdatatools.kafka.core.settings.ColumnVisibilitySettings
-import com.jetbrains.bigdatatools.kafka.model.*
-import com.jetbrains.bigdatatools.kafka.registry.common.KafkaSchemaInfo
+import io.confluent.kafka.core.connection.updater.IntervalUpdateSettings
+import io.confluent.kafka.core.settings.ColumnVisibilitySettings
+import io.confluent.kafka.model.*
+import io.confluent.kafka.registry.common.KafkaSchemaInfo
 
 @State(name = "KafkaSettings", storages = [Storage("kafka.xml")])
 class KafkaToolWindowSettings : PersistentStateComponent<KafkaToolWindowSettings>, IntervalUpdateSettings {

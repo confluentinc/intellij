@@ -1,26 +1,26 @@
-package com.jetbrains.bigdatatools.kafka.rfs
+package io.confluent.kafka.rfs
 
 import com.amazonaws.services.schemaregistry.utils.AWSSchemaRegistryConstants
-import com.intellij.bigdatatools.kafka.icons.BigdatatoolsKafkaIcons
+import io.confluent.kafka.icons.BigdatatoolsKafkaIcons
 import com.intellij.credentialStore.Credentials
 import com.intellij.openapi.project.Project
-import com.jetbrains.bigdatatools.kafka.aws.settings.AwsCompatibleConnectionData.Companion.SECRET_KEY_ID
-import com.jetbrains.bigdatatools.kafka.aws.ui.external.StaticAwsSettingsInfo
-import com.jetbrains.bigdatatools.kafka.core.connection.exception.BdtConfigurationException
-import com.jetbrains.bigdatatools.kafka.core.connection.tunnel.model.ConnectionSshTunnelData
-import com.jetbrains.bigdatatools.kafka.core.connection.tunnel.model.ConnectionSshTunnelDataLegacy
-import com.jetbrains.bigdatatools.kafka.core.connection.tunnel.model.TunnelableData
-import com.jetbrains.bigdatatools.kafka.core.connection.tunnel.model.migrateTunnel
-import com.jetbrains.bigdatatools.kafka.core.constants.BdtConnectionType
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.Driver
-import com.jetbrains.bigdatatools.kafka.core.rfs.settings.RemoteFsDriverProvider
-import com.jetbrains.bigdatatools.kafka.core.serializer.BdtJson
-import com.jetbrains.bigdatatools.kafka.core.settings.DoNotSerialize
-import com.jetbrains.bigdatatools.kafka.core.settings.connections.ConnectionGroup
-import com.jetbrains.bigdatatools.kafka.core.settings.connections.CredentialId
-import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryType
-import com.jetbrains.bigdatatools.kafka.settings.KafkaConnectionConfigurable
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.aws.settings.AwsCompatibleConnectionData.Companion.SECRET_KEY_ID
+import io.confluent.kafka.aws.ui.external.StaticAwsSettingsInfo
+import io.confluent.kafka.core.connection.exception.BdtConfigurationException
+import io.confluent.kafka.core.connection.tunnel.model.ConnectionSshTunnelData
+import io.confluent.kafka.core.connection.tunnel.model.ConnectionSshTunnelDataLegacy
+import io.confluent.kafka.core.connection.tunnel.model.TunnelableData
+import io.confluent.kafka.core.connection.tunnel.model.migrateTunnel
+import io.confluent.kafka.core.constants.BdtConnectionType
+import io.confluent.kafka.core.rfs.driver.Driver
+import io.confluent.kafka.core.rfs.settings.RemoteFsDriverProvider
+import io.confluent.kafka.core.serializer.BdtJson
+import io.confluent.kafka.core.settings.DoNotSerialize
+import io.confluent.kafka.core.settings.connections.ConnectionGroup
+import io.confluent.kafka.core.settings.connections.CredentialId
+import io.confluent.kafka.registry.KafkaRegistryType
+import io.confluent.kafka.settings.KafkaConnectionConfigurable
+import io.confluent.kafka.util.KafkaMessagesBundle
 import javax.swing.Icon
 
 class KafkaConnectionData(var version: Int? = null) : RemoteFsDriverProvider(

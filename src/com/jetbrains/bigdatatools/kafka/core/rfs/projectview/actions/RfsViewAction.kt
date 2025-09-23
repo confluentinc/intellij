@@ -1,8 +1,8 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.projectview.actions
+package io.confluent.kafka.core.rfs.projectview.actions
 
 import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnActionEvent
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.FileInfo
+import io.confluent.kafka.core.rfs.driver.FileInfo
 
 //class RfsEditSourceAction : RfsViewActionBase(requestFocus = true)
 //class RfsViewSourceAction : RfsViewActionBase(requestFocus = false) {

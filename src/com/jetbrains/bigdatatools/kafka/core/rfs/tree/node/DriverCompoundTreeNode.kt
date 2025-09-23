@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.tree.node
+package io.confluent.kafka.core.rfs.tree.node
 
 interface DriverCompoundTreeNode {
   val isCompound: Boolean

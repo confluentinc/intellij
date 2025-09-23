@@ -1,6 +1,6 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.copypaste.model
+package io.confluent.kafka.core.rfs.copypaste.model
 
-import com.jetbrains.bigdatatools.kafka.core.rfs.tree.node.DriverFileRfsTreeNode
+import io.confluent.kafka.core.rfs.tree.node.DriverFileRfsTreeNode
 import java.awt.datatransfer.DataFlavor
 
 data class TransferableDescriptor(val data: List<DriverFileRfsTreeNode>, val deleteAfter: Boolean)

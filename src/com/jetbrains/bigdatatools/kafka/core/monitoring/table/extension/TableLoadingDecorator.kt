@@ -1,13 +1,13 @@
-package com.jetbrains.bigdatatools.kafka.core.monitoring.table.extension
+package io.confluent.kafka.core.monitoring.table.extension
 
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.util.Disposer
 import com.intellij.util.concurrency.EdtExecutorService
-import com.jetbrains.bigdatatools.kafka.core.monitoring.data.model.RemoteInfo
-import com.jetbrains.bigdatatools.kafka.core.monitoring.table.DataTable
-import com.jetbrains.bigdatatools.kafka.core.monitoring.table.TableEventListener
-import com.jetbrains.bigdatatools.kafka.core.table.MaterialTableUtils
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.core.monitoring.data.model.RemoteInfo
+import io.confluent.kafka.core.monitoring.table.DataTable
+import io.confluent.kafka.core.monitoring.table.TableEventListener
+import io.confluent.kafka.core.table.MaterialTableUtils
+import io.confluent.kafka.util.KafkaMessagesBundle
 import java.util.concurrent.ScheduledFuture
 import java.util.concurrent.TimeUnit
 
