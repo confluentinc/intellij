@@ -22,6 +22,7 @@ import java.nio.ByteBuffer
 import java.nio.charset.Charset
 import java.nio.charset.StandardCharsets
 import java.util.*
+import kotlin.collections.get
 import kotlin.math.pow
 
 class AvroGenerator private constructor(private val topLevelSchema: Schema) {

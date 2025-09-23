@@ -2,6 +2,7 @@ package io.confluent.kafka.core.table
 
 import javax.swing.JTable
 import javax.swing.table.TableColumn
+import kotlin.collections.iterator
 
 fun JTable.removeColumn(headerValue: String) {
   columnModel.columns.asIterator().forEach {

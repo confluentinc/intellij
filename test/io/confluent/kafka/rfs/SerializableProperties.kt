@@ -2,6 +2,9 @@
 
 package io.confluent.kafka.rfs
 
+import io.confluent.kafka.core.connection.ProxyEnableType
+import io.confluent.kafka.core.connection.ProxyType
+
 typealias Prop = kotlin.reflect.KMutableProperty1<out io.confluent.kafka.core.settings.connections.ConnectionData, *>
 
 object SerializableProperties {
@@ -55,8 +58,8 @@ object SerializableProperties {
     Set::class,
     Collection::class,
     io.confluent.kafka.rfs.KafkaPropertySource::class,
-    io.confluent.kafka.core.connection.ProxyEnableType::class,
-    io.confluent.kafka.core.connection.ProxyType::class,
+    ProxyEnableType::class,
+    ProxyType::class,
     io.confluent.kafka.registry.KafkaRegistryType::class,
     List::class,
     io.confluent.kafka.core.connection.tunnel.model.ConnectionSshTunnelDataLegacy::class,
