@@ -13,8 +13,8 @@ The plugin's main tool window is declared in the `plugin.xml` and it can be cons
 
 ```xml
 <toolWindow id="KafkaToolWindow" anchor="bottom" canCloseContents="true"
-            icon="com.intellij.bigdatatools.kafka.icons.BigdatatoolsKafkaIcons.KafkaToolWindow"
-            factoryClass="com.jetbrains.bigdatatools.kafka.toolwindow.KafkaToolWindowFactory"/>
+            icon="io.confluent.kafka.icons.BigdatatoolsKafkaIcons.KafkaToolWindow"
+            factoryClass="io.confluent.kafka.toolwindow.KafkaToolWindowFactory"/>
 ```
 
 `KafkaToolWindowFactory` creates `KafkaMonitoringToolWindowController` which setup `KafkaMainController`.
@@ -43,7 +43,7 @@ The controller also manages a context-sensitive **toolbar**, which updates based
 Kafka `Producer` and `Consumer` editors are registered in `plugin.xml`:
 
 ```xml
-<fileEditorProvider implementation="com.jetbrains.bigdatatools.kafka.common.editor.KafkaEditorProvider"/>
+<fileEditorProvider implementation="io.confluent.kafka.common.editor.KafkaEditorProvider"/>
 ```
 
 `KafkaEditorProvider` is responsible for creating editor tabs when actions ⚙️Producer and ⚙️Consumer are triggered.
@@ -65,7 +65,7 @@ Several key actions in the Kafka plugin are defined in `plugin.xml` and grouped 
 
     <!-- Add to favorites action -->
     <action id="Kafka.AddToFavoriteAction"
-            class="com.jetbrains.bigdatatools.kafka.toolwindow.actions.AddToFavoriteAction"
+            class="io.confluent.kafka.toolwindow.actions.AddToFavoriteAction"
             icon="AllIcons.Nodes.Favorite">
     </action>
 
@@ -101,7 +101,7 @@ It acts as a container for various data classes and provides methods for managin
 - Providing access to data models for UI components
 - Handling data operations like creating/deleting topics and schemas
 
-The data classes used by KafkaDataManager are primarily stored in the `com.jetbrains.bigdatatools.kafka.model` package, which includes
+The data classes used by KafkaDataManager are primarily stored in the `io.confluent.kafka.model` package, which includes
 classes like: `TopicPresentable`, `ConsumerGroupPresentable`, `TopicConfig` etc.
 
 ### API Communication
@@ -150,7 +150,7 @@ but Spring-specific conveniences will be unavailable.
 
 ### Key Packages
 
-- `com.jetbrains.bigdatatools.kafka.core`
+- `io.confluent.kafka.core`
   - `core.connection` handles connection management, SSH tunneling, proxy settings, and connection exceptions
   - `core.monitoring` contains the custom monitoring classes for Kafka items, including tool windows and UI controllers.
     Implements the data visualization and interaction components
@@ -161,31 +161,31 @@ but Spring-specific conveniences will be unavailable.
   - `core.ui` contains reusable custom UI components
 
 
-- `com.jetbrains.bigdatatools.kafka.client`
+- `io.confluent.kafka.client`
   - Handles communication with Kafka brokers
   - Manages connections and authentication
   - Provides methods for topic management and message handling
 
 
-- `com.jetbrains.bigdatatools.kafka.consumer`
+- `io.confluent.kafka.consumer`
   - Implements Kafka consumer functionality
   - Handles message deserialization
   - Provides UI for viewing consumed messages
 
 
-- `com.jetbrains.bigdatatools.kafka.producer`
+- `io.confluent.kafka.producer`
   - Implements Kafka producer functionality
   - Handles message serialization
   - Provides UI for creating and sending messages
 
 
-- `com.jetbrains.bigdatatools.kafka.registry`
+- `io.confluent.kafka.registry`
   - Integrates with schema registries (Confluent and AWS Glue)
   - Manages schema versions and compatibility
   - Provides schema validation
 
 
-- `com.jetbrains.bigdatatools.kafka.aws`
+- `io.confluent.kafka.aws`
   - Handles AWS authentication and credentials
   - Integrates with AWS Glue Schema Registry
   - Supports AWS MSK (Managed Streaming for Kafka)
