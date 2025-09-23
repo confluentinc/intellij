@@ -141,10 +141,18 @@ class BdtKerberosManager {
   }
 
   fun setupKerberosValues() {
-    jaasPath = jaasPath
-    krb5Config = krb5Config
-    krb5Debug = krb5Debug
-    jgssDebug = jgssDebug
+    if (System.getProperty(JAAS_PATH_ENV).isNullOrBlank() && settings.loginConfig.isNotBlank()) {
+      jaasPath = settings.loginConfig
+    }
+    if (System.getProperty(KRB5_CONF_PATH_ENV).isNullOrBlank() && settings.krb5Config.isNotBlank()) {
+      krb5Config = settings.krb5Config
+    }
+    if (System.getProperty(KRB_5_DEBUG_ENV).isNullOrBlank()) {
+      krb5Debug = settings.krb5Debug
+    }
+    if (System.getProperty(JGSS_DEBUG_ENV).isNullOrBlank()) {
+      jgssDebug = settings.jgssDebug
+    }
   }
 
   fun validateCacheSupported() {

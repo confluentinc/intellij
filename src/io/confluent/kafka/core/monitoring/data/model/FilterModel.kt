@@ -33,10 +33,7 @@ class FilterModel {
 
     if(dirtyKeys.isNotEmpty()) {
       for (listener in listeners) {
-        if (listener.second != null && dirtyKeys.contains(listener.second!!)) {
-          listener.first.filterChanged()
-        }
-        else {
+        if (listener.second == null || dirtyKeys.contains(listener.second!!)) {
           listener.first.filterChanged()
         }
       }
@@ -79,10 +76,7 @@ class FilterModel {
     }
 
     for (listener in listeners) {
-      if (listener.second != null && listener.second == filterKey) {
-        listener.first.filterChanged()
-      }
-      else {
+      if (listener.second == null || listener.second == filterKey) {
         listener.first.filterChanged()
       }
     }
