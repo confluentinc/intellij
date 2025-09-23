@@ -1,6 +1,6 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.fileType
+package io.confluent.kafka.core.rfs.fileType
 
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.FileInfo
+import io.confluent.kafka.core.rfs.driver.FileInfo
 import javax.swing.Icon
 
 abstract class RfsFileType {

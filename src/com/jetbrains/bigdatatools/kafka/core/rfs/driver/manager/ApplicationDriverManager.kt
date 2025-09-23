@@ -1,8 +1,8 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.driver.manager
+package io.confluent.kafka.core.rfs.driver.manager
 
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.project.Project
-import com.jetbrains.bigdatatools.kafka.core.settings.connections.ConnectionData
+import io.confluent.kafka.core.settings.connections.ConnectionData
 
 @Service
 class ApplicationDriverManager : DriverManager(null) {

@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.core.monitoring.table.extension
+package io.confluent.kafka.core.monitoring.table.extension
 
 import com.intellij.ide.IdeTooltipManager
 import com.intellij.openapi.Disposable
@@ -12,11 +12,11 @@ import com.intellij.ui.HintHint
 import com.intellij.ui.SimpleTextAttributes
 import com.intellij.ui.awt.RelativePoint
 import com.intellij.util.ui.StatusText
-import com.jetbrains.bigdatatools.kafka.core.monitoring.data.model.RemoteInfo
-import com.jetbrains.bigdatatools.kafka.core.monitoring.table.DataTable
-import com.jetbrains.bigdatatools.kafka.core.monitoring.table.TableEventListener
-import com.jetbrains.bigdatatools.kafka.core.util.toPresentableText
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.core.monitoring.data.model.RemoteInfo
+import io.confluent.kafka.core.monitoring.table.DataTable
+import io.confluent.kafka.core.monitoring.table.TableEventListener
+import io.confluent.kafka.core.util.toPresentableText
+import io.confluent.kafka.util.KafkaMessagesBundle
 import java.awt.Point
 import javax.swing.JViewport
 

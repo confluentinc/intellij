@@ -1,7 +1,7 @@
 // Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-package com.jetbrains.bigdatatools.kafka.core.util
+package io.confluent.kafka.core.util
 
 import com.intellij.execution.wsl.WslPath.Companion.parseWindowsUncPath
 import com.intellij.openapi.util.SystemInfo

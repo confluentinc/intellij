@@ -1,12 +1,12 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.projectview.toolwindow
+package io.confluent.kafka.core.rfs.projectview.toolwindow
 
 import com.intellij.openapi.application.runInEdt
 import com.intellij.openapi.project.Project
-import com.jetbrains.bigdatatools.kafka.core.rfs.settings.RemoteFsDriverProvider
-import com.jetbrains.bigdatatools.kafka.core.settings.ConnectionSettingsListener
-import com.jetbrains.bigdatatools.kafka.core.settings.ModificationKey
-import com.jetbrains.bigdatatools.kafka.core.settings.connections.ConnectionData
-import com.jetbrains.bigdatatools.kafka.core.util.invokeLater
+import io.confluent.kafka.core.rfs.settings.RemoteFsDriverProvider
+import io.confluent.kafka.core.settings.ConnectionSettingsListener
+import io.confluent.kafka.core.settings.ModificationKey
+import io.confluent.kafka.core.settings.connections.ConnectionData
+import io.confluent.kafka.core.util.invokeLater
 
 class BigDataToolsWindowListener(val controller: BigDataToolWindowController) : ConnectionSettingsListener {
   override fun onConnectionAdded(project: Project?, newConnectionData: ConnectionData) {

@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.projectview.actions
+package io.confluent.kafka.core.rfs.projectview.actions
 
 import com.intellij.openapi.actionSystem.ActionPlaces
 

@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.core.settings.kerberos
+package io.confluent.kafka.core.settings.kerberos
 
 import com.intellij.openapi.components.*
 import com.intellij.util.xmlb.XmlSerializerUtil

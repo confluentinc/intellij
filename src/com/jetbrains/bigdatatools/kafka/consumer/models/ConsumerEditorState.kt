@@ -1,7 +1,7 @@
-package com.jetbrains.bigdatatools.kafka.consumer.models
+package io.confluent.kafka.consumer.models
 
-import com.jetbrains.bigdatatools.kafka.common.settings.StorageConsumerConfig
-import com.jetbrains.bigdatatools.kafka.consumer.editor.KafkaRecord
+import io.confluent.kafka.common.settings.StorageConsumerConfig
+import io.confluent.kafka.consumer.editor.KafkaRecord
 
 data class ConsumerEditorState(val output: List<KafkaRecord>,
                                val config: StorageConsumerConfig)

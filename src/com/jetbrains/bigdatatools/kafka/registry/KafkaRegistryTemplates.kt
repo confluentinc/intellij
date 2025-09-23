@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.registry
+package io.confluent.kafka.registry
 
 object KafkaRegistryTemplates {
   private const val avroDefault =

@@ -1,9 +1,9 @@
-package com.jetbrains.bigdatatools.kafka.aws.settings
+package io.confluent.kafka.aws.settings
 
-import com.jetbrains.bigdatatools.kafka.aws.connection.auth.AuthenticationType
-import com.jetbrains.bigdatatools.kafka.core.connection.ProxyEnableType
-import com.jetbrains.bigdatatools.kafka.core.rfs.settings.RemoteFsDriverProvider
-import com.jetbrains.bigdatatools.kafka.core.settings.connections.CredentialId
+import io.confluent.kafka.aws.connection.auth.AuthenticationType
+import io.confluent.kafka.core.connection.ProxyEnableType
+import io.confluent.kafka.core.rfs.settings.RemoteFsDriverProvider
+import io.confluent.kafka.core.settings.connections.CredentialId
 
 interface RegionAwareConnectionData {
   var region: String

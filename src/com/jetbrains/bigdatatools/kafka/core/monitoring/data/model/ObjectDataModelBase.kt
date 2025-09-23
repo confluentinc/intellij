@@ -1,7 +1,7 @@
-package com.jetbrains.bigdatatools.kafka.core.monitoring.data.model
+package io.confluent.kafka.core.monitoring.data.model
 
-import com.jetbrains.bigdatatools.kafka.core.monitoring.data.listener.DataModelListener
-import com.jetbrains.bigdatatools.kafka.core.monitoring.data.listener.ListenersChangeListener
+import io.confluent.kafka.core.monitoring.data.listener.DataModelListener
+import io.confluent.kafka.core.monitoring.data.listener.ListenersChangeListener
 import kotlin.reflect.KProperty1
 
 abstract class ObjectDataModelBase<T : RemoteInfo>(private val idFieldName: KProperty1<T, Any?>,

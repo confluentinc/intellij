@@ -1,6 +1,6 @@
-package com.jetbrains.bigdatatools.kafka.aws.connection.auth
+package io.confluent.kafka.aws.connection.auth
 
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.util.KafkaMessagesBundle
 import org.jetbrains.annotations.Nls
 
 class AuthenticationType private constructor(val id: String, @Nls val title: String) {

@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.editorviewer
+package io.confluent.kafka.core.rfs.editorviewer
 
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.Disposable
@@ -7,12 +7,12 @@ import com.intellij.openapi.ui.popup.JBPopupFactory
 import com.intellij.openapi.util.Disposer
 import com.intellij.ui.components.ActionLink
 import com.intellij.ui.scale.JBUIScale
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.ActivitySource
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.Driver
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.SafeExecutor
-import com.jetbrains.bigdatatools.kafka.core.rfs.exception.RfsAuthRequiredError
-import com.jetbrains.bigdatatools.kafka.core.util.toPresentableText
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.core.rfs.driver.ActivitySource
+import io.confluent.kafka.core.rfs.driver.Driver
+import io.confluent.kafka.core.rfs.driver.SafeExecutor
+import io.confluent.kafka.core.rfs.exception.RfsAuthRequiredError
+import io.confluent.kafka.core.util.toPresentableText
+import io.confluent.kafka.util.KafkaMessagesBundle
 import kotlinx.coroutines.launch
 import java.awt.Dimension
 import javax.swing.*

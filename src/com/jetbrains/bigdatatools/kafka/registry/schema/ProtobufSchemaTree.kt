@@ -1,8 +1,8 @@
-package com.jetbrains.bigdatatools.kafka.registry.schema
+package io.confluent.kafka.registry.schema
 
 import com.google.protobuf.Descriptors.*
 import com.google.protobuf.Descriptors.FieldDescriptor.Type.*
-import com.jetbrains.bigdatatools.kafka.model.SchemaRegistryFieldsInfo
+import io.confluent.kafka.model.SchemaRegistryFieldsInfo
 import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchema
 import javax.swing.event.TreeExpansionEvent
 import javax.swing.tree.DefaultMutableTreeNode

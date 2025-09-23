@@ -1,7 +1,7 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.projectview.actions
+package io.confluent.kafka.core.rfs.projectview.actions
 
 import com.intellij.ide.IdeBundle
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.FileInfo
+import io.confluent.kafka.core.rfs.driver.FileInfo
 import javax.swing.tree.TreePath
 
 object RfsActionUtil {

@@ -1,6 +1,6 @@
-package com.jetbrains.bigdatatools.kafka.core.constants
+package io.confluent.kafka.core.constants
 
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.util.KafkaMessagesBundle
 import org.jetbrains.annotations.Nls
 
 enum class BdtConnectionType(val id: String, @Nls val connName: String, val pluginType: BdtPluginType) {

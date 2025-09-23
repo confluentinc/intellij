@@ -1,16 +1,16 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.settings
+package io.confluent.kafka.core.rfs.settings
 
 import com.intellij.openapi.application.EDT
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.ActivitySource
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.ConnectedConnectionStatus
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.Driver
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.FailedConnectionStatus
-import com.jetbrains.bigdatatools.kafka.core.settings.connections.ConnectionData
-import com.jetbrains.bigdatatools.kafka.core.settings.connections.ConnectionTesting
-import com.jetbrains.bigdatatools.kafka.core.settings.connections.ConnectionTestingSession
-import com.jetbrains.bigdatatools.kafka.core.settings.defaultui.*
+import io.confluent.kafka.core.rfs.driver.ActivitySource
+import io.confluent.kafka.core.rfs.driver.ConnectedConnectionStatus
+import io.confluent.kafka.core.rfs.driver.Driver
+import io.confluent.kafka.core.rfs.driver.FailedConnectionStatus
+import io.confluent.kafka.core.settings.connections.ConnectionData
+import io.confluent.kafka.core.settings.connections.ConnectionTesting
+import io.confluent.kafka.core.settings.connections.ConnectionTestingSession
+import io.confluent.kafka.core.settings.defaultui.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 

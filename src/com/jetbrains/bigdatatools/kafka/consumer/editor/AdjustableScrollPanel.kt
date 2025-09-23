@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.consumer.editor
+package io.confluent.kafka.consumer.editor
 
 import com.intellij.ui.JBColor
 import com.intellij.ui.SideBorder

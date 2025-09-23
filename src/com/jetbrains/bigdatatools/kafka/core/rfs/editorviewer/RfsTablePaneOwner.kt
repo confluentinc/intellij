@@ -1,11 +1,11 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.editorviewer
+package io.confluent.kafka.core.rfs.editorviewer
 
 import com.intellij.openapi.project.Project
 import com.intellij.ui.treeStructure.Tree
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.Driver
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.RfsPath
-import com.jetbrains.bigdatatools.kafka.core.rfs.projectview.actions.RfsPaneOwner
-import com.jetbrains.bigdatatools.kafka.core.rfs.tree.node.DriverFileRfsTreeNode
+import io.confluent.kafka.core.rfs.driver.Driver
+import io.confluent.kafka.core.rfs.driver.RfsPath
+import io.confluent.kafka.core.rfs.projectview.actions.RfsPaneOwner
+import io.confluent.kafka.core.rfs.tree.node.DriverFileRfsTreeNode
 import javax.swing.JComponent
 import javax.swing.JTree
 import javax.swing.tree.TreePath

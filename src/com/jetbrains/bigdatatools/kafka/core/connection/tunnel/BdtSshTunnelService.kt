@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.core.connection.tunnel
+package io.confluent.kafka.core.connection.tunnel
 
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.diagnostic.Logger
@@ -8,12 +8,12 @@ import com.intellij.ssh.connectionBuilder
 import com.intellij.ssh.ui.unified.SshUiData
 import com.intellij.util.containers.MultiMap
 import com.intellij.util.net.NetUtils
-import com.jetbrains.bigdatatools.kafka.core.connection.exception.BdtConfigurationException
-import com.jetbrains.bigdatatools.kafka.core.connection.tunnel.model.ConnectionSshTunnelData
-import com.jetbrains.bigdatatools.kafka.core.connection.tunnel.model.ConnectionSshTunnelInfo
-import com.jetbrains.bigdatatools.kafka.core.util.BdIdeRegistryUtil.RFS_DEFAULT_TIMEOUT
-import com.jetbrains.bigdatatools.kafka.core.util.BdtUrlUtils
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.core.connection.exception.BdtConfigurationException
+import io.confluent.kafka.core.connection.tunnel.model.ConnectionSshTunnelData
+import io.confluent.kafka.core.connection.tunnel.model.ConnectionSshTunnelInfo
+import io.confluent.kafka.core.util.BdIdeRegistryUtil.RFS_DEFAULT_TIMEOUT
+import io.confluent.kafka.core.util.BdtUrlUtils
+import io.confluent.kafka.util.KafkaMessagesBundle
 import java.net.MalformedURLException
 import java.net.URISyntaxException
 import java.net.URL

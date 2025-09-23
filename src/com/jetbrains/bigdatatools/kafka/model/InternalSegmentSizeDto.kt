@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.model
+package io.confluent.kafka.model
 
 
 data class InternalSegmentSizeDto(val internalTopicWithSegmentSize: Map<String, TopicPresentable> = emptyMap(),

@@ -1,3 +1,3 @@
-package com.jetbrains.bigdatatools.kafka.model
+package io.confluent.kafka.model
 
 class InternalBrokerMetrics(val metrics: List<Metric>)

@@ -1,17 +1,17 @@
-package com.jetbrains.bigdatatools.kafka.toolwindow.controllers
+package io.confluent.kafka.toolwindow.controllers
 
 import com.intellij.openapi.actionSystem.DataSink
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
-import com.jetbrains.bigdatatools.kafka.core.monitoring.toolwindow.DetailsMonitoringController
-import com.jetbrains.bigdatatools.kafka.core.monitoring.toolwindow.MainTreeController
-import com.jetbrains.bigdatatools.kafka.core.monitoring.toolwindow.TabbedDetailsMonitoringController
-import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
-import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryType
-import com.jetbrains.bigdatatools.kafka.registry.confluent.controller.KafkaTopicSchemaController
-import com.jetbrains.bigdatatools.kafka.registry.confluent.controller.TopicSchemaViewType
-import com.jetbrains.bigdatatools.kafka.rfs.KafkaDriver
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.core.monitoring.toolwindow.DetailsMonitoringController
+import io.confluent.kafka.core.monitoring.toolwindow.MainTreeController
+import io.confluent.kafka.core.monitoring.toolwindow.TabbedDetailsMonitoringController
+import io.confluent.kafka.data.KafkaDataManager
+import io.confluent.kafka.registry.KafkaRegistryType
+import io.confluent.kafka.registry.confluent.controller.KafkaTopicSchemaController
+import io.confluent.kafka.registry.confluent.controller.TopicSchemaViewType
+import io.confluent.kafka.rfs.KafkaDriver
+import io.confluent.kafka.util.KafkaMessagesBundle
 
 class TopicDetailsController(project: Project,
                              private val dataManager: KafkaDataManager) : TabbedDetailsMonitoringController<String>(project) {

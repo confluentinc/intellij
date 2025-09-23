@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.consumer.editor
+package io.confluent.kafka.consumer.editor
 
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.fileEditor.FileEditorManager
@@ -7,7 +7,7 @@ import com.intellij.openapi.project.ProjectManager
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.util.Alarm
-import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
+import io.confluent.kafka.data.KafkaDataManager
 
 class KafkaConsumerPanelStorage(private val dataManager: KafkaDataManager) : Disposable {
   private val alarm = Alarm(Alarm.ThreadToUse.SWING_THREAD, this)

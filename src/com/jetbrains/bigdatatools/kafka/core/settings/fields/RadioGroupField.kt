@@ -1,10 +1,10 @@
-package com.jetbrains.bigdatatools.kafka.core.settings.fields
+package io.confluent.kafka.core.settings.fields
 
 import com.intellij.ui.components.RadioButton
 import com.intellij.ui.scale.JBUIScale
-import com.jetbrains.bigdatatools.kafka.core.settings.ModificationKey
-import com.jetbrains.bigdatatools.kafka.core.settings.components.RenderableEntity
-import com.jetbrains.bigdatatools.kafka.core.settings.connections.ConnectionData
+import io.confluent.kafka.core.settings.ModificationKey
+import io.confluent.kafka.core.settings.components.RenderableEntity
+import io.confluent.kafka.core.settings.connections.ConnectionData
 import java.awt.Dimension
 import java.awt.event.ItemEvent
 import javax.swing.Box

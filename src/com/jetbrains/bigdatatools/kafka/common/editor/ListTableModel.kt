@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.common.editor
+package io.confluent.kafka.common.editor
 
 import javax.swing.table.AbstractTableModel
 import javax.swing.table.DefaultTableColumnModel

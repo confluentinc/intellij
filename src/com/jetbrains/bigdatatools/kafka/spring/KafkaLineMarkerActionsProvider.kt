@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.spring
+package io.confluent.kafka.spring
 
 import com.intellij.codeInsight.intention.HighPriorityAction
 import com.intellij.icons.AllIcons
@@ -12,7 +12,7 @@ import com.intellij.openapi.module.ModuleUtilCore
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.psi.PsiElement
 import com.intellij.spring.boot.model.SpringBootConfigValueSearcher
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.util.KafkaMessagesBundle
 import javax.swing.Icon
 
 internal class KafkaLineMarkerActionsProvider : MQLineMarkerActionsProvider {

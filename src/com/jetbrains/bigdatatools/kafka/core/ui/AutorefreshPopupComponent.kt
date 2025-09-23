@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.core.ui
+package io.confluent.kafka.core.ui
 
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.actionSystem.*
@@ -9,7 +9,7 @@ import com.intellij.toolWindow.ToolWindowHeader
 import com.intellij.ui.ClickListener
 import com.intellij.ui.ComponentUtil
 import com.intellij.util.ui.JBUI
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.util.KafkaMessagesBundle
 import org.jetbrains.annotations.Nls
 import java.awt.event.KeyAdapter
 import java.awt.event.KeyEvent

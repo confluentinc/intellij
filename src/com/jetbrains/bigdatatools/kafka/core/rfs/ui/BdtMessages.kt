@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.ui
+package io.confluent.kafka.core.rfs.ui
 
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.DialogBuilder
@@ -7,9 +7,9 @@ import com.intellij.ui.JBColor
 import com.intellij.ui.components.JBLabel
 import com.intellij.util.ui.UI
 import com.intellij.util.ui.UIUtil
-import com.jetbrains.bigdatatools.kafka.core.settings.buildValidator
-import com.jetbrains.bigdatatools.kafka.core.settings.registerValidator
-import com.jetbrains.bigdatatools.kafka.core.ui.doOnChange
+import io.confluent.kafka.core.settings.buildValidator
+import io.confluent.kafka.core.settings.registerValidator
+import io.confluent.kafka.core.ui.doOnChange
 import org.jetbrains.annotations.Nls
 import javax.swing.JTextField
 import kotlin.math.max

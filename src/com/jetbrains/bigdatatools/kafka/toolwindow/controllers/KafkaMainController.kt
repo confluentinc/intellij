@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.toolwindow.controllers
+package io.confluent.kafka.toolwindow.controllers
 
 import com.intellij.openapi.actionSystem.ActionToolbar
 import com.intellij.openapi.project.Project
@@ -8,20 +8,20 @@ import com.intellij.ui.IdeBorderFactory
 import com.intellij.ui.PopupHandler
 import com.intellij.ui.SideBorder
 import com.intellij.ui.components.JBScrollPane
-import com.jetbrains.bigdatatools.kafka.core.monitoring.toolwindow.MainTreeController
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.RfsPath
-import com.jetbrains.bigdatatools.kafka.core.rfs.projectview.actions.RfsActionPlaces
-import com.jetbrains.bigdatatools.kafka.core.util.ToolbarUtils
-import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
-import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryType
-import com.jetbrains.bigdatatools.kafka.registry.confluent.controller.KafkaRegistryController
-import com.jetbrains.bigdatatools.kafka.registry.confluent.controller.KafkaSchemaController
-import com.jetbrains.bigdatatools.kafka.rfs.KafkaConnectionData
-import com.jetbrains.bigdatatools.kafka.rfs.KafkaDriver
-import com.jetbrains.bigdatatools.kafka.rfs.KafkaDriver.Companion.isConsumers
-import com.jetbrains.bigdatatools.kafka.rfs.KafkaDriver.Companion.isSchemas
-import com.jetbrains.bigdatatools.kafka.rfs.KafkaDriver.Companion.isTopicFolder
-import com.jetbrains.bigdatatools.kafka.util.KafkaControllerUtils
+import io.confluent.kafka.core.monitoring.toolwindow.MainTreeController
+import io.confluent.kafka.core.rfs.driver.RfsPath
+import io.confluent.kafka.core.rfs.projectview.actions.RfsActionPlaces
+import io.confluent.kafka.core.util.ToolbarUtils
+import io.confluent.kafka.data.KafkaDataManager
+import io.confluent.kafka.registry.KafkaRegistryType
+import io.confluent.kafka.registry.confluent.controller.KafkaRegistryController
+import io.confluent.kafka.registry.confluent.controller.KafkaSchemaController
+import io.confluent.kafka.rfs.KafkaConnectionData
+import io.confluent.kafka.rfs.KafkaDriver
+import io.confluent.kafka.rfs.KafkaDriver.Companion.isConsumers
+import io.confluent.kafka.rfs.KafkaDriver.Companion.isSchemas
+import io.confluent.kafka.rfs.KafkaDriver.Companion.isTopicFolder
+import io.confluent.kafka.util.KafkaControllerUtils
 import java.awt.BorderLayout
 
 /**

@@ -1,7 +1,7 @@
-package com.jetbrains.bigdatatools.kafka.util
+package io.confluent.kafka.util
 
-import com.jetbrains.bigdatatools.kafka.core.table.renderers.MaterialTableCellRenderer
-import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryFormat
+import io.confluent.kafka.core.table.renderers.MaterialTableCellRenderer
+import io.confluent.kafka.registry.KafkaRegistryFormat
 
 class RegistryFormatRenderer : MaterialTableCellRenderer() {
   override fun setValue(value: Any?) {

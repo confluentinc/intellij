@@ -1,10 +1,10 @@
-package com.jetbrains.bigdatatools.kafka.core.ui
+package io.confluent.kafka.core.ui
 
 import com.intellij.openapi.util.*
 import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.UIUtil
-import com.jetbrains.bigdatatools.kafka.core.settings.defaultui.UiUtil
-import com.jetbrains.bigdatatools.kafka.core.settings.fields.WrappedNamedComponent
+import io.confluent.kafka.core.settings.defaultui.UiUtil
+import io.confluent.kafka.core.settings.fields.WrappedNamedComponent
 import net.miginfocom.layout.CC
 import net.miginfocom.layout.LC
 import net.miginfocom.swing.MigLayout

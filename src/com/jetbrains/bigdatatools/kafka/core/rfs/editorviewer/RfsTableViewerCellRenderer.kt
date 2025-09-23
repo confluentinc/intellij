@@ -1,8 +1,8 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.editorviewer
+package io.confluent.kafka.core.rfs.editorviewer
 
 import com.intellij.util.ui.EmptyIcon
 import com.intellij.util.ui.JBUI
-import com.jetbrains.bigdatatools.kafka.core.rfs.search.impl.ListElement
+import io.confluent.kafka.core.rfs.search.impl.ListElement
 import java.awt.Component
 import javax.swing.JTable
 import javax.swing.table.DefaultTableCellRenderer

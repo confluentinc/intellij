@@ -1,15 +1,15 @@
-package com.jetbrains.bigdatatools.kafka.common.models
+package io.confluent.kafka.common.models
 
 import com.amazonaws.services.schemaregistry.deserializers.GlueSchemaRegistryKafkaDeserializer
 import com.amazonaws.services.schemaregistry.serializers.GlueSchemaRegistryKafkaSerializer
 import com.amazonaws.services.schemaregistry.utils.AWSSchemaRegistryConstants
 import com.amazonaws.services.schemaregistry.utils.AvroRecordType
 import com.amazonaws.services.schemaregistry.utils.ProtobufMessageType
-import com.jetbrains.bigdatatools.kafka.consumer.models.ConsumerProducerFieldConfig
-import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
-import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryFormat
-import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryType
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.consumer.models.ConsumerProducerFieldConfig
+import io.confluent.kafka.data.KafkaDataManager
+import io.confluent.kafka.registry.KafkaRegistryFormat
+import io.confluent.kafka.registry.KafkaRegistryType
+import io.confluent.kafka.util.KafkaMessagesBundle
 import io.confluent.kafka.serializers.KafkaAvroDeserializer
 import io.confluent.kafka.serializers.json.KafkaJsonSchemaDeserializer
 import io.confluent.kafka.serializers.protobuf.KafkaProtobufDeserializer

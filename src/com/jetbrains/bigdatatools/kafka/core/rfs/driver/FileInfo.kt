@@ -1,10 +1,10 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.driver
+package io.confluent.kafka.core.rfs.driver
 
 import com.intellij.openapi.util.NlsContexts
 import com.intellij.openapi.util.NlsSafe
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.fileinfo.SafeResult
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.task.RemoteFsMoveTask
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.task.RemoteFsTask
+import io.confluent.kafka.core.rfs.driver.fileinfo.SafeResult
+import io.confluent.kafka.core.rfs.driver.task.RemoteFsMoveTask
+import io.confluent.kafka.core.rfs.driver.task.RemoteFsTask
 import org.jetbrains.annotations.Nls
 import org.jetbrains.annotations.TestOnly
 import java.io.InputStream

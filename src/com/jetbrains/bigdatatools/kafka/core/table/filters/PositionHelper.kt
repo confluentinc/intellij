@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.core.table.filters
+package io.confluent.kafka.core.table.filters
 
 import java.awt.BorderLayout
 import java.awt.Component

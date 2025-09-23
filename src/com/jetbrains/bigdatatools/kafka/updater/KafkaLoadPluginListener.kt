@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.updater
+package io.confluent.kafka.updater
 
 import com.intellij.ide.plugins.DynamicPluginListener
 import com.intellij.ide.plugins.IdeaPluginDescriptor
@@ -10,15 +10,15 @@ import com.intellij.notification.NotificationType
 import com.intellij.openapi.actionSystem.CommonDataKeys
 import com.intellij.openapi.project.ProjectManager
 import com.intellij.openapi.wm.ToolWindowManager
-import com.jetbrains.bigdatatools.kafka.core.constants.BdtConnectionType
-import com.jetbrains.bigdatatools.kafka.core.constants.BdtPlugins
-import com.jetbrains.bigdatatools.kafka.core.settings.ConnectionSettings
-import com.jetbrains.bigdatatools.kafka.core.settings.manager.RfsConnectionDataManager
-import com.jetbrains.bigdatatools.kafka.core.util.executeOnPooledThread
-import com.jetbrains.bigdatatools.kafka.core.util.invokeLater
-import com.jetbrains.bigdatatools.kafka.settings.KafkaConnectionGroup
-import com.jetbrains.bigdatatools.kafka.toolwindow.KafkaMonitoringToolWindowController
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.core.constants.BdtConnectionType
+import io.confluent.kafka.core.constants.BdtPlugins
+import io.confluent.kafka.core.settings.ConnectionSettings
+import io.confluent.kafka.core.settings.manager.RfsConnectionDataManager
+import io.confluent.kafka.core.util.executeOnPooledThread
+import io.confluent.kafka.core.util.invokeLater
+import io.confluent.kafka.settings.KafkaConnectionGroup
+import io.confluent.kafka.toolwindow.KafkaMonitoringToolWindowController
+import io.confluent.kafka.util.KafkaMessagesBundle
 
 private val defaultNotificationGroup: NotificationGroup get() =
   NotificationGroupManager.getInstance().getNotificationGroup("kafka")

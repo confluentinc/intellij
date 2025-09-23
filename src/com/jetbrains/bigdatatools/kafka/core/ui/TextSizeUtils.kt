@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.core.ui
+package io.confluent.kafka.core.ui
 
 import java.awt.Font
 import javax.swing.JLabel

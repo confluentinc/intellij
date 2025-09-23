@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.producer.models
+package io.confluent.kafka.producer.models
 
 data class ProducerFlowParams(
   val mode: Mode = Mode.MANUAL,

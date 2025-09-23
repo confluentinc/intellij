@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.toolwindow.config
+package io.confluent.kafka.toolwindow.config
 
 data class KafkaClusterConfig(
   var isStructure: Boolean = true,

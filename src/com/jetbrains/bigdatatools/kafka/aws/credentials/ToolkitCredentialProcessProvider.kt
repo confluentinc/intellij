@@ -1,7 +1,7 @@
 // Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-package com.jetbrains.bigdatatools.kafka.aws.credentials
+package io.confluent.kafka.aws.credentials
 
 import com.fasterxml.jackson.core.JsonProcessingException
 import com.fasterxml.jackson.databind.DeserializationFeature
@@ -14,7 +14,7 @@ import com.intellij.execution.util.ExecUtil
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.util.SystemInfo
 import com.intellij.util.execution.ParametersListUtil
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.util.KafkaMessagesBundle
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials
 import software.amazon.awssdk.auth.credentials.AwsCredentials
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider

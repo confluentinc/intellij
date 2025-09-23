@@ -1,15 +1,15 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.fileInfo
+package io.confluent.kafka.core.rfs.fileInfo
 
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.progress.runBlockingMaybeCancellable
 import com.intellij.util.concurrency.annotations.RequiresBackgroundThread
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.*
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.fileinfo.ErrorResult
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.fileinfo.OkResult
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.fileinfo.SafeResult
-import com.jetbrains.bigdatatools.kafka.core.util.SmartLogger
-import com.jetbrains.bigdatatools.kafka.core.util.executeOnPooledThread
+import io.confluent.kafka.core.rfs.driver.*
+import io.confluent.kafka.core.rfs.driver.fileinfo.ErrorResult
+import io.confluent.kafka.core.rfs.driver.fileinfo.OkResult
+import io.confluent.kafka.core.rfs.driver.fileinfo.SafeResult
+import io.confluent.kafka.core.util.SmartLogger
+import io.confluent.kafka.core.util.executeOnPooledThread
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.firstOrNull
 import java.util.concurrent.atomic.AtomicBoolean

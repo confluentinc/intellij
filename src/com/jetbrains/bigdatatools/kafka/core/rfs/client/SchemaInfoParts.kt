@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.client
+package io.confluent.kafka.core.rfs.client
 
 import java.io.Serializable
 import javax.swing.Icon

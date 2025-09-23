@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.core.table.renderers
+package io.confluent.kafka.core.table.renderers
 
 import java.text.SimpleDateFormat
 import java.util.*

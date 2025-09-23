@@ -1,8 +1,8 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.ui
+package io.confluent.kafka.core.rfs.ui
 
 import com.intellij.openapi.actionSystem.ActionGroup
 import com.intellij.openapi.actionSystem.ActionManager
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.FileInfo
+import io.confluent.kafka.core.rfs.driver.FileInfo
 
 open class RfsChooserDescriptor(val multipleSelection: Boolean = false) {
   open fun canChoose(fileInfo: FileInfo): Boolean = true

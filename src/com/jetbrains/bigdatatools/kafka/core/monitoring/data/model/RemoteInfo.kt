@@ -1,6 +1,6 @@
-package com.jetbrains.bigdatatools.kafka.core.monitoring.data.model
+package io.confluent.kafka.core.monitoring.data.model
 
-import com.jetbrains.bigdatatools.kafka.core.table.renderers.DataRenderingUtil
+import io.confluent.kafka.core.table.renderers.DataRenderingUtil
 import kotlin.reflect.full.declaredMemberProperties
 import kotlin.reflect.jvm.javaField
 

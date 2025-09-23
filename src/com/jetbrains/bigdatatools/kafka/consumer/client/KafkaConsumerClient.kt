@@ -1,13 +1,13 @@
-package com.jetbrains.bigdatatools.kafka.consumer.client
+package io.confluent.kafka.consumer.client
 
 import com.intellij.openapi.Disposable
-import com.jetbrains.bigdatatools.kafka.common.settings.StorageConsumerConfig
-import com.jetbrains.bigdatatools.kafka.consumer.editor.ConsumerEditorUtils
-import com.jetbrains.bigdatatools.kafka.consumer.models.ConsumerProducerFieldConfig
-import com.jetbrains.bigdatatools.kafka.consumer.models.ConsumerStartWith
-import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
-import com.jetbrains.bigdatatools.kafka.util.KafkaOffsetUtils
+import io.confluent.kafka.common.settings.StorageConsumerConfig
+import io.confluent.kafka.consumer.editor.ConsumerEditorUtils
+import io.confluent.kafka.consumer.models.ConsumerProducerFieldConfig
+import io.confluent.kafka.consumer.models.ConsumerStartWith
+import io.confluent.kafka.data.KafkaDataManager
+import io.confluent.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.util.KafkaOffsetUtils
 import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig
 import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.clients.consumer.ConsumerRecord

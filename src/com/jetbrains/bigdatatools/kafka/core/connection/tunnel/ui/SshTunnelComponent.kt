@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.core.connection.tunnel.ui
+package io.confluent.kafka.core.connection.tunnel.ui
 
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.project.Project
@@ -13,17 +13,17 @@ import com.intellij.ui.components.CheckBox
 import com.intellij.ui.components.JBTextField
 import com.intellij.ui.dsl.builder.*
 import com.intellij.ui.layout.selected
-import com.jetbrains.bigdatatools.kafka.core.connection.tunnel.model.ConnectionSshTunnelData
-import com.jetbrains.bigdatatools.kafka.core.connection.tunnel.model.TunnelableData
-import com.jetbrains.bigdatatools.kafka.core.connection.tunnel.model.getTunnelDataOrDefault
-import com.jetbrains.bigdatatools.kafka.core.settings.ModificationKey
-import com.jetbrains.bigdatatools.kafka.core.settings.connections.ConnectionData
-import com.jetbrains.bigdatatools.kafka.core.settings.defaultui.HostAndPortChangeListener
-import com.jetbrains.bigdatatools.kafka.core.settings.defaultui.HostAndPortProvider
-import com.jetbrains.bigdatatools.kafka.core.settings.fields.WrappedComponent
-import com.jetbrains.bigdatatools.kafka.core.settings.revalidateComponent
-import com.jetbrains.bigdatatools.kafka.core.ui.row
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.core.connection.tunnel.model.ConnectionSshTunnelData
+import io.confluent.kafka.core.connection.tunnel.model.TunnelableData
+import io.confluent.kafka.core.connection.tunnel.model.getTunnelDataOrDefault
+import io.confluent.kafka.core.settings.ModificationKey
+import io.confluent.kafka.core.settings.connections.ConnectionData
+import io.confluent.kafka.core.settings.defaultui.HostAndPortChangeListener
+import io.confluent.kafka.core.settings.defaultui.HostAndPortProvider
+import io.confluent.kafka.core.settings.fields.WrappedComponent
+import io.confluent.kafka.core.settings.revalidateComponent
+import io.confluent.kafka.core.ui.row
+import io.confluent.kafka.util.KafkaMessagesBundle
 import org.jetbrains.annotations.Nls
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.function.Supplier

@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.toolwindow.controllers
+package io.confluent.kafka.toolwindow.controllers
 
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.actionSystem.ActionUpdateThread
@@ -6,12 +6,12 @@ import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.project.DumbAwareToggleAction
 import com.intellij.openapi.project.Project
-import com.jetbrains.bigdatatools.kafka.core.monitoring.toolwindow.DetailsTableMonitoringController
-import com.jetbrains.bigdatatools.kafka.core.util.executeOnPooledThread
-import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
-import com.jetbrains.bigdatatools.kafka.model.TopicConfig
-import com.jetbrains.bigdatatools.kafka.toolwindow.config.KafkaToolWindowSettings
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.core.monitoring.toolwindow.DetailsTableMonitoringController
+import io.confluent.kafka.core.util.executeOnPooledThread
+import io.confluent.kafka.data.KafkaDataManager
+import io.confluent.kafka.model.TopicConfig
+import io.confluent.kafka.toolwindow.config.KafkaToolWindowSettings
+import io.confluent.kafka.util.KafkaMessagesBundle
 
 class TopicConfigsController(val project: Project,
                              private val dataManager: KafkaDataManager) : DetailsTableMonitoringController<TopicConfig, String>() {

@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.core.monitoring.toolwindow
+package io.confluent.kafka.core.monitoring.toolwindow
 
 import com.intellij.openapi.project.Project
 

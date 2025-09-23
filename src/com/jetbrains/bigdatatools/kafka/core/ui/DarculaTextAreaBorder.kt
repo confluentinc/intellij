@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.core.ui
+package io.confluent.kafka.core.ui
 
 import com.intellij.ide.ui.laf.darcula.DarculaUIUtil
 import com.intellij.ui.EditorTextField

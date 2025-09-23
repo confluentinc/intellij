@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.driver
+package io.confluent.kafka.core.rfs.driver
 
 import com.intellij.openapi.progress.runBlockingCancellable
 import kotlinx.coroutines.launch

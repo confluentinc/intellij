@@ -1,12 +1,12 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.copypaste.providers
+package io.confluent.kafka.core.rfs.copypaste.providers
 
 import com.intellij.ide.CopyPasteManagerEx
 import com.intellij.openapi.project.Project
-import com.jetbrains.bigdatatools.kafka.core.rfs.copypaste.RfsCopyPasteManager
-import com.jetbrains.bigdatatools.kafka.core.rfs.copypaste.model.TransferableDescriptor
-import com.jetbrains.bigdatatools.kafka.core.rfs.copypaste.model.rfsDataFlavor
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.FileInfo
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.local.LocalDriverManager
+import io.confluent.kafka.core.rfs.copypaste.RfsCopyPasteManager
+import io.confluent.kafka.core.rfs.copypaste.model.TransferableDescriptor
+import io.confluent.kafka.core.rfs.copypaste.model.rfsDataFlavor
+import io.confluent.kafka.core.rfs.driver.FileInfo
+import io.confluent.kafka.core.rfs.driver.local.LocalDriverManager
 import java.awt.datatransfer.DataFlavor
 import java.io.File
 

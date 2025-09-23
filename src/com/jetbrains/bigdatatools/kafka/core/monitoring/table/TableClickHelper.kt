@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.core.monitoring.table
+package io.confluent.kafka.core.monitoring.table
 
 import com.intellij.ide.BrowserUtil
 import com.intellij.ide.DataManager
@@ -6,10 +6,10 @@ import com.intellij.openapi.actionSystem.ActionGroup
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.popup.JBPopupFactory
 import com.intellij.ui.awt.RelativePoint
-import com.jetbrains.bigdatatools.kafka.core.monitoring.data.model.RemoteInfo
-import com.jetbrains.bigdatatools.kafka.core.monitoring.list.ListClickHelper
-import com.jetbrains.bigdatatools.kafka.core.rfs.url.UrlDriverChooserAction
-import com.jetbrains.bigdatatools.kafka.core.rfs.util.withSlash
+import io.confluent.kafka.core.monitoring.data.model.RemoteInfo
+import io.confluent.kafka.core.monitoring.list.ListClickHelper
+import io.confluent.kafka.core.rfs.url.UrlDriverChooserAction
+import io.confluent.kafka.core.rfs.util.withSlash
 import java.awt.Point
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent

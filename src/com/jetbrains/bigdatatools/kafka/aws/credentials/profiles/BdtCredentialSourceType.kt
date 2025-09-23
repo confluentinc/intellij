@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.aws.credentials.profiles
+package io.confluent.kafka.aws.credentials.profiles
 
 enum class BdtCredentialSourceType {
   EC2_INSTANCE_METADATA, ECS_CONTAINER, ENVIRONMENT;

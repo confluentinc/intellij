@@ -1,9 +1,9 @@
-package com.jetbrains.bigdatatools.kafka.core.settings
+package io.confluent.kafka.core.settings
 
 import com.intellij.openapi.project.Project
-import com.jetbrains.bigdatatools.kafka.core.settings.connections.ConnectionData
-import com.jetbrains.bigdatatools.kafka.core.settings.connections.ConnectionGroup
-import com.jetbrains.bigdatatools.kafka.core.settings.connections.SimpleConnectionConfigurable
+import io.confluent.kafka.core.settings.connections.ConnectionData
+import io.confluent.kafka.core.settings.connections.ConnectionGroup
+import io.confluent.kafka.core.settings.connections.SimpleConnectionConfigurable
 import java.io.Serializable
 
 /**

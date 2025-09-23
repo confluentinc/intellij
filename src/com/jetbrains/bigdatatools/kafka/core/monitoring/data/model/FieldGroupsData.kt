@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.core.monitoring.data.model
+package io.confluent.kafka.core.monitoring.data.model
 
 data class FieldGroupsData<T>(val obj: T?,
                               val groups: List<Pair<String, FieldsDataModel>>) {

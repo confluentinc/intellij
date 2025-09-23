@@ -1,6 +1,6 @@
-package com.jetbrains.bigdatatools.kafka.consumer.models
+package io.confluent.kafka.consumer.models
 
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.util.KafkaMessagesBundle
 
 enum class ConsumerFilterType(val title: String) {
   NONE(KafkaMessagesBundle.message("consumer.filter.type.none")),

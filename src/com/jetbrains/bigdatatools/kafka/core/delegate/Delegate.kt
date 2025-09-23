@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.core.delegate
+package io.confluent.kafka.core.delegate
 
 /**
  * Delegate class for simple events.

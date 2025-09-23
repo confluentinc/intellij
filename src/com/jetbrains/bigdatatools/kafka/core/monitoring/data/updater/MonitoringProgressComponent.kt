@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.core.monitoring.data.updater
+package io.confluent.kafka.core.monitoring.data.updater
 
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.Disposable
@@ -6,8 +6,8 @@ import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.NlsContexts
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.dsl.builder.panel
-import com.jetbrains.bigdatatools.kafka.core.monitoring.data.model.DataModel
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.core.monitoring.data.model.DataModel
+import io.confluent.kafka.util.KafkaMessagesBundle
 import java.awt.Component
 import javax.swing.JProgressBar
 

@@ -1,10 +1,10 @@
-package com.jetbrains.bigdatatools.kafka.core.table.filters
+package io.confluent.kafka.core.table.filters
 
 import com.intellij.openapi.actionSystem.CommonDataKeys
 import com.intellij.openapi.actionSystem.DataSink
 import com.intellij.openapi.actionSystem.UiDataProvider
 import com.intellij.ui.components.fields.ExtendableTextField
-import com.jetbrains.bigdatatools.kafka.core.ui.SearchExtension
+import io.confluent.kafka.core.ui.SearchExtension
 import java.awt.BorderLayout
 import java.awt.event.FocusEvent
 import java.awt.event.FocusListener

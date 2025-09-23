@@ -1,8 +1,8 @@
-package com.jetbrains.bigdatatools.kafka.core.settings.connections
+package io.confluent.kafka.core.settings.connections
 
 import com.intellij.openapi.project.Project
-import com.jetbrains.bigdatatools.kafka.core.settings.defaultui.SettingsPanelCustomizer
-import com.jetbrains.bigdatatools.kafka.core.settings.fields.WrappedComponent
+import io.confluent.kafka.core.settings.defaultui.SettingsPanelCustomizer
+import io.confluent.kafka.core.settings.fields.WrappedComponent
 import javax.swing.Icon
 
 class SimpleConnectionConfigurable<D : ConnectionData>(

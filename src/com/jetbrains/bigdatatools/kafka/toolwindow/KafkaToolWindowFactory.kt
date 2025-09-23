@@ -1,12 +1,12 @@
-package com.jetbrains.bigdatatools.kafka.toolwindow
+package io.confluent.kafka.toolwindow
 
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.wm.ToolWindow
-import com.jetbrains.bigdatatools.kafka.core.constants.BdtConnectionType
-import com.jetbrains.bigdatatools.kafka.core.constants.BdtPlugins
-import com.jetbrains.bigdatatools.kafka.core.monitoring.toolwindow.MonitoringToolWindowFactory
-import com.jetbrains.bigdatatools.kafka.core.settings.manager.RfsConnectionDataManager
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.core.constants.BdtConnectionType
+import io.confluent.kafka.core.constants.BdtPlugins
+import io.confluent.kafka.core.monitoring.toolwindow.MonitoringToolWindowFactory
+import io.confluent.kafka.core.settings.manager.RfsConnectionDataManager
+import io.confluent.kafka.util.KafkaMessagesBundle
 
 class KafkaToolWindowFactory : MonitoringToolWindowFactory() {
   override val toolWindowId = KafkaMonitoringToolWindowController.TOOL_WINDOW_ID

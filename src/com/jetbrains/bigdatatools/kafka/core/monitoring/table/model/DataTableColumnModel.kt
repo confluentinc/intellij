@@ -1,9 +1,9 @@
-package com.jetbrains.bigdatatools.kafka.core.monitoring.table.model
+package io.confluent.kafka.core.monitoring.table.model
 
 import com.intellij.openapi.Disposable
-import com.jetbrains.bigdatatools.kafka.core.monitoring.data.model.RemoteInfo
-import com.jetbrains.bigdatatools.kafka.core.monitoring.table.extension.LocalizedField
-import com.jetbrains.bigdatatools.kafka.core.settings.ColumnVisibilitySettings
+import io.confluent.kafka.core.monitoring.data.model.RemoteInfo
+import io.confluent.kafka.core.monitoring.table.extension.LocalizedField
+import io.confluent.kafka.core.settings.ColumnVisibilitySettings
 import javax.swing.event.ChangeEvent
 import javax.swing.event.ListSelectionEvent
 import javax.swing.event.TableColumnModelEvent

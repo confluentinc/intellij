@@ -1,6 +1,6 @@
-package com.jetbrains.bigdatatools.kafka.producer.models
+package io.confluent.kafka.producer.models
 
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.util.KafkaMessagesBundle
 
 enum class Mode(val label: String) {
   MANUAL(KafkaMessagesBundle.message("producer.flow.mode.manual")),

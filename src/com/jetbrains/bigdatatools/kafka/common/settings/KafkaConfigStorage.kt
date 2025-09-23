@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.common.settings
+package io.confluent.kafka.common.settings
 
 import com.intellij.openapi.components.PersistentStateComponent
 import com.intellij.openapi.components.State

@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.settings
+package io.confluent.kafka.settings
 
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.project.Project
@@ -11,21 +11,21 @@ import com.intellij.ui.dsl.builder.BottomGap
 import com.intellij.ui.dsl.builder.Cell
 import com.intellij.ui.dsl.builder.TopGap
 import com.intellij.ui.dsl.builder.panel
-import com.jetbrains.bigdatatools.kafka.aws.connection.auth.AuthenticationType
-import com.jetbrains.bigdatatools.kafka.core.connection.tunnel.ui.SshTunnelComponent
-import com.jetbrains.bigdatatools.kafka.core.monitoring.TunnelableSettingsCustomizer
-import com.jetbrains.bigdatatools.kafka.core.settings.ModificationKey
-import com.jetbrains.bigdatatools.kafka.core.settings.connections.ConnectionData
-import com.jetbrains.bigdatatools.kafka.core.settings.fields.*
-import com.jetbrains.bigdatatools.kafka.core.settings.withValidator
-import com.jetbrains.bigdatatools.kafka.core.ui.block
-import com.jetbrains.bigdatatools.kafka.core.ui.components.ConnectionPropertiesEditor
-import com.jetbrains.bigdatatools.kafka.core.ui.components.RadioComboBox
-import com.jetbrains.bigdatatools.kafka.core.ui.row
-import com.jetbrains.bigdatatools.kafka.core.util.BdtUrlUtils
-import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryType
-import com.jetbrains.bigdatatools.kafka.rfs.*
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.aws.connection.auth.AuthenticationType
+import io.confluent.kafka.core.connection.tunnel.ui.SshTunnelComponent
+import io.confluent.kafka.core.monitoring.TunnelableSettingsCustomizer
+import io.confluent.kafka.core.settings.ModificationKey
+import io.confluent.kafka.core.settings.connections.ConnectionData
+import io.confluent.kafka.core.settings.fields.*
+import io.confluent.kafka.core.settings.withValidator
+import io.confluent.kafka.core.ui.block
+import io.confluent.kafka.core.ui.components.ConnectionPropertiesEditor
+import io.confluent.kafka.core.ui.components.RadioComboBox
+import io.confluent.kafka.core.ui.row
+import io.confluent.kafka.core.util.BdtUrlUtils
+import io.confluent.kafka.registry.KafkaRegistryType
+import io.confluent.kafka.rfs.*
+import io.confluent.kafka.util.KafkaMessagesBundle
 import kotlinx.coroutines.CoroutineScope
 
 class KafkaSettingsCustomizer(project: Project,

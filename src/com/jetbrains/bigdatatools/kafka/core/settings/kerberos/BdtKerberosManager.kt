@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.core.settings.kerberos
+package io.confluent.kafka.core.settings.kerberos
 
 import com.intellij.credentialStore.CredentialAttributes
 import com.intellij.credentialStore.Credentials
@@ -7,9 +7,9 @@ import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.progress.runBlockingCancellable
-import com.jetbrains.bigdatatools.kafka.core.connection.exception.BdtConfigurationException
-import com.jetbrains.bigdatatools.kafka.core.connection.exception.BdtKerberosException
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.core.connection.exception.BdtConfigurationException
+import io.confluent.kafka.core.connection.exception.BdtKerberosException
+import io.confluent.kafka.util.KafkaMessagesBundle
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File

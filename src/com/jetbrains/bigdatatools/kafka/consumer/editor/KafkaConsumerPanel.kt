@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.consumer.editor
+package io.confluent.kafka.consumer.editor
 
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.Disposable
@@ -16,24 +16,24 @@ import com.intellij.ui.components.JBTextField
 import com.intellij.ui.dsl.builder.*
 import com.intellij.ui.layout.enteredTextSatisfies
 import com.intellij.ui.layout.not
-import com.jetbrains.bigdatatools.kafka.common.editor.*
-import com.jetbrains.bigdatatools.kafka.common.models.TopicInEditor
-import com.jetbrains.bigdatatools.kafka.common.settings.KafkaConfigStorage
-import com.jetbrains.bigdatatools.kafka.common.settings.StorageConsumerConfig
-import com.jetbrains.bigdatatools.kafka.consumer.client.KafkaConsumerClient
-import com.jetbrains.bigdatatools.kafka.consumer.models.*
-import com.jetbrains.bigdatatools.kafka.core.rfs.util.RfsNotificationUtils
-import com.jetbrains.bigdatatools.kafka.core.settings.getValidationInfo
-import com.jetbrains.bigdatatools.kafka.core.ui.CustomListCellRenderer
-import com.jetbrains.bigdatatools.kafka.core.ui.ExpansionPanel
-import com.jetbrains.bigdatatools.kafka.core.ui.MultiSplitter
-import com.jetbrains.bigdatatools.kafka.core.util.executeOnPooledThread
-import com.jetbrains.bigdatatools.kafka.core.util.invokeLater
-import com.jetbrains.bigdatatools.kafka.core.util.withPluginClassLoader
-import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
-import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryFormat
-import com.jetbrains.bigdatatools.kafka.util.KafkaConsumerGroupChangeOffsetProcess
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.common.editor.*
+import io.confluent.kafka.common.models.TopicInEditor
+import io.confluent.kafka.common.settings.KafkaConfigStorage
+import io.confluent.kafka.common.settings.StorageConsumerConfig
+import io.confluent.kafka.consumer.client.KafkaConsumerClient
+import io.confluent.kafka.consumer.models.*
+import io.confluent.kafka.core.rfs.util.RfsNotificationUtils
+import io.confluent.kafka.core.settings.getValidationInfo
+import io.confluent.kafka.core.ui.CustomListCellRenderer
+import io.confluent.kafka.core.ui.ExpansionPanel
+import io.confluent.kafka.core.ui.MultiSplitter
+import io.confluent.kafka.core.util.executeOnPooledThread
+import io.confluent.kafka.core.util.invokeLater
+import io.confluent.kafka.core.util.withPluginClassLoader
+import io.confluent.kafka.data.KafkaDataManager
+import io.confluent.kafka.registry.KafkaRegistryFormat
+import io.confluent.kafka.util.KafkaConsumerGroupChangeOffsetProcess
+import io.confluent.kafka.util.KafkaMessagesBundle
 import java.awt.Dimension
 import javax.swing.JButton
 import javax.swing.JComponent
@@ -514,7 +514,7 @@ class KafkaConsumerPanel(val project: Project, internal val kafkaManager: KafkaD
     val STATE_KEY = Key<ConsumerEditorState>("STATE")
 
     // A number of string keys for PropertiesComponent.getInstance().getBoolean(**_**_ID, false)
-    private const val SETTINGS_SHOW_ID = "com.jetbrains.bigdatatools.kafka.consumer.settings.show"
-    private const val PRESETS_SHOW_ID = "com.jetbrains.bigdatatools.kafka.consumer.presets.show"
+    private const val SETTINGS_SHOW_ID = "io.confluent.kafka.consumer.settings.show"
+    private const val PRESETS_SHOW_ID = "io.confluent.kafka.consumer.presets.show"
   }
 }

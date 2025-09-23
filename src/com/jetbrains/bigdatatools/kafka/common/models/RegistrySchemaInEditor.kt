@@ -1,7 +1,7 @@
-package com.jetbrains.bigdatatools.kafka.common.models
+package io.confluent.kafka.common.models
 
 import com.intellij.openapi.util.NlsSafe
-import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryFormat
+import io.confluent.kafka.registry.KafkaRegistryFormat
 
 data class RegistrySchemaInEditor(@NlsSafe val schemaName: String,
                                   val schemaFormat: KafkaRegistryFormat?) : Comparable<RegistrySchemaInEditor> {

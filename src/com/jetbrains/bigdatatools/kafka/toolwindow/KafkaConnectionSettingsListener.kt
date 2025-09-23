@@ -1,13 +1,13 @@
-package com.jetbrains.bigdatatools.kafka.toolwindow
+package io.confluent.kafka.toolwindow
 
 import com.intellij.openapi.fileEditor.ex.FileEditorManagerEx
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.ProjectManager
-import com.jetbrains.bigdatatools.kafka.common.editor.KafkaEditorProvider
-import com.jetbrains.bigdatatools.kafka.core.settings.ConnectionSettingsListener
-import com.jetbrains.bigdatatools.kafka.core.settings.ModificationKey
-import com.jetbrains.bigdatatools.kafka.core.settings.connections.ConnectionData
-import com.jetbrains.bigdatatools.kafka.rfs.KafkaConnectionData
+import io.confluent.kafka.common.editor.KafkaEditorProvider
+import io.confluent.kafka.core.settings.ConnectionSettingsListener
+import io.confluent.kafka.core.settings.ModificationKey
+import io.confluent.kafka.core.settings.connections.ConnectionData
+import io.confluent.kafka.rfs.KafkaConnectionData
 
 /** If Kafka connection settings is modified, we are closing all editor tabs (Consumer/Producer). */
 class KafkaConnectionSettingsListener : ConnectionSettingsListener {

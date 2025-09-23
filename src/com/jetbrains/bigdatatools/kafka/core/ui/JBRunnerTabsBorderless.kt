@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.core.ui
+package io.confluent.kafka.core.ui
 
 import com.intellij.execution.ui.layout.impl.JBRunnerTabs
 import com.intellij.openapi.Disposable

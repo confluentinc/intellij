@@ -1,7 +1,7 @@
-package com.jetbrains.bigdatatools.kafka.aws.connection.auth.defaultauth
+package io.confluent.kafka.aws.connection.auth.defaultauth
 
-import com.jetbrains.bigdatatools.kafka.aws.connection.auth.AuthenticationType
-import com.jetbrains.bigdatatools.kafka.aws.connection.auth.common.AwsAuthenticationData
+import io.confluent.kafka.aws.connection.auth.AuthenticationType
+import io.confluent.kafka.aws.connection.auth.common.AwsAuthenticationData
 
 class DefaultAwsAuthenticationData : AwsAuthenticationData() {
   override val authType: String = AuthenticationType.DEFAULT.id

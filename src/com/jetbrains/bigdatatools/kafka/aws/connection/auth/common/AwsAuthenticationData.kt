@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.aws.connection.auth.common
+package io.confluent.kafka.aws.connection.auth.common
 
 import java.io.Serializable
 

@@ -1,11 +1,11 @@
-package com.jetbrains.bigdatatools.kafka.aws.connection.auth
+package io.confluent.kafka.aws.connection.auth
 
-import com.jetbrains.bigdatatools.kafka.aws.connection.auth.anon.AnonAwsAuthenticationData
-import com.jetbrains.bigdatatools.kafka.aws.connection.auth.common.AwsAuthenticationData
-import com.jetbrains.bigdatatools.kafka.aws.connection.auth.defaultauth.DefaultAwsAuthenticationData
-import com.jetbrains.bigdatatools.kafka.aws.connection.auth.keypair.BasicCredentialsAwsAuthenticationData
-import com.jetbrains.bigdatatools.kafka.aws.connection.auth.profile.ProfileFromConfigAwsAuthenticationData
-import com.jetbrains.bigdatatools.kafka.aws.ui.external.AwsSettingsInfo
+import io.confluent.kafka.aws.connection.auth.anon.AnonAwsAuthenticationData
+import io.confluent.kafka.aws.connection.auth.common.AwsAuthenticationData
+import io.confluent.kafka.aws.connection.auth.defaultauth.DefaultAwsAuthenticationData
+import io.confluent.kafka.aws.connection.auth.keypair.BasicCredentialsAwsAuthenticationData
+import io.confluent.kafka.aws.connection.auth.profile.ProfileFromConfigAwsAuthenticationData
+import io.confluent.kafka.aws.ui.external.AwsSettingsInfo
 
 
 object AwsAuthUtil {

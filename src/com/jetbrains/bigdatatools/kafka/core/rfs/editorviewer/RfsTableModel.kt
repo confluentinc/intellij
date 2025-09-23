@@ -1,8 +1,8 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.editorviewer
+package io.confluent.kafka.core.rfs.editorviewer
 
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.Driver
-import com.jetbrains.bigdatatools.kafka.core.rfs.search.impl.ListElement
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.core.rfs.driver.Driver
+import io.confluent.kafka.core.rfs.search.impl.ListElement
+import io.confluent.kafka.util.KafkaMessagesBundle
 import javax.swing.event.TableModelEvent
 import javax.swing.event.TableModelListener
 import javax.swing.table.TableModel

@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.util.generator
+package io.confluent.kafka.util.generator
 
 import com.google.protobuf.ByteString
 import com.google.protobuf.Descriptors.*
@@ -9,7 +9,7 @@ import com.google.protobuf.Message.Builder
 import com.google.protobuf.util.JsonFormat
 import com.google.protobuf.util.JsonFormat.TypeRegistry
 import com.intellij.openapi.project.Project
-import com.jetbrains.bigdatatools.kafka.util.generator.GenerateRandomData.isValidSchema
+import io.confluent.kafka.util.generator.GenerateRandomData.isValidSchema
 import io.confluent.kafka.schemaregistry.ParsedSchema
 import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchema
 import kotlin.random.Random

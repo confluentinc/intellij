@@ -1,11 +1,11 @@
-package com.jetbrains.bigdatatools.kafka.producer.editor
+package io.confluent.kafka.producer.editor
 
 import com.intellij.ide.PasteProvider
 import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.DataContext
 import com.intellij.openapi.ide.CopyPasteManager
-import com.jetbrains.bigdatatools.kafka.common.editor.PropertiesTable
-import com.jetbrains.bigdatatools.kafka.core.serializer.BdtJson
+import io.confluent.kafka.common.editor.PropertiesTable
+import io.confluent.kafka.core.serializer.BdtJson
 import java.awt.datatransfer.DataFlavor
 
 class HeadersTablePasteProvider(private val table: PropertiesTable) : PasteProvider {

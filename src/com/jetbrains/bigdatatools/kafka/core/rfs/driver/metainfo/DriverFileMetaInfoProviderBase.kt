@@ -1,12 +1,12 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.driver.metainfo
+package io.confluent.kafka.core.rfs.driver.metainfo
 
 import com.intellij.openapi.Disposable
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.Driver
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.FileInfo
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.metainfo.details.FileInfoDetailsBase
-import com.jetbrains.bigdatatools.kafka.core.rfs.editorviewer.RfsTableColumn
-import com.jetbrains.bigdatatools.kafka.core.rfs.tree.node.DriverFileRfsTreeNode
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.core.rfs.driver.Driver
+import io.confluent.kafka.core.rfs.driver.FileInfo
+import io.confluent.kafka.core.rfs.driver.metainfo.details.FileInfoDetailsBase
+import io.confluent.kafka.core.rfs.editorviewer.RfsTableColumn
+import io.confluent.kafka.core.rfs.tree.node.DriverFileRfsTreeNode
+import io.confluent.kafka.util.KafkaMessagesBundle
 
 open class DriverFileMetaInfoProviderBase(open val driver: Driver) : DriverFileMetaInfoProvider {
   override fun getDefaultComparator(): Comparator<FileInfo> = compareBy({ !it.isDirectory }, { it.name })

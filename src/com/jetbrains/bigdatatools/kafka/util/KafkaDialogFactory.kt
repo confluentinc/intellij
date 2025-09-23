@@ -1,15 +1,15 @@
-package com.jetbrains.bigdatatools.kafka.util
+package io.confluent.kafka.util
 
 import com.intellij.openapi.ui.DialogBuilder
 import com.intellij.openapi.ui.InputValidatorEx
 import com.intellij.ui.components.JBTextField
 import com.intellij.ui.dsl.builder.AlignX
 import com.intellij.ui.dsl.builder.panel
-import com.jetbrains.bigdatatools.kafka.core.settings.buildValidator
-import com.jetbrains.bigdatatools.kafka.core.settings.registerValidator
-import com.jetbrains.bigdatatools.kafka.core.settings.withNumberOrEmptyValidator
-import com.jetbrains.bigdatatools.kafka.core.ui.doOnChange
-import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
+import io.confluent.kafka.core.settings.buildValidator
+import io.confluent.kafka.core.settings.registerValidator
+import io.confluent.kafka.core.settings.withNumberOrEmptyValidator
+import io.confluent.kafka.core.ui.doOnChange
+import io.confluent.kafka.data.KafkaDataManager
 import javax.swing.JTextField
 
 object KafkaDialogFactory {

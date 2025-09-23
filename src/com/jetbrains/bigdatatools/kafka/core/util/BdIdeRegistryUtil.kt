@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.core.util
+package io.confluent.kafka.core.util
 
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.diagnostic.thisLogger

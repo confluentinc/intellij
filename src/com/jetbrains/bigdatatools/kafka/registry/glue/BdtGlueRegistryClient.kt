@@ -1,17 +1,17 @@
-package com.jetbrains.bigdatatools.kafka.registry.glue
+package io.confluent.kafka.registry.glue
 
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.NlsSafe
-import com.jetbrains.bigdatatools.kafka.aws.connection.AwsConnectionUtils
-import com.jetbrains.bigdatatools.kafka.aws.connection.auth.AwsAuthUtil
-import com.jetbrains.bigdatatools.kafka.aws.driver.AwsCredentialController
-import com.jetbrains.bigdatatools.kafka.aws.ui.external.AwsSettingsInfo
-import com.jetbrains.bigdatatools.kafka.core.util.TimeUtils
-import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager.Companion.sortedSchemas
-import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryFormat
-import com.jetbrains.bigdatatools.kafka.registry.SchemaVersionInfo
-import com.jetbrains.bigdatatools.kafka.registry.common.KafkaSchemaInfo
+import io.confluent.kafka.aws.connection.AwsConnectionUtils
+import io.confluent.kafka.aws.connection.auth.AwsAuthUtil
+import io.confluent.kafka.aws.driver.AwsCredentialController
+import io.confluent.kafka.aws.ui.external.AwsSettingsInfo
+import io.confluent.kafka.core.util.TimeUtils
+import io.confluent.kafka.data.KafkaDataManager.Companion.sortedSchemas
+import io.confluent.kafka.registry.KafkaRegistryFormat
+import io.confluent.kafka.registry.SchemaVersionInfo
+import io.confluent.kafka.registry.common.KafkaSchemaInfo
 import kotlinx.coroutines.delay
 import software.amazon.awssdk.core.client.config.ClientOverrideConfiguration
 import software.amazon.awssdk.profiles.ProfileFile

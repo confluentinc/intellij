@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.core.settings.defaultui
+package io.confluent.kafka.core.settings.defaultui
 
 interface HostAndPortProvider {
   fun registerChangeListener(listener: HostAndPortChangeListener)

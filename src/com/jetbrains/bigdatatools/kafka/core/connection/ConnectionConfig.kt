@@ -1,7 +1,7 @@
-package com.jetbrains.bigdatatools.kafka.core.connection
+package io.confluent.kafka.core.connection
 
 import com.intellij.credentialStore.Credentials
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.util.KafkaMessagesBundle
 
 data class ConnectionConfig(
   val url: String,

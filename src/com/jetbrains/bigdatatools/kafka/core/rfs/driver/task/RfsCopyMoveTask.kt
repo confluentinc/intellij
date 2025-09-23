@@ -1,12 +1,12 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.driver.task
+package io.confluent.kafka.core.rfs.driver.task
 
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.util.NlsContexts
-import com.jetbrains.bigdatatools.kafka.core.rfs.copypaste.model.RfsCopyMoveContext
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.Driver
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.DriverException
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.RfsPath
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.core.rfs.copypaste.model.RfsCopyMoveContext
+import io.confluent.kafka.core.rfs.driver.Driver
+import io.confluent.kafka.core.rfs.driver.DriverException
+import io.confluent.kafka.core.rfs.driver.RfsPath
+import io.confluent.kafka.util.KafkaMessagesBundle
 
 abstract class RfsCopyMoveTask(protected open val fromDriver: Driver,
                                private val fromPath: RfsPath,

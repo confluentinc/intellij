@@ -1,7 +1,7 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.driver.depend
+package io.confluent.kafka.core.rfs.driver.depend
 
 import com.intellij.openapi.project.Project
-import com.jetbrains.bigdatatools.kafka.core.settings.manager.RfsConnectionDataManager
+import io.confluent.kafka.core.settings.manager.RfsConnectionDataManager
 
 interface MasterConnectionData<T : BdtSlaveConnection> {
   val innerId: String

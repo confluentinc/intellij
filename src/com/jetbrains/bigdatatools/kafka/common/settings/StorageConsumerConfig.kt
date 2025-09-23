@@ -1,8 +1,8 @@
-package com.jetbrains.bigdatatools.kafka.common.settings
+package io.confluent.kafka.common.settings
 
-import com.jetbrains.bigdatatools.kafka.common.models.KafkaFieldType
-import com.jetbrains.bigdatatools.kafka.consumer.models.*
-import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryFormat
+import io.confluent.kafka.common.models.KafkaFieldType
+import io.confluent.kafka.consumer.models.*
+import io.confluent.kafka.registry.KafkaRegistryFormat
 
 data class StorageConsumerConfig(
   var topic: String? = "",

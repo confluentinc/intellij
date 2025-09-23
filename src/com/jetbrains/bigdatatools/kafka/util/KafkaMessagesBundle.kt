@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.util
+package io.confluent.kafka.util
 
 import com.intellij.DynamicBundle
 import org.jetbrains.annotations.Nls

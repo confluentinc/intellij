@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.common.editor
+package io.confluent.kafka.common.editor
 
 import com.intellij.diff.DiffContentFactory
 import com.intellij.diff.chains.SimpleDiffRequestChain
@@ -10,9 +10,9 @@ import com.intellij.openapi.fileTypes.FileTypeManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.intellij.ui.components.JBPanelWithEmptyText
-import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryFormat
-import com.jetbrains.bigdatatools.kafka.registry.SchemaVersionInfo
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.registry.KafkaRegistryFormat
+import io.confluent.kafka.registry.SchemaVersionInfo
+import io.confluent.kafka.util.KafkaMessagesBundle
 import java.awt.BorderLayout
 import java.awt.Dimension
 

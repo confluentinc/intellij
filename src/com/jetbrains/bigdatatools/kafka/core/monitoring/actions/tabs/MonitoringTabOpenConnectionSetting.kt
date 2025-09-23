@@ -1,7 +1,7 @@
-package com.jetbrains.bigdatatools.kafka.core.monitoring.actions.tabs
+package io.confluent.kafka.core.monitoring.actions.tabs
 
 import com.intellij.openapi.actionSystem.AnActionEvent
-import com.jetbrains.bigdatatools.kafka.core.settings.ConnectionSettings
+import io.confluent.kafka.core.settings.ConnectionSettings
 
 class MonitoringTabOpenConnectionSetting : MonitoringTabConnectionAction() {
   override fun actionPerformed(e: AnActionEvent) {

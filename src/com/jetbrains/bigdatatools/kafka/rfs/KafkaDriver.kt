@@ -1,20 +1,20 @@
-package com.jetbrains.bigdatatools.kafka.rfs
+package io.confluent.kafka.rfs
 
-import com.intellij.bigdatatools.kafka.icons.BigdatatoolsKafkaIcons
+import io.confluent.kafka.icons.BigdatatoolsKafkaIcons
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
-import com.jetbrains.bigdatatools.kafka.core.monitoring.data.listener.DataModelListener
-import com.jetbrains.bigdatatools.kafka.core.monitoring.rfs.MonitoringDriver
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.Driver
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.FileInfo
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.RfsPath
-import com.jetbrains.bigdatatools.kafka.core.rfs.tree.DriverRfsTreeModel
-import com.jetbrains.bigdatatools.kafka.core.rfs.tree.node.RfsDriverTreeNodeBuilder
-import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
-import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryType
-import com.jetbrains.bigdatatools.kafka.toolwindow.KafkaMonitoringToolWindowController
-import com.jetbrains.bigdatatools.kafka.toolwindow.config.KafkaToolWindowSettings
-import com.jetbrains.bigdatatools.kafka.toolwindow.controllers.KafkaGroupType
+import io.confluent.kafka.core.monitoring.data.listener.DataModelListener
+import io.confluent.kafka.core.monitoring.rfs.MonitoringDriver
+import io.confluent.kafka.core.rfs.driver.Driver
+import io.confluent.kafka.core.rfs.driver.FileInfo
+import io.confluent.kafka.core.rfs.driver.RfsPath
+import io.confluent.kafka.core.rfs.tree.DriverRfsTreeModel
+import io.confluent.kafka.core.rfs.tree.node.RfsDriverTreeNodeBuilder
+import io.confluent.kafka.data.KafkaDataManager
+import io.confluent.kafka.registry.KafkaRegistryType
+import io.confluent.kafka.toolwindow.KafkaMonitoringToolWindowController
+import io.confluent.kafka.toolwindow.config.KafkaToolWindowSettings
+import io.confluent.kafka.toolwindow.controllers.KafkaGroupType
 import javax.swing.Icon
 
 class KafkaDriver(override val connectionData: KafkaConnectionData, project: Project?, testConnection: Boolean) : MonitoringDriver(project,

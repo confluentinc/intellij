@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.toolwindow.controllers
+package io.confluent.kafka.toolwindow.controllers
 
 import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.AnAction
@@ -6,20 +6,20 @@ import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.actionSystem.UiDataProvider
 import com.intellij.ui.DocumentAdapter
 import com.intellij.ui.SearchTextField
-import com.jetbrains.bigdatatools.kafka.core.monitoring.data.model.FilterAdapter
-import com.jetbrains.bigdatatools.kafka.core.monitoring.data.model.FilterKey
-import com.jetbrains.bigdatatools.kafka.core.monitoring.table.DataTable
-import com.jetbrains.bigdatatools.kafka.core.monitoring.toolwindow.AbstractTableController
-import com.jetbrains.bigdatatools.kafka.core.monitoring.toolwindow.MainTreeController
-import com.jetbrains.bigdatatools.kafka.core.table.renderers.FavoriteRenderer
-import com.jetbrains.bigdatatools.kafka.core.table.renderers.LinkRenderer
-import com.jetbrains.bigdatatools.kafka.core.ui.CustomComponentActionImpl
-import com.jetbrains.bigdatatools.kafka.core.ui.filter.CountFilterPopupComponent
-import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
-import com.jetbrains.bigdatatools.kafka.model.ConsumerGroupPresentable
-import com.jetbrains.bigdatatools.kafka.rfs.KafkaDriver
-import com.jetbrains.bigdatatools.kafka.toolwindow.config.KafkaToolWindowSettings
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.core.monitoring.data.model.FilterAdapter
+import io.confluent.kafka.core.monitoring.data.model.FilterKey
+import io.confluent.kafka.core.monitoring.table.DataTable
+import io.confluent.kafka.core.monitoring.toolwindow.AbstractTableController
+import io.confluent.kafka.core.monitoring.toolwindow.MainTreeController
+import io.confluent.kafka.core.table.renderers.FavoriteRenderer
+import io.confluent.kafka.core.table.renderers.LinkRenderer
+import io.confluent.kafka.core.ui.CustomComponentActionImpl
+import io.confluent.kafka.core.ui.filter.CountFilterPopupComponent
+import io.confluent.kafka.data.KafkaDataManager
+import io.confluent.kafka.model.ConsumerGroupPresentable
+import io.confluent.kafka.rfs.KafkaDriver
+import io.confluent.kafka.toolwindow.config.KafkaToolWindowSettings
+import io.confluent.kafka.util.KafkaMessagesBundle
 import javax.swing.event.DocumentEvent
 
 internal class ConsumerGroupsController(val dataManager: KafkaDataManager,

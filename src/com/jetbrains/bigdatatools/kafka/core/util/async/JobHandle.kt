@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.core.util.async
+package io.confluent.kafka.core.util.async
 
 import kotlinx.coroutines.*
 import java.util.concurrent.atomic.AtomicReference

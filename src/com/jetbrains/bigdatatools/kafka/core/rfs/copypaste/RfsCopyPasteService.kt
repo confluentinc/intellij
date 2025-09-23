@@ -1,9 +1,9 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.copypaste
+package io.confluent.kafka.core.rfs.copypaste
 
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.*
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.copyhandler.InterDriverCopyManager
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.task.RfsCopyMoveTask
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.core.rfs.driver.*
+import io.confluent.kafka.core.rfs.driver.copyhandler.InterDriverCopyManager
+import io.confluent.kafka.core.rfs.driver.task.RfsCopyMoveTask
+import io.confluent.kafka.util.KafkaMessagesBundle
 import org.jetbrains.annotations.Nls
 
 object RfsCopyPasteService {

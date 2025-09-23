@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.ui
+package io.confluent.kafka.core.rfs.ui
 
 import com.intellij.openapi.util.NlsContexts
 import com.intellij.util.ui.JBUI

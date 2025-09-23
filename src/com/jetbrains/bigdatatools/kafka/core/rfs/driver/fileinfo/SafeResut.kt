@@ -1,6 +1,6 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.driver.fileinfo
+package io.confluent.kafka.core.rfs.driver.fileinfo
 
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.DriverException
+import io.confluent.kafka.core.rfs.driver.DriverException
 
 sealed class SafeResult<T> {
   abstract val result: T?

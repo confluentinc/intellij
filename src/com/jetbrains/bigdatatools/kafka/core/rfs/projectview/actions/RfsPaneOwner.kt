@@ -1,13 +1,13 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.projectview.actions
+package io.confluent.kafka.core.rfs.projectview.actions
 
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.DataKey
 import com.intellij.openapi.project.Project
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.Driver
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.RfsPath
-import com.jetbrains.bigdatatools.kafka.core.rfs.tree.node.DriverFileRfsTreeNode
-import com.jetbrains.bigdatatools.kafka.core.rfs.tree.node.RfsTreeNode
-import com.jetbrains.bigdatatools.kafka.core.rfs.viewer.utils.DriverRfsTreeUtil.lastDriverNode
+import io.confluent.kafka.core.rfs.driver.Driver
+import io.confluent.kafka.core.rfs.driver.RfsPath
+import io.confluent.kafka.core.rfs.tree.node.DriverFileRfsTreeNode
+import io.confluent.kafka.core.rfs.tree.node.RfsTreeNode
+import io.confluent.kafka.core.rfs.viewer.utils.DriverRfsTreeUtil.lastDriverNode
 import javax.swing.JComponent
 import javax.swing.JTree
 import javax.swing.tree.TreePath

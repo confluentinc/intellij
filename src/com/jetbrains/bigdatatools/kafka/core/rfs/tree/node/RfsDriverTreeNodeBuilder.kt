@@ -1,11 +1,11 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.tree.node
+package io.confluent.kafka.core.rfs.tree.node
 
 import com.intellij.openapi.project.Project
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.Driver
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.FileInfo
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.RfsPath
-import com.jetbrains.bigdatatools.kafka.core.rfs.fileInfo.RfsChildrenPartId
-import com.jetbrains.bigdatatools.kafka.core.rfs.fileInfo.RfsListMarker
+import io.confluent.kafka.core.rfs.driver.Driver
+import io.confluent.kafka.core.rfs.driver.FileInfo
+import io.confluent.kafka.core.rfs.driver.RfsPath
+import io.confluent.kafka.core.rfs.fileInfo.RfsChildrenPartId
+import io.confluent.kafka.core.rfs.fileInfo.RfsListMarker
 
 open class RfsDriverTreeNodeBuilder {
   fun getNode(project: Project,

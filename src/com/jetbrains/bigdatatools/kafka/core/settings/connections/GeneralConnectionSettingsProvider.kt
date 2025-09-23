@@ -1,6 +1,6 @@
-package com.jetbrains.bigdatatools.kafka.core.settings.connections
+package io.confluent.kafka.core.settings.connections
 
-import com.jetbrains.bigdatatools.kafka.core.constants.BdtPluginType
+import io.confluent.kafka.core.constants.BdtPluginType
 
 class GeneralConnectionSettingsProvider : ConnectionSettingProvider {
   override val pluginType: BdtPluginType = BdtPluginType.KAFKA

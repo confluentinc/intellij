@@ -1,6 +1,6 @@
-package com.jetbrains.bigdatatools.kafka.registry.schema
+package io.confluent.kafka.registry.schema
 
-import com.jetbrains.bigdatatools.kafka.model.SchemaRegistryFieldsInfo
+import io.confluent.kafka.model.SchemaRegistryFieldsInfo
 import io.confluent.kafka.schemaregistry.json.JsonSchema
 import org.everit.json.schema.*
 import javax.swing.event.TreeExpansionEvent

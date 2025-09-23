@@ -1,6 +1,6 @@
-package com.jetbrains.bigdatatools.kafka.aws.connection.auth.defaultauth
+package io.confluent.kafka.aws.connection.auth.defaultauth
 
-import com.jetbrains.bigdatatools.kafka.aws.connection.auth.common.BdtAwsCredentialsProvider
+import io.confluent.kafka.aws.connection.auth.common.BdtAwsCredentialsProvider
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider
 
 class DefaultBdtAwsCredentialsProvider : BdtAwsCredentialsProvider {

@@ -1,10 +1,10 @@
-package com.jetbrains.bigdatatools.kafka.consumer.editor
+package io.confluent.kafka.consumer.editor
 
-import com.jetbrains.bigdatatools.kafka.common.editor.KafkaEditorUtils
-import com.jetbrains.bigdatatools.kafka.common.models.KafkaFieldType
-import com.jetbrains.bigdatatools.kafka.consumer.models.ConsumerProducerFieldConfig
-import com.jetbrains.bigdatatools.kafka.core.settings.connections.Property
-import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryFormat
+import io.confluent.kafka.common.editor.KafkaEditorUtils
+import io.confluent.kafka.common.models.KafkaFieldType
+import io.confluent.kafka.consumer.models.ConsumerProducerFieldConfig
+import io.confluent.kafka.core.settings.connections.Property
+import io.confluent.kafka.registry.KafkaRegistryFormat
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.clients.producer.RecordMetadata
 import java.nio.charset.StandardCharsets

@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.driver
+package io.confluent.kafka.core.rfs.driver
 
 import java.io.IOException
 

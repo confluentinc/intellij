@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.registry
+package io.confluent.kafka.registry
 
 import org.apache.avro.Schema
 import org.apache.avro.generic.GenericDatumReader

@@ -1,9 +1,9 @@
-package com.jetbrains.bigdatatools.kafka.util
+package io.confluent.kafka.util
 
-import com.jetbrains.bigdatatools.kafka.consumer.models.ConsumerStartType
-import com.jetbrains.bigdatatools.kafka.consumer.models.ConsumerStartWith
-import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
-import com.jetbrains.bigdatatools.kafka.model.BdtTopicPartition
+import io.confluent.kafka.consumer.models.ConsumerStartType
+import io.confluent.kafka.consumer.models.ConsumerStartWith
+import io.confluent.kafka.data.KafkaDataManager
+import io.confluent.kafka.model.BdtTopicPartition
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.TopicPartition
 import java.util.*

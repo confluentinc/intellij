@@ -1,13 +1,13 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.settings.local
+package io.confluent.kafka.core.rfs.settings.local
 
 import com.intellij.openapi.project.Project
-import com.jetbrains.bigdatatools.kafka.core.constants.BdtConnectionType
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.Driver
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.local.LocalDriver
-import com.jetbrains.bigdatatools.kafka.core.rfs.settings.RemoteFsDriverProvider
-import com.jetbrains.bigdatatools.kafka.core.rfs.settings.local.RfsLocalConnectionGroup.Companion.LOCAL_CONNECTION_NAME
-import com.jetbrains.bigdatatools.kafka.core.settings.connections.ConnectionConfigurable
-import com.jetbrains.bigdatatools.kafka.core.settings.connections.ConnectionGroup
+import io.confluent.kafka.core.constants.BdtConnectionType
+import io.confluent.kafka.core.rfs.driver.Driver
+import io.confluent.kafka.core.rfs.driver.local.LocalDriver
+import io.confluent.kafka.core.rfs.settings.RemoteFsDriverProvider
+import io.confluent.kafka.core.rfs.settings.local.RfsLocalConnectionGroup.Companion.LOCAL_CONNECTION_NAME
+import io.confluent.kafka.core.settings.connections.ConnectionConfigurable
+import io.confluent.kafka.core.settings.connections.ConnectionGroup
 import javax.swing.Icon
 
 class RfsLocalConnectionData(var rootPath: String? = null) : RemoteFsDriverProvider(LOCAL_CONNECTION_NAME) {

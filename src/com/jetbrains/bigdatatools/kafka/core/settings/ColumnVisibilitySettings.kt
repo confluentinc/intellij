@@ -1,16 +1,16 @@
-package com.jetbrains.bigdatatools.kafka.core.settings
+package io.confluent.kafka.core.settings
 
-import com.intellij.bigdatatools.kafka.icons.BigdatatoolsKafkaIcons
+import io.confluent.kafka.icons.BigdatatoolsKafkaIcons
 import com.intellij.ide.actions.SmartPopupActionGroup
 import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.RightAlignedToolbarAction
 import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.project.DumbAwareToggleAction
-import com.jetbrains.bigdatatools.kafka.core.delegate.Delegate2
-import com.jetbrains.bigdatatools.kafka.core.monitoring.table.extension.LocalizedField
-import com.jetbrains.bigdatatools.kafka.core.util.StringUtils
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.core.delegate.Delegate2
+import io.confluent.kafka.core.monitoring.table.extension.LocalizedField
+import io.confluent.kafka.core.util.StringUtils
+import io.confluent.kafka.util.KafkaMessagesBundle
 import org.jetbrains.annotations.Nls
 
 class ColumnVisibilitySettings(var visibleColumns: MutableList<String>) {

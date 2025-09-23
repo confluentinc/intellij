@@ -1,10 +1,10 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.settings.local
+package io.confluent.kafka.core.rfs.settings.local
 
-import com.jetbrains.bigdatatools.kafka.core.constants.BdtConnectionType
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.local.LocalDriver
-import com.jetbrains.bigdatatools.kafka.core.settings.connections.ConnectionFactory
-import com.jetbrains.bigdatatools.kafka.core.settings.connections.FileSystemConnectionGroup
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.core.constants.BdtConnectionType
+import io.confluent.kafka.core.rfs.driver.local.LocalDriver
+import io.confluent.kafka.core.settings.connections.ConnectionFactory
+import io.confluent.kafka.core.settings.connections.FileSystemConnectionGroup
+import io.confluent.kafka.util.KafkaMessagesBundle
 
 class RfsLocalConnectionGroup : ConnectionFactory<RfsLocalConnectionData>(
   id = BdtConnectionType.LOCAL.id,

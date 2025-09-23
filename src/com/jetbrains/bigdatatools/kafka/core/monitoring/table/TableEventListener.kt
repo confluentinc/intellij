@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.core.monitoring.table
+package io.confluent.kafka.core.monitoring.table
 
 interface TableEventListener {
   fun beforeChanged() {}

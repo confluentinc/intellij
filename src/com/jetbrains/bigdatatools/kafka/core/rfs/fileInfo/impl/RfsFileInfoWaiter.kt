@@ -1,12 +1,12 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.fileInfo.impl
+package io.confluent.kafka.core.rfs.fileInfo.impl
 
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.diagnostic.Logger
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.RfsPath
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.runInterruptibleMC
-import com.jetbrains.bigdatatools.kafka.core.rfs.fileInfo.RfsFileInfoChildren
-import com.jetbrains.bigdatatools.kafka.core.util.BdtRefresher
+import io.confluent.kafka.core.rfs.driver.RfsPath
+import io.confluent.kafka.core.rfs.driver.runInterruptibleMC
+import io.confluent.kafka.core.rfs.fileInfo.RfsFileInfoChildren
+import io.confluent.kafka.core.util.BdtRefresher
 import java.util.concurrent.ConcurrentSkipListMap
 import kotlin.time.Duration.Companion.milliseconds
 

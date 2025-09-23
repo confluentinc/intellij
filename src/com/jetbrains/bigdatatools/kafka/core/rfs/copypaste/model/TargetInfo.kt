@@ -1,8 +1,8 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.copypaste.model
+package io.confluent.kafka.core.rfs.copypaste.model
 
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.Driver
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.ExportFormat
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.RfsPath
+import io.confluent.kafka.core.rfs.driver.Driver
+import io.confluent.kafka.core.rfs.driver.ExportFormat
+import io.confluent.kafka.core.rfs.driver.RfsPath
 
 data class TargetInfo(val targetName: String?,
                       val targetFolder: RfsPath,

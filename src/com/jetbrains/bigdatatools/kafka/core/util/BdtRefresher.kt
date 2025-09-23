@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.core.util
+package io.confluent.kafka.core.util
 
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ApplicationActivationListener
@@ -9,7 +9,7 @@ import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.wm.IdeFrame
 import com.intellij.platform.util.coroutines.childScope
 import com.intellij.platform.util.coroutines.flow.mapStateIn
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.Driver
+import io.confluent.kafka.core.rfs.driver.Driver
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay

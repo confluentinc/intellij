@@ -1,13 +1,13 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.driver.local
+package io.confluent.kafka.core.rfs.driver.local
 
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.vfs.LocalFileSystem
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.*
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.local.task.LocalFileMoveTask
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.task.RemoteFsDeleteTask
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.task.RemoteFsTask
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.task.RfsCopyMoveTask
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.core.rfs.driver.*
+import io.confluent.kafka.core.rfs.driver.local.task.LocalFileMoveTask
+import io.confluent.kafka.core.rfs.driver.task.RemoteFsDeleteTask
+import io.confluent.kafka.core.rfs.driver.task.RemoteFsTask
+import io.confluent.kafka.core.rfs.driver.task.RfsCopyMoveTask
+import io.confluent.kafka.util.KafkaMessagesBundle
 import java.io.File
 import java.io.IOException
 import java.io.InputStream

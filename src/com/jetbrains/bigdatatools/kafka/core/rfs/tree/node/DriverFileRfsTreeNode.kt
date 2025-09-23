@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.tree.node
+package io.confluent.kafka.core.rfs.tree.node
 
 import com.intellij.icons.AllIcons
 import com.intellij.ide.projectView.PresentationData
@@ -7,15 +7,15 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.NlsContexts
 import com.intellij.openapi.util.NlsSafe
 import com.intellij.ui.SimpleTextAttributes
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.*
-import com.jetbrains.bigdatatools.kafka.core.rfs.editorviewer.RfsViewerEditorProvider
-import com.jetbrains.bigdatatools.kafka.core.rfs.exception.RfsAuthRequiredError
-import com.jetbrains.bigdatatools.kafka.core.rfs.icons.RfsIcons
-import com.jetbrains.bigdatatools.kafka.core.util.SizeUtils
-import com.jetbrains.bigdatatools.kafka.core.util.TimeUtils
-import com.jetbrains.bigdatatools.kafka.core.util.executeOnPooledThread
-import com.jetbrains.bigdatatools.kafka.core.util.toPresentableText
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.core.rfs.driver.*
+import io.confluent.kafka.core.rfs.editorviewer.RfsViewerEditorProvider
+import io.confluent.kafka.core.rfs.exception.RfsAuthRequiredError
+import io.confluent.kafka.core.rfs.icons.RfsIcons
+import io.confluent.kafka.core.util.SizeUtils
+import io.confluent.kafka.core.util.TimeUtils
+import io.confluent.kafka.core.util.executeOnPooledThread
+import io.confluent.kafka.core.util.toPresentableText
+import io.confluent.kafka.util.KafkaMessagesBundle
 import org.jetbrains.annotations.Nls
 import org.jetbrains.concurrency.Promise
 import org.jetbrains.concurrency.isPending

@@ -1,8 +1,8 @@
-package com.jetbrains.bigdatatools.kafka.client
+package io.confluent.kafka.client
 
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.diagnostic.Logger
-import com.jetbrains.bigdatatools.kafka.core.util.executeOnPooledThread
+import io.confluent.kafka.core.util.executeOnPooledThread
 import org.apache.kafka.clients.admin.Admin
 import org.apache.kafka.clients.admin.AdminClient
 import java.time.Duration

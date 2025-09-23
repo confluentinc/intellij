@@ -1,13 +1,13 @@
-package com.jetbrains.bigdatatools.kafka.core.settings
+package io.confluent.kafka.core.settings
 
 import com.intellij.ide.actions.ShowSettingsUtilImpl
 import com.intellij.openapi.options.ex.ConfigurableVisitor
 import com.intellij.openapi.options.ex.ConfigurableWrapper
 import com.intellij.openapi.options.newEditor.SettingsDialogFactory
 import com.intellij.openapi.project.Project
-import com.jetbrains.bigdatatools.kafka.core.constants.BdtPlugins
-import com.jetbrains.bigdatatools.kafka.core.settings.connections.ConnectionData
-import com.jetbrains.bigdatatools.kafka.core.settings.connections.ConnectionFactory
+import io.confluent.kafka.core.constants.BdtPlugins
+import io.confluent.kafka.core.settings.connections.ConnectionData
+import io.confluent.kafka.core.settings.connections.ConnectionFactory
 
 object ConnectionSettings {
 

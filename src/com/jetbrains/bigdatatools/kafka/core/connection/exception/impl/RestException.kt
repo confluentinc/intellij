@@ -1,6 +1,6 @@
-package com.jetbrains.bigdatatools.kafka.core.connection.exception.impl
+package io.confluent.kafka.core.connection.exception.impl
 
-import com.jetbrains.bigdatatools.kafka.core.util.toPresentableText
+import io.confluent.kafka.core.util.toPresentableText
 import org.apache.http.HttpResponse
 import java.net.SocketException
 import java.net.URI

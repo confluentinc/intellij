@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.driver.task
+package io.confluent.kafka.core.rfs.driver.task
 
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.Task

@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.util
+package io.confluent.kafka.core.rfs.util
 
 import com.intellij.execution.impl.ConsoleViewImpl
 import com.intellij.execution.ui.ConsoleViewContentType
@@ -23,11 +23,11 @@ import com.intellij.ui.ScrollPaneFactory
 import com.intellij.ui.scale.JBUIScale
 import com.intellij.util.ui.HTMLEditorKitBuilder
 import com.intellij.util.ui.JBInsets
-import com.jetbrains.bigdatatools.kafka.core.settings.defaultui.UiUtil
-import com.jetbrains.bigdatatools.kafka.core.ui.MigPanel
-import com.jetbrains.bigdatatools.kafka.core.util.invokeLater
-import com.jetbrains.bigdatatools.kafka.core.util.toPresentableText
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.core.settings.defaultui.UiUtil
+import io.confluent.kafka.core.ui.MigPanel
+import io.confluent.kafka.core.util.invokeLater
+import io.confluent.kafka.core.util.toPresentableText
+import io.confluent.kafka.util.KafkaMessagesBundle
 import net.miginfocom.layout.CC
 import java.awt.Dimension
 import java.awt.Toolkit

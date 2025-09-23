@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.copypaste
+package io.confluent.kafka.core.rfs.copypaste
 
 import com.intellij.ide.highlighter.ArchiveFileType
 import com.intellij.openapi.progress.ProgressIndicator
@@ -6,17 +6,17 @@ import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.progress.Task
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
-import com.jetbrains.bigdatatools.kafka.core.rfs.copypaste.model.CopyOrMove
-import com.jetbrains.bigdatatools.kafka.core.rfs.copypaste.model.RfsCopyMoveContext
-import com.jetbrains.bigdatatools.kafka.core.rfs.copypaste.model.TargetInfo
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.Driver
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.ExportFormat
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.FileInfo
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.RfsPath
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.copyhandler.InterDriverCopyHandler
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.local.LocalDriverManager
-import com.jetbrains.bigdatatools.kafka.core.rfs.util.RfsNotificationUtils
-import com.jetbrains.bigdatatools.kafka.core.util.invokeAndWaitSwing
+import io.confluent.kafka.core.rfs.copypaste.model.CopyOrMove
+import io.confluent.kafka.core.rfs.copypaste.model.RfsCopyMoveContext
+import io.confluent.kafka.core.rfs.copypaste.model.TargetInfo
+import io.confluent.kafka.core.rfs.driver.Driver
+import io.confluent.kafka.core.rfs.driver.ExportFormat
+import io.confluent.kafka.core.rfs.driver.FileInfo
+import io.confluent.kafka.core.rfs.driver.RfsPath
+import io.confluent.kafka.core.rfs.driver.copyhandler.InterDriverCopyHandler
+import io.confluent.kafka.core.rfs.driver.local.LocalDriverManager
+import io.confluent.kafka.core.rfs.util.RfsNotificationUtils
+import io.confluent.kafka.core.util.invokeAndWaitSwing
 import java.io.File
 
 object RfsCopyPasteUtil {

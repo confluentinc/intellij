@@ -3,7 +3,7 @@
 
 @file:Suppress("DialogTitleCapitalization")
 
-package com.jetbrains.bigdatatools.kafka.aws.credentials.sso
+package io.confluent.kafka.aws.credentials.sso
 
 
 object SsoSupport {

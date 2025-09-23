@@ -1,10 +1,10 @@
-package com.jetbrains.bigdatatools.kafka.producer.editor
+package io.confluent.kafka.producer.editor
 
 import com.intellij.ui.dsl.builder.panel
-import com.jetbrains.bigdatatools.kafka.common.editor.Presets
-import com.jetbrains.bigdatatools.kafka.common.settings.KafkaConfigStorage
-import com.jetbrains.bigdatatools.kafka.common.settings.StorageProducerConfig
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.common.editor.Presets
+import io.confluent.kafka.common.settings.KafkaConfigStorage
+import io.confluent.kafka.common.settings.StorageProducerConfig
+import io.confluent.kafka.util.KafkaMessagesBundle
 import java.awt.Component
 import javax.swing.BorderFactory
 import javax.swing.JLabel

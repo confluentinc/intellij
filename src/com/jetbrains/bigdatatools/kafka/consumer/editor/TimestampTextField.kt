@@ -1,9 +1,9 @@
-package com.jetbrains.bigdatatools.kafka.consumer.editor
+package io.confluent.kafka.consumer.editor
 
 import com.intellij.openapi.Disposable
-import com.jetbrains.bigdatatools.kafka.core.settings.buildValidator
-import com.jetbrains.bigdatatools.kafka.core.settings.registerValidator
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.core.settings.buildValidator
+import io.confluent.kafka.core.settings.registerValidator
+import io.confluent.kafka.util.KafkaMessagesBundle
 import java.text.SimpleDateFormat
 import java.util.*
 import javax.swing.JFormattedTextField

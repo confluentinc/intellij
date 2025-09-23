@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.common.models
+package io.confluent.kafka.common.models
 
 import com.google.protobuf.Message
 import org.apache.kafka.common.serialization.Serializer

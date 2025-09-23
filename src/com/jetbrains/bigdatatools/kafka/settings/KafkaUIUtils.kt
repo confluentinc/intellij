@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.settings
+package io.confluent.kafka.settings
 
 import com.intellij.openapi.application.EDT
 import com.intellij.openapi.project.Project
@@ -7,10 +7,10 @@ import com.intellij.openapi.ui.DialogBuilder
 import com.intellij.openapi.util.NlsSafe
 import com.intellij.openapi.util.use
 import com.intellij.util.ui.UI
-import com.jetbrains.bigdatatools.kafka.aws.ui.external.AwsSettingsInfo
-import com.jetbrains.bigdatatools.kafka.core.ui.CustomListCellRenderer
-import com.jetbrains.bigdatatools.kafka.registry.glue.BdtGlueRegistryClient
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.aws.ui.external.AwsSettingsInfo
+import io.confluent.kafka.core.ui.CustomListCellRenderer
+import io.confluent.kafka.registry.glue.BdtGlueRegistryClient
+import io.confluent.kafka.util.KafkaMessagesBundle
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 

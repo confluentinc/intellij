@@ -1,9 +1,9 @@
-package com.jetbrains.bigdatatools.kafka.settings
+package io.confluent.kafka.settings
 
-import com.intellij.bigdatatools.kafka.icons.BigdatatoolsKafkaIcons
+import io.confluent.kafka.icons.BigdatatoolsKafkaIcons
 import com.intellij.openapi.project.Project
-import com.jetbrains.bigdatatools.kafka.core.settings.connections.ConnectionConfigurable
-import com.jetbrains.bigdatatools.kafka.rfs.KafkaConnectionData
+import io.confluent.kafka.core.settings.connections.ConnectionConfigurable
+import io.confluent.kafka.rfs.KafkaConnectionData
 
 class KafkaConnectionConfigurable(
   connectionData: KafkaConnectionData,

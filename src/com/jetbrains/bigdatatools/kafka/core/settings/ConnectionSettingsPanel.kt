@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.core.settings
+package io.confluent.kafka.core.settings
 
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.actionSystem.ActionGroup
@@ -20,13 +20,13 @@ import com.intellij.util.IconUtil
 import com.intellij.util.containers.MultiMap
 import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.tree.TreeUtil
-import com.jetbrains.bigdatatools.kafka.core.settings.actions.CreateConnectionPopup
-import com.jetbrains.bigdatatools.kafka.core.settings.actions.showForToolbarOrInBestPositionFor
-import com.jetbrains.bigdatatools.kafka.core.settings.connections.*
-import com.jetbrains.bigdatatools.kafka.core.settings.manager.RfsConnectionDataManager
-import com.jetbrains.bigdatatools.kafka.core.settings.paneadd.StandaloneCreateConnectionUtil
-import com.jetbrains.bigdatatools.kafka.core.util.BdIdeRegistryUtil
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.core.settings.actions.CreateConnectionPopup
+import io.confluent.kafka.core.settings.actions.showForToolbarOrInBestPositionFor
+import io.confluent.kafka.core.settings.connections.*
+import io.confluent.kafka.core.settings.manager.RfsConnectionDataManager
+import io.confluent.kafka.core.settings.paneadd.StandaloneCreateConnectionUtil
+import io.confluent.kafka.core.util.BdIdeRegistryUtil
+import io.confluent.kafka.util.KafkaMessagesBundle
 import org.jetbrains.annotations.Nls
 import java.awt.Component
 import java.awt.Dimension

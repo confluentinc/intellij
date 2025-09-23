@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.core.table.model
+package io.confluent.kafka.core.table.model
 
 import com.intellij.charts.dataframe.DataFrame
 import com.intellij.charts.dataframe.columns.IntegerType

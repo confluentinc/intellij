@@ -1,13 +1,13 @@
-package com.jetbrains.bigdatatools.kafka.core.monitoring.table.extension
+package io.confluent.kafka.core.monitoring.table.extension
 
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.util.Disposer
-import com.jetbrains.bigdatatools.kafka.core.monitoring.table.model.DataTableColumnModel
-import com.jetbrains.bigdatatools.kafka.core.settings.ColumnVisibilitySettings
-import com.jetbrains.bigdatatools.kafka.core.table.DecoratableDataTableModel
-import com.jetbrains.bigdatatools.kafka.core.table.MaterialTable
-import com.jetbrains.bigdatatools.kafka.core.table.renderers.DataRenderingUtil
-import com.jetbrains.bigdatatools.kafka.core.table.renderers.MouseListeningRenderer
+import io.confluent.kafka.core.monitoring.table.model.DataTableColumnModel
+import io.confluent.kafka.core.settings.ColumnVisibilitySettings
+import io.confluent.kafka.core.table.DecoratableDataTableModel
+import io.confluent.kafka.core.table.MaterialTable
+import io.confluent.kafka.core.table.renderers.DataRenderingUtil
+import io.confluent.kafka.core.table.renderers.MouseListeningRenderer
 import javax.swing.table.TableCellRenderer
 
 class TableRenderersSetter private constructor(private val table: MaterialTable,

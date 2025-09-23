@@ -1,10 +1,10 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.editorviewer
+package io.confluent.kafka.core.rfs.editorviewer
 
 import com.intellij.openapi.components.*
 import com.intellij.util.xmlb.XmlSerializerUtil
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.Driver
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.RfsPath
-import com.jetbrains.bigdatatools.kafka.core.settings.manager.RfsConnectionDataManager
+import io.confluent.kafka.core.rfs.driver.Driver
+import io.confluent.kafka.core.rfs.driver.RfsPath
+import io.confluent.kafka.core.settings.manager.RfsConnectionDataManager
 
 @Service
 @State(name = "RfsFileViewerSettings", storages = [Storage("rfsFileViewerSettings.xml")])

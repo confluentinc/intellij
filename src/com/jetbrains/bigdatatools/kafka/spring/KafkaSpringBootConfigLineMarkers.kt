@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.spring
+package io.confluent.kafka.spring
 
 import com.intellij.codeInsight.daemon.LineMarkerInfo
 import com.intellij.codeInsight.daemon.LineMarkerProviderDescriptor
@@ -21,7 +21,7 @@ import com.intellij.psi.ElementManipulators
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiLanguageInjectionHost
 import com.intellij.spring.SpringLibraryUtil
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.util.KafkaMessagesBundle
 import javax.swing.Icon
 
 internal class KafkaSpringBootConfigLineMarkers : LineMarkerProviderDescriptor() {

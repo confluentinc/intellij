@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.registry
+package io.confluent.kafka.registry
 
 import io.confluent.kafka.schemaregistry.client.rest.entities.SchemaReference
 

@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.completion
+package io.confluent.kafka.completion
 
 import com.intellij.codeInsight.completion.CompletionContributor
 import com.intellij.codeInsight.completion.CompletionType

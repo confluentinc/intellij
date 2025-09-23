@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.registry
+package io.confluent.kafka.registry
 
 import com.intellij.icons.AllIcons
 import com.intellij.json.JsonLanguage
@@ -14,15 +14,15 @@ import com.intellij.ui.dsl.builder.Align
 import com.intellij.ui.dsl.builder.Row
 import com.intellij.ui.dsl.builder.panel
 import com.intellij.util.ui.UIUtil
-import com.jetbrains.bigdatatools.kafka.common.editor.KafkaEditorUtils
-import com.jetbrains.bigdatatools.kafka.common.models.TopicInEditor
-import com.jetbrains.bigdatatools.kafka.core.settings.withNonEmptyValidator
-import com.jetbrains.bigdatatools.kafka.core.ui.CustomListCellRenderer
-import com.jetbrains.bigdatatools.kafka.core.util.toPresentableText
-import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
-import com.jetbrains.bigdatatools.kafka.registry.confluent.controller.TopicSchemaViewType
-import com.jetbrains.bigdatatools.kafka.registry.ui.KafkaRegistrySchemaEditor
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.common.editor.KafkaEditorUtils
+import io.confluent.kafka.common.models.TopicInEditor
+import io.confluent.kafka.core.settings.withNonEmptyValidator
+import io.confluent.kafka.core.ui.CustomListCellRenderer
+import io.confluent.kafka.core.util.toPresentableText
+import io.confluent.kafka.data.KafkaDataManager
+import io.confluent.kafka.registry.confluent.controller.TopicSchemaViewType
+import io.confluent.kafka.registry.ui.KafkaRegistrySchemaEditor
+import io.confluent.kafka.util.KafkaMessagesBundle
 import io.confluent.kafka.schemaregistry.ParsedSchema
 import javax.swing.JComponent
 import javax.swing.JEditorPane
@@ -167,7 +167,7 @@ class KafkaRegistryAddSchemaDialog(project: Project, val dataManager: KafkaDataM
 
   override fun createCenterPanel(): JComponent = panel
 
-  override fun getDimensionServiceKey(): String = "com.jetbrains.bigdatatools.kafka.core.ui.add.kafka.registry.dialog.bounds"
+  override fun getDimensionServiceKey(): String = "io.confluent.kafka.core.ui.add.kafka.registry.dialog.bounds"
 
   private fun getSchemaName(): String = when (strategyCombobox.item) {
     ConfluentRegistryStrategy.TOPIC_NAME -> subjectNameField.text

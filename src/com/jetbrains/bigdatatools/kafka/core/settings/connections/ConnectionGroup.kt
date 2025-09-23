@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.core.settings.connections
+package io.confluent.kafka.core.settings.connections
 
 import org.jetbrains.annotations.Nls
 import javax.swing.Icon

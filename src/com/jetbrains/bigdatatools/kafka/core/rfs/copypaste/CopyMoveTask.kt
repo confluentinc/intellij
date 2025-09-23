@@ -1,20 +1,20 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.copypaste
+package io.confluent.kafka.core.rfs.copypaste
 
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.Task
 import com.intellij.openapi.progress.runBlockingCancellable
 import com.intellij.openapi.project.Project
-import com.jetbrains.bigdatatools.kafka.core.rfs.copypaste.dialog.RfsSkipOverwriteChoice
-import com.jetbrains.bigdatatools.kafka.core.rfs.copypaste.model.RfsCopyMoveContext
-import com.jetbrains.bigdatatools.kafka.core.rfs.copypaste.model.RfsEstimateSizeCountContext
-import com.jetbrains.bigdatatools.kafka.core.rfs.copypaste.utils.RfsUserConfirmatory
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.Driver
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.ExportFormat
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.FileInfo
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.RfsPath
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.task.RemoteFsMoveTask
-import com.jetbrains.bigdatatools.kafka.core.rfs.util.RfsNotificationUtils
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.core.rfs.copypaste.dialog.RfsSkipOverwriteChoice
+import io.confluent.kafka.core.rfs.copypaste.model.RfsCopyMoveContext
+import io.confluent.kafka.core.rfs.copypaste.model.RfsEstimateSizeCountContext
+import io.confluent.kafka.core.rfs.copypaste.utils.RfsUserConfirmatory
+import io.confluent.kafka.core.rfs.driver.Driver
+import io.confluent.kafka.core.rfs.driver.ExportFormat
+import io.confluent.kafka.core.rfs.driver.FileInfo
+import io.confluent.kafka.core.rfs.driver.RfsPath
+import io.confluent.kafka.core.rfs.driver.task.RemoteFsMoveTask
+import io.confluent.kafka.core.rfs.util.RfsNotificationUtils
+import io.confluent.kafka.util.KafkaMessagesBundle
 
 class CopyMoveTask(project: Project,
                    private val targetDriver: Driver,

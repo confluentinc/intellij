@@ -1,13 +1,13 @@
-package com.jetbrains.bigdatatools.kafka.core.settings.fields
+package io.confluent.kafka.core.settings.fields
 
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.project.Project
-import com.jetbrains.bigdatatools.kafka.core.settings.ModificationKey
-import com.jetbrains.bigdatatools.kafka.core.settings.components.BdtPropertyComponent
-import com.jetbrains.bigdatatools.kafka.core.settings.connections.ConnectionData
-import com.jetbrains.bigdatatools.kafka.core.settings.withValidator
-import com.jetbrains.bigdatatools.kafka.core.ui.components.ConnectionProperty
-import com.jetbrains.bigdatatools.kafka.core.util.toPresentableText
+import io.confluent.kafka.core.settings.ModificationKey
+import io.confluent.kafka.core.settings.components.BdtPropertyComponent
+import io.confluent.kafka.core.settings.connections.ConnectionData
+import io.confluent.kafka.core.settings.withValidator
+import io.confluent.kafka.core.ui.components.ConnectionProperty
+import io.confluent.kafka.core.util.toPresentableText
 import kotlin.reflect.KMutableProperty1
 
 /** Properties could contain also sensitive information and this component stores it in secure storage. */

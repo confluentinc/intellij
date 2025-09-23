@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.core.ui.filter
+package io.confluent.kafka.core.ui.filter
 
 import com.intellij.openapi.actionSystem.ActionGroup
 import com.intellij.openapi.actionSystem.DefaultActionGroup
@@ -6,7 +6,7 @@ import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.ui.DialogBuilder
 import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.ui.components.fields.IntegerField
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.util.KafkaMessagesBundle
 import org.jetbrains.annotations.Nls
 import java.awt.BorderLayout
 import javax.swing.JLabel

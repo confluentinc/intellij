@@ -1,6 +1,6 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.icons
+package io.confluent.kafka.core.rfs.icons
 
-import com.intellij.bigdatatools.kafka.icons.BigdatatoolsKafkaIcons
+import io.confluent.kafka.icons.BigdatatoolsKafkaIcons
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.util.ScalableIcon
 import com.intellij.ui.AnimatedIcon

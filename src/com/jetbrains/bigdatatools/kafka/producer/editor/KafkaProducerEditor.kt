@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.producer.editor
+package io.confluent.kafka.producer.editor
 
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.fileEditor.FileEditor
@@ -17,25 +17,25 @@ import com.intellij.ui.components.fields.IntegerField
 import com.intellij.ui.dsl.builder.*
 import com.intellij.ui.layout.not
 import com.intellij.ui.layout.selected
-import com.jetbrains.bigdatatools.kafka.common.editor.*
-import com.jetbrains.bigdatatools.kafka.common.models.TopicInEditor
-import com.jetbrains.bigdatatools.kafka.common.settings.KafkaConfigStorage
-import com.jetbrains.bigdatatools.kafka.common.settings.StorageProducerConfig
-import com.jetbrains.bigdatatools.kafka.consumer.editor.KafkaRecord
-import com.jetbrains.bigdatatools.kafka.consumer.editor.KafkaRecordsOutput
-import com.jetbrains.bigdatatools.kafka.core.rfs.util.RfsNotificationUtils
-import com.jetbrains.bigdatatools.kafka.core.settings.getValidationInfo
-import com.jetbrains.bigdatatools.kafka.core.ui.CustomListCellRenderer
-import com.jetbrains.bigdatatools.kafka.core.ui.ExpansionPanel
-import com.jetbrains.bigdatatools.kafka.core.ui.MultiSplitter
-import com.jetbrains.bigdatatools.kafka.core.util.executeNotOnEdt
-import com.jetbrains.bigdatatools.kafka.core.util.invokeLater
-import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
-import com.jetbrains.bigdatatools.kafka.producer.models.AcksType
-import com.jetbrains.bigdatatools.kafka.producer.models.ProducerEditorState
-import com.jetbrains.bigdatatools.kafka.producer.models.ProducerFlowParams
-import com.jetbrains.bigdatatools.kafka.producer.models.RecordCompression
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.common.editor.*
+import io.confluent.kafka.common.models.TopicInEditor
+import io.confluent.kafka.common.settings.KafkaConfigStorage
+import io.confluent.kafka.common.settings.StorageProducerConfig
+import io.confluent.kafka.consumer.editor.KafkaRecord
+import io.confluent.kafka.consumer.editor.KafkaRecordsOutput
+import io.confluent.kafka.core.rfs.util.RfsNotificationUtils
+import io.confluent.kafka.core.settings.getValidationInfo
+import io.confluent.kafka.core.ui.CustomListCellRenderer
+import io.confluent.kafka.core.ui.ExpansionPanel
+import io.confluent.kafka.core.ui.MultiSplitter
+import io.confluent.kafka.core.util.executeNotOnEdt
+import io.confluent.kafka.core.util.invokeLater
+import io.confluent.kafka.data.KafkaDataManager
+import io.confluent.kafka.producer.models.AcksType
+import io.confluent.kafka.producer.models.ProducerEditorState
+import io.confluent.kafka.producer.models.ProducerFlowParams
+import io.confluent.kafka.producer.models.RecordCompression
+import io.confluent.kafka.util.KafkaMessagesBundle
 import java.awt.Dimension
 import java.beans.PropertyChangeListener
 import javax.swing.JButton
@@ -331,7 +331,7 @@ class KafkaProducerEditor(val project: Project,
   companion object {
     val STATE_KEY = Key<ProducerEditorState>("PRODUCER_STATE")
 
-    private const val SETTINGS_SHOW_ID = "com.jetbrains.bigdatatools.kafka.producer.settings.show"
-    private const val PRESETS_SHOW_ID = "com.jetbrains.bigdatatools.kafka.producer.presets.show"
+    private const val SETTINGS_SHOW_ID = "io.confluent.kafka.producer.settings.show"
+    private const val PRESETS_SHOW_ID = "io.confluent.kafka.producer.presets.show"
   }
 }

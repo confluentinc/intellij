@@ -1,6 +1,6 @@
-package com.jetbrains.bigdatatools.kafka.core.connection.exception
+package io.confluent.kafka.core.connection.exception
 
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.util.KafkaMessagesBundle
 import org.jetbrains.annotations.Nls
 
 open class BdtConnectionException(open val shortDescription: @Nls String = KafkaMessagesBundle.message("connection.error.exception"),

@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.driver
+package io.confluent.kafka.core.rfs.driver
 
 enum class ActivitySource(val calledByUser: Boolean) {
   DEPEND_UPDATED(false),

@@ -1,16 +1,16 @@
-package com.jetbrains.bigdatatools.kafka.core.monitoring.data
+package io.confluent.kafka.core.monitoring.data
 
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
-import com.jetbrains.bigdatatools.kafka.core.connection.updater.IntervalUpdateSettings
-import com.jetbrains.bigdatatools.kafka.core.monitoring.connection.MonitoringClient
-import com.jetbrains.bigdatatools.kafka.core.monitoring.data.updater.BdtMonitoringUpdater
-import com.jetbrains.bigdatatools.kafka.core.monitoring.data.updater.MonitoringProgressComponent
-import com.jetbrains.bigdatatools.kafka.core.monitoring.rfs.MonitoringDriver
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.manager.DriverManager
-import com.jetbrains.bigdatatools.kafka.core.rfs.util.RfsNotificationUtils
-import com.jetbrains.bigdatatools.kafka.core.settings.connections.ConnectionData
+import io.confluent.kafka.core.connection.updater.IntervalUpdateSettings
+import io.confluent.kafka.core.monitoring.connection.MonitoringClient
+import io.confluent.kafka.core.monitoring.data.updater.BdtMonitoringUpdater
+import io.confluent.kafka.core.monitoring.data.updater.MonitoringProgressComponent
+import io.confluent.kafka.core.monitoring.rfs.MonitoringDriver
+import io.confluent.kafka.core.rfs.driver.manager.DriverManager
+import io.confluent.kafka.core.rfs.util.RfsNotificationUtils
+import io.confluent.kafka.core.settings.connections.ConnectionData
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 

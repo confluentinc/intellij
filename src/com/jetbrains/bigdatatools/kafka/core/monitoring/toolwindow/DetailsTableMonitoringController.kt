@@ -1,9 +1,9 @@
-package com.jetbrains.bigdatatools.kafka.core.monitoring.toolwindow
+package io.confluent.kafka.core.monitoring.toolwindow
 
-import com.jetbrains.bigdatatools.kafka.core.monitoring.data.model.RemoteInfo
-import com.jetbrains.bigdatatools.kafka.core.monitoring.table.extension.TableColumnsFitter
-import com.jetbrains.bigdatatools.kafka.core.monitoring.table.extension.TableExtensionType
-import com.jetbrains.bigdatatools.kafka.core.monitoring.table.extension.TableLoadingDecorator
+import io.confluent.kafka.core.monitoring.data.model.RemoteInfo
+import io.confluent.kafka.core.monitoring.table.extension.TableColumnsFitter
+import io.confluent.kafka.core.monitoring.table.extension.TableExtensionType
+import io.confluent.kafka.core.monitoring.table.extension.TableLoadingDecorator
 import java.util.*
 
 abstract class DetailsTableMonitoringController<T : RemoteInfo, ID> : AbstractTableController<T>(), DetailsMonitoringController<ID> {

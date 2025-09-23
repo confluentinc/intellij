@@ -1,15 +1,15 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.search.impl
+package io.confluent.kafka.core.rfs.search.impl
 
 import com.intellij.ide.projectView.impl.ProjectViewTree
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.wm.ToolWindowManager
 import com.intellij.util.Processor
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.Driver
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.RfsPath
-import com.jetbrains.bigdatatools.kafka.core.rfs.projectview.toolwindow.BigDataToolWindowFactory
-import com.jetbrains.bigdatatools.kafka.core.rfs.view.FileTypeViewerManager
-import com.jetbrains.bigdatatools.kafka.core.settings.defaultui.UiUtil
-import com.jetbrains.bigdatatools.kafka.core.util.BdtAsyncPromise
+import io.confluent.kafka.core.rfs.driver.Driver
+import io.confluent.kafka.core.rfs.driver.RfsPath
+import io.confluent.kafka.core.rfs.projectview.toolwindow.BigDataToolWindowFactory
+import io.confluent.kafka.core.rfs.view.FileTypeViewerManager
+import io.confluent.kafka.core.settings.defaultui.UiUtil
+import io.confluent.kafka.core.util.BdtAsyncPromise
 import org.jetbrains.concurrency.AsyncPromise
 
 object BdtConnectionSearcher {

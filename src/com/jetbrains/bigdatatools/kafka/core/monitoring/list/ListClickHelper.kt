@@ -1,7 +1,7 @@
-package com.jetbrains.bigdatatools.kafka.core.monitoring.list
+package io.confluent.kafka.core.monitoring.list
 
-import com.jetbrains.bigdatatools.kafka.core.monitoring.BrowseOnClick
-import com.jetbrains.bigdatatools.kafka.core.table.MaterialTable
+import io.confluent.kafka.core.monitoring.BrowseOnClick
+import io.confluent.kafka.core.table.MaterialTable
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
 import kotlin.reflect.KProperty1

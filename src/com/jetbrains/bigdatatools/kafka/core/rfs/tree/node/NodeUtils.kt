@@ -1,10 +1,10 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.tree.node
+package io.confluent.kafka.core.rfs.tree.node
 
 import com.intellij.ide.util.treeView.AbstractTreeNode
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.FileInfo
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.writeLocked
-import com.jetbrains.bigdatatools.kafka.core.rfs.fileType.RfsFileType
-import com.jetbrains.bigdatatools.kafka.core.rfs.icons.RfsIcons
+import io.confluent.kafka.core.rfs.driver.FileInfo
+import io.confluent.kafka.core.rfs.driver.writeLocked
+import io.confluent.kafka.core.rfs.fileType.RfsFileType
+import io.confluent.kafka.core.rfs.icons.RfsIcons
 import javax.swing.Icon
 import javax.swing.tree.TreePath
 

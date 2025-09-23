@@ -1,12 +1,12 @@
-package com.jetbrains.bigdatatools.kafka.core.settings.paneadd
+package io.confluent.kafka.core.settings.paneadd
 
 import com.intellij.openapi.actionSystem.*
 import com.intellij.openapi.project.Project
 import com.intellij.util.containers.MultiMap
-import com.jetbrains.bigdatatools.kafka.core.settings.connections.BrokerConnectionGroup
-import com.jetbrains.bigdatatools.kafka.core.settings.connections.ConnectionFactory
-import com.jetbrains.bigdatatools.kafka.core.settings.connections.ConnectionGroup
-import com.jetbrains.bigdatatools.kafka.core.settings.connections.ConnectionSettingProviderEP
+import io.confluent.kafka.core.settings.connections.BrokerConnectionGroup
+import io.confluent.kafka.core.settings.connections.ConnectionFactory
+import io.confluent.kafka.core.settings.connections.ConnectionGroup
+import io.confluent.kafka.core.settings.connections.ConnectionSettingProviderEP
 
 object StandaloneCreateConnectionUtil {
   val groupsPriority: Map<String, Int> = mapOf(BrokerConnectionGroup.GROUP_ID to 0)

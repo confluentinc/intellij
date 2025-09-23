@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.registry
+package io.confluent.kafka.registry
 
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonElement
@@ -6,12 +6,12 @@ import com.intellij.lang.Language
 import com.intellij.openapi.fileTypes.PlainTextLanguage
 import com.intellij.openapi.util.NlsSafe
 import com.intellij.util.concurrency.annotations.RequiresBackgroundThread
-import com.jetbrains.bigdatatools.kafka.common.models.KafkaFieldType
-import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
-import com.jetbrains.bigdatatools.kafka.registry.confluent.ConfluentRegistryClient
-import com.jetbrains.bigdatatools.kafka.registry.serde.BdtAvroSchemaProvider
-import com.jetbrains.bigdatatools.kafka.registry.serde.BdtJsonSchemaProvider
-import com.jetbrains.bigdatatools.kafka.registry.serde.BdtProtobufSchemaProvider
+import io.confluent.kafka.common.models.KafkaFieldType
+import io.confluent.kafka.data.KafkaDataManager
+import io.confluent.kafka.registry.confluent.ConfluentRegistryClient
+import io.confluent.kafka.registry.serde.BdtAvroSchemaProvider
+import io.confluent.kafka.registry.serde.BdtJsonSchemaProvider
+import io.confluent.kafka.registry.serde.BdtProtobufSchemaProvider
 import io.confluent.kafka.schemaregistry.AbstractSchemaProvider
 import io.confluent.kafka.schemaregistry.ParsedSchema
 import io.confluent.kafka.schemaregistry.client.rest.entities.SchemaReference

@@ -1,10 +1,10 @@
-package com.jetbrains.bigdatatools.kafka.settings
+package io.confluent.kafka.settings
 
-import com.intellij.bigdatatools.kafka.icons.BigdatatoolsKafkaIcons
-import com.jetbrains.bigdatatools.kafka.core.constants.BdtConnectionType
-import com.jetbrains.bigdatatools.kafka.core.settings.connections.BrokerConnectionGroup
-import com.jetbrains.bigdatatools.kafka.core.settings.connections.ConnectionFactory
-import com.jetbrains.bigdatatools.kafka.rfs.KafkaConnectionData
+import io.confluent.kafka.icons.BigdatatoolsKafkaIcons
+import io.confluent.kafka.core.constants.BdtConnectionType
+import io.confluent.kafka.core.settings.connections.BrokerConnectionGroup
+import io.confluent.kafka.core.settings.connections.ConnectionFactory
+import io.confluent.kafka.rfs.KafkaConnectionData
 
 class KafkaConnectionGroup : ConnectionFactory<KafkaConnectionData>(
   id = BdtConnectionType.KAFKA.id,

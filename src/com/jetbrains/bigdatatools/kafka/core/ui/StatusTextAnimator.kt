@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.core.ui
+package io.confluent.kafka.core.ui
 
 import com.intellij.openapi.Disposable
 import com.intellij.util.concurrency.EdtExecutorService

@@ -1,7 +1,7 @@
-package com.jetbrains.bigdatatools.kafka
+package io.confluent.kafka
 
 import com.intellij.testFramework.UsefulTestCase
-import com.jetbrains.bigdatatools.kafka.util.KafkaPropertiesUtils
+import io.confluent.kafka.util.KafkaPropertiesUtils
 
 internal class KafkaPropertiesTest : UsefulTestCase() {
   fun testAdmin() {

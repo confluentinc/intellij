@@ -1,8 +1,8 @@
-package com.jetbrains.bigdatatools.kafka.core.monitoring.actions.tabs
+package io.confluent.kafka.core.monitoring.actions.tabs
 
 import com.intellij.openapi.actionSystem.AnActionEvent
-import com.jetbrains.bigdatatools.kafka.core.util.ConnectionUtil
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.core.util.ConnectionUtil
+import io.confluent.kafka.util.KafkaMessagesBundle
 
 class MonitoringTabDeleteConnection : MonitoringTabConnectionAction() {
   override fun update(e: AnActionEvent) {

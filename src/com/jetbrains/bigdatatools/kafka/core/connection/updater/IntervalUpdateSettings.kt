@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.core.connection.updater
+package io.confluent.kafka.core.connection.updater
 
 interface IntervalUpdateSettings {
   var dataUpdateIntervalMillis: Int

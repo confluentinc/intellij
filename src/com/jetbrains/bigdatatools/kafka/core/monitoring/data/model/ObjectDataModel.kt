@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.core.monitoring.data.model
+package io.confluent.kafka.core.monitoring.data.model
 
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job

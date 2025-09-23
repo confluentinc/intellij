@@ -1,14 +1,14 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.driver.depend
+package io.confluent.kafka.core.rfs.driver.depend
 
 import com.intellij.openapi.project.Project
-import com.jetbrains.bigdatatools.kafka.core.settings.CommonSettingsKeys
-import com.jetbrains.bigdatatools.kafka.core.settings.ConnectionSettingsListener
-import com.jetbrains.bigdatatools.kafka.core.settings.ExtendedConnectionData
-import com.jetbrains.bigdatatools.kafka.core.settings.ModificationKey
-import com.jetbrains.bigdatatools.kafka.core.settings.connections.ConnectionData
-import com.jetbrains.bigdatatools.kafka.core.settings.manager.RfsConnectionDataManager
-import com.jetbrains.bigdatatools.kafka.core.util.ConnectionUtil
-import com.jetbrains.bigdatatools.kafka.core.util.invokeLater
+import io.confluent.kafka.core.settings.CommonSettingsKeys
+import io.confluent.kafka.core.settings.ConnectionSettingsListener
+import io.confluent.kafka.core.settings.ExtendedConnectionData
+import io.confluent.kafka.core.settings.ModificationKey
+import io.confluent.kafka.core.settings.connections.ConnectionData
+import io.confluent.kafka.core.settings.manager.RfsConnectionDataManager
+import io.confluent.kafka.core.util.ConnectionUtil
+import io.confluent.kafka.core.util.invokeLater
 
 class MasterSlaveConnectionRemoveListener : ConnectionSettingsListener {
   override fun onConnectionRemoved(project: Project?, removedConnectionData: ConnectionData) {

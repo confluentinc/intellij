@@ -1,11 +1,11 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.copypaste.model
+package io.confluent.kafka.core.rfs.copypaste.model
 
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.util.Key
-import com.jetbrains.bigdatatools.kafka.core.delegate.Delegate
-import com.jetbrains.bigdatatools.kafka.core.delegate.Delegate2
-import com.jetbrains.bigdatatools.kafka.core.util.SizeUtils
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.core.delegate.Delegate
+import io.confluent.kafka.core.delegate.Delegate2
+import io.confluent.kafka.core.util.SizeUtils
+import io.confluent.kafka.util.KafkaMessagesBundle
 
 
 data class RfsEstimateSizeCountContext(val progressIndicator: ProgressIndicator) {

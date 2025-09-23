@@ -1,6 +1,6 @@
-package com.jetbrains.bigdatatools.kafka.core.table.filters
+package io.confluent.kafka.core.table.filters
 
-import com.jetbrains.bigdatatools.kafka.core.table.renderers.DateRenderer
+import io.confluent.kafka.core.table.renderers.DateRenderer
 import java.util.*
 import javax.swing.JTable
 import javax.swing.RowFilter

@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.core.table
+package io.confluent.kafka.core.table
 
 import com.intellij.icons.AllIcons
 import com.intellij.ide.CopyProvider
@@ -11,7 +11,7 @@ import com.intellij.ui.SideBorder
 import com.intellij.ui.table.JBTable
 import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.UIUtil
-import com.jetbrains.bigdatatools.kafka.core.table.renderers.*
+import io.confluent.kafka.core.table.renderers.*
 import java.awt.Color
 import java.awt.Component
 import java.awt.event.MouseEvent

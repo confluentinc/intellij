@@ -1,7 +1,7 @@
-package com.jetbrains.bigdatatools.kafka.aws.ui
+package io.confluent.kafka.aws.ui
 
-import com.jetbrains.bigdatatools.kafka.aws.settings.models.AwsRegionEntity
-import com.jetbrains.bigdatatools.kafka.aws.settings.models.AwsRegionGroup
+import io.confluent.kafka.aws.settings.models.AwsRegionEntity
+import io.confluent.kafka.aws.settings.models.AwsRegionGroup
 
 object AwsComponentsBuilder {
 

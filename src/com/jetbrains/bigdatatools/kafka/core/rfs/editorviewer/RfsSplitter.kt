@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.editorviewer
+package io.confluent.kafka.core.rfs.editorviewer
 
 import com.intellij.openapi.ui.Divider
 import com.intellij.openapi.ui.OnePixelDivider

@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.driver.manager
+package io.confluent.kafka.core.rfs.driver.manager
 
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.components.service
@@ -6,18 +6,18 @@ import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.ProjectManager
 import com.intellij.openapi.util.Disposer
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.ActivitySource
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.Driver
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.refreshConnectionLaunch
-import com.jetbrains.bigdatatools.kafka.core.rfs.settings.RemoteFsDriverProvider
-import com.jetbrains.bigdatatools.kafka.core.settings.CommonSettingsKeys
-import com.jetbrains.bigdatatools.kafka.core.settings.ConnectionSettingsListener
-import com.jetbrains.bigdatatools.kafka.core.settings.ModificationKey
-import com.jetbrains.bigdatatools.kafka.core.settings.connections.ConnectionData
-import com.jetbrains.bigdatatools.kafka.core.settings.manager.RfsConnectionDataManager
-import com.jetbrains.bigdatatools.kafka.core.settings.manager.RfsConnectionDataManager.Companion.filterOnlyEnabled
-import com.jetbrains.bigdatatools.kafka.core.util.BdtAsyncPromise
-import com.jetbrains.bigdatatools.kafka.core.util.executeNotOnEdt
+import io.confluent.kafka.core.rfs.driver.ActivitySource
+import io.confluent.kafka.core.rfs.driver.Driver
+import io.confluent.kafka.core.rfs.driver.refreshConnectionLaunch
+import io.confluent.kafka.core.rfs.settings.RemoteFsDriverProvider
+import io.confluent.kafka.core.settings.CommonSettingsKeys
+import io.confluent.kafka.core.settings.ConnectionSettingsListener
+import io.confluent.kafka.core.settings.ModificationKey
+import io.confluent.kafka.core.settings.connections.ConnectionData
+import io.confluent.kafka.core.settings.manager.RfsConnectionDataManager
+import io.confluent.kafka.core.settings.manager.RfsConnectionDataManager.Companion.filterOnlyEnabled
+import io.confluent.kafka.core.util.BdtAsyncPromise
+import io.confluent.kafka.core.util.executeNotOnEdt
 import org.jetbrains.annotations.TestOnly
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.atomic.AtomicBoolean

@@ -1,6 +1,6 @@
-package com.jetbrains.bigdatatools.kafka.core.table.renderers
+package io.confluent.kafka.core.table.renderers
 
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.util.KafkaMessagesBundle
 import javax.swing.SwingConstants
 
 class LoadingRenderer(rightAligned: Boolean) : MaterialTableCellRenderer() {

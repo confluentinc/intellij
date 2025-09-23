@@ -1,6 +1,6 @@
-package com.jetbrains.bigdatatools.kafka.rfs
+package io.confluent.kafka.rfs
 
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.util.KafkaMessagesBundle
 import org.apache.kafka.common.config.SaslConfigs.GSSAPI_MECHANISM
 
 enum class KafkaSaslMechanism(val title: String, val saslMechanism: String?, val module: String) {

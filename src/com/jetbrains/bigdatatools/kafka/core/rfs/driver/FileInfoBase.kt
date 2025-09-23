@@ -1,20 +1,20 @@
 @file:Suppress("DEPRECATION")
 
-package com.jetbrains.bigdatatools.kafka.core.rfs.driver
+package io.confluent.kafka.core.rfs.driver
 
 import com.intellij.openapi.progress.EmptyProgressIndicator
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.util.Disposer
 import com.intellij.util.PathUtil
-import com.jetbrains.bigdatatools.kafka.core.rfs.copypaste.model.RfsCopyMoveContext
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.fileinfo.SafeResult
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.local.LocalDriver
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.task.RemoteFsDeleteTask
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.task.RemoteFsMoveTask
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.task.RemoteFsTask
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.task.RfsCopyMoveTask
-import com.jetbrains.bigdatatools.kafka.core.rfs.exception.RfsPermissionException
-import com.jetbrains.bigdatatools.kafka.core.rfs.util.withSlash
+import io.confluent.kafka.core.rfs.copypaste.model.RfsCopyMoveContext
+import io.confluent.kafka.core.rfs.driver.fileinfo.SafeResult
+import io.confluent.kafka.core.rfs.driver.local.LocalDriver
+import io.confluent.kafka.core.rfs.driver.task.RemoteFsDeleteTask
+import io.confluent.kafka.core.rfs.driver.task.RemoteFsMoveTask
+import io.confluent.kafka.core.rfs.driver.task.RemoteFsTask
+import io.confluent.kafka.core.rfs.driver.task.RfsCopyMoveTask
+import io.confluent.kafka.core.rfs.exception.RfsPermissionException
+import io.confluent.kafka.core.rfs.util.withSlash
 import java.io.InputStream
 
 abstract class FileInfoBase : FileInfo {

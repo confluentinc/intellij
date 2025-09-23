@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.core.settings
+package io.confluent.kafka.core.settings
 
 import com.intellij.ide.plugins.DynamicPluginListener
 import com.intellij.openapi.application.ApplicationManager

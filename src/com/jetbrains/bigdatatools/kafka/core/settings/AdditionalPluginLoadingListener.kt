@@ -1,12 +1,12 @@
-package com.jetbrains.bigdatatools.kafka.core.settings
+package io.confluent.kafka.core.settings
 
 import com.intellij.ide.plugins.DynamicPluginListener
 import com.intellij.ide.plugins.IdeaPluginDescriptor
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.ProjectManager
-import com.jetbrains.bigdatatools.kafka.core.constants.BdtConnectionType
-import com.jetbrains.bigdatatools.kafka.core.constants.BdtPlugins
-import com.jetbrains.bigdatatools.kafka.core.settings.manager.RfsConnectionDataManager
+import io.confluent.kafka.core.constants.BdtConnectionType
+import io.confluent.kafka.core.constants.BdtPlugins
+import io.confluent.kafka.core.settings.manager.RfsConnectionDataManager
 
 class AdditionalPluginLoadingListener : DynamicPluginListener {
   override fun pluginLoaded(pluginDescriptor: IdeaPluginDescriptor) {

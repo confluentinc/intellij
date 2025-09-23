@@ -1,9 +1,9 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.tree
+package io.confluent.kafka.core.rfs.tree
 
 import com.intellij.openapi.project.Project
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.Driver
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.FileInfo
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.RfsPath
+import io.confluent.kafka.core.rfs.driver.Driver
+import io.confluent.kafka.core.rfs.driver.FileInfo
+import io.confluent.kafka.core.rfs.driver.RfsPath
 import javax.swing.tree.TreePath
 
 open class SmartDriverRfsTreeModel(

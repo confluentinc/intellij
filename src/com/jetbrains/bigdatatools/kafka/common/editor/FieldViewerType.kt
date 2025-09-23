@@ -1,6 +1,6 @@
-package com.jetbrains.bigdatatools.kafka.common.editor
+package io.confluent.kafka.common.editor
 
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.util.KafkaMessagesBundle
 import org.jetbrains.annotations.Nls
 
 /** For consumer Value and Keys fields we can have a number of options. */

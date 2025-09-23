@@ -1,18 +1,18 @@
-package com.jetbrains.bigdatatools.kafka.toolwindow.actions
+package io.confluent.kafka.toolwindow.actions
 
 import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.Toggleable
 import com.intellij.openapi.project.DumbAwareToggleAction
-import com.jetbrains.bigdatatools.kafka.core.monitoring.toolwindow.MainTreeController.Companion.dataManager
-import com.jetbrains.bigdatatools.kafka.core.monitoring.toolwindow.MainTreeController.Companion.rfsPath
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.RfsPath
-import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
-import com.jetbrains.bigdatatools.kafka.rfs.KafkaDriver.Companion.isConsumers
-import com.jetbrains.bigdatatools.kafka.rfs.KafkaDriver.Companion.isSchemas
-import com.jetbrains.bigdatatools.kafka.rfs.KafkaDriver.Companion.isTopicFolder
-import com.jetbrains.bigdatatools.kafka.toolwindow.config.KafkaToolWindowSettings
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.core.monitoring.toolwindow.MainTreeController.Companion.dataManager
+import io.confluent.kafka.core.monitoring.toolwindow.MainTreeController.Companion.rfsPath
+import io.confluent.kafka.core.rfs.driver.RfsPath
+import io.confluent.kafka.data.KafkaDataManager
+import io.confluent.kafka.rfs.KafkaDriver.Companion.isConsumers
+import io.confluent.kafka.rfs.KafkaDriver.Companion.isSchemas
+import io.confluent.kafka.rfs.KafkaDriver.Companion.isTopicFolder
+import io.confluent.kafka.toolwindow.config.KafkaToolWindowSettings
+import io.confluent.kafka.util.KafkaMessagesBundle
 
 class AddToFavoriteAction : DumbAwareToggleAction() {
   override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT

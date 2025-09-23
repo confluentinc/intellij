@@ -1,13 +1,13 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.copypaste.model
+package io.confluent.kafka.core.rfs.copypaste.model
 
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.util.AbstractProgressIndicatorExBase
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.NlsSafe
 import com.intellij.openapi.wm.ex.ProgressIndicatorEx
-import com.jetbrains.bigdatatools.kafka.core.rfs.copypaste.dialog.RfsSkipOverwriteChoice
-import com.jetbrains.bigdatatools.kafka.core.util.SizeUtils
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.core.rfs.copypaste.dialog.RfsSkipOverwriteChoice
+import io.confluent.kafka.core.util.SizeUtils
+import io.confluent.kafka.util.KafkaMessagesBundle
 
 data class RfsCopyMoveContext(val project: Project, val isCopy: Boolean) {
   var progressIndicator: ProgressIndicator? = null

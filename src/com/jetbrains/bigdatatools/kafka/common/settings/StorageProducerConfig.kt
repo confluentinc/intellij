@@ -1,13 +1,13 @@
-package com.jetbrains.bigdatatools.kafka.common.settings
+package io.confluent.kafka.common.settings
 
-import com.jetbrains.bigdatatools.kafka.common.models.KafkaFieldType
-import com.jetbrains.bigdatatools.kafka.consumer.models.CustomSchemaData
-import com.jetbrains.bigdatatools.kafka.core.settings.connections.Property
-import com.jetbrains.bigdatatools.kafka.producer.models.AcksType
-import com.jetbrains.bigdatatools.kafka.producer.models.ProducerFlowParams
-import com.jetbrains.bigdatatools.kafka.producer.models.RecordCompression
-import com.jetbrains.bigdatatools.kafka.registry.ConfluentRegistryStrategy
-import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryFormat
+import io.confluent.kafka.common.models.KafkaFieldType
+import io.confluent.kafka.consumer.models.CustomSchemaData
+import io.confluent.kafka.core.settings.connections.Property
+import io.confluent.kafka.producer.models.AcksType
+import io.confluent.kafka.producer.models.ProducerFlowParams
+import io.confluent.kafka.producer.models.RecordCompression
+import io.confluent.kafka.registry.ConfluentRegistryStrategy
+import io.confluent.kafka.registry.KafkaRegistryFormat
 
 data class StorageProducerConfig(
   var topic: String = "",

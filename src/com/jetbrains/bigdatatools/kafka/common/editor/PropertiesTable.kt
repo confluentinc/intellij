@@ -1,14 +1,14 @@
-package com.jetbrains.bigdatatools.kafka.common.editor
+package io.confluent.kafka.common.editor
 
 import com.intellij.openapi.actionSystem.DataSink
 import com.intellij.openapi.actionSystem.PlatformDataKeys
 import com.intellij.ui.JBColor
 import com.intellij.ui.TableUtil
 import com.intellij.ui.ToolbarDecorator
-import com.jetbrains.bigdatatools.kafka.core.settings.components.BdtPropertyComponent
-import com.jetbrains.bigdatatools.kafka.core.settings.connections.Property
-import com.jetbrains.bigdatatools.kafka.core.table.MaterialTable
-import com.jetbrains.bigdatatools.kafka.producer.editor.HeadersTablePasteProvider
+import io.confluent.kafka.core.settings.components.BdtPropertyComponent
+import io.confluent.kafka.core.settings.connections.Property
+import io.confluent.kafka.core.table.MaterialTable
+import io.confluent.kafka.producer.editor.HeadersTablePasteProvider
 import javax.swing.BorderFactory
 import javax.swing.JPanel
 import javax.swing.JTable

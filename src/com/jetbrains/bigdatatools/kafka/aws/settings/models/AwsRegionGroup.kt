@@ -1,8 +1,8 @@
-package com.jetbrains.bigdatatools.kafka.aws.settings.models
+package io.confluent.kafka.aws.settings.models
 
 import com.intellij.openapi.diagnostic.thisLogger
-import com.jetbrains.bigdatatools.kafka.core.settings.components.RenderableEntity
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.core.settings.components.RenderableEntity
+import io.confluent.kafka.util.KafkaMessagesBundle
 import software.amazon.awssdk.regions.Region
 
 enum class AwsRegionGroup(override val id: String, override val title: String) : RenderableEntity {

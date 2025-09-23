@@ -1,9 +1,9 @@
-package com.jetbrains.bigdatatools.kafka.util.generator
+package io.confluent.kafka.util.generator
 
 import com.intellij.openapi.project.Project
-import com.jetbrains.bigdatatools.kafka.core.util.messageOrDefault
-import com.jetbrains.bigdatatools.kafka.util.generator.GenerateRandomData.isValidSchema
-import com.jetbrains.bigdatatools.kafka.util.generator.GenerateRandomData.logger
+import io.confluent.kafka.core.util.messageOrDefault
+import io.confluent.kafka.util.generator.GenerateRandomData.isValidSchema
+import io.confluent.kafka.util.generator.GenerateRandomData.logger
 import com.mifmif.common.regex.Generex
 import io.confluent.kafka.schemaregistry.ParsedSchema
 import org.apache.avro.LogicalType

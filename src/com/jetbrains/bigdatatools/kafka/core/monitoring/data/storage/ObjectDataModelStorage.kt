@@ -1,10 +1,10 @@
-package com.jetbrains.bigdatatools.kafka.core.monitoring.data.storage
+package io.confluent.kafka.core.monitoring.data.storage
 
 import com.intellij.openapi.util.Disposer
-import com.jetbrains.bigdatatools.kafka.core.monitoring.data.model.DataModel
-import com.jetbrains.bigdatatools.kafka.core.monitoring.data.model.ObjectDataModel
-import com.jetbrains.bigdatatools.kafka.core.monitoring.data.model.RemoteInfo
-import com.jetbrains.bigdatatools.kafka.core.monitoring.data.updater.BdtMonitoringUpdater
+import io.confluent.kafka.core.monitoring.data.model.DataModel
+import io.confluent.kafka.core.monitoring.data.model.ObjectDataModel
+import io.confluent.kafka.core.monitoring.data.model.RemoteInfo
+import io.confluent.kafka.core.monitoring.data.updater.BdtMonitoringUpdater
 import kotlin.reflect.KProperty1
 
 class ObjectDataModelStorage<KEY_TYPE,

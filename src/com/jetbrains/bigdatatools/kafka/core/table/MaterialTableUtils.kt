@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.core.table
+package io.confluent.kafka.core.table
 
 import com.intellij.util.ui.JBUI
 import javax.swing.JTable

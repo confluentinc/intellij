@@ -1,15 +1,15 @@
-package com.jetbrains.bigdatatools.kafka.core.monitoring.toolwindow
+package io.confluent.kafka.core.monitoring.toolwindow
 
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.ProjectManager
 import com.intellij.openapi.wm.ToolWindowManager
-import com.jetbrains.bigdatatools.kafka.core.constants.BdtPlugins
-import com.jetbrains.bigdatatools.kafka.core.settings.CommonSettingsKeys
-import com.jetbrains.bigdatatools.kafka.core.settings.ConnectionSettingsListener
-import com.jetbrains.bigdatatools.kafka.core.settings.ModificationKey
-import com.jetbrains.bigdatatools.kafka.core.settings.connections.ConnectionData
-import com.jetbrains.bigdatatools.kafka.core.settings.manager.RfsConnectionDataManager
+import io.confluent.kafka.core.constants.BdtPlugins
+import io.confluent.kafka.core.settings.CommonSettingsKeys
+import io.confluent.kafka.core.settings.ConnectionSettingsListener
+import io.confluent.kafka.core.settings.ModificationKey
+import io.confluent.kafka.core.settings.connections.ConnectionData
+import io.confluent.kafka.core.settings.manager.RfsConnectionDataManager
 
 /**
  * Opens specified ToolWindow by toolWindowId, on first added connection of required type.

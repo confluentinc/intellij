@@ -1,16 +1,16 @@
-package com.jetbrains.bigdatatools.kafka.rfs
+package io.confluent.kafka.rfs
 
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.project.Project
-import com.jetbrains.bigdatatools.kafka.core.monitoring.rfs.MonitoringRfsTreeNode
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.RfsPath
-import com.jetbrains.bigdatatools.kafka.model.ConsumerGroupPresentable
-import com.jetbrains.bigdatatools.kafka.model.TopicPresentable
-import com.jetbrains.bigdatatools.kafka.registry.common.KafkaSchemaInfo
-import com.jetbrains.bigdatatools.kafka.rfs.KafkaDriver.Companion.isConsumers
-import com.jetbrains.bigdatatools.kafka.rfs.KafkaDriver.Companion.isSchemas
-import com.jetbrains.bigdatatools.kafka.rfs.KafkaDriver.Companion.isTopicFolder
-import com.jetbrains.bigdatatools.kafka.toolwindow.KafkaMonitoringToolWindowController
+import io.confluent.kafka.core.monitoring.rfs.MonitoringRfsTreeNode
+import io.confluent.kafka.core.rfs.driver.RfsPath
+import io.confluent.kafka.model.ConsumerGroupPresentable
+import io.confluent.kafka.model.TopicPresentable
+import io.confluent.kafka.registry.common.KafkaSchemaInfo
+import io.confluent.kafka.rfs.KafkaDriver.Companion.isConsumers
+import io.confluent.kafka.rfs.KafkaDriver.Companion.isSchemas
+import io.confluent.kafka.rfs.KafkaDriver.Companion.isTopicFolder
+import io.confluent.kafka.toolwindow.KafkaMonitoringToolWindowController
 
 class KafkaRfsTreeNode(
   project: Project,

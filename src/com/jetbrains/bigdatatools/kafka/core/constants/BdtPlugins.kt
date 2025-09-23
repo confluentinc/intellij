@@ -1,10 +1,10 @@
-package com.jetbrains.bigdatatools.kafka.core.constants
+package io.confluent.kafka.core.constants
 
 import com.intellij.ide.plugins.PluginManagerCore
 import com.intellij.openapi.extensions.PluginId
 import com.intellij.openapi.util.NlsContexts
-import com.jetbrains.bigdatatools.kafka.core.settings.connections.ConnectionData
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.core.settings.connections.ConnectionData
+import io.confluent.kafka.util.KafkaMessagesBundle
 
 object BdtPlugins {
   const val KAFKA_ID = "com.intellij.bigdatatools.kafka"

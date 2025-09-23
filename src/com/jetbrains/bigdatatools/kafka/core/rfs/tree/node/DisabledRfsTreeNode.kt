@@ -1,11 +1,11 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.tree.node
+package io.confluent.kafka.core.rfs.tree.node
 
 import com.intellij.ide.projectView.PresentationData
 import com.intellij.openapi.project.Project
 import com.intellij.ui.SimpleTextAttributes
-import com.jetbrains.bigdatatools.kafka.core.rfs.icons.RfsIcons
-import com.jetbrains.bigdatatools.kafka.core.rfs.settings.RemoteFsDriverProvider
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.core.rfs.icons.RfsIcons
+import io.confluent.kafka.core.rfs.settings.RemoteFsDriverProvider
+import io.confluent.kafka.util.KafkaMessagesBundle
 
 class DisabledRfsTreeNode(project: Project, val connectionData: RemoteFsDriverProvider) : RfsTreeNode(project) {
   init {

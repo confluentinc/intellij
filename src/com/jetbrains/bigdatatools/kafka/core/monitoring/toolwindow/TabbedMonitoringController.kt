@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.core.monitoring.toolwindow
+package io.confluent.kafka.core.monitoring.toolwindow
 
 import com.intellij.execution.ui.layout.impl.JBRunnerTabs
 import com.intellij.openapi.actionSystem.DataSink
@@ -8,7 +8,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.ActionCallback
 import com.intellij.openapi.util.Disposer
 import com.intellij.ui.tabs.TabInfo
-import com.jetbrains.bigdatatools.kafka.core.ui.JBRunnerTabsBorderless
+import io.confluent.kafka.core.ui.JBRunnerTabsBorderless
 
 abstract class TabbedMonitoringController(val project: Project) : ComponentController, UiDataProvider {
   lateinit var tabs: JBRunnerTabs

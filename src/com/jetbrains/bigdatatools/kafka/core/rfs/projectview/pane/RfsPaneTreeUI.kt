@@ -1,8 +1,8 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.projectview.pane
+package io.confluent.kafka.core.rfs.projectview.pane
 
 import com.intellij.openapi.util.registry.Registry
 import com.intellij.ui.tree.ui.DefaultTreeUI
-import com.jetbrains.bigdatatools.kafka.core.rfs.projectview.actions.RfsPaneOwner
+import io.confluent.kafka.core.rfs.projectview.actions.RfsPaneOwner
 import java.awt.event.MouseEvent
 import javax.swing.tree.AbstractLayoutCache
 

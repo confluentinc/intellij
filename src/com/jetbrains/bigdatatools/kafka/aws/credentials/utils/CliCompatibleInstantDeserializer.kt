@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.aws.credentials.utils
+package io.confluent.kafka.aws.credentials.utils
 
 import com.squareup.moshi.JsonAdapter
 import com.squareup.moshi.JsonReader

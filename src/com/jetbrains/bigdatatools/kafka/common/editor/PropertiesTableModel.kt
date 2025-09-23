@@ -1,6 +1,6 @@
-package com.jetbrains.bigdatatools.kafka.common.editor
+package io.confluent.kafka.common.editor
 
-import com.jetbrains.bigdatatools.kafka.core.settings.connections.Property
+import io.confluent.kafka.core.settings.connections.Property
 import javax.swing.table.AbstractTableModel
 import javax.swing.table.DefaultTableColumnModel
 import javax.swing.table.TableColumn

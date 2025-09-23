@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.actions
+package io.confluent.kafka.actions
 
 import com.intellij.ide.actions.RevealFileAction
 import com.intellij.openapi.actionSystem.ActionUpdateThread
@@ -11,13 +11,13 @@ import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFileWrapper
 import com.intellij.util.concurrency.annotations.RequiresEdt
-import com.jetbrains.bigdatatools.kafka.consumer.editor.ConsumerEditorUtils.getTableContent
-import com.jetbrains.bigdatatools.kafka.consumer.editor.KafkaConsumerEditor
-import com.jetbrains.bigdatatools.kafka.core.rfs.util.RfsNotificationUtils
-import com.jetbrains.bigdatatools.kafka.core.util.executeOnPooledThread
-import com.jetbrains.bigdatatools.kafka.core.util.invokeLater
-import com.jetbrains.bigdatatools.kafka.producer.editor.KafkaProducerEditor
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.consumer.editor.ConsumerEditorUtils.getTableContent
+import io.confluent.kafka.consumer.editor.KafkaConsumerEditor
+import io.confluent.kafka.core.rfs.util.RfsNotificationUtils
+import io.confluent.kafka.core.util.executeOnPooledThread
+import io.confluent.kafka.core.util.invokeLater
+import io.confluent.kafka.producer.editor.KafkaProducerEditor
+import io.confluent.kafka.util.KafkaMessagesBundle
 import java.nio.file.Path
 import java.nio.file.Paths
 

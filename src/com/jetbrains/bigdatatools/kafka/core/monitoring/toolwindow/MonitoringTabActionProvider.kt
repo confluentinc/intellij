@@ -1,6 +1,6 @@
-package com.jetbrains.bigdatatools.kafka.core.monitoring.toolwindow
+package io.confluent.kafka.core.monitoring.toolwindow
 
-import com.intellij.bigdatatools.kafka.icons.BigdatatoolsKafkaIcons
+import io.confluent.kafka.icons.BigdatatoolsKafkaIcons
 import com.intellij.ide.ui.UISettings.Companion.shadowInstance
 import com.intellij.openapi.actionSystem.ActionGroup
 import com.intellij.openapi.actionSystem.ActionManager
@@ -16,8 +16,8 @@ import com.intellij.openapi.wm.impl.content.tabActions.ContentTabActionProvider
 import com.intellij.ui.ComponentUtil
 import com.intellij.ui.content.Content
 import com.intellij.util.ui.UIUtil
-import com.jetbrains.bigdatatools.kafka.core.util.ConnectionUtil
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.core.util.ConnectionUtil
+import io.confluent.kafka.util.KafkaMessagesBundle
 
 class MonitoringTabActionProvider : ContentTabActionProvider {
   override fun createTabActions(content: Content): List<ContentTabAction> {

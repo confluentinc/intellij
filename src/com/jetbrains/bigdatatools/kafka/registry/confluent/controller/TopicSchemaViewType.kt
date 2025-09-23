@@ -1,6 +1,6 @@
-package com.jetbrains.bigdatatools.kafka.registry.confluent.controller
+package io.confluent.kafka.registry.confluent.controller
 
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.util.KafkaMessagesBundle
 import org.jetbrains.annotations.Nls
 
 enum class TopicSchemaViewType(@Nls val title: String, val suffix: String) {

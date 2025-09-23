@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.common.models
+package io.confluent.kafka.common.models
 
 import io.confluent.kafka.schemaregistry.ParsedSchema
 import io.confluent.kafka.serializers.subject.strategy.SubjectNameStrategy

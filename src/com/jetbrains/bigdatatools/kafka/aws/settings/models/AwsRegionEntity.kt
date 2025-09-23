@@ -1,6 +1,6 @@
-package com.jetbrains.bigdatatools.kafka.aws.settings.models
+package io.confluent.kafka.aws.settings.models
 
-import com.jetbrains.bigdatatools.kafka.core.settings.components.RenderableEntity
+import io.confluent.kafka.core.settings.components.RenderableEntity
 import org.jetbrains.annotations.Nls
 import software.amazon.awssdk.regions.Region
 

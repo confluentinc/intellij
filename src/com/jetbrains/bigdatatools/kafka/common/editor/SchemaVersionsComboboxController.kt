@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.common.editor
+package io.confluent.kafka.common.editor
 
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.observable.properties.AtomicBooleanProperty
@@ -7,8 +7,8 @@ import com.intellij.openapi.ui.putUserData
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.Key
 import com.intellij.ui.SimpleListCellRenderer
-import com.jetbrains.bigdatatools.kafka.data.KafkaDataManager
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.data.KafkaDataManager
+import io.confluent.kafka.util.KafkaMessagesBundle
 
 class SchemaVersionsComboboxController(rootDisposable: Disposable,
                                        private val kafkaManager: KafkaDataManager,

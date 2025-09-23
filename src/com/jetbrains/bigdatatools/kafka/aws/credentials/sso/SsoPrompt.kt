@@ -1,10 +1,10 @@
-package com.jetbrains.bigdatatools.kafka.aws.credentials.sso
+package io.confluent.kafka.aws.credentials.sso
 
 import com.intellij.ide.BrowserUtil
 import com.intellij.openapi.progress.ProcessCanceledException
 import com.intellij.openapi.ui.Messages
-import com.jetbrains.bigdatatools.kafka.core.rfs.util.RfsNotificationUtils
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.core.rfs.util.RfsNotificationUtils
+import io.confluent.kafka.util.KafkaMessagesBundle
 import javax.swing.SwingUtilities
 
 object SsoPrompt : SsoLoginCallback {

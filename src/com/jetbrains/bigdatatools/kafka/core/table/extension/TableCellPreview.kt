@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.core.table.extension
+package io.confluent.kafka.core.table.extension
 
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.keymap.KeymapUtil
@@ -10,9 +10,9 @@ import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.components.fields.ExpandableSupport
 import com.intellij.ui.components.fields.ExtendableTextComponent
 import com.intellij.util.ui.JBUI
-import com.jetbrains.bigdatatools.kafka.core.table.MaterialTable
-import com.jetbrains.bigdatatools.kafka.core.ui.TextSizeUtils
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.core.table.MaterialTable
+import io.confluent.kafka.core.ui.TextSizeUtils
+import io.confluent.kafka.util.KafkaMessagesBundle
 import java.awt.Dimension
 import java.awt.Font
 import java.awt.Point

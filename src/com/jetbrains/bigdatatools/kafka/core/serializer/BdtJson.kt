@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.core.serializer
+package io.confluent.kafka.core.serializer
 
 import com.intellij.credentialStore.OneTimeString
 import com.intellij.openapi.util.NlsSafe

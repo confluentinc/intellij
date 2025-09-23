@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.toolwindow
+package io.confluent.kafka.toolwindow
 
 import com.intellij.notification.NotificationGroup
 import com.intellij.notification.NotificationGroupManager
@@ -6,17 +6,17 @@ import com.intellij.openapi.components.Service
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ToolWindowManager
-import com.jetbrains.bigdatatools.kafka.core.monitoring.toolwindow.ComponentController
-import com.jetbrains.bigdatatools.kafka.core.monitoring.toolwindow.MonitoringToolWindowController
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.RfsPath
-import com.jetbrains.bigdatatools.kafka.core.settings.connections.ConnectionData
-import com.jetbrains.bigdatatools.kafka.core.settings.connections.ConnectionFactory
-import com.jetbrains.bigdatatools.kafka.core.settings.manager.RfsConnectionDataManager
-import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryUtil
-import com.jetbrains.bigdatatools.kafka.rfs.KafkaConnectionData
-import com.jetbrains.bigdatatools.kafka.settings.KafkaConnectionGroup
-import com.jetbrains.bigdatatools.kafka.toolwindow.config.KafkaToolWindowSettings
-import com.jetbrains.bigdatatools.kafka.toolwindow.controllers.KafkaMainController
+import io.confluent.kafka.core.monitoring.toolwindow.ComponentController
+import io.confluent.kafka.core.monitoring.toolwindow.MonitoringToolWindowController
+import io.confluent.kafka.core.rfs.driver.RfsPath
+import io.confluent.kafka.core.settings.connections.ConnectionData
+import io.confluent.kafka.core.settings.connections.ConnectionFactory
+import io.confluent.kafka.core.settings.manager.RfsConnectionDataManager
+import io.confluent.kafka.registry.KafkaRegistryUtil
+import io.confluent.kafka.rfs.KafkaConnectionData
+import io.confluent.kafka.settings.KafkaConnectionGroup
+import io.confluent.kafka.toolwindow.config.KafkaToolWindowSettings
+import io.confluent.kafka.toolwindow.controllers.KafkaMainController
 
 @Service(Service.Level.PROJECT)
 class KafkaMonitoringToolWindowController(project: Project) : MonitoringToolWindowController(project) {

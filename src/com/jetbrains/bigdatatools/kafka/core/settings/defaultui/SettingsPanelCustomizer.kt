@@ -1,15 +1,15 @@
-package com.jetbrains.bigdatatools.kafka.core.settings.defaultui
+package io.confluent.kafka.core.settings.defaultui
 
 import com.intellij.openapi.util.Key
 import com.intellij.openapi.util.UserDataHolder
 import com.intellij.openapi.util.UserDataHolderBase
 import com.intellij.util.concurrency.annotations.RequiresEdt
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.Driver
-import com.jetbrains.bigdatatools.kafka.core.settings.ModificationKey
-import com.jetbrains.bigdatatools.kafka.core.settings.connections.ConnectionData
-import com.jetbrains.bigdatatools.kafka.core.settings.fields.CheckBoxField
-import com.jetbrains.bigdatatools.kafka.core.settings.fields.WrappedComponent
-import com.jetbrains.bigdatatools.kafka.core.settings.getValidationErrors
+import io.confluent.kafka.core.rfs.driver.Driver
+import io.confluent.kafka.core.settings.ModificationKey
+import io.confluent.kafka.core.settings.connections.ConnectionData
+import io.confluent.kafka.core.settings.fields.CheckBoxField
+import io.confluent.kafka.core.settings.fields.WrappedComponent
+import io.confluent.kafka.core.settings.getValidationErrors
 import javax.swing.JComponent
 import javax.swing.JPanel
 

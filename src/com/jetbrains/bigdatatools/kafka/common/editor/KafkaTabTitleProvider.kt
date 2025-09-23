@@ -1,14 +1,14 @@
-package com.jetbrains.bigdatatools.kafka.common.editor
+package io.confluent.kafka.common.editor
 
 import com.intellij.openapi.fileEditor.impl.EditorTabTitleProvider
 import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
-import com.jetbrains.bigdatatools.kafka.common.editor.KafkaEditorProvider.Companion.KAFKA_EDITOR_TYPE
-import com.jetbrains.bigdatatools.kafka.common.models.KafkaEditorType
-import com.jetbrains.bigdatatools.kafka.consumer.editor.KafkaConsumerPanel
-import com.jetbrains.bigdatatools.kafka.producer.editor.KafkaProducerEditor
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.common.editor.KafkaEditorProvider.Companion.KAFKA_EDITOR_TYPE
+import io.confluent.kafka.common.models.KafkaEditorType
+import io.confluent.kafka.consumer.editor.KafkaConsumerPanel
+import io.confluent.kafka.producer.editor.KafkaProducerEditor
+import io.confluent.kafka.util.KafkaMessagesBundle
 
 class KafkaTabTitleProvider : EditorTabTitleProvider, DumbAware {
   override fun getEditorTabTitle(project: Project, file: VirtualFile): String? {

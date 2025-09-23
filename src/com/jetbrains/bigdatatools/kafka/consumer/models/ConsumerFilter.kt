@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.consumer.models
+package io.confluent.kafka.consumer.models
 
 import org.apache.kafka.clients.consumer.ConsumerRecord
 

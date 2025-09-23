@@ -1,10 +1,10 @@
-package com.jetbrains.bigdatatools.kafka.core.settings.fields
+package io.confluent.kafka.core.settings.fields
 
-import com.jetbrains.bigdatatools.kafka.core.settings.ModificationKey
-import com.jetbrains.bigdatatools.kafka.core.settings.components.RenderableEntity
-import com.jetbrains.bigdatatools.kafka.core.settings.connections.ConnectionData
-import com.jetbrains.bigdatatools.kafka.core.ui.ComboBoxWidePopup
-import com.jetbrains.bigdatatools.kafka.core.ui.CustomListCellRenderer
+import io.confluent.kafka.core.settings.ModificationKey
+import io.confluent.kafka.core.settings.components.RenderableEntity
+import io.confluent.kafka.core.settings.connections.ConnectionData
+import io.confluent.kafka.core.ui.ComboBoxWidePopup
+import io.confluent.kafka.core.ui.CustomListCellRenderer
 import javax.swing.ListCellRenderer
 import kotlin.reflect.KMutableProperty1
 

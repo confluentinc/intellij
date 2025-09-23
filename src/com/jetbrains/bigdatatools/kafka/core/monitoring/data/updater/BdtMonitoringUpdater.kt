@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.core.monitoring.data.updater
+package io.confluent.kafka.core.monitoring.data.updater
 
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.diagnostic.thisLogger
@@ -8,15 +8,15 @@ import com.intellij.openapi.util.Disposer
 import com.intellij.util.Alarm
 import com.intellij.util.cancelOnDispose
 import com.intellij.util.concurrency.annotations.RequiresBackgroundThread
-import com.jetbrains.bigdatatools.kafka.core.monitoring.connection.MonitoringClient
-import com.jetbrains.bigdatatools.kafka.core.monitoring.data.MonitoringDataManager
-import com.jetbrains.bigdatatools.kafka.core.monitoring.data.model.DataModel
-import com.jetbrains.bigdatatools.kafka.core.monitoring.data.model.ObjectDataModel
-import com.jetbrains.bigdatatools.kafka.core.monitoring.data.storage.DataModelStorage
-import com.jetbrains.bigdatatools.kafka.core.monitoring.data.storage.RootDataModelStorage
-import com.jetbrains.bigdatatools.kafka.core.util.executeOnPooledThread
-import com.jetbrains.bigdatatools.kafka.core.util.invokeLater
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.core.monitoring.connection.MonitoringClient
+import io.confluent.kafka.core.monitoring.data.MonitoringDataManager
+import io.confluent.kafka.core.monitoring.data.model.DataModel
+import io.confluent.kafka.core.monitoring.data.model.ObjectDataModel
+import io.confluent.kafka.core.monitoring.data.storage.DataModelStorage
+import io.confluent.kafka.core.monitoring.data.storage.RootDataModelStorage
+import io.confluent.kafka.core.util.executeOnPooledThread
+import io.confluent.kafka.core.util.invokeLater
+import io.confluent.kafka.util.KafkaMessagesBundle
 import java.util.concurrent.ConcurrentSkipListSet
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.random.Random

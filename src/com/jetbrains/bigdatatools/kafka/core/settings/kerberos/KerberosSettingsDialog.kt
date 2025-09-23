@@ -1,10 +1,10 @@
-package com.jetbrains.bigdatatools.kafka.core.settings.kerberos
+package io.confluent.kafka.core.settings.kerberos
 
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.openapi.ui.ValidationInfo
 import com.intellij.openapi.util.Disposer
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.util.KafkaMessagesBundle
 import javax.swing.JComponent
 import javax.swing.SwingUtilities
 

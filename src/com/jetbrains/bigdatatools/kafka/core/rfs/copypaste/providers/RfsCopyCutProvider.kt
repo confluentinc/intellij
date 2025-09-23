@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.copypaste.providers
+package io.confluent.kafka.core.rfs.copypaste.providers
 
 import com.intellij.ide.CopyPasteManagerEx
 import com.intellij.ide.CopyProvider
@@ -6,9 +6,9 @@ import com.intellij.ide.CutProvider
 import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.DataContext
 import com.intellij.openapi.project.DumbAware
-import com.jetbrains.bigdatatools.kafka.core.rfs.copypaste.model.RfsNodeTransferable
-import com.jetbrains.bigdatatools.kafka.core.rfs.copypaste.model.TransferableDescriptor
-import com.jetbrains.bigdatatools.kafka.core.rfs.projectview.actions.RfsPaneOwner
+import io.confluent.kafka.core.rfs.copypaste.model.RfsNodeTransferable
+import io.confluent.kafka.core.rfs.copypaste.model.TransferableDescriptor
+import io.confluent.kafka.core.rfs.projectview.actions.RfsPaneOwner
 
 internal class RfsCopyCutProvider(private val pane: RfsPaneOwner) : CutProvider, CopyProvider, DumbAware {
   override fun isCutVisible(dataContext: DataContext): Boolean = true

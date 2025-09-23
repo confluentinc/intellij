@@ -1,13 +1,13 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.copypaste.utils
+package io.confluent.kafka.core.rfs.copypaste.utils
 
 import com.intellij.refactoring.RefactoringBundle
-import com.jetbrains.bigdatatools.kafka.core.rfs.copypaste.dialog.RfsSkipOverwriteChoice
-import com.jetbrains.bigdatatools.kafka.core.rfs.copypaste.model.RfsCopyMoveContext
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.Driver
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.ExportFormat
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.FileInfo
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.RfsPath
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.core.rfs.copypaste.dialog.RfsSkipOverwriteChoice
+import io.confluent.kafka.core.rfs.copypaste.model.RfsCopyMoveContext
+import io.confluent.kafka.core.rfs.driver.Driver
+import io.confluent.kafka.core.rfs.driver.ExportFormat
+import io.confluent.kafka.core.rfs.driver.FileInfo
+import io.confluent.kafka.core.rfs.driver.RfsPath
+import io.confluent.kafka.util.KafkaMessagesBundle
 import java.io.InputStream
 import java.io.OutputStream
 

@@ -1,10 +1,10 @@
-package com.jetbrains.bigdatatools.kafka.core.settings.fields
+package io.confluent.kafka.core.settings.fields
 
 import com.intellij.openapi.ui.ComponentValidator
-import com.jetbrains.bigdatatools.kafka.core.settings.ModificationKey
-import com.jetbrains.bigdatatools.kafka.core.settings.connections.ConnectionData
-import com.jetbrains.bigdatatools.kafka.core.settings.getValidator
-import com.jetbrains.bigdatatools.kafka.core.table.renderers.NoRendering
+import io.confluent.kafka.core.settings.ModificationKey
+import io.confluent.kafka.core.settings.connections.ConnectionData
+import io.confluent.kafka.core.settings.getValidator
+import io.confluent.kafka.core.table.renderers.NoRendering
 import javax.swing.JCheckBox
 import javax.swing.JComponent
 

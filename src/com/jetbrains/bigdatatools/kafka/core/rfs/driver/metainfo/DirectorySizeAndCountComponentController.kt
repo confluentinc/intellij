@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.driver.metainfo
+package io.confluent.kafka.core.rfs.driver.metainfo
 
 import com.intellij.CommonBundle
 import com.intellij.openapi.Disposable
@@ -10,12 +10,12 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.intellij.ui.AnimatedIcon
 import com.intellij.ui.components.ActionLink
-import com.jetbrains.bigdatatools.kafka.core.rfs.copypaste.model.RfsEstimateSizeCountContext
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.FileInfo
-import com.jetbrains.bigdatatools.kafka.core.ui.MigPanel
-import com.jetbrains.bigdatatools.kafka.core.util.SizeUtils
-import com.jetbrains.bigdatatools.kafka.core.util.toPresentableText
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.core.rfs.copypaste.model.RfsEstimateSizeCountContext
+import io.confluent.kafka.core.rfs.driver.FileInfo
+import io.confluent.kafka.core.ui.MigPanel
+import io.confluent.kafka.core.util.SizeUtils
+import io.confluent.kafka.core.util.toPresentableText
+import io.confluent.kafka.util.KafkaMessagesBundle
 import javax.swing.JLabel
 
 class DirectorySizeAndCountComponentController(val project: Project,

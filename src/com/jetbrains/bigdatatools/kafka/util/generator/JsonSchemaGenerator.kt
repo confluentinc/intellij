@@ -1,9 +1,9 @@
-package com.jetbrains.bigdatatools.kafka.util.generator
+package io.confluent.kafka.util.generator
 
 import com.amazonaws.services.schemaregistry.serializers.json.JsonDataWithSchema
 import com.google.gson.*
 import com.intellij.openapi.project.Project
-import com.jetbrains.bigdatatools.kafka.util.generator.GenerateRandomData.isValidSchema
+import io.confluent.kafka.util.generator.GenerateRandomData.isValidSchema
 import com.mifmif.common.regex.Generex
 import io.confluent.kafka.schemaregistry.ParsedSchema
 import io.confluent.kafka.schemaregistry.json.JsonSchema

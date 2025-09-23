@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.model
+package io.confluent.kafka.model
 
 import org.apache.kafka.common.Metric
 import java.math.BigDecimal

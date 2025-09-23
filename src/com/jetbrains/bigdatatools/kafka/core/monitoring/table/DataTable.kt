@@ -1,13 +1,13 @@
-package com.jetbrains.bigdatatools.kafka.core.monitoring.table
+package io.confluent.kafka.core.monitoring.table
 
 import com.intellij.openapi.util.Key
 import com.intellij.openapi.util.UserDataHolder
 import com.intellij.openapi.util.UserDataHolderBase
 import com.intellij.util.ui.UIUtil
-import com.jetbrains.bigdatatools.kafka.core.monitoring.data.model.RemoteInfo
-import com.jetbrains.bigdatatools.kafka.core.monitoring.table.model.DataTableColumnModel
-import com.jetbrains.bigdatatools.kafka.core.monitoring.table.model.DataTableModel
-import com.jetbrains.bigdatatools.kafka.core.table.MaterialTable
+import io.confluent.kafka.core.monitoring.data.model.RemoteInfo
+import io.confluent.kafka.core.monitoring.table.model.DataTableColumnModel
+import io.confluent.kafka.core.monitoring.table.model.DataTableModel
+import io.confluent.kafka.core.table.MaterialTable
 import java.awt.Color
 import javax.swing.DefaultListSelectionModel
 

@@ -1,10 +1,10 @@
-package com.jetbrains.bigdatatools.kafka.core.settings.connections
+package io.confluent.kafka.core.settings.connections
 
 import com.intellij.openapi.extensions.ExtensionPointName
-import com.jetbrains.bigdatatools.kafka.core.constants.BdtPluginType
-import com.jetbrains.bigdatatools.kafka.core.constants.BdtPlugins
-import com.jetbrains.bigdatatools.kafka.core.util.BdIdeRegistryUtil
-import com.jetbrains.bigdatatools.kafka.core.util.InternalFeature
+import io.confluent.kafka.core.constants.BdtPluginType
+import io.confluent.kafka.core.constants.BdtPlugins
+import io.confluent.kafka.core.util.BdIdeRegistryUtil
+import io.confluent.kafka.core.util.InternalFeature
 
 /**
  * User: Dmitry.Naydanov

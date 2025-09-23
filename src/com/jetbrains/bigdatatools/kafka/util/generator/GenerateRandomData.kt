@@ -1,4 +1,4 @@
-package com.jetbrains.bigdatatools.kafka.util.generator
+package io.confluent.kafka.util.generator
 
 import com.google.gson.GsonBuilder
 import com.intellij.ide.BrowserUtil
@@ -6,13 +6,13 @@ import com.intellij.notification.NotificationType
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
-import com.jetbrains.bigdatatools.kafka.common.models.KafkaFieldType
-import com.jetbrains.bigdatatools.kafka.consumer.models.ConsumerProducerFieldConfig
-import com.jetbrains.bigdatatools.kafka.core.rfs.util.RfsNotificationUtils
-import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryFormat
-import com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryType
-import com.jetbrains.bigdatatools.kafka.toolwindow.KafkaMonitoringToolWindowController
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.common.models.KafkaFieldType
+import io.confluent.kafka.consumer.models.ConsumerProducerFieldConfig
+import io.confluent.kafka.core.rfs.util.RfsNotificationUtils
+import io.confluent.kafka.registry.KafkaRegistryFormat
+import io.confluent.kafka.registry.KafkaRegistryType
+import io.confluent.kafka.toolwindow.KafkaMonitoringToolWindowController
+import io.confluent.kafka.util.KafkaMessagesBundle
 import io.confluent.kafka.schemaregistry.ParsedSchema
 
 object GenerateRandomData {

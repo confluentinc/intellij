@@ -1,10 +1,10 @@
-package com.jetbrains.bigdatatools.kafka.core.ui
+package io.confluent.kafka.core.ui
 
 import com.intellij.openapi.observable.properties.ObservableMutableProperty
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.util.NlsContexts
 import com.intellij.ui.dsl.builder.*
-import com.jetbrains.bigdatatools.kafka.core.settings.fields.WrappedNamedComponent
+import io.confluent.kafka.core.settings.fields.WrappedNamedComponent
 import javax.swing.JComponent
 import javax.swing.JLabel
 

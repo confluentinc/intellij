@@ -1,9 +1,9 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.copypaste.dialog
+package io.confluent.kafka.core.rfs.copypaste.dialog
 
 import com.intellij.refactoring.RefactoringBundle
-import com.jetbrains.bigdatatools.kafka.core.rfs.copypaste.model.CopyOrMove
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.FileInfo
-import com.jetbrains.bigdatatools.kafka.util.KafkaMessagesBundle
+import io.confluent.kafka.core.rfs.copypaste.model.CopyOrMove
+import io.confluent.kafka.core.rfs.driver.FileInfo
+import io.confluent.kafka.util.KafkaMessagesBundle
 import org.jetbrains.annotations.Nls
 
 internal object RfsCopyMoveDialogUtils {

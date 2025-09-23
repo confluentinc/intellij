@@ -1,15 +1,15 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.util
+package io.confluent.kafka.core.rfs.util
 
 import com.intellij.ide.util.treeView.AbstractTreeNode
 import com.intellij.ui.ComponentUtil
 import com.intellij.ui.tree.AbstractTreeNodeVisitor
 import com.intellij.util.concurrency.EdtScheduler
 import com.intellij.util.ui.tree.TreeUtil
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.RfsPath
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.depend.MasterDriver
-import com.jetbrains.bigdatatools.kafka.core.rfs.projectview.actions.RfsPaneOwner
-import com.jetbrains.bigdatatools.kafka.core.rfs.tree.node.*
-import com.jetbrains.bigdatatools.kafka.core.rfs.viewer.utils.DriverRfsTreeUtil.lastDriverNode
+import io.confluent.kafka.core.rfs.driver.RfsPath
+import io.confluent.kafka.core.rfs.driver.depend.MasterDriver
+import io.confluent.kafka.core.rfs.projectview.actions.RfsPaneOwner
+import io.confluent.kafka.core.rfs.tree.node.*
+import io.confluent.kafka.core.rfs.viewer.utils.DriverRfsTreeUtil.lastDriverNode
 import org.jetbrains.concurrency.Promise
 import javax.swing.JScrollPane
 import javax.swing.JTree

@@ -1,7 +1,7 @@
 // Copyright 2021 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-package com.jetbrains.bigdatatools.kafka.aws.credentials.sso
+package io.confluent.kafka.aws.credentials.sso
 
 interface SsoCache {
   fun loadClientRegistration(ssoRegion: String): ClientRegistration?

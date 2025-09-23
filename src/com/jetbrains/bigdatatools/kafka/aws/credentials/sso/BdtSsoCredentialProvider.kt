@@ -1,6 +1,6 @@
 @file:Suppress("BannedImports")
 
-package com.jetbrains.bigdatatools.kafka.aws.credentials.sso
+package io.confluent.kafka.aws.credentials.sso
 
 import com.intellij.openapi.Disposable
 import software.amazon.awssdk.auth.credentials.AwsCredentials

@@ -1,10 +1,10 @@
-package com.jetbrains.bigdatatools.kafka.core.rfs.editorviewer
+package io.confluent.kafka.core.rfs.editorviewer
 
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.ui.OnePixelSplitter
-import com.jetbrains.bigdatatools.kafka.core.rfs.driver.Driver
-import com.jetbrains.bigdatatools.kafka.core.settings.ColumnVisibilitySettings
-import com.jetbrains.bigdatatools.kafka.core.table.removeColumn
+import io.confluent.kafka.core.rfs.driver.Driver
+import io.confluent.kafka.core.settings.ColumnVisibilitySettings
+import io.confluent.kafka.core.table.removeColumn
 import javax.swing.JScrollBar
 import javax.swing.JScrollPane
 import javax.swing.JTable
