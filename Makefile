@@ -113,7 +113,7 @@ include ./mk-include/cc-end.mk
 
 .PHONY: setup-sdk
 setup-sdk:
-    sdk env
+	sdk env
 
 .PHONY: build
 build: setup-sdk
