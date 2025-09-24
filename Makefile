@@ -110,3 +110,12 @@ include ./mk-include/cc-vault.mk
 include ./mk-include/cc-sonarqube.mk
 include ./mk-include/cc-end.mk
 ### END INCLUDES ###
+
+.PHONY: build
+build:
+	gradle build
+
+.PHONY: test
+test:
+	gradle test
+
