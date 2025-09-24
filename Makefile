@@ -113,11 +113,9 @@ include ./mk-include/cc-end.mk
 
 .PHONY: setup-sdk
 setup-sdk:
-	# Install SDKMAN! (https://sdkman.io/install)
-	curl -s "https://get.sdkman.io?rcupdate=false" | bash
-	source "$(HOME)/.sdkman/bin/sdkman-init.sh"
-	# Install GraalVM as defined in .sdkmanrc
-	sdk env install
+	# Install SDKMAN! (https://sdkman.io/install) and install GraalVM as defined in .sdkmanrc
+	curl -s "https://get.sdkman.io?rcupdate=false" | bash && \
+	source "$(HOME)/.sdkman/bin/sdkman-init.sh" && sdk env install
 
 .PHONY: build
 build: setup-sdk
@@ -126,4 +124,3 @@ build: setup-sdk
 .PHONY: test
 test:
 	gradle test
-
