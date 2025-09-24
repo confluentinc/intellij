@@ -115,7 +115,7 @@ include ./mk-include/cc-end.mk
 setup-sdk:
 	# Install SDKMAN! (https://sdkman.io/install)
 	curl -s "https://get.sdkman.io?rcupdate=false" | bash
-	source "$HOME/.sdkman/bin/sdkman-init.sh"
+	source "$(HOME)/.sdkman/bin/sdkman-init.sh"
 	# Install GraalVM as defined in .sdkmanrc
 	sdk env install
 
