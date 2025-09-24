@@ -119,8 +119,8 @@ setup-sdk:
 
 .PHONY: build
 build:
-	./gradlew build
+	source "$(HOME)/.sdkman/bin/sdkman-init.sh" && gradle build
 
 .PHONY: test
 test:
-	./gradlew test
+	source "$(HOME)/.sdkman/bin/sdkman-init.sh" && gradle test
