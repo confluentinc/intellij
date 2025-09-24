@@ -110,3 +110,17 @@ include ./mk-include/cc-vault.mk
 include ./mk-include/cc-sonarqube.mk
 include ./mk-include/cc-end.mk
 ### END INCLUDES ###
+
+.PHONY: setup-sdk
+setup-sdk:
+	# Install SDKMAN! (https://sdkman.io/install) and install GraalVM as defined in .sdkmanrc
+	curl -s "https://get.sdkman.io?rcupdate=false" | bash && \
+	source "$(HOME)/.sdkman/bin/sdkman-init.sh" && sdk env install
+
+.PHONY: build
+build:
+	source "$(HOME)/.sdkman/bin/sdkman-init.sh" && gradle build
+
+.PHONY: test
+test:
+	source "$(HOME)/.sdkman/bin/sdkman-init.sh" && gradle test
