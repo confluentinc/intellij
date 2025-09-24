@@ -111,7 +111,7 @@ include ./mk-include/cc-sonarqube.mk
 include ./mk-include/cc-end.mk
 ### END INCLUDES ###
 
-.PHONY setup-sdk
+.PHONY: setup-sdk
 setup-sdk:
     sdk env
 
