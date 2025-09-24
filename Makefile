@@ -111,8 +111,12 @@ include ./mk-include/cc-sonarqube.mk
 include ./mk-include/cc-end.mk
 ### END INCLUDES ###
 
+.PHONY setup-sdk
+setup-sdk:
+    sdk env
+
 .PHONY: build
-build:
+build: setup-sdk
 	gradle build
 
 .PHONY: test
