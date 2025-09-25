@@ -27,11 +27,14 @@ global_job_config:
       - checkout
       - make show-args
       - . vault-setup
-      - make init-ci
+      - make ci-sem-cache-restore-gradle
+      - make setup-sdk
   epilogue:
     always:
       commands:
         - make epilogue-ci
+        # Store Gradle-specific caches
+        - make ci-sem-cache-store-gradle
 
 blocks:
   - name: "Build, Test, Release"
@@ -49,6 +52,8 @@ blocks:
       jobs:
         - name: "Build, Test, Release"
           commands:
+            - make build
+            - echo "=== First build complete, testing cache on second build ==="
             - make build
             - make test
             - make release-ci
