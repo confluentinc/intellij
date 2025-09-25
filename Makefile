@@ -110,3 +110,34 @@ include ./mk-include/cc-vault.mk
 include ./mk-include/cc-sonarqube.mk
 include ./mk-include/cc-end.mk
 ### END INCLUDES ###
+
+include ./mk-files/ci-build-cache.mk
+
+# SDKMAN initialization
+SDKMAN_INIT = source "$(HOME)/.sdkman/bin/sdkman-init.sh"
+# Gradle command with SDKMAN environment
+GRADLE = $(SDKMAN_INIT) && gradle
+
+.PHONY: setup-sdk
+setup-sdk:
+	# Install SDKMAN! (https://sdkman.io/install/#ci-mode) if restored in cache already
+	@if [ ! -d "$(HOME)/.sdkman" ]; then \
+		curl -s "https://get.sdkman.io?ci=true&rcupdate=false" | bash; \
+	fi
+	# Install dependencies as defined in .sdkmanrc
+	$(SDKMAN_INIT) && sdk env install
+
+	# TESTING
+	pwd
+	ls -a
+	cache store testing_cache_store_key $(CURDIR)/LICENSE.txt
+
+.PHONY: build
+build: setup-sdk
+	# $(GRADLE) build -Dorg.gradle.console=plain
+	cache list --sort-by ACCESS_TIME
+	cache list --sort-by SIZE
+
+.PHONY: test
+test: setup-sdk
+	$(GRADLE) test -Dorg.gradle.console=plain
