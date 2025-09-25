@@ -53,6 +53,8 @@ blocks:
         - name: "Build, Test, Release"
           commands:
             - make build
+            - echo "=== First build complete, testing cache on second build ==="
+            - make build
             - make test
             - make release-ci
       epilogue:
