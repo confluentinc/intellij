@@ -40,9 +40,6 @@ ci-sem-cache-restore-gradle:
 	@echo "Restoring Gradle-specific semaphore caches"
 	cache restore gradle-$(os_name)_$(shell checksum gradle.properties build.gradle.kts)
 	cache restore sdkman-$(os_name)_$(shell checksum .sdkmanrc)
-	pwd
-	ls
-	cache store testing_cache_store_key $(HOME)/LICENSE.txt
 
 # Override the store-test-results-to-semaphore target to handle Gradle test results
 .PHONY: store-test-results-to-semaphore
