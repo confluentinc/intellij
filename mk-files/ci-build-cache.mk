@@ -41,18 +41,14 @@ ci-sem-cache-restore-gradle:
 	cache restore gradle-$(os_name)_$(shell checksum gradle.properties build.gradle.kts)
 	cache restore sdkman-$(os_name)_$(shell checksum .sdkmanrc)
 
-# Override test result location for Gradle-generated JUnit XML files
-TEST_RESULT_FILE = $(CURDIR)/build/test-results/test/**/*TEST*.xml
-
 # Override the store-test-results-to-semaphore target to handle Gradle test results
 .PHONY: store-test-results-to-semaphore
 store-test-results-to-semaphore:
-ifneq ($(wildcard $(TEST_RESULT_FILE)),)
-ifeq ($(TEST_RESULT_NAME),)
-	test-results publish $(TEST_RESULT_FILE) --force
-else
-	test-results publish $(TEST_RESULT_FILE) --name "$(TEST_RESULT_NAME)"
-endif
-else
-	@echo "test results not found at $(TEST_RESULT_FILE)"
-endif
+	@for xml_file in "$(CURDIR)/build/test-results/test"/*TEST*.xml; do \
+		if [ -f "$$xml_file" ]; then \
+			test-results publish "$$xml_file" --name "$$(basename "$$xml_file")"; \
+		else \
+			echo "No Gradle test results found in the current directory."; \
+			exit 1; \
+		fi; \
+	done
