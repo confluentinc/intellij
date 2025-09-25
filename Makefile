@@ -125,12 +125,12 @@ setup-sdk:
 		curl -s "https://get.sdkman.io?ci=true&rcupdate=false" | bash; \
 	fi
 	# Install dependencies as defined in .sdkmanrc
-	source "$(SDKMAN_INIT)" && sdk env install
+	$(SDKMAN_INIT) && sdk env install
 
 .PHONY: build
 build: setup-sdk
-	source "$(GRADLE) build -Dorg.gradle.console=plain
+	$(GRADLE) build -Dorg.gradle.console=plain
 
 .PHONY: test
 test: setup-sdk
-	source "$(GRADLE) test -Dorg.gradle.console=plain
+	$(GRADLE) test -Dorg.gradle.console=plain
