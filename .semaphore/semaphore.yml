@@ -27,14 +27,13 @@ global_job_config:
       - checkout
       - make show-args
       - . vault-setup
-      - make ci-sem-cache-restore-gradle
+      - make ci-sem-cache-restore
       - make setup-sdk
   epilogue:
     always:
       commands:
         - make epilogue-ci
-        # Store Gradle-specific caches
-        - make ci-sem-cache-store-gradle
+        - make ci-sem-cache-store
         - make store-test-results-to-semaphore
 
 
@@ -56,7 +55,7 @@ blocks:
           commands:
             - make build
             - make test
-            # - make release-ci
+            - make release-ci
       epilogue:
         always:
           commands:

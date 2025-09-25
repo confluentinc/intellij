@@ -127,16 +127,9 @@ setup-sdk:
 	# Install dependencies as defined in .sdkmanrc
 	$(SDKMAN_INIT) && sdk env install
 
-	# TESTING
-	pwd
-	ls -a
-	cache store testing_cache_store_key $(CURDIR)/LICENSE.txt
-
 .PHONY: build
 build: setup-sdk
-	# $(GRADLE) build -Dorg.gradle.console=plain
-	cache list --sort-by ACCESS_TIME
-	cache list --sort-by SIZE
+	$(GRADLE) build -Dorg.gradle.console=plain
 
 .PHONY: test
 test: setup-sdk
