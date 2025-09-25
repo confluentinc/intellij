@@ -111,16 +111,26 @@ include ./mk-include/cc-sonarqube.mk
 include ./mk-include/cc-end.mk
 ### END INCLUDES ###
 
+include ./mk-files/ci-build-cache.mk
+
+# SDKMAN initialization
+SDKMAN_INIT = source "$(HOME)/.sdkman/bin/sdkman-init.sh"
+# Gradle command with SDKMAN environment
+GRADLE = $(SDKMAN_INIT) && gradle
+
 .PHONY: setup-sdk
 setup-sdk:
-	# Install SDKMAN! (https://sdkman.io/install) and install GraalVM as defined in .sdkmanrc
-	curl -s "https://get.sdkman.io?rcupdate=false" | bash && \
-	source "$(HOME)/.sdkman/bin/sdkman-init.sh" && sdk env install
+	# Install SDKMAN! (https://sdkman.io/install/#ci-mode) if restored in cache already
+	@if [ ! -d "$(HOME)/.sdkman" ]; then \
+		curl -s "https://get.sdkman.io?ci=true&rcupdate=false" | bash; \
+	fi
+	# Install dependencies as defined in .sdkmanrc
+	source "$(SDKMAN_INIT)" && sdk env install
 
 .PHONY: build
 build: setup-sdk
-	source "$(HOME)/.sdkman/bin/sdkman-init.sh" && gradle build
+	source "$(GRADLE) build -Dorg.gradle.console=plain
 
 .PHONY: test
 test: setup-sdk
-	source "$(HOME)/.sdkman/bin/sdkman-init.sh" && gradle test
+	source "$(GRADLE) test -Dorg.gradle.console=plain
