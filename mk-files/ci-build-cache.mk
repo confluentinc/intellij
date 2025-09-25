@@ -13,7 +13,8 @@ os_name := $(shell uname -s)
 # Only write to the cache from main builds because of security reasons.
 .PHONY: ci-sem-cache-store-gradle
 ci-sem-cache-store-gradle:
-ifneq ($(SEMAPHORE_GIT_REF_TYPE),pull-request)
+# Temporarily allow cache storage on PR branches for testing
+# ifneq ($(SEMAPHORE_GIT_REF_TYPE),pull-request)
 	@echo "Storing Gradle-specific semaphore caches"
 	@stored_timestamp_gradle=$$(cache list | grep gradle-$(os_name)_ | awk '{print $$1}' | awk -F_ '{print $$NF}' | sort -r | awk 'NR==1'); \
 	@stored_timestamp_sdkman=$$(cache list | grep sdkman-$(os_name)_ | awk '{print $$1}' | awk -F_ '{print $$NF}' | sort -r | awk 'NR==1'); \
@@ -30,7 +31,7 @@ ifneq ($(SEMAPHORE_GIT_REF_TYPE),pull-request)
 	else \
 		echo "SDKMAN! cache was updated recently, skipping..."; \
 	fi
-endif
+# endif
 
 # Restores Gradle and SDKMAN! caches using a checksum of your build files.
 # The checksum ensures the cache is tied to project's exact dependency state.
