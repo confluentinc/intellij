@@ -19,7 +19,7 @@ ci-sem-cache-restore: ci-sem-cache-restore-gradle ci-sem-cache-restore-sdkman
 # See https://docs.gradle.org/current/userguide/gradle_directories_intermediate.html#gradle_user_home
 .PHONY: ci-sem-cache-store-gradle
 ci-sem-cache-store-gradle:
-ifneq ($(SEMAPHORE_GIT_REF_TYPE),pull-request)
+# ifneq ($(SEMAPHORE_GIT_REF_TYPE),pull-request)
 	@echo "Storing Gradle-specific semaphore caches"
 	@set -e; \
 	current_checksum=$$(checksum gradle.properties build.gradle.kts); \
@@ -32,12 +32,12 @@ ifneq ($(SEMAPHORE_GIT_REF_TYPE),pull-request)
 	else \
 		echo "Gradle cache for this checksum was updated recently, skipping..."; \
 	fi
-endif
+# endif
 
 # This target stores the SDKMAN! installed SDKs.
 .PHONY: ci-sem-cache-store-sdkman
 ci-sem-cache-store-sdkman:
-ifneq ($(SEMAPHORE_GIT_REF_TYPE),pull-request)
+# ifneq ($(SEMAPHORE_GIT_REF_TYPE),pull-request)
 	@echo "Storing SDKMAN! semaphore cache"
 	@set -e; \
 	current_checksum=$$(checksum .sdkmanrc); \
@@ -50,7 +50,7 @@ ifneq ($(SEMAPHORE_GIT_REF_TYPE),pull-request)
 	else \
 		echo "SDKMAN! cache for this checksum was updated recently, skipping..."; \
 	fi
-endif
+# endif
 
 # This target restores the Gradle-specific caches using a checksum of your build files.
 .PHONY: ci-sem-cache-restore-gradle
