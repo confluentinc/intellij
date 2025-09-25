@@ -67,11 +67,9 @@ ci-sem-cache-restore-sdkman:
 # Override the store-test-results-to-semaphore target to handle Gradle test results
 .PHONY: store-test-results-to-semaphore
 store-test-results-to-semaphore:
-	pwd
-	ls
-	@for xml_file in $(HOME)/intellij/build/test-results/test/*TEST*.xml; do \
+	@for xml_file in $(CURDIR)/build/test-results/test/*TEST*.xml; do \
 		if [ -f "$$xml_file" ]; then \
-			test-results publish "$$xml_file" --name "$$(basename "$$xml_file")"; \
+			test-results publish "$$xml_file" --name "$$(basename "$$xml_file")" --force; \
 		else \
 			echo "No Gradle test results found in the current directory."; \
 			exit 1; \
