@@ -13,7 +13,6 @@ os_name := $(shell uname -s)
 # Only write to the cache from main builds because of security reasons.
 .PHONY: ci-sem-cache-store-gradle
 ci-sem-cache-store-gradle:
-	cache store testing_cache_store_key $(HOME)/LICENSE.txt
 ifneq ($(SEMAPHORE_GIT_REF_TYPE),pull-request)
 	@echo "Storing Gradle-specific semaphore caches"
 	@stored_timestamp_gradle=$$(cache list | grep gradle-$(os_name)_ | awk '{print $$1}' | awk -F_ '{print $$NF}' | sort -r | awk 'NR==1'); \
@@ -41,6 +40,7 @@ ci-sem-cache-restore-gradle:
 	@echo "Restoring Gradle-specific semaphore caches"
 	cache restore gradle-$(os_name)_$(shell checksum gradle.properties build.gradle.kts)
 	cache restore sdkman-$(os_name)_$(shell checksum .sdkmanrc)
+	ls
 
 # Override the store-test-results-to-semaphore target to handle Gradle test results
 .PHONY: store-test-results-to-semaphore
