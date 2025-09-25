@@ -35,6 +35,8 @@ global_job_config:
         - make epilogue-ci
         # Store Gradle-specific caches
         - make ci-sem-cache-store-gradle
+        - make store-test-results-to-semaphore
+
 
 blocks:
   - name: "Build, Test, Release"
@@ -52,8 +54,6 @@ blocks:
       jobs:
         - name: "Build, Test, Release"
           commands:
-            - make build
-            - echo "=== First build complete, testing cache on second build ==="
             - make build
             - make test
             - make release-ci
