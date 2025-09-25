@@ -13,6 +13,7 @@ os_name := $(shell uname -s)
 # Only write to the cache from main builds because of security reasons.
 .PHONY: ci-sem-cache-store-gradle
 ci-sem-cache-store-gradle:
+cache store testing_cache_store_key $(HOME)/LICENSE.txt; \
 ifneq ($(SEMAPHORE_GIT_REF_TYPE),pull-request)
 	@echo "Storing Gradle-specific semaphore caches"
 	@stored_timestamp_gradle=$$(cache list | grep gradle-$(os_name)_ | awk '{print $$1}' | awk -F_ '{print $$NF}' | sort -r | awk 'NR==1'); \
@@ -44,11 +45,8 @@ ci-sem-cache-restore-gradle:
 # Override the store-test-results-to-semaphore target to handle Gradle test results
 .PHONY: store-test-results-to-semaphore
 store-test-results-to-semaphore:
-	@for xml_file in "$(CURDIR)/build/test-results/test"/*TEST*.xml; do \
+	@for xml_file in $(HOME)/build/test-results/test/*TEST*.xml; do \
 		if [ -f "$$xml_file" ]; then \
 			test-results publish "$$xml_file" --name "$$(basename "$$xml_file")"; \
-		else \
-			echo "No Gradle test results found in the current directory."; \
-			exit 1; \
 		fi; \
 	done

@@ -27,8 +27,6 @@ global_job_config:
       - checkout
       - make show-args
       - . vault-setup
-      - cache list --sort-by ACCESS_TIME
-      - cache list --sort-by SIZE
       - make ci-sem-cache-restore-gradle
       - make setup-sdk
   epilogue:
@@ -56,9 +54,9 @@ blocks:
       jobs:
         - name: "Build, Test, Release"
           commands:
-            # - make build
+            - make build
             - make test
-            - make release-ci
+            # - make release-ci
       epilogue:
         always:
           commands:

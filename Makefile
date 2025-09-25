@@ -129,7 +129,9 @@ setup-sdk:
 
 .PHONY: build
 build: setup-sdk
-	$(GRADLE) build -Dorg.gradle.console=plain
+	# $(GRADLE) build -Dorg.gradle.console=plain
+	cache list --sort-by ACCESS_TIME
+	cache list --sort-by SIZE
 
 .PHONY: test
 test: setup-sdk
