@@ -25,13 +25,16 @@ global_job_config:
   prologue:
     commands:
       - checkout
-      - make show-args
-      - . vault-setup
-      - make init-ci
+      # - make show-args
+      # - . vault-setup
+      - make ci-sem-cache-restore
+      - make setup-sdk
   epilogue:
     always:
       commands:
-        - make epilogue-ci
+        # - make epilogue-ci
+        - make store-test-results-to-semaphore
+        - make ci-sem-cache-store
 
 blocks:
   - name: "Build, Test, Release"
