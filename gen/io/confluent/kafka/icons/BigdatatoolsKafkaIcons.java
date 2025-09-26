@@ -1,4 +1,4 @@
-package io.confluent.kafka.icons;
+package io.confluent.intellijplugin.icons;
 
 import com.intellij.ui.IconManager;
 import org.jetbrains.annotations.NotNull;

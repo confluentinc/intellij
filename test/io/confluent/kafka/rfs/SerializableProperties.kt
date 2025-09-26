@@ -1,49 +1,49 @@
 @file:Suppress("unused", "DEPRECATION", "RemoveRedundantQualifierName")
 
-package io.confluent.kafka.rfs
+package io.confluent.intellijplugin.rfs
 
-import io.confluent.kafka.core.connection.ProxyEnableType
-import io.confluent.kafka.core.connection.ProxyType
+import io.confluent.intellijplugin.core.connection.ProxyEnableType
+import io.confluent.intellijplugin.core.connection.ProxyType
 
-typealias Prop = kotlin.reflect.KMutableProperty1<out io.confluent.kafka.core.settings.connections.ConnectionData, *>
+typealias Prop = kotlin.reflect.KMutableProperty1<out io.confluent.intellijplugin.core.settings.connections.ConnectionData, *>
 
 object SerializableProperties {
   // serializable property
   val simpleProperties = listOf<Prop>(
-    io.confluent.kafka.core.settings.connections.ConnectionData::anonymous,
-    io.confluent.kafka.rfs.KafkaConnectionData::brokerCloudSource,
-    io.confluent.kafka.rfs.KafkaConnectionData::brokerConfigurationSource,
-    io.confluent.kafka.rfs.KafkaConnectionData::glueRegistryName,
-    io.confluent.kafka.rfs.KafkaConnectionData::glueSettings,
+    io.confluent.intellijplugin.core.settings.connections.ConnectionData::anonymous,
+    io.confluent.intellijplugin.rfs.KafkaConnectionData::brokerCloudSource,
+    io.confluent.intellijplugin.rfs.KafkaConnectionData::brokerConfigurationSource,
+    io.confluent.intellijplugin.rfs.KafkaConnectionData::glueRegistryName,
+    io.confluent.intellijplugin.rfs.KafkaConnectionData::glueSettings,
 
-    io.confluent.kafka.core.settings.connections.ConnectionData::groupId,
-    io.confluent.kafka.core.settings.connections.ConnectionData::innerId,
+    io.confluent.intellijplugin.core.settings.connections.ConnectionData::groupId,
+    io.confluent.intellijplugin.core.settings.connections.ConnectionData::innerId,
 
-    io.confluent.kafka.core.settings.connections.ConnectionData::isEnabled,
-    io.confluent.kafka.core.settings.connections.ConnectionData::isPerProject,
+    io.confluent.intellijplugin.core.settings.connections.ConnectionData::isEnabled,
+    io.confluent.intellijplugin.core.settings.connections.ConnectionData::isPerProject,
 
-    io.confluent.kafka.core.settings.connections.ConnectionData::name,
-    io.confluent.kafka.core.settings.connections.ConnectionData::port,
+    io.confluent.intellijplugin.core.settings.connections.ConnectionData::name,
+    io.confluent.intellijplugin.core.settings.connections.ConnectionData::port,
 
-    io.confluent.kafka.rfs.KafkaConnectionData::properties,
-    io.confluent.kafka.rfs.KafkaConnectionData::propertyFilePath,
-    io.confluent.kafka.rfs.KafkaConnectionData::propertySource,
+    io.confluent.intellijplugin.rfs.KafkaConnectionData::properties,
+    io.confluent.intellijplugin.rfs.KafkaConnectionData::propertyFilePath,
+    io.confluent.intellijplugin.rfs.KafkaConnectionData::propertySource,
 
-    io.confluent.kafka.rfs.KafkaConnectionData::registryConfSource,
-    io.confluent.kafka.rfs.KafkaConnectionData::registryProperties,
-    io.confluent.kafka.rfs.KafkaConnectionData::registryType,
-    io.confluent.kafka.rfs.KafkaConnectionData::registryUrl,
-    io.confluent.kafka.rfs.KafkaConnectionData::registryUseBrokerSsl,
+    io.confluent.intellijplugin.rfs.KafkaConnectionData::registryConfSource,
+    io.confluent.intellijplugin.rfs.KafkaConnectionData::registryProperties,
+    io.confluent.intellijplugin.rfs.KafkaConnectionData::registryType,
+    io.confluent.intellijplugin.rfs.KafkaConnectionData::registryUrl,
+    io.confluent.intellijplugin.rfs.KafkaConnectionData::registryUseBrokerSsl,
 
-    io.confluent.kafka.core.rfs.settings.local.RfsLocalConnectionData::rootPath,
-    io.confluent.kafka.core.settings.connections.ConnectionData::sourceConnection,
-    io.confluent.kafka.core.settings.connections.ConnectionData::uri,
-    io.confluent.kafka.rfs.KafkaConnectionData::version,
+    io.confluent.intellijplugin.core.rfs.settings.local.RfsLocalConnectionData::rootPath,
+    io.confluent.intellijplugin.core.settings.connections.ConnectionData::sourceConnection,
+    io.confluent.intellijplugin.core.settings.connections.ConnectionData::uri,
+    io.confluent.intellijplugin.rfs.KafkaConnectionData::version,
   )
 
   // serializable property, override-implement
   val implementingProperties = listOf<Prop>(
-    io.confluent.kafka.rfs.KafkaConnectionData::tunnel,
+    io.confluent.intellijplugin.rfs.KafkaConnectionData::tunnel,
   )
 
   val allProperties = simpleProperties + implementingProperties
@@ -52,16 +52,16 @@ object SerializableProperties {
     String::class,
     Int::class,
     Boolean::class,
-    io.confluent.kafka.rfs.KafkaCloudType::class,
-    io.confluent.kafka.rfs.KafkaConfigurationSource::class,
+    io.confluent.intellijplugin.rfs.KafkaCloudType::class,
+    io.confluent.intellijplugin.rfs.KafkaConfigurationSource::class,
     Map::class,
     Set::class,
     Collection::class,
-    io.confluent.kafka.rfs.KafkaPropertySource::class,
+    io.confluent.intellijplugin.rfs.KafkaPropertySource::class,
     ProxyEnableType::class,
     ProxyType::class,
-    io.confluent.kafka.registry.KafkaRegistryType::class,
+    io.confluent.intellijplugin.registry.KafkaRegistryType::class,
     List::class,
-    io.confluent.kafka.core.connection.tunnel.model.ConnectionSshTunnelDataLegacy::class,
+    io.confluent.intellijplugin.core.connection.tunnel.model.ConnectionSshTunnelDataLegacy::class,
   )
 }

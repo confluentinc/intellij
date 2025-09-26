@@ -1,11 +1,11 @@
-package io.confluent.kafka.rfs
+package io.confluent.intellijplugin.rfs
 
 import com.intellij.openapi.application.PathManager
 import com.intellij.testFramework.UsefulTestCase
 import com.intellij.testFramework.junit5.TestApplication
-import io.confluent.kafka.core.settings.ConnectionSettingsBase
-import io.confluent.kafka.core.settings.connections.ConnectionData
-import io.confluent.kafka.core.settings.connections.ConnectionSettingProviderEP
+import io.confluent.intellijplugin.core.settings.ConnectionSettingsBase
+import io.confluent.intellijplugin.core.settings.connections.ConnectionData
+import io.confluent.intellijplugin.core.settings.connections.ConnectionSettingProviderEP
 import kotlinx.metadata.*
 import kotlinx.metadata.jvm.KotlinClassMetadata
 import org.junit.jupiter.api.Disabled

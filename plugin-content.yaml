@@ -27,13 +27,13 @@
   files:
   - name: $MAVEN_REPOSITORY$/com/google/re2j/re2j/1/re2j-1.jar
   reason: <- intellij.bigdatatools.kafka
-- name: lib/io.confluent.kafka.avro.serializer.jar
-  library: io.confluent.kafka.avro.serializer
+- name: lib/io.confluent.intellijplugin.avro.serializer.jar
+  library: io.confluent.intellijplugin.avro.serializer
   module: intellij.bigdatatools.kafka
   files:
   - name: $MAVEN_REPOSITORY$/io/confluent/kafka-avro-serializer/7/kafka-avro-serializer-7.jar
-- name: lib/io.confluent.kafka.json.schema.serializer.jar
-  library: io.confluent.kafka.json.schema.serializer
+- name: lib/io.confluent.intellijplugin.json.schema.serializer.jar
+  library: io.confluent.intellijplugin.json.schema.serializer
   module: intellij.bigdatatools.kafka
   files:
   - name: $MAVEN_REPOSITORY$/io/confluent/kafka-json-schema-serializer/7/kafka-json-schema-serializer-7.jar
@@ -53,8 +53,8 @@
   - name: $MAVEN_REPOSITORY$/io/confluent/kafka-schema-serializer/7/kafka-schema-serializer-7.jar
   - name: $MAVEN_REPOSITORY$/io/confluent/kafka-json-serializer/7/kafka-json-serializer-7.jar
   - name: $MAVEN_REPOSITORY$/io/confluent/common-config/7/common-config-7.jar
-- name: lib/io.confluent.kafka.protobuf.serializer.jar
-  library: io.confluent.kafka.protobuf.serializer
+- name: lib/io.confluent.intellijplugin.protobuf.serializer.jar
+  library: io.confluent.intellijplugin.protobuf.serializer
   module: intellij.bigdatatools.kafka
   files:
   - name: $MAVEN_REPOSITORY$/io/confluent/kafka-protobuf-serializer/7/kafka-protobuf-serializer-7.jar
@@ -62,8 +62,8 @@
   - name: $MAVEN_REPOSITORY$/com/squareup/wire/wire-schema-jvm/4/wire-schema-jvm-4.jar
   - name: $MAVEN_REPOSITORY$/com/squareup/wire/wire-runtime-jvm/4/wire-runtime-jvm-4.jar
   - name: $MAVEN_REPOSITORY$/io/confluent/kafka-protobuf-types/7/kafka-protobuf-types-7.jar
-- name: lib/io.confluent.kafka.schema.registry.client.jar
-  library: io.confluent.kafka.schema.registry.client
+- name: lib/io.confluent.intellijplugin.schema.registry.client.jar
+  library: io.confluent.intellijplugin.schema.registry.client
   module: intellij.bigdatatools.kafka
   files:
   - name: $MAVEN_REPOSITORY$/io/confluent/kafka-schema-registry-client/7/kafka-schema-registry-client-7.jar

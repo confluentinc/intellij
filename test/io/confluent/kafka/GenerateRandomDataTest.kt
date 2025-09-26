@@ -1,16 +1,16 @@
-package io.confluent.kafka
+package io.confluent.intellijplugin
 
 import com.intellij.testFramework.UsefulTestCase
-import io.confluent.kafka.util.generator.AvroGenerator
-import io.confluent.kafka.util.generator.JsonSchemaGenerator
-import io.confluent.kafka.util.generator.PrimitivesGenerator
-import io.confluent.kafka.util.generator.ProtobufGenerator
-import io.confluent.kafka.schemaregistry.avro.AvroSchema
-import io.confluent.kafka.schemaregistry.avro.AvroSchemaUtils
-import io.confluent.kafka.schemaregistry.json.JsonSchema
-import io.confluent.kafka.schemaregistry.json.JsonSchemaUtils
-import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchema
-import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchemaUtils
+import io.confluent.intellijplugin.util.generator.AvroGenerator
+import io.confluent.intellijplugin.util.generator.JsonSchemaGenerator
+import io.confluent.intellijplugin.util.generator.PrimitivesGenerator
+import io.confluent.intellijplugin.util.generator.ProtobufGenerator
+import io.confluent.intellijplugin.schemaregistry.avro.AvroSchema
+import io.confluent.intellijplugin.schemaregistry.avro.AvroSchemaUtils
+import io.confluent.intellijplugin.schemaregistry.json.JsonSchema
+import io.confluent.intellijplugin.schemaregistry.json.JsonSchemaUtils
+import io.confluent.intellijplugin.schemaregistry.protobuf.ProtobufSchema
+import io.confluent.intellijplugin.schemaregistry.protobuf.ProtobufSchemaUtils
 import org.junit.jupiter.api.Assertions.assertDoesNotThrow
 import org.junit.jupiter.api.Assertions.assertNotEquals
 import java.util.*

@@ -1,7 +1,7 @@
-package io.confluent.kafka.rfs
+package io.confluent.intellijplugin.rfs
 
-import io.confluent.kafka.core.settings.DoNotSerialize
-import io.confluent.kafka.core.settings.connections.ConnectionData
+import io.confluent.intellijplugin.core.settings.DoNotSerialize
+import io.confluent.intellijplugin.core.settings.connections.ConnectionData
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.params.ParameterizedTest

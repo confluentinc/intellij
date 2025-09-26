@@ -1,7 +1,7 @@
-package io.confluent.kafka
+package io.confluent.intellijplugin
 
 import com.intellij.testFramework.UsefulTestCase
-import io.confluent.kafka.util.KafkaPropertiesUtils
+import io.confluent.intellijplugin.util.KafkaPropertiesUtils
 
 internal class KafkaPropertiesTest : UsefulTestCase() {
   fun testAdmin() {
