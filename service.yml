@@ -13,6 +13,7 @@ renovatebot:
     enable: false
 semaphore:
   enable: true
+  pipeline_enable: false
 sonarqube:
   enable: true
   languages:
