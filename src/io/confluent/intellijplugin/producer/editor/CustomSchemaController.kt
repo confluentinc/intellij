@@ -30,7 +30,7 @@ import io.confluent.intellijplugin.registry.KafkaRegistryUtil
 import io.confluent.intellijplugin.registry.ui.KafkaRegistrySchemaEditor
 import io.confluent.intellijplugin.registry.ui.KafkaSchemaInfoDialog
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
-import io.confluent.intellijplugin.schemaregistry.ParsedSchema
+import io.confluent.kafka.schemaregistry.ParsedSchema
 import java.io.File
 import java.io.FileNotFoundException
 import javax.swing.JPanel

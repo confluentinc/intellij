@@ -5,13 +5,13 @@ import io.confluent.intellijplugin.common.models.KafkaFieldType
 import io.confluent.intellijplugin.registry.KafkaRegistryFormat
 import io.confluent.intellijplugin.registry.KafkaRegistryType
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
-import io.confluent.intellijplugin.schemaregistry.ParsedSchema
-import io.confluent.intellijplugin.schemaregistry.avro.AvroSchema
-import io.confluent.intellijplugin.schemaregistry.avro.AvroSchemaUtils
-import io.confluent.intellijplugin.schemaregistry.json.JsonSchema
-import io.confluent.intellijplugin.schemaregistry.json.JsonSchemaUtils
-import io.confluent.intellijplugin.schemaregistry.protobuf.ProtobufSchema
-import io.confluent.intellijplugin.schemaregistry.protobuf.ProtobufSchemaUtils
+import io.confluent.kafka.schemaregistry.ParsedSchema
+import io.confluent.kafka.schemaregistry.avro.AvroSchema
+import io.confluent.kafka.schemaregistry.avro.AvroSchemaUtils
+import io.confluent.kafka.schemaregistry.json.JsonSchema
+import io.confluent.kafka.schemaregistry.json.JsonSchemaUtils
+import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchema
+import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchemaUtils
 import java.util.*
 
 data class ConsumerProducerFieldConfig(val type: KafkaFieldType,

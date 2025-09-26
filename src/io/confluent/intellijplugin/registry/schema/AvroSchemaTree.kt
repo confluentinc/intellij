@@ -1,7 +1,7 @@
 package io.confluent.intellijplugin.registry.schema
 
 import io.confluent.intellijplugin.model.SchemaRegistryFieldsInfo
-import io.confluent.intellijplugin.schemaregistry.avro.AvroSchema
+import io.confluent.kafka.schemaregistry.avro.AvroSchema
 import org.apache.avro.Schema
 import org.apache.avro.Schema.Field
 import org.apache.avro.Schema.Type

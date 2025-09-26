@@ -3,7 +3,7 @@ package io.confluent.intellijplugin.common.models
 import com.google.protobuf.DynamicMessage
 import com.google.protobuf.Message
 import io.confluent.intellijplugin.consumer.models.ConsumerProducerFieldConfig
-import io.confluent.intellijplugin.schemaregistry.protobuf.ProtobufSchema
+import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchema
 import org.apache.kafka.common.serialization.Deserializer
 
 class BdtKafkaCustomProtobufDeserializer(private val producerConfig: ConsumerProducerFieldConfig) : Deserializer<Message> {

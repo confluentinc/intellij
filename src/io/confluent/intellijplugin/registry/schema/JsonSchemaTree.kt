@@ -1,7 +1,7 @@
 package io.confluent.intellijplugin.registry.schema
 
 import io.confluent.intellijplugin.model.SchemaRegistryFieldsInfo
-import io.confluent.intellijplugin.schemaregistry.json.JsonSchema
+import io.confluent.kafka.schemaregistry.json.JsonSchema
 import org.everit.json.schema.*
 import javax.swing.event.TreeExpansionEvent
 import javax.swing.tree.DefaultMutableTreeNode

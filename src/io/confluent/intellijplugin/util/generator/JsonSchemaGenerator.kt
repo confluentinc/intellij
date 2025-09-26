@@ -5,9 +5,9 @@ import com.google.gson.*
 import com.intellij.openapi.project.Project
 import io.confluent.intellijplugin.util.generator.GenerateRandomData.isValidSchema
 import com.mifmif.common.regex.Generex
-import io.confluent.intellijplugin.schemaregistry.ParsedSchema
-import io.confluent.intellijplugin.schemaregistry.json.JsonSchema
-import io.confluent.intellijplugin.schemaregistry.json.JsonSchemaUtils
+import io.confluent.kafka.schemaregistry.ParsedSchema
+import io.confluent.kafka.schemaregistry.json.JsonSchema
+import io.confluent.kafka.schemaregistry.json.JsonSchemaUtils
 import org.everit.json.schema.*
 import org.everit.json.schema.internal.*
 import java.time.LocalDateTime

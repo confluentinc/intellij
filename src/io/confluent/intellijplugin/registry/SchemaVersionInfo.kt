@@ -1,6 +1,6 @@
 package io.confluent.intellijplugin.registry
 
-import io.confluent.intellijplugin.schemaregistry.client.rest.entities.SchemaReference
+import io.confluent.kafka.schemaregistry.client.rest.entities.SchemaReference
 
 data class SchemaVersionInfo(val schemaName: String,
                              val version: Long,

@@ -3,7 +3,7 @@ package io.confluent.intellijplugin.registry.schema
 import com.google.protobuf.Descriptors.*
 import com.google.protobuf.Descriptors.FieldDescriptor.Type.*
 import io.confluent.intellijplugin.model.SchemaRegistryFieldsInfo
-import io.confluent.intellijplugin.schemaregistry.protobuf.ProtobufSchema
+import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchema
 import javax.swing.event.TreeExpansionEvent
 import javax.swing.tree.DefaultMutableTreeNode
 import javax.swing.tree.DefaultTreeModel

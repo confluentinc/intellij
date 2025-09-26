@@ -1,8 +1,8 @@
 package io.confluent.intellijplugin.common.models
 
 import io.confluent.intellijplugin.consumer.models.ConsumerProducerFieldConfig
-import io.confluent.intellijplugin.schemaregistry.avro.AvroSchema
-import io.confluent.intellijplugin.serializers.AbstractKafkaAvroDeserializer
+import io.confluent.kafka.schemaregistry.avro.AvroSchema
+import io.confluent.kafka.serializers.AbstractKafkaAvroDeserializer
 import org.apache.avro.io.DecoderFactory
 import org.apache.kafka.common.serialization.Deserializer
 

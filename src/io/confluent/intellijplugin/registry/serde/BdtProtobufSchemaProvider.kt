@@ -1,9 +1,9 @@
 package io.confluent.intellijplugin.registry.serde
 
-import io.confluent.intellijplugin.schemaregistry.ParsedSchema
-import io.confluent.intellijplugin.schemaregistry.client.rest.entities.SchemaReference
-import io.confluent.intellijplugin.schemaregistry.protobuf.ProtobufSchema
-import io.confluent.intellijplugin.schemaregistry.protobuf.ProtobufSchemaProvider
+import io.confluent.kafka.schemaregistry.ParsedSchema
+import io.confluent.kafka.schemaregistry.client.rest.entities.SchemaReference
+import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchema
+import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchemaProvider
 
 class BdtProtobufSchemaProvider : ProtobufSchemaProvider() {
   override fun parseSchemaOrElseThrow(schemaString: String?,

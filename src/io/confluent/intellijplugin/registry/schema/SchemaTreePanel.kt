@@ -15,10 +15,10 @@ import io.confluent.intellijplugin.core.table.MaterialTableUtils
 import io.confluent.intellijplugin.core.ui.onFirstSizeChange
 import io.confluent.intellijplugin.model.SchemaRegistryFieldsInfo
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
-import io.confluent.intellijplugin.schemaregistry.ParsedSchema
-import io.confluent.intellijplugin.schemaregistry.avro.AvroSchema
-import io.confluent.intellijplugin.schemaregistry.json.JsonSchema
-import io.confluent.intellijplugin.schemaregistry.protobuf.ProtobufSchema
+import io.confluent.kafka.schemaregistry.ParsedSchema
+import io.confluent.kafka.schemaregistry.avro.AvroSchema
+import io.confluent.kafka.schemaregistry.json.JsonSchema
+import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchema
 import java.awt.Component
 import java.awt.Dimension
 import javax.swing.BorderFactory

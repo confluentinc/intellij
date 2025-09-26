@@ -1,7 +1,7 @@
 package io.confluent.intellijplugin.common.models
 
-import io.confluent.intellijplugin.schemaregistry.ParsedSchema
-import io.confluent.intellijplugin.serializers.subject.strategy.SubjectNameStrategy
+import io.confluent.kafka.schemaregistry.ParsedSchema
+import io.confluent.kafka.serializers.subject.strategy.SubjectNameStrategy
 
 class CustomSubjectStrategy(val schemaName: String) : SubjectNameStrategy {
   override fun configure(configs: MutableMap<String, *>?) {}

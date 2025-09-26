@@ -1,9 +1,9 @@
 package io.confluent.intellijplugin.common.models
 
-import io.confluent.intellijplugin.schemaregistry.ParsedSchema
-import io.confluent.intellijplugin.schemaregistry.avro.AvroSchema
-import io.confluent.intellijplugin.schemaregistry.client.SchemaRegistryClient
-import io.confluent.intellijplugin.serializers.KafkaAvroSerializer
+import io.confluent.kafka.schemaregistry.ParsedSchema
+import io.confluent.kafka.schemaregistry.avro.AvroSchema
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient
+import io.confluent.kafka.serializers.KafkaAvroSerializer
 
 class BdtKafkaAvroSerializer(client: SchemaRegistryClient?, schemaName: String, val parsedSchema: ParsedSchema?) : KafkaAvroSerializer(
   client) {

@@ -16,11 +16,11 @@ import io.confluent.intellijplugin.registry.SchemaVersionInfo
 import io.confluent.intellijplugin.registry.common.KafkaSchemaInfo
 import io.confluent.intellijplugin.rfs.KafkaConnectionData
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
-import io.confluent.intellijplugin.schemaregistry.ParsedSchema
-import io.confluent.intellijplugin.schemaregistry.client.CachedSchemaRegistryClient
-import io.confluent.intellijplugin.schemaregistry.client.SchemaRegistryClientConfig
-import io.confluent.intellijplugin.schemaregistry.client.rest.RestService
-import io.confluent.intellijplugin.serializers.AbstractKafkaSchemaSerDeConfig
+import io.confluent.kafka.schemaregistry.ParsedSchema
+import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClientConfig
+import io.confluent.kafka.schemaregistry.client.rest.RestService
+import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig
 import org.apache.kafka.common.config.ConfigDef
 
 class ConfluentRegistryClient(restService: RestService, props: Map<String, String>) : Disposable {

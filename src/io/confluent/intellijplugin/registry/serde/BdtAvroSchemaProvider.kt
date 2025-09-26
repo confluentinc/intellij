@@ -1,9 +1,9 @@
 package io.confluent.intellijplugin.registry.serde
 
-import io.confluent.intellijplugin.schemaregistry.ParsedSchema
-import io.confluent.intellijplugin.schemaregistry.avro.AvroSchema
-import io.confluent.intellijplugin.schemaregistry.avro.AvroSchemaProvider
-import io.confluent.intellijplugin.schemaregistry.client.rest.entities.SchemaReference
+import io.confluent.kafka.schemaregistry.ParsedSchema
+import io.confluent.kafka.schemaregistry.avro.AvroSchema
+import io.confluent.kafka.schemaregistry.avro.AvroSchemaProvider
+import io.confluent.kafka.schemaregistry.client.rest.entities.SchemaReference
 import org.apache.avro.SchemaParseException
 
 class BdtAvroSchemaProvider : AvroSchemaProvider() {

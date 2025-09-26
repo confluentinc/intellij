@@ -1,9 +1,9 @@
 package io.confluent.intellijplugin.common.models
 
 import io.confluent.intellijplugin.consumer.models.ConsumerProducerFieldConfig
-import io.confluent.intellijplugin.schemaregistry.avro.AvroSchema
-import io.confluent.intellijplugin.serializers.AbstractKafkaAvroSerializer
-import io.confluent.intellijplugin.serializers.NonRecordContainer
+import io.confluent.kafka.schemaregistry.avro.AvroSchema
+import io.confluent.kafka.serializers.AbstractKafkaAvroSerializer
+import io.confluent.kafka.serializers.NonRecordContainer
 import org.apache.avro.Schema
 import org.apache.avro.io.DatumWriter
 import org.apache.avro.io.EncoderFactory

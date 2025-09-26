@@ -26,8 +26,8 @@ import io.confluent.intellijplugin.rfs.SchemaRegistryAuthType
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
 import io.confluent.intellijplugin.util.KafkaPropertiesUtils
 import io.confluent.intellijplugin.util.KafkaSslUtils
-import io.confluent.intellijplugin.schemaregistry.client.SchemaRegistryClientConfig
-import io.confluent.intellijplugin.serializers.AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClientConfig
+import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG
 import kotlinx.coroutines.CoroutineScope
 import org.apache.kafka.common.config.SslConfigs
 import java.util.concurrent.atomic.AtomicBoolean

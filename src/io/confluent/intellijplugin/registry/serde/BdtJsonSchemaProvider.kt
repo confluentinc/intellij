@@ -1,9 +1,9 @@
 package io.confluent.intellijplugin.registry.serde
 
-import io.confluent.intellijplugin.schemaregistry.ParsedSchema
-import io.confluent.intellijplugin.schemaregistry.client.rest.entities.SchemaReference
-import io.confluent.intellijplugin.schemaregistry.json.JsonSchema
-import io.confluent.intellijplugin.schemaregistry.json.JsonSchemaProvider
+import io.confluent.kafka.schemaregistry.ParsedSchema
+import io.confluent.kafka.schemaregistry.client.rest.entities.SchemaReference
+import io.confluent.kafka.schemaregistry.json.JsonSchema
+import io.confluent.kafka.schemaregistry.json.JsonSchemaProvider
 
 class BdtJsonSchemaProvider : JsonSchemaProvider() {
   override fun parseSchemaOrElseThrow(schemaString: String?,

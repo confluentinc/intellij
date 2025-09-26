@@ -10,9 +10,9 @@ import io.confluent.intellijplugin.data.KafkaDataManager
 import io.confluent.intellijplugin.registry.KafkaRegistryFormat
 import io.confluent.intellijplugin.registry.KafkaRegistryType
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
-import io.confluent.intellijplugin.serializers.KafkaAvroDeserializer
-import io.confluent.intellijplugin.serializers.json.KafkaJsonSchemaDeserializer
-import io.confluent.intellijplugin.serializers.protobuf.KafkaProtobufDeserializer
+import io.confluent.kafka.serializers.KafkaAvroDeserializer
+import io.confluent.kafka.serializers.json.KafkaJsonSchemaDeserializer
+import io.confluent.kafka.serializers.protobuf.KafkaProtobufDeserializer
 import org.apache.kafka.common.serialization.*
 import org.jetbrains.annotations.Nls
 import software.amazon.awssdk.services.glue.model.DataFormat

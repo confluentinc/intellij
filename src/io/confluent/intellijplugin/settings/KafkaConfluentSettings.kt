@@ -19,7 +19,7 @@ import io.confluent.intellijplugin.rfs.KafkaConfigurationSource
 import io.confluent.intellijplugin.rfs.KafkaConnectionData
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
 import io.confluent.intellijplugin.util.KafkaPropertiesUtils
-import io.confluent.intellijplugin.serializers.AbstractKafkaSchemaSerDeConfig
+import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig
 import javax.swing.SwingUtilities
 
 internal class KafkaConfluentSettings(val project: Project,

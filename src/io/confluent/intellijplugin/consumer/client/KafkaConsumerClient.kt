@@ -8,7 +8,7 @@ import io.confluent.intellijplugin.consumer.models.ConsumerStartWith
 import io.confluent.intellijplugin.data.KafkaDataManager
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
 import io.confluent.intellijplugin.util.KafkaOffsetUtils
-import io.confluent.intellijplugin.serializers.AbstractKafkaSchemaSerDeConfig
+import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig
 import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.clients.consumer.KafkaConsumer

@@ -34,9 +34,9 @@ import io.confluent.intellijplugin.registry.KafkaRegistryFormat
 import io.confluent.intellijplugin.registry.KafkaRegistryType
 import io.confluent.intellijplugin.registry.KafkaRegistryUtil
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
-import io.confluent.intellijplugin.schemaregistry.avro.AvroSchemaUtils
-import io.confluent.intellijplugin.schemaregistry.json.JsonSchemaUtils
-import io.confluent.intellijplugin.schemaregistry.protobuf.ProtobufSchemaUtils
+import io.confluent.kafka.schemaregistry.avro.AvroSchemaUtils
+import io.confluent.kafka.schemaregistry.json.JsonSchemaUtils
+import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchemaUtils
 import org.apache.avro.generic.GenericData
 import java.awt.event.ItemEvent.SELECTED
 import java.nio.charset.Charset

@@ -23,7 +23,7 @@ import io.confluent.intellijplugin.data.KafkaDataManager
 import io.confluent.intellijplugin.registry.confluent.controller.TopicSchemaViewType
 import io.confluent.intellijplugin.registry.ui.KafkaRegistrySchemaEditor
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
-import io.confluent.intellijplugin.schemaregistry.ParsedSchema
+import io.confluent.kafka.schemaregistry.ParsedSchema
 import javax.swing.JComponent
 import javax.swing.JEditorPane
 import javax.swing.JTextField

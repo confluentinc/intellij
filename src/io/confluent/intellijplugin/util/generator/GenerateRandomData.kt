@@ -13,7 +13,7 @@ import io.confluent.intellijplugin.registry.KafkaRegistryFormat
 import io.confluent.intellijplugin.registry.KafkaRegistryType
 import io.confluent.intellijplugin.toolwindow.KafkaMonitoringToolWindowController
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
-import io.confluent.intellijplugin.schemaregistry.ParsedSchema
+import io.confluent.kafka.schemaregistry.ParsedSchema
 
 object GenerateRandomData {
   val logger = Logger.getInstance(this::class.java)

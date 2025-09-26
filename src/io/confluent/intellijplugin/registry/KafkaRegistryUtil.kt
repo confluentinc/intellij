@@ -12,10 +12,10 @@ import io.confluent.intellijplugin.registry.confluent.ConfluentRegistryClient
 import io.confluent.intellijplugin.registry.serde.BdtAvroSchemaProvider
 import io.confluent.intellijplugin.registry.serde.BdtJsonSchemaProvider
 import io.confluent.intellijplugin.registry.serde.BdtProtobufSchemaProvider
-import io.confluent.intellijplugin.schemaregistry.AbstractSchemaProvider
-import io.confluent.intellijplugin.schemaregistry.ParsedSchema
-import io.confluent.intellijplugin.schemaregistry.client.rest.entities.SchemaReference
-import io.confluent.intellijplugin.schemaregistry.protobuf.ProtobufSchema
+import io.confluent.kafka.schemaregistry.AbstractSchemaProvider
+import io.confluent.kafka.schemaregistry.ParsedSchema
+import io.confluent.kafka.schemaregistry.client.rest.entities.SchemaReference
+import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchema
 import java.util.logging.Level
 import java.util.logging.Logger
 

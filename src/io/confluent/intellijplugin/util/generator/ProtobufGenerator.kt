@@ -10,8 +10,8 @@ import com.google.protobuf.util.JsonFormat
 import com.google.protobuf.util.JsonFormat.TypeRegistry
 import com.intellij.openapi.project.Project
 import io.confluent.intellijplugin.util.generator.GenerateRandomData.isValidSchema
-import io.confluent.intellijplugin.schemaregistry.ParsedSchema
-import io.confluent.intellijplugin.schemaregistry.protobuf.ProtobufSchema
+import io.confluent.kafka.schemaregistry.ParsedSchema
+import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchema
 import kotlin.random.Random
 
 class ProtobufGenerator(private val schema: ProtobufSchema) {

@@ -5,7 +5,7 @@ import io.confluent.intellijplugin.core.util.messageOrDefault
 import io.confluent.intellijplugin.util.generator.GenerateRandomData.isValidSchema
 import io.confluent.intellijplugin.util.generator.GenerateRandomData.logger
 import com.mifmif.common.regex.Generex
-import io.confluent.intellijplugin.schemaregistry.ParsedSchema
+import io.confluent.kafka.schemaregistry.ParsedSchema
 import org.apache.avro.LogicalType
 import org.apache.avro.LogicalTypes
 import org.apache.avro.Schema

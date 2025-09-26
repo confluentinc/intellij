@@ -1,11 +1,11 @@
 package io.confluent.intellijplugin.common.models
 
 import com.google.protobuf.Message
-import io.confluent.intellijplugin.schemaregistry.ParsedSchema
-import io.confluent.intellijplugin.schemaregistry.client.SchemaRegistryClient
-import io.confluent.intellijplugin.schemaregistry.protobuf.ProtobufSchema
-import io.confluent.intellijplugin.serializers.protobuf.KafkaProtobufSerializer
-import io.confluent.intellijplugin.serializers.subject.strategy.ReferenceSubjectNameStrategy
+import io.confluent.kafka.schemaregistry.ParsedSchema
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient
+import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchema
+import io.confluent.kafka.serializers.protobuf.KafkaProtobufSerializer
+import io.confluent.kafka.serializers.subject.strategy.ReferenceSubjectNameStrategy
 
 class BdtKafkaProtobufSerializer(client: SchemaRegistryClient?,
                                  schemaName: String,
