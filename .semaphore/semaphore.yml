@@ -55,10 +55,6 @@ blocks:
             - make build
             - make test
             - make release-ci
-      epilogue:
-        always:
-          commands:
-            # - make testbreak-after
 
 after_pipeline:
   task:
