@@ -3,4 +3,5 @@
 # Enable auto-env through setting sdkman_auto_env=true in ~/.sdkman/etc/config
 # See https://sdkman.io/usage#config
 
+gradle=8.14.3
 java=24.0.2-tem

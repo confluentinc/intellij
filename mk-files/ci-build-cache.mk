@@ -19,7 +19,7 @@ ci-sem-cache-restore: ci-sem-cache-restore-gradle ci-sem-cache-restore-sdkman
 # See https://docs.gradle.org/current/userguide/gradle_directories_intermediate.html#gradle_user_home
 .PHONY: ci-sem-cache-store-gradle
 ci-sem-cache-store-gradle:
-# ifneq ($(SEMAPHORE_GIT_REF_TYPE),pull-request)
+ifneq ($(SEMAPHORE_GIT_REF_TYPE),pull-request)
 	@echo "Storing Gradle-specific semaphore caches"
 	@set -e; \
 	current_checksum=$$(checksum gradle.properties build.gradle.kts gradle/wrapper/gradle-wrapper.properties); \
@@ -33,12 +33,12 @@ ci-sem-cache-store-gradle:
 	else \
 		echo "Gradle cache for this checksum was updated recently, skipping..."; \
 	fi
-# endif
+endif
 
 # This target stores the SDKMAN! installed SDKs.
 .PHONY: ci-sem-cache-store-sdkman
 ci-sem-cache-store-sdkman:
-# ifneq ($(SEMAPHORE_GIT_REF_TYPE),pull-request)
+ifneq ($(SEMAPHORE_GIT_REF_TYPE),pull-request)
 	@echo "Storing SDKMAN! semaphore cache"
 	@set -e; \
 	current_checksum=$$(checksum .sdkmanrc); \
@@ -51,7 +51,7 @@ ci-sem-cache-store-sdkman:
 	else \
 		echo "SDKMAN! cache for this checksum was updated recently, skipping..."; \
 	fi
-# endif
+endif
 
 # This target restores the Gradle-specific caches using a checksum of your build files.
 .PHONY: ci-sem-cache-restore-gradle
@@ -69,11 +69,10 @@ ci-sem-cache-restore-sdkman:
 # Override the store-test-results-to-semaphore target to handle Gradle test results
 .PHONY: store-test-results-to-semaphore
 store-test-results-to-semaphore:
-	@for xml_file in $(CURDIR)/build/test-results/test/*TEST*.xml; do \
-		if [ -f "$$xml_file" ]; then \
-			test-results publish "$$xml_file" --force; \
-		else \
-			echo "No Gradle test results found in the current directory."; \
-			exit 1; \
-		fi; \
-	done
+	@test_files=$$(find $(CURDIR)/build/test-results/test -name "*TEST*.xml" 2>/dev/null || true); \
+	if [ -n "$$test_files" ]; then \
+		echo "Publishing test results..."; \
+		test-results publish $$test_files --force; \
+	else \
+		echo "No Gradle test results found at $(CURDIR)/build/test-results/test/"; \
+	fi

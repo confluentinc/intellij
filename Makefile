@@ -125,7 +125,7 @@ setup-sdk:
 		curl -s "https://get.sdkman.io?ci=true&rcupdate=false" | bash; \
 	fi
 	# Install dependencies as defined in .sdkmanrc
-	$(SDKMAN_INIT) && sdk env install
+	$(SDKMAN_INIT) && sdk install java $$(grep "java=" .sdkmanrc | cut -d'=' -f2);
 
 .PHONY: build
 build: setup-sdk
