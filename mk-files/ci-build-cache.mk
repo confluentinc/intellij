@@ -56,7 +56,7 @@ endif
 # This target restores the Gradle-specific caches using a checksum of your build files.
 .PHONY: ci-sem-cache-restore-gradle
 ci-sem-cache-restore-gradle:
-    cache list --sort-by SIZE
+	cache list --sort-by SIZE
 	@echo "Restoring Gradle-specific semaphore caches"
 	cache restore "gradle_caches_$(shell checksum gradle.properties build.gradle.kts gradle/wrapper/gradle-wrapper.properties)"
 	cache restore "gradle_wrapper_$(shell checksum gradle.properties build.gradle.kts gradle/wrapper/gradle-wrapper.properties)"
