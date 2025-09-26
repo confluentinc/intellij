@@ -134,3 +134,4 @@ build: setup-sdk
 .PHONY: test
 test: setup-sdk
 	$(GRADLE) test -Dorg.gradle.console=plain
+
