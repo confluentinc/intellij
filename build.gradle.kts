@@ -1,7 +1,7 @@
 import org.jetbrains.intellij.platform.gradle.TestFrameworkType
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
-rootProject.extensions.add("gradle.version", "8.5")
+rootProject.extensions.add("gradle.version", "8.14.3")
 rootProject.extensions.add("kotlin.jvmTarget", "21")
 rootProject.extensions.add("kotlin.freeCompilerArgs", listOf("-Xjvm-default=all"))
 rootProject.extensions.add("java.sourceCompatibility", "21")
