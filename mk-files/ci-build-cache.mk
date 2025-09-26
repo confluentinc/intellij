@@ -22,13 +22,14 @@ ci-sem-cache-store-gradle:
 # ifneq ($(SEMAPHORE_GIT_REF_TYPE),pull-request)
 	@echo "Storing Gradle-specific semaphore caches"
 	@set -e; \
-	current_checksum=$$(checksum gradle.properties build.gradle.kts); \
-	stored_key=$$(cache list | grep "gradle_$$current_checksum" | awk '{print $$1}' | sort -r | awk 'NR==1'); \
+	current_checksum=$$(checksum gradle.properties build.gradle.kts gradle/wrapper/gradle-wrapper.properties); \
+	stored_key=$$(cache list | grep "gradle_caches_$$current_checksum" | awk '{print $$1}' | sort -r | awk 'NR==1'); \
 	stored_timestamp=$$(echo "$$stored_key" | awk -F_ '{print $$NF}'); \
 	threshold_timestamp=$$(date -d "$(SEM_CACHE_DURATION_DAYS) days ago" +%s); \
 	if [ -z "$$stored_timestamp" ] || [ "$$stored_timestamp" -lt "$$threshold_timestamp" ]; then \
 		echo "Gradle cache is too old or does not exist, storing it again..."; \
-		cache store "gradle_$$current_checksum_$(current_time)" ~/.gradle/caches ~/.gradle/wrapper; \
+		cache store "gradle_caches_$$current_checksum_$(current_time)" ~/.gradle/caches; \
+		cache store "gradle_wrapper_$$current_checksum_$(current_time)" ~/.gradle/wrapper; \
 	else \
 		echo "Gradle cache for this checksum was updated recently, skipping..."; \
 	fi
@@ -56,7 +57,8 @@ ci-sem-cache-store-sdkman:
 .PHONY: ci-sem-cache-restore-gradle
 ci-sem-cache-restore-gradle:
 	@echo "Restoring Gradle-specific semaphore caches"
-	cache restore "gradle_$(shell checksum gradle.properties build.gradle.kts)"
+	cache restore "gradle_caches_$(shell checksum gradle.properties build.gradle.kts gradle/wrapper/gradle-wrapper.properties)"
+	cache restore "gradle_wrapper_$(shell checksum gradle.properties build.gradle.kts gradle/wrapper/gradle-wrapper.properties)"
 
 # This target restores the SDKMAN! installed SDKs.
 .PHONY: ci-sem-cache-restore-sdkman
@@ -69,7 +71,7 @@ ci-sem-cache-restore-sdkman:
 store-test-results-to-semaphore:
 	@for xml_file in $(CURDIR)/build/test-results/test/*TEST*.xml; do \
 		if [ -f "$$xml_file" ]; then \
-			test-results publish "$$xml_file" --name "$$(basename "$$xml_file")" --force; \
+			test-results publish "$$xml_file" --force; \
 		else \
 			echo "No Gradle test results found in the current directory."; \
 			exit 1; \

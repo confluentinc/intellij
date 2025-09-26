@@ -115,8 +115,8 @@ include ./mk-files/ci-build-cache.mk
 
 # SDKMAN initialization
 SDKMAN_INIT = source "$(HOME)/.sdkman/bin/sdkman-init.sh"
-# Gradle command with SDKMAN environment
-GRADLE = $(SDKMAN_INIT) && gradle
+# Gradle command using wrapper (consistent with build.gradle.kts)
+GRADLE = $(SDKMAN_INIT) && ./gradlew
 
 .PHONY: setup-sdk
 setup-sdk:
