@@ -28,7 +28,10 @@ ifneq ($(SEMAPHORE_GIT_REF_TYPE),pull-request)
 	stored_timestamp=$$(echo "$$stored_key" | awk -F_ '{print $$NF}'); \
 	threshold_timestamp=$$(date -d "$(SEM_CACHE_DURATION_DAYS) days ago" +%s); \
 	if [ -z "$$stored_timestamp" ] || [ "$$stored_timestamp" -lt "$$threshold_timestamp" ]; then \
-		echo "Gradle cache is too old or does not exist, storing it again..."; \
+		echo "Gradle cache is too old or does not exist"; \
+		echo "Cleaning up old gradle cache and wrapper keys..."; \
+		cache list | grep "^gradle_caches_" | awk '{print $$1}' | xargs -r -I {} cache delete "{}"; \
+		cache list | grep "^gradle_wrapper_" | awk '{print $$1}' | xargs -r -I {} cache delete "{}"; \
 		echo "Storing gradle_caches_$(gradle_checksum)_$(current_time)"; \
 		cache store "gradle_caches_$(gradle_checksum)_$(current_time)" ~/.gradle/caches; \
 		echo "Storing gradle_wrapper_$(gradle_checksum)_$(current_time)"; \
@@ -48,7 +51,9 @@ ifneq ($(SEMAPHORE_GIT_REF_TYPE),pull-request)
 	stored_timestamp=$$(echo "$$stored_key" | awk -F_ '{print $$NF}'); \
 	threshold_timestamp=$$(date -d "$(SEM_CACHE_DURATION_DAYS) days ago" +%s); \
 	if [ -z "$$stored_timestamp" ] || [ "$$stored_timestamp" -lt "$$threshold_timestamp" ]; then \
-		echo "SDKMAN! cache is too old or does not exist, storing it again..."; \
+		echo "SDKMAN! cache is too old or does not exist"; \
+		echo "Cleaning up old sdkman cache key..."; \
+		cache list | grep "^sdkman_" | awk '{print $$1}' | xargs -r -I {} cache delete "{}"; \
 		echo "Storing sdkman_$(sdkman_checksum)_$(current_time)"; \
 		cache store "sdkman_$(sdkman_checksum)_$(current_time)" ~/.sdkman; \
 	else \
@@ -61,23 +66,16 @@ endif
 ci-sem-cache-restore-gradle:
 	cache list --sort-by SIZE
 	@echo "Restoring Gradle-specific semaphore caches"
-	@echo "Trying to restore gradle_caches_$(gradle_checksum) (new format)"
-	cache restore "gradle_caches_$(gradle_checksum)" || echo "New format not found, trying legacy format"
-	@echo "Trying to restore gradle_caches_ (legacy format)"
-	cache restore "gradle_caches" || echo "No gradle caches found"
-	@echo "Trying to restore gradle_wrapper_$(gradle_checksum) (new format)"
-	cache restore "gradle_wrapper_$(gradle_checksum)" || echo "New format not found, trying legacy format"
-	@echo "Trying to restore gradle_wrapper_ (legacy format)"
-	cache restore "gradle_wrapper" || echo "No gradle wrapper caches found"
+	cache restore "gradle_caches_$(gradle_checksum)"
+	cache restore "gradle_wrapper_$(gradle_checksum)"
+	cache delete "gradle_caches"
+	cache list --sort-by SIZE
 
 # This target restores the SDKMAN! installed SDKs.
 .PHONY: ci-sem-cache-restore-sdkman
 ci-sem-cache-restore-sdkman:
 	@echo "Restoring SDKMAN! semaphore cache"
-	@echo "Trying to restore sdkman_$(sdkman_checksum) (new format)"
-	cache restore "sdkman_$(sdkman_checksum)" || echo "New format not found, trying legacy format"
-	@echo "Trying to restore sdkman_ (legacy format)"
-	cache restore "sdkman" || echo "No sdkman caches found"
+	cache restore "sdkman_$(sdkman_checksum)"
 
 # Override the store-test-results-to-semaphore target to handle Gradle test results
 .PHONY: store-test-results-to-semaphore
