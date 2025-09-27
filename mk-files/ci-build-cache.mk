@@ -13,6 +13,7 @@ sdkman_checksum := $(shell checksum .sdkmanrc)
 # Only write to the cache from main builds because of security reasons.
 .PHONY: ci-sem-cache-store
 ci-sem-cache-store: ci-sem-cache-store-gradle ci-sem-cache-store-sdkman
+	cache list --sort-by SIZE
 
 .PHONY: ci-sem-cache-restore
 ci-sem-cache-restore: ci-sem-cache-restore-gradle ci-sem-cache-restore-sdkman
@@ -64,12 +65,9 @@ endif
 # This target restores the Gradle-specific caches using a checksum of your build files.
 .PHONY: ci-sem-cache-restore-gradle
 ci-sem-cache-restore-gradle:
-	cache list --sort-by SIZE
 	@echo "Restoring Gradle-specific semaphore caches"
 	cache restore "gradle_caches_$(gradle_checksum)"
 	cache restore "gradle_wrapper_$(gradle_checksum)"
-	cache delete "gradle_caches_"
-	cache list --sort-by SIZE
 
 # This target restores the SDKMAN! installed SDKs.
 .PHONY: ci-sem-cache-restore-sdkman
