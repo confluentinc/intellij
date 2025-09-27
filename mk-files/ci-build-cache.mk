@@ -68,7 +68,7 @@ ci-sem-cache-restore-gradle:
 	@echo "Restoring Gradle-specific semaphore caches"
 	cache restore "gradle_caches_$(gradle_checksum)"
 	cache restore "gradle_wrapper_$(gradle_checksum)"
-	cache delete "gradle_caches"
+	cache delete "gradle_caches_"
 	cache list --sort-by SIZE
 
 # This target restores the SDKMAN! installed SDKs.
