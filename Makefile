@@ -135,3 +135,21 @@ build: setup-sdk
 test: setup-sdk
 	$(GRADLE) test -Dorg.gradle.console=plain
 
+
+# To run locally, ensure you're logged into Vault
+# Generates the `THIRD_PARTY_NOTICES.txt` using FOSSA and saves it to the root of the project.
+.PHONY: generate-third-party-notices
+generate-third-party-notices:
+	./scripts/generate-third-party-notices.sh
+
+# Collects and appends all NOTICE files from the project's dependency JARs into a NOTICE-binary.txt file.
+# Runs gradle build before collecting the notices to ensure the JARs are available.
+.PHONY: collect-notices-binary
+collect-notices-binary: build
+	./scripts/collect-notices-binary.sh . .
+
+# Creates a PR against the currently checked out branch with a newly generated `THIRD_PARTY_NOTICES.txt` file.
+# Runs `generate-third-party-notices` before creating the PR.
+.PHONY: update-third-party-notices-pr
+update-third-party-notices-pr:
+	./scripts/update-third-party-notices-pr.sh
