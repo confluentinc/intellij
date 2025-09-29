@@ -25,7 +25,7 @@ MK_INCLUDE_TIMEOUT_MINS ?= 240
 # If this latest validated release is breaking you, please file a ticket with DevProd describing the issue, and
 # if necessary you can temporarily override MK_INCLUDE_VERSION above the managed section headers until the bad
 # release is yanked.
-MK_INCLUDE_VERSION ?= v0.1502.0
+MK_INCLUDE_VERSION ?= v0.1505.0
 
 # Make sure we always have a copy of the latest cc-mk-include release less than $(MK_INCLUDE_TIMEOUT_MINS) old:
 # Note: The simply-expanded make variable makes sure this is run once per make invocation.
@@ -110,6 +110,31 @@ include ./mk-include/cc-vault.mk
 include ./mk-include/cc-sonarqube.mk
 include ./mk-include/cc-end.mk
 ### END INCLUDES ###
+
+include ./mk-files/ci-build-cache.mk
+
+# SDKMAN initialization
+SDKMAN_INIT = source "$(HOME)/.sdkman/bin/sdkman-init.sh"
+# Gradle command using wrapper (consistent with build.gradle.kts)
+GRADLE = $(SDKMAN_INIT) && ./gradlew
+
+.PHONY: setup-sdk
+setup-sdk:
+	# Install SDKMAN! (https://sdkman.io/install/#ci-mode) if restored in cache already
+	@if [ ! -d "$(HOME)/.sdkman" ]; then \
+		curl -s "https://get.sdkman.io?ci=true&rcupdate=false" | bash; \
+	fi
+	# Install dependencies as defined in .sdkmanrc
+	$(SDKMAN_INIT) && sdk install java $$(grep "java=" .sdkmanrc | cut -d'=' -f2);
+
+.PHONY: build
+build: setup-sdk
+	$(GRADLE) build -Dorg.gradle.console=plain
+
+.PHONY: test
+test: setup-sdk
+	$(GRADLE) test -Dorg.gradle.console=plain
+
 
 # To run locally, ensure you're logged into Vault
 # Generates the `THIRD_PARTY_NOTICES.txt` using FOSSA and saves it to the root of the project.
