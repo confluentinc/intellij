@@ -1,7 +1,7 @@
 <idea-plugin>
-  <id>com.intellij.bigdatatools.kafka</id>
+  <id>io.confluent.intellij.kafka</id>
   <name>Kafka</name>
-  <vendor>JetBrains</vendor>
+  <vendor>Confluent</vendor>
 
   <description><![CDATA[
 <p>Monitor your <a href="https://kafka.apache.org/">Kafka</a> event streaming processes:
@@ -22,12 +22,12 @@
   <resource-bundle>messages.KafkaBundle</resource-bundle>
   <extensionPoints>
     <extensionPoint dynamic="true"
-                    interface="com.jetbrains.bigdatatools.kafka.core.settings.connections.ConnectionSettingProvider"
+                    interface="io.confluent.intellijplugin.core.settings.connections.ConnectionSettingProvider"
                     name="connectionSettingProvider"/>
   </extensionPoints>
 
   <applicationListeners>
-    <listener class="com.jetbrains.bigdatatools.kafka.updater.KafkaLoadPluginListener"
+    <listener class="io.confluent.intellijplugin.updater.KafkaLoadPluginListener"
               topic="com.intellij.ide.plugins.DynamicPluginListener"/>
   </applicationListeners>
 
@@ -37,7 +37,7 @@
                        key="kafka.plugin.installed"/>
 
     <completion.contributor language="JSON"
-                            implementationClass="com.jetbrains.bigdatatools.kafka.completion.KafkaProducerGeneratorCompletionContributor"/>
+                            implementationClass="io.confluent.intellijplugin.completion.KafkaProducerGeneratorCompletionContributor"/>
 
     <dependencySupport kind="java" coordinate="java:org.springframework.kafka:spring-kafka" displayName="spring-kafka"/>
     <dependencySupport kind="java" coordinate="java:io.micronaut.kafka:micronaut-kafka" displayName="micronaut-kafka"/>
@@ -55,114 +55,114 @@
     <dependencySupport kind="python" coordinate="confluent-kafka" displayName="confluent-kafka"/>
     <dependencySupport kind="python" coordinate="boto3-kafka" displayName="boto3-kafka"/>
 
-    <applicationService serviceImplementation="com.jetbrains.bigdatatools.kafka.common.settings.KafkaConfigStorage"/>
+    <applicationService serviceImplementation="io.confluent.intellijplugin.common.settings.KafkaConfigStorage"/>
 
-    <applicationService serviceImplementation="com.jetbrains.bigdatatools.kafka.toolwindow.config.KafkaToolWindowSettings"/>
+    <applicationService serviceImplementation="io.confluent.intellijplugin.toolwindow.config.KafkaToolWindowSettings"/>
     <bigdatatools.kafka.connectionSettingProvider
-      implementation="com.jetbrains.bigdatatools.kafka.core.settings.connections.GeneralConnectionSettingsProvider"/>
-    <bigdatatools.kafka.connectionSettingProvider implementation="com.jetbrains.bigdatatools.kafka.settings.KafkaSettingsProvider"/>
+      implementation="io.confluent.intellijplugin.core.settings.connections.GeneralConnectionSettingsProvider"/>
+    <bigdatatools.kafka.connectionSettingProvider implementation="io.confluent.intellijplugin.settings.KafkaSettingsProvider"/>
 
     <projectConfigurable parentId="tools" id="kafka_conn_settings"
                          bundle="messages.KafkaBundle" key="connections.settings.display.name"
-                         provider="com.jetbrains.bigdatatools.kafka.core.settings.KafkaSettingsConfigurableProvider"/>
+                         provider="io.confluent.intellijplugin.core.settings.KafkaSettingsConfigurableProvider"/>
 
     <toolWindow id="KafkaToolWindow" anchor="bottom" canCloseContents="true"
-                icon="com.intellij.bigdatatools.kafka.icons.BigdatatoolsKafkaIcons.KafkaToolWindow"
-                factoryClass="com.jetbrains.bigdatatools.kafka.toolwindow.KafkaToolWindowFactory"/>
+                icon="io.confluent.intellijplugin.icons.BigdatatoolsKafkaIcons.KafkaToolWindow"
+                factoryClass="io.confluent.intellijplugin.toolwindow.KafkaToolWindowFactory"/>
 
-    <fileEditorProvider implementation="com.jetbrains.bigdatatools.kafka.common.editor.KafkaEditorProvider"/>
-    <editorTabTitleProvider implementation="com.jetbrains.bigdatatools.kafka.common.editor.KafkaTabTitleProvider"/>
+    <fileEditorProvider implementation="io.confluent.intellijplugin.common.editor.KafkaEditorProvider"/>
+    <editorTabTitleProvider implementation="io.confluent.intellijplugin.common.editor.KafkaTabTitleProvider"/>
 
     <notificationGroup id="Kafka Notification" displayType="BALLOON" bundle="messages.KafkaBundle" key="notification.group.kafka"/>
-    <contentTabActionProvider implementation="com.jetbrains.bigdatatools.kafka.core.monitoring.toolwindow.MonitoringTabActionProvider"/>
+    <contentTabActionProvider implementation="io.confluent.intellijplugin.core.monitoring.toolwindow.MonitoringTabActionProvider"/>
   </extensions>
 
   <actions resource-bundle="messages.KafkaBundle">
     <action id="Kafka.GlobalCreateKafkaConnection"
-            class="com.jetbrains.bigdatatools.kafka.actions.CreateKafkaConnectionAction"/>
+            class="io.confluent.intellijplugin.actions.CreateKafkaConnectionAction"/>
 
     <group id="Kafka.ExportRecords.Actions" popup="true" icon="AllIcons.Actions.Download">
-      <action id="Kafka.Export.ToCsv" class="com.jetbrains.bigdatatools.kafka.actions.CsvExportAction"/>
-      <action id="Kafka.Export.ToTsv" class="com.jetbrains.bigdatatools.kafka.actions.TsvExportAction"/>
-      <action id="Kafka.Export.ToJson" class="com.jetbrains.bigdatatools.kafka.actions.JsonExportAction"/>
+      <action id="Kafka.Export.ToCsv" class="io.confluent.intellijplugin.actions.CsvExportAction"/>
+      <action id="Kafka.Export.ToTsv" class="io.confluent.intellijplugin.actions.TsvExportAction"/>
+      <action id="Kafka.Export.ToJson" class="io.confluent.intellijplugin.actions.JsonExportAction"/>
     </group>
 
     <group id="Kafka.Actions">
       <group id="Kafka.General.Actions">
         <action id="kafka.create.producer"
-                class="com.jetbrains.bigdatatools.kafka.toolwindow.actions.KafkaCreateProducerAction"
+                class="io.confluent.intellijplugin.toolwindow.actions.KafkaCreateProducerAction"
                 icon="AllIcons.General.Settings"/>
         <action id="kafka.create.consumer"
-                class="com.jetbrains.bigdatatools.kafka.toolwindow.actions.KafkaCreateConsumerAction"
+                class="io.confluent.intellijplugin.toolwindow.actions.KafkaCreateConsumerAction"
                 icon="AllIcons.General.Settings"/>
 
         <separator/>
       </group>
 
-      <action id="Kafka.AddToFavoriteAction" class="com.jetbrains.bigdatatools.kafka.toolwindow.actions.AddToFavoriteAction"
+      <action id="Kafka.AddToFavoriteAction" class="io.confluent.intellijplugin.toolwindow.actions.AddToFavoriteAction"
               icon="AllIcons.Nodes.Favorite">
       </action>
 
       <group id="Kafka.Topic.Actions">
         <!--suppress PluginXmlCapitalization -->
-        <action id="kafka.CreateTopicAction" class="com.jetbrains.bigdatatools.kafka.toolwindow.actions.CreateTopicAction"
+        <action id="kafka.CreateTopicAction" class="io.confluent.intellijplugin.toolwindow.actions.CreateTopicAction"
                 icon="AllIcons.General.Add" use-shortcut-of="NewElement">
         </action>
-        <action id="kafka.DeleteTopicAction" class="com.jetbrains.bigdatatools.kafka.toolwindow.actions.DeleteTopicAction"
+        <action id="kafka.DeleteTopicAction" class="io.confluent.intellijplugin.toolwindow.actions.DeleteTopicAction"
                 icon="AllIcons.General.Remove">
           <keyboard-shortcut keymap="$default" first-keystroke="DELETE"/>
         </action>
-        <action id="kafka.ClearTopicAction" class="com.jetbrains.bigdatatools.kafka.toolwindow.actions.ClearTopicAction"
-                icon="com.intellij.bigdatatools.kafka.icons.BigdatatoolsKafkaIcons.ClearOutputs">
+        <action id="kafka.ClearTopicAction" class="io.confluent.intellijplugin.toolwindow.actions.ClearTopicAction"
+                icon="io.confluent.intellijplugin.icons.BigdatatoolsKafkaIcons.ClearOutputs">
         </action>
       </group>
 
       <group id="Kafka.Consumer.Group.Actions">
-        <action id="kafka.ResetOffsetsAction" class="com.jetbrains.bigdatatools.kafka.toolwindow.actions.ResetOffsetsAction"
+        <action id="kafka.ResetOffsetsAction" class="io.confluent.intellijplugin.toolwindow.actions.ResetOffsetsAction"
                 icon="AllIcons.General.Reset"/>
 
-        <action id="kafka.DeleteConsumerGroupAction" class="com.jetbrains.bigdatatools.kafka.toolwindow.actions.DeleteConsumerGroupAction"
+        <action id="kafka.DeleteConsumerGroupAction" class="io.confluent.intellijplugin.toolwindow.actions.DeleteConsumerGroupAction"
                 icon="AllIcons.General.Remove"/>
       </group>
 
       <group id="Kafka.Schema.Actions">
-        <action id="kafka.CreateSchemaAction" class="com.jetbrains.bigdatatools.kafka.toolwindow.actions.CreateSchemaAction"
+        <action id="kafka.CreateSchemaAction" class="io.confluent.intellijplugin.toolwindow.actions.CreateSchemaAction"
                 icon="AllIcons.General.Add" use-shortcut-of="NewElement">
         </action>
         <action id="Kafka.DeleteSchemaAction"
-                class="com.jetbrains.bigdatatools.kafka.toolwindow.actions.DeleteSchemaAction"
+                class="io.confluent.intellijplugin.toolwindow.actions.DeleteSchemaAction"
                 icon="AllIcons.General.Remove">
           <keyboard-shortcut keymap="$default" first-keystroke="DELETE"/>
         </action>
-        <action id="kafka.CloneSchemaAction" class="com.jetbrains.bigdatatools.kafka.toolwindow.actions.CloneSchemaAction"
+        <action id="kafka.CloneSchemaAction" class="io.confluent.intellijplugin.toolwindow.actions.CloneSchemaAction"
                 icon="AllIcons.Actions.Copy"/>
       </group>
     </group>
 
     <group id="Kafka.MonitoringTabsActions" popup="true">
       <action id="Kafka.MonitoringTabsActions.RenameAction"
-              class="com.jetbrains.bigdatatools.kafka.core.monitoring.actions.tabs.MonitoringTabRenameConnection"
+              class="io.confluent.intellijplugin.core.monitoring.actions.tabs.MonitoringTabRenameConnection"
               use-shortcut-of="RenameElement"/>
       <separator/>
       <action id="Kafka.MonitoringTabsActions.EnableAction"
-              class="com.jetbrains.bigdatatools.kafka.core.monitoring.actions.tabs.MonitoringTabEnableConnection"/>
+              class="io.confluent.intellijplugin.core.monitoring.actions.tabs.MonitoringTabEnableConnection"/>
       <action id="Kafka.MonitoringTabsActions.DisableAction"
-              class="com.jetbrains.bigdatatools.kafka.core.monitoring.actions.tabs.MonitoringTabDisableConnection"/>
+              class="io.confluent.intellijplugin.core.monitoring.actions.tabs.MonitoringTabDisableConnection"/>
       <action id="Kafka.MonitoringTabsActions.DeleteAction"
-              class="com.jetbrains.bigdatatools.kafka.core.monitoring.actions.tabs.MonitoringTabDeleteConnection"
+              class="io.confluent.intellijplugin.core.monitoring.actions.tabs.MonitoringTabDeleteConnection"
               use-shortcut-of="$Delete"/>
       <action id="Kafka.MonitoringTabsActions.RefreshAction"
-              class="com.jetbrains.bigdatatools.kafka.core.monitoring.actions.tabs.MonitoringTabRefreshConnection"/>
+              class="io.confluent.intellijplugin.core.monitoring.actions.tabs.MonitoringTabRefreshConnection"/>
       <action id="Kafka.MonitoringTabsActions.OpenSettingsAction"
               icon="AllIcons.General.Settings"
-              class="com.jetbrains.bigdatatools.kafka.core.monitoring.actions.tabs.MonitoringTabOpenConnectionSetting"
+              class="io.confluent.intellijplugin.core.monitoring.actions.tabs.MonitoringTabOpenConnectionSetting"
               use-shortcut-of="EditSource"/>
     </group>
 
-    <action id="Kafka.BdiTableCopyRowAction" class="com.jetbrains.bigdatatools.kafka.core.table.editor.BdiTableCopyRowAction"/>
-    <action id="Kafka.BdiTableCopyColumnAction" class="com.jetbrains.bigdatatools.kafka.core.table.editor.BdiTableCopyColumnAction"/>
+    <action id="Kafka.BdiTableCopyRowAction" class="io.confluent.intellijplugin.core.table.editor.BdiTableCopyRowAction"/>
+    <action id="Kafka.BdiTableCopyColumnAction" class="io.confluent.intellijplugin.core.table.editor.BdiTableCopyColumnAction"/>
     <action id="Kafka.BdiTableDumpToClipboardAction"
-            class="com.jetbrains.bigdatatools.kafka.core.table.editor.BdiTableDumpToClipboardAction"/>
+            class="io.confluent.intellijplugin.core.table.editor.BdiTableDumpToClipboardAction"/>
   </actions>
 
   <change-notes><![CDATA[
