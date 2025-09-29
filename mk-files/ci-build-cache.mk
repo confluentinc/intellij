@@ -22,7 +22,7 @@ ci-sem-cache-restore: ci-sem-cache-restore-gradle ci-sem-cache-restore-sdkman
 # See https://docs.gradle.org/current/userguide/gradle_directories_intermediate.html#gradle_user_home
 .PHONY: ci-sem-cache-store-gradle
 ci-sem-cache-store-gradle:
-ifneq ($(SEMAPHORE_GIT_REF_TYPE),pull-request)
+# ifneq ($(SEMAPHORE_GIT_REF_TYPE),pull-request)
 	@echo "Storing Gradle-specific semaphore caches"
 	@set -e; \
 	stored_key=$$(cache list | grep "gradle_caches_$(gradle_checksum)" | awk '{print $$1}' | sort -r | awk 'NR==1'); \
@@ -31,8 +31,8 @@ ifneq ($(SEMAPHORE_GIT_REF_TYPE),pull-request)
 	if [ -z "$$stored_timestamp" ] || [ "$$stored_timestamp" -lt "$$threshold_timestamp" ]; then \
 		echo "Gradle cache is too old or does not exist"; \
 		echo "Cleaning up old gradle cache and wrapper keys..."; \
-		cache list | grep "^gradle_caches_" | awk '{print $$1}' | xargs -r -I {} cache delete "{}"; \
-		cache list | grep "^gradle_wrapper_" | awk '{print $$1}' | xargs -r -I {} cache delete "{}"; \
+		cache list | grep "^gradle_caches_" | awk '{print $$1}' | xargs -r -I {} sh -c 'echo "Deleting: $$0" && cache delete "$$0"' {}; \
+		cache list | grep "^gradle_wrapper_" | awk '{print $$1}' | xargs -r -I {} sh -c 'echo "Deleting: $$0" && cache delete "$$0"' {}; \
 		echo "Storing gradle_caches_$(gradle_checksum)_$(current_time)"; \
 		cache store "gradle_caches_$(gradle_checksum)_$(current_time)" ~/.gradle/caches; \
 		echo "Storing gradle_wrapper_$(gradle_checksum)_$(current_time)"; \
@@ -40,7 +40,7 @@ ifneq ($(SEMAPHORE_GIT_REF_TYPE),pull-request)
 	else \
 		echo "Gradle cache for this checksum was updated recently, skipping..."; \
 	fi
-endif
+# endif
 
 # This target stores the SDKMAN! installed SDKs.
 .PHONY: ci-sem-cache-store-sdkman
@@ -54,7 +54,7 @@ ifneq ($(SEMAPHORE_GIT_REF_TYPE),pull-request)
 	if [ -z "$$stored_timestamp" ] || [ "$$stored_timestamp" -lt "$$threshold_timestamp" ]; then \
 		echo "SDKMAN! cache is too old or does not exist"; \
 		echo "Cleaning up old sdkman cache key..."; \
-		cache list | grep "^sdkman_" | awk '{print $$1}' | xargs -r -I {} cache delete "{}"; \
+		cache list | grep "^sdkman_" | awk '{print $$1}' | xargs -r -I {} sh -c 'echo "Deleting: $$0" && cache delete "$$0"' {}; \
 		echo "Storing sdkman_$(sdkman_checksum)_$(current_time)"; \
 		cache store "sdkman_$(sdkman_checksum)_$(current_time)" ~/.sdkman; \
 	else \
