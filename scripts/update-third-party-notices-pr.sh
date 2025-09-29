@@ -30,7 +30,7 @@ main() {
 
   # Add, commit, push and create PR
   echo "Checking if there is already a PR opened"
-  if gh pr list -B "${BASE_BRANCH}" | grep "${COMMIT_MESSAGE}" ; then
+  if gh pr list -B "${BASE_BRANCH}" | grep -F "${COMMIT_MESSAGE}" ; then
     echo "there is already a update third party notices PR opened; close or merge it before running this script"
   else
     # delete local update branch if it exists
