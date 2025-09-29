@@ -8,8 +8,8 @@ sdkman_checksum := $(shell checksum .sdkmanrc)
 #
 # Logic adapted from https://github.com/confluentinc/ide-sidecar/blob/7640c2e752da8c28ae9e10f356e94b7331ded0e3/mk-files/semaphore.mk#L21-L54.
 #
-# A new cache is only stored if the previous one is older than `SEM_CACHE_DURATION_DAYS` (default 7 days).
-# Timestamp and the OS name in the cache key to prevent collisions and allow for fuzzy matching on restore.
+# A new cache is only stored if the previous one is older than `SEM_CACHE_DURATION_DAYS` (14 days).
+# Timestamp and the checksum of properties files in the cache key to prevent collisions and allow for fuzzy matching on restore.
 # Only write to the cache from main builds because of security reasons.
 .PHONY: ci-sem-cache-store
 ci-sem-cache-store: ci-sem-cache-store-gradle ci-sem-cache-store-sdkman
@@ -22,7 +22,7 @@ ci-sem-cache-restore: ci-sem-cache-restore-gradle ci-sem-cache-restore-sdkman
 # See https://docs.gradle.org/current/userguide/gradle_directories_intermediate.html#gradle_user_home
 .PHONY: ci-sem-cache-store-gradle
 ci-sem-cache-store-gradle:
-# ifneq ($(SEMAPHORE_GIT_REF_TYPE),pull-request)
+ifneq ($(SEMAPHORE_GIT_REF_TYPE),pull-request)
 	@echo "Storing Gradle-specific semaphore caches"
 	@set -e; \
 	stored_key=$$(cache list | grep "gradle_caches_$(gradle_checksum)" | awk '{print $$1}' | sort -r | awk 'NR==1'); \
@@ -40,7 +40,7 @@ ci-sem-cache-store-gradle:
 	else \
 		echo "Gradle cache for this checksum was updated recently, skipping..."; \
 	fi
-# endif
+endif
 
 # This target stores the SDKMAN! installed SDKs.
 .PHONY: ci-sem-cache-store-sdkman
