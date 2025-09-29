@@ -4,7 +4,7 @@ import com.intellij.openapi.components.*
 import com.intellij.util.xmlb.XmlSerializerUtil
 
 @Service
-@State(name = "KerberosSettings", storages = [Storage("KerberosSettings.xml")])
+@State(name = "ConfluentIntellijKafkaKerberosSettings", storages = [Storage("confluent_kafka_kerberos_settings.xml")])
 class KerberosSettings : PersistentStateComponent<KerberosSettings> {
   var enabled = false
 

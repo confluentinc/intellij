@@ -7,7 +7,7 @@ import io.confluent.intellijplugin.core.rfs.driver.RfsPath
 import io.confluent.intellijplugin.core.settings.manager.RfsConnectionDataManager
 
 @Service
-@State(name = "RfsFileViewerSettings", storages = [Storage("rfsFileViewerSettings.xml")])
+@State(name = "ConfluentIntellijKafkaRfsFileViewerSettings", storages = [Storage("confluent-kafka-rfs-file-viewer-settings.xml")])
 class RfsFileViewerSettings : PersistentStateComponent<RfsFileViewerSettings> {
 
   companion object {

@@ -37,7 +37,7 @@ class KafkaRunConfig(val configsGetter: () -> List<StorageConfig>,
 }
 
 @Suppress("MemberVisibilityCanBePrivate")
-@State(name = "BdtKafkaConfigTemplate", storages = [Storage("BdtKafkaConfigTemplate.xml")])
+@State(name = "ConfluentIntellijKafkaConfigTemplate", storages = [Storage("confluent-kafka-config-template.xml")])
 class KafkaConfigStorage : PersistentStateComponent<KafkaConfigStorage> {
 
   // Never access this fields directly. Use consumerConfig and producerConfig

@@ -5,7 +5,7 @@ import com.intellij.util.xmlb.XmlSerializerUtil
 
 @Service
 // Currently we only need to persist ids of broken connection settings, to prevent duplicates sent to statistics.
-@State(name = "BdtStatisticsSettings", storages = [Storage("BdtStatisticsSettings.xml")])
+@State(name = "ConfluentIntellijKafkaStatisticsSettings", storages = [Storage("confluent_kafka_statistics_settings.xml")])
 class StatisticsSettings : PersistentStateComponent<StatisticsSettings> {
 
   var reportedBrokenConnections = HashSet<String>()

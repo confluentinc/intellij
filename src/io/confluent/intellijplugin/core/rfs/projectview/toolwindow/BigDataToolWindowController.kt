@@ -40,7 +40,7 @@ import org.jdom.Element
 import javax.swing.JComponent
 
 @Service(Service.Level.PROJECT)
-@State(name = "BigDataToolWindowController", storages = [Storage(StoragePathMacros.PRODUCT_WORKSPACE_FILE)], getStateRequiresEdt = true)
+@State(name = "ConfluentIntellijKafkaBigDataToolWindowController", storages = [Storage(StoragePathMacros.PRODUCT_WORKSPACE_FILE)], getStateRequiresEdt = true)
 class BigDataToolWindowController(val project: Project) : PersistentStateComponent<Element>, Disposable {
   private lateinit var contentManager: ContentManager
 

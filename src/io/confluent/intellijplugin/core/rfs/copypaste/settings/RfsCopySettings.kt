@@ -4,7 +4,7 @@ import com.intellij.openapi.components.*
 import com.intellij.util.xmlb.XmlSerializerUtil
 
 @Service
-@State(name = "BigDataToolsRfsCopySettings", storages = [Storage("BigDataToolsRfsCopySettings.xml")])
+@State(name = "ConfluentIntellijKafkaRfsCopySettings", storages = [Storage("confluent-kafka-rfs-copy-settings.xml")])
 class RfsCopySettings : PersistentStateComponent<RfsCopySettings> {
   var ignoreConfirmationCopyMove = mutableListOf<String>()
 

@@ -8,10 +8,10 @@ import com.intellij.openapi.components.Storage
 import com.intellij.openapi.components.service
 
 @State(
-  name = "BigDataIdeGlobalConnectionSettings",
+  name = "ConfluentIntellijKafkaGlobalSettings",
   useLoadedStateAsExisting = false, // This is hack, needed because we need to transfer sensitive data from settings to PasswordSafe
   storages = [
-    Storage("bigdataide_settings.xml")
+    Storage("confluent_kafka_settings.xml")
   ]
 )
 @Service

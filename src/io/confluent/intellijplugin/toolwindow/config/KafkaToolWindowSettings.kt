@@ -10,7 +10,7 @@ import io.confluent.intellijplugin.core.settings.ColumnVisibilitySettings
 import io.confluent.intellijplugin.model.*
 import io.confluent.intellijplugin.registry.common.KafkaSchemaInfo
 
-@State(name = "KafkaSettings", storages = [Storage("kafka.xml")])
+@State(name = "ConfluentIntellijKafkaToolWindowSettings", storages = [Storage("confluent_kafka_toolwindow.xml")])
 class KafkaToolWindowSettings : PersistentStateComponent<KafkaToolWindowSettings>, IntervalUpdateSettings {
   var showFullTopicConfig: Boolean = false
   override var selectedConnectionId: String? = null

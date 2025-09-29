@@ -9,10 +9,10 @@ import io.confluent.intellijplugin.core.settings.connections.ConnectionData
 
 @Service(Service.Level.PROJECT)
 @State(
-  name = "BigDataIdeConnectionSettings",
+  name = "ConfluentIntellijKafkaLocalSettings",
   useLoadedStateAsExisting = false, // This is hack, needed because we need to transfer sensitive data from settings to PasswordSafe
   storages = [
-    Storage("bigdataide_settings.xml")
+    Storage("confluent_kafka_settings.xml")
   ]
 )
 class LocalConnectionSettings : ConnectionSettingsBase() {

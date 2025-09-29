@@ -1,7 +1,7 @@
 <idea-plugin>
-  <id>com.intellij.bigdatatools.kafka</id>
+  <id>io.confluent.intellij.kafka</id>
   <name>Kafka</name>
-  <vendor>JetBrains</vendor>
+  <vendor>Confluent</vendor>
 
   <description><![CDATA[
 <p>Monitor your <a href="https://kafka.apache.org/">Kafka</a> event streaming processes:
