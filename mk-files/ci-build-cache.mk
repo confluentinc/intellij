@@ -1,5 +1,5 @@
 # How many days cache entries can stay in the semaphore cache before they are considered stale
-SEM_CACHE_DURATION_DAYS ?= 7
+SEM_CACHE_DURATION_DAYS ?= 14
 current_time := $(shell date +"%s")
 gradle_checksum := $(shell checksum gradle.properties build.gradle.kts gradle/wrapper/gradle-wrapper.properties)
 sdkman_checksum := $(shell checksum .sdkmanrc)
