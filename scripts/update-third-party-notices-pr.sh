@@ -35,7 +35,7 @@ main() {
   else
     # delete local update branch if it exists
     git branch -D "${PR_BRANCH}" &>/dev/null || true
-    git checkout -b "${PR_BRANCH}" ${BASE_BRANCH}
+    git checkout -b "${PR_BRANCH}" "${BASE_BRANCH}"
 
     if git add THIRD_PARTY_NOTICES.txt NOTICE-binary.txt && \
      git diff --cached --exit-code --quiet; then

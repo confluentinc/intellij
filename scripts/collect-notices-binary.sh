@@ -83,7 +83,7 @@ create_binary_notice() {
     echo "This file contains notices for third-party libraries included in this distribution." >> "${TMP_NOTICE_BINARY}"
   fi
 
-  notices=( $(find . -type f -name "NOTICE*" -mindepth 2 | sort) )
+  readarray -d '' -t notices < <(find . -type f -name "NOTICE*" -mindepth 2 -print0 | sort -z)
   n="${#notices[@]}"
   echo "Found ${n} NOTICE files in extracted JARs"
   

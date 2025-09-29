@@ -4,12 +4,12 @@ retry() {
   command=$1
   num_retries=$2
   
-  for i in $(seq 1 $num_retries); do
+  for i in $(seq 1 "$num_retries"); do
     echo "Attempt $i: $command"
     eval $command && return
     sleep 5
     
-    if [ $i -eq $num_retries ]; then
+    if [ "$i" -eq "$num_retries" ]; then
       echo "Failed after $num_retries attempts: $command"
       return 1
     fi
