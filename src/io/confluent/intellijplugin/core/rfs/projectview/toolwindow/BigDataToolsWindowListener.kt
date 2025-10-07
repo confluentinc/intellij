@@ -9,43 +9,47 @@ import io.confluent.intellijplugin.core.settings.connections.ConnectionData
 import io.confluent.intellijplugin.core.util.invokeLater
 
 class BigDataToolsWindowListener(val controller: BigDataToolWindowController) : ConnectionSettingsListener {
-  override fun onConnectionAdded(project: Project?, newConnectionData: ConnectionData) {
-    if (shouldBeIgnored(newConnectionData, project)) return
+    override fun onConnectionAdded(project: Project?, newConnectionData: ConnectionData) {
+        if (shouldBeIgnored(newConnectionData, project)) return
 
-    val panel = getPanel()
-    runInEdt {
-      panel.updateRoots()
+        val panel = getPanel()
+        runInEdt {
+            panel.updateRoots()
+        }
+
+        controller.createFileViewerEditor(newConnectionData)
     }
 
-    controller.createFileViewerEditor(newConnectionData)
-  }
+    override fun onConnectionRemoved(project: Project?, removedConnectionData: ConnectionData) {
+        if (shouldBeIgnored(removedConnectionData, project)) return
+        val container = getPanel()
+        invokeLater {
+            container.updateRoots()
+        }
 
-  override fun onConnectionRemoved(project: Project?, removedConnectionData: ConnectionData) {
-    if (shouldBeIgnored(removedConnectionData, project)) return
-    val container = getPanel()
-    invokeLater {
-      container.updateRoots()
+        controller.closeFileViewerEditors(removedConnectionData)
     }
 
-    controller.closeFileViewerEditors(removedConnectionData)
-  }
+    override fun onConnectionModified(
+        project: Project?,
+        connectionData: ConnectionData,
+        modified: Collection<ModificationKey>
+    ) {
+        if (shouldBeIgnored(connectionData, project)) return
 
-  override fun onConnectionModified(project: Project?, connectionData: ConnectionData, modified: Collection<ModificationKey>) {
-    if (shouldBeIgnored(connectionData, project)) return
+        val panel = getPanel()
+        invokeLater {
+            panel.updateRoots()
+        }
 
-    val panel = getPanel()
-    invokeLater {
-      panel.updateRoots()
+        controller.closeFileViewerEditors(connectionData)
     }
 
-    controller.closeFileViewerEditors(connectionData)
-  }
+    private fun shouldBeIgnored(connectionData: ConnectionData, project: Project?): Boolean {
+        val isDriverProvider = connectionData is RemoteFsDriverProvider
+        val isForCorrectProject = project == null || project == controller.project
+        return !isDriverProvider || !isForCorrectProject
+    }
 
-  private fun shouldBeIgnored(connectionData: ConnectionData, project: Project?): Boolean {
-    val isDriverProvider = connectionData is RemoteFsDriverProvider
-    val isForCorrectProject = project == null || project == controller.project
-    return !isDriverProvider || !isForCorrectProject
-  }
-
-  private fun getPanel() = controller.getMainPane()
+    private fun getPanel() = controller.getMainPane()
 }

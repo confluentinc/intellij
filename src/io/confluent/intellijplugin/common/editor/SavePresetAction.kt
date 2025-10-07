@@ -8,24 +8,24 @@ import io.confluent.intellijplugin.common.settings.KafkaRunConfig
 import io.confluent.intellijplugin.common.settings.StorageConfig
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
 
-class SavePresetAction(private val runConfig: KafkaRunConfig, private val configSupplier: () -> StorageConfig)
-  : DumbAwareAction(KafkaMessagesBundle.message("action.save.preset"), null, BigdatatoolsKafkaIcons.Bookmark_off) {
+class SavePresetAction(private val runConfig: KafkaRunConfig, private val configSupplier: () -> StorageConfig) :
+    DumbAwareAction(KafkaMessagesBundle.message("action.save.preset"), null, BigdatatoolsKafkaIcons.Bookmark_off) {
 
-  override fun update(e: AnActionEvent) {
-    super.update(e)
-    val hasPreset = runConfig.hasConfig(configSupplier())
-    e.presentation.text = KafkaMessagesBundle.message(if (hasPreset) "action.remove.preset" else "action.save.preset")
-    e.presentation.icon = if (hasPreset) BigdatatoolsKafkaIcons.Bookmark_on else BigdatatoolsKafkaIcons.Bookmark_off
-  }
-
-  override fun getActionUpdateThread() = ActionUpdateThread.BGT
-
-  override fun actionPerformed(e: AnActionEvent) {
-    if (runConfig.hasConfig(configSupplier())) {
-      runConfig.removeConfig(configSupplier())
+    override fun update(e: AnActionEvent) {
+        super.update(e)
+        val hasPreset = runConfig.hasConfig(configSupplier())
+        e.presentation.text =
+            KafkaMessagesBundle.message(if (hasPreset) "action.remove.preset" else "action.save.preset")
+        e.presentation.icon = if (hasPreset) BigdatatoolsKafkaIcons.Bookmark_on else BigdatatoolsKafkaIcons.Bookmark_off
     }
-    else {
-      runConfig.addConfig(configSupplier())
+
+    override fun getActionUpdateThread() = ActionUpdateThread.BGT
+
+    override fun actionPerformed(e: AnActionEvent) {
+        if (runConfig.hasConfig(configSupplier())) {
+            runConfig.removeConfig(configSupplier())
+        } else {
+            runConfig.addConfig(configSupplier())
+        }
     }
-  }
 }

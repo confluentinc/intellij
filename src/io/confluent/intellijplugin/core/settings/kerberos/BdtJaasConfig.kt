@@ -28,59 +28,59 @@ import javax.security.auth.login.AppConfigurationEntry.LoginModuleControlFlag
  * Copy of JaasConfigs class
  */
 class BdtJaasConfig(jaasConfigParams: String) : javax.security.auth.login.Configuration() {
-  private var configEntries: MutableList<AppConfigurationEntry> = mutableListOf()
+    private var configEntries: MutableList<AppConfigurationEntry> = mutableListOf()
 
-  val config: AppConfigurationEntry?
-    get() = configEntries.firstOrNull()
+    val config: AppConfigurationEntry?
+        get() = configEntries.firstOrNull()
 
-  init {
-    val tokenizer = StreamTokenizer(StringReader(jaasConfigParams))
-    tokenizer.slashSlashComments(true)
-    tokenizer.slashStarComments(true)
-    tokenizer.wordChars('-'.code, '-'.code)
-    tokenizer.wordChars('_'.code, '_'.code)
-    tokenizer.wordChars('$'.code, '$'.code)
-    try {
-      while (tokenizer.nextToken() != StreamTokenizer.TT_EOF) {
-        configEntries.add(parseAppConfigurationEntry(tokenizer))
-      }
-      require(!configEntries.isEmpty()) { "Login module not specified in JAAS config" }
+    init {
+        val tokenizer = StreamTokenizer(StringReader(jaasConfigParams))
+        tokenizer.slashSlashComments(true)
+        tokenizer.slashStarComments(true)
+        tokenizer.wordChars('-'.code, '-'.code)
+        tokenizer.wordChars('_'.code, '_'.code)
+        tokenizer.wordChars('$'.code, '$'.code)
+        try {
+            while (tokenizer.nextToken() != StreamTokenizer.TT_EOF) {
+                configEntries.add(parseAppConfigurationEntry(tokenizer))
+            }
+            require(!configEntries.isEmpty()) { "Login module not specified in JAAS config" }
+        } catch (e: IOException) {
+            throw BdtConnectionException(KafkaMessagesBundle.message("kerberos.error.parse.jass"))
+        }
     }
-    catch (e: IOException) {
-      throw BdtConnectionException(KafkaMessagesBundle.message("kerberos.error.parse.jass"))
-    }
-  }
 
-  override fun getAppConfigurationEntry(name: String): Array<AppConfigurationEntry> {
-    return configEntries.toTypedArray()
-  }
-
-  private fun loginModuleControlFlag(flag: String?): LoginModuleControlFlag {
-    requireNotNull(flag) { "Login module control flag is not available in the JAAS config" }
-    val controlFlag: LoginModuleControlFlag = when (flag.uppercase()) {
-      "REQUIRED" -> LoginModuleControlFlag.REQUIRED
-      "REQUISITE" -> LoginModuleControlFlag.REQUISITE
-      "SUFFICIENT" -> LoginModuleControlFlag.SUFFICIENT
-      "OPTIONAL" -> LoginModuleControlFlag.OPTIONAL
-      else -> throw IllegalArgumentException("Invalid login module control flag '$flag' in JAAS config")
+    override fun getAppConfigurationEntry(name: String): Array<AppConfigurationEntry> {
+        return configEntries.toTypedArray()
     }
-    return controlFlag
-  }
 
-  @Throws(IOException::class)
-  private fun parseAppConfigurationEntry(tokenizer: StreamTokenizer): AppConfigurationEntry {
-    val loginModule = tokenizer.sval
-    require(tokenizer.nextToken() != StreamTokenizer.TT_EOF) { "Login module control flag not specified in JAAS config" }
-    val controlFlag = loginModuleControlFlag(tokenizer.sval)
-    val options: MutableMap<String, String?> = HashMap()
-    while (tokenizer.nextToken() != StreamTokenizer.TT_EOF && tokenizer.ttype != ';'.code) {
-      val key = tokenizer.sval
-      require(
-        !(tokenizer.nextToken() != '='.code || tokenizer.nextToken() == StreamTokenizer.TT_EOF || tokenizer.sval == null)) { "Value not specified for key '$key' in JAAS config" }
-      val value = tokenizer.sval
-      options[key] = value
+    private fun loginModuleControlFlag(flag: String?): LoginModuleControlFlag {
+        requireNotNull(flag) { "Login module control flag is not available in the JAAS config" }
+        val controlFlag: LoginModuleControlFlag = when (flag.uppercase()) {
+            "REQUIRED" -> LoginModuleControlFlag.REQUIRED
+            "REQUISITE" -> LoginModuleControlFlag.REQUISITE
+            "SUFFICIENT" -> LoginModuleControlFlag.SUFFICIENT
+            "OPTIONAL" -> LoginModuleControlFlag.OPTIONAL
+            else -> throw IllegalArgumentException("Invalid login module control flag '$flag' in JAAS config")
+        }
+        return controlFlag
     }
-    require(tokenizer.ttype == ';'.code) { "JAAS config entry not terminated by semi-colon" }
-    return AppConfigurationEntry(loginModule, controlFlag, options)
-  }
+
+    @Throws(IOException::class)
+    private fun parseAppConfigurationEntry(tokenizer: StreamTokenizer): AppConfigurationEntry {
+        val loginModule = tokenizer.sval
+        require(tokenizer.nextToken() != StreamTokenizer.TT_EOF) { "Login module control flag not specified in JAAS config" }
+        val controlFlag = loginModuleControlFlag(tokenizer.sval)
+        val options: MutableMap<String, String?> = HashMap()
+        while (tokenizer.nextToken() != StreamTokenizer.TT_EOF && tokenizer.ttype != ';'.code) {
+            val key = tokenizer.sval
+            require(
+                !(tokenizer.nextToken() != '='.code || tokenizer.nextToken() == StreamTokenizer.TT_EOF || tokenizer.sval == null)
+            ) { "Value not specified for key '$key' in JAAS config" }
+            val value = tokenizer.sval
+            options[key] = value
+        }
+        require(tokenizer.ttype == ';'.code) { "JAAS config entry not terminated by semi-colon" }
+        return AppConfigurationEntry(loginModule, controlFlag, options)
+    }
 }

@@ -10,39 +10,42 @@ import javax.swing.JLabel
 
 /** Adds label and a component to panel row. Component will fill entire space horizontally. */
 fun Panel.row(component: WrappedNamedComponent<*>): Row = row(component.labelComponent) {
-  cell(component.getComponent()).align(AlignX.FILL)
+    cell(component.getComponent()).align(AlignX.FILL)
 }
 
 fun Panel.row(@NlsContexts.Label label: String, component: JComponent): Row = row(label) {
-  cell(component).align(AlignX.FILL)
+    cell(component).align(AlignX.FILL)
 }
 
 fun Panel.row(label: JLabel, component: JComponent): Row = row(label) {
-  cell(component).align(AlignX.FILL)
+    cell(component).align(AlignX.FILL)
 }
 
 fun Panel.row(component: JComponent): Row = row {
-  cell(component)
+    cell(component)
 }
 
 fun Panel.block(component: JComponent): Row = row {
-  cell(component).align(Align.FILL).resizableColumn()
+    cell(component).align(Align.FILL).resizableColumn()
 }
 
 fun Panel.shortRow(component: WrappedNamedComponent<*>): Row = row(component.labelComponent) {
-  cell(component.getComponent())
+    cell(component.getComponent())
 }
 
 
-fun <S, T, C : ComboBox<T>> Cell<C>.bindUpdateCollection(prop: ObservableMutableProperty<S>, calcValues: (S) -> List<T>): Cell<C> {
-  prop.afterChange {
-    val selectedItem = component.item
-    val newCollections = calcValues(it)
-    component.removeAllItems()
-    newCollections.forEach {
-      component.addItem(it)
+fun <S, T, C : ComboBox<T>> Cell<C>.bindUpdateCollection(
+    prop: ObservableMutableProperty<S>,
+    calcValues: (S) -> List<T>
+): Cell<C> {
+    prop.afterChange {
+        val selectedItem = component.item
+        val newCollections = calcValues(it)
+        component.removeAllItems()
+        newCollections.forEach {
+            component.addItem(it)
+        }
+        component.item = selectedItem
     }
-    component.item = selectedItem
-  }
-  return this
+    return this
 }

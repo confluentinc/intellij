@@ -10,47 +10,47 @@ import io.confluent.intellijplugin.core.rfs.driver.FailedConnectionStatus
 import io.confluent.intellijplugin.core.util.SmartLogger
 
 abstract class MonitoringClient(val project: Project?) : Disposable {
-  private var state: DriverConnectionStatus? = null
+    private var state: DriverConnectionStatus? = null
 
-  fun connect(calledByUser: Boolean, prepareConnection: () -> Unit = {}) {
-    try {
-      state = ConnectingConnectionStatus
+    fun connect(calledByUser: Boolean, prepareConnection: () -> Unit = {}) {
+        try {
+            state = ConnectingConnectionStatus
 
-      prepareConnection()
-      connectInner(calledByUser)
-      checkConnectionInner()
+            prepareConnection()
+            connectInner(calledByUser)
+            checkConnectionInner()
 
-      logger.info("Successfully connected to ${getRealUri()}")
-      state = ConnectedConnectionStatus
+            logger.info("Successfully connected to ${getRealUri()}")
+            state = ConnectedConnectionStatus
+        } catch (t: Throwable) {
+            logger.info("Connection error to ${getRealUri()}", t)
+            state = FailedConnectionStatus(t)
+            throw t
+        }
     }
-    catch (t: Throwable) {
-      logger.info("Connection error to ${getRealUri()}", t)
-      state = FailedConnectionStatus(t)
-      throw t
+
+    fun checkConnection() = try {
+        checkConnectionInner()
+        state = ConnectedConnectionStatus
+    } catch (t: Throwable) {
+        state = FailedConnectionStatus(t)
+        throw t
     }
-  }
 
-  fun checkConnection() = try {
-    checkConnectionInner()
-    state = ConnectedConnectionStatus
-  }
-  catch (t: Throwable) {
-    state = FailedConnectionStatus(t)
-    throw t
-  }
+    fun getConnectionStatus(): DriverConnectionStatus =
+        state ?: FailedConnectionStatus(BdtDriverNotInitializedException())
 
-  fun getConnectionStatus(): DriverConnectionStatus = state ?: FailedConnectionStatus(BdtDriverNotInitializedException())
-  val connectionError: Throwable? get() = state?.getException()
-  fun isConnecting() = state == ConnectingConnectionStatus
-  fun isConnected() = state == ConnectedConnectionStatus
-  fun isInited() = state == ConnectedConnectionStatus || state is FailedConnectionStatus
+    val connectionError: Throwable? get() = state?.getException()
+    fun isConnecting() = state == ConnectingConnectionStatus
+    fun isConnected() = state == ConnectedConnectionStatus
+    fun isInited() = state == ConnectedConnectionStatus || state is FailedConnectionStatus
 
-  abstract fun getRealUri(): String
-  protected abstract fun checkConnectionInner()
-  protected abstract fun connectInner(calledByUser: Boolean)
+    abstract fun getRealUri(): String
+    protected abstract fun checkConnectionInner()
+    protected abstract fun connectInner(calledByUser: Boolean)
 
-  companion object {
-    val logger = SmartLogger(this::class.java)
-  }
+    companion object {
+        val logger = SmartLogger(this::class.java)
+    }
 }
 

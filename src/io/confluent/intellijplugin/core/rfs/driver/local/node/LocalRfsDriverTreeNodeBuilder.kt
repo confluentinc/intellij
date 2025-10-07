@@ -7,5 +7,6 @@ import io.confluent.intellijplugin.core.rfs.tree.node.DriverFileRfsTreeNode
 import io.confluent.intellijplugin.core.rfs.tree.node.RfsDriverTreeNodeBuilder
 
 class LocalRfsDriverTreeNodeBuilder : RfsDriverTreeNodeBuilder() {
-  override fun createNode(project: Project, path: RfsPath, driver: Driver): DriverFileRfsTreeNode = LocalDriverRfsNode(project, path, driver)
+    override fun createNode(project: Project, path: RfsPath, driver: Driver): DriverFileRfsTreeNode =
+        LocalDriverRfsNode(project, path, driver)
 }

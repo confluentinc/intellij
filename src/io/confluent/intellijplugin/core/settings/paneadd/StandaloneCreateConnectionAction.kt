@@ -7,9 +7,9 @@ import io.confluent.intellijplugin.core.settings.ConnectionSettings
 import io.confluent.intellijplugin.core.settings.connections.ConnectionFactory
 
 class StandaloneCreateConnectionAction(private val project: Project, private val group: ConnectionFactory<*>) :
-  DumbAwareAction(group.name, null, group.icon) {
+    DumbAwareAction(group.name, null, group.icon) {
 
-  override fun actionPerformed(e: AnActionEvent) {
-    ConnectionSettings.create(project, group, applyIfOk = true)
-  }
+    override fun actionPerformed(e: AnActionEvent) {
+        ConnectionSettings.create(project, group, applyIfOk = true)
+    }
 }

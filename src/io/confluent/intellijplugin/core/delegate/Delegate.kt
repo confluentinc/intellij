@@ -11,23 +11,23 @@ package io.confluent.intellijplugin.core.delegate
  * </pre>
  */
 open class Delegate<T, R> {
-  private var listeners = listOf<(T) -> R>()
+    private var listeners = listOf<(T) -> R>()
 
-  operator fun plusAssign(listener: (T) -> R) {
-    listeners = listeners + listener
-  }
+    operator fun plusAssign(listener: (T) -> R) {
+        listeners = listeners + listener
+    }
 
-  operator fun minusAssign(listener: (T) -> R) {
-    listeners = listeners - listener
-  }
+    operator fun minusAssign(listener: (T) -> R) {
+        listeners = listeners - listener
+    }
 
-  fun notify(p: T) {
-    listeners.forEach { it(p) }
-  }
+    fun notify(p: T) {
+        listeners.forEach { it(p) }
+    }
 
-  fun clear() {
-    listeners = emptyList()
-  }
+    fun clear() {
+        listeners = emptyList()
+    }
 }
 
 /**
@@ -41,21 +41,21 @@ open class Delegate<T, R> {
  * </pre>
  */
 open class Delegate2<T1, T2, R> {
-  private var listeners = listOf<(T1, T2) -> R>()
+    private var listeners = listOf<(T1, T2) -> R>()
 
-  operator fun plusAssign(listener: (T1, T2) -> R) {
-    listeners = listeners + listener
-  }
+    operator fun plusAssign(listener: (T1, T2) -> R) {
+        listeners = listeners + listener
+    }
 
-  operator fun minusAssign(listener: (T1, T2) -> R) {
-    listeners = listeners - listener
-  }
+    operator fun minusAssign(listener: (T1, T2) -> R) {
+        listeners = listeners - listener
+    }
 
-  fun notify(p1: T1, p2: T2) {
-    listeners.forEach { it(p1, p2) }
-  }
+    fun notify(p1: T1, p2: T2) {
+        listeners.forEach { it(p1, p2) }
+    }
 
-  fun clear() {
-    listeners = emptyList()
-  }
+    fun clear() {
+        listeners = emptyList()
+    }
 }

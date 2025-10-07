@@ -1,8 +1,8 @@
 package io.confluent.intellijplugin.registry
 
 object KafkaRegistryTemplates {
-  private const val avroDefault =
-    """{
+    private const val avroDefault =
+        """{
   "type": "record",
   "name": "MyRecord",
   "namespace": "com.mycompany",
@@ -11,8 +11,8 @@ object KafkaRegistryTemplates {
   ]
 }"""
 
-  private const val protobufSchema =
-    """syntax = "proto3";
+    private const val protobufSchema =
+        """syntax = "proto3";
 
 message MyRecord {
   int32 id = 1;
@@ -20,7 +20,7 @@ message MyRecord {
   string name = 3;
 }"""
 
-  private const val jsonSchema = """{
+    private const val jsonSchema = """{
   "${"$"}id": "https://mycompany.com/myrecord",
   "${"$"}schema": "http://json-schema.org/draft-07/schema",
   "type": "object",
@@ -38,16 +38,17 @@ message MyRecord {
   "additionalProperties": false
 }"""
 
-  private val templates = mapOf(
-    KafkaRegistryFormat.AVRO to avroDefault,
-    KafkaRegistryFormat.PROTOBUF to protobufSchema,
-    KafkaRegistryFormat.JSON to jsonSchema
-  )
+    private val templates = mapOf(
+        KafkaRegistryFormat.AVRO to avroDefault,
+        KafkaRegistryFormat.PROTOBUF to protobufSchema,
+        KafkaRegistryFormat.JSON to jsonSchema
+    )
 
-  private fun getDefault(providerType: KafkaRegistryFormat) = templates[providerType] ?: error("Not found default for $providerType")
+    private fun getDefault(providerType: KafkaRegistryFormat) =
+        templates[providerType] ?: error("Not found default for $providerType")
 
-  fun getDefaultIfNotConfigured(prevText: String, newProvider: KafkaRegistryFormat): String? {
-    val isDefault = prevText.isBlank() || prevText in templates.values
-    return getDefault(newProvider).takeIf { isDefault }
-  }
+    fun getDefaultIfNotConfigured(prevText: String, newProvider: KafkaRegistryFormat): String? {
+        val isDefault = prevText.isBlank() || prevText in templates.values
+        return getDefault(newProvider).takeIf { isDefault }
+    }
 }

@@ -11,44 +11,54 @@ import java.io.Serializable
  * In interfaces please use [ConnectionSshTunnelData] or [ConnectionSshTunnelInfo].
  */
 data class ConnectionSshTunnelDataLegacy(
-  val isEnabled: Boolean,
-  val configId: String,
-  @Deprecated("Write remote host:port in uri section") val remoteHost: String,
-  @Deprecated("Write remote host:port in uri section") val remotePort: Int,
-  val localPort: Int? = null,
+    val isEnabled: Boolean,
+    val configId: String,
+    @Deprecated("Write remote host:port in uri section") val remoteHost: String,
+    @Deprecated("Write remote host:port in uri section") val remotePort: Int,
+    val localPort: Int? = null,
 ) : Serializable {
-  fun getSshConfig(project: Project?) = SshConfigManager.getInstance(project).findConfigById(configId)
+    fun getSshConfig(project: Project?) = SshConfigManager.getInstance(project).findConfigById(configId)
 
-  companion object {
-    val DEFAULT: ConnectionSshTunnelDataLegacy = ConnectionSshTunnelDataLegacy(isEnabled = false,
-                                                                               configId = "",
-                                                                               remoteHost = "",
-                                                                               remotePort = -1)
+    companion object {
+        val DEFAULT: ConnectionSshTunnelDataLegacy = ConnectionSshTunnelDataLegacy(
+            isEnabled = false,
+            configId = "",
+            remoteHost = "",
+            remotePort = -1
+        )
 
-    const val serialVersionUID: Long = -8632095507356038549
-  }
+        const val serialVersionUID: Long = -8632095507356038549
+    }
 }
 
 /**
  * Represents configurable from UI tunnel data. Config id is displayed and stored even for disabled connection for UX purposes.
  */
 data class ConnectionSshTunnelData(val isEnabled: Boolean, val configId: String, val localPort: Int? = null) {
-  constructor(configId: String) : this(true, configId)
-  companion object {
-    val DEFAULT = ConnectionSshTunnelData(isEnabled = false, configId = "")
-  }
+    constructor(configId: String) : this(true, configId)
+
+    companion object {
+        val DEFAULT = ConnectionSshTunnelData(isEnabled = false, configId = "")
+    }
 }
 
 /**
  * Represents tunnel data ready for creating an SSH tunnel (see [io.confluent.intellijplugin.core.connection.tunnel.BdtSshTunnelService]). Can be formed from URI and [ConnectionSshTunnelData]
  */
-data class ConnectionSshTunnelInfo(val sshConfig: SshConfig, val remoteHost: String, val remotePort: Int, val localPort: Int? = null) {
-  constructor(configId: String, remoteHost: String, remotePort: Int, project: Project? = null,
-              localPort: Int? = null) :
-    this(SshConfigManager.getInstance(project).findConfigById(configId).let { sshConfig ->
-      if (sshConfig == null) {
-        throw SshConfigNotFoundException(configId)
-      }
-      sshConfig
-    }, remoteHost, remotePort, localPort = localPort)
+data class ConnectionSshTunnelInfo(
+    val sshConfig: SshConfig,
+    val remoteHost: String,
+    val remotePort: Int,
+    val localPort: Int? = null
+) {
+    constructor(
+        configId: String, remoteHost: String, remotePort: Int, project: Project? = null,
+        localPort: Int? = null
+    ) :
+            this(SshConfigManager.getInstance(project).findConfigById(configId).let { sshConfig ->
+                if (sshConfig == null) {
+                    throw SshConfigNotFoundException(configId)
+                }
+                sshConfig
+            }, remoteHost, remotePort, localPort = localPort)
 }

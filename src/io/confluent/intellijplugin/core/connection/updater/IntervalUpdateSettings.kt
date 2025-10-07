@@ -1,8 +1,8 @@
 package io.confluent.intellijplugin.core.connection.updater
 
 interface IntervalUpdateSettings {
-  var dataUpdateIntervalMillis: Int
-  var selectedConnectionId: String?
+    var dataUpdateIntervalMillis: Int
+    var selectedConnectionId: String?
 
-  val configs: MutableMap<String, out Any>
+    val configs: MutableMap<String, out Any>
 }

@@ -39,211 +39,232 @@ import kotlin.math.max
 import kotlin.math.min
 import kotlin.properties.Delegates
 
-class RfsCopyOrMoveDialog(private val pasteType: CopyOrMove,
-                          private val sourceFileInfos: List<FileInfo>,
-                          targetPath: RfsPath,
-                          targetDriver: Driver,
-                          private val availableTargetDrivers: List<Driver> = listOf(targetDriver),
-                          project: Project,
-                          private val additionalNameValidator: (String) -> String? = { null }) {
+class RfsCopyOrMoveDialog(
+    private val pasteType: CopyOrMove,
+    private val sourceFileInfos: List<FileInfo>,
+    targetPath: RfsPath,
+    targetDriver: Driver,
+    private val availableTargetDrivers: List<Driver> = listOf(targetDriver),
+    project: Project,
+    private val additionalNameValidator: (String) -> String? = { null }
+) {
 
-  val builder = DialogBuilder(project)
+    val builder = DialogBuilder(project)
 
-  private var exportFormatComboBox = ComboBox(calculateExportFormats(targetDriver))
+    private var exportFormatComboBox = ComboBox(calculateExportFormats(targetDriver))
 
-  private var nameTextField = EditorTextField("").withValidator(builder) { text ->
-    val result = additionalNameValidator(text) ?: when {
-      text.isBlank() -> KafkaMessagesBundle.message("name.should.not.be.empty")
-      text.endsWith("/") && sourceFileInfos.firstOrNull()?.isFile == true -> KafkaMessagesBundle.message("no.trailing.slash.in.file.name")
-      text.removeSuffix("/").contains("/") -> KafkaMessagesBundle.message("no.slash.in.name")
-      else -> null
+    private var nameTextField = EditorTextField("").withValidator(builder) { text ->
+        val result = additionalNameValidator(text) ?: when {
+            text.isBlank() -> KafkaMessagesBundle.message("name.should.not.be.empty")
+            text.endsWith("/") && sourceFileInfos.firstOrNull()?.isFile == true -> KafkaMessagesBundle.message("no.trailing.slash.in.file.name")
+            text.removeSuffix("/").contains("/") -> KafkaMessagesBundle.message("no.slash.in.name")
+            else -> null
+        }
+        nameIsValid = result == null
+        result
     }
-    nameIsValid = result == null
-    result
-  }
 
-  private var driverComboBox = ComboBox(availableTargetDrivers.toTypedArray()).apply {
-    selectedItem = targetDriver
-    isSwingPopup = false
-  }
+    private var driverComboBox = ComboBox(availableTargetDrivers.toTypedArray()).apply {
+        selectedItem = targetDriver
+        isSwingPopup = false
+    }
 
-  private var targetPathTextField = TextFieldWithRfsBrowseButton(project,
-                                                                 targetDriver,
-                                                                 targetPath.stringRepresentation(),
-                                                                 availableTargetDrivers,
-                                                                 showFiles = false,
-                                                                 disposable = builder)
-  private lateinit var alreadyExists: Cell<JEditorPane>
+    private var targetPathTextField = TextFieldWithRfsBrowseButton(
+        project,
+        targetDriver,
+        targetPath.stringRepresentation(),
+        availableTargetDrivers,
+        showFiles = false,
+        disposable = builder
+    )
+    private lateinit var alreadyExists: Cell<JEditorPane>
 
-  private val showAlreadyExist = AtomicBooleanProperty(false)
+    private val showAlreadyExist = AtomicBooleanProperty(false)
 
-  private val okAction = object : AbstractAction(CommonBundle.getOkButtonText()) {
+    private val okAction = object : AbstractAction(CommonBundle.getOkButtonText()) {
+        init {
+            putValue(DialogWrapper.DEFAULT_ACTION, true)
+        }
+
+        override fun actionPerformed(e: ActionEvent?) {
+            builder.dialogWrapper.close(DialogWrapper.OK_EXIT_CODE)
+        }
+    }
+
+    private var pathIsValid: Boolean by Delegates.observable(true) { _, _, newValue ->
+        okAction.isEnabled = newValue && nameIsValid
+    }
+
+    private var nameIsValid: Boolean by Delegates.observable(true) { _, _, newValue ->
+        okAction.isEnabled = newValue && pathIsValid
+    }
+
     init {
-      putValue(DialogWrapper.DEFAULT_ACTION, true)
+        if (sourceFileInfos.size == 1) {
+            val correctTargetPath = RfsCopyPasteUtil.getCorrectTargetPath(
+                sourceFileInfos.first(),
+                targetPath,
+                targetDriver,
+                exportFormat = calculateExportFormats(targetDriver).firstOrNull()
+            )
+            nameTextField.text = correctTargetPath.name
+
+            nameTextField.addDocumentListener(object : DocumentListener {
+                override fun documentChanged(event: DocumentEvent) = checkConflicts()
+            })
+        }
+
+        targetPathTextField.whenTextChanged {
+            checkConflicts()
+        }
+
+        driverComboBox.addItemListener {
+            targetPathTextField.updateDriver(it.item as Driver)
+            updateExportFormats()
+        }
+
+        targetPathTextField.onNewDriverSelectDelegate.plusAssign {
+            driverComboBox.item = it
+            updateExportFormats()
+        }
+
+        exportFormatComboBox.renderer = object : SimpleListCellRenderer<ExportFormat>() {
+            override fun customize(
+                list: JList<out ExportFormat>,
+                value: ExportFormat?,
+                index: Int,
+                selected: Boolean,
+                hasFocus: Boolean
+            ) {
+                text = value?.displayName ?: "Not Used"
+            }
+        }
+        var prevItem: ExportFormat? = exportFormatComboBox.item
+
+        exportFormatComboBox.addItemListener {
+            val newFormat = it.item as ExportFormat
+            nameTextField.text = nameTextField.text.removeSuffix(prevItem?.extension ?: "") + newFormat.extension
+            prevItem = newFormat
+        }
     }
 
-    override fun actionPerformed(e: ActionEvent?) {
-      builder.dialogWrapper.close(DialogWrapper.OK_EXIT_CODE)
-    }
-  }
+    fun showAndGetResult(): TargetInfo? {
 
-  private var pathIsValid: Boolean by Delegates.observable(true) { _, _, newValue ->
-    okAction.isEnabled = newValue && nameIsValid
-  }
+        val centerPanel = createCenterPanel()
+        centerPanel.withPreferredWidth(
+            max(
+                Toolkit.getDefaultToolkit().screenSize.width / 6,
+                min(
+                    centerPanel.preferredSize.width,
+                    Toolkit.getDefaultToolkit().screenSize.width / 4
+                )
+            )
+        )
 
-  private var nameIsValid: Boolean by Delegates.observable(true) { _, _, newValue ->
-    okAction.isEnabled = newValue && pathIsValid
-  }
+        centerPanel.withMinimumWidth(1)
 
-  init {
-    if (sourceFileInfos.size == 1) {
-      val correctTargetPath = RfsCopyPasteUtil.getCorrectTargetPath(sourceFileInfos.first(),
-                                                                    targetPath,
-                                                                    targetDriver,
-                                                                    exportFormat = calculateExportFormats(targetDriver).firstOrNull())
-      nameTextField.text = correctTargetPath.name
+        clearAlreadyExistsWarning()
+        checkConflicts()
 
-      nameTextField.addDocumentListener(object : DocumentListener {
-        override fun documentChanged(event: DocumentEvent) = checkConflicts()
-      })
-    }
+        builder.removeAllActions()
+        builder.addAction(okAction)
+        builder.addCancelAction()
+        builder.setCenterPanel(centerPanel)
+        builder.setPreferredFocusComponent(nameTextField)
+        builder.setTitle(
+            when (pasteType) {
+                COPY -> RefactoringBundle.message("copy.files.copy.title")
+                MOVE -> RefactoringBundle.message("move.title")
+                COPY_OR_MOVE -> "${RefactoringBundle.message("copy.files.copy.title")}/${RefactoringBundle.message("move.title")}"
+            }
+        )
 
-    targetPathTextField.whenTextChanged {
-      checkConflicts()
-    }
-
-    driverComboBox.addItemListener {
-      targetPathTextField.updateDriver(it.item as Driver)
-      updateExportFormats()
-    }
-
-    targetPathTextField.onNewDriverSelectDelegate.plusAssign {
-      driverComboBox.item = it
-      updateExportFormats()
+        return if (builder.showAndGet())
+            getDialogResult()
+        else
+            null
     }
 
-    exportFormatComboBox.renderer = object : SimpleListCellRenderer<ExportFormat>() {
-      override fun customize(list: JList<out ExportFormat>, value: ExportFormat?, index: Int, selected: Boolean, hasFocus: Boolean) {
-        text = value?.displayName ?: "Not Used"
-      }
-    }
-    var prevItem: ExportFormat? = exportFormatComboBox.item
+    private fun getDialogResult() = TargetInfo(
+        if (sourceFileInfos.size == 1) nameTextField.text else null,
+        targetPathTextField.rfsTargetFolder,
+        driverComboBox.item as Driver,
+        exportFormatComboBox.item
+    )
 
-    exportFormatComboBox.addItemListener {
-      val newFormat = it.item as ExportFormat
-      nameTextField.text = nameTextField.text.removeSuffix(prevItem?.extension ?: "") + newFormat.extension
-      prevItem = newFormat
-    }
-  }
+    private fun createCenterPanel() = panel {
+        row {
+            text(RfsCopyMoveDialogUtils.createDialogLabel(sourceFileInfos, pasteType)).apply {
+                component.font = component.font.deriveFont(Font.BOLD)
+            }
+        }
 
-  fun showAndGetResult(): TargetInfo? {
+        if (sourceFileInfos.size == 1) {
+            row(RefactoringBundle.message("copy.files.new.name.label"), nameTextField)
+        }
 
-    val centerPanel = createCenterPanel()
-    centerPanel.withPreferredWidth(
-      max(Toolkit.getDefaultToolkit().screenSize.width / 6,
-          min(centerPanel.preferredSize.width,
-              Toolkit.getDefaultToolkit().screenSize.width / 4)))
+        if (exportFormatComboBox.itemCount > 1) {
+            row(KafkaMessagesBundle.message("copy.move.label.file.format"), exportFormatComboBox)
+        }
+        if (availableTargetDrivers.size > 1) {
+            row(KafkaMessagesBundle.message("copy.dialog.target.driver"), driverComboBox)
+        }
 
-    centerPanel.withMinimumWidth(1)
+        row(RefactoringBundle.message("copy.files.to.directory.label"), targetPathTextField)
 
-    clearAlreadyExistsWarning()
-    checkConflicts()
-
-    builder.removeAllActions()
-    builder.addAction(okAction)
-    builder.addCancelAction()
-    builder.setCenterPanel(centerPanel)
-    builder.setPreferredFocusComponent(nameTextField)
-    builder.setTitle(when (pasteType) {
-                       COPY -> RefactoringBundle.message("copy.files.copy.title")
-                       MOVE -> RefactoringBundle.message("move.title")
-                       COPY_OR_MOVE -> "${RefactoringBundle.message("copy.files.copy.title")}/${RefactoringBundle.message("move.title")}"
-                     })
-
-    return if (builder.showAndGet())
-      getDialogResult()
-    else
-      null
-  }
-
-  private fun getDialogResult() = TargetInfo(if (sourceFileInfos.size == 1) nameTextField.text else null,
-                                             targetPathTextField.rfsTargetFolder,
-                                             driverComboBox.item as Driver,
-                                             exportFormatComboBox.item)
-
-  private fun createCenterPanel() = panel {
-    row {
-      text(RfsCopyMoveDialogUtils.createDialogLabel(sourceFileInfos, pasteType)).apply {
-        component.font = component.font.deriveFont(Font.BOLD)
-      }
+        row {
+            icon(AllIcons.General.Warning)
+            alreadyExists = comment("")
+        }.visibleIf(showAlreadyExist)
     }
 
-    if (sourceFileInfos.size == 1) {
-      row(RefactoringBundle.message("copy.files.new.name.label"), nameTextField)
+    private fun checkConflicts() {
+        executeOnPooledThread {
+            clearAlreadyExistsWarning()
+
+            if (sourceFileInfos.size != 1)
+                return@executeOnPooledThread
+
+            val sourceFile = sourceFileInfos.first()
+
+            val curRes = getDialogResult()
+            val targetName = curRes.targetName ?: return@executeOnPooledThread
+            val targetPath = curRes.targetFolder.child(targetName, sourceFile.isDirectory)
+            val targetDriver = curRes.targetDriver
+
+            val existsFileInfo = targetDriver.getFileStatus(targetPath).resultOrThrow()
+            existsFileInfo?.let { showAlreadyExistsWarning(it) }
+        }
     }
 
-    if (exportFormatComboBox.itemCount > 1) {
-      row(KafkaMessagesBundle.message("copy.move.label.file.format"), exportFormatComboBox)
+    private fun showAlreadyExistsWarning(existingFileInfo: FileInfo) {
+        val message = if (existingFileInfo.isFile)
+            KafkaMessagesBundle.message("file.already.exists", existingFileInfo.name, targetPathTextField.text)
+        else
+            KafkaMessagesBundle.message("directory.already.exists", existingFileInfo.name, targetPathTextField.text)
+
+        alreadyExists.text(message)
+        showAlreadyExist.set(true)
     }
-    if (availableTargetDrivers.size > 1) {
-      row(KafkaMessagesBundle.message("copy.dialog.target.driver"), driverComboBox)
+
+    private fun clearAlreadyExistsWarning() {
+        showAlreadyExist.set(false)
     }
 
-    row(RefactoringBundle.message("copy.files.to.directory.label"), targetPathTextField)
+    private fun calculateExportFormats(targetDriver: Driver) = sourceFileInfos.flatMap {
+        it.getCopyFormatsFor(targetDriver)
+    }.distinct().toTypedArray()
 
-    row {
-      icon(AllIcons.General.Warning)
-      alreadyExists = comment("")
-    }.visibleIf(showAlreadyExist)
-  }
+    private fun updateExportFormats() {
+        val preselectedItem = exportFormatComboBox.item
+        val targetDriver = driverComboBox.item
+        val targetExportFormats = targetDriver?.let { calculateExportFormats(it) } ?: emptyArray()
 
-  private fun checkConflicts() {
-    executeOnPooledThread {
-      clearAlreadyExistsWarning()
-
-      if (sourceFileInfos.size != 1)
-        return@executeOnPooledThread
-
-      val sourceFile = sourceFileInfos.first()
-
-      val curRes = getDialogResult()
-      val targetName = curRes.targetName ?: return@executeOnPooledThread
-      val targetPath = curRes.targetFolder.child(targetName, sourceFile.isDirectory)
-      val targetDriver = curRes.targetDriver
-
-      val existsFileInfo = targetDriver.getFileStatus(targetPath).resultOrThrow()
-      existsFileInfo?.let { showAlreadyExistsWarning(it) }
+        exportFormatComboBox.removeAllItems()
+        targetExportFormats.forEach {
+            exportFormatComboBox.addItem(it)
+        }
+        exportFormatComboBox.isVisible = targetExportFormats.isNotEmpty()
+        exportFormatComboBox.item = preselectedItem
     }
-  }
-
-  private fun showAlreadyExistsWarning(existingFileInfo: FileInfo) {
-    val message = if (existingFileInfo.isFile)
-      KafkaMessagesBundle.message("file.already.exists", existingFileInfo.name, targetPathTextField.text)
-    else
-      KafkaMessagesBundle.message("directory.already.exists", existingFileInfo.name, targetPathTextField.text)
-
-    alreadyExists.text(message)
-    showAlreadyExist.set(true)
-  }
-
-  private fun clearAlreadyExistsWarning() {
-    showAlreadyExist.set(false)
-  }
-
-  private fun calculateExportFormats(targetDriver: Driver) = sourceFileInfos.flatMap {
-    it.getCopyFormatsFor(targetDriver)
-  }.distinct().toTypedArray()
-
-  private fun updateExportFormats() {
-    val preselectedItem = exportFormatComboBox.item
-    val targetDriver = driverComboBox.item
-    val targetExportFormats = targetDriver?.let { calculateExportFormats(it) } ?: emptyArray()
-
-    exportFormatComboBox.removeAllItems()
-    targetExportFormats.forEach {
-      exportFormatComboBox.addItem(it)
-    }
-    exportFormatComboBox.isVisible = targetExportFormats.isNotEmpty()
-    exportFormatComboBox.item = preselectedItem
-  }
 }

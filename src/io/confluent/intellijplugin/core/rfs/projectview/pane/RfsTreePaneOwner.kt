@@ -11,14 +11,15 @@ import javax.swing.JTree
 import javax.swing.tree.TreePath
 
 class RfsTreePaneOwner(val pane: RfsPane) : RfsPaneOwner {
-  override val project: Project = pane.project
-  override val jTree: JTree = pane.tree
-  val treeModel: CompoundRfsTreeModel = pane.treeModel
+    override val project: Project = pane.project
+    override val jTree: JTree = pane.tree
+    val treeModel: CompoundRfsTreeModel = pane.treeModel
 
-  override fun dispose() {}
+    override fun dispose() {}
 
-  override fun getSelectionPaths(): Array<TreePath> = pane.selectionPaths
-  override fun getNodeForPath(path: RfsPath, driver: Driver) = treeModel.getCachedDriverTreePath(driver, path)?.lastDriverNode
+    override fun getSelectionPaths(): Array<TreePath> = pane.selectionPaths
+    override fun getNodeForPath(path: RfsPath, driver: Driver) =
+        treeModel.getCachedDriverTreePath(driver, path)?.lastDriverNode
 
-  override fun getComponent(): JComponent = pane.componentToFocus
+    override fun getComponent(): JComponent = pane.componentToFocus
 }

@@ -4,11 +4,11 @@
 package io.confluent.intellijplugin.aws.credentials.sso
 
 interface SsoCache {
-  fun loadClientRegistration(ssoRegion: String): ClientRegistration?
-  fun saveClientRegistration(ssoRegion: String, registration: ClientRegistration)
-  fun invalidateClientRegistration(ssoRegion: String)
+    fun loadClientRegistration(ssoRegion: String): ClientRegistration?
+    fun saveClientRegistration(ssoRegion: String, registration: ClientRegistration)
+    fun invalidateClientRegistration(ssoRegion: String)
 
-  fun loadAccessToken(ssoUrl: String): BdtAccessToken?
-  fun saveAccessToken(ssoUrl: String, accessToken: BdtAccessToken)
-  fun invalidateAccessToken(ssoUrl: String)
+    fun loadAccessToken(ssoUrl: String): BdtAccessToken?
+    fun saveAccessToken(ssoUrl: String, accessToken: BdtAccessToken)
+    fun invalidateAccessToken(ssoUrl: String)
 }

@@ -15,34 +15,36 @@ import java.awt.event.KeyEvent
 import javax.swing.KeyStroke
 
 internal class BigDataToolWindowFactory : ToolWindowFactory, DumbAware {
-  override fun createToolWindowContent(project: Project, toolWindow: ToolWindow) {
-    BigDataToolWindowController.getInstance(project)?.setUp(toolWindow)
-  }
-
-  override fun shouldBeAvailable(project: Project) =
-    BdtPlugins.isKafkaPluginInstalled()
-
-  override fun init(toolWindow: ToolWindow) {
-    toolWindow.stripeTitle = KafkaMessagesBundle.message("tool.window.title")
-    registerToolWindowShortcut(toolWindow.id)
-  }
-
-  private fun registerToolWindowShortcut(toolWindowId: String) {
-    val actionId = ActivateToolWindowAction.Manager.getActionIdForToolWindow(toolWindowId)
-    val keymap = KeymapManager.getInstance().activeKeymap
-    val shortcuts = keymap.getShortcuts(actionId)
-    if (shortcuts.isNotEmpty()) {
-      return
+    override fun createToolWindowContent(project: Project, toolWindow: ToolWindow) {
+        BigDataToolWindowController.getInstance(project)?.setUp(toolWindow)
     }
 
-    val keyStroke = KeyStroke.getKeyStroke(KeyEvent.VK_B,
-                                           (if (ClientSystemInfo.isMac()) InputEvent.META_DOWN_MASK
-                                           else InputEvent.ALT_DOWN_MASK) or InputEvent.CTRL_DOWN_MASK or InputEvent.SHIFT_DOWN_MASK)
-    val activateToolWindowShortcut = KeyboardShortcut(keyStroke, null)
-    keymap.addShortcut(actionId, activateToolWindowShortcut)
-  }
+    override fun shouldBeAvailable(project: Project) =
+        BdtPlugins.isKafkaPluginInstalled()
 
-  companion object {
-    const val TOOL_WINDOW_ID = "BigDataToolWindow"
-  }
+    override fun init(toolWindow: ToolWindow) {
+        toolWindow.stripeTitle = KafkaMessagesBundle.message("tool.window.title")
+        registerToolWindowShortcut(toolWindow.id)
+    }
+
+    private fun registerToolWindowShortcut(toolWindowId: String) {
+        val actionId = ActivateToolWindowAction.Manager.getActionIdForToolWindow(toolWindowId)
+        val keymap = KeymapManager.getInstance().activeKeymap
+        val shortcuts = keymap.getShortcuts(actionId)
+        if (shortcuts.isNotEmpty()) {
+            return
+        }
+
+        val keyStroke = KeyStroke.getKeyStroke(
+            KeyEvent.VK_B,
+            (if (ClientSystemInfo.isMac()) InputEvent.META_DOWN_MASK
+            else InputEvent.ALT_DOWN_MASK) or InputEvent.CTRL_DOWN_MASK or InputEvent.SHIFT_DOWN_MASK
+        )
+        val activateToolWindowShortcut = KeyboardShortcut(keyStroke, null)
+        keymap.addShortcut(actionId, activateToolWindowShortcut)
+    }
+
+    companion object {
+        const val TOOL_WINDOW_ID = "BigDataToolWindow"
+    }
 }

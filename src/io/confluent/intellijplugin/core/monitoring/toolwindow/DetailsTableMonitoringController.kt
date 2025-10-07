@@ -6,22 +6,23 @@ import io.confluent.intellijplugin.core.monitoring.table.extension.TableExtensio
 import io.confluent.intellijplugin.core.monitoring.table.extension.TableLoadingDecorator
 import java.util.*
 
-abstract class DetailsTableMonitoringController<T : RemoteInfo, ID> : AbstractTableController<T>(), DetailsMonitoringController<ID> {
-  protected var selectedId: ID? = null
+abstract class DetailsTableMonitoringController<T : RemoteInfo, ID> : AbstractTableController<T>(),
+    DetailsMonitoringController<ID> {
+    protected var selectedId: ID? = null
 
-  override fun getTableExtensions(): EnumSet<TableExtensionType> =
-    EnumSet.copyOf(super.getTableExtensions() - TableExtensionType.LOADING_INDICATOR)
+    override fun getTableExtensions(): EnumSet<TableExtensionType> =
+        EnumSet.copyOf(super.getTableExtensions() - TableExtensionType.LOADING_INDICATOR)
 
-  override fun setDetailsId(id: ID) {
-    selectedId = id
+    override fun setDetailsId(id: ID) {
+        selectedId = id
 
-    val model = getDataModel() ?: return
-    dataTable.tableModel.setDataModel(model)
+        val model = getDataModel() ?: return
+        dataTable.tableModel.setDataModel(model)
 
-    TableColumnsFitter.get(dataTable)?.reset()
-    TableLoadingDecorator.installOn(dataTable)
+        TableColumnsFitter.get(dataTable)?.reset()
+        TableLoadingDecorator.installOn(dataTable)
 
-    decoratedTableComponent.revalidate()
-    decoratedTableComponent.repaint()
-  }
+        decoratedTableComponent.revalidate()
+        decoratedTableComponent.repaint()
+    }
 }

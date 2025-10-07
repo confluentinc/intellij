@@ -11,44 +11,49 @@ import io.confluent.intellijplugin.core.util.ConnectionUtil
 import io.confluent.intellijplugin.core.util.invokeLater
 
 class MasterSlaveConnectionRemoveListener : ConnectionSettingsListener {
-  override fun onConnectionRemoved(project: Project?, removedConnectionData: ConnectionData) {
-    if (removedConnectionData is ExtendedConnectionData)
-      return
+    override fun onConnectionRemoved(project: Project?, removedConnectionData: ConnectionData) {
+        if (removedConnectionData is ExtendedConnectionData)
+            return
 
-    removedConnectionData.sourceConnection?.let {
-      val masterConnectionData = RfsConnectionDataManager.instance?.getConnectionById(project, it) as? MasterConnectionData<*>
-      masterConnectionData?.removeSlave(setOf(removedConnectionData.innerId))
+        removedConnectionData.sourceConnection?.let {
+            val masterConnectionData =
+                RfsConnectionDataManager.instance?.getConnectionById(project, it) as? MasterConnectionData<*>
+            masterConnectionData?.removeSlave(setOf(removedConnectionData.innerId))
+        }
+
+        if (removedConnectionData !is MasterConnectionData<*>)
+            return
+        val dependConnections = removedConnectionData.getDependConnections(project)
+        if (dependConnections.isEmpty())
+            return
+
+        invokeLater {
+            dependConnections.forEach {
+                RfsConnectionDataManager.instance?.removeConnection(project, it)
+            }
+        }
     }
 
-    if (removedConnectionData !is MasterConnectionData<*>)
-      return
-    val dependConnections = removedConnectionData.getDependConnections(project)
-    if (dependConnections.isEmpty())
-      return
+    override fun onConnectionModified(
+        project: Project?,
+        connectionData: ConnectionData,
+        modified: Collection<ModificationKey>
+    ) {
+        if (connectionData is ExtendedConnectionData)
+            return
 
-    invokeLater {
-      dependConnections.forEach {
-        RfsConnectionDataManager.instance?.removeConnection(project, it)
-      }
+        if (connectionData.isEnabled || connectionData !is MasterConnectionData<*> || CommonSettingsKeys.ENABLED_KEY !in modified)
+            return
+        val dependConnections = connectionData.getDependConnections(project)
+        if (dependConnections.isEmpty())
+            return
+
+        invokeLater {
+            dependConnections.forEach {
+                ConnectionUtil.modifyConnection(project, it, false)
+            }
+        }
     }
-  }
 
-  override fun onConnectionModified(project: Project?, connectionData: ConnectionData, modified: Collection<ModificationKey>) {
-    if (connectionData is ExtendedConnectionData)
-      return
-
-    if (connectionData.isEnabled || connectionData !is MasterConnectionData<*> || CommonSettingsKeys.ENABLED_KEY !in modified)
-      return
-    val dependConnections = connectionData.getDependConnections(project)
-    if (dependConnections.isEmpty())
-      return
-
-    invokeLater {
-      dependConnections.forEach {
-        ConnectionUtil.modifyConnection(project, it, false)
-      }
-    }
-  }
-
-  override fun getId(): String = "MasterConnectionSettingsListener"
+    override fun getId(): String = "MasterConnectionSettingsListener"
 }

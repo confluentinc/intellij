@@ -9,11 +9,12 @@ import io.confluent.intellijplugin.aws.ui.external.AwsSettingsInfo
 
 
 class ProfileFromConfigAwsAuthenticationData(private val awsInfo: AwsSettingsInfo) : AwsAuthenticationData() {
-  override val authType: String = AuthenticationType.PROFILE_FROM_CREDENTIALS_FILE.id
-  override fun getCredentialsProvider(): BdtAwsCredentialsProvider = object : BdtAwsCredentialsProvider {
-    override fun getCredentials() = ProfileCredentialProviderFactory.instance.getOrCreate(
-      awsInfo.profile?.ifBlank { AwsCompatibleConnectionData.DEFAULT_PROFILE_NAME } ?: AwsCompatibleConnectionData.DEFAULT_PROFILE_NAME,
-      awsInfo.customConfigPath?.ifBlank { null },
-      awsInfo.customCredentialPath?.ifBlank { null })
-  }
+    override val authType: String = AuthenticationType.PROFILE_FROM_CREDENTIALS_FILE.id
+    override fun getCredentialsProvider(): BdtAwsCredentialsProvider = object : BdtAwsCredentialsProvider {
+        override fun getCredentials() = ProfileCredentialProviderFactory.instance.getOrCreate(
+            awsInfo.profile?.ifBlank { AwsCompatibleConnectionData.DEFAULT_PROFILE_NAME }
+                ?: AwsCompatibleConnectionData.DEFAULT_PROFILE_NAME,
+            awsInfo.customConfigPath?.ifBlank { null },
+            awsInfo.customCredentialPath?.ifBlank { null })
+    }
 }

@@ -22,78 +22,89 @@ import io.confluent.intellijplugin.toolwindow.config.KafkaToolWindowSettings
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
 import javax.swing.event.DocumentEvent
 
-internal class ConsumerGroupsController(val dataManager: KafkaDataManager,
-                               private val mainController: KafkaMainController) : AbstractTableController<ConsumerGroupPresentable>() {
-  init {
-    init()
+internal class ConsumerGroupsController(
+    val dataManager: KafkaDataManager,
+    private val mainController: KafkaMainController
+) : AbstractTableController<ConsumerGroupPresentable>() {
+    init {
+        init()
 
-    dataTable.customDataProvider = UiDataProvider { sink ->
-      sink[MainTreeController.DATA_MANAGER] = dataManager
-      sink[MainTreeController.RFS_PATH] = getSelectedItem()?.consumerGroup
-        ?.let { KafkaDriver.consumerPath.child(it, false) }
-    }
-  }
-
-
-  override fun customTableInit(table: DataTable<ConsumerGroupPresentable>) {
-    FavoriteRenderer.installOnColumn(table, columnModel.getColumn(0)).apply {
-      onClick = { row, _ ->
-        val consumerGroupPresentable = table.getDataAt(row)
-        consumerGroupPresentable?.let { dataManager.updatePinedConsumerGroups(it.consumerGroup, !it.isFavorite) }
-      }
-    }
-
-
-    LinkRenderer.installOnColumn(table, columnModel.getColumn(1)).apply {
-      onClick = { row, _ ->
-        val schema = table.getDataAt(row)?.consumerGroup
-        schema?.let {
-          mainController.open(KafkaDriver.consumerPath.child(it, false))
+        dataTable.customDataProvider = UiDataProvider { sink ->
+            sink[MainTreeController.DATA_MANAGER] = dataManager
+            sink[MainTreeController.RFS_PATH] = getSelectedItem()?.consumerGroup
+                ?.let { KafkaDriver.consumerPath.child(it, false) }
         }
-      }
     }
-  }
 
-  override fun getAdditionalContextActions(): List<AnAction> {
-    val actionManager = ActionManager.getInstance()
-    val group = actionManager.getAction("Kafka.Consumer.Group.Actions") as DefaultActionGroup
-    return group.getChildren(actionManager).toList()
-  }
 
-  override fun getColumnSettings() = KafkaToolWindowSettings.getInstance().consumerGroupsColumnSettings
-
-  override fun getRenderableColumns() = ConsumerGroupPresentable.renderableColumns
-
-  override fun showColumnFilter(): Boolean = false
-
-  override fun getDataModel() = dataManager.consumerGroupsModel
-
-  override fun createTopLeftToolbarActions(): List<AnAction> {
-    val searchTextField = SearchTextField(false).apply {
-      addDocumentListener(object : DocumentAdapter() {
-        override fun textChanged(e: DocumentEvent) {
-          val config = KafkaToolWindowSettings.getInstance().getOrCreateConfig(dataManager.connectionId)
-          config.consumerFilterName = this@apply.text
-          dataManager.updater.invokeRefreshModel(dataManager.consumerGroupsModel)
+    override fun customTableInit(table: DataTable<ConsumerGroupPresentable>) {
+        FavoriteRenderer.installOnColumn(table, columnModel.getColumn(0)).apply {
+            onClick = { row, _ ->
+                val consumerGroupPresentable = table.getDataAt(row)
+                consumerGroupPresentable?.let {
+                    dataManager.updatePinedConsumerGroups(
+                        it.consumerGroup,
+                        !it.isFavorite
+                    )
+                }
+            }
         }
-      })
 
-      text = KafkaToolWindowSettings.getInstance().getOrCreateConfig(dataManager.connectionId).consumerFilterName ?: ""
+
+        LinkRenderer.installOnColumn(table, columnModel.getColumn(1)).apply {
+            onClick = { row, _ ->
+                val schema = table.getDataAt(row)?.consumerGroup
+                schema?.let {
+                    mainController.open(KafkaDriver.consumerPath.child(it, false))
+                }
+            }
+        }
     }
 
-    val countFilter = CountFilterPopupComponent(KafkaMessagesBundle.message("label.filter.limit"),
-                                                KafkaToolWindowSettings.getInstance().getOrCreateConfig(
-                                                  dataManager.connectionId).consumerLimit)
-    FilterAdapter.install(dataTable.tableModel, countFilter, LIMIT_FILTER) { limit ->
-      val config = KafkaToolWindowSettings.getInstance().getOrCreateConfig(dataManager.connectionId)
-      config.consumerLimit = limit
-      dataManager.updater.invokeRefreshModel(dataManager.consumerGroupsModel)
+    override fun getAdditionalContextActions(): List<AnAction> {
+        val actionManager = ActionManager.getInstance()
+        val group = actionManager.getAction("Kafka.Consumer.Group.Actions") as DefaultActionGroup
+        return group.getChildren(actionManager).toList()
     }
 
-    return listOf(CustomComponentActionImpl(searchTextField), CustomComponentActionImpl(countFilter))
-  }
+    override fun getColumnSettings() = KafkaToolWindowSettings.getInstance().consumerGroupsColumnSettings
 
-  companion object {
-    val LIMIT_FILTER = FilterKey("consumersLimit")
-  }
+    override fun getRenderableColumns() = ConsumerGroupPresentable.renderableColumns
+
+    override fun showColumnFilter(): Boolean = false
+
+    override fun getDataModel() = dataManager.consumerGroupsModel
+
+    override fun createTopLeftToolbarActions(): List<AnAction> {
+        val searchTextField = SearchTextField(false).apply {
+            addDocumentListener(object : DocumentAdapter() {
+                override fun textChanged(e: DocumentEvent) {
+                    val config = KafkaToolWindowSettings.getInstance().getOrCreateConfig(dataManager.connectionId)
+                    config.consumerFilterName = this@apply.text
+                    dataManager.updater.invokeRefreshModel(dataManager.consumerGroupsModel)
+                }
+            })
+
+            text = KafkaToolWindowSettings.getInstance().getOrCreateConfig(dataManager.connectionId).consumerFilterName
+                ?: ""
+        }
+
+        val countFilter = CountFilterPopupComponent(
+            KafkaMessagesBundle.message("label.filter.limit"),
+            KafkaToolWindowSettings.getInstance().getOrCreateConfig(
+                dataManager.connectionId
+            ).consumerLimit
+        )
+        FilterAdapter.install(dataTable.tableModel, countFilter, LIMIT_FILTER) { limit ->
+            val config = KafkaToolWindowSettings.getInstance().getOrCreateConfig(dataManager.connectionId)
+            config.consumerLimit = limit
+            dataManager.updater.invokeRefreshModel(dataManager.consumerGroupsModel)
+        }
+
+        return listOf(CustomComponentActionImpl(searchTextField), CustomComponentActionImpl(countFilter))
+    }
+
+    companion object {
+        val LIMIT_FILTER = FilterKey("consumersLimit")
+    }
 }

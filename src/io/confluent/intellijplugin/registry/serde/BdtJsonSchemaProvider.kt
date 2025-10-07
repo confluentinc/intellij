@@ -6,18 +6,19 @@ import io.confluent.kafka.schemaregistry.json.JsonSchema
 import io.confluent.kafka.schemaregistry.json.JsonSchemaProvider
 
 class BdtJsonSchemaProvider : JsonSchemaProvider() {
-  override fun parseSchemaOrElseThrow(schemaString: String?,
-                                      references: MutableList<SchemaReference>?,
-                                      isNew: Boolean): ParsedSchema =
-    try {
-      JsonSchema(
-        schemaString,
-        references,
-        resolveReferences(references),
-        null
-      )
-    }
-    catch (e: Exception) {
-      throw e
-    }
+    override fun parseSchemaOrElseThrow(
+        schemaString: String?,
+        references: MutableList<SchemaReference>?,
+        isNew: Boolean
+    ): ParsedSchema =
+        try {
+            JsonSchema(
+                schemaString,
+                references,
+                resolveReferences(references),
+                null
+            )
+        } catch (e: Exception) {
+            throw e
+        }
 }
