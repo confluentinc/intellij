@@ -16,7 +16,6 @@
 <p>This plugin is a part of the <a href="https://plugins.jetbrains.com/bundles/8-big-data-tools">Big Data Tools</a> plugin bundle.</p>
     ]]></description>
 
-  <depends>com.intellij.modules.ultimate</depends>
   <depends config-file="spring-boot.xml" optional="true">com.intellij.spring.boot</depends>
 
   <resource-bundle>messages.KafkaBundle</resource-bundle>
