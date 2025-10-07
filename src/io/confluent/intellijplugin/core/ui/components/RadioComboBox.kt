@@ -13,60 +13,59 @@ import javax.swing.JPanel
  * Radio button group of one or more element, that looks as RadioGroup, but actually displays a state of boolean field.
  */
 class RadioComboBox<E : RenderableEntity>(private val items: Array<E>, selectedItem: E) {
-  private val component = JPanel()
-  private val group = ButtonGroup()
-  private val listeners = mutableListOf<(newValue: E) -> Unit>()
+    private val component = JPanel()
+    private val group = ButtonGroup()
+    private val listeners = mutableListOf<(newValue: E) -> Unit>()
 
-  private var selectedItemField = selectedItem
+    private var selectedItemField = selectedItem
 
-  var selectedItem: E
-    get() = selectedItemField
-    set(value) {
-      selectedItemField = value
-      group.elements.toList()[items.indexOf(value)]?.isSelected = true
-      valueChanged(value)
+    var selectedItem: E
+        get() = selectedItemField
+        set(value) {
+            selectedItemField = value
+            group.elements.toList()[items.indexOf(value)]?.isSelected = true
+            valueChanged(value)
+        }
+
+    init {
+        var first = true
+        items.forEach {
+            val radioButton = RadioButton(it.title).apply {
+                actionCommand = it.id
+                if (selectedItemField == it) {
+                    isSelected = true
+                }
+                addItemListener { e ->
+                    if (e.stateChange == ItemEvent.SELECTED) {
+                        selectedItemField = it
+                        valueChanged(it)
+                    }
+                }
+            }
+
+            if (first) {
+                first = false
+            } else {
+                component.add(Box.createRigidArea(Dimension(JBUIScale.scale(5), 0)))
+            }
+
+            component.add(radioButton)
+            group.add(radioButton)
+        }
     }
 
-  init {
-    var first = true
-    items.forEach {
-      val radioButton = RadioButton(it.title).apply {
-        actionCommand = it.id
-        if (selectedItemField == it) {
-          isSelected = true
-        }
-        addItemListener { e ->
-          if (e.stateChange == ItemEvent.SELECTED) {
-            selectedItemField = it
-            valueChanged(it)
-          }
-        }
-      }
+    fun getComponent() = component
 
-      if (first) {
-        first = false
-      }
-      else {
-        component.add(Box.createRigidArea(Dimension(JBUIScale.scale(5), 0)))
-      }
-
-      component.add(radioButton)
-      group.add(radioButton)
+    private fun valueChanged(newValue: E) {
+        listeners.forEach { it.invoke(newValue) }
     }
-  }
 
-  fun getComponent() = component
+    fun addItemListener(listener: (newValue: E) -> Unit) {
+        listeners += listener
+    }
 
-  private fun valueChanged(newValue: E) {
-    listeners.forEach { it.invoke(newValue) }
-  }
-
-  fun addItemListener(listener: (newValue: E) -> Unit) {
-    listeners += listener
-  }
-
-  @Suppress("unused")
-  fun removeItemListener(listener: (newValue: E) -> Unit) {
-    listeners -= listener
-  }
+    @Suppress("unused")
+    fun removeItemListener(listener: (newValue: E) -> Unit) {
+        listeners -= listener
+    }
 }

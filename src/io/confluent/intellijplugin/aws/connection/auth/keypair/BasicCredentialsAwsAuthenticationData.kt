@@ -5,7 +5,7 @@ import io.confluent.intellijplugin.aws.connection.auth.common.AwsAuthenticationD
 import io.confluent.intellijplugin.aws.ui.external.AwsSettingsInfo
 
 class BasicCredentialsAwsAuthenticationData(private val awsSettingsInfo: AwsSettingsInfo) : AwsAuthenticationData() {
-  override val authType: String = AuthenticationType.KEY_PAIR.id
+    override val authType: String = AuthenticationType.KEY_PAIR.id
 
-  override fun getCredentialsProvider() = FromCredAttributesBdtAwsCredentialsProvider(awsSettingsInfo)
+    override fun getCredentialsProvider() = FromCredAttributesBdtAwsCredentialsProvider(awsSettingsInfo)
 }

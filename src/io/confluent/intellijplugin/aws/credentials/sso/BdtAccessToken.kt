@@ -11,8 +11,8 @@ import java.time.Instant
  * Access token returned from [SsoOidcClient.createToken] used to retrieve AWS Credentials from [SsoClient.getRoleCredentials].
  */
 data class BdtAccessToken(
-  val startUrl: String,
-  val region: String,
-  val accessToken: String,
-  val expiresAt: Instant
+    val startUrl: String,
+    val region: String,
+    val accessToken: String,
+    val expiresAt: Instant
 )

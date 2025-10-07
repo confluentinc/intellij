@@ -7,10 +7,10 @@ package io.confluent.intellijplugin.aws.credentials.sso
 
 
 object SsoSupport {
-  /**
-   * Shared disk cache for SSO for the IDE
-   */
-  val diskCache by lazy { DiskCache() }
+    /**
+     * Shared disk cache for SSO for the IDE
+     */
+    val diskCache by lazy { DiskCache() }
 }
 
 

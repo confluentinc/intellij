@@ -12,78 +12,78 @@ import javax.swing.table.DefaultTableColumnModel
 import javax.swing.table.TableColumn
 import javax.swing.table.TableColumnModel
 
-class DataTableColumnModel<T : RemoteInfo>(renderableColumns: List<LocalizedField<T>>,
-                                           val columnSettings: ColumnVisibilitySettings
+class DataTableColumnModel<T : RemoteInfo>(
+    renderableColumns: List<LocalizedField<T>>,
+    val columnSettings: ColumnVisibilitySettings
 ) : DefaultTableColumnModel(), Disposable {
 
-  val allColumns: List<LocalizedField<T>>
+    val allColumns: List<LocalizedField<T>>
 
-  init {
-    allColumns = renderableColumns
+    init {
+        allColumns = renderableColumns
 
-    columnSettings.visibleColumns.forEach { column ->
-      allColumns.find { it.name == column }?.let { addInternalColumn(it) }
-    }
-    columnSettings.onColumnVisibilityChanged += ::onColumnVisibilityChanged
-
-    addColumnModelListener(getModelListener())
-  }
-
-  private fun getModelListener() = object : TableColumnModelListener {
-    override fun columnAdded(event: TableColumnModelEvent?) {}
-    override fun columnRemoved(event: TableColumnModelEvent?) {}
-    override fun columnMarginChanged(event: ChangeEvent?) {}
-    override fun columnSelectionChanged(event: ListSelectionEvent?) {}
-
-    override fun columnMoved(event: TableColumnModelEvent?) {
-      event?.let { it ->
-        val fromIndex = it.fromIndex
-        val toIndex = it.toIndex
-
-        if (fromIndex != toIndex) {
-          val columnModel = it.source as? TableColumnModel ?: return
-
-          columnSettings.visibleColumns.clear()
-          columnSettings.visibleColumns.addAll(columnModel.columns.toList().map { it.identifier.toString() })
+        columnSettings.visibleColumns.forEach { column ->
+            allColumns.find { it.name == column }?.let { addInternalColumn(it) }
         }
-      }
+        columnSettings.onColumnVisibilityChanged += ::onColumnVisibilityChanged
+
+        addColumnModelListener(getModelListener())
     }
-  }
 
-  fun getModelIndex(column: String): Int {
-    return allColumns.withIndex().find { it.value.name == column }!!.index
-  }
+    private fun getModelListener() = object : TableColumnModelListener {
+        override fun columnAdded(event: TableColumnModelEvent?) {}
+        override fun columnRemoved(event: TableColumnModelEvent?) {}
+        override fun columnMarginChanged(event: ChangeEvent?) {}
+        override fun columnSelectionChanged(event: ListSelectionEvent?) {}
 
-  /** Could return null if column is invisible now. */
-  fun getModelColumn(modelIndex: Int): TableColumn? {
-    return tableColumns.find { it.modelIndex == modelIndex }
-  }
+        override fun columnMoved(event: TableColumnModelEvent?) {
+            event?.let { it ->
+                val fromIndex = it.fromIndex
+                val toIndex = it.toIndex
 
-  private fun addInternalColumn(column: LocalizedField<T>): TableColumn {
-    val col = TableColumn(getModelIndex(column.name))
-    col.identifier = column.name
-    col.headerValue = column.getLocalizedName()
-    addColumn(col)
-    return col
-  }
+                if (fromIndex != toIndex) {
+                    val columnModel = it.source as? TableColumnModel ?: return
 
-  private fun onColumnVisibilityChanged(column: String, visible: Boolean) {
-    if (visible) {
-      allColumns.find { it.name == column }?.let { addInternalColumn(it) }
+                    columnSettings.visibleColumns.clear()
+                    columnSettings.visibleColumns.addAll(columnModel.columns.toList().map { it.identifier.toString() })
+                }
+            }
+        }
     }
-    else {
-      val found = tableColumns.find { it.identifier as String == column }
-      if (found != null) {
-        removeColumn(found)
-      }
+
+    fun getModelIndex(column: String): Int {
+        return allColumns.withIndex().find { it.value.name == column }!!.index
     }
-  }
 
-  fun getColumnName(columnIndex: Int): String {
-    return tableColumns[columnIndex].headerValue as String
-  }
+    /** Could return null if column is invisible now. */
+    fun getModelColumn(modelIndex: Int): TableColumn? {
+        return tableColumns.find { it.modelIndex == modelIndex }
+    }
 
-  override fun dispose() {
-    columnSettings.onColumnVisibilityChanged -= ::onColumnVisibilityChanged
-  }
+    private fun addInternalColumn(column: LocalizedField<T>): TableColumn {
+        val col = TableColumn(getModelIndex(column.name))
+        col.identifier = column.name
+        col.headerValue = column.getLocalizedName()
+        addColumn(col)
+        return col
+    }
+
+    private fun onColumnVisibilityChanged(column: String, visible: Boolean) {
+        if (visible) {
+            allColumns.find { it.name == column }?.let { addInternalColumn(it) }
+        } else {
+            val found = tableColumns.find { it.identifier as String == column }
+            if (found != null) {
+                removeColumn(found)
+            }
+        }
+    }
+
+    fun getColumnName(columnIndex: Int): String {
+        return tableColumns[columnIndex].headerValue as String
+    }
+
+    override fun dispose() {
+        columnSettings.onColumnVisibilityChanged -= ::onColumnVisibilityChanged
+    }
 }

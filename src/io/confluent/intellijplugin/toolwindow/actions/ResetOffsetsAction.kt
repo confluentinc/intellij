@@ -10,17 +10,17 @@ import io.confluent.intellijplugin.rfs.KafkaDriver.Companion.isConsumers
 import io.confluent.intellijplugin.util.KafkaConsumerGroupChangeOffsetProcess
 
 class ResetOffsetsAction : DumbAwareAction() {
-  override fun actionPerformed(e: AnActionEvent) {
-    val rfsPath = e.rfsPath ?: return
-    val dataManager = e.dataManager as KafkaDataManager
+    override fun actionPerformed(e: AnActionEvent) {
+        val rfsPath = e.rfsPath ?: return
+        val dataManager = e.dataManager as KafkaDataManager
 
-    KafkaConsumerGroupChangeOffsetProcess(e.project ?: return, dataManager, rfsPath.name).showAndUpdate()
-  }
+        KafkaConsumerGroupChangeOffsetProcess(e.project ?: return, dataManager, rfsPath.name).showAndUpdate()
+    }
 
-  override fun update(e: AnActionEvent) {
-    val rfsPath = e.rfsPath
-    e.presentation.isEnabledAndVisible = e.dataManager != null && rfsPath?.parent?.isConsumers == true
-  }
+    override fun update(e: AnActionEvent) {
+        val rfsPath = e.rfsPath
+        e.presentation.isEnabledAndVisible = e.dataManager != null && rfsPath?.parent?.isConsumers == true
+    }
 
-  override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.EDT
+    override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.EDT
 }

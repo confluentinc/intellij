@@ -11,67 +11,68 @@ import java.io.InputStream
 
 interface FileInfo {
 
-  /**
-   * Unlike [path], contains information about connection.
-   * Coincides to URI when possible or uses URI-like format
-   */
-  val externalPath: String
+    /**
+     * Unlike [path], contains information about connection.
+     * Coincides to URI when possible or uses URI-like format
+     */
+    val externalPath: String
 
-  /**
-   * Identifies the file within the driver.
-   */
-  val path: RfsPath
+    /**
+     * Identifies the file within the driver.
+     */
+    val path: RfsPath
 
-  val name: String
+    val name: String
 
-  val innerId: String
-    @TestOnly get() = driver.getExternalId() + path
+    val innerId: String
+        @TestOnly get() = driver.getExternalId() + path
 
-  /** In bytes. */
-  val length: Long
+    /** In bytes. */
+    val length: Long
 
-  val modificationTime: Long
+    val modificationTime: Long
 
-  val permission: FilePermission?
+    val permission: FilePermission?
 
-  val driver: Driver
+    val driver: Driver
 
-  val isDirectory: Boolean
-  val isFile: Boolean
-  val isSymbolicLink: Boolean
-  val isSynthetic: Boolean
+    val isDirectory: Boolean
+    val isFile: Boolean
+    val isSymbolicLink: Boolean
+    val isSynthetic: Boolean
 
-  /**
-   * Name, which suitable for the Driver.
-   *
-   * For instance, Zeppelin has files like 'test' but for LocalDriver it will be 'test.zpln'
-   */
-  @NlsSafe
-  fun nameForDriver(driver: Driver, exportFormat: ExportFormat?): String
+    /**
+     * Name, which suitable for the Driver.
+     *
+     * For instance, Zeppelin has files like 'test' but for LocalDriver it will be 'test.zpln'
+     */
+    @NlsSafe
+    fun nameForDriver(driver: Driver, exportFormat: ExportFormat?): String
 
-  val isActionDeleteSupport: Boolean
-    get() = true
-  val isCopySupport: Boolean
-  val isMoveSupport: Boolean
-    get() = true
+    val isActionDeleteSupport: Boolean
+        get() = true
+    val isCopySupport: Boolean
+    val isMoveSupport: Boolean
+        get() = true
 
-  fun isMetaInfoSupport(): Boolean = true
-  fun isMkDirSupport(): Boolean = driver.isMkDirSupported
-  fun isCreateFileSupport(): Boolean = driver.isCreateFileSupported
-  @Nls
-  fun getOpenViewerError(): String? = null
-  fun getCopyFormatsFor(targetDriver: Driver): List<ExportFormat> = emptyList()
+    fun isMetaInfoSupport(): Boolean = true
+    fun isMkDirSupport(): Boolean = driver.isMkDirSupported
+    fun isCreateFileSupport(): Boolean = driver.isCreateFileSupported
 
-  // Methods above return simple values and do not perform any network queries returning cached values instead
-  // -------
+    @Nls
+    fun getOpenViewerError(): String? = null
+    fun getCopyFormatsFor(targetDriver: Driver): List<ExportFormat> = emptyList()
 
-  fun renameAsync(newPath: RfsPath, overwrite: Boolean = true): SafeResult<RemoteFsMoveTask>
+    // Methods above return simple values and do not perform any network queries returning cached values instead
+    // -------
 
-  fun deleteAsync(): SafeResult<RemoteFsTask>
+    fun renameAsync(newPath: RfsPath, overwrite: Boolean = true): SafeResult<RemoteFsMoveTask>
 
-  fun delete(): SafeResult<Unit>
+    fun deleteAsync(): SafeResult<RemoteFsTask>
 
-  fun readStream(offset: Long, exportFormat: ExportFormat?): SafeResult<InputStream>
+    fun delete(): SafeResult<Unit>
+
+    fun readStream(offset: Long, exportFormat: ExportFormat?): SafeResult<InputStream>
 }
 
 data class ExportFormat(val id: String, @NlsContexts.Label val displayName: String, val extension: String)

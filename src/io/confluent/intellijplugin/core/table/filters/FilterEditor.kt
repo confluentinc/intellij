@@ -14,60 +14,60 @@ import javax.swing.event.DocumentListener
 
 class FilterEditor(var modelIndex: Int) : JComponent(), UiDataProvider {
 
-  private val listeners = mutableListOf<FilerEditorChangeListener>()
+    private val listeners = mutableListOf<FilerEditorChangeListener>()
 
-  private val editor = ExtendableTextField()
+    private val editor = ExtendableTextField()
 
-  init {
-    isOpaque = false
+    init {
+        isOpaque = false
 
-    val leftExtension = SearchExtension()
+        val leftExtension = SearchExtension()
 
-    editor.apply {
-      isOpaque = false
-      border = null
-      editor.addExtension(leftExtension)
+        editor.apply {
+            isOpaque = false
+            border = null
+            editor.addExtension(leftExtension)
+        }
+
+        editor.addFocusListener(object : FocusListener {
+            override fun focusGained(e: FocusEvent?) {
+                editor.removeExtension(leftExtension)
+            }
+
+            override fun focusLost(e: FocusEvent?) {
+                if (editor.text.isNullOrBlank()) {
+                    editor.addExtension(leftExtension)
+                }
+            }
+        })
+
+        editor.document.addDocumentListener(object : DocumentListener {
+            override fun insertUpdate(e: DocumentEvent?) = changed()
+            override fun removeUpdate(e: DocumentEvent?) = changed()
+            override fun changedUpdate(e: DocumentEvent?) = changed()
+
+            private fun changed() {
+                listeners.forEach { it.onChange() }
+            }
+        })
+
+        layout = BorderLayout()
+
+        add(editor, BorderLayout.CENTER)
     }
 
-    editor.addFocusListener(object : FocusListener {
-      override fun focusGained(e: FocusEvent?) {
-        editor.removeExtension(leftExtension)
-      }
+    val text: String?
+        get() = editor.text
 
-      override fun focusLost(e: FocusEvent?) {
-        if (editor.text.isNullOrBlank()) {
-          editor.addExtension(leftExtension)
-        }
-      }
-    })
+    fun addListener(listener: FilerEditorChangeListener) {
+        listeners += listener
+    }
 
-    editor.document.addDocumentListener(object : DocumentListener {
-      override fun insertUpdate(e: DocumentEvent?) = changed()
-      override fun removeUpdate(e: DocumentEvent?) = changed()
-      override fun changedUpdate(e: DocumentEvent?) = changed()
+    fun removeListener(listener: FilerEditorChangeListener) {
+        listeners -= listener
+    }
 
-      private fun changed() {
-        listeners.forEach { it.onChange() }
-      }
-    })
-
-    layout = BorderLayout()
-
-    add(editor, BorderLayout.CENTER)
-  }
-
-  val text: String?
-    get() = editor.text
-
-  fun addListener(listener: FilerEditorChangeListener) {
-    listeners += listener
-  }
-
-  fun removeListener(listener: FilerEditorChangeListener) {
-    listeners -= listener
-  }
-
-  override fun uiDataSnapshot(sink: DataSink) {
-    sink.setNull(CommonDataKeys.EDITOR)
-  }
+    override fun uiDataSnapshot(sink: DataSink) {
+        sink.setNull(CommonDataKeys.EDITOR)
+    }
 }

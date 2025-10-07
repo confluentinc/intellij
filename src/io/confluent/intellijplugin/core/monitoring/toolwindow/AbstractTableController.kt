@@ -45,205 +45,226 @@ import javax.swing.JLabel
 import javax.swing.JPanel
 
 abstract class AbstractTableController<T : RemoteInfo> : ComponentController {
-  protected lateinit var columnModel: DataTableColumnModel<T>
-  lateinit var dataTable: DataTable<T>
-  protected lateinit var tableScrollPane: JBScrollPane
-  protected lateinit var decoratedTableComponent: SimpleToolWindowPanel
+    protected lateinit var columnModel: DataTableColumnModel<T>
+    lateinit var dataTable: DataTable<T>
+    protected lateinit var tableScrollPane: JBScrollPane
+    protected lateinit var decoratedTableComponent: SimpleToolWindowPanel
 
-  override fun getComponent(): JComponent = decoratedTableComponent
+    override fun getComponent(): JComponent = decoratedTableComponent
 
-  override fun dispose() = Unit
+    override fun dispose() = Unit
 
-  protected open fun init() {
-    columnModel = createColumnModel()
-    dataTable = createTable()
-    decoratedTableComponent = createDecoratedTable()
+    protected open fun init() {
+        columnModel = createColumnModel()
+        dataTable = createTable()
+        decoratedTableComponent = createDecoratedTable()
 
-    setupActions()
-    dataTable.putUserData(CUSTOM_EMPTY_TEXT_PROVIDER, emptyTextProvider())
-  }
-
-  protected open fun emptyTextProvider(): CustomEmptyTextProvider? = null
-  protected abstract fun getColumnSettings(): ColumnVisibilitySettings
-  protected abstract fun getRenderableColumns(): List<LocalizedField<T>>
-  protected abstract fun getDataModel(): ObjectDataModel<T>?
-  protected open fun showColumnFilter(): Boolean = true
-
-  /** Optional vertical title on left toolbar. */
-  protected open fun getToolbarTitle(): @Nls String? = null
-  protected open fun getAdditionalActions(): List<AnAction> = emptyList()
-  protected open fun getAdditionalContextActions(): List<AnAction> = emptyList()
-
-  private fun setupActions() {
-    val actionGroup = DefaultActionGroup().apply {
-      addAll(getAdditionalActions())
-      addAll(getAdditionalContextActions())
+        setupActions()
+        dataTable.putUserData(CUSTOM_EMPTY_TEXT_PROVIDER, emptyTextProvider())
     }
 
-    PopupHandler.installPopupMenu(dataTable, DefaultActionGroup(actionGroup), "AbstractTableController")
-  }
+    protected open fun emptyTextProvider(): CustomEmptyTextProvider? = null
+    protected abstract fun getColumnSettings(): ColumnVisibilitySettings
+    protected abstract fun getRenderableColumns(): List<LocalizedField<T>>
+    protected abstract fun getDataModel(): ObjectDataModel<T>?
+    protected open fun showColumnFilter(): Boolean = true
 
-  protected fun isRowSelected(): Boolean {
-    val selectedRow = dataTable.selectedRow
-    return selectedRow != -1
-  }
+    /** Optional vertical title on left toolbar. */
+    protected open fun getToolbarTitle(): @Nls String? = null
+    protected open fun getAdditionalActions(): List<AnAction> = emptyList()
+    protected open fun getAdditionalContextActions(): List<AnAction> = emptyList()
 
-  protected fun getSelectedItem(): T? = dataTable.getSelectedData()
-
-  private fun createTable(): DataTable<T> {
-    val dataModel = getDataModel()
-    dataModel?.let {
-      val listener = object : DataModelListener {
-        override fun onLoadMore() {
-          notifyLimitLabel.isVisible = it.loadMore
+    private fun setupActions() {
+        val actionGroup = DefaultActionGroup().apply {
+            addAll(getAdditionalActions())
+            addAll(getAdditionalContextActions())
         }
 
-        override fun onErrorAdditionalLoad(throwable: Throwable?) = additionalLoadException.set(throwable)
-      }
-
-      dataModel.addListener(listener)
-      notifyLimitLabel.isVisible = dataModel.loadMore
-      Disposer.register(this, Disposable {
-        it.removeListener(listener)
-      })
-    }
-    val tableModel = DataTableModel(dataModel, columnModel)
-
-    val table = DataTableCreator.create(tableModel, getTableExtensions())
-
-    TableClickHelper.installBrowseOn(table, getRenderableColumns().map { it.field })
-
-    customTableInit(table)
-    TableSelectionPreserver.installOn(table, null)
-    Disposer.register(this, table)
-    Disposer.register(table, columnModel)
-    Disposer.register(table, tableModel)
-    return table
-  }
-
-  protected open fun customTableInit(table: DataTable<T>) = Unit
-
-  protected open fun getTableExtensions(): EnumSet<TableExtensionType> =
-    EnumSet.of(TableExtensionType.SPEED_SEARCH,
-               TableExtensionType.RENDERERS_SETTER,
-               TableExtensionType.ERROR_HANDLER,
-               TableExtensionType.LOADING_INDICATOR,
-               TableExtensionType.COLUMNS_FITTER,
-               TableExtensionType.SMART_RESIZER)
-
-  private fun createColumnModel(): DataTableColumnModel<T> = DataTableColumnModel(getRenderableColumns(), getColumnSettings())
-
-  private fun createToolbar(): ActionToolbar? {
-    val columnFilter = if (showColumnFilter()) {
-      createColumnFilterAction()
-    }
-    else {
-      null
+        PopupHandler.installPopupMenu(dataTable, DefaultActionGroup(actionGroup), "AbstractTableController")
     }
 
-    //val toolbarTitle = getToolbarTitle()
-    //val titleActions: List<AnAction> = if (toolbarTitle != null) {
-    //  listOf(ToolbarVerticalLabelAction.create(toolbarTitle), Separator())
-    //}
-    //else {
-    //  emptyList()
-    //}
-
-    val additionalActions = getAdditionalActions()
-    val addActionsWithSeparator = if (additionalActions.isNotEmpty())
-      listOf(Separator()) + additionalActions
-    else
-      emptyList()
-    return ToolbarUtils.createVerticalToolbar(listOfNotNull(columnFilter) + addActionsWithSeparator, place = TABLE_TOOLBAR_PLACE)
-  }
-
-  fun createColumnFilterAction() = ColumnVisibilitySettings.createAction(columnModel.allColumns, getColumnSettings())
-
-  protected open fun createTopLeftToolbarActions(): List<AnAction> = emptyList()
-  protected open fun createTopRightToolbarActions(): List<AnAction> = emptyList()
-
-  private var additionalLoadException = AtomicProperty<Throwable?>(null)
-
-  private lateinit var notifyErrorPanel: Panel
-
-  private val notifyLimitLabel = JLabel(KafkaMessagesBundle.message("monitoring.increase.the.limit.to.display.more.rows")).apply {
-    foreground = JBUI.CurrentTheme.Label.disabledForeground(false)
-    icon = AllIcons.General.Note
-    isVisible = false
-  }
-
-  private fun createDecoratedTable() = SimpleToolWindowPanel(false, true).apply {
-
-    val tableScrollPane = MaterialJBScrollPane(dataTable).apply {
-      TableHeightFitter.installOn(this, dataTable)
-    }
-    setContent(tableScrollPane)
-
-    createToolbar()?.let {
-      it.targetComponent = this
-      toolbar = it.component
+    protected fun isRowSelected(): Boolean {
+        val selectedRow = dataTable.selectedRow
+        return selectedRow != -1
     }
 
-    val topLeftToolbarActions = createTopLeftToolbarActions()
+    protected fun getSelectedItem(): T? = dataTable.getSelectedData()
 
-    val topLeftToolbar = if (topLeftToolbarActions.isEmpty())
-      null
-    else {
-      ToolbarUtils.createActionToolbar(targetComponent = this, place = TABLE_TOOLBAR_PLACE,
-                                       actions = topLeftToolbarActions, horizontal = true)
+    private fun createTable(): DataTable<T> {
+        val dataModel = getDataModel()
+        dataModel?.let {
+            val listener = object : DataModelListener {
+                override fun onLoadMore() {
+                    notifyLimitLabel.isVisible = it.loadMore
+                }
+
+                override fun onErrorAdditionalLoad(throwable: Throwable?) = additionalLoadException.set(throwable)
+            }
+
+            dataModel.addListener(listener)
+            notifyLimitLabel.isVisible = dataModel.loadMore
+            Disposer.register(this, Disposable {
+                it.removeListener(listener)
+            })
+        }
+        val tableModel = DataTableModel(dataModel, columnModel)
+
+        val table = DataTableCreator.create(tableModel, getTableExtensions())
+
+        TableClickHelper.installBrowseOn(table, getRenderableColumns().map { it.field })
+
+        customTableInit(table)
+        TableSelectionPreserver.installOn(table, null)
+        Disposer.register(this, table)
+        Disposer.register(table, columnModel)
+        Disposer.register(table, tableModel)
+        return table
     }
 
-    val toolbarTitle = getToolbarTitle()
-    val titleActions = if (toolbarTitle != null) listOf(ToolbarGreyLabelActionImpl(toolbarTitle), Separator()) else emptyList()
+    protected open fun customTableInit(table: DataTable<T>) = Unit
 
-    val topRightToolbarActions = titleActions + createTopRightToolbarActions()
+    protected open fun getTableExtensions(): EnumSet<TableExtensionType> =
+        EnumSet.of(
+            TableExtensionType.SPEED_SEARCH,
+            TableExtensionType.RENDERERS_SETTER,
+            TableExtensionType.ERROR_HANDLER,
+            TableExtensionType.LOADING_INDICATOR,
+            TableExtensionType.COLUMNS_FITTER,
+            TableExtensionType.SMART_RESIZER
+        )
 
-    val topRightToolbar = if (topRightToolbarActions.isEmpty()) null
-    else ToolbarUtils.createActionToolbar(targetComponent = this, TABLE_TOOLBAR_PLACE, topRightToolbarActions, horizontal = true).apply {
-      layoutStrategy = ToolbarLayoutStrategy.NOWRAP_STRATEGY
-    }
+    private fun createColumnModel(): DataTableColumnModel<T> =
+        DataTableColumnModel(getRenderableColumns(), getColumnSettings())
 
-    when {
-      topLeftToolbar == null -> {}
-      topRightToolbar == null -> {
-        add(topLeftToolbar.component.apply { border = JBUI.Borders.empty() }, BorderLayout.NORTH)
-      }
-      else -> {
-        val toolbarPanel = JPanel(MigLayout(createLayoutConstraints(0, 0).noVisualPadding().fill(),
-                                            ConstraintParser.parseColumnConstraints("[grow][pref!]"))).apply {
-          border = JBUI.Borders.empty()
-          add(topLeftToolbar.component)
-          add(topRightToolbar.component)
+    private fun createToolbar(): ActionToolbar? {
+        val columnFilter = if (showColumnFilter()) {
+            createColumnFilterAction()
+        } else {
+            null
         }
 
-        add(toolbarPanel, BorderLayout.NORTH)
-      }
+        //val toolbarTitle = getToolbarTitle()
+        //val titleActions: List<AnAction> = if (toolbarTitle != null) {
+        //  listOf(ToolbarVerticalLabelAction.create(toolbarTitle), Separator())
+        //}
+        //else {
+        //  emptyList()
+        //}
+
+        val additionalActions = getAdditionalActions()
+        val addActionsWithSeparator = if (additionalActions.isNotEmpty())
+            listOf(Separator()) + additionalActions
+        else
+            emptyList()
+        return ToolbarUtils.createVerticalToolbar(
+            listOfNotNull(columnFilter) + addActionsWithSeparator,
+            place = TABLE_TOOLBAR_PLACE
+        )
     }
 
-    val south = panel {
-      row {
-        cell(notifyLimitLabel).align(Align.FILL).resizableColumn()
-      }
+    fun createColumnFilterAction() = ColumnVisibilitySettings.createAction(columnModel.allColumns, getColumnSettings())
 
-      notifyErrorPanel = panel {
-        row {
-          label(KafkaMessagesBundle.message("monitoring.additional.info.load.error.label")).component.also {
-            it.foreground = JBUI.CurrentTheme.Label.disabledForeground(false)
-            it.icon = AllIcons.General.Warning
-          }
-          link(KafkaMessagesBundle.message("monitoring.additional.info.load.error.link")) {
-            val e = additionalLoadException.get() ?: return@link
-            RfsNotificationUtils.showExceptionMessage(project = null,
-                                                      title = KafkaMessagesBundle.message("monitoring.additional.info.load.error.title"),
-                                                      e = e)
-          }
-        }.visibleIf(additionalLoadException.isNotNull())
-      }
+    protected open fun createTopLeftToolbarActions(): List<AnAction> = emptyList()
+    protected open fun createTopRightToolbarActions(): List<AnAction> = emptyList()
+
+    private var additionalLoadException = AtomicProperty<Throwable?>(null)
+
+    private lateinit var notifyErrorPanel: Panel
+
+    private val notifyLimitLabel =
+        JLabel(KafkaMessagesBundle.message("monitoring.increase.the.limit.to.display.more.rows")).apply {
+            foreground = JBUI.CurrentTheme.Label.disabledForeground(false)
+            icon = AllIcons.General.Note
+            isVisible = false
+        }
+
+    private fun createDecoratedTable() = SimpleToolWindowPanel(false, true).apply {
+
+        val tableScrollPane = MaterialJBScrollPane(dataTable).apply {
+            TableHeightFitter.installOn(this, dataTable)
+        }
+        setContent(tableScrollPane)
+
+        createToolbar()?.let {
+            it.targetComponent = this
+            toolbar = it.component
+        }
+
+        val topLeftToolbarActions = createTopLeftToolbarActions()
+
+        val topLeftToolbar = if (topLeftToolbarActions.isEmpty())
+            null
+        else {
+            ToolbarUtils.createActionToolbar(
+                targetComponent = this, place = TABLE_TOOLBAR_PLACE,
+                actions = topLeftToolbarActions, horizontal = true
+            )
+        }
+
+        val toolbarTitle = getToolbarTitle()
+        val titleActions =
+            if (toolbarTitle != null) listOf(ToolbarGreyLabelActionImpl(toolbarTitle), Separator()) else emptyList()
+
+        val topRightToolbarActions = titleActions + createTopRightToolbarActions()
+
+        val topRightToolbar = if (topRightToolbarActions.isEmpty()) null
+        else ToolbarUtils.createActionToolbar(
+            targetComponent = this,
+            TABLE_TOOLBAR_PLACE,
+            topRightToolbarActions,
+            horizontal = true
+        ).apply {
+            layoutStrategy = ToolbarLayoutStrategy.NOWRAP_STRATEGY
+        }
+
+        when {
+            topLeftToolbar == null -> {}
+            topRightToolbar == null -> {
+                add(topLeftToolbar.component.apply { border = JBUI.Borders.empty() }, BorderLayout.NORTH)
+            }
+
+            else -> {
+                val toolbarPanel = JPanel(
+                    MigLayout(
+                        createLayoutConstraints(0, 0).noVisualPadding().fill(),
+                        ConstraintParser.parseColumnConstraints("[grow][pref!]")
+                    )
+                ).apply {
+                    border = JBUI.Borders.empty()
+                    add(topLeftToolbar.component)
+                    add(topRightToolbar.component)
+                }
+
+                add(toolbarPanel, BorderLayout.NORTH)
+            }
+        }
+
+        val south = panel {
+            row {
+                cell(notifyLimitLabel).align(Align.FILL).resizableColumn()
+            }
+
+            notifyErrorPanel = panel {
+                row {
+                    label(KafkaMessagesBundle.message("monitoring.additional.info.load.error.label")).component.also {
+                        it.foreground = JBUI.CurrentTheme.Label.disabledForeground(false)
+                        it.icon = AllIcons.General.Warning
+                    }
+                    link(KafkaMessagesBundle.message("monitoring.additional.info.load.error.link")) {
+                        val e = additionalLoadException.get() ?: return@link
+                        RfsNotificationUtils.showExceptionMessage(
+                            project = null,
+                            title = KafkaMessagesBundle.message("monitoring.additional.info.load.error.title"),
+                            e = e
+                        )
+                    }
+                }.visibleIf(additionalLoadException.isNotNull())
+            }
+        }
+        add(south, BorderLayout.SOUTH)
     }
-    add(south, BorderLayout.SOUTH)
-  }
 
-  companion object {
-    const val TABLE_TOOLBAR_PLACE = "BDTTable"
-  }
+    companion object {
+        const val TABLE_TOOLBAR_PLACE = "BDTTable"
+    }
 }

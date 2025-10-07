@@ -40,157 +40,177 @@ import org.jdom.Element
 import javax.swing.JComponent
 
 @Service(Service.Level.PROJECT)
-@State(name = "ConfluentIntellijKafkaBigDataToolWindowController", storages = [Storage(StoragePathMacros.PRODUCT_WORKSPACE_FILE)], getStateRequiresEdt = true)
+@State(
+    name = "ConfluentIntellijKafkaBigDataToolWindowController",
+    storages = [Storage(StoragePathMacros.PRODUCT_WORKSPACE_FILE)],
+    getStateRequiresEdt = true
+)
 class BigDataToolWindowController(val project: Project) : PersistentStateComponent<Element>, Disposable {
-  private lateinit var contentManager: ContentManager
+    private lateinit var contentManager: ContentManager
 
-  private val projectPane: RfsPane = RfsPane(project, rootProvider = {
-    RfsConnectionDataManager.instance?.getConnections(project)?.filter { it.sourceConnection == null }?.map { it.innerId to null }
-    ?: emptyList()
-  })
-
-  private val connectionListener = BigDataToolsWindowListener(this)
-
-  init {
-    //We need to do it to guarantee that drivers listeners added before this controller listeners
-    DriverManager.init(project)
-    RfsConnectionDataManager.instance?.addListener(connectionListener)
-
-    val masterConnectionListener = MasterSlaveConnectionRemoveListener()
-    RfsConnectionDataManager.instance?.addListener(masterConnectionListener)
-    Disposer.register(this, Disposable {
-      RfsConnectionDataManager.instance?.removeListener(masterConnectionListener)
+    private val projectPane: RfsPane = RfsPane(project, rootProvider = {
+        RfsConnectionDataManager.instance?.getConnections(project)?.filter { it.sourceConnection == null }
+            ?.map { it.innerId to null }
+            ?: emptyList()
     })
-  }
 
-  override fun dispose() {
-    RfsConnectionDataManager.instance?.removeListener(connectionListener)
-  }
+    private val connectionListener = BigDataToolsWindowListener(this)
 
-  fun setUp(toolWindow: ToolWindow) {
-    toolWindow.title = BdtPlugins.calculateTitle()
-    projectPane.init()
-    projectPane.installDoubleClickListener()
-    contentManager = toolWindow.contentManager
-    contentManager.addUiDataProvider { sink ->
-      sink[PlatformDataKeys.HELP_ID] = "big.data.tools.overview"
+    init {
+        //We need to do it to guarantee that drivers listeners added before this controller listeners
+        DriverManager.init(project)
+        RfsConnectionDataManager.instance?.addListener(connectionListener)
+
+        val masterConnectionListener = MasterSlaveConnectionRemoveListener()
+        RfsConnectionDataManager.instance?.addListener(masterConnectionListener)
+        Disposer.register(this, Disposable {
+            RfsConnectionDataManager.instance?.removeListener(masterConnectionListener)
+        })
     }
-    val panel = SimpleToolWindowPanel(true, true).apply {
-      toolbar = createToolBar()
-      setContent(projectPane.createComponent())
+
+    override fun dispose() {
+        RfsConnectionDataManager.instance?.removeListener(connectionListener)
     }
-    executeNotOnEdt {
-      val locateAction = object : DumbAwareAction(KafkaMessagesBundle.message("action.scrollFromEditor.text"),
-                                                  KafkaMessagesBundle.message("action.scrollFromEditor.hint"),
-                                                  AllIcons.General.Locate) {
-        override fun actionPerformed(e: AnActionEvent) {
-          selectOpenedEditor()
+
+    fun setUp(toolWindow: ToolWindow) {
+        toolWindow.title = BdtPlugins.calculateTitle()
+        projectPane.init()
+        projectPane.installDoubleClickListener()
+        contentManager = toolWindow.contentManager
+        contentManager.addUiDataProvider { sink ->
+            sink[PlatformDataKeys.HELP_ID] = "big.data.tools.overview"
         }
-      }
-
-      val collapseAction = DumbAwareAction.create(KafkaMessagesBundle.message("action.collapseAll.text"), AllIcons.Actions.Collapseall) {
-        TreeUtil.collapseAll(projectPane.tree, 0)
-      }.apply {
-        registerCustomShortcutSet(CustomShortcutSet(*KeymapManager.getInstance().activeKeymap.getShortcuts("CollapseAll")),
-                                  projectPane.tree, projectPane)
-      }
-
-      val content = contentManager.factory.createContent(panel, "", true).apply {
-        isCloseable = false
-      }
-      val toolWindowEx = toolWindow as ToolWindowEx
-      invokeAndWaitIfNeeded {
-        contentManager.addContent(content)
-        contentManager.setSelectedContent(content)
-        toolWindowEx.setTitleActions(listOf(locateAction, collapseAction))
-      }
-
-      DriverManager.onDriversInit(project) {
-        invokeLater {
-          projectPane.updateRoots()
-          projectPane.restoreExpandedPaths()
-
-          RfsFileViewerSettings.getInstance().tabsInfo.forEach { tabInfo ->
-            val node = projectPane.treeModel.root.children.firstOrNull { it.connId == tabInfo.driverId } as? DriverFileRfsTreeNode
-                       ?: return@forEach
-            RfsViewerEditorProvider.createFileViewerEditor(project, node.driver, RfsPath(tabInfo.pathElements, tabInfo.pathIsDirectory))
-          }
+        val panel = SimpleToolWindowPanel(true, true).apply {
+            toolbar = createToolBar()
+            setContent(projectPane.createComponent())
         }
-      }
+        executeNotOnEdt {
+            val locateAction = object : DumbAwareAction(
+                KafkaMessagesBundle.message("action.scrollFromEditor.text"),
+                KafkaMessagesBundle.message("action.scrollFromEditor.hint"),
+                AllIcons.General.Locate
+            ) {
+                override fun actionPerformed(e: AnActionEvent) {
+                    selectOpenedEditor()
+                }
+            }
+
+            val collapseAction = DumbAwareAction.create(
+                KafkaMessagesBundle.message("action.collapseAll.text"),
+                AllIcons.Actions.Collapseall
+            ) {
+                TreeUtil.collapseAll(projectPane.tree, 0)
+            }.apply {
+                registerCustomShortcutSet(
+                    CustomShortcutSet(*KeymapManager.getInstance().activeKeymap.getShortcuts("CollapseAll")),
+                    projectPane.tree, projectPane
+                )
+            }
+
+            val content = contentManager.factory.createContent(panel, "", true).apply {
+                isCloseable = false
+            }
+            val toolWindowEx = toolWindow as ToolWindowEx
+            invokeAndWaitIfNeeded {
+                contentManager.addContent(content)
+                contentManager.setSelectedContent(content)
+                toolWindowEx.setTitleActions(listOf(locateAction, collapseAction))
+            }
+
+            DriverManager.onDriversInit(project) {
+                invokeLater {
+                    projectPane.updateRoots()
+                    projectPane.restoreExpandedPaths()
+
+                    RfsFileViewerSettings.getInstance().tabsInfo.forEach { tabInfo ->
+                        val node =
+                            projectPane.treeModel.root.children.firstOrNull { it.connId == tabInfo.driverId } as? DriverFileRfsTreeNode
+                                ?: return@forEach
+                        RfsViewerEditorProvider.createFileViewerEditor(
+                            project,
+                            node.driver,
+                            RfsPath(tabInfo.pathElements, tabInfo.pathIsDirectory)
+                        )
+                    }
+                }
+            }
+        }
     }
-  }
 
-  fun selectOpenedEditor() {
-    val pane = getInstance(project)?.getMainPane() ?: return
-    val selectInTarget = pane.createSelectInTarget()
-    val selectedEditor = FileEditorManager.getInstance(project).selectedEditor
-    var file = selectedEditor?.file ?: return
-    if (file is BackedVirtualFile) {
-      file = file.originFile
+    fun selectOpenedEditor() {
+        val pane = getInstance(project)?.getMainPane() ?: return
+        val selectInTarget = pane.createSelectInTarget()
+        val selectedEditor = FileEditorManager.getInstance(project).selectedEditor
+        var file = selectedEditor?.file ?: return
+        if (file is BackedVirtualFile) {
+            file = file.originFile
+        }
+
+        val context = FileSelectInContext(project, file)
+
+        if (selectInTarget.canSelect(context)) {
+            selectInTarget.selectIn(context, true)
+        }
     }
 
-    val context = FileSelectInContext(project, file)
+    fun getMainPane(): RfsPane = projectPane
 
-    if (selectInTarget.canSelect(context)) {
-      selectInTarget.selectIn(context, true)
-    }
-  }
+    override fun getState(): Element {
+        val rootElement = Element(ROOT_ELEMENT)
+        val paneElement = Element(HDFS_PANE_ELEMENT)
 
-  fun getMainPane(): RfsPane = projectPane
+        paneElement.setAttribute(ATTRIBUTE_ID, projectPane.id) // do we need it?..
 
-  override fun getState(): Element {
-    val rootElement = Element(ROOT_ELEMENT)
-    val paneElement = Element(HDFS_PANE_ELEMENT)
+        runInEdt {
+            try {
+                projectPane.writeExternal(paneElement)
+            } catch (_: WriteExternalException) {
+            }
+        }
 
-    paneElement.setAttribute(ATTRIBUTE_ID, projectPane.id) // do we need it?..
+        rootElement.addContent(paneElement)
 
-    runInEdt {
-      try {
-        projectPane.writeExternal(paneElement)
-      }
-      catch (_: WriteExternalException) {
-      }
+        return rootElement
     }
 
-    rootElement.addContent(paneElement)
+    override fun loadState(state: Element) {
+        val paneElement = state.getChild(HDFS_PANE_ELEMENT)
+        if (paneElement == null) return
 
-    return rootElement
-  }
-
-  override fun loadState(state: Element) {
-    val paneElement = state.getChild(HDFS_PANE_ELEMENT)
-    if (paneElement == null) return
-
-    try {
-      projectPane.readExternal(paneElement)
+        try {
+            projectPane.readExternal(paneElement)
+        } catch (_: InvalidDataException) {
+        }
+        projectPane.restoreExpandedPaths()
     }
-    catch (_: InvalidDataException) {
+
+    private fun createToolBar(): JComponent {
+        val toolbarActions =
+            ActionManager.getInstance().getAction("BigDataTools.ToolWindow.ToolbarActionGroup") as ActionGroup
+        return ToolbarUtils.createActionToolbar(
+            projectPane.scrollPane, RfsActionPlaces.TOOLWINDOW_TOOLBAR, toolbarActions,
+            true
+        ).component
     }
-    projectPane.restoreExpandedPaths()
-  }
 
-  private fun createToolBar(): JComponent {
-    val toolbarActions = ActionManager.getInstance().getAction("BigDataTools.ToolWindow.ToolbarActionGroup") as ActionGroup
-    return ToolbarUtils.createActionToolbar(projectPane.scrollPane, RfsActionPlaces.TOOLWINDOW_TOOLBAR, toolbarActions,
-                                            true).component
-  }
+    fun createFileViewerEditor(connectionData: ConnectionData) {
+        val node =
+            projectPane.treeModel.root.children.firstOrNull { it.connId == connectionData.innerId } as? DriverFileRfsTreeNode
+                ?: return
 
-  fun createFileViewerEditor(connectionData: ConnectionData) {
-    val node = projectPane.treeModel.root.children.firstOrNull { it.connId == connectionData.innerId } as? DriverFileRfsTreeNode
-               ?: return
+        RfsViewerEditorProvider.createFileViewerEditor(project, node.driver, node.rfsPath)
+    }
 
-    RfsViewerEditorProvider.createFileViewerEditor(project, node.driver, node.rfsPath)
-  }
+    fun closeFileViewerEditors(connectionData: ConnectionData) {
+        RfsViewerEditorProvider.closeFileViewerEditors(project, connectionData)
+    }
 
-  fun closeFileViewerEditors(connectionData: ConnectionData) {
-    RfsViewerEditorProvider.closeFileViewerEditors(project, connectionData)
-  }
+    companion object {
+        private const val ROOT_ELEMENT = "bigDataToolWindowController"
+        private const val HDFS_PANE_ELEMENT = "hdfsProjectPane"
+        private const val ATTRIBUTE_ID = "id"
 
-  companion object {
-    private const val ROOT_ELEMENT = "bigDataToolWindowController"
-    private const val HDFS_PANE_ELEMENT = "hdfsProjectPane"
-    private const val ATTRIBUTE_ID = "id"
-
-    fun getInstance(project: Project): BigDataToolWindowController? = project.getService(BigDataToolWindowController::class.java)
-  }
+        fun getInstance(project: Project): BigDataToolWindowController? =
+            project.getService(BigDataToolWindowController::class.java)
+    }
 }

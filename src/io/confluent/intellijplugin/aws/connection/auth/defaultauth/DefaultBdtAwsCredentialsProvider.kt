@@ -4,5 +4,5 @@ import io.confluent.intellijplugin.aws.connection.auth.common.BdtAwsCredentialsP
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider
 
 class DefaultBdtAwsCredentialsProvider : BdtAwsCredentialsProvider {
-  override fun getCredentials(): DefaultCredentialsProvider = DefaultCredentialsProvider.builder().build()
+    override fun getCredentials(): DefaultCredentialsProvider = DefaultCredentialsProvider.builder().build()
 }

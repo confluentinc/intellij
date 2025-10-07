@@ -12,7 +12,7 @@ import java.time.Instant
  * It should be persisted for reuse through many authentication requests.
  */
 data class ClientRegistration(
-  val clientId: String,
-  val clientSecret: String,
-  val expiresAt: Instant
+    val clientId: String,
+    val clientSecret: String,
+    val expiresAt: Instant
 )

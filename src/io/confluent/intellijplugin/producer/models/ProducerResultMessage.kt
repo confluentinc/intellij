@@ -2,9 +2,11 @@ package io.confluent.intellijplugin.producer.models
 
 import java.util.*
 
-data class ProducerResultMessage(val key: String,
-                                 val value: String,
-                                 val timestamp: Date,
-                                 val offset: Long,
-                                 val partition: Int,
-                                 val duration: Int)
+data class ProducerResultMessage(
+    val key: String,
+    val value: String,
+    val timestamp: Date,
+    val offset: Long,
+    val partition: Int,
+    val duration: Int
+)

@@ -14,64 +14,65 @@ import io.confluent.intellijplugin.core.util.async.DeferredJobHandle
 import java.util.concurrent.CompletableFuture
 
 abstract class AbstractDriver : Driver {
-  /**
-   * null for application-wide drivers
-   */
-  abstract val project: Project?
+    /**
+     * null for application-wide drivers
+     */
+    abstract val project: Project?
 
-  override val safeExecutor: SafeExecutor by lazy {
-    SafeExecutor.createInstance(this, "Driver $presentableName", timeout)
-  }
-
-  private var listeners: List<DriverRfsListener> = emptyList()
-  override fun addListener(listener: DriverRfsListener) {
-    listeners = listeners + listener
-  }
-
-  override fun removeListener(listener: DriverRfsListener) {
-    listeners = listeners - listener
-  }
-
-  fun notify(body: (DriverRfsListener) -> Unit) = listeners.forEach {
-    try {
-      body(it)
+    override val safeExecutor: SafeExecutor by lazy {
+        SafeExecutor.createInstance(this, "Driver $presentableName", timeout)
     }
-    catch (t: Throwable) {
-      logger.error(t)
+
+    private var listeners: List<DriverRfsListener> = emptyList()
+    override fun addListener(listener: DriverRfsListener) {
+        listeners = listeners + listener
     }
-  }
 
-  val refreshProcess by lazy {
-    DeferredJobHandle<ReadyConnectionStatus>(safeExecutor.coroutineScope)
-  }
+    override fun removeListener(listener: DriverRfsListener) {
+        listeners = listeners - listener
+    }
 
-  override fun listStatusAsync(path: RfsPath,
-                               force: Boolean,
-                               startFrom: RfsListMarker?,
-                               resultProcessor: Processor<SafeResult<RfsFileInfoChildren>>): CompletableFuture<*> {
-    if (startFrom != null) throw UnsupportedOperationException("pagination is not supported for driver $this")
-    return CompletableFuture<Unit>().also {
-      ApplicationManager.getApplication().executeOnPooledThread {
-        while (fileInfoManager.getConnectionStatus().isConnecting()) {
-          Thread.sleep(200)
+    fun notify(body: (DriverRfsListener) -> Unit) = listeners.forEach {
+        try {
+            body(it)
+        } catch (t: Throwable) {
+            logger.error(t)
         }
-        val result = listStatus(path, force).map { it.copy(nextMarker = it.nextMarker?.copy(marker = null)) }
-        resultProcessor.process(result)
-        it.complete(Unit)
-      }
     }
-  }
 
-  protected fun prepareSlaveDriver() {
-    val sourceConnectionId = connectionData.sourceConnection
-    if (sourceConnectionId != null) {
-      val driver = DriverManager.getDriverById(project, sourceConnectionId) ?: return
-      val masterDriver = driver as MasterDriver
-      masterDriver.prepareRefreshDependedDriver(this)
+    val refreshProcess by lazy {
+        DeferredJobHandle<ReadyConnectionStatus>(safeExecutor.coroutineScope)
     }
-  }
 
-  companion object {
-    private val logger = SmartLogger(this::class.java)
-  }
+    override fun listStatusAsync(
+        path: RfsPath,
+        force: Boolean,
+        startFrom: RfsListMarker?,
+        resultProcessor: Processor<SafeResult<RfsFileInfoChildren>>
+    ): CompletableFuture<*> {
+        if (startFrom != null) throw UnsupportedOperationException("pagination is not supported for driver $this")
+        return CompletableFuture<Unit>().also {
+            ApplicationManager.getApplication().executeOnPooledThread {
+                while (fileInfoManager.getConnectionStatus().isConnecting()) {
+                    Thread.sleep(200)
+                }
+                val result = listStatus(path, force).map { it.copy(nextMarker = it.nextMarker?.copy(marker = null)) }
+                resultProcessor.process(result)
+                it.complete(Unit)
+            }
+        }
+    }
+
+    protected fun prepareSlaveDriver() {
+        val sourceConnectionId = connectionData.sourceConnection
+        if (sourceConnectionId != null) {
+            val driver = DriverManager.getDriverById(project, sourceConnectionId) ?: return
+            val masterDriver = driver as MasterDriver
+            masterDriver.prepareRefreshDependedDriver(this)
+        }
+    }
+
+    companion object {
+        private val logger = SmartLogger(this::class.java)
+    }
 }

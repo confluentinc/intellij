@@ -32,146 +32,159 @@ import javax.swing.table.TableCellRenderer
 import javax.swing.tree.DefaultMutableTreeNode
 
 class SchemaTreePanel {
-  private val commonColumns = arrayOf(
-    SchemaRegistryNameColumn { it.name },
-    SchemaRegistryColumn(KafkaMessagesBundle.message("column.name.type")) { it.type },
-    SchemaRegistryColumn(KafkaMessagesBundle.message("column.name.default")) { it.default },
-    SchemaRegistryColumn(KafkaMessagesBundle.message("column.name.documentation")) { it.description },
-    SchemaRegistryColumn(KafkaMessagesBundle.message("column.name.required")) { it.required },
-  )
+    private val commonColumns = arrayOf(
+        SchemaRegistryNameColumn { it.name },
+        SchemaRegistryColumn(KafkaMessagesBundle.message("column.name.type")) { it.type },
+        SchemaRegistryColumn(KafkaMessagesBundle.message("column.name.default")) { it.default },
+        SchemaRegistryColumn(KafkaMessagesBundle.message("column.name.documentation")) { it.description },
+        SchemaRegistryColumn(KafkaMessagesBundle.message("column.name.required")) { it.required },
+    )
 
-  private val treeTableModel = ListTreeTableModel(DefaultMutableTreeNode(), commonColumns)
+    private val treeTableModel = ListTreeTableModel(DefaultMutableTreeNode(), commonColumns)
 
-  private val treeTable = RfsTreeTable(treeTableModel)
+    private val treeTable = RfsTreeTable(treeTableModel)
 
-  private val scrollPanel = ScrollPaneFactory.createScrollPane(treeTable, ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED,
-                                                               ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER).apply {
-    border = BorderFactory.createEmptyBorder()
-    preferredWidth = JBUI.scale(400)
-  }
+    private val scrollPanel = ScrollPaneFactory.createScrollPane(
+        treeTable, ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED,
+        ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER
+    ).apply {
+        border = BorderFactory.createEmptyBorder()
+        preferredWidth = JBUI.scale(400)
+    }
 
-  private var listener: TreeExpansionListener? = null
+    private var listener: TreeExpansionListener? = null
 
-  class TreeHeaderRenderer : JLabel(), TableCellRenderer {
+    class TreeHeaderRenderer : JLabel(), TableCellRenderer {
+
+        init {
+            border = CompoundBorder(JBUI.Borders.emptyRight(1), IdeBorderFactory.createBorder(SideBorder.RIGHT))
+        }
+
+        override fun getTableCellRendererComponent(
+            table: JTable,
+            value: Any?,
+            isSelected: Boolean,
+            hasFocus: Boolean,
+            row: Int,
+            column: Int
+        ): Component {
+            font = table.font
+            text = " ${value.toString()} "
+            return this
+        }
+    }
 
     init {
-      border = CompoundBorder(JBUI.Borders.emptyRight(1), IdeBorderFactory.createBorder(SideBorder.RIGHT))
-    }
+        treeTable.split.dividerPositionStrategy = DividerPositionStrategy.KEEP_FIRST_SIZE
 
-    override fun getTableCellRendererComponent(table: JTable,
-                                               value: Any?,
-                                               isSelected: Boolean,
-                                               hasFocus: Boolean,
-                                               row: Int,
-                                               column: Int): Component {
-      font = table.font
-      text = " ${value.toString()} "
-      return this
-    }
-  }
+        val tree = treeTable.tree
+        treeTable.table.emptyText.text = ""
 
-  init {
-    treeTable.split.dividerPositionStrategy = DividerPositionStrategy.KEEP_FIRST_SIZE
+        // We need to set max size explicitly because by default maxSize == preferredSize
+        // and this leads to TreeTable first column resize problem.
+        treeTable.tree.maximumSize = Dimension(Int.MAX_VALUE, Int.MAX_VALUE)
+        val headerRenderer = TreeHeaderRenderer()
+        treeTable.setupFirstColumnRenderer(headerRenderer)
+        tree.isRootVisible = false
 
-    val tree = treeTable.tree
-    treeTable.table.emptyText.text = ""
+        treeTable.table.autoResizeMode = JTable.AUTO_RESIZE_OFF
 
-    // We need to set max size explicitly because by default maxSize == preferredSize
-    // and this leads to TreeTable first column resize problem.
-    treeTable.tree.maximumSize = Dimension(Int.MAX_VALUE, Int.MAX_VALUE)
-    val headerRenderer = TreeHeaderRenderer()
-    treeTable.setupFirstColumnRenderer(headerRenderer)
-    tree.isRootVisible = false
+        // Setting the width of first column (tree component). This is done to select approximately width, which is good to display
+        // expandable tree with elements of unknown length.
+        val comp = headerRenderer.getTableCellRendererComponent(treeTable.table, "A".repeat(24), false, false, 0, 0)
+        treeTable.tree.preferredSize = Dimension(comp.preferredSize.width, treeTable.tree.preferredSize.height)
 
-    treeTable.table.autoResizeMode = JTable.AUTO_RESIZE_OFF
-
-    // Setting the width of first column (tree component). This is done to select approximately width, which is good to display
-    // expandable tree with elements of unknown length.
-    val comp = headerRenderer.getTableCellRendererComponent(treeTable.table, "A".repeat(24), false, false, 0, 0)
-    treeTable.tree.preferredSize = Dimension(comp.preferredSize.width, treeTable.tree.preferredSize.height)
-
-    treeTable.table.columnModel.columns.asIterator().forEach {
-      it.cellRenderer = CellRendererWithBackground()
-    }
-  }
-
-  private var dividerProportionUpdated = false
-
-  private fun updateDividerProportion() {
-    if (dividerProportionUpdated) return
-
-    if (treeTable.size.width == 0) {
-      treeTable.onFirstSizeChange {
-        if (treeTable.size.width != 0) {
-          updateDividerProportion()
+        treeTable.table.columnModel.columns.asIterator().forEach {
+            it.cellRenderer = CellRendererWithBackground()
         }
-        else {
-          treeTable.onFirstSizeChange {
-            updateDividerProportion()
-          }
+    }
+
+    private var dividerProportionUpdated = false
+
+    private fun updateDividerProportion() {
+        if (dividerProportionUpdated) return
+
+        if (treeTable.size.width == 0) {
+            treeTable.onFirstSizeChange {
+                if (treeTable.size.width != 0) {
+                    updateDividerProportion()
+                } else {
+                    treeTable.onFirstSizeChange {
+                        updateDividerProportion()
+                    }
+                }
+            }
+            return
         }
-      }
-      return
+
+        treeTable.split.proportion = treeTable.tree.preferredSize.width.toFloat() / treeTable.width
+
+        dividerProportionUpdated = true
     }
 
-    treeTable.split.proportion = treeTable.tree.preferredSize.width.toFloat() / treeTable.width
+    fun update(schema: ParsedSchema) {
+        val root = DefaultMutableTreeNode()
 
-    dividerProportionUpdated = true
-  }
+        val schemaTree = when (schema) {
+            is AvroSchema -> AvroSchemaTree(treeTableModel, schema)
+            is JsonSchema -> JsonSchemaTree(treeTableModel, schema)
+            is ProtobufSchema -> ProtobufSchemaTree(treeTableModel, schema)
+            else -> null
+        } ?: return
+        updateListener(schemaTree)
+        schemaTree.buildTree(root)
+        treeTableModel.setRoot(root)
 
-  fun update(schema: ParsedSchema) {
-    val root = DefaultMutableTreeNode()
-
-    val schemaTree = when (schema) {
-                       is AvroSchema -> AvroSchemaTree(treeTableModel, schema)
-                       is JsonSchema -> JsonSchemaTree(treeTableModel, schema)
-                       is ProtobufSchema -> ProtobufSchemaTree(treeTableModel, schema)
-                       else -> null
-                     } ?: return
-    updateListener(schemaTree)
-    schemaTree.buildTree(root)
-    treeTableModel.setRoot(root)
-
-    updateDividerProportion()
-    MaterialTableUtils.fitColumnsWidth(treeTable.table)
-  }
-
-  private fun updateListener(newListener: TreeExpansionListener) {
-    if (listener != null) {
-      treeTable.tree.removeTreeExpansionListener(listener)
+        updateDividerProportion()
+        MaterialTableUtils.fitColumnsWidth(treeTable.table)
     }
 
-    listener = newListener
-    treeTable.tree.addTreeExpansionListener(listener)
-  }
+    private fun updateListener(newListener: TreeExpansionListener) {
+        if (listener != null) {
+            treeTable.tree.removeTreeExpansionListener(listener)
+        }
 
-  fun getComponent() = scrollPanel
-
-  // We have a problems rendering selection in standard cell renderer from TreeTable table.
-  class CellRendererWithBackground : DefaultTableCellRenderer() {
-    override fun getTableCellRendererComponent(table: JTable,
-                                               value: Any?,
-                                               isSelected: Boolean,
-                                               hasFocus: Boolean,
-                                               row: Int,
-                                               column: Int): Component {
-      val component = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column)
-      component.background = if (isSelected) table.selectionBackground else null
-      return component
-    }
-  }
-
-  companion object {
-    class SchemaRegistryNameColumn<T : Comparable<T>>(val getValue: (SchemaRegistryFieldsInfo) -> T) : ColumnInfo<DefaultMutableTreeNode, T>(
-      KafkaMessagesBundle.message("column.name.name")) {
-      override fun valueOf(item: DefaultMutableTreeNode): T = getValue((item.userObject as SchemaRegistryFieldsInfo))
-      override fun getColumnClass(): Class<*> = TreeTableModel::class.java
+        listener = newListener
+        treeTable.tree.addTreeExpansionListener(listener)
     }
 
-    class SchemaRegistryColumn<T : Comparable<T>>(@NlsContexts.ColumnName name: String,
-                                                  val getValue: (SchemaRegistryFieldsInfo) -> T) : ColumnInfo<DefaultMutableTreeNode, T>(
-      name) {
-      override fun valueOf(item: DefaultMutableTreeNode): T = getValue((item.userObject as SchemaRegistryFieldsInfo))
+    fun getComponent() = scrollPanel
+
+    // We have a problems rendering selection in standard cell renderer from TreeTable table.
+    class CellRendererWithBackground : DefaultTableCellRenderer() {
+        override fun getTableCellRendererComponent(
+            table: JTable,
+            value: Any?,
+            isSelected: Boolean,
+            hasFocus: Boolean,
+            row: Int,
+            column: Int
+        ): Component {
+            val component = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column)
+            component.background = if (isSelected) table.selectionBackground else null
+            return component
+        }
     }
-  }
+
+    companion object {
+        class SchemaRegistryNameColumn<T : Comparable<T>>(val getValue: (SchemaRegistryFieldsInfo) -> T) :
+            ColumnInfo<DefaultMutableTreeNode, T>(
+                KafkaMessagesBundle.message("column.name.name")
+            ) {
+            override fun valueOf(item: DefaultMutableTreeNode): T =
+                getValue((item.userObject as SchemaRegistryFieldsInfo))
+
+            override fun getColumnClass(): Class<*> = TreeTableModel::class.java
+        }
+
+        class SchemaRegistryColumn<T : Comparable<T>>(
+            @NlsContexts.ColumnName name: String,
+            val getValue: (SchemaRegistryFieldsInfo) -> T
+        ) : ColumnInfo<DefaultMutableTreeNode, T>(
+            name
+        ) {
+            override fun valueOf(item: DefaultMutableTreeNode): T =
+                getValue((item.userObject as SchemaRegistryFieldsInfo))
+        }
+    }
 }

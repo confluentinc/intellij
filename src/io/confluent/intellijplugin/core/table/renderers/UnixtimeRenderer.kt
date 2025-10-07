@@ -8,13 +8,13 @@ import java.util.*
  */
 class UnixtimeRenderer : MaterialTableCellRenderer() {
 
-  companion object {
-    private var df = SimpleDateFormat("yyyy-MM-dd HH:mm:ss")
-  }
+    companion object {
+        private var df = SimpleDateFormat("yyyy-MM-dd HH:mm:ss")
+    }
 
-  override fun setValue(value: Any?) {
-    value ?: return
-    val longDate = value.toString().toLongOrNull() ?: return
-    super.setValue(df.format(Date(longDate)))
-  }
+    override fun setValue(value: Any?) {
+        value ?: return
+        val longDate = value.toString().toLongOrNull() ?: return
+        super.setValue(df.format(Date(longDate)))
+    }
 }

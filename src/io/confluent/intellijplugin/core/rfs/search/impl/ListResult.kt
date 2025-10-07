@@ -2,20 +2,22 @@ package io.confluent.intellijplugin.core.rfs.search.impl
 
 import io.confluent.intellijplugin.core.rfs.driver.FileInfo
 
-class ListResult(val results: List<ListElement>,
-                 val nextBatchId: String? = null,
-                 val error: Throwable? = null) {
+class ListResult(
+    val results: List<ListElement>,
+    val nextBatchId: String? = null,
+    val error: Throwable? = null
+) {
 
-  companion object {
-    fun ofFileInfos(files: List<FileInfo>): ListResult {
-      val elements = files.map {
-        ListElement(it, null)
-      }
-      return ListResult(elements, null, null)
+    companion object {
+        fun ofFileInfos(files: List<FileInfo>): ListResult {
+            val elements = files.map {
+                ListElement(it, null)
+            }
+            return ListResult(elements, null, null)
+        }
+
+        fun ofError(t: Throwable) = ListResult(emptyList(), null, t)
+
+        val empty = ListResult(emptyList())
     }
-
-    fun ofError(t: Throwable) = ListResult(emptyList(), null, t)
-
-    val empty = ListResult(emptyList())
-  }
 }

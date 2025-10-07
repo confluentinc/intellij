@@ -6,10 +6,10 @@ import com.intellij.openapi.project.DumbAwareAction
 import io.confluent.intellijplugin.core.util.ConnectionUtil
 
 abstract class MonitoringTabConnectionAction : DumbAwareAction() {
-  override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
+    override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
 
-  protected fun getSelectedConnectionIds(e: AnActionEvent): List<String> {
-    val connectionId = e.dataContext.getData(ConnectionUtil.CONNECTION_ID) ?: return emptyList()
-    return listOf(connectionId)
-  }
+    protected fun getSelectedConnectionIds(e: AnActionEvent): List<String> {
+        val connectionId = e.dataContext.getData(ConnectionUtil.CONNECTION_ID) ?: return emptyList()
+        return listOf(connectionId)
+    }
 }

@@ -6,21 +6,21 @@ import javax.swing.JTree
 import javax.swing.tree.TreePath
 
 internal class RfsPaneSpeedSearch private constructor(jTree: JTree) : TreeSpeedSearch(jTree, null as Void?) {
-  override fun isMatchingElement(element: Any?, pattern: String): Boolean {
-    val node = (element as? TreePath)?.lastDriverNode ?: return false
-    val nodePath = if (pattern.contains("/"))
-      node.fileInfo?.path?.stringRepresentation()
-    else
-      node.presentation.presentableText
+    override fun isMatchingElement(element: Any?, pattern: String): Boolean {
+        val node = (element as? TreePath)?.lastDriverNode ?: return false
+        val nodePath = if (pattern.contains("/"))
+            node.fileInfo?.path?.stringRepresentation()
+        else
+            node.presentation.presentableText
 
-    return nodePath != null && compare(nodePath, pattern)
-  }
-
-  companion object {
-    fun installOn(jTree: JTree): RfsPaneSpeedSearch {
-      val search = RfsPaneSpeedSearch(jTree)
-      search.setupListeners()
-      return search
+        return nodePath != null && compare(nodePath, pattern)
     }
-  }
+
+    companion object {
+        fun installOn(jTree: JTree): RfsPaneSpeedSearch {
+            val search = RfsPaneSpeedSearch(jTree)
+            search.setupListeners()
+            return search
+        }
+    }
 }

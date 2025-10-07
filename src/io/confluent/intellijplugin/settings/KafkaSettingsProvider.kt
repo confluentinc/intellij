@@ -5,7 +5,7 @@ import io.confluent.intellijplugin.core.settings.connections.ConnectionGroup
 import io.confluent.intellijplugin.core.settings.connections.ConnectionSettingProvider
 
 class KafkaSettingsProvider : ConnectionSettingProvider {
-  override val pluginType: BdtPluginType = BdtPluginType.KAFKA
+    override val pluginType: BdtPluginType = BdtPluginType.KAFKA
 
-  override fun createConnectionGroups(): List<ConnectionGroup> = listOf(KafkaConnectionGroup())
+    override fun createConnectionGroups(): List<ConnectionGroup> = listOf(KafkaConnectionGroup())
 }

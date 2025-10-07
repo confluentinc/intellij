@@ -10,19 +10,21 @@ import org.apache.kafka.common.security.auth.SecurityProtocol
 import java.util.*
 
 object KafkaClientBuilder {
-  fun createAdminClient(properties: Properties): BdtKafkaAdminClient {
-    if (properties.isKerberosEnabled) {
-      BdtKerberosManager.instance.setupKerberosValues()
+    fun createAdminClient(properties: Properties): BdtKafkaAdminClient {
+        if (properties.isKerberosEnabled) {
+            BdtKerberosManager.instance.setupKerberosValues()
+        }
+        return try {
+            BdtKafkaAdminClient(AdminClient.create(properties))
+        } catch (t: KafkaException) {
+            throw t.cause ?: t
+        }
     }
-    return try {
-      BdtKafkaAdminClient(AdminClient.create(properties))
-    }
-    catch (t: KafkaException) {
-      throw t.cause ?: t
-    }
-  }
 
-  private val Properties.isKerberosEnabled
-    get() = this[SECURITY_PROTOCOL_CONFIG] in setOf(SecurityProtocol.SASL_PLAINTEXT.name, SecurityProtocol.SASL_SSL.name) &&
-            this[SaslConfigs.SASL_MECHANISM] == GSSAPI_MECHANISM
+    private val Properties.isKerberosEnabled
+        get() = this[SECURITY_PROTOCOL_CONFIG] in setOf(
+            SecurityProtocol.SASL_PLAINTEXT.name,
+            SecurityProtocol.SASL_SSL.name
+        ) &&
+                this[SaslConfigs.SASL_MECHANISM] == GSSAPI_MECHANISM
 }

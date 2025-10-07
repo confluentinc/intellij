@@ -9,15 +9,15 @@ import io.confluent.intellijplugin.data.KafkaDataManager
 import io.confluent.intellijplugin.rfs.KafkaDriver.Companion.isSchemas
 
 class DeleteSchemaAction : DumbAwareAction() {
-  override fun actionPerformed(e: AnActionEvent) {
-    val rfsPath = e.rfsPath ?: return
-    (e.dataManager as KafkaDataManager).deleteSchema(rfsPath.name)
-  }
+    override fun actionPerformed(e: AnActionEvent) {
+        val rfsPath = e.rfsPath ?: return
+        (e.dataManager as KafkaDataManager).deleteSchema(rfsPath.name)
+    }
 
-  override fun update(e: AnActionEvent) {
-    val rfsPath = e.rfsPath
-    e.presentation.isEnabledAndVisible = e.dataManager != null && rfsPath?.parent?.isSchemas == true
-  }
+    override fun update(e: AnActionEvent) {
+        val rfsPath = e.rfsPath
+        e.presentation.isEnabledAndVisible = e.dataManager != null && rfsPath?.parent?.isSchemas == true
+    }
 
-  override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
+    override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
 }

@@ -11,29 +11,29 @@ import javax.swing.ComboBoxModel
  */
 class ComboBoxWidePopup<E> : ComboBox<E> {
 
-  private var widePopup = false
+    private var widePopup = false
 
-  private val nullElement: E?
+    private val nullElement: E?
 
-  init {
-    isSwingPopup = false
-  }
-
-  constructor(model: ComboBoxModel<E>, referenceElement: E?) : super(model) {
-    this.nullElement = referenceElement
-  }
-
-  constructor(values: Array<E>, referenceElement: E?) : super(values) {
-    this.nullElement = referenceElement
-  }
-
-  override fun getMinimumPopupWidth(): Int {
-    if (widePopup) {
-      prototypeDisplayValue = null
-      val preferredWidth = preferredSize.width
-      prototypeDisplayValue = nullElement
-      return preferredWidth
+    init {
+        isSwingPopup = false
     }
-    return super.getMinimumPopupWidth()
-  }
+
+    constructor(model: ComboBoxModel<E>, referenceElement: E?) : super(model) {
+        this.nullElement = referenceElement
+    }
+
+    constructor(values: Array<E>, referenceElement: E?) : super(values) {
+        this.nullElement = referenceElement
+    }
+
+    override fun getMinimumPopupWidth(): Int {
+        if (widePopup) {
+            prototypeDisplayValue = null
+            val preferredWidth = preferredSize.width
+            prototypeDisplayValue = nullElement
+            return preferredWidth
+        }
+        return super.getMinimumPopupWidth()
+    }
 }

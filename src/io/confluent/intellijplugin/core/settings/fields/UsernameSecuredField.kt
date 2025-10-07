@@ -9,18 +9,19 @@ import javax.swing.JComponent
  * The same as UsernameNamedField, but uses JBPasswordField for displaying.
  */
 class UsernameSecuredField<D : ConnectionData>(
-  key: ModificationKey,
-  credentialsHolder: CredentialsHolder<D>
+    key: ModificationKey,
+    credentialsHolder: CredentialsHolder<D>
 ) : CredentialNamedField<D>(key, credentialsHolder) {
 
-  private val usernameField = JBPasswordField()
-  private val component = credentialsHolder.wrapUsernameField(usernameField)
-  init {
-    usernameField.columns = 1
-  }
+    private val usernameField = JBPasswordField()
+    private val component = credentialsHolder.wrapUsernameField(usernameField)
 
-  override fun getValue(): CharArray = usernameField.password
+    init {
+        usernameField.columns = 1
+    }
 
-  override fun getComponent(): JComponent = component
-  override fun getTextComponent() = usernameField
+    override fun getValue(): CharArray = usernameField.password
+
+    override fun getComponent(): JComponent = component
+    override fun getTextComponent() = usernameField
 }

@@ -6,10 +6,10 @@ import kotlin.reflect.KProperty1
 import kotlin.reflect.jvm.javaField
 
 abstract class LocalizedField<T : RemoteInfo>(val field: KProperty1<T, *>, val i18Key: String?) {
-  val name: String
-    get() = this.field.name
+    val name: String
+        get() = this.field.name
 
-  abstract fun getLocalizedName(): @Nls String
+    abstract fun getLocalizedName(): @Nls String
 
-  fun getAnnotations() = (field.annotations + (field.javaField?.annotations ?: emptyArray())).toTypedArray()
+    fun getAnnotations() = (field.annotations + (field.javaField?.annotations ?: emptyArray())).toTypedArray()
 }

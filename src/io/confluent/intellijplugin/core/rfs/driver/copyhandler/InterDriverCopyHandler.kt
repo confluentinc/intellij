@@ -11,38 +11,55 @@ import io.confluent.intellijplugin.core.util.InternalFeature
 import org.jetbrains.annotations.Nls
 
 interface InterDriverCopyHandler {
-  fun canHandle(fromInfo: FileInfo, toDriver: Driver): Boolean
+    fun canHandle(fromInfo: FileInfo, toDriver: Driver): Boolean
 
-  fun userInfoMessage(): @Nls String? = null
+    fun userInfoMessage(): @Nls String? = null
 
-  fun correctPathForTarget(fromInfo: FileInfo, toPath: RfsPath, toDriver: Driver, exportFormat: ExportFormat?): RfsPath? = null
+    fun correctPathForTarget(
+        fromInfo: FileInfo,
+        toPath: RfsPath,
+        toDriver: Driver,
+        exportFormat: ExportFormat?
+    ): RfsPath? = null
 
-  fun buildCopyTask(fromInfo: FileInfo,
-                    toPath: RfsPath,
-                    toDriver: Driver,
-                    exportFormat: ExportFormat?,
-                    additionalParams: Map<String, Any>): RfsCopyMoveTask
+    fun buildCopyTask(
+        fromInfo: FileInfo,
+        toPath: RfsPath,
+        toDriver: Driver,
+        exportFormat: ExportFormat?,
+        additionalParams: Map<String, Any>
+    ): RfsCopyMoveTask
 
-  companion object {
-    val EP_NAME = ExtensionPointName.create<InterDriverCopyHandler>("com.intellij.bigdatatools.rfs.driver.interDriverCopyHandler")
+    companion object {
+        val EP_NAME =
+            ExtensionPointName.create<InterDriverCopyHandler>("com.intellij.bigdatatools.rfs.driver.interDriverCopyHandler")
 
-    fun getAll() = if (BdIdeRegistryUtil.isInternalFeaturesAvailable())
-      EP_NAME.extensionList
-    else
-      EP_NAME.extensionList.filter { it !is InternalFeature }
+        fun getAll() = if (BdIdeRegistryUtil.isInternalFeaturesAvailable())
+            EP_NAME.extensionList
+        else
+            EP_NAME.extensionList.filter { it !is InternalFeature }
 
-    fun getAllSuitable(fromInfo: FileInfo, toDriver: Driver) =
-      getAll().filter { it.canHandle(fromInfo, toDriver) }
+        fun getAllSuitable(fromInfo: FileInfo, toDriver: Driver) =
+            getAll().filter { it.canHandle(fromInfo, toDriver) }
 
-    fun hasSuitable(fromInfo: FileInfo, toDriver: Driver) =
-      getAllSuitable(fromInfo, toDriver).isNotEmpty()
+        fun hasSuitable(fromInfo: FileInfo, toDriver: Driver) =
+            getAllSuitable(fromInfo, toDriver).isNotEmpty()
 
-    fun getCorrectTargetPath(fromInfo: FileInfo,
-                             toParentPath: RfsPath,
-                             toDriver: Driver,
-                             exportFormat: ExportFormat?): RfsPath? {
-      val allSuitable = getAllSuitable(fromInfo, toDriver)
-      return allSuitable.firstNotNullOfOrNull { it.correctPathForTarget(fromInfo, toParentPath, toDriver, exportFormat) }
+        fun getCorrectTargetPath(
+            fromInfo: FileInfo,
+            toParentPath: RfsPath,
+            toDriver: Driver,
+            exportFormat: ExportFormat?
+        ): RfsPath? {
+            val allSuitable = getAllSuitable(fromInfo, toDriver)
+            return allSuitable.firstNotNullOfOrNull {
+                it.correctPathForTarget(
+                    fromInfo,
+                    toParentPath,
+                    toDriver,
+                    exportFormat
+                )
+            }
+        }
     }
-  }
 }
