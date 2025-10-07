@@ -10,20 +10,21 @@ import io.confluent.intellijplugin.registry.KafkaRegistryAddSchemaDialog
 import io.confluent.intellijplugin.rfs.KafkaDriver.Companion.isSchemas
 
 class CreateSchemaAction : NewElementAction(), ActionPromoter, DumbAware {
-  override fun actionPerformed(e: AnActionEvent) {
-    val dataManager = e.dataManager as KafkaDataManager
-    val project = e.project ?: return
-    KafkaRegistryAddSchemaDialog(project, dataManager).show()
-  }
+    override fun actionPerformed(e: AnActionEvent) {
+        val dataManager = e.dataManager as KafkaDataManager
+        val project = e.project ?: return
+        KafkaRegistryAddSchemaDialog(project, dataManager).show()
+    }
 
-  override fun update(e: AnActionEvent) {
-    val rfsPath = e.rfsPath
-    e.presentation.isEnabledAndVisible = e.dataManager != null && rfsPath?.parent?.isSchemas == true || rfsPath?.isSchemas == true
-  }
+    override fun update(e: AnActionEvent) {
+        val rfsPath = e.rfsPath
+        e.presentation.isEnabledAndVisible =
+            e.dataManager != null && rfsPath?.parent?.isSchemas == true || rfsPath?.isSchemas == true
+    }
 
-  override fun promote(actions: List<AnAction>, context: DataContext): List<AnAction> {
-    return listOf(this)
-  }
+    override fun promote(actions: List<AnAction>, context: DataContext): List<AnAction> {
+        return listOf(this)
+    }
 
-  override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
+    override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
 }

@@ -25,89 +25,95 @@ import io.confluent.intellijplugin.util.KafkaMessagesBundle
 import javax.swing.Icon
 
 internal class KafkaSpringBootConfigLineMarkers : LineMarkerProviderDescriptor() {
-  override fun getName(): String = KafkaMessagesBundle.message("gutter.name.kafka.configuration.in.spring.boot")
+    override fun getName(): String = KafkaMessagesBundle.message("gutter.name.kafka.configuration.in.spring.boot")
 
-  override fun getIcon(): Icon = AllIcons.Providers.Kafka
+    override fun getIcon(): Icon = AllIcons.Providers.Kafka
 
-  override fun getLineMarkerInfo(element: PsiElement): LineMarkerInfo<*>? = null
+    override fun getLineMarkerInfo(element: PsiElement): LineMarkerInfo<*>? = null
 
-  override fun collectSlowLineMarkers(elements: List<PsiElement>, result: MutableCollection<in LineMarkerInfo<*>>) {
-    val module = elements.firstOrNull()?.let { ModuleUtilCore.findModuleForPsiElement(it) }
-    if (!SpringLibraryUtil.hasSpringLibrary(module)) return
+    override fun collectSlowLineMarkers(elements: List<PsiElement>, result: MutableCollection<in LineMarkerInfo<*>>) {
+        val module = elements.firstOrNull()?.let { ModuleUtilCore.findModuleForPsiElement(it) }
+        if (!SpringLibraryUtil.hasSpringLibrary(module)) return
 
-    for (element in elements) {
-      addLineMarker(element, result)
-    }
-  }
-
-  private fun addLineMarker(element: PsiElement, result: MutableCollection<in LineMarkerInfo<*>>) {
-    if (element is PropertyKeyImpl) {
-      // Properties
-      for (reference in element.references) {
-        if (reference is MetaConfigKeyReference<*>) {
-          val name = reference.resolvedKey?.name
-          if (isServersKey(name)) {
-            val servers = (element.parent as? Property)?.unescapedValue
-
-            result.add(createContributedActionMarker(element, OpenSettingsAction(servers)))
-          }
-
-          break
+        for (element in elements) {
+            addLineMarker(element, result)
         }
-      }
     }
-    else if (element.language.id == "yaml") {
-      // YAML
-      for (reference in element.references) {
-        if (reference is MetaConfigKeyReference<*>) {
-          val name = reference.resolvedKey?.name
-          if (isServersKey(name)) {
-            val valueElement = element.getLastChild() as? PsiLanguageInjectionHost
-            val servers = valueElement?.let { ElementManipulators.getValueText(it) }
 
-            result.add(createContributedActionMarker(element, OpenSettingsAction(servers)))
-          }
+    private fun addLineMarker(element: PsiElement, result: MutableCollection<in LineMarkerInfo<*>>) {
+        if (element is PropertyKeyImpl) {
+            // Properties
+            for (reference in element.references) {
+                if (reference is MetaConfigKeyReference<*>) {
+                    val name = reference.resolvedKey?.name
+                    if (isServersKey(name)) {
+                        val servers = (element.parent as? Property)?.unescapedValue
 
-          break
+                        result.add(createContributedActionMarker(element, OpenSettingsAction(servers)))
+                    }
+
+                    break
+                }
+            }
+        } else if (element.language.id == "yaml") {
+            // YAML
+            for (reference in element.references) {
+                if (reference is MetaConfigKeyReference<*>) {
+                    val name = reference.resolvedKey?.name
+                    if (isServersKey(name)) {
+                        val valueElement = element.getLastChild() as? PsiLanguageInjectionHost
+                        val servers = valueElement?.let { ElementManipulators.getValueText(it) }
+
+                        result.add(createContributedActionMarker(element, OpenSettingsAction(servers)))
+                    }
+
+                    break
+                }
+            }
         }
-      }
-    }
-  }
-
-  private fun isServersKey(name: String?): Boolean {
-    return name == SPRING_KAFKA_BOOTSTRAP_SERVERS_KEY || name == SPRING_KAFKA_CONSUMER_BOOTSTRAP_SERVERS_KEY
-  }
-
-  @NlsSafe
-  private val KAFKA_NAVIGATION_GROUP: String = "Kafka"
-
-  private fun createContributedActionMarker(
-    anchor: PsiElement,
-    lineMarkerAction: MQLineMarkerActionsProvider.Action
-  ): RelatedItemLineMarkerInfo<PsiElement> {
-    return NavigationGutterIconBuilder.create(lineMarkerAction.getLineMarkerIcon(), KAFKA_NAVIGATION_GROUP)
-      .setAlignment(GutterIconRenderer.Alignment.LEFT)
-      .setTooltipText(lineMarkerAction.getLineMarkerTooltipText())
-      .setTargets(emptyList())
-      .createLineMarkerInfo(anchor) { e, _ ->
-        lineMarkerAction.action.actionPerformed(
-          AnActionEvent.createFromInputEvent(e, "", null, DataManager.getInstance().getDataContext(e.component))
-        )
-      }
-  }
-
-  private class OpenSettingsAction(
-    private val brokerServers: String? = null
-  ) : DumbAwareAction(), MQLineMarkerActionsProvider.Action, HighPriorityAction {
-    override fun actionPerformed(e: AnActionEvent) {
-      KafkaBootstrapService.getInstance(e.project!!).showKafkaSettingsPopup(brokerServers, null, e)
     }
 
-    override fun getLineMarkerName(): String = KafkaMessagesBundle.message("gutter.action.setup.connection")
-    override fun getLineMarkerTooltipText(): String = KafkaMessagesBundle.message("gutter.action.setup.connection.description")
-    override fun getLineMarkerIcon(): Icon = AllIcons.Providers.Kafka
+    private fun isServersKey(name: String?): Boolean {
+        return name == SPRING_KAFKA_BOOTSTRAP_SERVERS_KEY || name == SPRING_KAFKA_CONSUMER_BOOTSTRAP_SERVERS_KEY
+    }
 
-    override val action: AnAction
-      get() = this
-  }
+    @NlsSafe
+    private val KAFKA_NAVIGATION_GROUP: String = "Kafka"
+
+    private fun createContributedActionMarker(
+        anchor: PsiElement,
+        lineMarkerAction: MQLineMarkerActionsProvider.Action
+    ): RelatedItemLineMarkerInfo<PsiElement> {
+        return NavigationGutterIconBuilder.create(lineMarkerAction.getLineMarkerIcon(), KAFKA_NAVIGATION_GROUP)
+            .setAlignment(GutterIconRenderer.Alignment.LEFT)
+            .setTooltipText(lineMarkerAction.getLineMarkerTooltipText())
+            .setTargets(emptyList())
+            .createLineMarkerInfo(anchor) { e, _ ->
+                lineMarkerAction.action.actionPerformed(
+                    AnActionEvent.createFromInputEvent(
+                        e,
+                        "",
+                        null,
+                        DataManager.getInstance().getDataContext(e.component)
+                    )
+                )
+            }
+    }
+
+    private class OpenSettingsAction(
+        private val brokerServers: String? = null
+    ) : DumbAwareAction(), MQLineMarkerActionsProvider.Action, HighPriorityAction {
+        override fun actionPerformed(e: AnActionEvent) {
+            KafkaBootstrapService.getInstance(e.project!!).showKafkaSettingsPopup(brokerServers, null, e)
+        }
+
+        override fun getLineMarkerName(): String = KafkaMessagesBundle.message("gutter.action.setup.connection")
+        override fun getLineMarkerTooltipText(): String =
+            KafkaMessagesBundle.message("gutter.action.setup.connection.description")
+
+        override fun getLineMarkerIcon(): Icon = AllIcons.Providers.Kafka
+
+        override val action: AnAction
+            get() = this
+    }
 }

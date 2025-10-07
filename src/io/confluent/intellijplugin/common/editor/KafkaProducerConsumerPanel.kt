@@ -12,28 +12,32 @@ import javax.swing.JScrollPane
 
 // Helper to create similar Settings panels for Producer and Consumer.
 object KafkaProducerConsumerPanel {
-  fun createPanel(mainPanel: DialogPanel, button: JButton, progress : KafkaProducerConsumerProgressComponent) : JPanel {
+    fun createPanel(mainPanel: DialogPanel, button: JButton, progress: KafkaProducerConsumerProgressComponent): JPanel {
 
-    mainPanel.border = BorderFactory.createEmptyBorder(0, 10, 0, 0)
+        mainPanel.border = BorderFactory.createEmptyBorder(0, 10, 0, 0)
 
-    val scroll = JBScrollPane(mainPanel, JScrollPane.VERTICAL_SCROLLBAR_ALWAYS, JScrollPane.HORIZONTAL_SCROLLBAR_NEVER).apply {
-      minimumSize = Dimension(mainPanel.minimumSize.width, minimumSize.height)
-      border = BorderFactory.createEmptyBorder()
+        val scroll = JBScrollPane(
+            mainPanel,
+            JScrollPane.VERTICAL_SCROLLBAR_ALWAYS,
+            JScrollPane.HORIZONTAL_SCROLLBAR_NEVER
+        ).apply {
+            minimumSize = Dimension(mainPanel.minimumSize.width, minimumSize.height)
+            border = BorderFactory.createEmptyBorder()
+        }
+
+        val bottomWidthGroup = "ButtonAndComment"
+        val bottomPanel = panel {
+            row {
+                cell(button).widthGroup(bottomWidthGroup)
+                progress.initCell(this, bottomWidthGroup)
+            }
+        }.apply {
+            border = BorderFactory.createEmptyBorder(10, 10, 10, 10)
+        }
+
+        return JPanel(BorderLayout()).apply {
+            add(scroll, BorderLayout.CENTER)
+            add(bottomPanel, BorderLayout.SOUTH)
+        }
     }
-
-    val bottomWidthGroup = "ButtonAndComment"
-    val bottomPanel = panel {
-      row {
-        cell(button).widthGroup(bottomWidthGroup)
-        progress.initCell(this, bottomWidthGroup)
-      }
-    }.apply {
-      border = BorderFactory.createEmptyBorder(10, 10, 10, 10)
-    }
-
-    return JPanel(BorderLayout()).apply {
-      add(scroll, BorderLayout.CENTER)
-      add(bottomPanel, BorderLayout.SOUTH)
-    }
-  }
 }

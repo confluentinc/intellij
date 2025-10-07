@@ -6,6 +6,6 @@ import io.confluent.intellijplugin.core.settings.defaultui.SettingsPanelCustomiz
 import io.confluent.intellijplugin.rfs.KafkaConnectionData
 
 class KafkaTestingBase(
-  project: Project,
-  settingsCustomizer: SettingsPanelCustomizer<KafkaConnectionData>?
+    project: Project,
+    settingsCustomizer: SettingsPanelCustomizer<KafkaConnectionData>?
 ) : RfsConnectionTestingBase<KafkaConnectionData>(project, settingsCustomizer)

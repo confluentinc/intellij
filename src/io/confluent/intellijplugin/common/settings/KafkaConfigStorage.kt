@@ -7,57 +7,63 @@ import com.intellij.openapi.components.service
 import com.intellij.util.xmlb.XmlSerializerUtil
 
 interface ConfigChangeListener<T> {
-  fun configAdded(config: T)
-  fun configRemoved(config: T)
+    fun configAdded(config: T)
+    fun configRemoved(config: T)
 }
 
-class KafkaRunConfig(val configsGetter: () -> List<StorageConfig>,
-                     val configsSetter: (List<StorageConfig>) -> Unit,
-                     private val changeListeners: MutableList<ConfigChangeListener<StorageConfig>>) {
+class KafkaRunConfig(
+    val configsGetter: () -> List<StorageConfig>,
+    val configsSetter: (List<StorageConfig>) -> Unit,
+    private val changeListeners: MutableList<ConfigChangeListener<StorageConfig>>
+) {
 
-  fun hasConfig(config: StorageConfig) = loadConfigs().contains(config)
+    fun hasConfig(config: StorageConfig) = loadConfigs().contains(config)
 
-  fun loadConfigs() = configsGetter()
+    fun loadConfigs() = configsGetter()
 
-  private fun saveConfigs(list: List<StorageConfig>) = configsSetter(list)
+    private fun saveConfigs(list: List<StorageConfig>) = configsSetter(list)
 
-  fun addConfig(config: StorageConfig) {
-    saveConfigs(loadConfigs() + config)
-    changeListeners.forEach { it.configAdded(config) }
-  }
+    fun addConfig(config: StorageConfig) {
+        saveConfigs(loadConfigs() + config)
+        changeListeners.forEach { it.configAdded(config) }
+    }
 
-  fun removeConfig(config: StorageConfig) {
-    saveConfigs(loadConfigs().filter { it != config })
-    changeListeners.forEach { it.configRemoved(config) }
-  }
+    fun removeConfig(config: StorageConfig) {
+        saveConfigs(loadConfigs().filter { it != config })
+        changeListeners.forEach { it.configRemoved(config) }
+    }
 
-  fun addChangeListener(listener: ConfigChangeListener<StorageConfig>) = changeListeners.add(listener)
+    fun addChangeListener(listener: ConfigChangeListener<StorageConfig>) = changeListeners.add(listener)
 
-  fun removeChangeListener(listener: ConfigChangeListener<StorageConfig>) = changeListeners.remove(listener)
+    fun removeChangeListener(listener: ConfigChangeListener<StorageConfig>) = changeListeners.remove(listener)
 }
 
 @Suppress("MemberVisibilityCanBePrivate")
 @State(name = "ConfluentIntellijKafkaConfigTemplate", storages = [Storage("confluent-kafka-config-template.xml")])
 class KafkaConfigStorage : PersistentStateComponent<KafkaConfigStorage> {
 
-  // Never access this fields directly. Use consumerConfig and producerConfig
-  var consumerRunConfigs: List<StorageConsumerConfig> = mutableListOf()
-  var producerRunConfigs: List<StorageProducerConfig> = mutableListOf()
+    // Never access this fields directly. Use consumerConfig and producerConfig
+    var consumerRunConfigs: List<StorageConsumerConfig> = mutableListOf()
+    var producerRunConfigs: List<StorageProducerConfig> = mutableListOf()
 
-  private val consumerChangeListeners = mutableListOf<ConfigChangeListener<StorageConfig>>()
-  private val producerChangeListeners = mutableListOf<ConfigChangeListener<StorageConfig>>()
+    private val consumerChangeListeners = mutableListOf<ConfigChangeListener<StorageConfig>>()
+    private val producerChangeListeners = mutableListOf<ConfigChangeListener<StorageConfig>>()
 
-  val consumerConfig = KafkaRunConfig({ consumerRunConfigs },
-                                      { consumerRunConfigs = it as List<StorageConsumerConfig> }, consumerChangeListeners)
+    val consumerConfig = KafkaRunConfig(
+        { consumerRunConfigs },
+        { consumerRunConfigs = it as List<StorageConsumerConfig> }, consumerChangeListeners
+    )
 
-  val producerConfig = KafkaRunConfig({ producerRunConfigs },
-                                      { producerRunConfigs = it as List<StorageProducerConfig> }, producerChangeListeners)
+    val producerConfig = KafkaRunConfig(
+        { producerRunConfigs },
+        { producerRunConfigs = it as List<StorageProducerConfig> }, producerChangeListeners
+    )
 
-  override fun getState() = this
+    override fun getState() = this
 
-  override fun loadState(state: KafkaConfigStorage) = XmlSerializerUtil.copyBean(state, this)
+    override fun loadState(state: KafkaConfigStorage) = XmlSerializerUtil.copyBean(state, this)
 
-  companion object {
-    fun getInstance(): KafkaConfigStorage = service()
-  }
+    companion object {
+        fun getInstance(): KafkaConfigStorage = service()
+    }
 }

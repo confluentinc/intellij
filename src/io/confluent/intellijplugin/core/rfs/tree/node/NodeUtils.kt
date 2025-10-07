@@ -9,10 +9,10 @@ import javax.swing.Icon
 import javax.swing.tree.TreePath
 
 fun AbstractTreeNode<*>.getPath(acc: List<AbstractTreeNode<*>> = emptyList()): TreePath = if (parent == null)
-  TreePath((acc + this).reversed().toTypedArray())
+    TreePath((acc + this).reversed().toTypedArray())
 else
-  parent.getPath(acc + this)
+    parent.getPath(acc + this)
 
 
 fun getIconByType(fileInfo: FileInfo): Icon = RfsFileType.getFileType(fileInfo)?.getIcon(fileInfo.writeLocked())
-                                              ?: if (fileInfo.writeLocked()) RfsIcons.FILE_LOCKED_ICON else RfsIcons.FILE_ICON
+    ?: if (fileInfo.writeLocked()) RfsIcons.FILE_LOCKED_ICON else RfsIcons.FILE_ICON

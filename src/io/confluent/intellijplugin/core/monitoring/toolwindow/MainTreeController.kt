@@ -42,174 +42,175 @@ import javax.swing.JPanel
 import javax.swing.event.TreeModelEvent
 import javax.swing.tree.TreePath
 
-abstract class MainTreeController<CONN_TYPE : ConnectionData, DRIVER_TYPE : MonitoringDriver>(val project: Project,
-                                                                                              connectionData: CONN_TYPE) : ComponentController {
-  @Suppress("UNCHECKED_CAST")
-  protected val driver = DriverManager.getDriverById(project, connectionData.innerId) as? DRIVER_TYPE
-                         ?: error("Data Manager is not initialized")
+abstract class MainTreeController<CONN_TYPE : ConnectionData, DRIVER_TYPE : MonitoringDriver>(
+    val project: Project,
+    connectionData: CONN_TYPE
+) : ComponentController {
+    @Suppress("UNCHECKED_CAST")
+    protected val driver = DriverManager.getDriverById(project, connectionData.innerId) as? DRIVER_TYPE
+        ?: error("Data Manager is not initialized")
 
-  abstract val dataManager: MonitoringDataManager
+    abstract val dataManager: MonitoringDataManager
 
-  protected val detailsLayout = CardLayout()
-  protected val details = JPanel(detailsLayout)
-  private val isNormalView = AtomicBooleanProperty(true)
-  private val isErrorView = isNormalView.not()
-  protected lateinit var myTree: ProjectViewTree
-  protected lateinit var treeModel: DriverRfsTreeModel
+    protected val detailsLayout = CardLayout()
+    protected val details = JPanel(detailsLayout)
+    private val isNormalView = AtomicBooleanProperty(true)
+    private val isErrorView = isNormalView.not()
+    protected lateinit var myTree: ProjectViewTree
+    protected lateinit var treeModel: DriverRfsTreeModel
 
-  private lateinit var normalPanel: OnePixelSplitter
+    private lateinit var normalPanel: OnePixelSplitter
 
-  private var prevError: Throwable? = null
-  private val errorPanel = JPanel(BorderLayout())
+    private var prevError: Throwable? = null
+    private val errorPanel = JPanel(BorderLayout())
 
-  protected lateinit var panel: DialogPanel
-  private lateinit var component: JComponent
+    protected lateinit var panel: DialogPanel
+    private lateinit var component: JComponent
 
-  private lateinit var lastSelectedPath: TreePath
+    private lateinit var lastSelectedPath: TreePath
 
-  private val driverListener = object : DriverRfsListener {
-    override fun driverRefreshFinished(status: DriverConnectionStatus) {
-      invokeLater {
-        updateMainPanel(status.getException())
-      }
-    }
-  }
-
-  override fun dispose() {}
-
-  fun init() {
-    normalPanel = createNormalPanel()
-    panel = panel {
-      row {
-        cell(normalPanel).align(Align.FILL)
-      }.resizableRow().visibleIf(isNormalView)
-      row {
-        cell(errorPanel).align(Align.FILL)
-      }.resizableRow().visibleIf(isErrorView)
-    }
-    component = UiDataProvider.wrapComponent(panel) { sink ->
-      sink[DATA_MANAGER] = dataManager
-      sink[RFS_PATH] = myTree.selectionPath?.lastDriverNode?.rfsPath
-    }
-
-    driver.addListener(driverListener)
-    Disposer.register(this) { driver.removeListener(driverListener) }
-    updateMainPanel(driver.dataManager.client.connectionError)
-
-    createToolbar()?.let {
-      it.targetComponent = panel
-      (normalPanel.firstComponent as SimpleToolWindowPanel).toolbar = it.component
-    }
-
-    treeModel.addTreeModelListener(object : TreeModelAdapter() {
-      override fun process(event: TreeModelEvent, type: EventType) {
-        if (myTree.selectionPath == null) {
-          runInEdt {
-            selectDefaultPath()
-          }
+    private val driverListener = object : DriverRfsListener {
+        override fun driverRefreshFinished(status: DriverConnectionStatus) {
+            invokeLater {
+                updateMainPanel(status.getException())
+            }
         }
-      }
-    })
-  }
-
-  protected abstract fun createToolbar(): ActionToolbar?
-
-  protected abstract fun setupDriverSpecificTreeInit()
-
-  protected abstract fun showDetailsComponent(rfsPath: RfsPath?)
-
-  /** Should be called only after init() */
-  override fun getComponent(): JComponent = component
-
-  fun open(rfsPath: RfsPath) = RfsUtil.select(driver.getExternalId(), rfsPath, myTree)
-
-  protected open fun createNormalPanel(): OnePixelSplitter {
-    treeModel = driver.createTreeModel(driver.root, project)
-    val asyncTreeModel = AsyncTreeModel(treeModel, this)
-
-    myTree = ProjectViewTree(asyncTreeModel)
-    myTree.showsRootHandles = true
-    myTree.isRootVisible = false
-    DriverRfsTreeModel.fixInitFirstConnection(asyncTreeModel, myTree)
-
-    RfsPaneSpeedSearch.installOn(myTree)
-    val nodeAnimator = RfsNodeAnimator(treeModel).also {
-      Disposer.register(this, it)
-    }
-    nodeAnimator.setRepainter { _, rfsPath ->
-      val treePath = treeModel.getTreePath(rfsPath) ?: return@setRepainter
-      val pathBounds = myTree.getPathBounds(treePath) ?: return@setRepainter
-      myTree.repaint(pathBounds)
     }
 
-    myTree.addTreeSelectionListener {
-      val treePath = it.newLeadSelectionPath
-      if (treePath != null)
-        lastSelectedPath = treePath
+    override fun dispose() {}
 
-      val rfsPath = treePath?.lastDriverNode?.rfsPath
-      if (rfsPath == null) {
-        invokeLater {
-          val latestRfsPath = lastSelectedPath.lastDriverNode?.rfsPath
-          if (latestRfsPath != null && treeModel.getTreePath(latestRfsPath) != null)
-            myTree.selectionPath = lastSelectedPath
-          else selectDefaultPath()
+    fun init() {
+        normalPanel = createNormalPanel()
+        panel = panel {
+            row {
+                cell(normalPanel).align(Align.FILL)
+            }.resizableRow().visibleIf(isNormalView)
+            row {
+                cell(errorPanel).align(Align.FILL)
+            }.resizableRow().visibleIf(isErrorView)
         }
-      }
-      showDetailsComponent(rfsPath)
+        component = UiDataProvider.wrapComponent(panel) { sink ->
+            sink[DATA_MANAGER] = dataManager
+            sink[RFS_PATH] = myTree.selectionPath?.lastDriverNode?.rfsPath
+        }
+
+        driver.addListener(driverListener)
+        Disposer.register(this) { driver.removeListener(driverListener) }
+        updateMainPanel(driver.dataManager.client.connectionError)
+
+        createToolbar()?.let {
+            it.targetComponent = panel
+            (normalPanel.firstComponent as SimpleToolWindowPanel).toolbar = it.component
+        }
+
+        treeModel.addTreeModelListener(object : TreeModelAdapter() {
+            override fun process(event: TreeModelEvent, type: EventType) {
+                if (myTree.selectionPath == null) {
+                    runInEdt {
+                        selectDefaultPath()
+                    }
+                }
+            }
+        })
     }
 
-    setupDriverSpecificTreeInit()
+    protected abstract fun createToolbar(): ActionToolbar?
 
-    return OnePixelSplitter().apply {
-      proportion = 0.2f
-      dividerPositionStrategy = Splitter.DividerPositionStrategy.KEEP_PROPORTION
-      firstComponent = createTreePanel()
-      secondComponent = details
+    protected abstract fun setupDriverSpecificTreeInit()
+
+    protected abstract fun showDetailsComponent(rfsPath: RfsPath?)
+
+    /** Should be called only after init() */
+    override fun getComponent(): JComponent = component
+
+    fun open(rfsPath: RfsPath) = RfsUtil.select(driver.getExternalId(), rfsPath, myTree)
+
+    protected open fun createNormalPanel(): OnePixelSplitter {
+        treeModel = driver.createTreeModel(driver.root, project)
+        val asyncTreeModel = AsyncTreeModel(treeModel, this)
+
+        myTree = ProjectViewTree(asyncTreeModel)
+        myTree.showsRootHandles = true
+        myTree.isRootVisible = false
+        DriverRfsTreeModel.fixInitFirstConnection(asyncTreeModel, myTree)
+
+        RfsPaneSpeedSearch.installOn(myTree)
+        val nodeAnimator = RfsNodeAnimator(treeModel).also {
+            Disposer.register(this, it)
+        }
+        nodeAnimator.setRepainter { _, rfsPath ->
+            val treePath = treeModel.getTreePath(rfsPath) ?: return@setRepainter
+            val pathBounds = myTree.getPathBounds(treePath) ?: return@setRepainter
+            myTree.repaint(pathBounds)
+        }
+
+        myTree.addTreeSelectionListener {
+            val treePath = it.newLeadSelectionPath
+            if (treePath != null)
+                lastSelectedPath = treePath
+
+            val rfsPath = treePath?.lastDriverNode?.rfsPath
+            if (rfsPath == null) {
+                invokeLater {
+                    val latestRfsPath = lastSelectedPath.lastDriverNode?.rfsPath
+                    if (latestRfsPath != null && treeModel.getTreePath(latestRfsPath) != null)
+                        myTree.selectionPath = lastSelectedPath
+                    else selectDefaultPath()
+                }
+            }
+            showDetailsComponent(rfsPath)
+        }
+
+        setupDriverSpecificTreeInit()
+
+        return OnePixelSplitter().apply {
+            proportion = 0.2f
+            dividerPositionStrategy = Splitter.DividerPositionStrategy.KEEP_PROPORTION
+            firstComponent = createTreePanel()
+            secondComponent = details
+        }
     }
-  }
 
-  /** Left panel with tree view. */
-  protected open fun createTreePanel() : SimpleToolWindowPanel {
-    val scroll = JBScrollPane(myTree).apply {
-      border = IdeBorderFactory.createBorder(SideBorder.LEFT)
+    /** Left panel with tree view. */
+    protected open fun createTreePanel(): SimpleToolWindowPanel {
+        val scroll = JBScrollPane(myTree).apply {
+            border = IdeBorderFactory.createBorder(SideBorder.LEFT)
+        }
+
+        return SimpleToolWindowPanel(false, false).apply {
+            add(scroll, BorderLayout.CENTER)
+        }
     }
 
-   return SimpleToolWindowPanel(false, false).apply {
-      add(scroll, BorderLayout.CENTER)
+    abstract fun selectDefaultPath()
+
+    private fun updateMainPanel(exception: Throwable?) {
+        if (exception == null) {
+            isNormalView.set(true)
+        } else {
+            isNormalView.set(false)
+            setErrorPanel(exception)
+        }
     }
-  }
 
-  abstract fun selectDefaultPath()
-
-  private fun updateMainPanel(exception: Throwable?) {
-    if (exception == null) {
-      isNormalView.set(true)
+    private fun setErrorPanel(exception: Throwable) {
+        if (prevError == exception)
+            return
+        prevError = exception
+        errorPanel.removeAll()
+        errorPanel.add(RfsEditorErrorPanel(exception, this, driver), BorderLayout.CENTER)
+        errorPanel.revalidate()
+        errorPanel.repaint()
     }
-    else {
-      isNormalView.set(false)
-      setErrorPanel(exception)
+
+    companion object {
+        val DATA_MANAGER: DataKey<MonitoringDataManager> = DataKey.create("kafka.data.manager")
+        val RFS_PATH: DataKey<RfsPath> = DataKey.create("bdt.rfs.path")
+
+        val AnActionEvent.dataManager
+            get() = dataContext.getData(DATA_MANAGER)
+
+        val AnActionEvent.rfsPath
+            get() = dataContext.getData(RFS_PATH)
     }
-  }
-
-  private fun setErrorPanel(exception: Throwable) {
-    if (prevError == exception)
-      return
-    prevError = exception
-    errorPanel.removeAll()
-    errorPanel.add(RfsEditorErrorPanel(exception, this, driver), BorderLayout.CENTER)
-    errorPanel.revalidate()
-    errorPanel.repaint()
-  }
-
-  companion object {
-    val DATA_MANAGER: DataKey<MonitoringDataManager> = DataKey.create("kafka.data.manager")
-    val RFS_PATH: DataKey<RfsPath> = DataKey.create("bdt.rfs.path")
-
-    val AnActionEvent.dataManager
-      get() = dataContext.getData(DATA_MANAGER)
-
-    val AnActionEvent.rfsPath
-      get() = dataContext.getData(RFS_PATH)
-  }
 }

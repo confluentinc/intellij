@@ -8,28 +8,34 @@ import io.confluent.intellijplugin.core.rfs.driver.DriverException
 import io.confluent.intellijplugin.core.rfs.driver.RfsPath
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
 
-abstract class RfsCopyMoveTask(protected open val fromDriver: Driver,
-                               private val fromPath: RfsPath,
-                               protected open val toDriver: Driver,
-                               open val rootToPath: RfsPath) : RemoteFsTask(
-  KafkaMessagesBundle.message("copy.file.process.text", fromPath, rootToPath)) {
-  open fun isNeedPrecalculate(): Boolean = true
+abstract class RfsCopyMoveTask(
+    protected open val fromDriver: Driver,
+    private val fromPath: RfsPath,
+    protected open val toDriver: Driver,
+    open val rootToPath: RfsPath
+) : RemoteFsTask(
+    KafkaMessagesBundle.message("copy.file.process.text", fromPath, rootToPath)
+) {
+    open fun isNeedPrecalculate(): Boolean = true
 
-  @NlsContexts.DialogMessage
-  open fun moveUserInfoMessage(): String? = null
+    @NlsContexts.DialogMessage
+    open fun moveUserInfoMessage(): String? = null
 
-  final override fun run(indicator: ProgressIndicator) {
-    error("Wrong run copy task")
-  }
+    final override fun run(indicator: ProgressIndicator) {
+        error("Wrong run copy task")
+    }
 
-  abstract fun run(context: RfsCopyMoveContext)
+    abstract fun run(context: RfsCopyMoveContext)
 
 
-  fun failedToCopyException(additionalComment: String? = null, cause: Throwable? = null): DriverException {
-    val fromPath = "${fromDriver.presentableName}/$fromPath"
-    val toPath = "${toDriver.presentableName}/$rootToPath"
-    val comment = additionalComment?.let { " : $it" } ?: ""
+    fun failedToCopyException(additionalComment: String? = null, cause: Throwable? = null): DriverException {
+        val fromPath = "${fromDriver.presentableName}/$fromPath"
+        val toPath = "${toDriver.presentableName}/$rootToPath"
+        val comment = additionalComment?.let { " : $it" } ?: ""
 
-    return DriverException(KafkaMessagesBundle.message("remote.fs.task.copy.error", fromPath, toPath, comment), cause)
-  }
+        return DriverException(
+            KafkaMessagesBundle.message("remote.fs.task.copy.error", fromPath, toPath, comment),
+            cause
+        )
+    }
 }

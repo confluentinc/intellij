@@ -18,75 +18,75 @@ import java.util.concurrent.TimeUnit
 
 @Service
 class LocalDriverManager : Disposable {
-  private var drivers: Map<String, LocalDriver> = emptyMap()
+    private var drivers: Map<String, LocalDriver> = emptyMap()
 
-  override fun dispose() {}
+    override fun dispose() {}
 
-  fun createFileInfo(file: File): FileInfo {
-    val driver = getDriver(file)
+    fun createFileInfo(file: File): FileInfo {
+        val driver = getDriver(file)
 
-    return driver.getFileInfoFromIoFile(file)
-  }
+        return driver.getFileInfoFromIoFile(file)
+    }
 
-  fun getDrivers(): List<LocalDriver> {
-    refreshIfRequiredRoots()
-    return drivers.values.toList()
-  }
+    fun getDrivers(): List<LocalDriver> {
+        refreshIfRequiredRoots()
+        return drivers.values.toList()
+    }
 
-  fun getDriver(file: File): LocalDriver {
-    refreshIfRequiredRoots()
-    return (drivers.entries.firstOrNull { file.absolutePath.startsWith(it.key) }?.value
+    fun getDriver(file: File): LocalDriver {
+        refreshIfRequiredRoots()
+        return (drivers.entries.firstOrNull { file.absolutePath.startsWith(it.key) }?.value
             ?: error("Driver is not found for ${file.absolutePath}"))
-  }
-
-  private fun refreshIfRequiredRoots() {
-    val roots = ArrayList<Path>()
-    for (root in FileSystems.getDefault().rootDirectories) roots.add(root)
-    if (WSLUtil.isSystemCompatible() && getInstance().isFeatureEnabled("wsl.p9.show.roots.in.file.chooser")) {
-      try {
-        val distributions = WslDistributionManager.getInstance().getInstalledDistributionsFuture()[200, TimeUnit.MILLISECONDS]
-        for (distribution in distributions) roots.add(distribution.getUNCRootPath())
-      }
-      catch (e: Exception) {
-        thisLogger().warn(e)
-      }
     }
 
-    val newRoots = roots.map { it.toFile() }
-    if (drivers.keys.toList() == newRoots.map { it.absolutePath })
-      return
+    private fun refreshIfRequiredRoots() {
+        val roots = ArrayList<Path>()
+        for (root in FileSystems.getDefault().rootDirectories) roots.add(root)
+        if (WSLUtil.isSystemCompatible() && getInstance().isFeatureEnabled("wsl.p9.show.roots.in.file.chooser")) {
+            try {
+                val distributions =
+                    WslDistributionManager.getInstance().getInstalledDistributionsFuture()[200, TimeUnit.MILLISECONDS]
+                for (distribution in distributions) roots.add(distribution.getUNCRootPath())
+            } catch (e: Exception) {
+                thisLogger().warn(e)
+            }
+        }
 
-    drivers.values.forEach { Disposer.dispose(it) }
-    drivers = initDrivers(newRoots)
-  }
+        val newRoots = roots.map { it.toFile() }
+        if (drivers.keys.toList() == newRoots.map { it.absolutePath })
+            return
 
-  private fun initDrivers(newRoots: List<File>) = newRoots.associate {
-    val driver = createUtilDriver(it, it.name)
-    Disposer.register(this, driver)
-    it.absolutePath to driver
-  }
-
-
-  companion object {
-    val instance: LocalDriverManager
-      get() = service()
-
-    fun createUtilDriver(file: File, driverName: String = "temp-local-driver"): LocalDriver {
-      if (file.isFile)
-        error(KafkaMessagesBundle.message("util.driver.error.file", file.path))
-
-      val data = RfsLocalConnectionData().apply {
-        name = driverName
-        innerId = "$driverName-id"
-        rootPath = withSlashEnding(file.absolutePath)
-
-      }
-      return LocalDriver(data, null)
+        drivers.values.forEach { Disposer.dispose(it) }
+        drivers = initDrivers(newRoots)
     }
 
-    private fun withSlashEnding(prefix: String) = if (prefix.endsWith("/") || prefix.endsWith("}"))
-      prefix
-    else
-      "$prefix/"
-  }
+    private fun initDrivers(newRoots: List<File>) = newRoots.associate {
+        val driver = createUtilDriver(it, it.name)
+        Disposer.register(this, driver)
+        it.absolutePath to driver
+    }
+
+
+    companion object {
+        val instance: LocalDriverManager
+            get() = service()
+
+        fun createUtilDriver(file: File, driverName: String = "temp-local-driver"): LocalDriver {
+            if (file.isFile)
+                error(KafkaMessagesBundle.message("util.driver.error.file", file.path))
+
+            val data = RfsLocalConnectionData().apply {
+                name = driverName
+                innerId = "$driverName-id"
+                rootPath = withSlashEnding(file.absolutePath)
+
+            }
+            return LocalDriver(data, null)
+        }
+
+        private fun withSlashEnding(prefix: String) = if (prefix.endsWith("/") || prefix.endsWith("}"))
+            prefix
+        else
+            "$prefix/"
+    }
 }

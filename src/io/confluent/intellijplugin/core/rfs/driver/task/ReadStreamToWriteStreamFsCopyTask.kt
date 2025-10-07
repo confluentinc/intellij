@@ -12,55 +12,63 @@ import io.confluent.intellijplugin.util.KafkaMessagesBundle
 import java.nio.file.Files
 
 
-open class ReadStreamToWriteStreamFsCopyTask(fromInfo: FileInfo,
-                                        toPath: RfsPath,
-                                        toDriver: Driver,
-                                        skipIfCopyChildIsNotSupported: Boolean = false,
-                                        val exportFormat: ExportFormat? = null,
-                                        val move: Boolean = false,
-                                        additionalParams: Map<String, Any>) : BaseRfsCopyMoveTask(fromInfo,
-                                                                                                  toPath,
-                                                                                                  toDriver,
-                                                                                                  skipIfCopyChildIsNotSupported,
-                                                                                                  additionalParams = additionalParams) {
-  override fun moveUserInfoMessage() = if (move)
-    KafkaMessagesBundle.message("move.notice.message.streams")
-  else
-    null
+open class ReadStreamToWriteStreamFsCopyTask(
+    fromInfo: FileInfo,
+    toPath: RfsPath,
+    toDriver: Driver,
+    skipIfCopyChildIsNotSupported: Boolean = false,
+    val exportFormat: ExportFormat? = null,
+    val move: Boolean = false,
+    additionalParams: Map<String, Any>
+) : BaseRfsCopyMoveTask(
+    fromInfo,
+    toPath,
+    toDriver,
+    skipIfCopyChildIsNotSupported,
+    additionalParams = additionalParams
+) {
+    override fun moveUserInfoMessage() = if (move)
+        KafkaMessagesBundle.message("move.notice.message.streams")
+    else
+        null
 
 
-  override fun copyFile(context: RfsCopyMoveContext,
-                        fromInfo: FileInfo,
-                        toPath: RfsPath,
-                        toDriver: Driver) {
-    context.startProceedFile(fromInfo.path.stringRepresentation(), toPath.stringRepresentation(), fromInfo.length)
+    override fun copyFile(
+        context: RfsCopyMoveContext,
+        fromInfo: FileInfo,
+        toPath: RfsPath,
+        toDriver: Driver
+    ) {
+        context.startProceedFile(fromInfo.path.stringRepresentation(), toPath.stringRepresentation(), fromInfo.length)
 
-    if (!RfsCopyPasteHelpers.resolveOverwriteFileInfo(toDriver, toPath, context))
-      return
+        if (!RfsCopyPasteHelpers.resolveOverwriteFileInfo(toDriver, toPath, context))
+            return
 
-    RfsCopyPasteHelpers.copyStreams(fromInfo, toDriver, toPath, context)
+        RfsCopyPasteHelpers.copyStreams(fromInfo, toDriver, toPath, context)
 
-    if (move && !context.isCanceled)
-      fromInfo.delete()
+        if (move && !context.isCanceled)
+            fromInfo.delete()
 
-    (toDriver as? LocalDriver)?.refreshInProject(toPath)
-  }
-
-  override fun copyDir(context: RfsCopyMoveContext,
-                       fromInfo: FileInfo,
-                       toPath: RfsPath,
-                       toDriver: Driver) {
-    if (toDriver is LocalDriver) {
-      val existsFile = toDriver.getFileStatus(toPath, force = true).resultOrThrow() as? LocalFileInfo
-      val ioFile = existsFile?.file
-      if (ioFile != null && Files.isSymbolicLink(ioFile.toPath())) {
-        Files.delete(ioFile.toPath())
-      }
+        (toDriver as? LocalDriver)?.refreshInProject(toPath)
     }
 
-    super.copyDir(context, fromInfo, toPath, toDriver)
+    override fun copyDir(
+        context: RfsCopyMoveContext,
+        fromInfo: FileInfo,
+        toPath: RfsPath,
+        toDriver: Driver
+    ) {
+        if (toDriver is LocalDriver) {
+            val existsFile = toDriver.getFileStatus(toPath, force = true).resultOrThrow() as? LocalFileInfo
+            val ioFile = existsFile?.file
+            if (ioFile != null && Files.isSymbolicLink(ioFile.toPath())) {
+                Files.delete(ioFile.toPath())
+            }
+        }
 
-    if (move && !context.isCanceled)
-      fromInfo.delete()
-  }
+        super.copyDir(context, fromInfo, toPath, toDriver)
+
+        if (move && !context.isCanceled)
+            fromInfo.delete()
+    }
 }

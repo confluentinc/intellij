@@ -19,54 +19,55 @@ import io.confluent.intellijplugin.core.rfs.icons.RfsIcons
 import io.confluent.intellijplugin.core.rfs.tree.node.DriverFileRfsTreeNode
 import javax.swing.Icon
 
-class LocalDriverRfsNode(private val localProject: Project,
-                         path: RfsPath,
-                         driver: Driver
+class LocalDriverRfsNode(
+    private val localProject: Project,
+    path: RfsPath,
+    driver: Driver
 ) : DriverFileRfsTreeNode(localProject, path, driver) {
-  override fun getIdleIcon(): Icon? {
-    val isWriteLocked = fileInfo?.writeLocked() ?: false
+    override fun getIdleIcon(): Icon? {
+        val isWriteLocked = fileInfo?.writeLocked() ?: false
 
-    val bdtSpecifiedIcon = super.getIdleIcon()
-    if (bdtSpecifiedIcon == RfsIcons.REMOTE_DIRECTORY_LOCKED_ICON || bdtSpecifiedIcon == RfsIcons.REMOTE_DIRECTORY_ICON || bdtSpecifiedIcon == RfsIcons.FILE_ICON) {
-      val file = (fileInfo as? LocalFileInfo)?.file
-      val virtualFile = file?.toPath()?.let { VirtualFileManager.getInstance().findFileByNioPath(it) }
-      if (virtualFile != null) {
-        val fromVFile = try {
-          getIconFromVFile(virtualFile)
+        val bdtSpecifiedIcon = super.getIdleIcon()
+        if (bdtSpecifiedIcon == RfsIcons.REMOTE_DIRECTORY_LOCKED_ICON || bdtSpecifiedIcon == RfsIcons.REMOTE_DIRECTORY_ICON || bdtSpecifiedIcon == RfsIcons.FILE_ICON) {
+            val file = (fileInfo as? LocalFileInfo)?.file
+            val virtualFile = file?.toPath()?.let { VirtualFileManager.getInstance().findFileByNioPath(it) }
+            if (virtualFile != null) {
+                val fromVFile = try {
+                    getIconFromVFile(virtualFile)
+                } catch (t: Throwable) {
+                    null
+                }
+                if (fromVFile != null) return fromVFile
+            }
         }
-        catch (t: Throwable) {
-          null
+
+        return when {
+            rfsPath.isDirectory && isWriteLocked -> RfsIcons.DIRECTORY_LOCKED_ICON
+            rfsPath.isDirectory -> RfsIcons.DIRECTORY_ICON
+            else -> bdtSpecifiedIcon
         }
-        if (fromVFile != null) return fromVFile
-      }
     }
 
-    return when {
-      rfsPath.isDirectory && isWriteLocked -> RfsIcons.DIRECTORY_LOCKED_ICON
-      rfsPath.isDirectory -> RfsIcons.DIRECTORY_ICON
-      else -> bdtSpecifiedIcon
-    }
-  }
-
-  private fun getIconFromVFile(virtualFile: VirtualFile): Icon? {
-    var icon: Icon? = null
-    var isPlaceholder = false
-    ApplicationManager.getApplication().runReadAction {
-      val psiManager = PsiManager.getInstance(localProject)
-      val psi = if (virtualFile.isDirectory) psiManager.findDirectory(virtualFile) else psiManager.findFile(virtualFile)
-      icon = psi?.getIcon(Iconable.ICON_FLAG_READ_STATUS)
-      icon = AbstractPsiBasedNode.patchIcon(localProject, icon, virtualFile)
-      val rowIcon = (icon as? DeferredIcon)?.evaluate() as? RowIcon
-      if (rowIcon != null) {
-        val iconCount = rowIcon.iconCount
-        for (i in 0 until iconCount) {
-          val currentIcon = rowIcon.getIcon(i)
-          val innerIcon = ((currentIcon as? LayeredIcon)?.getIcon(0) as? DeferredIcon)?.evaluate()
-          if (innerIcon is EmptyIcon) isPlaceholder = true
-          return@runReadAction
+    private fun getIconFromVFile(virtualFile: VirtualFile): Icon? {
+        var icon: Icon? = null
+        var isPlaceholder = false
+        ApplicationManager.getApplication().runReadAction {
+            val psiManager = PsiManager.getInstance(localProject)
+            val psi =
+                if (virtualFile.isDirectory) psiManager.findDirectory(virtualFile) else psiManager.findFile(virtualFile)
+            icon = psi?.getIcon(Iconable.ICON_FLAG_READ_STATUS)
+            icon = AbstractPsiBasedNode.patchIcon(localProject, icon, virtualFile)
+            val rowIcon = (icon as? DeferredIcon)?.evaluate() as? RowIcon
+            if (rowIcon != null) {
+                val iconCount = rowIcon.iconCount
+                for (i in 0 until iconCount) {
+                    val currentIcon = rowIcon.getIcon(i)
+                    val innerIcon = ((currentIcon as? LayeredIcon)?.getIcon(0) as? DeferredIcon)?.evaluate()
+                    if (innerIcon is EmptyIcon) isPlaceholder = true
+                    return@runReadAction
+                }
+            }
         }
-      }
+        return if (!isPlaceholder && icon != null) icon!! else null
     }
-    return if (!isPlaceholder && icon != null) icon!! else null
-  }
 }

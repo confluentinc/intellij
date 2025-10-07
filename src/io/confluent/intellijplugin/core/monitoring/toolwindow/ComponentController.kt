@@ -8,12 +8,12 @@ import org.jetbrains.annotations.Nls
 import javax.swing.JComponent
 
 interface ComponentController : Disposable {
-  fun getComponent(): JComponent
-  fun getActions(): List<AnAction> = emptyList()
+    fun getComponent(): JComponent
+    fun getActions(): List<AnAction> = emptyList()
 
-  companion object {
-    fun createInfoPanel(@Nls message: String) = panel {
-      row { comment(message).align(Align.CENTER).resizableColumn() }.resizableRow()
+    companion object {
+        fun createInfoPanel(@Nls message: String) = panel {
+            row { comment(message).align(Align.CENTER).resizableColumn() }.resizableRow()
+        }
     }
-  }
 }

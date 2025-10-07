@@ -5,15 +5,16 @@ import io.confluent.intellijplugin.core.settings.connections.InternalConnectionS
 import io.confluent.intellijplugin.core.util.BdIdeRegistryUtil
 
 interface RfsFileTypeProvider {
-  fun getFileType(): RfsFileType
+    fun getFileType(): RfsFileType
 
-  companion object {
-    private val EP_NAME = ExtensionPointName.create<RfsFileTypeProvider>("com.intellij.bigdatatools.rfs.rfsFileTypeProvider")
+    companion object {
+        private val EP_NAME =
+            ExtensionPointName.create<RfsFileTypeProvider>("com.intellij.bigdatatools.rfs.rfsFileTypeProvider")
 
-    fun getAll(): List<RfsFileTypeProvider> =
-      if (BdIdeRegistryUtil.isInternalFeaturesAvailable())
-        EP_NAME.extensionList
-      else
-        EP_NAME.extensionList.filter { it !is InternalConnectionSettingsProvider }
-  }
+        fun getAll(): List<RfsFileTypeProvider> =
+            if (BdIdeRegistryUtil.isInternalFeaturesAvailable())
+                EP_NAME.extensionList
+            else
+                EP_NAME.extensionList.filter { it !is InternalConnectionSettingsProvider }
+    }
 }

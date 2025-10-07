@@ -7,25 +7,27 @@ import kotlin.math.roundToInt
 
 abstract class AbstractProgressCellRenderer : TableCellRenderer {
 
-  private val component = CellProgressBar()
+    private val component = CellProgressBar()
 
-  abstract fun currentLimit(row: Int): Int
+    abstract fun currentLimit(row: Int): Int
 
-  override fun getTableCellRendererComponent(table: JTable?,
-                                             value: Any?,
-                                             isSelected: Boolean,
-                                             hasFocus: Boolean,
-                                             row: Int,
-                                             column: Int): Component {
-    component.maximumValue = currentLimit(table!!.convertRowIndexToModel(row))
-    component.value = convertValue(value)
-    return component
-  }
+    override fun getTableCellRendererComponent(
+        table: JTable?,
+        value: Any?,
+        isSelected: Boolean,
+        hasFocus: Boolean,
+        row: Int,
+        column: Int
+    ): Component {
+        component.maximumValue = currentLimit(table!!.convertRowIndexToModel(row))
+        component.value = convertValue(value)
+        return component
+    }
 
-  protected fun convertValue(value: Any?) = when (value) {
-    is Int -> value
-    is Double -> (value * 100).roundToInt()
-    is Float -> value.toInt()
-    else -> 1
-  }
+    protected fun convertValue(value: Any?) = when (value) {
+        is Int -> value
+        is Double -> (value * 100).roundToInt()
+        is Float -> value.toInt()
+        else -> 1
+    }
 }

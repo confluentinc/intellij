@@ -1,13 +1,15 @@
-<svg xmlns:xlink="http://www.w3.org/1999/xlink" xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40">
-  <defs>
-    <linearGradient id="bigdata-b" x1="-6.074%" x2="50%" y1="-14.015%" y2="70.962%">
-      <stop offset="0%" stop-color="#FF45ED"/>
-      <stop offset="100%" stop-color="#6B57FF"/>
-    </linearGradient>
-    <path id="bigdata-a" d="M20,4 L4,4 L4,36 L19.9984947,36 L20,36 C28.8000753,36 36,28.8000753 36,20 C36,11.1999247 28.8000753,4 20,4"/>
-  </defs>
-  <g fill="none" fill-rule="evenodd">
-    <use fill="#231F20" xlink:href="#bigdata-a"/>
-    <use fill="url(#bigdata-b)" xlink:href="#bigdata-a"/>
-  </g>
+<svg xmlns:xlink="http://www.w3.org/1999/xlink" xmlns="http://www.w3.org/2000/svg" width="40" height="40"
+     viewBox="0 0 40 40">
+    <defs>
+        <linearGradient id="bigdata-b" x1="-6.074%" x2="50%" y1="-14.015%" y2="70.962%">
+            <stop offset="0%" stop-color="#FF45ED"/>
+            <stop offset="100%" stop-color="#6B57FF"/>
+        </linearGradient>
+        <path id="bigdata-a"
+              d="M20,4 L4,4 L4,36 L19.9984947,36 L20,36 C28.8000753,36 36,28.8000753 36,20 C36,11.1999247 28.8000753,4 20,4"/>
+    </defs>
+    <g fill="none" fill-rule="evenodd">
+        <use fill="#231F20" xlink:href="#bigdata-a"/>
+        <use fill="url(#bigdata-b)" xlink:href="#bigdata-a"/>
+    </g>
 </svg>

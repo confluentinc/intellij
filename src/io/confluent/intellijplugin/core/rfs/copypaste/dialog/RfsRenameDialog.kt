@@ -26,110 +26,114 @@ import kotlin.properties.Delegates
 
 class RfsRenameDialog(private val sourceFileInfo: FileInfo, project: Project) : DialogWrapper(project, true) {
 
-  private val informationLabel = JBLabel(KafkaMessagesBundle.message("rename.dialog.text", sourceFileInfo.name)).apply {
-    preferredSize = JBUI.size(max(preferredSize.width, 300), preferredSize.height)
-  }
+    private val informationLabel =
+        JBLabel(KafkaMessagesBundle.message("rename.dialog.text", sourceFileInfo.name)).apply {
+            preferredSize = JBUI.size(max(preferredSize.width, 300), preferredSize.height)
+        }
 
-  private var nameTextField = object : EditorTextField("") {
+    private var nameTextField = object : EditorTextField("") {
+        init {
+            val correctTargetPath = RfsCopyPasteUtil.getCorrectTargetPath(
+                sourceFileInfo,
+                sourceFileInfo.path,
+                sourceFileInfo.driver,
+                exportFormat = calculateExportFormats(
+                    sourceFileInfo.driver
+                ).firstOrNull()
+            )
+            text = correctTargetPath.name
+        }
+
+        override fun onEditorAdded(editor: Editor) {
+
+            val lastIndexOfSelection = if (sourceFileInfo.isFile) {
+                val index = editor.document.text.lastIndexOf(".")
+                if (index == -1) {
+                    editor.document.textLength
+                } else {
+                    index
+                }
+            } else {
+                editor.document.textLength
+            }
+
+            editor.selectionModel.setSelection(0, lastIndexOfSelection)
+            editor.caretModel.moveToLogicalPosition(LogicalPosition(0, lastIndexOfSelection))
+        }
+    }.withValidator(disposable) { text ->
+        val result = when {
+            text.isBlank() -> KafkaMessagesBundle.message("name.should.not.be.empty")
+            text.endsWith("/") && sourceFileInfo.isFile -> KafkaMessagesBundle.message("no.trailing.slash.in.file.name")
+            text.removeSuffix("/").contains("/") -> KafkaMessagesBundle.message("no.slash.in.name")
+            else -> null
+        }
+        nameIsValid = result == null
+        result
+    }
+
+    private var nameConflictBalloon: Balloon? = null
+
+    private var pathIsValid: Boolean by Delegates.observable(true) { _, _, newValue ->
+        myOKAction.isEnabled = newValue && nameIsValid
+    }
+    private var nameIsValid: Boolean by Delegates.observable(true) { _, _, newValue ->
+        myOKAction.isEnabled = newValue && pathIsValid
+    }
+
     init {
-      val correctTargetPath = RfsCopyPasteUtil.getCorrectTargetPath(sourceFileInfo,
-                                                                    sourceFileInfo.path,
-                                                                    sourceFileInfo.driver,
-                                                                    exportFormat = calculateExportFormats(
-                                                                      sourceFileInfo.driver).firstOrNull())
-      text = correctTargetPath.name
+        title = RefactoringBundle.message("rename.title")
+
+        nameTextField.addDocumentListener(object : DocumentListener {
+            override fun documentChanged(event: DocumentEvent) = checkConflicts()
+        })
+
+        init()
     }
 
-    override fun onEditorAdded(editor: Editor) {
-
-      val lastIndexOfSelection = if (sourceFileInfo.isFile) {
-        val index = editor.document.text.lastIndexOf(".")
-        if (index == -1) {
-          editor.document.textLength
-        }
-        else {
-          index
-        }
-      }
-      else {
-        editor.document.textLength
-      }
-
-      editor.selectionModel.setSelection(0, lastIndexOfSelection)
-      editor.caretModel.moveToLogicalPosition(LogicalPosition(0, lastIndexOfSelection))
+    override fun init() {
+        super.init()
+        isOKActionEnabled = false
     }
-  }.withValidator(disposable) { text ->
-    val result = when {
-      text.isBlank() -> KafkaMessagesBundle.message("name.should.not.be.empty")
-      text.endsWith("/") && sourceFileInfo.isFile -> KafkaMessagesBundle.message("no.trailing.slash.in.file.name")
-      text.removeSuffix("/").contains("/") -> KafkaMessagesBundle.message("no.slash.in.name")
-      else -> null
+
+    override fun getPreferredFocusedComponent() = nameTextField
+
+    fun showAndGetResult() = if (showAndGet())
+        getDialogResult()
+    else
+        null
+
+    private fun getDialogResult() = TargetInfo(
+        nameTextField.text,
+        sourceFileInfo.path.parent!!,
+        sourceFileInfo.driver,
+        null
+    )
+
+    override fun createCenterPanel(): JComponent? = null
+
+    override fun createNorthPanel(): JComponent? {
+        return FormBuilder.createFormBuilder()
+            .addComponent(informationLabel)
+            .addVerticalGap(UIUtil.LARGE_VGAP - UIUtil.DEFAULT_VGAP)
+            .addLabeledComponent(RefactoringBundle.message("copy.files.new.name.label"), nameTextField).panel
     }
-    nameIsValid = result == null
-    result
-  }
 
-  private var nameConflictBalloon: Balloon? = null
+    private fun checkConflicts() {
+        nameConflictBalloon?.hide()
+        executeOnPooledThread { checkAndReportAlreadyExists() }
+    }
 
-  private var pathIsValid: Boolean by Delegates.observable(true) { _, _, newValue ->
-    myOKAction.isEnabled = newValue && nameIsValid
-  }
-  private var nameIsValid: Boolean by Delegates.observable(true) { _, _, newValue ->
-    myOKAction.isEnabled = newValue && pathIsValid
-  }
+    private fun checkAndReportAlreadyExists() {
+        val sourceFile = sourceFileInfo
 
-  init {
-    title = RefactoringBundle.message("rename.title")
+        val curRes = getDialogResult()
+        val targetName = curRes.targetName ?: return
+        val targetPath = curRes.targetFolder.child(targetName, sourceFile.isDirectory)
+        val targetDriver = curRes.targetDriver
 
-    nameTextField.addDocumentListener(object : DocumentListener {
-      override fun documentChanged(event: DocumentEvent) = checkConflicts()
-    })
+        val existsFileInfo = targetDriver.getFileStatus(targetPath).resultOrThrow()
+        isOKActionEnabled = existsFileInfo == null
+    }
 
-    init()
-  }
-
-  override fun init() {
-    super.init()
-    isOKActionEnabled = false
-  }
-
-  override fun getPreferredFocusedComponent() = nameTextField
-
-  fun showAndGetResult() = if (showAndGet())
-    getDialogResult()
-  else
-    null
-
-  private fun getDialogResult() = TargetInfo(nameTextField.text,
-                                             sourceFileInfo.path.parent!!,
-                                             sourceFileInfo.driver,
-                                             null)
-
-  override fun createCenterPanel(): JComponent? = null
-
-  override fun createNorthPanel(): JComponent? {
-    return FormBuilder.createFormBuilder()
-      .addComponent(informationLabel)
-      .addVerticalGap(UIUtil.LARGE_VGAP - UIUtil.DEFAULT_VGAP)
-      .addLabeledComponent(RefactoringBundle.message("copy.files.new.name.label"), nameTextField).panel
-  }
-
-  private fun checkConflicts() {
-    nameConflictBalloon?.hide()
-    executeOnPooledThread { checkAndReportAlreadyExists() }
-  }
-
-  private fun checkAndReportAlreadyExists() {
-    val sourceFile = sourceFileInfo
-
-    val curRes = getDialogResult()
-    val targetName = curRes.targetName ?: return
-    val targetPath = curRes.targetFolder.child(targetName, sourceFile.isDirectory)
-    val targetDriver = curRes.targetDriver
-
-    val existsFileInfo = targetDriver.getFileStatus(targetPath).resultOrThrow()
-    isOKActionEnabled = existsFileInfo == null
-  }
-
-  private fun calculateExportFormats(targetDriver: Driver) = sourceFileInfo.getCopyFormatsFor(targetDriver)
+    private fun calculateExportFormats(targetDriver: Driver) = sourceFileInfo.getCopyFormatsFor(targetDriver)
 }

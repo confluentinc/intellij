@@ -16,63 +16,70 @@ import io.confluent.intellijplugin.util.KafkaMessagesBundle
 import javax.swing.Icon
 
 internal class KafkaLineMarkerActionsProvider : MQLineMarkerActionsProvider {
-  override fun getActions(relatedItems: Collection<MQTargetInfo>, anchor: PsiElement?): Collection<MQLineMarkerActionsProvider.Action> {
-    if (!relatedItems.any { it.destination.type.isCompatibleWith(KAFKA_TOPIC_TYPE) }) {
-      return emptyList()
+    override fun getActions(
+        relatedItems: Collection<MQTargetInfo>,
+        anchor: PsiElement?
+    ): Collection<MQLineMarkerActionsProvider.Action> {
+        if (!relatedItems.any { it.destination.type.isCompatibleWith(KAFKA_TOPIC_TYPE) }) {
+            return emptyList()
+        }
+
+        if (anchor == null) return emptyList()
+        val module = ModuleUtilCore.findModuleForPsiElement(anchor) ?: return emptyList()
+
+        val servers = findServers(module).firstOrNull()
+
+        return listOf(
+            OpenConsumerAction(servers, relatedItems.firstOrNull()?.destination?.name),
+            OpenProducerAction(servers, relatedItems.firstOrNull()?.destination?.name),
+        )
     }
 
-    if (anchor == null) return emptyList()
-    val module = ModuleUtilCore.findModuleForPsiElement(anchor) ?: return emptyList()
+    private fun findServers(module: Module): Sequence<String> {
+        return sequence {
+            SpringBootConfigValueSearcher.productionForAllProfiles(module, SPRING_KAFKA_BOOTSTRAP_SERVERS_KEY)
+                .findValueText()
+                ?.let { yield(it) }
 
-    val servers = findServers(module).firstOrNull()
-
-    return listOf(
-      OpenConsumerAction(servers, relatedItems.firstOrNull()?.destination?.name),
-      OpenProducerAction(servers, relatedItems.firstOrNull()?.destination?.name),
-    )
-  }
-
-  private fun findServers(module: Module): Sequence<String> {
-    return sequence {
-      SpringBootConfigValueSearcher.productionForAllProfiles(module, SPRING_KAFKA_BOOTSTRAP_SERVERS_KEY)
-        .findValueText()
-        ?.let { yield(it) }
-
-      SpringBootConfigValueSearcher.productionForAllProfiles(module, SPRING_KAFKA_CONSUMER_BOOTSTRAP_SERVERS_KEY)
-        .findValueText()
-        ?.let { yield(it) }
+            SpringBootConfigValueSearcher.productionForAllProfiles(module, SPRING_KAFKA_CONSUMER_BOOTSTRAP_SERVERS_KEY)
+                .findValueText()
+                ?.let { yield(it) }
+        }
     }
-  }
 }
 
 internal class OpenConsumerAction(
-  private val brokerServers: String? = null,
-  private val topicName: String? = null
+    private val brokerServers: String? = null,
+    private val topicName: String? = null
 ) : DumbAwareAction(), MQLineMarkerActionsProvider.Action, HighPriorityAction {
-  override fun actionPerformed(e: AnActionEvent) {
-    KafkaBootstrapService.getInstance(e.project!!).showConsumerWithPopup(brokerServers, topicName, e)
-  }
+    override fun actionPerformed(e: AnActionEvent) {
+        KafkaBootstrapService.getInstance(e.project!!).showConsumerWithPopup(brokerServers, topicName, e)
+    }
 
-  override fun getLineMarkerName(): String = KafkaMessagesBundle.message("gutter.action.observe.messages.in.topic")
-  override fun getLineMarkerTooltipText(): String = KafkaMessagesBundle.message("gutter.action.opens.kafka.consumer.ui.description")
-  override fun getLineMarkerIcon(): Icon = AllIcons.Providers.Kafka
+    override fun getLineMarkerName(): String = KafkaMessagesBundle.message("gutter.action.observe.messages.in.topic")
+    override fun getLineMarkerTooltipText(): String =
+        KafkaMessagesBundle.message("gutter.action.opens.kafka.consumer.ui.description")
 
-  override val action: AnAction
-    get() = this
+    override fun getLineMarkerIcon(): Icon = AllIcons.Providers.Kafka
+
+    override val action: AnAction
+        get() = this
 }
 
 internal class OpenProducerAction(
-  private val brokerServers: String? = null,
-  private val topicName: String? = null
+    private val brokerServers: String? = null,
+    private val topicName: String? = null
 ) : DumbAwareAction(), MQLineMarkerActionsProvider.Action, HighPriorityAction {
-  override fun actionPerformed(e: AnActionEvent) {
-    KafkaBootstrapService.getInstance(e.project!!).showProducerWithPopup(brokerServers, topicName, e)
-  }
+    override fun actionPerformed(e: AnActionEvent) {
+        KafkaBootstrapService.getInstance(e.project!!).showProducerWithPopup(brokerServers, topicName, e)
+    }
 
-  override fun getLineMarkerName(): String = KafkaMessagesBundle.message("gutter.action.send.messages.to.topic")
-  override fun getLineMarkerTooltipText(): String = KafkaMessagesBundle.message("gutter.action.opens.kafka.producer.ui.description")
-  override fun getLineMarkerIcon(): Icon = AllIcons.Providers.Kafka
+    override fun getLineMarkerName(): String = KafkaMessagesBundle.message("gutter.action.send.messages.to.topic")
+    override fun getLineMarkerTooltipText(): String =
+        KafkaMessagesBundle.message("gutter.action.opens.kafka.producer.ui.description")
 
-  override val action: AnAction
-    get() = this
+    override fun getLineMarkerIcon(): Icon = AllIcons.Providers.Kafka
+
+    override val action: AnAction
+        get() = this
 }

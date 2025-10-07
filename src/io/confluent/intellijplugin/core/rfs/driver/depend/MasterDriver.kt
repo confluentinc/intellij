@@ -5,8 +5,8 @@ import io.confluent.intellijplugin.core.rfs.driver.RfsPath
 
 
 interface MasterDriver : Driver {
-  fun prepareRefreshDependedDriver(driver: Driver)
+    fun prepareRefreshDependedDriver(driver: Driver)
 
-  fun listDependConnections(rfsPath: RfsPath): List<String>
-  fun getDependConnectionRfsPath(connectionId: String): RfsPath?
+    fun listDependConnections(rfsPath: RfsPath): List<String>
+    fun getDependConnectionRfsPath(connectionId: String): RfsPath?
 }
