@@ -6,22 +6,22 @@ import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchema
 import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchemaProvider
 
 class BdtProtobufSchemaProvider : ProtobufSchemaProvider() {
-  override fun parseSchemaOrElseThrow(schemaString: String?,
-                                      references: MutableList<SchemaReference>?,
-                                      isNew: Boolean): ParsedSchema =
-    try {
-      ProtobufSchema(
-        schemaString,
-        references,
-        resolveReferences(references),
-        null,
-        null
-      )
-    }
-    catch (e: IllegalArgumentException) {
-      throw IllegalArgumentException("${e.message}.\n${e.cause?.message}")
-    }
-    catch (e: Exception) {
-      throw e
-    }
+    override fun parseSchemaOrElseThrow(
+        schemaString: String?,
+        references: MutableList<SchemaReference>?,
+        isNew: Boolean
+    ): ParsedSchema =
+        try {
+            ProtobufSchema(
+                schemaString,
+                references,
+                resolveReferences(references),
+                null,
+                null
+            )
+        } catch (e: IllegalArgumentException) {
+            throw IllegalArgumentException("${e.message}.\n${e.cause?.message}")
+        } catch (e: Exception) {
+            throw e
+        }
 }

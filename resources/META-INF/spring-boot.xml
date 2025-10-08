@@ -1,9 +1,11 @@
 <idea-plugin>
-  <extensions defaultExtensionNs="com.intellij">
-    <microservices.gutters.mqLineMarkerActionsProvider
-      implementation="io.confluent.intellijplugin.spring.KafkaLineMarkerActionsProvider"/>
+    <extensions defaultExtensionNs="com.intellij">
+        <microservices.gutters.mqLineMarkerActionsProvider
+                implementation="io.confluent.intellijplugin.spring.KafkaLineMarkerActionsProvider"/>
 
-    <codeInsight.lineMarkerProvider language="yaml" implementationClass="io.confluent.intellijplugin.spring.KafkaSpringBootConfigLineMarkers"/>
-    <codeInsight.lineMarkerProvider language="Properties" implementationClass="io.confluent.intellijplugin.spring.KafkaSpringBootConfigLineMarkers"/>
-  </extensions>
+        <codeInsight.lineMarkerProvider language="yaml"
+                                        implementationClass="io.confluent.intellijplugin.spring.KafkaSpringBootConfigLineMarkers"/>
+        <codeInsight.lineMarkerProvider language="Properties"
+                                        implementationClass="io.confluent.intellijplugin.spring.KafkaSpringBootConfigLineMarkers"/>
+    </extensions>
 </idea-plugin>

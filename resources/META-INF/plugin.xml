@@ -1,9 +1,9 @@
 <idea-plugin>
-  <id>com.intellij.bigdatatools.kafka</id>
-  <name>Kafka</name>
-  <vendor>JetBrains</vendor>
+    <id>com.intellij.bigdatatools.kafka</id>
+    <name>Kafka</name>
+    <vendor>JetBrains</vendor>
 
-  <description><![CDATA[
+    <description><![CDATA[
 <p>Monitor your <a href="https://kafka.apache.org/">Kafka</a> event streaming processes:
 <ul>
    <li>Connect to Kafka clusters</li>
@@ -16,155 +16,176 @@
 <p>This plugin is a part of the <a href="https://plugins.jetbrains.com/bundles/8-big-data-tools">Big Data Tools</a> plugin bundle.</p>
     ]]></description>
 
-  <depends config-file="spring-boot.xml" optional="true">com.intellij.spring.boot</depends>
+    <depends config-file="spring-boot.xml" optional="true">com.intellij.spring.boot</depends>
 
-  <resource-bundle>messages.KafkaBundle</resource-bundle>
-  <extensionPoints>
-    <extensionPoint dynamic="true"
-                    interface="io.confluent.intellijplugin.core.settings.connections.ConnectionSettingProvider"
-                    name="connectionSettingProvider"/>
-  </extensionPoints>
+    <resource-bundle>messages.KafkaBundle</resource-bundle>
+    <extensionPoints>
+        <extensionPoint dynamic="true"
+                        interface="io.confluent.intellijplugin.core.settings.connections.ConnectionSettingProvider"
+                        name="connectionSettingProvider"/>
+    </extensionPoints>
 
-  <applicationListeners>
-    <listener class="io.confluent.intellijplugin.updater.KafkaLoadPluginListener"
-              topic="com.intellij.ide.plugins.DynamicPluginListener"/>
-  </applicationListeners>
+    <applicationListeners>
+        <listener class="io.confluent.intellijplugin.updater.KafkaLoadPluginListener"
+                  topic="com.intellij.ide.plugins.DynamicPluginListener"/>
+    </applicationListeners>
 
-  <extensions defaultExtensionNs="com.intellij">
-    <notificationGroup id="kafka" displayType="STICKY_BALLOON"
-                       bundle="messages.KafkaBundle"
-                       key="kafka.plugin.installed"/>
+    <extensions defaultExtensionNs="com.intellij">
+        <notificationGroup id="kafka" displayType="STICKY_BALLOON"
+                           bundle="messages.KafkaBundle"
+                           key="kafka.plugin.installed"/>
 
-    <completion.contributor language="JSON"
-                            implementationClass="io.confluent.intellijplugin.completion.KafkaProducerGeneratorCompletionContributor"/>
+        <completion.contributor language="JSON"
+                                implementationClass="io.confluent.intellijplugin.completion.KafkaProducerGeneratorCompletionContributor"/>
 
-    <dependencySupport kind="java" coordinate="java:org.springframework.kafka:spring-kafka" displayName="spring-kafka"/>
-    <dependencySupport kind="java" coordinate="java:io.micronaut.kafka:micronaut-kafka" displayName="micronaut-kafka"/>
-    <dependencySupport kind="java" coordinate="java:org.apache.spark:spark-sql-kafka-0-10_2.13" displayName="spark-sql-kafka"/>
-    <dependencySupport kind="java" coordinate="java:org.apache.kafka:kafka-streams" displayName="kafka-streams"/>
-    <dependencySupport kind="java" coordinate="java:io.confluent:kafka-schema-registry" displayName="kafka-schema-registry"/>
-    <dependencySupport kind="java" coordinate="java:io.confluent:kafka-schema-registry-client" displayName="kafka-schema-registry-client"/>
-    <dependencySupport kind="java" coordinate="java:com.typesafe.akka:akka-stream-kafka_3" displayName="akka-stream-kafka_3"/>
-    <dependencySupport kind="java" coordinate="java:org.apache.flink:flink-connector-kafka" displayName="flink-connector-kafka"/>
+        <dependencySupport kind="java" coordinate="java:org.springframework.kafka:spring-kafka"
+                           displayName="spring-kafka"/>
+        <dependencySupport kind="java" coordinate="java:io.micronaut.kafka:micronaut-kafka"
+                           displayName="micronaut-kafka"/>
+        <dependencySupport kind="java" coordinate="java:org.apache.spark:spark-sql-kafka-0-10_2.13"
+                           displayName="spark-sql-kafka"/>
+        <dependencySupport kind="java" coordinate="java:org.apache.kafka:kafka-streams" displayName="kafka-streams"/>
+        <dependencySupport kind="java" coordinate="java:io.confluent:kafka-schema-registry"
+                           displayName="kafka-schema-registry"/>
+        <dependencySupport kind="java" coordinate="java:io.confluent:kafka-schema-registry-client"
+                           displayName="kafka-schema-registry-client"/>
+        <dependencySupport kind="java" coordinate="java:com.typesafe.akka:akka-stream-kafka_3"
+                           displayName="akka-stream-kafka_3"/>
+        <dependencySupport kind="java" coordinate="java:org.apache.flink:flink-connector-kafka"
+                           displayName="flink-connector-kafka"/>
 
-    <dependencySupport kind="dotnet" coordinate="Confluent.Kafka" displayName="Confluent.Kafka"/>
-    <dependencySupport kind="dotnet" coordinate="AWSSDK.Kafka" displayName="AWSSDK.Kafka"/>
-    <dependencySupport kind="dotnet" coordinate="Confluent.SchemaRegistry" displayName="Confluent.SchemaRegistry"/>
+        <dependencySupport kind="dotnet" coordinate="Confluent.Kafka" displayName="Confluent.Kafka"/>
+        <dependencySupport kind="dotnet" coordinate="AWSSDK.Kafka" displayName="AWSSDK.Kafka"/>
+        <dependencySupport kind="dotnet" coordinate="Confluent.SchemaRegistry" displayName="Confluent.SchemaRegistry"/>
 
-    <dependencySupport kind="python" coordinate="confluent-kafka" displayName="confluent-kafka"/>
-    <dependencySupport kind="python" coordinate="boto3-kafka" displayName="boto3-kafka"/>
+        <dependencySupport kind="python" coordinate="confluent-kafka" displayName="confluent-kafka"/>
+        <dependencySupport kind="python" coordinate="boto3-kafka" displayName="boto3-kafka"/>
 
-    <applicationService serviceImplementation="io.confluent.intellijplugin.common.settings.KafkaConfigStorage"/>
+        <applicationService serviceImplementation="io.confluent.intellijplugin.common.settings.KafkaConfigStorage"/>
 
-    <applicationService serviceImplementation="io.confluent.intellijplugin.toolwindow.config.KafkaToolWindowSettings"/>
-    <bigdatatools.kafka.connectionSettingProvider
-      implementation="io.confluent.intellijplugin.core.settings.connections.GeneralConnectionSettingsProvider"/>
-    <bigdatatools.kafka.connectionSettingProvider implementation="io.confluent.intellijplugin.settings.KafkaSettingsProvider"/>
+        <applicationService
+                serviceImplementation="io.confluent.intellijplugin.toolwindow.config.KafkaToolWindowSettings"/>
+        <bigdatatools.kafka.connectionSettingProvider
+                implementation="io.confluent.intellijplugin.core.settings.connections.GeneralConnectionSettingsProvider"/>
+        <bigdatatools.kafka.connectionSettingProvider
+                implementation="io.confluent.intellijplugin.settings.KafkaSettingsProvider"/>
 
-    <projectConfigurable parentId="tools" id="kafka_conn_settings"
-                         bundle="messages.KafkaBundle" key="connections.settings.display.name"
-                         provider="io.confluent.intellijplugin.core.settings.KafkaSettingsConfigurableProvider"/>
+        <projectConfigurable parentId="tools" id="kafka_conn_settings"
+                             bundle="messages.KafkaBundle" key="connections.settings.display.name"
+                             provider="io.confluent.intellijplugin.core.settings.KafkaSettingsConfigurableProvider"/>
 
-    <toolWindow id="KafkaToolWindow" anchor="bottom" canCloseContents="true"
-                icon="io.confluent.intellijplugin.icons.BigdatatoolsKafkaIcons.KafkaToolWindow"
-                factoryClass="io.confluent.intellijplugin.toolwindow.KafkaToolWindowFactory"/>
+        <toolWindow id="KafkaToolWindow" anchor="bottom" canCloseContents="true"
+                    icon="io.confluent.intellijplugin.icons.BigdatatoolsKafkaIcons.KafkaToolWindow"
+                    factoryClass="io.confluent.intellijplugin.toolwindow.KafkaToolWindowFactory"/>
 
-    <fileEditorProvider implementation="io.confluent.intellijplugin.common.editor.KafkaEditorProvider"/>
-    <editorTabTitleProvider implementation="io.confluent.intellijplugin.common.editor.KafkaTabTitleProvider"/>
+        <fileEditorProvider implementation="io.confluent.intellijplugin.common.editor.KafkaEditorProvider"/>
+        <editorTabTitleProvider implementation="io.confluent.intellijplugin.common.editor.KafkaTabTitleProvider"/>
 
-    <notificationGroup id="Kafka Notification" displayType="BALLOON" bundle="messages.KafkaBundle" key="notification.group.kafka"/>
-    <contentTabActionProvider implementation="io.confluent.intellijplugin.core.monitoring.toolwindow.MonitoringTabActionProvider"/>
-  </extensions>
+        <notificationGroup id="Kafka Notification" displayType="BALLOON" bundle="messages.KafkaBundle"
+                           key="notification.group.kafka"/>
+        <contentTabActionProvider
+                implementation="io.confluent.intellijplugin.core.monitoring.toolwindow.MonitoringTabActionProvider"/>
+    </extensions>
 
-  <actions resource-bundle="messages.KafkaBundle">
-    <action id="Kafka.GlobalCreateKafkaConnection"
-            class="io.confluent.intellijplugin.actions.CreateKafkaConnectionAction"/>
+    <actions resource-bundle="messages.KafkaBundle">
+        <action id="Kafka.GlobalCreateKafkaConnection"
+                class="io.confluent.intellijplugin.actions.CreateKafkaConnectionAction"/>
 
-    <group id="Kafka.ExportRecords.Actions" popup="true" icon="AllIcons.Actions.Download">
-      <action id="Kafka.Export.ToCsv" class="io.confluent.intellijplugin.actions.CsvExportAction"/>
-      <action id="Kafka.Export.ToTsv" class="io.confluent.intellijplugin.actions.TsvExportAction"/>
-      <action id="Kafka.Export.ToJson" class="io.confluent.intellijplugin.actions.JsonExportAction"/>
-    </group>
+        <group id="Kafka.ExportRecords.Actions" popup="true" icon="AllIcons.Actions.Download">
+            <action id="Kafka.Export.ToCsv" class="io.confluent.intellijplugin.actions.CsvExportAction"/>
+            <action id="Kafka.Export.ToTsv" class="io.confluent.intellijplugin.actions.TsvExportAction"/>
+            <action id="Kafka.Export.ToJson" class="io.confluent.intellijplugin.actions.JsonExportAction"/>
+        </group>
 
-    <group id="Kafka.Actions">
-      <group id="Kafka.General.Actions">
-        <action id="kafka.create.producer"
-                class="io.confluent.intellijplugin.toolwindow.actions.KafkaCreateProducerAction"
-                icon="AllIcons.General.Settings"/>
-        <action id="kafka.create.consumer"
-                class="io.confluent.intellijplugin.toolwindow.actions.KafkaCreateConsumerAction"
-                icon="AllIcons.General.Settings"/>
+        <group id="Kafka.Actions">
+            <group id="Kafka.General.Actions">
+                <action id="kafka.create.producer"
+                        class="io.confluent.intellijplugin.toolwindow.actions.KafkaCreateProducerAction"
+                        icon="AllIcons.General.Settings"/>
+                <action id="kafka.create.consumer"
+                        class="io.confluent.intellijplugin.toolwindow.actions.KafkaCreateConsumerAction"
+                        icon="AllIcons.General.Settings"/>
 
-        <separator/>
-      </group>
+                <separator/>
+            </group>
 
-      <action id="Kafka.AddToFavoriteAction" class="io.confluent.intellijplugin.toolwindow.actions.AddToFavoriteAction"
-              icon="AllIcons.Nodes.Favorite">
-      </action>
+            <action id="Kafka.AddToFavoriteAction"
+                    class="io.confluent.intellijplugin.toolwindow.actions.AddToFavoriteAction"
+                    icon="AllIcons.Nodes.Favorite">
+            </action>
 
-      <group id="Kafka.Topic.Actions">
-        <!--suppress PluginXmlCapitalization -->
-        <action id="kafka.CreateTopicAction" class="io.confluent.intellijplugin.toolwindow.actions.CreateTopicAction"
-                icon="AllIcons.General.Add" use-shortcut-of="NewElement">
-        </action>
-        <action id="kafka.DeleteTopicAction" class="io.confluent.intellijplugin.toolwindow.actions.DeleteTopicAction"
-                icon="AllIcons.General.Remove">
-          <keyboard-shortcut keymap="$default" first-keystroke="DELETE"/>
-        </action>
-        <action id="kafka.ClearTopicAction" class="io.confluent.intellijplugin.toolwindow.actions.ClearTopicAction"
-                icon="io.confluent.intellijplugin.icons.BigdatatoolsKafkaIcons.ClearOutputs">
-        </action>
-      </group>
+            <group id="Kafka.Topic.Actions">
+                <!--suppress PluginXmlCapitalization -->
+                <action id="kafka.CreateTopicAction"
+                        class="io.confluent.intellijplugin.toolwindow.actions.CreateTopicAction"
+                        icon="AllIcons.General.Add" use-shortcut-of="NewElement">
+                </action>
+                <action id="kafka.DeleteTopicAction"
+                        class="io.confluent.intellijplugin.toolwindow.actions.DeleteTopicAction"
+                        icon="AllIcons.General.Remove">
+                    <keyboard-shortcut keymap="$default" first-keystroke="DELETE"/>
+                </action>
+                <action id="kafka.ClearTopicAction"
+                        class="io.confluent.intellijplugin.toolwindow.actions.ClearTopicAction"
+                        icon="io.confluent.intellijplugin.icons.BigdatatoolsKafkaIcons.ClearOutputs">
+                </action>
+            </group>
 
-      <group id="Kafka.Consumer.Group.Actions">
-        <action id="kafka.ResetOffsetsAction" class="io.confluent.intellijplugin.toolwindow.actions.ResetOffsetsAction"
-                icon="AllIcons.General.Reset"/>
+            <group id="Kafka.Consumer.Group.Actions">
+                <action id="kafka.ResetOffsetsAction"
+                        class="io.confluent.intellijplugin.toolwindow.actions.ResetOffsetsAction"
+                        icon="AllIcons.General.Reset"/>
 
-        <action id="kafka.DeleteConsumerGroupAction" class="io.confluent.intellijplugin.toolwindow.actions.DeleteConsumerGroupAction"
-                icon="AllIcons.General.Remove"/>
-      </group>
+                <action id="kafka.DeleteConsumerGroupAction"
+                        class="io.confluent.intellijplugin.toolwindow.actions.DeleteConsumerGroupAction"
+                        icon="AllIcons.General.Remove"/>
+            </group>
 
-      <group id="Kafka.Schema.Actions">
-        <action id="kafka.CreateSchemaAction" class="io.confluent.intellijplugin.toolwindow.actions.CreateSchemaAction"
-                icon="AllIcons.General.Add" use-shortcut-of="NewElement">
-        </action>
-        <action id="Kafka.DeleteSchemaAction"
-                class="io.confluent.intellijplugin.toolwindow.actions.DeleteSchemaAction"
-                icon="AllIcons.General.Remove">
-          <keyboard-shortcut keymap="$default" first-keystroke="DELETE"/>
-        </action>
-        <action id="kafka.CloneSchemaAction" class="io.confluent.intellijplugin.toolwindow.actions.CloneSchemaAction"
-                icon="AllIcons.Actions.Copy"/>
-      </group>
-    </group>
+            <group id="Kafka.Schema.Actions">
+                <action id="kafka.CreateSchemaAction"
+                        class="io.confluent.intellijplugin.toolwindow.actions.CreateSchemaAction"
+                        icon="AllIcons.General.Add" use-shortcut-of="NewElement">
+                </action>
+                <action id="Kafka.DeleteSchemaAction"
+                        class="io.confluent.intellijplugin.toolwindow.actions.DeleteSchemaAction"
+                        icon="AllIcons.General.Remove">
+                    <keyboard-shortcut keymap="$default" first-keystroke="DELETE"/>
+                </action>
+                <action id="kafka.CloneSchemaAction"
+                        class="io.confluent.intellijplugin.toolwindow.actions.CloneSchemaAction"
+                        icon="AllIcons.Actions.Copy"/>
+            </group>
+        </group>
 
-    <group id="Kafka.MonitoringTabsActions" popup="true">
-      <action id="Kafka.MonitoringTabsActions.RenameAction"
-              class="io.confluent.intellijplugin.core.monitoring.actions.tabs.MonitoringTabRenameConnection"
-              use-shortcut-of="RenameElement"/>
-      <separator/>
-      <action id="Kafka.MonitoringTabsActions.EnableAction"
-              class="io.confluent.intellijplugin.core.monitoring.actions.tabs.MonitoringTabEnableConnection"/>
-      <action id="Kafka.MonitoringTabsActions.DisableAction"
-              class="io.confluent.intellijplugin.core.monitoring.actions.tabs.MonitoringTabDisableConnection"/>
-      <action id="Kafka.MonitoringTabsActions.DeleteAction"
-              class="io.confluent.intellijplugin.core.monitoring.actions.tabs.MonitoringTabDeleteConnection"
-              use-shortcut-of="$Delete"/>
-      <action id="Kafka.MonitoringTabsActions.RefreshAction"
-              class="io.confluent.intellijplugin.core.monitoring.actions.tabs.MonitoringTabRefreshConnection"/>
-      <action id="Kafka.MonitoringTabsActions.OpenSettingsAction"
-              icon="AllIcons.General.Settings"
-              class="io.confluent.intellijplugin.core.monitoring.actions.tabs.MonitoringTabOpenConnectionSetting"
-              use-shortcut-of="EditSource"/>
-    </group>
+        <group id="Kafka.MonitoringTabsActions" popup="true">
+            <action id="Kafka.MonitoringTabsActions.RenameAction"
+                    class="io.confluent.intellijplugin.core.monitoring.actions.tabs.MonitoringTabRenameConnection"
+                    use-shortcut-of="RenameElement"/>
+            <separator/>
+            <action id="Kafka.MonitoringTabsActions.EnableAction"
+                    class="io.confluent.intellijplugin.core.monitoring.actions.tabs.MonitoringTabEnableConnection"/>
+            <action id="Kafka.MonitoringTabsActions.DisableAction"
+                    class="io.confluent.intellijplugin.core.monitoring.actions.tabs.MonitoringTabDisableConnection"/>
+            <action id="Kafka.MonitoringTabsActions.DeleteAction"
+                    class="io.confluent.intellijplugin.core.monitoring.actions.tabs.MonitoringTabDeleteConnection"
+                    use-shortcut-of="$Delete"/>
+            <action id="Kafka.MonitoringTabsActions.RefreshAction"
+                    class="io.confluent.intellijplugin.core.monitoring.actions.tabs.MonitoringTabRefreshConnection"/>
+            <action id="Kafka.MonitoringTabsActions.OpenSettingsAction"
+                    icon="AllIcons.General.Settings"
+                    class="io.confluent.intellijplugin.core.monitoring.actions.tabs.MonitoringTabOpenConnectionSetting"
+                    use-shortcut-of="EditSource"/>
+        </group>
 
-    <action id="Kafka.BdiTableCopyRowAction" class="io.confluent.intellijplugin.core.table.editor.BdiTableCopyRowAction"/>
-    <action id="Kafka.BdiTableCopyColumnAction" class="io.confluent.intellijplugin.core.table.editor.BdiTableCopyColumnAction"/>
-    <action id="Kafka.BdiTableDumpToClipboardAction"
-            class="io.confluent.intellijplugin.core.table.editor.BdiTableDumpToClipboardAction"/>
-  </actions>
+        <action id="Kafka.BdiTableCopyRowAction"
+                class="io.confluent.intellijplugin.core.table.editor.BdiTableCopyRowAction"/>
+        <action id="Kafka.BdiTableCopyColumnAction"
+                class="io.confluent.intellijplugin.core.table.editor.BdiTableCopyColumnAction"/>
+        <action id="Kafka.BdiTableDumpToClipboardAction"
+                class="io.confluent.intellijplugin.core.table.editor.BdiTableDumpToClipboardAction"/>
+    </actions>
 
-  <change-notes><![CDATA[
+    <change-notes><![CDATA[
 <h2 style="padding:0;margin:0;line-height:0px">Changes in 2023.3</h2>
 <h4 style="padding:0;margin:0;line-height:0px">Features</h4>
 <ul>

@@ -22,103 +22,104 @@ import kotlin.time.Duration.Companion.seconds
 import kotlin.time.TimeSource
 
 class BdtRefresher(
-  disposable: Disposable,
-  driver: Driver,
-  updateDelay: Int,
-  runOnlyInActiveFrame: Boolean,
-  startupDelay: Int = 0,
-  private val isPaused: MutableStateFlow<Boolean> = MutableStateFlow(true),
-  private val coroutineScope: CoroutineScope = driver.safeExecutor.coroutineScope.childScope(),
-  delayTicks: Flow<Unit> = BdtRefresherService.delayTicks(updateDelay.milliseconds),
-  requests: Flow<Unit> = if (runOnlyInActiveFrame) {
-    delayTicks.pausedBy(
-      isPaused to startupDelay.milliseconds,
-      BdtRefresherService.getInstance().applicationIsActive.mapStateIn(coroutineScope) { !it } to Duration.ZERO
-    )
-  }
-  else {
-    delayTicks.pausedBy(
-      isPaused to startupDelay.milliseconds
-    )
-  },
-  body: suspend () -> Unit
+    disposable: Disposable,
+    driver: Driver,
+    updateDelay: Int,
+    runOnlyInActiveFrame: Boolean,
+    startupDelay: Int = 0,
+    private val isPaused: MutableStateFlow<Boolean> = MutableStateFlow(true),
+    private val coroutineScope: CoroutineScope = driver.safeExecutor.coroutineScope.childScope(),
+    delayTicks: Flow<Unit> = BdtRefresherService.delayTicks(updateDelay.milliseconds),
+    requests: Flow<Unit> = if (runOnlyInActiveFrame) {
+        delayTicks.pausedBy(
+            isPaused to startupDelay.milliseconds,
+            BdtRefresherService.getInstance().applicationIsActive.mapStateIn(coroutineScope) { !it } to Duration.ZERO
+        )
+    } else {
+        delayTicks.pausedBy(
+            isPaused to startupDelay.milliseconds
+        )
+    },
+    body: suspend () -> Unit
 ) : Disposable {
 
-  init {
-    Disposer.register(disposable, this)
-    coroutineScope.launch {
-      delay(startupDelay.milliseconds)
-      requests.collect {
-        body()
-      }
+    init {
+        Disposer.register(disposable, this)
+        coroutineScope.launch {
+            delay(startupDelay.milliseconds)
+            requests.collect {
+                body()
+            }
+        }
     }
-  }
 
-  override fun dispose() {
-    coroutineScope.cancel()
-  }
+    override fun dispose() {
+        coroutineScope.cancel()
+    }
 
-  fun startIfRequired() {
-    isPaused.value = false
-  }
+    fun startIfRequired() {
+        isPaused.value = false
+    }
 
-  fun stopIfRequired() {
-    isPaused.value = true
-  }
+    fun stopIfRequired() {
+        isPaused.value = true
+    }
 }
 
 @Service
 class BdtRefresherService(val coroutineScope: CoroutineScope) {
-  val driverRefreshIntervalSetting =
-    BdIdeRegistryUtil.DRIVER_AUTO_REFRESH_PERIOD.seconds
-  val driverFileRefreshIntervalSetting =
-    BdIdeRegistryUtil.DRIVER_AUTO_FILES_RELOAD_PERIOD.seconds.takeIf { BdIdeRegistryUtil.DRIVER_AUTO_FILES_RELOAD_ENABLED }
+    val driverRefreshIntervalSetting =
+        BdIdeRegistryUtil.DRIVER_AUTO_REFRESH_PERIOD.seconds
+    val driverFileRefreshIntervalSetting =
+        BdIdeRegistryUtil.DRIVER_AUTO_FILES_RELOAD_PERIOD.seconds.takeIf { BdIdeRegistryUtil.DRIVER_AUTO_FILES_RELOAD_ENABLED }
 
-  val applicationIsActive: StateFlow<Boolean> by lazy {
-    val result = MutableStateFlow(true)
-    val activationListener = object : ApplicationActivationListener {
-      override fun applicationActivated(ideFrame: IdeFrame) {
-        result.value = true
-      }
-      override fun delayedApplicationDeactivated(ideFrame: Window) {
-        result.value = false
-      }
-    }
-    val application = ApplicationManager.getApplication()
-    application.messageBus.connect(coroutineScope).subscribe(ApplicationActivationListener.TOPIC, activationListener)
-    result
-  }
+    val applicationIsActive: StateFlow<Boolean> by lazy {
+        val result = MutableStateFlow(true)
+        val activationListener = object : ApplicationActivationListener {
+            override fun applicationActivated(ideFrame: IdeFrame) {
+                result.value = true
+            }
 
-  private val commonSchedule: RefreshTicker = RefreshTicker(coroutineScope, delayTicks(driverRefreshIntervalSetting).onEach {
-    applicationIsActive.first { it }
-  })
-
-  val driverRefreshSchedule: RefreshTicker =
-    RefreshTicker(coroutineScope, commonSchedule.subscribe().map { Unit })
-
-  val driverFileRefreshSchedule: RefreshTicker? =
-    if (driverFileRefreshIntervalSetting != null) {
-      val throttled = flow {
-        var timestamp = TimeSource.Monotonic.markNow()
-        commonSchedule.subscribe().collect {
-          if (timestamp.elapsedNow() > driverFileRefreshIntervalSetting) {
-            emit(Unit)
-          }
+            override fun delayedApplicationDeactivated(ideFrame: Window) {
+                result.value = false
+            }
         }
-      }
-      RefreshTicker(coroutineScope, throttled)
-    }
-    else null
-
-  companion object {
-
-    fun delayTicks(duration: Duration) = flow {
-      while (true) {
-        emit(Unit)
-        delay(duration)
-      }
+        val application = ApplicationManager.getApplication()
+        application.messageBus.connect(coroutineScope)
+            .subscribe(ApplicationActivationListener.TOPIC, activationListener)
+        result
     }
 
-    fun getInstance(): BdtRefresherService = service()
-  }
+    private val commonSchedule: RefreshTicker =
+        RefreshTicker(coroutineScope, delayTicks(driverRefreshIntervalSetting).onEach {
+            applicationIsActive.first { it }
+        })
+
+    val driverRefreshSchedule: RefreshTicker =
+        RefreshTicker(coroutineScope, commonSchedule.subscribe().map { Unit })
+
+    val driverFileRefreshSchedule: RefreshTicker? =
+        if (driverFileRefreshIntervalSetting != null) {
+            val throttled = flow {
+                var timestamp = TimeSource.Monotonic.markNow()
+                commonSchedule.subscribe().collect {
+                    if (timestamp.elapsedNow() > driverFileRefreshIntervalSetting) {
+                        emit(Unit)
+                    }
+                }
+            }
+            RefreshTicker(coroutineScope, throttled)
+        } else null
+
+    companion object {
+
+        fun delayTicks(duration: Duration) = flow {
+            while (true) {
+                emit(Unit)
+                delay(duration)
+            }
+        }
+
+        fun getInstance(): BdtRefresherService = service()
+    }
 }

@@ -10,25 +10,24 @@ import java.util.*
 
 @Suppress("unused")
 class CliCompatibleInstantDeserializer : JsonAdapter<Instant>() {
-  private val threadLocalFormat = ThreadLocal.withInitial {
-    SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSz", Locale.US)
-  }
-
-  override fun fromJson(reader: JsonReader): Instant? {
-    val dateString = reader.nextString()
-
-    // CLI appends UTC, which Java refuses to parse. Convert it to a Z
-    val sanitized = if (dateString.endsWith("UTC")) {
-      dateString.dropLast(3) + 'Z'
-    }
-    else {
-      dateString
+    private val threadLocalFormat = ThreadLocal.withInitial {
+        SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSz", Locale.US)
     }
 
-    return DateTimeFormatter.ISO_INSTANT.parse(sanitized) { Instant.from(it) }
-  }
+    override fun fromJson(reader: JsonReader): Instant? {
+        val dateString = reader.nextString()
 
-  override fun toJson(writer: JsonWriter, value: Instant?) {
-    writer.value(DateTimeFormatter.ISO_INSTANT.format(value))
-  }
+        // CLI appends UTC, which Java refuses to parse. Convert it to a Z
+        val sanitized = if (dateString.endsWith("UTC")) {
+            dateString.dropLast(3) + 'Z'
+        } else {
+            dateString
+        }
+
+        return DateTimeFormatter.ISO_INSTANT.parse(sanitized) { Instant.from(it) }
+    }
+
+    override fun toJson(writer: JsonWriter, value: Instant?) {
+        writer.value(DateTimeFormatter.ISO_INSTANT.format(value))
+    }
 }

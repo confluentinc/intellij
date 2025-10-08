@@ -13,18 +13,18 @@ import java.io.Serializable
 class ConnectionPersistentState(var connections: List<ExtendedConnectionData> = listOf()) : Serializable
 
 data class ExtendedConnectionData(
-  @Deprecated("Not used now")
-  var pluginId: String = "",
-  var fqn: String = "",
-  var extended: MutableMap<String, String> = mutableMapOf()
+    @Deprecated("Not used now")
+    var pluginId: String = "",
+    var fqn: String = "",
+    var extended: MutableMap<String, String> = mutableMapOf()
 ) : ConnectionData() {
-  override fun copyFrom(c2: ConnectionData): ExtendedConnectionData {
-    super.copyFrom(c2)
-    return this
-  }
+    override fun copyFrom(c2: ConnectionData): ExtendedConnectionData {
+        super.copyFrom(c2)
+        return this
+    }
 
-  override fun createDriver(project: Project?, isTest: Boolean) = throw Exception("Cannot create driver")
+    override fun createDriver(project: Project?, isTest: Boolean) = throw Exception("Cannot create driver")
 
-  override fun createConfigurable(project: Project, parentGroup: ConnectionGroup) =
-    SimpleConnectionConfigurable(this, project)
+    override fun createConfigurable(project: Project, parentGroup: ConnectionGroup) =
+        SimpleConnectionConfigurable(this, project)
 }

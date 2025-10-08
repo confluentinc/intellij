@@ -20,52 +20,52 @@ import java.util.concurrent.atomic.AtomicBoolean
  * This credential provider will trigger an SSO login if required, unlike the low level SDKs.
  */
 class BdtSsoCredentialProvider(
-  private val ssoAccount: String,
-  private val ssoRole: String,
-  private val ssoClient: SsoClient,
-  private val ssoAccessTokenProvider: BdtSsoAccessTokenProvider
+    private val ssoAccount: String,
+    private val ssoRole: String,
+    private val ssoClient: SsoClient,
+    private val ssoAccessTokenProvider: BdtSsoAccessTokenProvider
 ) : AwsCredentialsProvider, Disposable {
-  private val sessionCache: CachedSupplier<SsoCredentialsHolder> = CachedSupplier.builder(this::refreshCredentials).build()
+    private val sessionCache: CachedSupplier<SsoCredentialsHolder> =
+        CachedSupplier.builder(this::refreshCredentials).build()
 
-  val allowDialog = AtomicBoolean(false)
+    val allowDialog = AtomicBoolean(false)
 
-  override fun resolveCredentials(): AwsCredentials = sessionCache.get().credentials
+    override fun resolveCredentials(): AwsCredentials = sessionCache.get().credentials
 
-  private fun refreshCredentials(): RefreshResult<SsoCredentialsHolder> {
-    val roleCredentials = try {
-      val accessToken = ssoAccessTokenProvider.accessToken(allowDialog.get())
+    private fun refreshCredentials(): RefreshResult<SsoCredentialsHolder> {
+        val roleCredentials = try {
+            val accessToken = ssoAccessTokenProvider.accessToken(allowDialog.get())
 
-      ssoClient.getRoleCredentials {
-        it.accessToken(accessToken.accessToken)
-        it.accountId(ssoAccount)
-        it.roleName(ssoRole)
-      }
+            ssoClient.getRoleCredentials {
+                it.accessToken(accessToken.accessToken)
+                it.accountId(ssoAccount)
+                it.roleName(ssoRole)
+            }
+        } catch (e: UnauthorizedException) {
+            // OIDC access token was rejected, invalidate the cache and throw
+            ssoAccessTokenProvider.invalidate()
+            throw e
+        }
+
+        val awsCredentials = AwsSessionCredentials.create(
+            roleCredentials.roleCredentials().accessKeyId(),
+            roleCredentials.roleCredentials().secretAccessKey(),
+            roleCredentials.roleCredentials().sessionToken()
+        )
+
+        val expirationTime = Instant.ofEpochMilli(roleCredentials.roleCredentials().expiration())
+
+        val ssoCredentials = SsoCredentialsHolder(awsCredentials, expirationTime)
+
+        return RefreshResult.builder(ssoCredentials)
+            .staleTime(expirationTime.minus(Duration.ofMinutes(1)))
+            .prefetchTime(expirationTime.minus(Duration.ofMinutes(5)))
+            .build()
     }
-    catch (e: UnauthorizedException) {
-      // OIDC access token was rejected, invalidate the cache and throw
-      ssoAccessTokenProvider.invalidate()
-      throw e
+
+    override fun dispose() {
+        sessionCache.close()
     }
 
-    val awsCredentials = AwsSessionCredentials.create(
-      roleCredentials.roleCredentials().accessKeyId(),
-      roleCredentials.roleCredentials().secretAccessKey(),
-      roleCredentials.roleCredentials().sessionToken()
-    )
-
-    val expirationTime = Instant.ofEpochMilli(roleCredentials.roleCredentials().expiration())
-
-    val ssoCredentials = SsoCredentialsHolder(awsCredentials, expirationTime)
-
-    return RefreshResult.builder(ssoCredentials)
-      .staleTime(expirationTime.minus(Duration.ofMinutes(1)))
-      .prefetchTime(expirationTime.minus(Duration.ofMinutes(5)))
-      .build()
-  }
-
-  override fun dispose() {
-    sessionCache.close()
-  }
-
-  private data class SsoCredentialsHolder(val credentials: AwsSessionCredentials, val expirationTime: Instant)
+    private data class SsoCredentialsHolder(val credentials: AwsSessionCredentials, val expirationTime: Instant)
 }

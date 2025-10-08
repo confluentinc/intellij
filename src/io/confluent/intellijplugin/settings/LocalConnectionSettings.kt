@@ -9,18 +9,18 @@ import io.confluent.intellijplugin.core.settings.connections.ConnectionData
 
 @Service(Service.Level.PROJECT)
 @State(
-  name = "ConfluentIntellijKafkaLocalSettings",
-  useLoadedStateAsExisting = false, // This is hack, needed because we need to transfer sensitive data from settings to PasswordSafe
-  storages = [
-    Storage("confluent_kafka_settings.xml")
-  ]
+    name = "ConfluentIntellijKafkaLocalSettings",
+    useLoadedStateAsExisting = false, // This is hack, needed because we need to transfer sensitive data from settings to PasswordSafe
+    storages = [
+        Storage("confluent_kafka_settings.xml")
+    ]
 )
 class LocalConnectionSettings : ConnectionSettingsBase() {
-  companion object {
-    fun getInstance(project: Project): LocalConnectionSettings = project.service()
-  }
+    companion object {
+        fun getInstance(project: Project): LocalConnectionSettings = project.service()
+    }
 
-  override fun unpackData(conn: ConnectionData): ConnectionData {
-    return super.unpackData(conn).apply { isPerProject = true }
-  }
+    override fun unpackData(conn: ConnectionData): ConnectionData {
+        return super.unpackData(conn).apply { isPerProject = true }
+    }
 }

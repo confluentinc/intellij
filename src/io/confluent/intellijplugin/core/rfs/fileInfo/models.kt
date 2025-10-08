@@ -17,5 +17,9 @@ data class RfsChildrenPartId(val rfsPath: RfsPath, val markerId: RfsListMarker? 
  * @param fromMarker is null when it is first block
  * @param nextMarker continuation marker which can be used to query next block
  */
-data class RfsFileInfoChildren(val fileInfos: List<FileInfo>?, val fromMarker: RfsListMarker? = null, val nextMarker: RfsListMarker? = null)
+data class RfsFileInfoChildren(
+    val fileInfos: List<FileInfo>?,
+    val fromMarker: RfsListMarker? = null,
+    val nextMarker: RfsListMarker? = null
+)
 

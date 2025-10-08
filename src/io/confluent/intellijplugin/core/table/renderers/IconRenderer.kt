@@ -10,24 +10,26 @@ import javax.swing.SwingConstants
  * Used directly as  base renderer for Icon type in material table. */
 internal class IconRenderer : MaterialTableCellRenderer() {
 
-  private var icon: Icon? = null
+    private var icon: Icon? = null
 
-  init {
-    horizontalAlignment = SwingConstants.CENTER
-  }
-
-  override fun setValue(value: Any?) {
-    icon = if (value is Icon) value else null
-  }
-
-  override fun paintComponent(g: Graphics) {
-    icon?.let {
-      it.paintIcon(this, g, width / 2 - it.iconWidth / 2, height / 2 - it.iconHeight / 2)
+    init {
+        horizontalAlignment = SwingConstants.CENTER
     }
-  }
 
-  override fun getPreferredSize(): Dimension {
-    return Dimension(icon?.iconWidth ?: ActionToolbar.DEFAULT_MINIMUM_BUTTON_SIZE.width,
-                     icon?.iconHeight ?: ActionToolbar.DEFAULT_MINIMUM_BUTTON_SIZE.height)
-  }
+    override fun setValue(value: Any?) {
+        icon = if (value is Icon) value else null
+    }
+
+    override fun paintComponent(g: Graphics) {
+        icon?.let {
+            it.paintIcon(this, g, width / 2 - it.iconWidth / 2, height / 2 - it.iconHeight / 2)
+        }
+    }
+
+    override fun getPreferredSize(): Dimension {
+        return Dimension(
+            icon?.iconWidth ?: ActionToolbar.DEFAULT_MINIMUM_BUTTON_SIZE.width,
+            icon?.iconHeight ?: ActionToolbar.DEFAULT_MINIMUM_BUTTON_SIZE.height
+        )
+    }
 }

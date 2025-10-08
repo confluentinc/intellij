@@ -36,6 +36,7 @@ coverage.txt
 # IntelliJ
 *.iml
 .idea
+!.idea/codeStyles
 
 # servicebot workdir
 .servicebot/
