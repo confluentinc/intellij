@@ -11,32 +11,32 @@ import javax.swing.Icon
 import javax.swing.JButton
 
 class HoverButton(@NlsContexts.Button text: String, icon: Icon? = null) : JButton(text, icon) {
-  init {
-    isFocusPainted = false
-    isBorderPainted = false
-    isRolloverEnabled = true
-    horizontalAlignment = LEFT
-    isContentAreaFilled = false
-    background = null
-
-    addMouseListener(object : MouseAdapter() {
-      override fun mouseEntered(evt: MouseEvent) {
-        background = JBUI.CurrentTheme.Tree.Selection.background(true)
-        foreground = NamedColorUtil.getListSelectionForeground(true)
-      }
-
-      override fun mouseExited(evt: MouseEvent) {
+    init {
+        isFocusPainted = false
+        isBorderPainted = false
+        isRolloverEnabled = true
+        horizontalAlignment = LEFT
+        isContentAreaFilled = false
         background = null
-        foreground = UIUtil.getLabelForeground()
-      }
-    })
-  }
 
-  override fun paintComponent(g: Graphics) {
-    if (background != null) {
-      g.color = background
-      g.fillRect(0, 0, width, height)
+        addMouseListener(object : MouseAdapter() {
+            override fun mouseEntered(evt: MouseEvent) {
+                background = JBUI.CurrentTheme.Tree.Selection.background(true)
+                foreground = NamedColorUtil.getListSelectionForeground(true)
+            }
+
+            override fun mouseExited(evt: MouseEvent) {
+                background = null
+                foreground = UIUtil.getLabelForeground()
+            }
+        })
     }
-    super.paintComponent(g)
-  }
+
+    override fun paintComponent(g: Graphics) {
+        if (background != null) {
+            g.color = background
+            g.fillRect(0, 0, width, height)
+        }
+        super.paintComponent(g)
+    }
 }

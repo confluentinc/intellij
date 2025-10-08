@@ -10,51 +10,53 @@ import kotlin.reflect.KMutableProperty1
 /**
  * @param titleResolver is optional projection item -> its title.
  */
-class NullableComboBoxField<D : ConnectionData, E : Any?>(private val prop: KMutableProperty1<D, E?>,
-                                                          key: ModificationKey,
-                                                          private val initSettings: D,
-                                                          items: Array<E>,
-                                                          private val nullElement: E,
-                                                          titleResolver: ((E) -> String?)? = null) : WrappedNamedComponent<D>(key) {
-  private val comboBoxModel = DefaultComboBoxModel(items)
+class NullableComboBoxField<D : ConnectionData, E : Any?>(
+    private val prop: KMutableProperty1<D, E?>,
+    key: ModificationKey,
+    private val initSettings: D,
+    items: Array<E>,
+    private val nullElement: E,
+    titleResolver: ((E) -> String?)? = null
+) : WrappedNamedComponent<D>(key) {
+    private val comboBoxModel = DefaultComboBoxModel(items)
 
-  private val comboBox = ComboBoxWidePopup(comboBoxModel, nullElement)
+    private val comboBox = ComboBoxWidePopup(comboBoxModel, nullElement)
 
-  init {
-    if (titleResolver != null) {
-      comboBox.renderer = CustomListCellRenderer(titleResolver)
+    init {
+        if (titleResolver != null) {
+            comboBox.renderer = CustomListCellRenderer(titleResolver)
+        }
+
+        val targetItem = prop.get(initSettings) ?: nullElement
+
+        if (comboBoxModel.getIndexOf(targetItem) != -1) {
+            comboBox.selectedItem = targetItem
+        }
     }
 
-    val targetItem = prop.get(initSettings) ?: nullElement
+    fun setItems(items: Array<E>, titleResolver: ((E) -> String?)? = null) {
+        val selectedItem = if (comboBoxModel.size == 0)
+            prop.get(initSettings)
+        else
+            getValue() ?: nullElement
 
-    if (comboBoxModel.getIndexOf(targetItem) != -1) {
-      comboBox.selectedItem = targetItem
+        if (titleResolver != null) {
+            comboBox.renderer = CustomListCellRenderer(titleResolver)
+        }
+
+        comboBoxModel.removeAllElements()
+        comboBoxModel.addAll(items.toList())
+
+        if (comboBoxModel.getIndexOf(selectedItem) != -1) {
+            comboBox.selectedItem = selectedItem
+        }
     }
-  }
 
-  fun setItems(items: Array<E>, titleResolver: ((E) -> String?)? = null) {
-    val selectedItem = if (comboBoxModel.size == 0)
-      prop.get(initSettings)
-    else
-      getValue() ?: nullElement
+    override fun getValue(): E = comboBox.item
 
-    if (titleResolver != null) {
-      comboBox.renderer = CustomListCellRenderer(titleResolver)
-    }
+    override fun getComponent() = comboBox
 
-    comboBoxModel.removeAllElements()
-    comboBoxModel.addAll(items.toList())
+    override fun isModified(conn: D): Boolean = (prop.get(conn) ?: nullElement) != getValue()
 
-    if (comboBoxModel.getIndexOf(selectedItem) != -1) {
-      comboBox.selectedItem = selectedItem
-    }
-  }
-
-  override fun getValue(): E = comboBox.item
-
-  override fun getComponent() = comboBox
-
-  override fun isModified(conn: D): Boolean = (prop.get(conn) ?: nullElement) != getValue()
-
-  override fun apply(conn: D) = prop.set(conn, getValue()?.takeIf { it != nullElement })
+    override fun apply(conn: D) = prop.set(conn, getValue()?.takeIf { it != nullElement })
 }

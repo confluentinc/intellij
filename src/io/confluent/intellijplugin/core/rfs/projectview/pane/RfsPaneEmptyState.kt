@@ -20,39 +20,42 @@ import javax.swing.JPanel
  * Also it could be displayed in RFSFileChooser (for example, for FileChooser which is used for uploading files).
  */
 object RfsPaneEmptyState {
-  fun createPanel(project: Project, groups: List<ConnectionGroup> = ConnectionSettingProviderEP.getGroups()): JPanel {
-    val panel = JPanel(GridLayout(0, 1))
+    fun createPanel(project: Project, groups: List<ConnectionGroup> = ConnectionSettingProviderEP.getGroups()): JPanel {
+        val panel = JPanel(GridLayout(0, 1))
 
-    // Final groups will contain all "groups" + all its children.
-    val availableGroups = ConnectionSettingProviderEP.getGroups()
+        // Final groups will contain all "groups" + all its children.
+        val availableGroups = ConnectionSettingProviderEP.getGroups()
 
-    val finalGroups = availableGroups.filter { availableGroup ->
-      groups.find { it.id == availableGroup.parentGroupId || it.id == availableGroup.id } != null
+        val finalGroups = availableGroups.filter { availableGroup ->
+            groups.find { it.id == availableGroup.parentGroupId || it.id == availableGroup.id } != null
+        }
+
+        val rootAddActions = StandaloneCreateConnectionUtil.createRootAddAction(project, finalGroups)
+
+        for (action in StandaloneCreateConnectionUtil.linearizeActions(rootAddActions)) {
+            if (action is Separator) {
+                panel.add(TitledSeparator(action.text))
+            } else {
+                panel.add(createHoverButtonByAction(project, action))
+            }
+        }
+
+        return JPanel(BorderLayout()).apply {
+            border = JBUI.Borders.empty(10)
+            add(panel, BorderLayout.PAGE_START)
+        }
     }
 
-    val rootAddActions = StandaloneCreateConnectionUtil.createRootAddAction(project, finalGroups)
-
-    for (action in StandaloneCreateConnectionUtil.linearizeActions(rootAddActions)) {
-      if (action is Separator) {
-        panel.add(TitledSeparator(action.text))
-      }
-      else {
-        panel.add(createHoverButtonByAction(project, action))
-      }
+    private fun createHoverButtonByAction(project: Project, action: AnAction): HoverButton {
+        return HoverButton(action.templatePresentation.text, action.templatePresentation.icon).apply {
+            addActionListener {
+                action.actionPerformed(
+                    AnActionEvent.createFromAnAction(
+                        action, null, "RfsPaneEmptyState",
+                        SimpleDataContext.getProjectContext(project)
+                    )
+                )
+            }
+        }
     }
-
-    return JPanel(BorderLayout()).apply {
-      border = JBUI.Borders.empty(10)
-      add(panel, BorderLayout.PAGE_START)
-    }
-  }
-
-  private fun createHoverButtonByAction(project: Project, action: AnAction): HoverButton {
-    return HoverButton(action.templatePresentation.text, action.templatePresentation.icon).apply {
-      addActionListener {
-        action.actionPerformed(AnActionEvent.createFromAnAction(action, null, "RfsPaneEmptyState",
-                                                                SimpleDataContext.getProjectContext(project)))
-      }
-    }
-  }
 }

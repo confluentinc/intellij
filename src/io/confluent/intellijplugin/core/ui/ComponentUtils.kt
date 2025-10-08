@@ -12,39 +12,39 @@ import java.util.*
 import javax.swing.JComponent
 
 fun Component.onFirstSizeChange(runnable: (e: ComponentEvent) -> Unit) {
-  addComponentListener(object : ComponentAdapter() {
-    override fun componentResized(e: ComponentEvent) {
-      runnable(e)
-      removeComponentListener(this)
-    }
-  })
+    addComponentListener(object : ComponentAdapter() {
+        override fun componentResized(e: ComponentEvent) {
+            runnable(e)
+            removeComponentListener(this)
+        }
+    })
 }
 
 fun JComponent.onDoubleClick(runnable: (e: MouseEvent) -> Unit) {
-  addMouseListener(object : MouseAdapter() {
-    override fun mouseClicked(e: MouseEvent) {
-      if (e.button == MouseEvent.BUTTON1 && e.clickCount == 2) {
-        runnable(e)
-      }
-    }
-  })
+    addMouseListener(object : MouseAdapter() {
+        override fun mouseClicked(e: MouseEvent) {
+            if (e.button == MouseEvent.BUTTON1 && e.clickCount == 2) {
+                runnable(e)
+            }
+        }
+    })
 }
 
 fun Component.applyRecursively(action: (JComponent) -> Unit) {
-  val front = LinkedList<Component>().apply { add(this@applyRecursively) }
+    val front = LinkedList<Component>().apply { add(this@applyRecursively) }
 
-  while (!front.isEmpty()) {
-    val comp = front.remove()
-    if (comp is JComponent) {
-      action.invoke(comp)
+    while (!front.isEmpty()) {
+        val comp = front.remove()
+        if (comp is JComponent) {
+            action.invoke(comp)
+        }
+        if (comp is Container) {
+            front.addAll(comp.components)
+        }
     }
-    if (comp is Container) {
-      front.addAll(comp.components)
-    }
-  }
 }
 
 fun JComponent.withTooltip(@Nls text: String): JComponent {
-  HelpTooltip().setDescription(text).installOn(this)
-  return this
+    HelpTooltip().setDescription(text).installOn(this)
+    return this
 }

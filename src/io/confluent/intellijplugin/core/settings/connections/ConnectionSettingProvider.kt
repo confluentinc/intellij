@@ -11,26 +11,30 @@ import io.confluent.intellijplugin.core.util.InternalFeature
  * Date: 2019-04-17.
  */
 interface ConnectionSettingProvider {
-  fun createConnectionGroups(): List<ConnectionGroup>
-  fun retrieveSearchKeywords(): List<Pair<String, String>> = createConnectionGroups().map { Pair(it.name.lowercase(), it.name) }
-  val pluginType: BdtPluginType
+    fun createConnectionGroups(): List<ConnectionGroup>
+    fun retrieveSearchKeywords(): List<Pair<String, String>> =
+        createConnectionGroups().map { Pair(it.name.lowercase(), it.name) }
+
+    val pluginType: BdtPluginType
 }
 
 interface InternalConnectionSettingsProvider : ConnectionSettingProvider, InternalFeature
 
 object ConnectionSettingProviderEP {
-  private val EP_NAME = ExtensionPointName.create<ConnectionSettingProvider>("com.intellij.bigdatatools.kafka.connectionSettingProvider")
-  fun getAll(): List<ConnectionSettingProvider> {
-    val providerList = if (BdIdeRegistryUtil.isInternalFeaturesAvailable())
-      EP_NAME.extensionList
-    else
-      EP_NAME.extensionList.filter { it !is InternalConnectionSettingsProvider }
-    return providerList.filter { BdtPlugins.isPluginInstalled(it.pluginType) }
-  }
+    private val EP_NAME =
+        ExtensionPointName.create<ConnectionSettingProvider>("com.intellij.bigdatatools.kafka.connectionSettingProvider")
 
-  fun getGroups() = getAll().flatMap { it.createConnectionGroups() }.filter {
-    it.parentGroupId == null || BdtPlugins.isSupportedConnectionGroup(it.id)
-  }
+    fun getAll(): List<ConnectionSettingProvider> {
+        val providerList = if (BdIdeRegistryUtil.isInternalFeaturesAvailable())
+            EP_NAME.extensionList
+        else
+            EP_NAME.extensionList.filter { it !is InternalConnectionSettingsProvider }
+        return providerList.filter { BdtPlugins.isPluginInstalled(it.pluginType) }
+    }
 
-  fun getConnectionFactories(): List<ConnectionFactory<*>> = getGroups().filterIsInstance<ConnectionFactory<*>>()
+    fun getGroups() = getAll().flatMap { it.createConnectionGroups() }.filter {
+        it.parentGroupId == null || BdtPlugins.isSupportedConnectionGroup(it.id)
+    }
+
+    fun getConnectionFactories(): List<ConnectionFactory<*>> = getGroups().filterIsInstance<ConnectionFactory<*>>()
 }

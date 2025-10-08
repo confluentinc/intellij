@@ -19,85 +19,85 @@ import kotlin.time.ExperimentalTime
 import kotlin.time.TimeMark
 
 sealed class RunStrategy {
-  /**
-   * Executes provided task at most once, joins existing task if it is active
-   */
-  object Join : RunStrategy()
+    /**
+     * Executes provided task at most once, joins existing task if it is active
+     */
+    object Join : RunStrategy()
 
-  /**
-   * Executes provided task exactly once, cancels existing task if it is active
-   */
-  object Cancel : RunStrategy()
+    /**
+     * Executes provided task exactly once, cancels existing task if it is active
+     */
+    object Cancel : RunStrategy()
 }
 
 class SafeTaskHandle<T> {
-  private val ref = AtomicReference<CompletableFuture<SafeTask<T>>?>(null)
-  val currentTask: SafeTask<T>?
-    get() = ref.get()?.getNow(null)
+    private val ref = AtomicReference<CompletableFuture<SafeTask<T>>?>(null)
+    val currentTask: SafeTask<T>?
+        get() = ref.get()?.getNow(null)
 
-  fun runIfNotRunning(strategy: RunStrategy, taskFactory: () -> SafeTask<T>): SafeTask<T> {
-    return when (strategy) {
-      RunStrategy.Join -> {
-        val newTaskHolder = CompletableFuture<SafeTask<T>>()
-        val existingTaskOrHolder = ref.updateAndGet { if (it != null && it.getNow(null)?.isActive != false) it else newTaskHolder }
-        if (existingTaskOrHolder == newTaskHolder) {
-          taskFactory().also {
-            newTaskHolder.complete(it)
-          }
+    fun runIfNotRunning(strategy: RunStrategy, taskFactory: () -> SafeTask<T>): SafeTask<T> {
+        return when (strategy) {
+            RunStrategy.Join -> {
+                val newTaskHolder = CompletableFuture<SafeTask<T>>()
+                val existingTaskOrHolder =
+                    ref.updateAndGet { if (it != null && it.getNow(null)?.isActive != false) it else newTaskHolder }
+                if (existingTaskOrHolder == newTaskHolder) {
+                    taskFactory().also {
+                        newTaskHolder.complete(it)
+                    }
+                } else {
+                    checkNotNull(existingTaskOrHolder?.get())
+                }
+            }
+
+            RunStrategy.Cancel -> {
+                val newTaskHolder = CompletableFuture<SafeTask<T>>()
+                val existingTaskOrHolder = ref.getAndSet(newTaskHolder)
+                existingTaskOrHolder?.get()?.cancel("Task restarted by $strategy")
+                taskFactory().also {
+                    newTaskHolder.complete(it)
+                }
+            }
         }
-        else {
-          checkNotNull(existingTaskOrHolder?.get())
-        }
-      }
-      RunStrategy.Cancel -> {
-        val newTaskHolder = CompletableFuture<SafeTask<T>>()
-        val existingTaskOrHolder = ref.getAndSet(newTaskHolder)
-        existingTaskOrHolder?.get()?.cancel("Task restarted by $strategy")
-        taskFactory().also {
-          newTaskHolder.complete(it)
-        }
-      }
     }
-  }
 }
 
 @OptIn(ExperimentalTime::class)
 data class SafeTask<T>(
-  val project: Project?,
-  val name: String,
-  val showProgress: Boolean,
-  val timeout: Duration,
-  val deferred: Deferred<T>,
-  val startTime: TimeMark,
-  val safeExecutor: SafeExecutor,
+    val project: Project?,
+    val name: String,
+    val showProgress: Boolean,
+    val timeout: Duration,
+    val deferred: Deferred<T>,
+    val startTime: TimeMark,
+    val safeExecutor: SafeExecutor,
 ) {
-  val isActive get() = deferred.isActive
-  fun cancel(message: String = "Cancelled explicitly") = deferred.cancel(message)
-  suspend fun awaitOwn(): T = try {
-    deferred.await()
-  }
-  catch (e: CancellationException) {
-    deferred.cancel(e)
-    throw e
-  }
+    val isActive get() = deferred.isActive
+    fun cancel(message: String = "Cancelled explicitly") = deferred.cancel(message)
+    suspend fun awaitOwn(): T = try {
+        deferred.await()
+    } catch (e: CancellationException) {
+        deferred.cancel(e)
+        throw e
+    }
 }
 
 fun <T, R> SafeTask<T>.map(f: (T) -> R): SafeTask<R> {
-  return safeExecutor.asyncSuspend(this.name, this.timeout) {
-    f(awaitOwn())
-  }
+    return safeExecutor.asyncSuspend(this.name, this.timeout) {
+        f(awaitOwn())
+    }
 }
 
 fun <T> SafeTask<T>.blockingGet(): SafeResult<T> {
-  ApplicationManager.getApplication().assertIsNonDispatchThread()
-  //ApplicationManager.getApplication().assertReadAccessNotAllowed()
-  return try {
-    OkResult(this.deferred.asCompletableFuture().get())
-  } catch (e: ExecutionException) {
-    ErrorResult(e.cause ?: e)
-  } catch (e: TimeoutCancellationException) {
-    ErrorResult(TimeoutException("Timeout $timeout exceeded: $name").initCause(e))
-  } catch (e: Throwable) {
-    ErrorResult(e)
-  }
+    ApplicationManager.getApplication().assertIsNonDispatchThread()
+    //ApplicationManager.getApplication().assertReadAccessNotAllowed()
+    return try {
+        OkResult(this.deferred.asCompletableFuture().get())
+    } catch (e: ExecutionException) {
+        ErrorResult(e.cause ?: e)
+    } catch (e: TimeoutCancellationException) {
+        ErrorResult(TimeoutException("Timeout $timeout exceeded: $name").initCause(e))
+    } catch (e: Throwable) {
+        ErrorResult(e)
+    }
 }

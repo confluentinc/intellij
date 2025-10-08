@@ -10,23 +10,22 @@ import io.confluent.intellijplugin.util.KafkaMessagesBundle
 import javax.swing.Icon
 
 abstract class RemoteFsDriverProvider(name: String = "") : ConnectionData(name = name) {
-  final override fun createDriver(project: Project?, isTest: Boolean): Driver {
-    val driver = try {
-      createDriverImpl(if (isPerProject) project else null, isTest)
+    final override fun createDriver(project: Project?, isTest: Boolean): Driver {
+        val driver = try {
+            createDriverImpl(if (isPerProject) project else null, isTest)
+        } catch (e: Exception) {
+            if (isTest)
+                throw e
+            RfsNotificationUtils.notifyException(e, KafkaMessagesBundle.message("error.while.creating.connection"))
+            BrokenDriver(project, name, innerId, getIcon(), this, e)
+        }
+
+        return driver
     }
-    catch (e: Exception) {
-      if (isTest)
-        throw e
-      RfsNotificationUtils.notifyException(e, KafkaMessagesBundle.message("error.while.creating.connection"))
-      BrokenDriver(project, name, innerId, getIcon(), this, e)
-    }
 
-    return driver
-  }
+    abstract fun getIcon(): Icon
 
-  abstract fun getIcon(): Icon
+    protected abstract fun createDriverImpl(project: Project?, isTest: Boolean): Driver
 
-  protected abstract fun createDriverImpl(project: Project?, isTest: Boolean): Driver
-
-  abstract fun rfsDriverType(): BdtConnectionType
+    abstract fun rfsDriverType(): BdtConnectionType
 }

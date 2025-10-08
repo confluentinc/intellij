@@ -12,83 +12,83 @@ import java.awt.Component
 import javax.swing.JProgressBar
 
 class MonitoringProgressComponent(val updater: BdtMonitoringUpdater) : Disposable, MonitoringUpdateListener {
-  private val textField = JBLabel()
+    private val textField = JBLabel()
 
-  private val progressField = JProgressBar(0, 100).also {
-    it.alignmentX = Component.LEFT_ALIGNMENT
-  }
-
-  val component = panel {
-    row {
-      cell(textField)
-      cell(progressField)
-      link("") {
-        updater.cancelCurrent()
-      }.also {
-        it.component.icon = AllIcons.Actions.Cancel
-      }
+    private val progressField = JProgressBar(0, 100).also {
+        it.alignmentX = Component.LEFT_ALIGNMENT
     }
-  }
 
-  private var curUpdate: Int? = null
+    val component = panel {
+        row {
+            cell(textField)
+            cell(progressField)
+            link("") {
+                updater.cancelCurrent()
+            }.also {
+                it.component.icon = AllIcons.Actions.Cancel
+            }
+        }
+    }
 
-  init {
-    Disposer.register(updater, this)
-    updater.addListener(this)
+    private var curUpdate: Int? = null
 
-    component.isVisible = false
-  }
+    init {
+        Disposer.register(updater, this)
+        updater.addListener(this)
 
-  override fun dispose() {
-    updater.removeListener(this)
-  }
+        component.isVisible = false
+    }
 
-  override fun onStartRefreshConnection() {
-    onEnd(null)
-    textField.text = KafkaMessagesBundle.message("monitoring.progress.update.start.refresh.driver")
-    component.isVisible = true
-    component.revalidate()
-    component.repaint()
-  }
+    override fun dispose() {
+        updater.removeListener(this)
+    }
 
-  override fun onStartRefreshModels(id: Int, models: List<DataModel<*>>) {
-    if (curUpdate != null)
-      return
+    override fun onStartRefreshConnection() {
+        onEnd(null)
+        textField.text = KafkaMessagesBundle.message("monitoring.progress.update.start.refresh.driver")
+        component.isVisible = true
+        component.revalidate()
+        component.repaint()
+    }
 
-    curUpdate = id
-    component.isVisible = true
-    component.revalidate()
-    component.repaint()
-  }
+    override fun onStartRefreshModels(id: Int, models: List<DataModel<*>>) {
+        if (curUpdate != null)
+            return
 
-  override fun onEnd(id: Int?) {
-    if (id != null && curUpdate != id)
-      return
+        curUpdate = id
+        component.isVisible = true
+        component.revalidate()
+        component.repaint()
+    }
 
-    curUpdate = null
-    component.isVisible = false
-    component.revalidate()
-    component.repaint()
-  }
+    override fun onEnd(id: Int?) {
+        if (id != null && curUpdate != id)
+            return
 
-  override fun setIntermediate(id: Int, value: Boolean) {
-    if (curUpdate != id)
-      return
-    progressField.isIndeterminate = value
-  }
+        curUpdate = null
+        component.isVisible = false
+        component.revalidate()
+        component.repaint()
+    }
 
-  override fun setText(id: Int, @NlsContexts.Label text: String) {
-    if (curUpdate != id)
-      return
+    override fun setIntermediate(id: Int, value: Boolean) {
+        if (curUpdate != id)
+            return
+        progressField.isIndeterminate = value
+    }
 
-    textField.text = text
-  }
+    override fun setText(id: Int, @NlsContexts.Label text: String) {
+        if (curUpdate != id)
+            return
 
-  override fun setProgress(id: Int, progress: Double) {
-    if (curUpdate != id)
-      return
+        textField.text = text
+    }
 
-    progressField.value = (progress * 100).toInt()
-  }
+    override fun setProgress(id: Int, progress: Double) {
+        if (curUpdate != id)
+            return
+
+        progressField.value = (progress * 100).toInt()
+    }
 }
 

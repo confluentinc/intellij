@@ -14,6 +14,6 @@ import javax.swing.JComponent
  * }
  */
 open class CustomComponentActionImpl(private val component: JComponent) : DumbAwareAction(), CustomComponentAction {
-  override fun createCustomComponent(presentation: Presentation, place: String) = component
-  override fun actionPerformed(e: AnActionEvent) {}
+    override fun createCustomComponent(presentation: Presentation, place: String) = component
+    override fun actionPerformed(e: AnActionEvent) {}
 }

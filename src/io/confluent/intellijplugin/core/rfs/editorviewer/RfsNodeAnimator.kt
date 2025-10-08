@@ -8,16 +8,16 @@ import io.confluent.intellijplugin.core.rfs.projectview.pane.NodesUpdateAnimator
 import io.confluent.intellijplugin.core.rfs.tree.node.RfsTreeNode
 
 internal class RfsNodeAnimator(rfsTreeModel: BaseTreeModel<out RfsTreeNode>) : Disposable {
-  private val animator = NodesUpdateAnimator(rfsTreeModel, this).also {
-    it.resume()
-  }
-
-  fun setRepainter(body: (driver: Driver, rfsPath: RfsPath) -> Unit) {
-    animator.paintNotifier.plusAssign { driver, rfsPath ->
-      body(driver, rfsPath)
+    private val animator = NodesUpdateAnimator(rfsTreeModel, this).also {
+        it.resume()
     }
-  }
 
-  override fun dispose() {
-  }
+    fun setRepainter(body: (driver: Driver, rfsPath: RfsPath) -> Unit) {
+        animator.paintNotifier.plusAssign { driver, rfsPath ->
+            body(driver, rfsPath)
+        }
+    }
+
+    override fun dispose() {
+    }
 }

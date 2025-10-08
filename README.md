@@ -3,7 +3,8 @@
 ### Overview
 
 The [Kafka plugin](https://plugins.jetbrains.com/plugin/21704-kafka/) is designed to help developers work
-with [Apache Kafka](https://kafka.apache.org/) directly from an IntelliJ-based IDE. It provides a comprehensive set of tools for monitoring
+with [Apache Kafka](https://kafka.apache.org/) directly from an IntelliJ-based IDE. It provides a comprehensive set of
+tools for monitoring
 and managing Kafka event streaming processes.
 
 Key features include:
@@ -15,7 +16,8 @@ Key features include:
 - Support for SSH tunneling and SSL connections
 - Spring Boot integration for Kafka connections
 
-The plugin provides a dedicated tool window with an intuitive UI for interacting with Kafka clusters, making it easier to develop and test
+The plugin provides a dedicated tool window with an intuitive UI for interacting with Kafka clusters, making it easier
+to develop and test
 Kafka-based applications.
 
 ### Installing and Getting Started
@@ -36,7 +38,8 @@ in [bug tracker](https://youtrack.jetbrains.com/issues/IJPL?q=Subsystem:%20%7BTo
 - JDK 21 or later
 - Gradle 8.5 or later
 
-You can install the prerequisites through [SDKMAN!](https://sdkman.io/) by running `sdk env install` in the root directory of this project.
+You can install the prerequisites through [SDKMAN!](https://sdkman.io/) by running `sdk env install` in the root
+directory of this project.
 You can find instructions on how to install SDKMAN! in the [SDKMAN! docs](https://sdkman.io/install).
 
 #### Dependencies
@@ -93,7 +96,8 @@ To build the plugin for deployment:
 ./gradlew buildPlugin
 ```
 
-This creates a ZIP file in `build/distributions` that can be installed in IntelliJ IDEA `Settings -> Plugins -> Install Plugin from Disk`.
+This creates a ZIP file in `build/distributions` that can be installed in IntelliJ IDEA
+`Settings -> Plugins -> Install Plugin from Disk`.
 
 ### Publishing to JetBrains Marketplace
 
@@ -105,7 +109,8 @@ the [Marketplace](https://plugins.jetbrains.com/docs/intellij/publishing-plugin.
 
 To publish using Gradle:
 
-1. [Configure](https://plugins.jetbrains.com/docs/intellij/publishing-plugin.html#providing-your-personal-access-token-to-gradle) your
+1. [Configure](https://plugins.jetbrains.com/docs/intellij/publishing-plugin.html#providing-your-personal-access-token-to-gradle)
+   your
    `Personal Access Token` via Gradle
 2. Run the publishPlugin task:
    ```bash

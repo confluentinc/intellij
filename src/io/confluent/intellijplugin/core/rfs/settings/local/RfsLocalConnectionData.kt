@@ -12,14 +12,18 @@ import javax.swing.Icon
 
 class RfsLocalConnectionData(var rootPath: String? = null) : RemoteFsDriverProvider(LOCAL_CONNECTION_NAME) {
 
-  override fun rfsDriverType() = BdtConnectionType.LOCAL
+    override fun rfsDriverType() = BdtConnectionType.LOCAL
 
-  override fun getIcon(): Icon = LocalDriver.driverIcon()
+    override fun getIcon(): Icon = LocalDriver.driverIcon()
 
-  override fun createConfigurable(project: Project, parentGroup: ConnectionGroup) =
-    object : ConnectionConfigurable<RfsLocalConnectionData, RfsLocalSettingsCustomizer>(this, project, parentGroup.icon) {
-      override fun createSettingsCustomizer() = RfsLocalSettingsCustomizer(connectionData, disposable)
-    }
+    override fun createConfigurable(project: Project, parentGroup: ConnectionGroup) =
+        object : ConnectionConfigurable<RfsLocalConnectionData, RfsLocalSettingsCustomizer>(
+            this,
+            project,
+            parentGroup.icon
+        ) {
+            override fun createSettingsCustomizer() = RfsLocalSettingsCustomizer(connectionData, disposable)
+        }
 
-  override fun createDriverImpl(project: Project?, isTest: Boolean): Driver = LocalDriver(this, project)
+    override fun createDriverImpl(project: Project?, isTest: Boolean): Driver = LocalDriver(this, project)
 }

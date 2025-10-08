@@ -7,12 +7,12 @@ import java.text.DecimalFormat
  * "52.0" -> "52"
  */
 class DoubleRenderer : NumberRenderer() {
-  companion object {
-    // We use this format to avoid 1e-153 which are confusing for most users.
-    var format = DecimalFormat("#.###############")
-  }
+    companion object {
+        // We use this format to avoid 1e-153 which are confusing for most users.
+        var format = DecimalFormat("#.###############")
+    }
 
-  override fun setValue(value: Any?) {
-    text = format.format(value)
-  }
+    override fun setValue(value: Any?) {
+        text = format.format(value)
+    }
 }

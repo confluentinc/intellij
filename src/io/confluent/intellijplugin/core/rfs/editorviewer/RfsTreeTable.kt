@@ -33,283 +33,291 @@ import javax.swing.tree.TreeSelectionModel
 // ToDo copy of [com.intellij.ui.components.JBTreeTable] because of private/internal and some bugs.
 open class RfsTreeTable(model: TreeTableModel) : JComponent(), TreePathBackgroundSupplier {
 
-  val tree: Tree
+    val tree: Tree
 
-  val table: JBTable
+    val table: JBTable
 
-  val split: OnePixelSplitter
+    val split: OnePixelSplitter
 
-  var model: TreeTableModel? = null
-    private set
-  private var myTreeTableHeader: JTableHeader? = null
-  private var myColumnProportion = 0.1f
+    var model: TreeTableModel? = null
+        private set
+    private var myTreeTableHeader: JTableHeader? = null
+    private var myColumnProportion = 0.1f
 
-  private var columnProportion: Float
-    get() = myColumnProportion
-    set(columnProportion) {
-      myColumnProportion = columnProportion
-      split.proportion = 1f - (model!!.columnCount - 1) * columnProportion
-    }
-
-  init {
-    layout = BorderLayout()
-
-    tree = RTree()
-
-    table = Table()
-
-    split = createSplitter()
-
-    add(split)
-    val treePane = ScrollPaneFactory.createScrollPane(tree, SideBorder.NONE)
-    split.firstComponent = treePane
-
-    val tablePane = ScrollPaneFactory.createScrollPane(table, SideBorder.NONE)
-    split.secondComponent = tablePane
-    treePane.setColumnHeaderView(myTreeTableHeader)
-
-    //treePane.horizontalScrollBar.addComponentListener(object : ComponentAdapter() {
-    //  init {
-    //    if (tablePane.isVisible) {
-    //      tablePane.horizontalScrollBarPolicy = ScrollPaneConstants.HORIZONTAL_SCROLLBAR_ALWAYS
-    //    }
-    //  }
-    //
-    //  override fun componentShown(e: ComponentEvent) {
-    //    tablePane.horizontalScrollBarPolicy = ScrollPaneConstants.HORIZONTAL_SCROLLBAR_ALWAYS
-    //  }
-    //
-    //  override fun componentHidden(e: ComponentEvent) {
-    //    tablePane.horizontalScrollBarPolicy = ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER
-    //  }
-    //})
-    val scrollMode = if (!SystemInfo.isMac) JViewport.SIMPLE_SCROLL_MODE else JViewport.BLIT_SCROLL_MODE
-    treePane.viewport.scrollMode = scrollMode
-    tablePane.verticalScrollBar = treePane.verticalScrollBar
-    tablePane.viewport.scrollMode = scrollMode
-
-    val selection = SelectionSupport()
-    tree.getSelectionModel().addTreeSelectionListener(selection)
-    table.selectionModel.addListSelectionListener(selection)
-    table.rowMargin = 0
-    table.addMouseListener(selection)
-    table.putClientProperty(RenderingUtil.PAINT_HOVERED_BACKGROUND, java.lang.Boolean.FALSE)
-    val tableRenderer = getDefaultRenderer(TreeTableModel::class.java)
-    val tableRendererComponent = tableRenderer.getTableCellRendererComponent(table, "jJ", false, false, -1, -1)
-
-    tree.addPropertyChangeListener(JTree.ROW_HEIGHT_PROPERTY) {
-      val treeRowHeight = tree.getRowHeight()
-      if (treeRowHeight == table.rowHeight)
-        return@addPropertyChangeListener
-      table.rowHeight = treeRowHeight
-    }
-    tree.rowHeight = tableRendererComponent.preferredSize.height
-
-    tree.setCellRenderer { tree, value, selected, expanded, leaf, row, hasFocus ->
-      val cm = myTreeTableHeader!!.columnModel as TreeColumnModel
-      val renderer = getDefaultRenderer(TreeTableModel::class.java)
-      renderer.getTableCellRendererComponent(table, value, selected, hasFocus, row, cm.treeColumnIndex)
-    }
-    tree.putClientProperty(RenderingUtil.FOCUSABLE_SIBLING, table)
-    table.putClientProperty(RenderingUtil.FOCUSABLE_SIBLING, tree)
-    setModel(model)
-  }
-
-  private fun createSplitter(): OnePixelSplitter = RfsSplitter(table, myTreeTableHeader!!)
-
-  fun setupFirstColumnRenderer(renderer: TableCellRenderer) {
-    myTreeTableHeader?.defaultRenderer = renderer
-  }
-
-  private fun getDefaultRenderer(columnClass: Class<*>): TableCellRenderer {
-    return table.getDefaultRenderer(columnClass)
-  }
-
-  private fun setModel(model: TreeTableModel) {
-    this.model = model
-    tree.model = model
-    table.model = TreeTableModelAdapter(model, tree, table)
-    val tcm = myTreeTableHeader!!.columnModel as TreeColumnModel
-    if (tcm.treeColumnIndex >= 0) {
-      table.removeColumn(table.columnModel.getColumn(tcm.treeColumnIndex))
-    }
-    columnProportion = myColumnProportion
-  }
-
-  override fun getPathBackground(path: TreePath, row: Int): Color? {
-    return null
-  }
-
-  override fun hasFocus(): Boolean {
-    return tree.hasFocus() || table.hasFocus()
-  }
-
-  private fun addTreeTableRowDirtyRegion(component: JComponent, tm: Long, x: Int, y: Int, width: Int, height: Int): Boolean {
-    // checks if repaint manager should mark row of tree or table
-    // and mark we need to repaint both components together,
-    // otherwise super repaint
-    val isNeedToRepaintRow = component.width == width
-    if (isNeedToRepaintRow) {
-      repaint(tm, 0, y, this.width, height)
-    }
-    return isNeedToRepaintRow
-  }
-
-  private inner class SelectionSupport : MouseAdapter(), TreeSelectionListener, ListSelectionListener {
-    override fun mouseClicked(e: MouseEvent) {
-      if (e.clickCount == 2 && e.source === table) {
-        val row = table.selectedRow
-        if (tree.isCollapsed(row)) {
-          tree.expandRow(row)
-        }
-        else {
-          tree.collapseRow(row)
-        }
-      }
-    }
-
-    private var skipTableProcessing = false
-    private var skipTreeProcessing = false
-
-    override fun valueChanged(e: ListSelectionEvent) {
-      if (e.source === table.selectionModel && !skipTableProcessing) {
-        skipTreeProcessing = true
-        tree.selectionRows = table.selectionModel.selectedIndices
-        tree.repaint()
-        skipTreeProcessing = false
-      }
-    }
-
-    override fun valueChanged(e: TreeSelectionEvent) {
-      if (e.source === tree.selectionModel && !skipTreeProcessing) {
-        skipTableProcessing = true
-        table.clearSelection()
-        tree.selectionModel.selectionPaths.forEach {
-          val row = tree.getRowForPath(it)
-          if (row >= 0) {
-            table.addRowSelectionInterval(row, row)
-          }
+    private var columnProportion: Float
+        get() = myColumnProportion
+        set(columnProportion) {
+            myColumnProportion = columnProportion
+            split.proportion = 1f - (model!!.columnCount - 1) * columnProportion
         }
 
-        tree.repaint()
-
-        if (table.width != 0) {
-          table.repaint()
-        }
-        skipTableProcessing = false
-      }
-    }
-  }
-
-  private inner class RTree : Tree() {
     init {
-      getSelectionModel().selectionMode = TreeSelectionModel.DISCONTIGUOUS_TREE_SELECTION
-      isRootVisible = false
-      border = BorderFactory.createEmptyBorder()
-      putClientProperty(AUTO_SELECT_ON_MOUSE_PRESSED, false)
-      dragEnabled = true
+        layout = BorderLayout()
+
+        tree = RTree()
+
+        table = Table()
+
+        split = createSplitter()
+
+        add(split)
+        val treePane = ScrollPaneFactory.createScrollPane(tree, SideBorder.NONE)
+        split.firstComponent = treePane
+
+        val tablePane = ScrollPaneFactory.createScrollPane(table, SideBorder.NONE)
+        split.secondComponent = tablePane
+        treePane.setColumnHeaderView(myTreeTableHeader)
+
+        //treePane.horizontalScrollBar.addComponentListener(object : ComponentAdapter() {
+        //  init {
+        //    if (tablePane.isVisible) {
+        //      tablePane.horizontalScrollBarPolicy = ScrollPaneConstants.HORIZONTAL_SCROLLBAR_ALWAYS
+        //    }
+        //  }
+        //
+        //  override fun componentShown(e: ComponentEvent) {
+        //    tablePane.horizontalScrollBarPolicy = ScrollPaneConstants.HORIZONTAL_SCROLLBAR_ALWAYS
+        //  }
+        //
+        //  override fun componentHidden(e: ComponentEvent) {
+        //    tablePane.horizontalScrollBarPolicy = ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER
+        //  }
+        //})
+        val scrollMode = if (!SystemInfo.isMac) JViewport.SIMPLE_SCROLL_MODE else JViewport.BLIT_SCROLL_MODE
+        treePane.viewport.scrollMode = scrollMode
+        tablePane.verticalScrollBar = treePane.verticalScrollBar
+        tablePane.viewport.scrollMode = scrollMode
+
+        val selection = SelectionSupport()
+        tree.getSelectionModel().addTreeSelectionListener(selection)
+        table.selectionModel.addListSelectionListener(selection)
+        table.rowMargin = 0
+        table.addMouseListener(selection)
+        table.putClientProperty(RenderingUtil.PAINT_HOVERED_BACKGROUND, java.lang.Boolean.FALSE)
+        val tableRenderer = getDefaultRenderer(TreeTableModel::class.java)
+        val tableRendererComponent = tableRenderer.getTableCellRendererComponent(table, "jJ", false, false, -1, -1)
+
+        tree.addPropertyChangeListener(JTree.ROW_HEIGHT_PROPERTY) {
+            val treeRowHeight = tree.getRowHeight()
+            if (treeRowHeight == table.rowHeight)
+                return@addPropertyChangeListener
+            table.rowHeight = treeRowHeight
+        }
+        tree.rowHeight = tableRendererComponent.preferredSize.height
+
+        tree.setCellRenderer { tree, value, selected, expanded, leaf, row, hasFocus ->
+            val cm = myTreeTableHeader!!.columnModel as TreeColumnModel
+            val renderer = getDefaultRenderer(TreeTableModel::class.java)
+            renderer.getTableCellRendererComponent(table, value, selected, hasFocus, row, cm.treeColumnIndex)
+        }
+        tree.putClientProperty(RenderingUtil.FOCUSABLE_SIBLING, table)
+        table.putClientProperty(RenderingUtil.FOCUSABLE_SIBLING, tree)
+        setModel(model)
     }
 
-    override fun repaint(tm: Long, x: Int, y: Int, width: Int, height: Int) {
-      if (!addTreeTableRowDirtyRegion(this, tm, x, y, width, height)) {
-        super.repaint(tm, x, y, width, height)
-      }
+    private fun createSplitter(): OnePixelSplitter = RfsSplitter(table, myTreeTableHeader!!)
+
+    fun setupFirstColumnRenderer(renderer: TableCellRenderer) {
+        myTreeTableHeader?.defaultRenderer = renderer
+    }
+
+    private fun getDefaultRenderer(columnClass: Class<*>): TableCellRenderer {
+        return table.getDefaultRenderer(columnClass)
+    }
+
+    private fun setModel(model: TreeTableModel) {
+        this.model = model
+        tree.model = model
+        table.model = TreeTableModelAdapter(model, tree, table)
+        val tcm = myTreeTableHeader!!.columnModel as TreeColumnModel
+        if (tcm.treeColumnIndex >= 0) {
+            table.removeColumn(table.columnModel.getColumn(tcm.treeColumnIndex))
+        }
+        columnProportion = myColumnProportion
     }
 
     override fun getPathBackground(path: TreePath, row: Int): Color? {
-      return this@RfsTreeTable.getPathBackground(path, row)
+        return null
     }
-  }
 
-  private inner class Table : JBTable() {
-    val ref = JBTable()
+    override fun hasFocus(): Boolean {
+        return tree.hasFocus() || table.hasFocus()
+    }
 
-    init {
-      setShowGrid(false)
-      setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION)
-      columnSelectionAllowed = false
-      tableHeader.reorderingAllowed = false
+    private fun addTreeTableRowDirtyRegion(
+        component: JComponent,
+        tm: Long,
+        x: Int,
+        y: Int,
+        width: Int,
+        height: Int
+    ): Boolean {
+        // checks if repaint manager should mark row of tree or table
+        // and mark we need to repaint both components together,
+        // otherwise super repaint
+        val isNeedToRepaintRow = component.width == width
+        if (isNeedToRepaintRow) {
+            repaint(tm, 0, y, this.width, height)
+        }
+        return isNeedToRepaintRow
+    }
 
-      myTreeTableHeader = object : JBTableHeader() {
+    private inner class SelectionSupport : MouseAdapter(), TreeSelectionListener, ListSelectionListener {
+        override fun mouseClicked(e: MouseEvent) {
+            if (e.clickCount == 2 && e.source === table) {
+                val row = table.selectedRow
+                if (tree.isCollapsed(row)) {
+                    tree.expandRow(row)
+                } else {
+                    tree.collapseRow(row)
+                }
+            }
+        }
+
+        private var skipTableProcessing = false
+        private var skipTreeProcessing = false
+
+        override fun valueChanged(e: ListSelectionEvent) {
+            if (e.source === table.selectionModel && !skipTableProcessing) {
+                skipTreeProcessing = true
+                tree.selectionRows = table.selectionModel.selectedIndices
+                tree.repaint()
+                skipTreeProcessing = false
+            }
+        }
+
+        override fun valueChanged(e: TreeSelectionEvent) {
+            if (e.source === tree.selectionModel && !skipTreeProcessing) {
+                skipTableProcessing = true
+                table.clearSelection()
+                tree.selectionModel.selectionPaths.forEach {
+                    val row = tree.getRowForPath(it)
+                    if (row >= 0) {
+                        table.addRowSelectionInterval(row, row)
+                    }
+                }
+
+                tree.repaint()
+
+                if (table.width != 0) {
+                    table.repaint()
+                }
+                skipTableProcessing = false
+            }
+        }
+    }
+
+    private inner class RTree : Tree() {
+        init {
+            getSelectionModel().selectionMode = TreeSelectionModel.DISCONTIGUOUS_TREE_SELECTION
+            isRootVisible = false
+            border = BorderFactory.createEmptyBorder()
+            putClientProperty(AUTO_SELECT_ON_MOUSE_PRESSED, false)
+            dragEnabled = true
+        }
+
+        override fun repaint(tm: Long, x: Int, y: Int, width: Int, height: Int) {
+            if (!addTreeTableRowDirtyRegion(this, tm, x, y, width, height)) {
+                super.repaint(tm, x, y, width, height)
+            }
+        }
+
+        override fun getPathBackground(path: TreePath, row: Int): Color? {
+            return this@RfsTreeTable.getPathBackground(path, row)
+        }
+    }
+
+    private inner class Table : JBTable() {
+        val ref = JBTable()
 
         init {
-          setTable(ref) // <- We steal table header and need to provide any JTable to handle right ui painting.
-          setColumnModel(TreeColumnModel())
-          setReorderingAllowed(false)
-          setResizingAllowed(false)
+            setShowGrid(false)
+            setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION)
+            columnSelectionAllowed = false
+            tableHeader.reorderingAllowed = false
+
+            myTreeTableHeader = object : JBTableHeader() {
+
+                init {
+                    setTable(ref) // <- We steal table header and need to provide any JTable to handle right ui painting.
+                    setColumnModel(TreeColumnModel())
+                    setReorderingAllowed(false)
+                    setResizingAllowed(false)
+                }
+
+                override fun getAccessibleContext(): AccessibleContext {
+                    return MyAccessibleContext()
+                }
+
+                override fun getWidth(): Int {
+                    return super.getWidth() + 1
+                }
+            }
+
+            // Do not paint hover for table row separately from tree.
+            TableHoverListener.DEFAULT.removeFrom(this)
         }
 
-        override fun getAccessibleContext(): AccessibleContext {
-          return MyAccessibleContext()
+        override fun setRowHeight(rowHeight: Int) {
+            super.setRowHeight(rowHeight)
+            tree.rowHeight = getRowHeight()
         }
 
-        override fun getWidth(): Int {
-          return super.getWidth() + 1
-        }
-      }
-
-      // Do not paint hover for table row separately from tree.
-      TableHoverListener.DEFAULT.removeFrom(this)
-    }
-
-    override fun setRowHeight(rowHeight: Int) {
-      super.setRowHeight(rowHeight)
-      tree.rowHeight = getRowHeight()
-    }
-
-    override fun updateUI() {
-      super.updateUI()
-      // dynamically update ui for stolen header
-      @Suppress("UNNECESSARY_SAFE_CALL") // updateUI called from JBTable constructor, before Table class init.
-      ref?.updateUI()
-    }
-
-    private inner class MyAccessibleContext : AccessibleContextDelegate(table.accessibleContext) {
-      override fun getDelegateParent(): Container {
-        return this@RfsTreeTable
-      }
-    }
-  }
-
-  private inner class TreeColumnModel : DefaultTableColumnModel() {
-    var treeColumnIndex = -1
-      get() {
-        // This could be because of several listeners of JTree.TREE_MODEL_PROPERTY.
-        // We are getting the request for treeColumnIndex from inside setModel().
-        if (field == -1) {
-          field = findTreeColumnIndex()
-        }
-        return field
-      }
-
-    init {
-      addColumn(object : TableColumn(0) {
-        override fun getWidth(): Int {
-          return getTotalColumnWidth()
+        override fun updateUI() {
+            super.updateUI()
+            // dynamically update ui for stolen header
+            @Suppress("UNNECESSARY_SAFE_CALL") // updateUI called from JBTable constructor, before Table class init.
+            ref?.updateUI()
         }
 
-        override fun getHeaderValue(): Any {
-          return if (treeColumnIndex < 0) " " else (tree.model as TreeTableModel).getColumnName(treeColumnIndex)
+        private inner class MyAccessibleContext : AccessibleContextDelegate(table.accessibleContext) {
+            override fun getDelegateParent(): Container {
+                return this@RfsTreeTable
+            }
         }
-      })
-      tree.addPropertyChangeListener(JTree.TREE_MODEL_PROPERTY) {
-        treeColumnIndex = findTreeColumnIndex()
-      }
     }
 
-    private fun findTreeColumnIndex(): Int {
-      val model = tree.model as TreeTableModel
-      for (i in 0 until model.columnCount) {
-        if (TreeTableModel::class.java.isAssignableFrom(model.getColumnClass(i))) {
-          require(i == 0) { "Tree column must be first" }
-          return i
-        }
-      }
-      return -1
-    }
+    private inner class TreeColumnModel : DefaultTableColumnModel() {
+        var treeColumnIndex = -1
+            get() {
+                // This could be because of several listeners of JTree.TREE_MODEL_PROPERTY.
+                // We are getting the request for treeColumnIndex from inside setModel().
+                if (field == -1) {
+                    field = findTreeColumnIndex()
+                }
+                return field
+            }
 
-    override fun getTotalColumnWidth(): Int {
-      return tree.visibleRect.width + 1
+        init {
+            addColumn(object : TableColumn(0) {
+                override fun getWidth(): Int {
+                    return getTotalColumnWidth()
+                }
+
+                override fun getHeaderValue(): Any {
+                    return if (treeColumnIndex < 0) " " else (tree.model as TreeTableModel).getColumnName(
+                        treeColumnIndex
+                    )
+                }
+            })
+            tree.addPropertyChangeListener(JTree.TREE_MODEL_PROPERTY) {
+                treeColumnIndex = findTreeColumnIndex()
+            }
+        }
+
+        private fun findTreeColumnIndex(): Int {
+            val model = tree.model as TreeTableModel
+            for (i in 0 until model.columnCount) {
+                if (TreeTableModel::class.java.isAssignableFrom(model.getColumnClass(i))) {
+                    require(i == 0) { "Tree column must be first" }
+                    return i
+                }
+            }
+            return -1
+        }
+
+        override fun getTotalColumnWidth(): Int {
+            return tree.visibleRect.width + 1
+        }
     }
-  }
 }

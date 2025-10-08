@@ -4,5 +4,5 @@ import io.confluent.intellijplugin.common.settings.StorageConfig
 
 /** Marker interface for RunConsumerConfig and  RunProducerConfig.*/
 interface RunConfig {
-  fun toStorage(): StorageConfig
+    fun toStorage(): StorageConfig
 }

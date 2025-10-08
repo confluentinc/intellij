@@ -5,6 +5,6 @@ import io.confluent.intellijplugin.core.rfs.driver.RfsPath
 import javax.swing.Icon
 
 open class ListElement(val fileInfo: FileInfo, var icon: Icon?) {
-  val rfsPath: RfsPath
-    get() = fileInfo.path
+    val rfsPath: RfsPath
+        get() = fileInfo.path
 }

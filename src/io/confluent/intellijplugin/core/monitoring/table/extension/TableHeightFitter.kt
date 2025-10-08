@@ -9,36 +9,40 @@ import java.awt.Dimension
 import javax.swing.JScrollPane
 import javax.swing.JTable
 
-class TableHeightFitter<T : RemoteInfo> private constructor(private val scrollPane: JScrollPane, private val table: DataTable<T>)
-  : TableEventListener, Disposable {
+class TableHeightFitter<T : RemoteInfo> private constructor(
+    private val scrollPane: JScrollPane,
+    private val table: DataTable<T>
+) : TableEventListener, Disposable {
 
-  companion object {
-    fun <T : RemoteInfo> installOn(scrollPane: JScrollPane, table: DataTable<T>) {
-      val tableColumnsFitter = TableHeightFitter(scrollPane, table)
-      Disposer.register(table, tableColumnsFitter)
+    companion object {
+        fun <T : RemoteInfo> installOn(scrollPane: JScrollPane, table: DataTable<T>) {
+            val tableColumnsFitter = TableHeightFitter(scrollPane, table)
+            Disposer.register(table, tableColumnsFitter)
+        }
+
+        fun fitSize(scrollPane: JScrollPane, table: JTable) {
+            scrollPane.preferredSize = Dimension(
+                scrollPane.preferredSize.width,
+                table.tableHeader.preferredSize.height +
+                        // To prevent zero-height table and display at least empty text.
+                        if (table.preferredSize.height == 0) table.rowHeight + scrollPane.horizontalScrollBar.preferredSize.height
+                        else table.preferredSize.height +
+                                scrollPane.horizontalScrollBar.preferredSize.height +
+                                scrollPane.insets.top +
+                                scrollPane.insets.bottom
+            )
+        }
     }
 
-    fun fitSize(scrollPane: JScrollPane, table: JTable) {
-      scrollPane.preferredSize = Dimension(scrollPane.preferredSize.width,
-        table.tableHeader.preferredSize.height +
-        // To prevent zero-height table and display at least empty text.
-        if (table.preferredSize.height == 0) table.rowHeight + scrollPane.horizontalScrollBar.preferredSize.height
-        else table.preferredSize.height +
-             scrollPane.horizontalScrollBar.preferredSize.height +
-             scrollPane.insets.top +
-             scrollPane.insets.bottom)
+    init {
+        table.tableModel.addListener(this)
     }
-  }
 
-  init {
-    table.tableModel.addListener(this)
-  }
+    //region TableEventListener
+    override fun onChanged() = fitSize(scrollPane, table)
+    //endregion TableEventListener
 
-  //region TableEventListener
-  override fun onChanged() = fitSize(scrollPane, table)
-  //endregion TableEventListener
-
-  override fun dispose() {
-    table.tableModel.removeListener(this)
-  }
+    override fun dispose() {
+        table.tableModel.removeListener(this)
+    }
 }

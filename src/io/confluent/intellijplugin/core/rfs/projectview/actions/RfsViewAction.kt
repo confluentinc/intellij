@@ -18,26 +18,26 @@ import io.confluent.intellijplugin.core.rfs.driver.FileInfo
 
 abstract class RfsViewActionBase(val requestFocus: Boolean) : RfsProjectPaneActionBase() {
 
-  override fun actionPerformed(e: AnActionEvent) = withRfsPane(e) {
-    val fileInfo = getSelectedFileInfo() ?: return
-    //FileTypeViewerManager.getInstance(project).openViewer(fileInfo, requestFocus)
-  }
+    override fun actionPerformed(e: AnActionEvent) = withRfsPane(e) {
+        val fileInfo = getSelectedFileInfo() ?: return
+        //FileTypeViewerManager.getInstance(project).openViewer(fileInfo, requestFocus)
+    }
 
-  override fun update(e: AnActionEvent) = withRfsPane(e) {
-    val fileInfo = getSelectedFileInfo()
-    val hasViewableFile = isSingleDriverSelect() && fileInfo != null && canView(fileInfo)
-    e.presentation.isVisible = hasViewableFile
-    e.presentation.isEnabled = hasViewableFile && isLoaded() && isReadable(fileInfo)
-  }
+    override fun update(e: AnActionEvent) = withRfsPane(e) {
+        val fileInfo = getSelectedFileInfo()
+        val hasViewableFile = isSingleDriverSelect() && fileInfo != null && canView(fileInfo)
+        e.presentation.isVisible = hasViewableFile
+        e.presentation.isEnabled = hasViewableFile && isLoaded() && isReadable(fileInfo)
+    }
 
-  override fun getActionUpdateThread() = ActionUpdateThread.BGT
+    override fun getActionUpdateThread() = ActionUpdateThread.BGT
 
-  companion object {
-    // 'viewer != null' condition removed as it requires remote query and the only case with 'viewer == null'
-    // when there is a disabled (internal only) viewer - right now there are no such viewers
-    fun canView(fileInfo: FileInfo) =
-      fileInfo.isFile && fileInfo.driver.isFileStorage
+    companion object {
+        // 'viewer != null' condition removed as it requires remote query and the only case with 'viewer == null'
+        // when there is a disabled (internal only) viewer - right now there are no such viewers
+        fun canView(fileInfo: FileInfo) =
+            fileInfo.isFile && fileInfo.driver.isFileStorage
 
-    fun isReadable(fileInfo: FileInfo?) = fileInfo != null && fileInfo.permission?.readable != false
-  }
+        fun isReadable(fileInfo: FileInfo?) = fileInfo != null && fileInfo.permission?.readable != false
+    }
 }

@@ -14,28 +14,34 @@ import com.intellij.openapi.vfs.VirtualFileManager
 import io.confluent.intellijplugin.core.rfs.util.RfsNotificationUtils
 
 object FileChooserUtil {
-  fun selectSingleFile(project: Project, prevSelectedPath: String? = null, fileChooserTitle: @DialogTitle String? = null): VirtualFile? {
-    val prevSelectedFile = if (prevSelectedPath.isNullOrBlank()) null
-    else VirtualFileManager.getInstance().refreshAndFindFileByUrl(VfsUtilCore.pathToUrl(prevSelectedPath))
+    fun selectSingleFile(
+        project: Project,
+        prevSelectedPath: String? = null,
+        fileChooserTitle: @DialogTitle String? = null
+    ): VirtualFile? {
+        val prevSelectedFile = if (prevSelectedPath.isNullOrBlank()) null
+        else VirtualFileManager.getInstance().refreshAndFindFileByUrl(VfsUtilCore.pathToUrl(prevSelectedPath))
 
-    val fileDescriptor = FileChooserDescriptorFactory.createSingleFileDescriptor()
-    if (fileChooserTitle != null) {
-      fileDescriptor.title = fileChooserTitle
+        val fileDescriptor = FileChooserDescriptorFactory.createSingleFileDescriptor()
+        if (fileChooserTitle != null) {
+            fileDescriptor.title = fileChooserTitle
+        }
+
+        return FileChooser.chooseFile(fileDescriptor, project, prevSelectedFile ?: project.guessProjectDir())
     }
 
-    return FileChooser.chooseFile(fileDescriptor, project, prevSelectedFile ?: project.guessProjectDir())
-  }
-
-  fun selectFolderAndCreateFile(project: Project?, defaultFileName: String): VirtualFile? {
-    try {
-      val descriptor = FileSaverDescriptor(IdeBundle.message("title.new.file"), IdeBundle.message("prompt.enter.new.file.name"))
-      val dialog = FileChooserFactory.getInstance().createSaveFileDialog(descriptor, project)
-      val wrapper = dialog.save(defaultFileName) ?: return null
-      return wrapper.getVirtualFile(true)
+    fun selectFolderAndCreateFile(project: Project?, defaultFileName: String): VirtualFile? {
+        try {
+            val descriptor = FileSaverDescriptor(
+                IdeBundle.message("title.new.file"),
+                IdeBundle.message("prompt.enter.new.file.name")
+            )
+            val dialog = FileChooserFactory.getInstance().createSaveFileDialog(descriptor, project)
+            val wrapper = dialog.save(defaultFileName) ?: return null
+            return wrapper.getVirtualFile(true)
+        } catch (t: Throwable) {
+            RfsNotificationUtils.showExceptionMessage(project, t)
+            return null
+        }
     }
-    catch (t: Throwable) {
-      RfsNotificationUtils.showExceptionMessage(project, t)
-      return null
-    }
-  }
 }

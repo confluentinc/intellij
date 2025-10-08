@@ -8,7 +8,7 @@ import javax.swing.Icon
  * Date: 2018-11-23.
  */
 interface SchemaInfoPart : Serializable {
-  val text: String
-  val icon: Icon?
-  val onClick: (() -> Unit)?
+    val text: String
+    val icon: Icon?
+    val onClick: (() -> Unit)?
 }

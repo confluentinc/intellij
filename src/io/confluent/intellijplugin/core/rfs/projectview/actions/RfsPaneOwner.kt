@@ -13,18 +13,20 @@ import javax.swing.JTree
 import javax.swing.tree.TreePath
 
 interface RfsPaneOwner : Disposable {
-  companion object {
-    val DATA_KEY: DataKey<RfsPaneOwner> = DataKey.create("bdt.rfs.pane")
-  }
+    companion object {
+        val DATA_KEY: DataKey<RfsPaneOwner> = DataKey.create("bdt.rfs.pane")
+    }
 
-  val project: Project
-  val jTree: JTree
+    val project: Project
+    val jTree: JTree
 
-  fun getSelectedDriverNodes(): List<DriverFileRfsTreeNode> = getSelectionPaths().mapNotNull { it.lastDriverNode }
-  fun getSelectedDriverNode(): DriverFileRfsTreeNode? = getSelectedDriverNodes().firstOrNull()
-  fun getSelectedRfsNode(): RfsTreeNode? = getSelectionPaths().firstNotNullOfOrNull { it.lastPathComponent as? RfsTreeNode }
-  fun getSelectionPaths(): Array<TreePath>
+    fun getSelectedDriverNodes(): List<DriverFileRfsTreeNode> = getSelectionPaths().mapNotNull { it.lastDriverNode }
+    fun getSelectedDriverNode(): DriverFileRfsTreeNode? = getSelectedDriverNodes().firstOrNull()
+    fun getSelectedRfsNode(): RfsTreeNode? =
+        getSelectionPaths().firstNotNullOfOrNull { it.lastPathComponent as? RfsTreeNode }
 
-  fun getNodeForPath(path: RfsPath, driver: Driver): DriverFileRfsTreeNode?
-  fun getComponent(): JComponent
+    fun getSelectionPaths(): Array<TreePath>
+
+    fun getNodeForPath(path: RfsPath, driver: Driver): DriverFileRfsTreeNode?
+    fun getComponent(): JComponent
 }

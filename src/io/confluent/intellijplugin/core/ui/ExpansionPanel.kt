@@ -27,101 +27,114 @@ import javax.swing.event.ChangeListener
  * In expanded state shows title on top and collapse button in top right.
  * In collapsed state shows only vertical button on left with expand functionality.
  */
-class ExpansionPanel(@NlsContexts.BorderTitle private val title: String,
-                     private val supplier: () -> JComponent,
-                     expanded: Boolean = true,
-                     private val actions: List<AnAction>? = null) : JPanel(BorderLayout()) {
+class ExpansionPanel(
+    @NlsContexts.BorderTitle private val title: String,
+    private val supplier: () -> JComponent,
+    expanded: Boolean = true,
+    private val actions: List<AnAction>? = null
+) : JPanel(BorderLayout()) {
 
-  constructor(@NlsContexts.BorderTitle title: String,
-              supplier: () -> JComponent,
-              expandedKey: String,
-              expandedDefault: Boolean,
-              actions: List<AnAction>? = null)
-    : this(title, supplier, PropertiesComponent.getInstance().getBoolean(expandedKey, expandedDefault), actions) {
-    this.expandedServiceKey = expandedKey
-  }
-
-  private val changeListeners = mutableListOf<ChangeListener>()
-
-  var expandedServiceKey: String? = null
-
-  var expanded = expanded
-    set(value) {
-      if (field == value) {
-        return
-      }
-      field = value
-      update()
-      changeListeners.forEach { it.stateChanged(ChangeEvent(this)) }
-
-      expandedServiceKey?.let {
-        PropertiesComponent.getInstance().setValue(it, field)
-      }
+    constructor(
+        @NlsContexts.BorderTitle title: String,
+        supplier: () -> JComponent,
+        expandedKey: String,
+        expandedDefault: Boolean,
+        actions: List<AnAction>? = null
+    )
+            : this(
+        title,
+        supplier,
+        PropertiesComponent.getInstance().getBoolean(expandedKey, expandedDefault),
+        actions
+    ) {
+        this.expandedServiceKey = expandedKey
     }
 
-  init {
-    update()
-  }
+    private val changeListeners = mutableListOf<ChangeListener>()
 
-  override fun getMaximumSize(): Dimension {
-    return if (expanded) super.getMaximumSize() else Dimension(preferredSize.width, preferredSize.height)
-  }
+    var expandedServiceKey: String? = null
 
-  private fun update() {
-    if (expanded) {
-      setExpanded()
-    }
-    else {
-      setCollapsed()
-    }
-  }
+    var expanded = expanded
+        set(value) {
+            if (field == value) {
+                return
+            }
+            field = value
+            update()
+            changeListeners.forEach { it.stateChanged(ChangeEvent(this)) }
 
-  fun addChangeListener(listener: ChangeListener) = changeListeners.add(listener)
+            expandedServiceKey?.let {
+                PropertiesComponent.getInstance().setValue(it, field)
+            }
+        }
 
-  fun removeChangeListener(listener: ChangeListener) = changeListeners.remove(listener)
-
-  private fun setExpanded() {
-    val left = createUnitValue(10, isHorizontal = true)
-    val right = createUnitValue(0, isHorizontal = true)
-    val topBottom = createUnitValue(0, isHorizontal = false)
-    val panelInsets = arrayOf(topBottom, left, topBottom, right)
-    val titlePanel = JPanel(MigLayout(createLayoutConstraints(0, 0).noVisualPadding().fill().apply { insets = panelInsets },
-                                      ConstraintParser.parseColumnConstraints("[grow][pref!]"))).apply {
-      border = IdeBorderFactory.createBorder(SideBorder.BOTTOM)
-      add(JLabel(title), BorderLayout.LINE_START)
-      val expandAction = DumbAwareAction.create(KafkaMessagesBundle.message("expansionpanel.collapse"), RfsIcons.COLLAPSE) {
-        expanded = false
-      }
-      val actionGroup = DefaultActionGroup()
-      if (!actions.isNullOrEmpty()) {
-        actionGroup.addAll(actions)
-        actionGroup.addSeparator()
-      }
-      actionGroup.add(expandAction)
-      add(ToolbarUtils.createActionToolbar(this@ExpansionPanel, "BDTExpansionPanel", actionGroup, true).apply {
-        layoutStrategy = ToolbarLayoutStrategy.NOWRAP_STRATEGY // For removing empty space on the right.
-      }.component, BorderLayout.LINE_END)
+    init {
+        update()
     }
 
-    removeLineStartComponent()
-    add(supplier(), BorderLayout.CENTER)
-    add(titlePanel, BorderLayout.NORTH)
+    override fun getMaximumSize(): Dimension {
+        return if (expanded) super.getMaximumSize() else Dimension(preferredSize.width, preferredSize.height)
+    }
 
-    revalidate()
-    repaint()
-  }
+    private fun update() {
+        if (expanded) {
+            setExpanded()
+        } else {
+            setCollapsed()
+        }
+    }
 
-  private fun setCollapsed() {
-    removeCenterComponent()
-    removeNorthComponent()
+    fun addChangeListener(listener: ChangeListener) = changeListeners.add(listener)
 
-    add(VerticalButton.createToolbar(title, RfsIcons.EXPAND).apply {
-      addActionListener {
-        expanded = true
-      }
-    }, BorderLayout.LINE_START)
+    fun removeChangeListener(listener: ChangeListener) = changeListeners.remove(listener)
 
-    revalidate()
-    repaint()
-  }
+    private fun setExpanded() {
+        val left = createUnitValue(10, isHorizontal = true)
+        val right = createUnitValue(0, isHorizontal = true)
+        val topBottom = createUnitValue(0, isHorizontal = false)
+        val panelInsets = arrayOf(topBottom, left, topBottom, right)
+        val titlePanel = JPanel(
+            MigLayout(
+                createLayoutConstraints(0, 0).noVisualPadding().fill().apply { insets = panelInsets },
+                ConstraintParser.parseColumnConstraints("[grow][pref!]")
+            )
+        ).apply {
+            border = IdeBorderFactory.createBorder(SideBorder.BOTTOM)
+            add(JLabel(title), BorderLayout.LINE_START)
+            val expandAction =
+                DumbAwareAction.create(KafkaMessagesBundle.message("expansionpanel.collapse"), RfsIcons.COLLAPSE) {
+                    expanded = false
+                }
+            val actionGroup = DefaultActionGroup()
+            if (!actions.isNullOrEmpty()) {
+                actionGroup.addAll(actions)
+                actionGroup.addSeparator()
+            }
+            actionGroup.add(expandAction)
+            add(ToolbarUtils.createActionToolbar(this@ExpansionPanel, "BDTExpansionPanel", actionGroup, true).apply {
+                layoutStrategy = ToolbarLayoutStrategy.NOWRAP_STRATEGY // For removing empty space on the right.
+            }.component, BorderLayout.LINE_END)
+        }
+
+        removeLineStartComponent()
+        add(supplier(), BorderLayout.CENTER)
+        add(titlePanel, BorderLayout.NORTH)
+
+        revalidate()
+        repaint()
+    }
+
+    private fun setCollapsed() {
+        removeCenterComponent()
+        removeNorthComponent()
+
+        add(VerticalButton.createToolbar(title, RfsIcons.EXPAND).apply {
+            addActionListener {
+                expanded = true
+            }
+        }, BorderLayout.LINE_START)
+
+        revalidate()
+        repaint()
+    }
 }

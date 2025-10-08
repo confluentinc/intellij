@@ -1,9 +1,9 @@
 package io.confluent.intellijplugin.core.settings.defaultui
 
 interface HostAndPortProvider {
-  fun registerChangeListener(listener: HostAndPortChangeListener)
+    fun registerChangeListener(listener: HostAndPortChangeListener)
 }
 
 interface HostAndPortChangeListener {
-  fun onChange()
+    fun onChange()
 }
