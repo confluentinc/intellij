@@ -31,6 +31,8 @@
   </applicationListeners>
 
   <extensions defaultExtensionNs="com.intellij">
+    <errorHandler implementation="io.confluent.intellijplugin.telemetry.KafkaErrorReportSubmitter"/>
+    
     <notificationGroup id="kafka" displayType="STICKY_BALLOON"
                        bundle="messages.KafkaBundle"
                        key="kafka.plugin.installed"/>
@@ -57,6 +59,7 @@
     <applicationService serviceImplementation="io.confluent.intellijplugin.common.settings.KafkaConfigStorage"/>
 
     <applicationService serviceImplementation="io.confluent.intellijplugin.toolwindow.config.KafkaToolWindowSettings"/>
+    
     <bigdatatools.kafka.connectionSettingProvider
       implementation="io.confluent.intellijplugin.core.settings.connections.GeneralConnectionSettingsProvider"/>
     <bigdatatools.kafka.connectionSettingProvider implementation="io.confluent.intellijplugin.settings.KafkaSettingsProvider"/>
@@ -77,6 +80,19 @@
   </extensions>
 
   <actions resource-bundle="messages.KafkaBundle">
+    
+    <action id="Kafka.TestSentry"
+            class="io.confluent.intellijplugin.actions.TestSentryAction"
+            text="Test Sentry Integration">
+      <add-to-group group-id="ToolsMenu" anchor="last"/>
+    </action>
+    
+    <action id="Kafka.TestErrorReporting"
+            class="io.confluent.intellijplugin.actions.TestErrorReportingAction"
+            text="Test Error Reporting">
+      <add-to-group group-id="ToolsMenu" anchor="last"/>
+    </action>
+    
     <action id="Kafka.GlobalCreateKafkaConnection"
             class="io.confluent.intellijplugin.actions.CreateKafkaConnectionAction"/>
 
