@@ -35,12 +35,6 @@ object SentryClient {
      * This should be used during development/testing only
      */
     fun sendTestError() {
-        try {
-            logger.info("Sending test error to Sentry for verification")
-            throw RuntimeException("[IGNORE, this is a TEST ERROR] Kafka Plugin Test Error - Sentry Integration Verification")
-        } catch (e: Exception) {
-            captureException(e)
-            logger.info("Test error sent to Sentry successfully")
-        }
+        throw RuntimeException("[IGNORE, this is a TEST ERROR] Kafka Plugin Test Error - Sentry Integration Verification")
     }
 }

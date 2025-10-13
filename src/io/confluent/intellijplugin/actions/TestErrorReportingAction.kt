@@ -21,7 +21,7 @@ class TestErrorReportingAction : AnAction("Test Error Reporting") {
         
         if (result == Messages.YES) {
             // This will trigger the ErrorReportSubmitter
-            throw RuntimeException("Test exception from Kafka plugin - this should be reported to Sentry automatically!")
+            throw Exception("Test KafkaErrorReportSubmitter from Kafka plugin - this was reported to Sentry after clicking 'Report to Confluent' button")
         }
     }
 }

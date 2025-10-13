@@ -89,12 +89,6 @@
     </extensions>
 
     <actions resource-bundle="messages.KafkaBundle">
-        <action id="Kafka.TestSentry"
-                class="io.confluent.intellijplugin.actions.TestSentryAction"
-                text="Test Sentry Integration">
-            <add-to-group group-id="ToolsMenu" anchor="last"/>
-        </action>
-
         <action id="Kafka.TestErrorReporting"
                 class="io.confluent.intellijplugin.actions.TestErrorReportingAction"
                 text="Test Error Reporting">
