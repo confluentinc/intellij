@@ -30,10 +30,11 @@
                   topic="com.intellij.ide.plugins.DynamicPluginListener"/>
     </applicationListeners>
 
-  <extensions defaultExtensionNs="com.intellij">
-    <notificationGroup id="kafka" displayType="STICKY_BALLOON"
-                       bundle="messages.KafkaBundle"
-                       key="kafka.plugin.installed"/>
+    <extensions defaultExtensionNs="com.intellij">
+        <errorHandler implementation="io.confluent.intellijplugin.telemetry.KafkaErrorReportSubmitter"/>
+        <notificationGroup id="kafka" displayType="STICKY_BALLOON"
+                           bundle="messages.KafkaBundle"
+                           key="kafka.plugin.installed"/>
 
         <completion.contributor language="JSON"
                                 implementationClass="io.confluent.intellijplugin.completion.KafkaProducerGeneratorCompletionContributor"/>
@@ -63,10 +64,12 @@
 
         <applicationService serviceImplementation="io.confluent.intellijplugin.common.settings.KafkaConfigStorage"/>
 
-    <applicationService serviceImplementation="io.confluent.intellijplugin.toolwindow.config.KafkaToolWindowSettings"/>
-    <bigdatatools.kafka.connectionSettingProvider
-      implementation="io.confluent.intellijplugin.core.settings.connections.GeneralConnectionSettingsProvider"/>
-    <bigdatatools.kafka.connectionSettingProvider implementation="io.confluent.intellijplugin.settings.KafkaSettingsProvider"/>
+        <applicationService
+                serviceImplementation="io.confluent.intellijplugin.toolwindow.config.KafkaToolWindowSettings"/>
+        <bigdatatools.kafka.connectionSettingProvider
+                implementation="io.confluent.intellijplugin.core.settings.connections.GeneralConnectionSettingsProvider"/>
+        <bigdatatools.kafka.connectionSettingProvider
+                implementation="io.confluent.intellijplugin.settings.KafkaSettingsProvider"/>
 
         <projectConfigurable parentId="tools" id="kafka_conn_settings"
                              bundle="messages.KafkaBundle" key="connections.settings.display.name"
@@ -85,9 +88,20 @@
                 implementation="io.confluent.intellijplugin.core.monitoring.toolwindow.MonitoringTabActionProvider"/>
     </extensions>
 
-  <actions resource-bundle="messages.KafkaBundle">
-    <action id="Kafka.GlobalCreateKafkaConnection"
-            class="io.confluent.intellijplugin.actions.CreateKafkaConnectionAction"/>
+    <actions resource-bundle="messages.KafkaBundle">
+        <action id="Kafka.TestSentry"
+                class="io.confluent.intellijplugin.actions.TestSentryAction"
+                text="Test Sentry Integration">
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+        </action>
+
+        <action id="Kafka.TestErrorReporting"
+                class="io.confluent.intellijplugin.actions.TestErrorReportingAction"
+                text="Test Error Reporting">
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+        </action>
+        <action id="Kafka.GlobalCreateKafkaConnection"
+                class="io.confluent.intellijplugin.actions.CreateKafkaConnectionAction"/>
 
         <group id="Kafka.ExportRecords.Actions" popup="true" icon="AllIcons.Actions.Download">
             <action id="Kafka.Export.ToCsv" class="io.confluent.intellijplugin.actions.CsvExportAction"/>

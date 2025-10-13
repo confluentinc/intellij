@@ -11,7 +11,7 @@ object SentryClient {
         try {
             logger.info("Initializing Sentry with static initialization")
             Sentry.init { options ->
-                options.dsn = "PUT-YOUR-DSN-HERE-FOR-TESTING"
+                options.dsn = System.getenv("SENTRY_DSN")
                 // Enable debug mode for initial testing
                 options.isDebug = true
             }

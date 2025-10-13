@@ -26,9 +26,9 @@ sentry {
     // code as part of your stack traces in Sentry.
     includeSourceContext = true
 
-    org = "confluent"
-    projectName = "intellij-plugin"
-    authToken = "PUT-YOUR-AUTH-TOKEN-HERE-FOR-TESTING"
+    org.set("confluent")
+    projectName.set("intellij-plugin")
+    authToken.set(System.getenv("SENTRY_AUTH_TOKEN") ?: error("Missing SENTRY_AUTH_TOKEN environment variable"))
 }
 
 repositories {
