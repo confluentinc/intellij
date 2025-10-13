@@ -28,7 +28,7 @@ sentry {
 
     org.set("confluent")
     projectName.set("intellij-plugin")
-    authToken.set(System.getenv("SENTRY_AUTH_TOKEN") ?: error("Missing SENTRY_AUTH_TOKEN environment variable"))
+    authToken.set(System.getenv("SENTRY_AUTH_TOKEN"))
 }
 
 repositories {
