@@ -6,5 +6,5 @@ import io.confluent.intellijplugin.core.settings.connections.ConnectionData
 
 @Service
 class ApplicationDriverManager : DriverManager(null) {
-  override fun isSupportedStorageLocation(newConnectionData: ConnectionData, project: Project?) = project ==  null
+    override fun isSupportedStorageLocation(newConnectionData: ConnectionData, project: Project?) = project == null
 }

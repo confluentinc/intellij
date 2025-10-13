@@ -7,19 +7,19 @@ import io.confluent.intellijplugin.core.rfs.driver.RfsPath
 import javax.swing.tree.TreePath
 
 open class SmartDriverRfsTreeModel(
-  project: Project,
-  rootPath: RfsPath,
-  driver: Driver,
-  enableLoadMore: Boolean = true
+    project: Project,
+    rootPath: RfsPath,
+    driver: Driver,
+    enableLoadMore: Boolean = true
 ) : DriverRfsTreeModel(project, rootPath, driver, enableLoadMore) {
-  var comparator: Comparator<FileInfo> = driver.getMetaInfoProvider().getDefaultComparator()
+    var comparator: Comparator<FileInfo> = driver.getMetaInfoProvider().getDefaultComparator()
 
-  override fun preprocessLoadedChildren(calculatedChildren: List<FileInfo>): List<FileInfo> {
-    return calculatedChildren.sortedWith(comparator)
-  }
+    override fun preprocessLoadedChildren(calculatedChildren: List<FileInfo>): List<FileInfo> {
+        return calculatedChildren.sortedWith(comparator)
+    }
 
-  fun setSorting(comparator: Comparator<FileInfo>) {
-    this.comparator = comparator
-    invokeUpdateChildren(TreePath(root), propagate = true)
-  }
+    fun setSorting(comparator: Comparator<FileInfo>) {
+        this.comparator = comparator
+        invokeUpdateChildren(TreePath(root), propagate = true)
+    }
 }

@@ -20,58 +20,62 @@ import io.confluent.intellijplugin.toolwindow.controllers.KafkaMainController
 
 @Service(Service.Level.PROJECT)
 class KafkaMonitoringToolWindowController(project: Project) : MonitoringToolWindowController(project) {
-  override val settings
-    get() = KafkaToolWindowSettings.getInstance()
+    override val settings
+        get() = KafkaToolWindowSettings.getInstance()
 
-  override val helpTopicId: String = "big.data.tools.kafka"
+    override val helpTopicId: String = "big.data.tools.kafka"
 
-  override val toolWindowId: String = TOOL_WINDOW_ID
+    override val toolWindowId: String = TOOL_WINDOW_ID
 
-  private val settingsListener = KafkaConnectionSettingsListener()
+    private val settingsListener = KafkaConnectionSettingsListener()
 
-  override fun createConnectionGroup(): ConnectionFactory<*> = KafkaConnectionGroup()
+    override fun createConnectionGroup(): ConnectionFactory<*> = KafkaConnectionGroup()
 
-  override fun isSupportedData(connectionData: ConnectionData): Boolean = connectionData is KafkaConnectionData
+    override fun isSupportedData(connectionData: ConnectionData): Boolean = connectionData is KafkaConnectionData
 
-  override fun createMainController(connectionData: ConnectionData): ComponentController = KafkaMainController(project,
-                                                                                                               connectionData as KafkaConnectionData)
+    override fun createMainController(connectionData: ConnectionData): ComponentController = KafkaMainController(
+        project,
+        connectionData as KafkaConnectionData
+    )
 
-  override fun dispose() {
-    super.dispose()
-    RfsConnectionDataManager.instance?.removeListener(settingsListener)
-  }
-
-  override fun setUp(toolWindow: ToolWindow) {
-    super.setUp(toolWindow)
-    RfsConnectionDataManager.instance?.addListener(settingsListener)
-    KafkaRegistryUtil.disableLoggers()
-  }
-
-  override fun focusOn(connectionId: String) = focusOn(connectionId, null)
-
-  fun focusOn(connectionId: String, rfsPath: RfsPath?) {
-    val toolWindow = ToolWindowManager.getInstance(project).getToolWindow(TOOL_WINDOW_ID) ?: return
-
-    toolWindow.show {
-      val contentManager = toolWindow.contentManager
-      val content = contentManager.contents.firstOrNull { it.getUserData(CONNECTION_ID) == connectionId } ?: return@show
-      setSelectedContent(content)
-
-      if (rfsPath != null) {
-        val mainController = content.getUserData(PAGE_CONTROLLER_ID) as? KafkaMainController ?: return@show
-        mainController.open(rfsPath)
-      }
-    }
-  }
-
-  companion object {
-    fun getNotificationGroup(): NotificationGroup {
-      return NotificationGroupManager.getInstance().getNotificationGroup("Kafka Notification")
+    override fun dispose() {
+        super.dispose()
+        RfsConnectionDataManager.instance?.removeListener(settingsListener)
     }
 
-    fun getInstance(project: Project): KafkaMonitoringToolWindowController? = project.getService(
-      KafkaMonitoringToolWindowController::class.java)
+    override fun setUp(toolWindow: ToolWindow) {
+        super.setUp(toolWindow)
+        RfsConnectionDataManager.instance?.addListener(settingsListener)
+        KafkaRegistryUtil.disableLoggers()
+    }
 
-    const val TOOL_WINDOW_ID = "KafkaToolWindow"
-  }
+    override fun focusOn(connectionId: String) = focusOn(connectionId, null)
+
+    fun focusOn(connectionId: String, rfsPath: RfsPath?) {
+        val toolWindow = ToolWindowManager.getInstance(project).getToolWindow(TOOL_WINDOW_ID) ?: return
+
+        toolWindow.show {
+            val contentManager = toolWindow.contentManager
+            val content =
+                contentManager.contents.firstOrNull { it.getUserData(CONNECTION_ID) == connectionId } ?: return@show
+            setSelectedContent(content)
+
+            if (rfsPath != null) {
+                val mainController = content.getUserData(PAGE_CONTROLLER_ID) as? KafkaMainController ?: return@show
+                mainController.open(rfsPath)
+            }
+        }
+    }
+
+    companion object {
+        fun getNotificationGroup(): NotificationGroup {
+            return NotificationGroupManager.getInstance().getNotificationGroup("Kafka Notification")
+        }
+
+        fun getInstance(project: Project): KafkaMonitoringToolWindowController? = project.getService(
+            KafkaMonitoringToolWindowController::class.java
+        )
+
+        const val TOOL_WINDOW_ID = "KafkaToolWindow"
+    }
 }

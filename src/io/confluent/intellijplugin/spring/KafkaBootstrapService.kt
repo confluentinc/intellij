@@ -21,55 +21,56 @@ import java.awt.event.MouseEvent
 
 @Service(Service.Level.PROJECT)
 internal class KafkaBootstrapService(val project: Project) {
-  fun showConsumerWithPopup(brokerServers: String?, defaultTopic: String?, e: AnActionEvent) {
-    val actions = DriverManager.getDrivers(project).filterIsInstance<KafkaDriver>().map { driver ->
-      DumbAwareAction.create(driver.connectionData.name) {
-        KafkaCreateConsumerAction.createConsumer(project, driver.dataManager, defaultTopic)
-      }
+    fun showConsumerWithPopup(brokerServers: String?, defaultTopic: String?, e: AnActionEvent) {
+        val actions = DriverManager.getDrivers(project).filterIsInstance<KafkaDriver>().map { driver ->
+            DumbAwareAction.create(driver.connectionData.name) {
+                KafkaCreateConsumerAction.createConsumer(project, driver.dataManager, defaultTopic)
+            }
+        }
+        val additional = listOf(Separator(), createKafkaSettingsAction(brokerServers))
+
+        CreateConnectionPopup.createPopup(DefaultActionGroup(actions + additional), e.dataContext)
+            .show(RelativePoint(e.inputEvent as MouseEvent))
     }
-    val additional = listOf(Separator(), createKafkaSettingsAction(brokerServers))
 
-    CreateConnectionPopup.createPopup(DefaultActionGroup(actions + additional), e.dataContext)
-      .show(RelativePoint(e.inputEvent as MouseEvent))
-  }
+    fun showProducerWithPopup(brokerServers: String?, defaultTopic: String?, e: AnActionEvent) {
+        val actions = DriverManager.getDrivers(project).filterIsInstance<KafkaDriver>().map { driver ->
+            DumbAwareAction.create(driver.connectionData.name) {
+                KafkaCreateProducerAction.openProducer(driver.dataManager, project, defaultTopic)
+            }
+        }
+        val additional = listOf(Separator(), createKafkaSettingsAction(brokerServers))
 
-  fun showProducerWithPopup(brokerServers: String?, defaultTopic: String?, e: AnActionEvent) {
-    val actions = DriverManager.getDrivers(project).filterIsInstance<KafkaDriver>().map { driver ->
-      DumbAwareAction.create(driver.connectionData.name) {
-        KafkaCreateProducerAction.openProducer(driver.dataManager, project, defaultTopic)
-      }
+        CreateConnectionPopup.createPopup(DefaultActionGroup(actions + additional), e.dataContext)
+            .show(RelativePoint(e.inputEvent as MouseEvent))
     }
-    val additional = listOf(Separator(), createKafkaSettingsAction(brokerServers))
 
-    CreateConnectionPopup.createPopup(DefaultActionGroup(actions + additional), e.dataContext)
-      .show(RelativePoint(e.inputEvent as MouseEvent))
-  }
+    fun showKafkaSettingsPopup(brokerServers: String?, defaultTopic: String?, e: AnActionEvent) {
+        val actions = DriverManager.getDrivers(project).filterIsInstance<KafkaDriver>().map { driver ->
+            DumbAwareAction.create(driver.connectionData.name) {
+                ConnectionSettings.open(project, connectionId = driver.connectionData.innerId)
+                KafkaCreateProducerAction.openProducer(driver.dataManager, project, defaultTopic)
+            }
+        }
+        val additional = listOf(Separator(), createKafkaSettingsAction(brokerServers))
 
-  fun showKafkaSettingsPopup(brokerServers: String?, defaultTopic: String?, e: AnActionEvent) {
-    val actions = DriverManager.getDrivers(project).filterIsInstance<KafkaDriver>().map { driver ->
-      DumbAwareAction.create(driver.connectionData.name) {
-        ConnectionSettings.open(project, connectionId = driver.connectionData.innerId)
-        KafkaCreateProducerAction.openProducer(driver.dataManager, project, defaultTopic)
-      }
+        CreateConnectionPopup.createPopup(DefaultActionGroup(actions + additional), e.dataContext)
+            .show(RelativePoint(e.inputEvent as MouseEvent))
     }
-    val additional = listOf(Separator(), createKafkaSettingsAction(brokerServers))
 
-    CreateConnectionPopup.createPopup(DefaultActionGroup(actions + additional), e.dataContext)
-      .show(RelativePoint(e.inputEvent as MouseEvent))
-  }
-
-  private fun createKafkaSettingsAction(brokerServers: String?) = DumbAwareAction.create(
-    KafkaMessagesBundle.message("action.Kafka.GlobalCreateKafkaConnection.text")) {
-    val group = KafkaConnectionGroup()
-    val connectionData = group.createBlankData()
-    if (brokerServers != null) {
-      connectionData.brokerConfigurationSource = KafkaConfigurationSource.FROM_UI
-      connectionData.uri = brokerServers
+    private fun createKafkaSettingsAction(brokerServers: String?) = DumbAwareAction.create(
+        KafkaMessagesBundle.message("action.Kafka.GlobalCreateKafkaConnection.text")
+    ) {
+        val group = KafkaConnectionGroup()
+        val connectionData = group.createBlankData()
+        if (brokerServers != null) {
+            connectionData.brokerConfigurationSource = KafkaConfigurationSource.FROM_UI
+            connectionData.uri = brokerServers
+        }
+        ConnectionSettings.create(project, group, connectionData, applyIfOk = true)
     }
-    ConnectionSettings.create(project, group, connectionData, applyIfOk = true)
-  }
 
-  companion object {
-    fun getInstance(project: Project) = project.service<KafkaBootstrapService>()
-  }
+    companion object {
+        fun getInstance(project: Project) = project.service<KafkaBootstrapService>()
+    }
 }

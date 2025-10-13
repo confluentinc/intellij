@@ -5,9 +5,11 @@ import io.confluent.intellijplugin.core.rfs.driver.Driver
 import io.confluent.intellijplugin.core.rfs.driver.FileInfo
 import io.confluent.intellijplugin.core.rfs.driver.RfsPath
 
-abstract class RemoteFsMoveTask(fromInfo: FileInfo,
-                                toPath: RfsPath) : BaseRfsCopyMoveTask(fromInfo, toPath, fromInfo.driver) {
-  override fun copyFile(context: RfsCopyMoveContext, fromInfo: FileInfo, toPath: RfsPath, toDriver: Driver) {
-    TODO("Not yet implemented")
-  }
+abstract class RemoteFsMoveTask(
+    fromInfo: FileInfo,
+    toPath: RfsPath
+) : BaseRfsCopyMoveTask(fromInfo, toPath, fromInfo.driver) {
+    override fun copyFile(context: RfsCopyMoveContext, fromInfo: FileInfo, toPath: RfsPath, toDriver: Driver) {
+        TODO("Not yet implemented")
+    }
 }

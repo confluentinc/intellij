@@ -15,12 +15,11 @@ import java.nio.file.attribute.PosixFilePermission
 fun Path.inputStream(): InputStream = Files.newInputStream(this)
 
 fun Path.touch() {
-  this.createParentDirectories()
-  try {
-    Files.createFile(this)
-  }
-  catch (_: FileAlreadyExistsException) {
-  }
+    this.createParentDirectories()
+    try {
+        Files.createFile(this)
+    } catch (_: FileAlreadyExistsException) {
+    }
 }
 
 fun Path.createParentDirectories() = Files.createDirectories(this.parent)
@@ -28,22 +27,21 @@ fun Path.exists() = Files.exists(this)
 fun Path.readText(charset: Charset = Charsets.UTF_8) = toFile().readText(charset)
 fun Path.writeText(text: String, charset: Charset = Charsets.UTF_8) = toFile().writeText(text, charset)
 fun Path.filePermissions(permissions: Set<PosixFilePermission>) {
-  // Comes from PosixFileAttributeView#name()
-  if ("posix" in this.fileSystem.supportedFileAttributeViews()) {
-    Files.setPosixFilePermissions(this, permissions)
-  }
+    // Comes from PosixFileAttributeView#name()
+    if ("posix" in this.fileSystem.supportedFileAttributeViews()) {
+        Files.setPosixFilePermissions(this, permissions)
+    }
 }
 
 object PathUtils {
-  fun toUnixPath(path: String): String {
-    return if (SystemInfo.isWindows) {
-      if (parseWindowsUncPath(path) != null) {
-        return path
-      }
-      path.replace("\\\\".toRegex(), "/")
+    fun toUnixPath(path: String): String {
+        return if (SystemInfo.isWindows) {
+            if (parseWindowsUncPath(path) != null) {
+                return path
+            }
+            path.replace("\\\\".toRegex(), "/")
+        } else {
+            path
+        }
     }
-    else {
-      path
-    }
-  }
 }

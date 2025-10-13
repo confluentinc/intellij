@@ -4,12 +4,11 @@ import io.confluent.intellijplugin.core.table.renderers.MaterialTableCellRendere
 import io.confluent.intellijplugin.registry.KafkaRegistryFormat
 
 class RegistryFormatRenderer : MaterialTableCellRenderer() {
-  override fun setValue(value: Any?) {
-    if (value == null) {
-      super.setValue(KafkaMessagesBundle.message("monitoring.log.loading"))
+    override fun setValue(value: Any?) {
+        if (value == null) {
+            super.setValue(KafkaMessagesBundle.message("monitoring.log.loading"))
+        } else {
+            super.setValue((value as? KafkaRegistryFormat)?.presentable ?: value.toString())
+        }
     }
-    else {
-      super.setValue((value as? KafkaRegistryFormat)?.presentable ?: value.toString())
-    }
-  }
 }

@@ -9,20 +9,21 @@ import io.confluent.intellijplugin.core.settings.manager.RfsConnectionDataManage
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
 
 class KafkaToolWindowFactory : MonitoringToolWindowFactory() {
-  override val toolWindowId = KafkaMonitoringToolWindowController.TOOL_WINDOW_ID
-  override val connectionType = BdtConnectionType.KAFKA
-  override val title: String = KafkaMessagesBundle.message("toolwindow.title")
+    override val toolWindowId = KafkaMonitoringToolWindowController.TOOL_WINDOW_ID
+    override val connectionType = BdtConnectionType.KAFKA
+    override val title: String = KafkaMessagesBundle.message("toolwindow.title")
 
-  override fun shouldBeAvailable(project: Project): Boolean {
-    // We will show ToolWindow stripe button if:
-    // 1. Only separate Kafka plugin installed
-    // 2. Full BDT installed and we have any Kafka connection configured.
-    return (BdtPlugins.isKafkaPluginInstalled() && !BdtPlugins.isFullPluginInstalled()) ||
-           (BdtPlugins.isFullPluginInstalled() &&
-            !RfsConnectionDataManager.instance?.getConnectionsByGroupId(connectionType.id, project).isNullOrEmpty())
-  }
+    override fun shouldBeAvailable(project: Project): Boolean {
+        // We will show ToolWindow stripe button if:
+        // 1. Only separate Kafka plugin installed
+        // 2. Full BDT installed and we have any Kafka connection configured.
+        return (BdtPlugins.isKafkaPluginInstalled() && !BdtPlugins.isFullPluginInstalled()) ||
+                (BdtPlugins.isFullPluginInstalled() &&
+                        !RfsConnectionDataManager.instance?.getConnectionsByGroupId(connectionType.id, project)
+                            .isNullOrEmpty())
+    }
 
-  override fun createToolWindowContent(project: Project, toolWindow: ToolWindow) {
-    KafkaMonitoringToolWindowController.getInstance(project)?.setUp(toolWindow)
-  }
+    override fun createToolWindowContent(project: Project, toolWindow: ToolWindow) {
+        KafkaMonitoringToolWindowController.getInstance(project)?.setUp(toolWindow)
+    }
 }

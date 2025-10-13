@@ -4,13 +4,13 @@ import com.intellij.openapi.progress.runBlockingCancellable
 import kotlinx.coroutines.launch
 
 fun Driver.refreshConnectionLaunch(activitySource: ActivitySource) {
-  safeExecutor.coroutineScope.launch {
-    refreshConnection(activitySource)
-  }
+    safeExecutor.coroutineScope.launch {
+        refreshConnection(activitySource)
+    }
 }
 
 fun Driver.refreshConnectionBlocking(activitySource: ActivitySource): DriverConnectionStatus {
-  return runBlockingCancellable {
-    refreshConnection(activitySource)
-  }
+    return runBlockingCancellable {
+        refreshConnection(activitySource)
+    }
 }

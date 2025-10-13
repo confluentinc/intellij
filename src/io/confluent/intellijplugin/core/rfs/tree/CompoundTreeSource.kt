@@ -9,26 +9,26 @@ import io.confluent.intellijplugin.core.rfs.driver.depend.MasterDriver
 import io.confluent.intellijplugin.core.settings.manager.RfsConnectionDataManager
 
 class CompoundTreeSource(val project: Project, val driver: MasterDriver, val rfsPath: RfsPath) : Disposable {
-  private var rootSources: List<Pair<String, Boolean>> = emptyList()
-  val treeModel = CompoundRfsTreeModel(project, { rootSources.map { it.first to null } }, emptyList()).also {
-    Disposer.register(this, it)
-  }
+    private var rootSources: List<Pair<String, Boolean>> = emptyList()
+    val treeModel = CompoundRfsTreeModel(project, { rootSources.map { it.first to null } }, emptyList()).also {
+        Disposer.register(this, it)
+    }
 
-  override fun dispose() {}
+    override fun dispose() {}
 
-  @RequiresEdt
-  fun update(force: Boolean = false) {
-    val connIds = driver.listDependConnections(rfsPath).toSet()
-    val connections = if (!connIds.isEmpty())
-      RfsConnectionDataManager.instance?.getConnections(project)?.filter { it.innerId in connIds } ?: emptyList()
-    else
-      emptyList()
+    @RequiresEdt
+    fun update(force: Boolean = false) {
+        val connIds = driver.listDependConnections(rfsPath).toSet()
+        val connections = if (!connIds.isEmpty())
+            RfsConnectionDataManager.instance?.getConnections(project)?.filter { it.innerId in connIds } ?: emptyList()
+        else
+            emptyList()
 
-    val newSources = connections.map { it.innerId to it.isEnabled }
-    if (!force && newSources == rootSources)
-      return
+        val newSources = connections.map { it.innerId to it.isEnabled }
+        if (!force && newSources == rootSources)
+            return
 
-    rootSources = newSources
-    treeModel.updateRoots()
-  }
+        rootSources = newSources
+        treeModel.updateRoots()
+    }
 }

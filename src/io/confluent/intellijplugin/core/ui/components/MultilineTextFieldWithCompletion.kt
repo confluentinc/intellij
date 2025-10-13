@@ -15,58 +15,58 @@ import com.intellij.util.textCompletion.TextCompletionProvider
 import com.intellij.util.textCompletion.TextFieldWithCompletion
 import java.awt.Dimension
 
-class MultilineTextFieldWithCompletion(project: Project, provider: TextCompletionProvider)
-  : TextFieldWithCompletion(project, provider, "", false, true, true) {
+class MultilineTextFieldWithCompletion(project: Project, provider: TextCompletionProvider) :
+    TextFieldWithCompletion(project, provider, "", false, true, true) {
 
-  private var columnWidth = 0
+    private var columnWidth = 0
 
-  override fun createEditor(): EditorEx {
-    val editorEx = super.createEditor()
-    editorEx.setBorder(DarculaEditorTextFieldBorder(this, editorEx))
-    return editorEx
-  }
-
-  // Code from JTextField
-  private fun getColumnWidth(): Int {
-    if (columnWidth == 0) {
-      val metrics = getFontMetrics(font)
-      columnWidth = metrics.charWidth('m')
+    override fun createEditor(): EditorEx {
+        val editorEx = super.createEditor()
+        editorEx.setBorder(DarculaEditorTextFieldBorder(this, editorEx))
+        return editorEx
     }
-    return columnWidth
-  }
 
-  override fun getPreferredSize(): Dimension? {
-    val size = super.getPreferredSize()
-    size.width = 5 * getColumnWidth() + insets.left + insets.right
-    return size
-  }
-
-  fun setTextWithoutScroll(text: String?) {
-    CommandProcessor.getInstance().executeCommand(project, {
-      ApplicationManager.getApplication().runWriteAction {
-        val myDocument = document
-        var separator = LINE_SEPARATOR_KEY[myDocument]
-        if (separator == null) {
-          separator = detectLineSeparators(myDocument, text)
+    // Code from JTextField
+    private fun getColumnWidth(): Int {
+        if (columnWidth == 0) {
+            val metrics = getFontMetrics(font)
+            columnWidth = metrics.charWidth('m')
         }
-        LINE_SEPARATOR_KEY[myDocument] = separator
-        myDocument.replaceString(0, myDocument.textLength, normalize(text, separator))
-      }
-    }, null, null, UndoConfirmationPolicy.DEFAULT, document)
-  }
-
-  companion object {
-    //ToDo copy from EditorTextField.
-    private val LINE_SEPARATOR_KEY = Key.create<LineSeparator>("ETF_LINE_SEPARATOR")
-
-    private fun normalize(text: String?, separator: LineSeparator?): String {
-      return if (text == null || separator == null) (text ?: "") else StringUtil.convertLineSeparators(text)
+        return columnWidth
     }
 
-    private fun detectLineSeparators(document: Document?, text: String?): LineSeparator? {
-      if (text == null) return null
-      val doNotNormalizeDetect = document is DocumentImpl && document.acceptsSlashR()
-      return if (doNotNormalizeDetect) null else StringUtil.detectSeparators(text)
+    override fun getPreferredSize(): Dimension? {
+        val size = super.getPreferredSize()
+        size.width = 5 * getColumnWidth() + insets.left + insets.right
+        return size
     }
-  }
+
+    fun setTextWithoutScroll(text: String?) {
+        CommandProcessor.getInstance().executeCommand(project, {
+            ApplicationManager.getApplication().runWriteAction {
+                val myDocument = document
+                var separator = LINE_SEPARATOR_KEY[myDocument]
+                if (separator == null) {
+                    separator = detectLineSeparators(myDocument, text)
+                }
+                LINE_SEPARATOR_KEY[myDocument] = separator
+                myDocument.replaceString(0, myDocument.textLength, normalize(text, separator))
+            }
+        }, null, null, UndoConfirmationPolicy.DEFAULT, document)
+    }
+
+    companion object {
+        //ToDo copy from EditorTextField.
+        private val LINE_SEPARATOR_KEY = Key.create<LineSeparator>("ETF_LINE_SEPARATOR")
+
+        private fun normalize(text: String?, separator: LineSeparator?): String {
+            return if (text == null || separator == null) (text ?: "") else StringUtil.convertLineSeparators(text)
+        }
+
+        private fun detectLineSeparators(document: Document?, text: String?): LineSeparator? {
+            if (text == null) return null
+            val doNotNormalizeDetect = document is DocumentImpl && document.acceptsSlashR()
+            return if (doNotNormalizeDetect) null else StringUtil.detectSeparators(text)
+        }
+    }
 }

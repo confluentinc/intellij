@@ -9,10 +9,10 @@ import io.confluent.intellijplugin.core.rfs.copypaste.providers.RfsPasteProvider
 import io.confluent.intellijplugin.core.rfs.projectview.actions.RfsPaneOwner
 
 class RfsCopyPasteSupport(pane: RfsPaneOwner) : CopyPasteSupport {
-  private val pasteProvider = RfsPasteProvider(pane)
-  private val copyCutProvider = RfsCopyCutProvider(pane)
+    private val pasteProvider = RfsPasteProvider(pane)
+    private val copyCutProvider = RfsCopyCutProvider(pane)
 
-  override fun getCopyProvider(): CopyProvider = copyCutProvider
-  override fun getCutProvider(): CutProvider = copyCutProvider
-  override fun getPasteProvider(): PasteProvider = pasteProvider
+    override fun getCopyProvider(): CopyProvider = copyCutProvider
+    override fun getCutProvider(): CutProvider = copyCutProvider
+    override fun getPasteProvider(): PasteProvider = pasteProvider
 }

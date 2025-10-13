@@ -7,16 +7,16 @@ import io.confluent.intellijplugin.core.settings.connections.FileSystemConnectio
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
 
 class RfsLocalConnectionGroup : ConnectionFactory<RfsLocalConnectionData>(
-  id = BdtConnectionType.LOCAL.id,
-  name = BdtConnectionType.LOCAL.connName,
-  icon = LocalDriver.driverIcon(),
-  parentGroupId = FileSystemConnectionGroup.GROUP_ID
+    id = BdtConnectionType.LOCAL.id,
+    name = BdtConnectionType.LOCAL.connName,
+    icon = LocalDriver.driverIcon(),
+    parentGroupId = FileSystemConnectionGroup.GROUP_ID
 ) {
-  override fun newData() = RfsLocalConnectionData().apply {
-    name = BdtConnectionType.LOCAL.connName
-  }
+    override fun newData() = RfsLocalConnectionData().apply {
+        name = BdtConnectionType.LOCAL.connName
+    }
 
-  companion object {
-    val LOCAL_CONNECTION_NAME = KafkaMessagesBundle.message("rfs.local.connection.name")
-  }
+    companion object {
+        val LOCAL_CONNECTION_NAME = KafkaMessagesBundle.message("rfs.local.connection.name")
+    }
 }

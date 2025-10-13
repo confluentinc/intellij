@@ -22,71 +22,76 @@ import io.confluent.intellijplugin.util.KafkaPropertiesUtils
 import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig
 import javax.swing.SwingUtilities
 
-internal class KafkaConfluentSettings(val project: Project,
-                             val connectionData: KafkaConnectionData,
-                             uiDisposable: Disposable,
-                             val url: StringNamedField<ConnectionData>,
-                             propertiesEditor: AbstractPropertiesFieldComponent<KafkaConnectionData>,
-                             brokerSettings: KafkaBrokerSettings) {
-  var updateFromCloud = false
+internal class KafkaConfluentSettings(
+    val project: Project,
+    val connectionData: KafkaConnectionData,
+    uiDisposable: Disposable,
+    val url: StringNamedField<ConnectionData>,
+    propertiesEditor: AbstractPropertiesFieldComponent<KafkaConnectionData>,
+    brokerSettings: KafkaBrokerSettings
+) {
+    var updateFromCloud = false
 
-  internal val confluentConf = ConnectionPropertiesEditor(project, KafkaPropertiesUtils.getAdminPropertiesDescriptions()).apply {
-    getComponent().setCaretPosition(0)
-    val listener = object : DocumentListener {
-      override fun documentChanged(event: com.intellij.openapi.editor.event.DocumentEvent) {
-        if (updateFromCloud)
-          return
-        val text: String = getComponent().text
+    internal val confluentConf =
+        ConnectionPropertiesEditor(project, KafkaPropertiesUtils.getAdminPropertiesDescriptions()).apply {
+            getComponent().setCaretPosition(0)
+            val listener = object : DocumentListener {
+                override fun documentChanged(event: com.intellij.openapi.editor.event.DocumentEvent) {
+                    if (updateFromCloud)
+                        return
+                    val text: String = getComponent().text
 
-        SwingUtilities.invokeLater {
-          updateFromCloud = true
-          try {
-            propertiesEditor.getComponent().text = text
-          }
-          finally {
-            updateFromCloud = false
-          }
+                    SwingUtilities.invokeLater {
+                        updateFromCloud = true
+                        try {
+                            propertiesEditor.getComponent().text = text
+                        } finally {
+                            updateFromCloud = false
+                        }
+                    }
+                    if (brokerSettings.cloudSource.getValue() != KafkaCloudType.CONFLUENT ||
+                        brokerSettings.confSource.getValue() != KafkaConfigurationSource.CLOUD
+                    ) {
+                        return
+                    }
+                    if (text.contains(AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG))
+                        brokerSettings.registryType.setValue(KafkaRegistryType.CONFLUENT)
+                    else
+                        brokerSettings.registryType.setValue(KafkaRegistryType.NONE)
+                }
+            }
+            getComponent().addDocumentListener(listener)
+            Disposer.register(uiDisposable, Disposable {
+                getComponent().removeDocumentListener(listener)
+            })
         }
-        if (brokerSettings.cloudSource.getValue() != KafkaCloudType.CONFLUENT ||
-            brokerSettings.confSource.getValue() != KafkaConfigurationSource.CLOUD) {
-          return
+
+    init {
+        propertiesEditor.getComponent().doOnChange {
+            if (updateFromCloud)
+                return@doOnChange
+            confluentConf.getComponent().text = propertiesEditor.getComponent().text
         }
-        if (text.contains(AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG))
-          brokerSettings.registryType.setValue(KafkaRegistryType.CONFLUENT)
-        else
-          brokerSettings.registryType.setValue(KafkaRegistryType.NONE)
-      }
     }
-    getComponent().addDocumentListener(listener)
-    Disposer.register(uiDisposable, Disposable {
-      getComponent().removeDocumentListener(listener)
-    })
-  }
 
-  init {
-    propertiesEditor.getComponent().doOnChange {
-      if (updateFromCloud)
-        return@doOnChange
-      confluentConf.getComponent().text = propertiesEditor.getComponent().text
+    fun setPanelComponent(panel: Panel) = panel.setComponent()
+
+    private fun Panel.setComponent() = rowsRange {
+        row(CONFLUENT_PROPERTY.label) {
+            contextHelp(
+                KafkaMessagesBundle.message("settings.confluent.setup.desc"),
+                KafkaMessagesBundle.message("settings.cloud.setup.title")
+            )
+        }
+        row {
+            cell(confluentConf.getComponent()).align(Align.FILL).resizableColumn()
+                .comment(KafkaMessagesBundle.message("settings.confluent.conf.comment"))
+        }
     }
-  }
 
-  fun setPanelComponent(panel: Panel) = panel.setComponent()
+    fun getDefaultFields(): List<WrappedComponent<in KafkaConnectionData>> = listOf()
 
-  private fun Panel.setComponent() = rowsRange {
-    row(CONFLUENT_PROPERTY.label) {
-      contextHelp(KafkaMessagesBundle.message("settings.confluent.setup.desc"),
-                  KafkaMessagesBundle.message("settings.cloud.setup.title"))
+    companion object {
+        val CONFLUENT_PROPERTY = ModificationKey(KafkaMessagesBundle.message("settings.confluent.configuration"))
     }
-    row {
-      cell(confluentConf.getComponent()).align(Align.FILL).resizableColumn()
-        .comment(KafkaMessagesBundle.message("settings.confluent.conf.comment"))
-    }
-  }
-
-  fun getDefaultFields(): List<WrappedComponent<in KafkaConnectionData>> = listOf()
-
-  companion object {
-    val CONFLUENT_PROPERTY = ModificationKey(KafkaMessagesBundle.message("settings.confluent.configuration"))
-  }
 }

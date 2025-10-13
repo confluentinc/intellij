@@ -7,15 +7,15 @@ import com.intellij.openapi.util.NlsActions
 import javax.swing.JComponent
 
 class ToolbarGreyLabelActionImpl(@NlsActions.ActionText text: String) : ToolbarLabelAction() {
-  init {
-    templatePresentation.text = text
-  }
-
-  override fun createCustomComponent(presentation: Presentation, place: String): JComponent {
-    return super.createCustomComponent(presentation, place).apply {
-      isEnabled = false
+    init {
+        templatePresentation.text = text
     }
-  }
 
-  override fun getActionUpdateThread() = ActionUpdateThread.BGT
+    override fun createCustomComponent(presentation: Presentation, place: String): JComponent {
+        return super.createCustomComponent(presentation, place).apply {
+            isEnabled = false
+        }
+    }
+
+    override fun getActionUpdateThread() = ActionUpdateThread.BGT
 }

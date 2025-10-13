@@ -29,109 +29,115 @@ import kotlin.math.max
  */
 object TableCellPreview {
 
-  fun installOn(table: MaterialTable, columnName: String) {
-    installOn(table, listOf(columnName))
-  }
-
-  fun installOn(table: MaterialTable, columnNames: List<String>) {
-    table.addMouseListener(object : MouseAdapter() {
-      override fun mouseClicked(e: MouseEvent) {
-
-        if (e.clickCount != 2 || e.button != MouseEvent.BUTTON1) {
-          return
-        }
-
-        val col = table.columnAtPoint(e.point)
-        val row = table.rowAtPoint(e.point)
-        if (row < 0 || col < 0) {
-          return
-        }
-
-        if (!columnNames.contains(table.columnModel.getColumn(col).headerValue)) {
-          return
-        }
-
-        showPopupIfNecessary(table, row, col)
-      }
-    })
-  }
-
-  fun showPopupIfNecessary(table: MaterialTable, row: Int, col: Int) {
-    val tableRect = table.visibleRect
-    val cellRect = table.getCellRect(row, col, false).intersection(tableRect)
-
-    val value = table.getValueAt(row, col)?.toString() ?: ""
-
-    val cellRenderer = table.getCellRenderer(row, col)
-    table.prepareRenderer(cellRenderer, row, col)
-    val component = cellRenderer.getTableCellRendererComponent(table, value, false, false, row, col)
-
-    if (component.preferredSize.width < cellRect.width) {
-      return
+    fun installOn(table: MaterialTable, columnName: String) {
+        installOn(table, listOf(columnName))
     }
 
-    val point = cellRect.location
-    SwingUtilities.convertPointToScreen(point, table)
+    fun installOn(table: MaterialTable, columnNames: List<String>) {
+        table.addMouseListener(object : MouseAdapter() {
+            override fun mouseClicked(e: MouseEvent) {
 
-    val metrics = if (table.font == null) null else table.getFontMetrics(table.font)
-    val height = metrics?.height ?: 16
-    val minWidth = height * 16
-    val preferredWidth = max(minWidth, cellRect.width)
+                if (e.clickCount != 2 || e.button != MouseEvent.BUTTON1) {
+                    return
+                }
 
-    showPopup(value, table.font, point, preferredWidth)
-  }
+                val col = table.columnAtPoint(e.point)
+                val row = table.rowAtPoint(e.point)
+                if (row < 0 || col < 0) {
+                    return
+                }
 
-  private fun createCollapseExtension(runnable: Runnable): ExtendableTextComponent.Extension {
-    return ExtendableTextComponent.Extension.create(AllIcons.General.CollapseComponent,
-                                                    AllIcons.General.CollapseComponentHover,
-                                                    KeymapUtil.createTooltipText(KafkaMessagesBundle.message ("rfs.editor.collapse"),
-                                                                                 "CollapseExpandableComponent"),
-                                                    runnable)
-  }
+                if (!columnNames.contains(table.columnModel.getColumn(col).headerValue)) {
+                    return
+                }
 
-  private fun showPopup(value: String, font: Font, point: Point, preferredWidth: Int) {
-
-    @Suppress("HardCodedStringLiteral") // Actually we have no need in localized strings here.
-    val area = JTextArea().apply {
-      isEditable = false
-      this.font = font
-      lineWrap = true
-      border = BorderFactory.createEmptyBorder(5, 5, 5, 5)
-      text = value
+                showPopupIfNecessary(table, row, col)
+            }
+        })
     }
 
-    var popup: JBPopup? = null
+    fun showPopupIfNecessary(table: MaterialTable, row: Int, col: Int) {
+        val tableRect = table.visibleRect
+        val cellRect = table.getCellRect(row, col, false).intersection(tableRect)
 
-    val label = ExpandableSupport.createLabel(createCollapseExtension { popup?.cancel() }).apply {
-      border = JBUI.Borders.empty(5, 0, 5, 5)
-    }
+        val value = table.getValueAt(row, col)?.toString() ?: ""
 
-    val pane = JBScrollPane(area).apply {
-      verticalScrollBarPolicy = ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS
-      verticalScrollBar.add(JBScrollBar.LEADING, label)
-      verticalScrollBar.background = area.background
-      viewportBorder = BorderFactory.createEmptyBorder(5, 5, 5, 5)
-      preferredSize = Dimension(preferredWidth, TextSizeUtils.getPreferredHeight(area.text, area.font, preferredWidth - 10) + 10)
-    }
+        val cellRenderer = table.getCellRenderer(row, col)
+        table.prepareRenderer(cellRenderer, row, col)
+        val component = cellRenderer.getTableCellRendererComponent(table, value, false, false, row, col)
 
-    popup = JBPopupFactory.getInstance().createComponentPopupBuilder(pane, pane).setResizable(true)
-      .setMovable(true)
-      .setFocusable(true)
-      .setRequestFocus(true)
-      .setCancelOnClickOutside(true)
-      .setModalContext(false)
-      .setLocateWithinScreenBounds(false)
-      .setCancelCallback {
-        try {
-          popup = null
-          return@setCancelCallback true
+        if (component.preferredSize.width < cellRect.width) {
+            return
         }
-        catch (ignore: Exception) {
-          return@setCancelCallback false
-        }
-      }
-      .createPopup()
 
-    popup?.show(RelativePoint(point))
-  }
+        val point = cellRect.location
+        SwingUtilities.convertPointToScreen(point, table)
+
+        val metrics = if (table.font == null) null else table.getFontMetrics(table.font)
+        val height = metrics?.height ?: 16
+        val minWidth = height * 16
+        val preferredWidth = max(minWidth, cellRect.width)
+
+        showPopup(value, table.font, point, preferredWidth)
+    }
+
+    private fun createCollapseExtension(runnable: Runnable): ExtendableTextComponent.Extension {
+        return ExtendableTextComponent.Extension.create(
+            AllIcons.General.CollapseComponent,
+            AllIcons.General.CollapseComponentHover,
+            KeymapUtil.createTooltipText(
+                KafkaMessagesBundle.message("rfs.editor.collapse"),
+                "CollapseExpandableComponent"
+            ),
+            runnable
+        )
+    }
+
+    private fun showPopup(value: String, font: Font, point: Point, preferredWidth: Int) {
+
+        @Suppress("HardCodedStringLiteral") // Actually we have no need in localized strings here.
+        val area = JTextArea().apply {
+            isEditable = false
+            this.font = font
+            lineWrap = true
+            border = BorderFactory.createEmptyBorder(5, 5, 5, 5)
+            text = value
+        }
+
+        var popup: JBPopup? = null
+
+        val label = ExpandableSupport.createLabel(createCollapseExtension { popup?.cancel() }).apply {
+            border = JBUI.Borders.empty(5, 0, 5, 5)
+        }
+
+        val pane = JBScrollPane(area).apply {
+            verticalScrollBarPolicy = ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS
+            verticalScrollBar.add(JBScrollBar.LEADING, label)
+            verticalScrollBar.background = area.background
+            viewportBorder = BorderFactory.createEmptyBorder(5, 5, 5, 5)
+            preferredSize = Dimension(
+                preferredWidth,
+                TextSizeUtils.getPreferredHeight(area.text, area.font, preferredWidth - 10) + 10
+            )
+        }
+
+        popup = JBPopupFactory.getInstance().createComponentPopupBuilder(pane, pane).setResizable(true)
+            .setMovable(true)
+            .setFocusable(true)
+            .setRequestFocus(true)
+            .setCancelOnClickOutside(true)
+            .setModalContext(false)
+            .setLocateWithinScreenBounds(false)
+            .setCancelCallback {
+                try {
+                    popup = null
+                    return@setCancelCallback true
+                } catch (ignore: Exception) {
+                    return@setCancelCallback false
+                }
+            }
+            .createPopup()
+
+        popup?.show(RelativePoint(point))
+    }
 }

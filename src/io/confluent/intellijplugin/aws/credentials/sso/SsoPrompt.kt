@@ -8,27 +8,31 @@ import io.confluent.intellijplugin.util.KafkaMessagesBundle
 import javax.swing.SwingUtilities
 
 object SsoPrompt : SsoLoginCallback {
-  override fun tokenPending(authorization: Authorization) {
-    SwingUtilities.invokeAndWait {
-      val result = Messages.showOkCancelDialog(
-        KafkaMessagesBundle.message("credentials.sso.login.message", authorization.verificationUri, authorization.userCode),
-        KafkaMessagesBundle.message("credentials.sso.login.title"),
-        KafkaMessagesBundle.message("credentials.sso.login.open_browser"),
-        Messages.getCancelButton(),
-        Messages.getQuestionIcon())
+    override fun tokenPending(authorization: Authorization) {
+        SwingUtilities.invokeAndWait {
+            val result = Messages.showOkCancelDialog(
+                KafkaMessagesBundle.message(
+                    "credentials.sso.login.message",
+                    authorization.verificationUri,
+                    authorization.userCode
+                ),
+                KafkaMessagesBundle.message("credentials.sso.login.title"),
+                KafkaMessagesBundle.message("credentials.sso.login.open_browser"),
+                Messages.getCancelButton(),
+                Messages.getQuestionIcon()
+            )
 
-      if (result == Messages.OK) {
-        BrowserUtil.browse(authorization.verificationUriComplete)
-      }
-      else {
-        throw ProcessCanceledException(IllegalStateException(KafkaMessagesBundle.message("credentials.sso.login.cancelled")))
-      }
+            if (result == Messages.OK) {
+                BrowserUtil.browse(authorization.verificationUriComplete)
+            } else {
+                throw ProcessCanceledException(IllegalStateException(KafkaMessagesBundle.message("credentials.sso.login.cancelled")))
+            }
+        }
     }
-  }
 
-  override fun tokenRetrieved() {}
+    override fun tokenRetrieved() {}
 
-  override fun tokenRetrievalFailure(e: Exception) {
-    RfsNotificationUtils.notifyException(e, KafkaMessagesBundle.message("credentials.sso.login.failed"))
-  }
+    override fun tokenRetrievalFailure(e: Exception) {
+        RfsNotificationUtils.notifyException(e, KafkaMessagesBundle.message("credentials.sso.login.failed"))
+    }
 }

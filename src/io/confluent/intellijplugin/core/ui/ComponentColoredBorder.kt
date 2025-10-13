@@ -20,31 +20,35 @@ import javax.swing.border.Border
  */
 class ComponentColoredBorder(top: Int, left: Int, bottom: Int, right: Int) : Border {
 
-  private val insets = Insets(top, left, bottom, right)
+    private val insets = Insets(top, left, bottom, right)
 
-  override fun paintBorder(c: Component, g: Graphics, x: Int, y: Int, width: Int, height: Int) {
-    val g2 = g.create() as Graphics2D
-    try {
-      val area = Area(Rectangle2D.Float(x.toFloat(), y.toFloat(), width.toFloat(), height.toFloat()))
-      area.subtract(Area(Rectangle2D.Float((x + insets.left).toFloat(),
-                                           (y + insets.top).toFloat(),
-                                           (width - (insets.left + insets.right)).toFloat(),
-                                           (height - (insets.top + insets.bottom)).toFloat())))
-      area.intersect(Area(g2.clip))
-      g2.clip(area)
+    override fun paintBorder(c: Component, g: Graphics, x: Int, y: Int, width: Int, height: Int) {
+        val g2 = g.create() as Graphics2D
+        try {
+            val area = Area(Rectangle2D.Float(x.toFloat(), y.toFloat(), width.toFloat(), height.toFloat()))
+            area.subtract(
+                Area(
+                    Rectangle2D.Float(
+                        (x + insets.left).toFloat(),
+                        (y + insets.top).toFloat(),
+                        (width - (insets.left + insets.right)).toFloat(),
+                        (height - (insets.top + insets.bottom)).toFloat()
+                    )
+                )
+            )
+            area.intersect(Area(g2.clip))
+            g2.clip(area)
 
-      g2.color = c.background
-      g2.fillRect(x + 1, y + 1, width - 2, height - 2)
+            g2.color = c.background
+            g2.fillRect(x + 1, y + 1, width - 2, height - 2)
+        } catch (e: Exception) {
+            //
+        } finally {
+            g2.dispose()
+        }
     }
-    catch (e: Exception) {
-      //
-    }
-    finally {
-      g2.dispose()
-    }
-  }
 
-  override fun getBorderInsets(c: Component?) = insets
+    override fun getBorderInsets(c: Component?) = insets
 
-  override fun isBorderOpaque() = false
+    override fun isBorderOpaque() = false
 }

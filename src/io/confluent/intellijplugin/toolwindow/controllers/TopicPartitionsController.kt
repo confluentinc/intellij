@@ -11,38 +11,41 @@ import io.confluent.intellijplugin.model.BdtTopicPartition
 import io.confluent.intellijplugin.toolwindow.config.KafkaToolWindowSettings
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
 
-class TopicPartitionsController(private val dataManager: KafkaDataManager) : DetailsTableMonitoringController<BdtTopicPartition, String>() {
-  private val clearPartition = object : DumbAwareAction(KafkaMessagesBundle.message("action.kafka.ClearPartition.text"),
-                                                        null,
-                                                        BigdatatoolsKafkaIcons.ClearOutputs) {
-    override fun actionPerformed(e: AnActionEvent) {
-      val selectedRows = dataTable.selectedRows
+class TopicPartitionsController(private val dataManager: KafkaDataManager) :
+    DetailsTableMonitoringController<BdtTopicPartition, String>() {
+    private val clearPartition = object : DumbAwareAction(
+        KafkaMessagesBundle.message("action.kafka.ClearPartition.text"),
+        null,
+        BigdatatoolsKafkaIcons.ClearOutputs
+    ) {
+        override fun actionPerformed(e: AnActionEvent) {
+            val selectedRows = dataTable.selectedRows
 
-      val selectedPartitions = selectedRows.map {
-        dataTable.getDataAt(it)
-      }.mapNotNull { it }
+            val selectedPartitions = selectedRows.map {
+                dataTable.getDataAt(it)
+            }.mapNotNull { it }
 
-      dataManager.clearPartitions(selectedPartitions)
+            dataManager.clearPartitions(selectedPartitions)
+        }
+
+        override fun update(e: AnActionEvent) {
+            e.presentation.isEnabled = dataManager.client.isConnected() && getSelectedItem() != null
+        }
+
+        override fun getActionUpdateThread() = ActionUpdateThread.BGT
     }
 
-    override fun update(e: AnActionEvent) {
-      e.presentation.isEnabled = dataManager.client.isConnected() && getSelectedItem() != null
+    init {
+        init()
     }
 
-    override fun getActionUpdateThread() = ActionUpdateThread.BGT
-  }
+    override fun getAdditionalContextActions(): List<AnAction> = listOf(clearPartition)
 
-  init {
-    init()
-  }
+    override fun getColumnSettings() = KafkaToolWindowSettings.getInstance().topicPartitionsColumnSettings
 
-  override fun getAdditionalContextActions(): List<AnAction> = listOf(clearPartition)
+    override fun getRenderableColumns() = BdtTopicPartition.renderableColumns
 
-  override fun getColumnSettings() = KafkaToolWindowSettings.getInstance().topicPartitionsColumnSettings
+    override fun getDataModel() = selectedId?.let { dataManager.topicPartitionsModels[it] }
 
-  override fun getRenderableColumns() = BdtTopicPartition.renderableColumns
-
-  override fun getDataModel() = selectedId?.let { dataManager.topicPartitionsModels[it] }
-
-  override fun showColumnFilter(): Boolean = false
+    override fun showColumnFilter(): Boolean = false
 }

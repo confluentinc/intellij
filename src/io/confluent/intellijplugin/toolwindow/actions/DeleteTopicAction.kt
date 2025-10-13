@@ -9,16 +9,16 @@ import io.confluent.intellijplugin.data.KafkaDataManager
 import io.confluent.intellijplugin.rfs.KafkaDriver.Companion.isTopicFolder
 
 class DeleteTopicAction : DumbAwareAction() {
-  override fun actionPerformed(e: AnActionEvent) {
-    val rfsPath = e.rfsPath ?: return
-    (e.dataManager as KafkaDataManager).deleteTopic(listOf(rfsPath.name))
-  }
+    override fun actionPerformed(e: AnActionEvent) {
+        val rfsPath = e.rfsPath ?: return
+        (e.dataManager as KafkaDataManager).deleteTopic(listOf(rfsPath.name))
+    }
 
-  override fun update(e: AnActionEvent) {
-    val rfsPath = e.rfsPath
-    e.presentation.isEnabledAndVisible = e.dataManager != null && rfsPath?.parent?.isTopicFolder == true
-  }
+    override fun update(e: AnActionEvent) {
+        val rfsPath = e.rfsPath
+        e.presentation.isEnabledAndVisible = e.dataManager != null && rfsPath?.parent?.isTopicFolder == true
+    }
 
-  override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
+    override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
 
 }
