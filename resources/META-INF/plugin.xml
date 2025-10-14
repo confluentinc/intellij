@@ -65,14 +65,16 @@
 
         <applicationService
                 serviceImplementation="io.confluent.intellijplugin.toolwindow.config.KafkaToolWindowSettings"/>
+        <applicationService
+                serviceImplementation="io.confluent.intellijplugin.settings.TelemetrySettings"/>
         <bigdatatools.kafka.connectionSettingProvider
                 implementation="io.confluent.intellijplugin.core.settings.connections.GeneralConnectionSettingsProvider"/>
         <bigdatatools.kafka.connectionSettingProvider
                 implementation="io.confluent.intellijplugin.settings.KafkaSettingsProvider"/>
 
-        <projectConfigurable parentId="tools" id="kafka_conn_settings"
-                             bundle="messages.KafkaBundle" key="connections.settings.display.name"
-                             provider="io.confluent.intellijplugin.core.settings.KafkaSettingsConfigurableProvider"/>
+        <projectConfigurable parentId="tools" id="kafka_settings"
+                             displayName="Kafka"
+                             provider="io.confluent.intellijplugin.settings.KafkaUnifiedConfigurableProvider"/>
 
         <toolWindow id="KafkaToolWindow" anchor="bottom" canCloseContents="true"
                     icon="io.confluent.intellijplugin.icons.BigdatatoolsKafkaIcons.KafkaToolWindow"
