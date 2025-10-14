@@ -24,11 +24,13 @@ sentry {
     // Generates a JVM (Java, Kotlin, etc.) source bundle and uploads your source code to Sentry.
     // This enables source context, allowing you to see your source
     // code as part of your stack traces in Sentry.
-    includeSourceContext = true
+    // Only enable source context upload if auth token is available (skip in CI without token)
+    val sentryAuthToken = System.getenv("SENTRY_AUTH_TOKEN")
+    includeSourceContext = !sentryAuthToken.isNullOrEmpty()
 
     org.set("confluent")
     projectName.set("intellij-plugin")
-    authToken.set(System.getenv("SENTRY_AUTH_TOKEN"))
+    authToken.set(sentryAuthToken)
 }
 
 repositories {
@@ -127,6 +129,13 @@ tasks {
     }
     test {
         useJUnit()
+    }
+    
+    // Skip Sentry source upload task when auth token is missing (CI environments)
+    if (System.getenv("SENTRY_AUTH_TOKEN").isNullOrEmpty()) {
+        named("sentryBundleSourcesJava") {
+            enabled = false
+        }
     }
 }
 

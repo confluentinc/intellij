@@ -54,7 +54,7 @@ class KafkaErrorReportSubmitter : ErrorReportSubmitter() {
                         
                         // Add user notes as separate context if provided
                         if (!additionalInfo.isNullOrBlank()) {
-                            logger.info("User provided additional context: $additionalInfo")
+                            logger.debug("User provided additional context: $additionalInfo")
                         }
                     }
 
