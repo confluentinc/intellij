@@ -3,7 +3,6 @@
 # Usage: . scripts/get-secrets.sh
 # TODO: Add support for additional secrets (Segment, etc.)
 
-# Only apply strict mode when executed (not sourced)
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
     set -euo pipefail
 fi
