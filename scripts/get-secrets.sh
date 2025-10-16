@@ -13,7 +13,7 @@ VAULT_PATH="${VAULT_PATH:-v1/ci/kv/intellij/telemetry}"
 
 # Check authentication (skip in CI, vault-setup already authenticated)
 if [ "${CI:-false}" != "true" ]; then
-    if ! VAULT_ADDR="$VAULT_ADDR" vault kv list "v1/ci/kv/intellij" &>/dev/null 2>&1; then
+    if ! VAULT_ADDR="$VAULT_ADDR" vault kv list "v1/ci/kv/intellij" &>/dev/null; then
         echo "Error: Not authenticated with Vault" >&2
         echo "Run: vault_login" >&2
         return 1 2>/dev/null || exit 1
