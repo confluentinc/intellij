@@ -9,15 +9,14 @@ object SentryClient {
     // Static initialization - runs when class is first accessed
     init {
         try {
-            logger.info("Initializing Sentry with static initialization")
+            logger.info("Initializing Sentry")
             Sentry.init { options ->
                 options.dsn = System.getenv("SENTRY_DSN")
-                // Enable debug mode for initial testing
-                options.isDebug = true
+                options.isDebug = false
             }
-            logger.info("Sentry initialized successfully via static init")
+            logger.info("Sentry initialized successfully")
         } catch (e: Exception) {
-            logger.error("Sentry static initialization failed", e)
+            logger.error("Sentry initialization failed", e)
         }
     }
 

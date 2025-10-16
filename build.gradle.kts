@@ -27,7 +27,6 @@ sentry {
     // Only enable source context upload if auth token is available (skip in CI without token)
     val sentryAuthToken = System.getenv("SENTRY_AUTH_TOKEN")
     includeSourceContext = !sentryAuthToken.isNullOrEmpty()
-
     org.set("confluent")
     projectName.set("intellij-plugin")
     authToken.set(sentryAuthToken)
@@ -127,6 +126,11 @@ tasks {
     wrapper {
         gradleVersion = ext("gradle.version")
     }
+
+    runIde {
+        System.getenv("SENTRY_DSN")?.let { environment("SENTRY_DSN", it) }
+    }
+
     test {
         useJUnit()
     }
