@@ -21,15 +21,35 @@ plugins {
 }
 
 sentry {
-    // Generates a JVM (Java, Kotlin, etc.) source bundle and uploads your source code to Sentry.
-    // This enables source context, allowing you to see your source
-    // code as part of your stack traces in Sentry.
-    // Only enable source context upload if auth token is available (skip in CI without token)
     val sentryAuthToken = System.getenv("SENTRY_AUTH_TOKEN")
     includeSourceContext = !sentryAuthToken.isNullOrEmpty()
     org.set("confluent")
     projectName.set("intellij-plugin")
     authToken.set(sentryAuthToken)
+}
+
+// Generate SentryConfig.kt with embedded DSN at build time
+val generateSentryConfig by tasks.registering {
+    val outputDir = layout.buildDirectory.dir("generated/sources/sentryconfig/kotlin")
+    val sentryDsn = System.getenv("SENTRY_DSN") ?: ""
+    
+    outputs.dir(outputDir)
+    inputs.property("sentryDsn", sentryDsn)
+    
+    doLast {
+        val configFile = outputDir.get().asFile.resolve("io/confluent/intellijplugin/telemetry/SentryConfig.kt")
+        configFile.parentFile.mkdirs()
+        configFile.writeText("""
+            package io.confluent.intellijplugin.telemetry
+            
+            /** Sentry configuration embedded at build time from SENTRY_DSN env var. */
+            object SentryConfig {
+                const val DSN = "$sentryDsn"
+                val isConfigured = DSN.isNotBlank()
+            }
+            
+        """.trimIndent())
+    }
 }
 
 repositories {
@@ -100,12 +120,26 @@ configurations.all { exclude(group = "org.slf4j", module = "slf4j-api") }
 sourceSets {
     main {
         java.srcDirs(listOf("src", "gen"))
-        kotlin.srcDirs(listOf("src", "gen"))
+        kotlin.srcDirs(listOf("src", "gen", layout.buildDirectory.dir("generated/sources/sentryconfig/kotlin")))
         resources.srcDirs(listOf("resources"))
     }
     test {
         java.srcDirs(listOf("test"))
         kotlin.srcDirs(listOf("test"))
+    }
+}
+
+tasks.named("compileKotlin") {
+    dependsOn(generateSentryConfig)
+}
+
+// Ensure all Sentry plugin tasks run after custom config generation
+afterEvaluate {
+    tasks.filter { 
+        (it.name.startsWith("sentry") || it.name.contains("Sentry")) && 
+        it.name != "generateSentryConfig" 
+    }.forEach { sentryTask ->
+        sentryTask.mustRunAfter(generateSentryConfig)
     }
 }
 
@@ -127,18 +161,22 @@ tasks {
         gradleVersion = ext("gradle.version")
     }
 
-    runIde {
-        System.getenv("SENTRY_DSN")?.let { environment("SENTRY_DSN", it) }
-    }
 
     test {
         useJUnit()
     }
     
-    // Skip Sentry source upload task when auth token is missing (CI environments)
+    // Skip Sentry tasks when auth token is missing
     if (System.getenv("SENTRY_AUTH_TOKEN").isNullOrEmpty()) {
-        named("sentryBundleSourcesJava") {
-            enabled = false
+        // Disable all Sentry Gradle plugin tasks that require auth token
+        listOf("sentryBundleSourcesJava", "generateSentryBundleIdJava").forEach { taskName ->
+            try {
+                named(taskName) {
+                    enabled = false
+                }
+            } catch (e: UnknownTaskException) {
+                // Task doesn't exist, ignore
+            }
         }
     }
 }

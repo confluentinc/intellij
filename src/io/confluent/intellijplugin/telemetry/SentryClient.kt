@@ -11,7 +11,7 @@ object SentryClient {
         try {
             logger.info("Initializing Sentry")
             Sentry.init { options ->
-                options.dsn = System.getenv("SENTRY_DSN")
+                options.dsn = SentryConfig.DSN
                 options.isDebug = false
             }
             logger.info("Sentry initialized successfully")
@@ -25,7 +25,7 @@ object SentryClient {
             Sentry.captureException(exception)
             logger.debug("Exception captured and sent to Sentry")
         } catch (e: Exception) {
-            logger.error("Failed to capture exception", e)
+            logger.error("Failed to capture exception to Sentry", e)
         }
     }
     
@@ -34,6 +34,6 @@ object SentryClient {
      * This should be used during development/testing only
      */
     fun sendTestError() {
-        throw RuntimeException("[IGNORE, this is a TEST ERROR] Kafka Plugin Test Error - Sentry Integration Verification")
+        throw RuntimeException("[IGNORE, this is a TEST ERROR] - Sentry Integration Verification")
     }
 }
