@@ -70,7 +70,10 @@
         <bigdatatools.kafka.connectionSettingProvider
                 implementation="io.confluent.intellijplugin.settings.KafkaSettingsProvider"/>
 
-        <projectConfigurable parentId="tools" id="kafka_conn_settings"
+        <applicationConfigurable parentId="tools" id="kafka_plugin_settings"
+                                 bundle="messages.KafkaBundle" key="plugin.settings.display.name"
+                                 provider="io.confluent.intellijplugin.settings.app.KafkaPluginSettingsConfigurableProvider"/>
+        <projectConfigurable parentId="kafka_plugin_settings" id="kafka_conn_settings"
                              bundle="messages.KafkaBundle" key="connections.settings.display.name"
                              provider="io.confluent.intellijplugin.core.settings.KafkaSettingsConfigurableProvider"/>
 
