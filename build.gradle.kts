@@ -33,7 +33,7 @@ intellijPlatform {
 dependencies {
     intellijPlatform {
         jetbrainsRuntime()
-        intellijIdeaUltimate("2025.2", useInstaller = false)
+        intellijIdeaUltimate("2025.2", useInstaller = true)
 
         bundledPlugin("com.intellij.modules.json")
         bundledPlugin("com.intellij.microservices.jvm")
