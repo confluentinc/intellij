@@ -25,7 +25,7 @@ MK_INCLUDE_TIMEOUT_MINS ?= 240
 # If this latest validated release is breaking you, please file a ticket with DevProd describing the issue, and
 # if necessary you can temporarily override MK_INCLUDE_VERSION above the managed section headers until the bad
 # release is yanked.
-MK_INCLUDE_VERSION ?= v0.1538.0
+MK_INCLUDE_VERSION ?= v0.1539.0
 
 # Make sure we always have a copy of the latest cc-mk-include release less than $(MK_INCLUDE_TIMEOUT_MINS) old:
 # Note: The simply-expanded make variable makes sure this is run once per make invocation.
