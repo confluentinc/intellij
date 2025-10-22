@@ -65,3 +65,4 @@ object PartitionsClearAction : TelemetryEvent() {
     override val eventName = "PartitionsClearAction"
     override fun properties() = emptyMap<String, Any>()
 }
+
