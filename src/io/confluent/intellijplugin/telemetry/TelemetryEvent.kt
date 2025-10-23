@@ -14,6 +14,33 @@ sealed class TelemetryEvent {
     abstract fun properties(): Map<String, Any>
 }
 
+/**
+ * Tracks action invocations from the Kafka plugin for discovery.
+ * This is automatically tracked by ActionTelemetryListener.
+ *
+ * @param actionName The normalized action ID
+ * @param actionClassName The responsible class for the action (e.g. "CreateNewConnectionAction")
+ * @param registeredActionId The action ID from plugin.xml (e.g., "kafka.CreateTopicAction"), null for inner classes
+ * @param invokedPlace Where the action was invoked from (e.g., "MainMenu", "EditorPopup")
+ *
+ */
+data class ActionInvokedEvent(
+    val actionName: String,
+    val actionClassName: String,
+    val registeredActionId: String? = null,
+    val invokedPlace: String,
+) : TelemetryEvent() {
+    override val eventName = "Action Invoked"
+
+    override fun properties() = buildMap<String, Any> {
+        put("action", actionName)
+        put("actionClass", actionClassName)
+        put("invokedPlace", invokedPlace)
+        if (registeredActionId != null) { put("registeredActionId", registeredActionId) }
+    }
+}
+
+
 // TODO: Define expected properties for all tracked events
 
 object TopicCreateAction : TelemetryEvent() {
@@ -65,4 +92,3 @@ object PartitionsClearAction : TelemetryEvent() {
     override val eventName = "PartitionsClearAction"
     override fun properties() = emptyMap<String, Any>()
 }
-
