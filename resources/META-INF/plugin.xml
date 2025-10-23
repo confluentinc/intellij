@@ -17,9 +17,9 @@
     ]]></description>
 
     <depends config-file="spring-boot.xml" optional="true">com.intellij.spring.boot</depends>
+    <depends config-file="spring.xml" optional="true">com.intellij.spring</depends>
+    <depends config-file="microservices-jvm.xml" optional="true">com.intellij.microservices.jvm</depends>
     <depends>com.intellij.modules.json</depends>
-    <depends>com.intellij.microservices.jvm</depends>
-    <depends>com.intellij.spring</depends>
 
     <resource-bundle>messages.KafkaBundle</resource-bundle>
     <extensionPoints>
