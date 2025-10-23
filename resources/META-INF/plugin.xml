@@ -18,6 +18,8 @@
 
     <depends config-file="spring-boot.xml" optional="true">com.intellij.spring.boot</depends>
     <depends>com.intellij.modules.json</depends>
+    <depends>com.intellij.microservices.jvm</depends>
+    <depends>com.intellij.spring</depends>
 
     <resource-bundle>messages.KafkaBundle</resource-bundle>
     <extensionPoints>
