@@ -1,0 +1,7 @@
+<idea-plugin>
+    <extensions defaultExtensionNs="com.intellij">
+        <!--        <annotator-->
+        <!--                language="kotlin"-->
+        <!--                implementationClass="com.intellij.spring"/>-->
+    </extensions>
+</idea-plugin>
