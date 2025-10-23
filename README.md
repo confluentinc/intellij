@@ -117,6 +117,25 @@ To publish using Gradle:
    ./gradlew publishPlugin
    ```
 
+### Application Secrets Setup
+
+The plugin requires various secrets for telemetry and error reporting (Sentry, Segment, etc.).
+
+**Using Vault:**
+```bash
+vault_login                 # Authenticate once
+. scripts/get-secrets.sh    # Get secrets
+./gradlew build
+```
+
+**Store secrets:**
+```bash
+vault_login
+vault kv put v1/ci/kv/intellij/telemetry \
+  sentry_auth_token="your-token" \
+  sentry_dsn="https://your-dsn"
+```
+
 #### Additional Helpful Gradle Tasks
 
 To explore other useful tasks, run:
