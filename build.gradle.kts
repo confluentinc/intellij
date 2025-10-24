@@ -63,6 +63,7 @@ dependencies {
     implementation(libs.aws.sso)
     implementation(libs.aws.sts)
     implementation(libs.aws.ssooidc)
+    implementation("com.segment.analytics.java:analytics:+")
 
     implementation(libs.glue.schema.registry.serde)
     implementation(libs.generex)

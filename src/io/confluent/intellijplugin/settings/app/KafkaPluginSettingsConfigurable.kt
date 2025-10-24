@@ -2,9 +2,8 @@ package io.confluent.intellijplugin.settings.app
 
 import com.intellij.openapi.options.SearchableConfigurable
 import com.intellij.openapi.options.Configurable
-import com.intellij.openapi.ui.DialogPanel
-import com.intellij.ui.dsl.builder.bindSelected
 import com.intellij.ui.dsl.builder.panel
+import com.intellij.ui.dsl.builder.bindSelected
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
 import javax.swing.JComponent
 
@@ -16,38 +15,59 @@ import javax.swing.JComponent
  * Location: Settings → Tools → Kafka
  *
  * @see KafkaPluginSettings for persistent storage
- * @see KafkaPluginSettingsConfigurableProvider for provider implementation
  */
 class KafkaPluginSettingsConfigurable : SearchableConfigurable, Configurable.NoScroll {
-    private val settings = KafkaPluginSettings.getInstance()
-    private lateinit var panel: DialogPanel
+        private val settings = KafkaPluginSettings.getInstance()
+        private val savedPluginSettings = KafkaPluginSettingState.from(settings)
 
-    override fun getId(): String = "kafka_plugin_settings"
+        override fun getId(): String = "kafka_plugin_settings"
 
-    override fun getDisplayName(): String = KafkaMessagesBundle.message("plugin.settings.display.name")
+        override fun getDisplayName(): String = KafkaMessagesBundle.message("plugin.settings.display.name")
 
-    override fun createComponent(): JComponent {
-        panel = panel {
+        override fun createComponent(): JComponent = panel {
             group(KafkaMessagesBundle.message("plugin.settings.telemetry.group.label")) {
                 row {
                     text(KafkaMessagesBundle.message("plugin.settings.usage.data.checkbox.description"))
                 }
                 row {
                     checkBox(KafkaMessagesBundle.message("plugin.settings.usage.data.checkbox.label"))
-                        .bindSelected(settings::enableUsageData)
+                        .bindSelected(savedPluginSettings::enableUsageData)
                 }
             }
         }
-        return panel
-    }
 
-    override fun isModified(): Boolean = panel.isModified()
+        override fun isModified(): Boolean = savedPluginSettings != KafkaPluginSettingState.from(settings)
 
-    override fun apply() {
-        panel.apply()
-    }
+        override fun apply() {
+            savedPluginSettings.applyTo(settings)
+        }
 
-    override fun reset() {
-        panel.reset()
+        override fun reset() {
+            savedPluginSettings.syncFrom(settings)
+        }
+
+        /**
+         * Form state holder that syncs between UI, memory, and persistent storage when user edits settings.
+         */
+        private data class KafkaPluginSettingState(
+            var enableUsageData: Boolean = true,
+        ) {
+            fun syncFrom(settings: KafkaPluginSettings) {
+                enableUsageData = settings.enableUsageData
+            }
+
+            fun applyTo(settings: KafkaPluginSettings) {
+                settings.enableUsageData = enableUsageData
+            }
+
+            /**
+             * Helper function to convert settings from persistent storage to UI state
+             * @see KafkaPluginSettings
+             */
+            companion object {
+                fun from(settings: KafkaPluginSettings) = KafkaPluginSettingState(
+                    enableUsageData = settings.enableUsageData,
+                )
+            }
+        }
     }
-}
