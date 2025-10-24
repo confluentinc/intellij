@@ -39,12 +39,12 @@ class TelemetryService : Disposable {
 
     private fun initialize() {
         if (analytics == null) {
-            val writeKey = System.getenv("SEGMENT_WRITE_KEY")
+            val writeKey = System.getenv("segment_write_key")
             if (writeKey.isNullOrBlank()) {
                 // If we don't have a key, assume we're in dev mode and skip initialization
                 if (!warnedAboutSegmentKey) {
                     warnedAboutSegmentKey = true
-                    logger.debug("No Segment write key found, telemetry disabled")
+                    logger.warn("No Segment write key found, telemetry disabled")
                 }
                 return
             }
@@ -117,7 +117,7 @@ class TelemetryService : Disposable {
     fun trackEvent(event: String, properties: Map<String, Any>) {
         // Check opt-in status and analytics initialization, return if not enabled
         if (!KafkaPluginSettings.getInstance().enableUsageData || analytics == null) {
-            logger.debug("Event not tracked - user has not opted in or analytics not initialized: $event")
+            logger.debug("Event not tracked, user has not opted in or analytics not initialized: $event")
             return
         }
 
@@ -135,11 +135,11 @@ class TelemetryService : Disposable {
 
     /**
      * Send an identify event to Segment.
-     * Note: Use Telemetry.sendIdentifyEvent
+     * Note: Use Telemetry.logUser
      */
     fun sendIdentifyEvent(traits: Map<String, Any>) {
         if (!KafkaPluginSettings.getInstance().enableUsageData || analytics == null) {
-            logger.debug("Event not tracked - user has not opted in or analytics not initialized")
+            logger.debug("Identify not sent, user has not opted in or analytics not initialized")
             return
         }
 
