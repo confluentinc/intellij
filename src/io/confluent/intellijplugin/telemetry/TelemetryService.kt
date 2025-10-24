@@ -39,7 +39,7 @@ class TelemetryService : Disposable {
 
     private fun initialize() {
         if (analytics == null) {
-            val writeKey = System.getenv("segment_write_key")
+            val writeKey = System.getenv("SEGMENT_WRITE_KEY")
             if (writeKey.isNullOrBlank()) {
                 // If we don't have a key, assume we're in dev mode and skip initialization
                 if (!warnedAboutSegmentKey) {
