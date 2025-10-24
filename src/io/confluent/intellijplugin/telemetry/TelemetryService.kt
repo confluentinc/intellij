@@ -18,7 +18,7 @@ import io.confluent.intellijplugin.core.constants.BdtPlugins
 /**
  * Application-level service to handle Segment analytics instantiation and tracking telemetry events.
  *
- * Lazy initializatated when the first telemetry event is triggered.
+ * Lazy initialized when the first telemetry event is triggered.
  *
  * @see Telemetry for usage.
  */
@@ -61,7 +61,7 @@ class TelemetryService : Disposable {
 
     /**
      * Gets the anonymous user ID for telemetry.
-     * Uses IntelliJ's permanent installation ID. see
+     * Uses IntelliJ's permanent installation ID.
      */
     private fun getUserId(): String {
         return try {
