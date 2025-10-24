@@ -28,12 +28,4 @@ object SentryClient {
             logger.error("Failed to capture exception to Sentry", e)
         }
     }
-    
-    /**
-     * Creates a test error specifically for verifying Sentry integration
-     * This should be used during development/testing only
-     */
-    fun sendTestError() {
-        throw RuntimeException("[IGNORE, this is a TEST ERROR] - Sentry Integration Verification")
-    }
 }

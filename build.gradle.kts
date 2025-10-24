@@ -7,12 +7,6 @@ rootProject.extensions.add("kotlin.freeCompilerArgs", listOf("-Xjvm-default=all"
 rootProject.extensions.add("java.sourceCompatibility", "21")
 rootProject.extensions.add("java.targetCompatibility", "21")
 
-buildscript {
-  repositories {
-    mavenCentral()
-  }
-}
-
 plugins {
     id("java")
     id("org.jetbrains.kotlin.jvm")
@@ -160,7 +154,6 @@ tasks {
     wrapper {
         gradleVersion = ext("gradle.version")
     }
-
 
     test {
         useJUnit()

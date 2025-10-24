@@ -20,7 +20,7 @@ import java.awt.Component
 class KafkaErrorReportSubmitter : ErrorReportSubmitter() {
     private val logger = Logger.getInstance(KafkaErrorReportSubmitter::class.java)
 
-    override fun getReportActionText(): String = "Report to Confluent"
+    override fun getReportActionText(): String = "Report to plugin vendor (Confluent, Inc.)"
 
     override fun getPrivacyNoticeText(): String? = 
         "Error reports help improve the Kafka plugin. No personal data is collected."
@@ -50,11 +50,6 @@ class KafkaErrorReportSubmitter : ErrorReportSubmitter() {
                                 ideaEvent.message ?: "Unknown error occurred in Kafka plugin"
                             )
                             SentryClient.captureException(fallbackException)
-                        }
-                        
-                        // Add user notes as separate context if provided
-                        if (!additionalInfo.isNullOrBlank()) {
-                            logger.debug("User provided additional context: $additionalInfo")
                         }
                     }
 

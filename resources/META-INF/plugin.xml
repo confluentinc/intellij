@@ -90,11 +90,6 @@
     </extensions>
 
     <actions resource-bundle="messages.KafkaBundle">
-        <action id="Kafka.TestErrorReporting"
-                class="io.confluent.intellijplugin.actions.TestErrorReportingAction"
-                text="Test Error Reporting">
-            <add-to-group group-id="ToolsMenu" anchor="last"/>
-        </action>
         <action id="Kafka.GlobalCreateKafkaConnection"
                 class="io.confluent.intellijplugin.actions.CreateKafkaConnectionAction"/>
 
