@@ -196,8 +196,7 @@ jvm_library(
     "@community//platform/testFramework/junit5:junit5_test_lib",
     "@community//libraries/grpc",
     "//platform/ssh-core",
-  ],
-  runtime_deps = [":kafka_resources"]
+  ]
 )
 ### auto-generated section `build intellij.bigdatatools.kafka` end
 
