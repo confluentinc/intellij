@@ -115,6 +115,11 @@ jvm_library(
   ]
 )
 
+jvm_provided_library(
+  name = "plugins_microservices_config_test_lib_provided",
+  lib = "//plugins/microservices/microservices-config:config_test_lib"
+)
+
 jvm_library(
   name = "kafka_test_lib",
   visibility = ["//visibility:public"],
@@ -135,7 +140,6 @@ jvm_library(
     "@community//platform/execution-impl",
     "@community//platform/core-ui",
     "@community//platform/observable",
-    "@community//libraries/miglayout-swing",
     "@community//json/backend",
     "@community//platform/projectModel-api:projectModel",
     "@community//platform/testFramework",
@@ -168,11 +172,6 @@ jvm_library(
     "@ultimate_lib//:bigdatatools-kafka-github-mifmif-generex",
     "@lib//:google-protobuf-java-util",
     "@community//platform/feedback",
-    "//plugins/spring/spring",
-    "//plugins/spring/spring-boot/spring-boot",
-    "@community//plugins/properties/properties-psi-impl:backend-psi",
-    "//plugins/microservices/microservices-config:config",
-    "//plugins/microservices/microservices-config:config_test_lib",
     "//platform/charts",
     "@community//platform/platform-impl/ui",
     "//plugins/microservices/microservices-jvm:jvm",
@@ -201,6 +200,12 @@ jvm_library(
     "@community//platform/testFramework/junit5:junit5_test_lib",
     "@community//libraries/grpc",
     "//platform/ssh-core",
+    ":community_libraries_miglayout-swing_provided",
+    ":plugins_spring_spring_provided",
+    ":plugins_spring_spring-boot_spring-boot_provided",
+    ":community_plugins_properties_backend-psi_provided",
+    ":plugins_microservices_config_provided",
+    ":plugins_microservices_config_test_lib_provided",
   ]
 )
 ### auto-generated section `build intellij.bigdatatools.kafka` end
