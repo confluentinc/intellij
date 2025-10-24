@@ -374,8 +374,8 @@
         </SOURCES>
       </library>
     </orderEntry>
-    <orderEntry type="library" name="snakeyaml-engine" level="project" />
-    <orderEntry type="library" name="snakeyaml" level="project" />
+    <orderEntry type="module" module-name="intellij.libraries.snakeyaml.engine" />
+    <orderEntry type="module" module-name="intellij.libraries.snakeyaml" />
     <orderEntry type="module-library">
       <library name="github.mifmif.generex" type="repository">
         <properties maven-id="com.github.mifmif:generex:1.0.2">
