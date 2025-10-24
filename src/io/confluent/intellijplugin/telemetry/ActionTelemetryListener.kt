@@ -25,10 +25,9 @@ class ActionTelemetryListener : AnActionListener {
             return
         }
 
-
         try {
             logUsage(ActionInvokedEvent(
-                actionName= normalizeActionName(normalizeActionName(registeredActionId?: actionClassName)),
+                actionName= normalizeActionName(registeredActionId?: actionClassName),
                 actionClassName= actionClassName,
                 registeredActionId = registeredActionId,
                 invokedPlace = event.place
@@ -43,16 +42,17 @@ class ActionTelemetryListener : AnActionListener {
      * Examples:
      * - "kafka.create.producer" → "CreateProducer"
      * - "Kafka.Export.ToCsv" → "ExportToCsv"
-     * - "CreateTopicAction" → "CreateTopicAction" (already PascalCase)
+     * - "kafka.DeleteTopicAction" → "DeleteTopic"
      */
     private fun normalizeActionName(name: String): String {
-        // Split by dots and capitalize each part
+        // Split by dots and capitalize each part, then remove "Action" suffix
         return name.removePrefix("Kafka.")
             .removePrefix("kafka.")
             .split('.')
             .joinToString("") { part ->
                 part.replaceFirstChar { it.uppercase() }
             }
+            .removeSuffix("Action")
     }
 
     /**
