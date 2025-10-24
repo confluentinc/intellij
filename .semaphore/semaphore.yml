@@ -26,7 +26,8 @@ global_job_config:
     commands:
       - checkout
       # - make show-args
-      # - . vault-setup
+      - . vault-setup
+      - . scripts/get-secrets.sh
       - make ci-sem-cache-restore
       - make setup-sdk
   epilogue:

@@ -17,6 +17,7 @@
     ]]></description>
 
     <depends config-file="spring-boot.xml" optional="true">com.intellij.spring.boot</depends>
+    <depends>com.intellij.modules.json</depends>
 
     <resource-bundle>messages.KafkaBundle</resource-bundle>
     <extensionPoints>
