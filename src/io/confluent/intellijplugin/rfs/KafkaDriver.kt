@@ -5,13 +5,12 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import io.confluent.intellijplugin.core.monitoring.data.listener.DataModelListener
 import io.confluent.intellijplugin.core.monitoring.rfs.MonitoringDriver
-import io.confluent.intellijplugin.core.rfs.driver.Driver
-import io.confluent.intellijplugin.core.rfs.driver.FileInfo
-import io.confluent.intellijplugin.core.rfs.driver.RfsPath
+import io.confluent.intellijplugin.core.rfs.driver.*
 import io.confluent.intellijplugin.core.rfs.tree.DriverRfsTreeModel
 import io.confluent.intellijplugin.core.rfs.tree.node.RfsDriverTreeNodeBuilder
 import io.confluent.intellijplugin.data.KafkaDataManager
 import io.confluent.intellijplugin.registry.KafkaRegistryType
+import io.confluent.intellijplugin.telemetry.*
 import io.confluent.intellijplugin.toolwindow.KafkaMonitoringToolWindowController
 import io.confluent.intellijplugin.toolwindow.config.KafkaToolWindowSettings
 import io.confluent.intellijplugin.toolwindow.controllers.KafkaGroupType
@@ -22,6 +21,7 @@ class KafkaDriver(override val connectionData: KafkaConnectionData, project: Pro
         project,
         testConnection
     ) {
+    private var hasTrackedConnection = false
     override val dataManager: KafkaDataManager = KafkaDataManager(
         project, connectionData,
         KafkaToolWindowSettings.getInstance()
@@ -56,6 +56,34 @@ class KafkaDriver(override val connectionData: KafkaConnectionData, project: Pro
                 fileInfoManager.refreshFiles(schemasPath)
             }
         })
+    }
+
+    /**
+     * Wrapper for each connection driver to send telemetry only when it's a new created connection.
+     */
+    override fun innerRefreshConnection(calledByUser: Boolean): ReadyConnectionStatus {
+        val status = super.innerRefreshConnection(calledByUser)
+
+        if (!hasTrackedConnection && !testConnection) {
+            hasTrackedConnection = true
+
+            val errorType = if (status is FailedConnectionStatus) {
+                status.getException()::class.simpleName ?: "Unknown"
+            } else null
+
+            logUsage(ConnectionCreatedEvent(
+                connectionType = "Kafka",
+                cloudType = connectionData.brokerCloudSource.name,
+                hasSchemaRegistry = connectionData.registryType.name != "NONE",
+                registryType = connectionData.registryType.name,
+                hasSshTunnel = connectionData.getTunnelData().isEnabled,
+                authMethod = determineAuthMethod(connectionData),
+                success = status == ConnectedConnectionStatus,
+                errorType = errorType
+            ))
+        }
+
+        return status
     }
 
     override fun dispose() {}
