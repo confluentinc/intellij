@@ -18,16 +18,16 @@
     <orderEntry type="module" module-name="intellij.platform.editor.ui" />
     <orderEntry type="module" module-name="intellij.platform.ide" />
     <orderEntry type="module" module-name="intellij.platform.ide.impl" />
-    <orderEntry type="library" name="kotlin-reflect" level="project" />
+    <orderEntry type="module" module-name="intellij.libraries.kotlin.reflect" />
     <orderEntry type="module" module-name="intellij.platform.ide.concurrency" />
     <orderEntry type="module" module-name="intellij.platform.execution.impl" />
     <orderEntry type="module" module-name="intellij.platform.core.ui" />
     <orderEntry type="module" module-name="intellij.platform.ide.observable" />
-    <orderEntry type="library" scope="PROVIDED" name="miglayout-swing" level="project" />
+    <orderEntry type="module" module-name="intellij.libraries.miglayout.swing" scope="PROVIDED" />
     <orderEntry type="module" module-name="intellij.json.backend" />
     <orderEntry type="module" module-name="intellij.platform.projectModel" />
     <orderEntry type="module" module-name="intellij.platform.testFramework" scope="TEST" />
-    <orderEntry type="library" name="gson" level="project" />
+    <orderEntry type="module" module-name="intellij.libraries.gson" />
     <orderEntry type="module" module-name="intellij.platform.lang.impl" />
     <orderEntry type="module-library">
       <library name="apache.kafka.clients" type="repository">
@@ -36,9 +36,11 @@
             <artifact url="file://$MAVEN_REPOSITORY$/org/apache/kafka/kafka-clients/3.9.0/kafka-clients-3.9.0.jar">
               <sha256sum>15c1e137f2c2c94398e27abc4060a03b6bde10bf9fac15e8f70c02320b202f18</sha256sum>
             </artifact>
+            <artifact url="file://$MAVEN_REPOSITORY$/com/github/luben/zstd-jni/1.5.6-4/zstd-jni-1.5.6-4.jar">
+              <sha256sum>793ca8734aa15687e7e64564eab8b6ae9ee2720eae27aa663074682144b1c386</sha256sum>
+            </artifact>
           </verification>
           <exclude>
-            <dependency maven-id="com.github.luben:zstd-jni" />
             <dependency maven-id="org.lz4:lz4-java" />
             <dependency maven-id="org.xerial.snappy:snappy-java" />
             <dependency maven-id="org.slf4j:slf4j-api" />
@@ -46,10 +48,12 @@
         </properties>
         <CLASSES>
           <root url="jar://$MAVEN_REPOSITORY$/org/apache/kafka/kafka-clients/3.9.0/kafka-clients-3.9.0.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/com/github/luben/zstd-jni/1.5.6-4/zstd-jni-1.5.6-4.jar!/" />
         </CLASSES>
         <JAVADOC />
         <SOURCES>
           <root url="jar://$MAVEN_REPOSITORY$/org/apache/kafka/kafka-clients/3.9.0/kafka-clients-3.9.0-sources.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/com/github/luben/zstd-jni/1.5.6-4/zstd-jni-1.5.6-4-sources.jar!/" />
         </SOURCES>
       </library>
     </orderEntry>
@@ -288,13 +292,13 @@
         </SOURCES>
       </library>
     </orderEntry>
-    <orderEntry type="library" name="commons-compress" level="project" />
+    <orderEntry type="module" module-name="intellij.libraries.commons.compress" />
     <orderEntry type="library" name="google.re2j" level="project" />
-    <orderEntry type="library" name="classgraph" level="project" />
+    <orderEntry type="module" module-name="intellij.libraries.classgraph" />
     <orderEntry type="library" name="joda.time" level="project" />
-    <orderEntry type="library" name="lz4-java" level="project" />
-    <orderEntry type="library" name="jackson" level="project" />
-    <orderEntry type="library" name="jackson-databind" level="project" />
+    <orderEntry type="module" module-name="intellij.libraries.lz4" />
+    <orderEntry type="module" module-name="intellij.libraries.jackson" />
+    <orderEntry type="module" module-name="intellij.libraries.jackson.databind" />
     <orderEntry type="library" name="xerial.snappy.java" level="project" />
     <orderEntry type="module" module-name="intellij.platform.diff.impl" />
     <orderEntry type="module" module-name="intellij.platform.ide.util.io" />
@@ -370,8 +374,8 @@
         </SOURCES>
       </library>
     </orderEntry>
-    <orderEntry type="library" name="snakeyaml-engine" level="project" />
-    <orderEntry type="library" name="snakeyaml" level="project" />
+    <orderEntry type="module" module-name="intellij.libraries.snakeyaml.engine" />
+    <orderEntry type="module" module-name="intellij.libraries.snakeyaml" />
     <orderEntry type="module-library">
       <library name="github.mifmif.generex" type="repository">
         <properties maven-id="com.github.mifmif:generex:1.0.2">
@@ -635,7 +639,7 @@
         </SOURCES>
       </library>
     </orderEntry>
-    <orderEntry type="library" name="http-client" level="project" />
+    <orderEntry type="module" module-name="intellij.libraries.http.client" />
     <orderEntry type="library" name="okhttp" level="project" />
     <orderEntry type="module" module-name="intellij.platform.ssh" />
     <orderEntry type="module" module-name="intellij.platform.ssh.ui" />
@@ -643,26 +647,26 @@
     <orderEntry type="module" module-name="intellij.platform.refactoring" />
     <orderEntry type="module" module-name="intellij.libraries.microba" />
     <orderEntry type="module" module-name="intellij.platform.util.jdom" />
-    <orderEntry type="library" name="Guava" level="project" />
+    <orderEntry type="module" module-name="intellij.libraries.guava" />
     <orderEntry type="module" module-name="intellij.platform.lang.core" />
     <orderEntry type="module" module-name="intellij.platform.util.text.matching" />
     <orderEntry type="module" module-name="intellij.platform.remote.core" />
     <orderEntry type="module" module-name="intellij.platform.codeStyle" />
     <orderEntry type="module-library" scope="TEST">
-      <library name="kotlinx-metadata-jvm" type="repository">
-        <properties include-transitive-deps="false" maven-id="org.jetbrains.kotlinx:kotlinx-metadata-jvm:0.9.0">
+      <library name="kotlin-metadata-jvm" type="repository">
+        <properties include-transitive-deps="false" maven-id="org.jetbrains.kotlin:kotlin-metadata-jvm:2.2.20">
           <verification>
-            <artifact url="file://$MAVEN_REPOSITORY$/org/jetbrains/kotlinx/kotlinx-metadata-jvm/0.9.0/kotlinx-metadata-jvm-0.9.0.jar">
-              <sha256sum>d42f4bac60b81c4fdcef1c666aed4181d00401e5e696e496f44935fe32fea58f</sha256sum>
+            <artifact url="file://$MAVEN_REPOSITORY$/org/jetbrains/kotlin/kotlin-metadata-jvm/2.2.20/kotlin-metadata-jvm-2.2.20.jar">
+              <sha256sum>8524eac90f7e8e0f1366883f2c6c820c93bfa61df3d76857c8d3e803cf67315d</sha256sum>
             </artifact>
           </verification>
         </properties>
         <CLASSES>
-          <root url="jar://$MAVEN_REPOSITORY$/org/jetbrains/kotlinx/kotlinx-metadata-jvm/0.9.0/kotlinx-metadata-jvm-0.9.0.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/org/jetbrains/kotlin/kotlin-metadata-jvm/2.2.20/kotlin-metadata-jvm-2.2.20.jar!/" />
         </CLASSES>
         <JAVADOC />
         <SOURCES>
-          <root url="jar://$MAVEN_REPOSITORY$/org/jetbrains/kotlinx/kotlinx-metadata-jvm/0.9.0/kotlinx-metadata-jvm-0.9.0-sources.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/org/jetbrains/kotlin/kotlin-metadata-jvm/2.2.20/kotlin-metadata-jvm-2.2.20-sources.jar!/" />
         </SOURCES>
       </library>
     </orderEntry>

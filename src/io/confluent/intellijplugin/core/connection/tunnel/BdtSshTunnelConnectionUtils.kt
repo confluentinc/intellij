@@ -2,12 +2,14 @@ package io.confluent.intellijplugin.core.connection.tunnel
 
 import io.confluent.intellijplugin.core.connection.tunnel.model.ConnectionSshTunnelDataLegacy
 import io.confluent.intellijplugin.core.util.BdtUrlUtils
+import org.jetbrains.annotations.ApiStatus
 import java.net.URL
 
 object BdtSshTunnelConnectionUtils {
     /**
      * Transform settings fields from form when tunnel info is stored as data class to form where ssh tunnel config is url+tunnelInfo
      */
+    @ApiStatus.Internal
     @Deprecated("used only for migration")
     fun transformToConfigVersion2(
         uri: String,

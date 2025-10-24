@@ -8,6 +8,7 @@
   module: intellij.bigdatatools.kafka
   files:
     - name: $MAVEN_REPOSITORY$/org/apache/kafka/kafka-clients/3/kafka-clients-3.jar
+    - name: $MAVEN_REPOSITORY$/com/github/luben/zstd-jni/1/zstd-jni-1.jar
 - name: lib/bigdatatools-kafka.jar
   modules:
     - name: intellij.bigdatatools.kafka

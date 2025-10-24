@@ -6,11 +6,11 @@ import com.intellij.testFramework.junit5.TestApplication
 import io.confluent.intellijplugin.core.settings.ConnectionSettingsBase
 import io.confluent.intellijplugin.core.settings.connections.ConnectionData
 import io.confluent.intellijplugin.core.settings.connections.ConnectionSettingProviderEP
-import kotlinx.metadata.*
-import kotlinx.metadata.jvm.KotlinClassMetadata
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import java.lang.reflect.Modifier
+import kotlin.metadata.*
+import kotlin.metadata.jvm.KotlinClassMetadata
 import kotlin.reflect.*
 import kotlin.reflect.full.declaredMemberProperties
 import kotlin.reflect.jvm.javaField
