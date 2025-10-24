@@ -1,7 +1,6 @@
 #!/bin/bash
 # Retrieve application secrets from Vault
 # Usage: . scripts/get-secrets.sh
-# TODO: Add support for additional secrets (Segment, etc.)
 
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
     set -euo pipefail
@@ -20,7 +19,7 @@ if [ "${CI:-false}" != "true" ]; then
 fi
 
 # Retrieve and export secrets
-for secret in sentry_auth_token sentry_dsn; do
+for secret in sentry_auth_token sentry_dsn segment_write_key; do
     if ! value=$(VAULT_ADDR="$VAULT_ADDR" vault kv get -field="$secret" "$VAULT_PATH" 2>&1); then
         echo "Error: Failed to retrieve $secret from Vault" >&2
         echo "Details: $value" >&2
