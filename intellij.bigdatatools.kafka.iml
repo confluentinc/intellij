@@ -297,8 +297,8 @@
     <orderEntry type="library" name="classgraph" level="project" />
     <orderEntry type="library" name="joda.time" level="project" />
     <orderEntry type="library" name="lz4-java" level="project" />
-    <orderEntry type="library" name="jackson" level="project" />
-    <orderEntry type="library" name="jackson-databind" level="project" />
+    <orderEntry type="module" module-name="intellij.libraries.jackson" />
+    <orderEntry type="module" module-name="intellij.libraries.jackson.databind" />
     <orderEntry type="library" name="xerial.snappy.java" level="project" />
     <orderEntry type="module" module-name="intellij.platform.diff.impl" />
     <orderEntry type="module" module-name="intellij.platform.ide.util.io" />
