@@ -191,7 +191,7 @@ jvm_library(
     "@community//platform/util/text-matching",
     "@community//platform/remote-core",
     "@community//platform/code-style-api:codeStyle",
-    "@ultimate_lib//:bigdatatools-kafka-kotlinx-metadata-jvm",
+    "@ultimate_lib//:bigdatatools-kafka-kotlin-metadata-jvm",
     "@community//platform/testFramework/junit5",
     "@community//platform/testFramework/junit5:junit5_test_lib",
     "@community//libraries/grpc",
