@@ -40,6 +40,41 @@ data class ActionInvokedEvent(
     }
 }
 
+/**
+ * Tracks when a user creates a new Kafka connection.
+ *
+ * @param connectionType Type of connection (e.g., "Kafka", "Confluent Cloud")
+ * @param cloudType Cloud provider if applicable (e.g., "Confluent", "AWS", "Local")
+ * @param hasSchemaRegistry Whether schema registry is configured
+ * @param registryType Type of schema registry ("Confluent", "AWS Glue", "None")
+ * @param hasSshTunnel Whether SSH tunnel is enabled
+ * @param authMethod Authentication method used ("None", "SASL", "SSL", etc.)
+ * @param success Whether the connection was successfully created
+ * @param errorType Error type if connection failed
+ */
+data class ConnectionCreatedEvent(
+    val connectionType: String,
+    val cloudType: String,
+    val hasSchemaRegistry: Boolean,
+    val registryType: String,
+    val hasSshTunnel: Boolean,
+    val authMethod: String,
+    val success: Boolean,
+    val errorType: String? = null, // Error type if connection failed
+) : TelemetryEvent() {
+    override val eventName = "Connection Created"
+
+    override fun properties() = buildMap<String, Any> {
+        put("connectionType", connectionType)
+        put("cloudType", cloudType)
+        put("hasSchemaRegistry", hasSchemaRegistry)
+        put("registryType", registryType)
+        put("hasSshTunnel", hasSshTunnel)
+        put("authMethod", authMethod)
+        put("success", success)
+        errorType?.let { put("errorType", it) }
+    }
+}
 
 // TODO: Define expected properties for all tracked events
 

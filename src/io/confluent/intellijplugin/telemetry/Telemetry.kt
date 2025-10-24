@@ -1,5 +1,7 @@
 package io.confluent.intellijplugin.telemetry
 
+import io.confluent.intellijplugin.rfs.KafkaConnectionData
+
 /**
  * Wrapper function for sending telemetry data to Segment.
  * @param TelemetryEvent The type of usage event with defined accompanied properties.
@@ -14,4 +16,21 @@ fun logUsage(event: TelemetryEvent) {
  */
 fun logUser(traits: Map<String, Any>) {
     TelemetryService.getInstance().sendIdentifyEvent(traits)
+}
+
+/**
+ * Utility functions for telemetry tracking.
+ */
+
+/**
+ * Determines the authentication method used for a Kafka connection.
+ */
+fun determineAuthMethod(connectionData: KafkaConnectionData): String {
+    val properties = connectionData.secretProperties
+    return when {
+        properties.contains("sasl.mechanism") -> "SASL"
+        properties.contains("ssl.keystore") || properties.contains("ssl.truststore") -> "SSL"
+        connectionData.anonymous -> "Anonymous"
+        else -> "None"
+    }
 }
