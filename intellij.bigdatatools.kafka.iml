@@ -36,9 +36,11 @@
             <artifact url="file://$MAVEN_REPOSITORY$/org/apache/kafka/kafka-clients/3.9.0/kafka-clients-3.9.0.jar">
               <sha256sum>15c1e137f2c2c94398e27abc4060a03b6bde10bf9fac15e8f70c02320b202f18</sha256sum>
             </artifact>
+            <artifact url="file://$MAVEN_REPOSITORY$/com/github/luben/zstd-jni/1.5.6-4/zstd-jni-1.5.6-4.jar">
+              <sha256sum>793ca8734aa15687e7e64564eab8b6ae9ee2720eae27aa663074682144b1c386</sha256sum>
+            </artifact>
           </verification>
           <exclude>
-            <dependency maven-id="com.github.luben:zstd-jni" />
             <dependency maven-id="org.lz4:lz4-java" />
             <dependency maven-id="org.xerial.snappy:snappy-java" />
             <dependency maven-id="org.slf4j:slf4j-api" />
@@ -46,10 +48,12 @@
         </properties>
         <CLASSES>
           <root url="jar://$MAVEN_REPOSITORY$/org/apache/kafka/kafka-clients/3.9.0/kafka-clients-3.9.0.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/com/github/luben/zstd-jni/1.5.6-4/zstd-jni-1.5.6-4.jar!/" />
         </CLASSES>
         <JAVADOC />
         <SOURCES>
           <root url="jar://$MAVEN_REPOSITORY$/org/apache/kafka/kafka-clients/3.9.0/kafka-clients-3.9.0-sources.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/com/github/luben/zstd-jni/1.5.6-4/zstd-jni-1.5.6-4-sources.jar!/" />
         </SOURCES>
       </library>
     </orderEntry>
