@@ -1,9 +1,9 @@
 ### auto-generated section `build intellij.bigdatatools.kafka` start
-load("@rules_jvm//:jvm.bzl", "jvm_library", "jvm_provided_library", "jvm_resources")
+load("@rules_jvm//:jvm.bzl", "jvm_library", "jvm_provided_library", "resourcegroup")
 
-jvm_resources(
+resourcegroup(
   name = "kafka_resources",
-  files = glob(["resources/**/*"]),
+  srcs = glob(["resources/**/*"]),
   strip_prefix = "resources"
 )
 
@@ -32,6 +32,7 @@ jvm_library(
   module_name = "intellij.bigdatatools.kafka",
   visibility = ["//visibility:public"],
   srcs = glob(["src/**/*.kt", "src/**/*.java", "src/**/*.form", "gen/**/*.kt", "gen/**/*.java"], allow_empty = True),
+  resources = [":kafka_resources"],
   deps = [
     "@community//platform/analysis-api:analysis",
     "@community//platform/util/concurrency",
@@ -106,8 +107,7 @@ jvm_library(
     ":plugins_spring_spring-boot_spring-boot_provided",
     ":community_plugins_properties_backend-psi_provided",
     ":plugins_microservices_config_provided",
-  ],
-  runtime_deps = [":kafka_resources"]
+  ]
 )
 
 jvm_library(
