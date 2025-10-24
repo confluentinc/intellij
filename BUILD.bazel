@@ -8,6 +8,11 @@ resourcegroup(
 )
 
 jvm_provided_library(
+  name = "community_libraries_miglayout-swing_provided",
+  lib = "@community//libraries/miglayout-swing"
+)
+
+jvm_provided_library(
   name = "plugins_spring_spring_provided",
   lib = "//plugins/spring/spring"
 )
@@ -47,7 +52,6 @@ jvm_library(
     "@community//platform/execution-impl",
     "@community//platform/core-ui",
     "@community//platform/observable",
-    "@ultimate_lib//:miglayout-swing-provided",
     "@community//json/backend",
     "@community//platform/projectModel-api:projectModel",
     "@community//libraries/gson",
@@ -103,6 +107,7 @@ jvm_library(
     "@community//platform/testFramework/junit5",
     "@community//libraries/grpc",
     "//platform/ssh-core",
+    ":community_libraries_miglayout-swing_provided",
     ":plugins_spring_spring_provided",
     ":plugins_spring_spring-boot_spring-boot_provided",
     ":community_plugins_properties_backend-psi_provided",
@@ -130,7 +135,7 @@ jvm_library(
     "@community//platform/execution-impl",
     "@community//platform/core-ui",
     "@community//platform/observable",
-    "@ultimate_lib//:miglayout-swing-provided",
+    "@community//libraries/miglayout-swing",
     "@community//json/backend",
     "@community//platform/projectModel-api:projectModel",
     "@community//platform/testFramework",
