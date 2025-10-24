@@ -2,17 +2,16 @@ package io.confluent.intellijplugin.settings.app
 import com.intellij.openapi.components.*
 import com.intellij.util.xmlb.XmlSerializerUtil
 
-@Service
-@State(
-    name = "ConfluentKafkaPluginSettings",
-    storages = [Storage("kafka_plugin_settings.xml")]
-)
-
 /**
  * Persistent storage for Kafka plugin settings.
  * Stored at location: kafka_plugin_settings.xml
  * @see KafkaPluginSettingsConfigurable for UI implementation
  */
+@Service
+@State(
+    name = "ConfluentKafkaPluginSettings",
+    storages = [Storage("kafka_plugin_settings.xml")]
+)
 class KafkaPluginSettings : PersistentStateComponent<KafkaPluginSettings> {
     var enableUsageData: Boolean = true
 
