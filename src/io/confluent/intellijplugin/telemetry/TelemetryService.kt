@@ -106,7 +106,6 @@ class TelemetryService : Disposable {
         put("ideVersion", appInfo.fullVersion)
         put("ideBuild", appInfo.build.asString())
         put("ideMajorVersion", appInfo.majorVersion)
-        put("ideIsEAP", appInfo.isEAP.toString())
         put("pluginName", "confluent.intellijplugin")
         put("pluginVersion", getPluginVersion())
     }
