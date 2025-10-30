@@ -315,7 +315,6 @@ class KafkaClient(
             names.filter { !it.startsWith("_") }
         val nonVirtualTopics = filteredNames.sorted().filter { !it.endsWith("/") }
         
-        // Filter out virtual topics
         return nonVirtualTopics.filterNot { isVirtualTopic(it) }
     }
     
