@@ -313,7 +313,22 @@ class KafkaClient(
             names
         else
             names.filter { !it.startsWith("_") }
-        return filteredNames.sorted().filter { !it.endsWith("/") }
+        val nonVirtualTopics = filteredNames.sorted().filter { !it.endsWith("/") }
+        
+        return nonVirtualTopics.filterNot { isVirtualTopic(it) }
+    }
+    
+    private fun isVirtualTopic(topicName: String): Boolean = try {
+        val resource = ConfigResource(ConfigResource.Type.TOPIC, topicName)
+        val config = kafkaAdminNotNull.describeConfigs(listOf(resource)).values()[resource]?.get() ?: return false
+        
+        config.entries().any { entry ->
+            (entry.name() == "confluent.topic.type" && entry.value() == "virtual") ||
+            (entry.name() == "replication.factor" && entry.value() == "0")
+        }
+    } catch (t: Throwable) {
+        logger.warn("Could not check if topic $topicName is virtual", t)
+        false
     }
 
     private fun getKafkaProps(connectionData: KafkaConnectionData): Properties {
