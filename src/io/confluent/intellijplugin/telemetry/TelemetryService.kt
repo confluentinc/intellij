@@ -106,6 +106,7 @@ class TelemetryService : Disposable {
         put("ideVersion", appInfo.fullVersion)
         put("ideBuild", appInfo.build.asString())
         put("ideMajorVersion", appInfo.majorVersion)
+        put("ideIsEAP", appInfo.isEAP.toString())
         put("pluginName", "confluent.intellijplugin")
         put("pluginVersion", getPluginVersion())
     }
@@ -114,10 +115,13 @@ class TelemetryService : Disposable {
      * Track an event if telemetry is enabled and user has opted in.
      * Note: Use Telemetry.logUsage for type-safe event tracking.
      */
-    fun trackEvent(event: String, properties: Map<String, Any>) {
-        // Check opt-in status and analytics initialization, return if not enabled
-        if (!KafkaPluginSettings.getInstance().enableUsageData || analytics == null) {
-            logger.debug("Event not tracked - user has not opted in or analytics not initialized: $event")
+    fun sendTrackEvent(event: String, properties: Map<String, Any>) {
+        if (analytics == null) {
+            logger.debug("Event not tracked - analytics not initialized: $event")
+            return
+        }
+        if (!KafkaPluginSettings.getInstance().enableUsageData) {
+            logger.debug("Event not tracked - user has not opted in: $event")
             return
         }
 
@@ -135,11 +139,15 @@ class TelemetryService : Disposable {
 
     /**
      * Send an identify event to Segment.
-     * Note: Use Telemetry.sendIdentifyEvent
+     * Note: Use Telemetry.logUser
      */
     fun sendIdentifyEvent(traits: Map<String, Any>) {
-        if (!KafkaPluginSettings.getInstance().enableUsageData || analytics == null) {
-            logger.debug("Event not tracked - user has not opted in or analytics not initialized")
+        if (analytics == null) {
+            logger.debug("User event not tracked - analytics not initialized")
+            return
+        }
+        if (!KafkaPluginSettings.getInstance().enableUsageData) {
+            logger.debug("User event not tracked - user has not opted in")
             return
         }
 
