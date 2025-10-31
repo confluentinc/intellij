@@ -313,7 +313,31 @@ class KafkaClient(
             names
         else
             names.filter { !it.startsWith("_") }
-        return filteredNames.sorted().filter { !it.endsWith("/") }
+        val topicNames = filteredNames.sorted().filter { !it.endsWith("/") }
+        
+        val virtualTopics = getVirtualTopics(topicNames)
+        return topicNames.filterNot { virtualTopics.contains(it) }
+    }
+    
+    private fun getVirtualTopics(topicNames: List<String>): Set<String> {
+        if (topicNames.isEmpty()) return emptySet()
+        val resources = topicNames.map { ConfigResource(ConfigResource.Type.TOPIC, it) }
+        val result = mutableSetOf<String>()
+        try {
+            val configs = kafkaAdminNotNull.describeConfigs(resources).all().get()
+            for ((resource, config) in configs) {
+                val isVirtual = config.entries().any { entry ->
+                    (entry.name() == "confluent.topic.type" && entry.value() == "virtual") ||
+                    (entry.name() == "replication.factor" && entry.value() == "0")
+                }
+                if (isVirtual) {
+                    result.add(resource.name())
+                }
+            }
+        } catch (t: Throwable) {
+            logger.warn("Could not batch check for virtual topics", t)
+        }
+        return result
     }
 
     private fun getKafkaProps(connectionData: KafkaConnectionData): Properties {
