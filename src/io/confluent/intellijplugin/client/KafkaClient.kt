@@ -313,22 +313,31 @@ class KafkaClient(
             names
         else
             names.filter { !it.startsWith("_") }
-        val nonVirtualTopics = filteredNames.sorted().filter { !it.endsWith("/") }
+        val topicNames = filteredNames.sorted().filter { !it.endsWith("/") }
         
-        return nonVirtualTopics.filterNot { isVirtualTopic(it) }
+        val virtualTopics = getVirtualTopics(topicNames)
+        return topicNames.filterNot { virtualTopics.contains(it) }
     }
     
-    private fun isVirtualTopic(topicName: String): Boolean = try {
-        val resource = ConfigResource(ConfigResource.Type.TOPIC, topicName)
-        val config = kafkaAdminNotNull.describeConfigs(listOf(resource)).values()[resource]?.get() ?: return false
-        
-        config.entries().any { entry ->
-            (entry.name() == "confluent.topic.type" && entry.value() == "virtual") ||
-            (entry.name() == "replication.factor" && entry.value() == "0")
+    private fun getVirtualTopics(topicNames: List<String>): Set<String> {
+        if (topicNames.isEmpty()) return emptySet()
+        val resources = topicNames.map { ConfigResource(ConfigResource.Type.TOPIC, it) }
+        val result = mutableSetOf<String>()
+        try {
+            val configs = kafkaAdminNotNull.describeConfigs(resources).all().get()
+            for ((resource, config) in configs) {
+                val isVirtual = config.entries().any { entry ->
+                    (entry.name() == "confluent.topic.type" && entry.value() == "virtual") ||
+                    (entry.name() == "replication.factor" && entry.value() == "0")
+                }
+                if (isVirtual) {
+                    result.add(resource.name())
+                }
+            }
+        } catch (t: Throwable) {
+            logger.warn("Could not batch check for virtual topics", t)
         }
-    } catch (t: Throwable) {
-        logger.warn("Could not check if topic $topicName is virtual", t)
-        false
+        return result
     }
 
     private fun getKafkaProps(connectionData: KafkaConnectionData): Properties {
