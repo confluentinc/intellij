@@ -17,6 +17,7 @@ import io.confluent.intellijplugin.core.settings.manager.RfsConnectionDataManage
 import io.confluent.intellijplugin.core.util.executeOnPooledThread
 import io.confluent.intellijplugin.core.util.invokeLater
 import io.confluent.intellijplugin.settings.KafkaConnectionGroup
+import io.confluent.intellijplugin.telemetry.logUser
 import io.confluent.intellijplugin.toolwindow.KafkaMonitoringToolWindowController
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
 
@@ -33,6 +34,12 @@ internal class KafkaLoadPluginListener : DynamicPluginListener {
             KafkaMessagesBundle.message("kafka.plugin.installed"),
             NotificationType.INFORMATION
         )
+
+        // Send initial identify when plugin is installed dynamically
+        logUser(buildMap {
+            put("pluginVersion", pluginDescriptor.version)
+            put("pluginInstalled", true)
+        })
 
         notification.collapseDirection = CollapseActionsDirection.KEEP_LEFTMOST
         notification.addAction(
@@ -62,5 +69,17 @@ internal class KafkaLoadPluginListener : DynamicPluginListener {
                 if (!it.isDisposed) notification.notify(it)
             }
         }
+    }
+
+    override fun beforePluginUnload(pluginDescriptor: IdeaPluginDescriptor, isUpdate: Boolean) {
+        if (pluginDescriptor.pluginId.idString != BdtPlugins.KAFKA_ID)
+            return
+
+        // Send final identify event before plugin is uninstalled
+        logUser(buildMap {
+            put("pluginVersion", pluginDescriptor.version)
+            put("pluginInstalled", false)
+            put("isUpdate", isUpdate)
+        })
     }
 }

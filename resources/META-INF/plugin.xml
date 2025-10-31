@@ -29,6 +29,8 @@
     <applicationListeners>
         <listener class="io.confluent.intellijplugin.updater.KafkaLoadPluginListener"
                   topic="com.intellij.ide.plugins.DynamicPluginListener"/>
+        <listener class="io.confluent.intellijplugin.telemetry.ActionTelemetryListener"
+                  topic="com.intellij.openapi.actionSystem.ex.AnActionListener"/>
     </applicationListeners>
 
     <extensions defaultExtensionNs="com.intellij">
