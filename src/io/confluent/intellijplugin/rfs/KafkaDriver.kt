@@ -59,25 +59,32 @@ class KafkaDriver(override val connectionData: KafkaConnectionData, project: Pro
     }
 
     /**
-     * Wrapper for each connection driver to send telemetry only when it's a new created connection.
+     * Wrapper for each connection driver to send telemetry when it's a new created connection or a test connection.
      */
     override fun innerRefreshConnection(calledByUser: Boolean): ReadyConnectionStatus {
         val status = super.innerRefreshConnection(calledByUser)
 
-        if (!hasTrackedConnection && !testConnection) {
+        if (!hasTrackedConnection || testConnection) {
+            val actionType = if (testConnection) "Test" else "Create"
+            // prevent sending new connection telemetry when connections are refreshed automatically or manually
             hasTrackedConnection = true
 
             val errorType = if (status is FailedConnectionStatus) {
                 status.getException()::class.simpleName ?: "Unknown"
             } else null
 
-            logUsage(ConnectionCreatedEvent(
-                connectionType = "Kafka",
-                cloudType = connectionData.brokerCloudSource.name,
-                hasSchemaRegistry = connectionData.registryType.name != "NONE",
-                registryType = connectionData.registryType.name,
-                hasSshTunnel = connectionData.getTunnelData().isEnabled,
-                authMethod = determineAuthMethod(connectionData),
+            logUsage(ConnectionEvent(
+                action = actionType,
+                brokerConfigurationSource = connectionData.brokerConfigurationSource.name,
+                // propertySource is only an option when broker config source is Properties
+                propertySource = if (connectionData.brokerConfigurationSource == KafkaConfigurationSource.FROM_PROPERTIES) connectionData.propertySource.name else null,
+                // brokerCloudSource defaults to Confluent regardless of broker config source, so only track when source is actually Cloud
+                cloudType = if (connectionData.brokerConfigurationSource == KafkaConfigurationSource.CLOUD) connectionData.brokerCloudSource.name else null,
+                // checks if any Custom or Properties configuration is a Confluent Cloud connection.
+                hasCCloudDomain = if(connectionData.brokerConfigurationSource !== KafkaConfigurationSource.CLOUD) connectionData.uri.lowercase().contains("confluent.cloud") else null,
+                schemaRegistryType = connectionData.registryType.name,
+                withSshTunnel = connectionData.getTunnelData().isEnabled,
+                kafkaAuthMethod = determineAuthMethod(connectionData),
                 success = status == ConnectedConnectionStatus,
                 errorType = errorType
             ))

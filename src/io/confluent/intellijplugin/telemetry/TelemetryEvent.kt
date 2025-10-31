@@ -41,37 +41,42 @@ data class ActionInvokedEvent(
 }
 
 /**
- * Tracks when a user creates a new Kafka connection.
+ * Tracks when a user makes connection attempts.
  *
- * @param connectionType Type of connection (e.g., "Kafka", "Confluent Cloud")
- * @param cloudType Cloud provider if applicable (e.g., "Confluent", "AWS", "Local")
- * @param hasSchemaRegistry Whether schema registry is configured
- * @param registryType Type of schema registry ("Confluent", "AWS Glue", "None")
- * @param hasSshTunnel Whether SSH tunnel is enabled
- * @param authMethod Authentication method used ("None", "SASL", "SSL", etc.)
+ * @param action Action type of the connection attempt ("Create", "Test")
+ * @param brokerConfigurationSource Broker configuration source ("CLOUD", "FROM_UI", "FROM_PROPERTIES")
+ * @param schemaRegistryType Type of schema registry ("Confluent", "AWS Glue", "None")
+ * @param withSshTunnel Whether SSH tunnel is enabled
+ * @param kafkaAuthMethod Kafka authentication method used ("None", "SASL", "SSL", "Anonymous")
  * @param success Whether the connection was successfully created
  * @param errorType Error type if connection failed
+ * @param propertySource Property source ("DIRECT", "FILE") if broker configuration is "FROM_PROPERTIES"
+ * @param cloudType Cloud provider if broker configuration is "CLOUD" ("Confluent", "AWS")
  */
-data class ConnectionCreatedEvent(
-    val connectionType: String,
-    val cloudType: String,
-    val hasSchemaRegistry: Boolean,
-    val registryType: String,
-    val hasSshTunnel: Boolean,
-    val authMethod: String,
+data class ConnectionEvent(
+    val action: String,
+    val brokerConfigurationSource: String,
+    val schemaRegistryType: String,
+    val withSshTunnel: Boolean,
+    val kafkaAuthMethod: String,
     val success: Boolean,
-    val errorType: String? = null, // Error type if connection failed
+    val propertySource: String? = null,
+    val cloudType: String? = null,
+    val hasCCloudDomain: Boolean? = null,
+    val errorType: String? = null,
 ) : TelemetryEvent() {
-    override val eventName = "Connection Created"
+    override val eventName = "Connection Action"
 
     override fun properties() = buildMap<String, Any> {
-        put("connectionType", connectionType)
-        put("cloudType", cloudType)
-        put("hasSchemaRegistry", hasSchemaRegistry)
-        put("registryType", registryType)
-        put("hasSshTunnel", hasSshTunnel)
-        put("authMethod", authMethod)
+        put("action", action)
+        put("brokerConfigurationSource", brokerConfigurationSource)
+        put("schemaRegistryType", schemaRegistryType)
+        put("withSshTunnel", withSshTunnel)
+        put("kafkaAuthMethod", kafkaAuthMethod)
         put("success", success)
+        propertySource?.let { put("propertySource", it) }
+        cloudType?.let { put("cloudType", it) }
+        hasCCloudDomain?.let { put("hasCCloudDomain", it) }
         errorType?.let { put("errorType", it) }
     }
 }

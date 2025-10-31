@@ -29,7 +29,7 @@ fun determineAuthMethod(connectionData: KafkaConnectionData): String {
     val properties = connectionData.secretProperties
     return when {
         properties.contains("sasl.mechanism") -> "SASL"
-        properties.contains("ssl.keystore") || properties.contains("ssl.truststore") -> "SSL"
+        properties.contains("ssl.keystore") -> "SSL"
         connectionData.anonymous -> "Anonymous"
         else -> "None"
     }
