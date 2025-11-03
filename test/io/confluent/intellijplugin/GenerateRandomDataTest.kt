@@ -1,6 +1,5 @@
 package io.confluent.intellijplugin
 
-import com.intellij.testFramework.UsefulTestCase
 import io.confluent.intellijplugin.util.generator.AvroGenerator
 import io.confluent.intellijplugin.util.generator.JsonSchemaGenerator
 import io.confluent.intellijplugin.util.generator.PrimitivesGenerator
@@ -13,27 +12,33 @@ import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchema
 import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchemaUtils
 import org.junit.jupiter.api.Assertions.assertDoesNotThrow
 import org.junit.jupiter.api.Assertions.assertNotEquals
+import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Test
 import java.util.*
 
-internal class GenerateRandomDataTest() : UsefulTestCase() {
+internal class GenerateRandomDataTest {
+    @Test
     fun testGenerateLong() {
         val long1 = PrimitivesGenerator.generateLong()
         val long2 = PrimitivesGenerator.generateLong()
         assertNotEquals(long1, long2)
     }
 
+    @Test
     fun testGenerateDouble() {
         val double1 = PrimitivesGenerator.generateDouble()
         val double2 = PrimitivesGenerator.generateDouble()
         assertNotEquals(double1, double2)
     }
 
+    @Test
     fun testGenerateFloat() {
         val float1 = PrimitivesGenerator.generateFloat()
         val float2 = PrimitivesGenerator.generateFloat()
         assertNotEquals(float1, float2)
     }
 
+    @Test
     fun testGenerateBytes() {
         val bytes1 = PrimitivesGenerator.generateBytesBase64()
         assertDoesNotThrow { Base64.getDecoder().decode(bytes1) }
@@ -43,6 +48,7 @@ internal class GenerateRandomDataTest() : UsefulTestCase() {
         assertNotEquals(bytes1, bytes2)
     }
 
+    @Test
     fun testGenerateAvro() {
         assertDoesNotThrow {
             val avroSchema1 = AvroSchema(avroSchema1)
@@ -61,6 +67,7 @@ internal class GenerateRandomDataTest() : UsefulTestCase() {
         }
     }
 
+    @Test
     fun testGenerateProtobuf() {
         assertDoesNotThrow {
             val schema1 = ProtobufSchema(protobufSchema1)
@@ -79,6 +86,7 @@ internal class GenerateRandomDataTest() : UsefulTestCase() {
         }
     }
 
+    @Test
     fun testGenerateJson() {
         assertDoesNotThrow {
             val schema1 = JsonSchema(jsonSchema1)
