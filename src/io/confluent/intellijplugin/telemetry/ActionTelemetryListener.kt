@@ -27,8 +27,8 @@ class ActionTelemetryListener : AnActionListener {
 
         try {
             logUsage(ActionInvokedEvent(
-                actionName= normalizeActionName(registeredActionId?: actionClassName),
-                actionClassName= actionClassName,
+                actionName = normalizeActionName(registeredActionId?: actionClassName),
+                actionClassName = actionClassName,
                 registeredActionId = registeredActionId,
                 invokedPlace = event.place
             ))
