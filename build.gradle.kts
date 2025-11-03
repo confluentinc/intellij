@@ -107,7 +107,7 @@ dependencies {
     testImplementation(libs.junit.jupiter.api)
     testRuntimeOnly(libs.junit.jupiter.engine)
     testImplementation(libs.junit.jupiter.params)
-    testImplementation(libs.junit4)
+    // JUnit 4 runtime required due to IJPL-159134: JUnit5 Test Framework refers to JUnit4 classes
     // See: https://youtrack.jetbrains.com/issue/IJPL-159134
     testRuntimeOnly(libs.junit4)
 }
