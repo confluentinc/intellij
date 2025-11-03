@@ -107,6 +107,8 @@ dependencies {
     testRuntimeOnly(libs.junit.jupiter.engine)
     testImplementation(libs.junit.jupiter.params)
     testImplementation(libs.junit4)
+    // See: https://youtrack.jetbrains.com/issue/IJPL-159134
+    testRuntimeOnly(libs.junit4)
 }
 
 configurations.all { exclude(group = "org.slf4j", module = "slf4j-api") }
@@ -156,7 +158,7 @@ tasks {
     }
 
     test {
-        useJUnit()
+        useJUnitPlatform()
     }
     
     // Skip Sentry tasks when auth token is missing
