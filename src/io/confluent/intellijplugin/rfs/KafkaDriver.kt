@@ -5,13 +5,12 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import io.confluent.intellijplugin.core.monitoring.data.listener.DataModelListener
 import io.confluent.intellijplugin.core.monitoring.rfs.MonitoringDriver
-import io.confluent.intellijplugin.core.rfs.driver.Driver
-import io.confluent.intellijplugin.core.rfs.driver.FileInfo
-import io.confluent.intellijplugin.core.rfs.driver.RfsPath
+import io.confluent.intellijplugin.core.rfs.driver.*
 import io.confluent.intellijplugin.core.rfs.tree.DriverRfsTreeModel
 import io.confluent.intellijplugin.core.rfs.tree.node.RfsDriverTreeNodeBuilder
 import io.confluent.intellijplugin.data.KafkaDataManager
 import io.confluent.intellijplugin.registry.KafkaRegistryType
+import io.confluent.intellijplugin.telemetry.*
 import io.confluent.intellijplugin.toolwindow.KafkaMonitoringToolWindowController
 import io.confluent.intellijplugin.toolwindow.config.KafkaToolWindowSettings
 import io.confluent.intellijplugin.toolwindow.controllers.KafkaGroupType
@@ -22,6 +21,7 @@ class KafkaDriver(override val connectionData: KafkaConnectionData, project: Pro
         project,
         testConnection
     ) {
+    private var hasTrackedConnection = false
     override val dataManager: KafkaDataManager = KafkaDataManager(
         project, connectionData,
         KafkaToolWindowSettings.getInstance()
@@ -56,6 +56,41 @@ class KafkaDriver(override val connectionData: KafkaConnectionData, project: Pro
                 fileInfoManager.refreshFiles(schemasPath)
             }
         })
+    }
+
+    /**
+     * Wrapper for each connection driver to send telemetry when it's a new created connection or a test connection.
+     */
+    override fun innerRefreshConnection(calledByUser: Boolean): ReadyConnectionStatus {
+        val status = super.innerRefreshConnection(calledByUser)
+
+        if (!hasTrackedConnection || testConnection) {
+            val actionType = if (testConnection) "Test" else "Create"
+            // prevent sending new connection telemetry when connections are refreshed automatically or manually
+            hasTrackedConnection = true
+
+            val errorType = if (status is FailedConnectionStatus) {
+                status.getException()::class.simpleName ?: "Unknown"
+            } else null
+
+            logUsage(ConnectionEvent(
+                action = actionType,
+                brokerConfigurationSource = connectionData.brokerConfigurationSource.name,
+                // propertySource is only an option when broker config source is Properties
+                propertySource = if (connectionData.brokerConfigurationSource == KafkaConfigurationSource.FROM_PROPERTIES) connectionData.propertySource.name else null,
+                // brokerCloudSource defaults to Confluent regardless of broker config source, so only track when source is actually Cloud
+                cloudType = if (connectionData.brokerConfigurationSource == KafkaConfigurationSource.CLOUD) connectionData.brokerCloudSource.name else null,
+                // checks if any Custom or Properties configuration is a Confluent Cloud connection.
+                hasCCloudDomain = if (connectionData.brokerConfigurationSource !== KafkaConfigurationSource.CLOUD) connectionData.uri.lowercase().contains("confluent.cloud") else null,
+                schemaRegistryType = connectionData.registryType.name,
+                withSshTunnel = connectionData.getTunnelData().isEnabled,
+                kafkaAuthMethod = determineAuthMethod(connectionData),
+                success = status == ConnectedConnectionStatus,
+                errorType = errorType
+            ))
+        }
+
+        return status
     }
 
     override fun dispose() {}
