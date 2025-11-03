@@ -1,13 +1,14 @@
 package io.confluent.intellijplugin.rfs
 
 import com.intellij.openapi.application.PathManager
-import com.intellij.testFramework.UsefulTestCase
 import com.intellij.testFramework.junit5.TestApplication
 import io.confluent.intellijplugin.core.settings.ConnectionSettingsBase
 import io.confluent.intellijplugin.core.settings.connections.ConnectionData
 import io.confluent.intellijplugin.core.settings.connections.ConnectionSettingProviderEP
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
+import java.io.File
 import java.lang.reflect.Modifier
 import kotlin.metadata.*
 import kotlin.metadata.jvm.KotlinClassMetadata
@@ -209,10 +210,10 @@ class ConnectionDataTest {
         }
         propertyList.appendLine("  )")
         propertyList.appendLine("}")
-        UsefulTestCase.assertSameLinesWithFile(
-            "${PathManager.getHomePath()}/plugins/bigdatatools/tests/test/com/jetbrains/bigdatatools/rfs/SerializableProperties.kt",
-            propertyList.toString()
-        )
+        
+        val expectedFile = File("${PathManager.getHomePath()}/plugins/bigdatatools/tests/test/com/jetbrains/bigdatatools/rfs/SerializableProperties.kt")
+        val expected = if (expectedFile.exists()) expectedFile.readText() else ""
+        assertEquals(expected.trim(), propertyList.toString().trim())
     }
 
 }
