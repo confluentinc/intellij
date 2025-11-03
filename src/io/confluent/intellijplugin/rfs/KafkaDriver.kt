@@ -81,7 +81,7 @@ class KafkaDriver(override val connectionData: KafkaConnectionData, project: Pro
                 // brokerCloudSource defaults to Confluent regardless of broker config source, so only track when source is actually Cloud
                 cloudType = if (connectionData.brokerConfigurationSource == KafkaConfigurationSource.CLOUD) connectionData.brokerCloudSource.name else null,
                 // checks if any Custom or Properties configuration is a Confluent Cloud connection.
-                hasCCloudDomain = if(connectionData.brokerConfigurationSource !== KafkaConfigurationSource.CLOUD) connectionData.uri.lowercase().contains("confluent.cloud") else null,
+                hasCCloudDomain = if (connectionData.brokerConfigurationSource !== KafkaConfigurationSource.CLOUD) connectionData.uri.lowercase().contains("confluent.cloud") else null,
                 schemaRegistryType = connectionData.registryType.name,
                 withSshTunnel = connectionData.getTunnelData().isEnabled,
                 kafkaAuthMethod = determineAuthMethod(connectionData),
