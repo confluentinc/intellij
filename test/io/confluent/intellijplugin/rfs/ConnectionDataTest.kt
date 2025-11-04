@@ -6,10 +6,12 @@ import io.confluent.intellijplugin.core.settings.ConnectionSettingsBase
 import io.confluent.intellijplugin.core.settings.connections.ConnectionData
 import io.confluent.intellijplugin.core.settings.connections.ConnectionSettingProviderEP
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
-import java.io.File
 import java.lang.reflect.Modifier
+import java.nio.file.Files
+import java.nio.file.Path
 import kotlin.metadata.*
 import kotlin.metadata.jvm.KotlinClassMetadata
 import kotlin.reflect.*
@@ -210,10 +212,10 @@ class ConnectionDataTest {
         }
         propertyList.appendLine("  )")
         propertyList.appendLine("}")
-        
-        val expectedFile = File("${PathManager.getHomePath()}/plugins/bigdatatools/tests/test/com/jetbrains/bigdatatools/rfs/SerializableProperties.kt")
-        val expected = if (expectedFile.exists()) expectedFile.readText() else ""
-        assertEquals(expected.trim(), propertyList.toString().trim())
+
+        val expectedFile = Path.of("${PathManager.getHomePath()}/plugins/bigdatatools/tests/test/com/jetbrains/bigdatatools/rfs/SerializableProperties.kt")
+        assertTrue(Files.exists(expectedFile))
+        assertEquals(Files.readString(expectedFile), propertyList.toString().trim())
     }
 
 }
