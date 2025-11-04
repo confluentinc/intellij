@@ -53,8 +53,6 @@ blocks:
       jobs:
         - name: "Build, Test, Release"
           commands:
-            - rm -rf ~/.gradle/caches
-            - rm -rf ~/.gradle/daemon
             - make build
             - make test
             - make release-ci
