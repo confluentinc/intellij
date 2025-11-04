@@ -6,7 +6,8 @@ aws-sdk = "2.20.158"
 glue-schema = "1.1.15"
 generex = "1.0.2"
 kotlin-metadata = "2.2.20"
-junit-jupiter = "5.10.2"
+junit-jupiter = "5.10.0"
+junit-jupiter-params = "5.10.2"
 junit4 = "4.13.2"
 
 [libraries]
@@ -30,6 +31,6 @@ kotlin-metadata-jvm = { module = "org.jetbrains.kotlin:kotlin-metadata-jvm", ver
 
 junit-jupiter-api = { module = "org.junit.jupiter:junit-jupiter-api", version.ref = "junit-jupiter" }
 junit-jupiter-engine = { module = "org.junit.jupiter:junit-jupiter-engine", version.ref = "junit-jupiter" }
-junit-jupiter-params = { module = "org.junit.jupiter:junit-jupiter-params", version.ref = "junit-jupiter" }
+junit-jupiter-params = { module = "org.junit.jupiter:junit-jupiter-params", version.ref = "junit-jupiter-params" }
 
 junit4 = { module = "junit:junit", version.ref = "junit4" }
