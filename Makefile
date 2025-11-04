@@ -129,7 +129,7 @@ setup-sdk:
 
 .PHONY: build
 build: setup-sdk
-	$(GRADLE) build -Dorg.gradle.console=plain
+	$(GRADLE) clean build --refresh-dependencies -Dorg.gradle.console=plain
 
 .PHONY: test
 test: setup-sdk

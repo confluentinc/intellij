@@ -1,10 +1,12 @@
 package io.confluent.intellijplugin
 
-import com.intellij.testFramework.UsefulTestCase
 import io.confluent.intellijplugin.util.KafkaPropertiesUtils
+import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Test
 
-internal class KafkaPropertiesTest : UsefulTestCase() {
+internal class KafkaPropertiesTest {
+    @Test
     fun testAdmin() {
-        assertNotEmpty(KafkaPropertiesUtils.getAdminPropertiesDescriptions())
+        assertTrue(KafkaPropertiesUtils.getAdminPropertiesDescriptions().isNotEmpty())
     }
 }
