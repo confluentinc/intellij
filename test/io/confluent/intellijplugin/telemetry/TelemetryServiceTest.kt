@@ -1,7 +1,5 @@
 package io.confluent.intellijplugin.telemetry
 
-import com.intellij.openapi.application.ApplicationInfo
-import com.intellij.openapi.util.SystemInfo
 import com.intellij.testFramework.junit5.TestApplication
 import com.segment.analytics.Analytics
 import io.confluent.intellijplugin.settings.app.KafkaPluginSettings
