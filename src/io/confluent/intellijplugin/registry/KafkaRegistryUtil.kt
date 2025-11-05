@@ -14,6 +14,7 @@ import io.confluent.intellijplugin.registry.serde.BdtJsonSchemaProvider
 import io.confluent.intellijplugin.registry.serde.BdtProtobufSchemaProvider
 import io.confluent.kafka.schemaregistry.AbstractSchemaProvider
 import io.confluent.kafka.schemaregistry.ParsedSchema
+import io.confluent.kafka.schemaregistry.client.rest.entities.Schema
 import io.confluent.kafka.schemaregistry.client.rest.entities.SchemaReference
 import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchema
 import java.util.logging.Level
@@ -70,7 +71,8 @@ object KafkaRegistryUtil {
                 it.schemaType() == schemaType.name
             } ?: error("Schema type is not found ${schemaType}")
 
-            val value = provider.parseSchemaOrElseThrow(newText, references, true)
+            val schema = Schema(null, null, null, schemaType.name, references, newText)
+            val value = provider.parseSchemaOrElseThrow(schema, true, false)
             Result.success(value)
         } catch (e: Throwable) {
             Result.failure(e)

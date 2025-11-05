@@ -5,8 +5,11 @@ import io.confluent.kafka.schemaregistry.avro.AvroSchema
 import io.confluent.kafka.serializers.AbstractKafkaAvroSerializer
 import io.confluent.kafka.serializers.NonRecordContainer
 import org.apache.avro.Schema
+import org.apache.avro.generic.GenericDatumWriter
 import org.apache.avro.io.DatumWriter
 import org.apache.avro.io.EncoderFactory
+import org.apache.avro.specific.SpecificDatumWriter
+import org.apache.avro.specific.SpecificRecord
 import org.apache.kafka.common.errors.SerializationException
 import org.apache.kafka.common.serialization.Serializer
 import java.io.ByteArrayOutputStream
@@ -39,6 +42,8 @@ class BdtKafkaCustomAvroSerializer(private val producerConfig: ConsumerProducerF
         return out.toByteArray()
     }
 
+    override fun close() {}
+
     @Throws(IOException::class)
     private fun writeDatum(out: ByteArrayOutputStream, value: Any, rawSchema: Schema) {
         val encoder = encoderFactory.directBinaryEncoder(out, null)
@@ -46,8 +51,12 @@ class BdtKafkaCustomAvroSerializer(private val producerConfig: ConsumerProducerF
         @Suppress("UNCHECKED_CAST")
         val writer = datumWriterCache.computeIfAbsent(
             rawSchema
-        ) { v: Schema? ->
-            getDatumWriter(value, rawSchema) as DatumWriter<Any>
+        ) { schema: Schema ->
+            if (value is SpecificRecord) {
+                SpecificDatumWriter<Any>(schema)
+            } else {
+                GenericDatumWriter<Any>(schema)
+            }
         }
         writer.write(value, encoder)
         encoder.flush()
