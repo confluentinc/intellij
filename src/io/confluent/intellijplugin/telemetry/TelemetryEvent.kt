@@ -1,17 +1,15 @@
 package io.confluent.intellijplugin.telemetry
 
 /**
- * Sealed class for all telemetry events to enforce type safety at compile time.
+ * Interface for all telemetry events to enforce type safety at compile time.
  *
- * Each event type must extend this class and provide:
+ * Each event type must implement this interface and provide:
  * - eventName: The name that appears in Segment (e.g., "TopicCreateAction")
  * - properties(): Map of event-specific properties
  */
-sealed class TelemetryEvent {
-
-    abstract val eventName: String
-
-    abstract fun properties(): Map<String, Any>
+internal interface TelemetryEvent {
+    val eventName: String
+    fun properties(): Map<String, Any>
 }
 
 /**
@@ -29,7 +27,7 @@ data class ActionInvokedEvent(
     val actionClassName: String,
     val registeredActionId: String? = null,
     val invokedPlace: String,
-) : TelemetryEvent() {
+) : TelemetryEvent {
     override val eventName = "Action Invoked"
 
     override fun properties() = buildMap<String, Any> {
@@ -64,7 +62,7 @@ data class ConnectionEvent(
     val cloudType: String? = null,
     val hasCCloudDomain: Boolean? = null,
     val errorType: String? = null,
-) : TelemetryEvent() {
+) : TelemetryEvent {
     override val eventName = "Connection Action"
 
     override fun properties() = buildMap<String, Any> {
@@ -83,52 +81,52 @@ data class ConnectionEvent(
 
 // TODO: Define expected properties for all tracked events
 
-object TopicCreateAction : TelemetryEvent() {
+object TopicCreateAction : TelemetryEvent {
     override val eventName = "TopicCreateAction"
     override fun properties() = emptyMap<String, Any>()
 }
 
-object TopicDeleteAction : TelemetryEvent() {
+object TopicDeleteAction : TelemetryEvent {
     override val eventName = "TopicDeleteAction"
     override fun properties() = emptyMap<String, Any>()
 }
 
-object TopicClearAction : TelemetryEvent() {
+object TopicClearAction : TelemetryEvent {
     override val eventName = "TopicClearAction"
     override fun properties() = emptyMap<String, Any>()
 }
 
-object ProducerOpenAction : TelemetryEvent() {
+object ProducerOpenAction : TelemetryEvent {
     override val eventName = "ProducerOpenAction"
     override fun properties() = emptyMap<String, Any>()
 }
 
-object ProducerKeyValueAction : TelemetryEvent() {
+object ProducerKeyValueAction : TelemetryEvent {
     override val eventName = "ProducerKeyValueAction"
     override fun properties() = emptyMap<String, Any>()
 }
 
-object ConsumerOpenAction : TelemetryEvent() {
+object ConsumerOpenAction : TelemetryEvent {
     override val eventName = "ConsumerOpenAction"
     override fun properties() = emptyMap<String, Any>()
 }
 
-object ConsumerKeyValueAction : TelemetryEvent() {
+object ConsumerKeyValueAction : TelemetryEvent {
     override val eventName = "ConsumerKeyValueAction"
     override fun properties() = emptyMap<String, Any>()
 }
 
-object ConsumerGroupChangeOffsetAction : TelemetryEvent() {
+object ConsumerGroupChangeOffsetAction : TelemetryEvent {
     override val eventName = "ConsumerGroupChangeOffsetAction"
     override fun properties() = emptyMap<String, Any>()
 }
 
-object ConsumerGroupDeleteAction : TelemetryEvent() {
+object ConsumerGroupDeleteAction : TelemetryEvent {
     override val eventName = "ConsumerGroupDeleteAction"
     override fun properties() = emptyMap<String, Any>()
 }
 
-object PartitionsClearAction : TelemetryEvent() {
+object PartitionsClearAction : TelemetryEvent {
     override val eventName = "PartitionsClearAction"
     override fun properties() = emptyMap<String, Any>()
 }

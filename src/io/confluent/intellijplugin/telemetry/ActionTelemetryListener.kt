@@ -44,7 +44,7 @@ class ActionTelemetryListener : AnActionListener {
      * - "Kafka.Export.ToCsv" → "ExportToCsv"
      * - "kafka.DeleteTopicAction" → "DeleteTopic"
      */
-    private fun normalizeActionName(name: String): String {
+    internal fun normalizeActionName(name: String): String {
         // Split by dots and capitalize each part, then remove "Action" suffix
         return name.removePrefix("Kafka.")
             .removePrefix("kafka.")
@@ -59,7 +59,7 @@ class ActionTelemetryListener : AnActionListener {
      * Determines if an action belongs to the Kafka plugin.
      * Actions defined in plugin.xml with IDs starting with "Kafka." or "kafka." are tracked.
      */
-    private fun isKafkaAction(actionId: String): Boolean {
+    internal fun isKafkaAction(actionId: String): Boolean {
         return actionId.startsWith("Kafka.") || actionId.startsWith("kafka.")
     }
 
@@ -70,7 +70,7 @@ class ActionTelemetryListener : AnActionListener {
      * Note: Only tracks specific known inner classes. Most actions should be registered
      * in plugin.xml or use manual logUsage() calls for detailed tracking.
      */
-    private fun isKafkaActionClass(className: String): Boolean {
+    internal fun isKafkaActionClass(className: String): Boolean {
         return when (className) {
             // Tool window actions
             "CreateNewConnectionAction",     // "+" button in Kafka tool window tabs
