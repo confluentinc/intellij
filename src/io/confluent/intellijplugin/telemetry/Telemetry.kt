@@ -27,9 +27,13 @@ internal fun logUser(traits: Map<String, Any>) {
  */
 fun determineAuthMethod(connectionData: KafkaConnectionData): String {
     val properties = connectionData.secretProperties
+    val hasSasl = properties.contains("sasl.mechanism")
+    val hasSsl = properties.contains("ssl.keystore")
+
     return when {
-        properties.contains("sasl.mechanism") -> "SASL"
-        properties.contains("ssl.keystore") -> "SSL"
+        hasSasl && hasSsl -> "SASL_SSL"
+        hasSasl -> "SASL"
+        hasSsl -> "SSL"
         connectionData.anonymous -> "Anonymous"
         else -> "None"
     }

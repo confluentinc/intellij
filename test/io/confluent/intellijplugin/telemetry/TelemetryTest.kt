@@ -69,6 +69,14 @@ class TelemetryTest {
         }
 
         @Test
+        fun `detects SASL_SSL`() {
+            val connectionData = KafkaConnectionData()
+            connectionData.secretProperties = "sasl.mechanism=PLAIN\nssl.keystore.location=/path/to/keystore"
+
+            assertEquals("SASL_SSL", determineAuthMethod(connectionData))
+        }
+
+        @Test
         fun `detects Anonymous`() {
             val connectionData = KafkaConnectionData()
             connectionData.secretProperties = ""
