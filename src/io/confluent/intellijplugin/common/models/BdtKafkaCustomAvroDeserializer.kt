@@ -19,4 +19,6 @@ class BdtKafkaCustomAvroDeserializer(private val producerConfig: ConsumerProduce
         return reader.read(null, decoderFactory.binaryDecoder(data, null))
 
     }
+
+    override fun close() {}
 }
