@@ -73,7 +73,7 @@ class ActionTelemetryListenerTest {
         }
 
         @Test
-        fun `tracks multiple Kafka action tiggers`() {
+        fun `tracks multiple Kafka action triggers`() {
             val action = CreateNewConnectionAction()
             val result = mock(AnActionResult::class.java)
             repeat(3) {
