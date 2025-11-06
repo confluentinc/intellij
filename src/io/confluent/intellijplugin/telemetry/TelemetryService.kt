@@ -26,7 +26,7 @@ import io.confluent.intellijplugin.core.constants.BdtPlugins
 class TelemetryService : Disposable {
     private val logger = thisLogger()
 
-    private var analytics: Analytics? = null
+    internal var analytics: Analytics? = null
     private var warnedAboutSegmentKey = false
 
     init {
