@@ -41,7 +41,31 @@ val generateSentryConfig by tasks.registering {
                 const val DSN = "$sentryDsn"
                 val isConfigured = DSN.isNotBlank()
             }
-            
+
+        """.trimIndent())
+    }
+}
+
+// Generate SegmentConfig.kt with embedded write key at build time
+val generateSegmentConfig by tasks.registering {
+    val outputDir = layout.buildDirectory.dir("generated/sources/segmentconfig/kotlin")
+    val segmentWriteKey = System.getenv("SEGMENT_WRITE_KEY") ?: ""
+
+    outputs.dir(outputDir)
+    inputs.property("segmentWriteKey", segmentWriteKey)
+
+    doLast {
+        val configFile = outputDir.get().asFile.resolve("io/confluent/intellijplugin/telemetry/SegmentConfig.kt")
+        configFile.parentFile.mkdirs()
+        configFile.writeText("""
+            package io.confluent.intellijplugin.telemetry
+
+            /** Segment configuration embedded at build time from SEGMENT_WRITE_KEY env var. */
+            object SegmentConfig {
+                const val WRITE_KEY = "$segmentWriteKey"
+                val isConfigured = WRITE_KEY.isNotBlank()
+            }
+
         """.trimIndent())
     }
 }
@@ -118,7 +142,12 @@ configurations.all { exclude(group = "org.slf4j", module = "slf4j-api") }
 sourceSets {
     main {
         java.srcDirs(listOf("src", "gen"))
-        kotlin.srcDirs(listOf("src", "gen", layout.buildDirectory.dir("generated/sources/sentryconfig/kotlin")))
+        kotlin.srcDirs(listOf(
+            "src",
+            "gen",
+            layout.buildDirectory.dir("generated/sources/sentryconfig/kotlin"),
+            layout.buildDirectory.dir("generated/sources/segmentconfig/kotlin")
+        ))
         resources.srcDirs(listOf("resources"))
     }
     test {
@@ -128,7 +157,7 @@ sourceSets {
 }
 
 tasks.named("compileKotlin") {
-    dependsOn(generateSentryConfig)
+    dependsOn(generateSentryConfig, generateSegmentConfig)
 }
 
 // Ensure all Sentry plugin tasks run after custom config generation
