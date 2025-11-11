@@ -257,7 +257,7 @@ object RfsCopyPasteManager {
         inputLength: Long,
         targetDriver: Driver,
         targetPath: RfsPath,
-        runInBackground: Boolean,
+        inModal: Boolean,
         onSuccess: () -> Unit
     ) {
         fun performUpload(indicator: ProgressIndicator) = try {
@@ -278,18 +278,10 @@ object RfsCopyPasteManager {
             RfsNotificationUtils.notifyException(t, KafkaMessagesBundle.message("save.file.error"))
         }
 
-        if (runInBackground) {
-            val uploadTask = object : Task.Backgroundable(project, KafkaMessagesBundle.message("save.file.task")) {
-                override fun run(indicator: ProgressIndicator) = performUpload(indicator)
-            }
-            ProgressManager.getInstance().run(uploadTask)
-        } else {
-            val uploadTask =
-                object : Task.Modal(project, KafkaMessagesBundle.message("save.file.task.foreground"), false) {
-                    override fun run(indicator: ProgressIndicator) = performUpload(indicator)
-                }
-            ProgressManager.getInstance().run(uploadTask)
-        }
+        val uploadTask = object : Task.Backgroundable(project, KafkaMessagesBundle.message("save.file.task")) {
+            override fun run(indicator: ProgressIndicator) = performUpload(indicator)
+        }.toModalIfNeeded(inModal)
+        ProgressManager.getInstance().run(uploadTask)
     }
 
     fun renameWithDialog(
