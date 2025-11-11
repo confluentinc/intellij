@@ -193,6 +193,7 @@ jvm_library(
     "@community//libraries/guava",
     "@community//platform/lang-core",
     "@community//platform/util/text-matching",
+    "@community//platform/util/text-matching:text-matching_test_lib",
     "@community//platform/remote-core",
     "@community//platform/code-style-api:codeStyle",
     "@ultimate_lib//:bigdatatools-kafka-kotlin-metadata-jvm",
