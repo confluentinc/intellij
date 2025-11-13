@@ -39,8 +39,7 @@ class TelemetryService : Disposable {
 
     private fun initialize() {
         if (analytics == null) {
-            val writeKey = System.getenv("SEGMENT_WRITE_KEY")
-            if (writeKey.isNullOrBlank()) {
+            if (!SegmentConfig.isConfigured) {
                 // If we don't have a key, assume we're in dev mode and skip initialization
                 if (!warnedAboutSegmentKey) {
                     warnedAboutSegmentKey = true
@@ -50,7 +49,7 @@ class TelemetryService : Disposable {
             }
 
             try {
-                analytics = Analytics.builder(writeKey).build()
+                analytics = Analytics.builder(SegmentConfig.WRITE_KEY).build()
                 logger.debug("Telemetry service initialized successfully")
             } catch (e: Exception) {
                 logger.error("Failed to initialize telemetry service", e)
