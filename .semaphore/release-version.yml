@@ -119,6 +119,7 @@ blocks:
           commands:
             - artifact pull workflow RELEASE_NAME.txt
             - RELEASE_NAME=$(cat RELEASE_NAME.txt)
+            - export RELEASE_NAME
             - make build-plugin
             # Only one plugin zip should be created, unlike the VS Code extension that creates multiple .vsix files
             - PLUGIN_ZIP=$(find build/distributions/ -name "*.zip" | head -1)
