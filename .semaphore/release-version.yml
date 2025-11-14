@@ -116,6 +116,8 @@ blocks:
       jobs:
         - name: "Build IntelliJ Plugin"
           commands:
+            - artifact pull workflow RELEASE_NAME.txt
+            - RELEASE_NAME=$(cat RELEASE_NAME.txt)
             - make build-plugin
             # Only one plugin zip should be created, unlike the VS Code extension that creates multiple .vsix files
             - PLUGIN_ZIP=$(find build/distributions/ -name "*.zip" | head -1)
@@ -125,7 +127,7 @@ blocks:
                 ls -la build/distributions/ 2>&1 || echo "build/distributions/ directory does not exist"
                 exit 1
               fi
-            - artifact push workflow ${PLUGIN_ZIP} --destination plugin-zip/$(basename "${PLUGIN_ZIP}") --force
+            - artifact push workflow ${PLUGIN_ZIP} --destination plugin-zip/intellij-${RELEASE_NAME}.zip --force
       epilogue:
         always:
           commands:
