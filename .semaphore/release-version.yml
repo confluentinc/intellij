@@ -129,7 +129,6 @@ blocks:
                 ls -la build/distributions/ 2>&1 || echo "build/distributions/ directory does not exist"
                 exit 1
               fi
-            - echo "Found plugin ZIP: $PLUGIN_ZIP"
             - artifact push workflow ${PLUGIN_ZIP} --destination plugin-zip/$(basename "${PLUGIN_ZIP}") --force
   - name: "Upload Plugin to GitHub Release"
     dependencies: ["Build Plugin Zip"]
