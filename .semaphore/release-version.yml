@@ -31,11 +31,6 @@ global_job_config:
           fi
           git checkout "$COMMIT_SHA"
       - . vault-setup
-      - make ci-sem-cache-restore
-  epilogue:
-    always:
-      commands:
-        - make ci-sem-cache-store
 
 blocks:
   - name: "Parameter Verification"
@@ -117,6 +112,7 @@ blocks:
         commands:
           - make setup-sdk
           - . scripts/get-secrets.sh
+          - make ci-sem-cache-restore
       jobs:
         - name: "Build IntelliJ Plugin"
           commands:
@@ -130,6 +126,10 @@ blocks:
                 exit 1
               fi
             - artifact push workflow ${PLUGIN_ZIP} --destination plugin-zip/$(basename "${PLUGIN_ZIP}") --force
+      epilogue:
+        always:
+          commands:
+            - make ci-sem-cache-store
   - name: "Upload Plugin to GitHub Release"
     dependencies: ["Build Plugin Zip"]
     task:
