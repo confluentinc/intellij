@@ -1,6 +1,7 @@
 <idea-plugin>
     <id>com.intellij.bigdatatools.kafka</id>
     <name>Kafka</name>
+    <version>253.25908.13</version>
     <vendor>JetBrains</vendor>
 
     <description><![CDATA[
