@@ -68,4 +68,4 @@ promotions:
   - name: Third Party Notices
     pipeline_file: third-party-notices.yml
     auto_promote:
-      when: "branch =~ '.*' and change_in(['/build.gradle.kts', '/gradle/libs.versions.toml', '/NOTICE.txt', '/NOTICE-binary.txt'], {default_branch: 'main', branch_range: '$SEMAPHORE_GIT_COMMIT_RANGE', pipeline_file: 'ignore'})"
+      when: "branch =~ '.*' and change_in(['/build.gradle.kts', '/gradle/libs.versions.toml'], {default_branch: 'main', branch_range: '$SEMAPHORE_GIT_COMMIT_RANGE', pipeline_file: 'ignore'})"
