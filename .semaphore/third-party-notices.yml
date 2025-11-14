@@ -1,0 +1,30 @@
+version: v1.0
+name: third-party-notices
+agent:
+  machine:
+    type: s1-prod-ubuntu24-04-amd64-1
+
+auto_cancel:
+  running:
+    when: "branch != 'main'"
+
+execution_time_limit:
+  hours: 1
+
+queue:
+  - when: "branch != 'main'"
+    processing: parallel
+
+blocks:
+  - name: "Update third party notices PR"
+    run:
+      when: "branch =~ '.*'"
+    task:
+      prologue:
+        commands:
+          - checkout
+          - . vault-setup
+      jobs:
+        - name: "Update third party notices PR"
+          commands:
+            - make update-third-party-notices-pr
