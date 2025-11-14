@@ -31,6 +31,11 @@ global_job_config:
           fi
           git checkout "$COMMIT_SHA"
       - . vault-setup
+      - make ci-sem-cache-restore
+  epilogue:
+    always:
+      commands:
+        - make ci-sem-cache-store
 
 blocks:
   - name: "Parameter Verification"
