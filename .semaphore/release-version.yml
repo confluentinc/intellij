@@ -44,7 +44,8 @@ blocks:
               if [ -n "$RELEASE_NAME" ] && [ "$RELEASE_NAME" != "RELEASE_NAME" ]; then
                 echo "Using provided RELEASE_NAME: $RELEASE_NAME"
               else
-                VERSION=$(cat .versions/next.txt)
+                VERSION=$(grep '<version>' resources/META-INF/plugin.xml | sed -E 's/.*<version>([^<]*)<\/version>.*/\1/' | xargs)
+                echo "Extracted version from plugin.xml: $VERSION"
                 RELEASE_NAME="v$VERSION"
               fi
               if [ "$IS_PRERELEASE" = "true" ]; then
