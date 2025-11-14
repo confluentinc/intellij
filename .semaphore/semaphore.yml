@@ -63,3 +63,9 @@ after_pipeline:
       - name: Publish Test Results to Semaphore
         commands:
           - test-results gen-pipeline-report || echo "Could not publish pipeline test result report due to probably no test results to publish"
+
+promotions:
+  - name: Third Party Notices
+    pipeline_file: third-party-notices.yml
+    auto_promote:
+      when: "branch =~ '.*' and change_in(['/build.gradle.kts', '/gradle/libs.versions.toml'], {default_branch: 'main', branch_range: '$SEMAPHORE_GIT_COMMIT_RANGE', pipeline_file: 'ignore'})"
