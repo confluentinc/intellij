@@ -124,10 +124,8 @@ blocks:
                 echo "Error: Plugin .zip not found in build/distributions/"
                 ls -la build/distributions/ 2>&1 || echo "build/distributions/ directory does not exist"
                 exit 1
-              else
-                echo "Found plugin ZIP: $PLUGIN_ZIP"
               fi
-            - artifact push workflow ${PLUGIN_ZIP} --destination $(basename "${PLUGIN_ZIP}") --force
+            - artifact push workflow ${PLUGIN_ZIP} --destination plugin-zip/$(basename "${PLUGIN_ZIP}") --force
       epilogue:
         always:
           commands:
@@ -140,6 +138,6 @@ blocks:
           commands:
             - artifact pull workflow RELEASE_NAME.txt
             - RELEASE_NAME=$(cat RELEASE_NAME.txt)
-            - artifact pull workflow *.zip
-            - PLUGIN_ZIP=$(find . -name "*.zip" | head -1)
+            - artifact pull workflow plugin-zip/
+            - PLUGIN_ZIP=$(find plugin-zip/ -name "*.zip" | head -1)
             - gh release upload "$RELEASE_NAME" "$PLUGIN_ZIP" --clobber
