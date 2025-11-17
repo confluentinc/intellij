@@ -2,6 +2,7 @@ package io.confluent.intellijplugin.telemetry
 
 import com.intellij.ide.plugins.PluginManagerCore
 import com.intellij.openapi.application.ApplicationInfo
+import com.intellij.openapi.application.PermanentInstallationID
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.extensions.PluginId
 import com.intellij.openapi.util.SystemInfo
@@ -18,7 +19,7 @@ object SentryClient {
                 options.dsn = SentryConfig.DSN
                 options.isDebug = false
                 options.release = TelemetryUtils.getPluginVersion()
-                options.serverName = getHostname()
+                options.serverName = getDeviceId()
                 options.setBeforeSend { event, _ ->
                     addDefaultTags(event)
                     event
@@ -51,18 +52,10 @@ object SentryClient {
         }
     }
     
-    // Sentry auto sets the "server_name" tag to the IP address 
-    // We want to override it to the machine's hostname
-    private fun getHostname(): String {
+    // Use anonymous device ID to avoid PII 
+    private fun getDeviceId(): String {
         return try {
-            if (SystemInfo.isMac) {
-                // Get ComputerName (asset tag) instead of LocalHostName (friendly name)
-                Runtime.getRuntime().exec("scutil --get ComputerName")
-                    .inputStream.bufferedReader().readText().trim()
-                    .ifBlank { java.net.InetAddress.getLocalHost().hostName.substringBefore('.') }
-            } else {
-                java.net.InetAddress.getLocalHost().hostName.substringBefore('.')
-            }
+            PermanentInstallationID.get()
         } catch (e: Exception) {
             "unknown"
         }
