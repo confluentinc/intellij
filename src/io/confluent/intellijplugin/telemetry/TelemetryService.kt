@@ -71,18 +71,6 @@ class TelemetryService : Disposable {
         }
     }
 
-    /**
-     * Gets the current Kafka plugin version.
-     */
-    private fun getPluginVersion(): String {
-        return try {
-            val pluginId = PluginId.getId(BdtPlugins.KAFKA_ID)
-            PluginManagerCore.getPlugin(pluginId)?.version ?: "unknown"
-        } catch (e: Exception) {
-            logger.warn("Failed to get plugin version", e)
-            "unknown"
-        }
-    }
 
     /**
      * Builds the common context information for Segment events.
@@ -107,7 +95,7 @@ class TelemetryService : Disposable {
         put("ideMajorVersion", appInfo.majorVersion)
         put("ideIsEAP", appInfo.isEAP.toString())
         put("pluginName", "confluent.intellijplugin")
-        put("pluginVersion", getPluginVersion())
+        put("pluginVersion", TelemetryUtils.getPluginVersion())
     }
 
     /**
