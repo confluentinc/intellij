@@ -131,6 +131,10 @@ setup-sdk:
 build: setup-sdk
 	$(GRADLE) build -Dorg.gradle.console=plain
 
+.PHONY: build-plugin
+build-plugin: setup-sdk
+	$(GRADLE) buildPlugin -Dorg.gradle.console=plain
+
 .PHONY: test
 test: setup-sdk
 	$(GRADLE) test -Dorg.gradle.console=plain
