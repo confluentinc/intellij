@@ -18,6 +18,7 @@ object SentryClient {
                 options.dsn = SentryConfig.DSN
                 options.isDebug = false
                 options.release = getPluginVersion()
+                options.serverName = getHostname()
                 options.setBeforeSend { event, _ ->
                     addDefaultTags(event)
                     event
@@ -37,9 +38,35 @@ object SentryClient {
         event.setTag("pluginVersion", getPluginVersion())
         event.setTag("pluginActivated", "true")
         event.setTag("ide.build", appInfo.build.asString())
-        event.setTag("platform", SystemInfo.OS_NAME)
+        event.setTag("platform", getPlatformName())
         event.setTag("arch", SystemInfo.OS_ARCH)
         event.setTag("os", "${SystemInfo.OS_NAME} ${SystemInfo.OS_VERSION}")
+    }
+    
+    private fun getPlatformName(): String {
+        return when {
+            SystemInfo.isMac -> "darwin"
+            SystemInfo.isWindows -> "win32"
+            SystemInfo.isLinux -> "linux"
+            else -> SystemInfo.OS_NAME.lowercase()
+        }
+    }
+    
+    // Sentry auto sets the "server_name" tag to the IP address 
+    // We want to override it to the machine's hostname
+    private fun getHostname(): String {
+        return try {
+            if (SystemInfo.isMac) {
+                // Get ComputerName (asset tag) instead of LocalHostName (friendly name)
+                Runtime.getRuntime().exec("scutil --get ComputerName")
+                    .inputStream.bufferedReader().readText().trim()
+                    .ifBlank { java.net.InetAddress.getLocalHost().hostName.substringBefore('.') }
+            } else {
+                java.net.InetAddress.getLocalHost().hostName.substringBefore('.')
+            }
+        } catch (e: Exception) {
+            "unknown"
+        }
     }
     
     private fun getPluginVersion(): String {
