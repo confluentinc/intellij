@@ -35,18 +35,9 @@ object SentryClient {
         event.setTag("productVersion", appInfo.fullVersion)
         event.setTag("pluginVersion", TelemetryUtils.getPluginVersion())
         event.setTag("ide.build", appInfo.build.asString())
-        event.setTag("platform", getPlatformName())
+        event.setTag("platform", TelemetryUtils.getPlatformName())
         event.setTag("arch", SystemInfo.OS_ARCH)
         event.setTag("os", "${SystemInfo.OS_NAME} ${SystemInfo.OS_VERSION}")
-    }
-
-    private fun getPlatformName(): String {
-        return when {
-            SystemInfo.isMac -> "darwin"
-            SystemInfo.isWindows -> "win32"
-            SystemInfo.isLinux -> "linux"
-            else -> SystemInfo.OS_NAME.lowercase()
-        }
     }
 
     // Use anonymous device ID to avoid PII 
