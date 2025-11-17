@@ -49,9 +49,8 @@ blocks:
                 RELEASE_NAME="v$VERSION"
               fi
               if [ "$IS_PRERELEASE" = "true" ]; then
-                if [[ "$RELEASE_NAME" != *"-pre"* ]]; then
-                  RELEASE_NAME="${RELEASE_NAME}-pre"
-                fi
+                JOB_RUN_DATE=$(date -u +%Y%m%d)
+                RELEASE_NAME="${RELEASE_NAME}-${JOB_RUN_DATE}-${COMMIT_SHA:0:8}-pre"
               fi
             - echo "$RELEASE_NAME" > RELEASE_NAME.txt
             - artifact push workflow RELEASE_NAME.txt --force
