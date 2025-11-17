@@ -191,6 +191,15 @@ tasks {
     test {
         useJUnitPlatform()
     }
+
+    patchPluginXml {
+        val releaseName = System.getenv("RELEASE_NAME")
+        // if RELEASE_NAME is set (e.g. from a release job in CI), patch it in plugin.xml
+        // so the resulting plugin zip has the correct version number when installed
+        if (!releaseName.isNullOrEmpty()) {
+            version = releaseName.removePrefix("v")
+        }
+    }
     
     // Skip Sentry tasks when auth token is missing
     if (System.getenv("SENTRY_AUTH_TOKEN").isNullOrEmpty()) {
