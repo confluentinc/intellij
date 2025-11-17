@@ -17,7 +17,7 @@ object SentryClient {
             Sentry.init { options ->
                 options.dsn = SentryConfig.DSN
                 options.isDebug = false
-                options.release = getPluginVersion()
+                options.release = TelemetryUtils.getPluginVersion()
                 options.serverName = getHostname()
                 options.setBeforeSend { event, _ ->
                     addDefaultTags(event)
@@ -35,8 +35,7 @@ object SentryClient {
         
         event.setTag("productName", appInfo.fullApplicationName)
         event.setTag("productVersion", appInfo.fullVersion)
-        event.setTag("pluginVersion", getPluginVersion())
-        event.setTag("pluginActivated", "true")
+        event.setTag("pluginVersion", TelemetryUtils.getPluginVersion())
         event.setTag("ide.build", appInfo.build.asString())
         event.setTag("platform", getPlatformName())
         event.setTag("arch", SystemInfo.OS_ARCH)
@@ -64,15 +63,6 @@ object SentryClient {
             } else {
                 java.net.InetAddress.getLocalHost().hostName.substringBefore('.')
             }
-        } catch (e: Exception) {
-            "unknown"
-        }
-    }
-    
-    private fun getPluginVersion(): String {
-        return try {
-            val pluginId = PluginId.getId(BdtPlugins.KAFKA_ID)
-            PluginManagerCore.getPlugin(pluginId)?.version ?: "unknown"
         } catch (e: Exception) {
             "unknown"
         }
