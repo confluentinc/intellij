@@ -2,7 +2,7 @@
     <id>com.intellij.bigdatatools.kafka</id>
     <name>Kafka</name>
     <vendor>Confluent</vendor>
-    <version>253.25908.13</version>
+    <version>253.25909.0-1</version>
 
     <description><![CDATA[
 <p>Monitor your <a href="https://kafka.apache.org/">Kafka</a> event streaming processes:
