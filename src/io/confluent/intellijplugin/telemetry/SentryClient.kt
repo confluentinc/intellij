@@ -1,10 +1,10 @@
 package io.confluent.intellijplugin.telemetry
 
 import com.intellij.openapi.application.ApplicationInfo
-import com.intellij.openapi.application.PermanentInstallationID
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.util.SystemInfo
 import io.sentry.Sentry
+import java.security.MessageDigest
 
 object SentryClient {
     private val logger = Logger.getInstance(SentryClient::class.java)
@@ -16,7 +16,7 @@ object SentryClient {
                 options.dsn = SentryConfig.DSN
                 options.isDebug = false
                 options.release = TelemetryUtils.getPluginVersion()
-                options.serverName = getDeviceId()
+                options.serverName = getUniqueDeviceId()
                 options.setBeforeSend { event, _ ->
                     addDefaultTags(event)
                     event
@@ -49,10 +49,19 @@ object SentryClient {
         }
     }
 
-    // Use anonymous device ID to avoid PII 
-    private fun getDeviceId(): String {
+    // Get anonymous device ID by hashing hostname
+    private fun getUniqueDeviceId(): String {
         return try {
-            PermanentInstallationID.get()
+            val hostname = if (SystemInfo.isMac) {
+                Runtime.getRuntime().exec("scutil --get ComputerName")
+                    .inputStream.bufferedReader().readText().trim()
+                    .ifBlank { java.net.InetAddress.getLocalHost().hostName.substringBefore('.') }
+            } else {
+                java.net.InetAddress.getLocalHost().hostName.substringBefore('.')
+            }
+            
+            val bytes = MessageDigest.getInstance("SHA-256").digest(hostname.toByteArray())
+            bytes.joinToString("") { "%02x".format(it) }.take(16)
         } catch (e: Exception) {
             "unknown"
         }
