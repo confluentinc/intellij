@@ -26,15 +26,12 @@ object TelemetryUtils {
         val properties = PropertiesComponent.getInstance()
         var machineId = properties.getValue(MACHINE_ID_KEY)
 
-        logger.info("Loading machine ID from key: $MACHINE_ID_KEY")
-        logger.info("Found existing machine ID: ${machineId ?: "null"}")
-
         if (machineId == null || !isValidUuid(machineId)) {
             machineId = UUID.randomUUID().toString()
             properties.setValue(MACHINE_ID_KEY, machineId)
-            logger.info("Generated and saved new machine ID: $machineId")
+            logger.debug("Generated and saved new machine ID: $machineId")
         } else {
-            logger.info("Using existing machine ID: $machineId")
+            logger.debug("Using existing machine ID: $machineId")
         }
 
         machineId
