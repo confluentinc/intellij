@@ -16,7 +16,7 @@ object SentryClient {
                 options.dsn = SentryConfig.DSN
                 options.isDebug = false
                 options.release = TelemetryUtils.getPluginVersion()
-                options.serverName = getDeviceId()
+                options.serverName = TelemetryUtils.getUniqueDeviceId()
                 options.setBeforeSend { event, _ ->
                     addDefaultTags(event)
                     event
@@ -38,15 +38,6 @@ object SentryClient {
         event.setTag("platform", TelemetryUtils.getPlatformName())
         event.setTag("arch", SystemInfo.OS_ARCH)
         event.setTag("os", "${SystemInfo.OS_NAME} ${SystemInfo.OS_VERSION}")
-    }
-
-    // Use anonymous device ID to avoid PII 
-    private fun getDeviceId(): String {
-        return try {
-            PermanentInstallationID.get()
-        } catch (e: Exception) {
-            "unknown"
-        }
     }
 
     fun captureException(exception: Throwable) {
