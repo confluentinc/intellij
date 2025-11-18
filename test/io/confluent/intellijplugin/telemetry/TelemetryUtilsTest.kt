@@ -23,7 +23,6 @@ class TelemetryUtilsTest {
             assertNotEquals("unknown", deviceId)
             assertEquals(16, deviceId.length)
             assertTrue(deviceId.matches(TelemetryUtilsTest.HEX_PATTERN))
-            assertTrue(deviceId.all { it in '0'..'9' || it in 'a'..'f' })
         }
 
         @Test
