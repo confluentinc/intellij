@@ -29,7 +29,7 @@ object TelemetryUtils {
 
     /**
      * Gets an anonymised hostname hash for the machine.
-     * The hostname is hashed using SHA-256 and used as a server identifier
+     * The hostname is hashed using SHA-256
      * @return 16-character hexadecimal hash string or "unknown" if unavailable
      */
     fun getAnonymisedHostname(): String {
