@@ -6,7 +6,9 @@ import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.MethodSource
-import java.security.MessageDigest
+import org.mockito.Mockito.*
+import org.mockito.Mockito.mockStatic
+import java.net.InetAddress
 import java.util.stream.Stream
 
 @TestApplication
@@ -22,7 +24,7 @@ class TelemetryUtilsTest {
             
             assertNotEquals("unknown", deviceId)
             assertEquals(16, deviceId.length)
-            assertTrue(deviceId.matches(TelemetryUtilsTest.HEX_PATTERN))
+            assertTrue(deviceId.matches(HEX_PATTERN))
         }
 
         @Test
@@ -37,14 +39,20 @@ class TelemetryUtilsTest {
 
         @ParameterizedTest
         @MethodSource("io.confluent.intellijplugin.telemetry.TelemetryUtilsTest#hostnameScenarios")
-        @DisplayName("hash logic works correctly for different hostname formats")
-        fun `hash logic handles different hostname formats`(hostname: String) {
-            val processedHostname = hostname.substringBefore('.')
-            val hash = TelemetryUtilsTest.hashHostname(processedHostname)
+        @DisplayName("works correctly for different hostname formats")
+        fun `works correctly for different hostname formats`(hostname: String) {
+            val mockInetAddress = mock(InetAddress::class.java)
+            `when`(mockInetAddress.hostName).thenReturn(hostname)
             
-            assertEquals(16, hash.length, "Hash should be 16 characters for hostname: $hostname")
-            assertTrue(hash.matches(TelemetryUtilsTest.HEX_PATTERN), "Hash should be lowercase hex for hostname: $hostname")
-            assertEquals(hash, TelemetryUtilsTest.hashHostname(processedHostname), "Hash should be deterministic")
+            mockStatic(InetAddress::class.java).use { mockedStatic ->
+                mockedStatic.`when`<InetAddress> { InetAddress.getLocalHost() }.thenReturn(mockInetAddress)
+                
+                val deviceId = TelemetryUtils.getUniqueDeviceId()
+                
+                assertEquals(16, deviceId.length, "Device ID should be 16 characters for hostname: $hostname")
+                assertTrue(deviceId.matches(HEX_PATTERN), "Device ID should be lowercase hex for hostname: $hostname")
+                assertNotEquals("unknown", deviceId, "Should not return unknown for valid hostname: $hostname")
+            }
         }
 
         @Test
@@ -52,18 +60,51 @@ class TelemetryUtilsTest {
             val hostnameWithDot = "myhost.example.com"
             val hostnameWithoutDot = "myhost"
             
-            val hashWithDot = TelemetryUtilsTest.hashHostname(hostnameWithDot.substringBefore('.'))
-            val hashWithoutDot = TelemetryUtilsTest.hashHostname(hostnameWithoutDot)
+            val mockInetAddressWithDot = mock(InetAddress::class.java)
+            `when`(mockInetAddressWithDot.hostName).thenReturn(hostnameWithDot)
             
-            assertEquals(hashWithDot, hashWithoutDot, "Hostnames with and without domain should produce same hash")
+            val mockInetAddressWithoutDot = mock(InetAddress::class.java)
+            `when`(mockInetAddressWithoutDot.hostName).thenReturn(hostnameWithoutDot)
+            
+            mockStatic(InetAddress::class.java).use { mockedStatic ->
+                mockedStatic.`when`<InetAddress> { InetAddress.getLocalHost() }
+                    .thenReturn(mockInetAddressWithDot)
+                    .thenReturn(mockInetAddressWithoutDot)
+                
+                val deviceIdWithDot = TelemetryUtils.getUniqueDeviceId()
+                val deviceIdWithoutDot = TelemetryUtils.getUniqueDeviceId()
+                
+                assertEquals(deviceIdWithDot, deviceIdWithoutDot, "Hostnames with and without domain should produce same device ID")
+            }
         }
 
         @Test
-        fun `produces different hashes for different hostnames`() {
+        fun `produces different device IDs for different hostnames`() {
             val hostnames = listOf("host1", "host2", "different-host")
-            val hashes = hostnames.map { TelemetryUtilsTest.hashHostname(it) }
+            val deviceIds = mutableListOf<String>()
             
-            assertEquals(hashes.size, hashes.distinct().size, "Different hostnames should produce different hashes")
+            mockStatic(InetAddress::class.java).use { mockedStatic ->
+                hostnames.forEach { hostname ->
+                    val mockInetAddress = mock(InetAddress::class.java)
+                    `when`(mockInetAddress.hostName).thenReturn(hostname)
+                    mockedStatic.`when`<InetAddress> { InetAddress.getLocalHost() }.thenReturn(mockInetAddress)
+                    deviceIds.add(TelemetryUtils.getUniqueDeviceId())
+                }
+                
+                assertEquals(deviceIds.size, deviceIds.distinct().size, "Different hostnames should produce different device IDs")
+            }
+        }
+
+        @Test
+        fun `returns unknown when InetAddress throws exception`() {
+            mockStatic(InetAddress::class.java).use { mockedStatic ->
+                mockedStatic.`when`<InetAddress> { InetAddress.getLocalHost() }
+                    .thenThrow(java.net.UnknownHostException("Test exception"))
+                
+                val deviceId = TelemetryUtils.getUniqueDeviceId()
+                
+                assertEquals("unknown", deviceId)
+            }
         }
     }
 
@@ -82,15 +123,6 @@ class TelemetryUtilsTest {
     companion object {
         val HEX_PATTERN = Regex("[0-9a-f]{16}")
         val VALID_PLATFORMS = listOf("darwin", "win32", "linux")
-
-        /**
-         * Helper function that replicates the hash logic from getUniqueDeviceId().
-         * Used to test hash behavior with different hostname inputs without needing to mock InetAddress.
-         */
-        fun hashHostname(hostname: String): String {
-            val bytes = MessageDigest.getInstance("SHA-256").digest(hostname.toByteArray())
-            return bytes.joinToString("") { "%02x".format(it) }.take(16)
-        }
 
         @JvmStatic
         fun hostnameScenarios(): Stream<Arguments> {
