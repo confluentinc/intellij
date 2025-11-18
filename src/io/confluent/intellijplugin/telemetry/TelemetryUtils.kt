@@ -28,9 +28,9 @@ object TelemetryUtils {
     }
 
     /**
-     * Gets a unique anonymous device ID for the machine.
-     * It is hashed to avoid PII and used to identify the machine in telemetry.
-     * @return Unique device ID string or "unknown" if unavailable
+     * Gets an anonymised hostname hash for the machine.
+     * The hostname is hashed using SHA-256 and used as a server identifier
+     * @return 16-character hexadecimal hash string or "unknown" if unavailable
      */
     fun getAnonymisedHostname(): String {
         return try {
