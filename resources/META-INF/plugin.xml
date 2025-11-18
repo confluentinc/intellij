@@ -3,6 +3,7 @@
     <name>Kafka</name>
     <vendor>Confluent</vendor>
     <version>253.25909.0-pre</version>
+    <idea-version since-build="2025.2"/>
 
     <description><![CDATA[
 <p>Monitor your <a href="https://kafka.apache.org/">Kafka</a> event streaming processes:
@@ -192,33 +193,16 @@
     </actions>
 
     <change-notes><![CDATA[
-<h2 style="padding:0;margin:0;line-height:0px">Changes in 2023.3</h2>
-<h4 style="padding:0;margin:0;line-height:0px">Features</h4>
+<h2 style="padding:0;margin:0;line-height:0px">Changes in 253.25909.0</h2>
+<h4 style="padding:0;margin:0;line-height:0px">Added</h4>
 <ul>
-<li>Supported local Protobuf and Avro schema files</li>
-<li>Added the Show schema action for local schema files</li>
-<li>In Spring projects, Kafka connections can be created directly from the gutter</li>
-<li>Added ability to set and create consumer groups for Kafka consumer</li>
-<li>Extended the usability and functionality of the Consumer groups section of the Kafka plugin</li>
-<li>Added highlighting for avro messages for Consumer</li>
-<li>Added integer type for keys/values for Consumer and Producer</li>
-<li>Added Speed Search for Kafka tool window</li>
-<li>Added the Local port field for connections via SSH tunnel and a hint about limitation of such connections</li>
-<li>Now, installing the Kafka plugin does not require the IDE restart</li>
+<li>Segment integration for usage telemetry, which can be disabled by going to <strong>Settings > Tools > Kafka</strong> and unchecking the 'Telemetry Settings' option</li>
+<li>Sentry integration for error reports</li>
 </ul>
 
-<h4 style="padding:0;margin:0;line-height:0px">Fixed Bugs</h4>
+<h4 style="padding:0;margin:0;line-height:0px">Fixed</h4>
 <ul>
-<li>Fixed issues with applying presets to Producer</li>
-<li>Improved validation warnings and error messages</li>
-<li>Better column sizing after changing the Producer options and table clearing</li>
-<li>Fixed generation and tree view for JSON and Protobuf schemas with references</li>
-<li>It’s possible now to put multiple schema registry URL in Kafka configuration</li>
-<li>Key/Value editor fields are hidden when random generation enabled</li>
-<li>Improved the Properties source field for Kafka connection settings</li>
-<li>Fixed exception related to the slash symbol in a Topic or Schema name</li>
+<li>Fixed the tooltip instructions for setting up a Confluent Cloud connection</li>
 </ul>
-
-<p>The full release notes are available <a href="https://youtrack.jetbrains.com/issues?q=project:%20BDIDE%20%20Available%20in:%20%7B2023.3%7D%20State:%20Fixed,%20Verified,%20%7BWithout%20verification%7D%20sort%20by:%20project,%20Type,%20votes%20BDT%20Plugin:%20Kafka">here</a>.</p>
 ]]></change-notes>
 </idea-plugin>
