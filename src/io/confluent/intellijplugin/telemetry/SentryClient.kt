@@ -1,6 +1,7 @@
 package io.confluent.intellijplugin.telemetry
 
 import com.intellij.openapi.application.ApplicationInfo
+import com.intellij.openapi.application.PermanentInstallationID
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.util.SystemInfo
 import io.sentry.Sentry
@@ -34,20 +35,10 @@ object SentryClient {
         event.setTag("productVersion", appInfo.fullVersion)
         event.setTag("pluginVersion", TelemetryUtils.getPluginVersion())
         event.setTag("ide.build", appInfo.build.asString())
-        event.setTag("platform", getPlatformName())
+        event.setTag("platform", TelemetryUtils.getPlatformName())
         event.setTag("arch", SystemInfo.OS_ARCH)
         event.setTag("os", "${SystemInfo.OS_NAME} ${SystemInfo.OS_VERSION}")
     }
-
-    private fun getPlatformName(): String {
-        return when {
-            SystemInfo.isMac -> "darwin"
-            SystemInfo.isWindows -> "win32"
-            SystemInfo.isLinux -> "linux"
-            else -> SystemInfo.OS_NAME.lowercase()
-        }
-    }
-
 
     fun captureException(exception: Throwable) {
         try {

@@ -41,4 +41,17 @@ object TelemetryUtils {
             "unknown"
         }
     }
+
+    /**
+     * Gets the platform name.
+     * @return Platform name string
+     */
+    fun getPlatformName(): String {
+        return when {
+            SystemInfo.isMac -> "darwin"
+            SystemInfo.isWindows -> "win32"
+            SystemInfo.isLinux -> "linux"
+            else -> SystemInfo.OS_NAME.lowercase()
+        }
+    }
 }
