@@ -24,6 +24,8 @@ blocks:
         commands:
           - checkout
           - . vault-setup
+          - make ci-sem-cache-restore
+          - make setup-sdk
       jobs:
         - name: "Update third party notices PR"
           commands:
