@@ -4,7 +4,6 @@ import com.intellij.openapi.application.ApplicationInfo
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.util.SystemInfo
 import io.sentry.Sentry
-import java.security.MessageDigest
 
 object SentryClient {
     private val logger = Logger.getInstance(SentryClient::class.java)
@@ -16,7 +15,7 @@ object SentryClient {
                 options.dsn = SentryConfig.DSN
                 options.isDebug = false
                 options.release = TelemetryUtils.getPluginVersion()
-                options.serverName = getUniqueDeviceId()
+                options.serverName = TelemetryUtils.getUniqueDeviceId()
                 options.setBeforeSend { event, _ ->
                     addDefaultTags(event)
                     event
@@ -49,23 +48,6 @@ object SentryClient {
         }
     }
 
-    // Get anonymous device ID by hashing hostname
-    private fun getUniqueDeviceId(): String {
-        return try {
-            val hostname = if (SystemInfo.isMac) {
-                Runtime.getRuntime().exec("scutil --get ComputerName")
-                    .inputStream.bufferedReader().readText().trim()
-                    .ifBlank { java.net.InetAddress.getLocalHost().hostName.substringBefore('.') }
-            } else {
-                java.net.InetAddress.getLocalHost().hostName.substringBefore('.')
-            }
-            
-            val bytes = MessageDigest.getInstance("SHA-256").digest(hostname.toByteArray())
-            bytes.joinToString("") { "%02x".format(it) }.take(16)
-        } catch (e: Exception) {
-            "unknown"
-        }
-    }
 
     fun captureException(exception: Throwable) {
         try {
