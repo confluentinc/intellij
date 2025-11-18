@@ -34,14 +34,7 @@ object TelemetryUtils {
      */
     fun getUniqueDeviceId(): String {
         return try {
-            val hostname = if (SystemInfo.isMac) {
-                Runtime.getRuntime().exec("scutil --get ComputerName")
-                    .inputStream.bufferedReader().readText().trim()
-                    .ifBlank { java.net.InetAddress.getLocalHost().hostName.substringBefore('.') }
-            } else {
-                java.net.InetAddress.getLocalHost().hostName.substringBefore('.')
-            }
-
+            val hostname = java.net.InetAddress.getLocalHost().hostName.substringBefore('.')
             val bytes = MessageDigest.getInstance("SHA-256").digest(hostname.toByteArray())
             bytes.joinToString("") { "%02x".format(it) }.take(16)
         } catch (e: Exception) {
@@ -49,4 +42,3 @@ object TelemetryUtils {
         }
     }
 }
-
