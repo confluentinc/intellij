@@ -75,11 +75,7 @@ class TelemetryUtilsTest {
                 val deviceIdWithDot = TelemetryUtils.getAnonymisedHostname()
                 val deviceIdWithoutDot = TelemetryUtils.getAnonymisedHostname()
 
-                assertEquals(
-                    deviceIdWithDot,
-                    deviceIdWithoutDot,
-                    "Hostnames with and without domain should produce same device ID"
-                )
+                assertEquals(deviceIdWithDot, deviceIdWithoutDot, "Hostnames with and without domain should produce same device ID")
             }
         }
 
@@ -96,11 +92,7 @@ class TelemetryUtilsTest {
                     deviceIds.add(TelemetryUtils.getAnonymisedHostname())
                 }
 
-                assertEquals(
-                    deviceIds.size,
-                    deviceIds.distinct().size,
-                    "Different hostnames should produce different device IDs"
-                )
+                assertEquals(deviceIds.size, deviceIds.distinct().size, "Different hostnames should produce different device IDs")
             }
         }
 
