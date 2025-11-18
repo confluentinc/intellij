@@ -15,12 +15,12 @@ import java.util.stream.Stream
 class TelemetryUtilsTest {
 
     @Nested
-    @DisplayName("getUniqueDeviceId")
-    inner class GetUniqueDeviceIdTests {
+    @DisplayName("getAnonymisedHostname")
+    inner class GetAnonymisedHostnameTests {
 
         @Test
         fun `returns valid 16 character hex string`() {
-            val deviceId = TelemetryUtils.getUniqueDeviceId()
+            val deviceId = TelemetryUtils.getAnonymisedHostname()
             
             assertNotEquals("unknown", deviceId)
             assertEquals(16, deviceId.length)
@@ -29,9 +29,9 @@ class TelemetryUtilsTest {
 
         @Test
         fun `returns consistent value on repeated calls`() {
-            val id1 = TelemetryUtils.getUniqueDeviceId()
-            val id2 = TelemetryUtils.getUniqueDeviceId()
-            val id3 = TelemetryUtils.getUniqueDeviceId()
+            val id1 = TelemetryUtils.getAnonymisedHostname()
+            val id2 = TelemetryUtils.getAnonymisedHostname()
+            val id3 = TelemetryUtils.getAnonymisedHostname()
             
             assertEquals(id1, id2)
             assertEquals(id2, id3)
@@ -47,7 +47,7 @@ class TelemetryUtilsTest {
             mockStatic(InetAddress::class.java).use { mockedStatic ->
                 mockedStatic.`when`<InetAddress> { InetAddress.getLocalHost() }.thenReturn(mockInetAddress)
                 
-                val deviceId = TelemetryUtils.getUniqueDeviceId()
+                val deviceId = TelemetryUtils.getAnonymisedHostname()
                 
                 assertEquals(16, deviceId.length, "Device ID should be 16 characters for hostname: $hostname")
                 assertTrue(deviceId.matches(HEX_PATTERN), "Device ID should be lowercase hex for hostname: $hostname")
@@ -71,8 +71,8 @@ class TelemetryUtilsTest {
                     .thenReturn(mockInetAddressWithDot)
                     .thenReturn(mockInetAddressWithoutDot)
                 
-                val deviceIdWithDot = TelemetryUtils.getUniqueDeviceId()
-                val deviceIdWithoutDot = TelemetryUtils.getUniqueDeviceId()
+                val deviceIdWithDot = TelemetryUtils.getAnonymisedHostname()
+                val deviceIdWithoutDot = TelemetryUtils.getAnonymisedHostname()
                 
                 assertEquals(deviceIdWithDot, deviceIdWithoutDot, "Hostnames with and without domain should produce same device ID")
             }
@@ -88,7 +88,7 @@ class TelemetryUtilsTest {
                     val mockInetAddress = mock(InetAddress::class.java)
                     `when`(mockInetAddress.hostName).thenReturn(hostname)
                     mockedStatic.`when`<InetAddress> { InetAddress.getLocalHost() }.thenReturn(mockInetAddress)
-                    deviceIds.add(TelemetryUtils.getUniqueDeviceId())
+                    deviceIds.add(TelemetryUtils.getAnonymisedHostname())
                 }
                 
                 assertEquals(deviceIds.size, deviceIds.distinct().size, "Different hostnames should produce different device IDs")
@@ -101,7 +101,7 @@ class TelemetryUtilsTest {
                 mockedStatic.`when`<InetAddress> { InetAddress.getLocalHost() }
                     .thenThrow(java.net.UnknownHostException("Test exception"))
                 
-                val deviceId = TelemetryUtils.getUniqueDeviceId()
+                val deviceId = TelemetryUtils.getAnonymisedHostname()
                 
                 assertEquals("unknown", deviceId)
             }

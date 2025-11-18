@@ -32,7 +32,7 @@ object TelemetryUtils {
      * It is hashed to avoid PII and used to identify the machine in telemetry.
      * @return Unique device ID string or "unknown" if unavailable
      */
-    fun getUniqueDeviceId(): String {
+    fun getAnonymisedHostname(): String {
         return try {
             val hostname = java.net.InetAddress.getLocalHost().hostName.substringBefore('.')
             val bytes = MessageDigest.getInstance("SHA-256").digest(hostname.toByteArray())

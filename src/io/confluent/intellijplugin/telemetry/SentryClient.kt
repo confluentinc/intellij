@@ -16,7 +16,7 @@ object SentryClient {
                 options.dsn = SentryConfig.DSN
                 options.isDebug = false
                 options.release = TelemetryUtils.getPluginVersion()
-                options.serverName = TelemetryUtils.getUniqueDeviceId()
+                options.serverName = TelemetryUtils.getAnonymisedHostname()
                 options.setBeforeSend { event, _ ->
                     addDefaultTags(event)
                     event
