@@ -8,7 +8,7 @@ import com.intellij.psi.codeStyle.NameUtil
 object StringUtils {
     /** Returns human readable string from camel cased name. "timeToLoad" -> "Time to load". */
     fun camelCaseToReadableString(column: String): @NlsSafe String {
-        val name = NameUtil.nameToWords(column).joinToString(separator = " ")
+        val name = NameUtil.nameToWordList(column).joinToString(separator = " ")
         return if (name.isEmpty()) {
             name
         } else {
