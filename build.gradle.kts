@@ -120,6 +120,7 @@ dependencies {
     implementation(libs.aws.sso)
     implementation(libs.aws.sts)
     implementation(libs.aws.ssooidc)
+    implementation(libs.aws.mskiamauth)
     implementation("com.segment.analytics.java:analytics:3.5.2")
 
     implementation(libs.glue.schema.registry.serde)
