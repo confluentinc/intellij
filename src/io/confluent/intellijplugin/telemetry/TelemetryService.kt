@@ -7,7 +7,6 @@ import com.intellij.openapi.components.Service
 import com.intellij.openapi.diagnostic.thisLogger
 import com.segment.analytics.Analytics
 import io.confluent.intellijplugin.settings.app.KafkaPluginSettings
-import com.intellij.openapi.application.PermanentInstallationID
 import com.intellij.openapi.components.service
 import com.intellij.openapi.extensions.PluginId
 import com.intellij.openapi.util.SystemInfo
@@ -59,20 +58,6 @@ class TelemetryService : Disposable {
 
 
     /**
-     * Gets the anonymous user ID for telemetry.
-     * Uses IntelliJ's permanent installation ID.
-     */
-    private fun getUserId(): String {
-        return try {
-            PermanentInstallationID.get()
-        } catch (e: Exception) {
-            logger.warn("Failed to get installation ID", e)
-            "unknown"
-        }
-    }
-
-
-    /**
      * Builds the common context information for Segment events.
      */
     private fun buildContext(): Map<String, Any> = buildMap {
@@ -114,7 +99,7 @@ class TelemetryService : Disposable {
 
         try {
             analytics?.enqueue(TrackMessage.builder(event)
-                    .userId(getUserId())
+                    .userId(TelemetryUtils.commonMachineId())
                     .context(buildContext())
                     .properties(properties + buildCommonProperties())
             )
@@ -140,7 +125,7 @@ class TelemetryService : Disposable {
 
         try {
             analytics?.enqueue(IdentifyMessage.builder()
-                .userId(getUserId())
+                .userId(TelemetryUtils.commonMachineId())
                 .context(buildContext())
                 .traits(traits + buildCommonProperties())
             )
