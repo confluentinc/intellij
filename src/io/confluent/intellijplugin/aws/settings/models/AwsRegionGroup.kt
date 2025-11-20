@@ -24,17 +24,19 @@ enum class AwsRegionGroup(override val id: String, override val title: String) :
         private val southAmerica = listOf(Region.SA_EAST_1)
 
         private val asiaRegions = listOf(
-            Region.AP_EAST_1, Region.AP_SOUTHEAST_3, Region.AP_SOUTH_1, Region.AP_SOUTH_2, Region.AP_NORTHEAST_3,
-            Region.AP_NORTHEAST_2,
-            Region.AP_SOUTHEAST_1, Region.AP_SOUTHEAST_2, Region.AP_SOUTHEAST_4, Region.AP_NORTHEAST_1
+            Region.AP_EAST_1,
+            Region.AP_NORTHEAST_1, Region.AP_NORTHEAST_2, Region.AP_NORTHEAST_3,
+            Region.AP_SOUTH_1, Region.AP_SOUTH_2,
+            Region.AP_SOUTHEAST_1, Region.AP_SOUTHEAST_2, Region.AP_SOUTHEAST_3, Region.AP_SOUTHEAST_4,
         )
 
-        private val canadaRegions = listOf(Region.CA_CENTRAL_1)
+        private val canadaRegions = listOf(Region.CA_CENTRAL_1, Region.CA_WEST_1)
 
         private val europeRegions = listOf(
-            Region.EU_CENTRAL_1, Region.EU_CENTRAL_2, Region.EU_WEST_1, Region.EU_WEST_2, Region.EU_SOUTH_1,
-            Region.EU_SOUTH_2, Region.EU_WEST_3,
-            Region.EU_NORTH_1
+            Region.EU_CENTRAL_1, Region.EU_CENTRAL_2,
+            Region.EU_WEST_1, Region.EU_WEST_2, Region.EU_WEST_3,
+            Region.EU_SOUTH_1, Region.EU_SOUTH_2,
+            Region.EU_NORTH_1,
         )
 
         //Do not show in UI!
@@ -51,7 +53,7 @@ enum class AwsRegionGroup(override val id: String, override val title: String) :
             val otherRegions =
                 Region.regions() - globalRegions - usGovRegions - chinaRegions - globalRegions - specialGlobalRegion
             if (otherRegions.isNotEmpty()) {
-                thisLogger().error("We have not classified AWS Regions $otherRegions")
+                thisLogger().warn("We have not classified AWS Regions $otherRegions")
             }
         }
 
