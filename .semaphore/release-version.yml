@@ -39,7 +39,9 @@ blocks:
       jobs:
         - name: "Parameter Verification"
           commands:
-            # Ensure RELEASE_NAME is set and adjust for prereleases, if necessary
+            # Store the base release name (either passed from the Semaphore task parameters or from
+            # plugin.xml) to use later for cleaning up old prereleases, then append date/commit
+            # info to the final release name if this is a prerelease
             - |
               if [ -n "$RELEASE_NAME" ] && [ "$RELEASE_NAME" != "RELEASE_NAME" ]; then
                 echo "Using provided RELEASE_NAME: $RELEASE_NAME"
@@ -48,10 +50,13 @@ blocks:
                 echo "Extracted version from plugin.xml: $VERSION"
                 RELEASE_NAME="v$VERSION"
               fi
+              BASE_RELEASE_NAME=$RELEASE_NAME
               if [ "$IS_PRERELEASE" = "true" ]; then
                 JOB_RUN_DATE=$(date -u +%Y%m%d)
                 RELEASE_NAME="${RELEASE_NAME}-${JOB_RUN_DATE}-${COMMIT_SHA:0:8}-pre"
               fi
+            - echo "$BASE_RELEASE_NAME" > BASE_RELEASE_NAME.txt
+            - artifact push workflow BASE_RELEASE_NAME.txt --force
             - echo "$RELEASE_NAME" > RELEASE_NAME.txt
             - artifact push workflow RELEASE_NAME.txt --force
   - name: "Delete GitHub Release and Tag"
@@ -60,12 +65,18 @@ blocks:
       jobs:
         - name: "Delete GitHub Release and Tag"
           commands:
+            - artifact pull workflow BASE_RELEASE_NAME.txt
+            - BASE_RELEASE_NAME=$(cat BASE_RELEASE_NAME.txt)
             - artifact pull workflow RELEASE_NAME.txt
             - RELEASE_NAME=$(cat RELEASE_NAME.txt)
-            # Delete the existing GitHub Release and tag if they exist
-            - gh release delete "$RELEASE_NAME" --yes || true
-            - git tag -d "$RELEASE_NAME" || true
-            - git push origin --delete "$RELEASE_NAME" || true
+            - |
+              echo "Deleting all prerelease versions matching base: $BASE_RELEASE_NAME"
+              gh release list --limit 100 | grep "^${BASE_RELEASE_NAME}-" | awk '{print $1}' | while read -r release_tag; do
+                echo "Deleting release: $release_tag"
+                gh release delete "$release_tag" --yes || true
+                git tag -d "$release_tag" || true
+                git push origin --delete "$release_tag" || true
+              done
   - name: "Create GitHub Release and Tag"
     dependencies: ["Delete GitHub Release and Tag"]
     task:
