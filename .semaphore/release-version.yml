@@ -77,6 +77,12 @@ blocks:
                 git tag -d "$release_tag" || true
                 git push origin --delete "$release_tag" || true
               done
+              if [ "$IS_PRERELEASE" != "true" ]; then
+                echo "Deleting existing release matching: $RELEASE_NAME"
+                gh release delete "$RELEASE_NAME" --yes || true
+                git tag -d "$RELEASE_NAME" || true
+                git push origin --delete "$RELEASE_NAME" || true
+              fi
   - name: "Create GitHub Release and Tag"
     dependencies: ["Delete GitHub Release and Tag"]
     task:
