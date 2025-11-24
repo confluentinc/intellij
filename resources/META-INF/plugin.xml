@@ -196,6 +196,7 @@
 <h2 style="padding:0;margin:0;line-height:0px">Changes in 253.25909.0</h2>
 <h4 style="padding:0;margin:0;line-height:0px">Added</h4>
 <ul>
+<li>Compatibility with IntelliJ IDEA Community Edition — no longer requires an Ultimate subscription</li>
 <li>Segment integration for usage telemetry, which can be disabled by going to <strong>Settings > Tools > Kafka</strong> and unchecking the 'Telemetry Settings' option</li>
 <li>Sentry integration for error reports</li>
 </ul>
