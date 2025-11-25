@@ -31,7 +31,7 @@ data class EnvironmentResponse(
     }
 
     private fun parsePackage(governance: GovernanceConfig?): CloudGovernancePackage {
-        if (governance == null) return CloudGovernancePackage.NONE
+        if (governance == null || governance.packageName == null) return CloudGovernancePackage.NONE
         return try {
             CloudGovernancePackage.valueOf(governance.packageName.uppercase())
         } catch (e: IllegalArgumentException) {
