@@ -40,7 +40,7 @@ data class KafkaClusterResponse(
             httpEndpoint = spec.httpEndpoint,
             bootstrapEndpoint = spec.bootstrapEndpoint,
             organization = orgRef,
-            environment = spec.environment?.let { CloudReference(it.id, null) }
+            environment = spec.environment?.id?.let { CloudReference(it, null) }
         )
     }
 

@@ -36,7 +36,7 @@ data class SchemaRegistryResponse(
             cloudProvider = CloudProvider.of(spec.cloud),
             region = spec.region ?: "",
             organization = orgRef,
-            environment = spec.environment?.let { CloudReference(it.id, null) }
+            environment = spec.environment?.id?.let { CloudReference(it, null) }
         )
     }
 
