@@ -204,6 +204,7 @@
 <h4 style="padding:0;margin:0;line-height:0px">Fixed</h4>
 <ul>
 <li>Fixed the tooltip instructions for setting up a Confluent Cloud connection</li>
+<li>Fixed bug when consuming records using a Protobuf schema stored on AWS Glue Schema Registry</li>
 </ul>
 ]]></change-notes>
 </idea-plugin>
