@@ -217,6 +217,7 @@
 <li>Key/Value editor fields are hidden when random generation enabled</li>
 <li>Improved the Properties source field for Kafka connection settings</li>
 <li>Fixed exception related to the slash symbol in a Topic or Schema name</li>
+<li>Fixed bug when consuming records using a Protobuf schema stored on AWS Glue Schema Registry</li>
 </ul>
 
 <p>The full release notes are available <a href="https://youtrack.jetbrains.com/issues?q=project:%20BDIDE%20%20Available%20in:%20%7B2023.3%7D%20State:%20Fixed,%20Verified,%20%7BWithout%20verification%7D%20sort%20by:%20project,%20Type,%20votes%20BDT%20Plugin:%20Kafka">here</a>.</p>
