@@ -2,7 +2,7 @@
 
 This file contains notices for third-party libraries included in this distribution.
 
-============ annotations-2.22.12 ============
+============ annotations-2.36.3 ============
 
 AWS SDK for Java 2.0
 Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
@@ -30,7 +30,7 @@ The licenses for these third party components are included in LICENSE.txt
   This product includes software developed at
   The Apache Software Foundation (https://www.apache.org/).
 
-============ apache-client-2.22.12 ============
+============ apache-client-2.36.3 ============
 
 AWS SDK for Java 2.0
 Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
@@ -58,7 +58,7 @@ The licenses for these third party components are included in LICENSE.txt
   This product includes software developed at
   The Apache Software Foundation (https://www.apache.org/).
 
-============ arns-2.22.12 ============
+============ arns-2.36.3 ============
 
 AWS SDK for Java 2.0
 Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
@@ -86,7 +86,7 @@ The licenses for these third party components are included in LICENSE.txt
   This product includes software developed at
   The Apache Software Foundation (https://www.apache.org/).
 
-============ auth-2.22.12 ============
+============ auth-2.36.3 ============
 
 AWS SDK for Java 2.0
 Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
@@ -126,7 +126,7 @@ The Apache Software Foundation (http://www.apache.org/).
 
 
 
-============ aws-core-2.22.12 ============
+============ aws-core-2.36.3 ============
 
 AWS SDK for Java 2.0
 Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
@@ -154,7 +154,7 @@ The licenses for these third party components are included in LICENSE.txt
   This product includes software developed at
   The Apache Software Foundation (https://www.apache.org/).
 
-============ aws-json-protocol-2.22.12 ============
+============ aws-json-protocol-2.36.3 ============
 
 AWS SDK for Java 2.0
 Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
@@ -182,7 +182,7 @@ The licenses for these third party components are included in LICENSE.txt
   This product includes software developed at
   The Apache Software Foundation (https://www.apache.org/).
 
-============ aws-query-protocol-2.22.12 ============
+============ aws-query-protocol-2.36.3 ============
 
 AWS SDK for Java 2.0
 Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
@@ -242,7 +242,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 
-============ checksums-2.22.12 ============
+============ checksums-2.36.3 ============
 
 AWS SDK for Java 2.0
 Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
@@ -270,7 +270,7 @@ The licenses for these third party components are included in LICENSE.txt
   This product includes software developed at
   The Apache Software Foundation (https://www.apache.org/).
 
-============ checksums-spi-2.22.12 ============
+============ checksums-spi-2.36.3 ============
 
 AWS SDK for Java 2.0
 Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
@@ -298,7 +298,7 @@ The licenses for these third party components are included in LICENSE.txt
   This product includes software developed at
   The Apache Software Foundation (https://www.apache.org/).
 
-============ commons-codec-1.17.0 ============
+============ commons-codec-1.17.1 ============
 
 Apache Commons Codec
 Copyright 2002-2024 The Apache Software Foundation
@@ -370,7 +370,7 @@ Copyright 2002-2024 The Apache Software Foundation
 This product includes software developed at
 The Apache Software Foundation (https://www.apache.org/).
 
-============ endpoints-spi-2.22.12 ============
+============ endpoints-spi-2.36.3 ============
 
 AWS SDK for Java 2.0
 Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
@@ -398,7 +398,7 @@ The licenses for these third party components are included in LICENSE.txt
   This product includes software developed at
   The Apache Software Foundation (https://www.apache.org/).
 
-============ glue-2.22.12 ============
+============ glue-2.36.3 ============
 
 AWS SDK for Java 2.0
 Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
@@ -426,7 +426,7 @@ The licenses for these third party components are included in LICENSE.txt
   This product includes software developed at
   The Apache Software Foundation (https://www.apache.org/).
 
-============ http-auth-2.22.12 ============
+============ http-auth-2.36.3 ============
 
 AWS SDK for Java 2.0
 Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
@@ -454,7 +454,7 @@ The licenses for these third party components are included in LICENSE.txt
   This product includes software developed at
   The Apache Software Foundation (https://www.apache.org/).
 
-============ http-auth-aws-2.22.12 ============
+============ http-auth-aws-2.36.3 ============
 
 AWS SDK for Java 2.0
 Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
@@ -482,7 +482,7 @@ The licenses for these third party components are included in LICENSE.txt
   This product includes software developed at
   The Apache Software Foundation (https://www.apache.org/).
 
-============ http-auth-spi-2.22.12 ============
+============ http-auth-aws-eventstream-2.36.3 ============
 
 AWS SDK for Java 2.0
 Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
@@ -510,7 +510,35 @@ The licenses for these third party components are included in LICENSE.txt
   This product includes software developed at
   The Apache Software Foundation (https://www.apache.org/).
 
-============ http-client-spi-2.22.12 ============
+============ http-auth-spi-2.36.3 ============
+
+AWS SDK for Java 2.0
+Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+
+This product includes software developed by
+Amazon Technologies, Inc (http://www.amazon.com/).
+
+**********************
+THIRD PARTY COMPONENTS
+**********************
+This software includes third party software subject to the following copyrights:
+- XML parsing and utility functions from JetS3t - Copyright 2006-2009 James Murty.
+- PKCS#1 PEM encoded private key parsing and utility functions from oauth.googlecode.com - Copyright 1998-2010 AOL Inc.
+- Apache Commons Lang - https://github.com/apache/commons-lang
+- Netty Reactive Streams - https://github.com/playframework/netty-reactive-streams
+- Jackson-core - https://github.com/FasterXML/jackson-core
+- Jackson-dataformat-cbor - https://github.com/FasterXML/jackson-dataformats-binary
+
+The licenses for these third party components are included in LICENSE.txt
+
+- For Apache Commons Lang see also this required NOTICE:
+  Apache Commons Lang
+  Copyright 2001-2020 The Apache Software Foundation
+  
+  This product includes software developed at
+  The Apache Software Foundation (https://www.apache.org/).
+
+============ http-client-spi-2.36.3 ============
 
 AWS SDK for Java 2.0
 Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
@@ -560,11 +588,11 @@ The Apache Software Foundation (http://www.apache.org/).
 
 
 
-============ httpcore-4.4.13 ============
+============ httpcore-4.4.16 ============
 
 
 Apache HttpCore
-Copyright 2005-2020 The Apache Software Foundation
+Copyright 2005-2022 The Apache Software Foundation
 
 This product includes software developed at
 The Apache Software Foundation (http://www.apache.org/).
@@ -593,7 +621,7 @@ The Apache Software Foundation (http://www.apache.org/).
 
 
 
-============ identity-spi-2.22.12 ============
+============ identity-spi-2.36.3 ============
 
 AWS SDK for Java 2.0
 Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
@@ -861,7 +889,7 @@ permitted.
 This product includes software developed by
 Joda.org (https://www.joda.org/).
 
-============ json-utils-2.22.12 ============
+============ json-utils-2.36.3 ============
 
 AWS SDK for Java 2.0
 Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
@@ -889,7 +917,7 @@ The licenses for these third party components are included in LICENSE.txt
   This product includes software developed at
   The Apache Software Foundation (https://www.apache.org/).
 
-============ metrics-spi-2.22.12 ============
+============ metrics-spi-2.36.3 ============
 
 AWS SDK for Java 2.0
 Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
@@ -917,7 +945,7 @@ The licenses for these third party components are included in LICENSE.txt
   This product includes software developed at
   The Apache Software Foundation (https://www.apache.org/).
 
-============ netty-nio-client-2.22.12 ============
+============ netty-nio-client-2.36.3 ============
 
 AWS SDK for Java 2.0
 Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
@@ -957,7 +985,7 @@ Copyright 2006-2022 Joe Walnes, Henri Tremblay, Leonardo Mesquita
 
 
 
-============ profiles-2.22.12 ============
+============ profiles-2.36.3 ============
 
 AWS SDK for Java 2.0
 Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
@@ -985,7 +1013,7 @@ The licenses for these third party components are included in LICENSE.txt
   This product includes software developed at
   The Apache Software Foundation (https://www.apache.org/).
 
-============ protocol-core-2.22.12 ============
+============ protocol-core-2.36.3 ============
 
 AWS SDK for Java 2.0
 Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
@@ -1013,7 +1041,7 @@ The licenses for these third party components are included in LICENSE.txt
   This product includes software developed at
   The Apache Software Foundation (https://www.apache.org/).
 
-============ regions-2.22.12 ============
+============ regions-2.36.3 ============
 
 AWS SDK for Java 2.0
 Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
@@ -1041,7 +1069,7 @@ The licenses for these third party components are included in LICENSE.txt
   This product includes software developed at
   The Apache Software Foundation (https://www.apache.org/).
 
-============ sdk-core-2.22.12 ============
+============ retries-2.36.3 ============
 
 AWS SDK for Java 2.0
 Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
@@ -1069,7 +1097,7 @@ The licenses for these third party components are included in LICENSE.txt
   This product includes software developed at
   The Apache Software Foundation (https://www.apache.org/).
 
-============ sso-2.20.158 ============
+============ retries-spi-2.36.3 ============
 
 AWS SDK for Java 2.0
 Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
@@ -1097,7 +1125,7 @@ The licenses for these third party components are included in LICENSE.txt
   This product includes software developed at
   The Apache Software Foundation (https://www.apache.org/).
 
-============ ssooidc-2.20.158 ============
+============ sdk-core-2.36.3 ============
 
 AWS SDK for Java 2.0
 Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
@@ -1125,7 +1153,63 @@ The licenses for these third party components are included in LICENSE.txt
   This product includes software developed at
   The Apache Software Foundation (https://www.apache.org/).
 
-============ sts-2.22.12 ============
+============ sso-2.36.3 ============
+
+AWS SDK for Java 2.0
+Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+
+This product includes software developed by
+Amazon Technologies, Inc (http://www.amazon.com/).
+
+**********************
+THIRD PARTY COMPONENTS
+**********************
+This software includes third party software subject to the following copyrights:
+- XML parsing and utility functions from JetS3t - Copyright 2006-2009 James Murty.
+- PKCS#1 PEM encoded private key parsing and utility functions from oauth.googlecode.com - Copyright 1998-2010 AOL Inc.
+- Apache Commons Lang - https://github.com/apache/commons-lang
+- Netty Reactive Streams - https://github.com/playframework/netty-reactive-streams
+- Jackson-core - https://github.com/FasterXML/jackson-core
+- Jackson-dataformat-cbor - https://github.com/FasterXML/jackson-dataformats-binary
+
+The licenses for these third party components are included in LICENSE.txt
+
+- For Apache Commons Lang see also this required NOTICE:
+  Apache Commons Lang
+  Copyright 2001-2020 The Apache Software Foundation
+  
+  This product includes software developed at
+  The Apache Software Foundation (https://www.apache.org/).
+
+============ ssooidc-2.36.3 ============
+
+AWS SDK for Java 2.0
+Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+
+This product includes software developed by
+Amazon Technologies, Inc (http://www.amazon.com/).
+
+**********************
+THIRD PARTY COMPONENTS
+**********************
+This software includes third party software subject to the following copyrights:
+- XML parsing and utility functions from JetS3t - Copyright 2006-2009 James Murty.
+- PKCS#1 PEM encoded private key parsing and utility functions from oauth.googlecode.com - Copyright 1998-2010 AOL Inc.
+- Apache Commons Lang - https://github.com/apache/commons-lang
+- Netty Reactive Streams - https://github.com/playframework/netty-reactive-streams
+- Jackson-core - https://github.com/FasterXML/jackson-core
+- Jackson-dataformat-cbor - https://github.com/FasterXML/jackson-dataformats-binary
+
+The licenses for these third party components are included in LICENSE.txt
+
+- For Apache Commons Lang see also this required NOTICE:
+  Apache Commons Lang
+  Copyright 2001-2020 The Apache Software Foundation
+  
+  This product includes software developed at
+  The Apache Software Foundation (https://www.apache.org/).
+
+============ sts-2.36.3 ============
 
 AWS SDK for Java 2.0
 Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
@@ -1160,7 +1244,7 @@ Copyright (c) 2015. SmartBear Software Inc.
 Swagger Core - swagger-annotations  is licensed under Apache 2.0 license.
 Copy of the Apache 2.0 license can be found in `LICENSE` file.
 
-============ third-party-jackson-core-2.22.12 ============
+============ third-party-jackson-core-2.36.3 ============
 
 # Jackson JSON processor
 
@@ -1195,7 +1279,7 @@ Copyright © 2023 Werner Randelshofer, Switzerland. MIT License.
 See FastDoubleParser-NOTICE for details of other source code included in FastDoubleParser
 and the licenses and copyrights that apply to that code.
 
-============ third-party-jackson-core-2.22.12 ============
+============ third-party-jackson-core-2.36.3 ============
 
 AWS SDK for Java 2.0
 Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
@@ -1223,7 +1307,7 @@ The licenses for these third party components are included in LICENSE.txt
   This product includes software developed at
   The Apache Software Foundation (https://www.apache.org/).
 
-============ url-connection-client-2.22.12 ============
+============ url-connection-client-2.36.3 ============
 
 AWS SDK for Java 2.0
 Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
@@ -1251,7 +1335,35 @@ The licenses for these third party components are included in LICENSE.txt
   This product includes software developed at
   The Apache Software Foundation (https://www.apache.org/).
 
-============ utils-2.22.12 ============
+============ utils-2.36.3 ============
+
+AWS SDK for Java 2.0
+Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+
+This product includes software developed by
+Amazon Technologies, Inc (http://www.amazon.com/).
+
+**********************
+THIRD PARTY COMPONENTS
+**********************
+This software includes third party software subject to the following copyrights:
+- XML parsing and utility functions from JetS3t - Copyright 2006-2009 James Murty.
+- PKCS#1 PEM encoded private key parsing and utility functions from oauth.googlecode.com - Copyright 1998-2010 AOL Inc.
+- Apache Commons Lang - https://github.com/apache/commons-lang
+- Netty Reactive Streams - https://github.com/playframework/netty-reactive-streams
+- Jackson-core - https://github.com/FasterXML/jackson-core
+- Jackson-dataformat-cbor - https://github.com/FasterXML/jackson-dataformats-binary
+
+The licenses for these third party components are included in LICENSE.txt
+
+- For Apache Commons Lang see also this required NOTICE:
+  Apache Commons Lang
+  Copyright 2001-2020 The Apache Software Foundation
+  
+  This product includes software developed at
+  The Apache Software Foundation (https://www.apache.org/).
+
+============ utils-lite-2.36.3 ============
 
 AWS SDK for Java 2.0
 Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
