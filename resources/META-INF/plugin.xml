@@ -3,7 +3,7 @@
     <name>Kafka</name>
     <vendor>Confluent</vendor>
     <version>253.25909.0-pre</version>
-    <idea-version since-build="2025.2"/>
+    <idea-version since-build="2025.3"/>
 
     <description><![CDATA[
 <p>Monitor your <a href="https://kafka.apache.org/">Kafka</a> event streaming processes:
