@@ -8,10 +8,6 @@ import com.squareup.moshi.JsonClass
  */
 @JsonClass(generateAdapter = true)
 data class ListKafkaClustersResponse(
-    @Json(name = "api_version") val apiVersion: String? = null,
-    val kind: String? = null,
-    val metadata: ListMetadata? = null,
-    val data: List<KafkaClusterResponse>
 )
 
 

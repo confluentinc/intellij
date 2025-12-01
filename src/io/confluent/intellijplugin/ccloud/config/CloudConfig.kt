@@ -17,10 +17,5 @@ object CloudConfig {
         const val LKC_LIST_URI = "/api/cmk/v2/clusters?environment=%s"
         const val SR_LIST_URI = "/api/srcm/v3/clusters?environment=%s"
     }
-
-    object HttpClient {
-        const val CONNECT_TIMEOUT_SECONDS = 10
-        const val REQUEST_TIMEOUT_SECONDS = 30
-    }
 }
 
