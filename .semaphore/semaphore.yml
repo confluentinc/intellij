@@ -12,13 +12,13 @@ agent:
 
 auto_cancel:
   running:
-    when: "branch != 'master'"
+    when: "branch != 'main'"
 
 execution_time_limit:
   hours: 1
 
 queue:
-  - when: "branch != 'master'"
+  - when: "branch != 'main'"
     processing: parallel
 
 global_job_config:
@@ -41,21 +41,13 @@ blocks:
   - name: "Build, Test, Release"
     run:
       # don't run the build or unit tests on non-functional changes...
-      when: "change_in('/', {exclude: ['/.deployed-versions/', '.github/'], default_branch: 'master'})"
+      when: "change_in('/', {exclude: ['/.deployed-versions/', '.github/'], default_branch: 'main'})"
     task:
-      # You can customize your CI job here
-      #      env_vars:
-      #        # custom env_vars
-      #      prologue:
-      #        commands:
-      #          # custom vault secrets
-      #          # custom prologue commands
       jobs:
         - name: "Build, Test, Release"
           commands:
             - make build
             - make test
-            - make release-ci
 
 after_pipeline:
   task:
@@ -63,3 +55,9 @@ after_pipeline:
       - name: Publish Test Results to Semaphore
         commands:
           - test-results gen-pipeline-report || echo "Could not publish pipeline test result report due to probably no test results to publish"
+
+promotions:
+  - name: Third Party Notices
+    pipeline_file: third-party-notices.yml
+    auto_promote:
+      when: "branch =~ '.*' and change_in(['/build.gradle.kts', '/gradle/libs.versions.toml'], {default_branch: 'main', branch_range: '$SEMAPHORE_GIT_COMMIT_RANGE', pipeline_file: 'ignore'})"

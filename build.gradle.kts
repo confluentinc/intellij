@@ -120,6 +120,7 @@ dependencies {
     implementation(libs.aws.sso)
     implementation(libs.aws.sts)
     implementation(libs.aws.ssooidc)
+    implementation(libs.aws.mskiamauth)
     implementation("com.segment.analytics.java:analytics:3.5.2")
 
     implementation(libs.glue.schema.registry.serde)
@@ -132,6 +133,7 @@ dependencies {
     testRuntimeOnly(libs.junit.jupiter.engine)
     testImplementation(libs.junit.jupiter.params)
     testImplementation(libs.mockito.kotlin)
+    testImplementation(libs.mockito.inline)
     // JUnit 4 runtime required due to IJPL-159134: JUnit5 Test Framework refers to JUnit4 classes
     // See: https://youtrack.jetbrains.com/issue/IJPL-159134
     testRuntimeOnly(libs.junit4)
@@ -190,6 +192,15 @@ tasks {
 
     test {
         useJUnitPlatform()
+    }
+
+    patchPluginXml {
+        val releaseName = System.getenv("RELEASE_NAME")
+        // if RELEASE_NAME is set (e.g. from a release job in CI), patch it in plugin.xml
+        // so the resulting plugin zip has the correct version number when installed
+        if (!releaseName.isNullOrEmpty()) {
+            version = releaseName.removePrefix("v")
+        }
     }
     
     // Skip Sentry tasks when auth token is missing
