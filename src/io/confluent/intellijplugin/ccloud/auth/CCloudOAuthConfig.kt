@@ -31,7 +31,7 @@ object CCloudOAuthConfig {
 
     // OAuth Configurations
     val CCLOUD_OAUTH_CLIENT_ID: String = when (env) {
-        CCloudEnv.PROD -> "" // TBD
+        CCloudEnv.PROD -> "wlBAWfRbGnxAPwROp25kpNwiYGEdsici"
         CCloudEnv.STAG -> "6TSqajfJykLdBbSPhvsWc3sCuITvrnL7"
         CCloudEnv.DEVEL -> "m94Mb54lGbyX9XVkrl5Zj9YyrFVc2XTi"
     }
@@ -78,5 +78,5 @@ object CCloudOAuthConfig {
     const val MAX_TOKEN_REFRESH_ATTEMPTS = 50
     const val CALLBACK_PORT: Int = 26638
     const val CALLBACK_PATH: String = "/gateway/v1/callback-intellij-docs"
-    val CCLOUD_OAUTH_REDIRECT_URI: String = "http://127.0.0.1:${CALLBACK_PORT}}/${CALLBACK_PATH}"
+    val CCLOUD_OAUTH_REDIRECT_URI: String = "http://127.0.0.1:${CALLBACK_PORT}}${CALLBACK_PATH}"
 }
