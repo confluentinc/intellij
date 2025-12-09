@@ -129,7 +129,7 @@ class TelemetryUtilsTest {
         fun `returns valid UUID`() {
             val machineId = TelemetryUtils.commonMachineId()
 
-            assertNotNull(machineId)
+            Assertions.assertNotNull(machineId)
             assertNotEquals("unknown", machineId)
             assertDoesNotThrow {
                 UUID.fromString(machineId)
@@ -170,7 +170,7 @@ class TelemetryUtilsTest {
         fun `returns non-empty string`() {
             val version = TelemetryUtils.getPluginVersion()
 
-            assertNotNull(version)
+            Assertions.assertNotNull(version)
             assertTrue(version.isNotEmpty())
         }
 
@@ -204,4 +204,3 @@ class TelemetryUtilsTest {
         }
     }
 }
-
