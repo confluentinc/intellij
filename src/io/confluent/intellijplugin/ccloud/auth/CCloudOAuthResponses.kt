@@ -4,7 +4,6 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
 
-
 /** Auth0 /oauth/token response */
 @Serializable
 data class IdTokenExchangeResponse(
@@ -24,10 +23,10 @@ data class IdTokenExchangeResponse(
  */
 @Serializable
 data class ControlPlaneTokenExchangeResponse(
-    val token: String,
+    val token: String? = null,  // Set via withToken() from cookie
     val error: JsonElement? = null,
-    val user: UserDetails,
-    val organization: OrganizationDetails,
+    val user: UserDetails? = null,
+    val organization: OrganizationDetails? = null,
     @SerialName("identity_provider") val identityProvider: JsonElement? = null,
     @SerialName("refresh_token") val refreshToken: String? = null,
 ) {
@@ -37,7 +36,7 @@ data class ControlPlaneTokenExchangeResponse(
 /** Data plane /api/access_tokens response */
 @Serializable
 data class DataPlaneTokenExchangeResponse(
-    val token: String,
+    val token: String? = null,
     val error: JsonElement? = null,
     @SerialName("regional_token") val regionalToken: String? = null,
 )
