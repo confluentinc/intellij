@@ -12,33 +12,33 @@ data class Token(val token: String, val expiresAt: Instant)
 data class UserDetails(
     val id: String,
     val email: String,
-    @SerialName("first_name") val firstName: String,
-    @SerialName("last_name") val lastName: String,
-    @SerialName("resource_id") val resourceId: String,
-    @SerialName("service_account") val serviceAccount: Boolean,
-    @SerialName("social_connection") val socialConnection: String,
-    @SerialName("auth_type") val authType: String,
+    @SerialName("first_name") val firstName: String? = null,
+    @SerialName("last_name") val lastName: String? = null,
+    @SerialName("resource_id") val resourceId: String? = null,
+    @SerialName("service_account") val serviceAccount: Boolean? = null,
+    @SerialName("social_connection") val socialConnection: String? = null,
+    @SerialName("auth_type") val authType: String? = null,
 )
 
 @Serializable
 data class OrganizationDetails(
     val id: String,
     val name: String,
-    @SerialName("resource_id") val resourceId: String,
+    @SerialName("resource_id") val resourceId: String? = null,
     val sso: SsoDetails,
 )
 
 @Serializable
 data class SsoDetails(
     val enabled: Boolean,
-    @SerialName("auth0_connection_name") val auth0ConnectionName: String,
-    @SerialName("tenant_id") val tenantId: String,
-    @SerialName("multi_tenant") val multiTenant: Boolean,
+    @SerialName("auth0_connection_name") val auth0ConnectionName: String? = null,
+    @SerialName("tenant_id") val tenantId: String? = null,
+    @SerialName("multi_tenant") val multiTenant: Boolean? = null,
     val mode: String,
-    @SerialName("connection_name") val connectionName: String,
+    @SerialName("connection_name") val connectionName: String? = null,
     val vendor: String,
-    @SerialName("jit_enabled") val jitEnabled: Boolean,
-    @SerialName("bup_enabled") val bupEnabled: Boolean,
+    @SerialName("jit_enabled") val jitEnabled: Boolean? = null,
+    @SerialName("bup_enabled") val bupEnabled: Boolean? = null,
 )
 
 /** Immutable token state container */

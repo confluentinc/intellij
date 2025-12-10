@@ -103,6 +103,7 @@ dependencies {
         testFramework(TestFrameworkType.JUnit5)
     }
     implementation(libs.moshi.kotlin)
+    implementation(libs.kotlinx.serialization.json)
     implementation(libs.kafka.clients)
 
     listOf(
