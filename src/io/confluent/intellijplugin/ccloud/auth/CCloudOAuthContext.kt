@@ -298,11 +298,10 @@ class CCloudOAuthContext {
             throw IllegalStateException("Retrieving data plane token failed: ${dpResponse.error}")
         }
 
-        // TODO:Validation?
         tokens.updateAndGet { oldTokens ->
             oldTokens.withDataPlaneToken(
                 Token(
-                    dpResponse.token,
+                    dpResponse.token ?: throw IllegalStateException("No data plane token"),
                     now.plusSeconds(CCloudOAuthConfig.CCLOUD_CONTROL_PLANE_TOKEN_LIFETIME.inWholeSeconds)
                 )
             )
