@@ -10,6 +10,7 @@ rootProject.extensions.add("java.targetCompatibility", "21")
 plugins {
     id("java")
     id("org.jetbrains.kotlin.jvm")
+    kotlin("plugin.serialization") version "2.2.21"
     id("org.jetbrains.intellij.platform") version "2.9.0"
     id("io.sentry.jvm.gradle") version "5.12.1"
 }
@@ -103,6 +104,7 @@ dependencies {
         testFramework(TestFrameworkType.JUnit5)
     }
     implementation(libs.moshi.kotlin)
+    implementation(libs.kotlinx.serialization.json)
     implementation(libs.kafka.clients)
 
     listOf(
