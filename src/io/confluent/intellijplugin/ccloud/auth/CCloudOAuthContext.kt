@@ -70,7 +70,6 @@ class CCloudOAuthContext {
 
     fun hasNonTransientError(): Boolean = tokens.get().errors.hasNonTransientErrors()
 
-    // Check if we should attempt token refresh
     fun shouldAttemptTokenRefresh(): Boolean {
         readLock.lock()
         try {
@@ -159,6 +158,7 @@ class CCloudOAuthContext {
         }
     }
 
+    /** Refresh tokens without tracking failures. */
     suspend fun refreshIgnoreFailures(organizationId: String? = null): Result<CCloudOAuthContext> {
         writeLock.lock()
         try {
@@ -174,6 +174,7 @@ class CCloudOAuthContext {
         }
     }
 
+    /** Verify control plane token is valid. */
     suspend fun checkAuthenticationStatus(): Result<Boolean> {
         writeLock.lock()
         try {
@@ -185,10 +186,15 @@ class CCloudOAuthContext {
             }
 
             return runCatching {
-                // TODO: HTTP GET to CCLOUD_CONTROL_PLANE_CHECK_JWT_URI
-                // Headers: Authorization: Bearer {controlPlaneToken}
-                // Response: CheckJwtResponse - if error field is non-null, token is invalid
-                TODO("Implement HTTP call to check_jwt endpoint")
+                val response = CCloudOAuthHttpClient.get<CheckJwtResponse>(
+                    url = CCloudOAuthConfig.CCLOUD_CONTROL_PLANE_CHECK_JWT_URI,
+                    bearerToken = controlPlaneToken!!.token
+                )
+
+                if (response.error != null && response.error !is JsonNull) {
+                    throw IllegalStateException("JWT validation failed: ${response.error}")
+                }
+                true
             }.onSuccess {
                 tokens.updateAndGet { it.withErrors(it.errors.withoutAuthStatusCheck()) }
             }.onFailure { failure ->
@@ -219,11 +225,10 @@ class CCloudOAuthContext {
             "redirect_uri" to CCloudOAuthConfig.CCLOUD_OAUTH_REDIRECT_URI
         )
 
-        // TODO: HTTP POST to CCLOUD_OAUTH_TOKEN_URI
-        // Content-Type: application/x-www-form-urlencoded
-        // Body: form data above
-        // Response: IdTokenExchangeResponse with id_token, refresh_token, expires_in
-        TODO("Implement HTTP call to exchange authorization code")
+        return CCloudOAuthHttpClient.postForm(
+            url = CCloudOAuthConfig.CCLOUD_OAUTH_TOKEN_URI,
+            formData = formData
+        )
     }
 
     private suspend fun createTokensFromRefreshToken(): IdTokenExchangeResponse {
@@ -239,11 +244,10 @@ class CCloudOAuthContext {
             "redirect_uri" to CCloudOAuthConfig.CCLOUD_OAUTH_REDIRECT_URI
         )
 
-        // TODO: HTTP POST to CCLOUD_OAUTH_TOKEN_URI
-        // Content-Type: application/x-www-form-urlencoded
-        // Body: form data above
-        // Response: IdTokenExchangeResponse with new id_token, refresh_token, expires_in
-        TODO("Implement HTTP call to refresh tokens")
+        return CCloudOAuthHttpClient.postForm(
+            url = CCloudOAuthConfig.CCLOUD_OAUTH_TOKEN_URI,
+            formData = formData
+        )
     }
 
 
@@ -294,7 +298,7 @@ class CCloudOAuthContext {
         // Part 3 - Exchange control plane token for data plane token
         val dpResponse = exchangeDataPlaneToken(cpResponse.token!!)
 
-        if (dpResponse.error != null && cpResponse.error !is JsonNull) {
+        if (dpResponse.error != null && dpResponse.error !is JsonNull) {
             throw IllegalStateException("Retrieving data plane token failed: ${dpResponse.error}")
         }
 
@@ -308,34 +312,46 @@ class CCloudOAuthContext {
         }
     }
 
-    // TODO: Create and switch params to ExchangeControlPlaneTokenRequest?
+    /**
+     * Exchange ID token for control plane token.
+     * Token is returned in Set-Cookie header, not response body.
+     */
     private suspend fun exchangeControlPlaneToken(
         idToken: String,
         organizationId: String?
     ): ControlPlaneTokenExchangeResponse {
-        // TODO: JSON body schema?
+        val jsonBody = buildString {
+            append("""{"id_token":"$idToken"""")
+            if (organizationId != null) {
+                append(""","organizationId":"$organizationId"""")
+            }
+            append("}")
+        }
 
-        // TODO: HTTP POST to CCLOUD_CONTROL_PLANE_TOKEN_EXCHANGE_URI
-        // Content-Type: application/json
-        // Body: jsonBody above
-        //
+        val response = CCloudOAuthHttpClient.postJsonWithHeaders(
+            url = CCloudOAuthConfig.CCLOUD_CONTROL_PLANE_TOKEN_EXCHANGE_URI,
+            jsonBody = jsonBody
+        )
+
+        // Parse response body
+        val cpResponse = CCloudOAuthHttpClient.json.decodeFromString<ControlPlaneTokenExchangeResponse>(response.body)
+
         // Extract token from Set-Cookie header
-        // Response headers contain: Set-Cookie: auth_token=<CONTROL_PLANE_TOKEN>; ...
-        // Parse the cookie and extract "auth_token" value
-        //
-        // Response body: ControlPlaneTokenExchangeResponse with user, organization (token from cookie)
-        TODO("Implement HTTP call to exchange control plane token - extract token from Set-Cookie header")
+        val authToken = CCloudOAuthHttpClient.extractCookie(response.headers, "auth_token")
+            ?: throw IllegalStateException("No auth_token cookie in response")
+
+        return cpResponse.withToken(authToken)
     }
 
+    /** Exchange control plane token for data plane token. */
     private suspend fun exchangeDataPlaneToken(
         controlPlaneToken: String
     ): DataPlaneTokenExchangeResponse {
-        // TODO: HTTP POST to CCLOUD_DATA_PLANE_TOKEN_EXCHANGE_URI
-        // Content-Type: application/json
-        // Authorization: Bearer {controlPlaneToken}
-        // Body: {}
-        // Response: DataPlaneTokenExchangeResponse with token
-        TODO("Implement HTTP call to exchange data plane token")
+        return CCloudOAuthHttpClient.postJson(
+            url = CCloudOAuthConfig.CCLOUD_DATA_PLANE_TOKEN_EXCHANGE_URI,
+            jsonBody = "{}",
+            bearerToken = controlPlaneToken
+        )
     }
 
     /** Helpers */
