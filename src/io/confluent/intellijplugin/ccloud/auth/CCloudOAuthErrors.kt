@@ -8,9 +8,9 @@ import kotlinx.serialization.json.JsonIgnoreUnknownKeys
 @Serializable
 @JsonIgnoreUnknownKeys
 data class AuthErrors(
-    @SerialName("auth_status_check") val signIn: AuthError? = null,
-    @SerialName("sign_in") val tokenRefresh: AuthError? = null,
-    @SerialName("token_refresh") val authStatusCheck: AuthError? = null
+    @SerialName("auth_status_check") val authStatusCheck: AuthError? = null,
+    @SerialName("sign_in") val signIn: AuthError? = null,
+    @SerialName("token_refresh") val tokenRefresh: AuthError? = null
 ) {
     @Serializable
     data class AuthError(
