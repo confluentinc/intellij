@@ -2,9 +2,11 @@ package io.confluent.intellijplugin.ccloud.auth
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonIgnoreUnknownKeys
 
 /** Confluent Cloud OAuth errors */
 @Serializable
+@JsonIgnoreUnknownKeys
 data class AuthErrors(
     @SerialName("auth_status_check") val signIn: AuthError? = null,
     @SerialName("sign_in") val tokenRefresh: AuthError? = null,

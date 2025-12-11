@@ -5,7 +5,6 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonIgnoreUnknownKeys
 
-
 /** Token and state types for Confluent Cloud OAuth */
 data class Token(val token: String, val expiresAt: Instant)
 
