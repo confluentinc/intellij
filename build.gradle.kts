@@ -10,6 +10,7 @@ rootProject.extensions.add("java.targetCompatibility", "21")
 plugins {
     id("java")
     id("org.jetbrains.kotlin.jvm")
+    kotlin("plugin.serialization") version "2.2.21"
     id("org.jetbrains.intellij.platform") version "2.9.0"
     id("io.sentry.jvm.gradle") version "5.12.1"
 }
@@ -103,6 +104,7 @@ dependencies {
         testFramework(TestFrameworkType.JUnit5)
     }
     implementation(libs.moshi.kotlin)
+    implementation(libs.kotlinx.serialization.json)
     implementation(libs.kafka.clients)
 
     listOf(
@@ -193,6 +195,14 @@ tasks {
 
     test {
         useJUnitPlatform()
+        systemProperty("ccloud.callback-port", "26639")
+        System.getProperty("ccloud.env")?.let { systemProperty("ccloud.env", it) }
+    }
+
+    runIde {
+        // Pass system properties from gradle.properties or use system property flag with -D flag @see CCloudOAuthConfig
+        System.getProperty("ccloud.callback-port")?.let { systemProperty("ccloud.callback-port", it) }
+        System.getProperty("ccloud.env")?.let { systemProperty("ccloud.env", it) }
     }
 
     patchPluginXml {
