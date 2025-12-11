@@ -76,7 +76,7 @@ class CCloudOAuthContext {
         try {
             val now = Instant.now()
             val expiresAt = expiresAt() ?: return false
-            val nextExecution = now.plusSeconds(CCloudOAuthConfig.TOKEN_REFRESH_INTERVAL.inWholeSeconds)
+            val nextExecution = now.plusSeconds(CCloudOAuthConfig.CHECK_TOKEN_EXPIRATION_INTERVAL.inWholeSeconds)
             val atLeastOneTokenWillExpireBeforeNextRun = expiresAt < nextExecution
 
             return !hasReachedEndOfLifetime()

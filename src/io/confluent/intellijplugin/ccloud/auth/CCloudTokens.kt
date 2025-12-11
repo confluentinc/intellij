@@ -3,12 +3,14 @@ package io.confluent.intellijplugin.ccloud.auth
 import java.time.Instant
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonIgnoreUnknownKeys
 
 
 /** Token and state types for Confluent Cloud OAuth */
 data class Token(val token: String, val expiresAt: Instant)
 
 @Serializable
+@JsonIgnoreUnknownKeys
 data class UserDetails(
     val id: String,
     val email: String,
@@ -21,6 +23,7 @@ data class UserDetails(
 )
 
 @Serializable
+@JsonIgnoreUnknownKeys
 data class OrganizationDetails(
     val id: String,
     val name: String,
@@ -29,6 +32,7 @@ data class OrganizationDetails(
 )
 
 @Serializable
+@JsonIgnoreUnknownKeys
 data class SsoDetails(
     val enabled: Boolean,
     @SerialName("auth0_connection_name") val auth0ConnectionName: String? = null,

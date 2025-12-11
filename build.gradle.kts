@@ -195,6 +195,14 @@ tasks {
 
     test {
         useJUnitPlatform()
+        systemProperty("ccloud.callback-port", "26639")
+        System.getProperty("ccloud.env")?.let { systemProperty("ccloud.env", it) }
+    }
+
+    runIde {
+        // Pass system properties from gradle.properties or use system property flag with -D flag @see CCloudOAuthConfig
+        System.getProperty("ccloud.callback-port")?.let { systemProperty("ccloud.callback-port", it) }
+        System.getProperty("ccloud.env")?.let { systemProperty("ccloud.env", it) }
     }
 
     patchPluginXml {
