@@ -11,6 +11,11 @@ import io.confluent.intellijplugin.ccloud.model.*
  */
 interface CloudFetcher {
     /**
+     * Get environments for a connection.
+     */
+    suspend fun getEnvironments(connectionId: String): List<CCloudEnvironment>
+
+    /**
      * Get Kafka clusters for a connection and environment.
      */
     suspend fun getKafkaClusters(
@@ -19,8 +24,8 @@ interface CloudFetcher {
     ): List<KafkaCluster>
 
     /**
-     * Get Schema Registry for a connection and environment.
+     * Get Schema Registry clusters for a connection and environment.
      */
-    suspend fun getSchemaRegistry(connectionId: String, envId: String): SchemaRegistry?
+    suspend fun getSchemaRegistries(connectionId: String, envId: String): List<SchemaRegistry>
 }
 
