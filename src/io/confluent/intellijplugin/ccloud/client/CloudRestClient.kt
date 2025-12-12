@@ -1,5 +1,12 @@
 package io.confluent.intellijplugin.ccloud.client
 
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import java.net.URI
+import java.net.http.HttpClient
+import java.net.http.HttpRequest
+import java.net.http.HttpResponse
+import java.time.Duration
 import java.util.Base64
 
 /**
@@ -14,6 +21,10 @@ abstract class CloudRestClient(
     private val apiSecret: String,
     protected val baseUrl: String
 ) {
+    private val httpClient: HttpClient = HttpClient.newBuilder()
+        .connectTimeout(Duration.ofSeconds(30))
+        .build()
+
     /**
      * Get headers for API requests, including API key authentication.
      */
@@ -30,22 +41,36 @@ abstract class CloudRestClient(
      * List items from an API endpoint.
      */
     protected suspend fun <T> listItems(
-        @Suppress("UNUSED_PARAMETER") headers: Map<String, String>,
-        @Suppress("UNUSED_PARAMETER") uri: String,
-        @Suppress("UNUSED_PARAMETER") parser: (String) -> List<T>
-    ): List<T> {
-        TODO("Not yet implemented")
+        headers: Map<String, String>,
+        uri: String,
+        parser: (String) -> List<T>
+    ): List<T> = withContext(Dispatchers.IO) {
+        val url = if (uri.startsWith("http")) uri else "$baseUrl$uri"
+        val requestBuilder = HttpRequest.newBuilder()
+            .uri(URI.create(url))
+            .timeout(Duration.ofSeconds(30))
+
+        headers.forEach { (key, value) ->
+            requestBuilder.header(key, value)
+        }
+
+        val request = requestBuilder.GET().build()
+        val response = httpClient.send(request, HttpResponse.BodyHandlers.ofString())
+
+        if (response.statusCode() !in 200..299) {
+            throw CloudApiException(
+                "HTTP ${response.statusCode()}: ${response.body()?.take(200) ?: "Unknown error"}",
+                response.statusCode()
+            )
+        }
+
+        parser(response.body())
     }
 
-    /**
-     * Get a single item from an API endpoint.
-     */
-    protected suspend fun <T> getItem(
-        @Suppress("UNUSED_PARAMETER") headers: Map<String, String>,
-        @Suppress("UNUSED_PARAMETER") uri: String,
-        @Suppress("UNUSED_PARAMETER") parser: (String) -> T
-    ): T {
-        TODO("Not yet implemented")
-    }
 }
+
+/**
+ * Exception thrown when API calls fail.
+ */
+class CloudApiException(message: String, val statusCode: Int) : Exception(message)
 
