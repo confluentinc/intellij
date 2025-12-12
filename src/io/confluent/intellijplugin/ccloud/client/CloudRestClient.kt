@@ -27,8 +27,17 @@ abstract class CloudRestClient(
 
     /**
      * Get headers for API requests, including API key authentication.
+     *
+     * @param connectionId Connection identifier for future OAuth implementation.
+     *                     Currently unused but will be needed to retrieve OAuth tokens
+     *                     from the authentication provider once OAuth login is implemented.
+     *                     When OAuth is available, this will map to a token provider that
+     *                     returns Bearer tokens instead of using API key/secret.
      */
-    protected fun headersFor(@Suppress("UNUSED_PARAMETER") connectionId: String): Map<String, String> {
+    protected fun headersFor(connectionId: String): Map<String, String> {
+        // TODO: Once OAuth is implemented, use connectionId to get Bearer token:
+        //   val token = oAuthProvider.getAccessToken(connectionId)
+        //   return mapOf("Authorization" to "Bearer $token", ...)
         val credentials = Base64.getEncoder()
             .encodeToString("$apiKey:$apiSecret".toByteArray())
         return mapOf(
