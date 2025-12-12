@@ -1,4 +1,4 @@
-package io.confluent.intellijplugin.toolwindow.controllers
+package io.confluent.intellijplugin.toolwindow.kafka.controllers
 
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.actionSystem.ActionUpdateThread
