@@ -11,7 +11,7 @@ import io.confluent.intellijplugin.consumer.models.ConsumerProducerFieldConfig
 import io.confluent.intellijplugin.core.rfs.util.RfsNotificationUtils
 import io.confluent.intellijplugin.registry.KafkaRegistryFormat
 import io.confluent.intellijplugin.registry.KafkaRegistryType
-import io.confluent.intellijplugin.toolwindow.KafkaMonitoringToolWindowController
+import io.confluent.intellijplugin.toolwindow.kafka.KafkaMonitoringToolWindowController
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
 import io.confluent.kafka.schemaregistry.ParsedSchema
 
