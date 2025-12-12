@@ -26,16 +26,16 @@ sentry {
 val generateSentryConfig by tasks.registering {
     val outputDir = layout.buildDirectory.dir("generated/sources/sentryconfig/kotlin")
     val sentryDsn = System.getenv("SENTRY_DSN") ?: ""
-    
+
     outputs.dir(outputDir)
     inputs.property("sentryDsn", sentryDsn)
-    
+
     doLast {
         val configFile = outputDir.get().asFile.resolve("io/confluent/intellijplugin/telemetry/SentryConfig.kt")
         configFile.parentFile.mkdirs()
         configFile.writeText("""
             package io.confluent.intellijplugin.telemetry
-            
+
             /** Sentry configuration embedded at build time from SENTRY_DSN env var. */
             object SentryConfig {
                 const val DSN = "$sentryDsn"
@@ -90,7 +90,7 @@ intellijPlatform {
 dependencies {
     intellijPlatform {
         jetbrainsRuntime()
-        intellijIdeaUltimate("2025.2", useInstaller = true)
+        intellijIdea("2025.3"){useInstaller.set(true)}
 
         bundledPlugin("com.intellij.modules.json")
         bundledPlugin("com.intellij.microservices.jvm")
@@ -120,6 +120,7 @@ dependencies {
     implementation(libs.aws.sso)
     implementation(libs.aws.sts)
     implementation(libs.aws.ssooidc)
+    implementation(libs.aws.mskiamauth)
     implementation("com.segment.analytics.java:analytics:3.5.2")
 
     implementation(libs.glue.schema.registry.serde)
@@ -130,8 +131,10 @@ dependencies {
     testImplementation(libs.kotlin.metadata.jvm)
     testImplementation(libs.junit.jupiter.api)
     testRuntimeOnly(libs.junit.jupiter.engine)
+    testRuntimeOnly(libs.junit.platform.launcher)
     testImplementation(libs.junit.jupiter.params)
     testImplementation(libs.mockito.kotlin)
+    testImplementation(libs.mockito.inline)
     // JUnit 4 runtime required due to IJPL-159134: JUnit5 Test Framework refers to JUnit4 classes
     // See: https://youtrack.jetbrains.com/issue/IJPL-159134
     testRuntimeOnly(libs.junit4)
@@ -162,9 +165,9 @@ tasks.named("compileKotlin") {
 
 // Ensure all Sentry plugin tasks run after custom config generation
 afterEvaluate {
-    tasks.filter { 
-        (it.name.startsWith("sentry") || it.name.contains("Sentry")) && 
-        it.name != "generateSentryConfig" 
+    tasks.filter {
+        (it.name.startsWith("sentry") || it.name.contains("Sentry")) &&
+        it.name != "generateSentryConfig"
     }.forEach { sentryTask ->
         sentryTask.mustRunAfter(generateSentryConfig, generateSegmentConfig)
     }
@@ -191,7 +194,16 @@ tasks {
     test {
         useJUnitPlatform()
     }
-    
+
+    patchPluginXml {
+        val releaseName = System.getenv("RELEASE_NAME")
+        // if RELEASE_NAME is set (e.g. from a release job in CI), patch it in plugin.xml
+        // so the resulting plugin zip has the correct version number when installed
+        if (!releaseName.isNullOrEmpty()) {
+            version = releaseName.removePrefix("v")
+        }
+    }
+
     // Skip Sentry tasks when auth token is missing
     if (System.getenv("SENTRY_AUTH_TOKEN").isNullOrEmpty()) {
         // Disable all Sentry Gradle plugin tasks that require auth token

@@ -44,9 +44,8 @@ class ActionTelemetryListenerTest {
             // Use known inner class name from Kafka plugin
             val action = CreateNewConnectionAction()
             val event = TestActionEvent.createTestEvent(action, DataContext.EMPTY_CONTEXT)
-            val result = mock(AnActionResult::class.java)
 
-            listener.afterActionPerformed(action, event, result)
+            listener.afterActionPerformed(action, event, AnActionResult.PERFORMED)
 
             verify(mockAnalytics, times(1)).enqueue(any())
         }
@@ -55,8 +54,7 @@ class ActionTelemetryListenerTest {
         fun `ignores non-Kafka actions and does not send telemetry`() {
             val action = NonKafkaAction()
             val event = TestActionEvent.createTestEvent(action, DataContext.EMPTY_CONTEXT)
-            val result = mock(AnActionResult::class.java)
-            listener.afterActionPerformed(action, event, result)
+            listener.afterActionPerformed(action, event, AnActionResult.PERFORMED)
 
             verify(mockAnalytics, never()).enqueue(any())
         }
@@ -66,8 +64,7 @@ class ActionTelemetryListenerTest {
             KafkaPluginSettings.getInstance().enableUsageData = false
             val action = CreateNewConnectionAction()
             val event = TestActionEvent.createTestEvent(action, DataContext.EMPTY_CONTEXT)
-            val result = mock(AnActionResult::class.java)
-            listener.afterActionPerformed(action, event, result)
+            listener.afterActionPerformed(action, event, AnActionResult.PERFORMED)
 
             verify(mockAnalytics, never()).enqueue(any())
         }
@@ -75,10 +72,9 @@ class ActionTelemetryListenerTest {
         @Test
         fun `tracks multiple Kafka action triggers`() {
             val action = CreateNewConnectionAction()
-            val result = mock(AnActionResult::class.java)
             repeat(3) {
                 val event = TestActionEvent.createTestEvent(action, DataContext.EMPTY_CONTEXT)
-                listener.afterActionPerformed(action, event, result)
+                listener.afterActionPerformed(action, event, AnActionResult.PERFORMED)
             }
 
             verify(mockAnalytics, times(3)).enqueue(any())

@@ -10,7 +10,7 @@ import io.confluent.intellijplugin.registry.common.KafkaSchemaInfo
 import io.confluent.intellijplugin.rfs.KafkaDriver.Companion.isConsumers
 import io.confluent.intellijplugin.rfs.KafkaDriver.Companion.isSchemas
 import io.confluent.intellijplugin.rfs.KafkaDriver.Companion.isTopicFolder
-import io.confluent.intellijplugin.toolwindow.KafkaMonitoringToolWindowController
+import io.confluent.intellijplugin.toolwindow.kafka.KafkaMonitoringToolWindowController
 
 class KafkaRfsTreeNode(
     project: Project,
