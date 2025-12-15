@@ -15,7 +15,7 @@ class CCloudOAuthCallbackServerTest {
         fun `parses with expected values`() {
             val result = CCloudOAuthCallbackServer.parseQueryString("code=N1z42XEWcq-nMGsgNQVAiACG1A4d2uk-ARmpOC5B6uXSO&state=Aqb76jvLXf3VGUCDGpFRZ_fKx3YE9vLLBI388XUEo")
 
-            assertEquals(mapOf("code" to "N1z42XEWcq-nMGsgNQVAiACG1A4d2uk-ARmpOC5B6uXSO", "state" to "xyAqb76jvLXf3VGUCDGpFRZ_fKx3YE9vLLBI388XUEo"), result)
+            assertEquals(mapOf("code" to "N1z42XEWcq-nMGsgNQVAiACG1A4d2uk-ARmpOC5B6uXSO", "state" to "Aqb76jvLXf3VGUCDGpFRZ_fKx3YE9vLLBI388XUEo"), result)
         }
 
         @Test
@@ -41,7 +41,7 @@ class CCloudOAuthCallbackServerTest {
 
         @Test
         fun `handles special characters in encoded values`() {
-            val result = CCloudOAuthCallbackServer.parseQueryString("redirect=https%3A%2F%2Fexample.com%2Fpath%3Fquery%3D1")
+            val result = CCloudOAuthCallbackServer.parseQueryString("redirect=https%3A%2F%2Fconfluent.cloud%2Fpath%3Fquery%3D1")
 
             assertEquals(mapOf("redirect" to "https://confluent.cloud/path?query=1"), result)
         }
