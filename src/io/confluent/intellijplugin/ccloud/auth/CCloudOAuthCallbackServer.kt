@@ -9,7 +9,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import java.net.InetAddress
 import java.net.InetSocketAddress
-import java.net.URI
 
 /**
  * HTTP server to receive OAuth callback from Confluent Cloud.
@@ -54,6 +53,18 @@ class CCloudOAuthCallbackServer(
             return loadResource(resourcePath)
                 .replace("{#include styles/}", STYLES)
         }
+
+        /** Helper function to parse query string into a map of key-value pairs, handling URL decoding */
+        internal fun parseQueryString(query: String?): Map<String, String> {
+            if (query.isNullOrEmpty()) return emptyMap()
+            return query.split("&")
+                .mapNotNull { param ->
+                    val parts = param.split("=", limit = 2)
+                    if (parts.size == 2) parts[0] to java.net.URLDecoder.decode(parts[1], "UTF-8")
+                    else null
+                }
+                .toMap()
+        }
     }
 
     /**
@@ -90,7 +101,7 @@ class CCloudOAuthCallbackServer(
     }
 
     private fun handleCallback(exchange: HttpExchange) {
-        val params = parseQueryParams(exchange.requestURI)
+        val params = parseQueryString(exchange.requestURI.query)
         val code = params["code"]
         val state = params["state"]
         val error = params["error"]
@@ -147,21 +158,7 @@ class CCloudOAuthCallbackServer(
         }
     }
 
-    /** Helper functions */
 
-    /** Helper function to parse query params from the URI */
-    private fun parseQueryParams(uri: URI): Map<String, String> {
-        val query = uri.query ?: return emptyMap()
-        return query.split("&")
-            .mapNotNull { param ->
-                val parts = param.split("=", limit = 2)
-                if (parts.size == 2) parts[0] to java.net.URLDecoder.decode(parts[1], "UTF-8")
-                else null
-            }
-            .toMap()
-    }
-
-    /** Helper function to send the response to the client */
     private fun sendResponse(exchange: HttpExchange, statusCode: Int, html: String) {
         val bytes = html.toByteArray(Charsets.UTF_8)
         exchange.responseHeaders.add("Content-Type", "text/html; charset=UTF-8")
@@ -169,7 +166,6 @@ class CCloudOAuthCallbackServer(
         exchange.responseBody.use { it.write(bytes) }
     }
 
-    /** Helper function to stop the server and notify the error */
     private fun stopAndNotifyError(message: String) {
         CoroutineScope(Dispatchers.IO).launch {
             onError(message)
