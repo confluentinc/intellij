@@ -1,29 +1,24 @@
 package io.confluent.intellijplugin.ccloud.client
 
+import com.intellij.util.io.HttpRequests
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import java.net.URI
-import java.net.http.HttpClient
-import java.net.http.HttpRequest
-import java.net.http.HttpResponse
-import java.time.Duration
+import java.net.HttpURLConnection
 import java.util.Base64
 
 /**
- * Base HTTP client for Confluent Cloud control plane API calls.
+ * HTTP client for Confluent Cloud control plane API calls.
  * Handles API key authentication (before OAuth) and JSON parsing.
- * After OAuth is implemented, this will be updated to use Bearer tokens:
- * - Change apiKey/apiSecret to getAccessToken
- * - Change "Basic $credentials" to "Bearer $token"
  */
 abstract class CloudRestClient(
     private val apiKey: String,
     private val apiSecret: String,
     protected val baseUrl: String
 ) {
-    private val httpClient: HttpClient = HttpClient.newBuilder()
-        .connectTimeout(Duration.ofSeconds(30))
-        .build()
+    companion object {
+        private const val CONNECT_TIMEOUT_MS = 10_000 // 10 seconds
+        private const val READ_TIMEOUT_MS = 60_000 // 1 minute
+    }
 
     /**
      * Get headers for API requests, including API key authentication.
@@ -55,25 +50,34 @@ abstract class CloudRestClient(
         parser: (String) -> List<T>
     ): List<T> = withContext(Dispatchers.IO) {
         val url = if (uri.startsWith("http")) uri else "$baseUrl$uri"
-        val requestBuilder = HttpRequest.newBuilder()
-            .uri(URI.create(url))
-            .timeout(Duration.ofSeconds(30))
 
-        headers.forEach { (key, value) ->
-            requestBuilder.header(key, value)
-        }
+        val (statusCode, body) = HttpRequests.request(url)
+            .connectTimeout(CONNECT_TIMEOUT_MS)
+            .readTimeout(READ_TIMEOUT_MS)
+            .tuner { conn ->
+                headers.forEach { (key, value) ->
+                    conn.setRequestProperty(key, value)
+                }
+            }
+            .connect { request ->
+                val conn = request.connection as HttpURLConnection
+                val responseBody = try {
+                    request.inputStream.reader().readText()
+                } catch (e: Exception) {
+                    // Read error stream if input stream fails
+                    conn.errorStream?.reader()?.readText() ?: ""
+                }
+                conn.responseCode to responseBody
+            }
 
-        val request = requestBuilder.GET().build()
-        val response = httpClient.send(request, HttpResponse.BodyHandlers.ofString())
-
-        if (response.statusCode() !in 200..299) {
+        if (statusCode !in 200..299) {
             throw CloudApiException(
-                "HTTP ${response.statusCode()}: ${response.body()?.take(200) ?: "Unknown error"}",
-                response.statusCode()
+                "HTTP $statusCode: ${body.ifEmpty { "Unknown error" }}",
+                statusCode
             )
         }
 
-        parser(response.body())
+        parser(body)
     }
 
 }
