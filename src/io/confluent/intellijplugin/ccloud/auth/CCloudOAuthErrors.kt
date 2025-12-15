@@ -4,13 +4,20 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonIgnoreUnknownKeys
 
-/** Confluent Cloud OAuth errors */
+/**
+ * This record holds Confluent Cloud OAuth-related errors.
+ * @see CCloudOAuthContext
+ *
+ * @param authStatusCheck Error that occurred when checking the auth status.
+ * @param signIn          Error that occurred when performing the sign in.
+ * @param tokenRefresh    Error that occurred when refreshing tokens.
+ */
 @Serializable
 @JsonIgnoreUnknownKeys
 data class AuthErrors(
-    @SerialName("auth_status_check") val signIn: AuthError? = null,
-    @SerialName("sign_in") val tokenRefresh: AuthError? = null,
-    @SerialName("token_refresh") val authStatusCheck: AuthError? = null
+    @SerialName("auth_status_check") val authStatusCheck: AuthError? = null,
+    @SerialName("sign_in") val signIn: AuthError? = null,
+    @SerialName("token_refresh") val tokenRefresh: AuthError? = null
 ) {
     @Serializable
     data class AuthError(

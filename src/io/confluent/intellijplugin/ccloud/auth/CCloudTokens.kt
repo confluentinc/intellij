@@ -5,7 +5,10 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonIgnoreUnknownKeys
 
-/** Token and state types for Confluent Cloud OAuth */
+/**
+ * Token and state types for Confluent Cloud OAuth
+ * @see CCloudOAuthContext
+ */
 data class Token(val token: String, val expiresAt: Instant)
 
 @Serializable
@@ -44,7 +47,10 @@ data class SsoDetails(
     @SerialName("bup_enabled") val bupEnabled: Boolean? = null,
 )
 
-/** Immutable token state container */
+/**
+ * Immutable token state container
+ * @see CCloudOAuthContext
+ */
 data class Tokens(
     val refreshToken: Token? = null,
     val controlPlaneToken: Token? = null,
