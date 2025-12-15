@@ -19,6 +19,13 @@ data class IdTokenExchangeResponse(
     @SerialName("error_description") val errorDescription: JsonElement? = null
 )
 
+/** Control plane /api/sessions request */
+@Serializable
+data class ControlPlaneTokenExchangeRequest(
+    @SerialName("id_token") val idToken: String,
+    val organizationId: String? = null
+)
+
 /**
  * Control plane /api/sessions response.
  * The actual auth token is in the Set-Cookie header (auth_token), use withToken() to set it after extracting from cookie.

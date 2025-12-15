@@ -354,13 +354,11 @@ class CCloudOAuthContext {
         idToken: String,
         organizationId: String?
     ): ControlPlaneTokenExchangeResponse {
-        val jsonBody = buildString {
-            append("""{"id_token":"$idToken"""")
-            if (organizationId != null) {
-                append(""","organizationId":"$organizationId"""")
-            }
-            append("}")
-        }
+        val request = ControlPlaneTokenExchangeRequest(
+            idToken = idToken,
+            organizationId = organizationId
+        )
+        val jsonBody = CCloudOAuthHttpClient.json.encodeToString(request)
 
         val response = CCloudOAuthHttpClient.postJsonWithHeaders(
             url = CCloudOAuthConfig.CCLOUD_CONTROL_PLANE_TOKEN_EXCHANGE_URI,
