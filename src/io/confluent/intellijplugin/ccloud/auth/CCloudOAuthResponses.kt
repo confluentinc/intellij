@@ -5,7 +5,10 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonIgnoreUnknownKeys
 
-/** Auth0 /oauth/token response */
+/**
+ * Auth0 /oauth/token response
+ * @see CCloudOAuthContext
+ */
 @Serializable
 @JsonIgnoreUnknownKeys
 data class IdTokenExchangeResponse(
@@ -19,7 +22,10 @@ data class IdTokenExchangeResponse(
     @SerialName("error_description") val errorDescription: JsonElement? = null
 )
 
-/** Control plane /api/sessions request */
+/**
+ * Control plane /api/sessions request
+ * @see CCloudOAuthContext
+ */
 @Serializable
 data class ControlPlaneTokenExchangeRequest(
     @SerialName("id_token") val idToken: String,
@@ -29,6 +35,7 @@ data class ControlPlaneTokenExchangeRequest(
 /**
  * Control plane /api/sessions response.
  * The actual auth token is in the Set-Cookie header (auth_token), use withToken() to set it after extracting from cookie.
+ * @see CCloudOAuthContext
  */
 @Serializable
 @JsonIgnoreUnknownKeys
@@ -43,7 +50,10 @@ data class ControlPlaneTokenExchangeResponse(
     fun withToken(token: String) = copy(token = token)
 }
 
-/** Data plane /api/access_tokens response */
+/**
+ * Data plane /api/access_tokens response
+ * @see CCloudOAuthContext
+ */
 @Serializable
 @JsonIgnoreUnknownKeys
 data class DataPlaneTokenExchangeResponse(
@@ -52,7 +62,10 @@ data class DataPlaneTokenExchangeResponse(
     @SerialName("regional_token") val regionalToken: String? = null,
 )
 
-/** Check JWT /api/check_jwt response */
+/**
+ * Check JWT /api/check_jwt response
+ * @see CCloudOAuthContext
+ */
 @Serializable
 @JsonIgnoreUnknownKeys
 data class CheckJwtResponse(

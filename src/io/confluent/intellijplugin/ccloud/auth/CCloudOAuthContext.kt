@@ -41,7 +41,7 @@ class CCloudOAuthContext {
     private val writeLock = readWriteLock.writeLock()
     private val readLock = readWriteLock.readLock()
 
-    /** Public accessors */
+    // Public accessors
     fun getRefreshToken(): Token? = tokens.get().refreshToken
     fun getControlPlaneToken(): Token? = tokens.get().controlPlaneToken
     fun getDataPlaneToken(): Token? = tokens.get().dataPlaneToken
@@ -53,9 +53,10 @@ class CCloudOAuthContext {
 
     fun getUserEmail(): String = getUser()?.email ?: UNKNOWN_EMAIL
 
-    /** Earliest token expiry, used to schedule refresh
-    * @return The earliest token expiry time, or null if no tokens are present.
-    */
+    /**
+     * Earliest token expiry, used to schedule refresh
+     * @return The earliest token expiry time, or null if no tokens are present.
+     */
     fun expiresAt(): Instant? {
         readLock.lock()
         try {
@@ -99,14 +100,15 @@ class CCloudOAuthContext {
         append("&scope=${encode(CCloudOAuthConfig.CCLOUD_OAUTH_SCOPE)}")
     }
 
-    /** Token Exchange Methods */
+    // Token Exchange Methods
 
-    /** Creates a fully authenticated CCloudOAuthContext using the authorization code passed from the redirect_uri callback.
-    * @param authorizationCode The authorization code received from Confluent Cloud
-    * @param organizationId The Confluent Cloud organization ID
-    * @return If successful, returns a CCloudOAuthContext with up-to-date refresh, control plane,
-    * and data plane tokens. If not successful, returns a failed Result holding the cause of the failure.
-    */
+    /**
+     * Creates a fully authenticated CCloudOAuthContext using the authorization code passed from the redirect_uri callback.
+     * @param authorizationCode The authorization code received from Confluent Cloud
+     * @param organizationId The Confluent Cloud organization ID
+     * @return If successful, returns a CCloudOAuthContext with up-to-date refresh, control plane,
+     * and data plane tokens. If not successful, returns a failed Result holding the cause of the failure.
+     */
     suspend fun createTokensFromAuthorizationCode(
         authorizationCode: String,
         organizationId: String? = null
@@ -170,11 +172,12 @@ class CCloudOAuthContext {
         }
     }
 
-    /** Refresh tokens without tracking failures.
-    * @param organizationId The Confluent Cloud organization ID
-    * @return If successful, returns a CCloudOAuthContext with up-to-date refresh, control plane,
-    * and data plane tokens. If not successful, returns a failed Result holding the cause of the failure.
-    */
+    /**
+     * Refresh tokens without tracking failures.
+     * @param organizationId The Confluent Cloud organization ID
+     * @return If successful, returns a CCloudOAuthContext with up-to-date refresh, control plane,
+     * and data plane tokens. If not successful, returns a failed Result holding the cause of the failure.
+     */
     suspend fun refreshIgnoreFailures(organizationId: String? = null): Result<CCloudOAuthContext> {
         writeLock.lock()
         try {
@@ -190,11 +193,11 @@ class CCloudOAuthContext {
         }
     }
 
-    /** Verify control plane token is valid by performing an API call against
-    * Confluent Cloud's api/check_jwt endpoint.
-    * @return If successful, returns a Result holding the boolean value true if the token is valid.
-    * If not successful, returns a failed Result holding the cause of the failure.
-    */
+    /**
+     * Verify control plane token is valid by performing an API call against Confluent Cloud's api/check_jwt endpoint.
+     * @return If successful, returns a Result holding the boolean value true if the token is valid.
+     * If not successful, returns a failed Result holding the cause of the failure.
+     */
     suspend fun checkAuthenticationStatus(): Result<Boolean> {
         writeLock.lock()
         try {
@@ -234,12 +237,13 @@ class CCloudOAuthContext {
         }
     }
 
-    /** Internal Exchange Methods */
+    // Internal Exchange Methods
 
-    /** Exchanges the authorization code for an ID token.
-    * @param authorizationCode The authorization code received from Confluent Cloud
-    * @return The ID token exchange response
-    */
+    /**
+     * Exchanges the authorization code for an ID token.
+     * @param authorizationCode The authorization code received from Confluent Cloud
+     * @return The ID token exchange response
+     */
     private suspend fun exchangeAuthorizationCode(authorizationCode: String): IdTokenExchangeResponse {
         val formData = mapOf(
             "grant_type" to "authorization_code",
@@ -275,14 +279,14 @@ class CCloudOAuthContext {
     }
 
 
-    /** Processes the response of Confluent Cloud's oauth/token endpoint, which includes the ID
-    * token, exchanges the ID token for a control plane token, and exchanges the control plane for a
-    * data plane token.
-    * @param idTokenResponse The response of CCloud's /oauth/token endpoint holding the ID token
-    * @param organizationId The Confluent Cloud organization ID
-    * @return If successful, updates the CCloudOAuthContext with up-to-date refresh, control plane,
-    * and data plane tokens. If not successful, throws an IllegalStateException at the first point of failure.
-    */
+    /**
+     * Processes the response of Confluent Cloud's oauth/token endpoint, which includes the ID
+     * token, exchanges the ID token for a control plane token, and exchanges the control plane for a data plane token.
+     * @param idTokenResponse The response of CCloud's /oauth/token endpoint holding the ID token
+     * @param organizationId The Confluent Cloud organization ID
+     * @return If successful, updates the CCloudOAuthContext with up-to-date refresh, control plane,
+     * and data plane tokens. If not successful, throws an IllegalStateException at the first point of failure.
+     */
     private suspend fun processTokenExchangeResponse(
         idTokenResponse: IdTokenExchangeResponse,
         organizationId: String?
@@ -375,10 +379,11 @@ class CCloudOAuthContext {
         return cpResponse.withToken(authToken)
     }
 
-    /** Exchange control plane token for data plane token.
-    * @param controlPlaneToken The Confluent Cloud control plane token
-    * @return The data plane token exchange response
-    */
+    /**
+     * Exchange control plane token for data plane token.
+     * @param controlPlaneToken The Confluent Cloud control plane token
+     * @return The data plane token exchange response
+     */
     private suspend fun exchangeDataPlaneToken(
         controlPlaneToken: String
     ): DataPlaneTokenExchangeResponse {
@@ -389,7 +394,7 @@ class CCloudOAuthContext {
         )
     }
 
-    /** Helpers */
+    // Helpers
 
     private fun isTokenMissing(token: Token?): Boolean =
         token == null || token.token.isEmpty()

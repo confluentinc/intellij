@@ -9,6 +9,7 @@ import java.net.URLEncoder
 
 /**
  * HTTP client for Confluent Cloud OAuth operations. Uses IntelliJ's HttpRequests.
+ * @see CCloudOAuthContext
  */
 object CCloudOAuthHttpClient {
 
@@ -27,6 +28,9 @@ object CCloudOAuthHttpClient {
 
     /**
      * POST with form-urlencoded body (for Auth0 /oauth/token).
+     * @param url The URL to post to
+     * @param formData The form data to post
+     * @return The response body
      */
     suspend inline fun <reified T> postForm(
         url: String,
@@ -49,7 +53,10 @@ object CCloudOAuthHttpClient {
 
     /**
      * POST with JSON body and optional Bearer auth.
-     * Returns both response body and headers (needed for Set-Cookie extraction).
+     * @param url The URL to post to
+     * @param jsonBody The JSON body to post
+     * @param bearerToken The Bearer token to use for authentication
+     * @return The response body and headers (needed for Set-Cookie extraction)
      */
     suspend fun postJsonWithHeaders(
         url: String,
@@ -77,6 +84,10 @@ object CCloudOAuthHttpClient {
 
     /**
      * POST with JSON body and Bearer auth, returns parsed response.
+     * @param url The URL to post to
+     * @param jsonBody The JSON body to post
+     * @param bearerToken The Bearer token to use for authentication
+     * @return The response body
      */
     suspend inline fun <reified T> postJson(
         url: String,
@@ -99,6 +110,9 @@ object CCloudOAuthHttpClient {
 
     /**
      * GET with Bearer auth.
+     * @param url The URL to get
+     * @param bearerToken The Bearer token to use for authentication
+     * @return The response body
      */
     suspend inline fun <reified T> get(
         url: String,
@@ -120,6 +134,9 @@ object CCloudOAuthHttpClient {
 
     /**
      * Extract cookie value from Set-Cookie headers.
+     * @param headers The headers to extract the cookie from
+     * @param cookieName The name of the cookie to extract
+     * @return The value of the cookie
      */
     fun extractCookie(headers: Map<String, List<String>>, cookieName: String): String? {
         val setCookies = headers["Set-Cookie"] ?: headers["set-cookie"] ?: return null
