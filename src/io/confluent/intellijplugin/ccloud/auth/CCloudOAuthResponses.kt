@@ -22,7 +22,10 @@ data class IdTokenExchangeResponse(
     @SerialName("error_description") val errorDescription: JsonElement? = null
 )
 
-/** Control plane /api/sessions request */
+/**
+ * Control plane /api/sessions request
+ * @see CCloudOAuthContext
+ */
 @Serializable
 data class ControlPlaneTokenExchangeRequest(
     @SerialName("id_token") val idToken: String,
