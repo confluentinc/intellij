@@ -8,6 +8,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
 /**
@@ -34,11 +35,28 @@ class CCloudTokenRefreshBean(
 
         logger.info("Token refresh scheduler started (interval: ${CCloudOAuthConfig.CHECK_TOKEN_EXPIRATION_INTERVAL.inWholeSeconds}s)")
         refreshJob = coroutineScope.launch {
-            while (true) {
+            // Loop until cancelled externally (stop/dispose) or auth state becomes terminal (errors/expired)
+            while (isActive && shouldContinueRefreshing()) {
                 delay(CCloudOAuthConfig.CHECK_TOKEN_EXPIRATION_INTERVAL)
                 refreshIfNeeded()
             }
+            logger.info("Token refresh loop exited")
         }
+    }
+
+    /**
+     * Check if we've hit non-transient errors (too many failures or end of lifetime)
+     */
+    private fun shouldContinueRefreshing(): Boolean {
+        if (context.hasNonTransientError()) {
+            logger.warn("Stopping refresh: non-transient error after ${context.getFailedTokenRefreshAttempts()} failed attempts")
+            return false
+        }
+        if (context.hasReachedEndOfLifetime()) {
+            logger.warn("Stopping refresh: session reached end of lifetime")
+            return false
+        }
+        return true
     }
 
     fun stop() {
@@ -56,25 +74,26 @@ class CCloudTokenRefreshBean(
     private suspend fun refreshIfNeeded() {
         val shouldRefresh = context.shouldAttemptTokenRefresh()
         val expiresAt = context.expiresAt()
-        val endOfLifetime = context.getEndOfLifetime()
+        val failedAttempts = context.getFailedTokenRefreshAttempts()
 
-        logger.warn("Scheduler check: shouldRefresh=$shouldRefresh, expiresAt=$expiresAt, endOfLifetime=$endOfLifetime")
+        logger.info("Scheduler check: shouldRefresh=$shouldRefresh, expiresAt=$expiresAt, failedAttempts=$failedAttempts/${CCloudOAuthConfig.MAX_TOKEN_REFRESH_ATTEMPTS}")
 
         if (!shouldRefresh) {
             return
         }
 
-        logger.warn("Refreshing tokens...")
+        logger.info("Refreshing tokens...")
 
-        // Use refreshIgnoreFailures for background refresh
-        // This avoids marking the context with non-transient errors due to transient network issues
-        context.refreshIgnoreFailures().fold(
+        // Use refresh() to track failures - after MAX_TOKEN_REFRESH_ATTEMPTS consecutive
+        // failures, hasNonTransientError() becomes true and refresh stops
+        context.refresh().fold(
             onSuccess = {
-                logger.warn("Token refresh successful - new expiresAt: ${context.expiresAt()}")
+                logger.info("Token refresh successful - new expiresAt: ${context.expiresAt()}")
                 CCloudTokenStorage.saveSession(context)
             },
             onFailure = { error ->
-                logger.warn("Token refresh failed: ${error.message}")
+                val attempts = context.getFailedTokenRefreshAttempts()
+                logger.warn("Token refresh failed ($attempts/${CCloudOAuthConfig.MAX_TOKEN_REFRESH_ATTEMPTS}): ${error.message}")
             }
         )
     }
