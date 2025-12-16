@@ -7,6 +7,7 @@ import com.intellij.ide.passwordSafe.PasswordSafe
 import com.intellij.openapi.diagnostic.thisLogger
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonIgnoreUnknownKeys
 
 /**
  * Secure token persistence using IntelliJ's PasswordSafe.
@@ -18,9 +19,10 @@ object CCloudTokenStorage {
     private const val SERVICE_NAME = "ConfluentCloud"
     private const val SESSION_KEY = "OAuthSession"
 
-    private val json = Json { ignoreUnknownKeys = true }
+    private val json = Json
 
     @Serializable
+    @JsonIgnoreUnknownKeys
     data class StoredSession(
         // Required for token refresh
         val refreshToken: String,
