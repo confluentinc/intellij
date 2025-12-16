@@ -112,7 +112,7 @@ object CCloudOAuthHttpClient {
      * GET with Bearer auth.
      * @param url The URL to get
      * @param bearerToken The Bearer token to use for authentication
-     * @return The response body
+     * @return The response body deserialized to type T
      */
     suspend inline fun <reified T> get(
         url: String,
@@ -127,6 +127,19 @@ object CCloudOAuthHttpClient {
             .connect { it.inputStream.reader().readText() }
 
         json.decodeFromString<T>(response)
+    }
+
+    suspend fun getRaw(
+        url: String,
+        bearerToken: String? = null
+    ): String = withContext(Dispatchers.IO) {
+        HttpRequests.request(url)
+            .connectTimeout(CONNECT_TIMEOUT_MS)
+            .readTimeout(READ_TIMEOUT_MS)
+            .tuner { conn ->
+                bearerToken?.let { conn.setRequestProperty("Authorization", "Bearer $it") }
+            }
+            .connect { it.inputStream.reader().readText() }
     }
 
     @PublishedApi
