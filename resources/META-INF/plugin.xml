@@ -190,6 +190,32 @@
                 class="io.confluent.intellijplugin.core.table.editor.BdiTableCopyColumnAction"/>
         <action id="Kafka.BdiTableDumpToClipboardAction"
                 class="io.confluent.intellijplugin.core.table.editor.BdiTableDumpToClipboardAction"/>
+
+        <!-- CCloud OAuth Test Actions -->
+        <action id="CCloudOAuthTest"
+                class="io.confluent.intellijplugin.ccloud.auth.CCloudOAuthTestAction"
+                text="Test CCloud OAuth Sign In"
+                description="Sign in to CCloud and start background token refresh">
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+        </action>
+        <action id="CCloudTokenVerifyTest"
+                class="io.confluent.intellijplugin.ccloud.auth.CCloudTokenVerifyTestAction"
+                text="Test CCloud Tokens"
+                description="Verify tokens work by calling CCloud APIs">
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+        </action>
+        <action id="CCloudAutoRefreshTest"
+                class="io.confluent.intellijplugin.ccloud.auth.CCloudAutoRefreshTestAction"
+                text="Test Auto Refresh"
+                description="Trigger manual refresh and verify scheduler">
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+        </action>
+        <action id="CCloudClearSession"
+                class="io.confluent.intellijplugin.ccloud.auth.CCloudClearSessionAction"
+                text="Clear CCloud Session"
+                description="Clear stored tokens and stop scheduler">
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+        </action>
     </actions>
 
     <change-notes><![CDATA[
