@@ -1,6 +1,5 @@
 package io.confluent.intellijplugin.ccloud.auth
 
-import com.intellij.ide.BrowserUtil
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.application.ApplicationManager
@@ -26,20 +25,12 @@ class CCloudOAuthTestAction : AnAction(
 
         logger.warn("=== CCLOUD SIGN IN ===")
 
-        val context = CCloudOAuthContext()
-        val server = CCloudOAuthCallbackServer(
-            oauthContext = context,
-            onSuccess = { ctx ->
-                logger.warn("✅ Sign in success: ${ctx.getUserEmail()}")
-
-                CCloudAuthService.getInstance().signIn(ctx)
-
+        CCloudAuthService.getInstance().signIn(
+            onSuccess = { email ->
+                logger.warn("✅ Signed in as $email")
                 ApplicationManager.getApplication().invokeLater {
-                    Messages.showInfoMessage(
-                        project,
-                        "✅ Signed in as ${ctx.getUserEmail()}\n\nOrg: ${ctx.getCurrentOrganization()?.name}",
-                        "CCloud Sign In"
-                    )
+                    val org = CCloudAuthService.getInstance().getOrganizationName()
+                    Messages.showInfoMessage(project, "✅ Signed in as $email\n\nOrg: $org", "CCloud Sign In")
                 }
             },
             onError = { error ->
@@ -49,9 +40,6 @@ class CCloudOAuthTestAction : AnAction(
                 }
             }
         )
-
-        server.start()
-        BrowserUtil.browse(context.getSignInUri())
 
         Messages.showInfoMessage(project, "Complete sign-in in your browser.", "CCloud Sign In")
     }
@@ -73,17 +61,16 @@ class CCloudTokenVerifyTestAction : AnAction(
         val authService = CCloudAuthService.getInstance()
 
         if (!authService.isSignedIn()) {
-            Messages.showWarningDialog(project, "Not signed in. Run 'Test CCloud OAuth Sign In' first.", "Token Verify")
+            Messages.showWarningDialog(project, "Not signed in.", "Token Verify")
             return
         }
-
-        val context = authService.getContext()!!
-        val token = authService.getControlPlaneToken()!!
 
         logger.warn("=== VERIFY TOKENS ===")
 
         CoroutineScope(Dispatchers.IO).launch {
             val results = StringBuilder()
+            val context = authService.getContext()!!
+            val token = authService.getControlPlaneToken()!!
 
             // Test JWT
             context.checkAuthenticationStatus().fold(
@@ -100,12 +87,11 @@ class CCloudTokenVerifyTestAction : AnAction(
                 results.appendLine("❌ API: ${ex.message}")
             }
 
-            // Check data plane token
-            if (authService.getDataPlaneToken() != null) {
-                results.appendLine("✅ Data plane token present")
-            } else {
-                results.appendLine("❌ No data plane token")
-            }
+            // Data plane token
+            results.appendLine(
+                if (authService.getDataPlaneToken() != null) "✅ Data plane token present"
+                else "❌ No data plane token"
+            )
 
             ApplicationManager.getApplication().invokeLater {
                 Messages.showInfoMessage(project, results.toString(), "Token Verify")
@@ -137,7 +123,7 @@ class CCloudAutoRefreshTestAction : AnAction(
         val context = authService.getContext()!!
 
         logger.warn("=== MANUAL REFRESH ===")
-        logger.warn("Scheduler: ${authService.isRefreshRunning()}")
+        logger.warn("Refresh running: ${authService.isRefreshRunning()}")
         logger.warn("shouldRefresh: ${context.shouldAttemptTokenRefresh()}")
         logger.warn("expiresAt: ${context.expiresAt()}")
 
@@ -146,7 +132,6 @@ class CCloudAutoRefreshTestAction : AnAction(
                 onSuccess = {
                     CCloudTokenStorage.saveSession(context)
                     logger.warn("✅ Refresh success, new expiry: ${context.expiresAt()}")
-
                     ApplicationManager.getApplication().invokeLater {
                         Messages.showInfoMessage(
                             project,
@@ -178,8 +163,8 @@ class CCloudClearSessionAction : AnAction(
     private val logger = thisLogger()
 
     override fun actionPerformed(e: AnActionEvent) {
-        logger.warn("=== CLEARING SESSION ===")
+        logger.warn("=== SIGN OUT ===")
         CCloudAuthService.getInstance().signOut()
-        Messages.showInfoMessage(e.project, "✅ Session cleared", "Clear Session")
+        Messages.showInfoMessage(e.project, "✅ Signed out", "Clear Session")
     }
 }
