@@ -1,4 +1,4 @@
-package io.confluent.intellijplugin.toolwindow
+package io.confluent.intellijplugin.toolwindow.kafka
 
 import com.intellij.notification.NotificationGroup
 import com.intellij.notification.NotificationGroupManager
@@ -16,7 +16,7 @@ import io.confluent.intellijplugin.registry.KafkaRegistryUtil
 import io.confluent.intellijplugin.rfs.KafkaConnectionData
 import io.confluent.intellijplugin.settings.KafkaConnectionGroup
 import io.confluent.intellijplugin.toolwindow.config.KafkaToolWindowSettings
-import io.confluent.intellijplugin.toolwindow.controllers.KafkaMainController
+import io.confluent.intellijplugin.toolwindow.kafka.controllers.KafkaMainController
 
 @Service(Service.Level.PROJECT)
 class KafkaMonitoringToolWindowController(project: Project) : MonitoringToolWindowController(project) {
