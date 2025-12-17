@@ -1,23 +1,16 @@
 package io.confluent.intellijplugin.ccloud.model.response
 
-import com.squareup.moshi.Json
-import com.squareup.moshi.JsonClass
-import io.confluent.intellijplugin.ccloud.model.CCloudEnvironment
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 
-/**
- * Response DTO for environments list API.
- */
-@JsonClass(generateAdapter = true)
+/** Response from GET /org/v2/environments */
+@Serializable
 data class ListEnvironmentsResponse(
-    @Json(name = "data")
-    val data: List<EnvironmentData>?
+    val data: List<EnvironmentData> = emptyList()
 )
 
-@JsonClass(generateAdapter = true)
+@Serializable
 data class EnvironmentData(
-    @Json(name = "id")
     val id: String,
-    @Json(name = "display_name")
-    val displayName: String?
+    @SerialName("display_name") val displayName: String? = null
 )
-

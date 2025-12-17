@@ -1,44 +1,29 @@
 package io.confluent.intellijplugin.ccloud.model.response
 
-import com.squareup.moshi.Json
-import com.squareup.moshi.JsonClass
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 
-/**
- * Response DTO for Kafka clusters list API.
- * Based on Confluent Cloud API: GET /cmk/v2/clusters?environment={envId}
- */
-@JsonClass(generateAdapter = true)
+/** Response from GET /cmk/v2/clusters?environment={envId} */
+@Serializable
 data class ListKafkaClustersResponse(
-    @Json(name = "data")
-    val data: List<KafkaClusterData>?
+    val data: List<KafkaClusterData> = emptyList()
 )
 
-@JsonClass(generateAdapter = true)
+@Serializable
 data class KafkaClusterData(
-    @Json(name = "id")
     val id: String,
-    
-    @Json(name = "display_name")
-    val displayName: String?,
-    
-    @Json(name = "spec")
-    val spec: KafkaClusterSpec?
+    @SerialName("display_name") val displayName: String? = null,
+    val spec: KafkaClusterSpec? = null
 )
 
-@JsonClass(generateAdapter = true)
+@Serializable
 data class KafkaClusterSpec(
-    @Json(name = "cloud")
-    val cloud: String?,
-    
-    @Json(name = "region")
-    val region: String?,
-    
-    @Json(name = "environment")
-    val environment: KafkaClusterEnvironment?
+    val cloud: String? = null,
+    val region: String? = null,
+    val environment: KafkaClusterEnvironment? = null
 )
 
-@JsonClass(generateAdapter = true)
+@Serializable
 data class KafkaClusterEnvironment(
-    @Json(name = "id")
     val id: String
 )

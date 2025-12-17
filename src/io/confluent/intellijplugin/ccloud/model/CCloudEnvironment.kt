@@ -1,10 +1,11 @@
 package io.confluent.intellijplugin.ccloud.model
 
-/**
- * Represents a Confluent Cloud environment
- */
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+
+/** Represents a Confluent Cloud environment. */
+@Serializable
 data class CCloudEnvironment(
     val id: String,
-    val displayName: String
+    @SerialName("display_name") val displayName: String
 )
-

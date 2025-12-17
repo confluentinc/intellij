@@ -42,7 +42,7 @@ abstract class CloudRestClient(
     }
 
     /**
-     * List items from an API endpoint.
+     * Fetch and parse a list of items from an API endpoint.
      */
     protected suspend fun <T> listItems(
         headers: Map<String, String>,
@@ -61,20 +61,17 @@ abstract class CloudRestClient(
             }
             .connect { request ->
                 val conn = request.connection as HttpURLConnection
-                val responseBody = try {
-                    request.inputStream.reader().readText()
-                } catch (e: Exception) {
-                    // Read error stream if input stream fails
-                    conn.errorStream?.reader()?.readText() ?: ""
+                val statusCode = conn.responseCode
+                val responseBody = if (statusCode in 200..299) {
+                    request.inputStream.bufferedReader().use { it.readText() }
+                } else {
+                    conn.errorStream?.bufferedReader()?.use { it.readText() } ?: ""
                 }
-                conn.responseCode to responseBody
+                statusCode to responseBody
             }
 
         if (statusCode !in 200..299) {
-            throw CloudApiException(
-                "HTTP $statusCode: ${body.ifEmpty { "Unknown error" }}",
-                statusCode
-            )
+            throw CloudApiException("HTTP $statusCode: ${body.ifEmpty { "Unknown error" }}", statusCode)
         }
 
         parser(body)

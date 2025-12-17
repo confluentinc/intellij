@@ -1,38 +1,24 @@
 package io.confluent.intellijplugin.ccloud.model.response
 
-import com.squareup.moshi.Json
-import com.squareup.moshi.JsonClass
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 
-/**
- * Response DTO for Schema Registry clusters list API.
- * Based on Confluent Cloud API: GET /srcm/v3/clusters?environment={envId}
- */
-@JsonClass(generateAdapter = true)
+/** Response from GET /srcm/v3/clusters?environment={envId} */
+@Serializable
 data class ListSchemaRegistriesResponse(
-    @Json(name = "data")
-    val data: List<SchemaRegistryData>?
+    val data: List<SchemaRegistryData> = emptyList()
 )
 
-@JsonClass(generateAdapter = true)
+@Serializable
 data class SchemaRegistryData(
-    @Json(name = "id")
     val id: String,
-
-    @Json(name = "spec")
-    val spec: SchemaRegistrySpec?
+    val spec: SchemaRegistrySpec? = null
 )
 
-@JsonClass(generateAdapter = true)
+@Serializable
 data class SchemaRegistrySpec(
-    @Json(name = "display_name")
-    val displayName: String?,
-
-    @Json(name = "cloud")
-    val cloud: String?,
-
-    @Json(name = "region")
-    val region: String?,
-
-    @Json(name = "http_endpoint")
-    val httpEndpoint: String?
+    @SerialName("display_name") val displayName: String? = null,
+    val cloud: String? = null,
+    val region: String? = null,
+    @SerialName("http_endpoint") val httpEndpoint: String? = null
 )
