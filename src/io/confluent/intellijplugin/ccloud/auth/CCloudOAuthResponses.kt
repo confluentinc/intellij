@@ -33,6 +33,16 @@ data class ControlPlaneTokenExchangeRequest(
 )
 
 /**
+ * Control plane /api/sessions request
+ * @see CCloudOAuthContext
+ */
+@Serializable
+data class ControlPlaneTokenExchangeRequest(
+    @SerialName("id_token") val idToken: String,
+    val organizationId: String? = null
+)
+
+/**
  * Control plane /api/sessions response.
  * The actual auth token is in the Set-Cookie header (auth_token), use withToken() to set it after extracting from cookie.
  * @see CCloudOAuthContext
