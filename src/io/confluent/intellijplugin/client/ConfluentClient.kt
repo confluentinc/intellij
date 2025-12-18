@@ -52,10 +52,8 @@ class ConfluentClient(
     override fun getRealUri(): String = CloudConfig.CONTROL_PLANE_BASE_URL
 
     override fun connectInner(calledByUser: Boolean) {
-        if (!connectionData.hasCredentials()) {
-            throw IllegalStateException("API credentials not configured")
-        }
-        fetcher = CloudFetcherImpl(connectionData.apiKey, connectionData.apiSecret)
+        // OAuth authentication is handled by CCloudAuthService
+        fetcher = CloudFetcherImpl()
     }
 
     override fun checkConnectionInner() {
