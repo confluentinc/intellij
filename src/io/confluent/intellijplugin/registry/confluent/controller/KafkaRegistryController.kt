@@ -26,7 +26,7 @@ import io.confluent.intellijplugin.registry.KafkaRegistryType
 import io.confluent.intellijplugin.registry.common.KafkaSchemaInfo
 import io.confluent.intellijplugin.rfs.KafkaDriver
 import io.confluent.intellijplugin.toolwindow.config.KafkaToolWindowSettings
-import io.confluent.intellijplugin.toolwindow.controllers.KafkaMainController
+import io.confluent.intellijplugin.toolwindow.kafka.controllers.KafkaMainController
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
 import javax.swing.ListSelectionModel
 import javax.swing.event.DocumentEvent

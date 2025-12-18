@@ -11,9 +11,9 @@ import io.confluent.intellijplugin.core.rfs.tree.node.RfsDriverTreeNodeBuilder
 import io.confluent.intellijplugin.data.KafkaDataManager
 import io.confluent.intellijplugin.registry.KafkaRegistryType
 import io.confluent.intellijplugin.telemetry.*
-import io.confluent.intellijplugin.toolwindow.KafkaMonitoringToolWindowController
+import io.confluent.intellijplugin.toolwindow.kafka.KafkaMonitoringToolWindowController
 import io.confluent.intellijplugin.toolwindow.config.KafkaToolWindowSettings
-import io.confluent.intellijplugin.toolwindow.controllers.KafkaGroupType
+import io.confluent.intellijplugin.toolwindow.kafka.controllers.KafkaGroupType
 import javax.swing.Icon
 
 class KafkaDriver(override val connectionData: KafkaConnectionData, project: Project?, testConnection: Boolean) :
@@ -24,7 +24,8 @@ class KafkaDriver(override val connectionData: KafkaConnectionData, project: Pro
     private var hasTrackedConnection = false
     override val dataManager: KafkaDataManager = KafkaDataManager(
         project, connectionData,
-        KafkaToolWindowSettings.getInstance()
+        KafkaToolWindowSettings.getInstance(),
+        { this }
     )
     override val presentableName: String = connectionData.name
     override val icon: Icon = BigdatatoolsKafkaIcons.Kafka
