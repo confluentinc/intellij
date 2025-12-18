@@ -8,7 +8,7 @@ import java.util.Base64
 
 /**
  * HTTP client for Confluent Cloud control plane API calls.
- * Handles API key authentication (before OAuth) and JSON parsing.
+ * Handles API key authentication (OAuth support planned).
  */
 abstract class CloudRestClient(
     private val apiKey: String,
@@ -43,6 +43,15 @@ abstract class CloudRestClient(
 
     /**
      * Fetch and parse a list of items from an API endpoint.
+     *
+     * @param T The type of items to be parsed from the response.
+     * @param headers HTTP headers to include in the request (e.g., Authorization, Content-Type).
+     * @param uri The endpoint URI. If it starts with "http", it is used as a full URL.
+     *            Otherwise, it is treated as a relative path and prepended with [baseUrl].
+     *            For example: "/org/v2/environments" becomes "https://api.confluent.cloud/org/v2/environments".
+     * @param parser Function to parse the JSON response body into a list of items of type [T].
+     * @return List of parsed items from the API response.
+     * @throws CloudApiException if the HTTP response status code is not in the 2xx range.
      */
     protected suspend fun <T> listItems(
         headers: Map<String, String>,

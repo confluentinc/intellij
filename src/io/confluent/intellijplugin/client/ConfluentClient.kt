@@ -1,6 +1,7 @@
 package io.confluent.intellijplugin.client
 
 import com.intellij.openapi.project.Project
+import io.confluent.intellijplugin.ccloud.config.CloudConfig
 import io.confluent.intellijplugin.ccloud.fetcher.CloudFetcherImpl
 import io.confluent.intellijplugin.ccloud.model.CCloudEnvironment
 import io.confluent.intellijplugin.ccloud.model.KafkaCluster
@@ -11,7 +12,30 @@ import kotlinx.coroutines.runBlocking
 
 /**
  * Client for Confluent Cloud API operations.
- * Wraps CloudFetcherImpl and provides caching for environments, clusters, and schema registries.
+ * Wraps [CloudFetcherImpl] and provides caching for environments, clusters, and schema registries.
+ *
+ * ## Caching Strategy
+ *
+ * This client uses in-memory caching to reduce API calls and improve UI responsiveness:
+ *
+ * - **Environments**: Cached as a single list. Populated during [checkConnectionInner] on initial connection.
+ * - **Kafka Clusters**: Cached per environment ID in a map. Populated lazily on first access via [getKafkaClusters].
+ * - **Schema Registries**: Cached per environment ID in a map. Populated lazily on first access via [getSchemaRegistries].
+ *
+ * ## Cache Invalidation
+ *
+ * The cache does not auto-expire. Invalidation is manual via:
+ *
+ * - **[refreshEnvironments]**: Fetches fresh environments and replaces the cached list.
+ * - **[refreshClusters]**: Fetches fresh clusters for a specific environment and updates the cache entry.
+ * - **[refreshSchemaRegistries]**: Fetches fresh schema registries for a specific environment and updates the cache entry.
+ * - **[clearCache]**: Clears all cached data (environments, clusters, and schema registries).
+ * - **[dispose]**: Called on client disposal; clears all caches and releases the fetcher.
+ *
+ * Callers should invoke the appropriate refresh method when they expect data to have changed
+ * (e.g., after user creates a new cluster or clicks a refresh button).
+ *
+ * Note: A refresh button for the Confluent toolwindow is planned but not yet implemented.
  */
 class ConfluentClient(
     project: Project?,
@@ -25,7 +49,7 @@ class ConfluentClient(
     private val cachedClusters = mutableMapOf<String, List<KafkaCluster>>()
     private val cachedSchemaRegistries = mutableMapOf<String, List<SchemaRegistry>>()
 
-    override fun getRealUri(): String = "https://api.confluent.cloud"
+    override fun getRealUri(): String = CloudConfig.CONTROL_PLANE_BASE_URL
 
     override fun connectInner(calledByUser: Boolean) {
         if (!connectionData.hasCredentials()) {
