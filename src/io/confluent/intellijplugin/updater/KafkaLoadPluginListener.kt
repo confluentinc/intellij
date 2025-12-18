@@ -18,7 +18,7 @@ import io.confluent.intellijplugin.core.util.executeOnPooledThread
 import io.confluent.intellijplugin.core.util.invokeLater
 import io.confluent.intellijplugin.settings.KafkaConnectionGroup
 import io.confluent.intellijplugin.telemetry.logUser
-import io.confluent.intellijplugin.toolwindow.KafkaMonitoringToolWindowController
+import io.confluent.intellijplugin.toolwindow.kafka.KafkaMonitoringToolWindowController
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
 
 private val defaultNotificationGroup: NotificationGroup

@@ -14,6 +14,7 @@ import io.confluent.intellijplugin.common.models.RegistrySchemaInEditor
 import io.confluent.intellijplugin.consumer.editor.KafkaConsumerPanelStorage
 import io.confluent.intellijplugin.core.connection.updater.IntervalUpdateSettings
 import io.confluent.intellijplugin.core.monitoring.data.MonitoringDataManager
+import io.confluent.intellijplugin.core.monitoring.rfs.MonitoringDriver
 import io.confluent.intellijplugin.core.monitoring.data.model.FieldGroupsData
 import io.confluent.intellijplugin.core.monitoring.data.model.ObjectDataModel
 import io.confluent.intellijplugin.core.monitoring.data.storage.FieldGroupsDataModelStorage
@@ -52,8 +53,9 @@ import kotlin.time.Duration
 class KafkaDataManager(
     project: Project?,
     override val connectionData: KafkaConnectionData,
-    settings: IntervalUpdateSettings
-) : MonitoringDataManager(project, settings) {
+    settings: IntervalUpdateSettings,
+    driverProvider: () -> MonitoringDriver
+) : MonitoringDataManager(project, settings, driverProvider) {
     val registryType = connectionData.registryType
 
     val connectionId = connectionData.innerId
