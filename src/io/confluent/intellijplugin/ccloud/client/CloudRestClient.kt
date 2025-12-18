@@ -1,18 +1,16 @@
 package io.confluent.intellijplugin.ccloud.client
 
 import com.intellij.util.io.HttpRequests
+import io.confluent.intellijplugin.ccloud.auth.CCloudAuthService
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.net.HttpURLConnection
-import java.util.Base64
 
 /**
  * HTTP client for Confluent Cloud control plane API calls.
- * Handles API key authentication (before OAuth) and JSON parsing.
+ * Uses OAuth authentication via CCloudAuthService.
  */
 abstract class CloudRestClient(
-    private val apiKey: String,
-    private val apiSecret: String,
     protected val baseUrl: String
 ) {
     companion object {
@@ -21,22 +19,20 @@ abstract class CloudRestClient(
     }
 
     /**
-     * Get headers for API requests, including API key authentication.
-     *
-     * @param connectionId Connection identifier for future OAuth implementation.
-     *                     Currently unused but will be needed to retrieve OAuth tokens
-     *                     from the authentication provider once OAuth login is implemented.
-     *                     When OAuth is available, this will map to a token provider that
-     *                     returns Bearer tokens instead of using API key/secret.
+     * Get headers for API requests using OAuth Bearer token.
      */
-    protected fun headersFor(connectionId: String): Map<String, String> {
-        // TODO: Once OAuth is implemented, use connectionId to get Bearer token:
-        //   val token = oAuthProvider.getAccessToken(connectionId)
-        //   return mapOf("Authorization" to "Bearer $token", ...)
-        val credentials = Base64.getEncoder()
-            .encodeToString("$apiKey:$apiSecret".toByteArray())
+    protected fun headersFor(): Map<String, String> {
+        val authService = CCloudAuthService.getInstance()
+
+        if (!authService.isSignedIn()) {
+            throw IllegalStateException("Not signed in to Confluent Cloud")
+        }
+
+        val token = authService.getControlPlaneToken()
+            ?: throw IllegalStateException("No control plane token available")
+
         return mapOf(
-            "Authorization" to "Basic $credentials",
+            "Authorization" to "Bearer $token",
             "Content-Type" to "application/json"
         )
     }
@@ -76,11 +72,9 @@ abstract class CloudRestClient(
 
         parser(body)
     }
-
 }
 
 /**
  * Exception thrown when API calls fail.
  */
 class CloudApiException(message: String, val statusCode: Int) : Exception(message)
-
