@@ -108,7 +108,7 @@ class CCloudOAuthCallbackServer(
 
         logger.info("Received OAuth callback: code=${code?.take(10)}..., state=${state?.take(10)}..., error=$error")
 
-        // Vaildate the callback parameters and handle the different response cases
+        // Validate the callback parameters and handle the different response cases
         when {
             error != null -> {
                 logger.warn("OAuth callback error: $error")
