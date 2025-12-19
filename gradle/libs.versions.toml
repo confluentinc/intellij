@@ -4,13 +4,16 @@ kotlinx-serialization = "1.9.0"
 kafka-clients = "3.9.0"
 confluent = "8.1.0"
 aws-sdk = "2.20.158"
-glue-schema = "1.1.23"
+aws-mskiamauth = "2.3.5"
+glue-schema = "1.1.25"
 generex = "1.0.2"
 kotlin-metadata = "2.2.20"
-junit-jupiter = "5.10.0"
-junit-jupiter-params = "5.10.2"
+junit-jupiter = "5.13.4"
+junit-jupiter-params = "5.13.4"
+junit-platform-launcher = "1.13.4"
 junit4 = "4.13.2"
 mockito-kotlin = "5.4.0"
+mockito-inline = "5.2.0"
 
 [libraries]
 moshi-kotlin = { module = "com.squareup.moshi:moshi-kotlin", version.ref = "moshi" }
@@ -25,6 +28,7 @@ aws-apache-client = { module = "software.amazon.awssdk:apache-client", version.r
 aws-sso = { module = "software.amazon.awssdk:sso", version.ref = "aws-sdk" }
 aws-sts = { module = "software.amazon.awssdk:sts", version.ref = "aws-sdk" }
 aws-ssooidc = { module = "software.amazon.awssdk:ssooidc", version.ref = "aws-sdk" }
+aws-mskiamauth = { module = "software.amazon.msk:aws-msk-iam-auth", version.ref = "aws-mskiamauth" }
 
 glue-schema-registry-serde = { module = "software.amazon.glue:schema-registry-serde", version.ref = "glue-schema" }
 
@@ -35,7 +39,9 @@ kotlin-metadata-jvm = { module = "org.jetbrains.kotlin:kotlin-metadata-jvm", ver
 junit-jupiter-api = { module = "org.junit.jupiter:junit-jupiter-api", version.ref = "junit-jupiter" }
 junit-jupiter-engine = { module = "org.junit.jupiter:junit-jupiter-engine", version.ref = "junit-jupiter" }
 junit-jupiter-params = { module = "org.junit.jupiter:junit-jupiter-params", version.ref = "junit-jupiter-params" }
+junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher", version.ref = "junit-platform-launcher" }
 
 junit4 = { module = "junit:junit", version.ref = "junit4" }
 
 mockito-kotlin = { module = "org.mockito.kotlin:mockito-kotlin", version.ref = "mockito-kotlin" }
+mockito-inline = { module = "org.mockito:mockito-inline", version.ref = "mockito-inline" }

@@ -10,15 +10,14 @@ import io.confluent.intellijplugin.core.serializer.BdtJson
 
 /**
  * Implementation of CloudFetcher that makes REST API calls to Confluent Cloud control plane.
+ * Uses OAuth authentication via CCloudAuthService.
  */
 class CloudFetcherImpl(
-    apiKey: String,
-    apiSecret: String,
     baseUrl: String = CloudConfig.CONTROL_PLANE_BASE_URL
-) : CloudRestClient(apiKey, apiSecret, baseUrl), CloudFetcher {
+) : CloudRestClient(baseUrl), CloudFetcher {
 
     override suspend fun getEnvironments(connectionId: String): List<CCloudEnvironment> {
-        val headers = headersFor(connectionId)
+        val headers = headersFor()
         return listItems(headers, CloudConfig.ControlPlane.ENV_LIST_URI) { jsonBody ->
             val response = BdtJson.fromJsonToClass(jsonBody, ListEnvironmentsResponse::class.java)
             response.data?.map { envData ->
@@ -34,7 +33,7 @@ class CloudFetcherImpl(
         connectionId: String,
         envId: String
     ): List<KafkaCluster> {
-        val headers = headersFor(connectionId)
+        val headers = headersFor()
         val uri = String.format(CloudConfig.ControlPlane.LKC_LIST_URI, envId)
         return listItems(headers, uri) { jsonBody ->
             val response = BdtJson.fromJsonToClass(jsonBody, ListKafkaClustersResponse::class.java)
@@ -50,7 +49,7 @@ class CloudFetcherImpl(
     }
 
     override suspend fun getSchemaRegistries(connectionId: String, envId: String): List<SchemaRegistry> {
-        val headers = headersFor(connectionId)
+        val headers = headersFor()
         val uri = String.format(CloudConfig.ControlPlane.SR_LIST_URI, envId)
         return listItems(headers, uri) { jsonBody ->
             val response = BdtJson.fromJsonToClass(jsonBody, ListSchemaRegistriesResponse::class.java)
