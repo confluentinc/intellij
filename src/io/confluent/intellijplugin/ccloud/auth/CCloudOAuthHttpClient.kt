@@ -43,9 +43,10 @@ object CCloudOAuthHttpClient {
         val response = HttpRequests.post(url, "application/x-www-form-urlencoded")
             .connectTimeout(CONNECT_TIMEOUT_MS)
             .readTimeout(READ_TIMEOUT_MS)
+            .throwStatusCodeException(false)
             .connect { request ->
                 request.write(body)
-                request.inputStream.reader().readText()
+                readResponseBody(request)
             }
 
         json.decodeFromString<T>(response)
@@ -66,13 +67,14 @@ object CCloudOAuthHttpClient {
         HttpRequests.post(url, "application/json")
             .connectTimeout(CONNECT_TIMEOUT_MS)
             .readTimeout(READ_TIMEOUT_MS)
+            .throwStatusCodeException(false)
             .tuner { conn ->
                 bearerToken?.let { conn.setRequestProperty("Authorization", "Bearer $it") }
             }
             .connect { request ->
                 request.write(jsonBody)
                 val conn = request.connection as HttpURLConnection
-                val body = request.inputStream.reader().readText()
+                val body = readResponseBody(request)
                 val headers = conn.headerFields.filterKeys { it != null }
                 HttpResponseWithHeaders(
                     statusCode = conn.responseCode,
@@ -97,12 +99,13 @@ object CCloudOAuthHttpClient {
         val response = HttpRequests.post(url, "application/json")
             .connectTimeout(CONNECT_TIMEOUT_MS)
             .readTimeout(READ_TIMEOUT_MS)
+            .throwStatusCodeException(false)
             .tuner { conn ->
                 bearerToken?.let { conn.setRequestProperty("Authorization", "Bearer $it") }
             }
             .connect { request ->
                 request.write(jsonBody)
-                request.inputStream.reader().readText()
+                readResponseBody(request)
             }
 
         json.decodeFromString<T>(response)
@@ -121,16 +124,41 @@ object CCloudOAuthHttpClient {
         val response = HttpRequests.request(url)
             .connectTimeout(CONNECT_TIMEOUT_MS)
             .readTimeout(READ_TIMEOUT_MS)
+            .throwStatusCodeException(false)
             .tuner { conn ->
                 bearerToken?.let { conn.setRequestProperty("Authorization", "Bearer $it") }
             }
-            .connect { it.inputStream.reader().readText() }
+            .connect { readResponseBody(it) }
 
         json.decodeFromString<T>(response)
     }
 
     @PublishedApi
     internal fun encode(s: String): String = URLEncoder.encode(s, Charsets.UTF_8)
+
+    /**
+     * Read response body from the appropriate stream based on status code.
+     * @param request The request to read the response body from
+     * @return The response body as a string
+     */
+    @PublishedApi
+    internal fun readResponseBody(request: HttpRequests.Request): String {
+        val conn = request.connection as HttpURLConnection
+        val statusCode = conn.responseCode
+
+        if (statusCode >= 500) {
+            val errorBody = conn.errorStream?.reader()?.readText()
+            val message = if (errorBody.isNullOrBlank()) "Server error" else "Server error: $errorBody"
+            throw HttpRequests.HttpStatusException(message, statusCode, conn.url.toString())
+        }
+
+        return if (statusCode >= 400) {
+            conn.errorStream?.reader()?.readText() ?: ""
+        } else {
+            request.inputStream.reader().readText()
+        }
+    }
+
 
     /**
      * Extract cookie value from Set-Cookie headers.
