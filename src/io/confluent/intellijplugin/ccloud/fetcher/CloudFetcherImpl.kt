@@ -43,9 +43,9 @@ class CloudFetcherImpl(
         )
     }
 
-    override suspend fun getEnvironments(connectionId: String): List<CCloudEnvironment> {
+    override suspend fun getEnvironments(): List<CCloudEnvironment> {
         val headers = getAuthHeaders()
-        return listItems(headers, CloudConfig.ControlPlane.ENV_LIST_URI) { jsonBody, state ->
+        return listItems(headers, CloudConfig.ControlPlane.ENV_LIST_URI) { jsonBody ->
             val response = json.decodeFromString<ListEnvironmentsResponse>(jsonBody)
             val items = response.data.map { envData ->
                 CCloudEnvironment(
@@ -53,17 +53,14 @@ class CloudFetcherImpl(
                     displayName = envData.displayName ?: envData.id
                 )
             }
-            state.createPage(items, response.metadata?.next)
+            items to response.metadata?.next
         }
     }
 
-    override suspend fun getKafkaClusters(
-        connectionId: String,
-        envId: String
-    ): List<KafkaCluster> {
+    override suspend fun getKafkaClusters(envId: String): List<KafkaCluster> {
         val headers = getAuthHeaders()
         val uri = String.format(CloudConfig.ControlPlane.LKC_LIST_URI, envId)
-        return listItems(headers, uri) { jsonBody, state ->
+        return listItems(headers, uri) { jsonBody ->
             val response = json.decodeFromString<ListKafkaClustersResponse>(jsonBody)
             val items = response.data.map { clusterData ->
                 KafkaCluster(
@@ -73,14 +70,14 @@ class CloudFetcherImpl(
                     region = clusterData.spec?.region ?: "Unknown"
                 )
             }
-            state.createPage(items, response.metadata?.next)
+            items to response.metadata?.next
         }
     }
 
-    override suspend fun getSchemaRegistry(connectionId: String, envId: String): List<SchemaRegistry> {
+    override suspend fun getSchemaRegistry(envId: String): List<SchemaRegistry> {
         val headers = getAuthHeaders()
         val uri = String.format(CloudConfig.ControlPlane.SR_LIST_URI, envId)
-        return listItems(headers, uri) { jsonBody, state ->
+        return listItems(headers, uri) { jsonBody ->
             val response = json.decodeFromString<ListSchemaRegistryResponse>(jsonBody)
             val items = response.data.map { srData ->
                 SchemaRegistry(
@@ -91,7 +88,7 @@ class CloudFetcherImpl(
                     httpEndpoint = srData.spec?.httpEndpoint ?: ""
                 )
             }
-            state.createPage(items, response.metadata?.next)
+            items to response.metadata?.next
         }
     }
 }

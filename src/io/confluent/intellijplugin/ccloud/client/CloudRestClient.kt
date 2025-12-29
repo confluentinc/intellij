@@ -26,10 +26,10 @@ abstract class CloudRestClient(
      * @see <a href="https://docs.confluent.io/cloud/current/api.html#section/Pagination">Confluent API Pagination</a>
      */
     class PaginationState(
-        nextUrl: String?,
+        initialUrl: String?,
         val limits: PageLimits = PageLimits.DEFAULT
     ) {
-        var nextUrl: String? = nextUrl
+        var nextUrl: String? = initialUrl
             private set
 
         private var pageCount = 0
@@ -40,7 +40,7 @@ abstract class CloudRestClient(
          * Applies item limits and tracks pagination progress.
          */
         fun <T> createPage(items: List<T>, nextPageUrl: String?): PageOfResults<T> {
-            nextUrl = nextPageUrl?.takeIf { it.isNotBlank() }
+            nextUrl = nextPageUrl?.trim()?.takeIf { it.isNotBlank() }
 
             val itemsRemaining = maxOf(0, limits.maxItems - itemCount)
             val limitedItems = items.take(itemsRemaining)
@@ -74,8 +74,6 @@ abstract class CloudRestClient(
     ) {
         companion object {
             val DEFAULT = PageLimits()
-            val UNLIMITED = PageLimits()
-            fun preview(maxItems: Int = 10) = PageLimits(maxPages = 1, maxItems = maxItems)
         }
     }
 
@@ -89,6 +87,7 @@ abstract class CloudRestClient(
 
     /**
      * Standard metadata returned by Confluent list APIs.
+     * currently only "next" is used for pagination.
      */
     @Serializable
     data class ListMetadata(
@@ -124,22 +123,28 @@ abstract class CloudRestClient(
      * @param headers HTTP headers for authentication
      * @param uri Endpoint URI (relative or absolute)
      * @param limits Pagination limits (default: fetch all)
-     * @param parser Parses response JSON into items + next page URL
-     * @return All items from all fetched pages
+     * @param parser Parses response JSON into (items, nextUrl)
+     * @return Items from fetched pages, respecting pagination limits
      * @see <a href="https://docs.confluent.io/cloud/current/api.html#section/Pagination">Confluent API Pagination</a>
      */
     protected open suspend fun <T> listItems(
         headers: Map<String, String>,
         uri: String,
         limits: PageLimits = PageLimits.DEFAULT,
-        parser: (String, PaginationState) -> PageOfResults<T>
+        parser: (String) -> Pair<List<T>, String?>
     ): List<T> = withContext(Dispatchers.IO) {
         val allItems = mutableListOf<T>()
         val firstUrl = if (uri.startsWith("http")) uri else "$baseUrl$uri"
-        val state = PaginationState(nextUrl = firstUrl, limits = limits)
+        val state = PaginationState(initialUrl = firstUrl, limits = limits)
+        val visitedUrls = mutableSetOf<String>()
 
         while (state.nextUrl != null) {
             val url = state.nextUrl!!
+
+            // Prevent infinite loops from API bugs
+            if (!visitedUrls.add(url)) {
+                throw CloudApiException("Pagination loop detected: duplicate URL encountered", 0)
+            }
 
             val (statusCode, body) = try {
                 HttpRequests.request(url)
@@ -162,13 +167,16 @@ abstract class CloudRestClient(
                     }
             } catch (e: HttpRequests.HttpStatusException) {
                 throw CloudApiException("HTTP ${e.statusCode}: ${e.message ?: "Unknown error"}", e.statusCode)
+            } catch (e: Exception) {
+                throw CloudApiException("Request failed: ${e.message ?: "Unknown error"}", 0)
             }
 
             if (statusCode !in 200..299) {
                 throw CloudApiException("HTTP $statusCode: ${body.ifEmpty { "Unknown error" }}", statusCode)
             }
 
-            val page = parser(body, state)
+            val (items, nextPageUrl) = parser(body)
+            val page = state.createPage(items, nextPageUrl)
             allItems.addAll(page.items)
 
             if (!state.shouldContinue(page)) {

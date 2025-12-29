@@ -60,7 +60,7 @@ class ConfluentClient(
         val f = fetcher ?: throw IllegalStateException("Client not initialized")
         // Validate connection by fetching environments
         cachedEnvironments = runBlocking {
-            f.getEnvironments(CONNECTION_ID)
+            f.getEnvironments()
         }
     }
 
@@ -68,26 +68,26 @@ class ConfluentClient(
 
     fun getKafkaClusters(environmentId: String): List<KafkaCluster> = cachedClusters.getOrPut(environmentId) {
         fetcher?.let { f ->
-            runBlocking { f.getKafkaClusters(CONNECTION_ID, environmentId) }
+            runBlocking { f.getKafkaClusters(environmentId) }
         } ?: emptyList()
     }
 
     fun getSchemaRegistry(environmentId: String): List<SchemaRegistry> = cachedSchemaRegistry.getOrPut(environmentId) {
         fetcher?.let { f ->
-            runBlocking { f.getSchemaRegistry(CONNECTION_ID, environmentId) }
+            runBlocking { f.getSchemaRegistry(environmentId) }
         } ?: emptyList()
     }
 
     fun refreshEnvironments(): List<CCloudEnvironment> {
         cachedEnvironments = fetcher?.let { f ->
-            runBlocking { f.getEnvironments(CONNECTION_ID) }
+            runBlocking { f.getEnvironments() }
         } ?: emptyList()
         return cachedEnvironments ?: emptyList()
     }
 
     fun refreshClusters(environmentId: String): List<KafkaCluster> {
         val clusters = fetcher?.let { f ->
-            runBlocking { f.getKafkaClusters(CONNECTION_ID, environmentId) }
+            runBlocking { f.getKafkaClusters(environmentId) }
         } ?: emptyList()
         cachedClusters[environmentId] = clusters
         return clusters
@@ -95,14 +95,10 @@ class ConfluentClient(
 
     fun refreshSchemaRegistry(environmentId: String): List<SchemaRegistry> {
         val registries = fetcher?.let { f ->
-            runBlocking { f.getSchemaRegistry(CONNECTION_ID, environmentId) }
+            runBlocking { f.getSchemaRegistry(environmentId) }
         } ?: emptyList()
         cachedSchemaRegistry[environmentId] = registries
         return registries
-    }
-
-    companion object {
-        private const val CONNECTION_ID = "confluent-toolwindow"
     }
 
     fun clearCache() {
