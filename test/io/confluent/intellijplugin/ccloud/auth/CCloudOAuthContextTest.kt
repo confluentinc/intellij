@@ -277,6 +277,34 @@ class CCloudOAuthContextTest {
         fun `should return false if refresh token is missing`() {
             assertFalse(context.shouldAttemptTokenRefresh())
         }
+
+        @Test
+        fun `should return false when tokens are fresh`() {
+            // Fresh tokens expire in 5 minutes, check interval is 5 seconds
+            // Since 5 min >> 5 sec, no refresh needed
+            runBlocking {
+                context.createTokensFromAuthorizationCode(MOCK_AUTH_CODE, MOCK_ORG_ID)
+            }
+
+            assertFalse(context.shouldAttemptTokenRefresh())
+        }
+
+        @Test
+        fun `should return true when token expires before next check interval`() {
+            // Set control plane token lifetime to 1 second (less than 5 second check interval)
+            System.setProperty("ccloud.control-plane.token-lifetime-seconds", "1")
+            try {
+                runBlocking {
+                    context.createTokensFromAuthorizationCode(MOCK_AUTH_CODE, MOCK_ORG_ID)
+                }
+
+                // Token expires in 1 second, check interval is 5 seconds
+                // Since 1 sec < 5 sec, refresh IS needed
+                assertTrue(context.shouldAttemptTokenRefresh())
+            } finally {
+                System.clearProperty("ccloud.control-plane.token-lifetime-seconds")
+            }
+        }
     }
 
     @Nested
@@ -397,14 +425,21 @@ class CCloudOAuthContextTest {
 
         @Test
         fun `should perform the token exchange with a refresh token`() {
+            // Capture old token state
+            val oldExpiresAt = context.expiresAt()
+
             val result = runBlocking {
                 context.refresh(MOCK_ORG_ID)
             }
 
             assertTrue(result.isSuccess)
+            // Verify tokens exist
             assertNotNull(context.getRefreshToken())
             assertNotNull(context.getControlPlaneToken())
             assertNotNull(context.getDataPlaneToken())
+            // Verify expiration was updated (tokens were refreshed)
+            assertNotNull(oldExpiresAt)
+            assertTrue(context.expiresAt()!! > oldExpiresAt)
             // Error related to token refresh should not be present
             assertNull(context.getErrors().tokenRefresh)
         }

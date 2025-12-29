@@ -60,7 +60,9 @@ object CCloudOAuthConfig {
     const val CCLOUD_OAUTH_SCOPE: String = "email openid offline_access"
 
     // Control Plane Configurations
-    val CCLOUD_CONTROL_PLANE_TOKEN_LIFETIME: Duration = 5.minutes
+    val CCLOUD_CONTROL_PLANE_TOKEN_LIFETIME: Duration
+        get() = System.getProperty("ccloud.control-plane.token-lifetime-seconds")
+            ?.toIntOrNull()?.seconds ?: 5.minutes
     val CCLOUD_CONTROL_PLANE_TOKEN_EXCHANGE_URI: String
         get() = System.getProperty("ccloud.control-plane.token-exchange-uri") ?: "https://$basePath/api/sessions"
     val CCLOUD_CONTROL_PLANE_CHECK_JWT_URI: String
