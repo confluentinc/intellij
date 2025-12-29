@@ -6,8 +6,10 @@ import io.confluent.intellijplugin.rfs.KafkaConnectionData
 import io.confluent.intellijplugin.settings.app.KafkaPluginSettings
 import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.*
-import org.mockito.Mockito.*
 import org.mockito.kotlin.any
+import org.mockito.kotlin.mock
+import org.mockito.kotlin.times
+import org.mockito.kotlin.verify
 
 @TestApplication
 class TelemetryTest {
@@ -21,7 +23,7 @@ class TelemetryTest {
         telemetryService = TelemetryService.getInstance()
         originalEnableUsageData = KafkaPluginSettings.getInstance().enableUsageData
         KafkaPluginSettings.getInstance().enableUsageData = true
-        mockAnalytics = mock(Analytics::class.java)
+        mockAnalytics = mock<Analytics>()
         telemetryService.analytics = mockAnalytics
     }
 
