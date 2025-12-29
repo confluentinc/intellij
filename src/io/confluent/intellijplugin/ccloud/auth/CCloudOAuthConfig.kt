@@ -51,18 +51,26 @@ object CCloudOAuthConfig {
         CCloudEnv.DEVEL -> "m94Mb54lGbyX9XVkrl5Zj9YyrFVc2XTi"
     }
 
-    val CCLOUD_OAUTH_AUTHORIZE_URI: String = "https://$loginBasePath/oauth/authorize"
-    val CCLOUD_OAUTH_TOKEN_URI: String = "https://$loginBasePath/oauth/token"
+    // URL properties with test override support via system properties
+    val CCLOUD_OAUTH_AUTHORIZE_URI: String
+        get() = System.getProperty("ccloud.oauth.authorize-uri") ?: "https://$loginBasePath/oauth/authorize"
+    val CCLOUD_OAUTH_TOKEN_URI: String
+        get() = System.getProperty("ccloud.oauth.token-uri") ?: "https://$loginBasePath/oauth/token"
 
     const val CCLOUD_OAUTH_SCOPE: String = "email openid offline_access"
 
     // Control Plane Configurations
-    val CCLOUD_CONTROL_PLANE_TOKEN_LIFETIME: Duration = 5.minutes
-    val CCLOUD_CONTROL_PLANE_TOKEN_EXCHANGE_URI: String = "https://$basePath/api/sessions"
-    val CCLOUD_CONTROL_PLANE_CHECK_JWT_URI: String = "https://$basePath/api/check_jwt"
+    val CCLOUD_CONTROL_PLANE_TOKEN_LIFETIME: Duration
+        get() = System.getProperty("ccloud.control-plane.token-lifetime-seconds")
+            ?.toIntOrNull()?.seconds ?: 5.minutes
+    val CCLOUD_CONTROL_PLANE_TOKEN_EXCHANGE_URI: String
+        get() = System.getProperty("ccloud.control-plane.token-exchange-uri") ?: "https://$basePath/api/sessions"
+    val CCLOUD_CONTROL_PLANE_CHECK_JWT_URI: String
+        get() = System.getProperty("ccloud.control-plane.check-jwt-uri") ?: "https://$basePath/api/check_jwt"
 
     // Data Plane Configurations
-    val CCLOUD_DATA_PLANE_TOKEN_EXCHANGE_URI: String = "https://$basePath/api/access_tokens"
+    val CCLOUD_DATA_PLANE_TOKEN_EXCHANGE_URI: String
+        get() = System.getProperty("ccloud.data-plane.token-exchange-uri") ?: "https://$basePath/api/access_tokens"
 
     // Other
     val CCLOUD_REFRESH_TOKEN_ABSOLUTE_LIFETIME: Duration = 8.hours
