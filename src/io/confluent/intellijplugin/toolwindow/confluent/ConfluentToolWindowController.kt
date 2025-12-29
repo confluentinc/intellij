@@ -6,6 +6,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.wm.ToolWindow
 import com.intellij.ui.content.Content
+import io.confluent.intellijplugin.ccloud.auth.CCloudAuthService
 import io.confluent.intellijplugin.rfs.ConfluentConnectionData
 import io.confluent.intellijplugin.rfs.ConfluentDriver
 import io.confluent.intellijplugin.core.util.runAsync
@@ -16,7 +17,7 @@ import javax.swing.JPanel
 
 /**
  * Controller for the Confluent Cloud toolwindow.
- * Manages authentication and the main controller.
+ * Manages OAuth authentication and the main controller.
  */
 @Service(Service.Level.PROJECT)
 class ConfluentToolWindowController(private val project: Project) {
@@ -30,7 +31,7 @@ class ConfluentToolWindowController(private val project: Project) {
 
         val contentManager = toolWindow.contentManager
 
-        // Create the credentials panel for initial authentication
+        // Create the sign-in panel
         val credentialsPanel = ConfluentCredentialsPanel()
         val containerPanel = JPanel(BorderLayout())
 
@@ -40,25 +41,35 @@ class ConfluentToolWindowController(private val project: Project) {
         }
         containerPanel.add(placeholderPanel, BorderLayout.CENTER)
 
-        credentialsPanel.addLoadListener {
-            if (credentialsPanel.areCredentialsValid()) {
-                credentialsPanel.setLoading(true)
-                initializeWithCredentials(
-                    apiKey = credentialsPanel.getApiKey(),
-                    apiSecret = credentialsPanel.getApiSecret(),
-                    containerPanel = containerPanel,
-                    onSuccess = {
-                        credentialsPanel.setLoading(false)
-                        credentialsPanel.showSuccess("Connected!")
-                    },
-                    onError = { message ->
-                        credentialsPanel.setLoading(false)
-                        credentialsPanel.showError(message)
+        // OAuth Sign In
+        credentialsPanel.addSignInListener {
+            credentialsPanel.setLoading(true)
+            credentialsPanel.clearStatus()
+
+            CCloudAuthService.getInstance().signIn(
+                onSuccess = { email ->
+                    runInEdt {
+                        credentialsPanel.showSuccess("Signed in as $email")
+                        // Initialize UI with OAuth
+                        initializeWithOAuth(
+                            containerPanel = containerPanel,
+                            onSuccess = {
+                                credentialsPanel.setLoading(false)
+                            },
+                            onError = { message ->
+                                credentialsPanel.setLoading(false)
+                                credentialsPanel.showError(message)
+                            }
+                        )
                     }
-                )
-            } else {
-                credentialsPanel.showError("Invalid format. Expected: api_key:api_secret")
-            }
+                },
+                onError = { error ->
+                    runInEdt {
+                        credentialsPanel.setLoading(false)
+                        credentialsPanel.showError("Sign in failed: $error")
+                    }
+                }
+            )
         }
 
         val content: Content = contentManager.factory.createContent(
@@ -77,38 +88,33 @@ class ConfluentToolWindowController(private val project: Project) {
         contentManager.setSelectedContent(content)
     }
 
-    private fun initializeWithCredentials(
-        apiKey: String,
-        apiSecret: String,
+    /**
+     * Initialize the UI using OAuth authentication.
+     * OAuth tokens are retrieved from CCloudAuthService automatically.
+     */
+    private fun initializeWithOAuth(
         containerPanel: JPanel,
         onSuccess: () -> Unit,
         onError: (String) -> Unit
     ) {
-        // Run credential setup and connection in background to avoid EDT slow operations
         runAsync {
             try {
-                // Create connection data with credentials (off EDT to avoid slow operation warning)
-                val connectionData = ConfluentConnectionData("Confluent Cloud").apply {
-                    this.apiKey = apiKey
-                    this.apiSecret = apiSecret
-                }
+                // Create connection data for OAuth
+                val connectionData = ConfluentConnectionData("Confluent Cloud")
 
-                // Create the driver directly
+                // Create the driver
                 val newDriver = ConfluentDriver(connectionData, project, testConnection = false)
 
-                // Initialize the driver to trigger connection (this does network call)
+                // Initialize the driver (will use OAuth tokens via CloudRestClient.getAuthHeaders())
                 newDriver.initDriverUpdater()
 
                 // Switch to EDT for UI updates
                 runInEdt {
                     driver = newDriver
 
-                    // Register with Disposer
                     Disposer.register(project, newDriver)
 
-                    // Create the main controller with the driver directly
                     val controller = ConfluentMainController(project, newDriver)
-                    // Register controller with driver so Disposer tree is valid before init()
                     Disposer.register(newDriver, controller)
                     controller.init()
                     mainController = controller
@@ -124,7 +130,7 @@ class ConfluentToolWindowController(private val project: Project) {
                 }
             } catch (e: Exception) {
                 runInEdt {
-                    onError(e.message ?: "Failed to connect")
+                    onError(e.message ?: "Failed to load resources")
                 }
             }
         }

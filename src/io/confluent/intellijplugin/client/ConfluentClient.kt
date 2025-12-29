@@ -20,7 +20,7 @@ import kotlinx.coroutines.runBlocking
  *
  * - **Environments**: Cached as a single list. Populated during [checkConnectionInner] on initial connection.
  * - **Kafka Clusters**: Cached per environment ID in a map. Populated lazily on first access via [getKafkaClusters].
- * - **Schema Registries**: Cached per environment ID in a map. Populated lazily on first access via [getSchemaRegistries].
+ * - **Schema Registry**: Cached per environment ID in a map. Populated lazily on first access via [getSchemaRegistry].
  *
  * ## Cache Invalidation
  *
@@ -28,8 +28,8 @@ import kotlinx.coroutines.runBlocking
  *
  * - **[refreshEnvironments]**: Fetches fresh environments and replaces the cached list.
  * - **[refreshClusters]**: Fetches fresh clusters for a specific environment and updates the cache entry.
- * - **[refreshSchemaRegistries]**: Fetches fresh schema registries for a specific environment and updates the cache entry.
- * - **[clearCache]**: Clears all cached data (environments, clusters, and schema registries).
+ * - **[refreshSchemaRegistry]**: Fetches fresh schema registry for a specific environment and updates the cache entry.
+ * - **[clearCache]**: Clears all cached data (environments, clusters, and schema registry).
  * - **[dispose]**: Called on client disposal; clears all caches and releases the fetcher.
  *
  * Callers should invoke the appropriate refresh method when they expect data to have changed
@@ -47,22 +47,20 @@ class ConfluentClient(
     // Cached data
     private var cachedEnvironments: List<CCloudEnvironment>? = null
     private val cachedClusters = mutableMapOf<String, List<KafkaCluster>>()
-    private val cachedSchemaRegistries = mutableMapOf<String, List<SchemaRegistry>>()
+    private val cachedSchemaRegistry = mutableMapOf<String, List<SchemaRegistry>>()
 
     override fun getRealUri(): String = CloudConfig.CONTROL_PLANE_BASE_URL
 
     override fun connectInner(calledByUser: Boolean) {
-        if (!connectionData.hasCredentials()) {
-            throw IllegalStateException("API credentials not configured")
-        }
-        fetcher = CloudFetcherImpl(connectionData.apiKey, connectionData.apiSecret)
+        // OAuth authentication is handled by CCloudAuthService
+        fetcher = CloudFetcherImpl()
     }
 
     override fun checkConnectionInner() {
         val f = fetcher ?: throw IllegalStateException("Client not initialized")
         // Validate connection by fetching environments
         cachedEnvironments = runBlocking {
-            f.getEnvironments(CONNECTION_ID)
+            f.getEnvironments()
         }
     }
 
@@ -70,47 +68,43 @@ class ConfluentClient(
 
     fun getKafkaClusters(environmentId: String): List<KafkaCluster> = cachedClusters.getOrPut(environmentId) {
         fetcher?.let { f ->
-            runBlocking { f.getKafkaClusters(CONNECTION_ID, environmentId) }
+            runBlocking { f.getKafkaClusters(environmentId) }
         } ?: emptyList()
     }
 
-    fun getSchemaRegistries(environmentId: String): List<SchemaRegistry> = cachedSchemaRegistries.getOrPut(environmentId) {
+    fun getSchemaRegistry(environmentId: String): List<SchemaRegistry> = cachedSchemaRegistry.getOrPut(environmentId) {
         fetcher?.let { f ->
-            runBlocking { f.getSchemaRegistries(CONNECTION_ID, environmentId) }
+            runBlocking { f.getSchemaRegistry(environmentId) }
         } ?: emptyList()
     }
 
     fun refreshEnvironments(): List<CCloudEnvironment> {
         cachedEnvironments = fetcher?.let { f ->
-            runBlocking { f.getEnvironments(CONNECTION_ID) }
+            runBlocking { f.getEnvironments() }
         } ?: emptyList()
         return cachedEnvironments ?: emptyList()
     }
 
     fun refreshClusters(environmentId: String): List<KafkaCluster> {
         val clusters = fetcher?.let { f ->
-            runBlocking { f.getKafkaClusters(CONNECTION_ID, environmentId) }
+            runBlocking { f.getKafkaClusters(environmentId) }
         } ?: emptyList()
         cachedClusters[environmentId] = clusters
         return clusters
     }
 
-    fun refreshSchemaRegistries(environmentId: String): List<SchemaRegistry> {
+    fun refreshSchemaRegistry(environmentId: String): List<SchemaRegistry> {
         val registries = fetcher?.let { f ->
-            runBlocking { f.getSchemaRegistries(CONNECTION_ID, environmentId) }
+            runBlocking { f.getSchemaRegistry(environmentId) }
         } ?: emptyList()
-        cachedSchemaRegistries[environmentId] = registries
+        cachedSchemaRegistry[environmentId] = registries
         return registries
-    }
-
-    companion object {
-        private const val CONNECTION_ID = "confluent-toolwindow"
     }
 
     fun clearCache() {
         cachedEnvironments = null
         cachedClusters.clear()
-        cachedSchemaRegistries.clear()
+        cachedSchemaRegistry.clear()
     }
 
     override fun dispose() {
