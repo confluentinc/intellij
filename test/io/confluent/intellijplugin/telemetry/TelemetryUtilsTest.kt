@@ -6,8 +6,9 @@ import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.MethodSource
-import org.mockito.Mockito.*
 import org.mockito.Mockito.mockStatic
+import org.mockito.kotlin.mock
+import org.mockito.kotlin.whenever
 import java.net.InetAddress
 import java.util.stream.Stream
 import java.util.UUID
@@ -42,8 +43,8 @@ class TelemetryUtilsTest {
         @MethodSource("io.confluent.intellijplugin.telemetry.TelemetryUtilsTest#hostnameScenarios")
         @DisplayName("works correctly for different hostname formats")
         fun `works correctly for different hostname formats`(hostname: String) {
-            val mockInetAddress = mock(InetAddress::class.java)
-            `when`(mockInetAddress.hostName).thenReturn(hostname)
+            val mockInetAddress = mock<InetAddress>()
+            whenever(mockInetAddress.hostName).thenReturn(hostname)
 
             mockStatic(InetAddress::class.java).use { mockedStatic ->
                 mockedStatic.`when`<InetAddress> { InetAddress.getLocalHost() }.thenReturn(mockInetAddress)
@@ -61,11 +62,11 @@ class TelemetryUtilsTest {
             val hostnameWithDot = "myhost.example.com"
             val hostnameWithoutDot = "myhost"
 
-            val mockInetAddressWithDot = mock(InetAddress::class.java)
-            `when`(mockInetAddressWithDot.hostName).thenReturn(hostnameWithDot)
+            val mockInetAddressWithDot = mock<InetAddress>()
+            whenever(mockInetAddressWithDot.hostName).thenReturn(hostnameWithDot)
 
-            val mockInetAddressWithoutDot = mock(InetAddress::class.java)
-            `when`(mockInetAddressWithoutDot.hostName).thenReturn(hostnameWithoutDot)
+            val mockInetAddressWithoutDot = mock<InetAddress>()
+            whenever(mockInetAddressWithoutDot.hostName).thenReturn(hostnameWithoutDot)
 
             mockStatic(InetAddress::class.java).use { mockedStatic ->
                 mockedStatic.`when`<InetAddress> { InetAddress.getLocalHost() }
@@ -86,8 +87,8 @@ class TelemetryUtilsTest {
 
             mockStatic(InetAddress::class.java).use { mockedStatic ->
                 hostnames.forEach { hostname ->
-                    val mockInetAddress = mock(InetAddress::class.java)
-                    `when`(mockInetAddress.hostName).thenReturn(hostname)
+                    val mockInetAddress = mock<InetAddress>()
+                    whenever(mockInetAddress.hostName).thenReturn(hostname)
                     mockedStatic.`when`<InetAddress> { InetAddress.getLocalHost() }.thenReturn(mockInetAddress)
                     deviceIds.add(TelemetryUtils.getAnonymisedHostname())
                 }
