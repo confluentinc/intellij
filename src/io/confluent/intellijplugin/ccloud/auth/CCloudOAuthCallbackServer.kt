@@ -115,6 +115,21 @@ class CCloudOAuthCallbackServer(
     )
 
     /**
+     * Categorize an exception and return appropriate HTTP status code and user message.
+     * Uses the actual HTTP status code from OAuthErrorException when available.
+     */
+    internal fun getErrorStatusAndMessage(exception: Throwable): Pair<Int, String> {
+        return when (exception) {
+            is SSLHandshakeException -> 500 to TLS_HANDSHAKE_ERROR_MESSAGE
+
+            is OAuthErrorException -> { exception.httpStatusCode to "Retrieving ID token failed: ${exception.errorCode} ${exception.errorCode} - ${exception.errorDescription}." }
+
+            // Assume network/server errors
+            else -> 500 to (exception.message ?: "Token exchange failed")
+        }
+    }
+
+    /**
      * Process callback parameters and return the result without side effects.
      * This pure function is to improve testing easability.
      * @param code The authorization code
@@ -150,11 +165,8 @@ class CCloudOAuthCallbackServer(
                         CallbackResult(200, successHtml(context.getUserEmail()), successContext = context)
                     },
                     onFailure = { exception ->
-                        var message = exception.message ?: "Token exchange failed"
-                        if (exception is SSLHandshakeException) {
-                            message = TLS_HANDSHAKE_ERROR_MESSAGE
-                        }
-                        CallbackResult(500, errorHtml(message), errorMessage = message)
+                        val (statusCode, message) = getErrorStatusAndMessage(exception)
+                        CallbackResult(statusCode, errorHtml(message), errorMessage = message)
                     }
                 )
             }

@@ -53,6 +53,34 @@ object CCloudOAuthHttpClient {
     }
 
     /**
+     * POST with form-urlencoded body, returning both HTTP status code and parsed response.
+     * Use this when you need to know the HTTP status code for error handling.
+     * @param url The URL to post to
+     * @param formData The form data to post
+     * @return Pair of (HTTP status code, parsed response)
+     */
+    suspend inline fun <reified T> postFormWithStatus(
+        url: String,
+        formData: Map<String, String>
+    ): Pair<Int, T> = withContext(Dispatchers.IO) {
+        val body = formData.entries.joinToString("&") { (k, v) ->
+            "${encode(k)}=${encode(v)}"
+        }
+
+        val (statusCode, responseBody) = HttpRequests.post(url, "application/x-www-form-urlencoded")
+            .connectTimeout(CONNECT_TIMEOUT_MS)
+            .readTimeout(READ_TIMEOUT_MS)
+            .throwStatusCodeException(false)
+            .connect { request ->
+                request.write(body)
+                val conn = request.connection as HttpURLConnection
+                conn.responseCode to readResponseBody(request)
+            }
+
+        statusCode to json.decodeFromString<T>(responseBody)
+    }
+
+    /**
      * POST with JSON body and optional Bearer auth.
      * @param url The URL to post to
      * @param jsonBody The JSON body to post

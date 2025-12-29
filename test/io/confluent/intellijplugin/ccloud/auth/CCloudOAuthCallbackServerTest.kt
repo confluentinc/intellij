@@ -170,6 +170,94 @@ class CCloudOAuthCallbackServerTest {
             assertTrue(result.errorMessage!!.contains("SSL/TLS handshake"))
             assertNull(result.successContext)
         }
+
+        @Test
+        fun `invalid_grant error returns 400 with user-friendly message`() = runBlocking {
+            val mockContext = mock<CCloudOAuthContext> {
+                on { oauthState } doReturn "test-state"
+                onBlocking { createTokensFromAuthorizationCode("code") } doReturn Result.failure(
+                    OAuthErrorException("invalid_grant", "Authorization code has expired", 400)
+                )
+            }
+
+            val testServer = CCloudOAuthCallbackServer(
+                oauthContext = mockContext,
+                onSuccess = {},
+                onError = {}
+            )
+
+            val result = testServer.processCallback(code = "code", state = "test-state", error = null)
+
+            assertEquals(400, result.statusCode)
+            assertTrue(result.errorMessage!!.contains("invalid_grant"))
+            assertNull(result.successContext)
+        }
+
+        @Test
+        fun `access_denied error returns 400`() = runBlocking {
+            val mockContext = mock<CCloudOAuthContext> {
+                on { oauthState } doReturn "test-state"
+                onBlocking { createTokensFromAuthorizationCode("code") } doReturn Result.failure(
+                    OAuthErrorException("access_denied", "User denied access", 400)
+                )
+            }
+
+            val testServer = CCloudOAuthCallbackServer(
+                oauthContext = mockContext,
+                onSuccess = {},
+                onError = {}
+            )
+
+            val result = testServer.processCallback(code = "code", state = "test-state", error = null)
+
+            assertEquals(400, result.statusCode)
+            assertTrue(result.errorMessage!!.contains("access_denied"))
+            assertNull(result.successContext)
+        }
+
+        @Test
+        fun `invalid_request error returns 400`() = runBlocking {
+            val mockContext = mock<CCloudOAuthContext> {
+                on { oauthState } doReturn "test-state"
+                onBlocking { createTokensFromAuthorizationCode("code") } doReturn Result.failure(
+                    OAuthErrorException("invalid_request", "Missing required parameter", 400)
+                )
+            }
+
+            val testServer = CCloudOAuthCallbackServer(
+                oauthContext = mockContext,
+                onSuccess = {},
+                onError = {}
+            )
+
+            val result = testServer.processCallback(code = "code", state = "test-state", error = null)
+
+            assertEquals(400, result.statusCode)
+            assertTrue(result.errorMessage!!.contains("invalid_request"))
+            assertNull(result.successContext)
+        }
+
+        @Test
+        fun `unknown error returns 500`() = runBlocking {
+            val mockContext = mock<CCloudOAuthContext> {
+                on { oauthState } doReturn "test-state"
+                onBlocking { createTokensFromAuthorizationCode("code") } doReturn Result.failure(
+                    RuntimeException("Connection refused")
+                )
+            }
+
+            val testServer = CCloudOAuthCallbackServer(
+                oauthContext = mockContext,
+                onSuccess = {},
+                onError = {}
+            )
+
+            val result = testServer.processCallback(code = "code", state = "test-state", error = null)
+
+            assertEquals(500, result.statusCode)
+            assertEquals("Connection refused", result.errorMessage)
+            assertNull(result.successContext)
+        }
     }
 
     @Nested
