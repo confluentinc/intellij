@@ -24,8 +24,8 @@ interface CloudFetcher {
     ): List<KafkaCluster>
 
     /**
-     * Get Schema Registry clusters for a connection and environment.
+     * Get Schema Registry cluster for a connection and environment.
      */
-    suspend fun getSchemaRegistries(connectionId: String, envId: String): List<SchemaRegistry>
+    suspend fun getSchemaRegistry(connectionId: String, envId: String): List<SchemaRegistry>
 }
 

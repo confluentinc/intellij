@@ -105,7 +105,7 @@ class ConfluentToolWindowController(private val project: Project) {
                 // Create the driver
                 val newDriver = ConfluentDriver(connectionData, project, testConnection = false)
 
-                // Initialize the driver (will use OAuth tokens via CloudRestClient.headersFor())
+                // Initialize the driver (will use OAuth tokens via CloudRestClient.getAuthHeaders())
                 newDriver.initDriverUpdater()
 
                 // Switch to EDT for UI updates

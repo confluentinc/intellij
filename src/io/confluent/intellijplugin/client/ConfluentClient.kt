@@ -20,7 +20,7 @@ import kotlinx.coroutines.runBlocking
  *
  * - **Environments**: Cached as a single list. Populated during [checkConnectionInner] on initial connection.
  * - **Kafka Clusters**: Cached per environment ID in a map. Populated lazily on first access via [getKafkaClusters].
- * - **Schema Registries**: Cached per environment ID in a map. Populated lazily on first access via [getSchemaRegistries].
+ * - **Schema Registry**: Cached per environment ID in a map. Populated lazily on first access via [getSchemaRegistry].
  *
  * ## Cache Invalidation
  *
@@ -28,8 +28,8 @@ import kotlinx.coroutines.runBlocking
  *
  * - **[refreshEnvironments]**: Fetches fresh environments and replaces the cached list.
  * - **[refreshClusters]**: Fetches fresh clusters for a specific environment and updates the cache entry.
- * - **[refreshSchemaRegistries]**: Fetches fresh schema registries for a specific environment and updates the cache entry.
- * - **[clearCache]**: Clears all cached data (environments, clusters, and schema registries).
+ * - **[refreshSchemaRegistry]**: Fetches fresh schema registry for a specific environment and updates the cache entry.
+ * - **[clearCache]**: Clears all cached data (environments, clusters, and schema registry).
  * - **[dispose]**: Called on client disposal; clears all caches and releases the fetcher.
  *
  * Callers should invoke the appropriate refresh method when they expect data to have changed
@@ -47,7 +47,7 @@ class ConfluentClient(
     // Cached data
     private var cachedEnvironments: List<CCloudEnvironment>? = null
     private val cachedClusters = mutableMapOf<String, List<KafkaCluster>>()
-    private val cachedSchemaRegistries = mutableMapOf<String, List<SchemaRegistry>>()
+    private val cachedSchemaRegistry = mutableMapOf<String, List<SchemaRegistry>>()
 
     override fun getRealUri(): String = CloudConfig.CONTROL_PLANE_BASE_URL
 
@@ -72,9 +72,9 @@ class ConfluentClient(
         } ?: emptyList()
     }
 
-    fun getSchemaRegistries(environmentId: String): List<SchemaRegistry> = cachedSchemaRegistries.getOrPut(environmentId) {
+    fun getSchemaRegistry(environmentId: String): List<SchemaRegistry> = cachedSchemaRegistry.getOrPut(environmentId) {
         fetcher?.let { f ->
-            runBlocking { f.getSchemaRegistries(CONNECTION_ID, environmentId) }
+            runBlocking { f.getSchemaRegistry(CONNECTION_ID, environmentId) }
         } ?: emptyList()
     }
 
@@ -93,11 +93,11 @@ class ConfluentClient(
         return clusters
     }
 
-    fun refreshSchemaRegistries(environmentId: String): List<SchemaRegistry> {
+    fun refreshSchemaRegistry(environmentId: String): List<SchemaRegistry> {
         val registries = fetcher?.let { f ->
-            runBlocking { f.getSchemaRegistries(CONNECTION_ID, environmentId) }
+            runBlocking { f.getSchemaRegistry(CONNECTION_ID, environmentId) }
         } ?: emptyList()
-        cachedSchemaRegistries[environmentId] = registries
+        cachedSchemaRegistry[environmentId] = registries
         return registries
     }
 
@@ -108,7 +108,7 @@ class ConfluentClient(
     fun clearCache() {
         cachedEnvironments = null
         cachedClusters.clear()
-        cachedSchemaRegistries.clear()
+        cachedSchemaRegistry.clear()
     }
 
     override fun dispose() {
