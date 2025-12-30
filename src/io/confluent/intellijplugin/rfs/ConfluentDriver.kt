@@ -19,7 +19,7 @@ import javax.swing.Icon
  * Provides a 4-level hierarchical tree structure:
  * - Root
  *   - Environments
- *     - Clusters folder / Schema Registries folder
+ *     - Clusters folder / Schema Registry folder
  *       - Individual Cluster / Schema Registry
  */
 class ConfluentDriver(
@@ -68,12 +68,12 @@ class ConfluentDriver(
                     ConfluentFileInfo(this, environmentPath(env.id))
                 }
             }
-            // Environment level: show Clusters and Schema Registries folders
+            // Environment level: show Clusters and Schema Registry folders
             1 -> {
                 val envId = rfsPath.name
                 listOf(
                     ConfluentFileInfo(this, clustersPath(envId)),
-                    ConfluentFileInfo(this, schemaRegistriesPath(envId))
+                    ConfluentFileInfo(this, schemaRegistryFolderPath(envId))
                 )
             }
             // Clusters folder: show individual clusters
@@ -83,9 +83,9 @@ class ConfluentDriver(
                     dataManager.getKafkaClusters(envId).map { cluster ->
                         ConfluentFileInfo(this, clusterPath(envId, cluster.id))
                     }
-                } else if (rfsPath.name == SCHEMA_REGISTRIES_FOLDER) {
+                } else if (rfsPath.name == SCHEMA_REGISTRY_FOLDER) {
                     val envId = rfsPath.parent?.name ?: return emptyList()
-                    dataManager.getSchemaRegistries(envId).map { sr ->
+                    dataManager.getSchemaRegistry(envId).map { sr ->
                         ConfluentFileInfo(this, schemaRegistryPath(envId, sr.id))
                     }
                 } else {
@@ -100,20 +100,20 @@ class ConfluentDriver(
     // Path utilities for 4-level hierarchy
     private fun environmentPath(envId: String) = RfsPath(listOf(envId), true)
     private fun clustersPath(envId: String) = RfsPath(listOf(envId, CLUSTERS_FOLDER), true)
-    private fun schemaRegistriesPath(envId: String) = RfsPath(listOf(envId, SCHEMA_REGISTRIES_FOLDER), true)
+    private fun schemaRegistryFolderPath(envId: String) = RfsPath(listOf(envId, SCHEMA_REGISTRY_FOLDER), true)
     private fun clusterPath(envId: String, clusterId: String) = RfsPath(listOf(envId, CLUSTERS_FOLDER, clusterId), false)
-    private fun schemaRegistryPath(envId: String, srId: String) = RfsPath(listOf(envId, SCHEMA_REGISTRIES_FOLDER, srId), false)
+    private fun schemaRegistryPath(envId: String, srId: String) = RfsPath(listOf(envId, SCHEMA_REGISTRY_FOLDER, srId), false)
 
     companion object {
         const val CLUSTERS_FOLDER = "Clusters"
-        const val SCHEMA_REGISTRIES_FOLDER = "Schema Registries"
+        const val SCHEMA_REGISTRY_FOLDER = "Schema Registry"
 
         // Path type checks using size instead of depth
         val RfsPath.isEnvironment: Boolean get() = elements.size == 1
         val RfsPath.isClustersFolder: Boolean get() = elements.size == 2 && name == CLUSTERS_FOLDER
-        val RfsPath.isSchemaRegistriesFolder: Boolean get() = elements.size == 2 && name == SCHEMA_REGISTRIES_FOLDER
+        val RfsPath.isSchemaRegistryFolder: Boolean get() = elements.size == 2 && name == SCHEMA_REGISTRY_FOLDER
         val RfsPath.isCluster: Boolean get() = elements.size == 3 && parent?.name == CLUSTERS_FOLDER
-        val RfsPath.isSchemaRegistry: Boolean get() = elements.size == 3 && parent?.name == SCHEMA_REGISTRIES_FOLDER
+        val RfsPath.isSchemaRegistry: Boolean get() = elements.size == 3 && parent?.name == SCHEMA_REGISTRY_FOLDER
 
         // Get environment ID from any path
         fun RfsPath.getEnvironmentId(): String? = elements.firstOrNull()

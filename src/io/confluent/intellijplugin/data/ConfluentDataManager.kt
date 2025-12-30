@@ -13,7 +13,7 @@ import io.confluent.intellijplugin.rfs.ConfluentConnectionData
 
 /**
  * Data manager for Confluent Cloud resources.
- * Manages environments, clusters, and schema registries data.
+ * Manages environments, clusters, and schema registry data.
  */
 class ConfluentDataManager(
     project: Project?,
@@ -32,12 +32,12 @@ class ConfluentDataManager(
 
     fun getKafkaClusters(environmentId: String): List<KafkaCluster> = client.getKafkaClusters(environmentId)
 
-    fun getSchemaRegistries(environmentId: String): List<SchemaRegistry> = client.getSchemaRegistries(environmentId)
+    fun getSchemaRegistry(environmentId: String): List<SchemaRegistry> = client.getSchemaRegistry(environmentId)
 
     fun refreshEnvironments(): List<CCloudEnvironment> = client.refreshEnvironments()
 
     fun refreshClusters(environmentId: String): List<KafkaCluster> = client.refreshClusters(environmentId)
 
-    fun refreshSchemaRegistries(environmentId: String): List<SchemaRegistry> = client.refreshSchemaRegistries(environmentId)
+    fun refreshSchemaRegistry(environmentId: String): List<SchemaRegistry> = client.refreshSchemaRegistry(environmentId)
 }
 
