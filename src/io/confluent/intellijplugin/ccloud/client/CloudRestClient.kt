@@ -1,18 +1,18 @@
 package io.confluent.intellijplugin.ccloud.client
 
 import com.intellij.util.io.HttpRequests
+import io.confluent.intellijplugin.ccloud.auth.CCloudAuthService
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 import java.net.HttpURLConnection
-import java.util.Base64
 
 /**
  * HTTP client for Confluent Cloud control plane API calls.
- * Handles API key authentication (OAuth support planned).
+ * Uses OAuth authentication via CCloudAuthService.
  */
 abstract class CloudRestClient(
-    private val apiKey: String,
-    private val apiSecret: String,
     protected val baseUrl: String
 ) {
     companion object {
@@ -21,75 +21,174 @@ abstract class CloudRestClient(
     }
 
     /**
-     * Get headers for API requests, including API key authentication.
+     * Pagination state tracking for Confluent API list requests.
      *
-     * @param connectionId Connection identifier for future OAuth implementation.
-     *                     Currently unused but will be needed to retrieve OAuth tokens
-     *                     from the authentication provider once OAuth login is implemented.
-     *                     When OAuth is available, this will map to a token provider that
-     *                     returns Bearer tokens instead of using API key/secret.
+     * @see <a href="https://docs.confluent.io/cloud/current/api.html#section/Pagination">Confluent API Pagination</a>
      */
-    protected fun headersFor(connectionId: String): Map<String, String> {
-        // TODO: Once OAuth is implemented, use connectionId to get Bearer token:
-        //   val token = oAuthProvider.getAccessToken(connectionId)
-        //   return mapOf("Authorization" to "Bearer $token", ...)
-        val credentials = Base64.getEncoder()
-            .encodeToString("$apiKey:$apiSecret".toByteArray())
+    class PaginationState(
+        initialUrl: String?,
+        val limits: PageLimits = PageLimits.DEFAULT
+    ) {
+        var nextUrl: String? = initialUrl
+            private set
+
+        private var pageCount = 0
+        private var itemCount = 0
+
+        /**
+         * Create a new page of results from the given items and next page URL.
+         * Applies item limits and tracks pagination progress.
+         */
+        fun <T> createPage(items: List<T>, nextPageUrl: String?): PageOfResults<T> {
+            nextUrl = nextPageUrl?.trim()?.takeIf { it.isNotBlank() }
+
+            val itemsRemaining = maxOf(0, limits.maxItems - itemCount)
+            val limitedItems = items.take(itemsRemaining)
+
+            itemCount += limitedItems.size
+            pageCount++
+
+            return PageOfResults(
+                items = limitedItems,
+                hasMore = nextUrl != null
+            )
+        }
+
+        /**
+         * Determine if pagination should continue based on the current page.
+         */
+        fun shouldContinue(page: PageOfResults<*>): Boolean {
+            val pagesRemaining = maxOf(0, limits.maxPages - pageCount)
+            val itemsRemaining = maxOf(0, limits.maxItems - itemCount)
+
+            return page.hasMore && pagesRemaining > 0 && itemsRemaining > 0
+        }
+    }
+
+    /**
+     * Limits for pagination requests.
+     */
+    data class PageLimits(
+        val maxPages: Int = Int.MAX_VALUE,
+        val maxItems: Int = Int.MAX_VALUE
+    ) {
+        companion object {
+            val DEFAULT = PageLimits()
+        }
+    }
+
+    /**
+     * A page of results from a paginated API response.
+     */
+    data class PageOfResults<T>(
+        val items: List<T>,
+        val hasMore: Boolean
+    )
+
+    /**
+     * Standard metadata returned by Confluent list APIs.
+     * currently only "next" is used for pagination.
+     */
+    @Serializable
+    data class ListMetadata(
+        @SerialName("first") val first: String? = null,
+        @SerialName("last") val last: String? = null,
+        @SerialName("prev") val prev: String? = null,
+        @SerialName("next") val next: String? = null,
+        @SerialName("total_size") val totalSize: Int? = null
+    )
+
+    /**
+     * Get headers for API requests using OAuth Bearer token.
+     */
+    protected open fun getAuthHeaders(): Map<String, String> {
+        val authService = CCloudAuthService.getInstance()
+
+        if (!authService.isSignedIn()) {
+            throw IllegalStateException("Not signed in to Confluent Cloud")
+        }
+
+        val token = authService.getControlPlaneToken()
+            ?: throw IllegalStateException("No control plane token available")
+
         return mapOf(
-            "Authorization" to "Basic $credentials",
+            "Authorization" to "Bearer $token",
             "Content-Type" to "application/json"
         )
     }
 
     /**
-     * Fetch and parse a list of items from an API endpoint.
+     * Fetch items from a paginated Confluent API endpoint.
      *
-     * @param T The type of items to be parsed from the response.
-     * @param headers HTTP headers to include in the request (e.g., Authorization, Content-Type).
-     * @param uri The endpoint URI. If it starts with "http", it is used as a full URL.
-     *            Otherwise, it is treated as a relative path and prepended with [baseUrl].
-     *            For example: "/org/v2/environments" becomes "https://api.confluent.cloud/org/v2/environments".
-     * @param parser Function to parse the JSON response body into a list of items of type [T].
-     * @return List of parsed items from the API response.
-     * @throws CloudApiException if the HTTP response status code is not in the 2xx range.
+     * @param headers HTTP headers for authentication
+     * @param uri Endpoint URI (relative or absolute)
+     * @param limits Pagination limits (default: fetch all)
+     * @param parser Parses response JSON into (items, nextUrl)
+     * @return Items from fetched pages, respecting pagination limits
+     * @see <a href="https://docs.confluent.io/cloud/current/api.html#section/Pagination">Confluent API Pagination</a>
      */
-    protected suspend fun <T> listItems(
+    protected open suspend fun <T> listItems(
         headers: Map<String, String>,
         uri: String,
-        parser: (String) -> List<T>
+        limits: PageLimits = PageLimits.DEFAULT,
+        parser: (String) -> Pair<List<T>, String?>
     ): List<T> = withContext(Dispatchers.IO) {
-        val url = if (uri.startsWith("http")) uri else "$baseUrl$uri"
+        val allItems = mutableListOf<T>()
+        val firstUrl = if (uri.startsWith("http")) uri else "$baseUrl$uri"
+        val state = PaginationState(initialUrl = firstUrl, limits = limits)
+        val visitedUrls = mutableSetOf<String>()
 
-        val (statusCode, body) = HttpRequests.request(url)
-            .connectTimeout(CONNECT_TIMEOUT_MS)
-            .readTimeout(READ_TIMEOUT_MS)
-            .tuner { conn ->
-                headers.forEach { (key, value) ->
-                    conn.setRequestProperty(key, value)
-                }
-            }
-            .connect { request ->
-                val conn = request.connection as HttpURLConnection
-                val statusCode = conn.responseCode
-                val responseBody = if (statusCode in 200..299) {
-                    request.inputStream.bufferedReader().use { it.readText() }
-                } else {
-                    conn.errorStream?.bufferedReader()?.use { it.readText() } ?: ""
-                }
-                statusCode to responseBody
+        while (state.nextUrl != null) {
+            val url = state.nextUrl!!
+
+            // Prevent infinite loops from API bugs
+            if (!visitedUrls.add(url)) {
+                throw CloudApiException("Pagination loop detected: duplicate URL encountered", 0)
             }
 
-        if (statusCode !in 200..299) {
-            throw CloudApiException("HTTP $statusCode: ${body.ifEmpty { "Unknown error" }}", statusCode)
+            val (statusCode, body) = try {
+                HttpRequests.request(url)
+                    .connectTimeout(CONNECT_TIMEOUT_MS)
+                    .readTimeout(READ_TIMEOUT_MS)
+                    .tuner { conn ->
+                        headers.forEach { (key, value) ->
+                            conn.setRequestProperty(key, value)
+                        }
+                    }
+                    .connect { request ->
+                        val conn = request.connection as HttpURLConnection
+                        val statusCode = conn.responseCode
+                        val responseBody = if (statusCode in 200..299) {
+                            request.inputStream.bufferedReader().use { it.readText() }
+                        } else {
+                            conn.errorStream?.bufferedReader()?.use { it.readText() } ?: ""
+                        }
+                        statusCode to responseBody
+                    }
+            } catch (e: HttpRequests.HttpStatusException) {
+                throw CloudApiException("HTTP ${e.statusCode}: ${e.message ?: "Unknown error"}", e.statusCode)
+            } catch (e: Exception) {
+                throw CloudApiException("Request failed: ${e.message ?: "Unknown error"}", 0)
+            }
+
+            if (statusCode !in 200..299) {
+                throw CloudApiException("HTTP $statusCode: ${body.ifEmpty { "Unknown error" }}", statusCode)
+            }
+
+            val (items, nextPageUrl) = parser(body)
+            val page = state.createPage(items, nextPageUrl)
+            allItems.addAll(page.items)
+
+            if (!state.shouldContinue(page)) {
+                break
+            }
         }
 
-        parser(body)
+        allItems
     }
-
 }
 
 /**
  * Exception thrown when API calls fail.
  */
 class CloudApiException(message: String, val statusCode: Int) : Exception(message)
-
