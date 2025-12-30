@@ -9,7 +9,8 @@ object CloudConfig {
     const val BASE_PATH = "confluent.cloud"
 
     val CONTROL_PLANE_BASE_URL: String
-        get() = "https://api.$BASE_PATH"
+        get() = System.getProperty("ccloud.control-plane.base-url")
+            ?: "https://api.$BASE_PATH"
 
     object ControlPlane {
         const val ORG_LIST_URI = "/org/v2/organizations"
