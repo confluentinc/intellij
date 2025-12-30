@@ -79,6 +79,24 @@ data class ConnectionEvent(
     }
 }
 
+/**
+ * Tracks Confluent Cloud authentication events.
+ *
+ * @param status Authentication status ("signed in", "signed out", "authentication failed")
+ * @param errorType Error type if authentication failed
+ */
+data class CCloudAuthenticationEvent(
+    val status: String,
+    val errorType: String? = null,
+) : TelemetryEvent {
+    override val eventName = "CCloud Authentication"
+
+    override fun properties() = buildMap<String, Any> {
+        put("status", status)
+        errorType?.let { put("errorType", it) }
+    }
+}
+
 // TODO: Define expected properties for all tracked events
 
 object TopicCreateAction : TelemetryEvent {
