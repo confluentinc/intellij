@@ -5,7 +5,7 @@ import com.intellij.openapi.project.Project
 import io.confluent.intellijplugin.rfs.ConfluentDriver.Companion.isCluster
 import io.confluent.intellijplugin.rfs.ConfluentDriver.Companion.isClustersFolder
 import io.confluent.intellijplugin.rfs.ConfluentDriver.Companion.isEnvironment
-import io.confluent.intellijplugin.rfs.ConfluentDriver.Companion.isSchemaRegistriesFolder
+import io.confluent.intellijplugin.rfs.ConfluentDriver.Companion.isSchemaRegistryFolder
 import io.confluent.intellijplugin.rfs.ConfluentDriver.Companion.isSchemaRegistry
 import io.confluent.intellijplugin.rfs.ConfluentDriver.Companion.getEnvironmentId
 import io.confluent.intellijplugin.core.monitoring.rfs.MonitoringRfsTreeNode
@@ -16,7 +16,7 @@ import javax.swing.Icon
  * Custom tree node for Confluent Cloud resources.
  * Provides icons and display text based on the node type:
  * - Environments
- * - Clusters folder / Schema Registries folder
+ * - Clusters folder / Schema Registry folder
  * - Individual Cluster / Schema Registry
  */
 class ConfluentRfsTreeNode(
@@ -41,7 +41,7 @@ class ConfluentRfsTreeNode(
                     ?.displayName ?: envId
             }
             rfsPath.isClustersFolder -> ConfluentDriver.CLUSTERS_FOLDER
-            rfsPath.isSchemaRegistriesFolder -> ConfluentDriver.SCHEMA_REGISTRIES_FOLDER
+            rfsPath.isSchemaRegistryFolder -> ConfluentDriver.SCHEMA_REGISTRY_FOLDER
             rfsPath.isCluster -> {
                 val envId = rfsPath.getEnvironmentId() ?: return rfsPath.name
                 val clusterId = rfsPath.name
@@ -52,7 +52,7 @@ class ConfluentRfsTreeNode(
             rfsPath.isSchemaRegistry -> {
                 val envId = rfsPath.getEnvironmentId() ?: return rfsPath.name
                 val srId = rfsPath.name
-                confluentDriver.dataManager.getSchemaRegistries(envId)
+                confluentDriver.dataManager.getSchemaRegistry(envId)
                     .find { it.id == srId }
                     ?.displayName ?: srId
             }
@@ -63,7 +63,7 @@ class ConfluentRfsTreeNode(
     override fun getIdleIcon(): Icon? = when {
         rfsPath.isEnvironment -> AllIcons.Nodes.Folder
         rfsPath.isClustersFolder -> AllIcons.Nodes.Module
-        rfsPath.isSchemaRegistriesFolder -> AllIcons.Nodes.DataSchema
+        rfsPath.isSchemaRegistryFolder -> AllIcons.Nodes.DataSchema
         rfsPath.isCluster -> AllIcons.Nodes.Module
         rfsPath.isSchemaRegistry -> AllIcons.Nodes.DataSchema
         else -> null
@@ -79,7 +79,7 @@ class ConfluentRfsTreeNode(
         }
         rfsPath.isSchemaRegistry -> {
             val envId = rfsPath.getEnvironmentId() ?: return null
-            val sr = confluentDriver.dataManager.getSchemaRegistries(envId)
+            val sr = confluentDriver.dataManager.getSchemaRegistry(envId)
                 .find { it.id == rfsPath.name }
             sr?.let { "${it.cloudProvider} / ${it.region}" }
         }
