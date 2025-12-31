@@ -137,6 +137,7 @@ dependencies {
     testImplementation(libs.junit.jupiter.params)
     testImplementation(libs.mockito.kotlin)
     testImplementation(libs.mockito.inline)
+    testImplementation(libs.wiremock)
     // JUnit 4 runtime required due to IJPL-159134: JUnit5 Test Framework refers to JUnit4 classes
     // See: https://youtrack.jetbrains.com/issue/IJPL-159134
     testRuntimeOnly(libs.junit4)
