@@ -1,8 +1,8 @@
 package io.confluent.intellijplugin.ccloud.client
 
-import io.confluent.intellijplugin.ccloud.client.CloudRestClient.PageLimits
-import io.confluent.intellijplugin.ccloud.client.CloudRestClient.PageOfResults
-import io.confluent.intellijplugin.ccloud.client.CloudRestClient.PaginationState
+import io.confluent.intellijplugin.ccloud.client.CCloudRestClient.PageLimits
+import io.confluent.intellijplugin.ccloud.client.CCloudRestClient.PageOfResults
+import io.confluent.intellijplugin.ccloud.client.CCloudRestClient.PaginationState
 import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.params.ParameterizedTest

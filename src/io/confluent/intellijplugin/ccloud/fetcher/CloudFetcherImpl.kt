@@ -1,7 +1,7 @@
 package io.confluent.intellijplugin.ccloud.fetcher
 
 import io.confluent.intellijplugin.ccloud.auth.CCloudAuthService
-import io.confluent.intellijplugin.ccloud.client.CloudRestClient
+import io.confluent.intellijplugin.ccloud.client.CCloudRestClient
 import io.confluent.intellijplugin.ccloud.config.CloudConfig
 import io.confluent.intellijplugin.ccloud.model.*
 import io.confluent.intellijplugin.ccloud.model.response.ListEnvironmentsResponse
@@ -11,12 +11,12 @@ import kotlinx.serialization.json.Json
 
 /**
  * Implementation of CloudFetcher that makes REST API calls to Confluent Cloud control plane.
- * Uses OAuth authentication via CCloudAuthService.
+ * Uses control plane OAuth token for resource discovery (environments, clusters, schema registries).
  */
 class CloudFetcherImpl(
     baseUrl: String = CloudConfig.CONTROL_PLANE_BASE_URL,
     private val authService: CCloudAuthService? = null
-) : CloudRestClient(baseUrl), CloudFetcher {
+) : CCloudRestClient(baseUrl), CloudFetcher {
 
     private val json = Json {
         ignoreUnknownKeys = true

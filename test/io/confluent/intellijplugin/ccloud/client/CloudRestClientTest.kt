@@ -5,7 +5,7 @@ import com.github.tomakehurst.wiremock.core.WireMockConfiguration
 import com.github.tomakehurst.wiremock.junit5.WireMockExtension
 import com.intellij.testFramework.junit5.TestApplication
 import io.confluent.intellijplugin.ccloud.auth.CCloudAuthService
-import io.confluent.intellijplugin.ccloud.client.CloudRestClient.PageLimits
+import io.confluent.intellijplugin.ccloud.client.CCloudRestClient.PageLimits
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.*
@@ -151,7 +151,7 @@ class CloudRestClientTest {
             // API returns same URL as next, creating infinite loop
             stubPage(listOf("item1"), "${wireMock.baseUrl()}/api/items")
 
-            val exception = assertThrows<CloudApiException> { fetchItems() }
+            val exception = assertThrows<CCloudApiException> { fetchItems() }
 
             assertTrue(exception.message!!.contains("loop detected"))
         }
@@ -261,19 +261,19 @@ class CloudRestClientTest {
         fun `throws CloudApiException on error`() = runBlocking {
             stubError(403)
 
-            val exception = assertThrows<CloudApiException> { fetchItems() }
+            val exception = assertThrows<CCloudApiException> { fetchItems() }
 
             assertEquals(403, exception.statusCode)
         }
     }
 
     /**
-     * Test implementation of CloudRestClient for testing purposes.
+     * Test implementation of CCloudRestClient for testing purposes.
      */
     private class TestCloudRestClient(
         baseUrl: String,
         private val mockAuthService: CCloudAuthService
-    ) : CloudRestClient(baseUrl) {
+    ) : CCloudRestClient(baseUrl) {
 
         override fun getAuthHeaders(): Map<String, String> {
             if (!mockAuthService.isSignedIn()) {
