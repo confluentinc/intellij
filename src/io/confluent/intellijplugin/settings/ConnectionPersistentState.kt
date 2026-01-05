@@ -10,7 +10,11 @@ import java.io.Serializable
  * User: Dmitry.Naydanov
  * Date: 2019-04-28.
  */
-class ConnectionPersistentState(var connections: List<ExtendedConnectionData> = listOf()) : Serializable
+class ConnectionPersistentState(
+    var connections: List<ExtendedConnectionData> = listOf(),
+    /** Flag to track whether legacy connections have been migrated from bigdataide_settings.xml */
+    var legacyMigrationCompleted: Boolean = false
+) : Serializable
 
 data class ExtendedConnectionData(
     @Deprecated("Not used now")
