@@ -5,10 +5,8 @@
       "Read(**/.env.*)",
       "Write(**/.env)",
       "Write(**/.env.*)",
-      "Read(**/.properties)",
-      "Read(**/.properties.*)",
-      "Write(**/.properties)",
-      "Write(**/.properties.*)"
+      "Read(**/*.properties)",
+      "Write(**/*.properties)"
     ]
   }
 }
