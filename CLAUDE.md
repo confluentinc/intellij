@@ -4,199 +4,147 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is the **Kafka Plugin for JetBrains IDEs** - an IntelliJ platform plugin that enables developers to work with Apache Kafka directly from IntelliJ-based IDEs. The plugin is developed by Confluent.
+**Kafka Plugin for JetBrains IDEs** - IntelliJ platform plugin enabling developers to work with Apache Kafka directly from JetBrains IDEs. Developed by Confluent.
 
-## Build Commands
+- **Plugin ID:** `com.intellij.bigdatatools.kafka`
+- **Target IDE:** IntelliJ IDEA 2025.3+
 
-```bash
-# Build the plugin
-./gradlew build
-
-# Run tests
-./gradlew test
-
-# Run single test class
-./gradlew test --tests "io.confluent.intellijplugin.KafkaMigrationTest"
-
-# Run single test method
-./gradlew test --tests "io.confluent.intellijplugin.KafkaMigrationTest.testMethodName"
-
-# Run IDE with plugin installed (development mode)
-./gradlew runIde
-
-# Build plugin ZIP for distribution
-./gradlew buildPlugin
-```
-
-### Prerequisites
-
-- JDK 21 or later
-- Gradle 8.5 or later
-- Install prerequisites via SDKMAN: `sdk env install`
-
-### Application Secrets (for telemetry/Sentry)
+## Build & Test Commands
 
 ```bash
-vault_login
-. scripts/get-secrets.sh
-./gradlew build
+./gradlew build                    # Build plugin
+./gradlew test                     # Run all tests
+./gradlew test --tests "*.SomeTest"                    # Single class
+./gradlew test --tests "*.SomeTest.methodName"         # Single method
+./gradlew runIde                   # Launch IDE with plugin installed
+./gradlew buildPlugin              # Build distribution ZIP
 ```
 
-## Architecture
+**Prerequisites:** JDK 21+, Gradle 8.5+ (install via `sdk env install`)
 
-### Source Structure
+## Source Structure
 
-All source code is under `src/io/confluent/intellijplugin/`:
+All source code under `src/io/confluent/intellijplugin/`:
 
-- **`core/`** - Core plugin infrastructure
-  - `settings/` - Connection settings UI and management
-  - `rfs/` - Remote File System abstraction for Kafka resources
-  - `monitoring/` - Monitoring and data visualization components
-  - `connection/` - Connection lifecycle, tunneling, exceptions
-  - `ui/` - Shared UI components (choosers, filters)
+| Directory                  | Purpose                                                                      |
+|----------------------------|------------------------------------------------------------------------------|
+| `core/`                    | Plugin infrastructure: settings, RFS (Remote File System), connections, UI  |
+| `client/`                  | Kafka client wrappers (`BdtKafkaAdminClient`, `KafkaClientBuilder`)          |
+| `consumer/`, `producer/`   | Consumer and producer functionality                                          |
+| `registry/`                | Schema Registry integration (Confluent + AWS Glue)                           |
+| `aws/`                     | AWS/MSK integration (IAM auth, SSO, credentials)                             |
+| `ccloud/`                  | Confluent Cloud OAuth authentication                                         |
+| `telemetry/`               | Sentry error reporting + Segment analytics                                   |
 
-- **`client/`** - Kafka client wrappers (`BdtKafkaAdminClient`, `KafkaClientBuilder`)
+**Key files:**
 
-- **`consumer/`** - Consumer functionality (client, editor UI, models)
+- `resources/META-INF/plugin.xml` - Plugin descriptor, extension points, actions
+- `resources/messages/KafkaBundle.properties` - Localized UI strings
 
-- **`producer/`** - Producer functionality (client, editor UI, models)
+**Persisted settings** (stored in IDE config via `@State`/`@Storage`):
 
-- **`registry/`** - Schema Registry integration
-  - `confluent/` - Confluent Schema Registry
-  - `glue/` - AWS Glue Schema Registry
-  - `serde/` - Serializers/deserializers
+| Storage File                              | Purpose                              | Service Class                     |
+|-------------------------------------------|--------------------------------------|-----------------------------------|
+| `confluent_kafka_settings.xml`            | Kafka connection configs             | `Global/LocalConnectionSettings`  |
+| `kafka_plugin_settings.xml`               | Plugin preferences (telemetry, etc.) | `KafkaPluginSettings`             |
+| `confluent-kafka-config-template.xml`     | Consumer/producer run configs        | `KafkaConfigStorage`              |
+| `confluent_kafka_toolwindow.xml`          | Tool window UI state                 | `KafkaToolWindowSettings`         |
+| `confluent_kafka_statistics_settings.xml` | Usage statistics prefs               | `StatisticsSettings`              |
+| `confluent_kafka_kerberos_settings.xml`   | Kerberos auth settings               | `KerberosSettings`                |
 
-- **`aws/`** - AWS integration (MSK IAM auth, SSO, credentials, profiles)
+## IntelliJ Platform Patterns
 
-- **`ccloud/`** - Confluent Cloud integration (OAuth authentication)
+### Services
 
-- **`telemetry/`** - Sentry error reporting and Segment analytics
+```kotlin
+// Project-scoped (one instance per project)
+@Service(Service.Level.PROJECT)
+class MyService {
+    companion object {
+        fun getInstance(project: Project) = project.service<MyService>()
+    }
+}
 
-- **`toolwindow/`** - Main Kafka tool window UI
-
-- **`common/`** - Shared components (editor, settings, models)
-
-- **`spring/`** - Spring Boot Kafka integration
-
-### Key Extension Points
-
-The plugin defines extension point `connectionSettingProvider` in `plugin.xml` for custom connection settings.
+// Application-scoped (singleton)
+@Service(Service.Level.APP)
+class MyAppService {
+    companion object {
+        fun getInstance() = service<MyAppService>()
+    }
+}
+```
 
 ### Generated Configuration
 
 Build generates `SentryConfig.kt` and `SegmentConfig.kt` from environment variables at compile time.
 
+### Persistent State
+
+Use `@State` + `@Storage` for persisted settings (see `core/settings/LocalConnectionSettings.kt`).
+
+### Threading & Coroutines
+
+**Never block EDT.** Use coroutines (preferred for 2024.1+) with proper scopes and dispatchers.
+
+**Coroutine Scopes** - Use service scope injection (never `Application/Project.getCoroutineScope()`):
+
+```kotlin
+@Service(Service.Level.PROJECT)
+class MyService(private val scope: CoroutineScope) {
+    fun doWork() = scope.launch { /* work */ }
+}
+```
+
+**Dispatchers:**
+
+- `Dispatchers.Default` - CPU-bound work
+- `Dispatchers.IO` - File/network I/O (use narrowly, right before actual I/O)
+- `Dispatchers.EDT` - UI updates (prefer over `Dispatchers.Main`)
+
+**Documentation:**
+
+- [Coroutine Scopes](https://plugins.jetbrains.com/docs/intellij/coroutine-scopes.html)
+- [Coroutine Dispatchers](https://plugins.jetbrains.com/docs/intellij/coroutine-dispatchers.html)
+- [Coroutine Read Actions](https://plugins.jetbrains.com/docs/intellij/coroutine-read-actions.html)
+- [EDT and Locks](https://plugins.jetbrains.com/docs/intellij/coroutine-edt-and-locks.html)
+
+### Disposables
+
+Always register disposables with a parent to prevent memory leaks:
+
+```kotlin
+Disposer.register(parentDisposable, myDisposable)
+```
+
 ## Testing
 
-### Framework and Dependencies
-
-- **JUnit 5** (Jupiter) for test execution
-- **mockito-kotlin** for mocking (preferred over plain Mockito)
-- **@TestApplication** annotation required for tests using IntelliJ Platform APIs
-- JUnit 4 runtime included due to IntelliJ Platform compatibility (IJPL-159134)
-
-### Running Tests
-
-```bash
-# Run all tests
-./gradlew test
-
-# Run single test class
-./gradlew test --tests "io.confluent.intellijplugin.TelemetryServiceTest"
-
-# Run single test method
-./gradlew test --tests "io.confluent.intellijplugin.TelemetryServiceTest.sendTrackEvent respects user opt-out"
-
-# Run tests matching pattern
-./gradlew test --tests "*Telemetry*"
-```
-
-### Test Structure
-
-Tests are in `test/io/confluent/intellijplugin/`:
-
-- `KafkaMigrationTest` - Connection migration tests
-- `GenerateRandomDataTest` - Schema data generation (Avro, Protobuf, JSON Schema)
-- `rfs/ConnectionDataTest` - Connection serialization
-- `telemetry/` - Telemetry and action listener tests
-- `ccloud/auth/` - OAuth flow tests
-
-### Writing Tests
-
-**Basic test structure:**
-```kotlin
-@TestApplication  // Required for IntelliJ Platform API access
-class MyServiceTest {
-
-    @BeforeEach
-    fun setUp() {
-        // Initialize test fixtures
-    }
-
-    @AfterEach
-    fun tearDown() {
-        // Cleanup, restore original state
-    }
-
-    @Test
-    fun `descriptive test name with backticks`() {
-        // Test implementation
-    }
-}
-```
-
-**Nested test groups** (organize related tests):
-```kotlin
-@TestApplication
-class TelemetryServiceTest {
-
-    @Nested
-    @DisplayName("sendTrackEvent")
-    inner class SendTrackEvent {
-
-        @BeforeEach
-        fun setUpTrackEvent() {
-            // Setup specific to this group
-        }
-
-        @Test
-        fun `respects user opt-out`() { ... }
-
-        @Test
-        fun `sends events when user opted in`() { ... }
-    }
-}
-```
+- **Framework:** JUnit 5 (Jupiter) + [mockito-kotlin](https://github.com/mockito/mockito-kotlin)
+- **Required:** `@TestApplication` annotation for tests using IntelliJ Platform APIs
+- **Naming:** Use backtick syntax for descriptive names: `` `should do something when condition`() ``
+- **Organization:** Use `@Nested` inner classes to group related tests
+- **Location:** `test/io/confluent/intellijplugin/`
+- **Documentation:** [Testing Plugins](https://plugins.jetbrains.com/docs/intellij/testing-plugins.html)
 
 ### Mocking with mockito-kotlin
 
-**Stubbing pattern:**
+Uses `mockito-kotlin:5.4.0` with Kotlin-friendly DSL:
+
 ```kotlin
-import org.mockito.Mockito.*
-import org.mockito.kotlin.any
-import org.mockito.kotlin.never
+import org.mockito.kotlin.*
 
-private lateinit var mockAnalytics: Analytics
-
-@BeforeEach
-fun setUp() {
-    mockAnalytics = mock(Analytics::class.java)
+// Create mock with inline stubbing
+val mockService = mock<UserService> {
+    on { getUsername() } doReturn "testuser"
+    onBlocking { fetchData() } doReturn data  // for suspend functions
 }
 
-@Test
-fun `example test`() {
-    // Stub behavior
-    doThrow(RuntimeException("Test exception")).`when`(mockAnalytics).enqueue(any())
-
-    // Verify interactions
-    verify(mockAnalytics, times(1)).enqueue(any())
-    verify(mockAnalytics, never()).flush()
-}
+// Verify calls
+verify(mockService, times(1)).getUsername()
+verify(mockService, never()).delete(any())
 ```
 
 ### Test Configuration
 
-System properties can be passed to tests via `build.gradle.kts`:
 ```kotlin
 test {
     useJUnitPlatform()
@@ -204,188 +152,30 @@ test {
 }
 ```
 
-## UI Development (Kotlin UI DSL)
+## UI Development
 
-This plugin uses **Kotlin UI DSL Version 2** (`com.intellij.ui.dsl.builder`) for building UI components.
+Uses [Kotlin UI DSL v2](https://plugins.jetbrains.com/docs/intellij/kotlin-ui-dsl-version-2.html) (`com.intellij.ui.dsl.builder.*`).
 
-### Core Imports
+**Patterns:**
 
-```kotlin
-import com.intellij.ui.dsl.builder.*
-```
+- Structure: `panel { group("Title") { row("Label:") { textField() } } }`
+- Visibility control: `rowsRange { ... }.visible(condition)`
+- Alignment: `cell(component).align(AlignX.FILL).resizableColumn()`
+- Validators: See `core/settings/ValidationUtils.kt`
+- Field wrappers: `core/settings/fields/` (`StringNamedField`, `PasswordNamedField`, `ComboBoxField`)
+- Localized strings: `KafkaMessagesBundle.message("dialog.key")`
 
-### Basic Panel Structure
+## Extension Points
 
-```kotlin
-val myPanel = panel {
-    group("Group Title") {
-        row("Label:") {
-            textField().align(AlignX.FILL)
-        }
-        row {
-            checkBox("Enable feature").bindSelected(settings::enableFeature)
-        }
-    }
-}
-```
+Custom extension point `connectionSettingProvider` defined in `plugin.xml` for pluggable connection settings.
 
-### Key UI DSL Concepts
+## Code Style
 
-**Rows and Cells:**
-```kotlin
-panel {
-    row("Field Label:") {
-        cell(myComponent).align(AlignX.FILL).resizableColumn()
-    }
-    row {
-        label("Status")
-        textField()
-        contextHelp("Help text", "Title")
-    }.layout(RowLayout.PARENT_GRID)
-}
-```
+- Handle exceptions gracefully with user-visible error messages
+- Use `thisLogger()` for logging
 
-**Visibility Control with `rowsRange`:**
-```kotlin
-lateinit var settingsGroup: RowsRange
+## Common Mistakes to Avoid
 
-panel {
-    settingsGroup = rowsRange {
-        row { /* content */ }
-    }
-}
-
-// Later: toggle visibility
-settingsGroup.visible(condition)
-```
-
-**Indentation and Nesting:**
-```kotlin
-panel {
-    row { checkBox("Enable SASL") }
-    indent {
-        row("Username:") { textField() }
-        row("Password:") { passwordField() }
-    }
-}
-```
-
-### Custom UI Extensions
-
-The plugin defines helper extensions in `core/ui/BdtUiDslExtensions.kt`:
-
-```kotlin
-// Add labeled component that fills horizontally
-fun Panel.row(component: WrappedNamedComponent<*>): Row
-
-// Add component that fills both directions
-fun Panel.block(component: JComponent): Row
-```
-
-### Validation Pattern
-
-Validators are defined in `core/settings/ValidationUtils.kt`:
-
-```kotlin
-// Add validator to text field
-myTextField.withValidator(uiDisposable) { text ->
-    if (text.isBlank()) "Field cannot be empty" else null
-}
-
-// Common validators
-field.withNotEmptyValidator(uiDisposable)
-field.withNumberValidator(uiDisposable)
-field.withPortValidator(uiDisposable)
-field.withUrlValidator(uiDisposable)
-field.withEmptyOrFileExistValidator(uiDisposable, canBeEmpty = false)
-```
-
-**Registering validators with ComponentValidator:**
-```kotlin
-val validator = Supplier {
-    if (condition) ValidationInfo("Error message", component) else null
-}
-ComponentValidator(uiDisposable)
-    .withValidator(validator)
-    .andStartOnFocusLost()
-    .installOn(component)
-```
-
-### Settings Configurable Pattern
-
-```kotlin
-class MySettingsConfigurable : SearchableConfigurable {
-    private lateinit var panel: DialogPanel
-
-    override fun createComponent(): JComponent {
-        panel = panel {
-            group("Settings Group") {
-                row {
-                    checkBox("Option").bindSelected(settings::option)
-                }
-            }
-        }
-        return panel
-    }
-
-    override fun isModified(): Boolean = panel.isModified()
-    override fun apply() { panel.apply() }
-    override fun reset() { panel.reset() }
-}
-```
-
-### Dialog Pattern
-
-```kotlin
-val builder = DialogBuilder()
-builder.addOkAction()
-builder.addCancelAction()
-builder.title("Dialog Title")
-
-val centerPanel = panel {
-    row("Name:") {
-        cell(nameField).align(AlignX.FILL).resizableColumn()
-    }
-}
-builder.centerPanel(centerPanel)
-
-if (builder.showAndGet()) {
-    // User clicked OK
-}
-```
-
-### Wrapped Component Pattern
-
-The plugin uses `WrappedNamedComponent<D>` (in `core/settings/fields/`) to bind UI components to connection data:
-
-```kotlin
-class KafkaBrokerSettings(
-    val connectionData: KafkaConnectionData,
-    private val uiDisposable: Disposable,
-    // ...
-) {
-    val propertiesSource = RadioGroupField(
-        KafkaConnectionData::propertySource,
-        KEY,
-        connectionData,
-        KafkaPropertySource.entries
-    ).apply {
-        addItemListener { onUpdatePropertiesSource() }
-    }
-}
-```
-
-### Message Bundles
-
-UI strings come from `messages/KafkaBundle.properties`:
-
-```kotlin
-KafkaMessagesBundle.message("dialog.create.topic.name")
-```
-
-## Plugin Configuration
-
-- **Plugin ID**: `com.intellij.bigdatatools.kafka`
-- **Plugin XML**: `resources/META-INF/plugin.xml`
-- **Message Bundle**: `messages/KafkaBundle`
-- **Target IDE version**: IntelliJ IDEA 2025.3+
+- Blocking EDT with network calls or long computations
+- Holding `Project` references in application-level services
+- Forgetting to dispose resources (listeners, coroutine scopes)
