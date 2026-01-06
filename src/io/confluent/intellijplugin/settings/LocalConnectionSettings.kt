@@ -1,12 +1,20 @@
 package io.confluent.intellijplugin.core.settings
 
+import com.intellij.notification.NotificationAction
+import com.intellij.notification.NotificationGroupManager
+import com.intellij.notification.NotificationType
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.State
 import com.intellij.openapi.components.Storage
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.ui.DialogBuilder
+import com.intellij.ui.dsl.builder.panel
 import io.confluent.intellijplugin.core.settings.connections.ConnectionData
+import io.confluent.intellijplugin.core.util.invokeLater
+import io.confluent.intellijplugin.settings.KafkaUIUtils
+import io.confluent.intellijplugin.util.KafkaMessagesBundle
 
 @Service(Service.Level.PROJECT)
 @State(
@@ -72,15 +80,91 @@ class LocalConnectionSettings(private val project: Project) : ConnectionSettings
                 logger.warn("LocalConnectionSettings: Migration complete. Migrated $migratedCount connections, skipped ${legacyConnections.size - migratedCount} duplicates")
                 legacySettings.markMigrationComplete()
 
-                // Mark migration as complete - this will be persisted when getState() is called
+                // Mark migration as complete, this will be persisted when getState() is called
                 legacyMigrationCompleted = true
+
+                // Show notification to user about migration result
+                showMigrationNotification(migratedCount)
+                migrationNotificationShown = true
             } else {
-                logger.warn("LocalConnectionSettings: No legacy connections found to migrate")
-                // Even if no legacy connections exist, mark as complete so we don't check again
-                legacyMigrationCompleted = true
+                logger.warn("LocalConnectionSettings: No legacy settings file found")
+                // Don't mark migration complete - user might import old settings later
+                // But show notification once with workaround info
+                if (!migrationNotificationShown) {
+                    showNoLegacyNotification()
+                    migrationNotificationShown = true
+                }
             }
         } catch (e: Exception) {
             logger.warn("Failed to migrate legacy local connections", e)
+        }
+    }
+
+    private fun showMigrationNotification(migratedCount: Int) {
+        logger.warn("LocalConnectionSettings: Scheduling migration notification for $migratedCount connections")
+        invokeLater {
+            logger.warn("LocalConnectionSettings: Inside invokeLater, creating notification")
+            try {
+                val notificationGroup = NotificationGroupManager.getInstance()
+                    .getNotificationGroup("kafka")
+                logger.warn("LocalConnectionSettings: Got notification group: $notificationGroup")
+
+                val notification = notificationGroup.createNotification(
+                    KafkaMessagesBundle.message("migration.notification.title"),
+                    KafkaMessagesBundle.message("migration.notification.content", migratedCount),
+                    NotificationType.INFORMATION
+                )
+
+                notification.addAction(
+                    NotificationAction.create(KafkaMessagesBundle.message("migration.notification.multiversion.title")) { _, _ ->
+                        KafkaUIUtils.showMultiVersionInfoDialog()
+                        notification.expire()
+                    }
+                )
+
+                if (!project.isDisposed) {
+                    logger.warn("LocalConnectionSettings: Showing notification in project: ${project.name}")
+                    notification.notify(project)
+                    logger.warn("LocalConnectionSettings: Migration notification displayed successfully")
+                } else {
+                    logger.warn("LocalConnectionSettings: Project is disposed, cannot show notification")
+                }
+            } catch (e: Exception) {
+                logger.error("LocalConnectionSettings: Failed to show migration notification", e)
+            }
+        }
+    }
+
+    private fun showNoLegacyNotification() {
+        logger.warn("LocalConnectionSettings: Scheduling no-legacy notification")
+        invokeLater {
+            logger.warn("LocalConnectionSettings: Inside invokeLater, creating no-legacy notification")
+            try {
+                val notificationGroup = NotificationGroupManager.getInstance()
+                    .getNotificationGroup("kafka")
+
+                val notification = notificationGroup.createNotification(
+                    KafkaMessagesBundle.message("migration.notification.no.legacy.title"),
+                    KafkaMessagesBundle.message("migration.notification.no.legacy.content"),
+                    NotificationType.INFORMATION
+                )
+
+                notification.addAction(
+                    NotificationAction.create(KafkaMessagesBundle.message("migration.notification.multiversion.title")) { _, _ ->
+                        KafkaUIUtils.showMultiVersionInfoDialog()
+                        notification.expire()
+                    }
+                )
+
+                if (!project.isDisposed) {
+                    notification.notify(project)
+                    logger.warn("LocalConnectionSettings: No-legacy notification displayed successfully")
+                } else {
+                    logger.warn("LocalConnectionSettings: Project is disposed, cannot show notification")
+                }
+            } catch (e: Exception) {
+                logger.error("LocalConnectionSettings: Failed to show no-legacy notification", e)
+            }
         }
     }
 }

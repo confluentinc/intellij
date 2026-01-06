@@ -301,18 +301,23 @@ abstract class ConnectionSettingsBase : PersistentStateComponent<ConnectionPersi
     // Tracks whether legacy migration from bigdataide_settings.xml has been completed
     protected var legacyMigrationCompleted: Boolean = false
 
+    // Tracks whether the migration confirmation was displayed to user (should only be shown once at startup when attempting to migrate old saved connections)
+    protected var migrationNotificationShown: Boolean = false
+
     override fun getState(): ConnectionPersistentState? = synchronized(this) {
         ConnectionPersistentState(
             connections = connections.map { packData(it) },
-            legacyMigrationCompleted = legacyMigrationCompleted
+            legacyMigrationCompleted = legacyMigrationCompleted,
+            migrationNotificationShown = migrationNotificationShown
         )
     }
 
     protected open fun unpackData(conn: ConnectionData): ConnectionData = ConnectionSettingsBase.unpackData(conn)
 
     override fun loadState(state: ConnectionPersistentState) = synchronized(this) {
-        // Load the migration flag
+        // Load the migration flags
         legacyMigrationCompleted = state.legacyMigrationCompleted
+        migrationNotificationShown = state.migrationNotificationShown
 
         val errorHandler = BufferingErrorHandler()
         val connectionData = state.connections.filter { it.connType != null }.map { unpackData(it, errorHandler) }
@@ -327,7 +332,6 @@ abstract class ConnectionSettingsBase : PersistentStateComponent<ConnectionPersi
                         t
                     ), it
                 )
-                //thisLogger().error("Migration connection settings failed. Conn name: ${it.name}, id: ${it.innerId}", t)
             }
         }
 
