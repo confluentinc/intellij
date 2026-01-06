@@ -1,7 +1,7 @@
 package io.confluent.intellijplugin.core.settings
 
 import com.intellij.openapi.components.*
-import com.intellij.openapi.diagnostic.Logger
+import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.project.Project
 
 /**
@@ -18,7 +18,7 @@ import com.intellij.openapi.project.Project
 @Service
 class LegacyGlobalConnectionSettings : PersistentStateComponent<ConnectionPersistentState> {
     companion object {
-        private val logger = Logger.getInstance(LegacyGlobalConnectionSettings::class.java)
+        private val logger = thisLogger()
         fun getInstance(): LegacyGlobalConnectionSettings = service()
     }
 
@@ -28,9 +28,9 @@ class LegacyGlobalConnectionSettings : PersistentStateComponent<ConnectionPersis
     override fun getState(): ConnectionPersistentState? = null // Never save, read-only
 
     override fun loadState(state: ConnectionPersistentState) {
-        logger.warn("LegacyGlobalConnectionSettings: Found ${state.connections.size} legacy connections")
+        logger.debug("Found ${state.connections.size} global legacy connections")
         state.connections.forEach { conn ->
-            logger.warn("[LEGACY-GLOBAL] innerId=${conn.innerId}, name=${conn.name}, groupId=${conn.groupId}, fqn=${conn.fqn}")
+            logger.debug("innerId=${conn.innerId}, name=${conn.name}, groupId=${conn.groupId}, fqn=${conn.fqn}")
         }
         legacyState = state
     }
@@ -52,7 +52,7 @@ class LegacyGlobalConnectionSettings : PersistentStateComponent<ConnectionPersis
  * Reads from the old BigDataTools plugin state name: "BigDataIdeConnectionSettings"
  * stored in "bigdataide_settings.xml".
  *
- * This is used for migration purposes only - connections are read once and merged
+ * This is used for migration purposes only, connections are read once and merged
  * into the new ConfluentIntellijKafkaLocalSettings.
  */
 @State(
@@ -62,7 +62,7 @@ class LegacyGlobalConnectionSettings : PersistentStateComponent<ConnectionPersis
 @Service(Service.Level.PROJECT)
 class LegacyLocalConnectionSettings : PersistentStateComponent<ConnectionPersistentState> {
     companion object {
-        private val logger = Logger.getInstance(LegacyLocalConnectionSettings::class.java)
+        private val logger = thisLogger()
         fun getInstance(project: Project): LegacyLocalConnectionSettings = project.service()
     }
 
@@ -72,9 +72,9 @@ class LegacyLocalConnectionSettings : PersistentStateComponent<ConnectionPersist
     override fun getState(): ConnectionPersistentState? = null // Never save, read-only
 
     override fun loadState(state: ConnectionPersistentState) {
-        logger.warn("LegacyLocalConnectionSettings: Found ${state.connections.size} legacy connections")
+        logger.debug("Found ${state.connections.size} local legacy connections")
         state.connections.forEach { conn ->
-            logger.warn("[LEGACY-LOCAL] innerId=${conn.innerId}, name=${conn.name}, groupId=${conn.groupId}, fqn=${conn.fqn}")
+            logger.debug("innerId=${conn.innerId}, name=${conn.name}, groupId=${conn.groupId}, fqn=${conn.fqn}")
         }
         legacyState = state
     }
