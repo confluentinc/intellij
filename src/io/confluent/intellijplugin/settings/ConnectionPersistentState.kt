@@ -12,8 +12,10 @@ import java.io.Serializable
  */
 class ConnectionPersistentState(
     var connections: List<ExtendedConnectionData> = listOf(),
-    /** Flag to track whether legacy connections have been migrated from bigdataide_settings.xml */
-    var legacyMigrationCompleted: Boolean = false
+    // Flag to track whether legacy connections have been migrated from bigdataide_settings.xml
+    var legacyMigrationCompleted: Boolean = false,
+    // Flag to track whether the migration notification has been shown to the user
+    var migrationNotificationShown: Boolean = false
 ) : Serializable
 
 data class ExtendedConnectionData(
