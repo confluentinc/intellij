@@ -103,7 +103,7 @@ class LocalConnectionSettings(private val project: Project) : ConnectionSettings
                     .getNotificationGroup("kafka")
 
                 val notification = notificationGroup.createNotification(
-                    KafkaMessagesBundle.message("migration.notification.title"),
+                    KafkaMessagesBundle.message("migration.notification.title.project"),
                     KafkaMessagesBundle.message("migration.notification.content", migratedCount),
                     NotificationType.INFORMATION
                 )
