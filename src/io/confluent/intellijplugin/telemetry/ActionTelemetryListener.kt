@@ -26,14 +26,12 @@ class ActionTelemetryListener : AnActionListener {
         }
 
         try {
-            var name = normalizeActionName(registeredActionId?: actionClassName)
             logUsage(ActionInvokedEvent(
                 actionName = normalizeActionName(registeredActionId?: actionClassName),
                 actionClassName = actionClassName,
                 registeredActionId = registeredActionId,
                 invokedPlace = event.place
             ))
-            logger.warn("Tracked action: $name")
         } catch (e: Exception) {
             logger.debug("Failed to track action: $actionIdOrClass", e)
         }
