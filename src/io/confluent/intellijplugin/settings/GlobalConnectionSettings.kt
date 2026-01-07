@@ -116,13 +116,6 @@ class GlobalConnectionSettings : ConnectionSettingsBase() {
                     NotificationType.INFORMATION
                 )
 
-                notification.addAction(
-                    NotificationAction.create(KafkaMessagesBundle.message("migration.notification.multiversion.title")) { _, _ ->
-                        KafkaUIUtils.showMultiVersionInfoDialog()
-                        notification.expire()
-                    }
-                )
-
                 // Show notification in all open projects, or without project context if none are open
                 val openProjects = ProjectManager.getInstance().openProjects
 

@@ -1,6 +1,5 @@
 package io.confluent.intellijplugin.core.settings
 
-import com.intellij.notification.NotificationAction
 import com.intellij.notification.NotificationGroupManager
 import com.intellij.notification.NotificationType
 import com.intellij.openapi.components.Service
@@ -11,7 +10,6 @@ import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.project.Project
 import io.confluent.intellijplugin.core.settings.connections.ConnectionData
 import io.confluent.intellijplugin.core.util.invokeLater
-import io.confluent.intellijplugin.settings.KafkaUIUtils
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
 
 @Service(Service.Level.PROJECT)
@@ -106,13 +104,6 @@ class LocalConnectionSettings(private val project: Project) : ConnectionSettings
                     KafkaMessagesBundle.message("migration.notification.title.project"),
                     KafkaMessagesBundle.message("migration.notification.content", migratedCount),
                     NotificationType.INFORMATION
-                )
-
-                notification.addAction(
-                    NotificationAction.create(KafkaMessagesBundle.message("migration.notification.multiversion.title")) { _, _ ->
-                        KafkaUIUtils.showMultiVersionInfoDialog()
-                        notification.expire()
-                    }
                 )
 
                 if (!project.isDisposed) {
