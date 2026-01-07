@@ -118,5 +118,4 @@ class LocalConnectionSettings(private val project: Project) : ConnectionSettings
             }
         }
     }
-
 }
