@@ -51,5 +51,3 @@ class LegacyLocalConnectionSettings : PersistentStateComponent<ConnectionPersist
 
     fun isMigrationNeeded(): Boolean = !migrationComplete && legacyState != null
 }
-
-
