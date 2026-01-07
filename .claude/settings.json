@@ -5,8 +5,8 @@
       "Read(**/.env.*)",
       "Write(**/.env)",
       "Write(**/.env.*)",
-      "Read(**/*.properties)",
-      "Write(**/*.properties)"
+      "Read(**/gradle.properties)",
+      "Write(**/gradle.properties)"
     ]
   }
 }
