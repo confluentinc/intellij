@@ -6,6 +6,7 @@ import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.DialogBuilder
 import com.intellij.openapi.util.NlsSafe
 import com.intellij.openapi.util.use
+import com.intellij.ui.dsl.builder.panel
 import com.intellij.util.ui.UI
 import io.confluent.intellijplugin.aws.ui.external.AwsSettingsInfo
 import io.confluent.intellijplugin.core.ui.CustomListCellRenderer
@@ -52,4 +53,18 @@ object KafkaUIUtils {
         }
     }
 
+    fun showMultiVersionInfoDialog() {
+        val builder = DialogBuilder()
+        builder.setTitle(KafkaMessagesBundle.message("migration.notification.multiversion.title"))
+
+        val centerPanel = panel {
+            row {
+                text(KafkaMessagesBundle.message("migration.notification.multiversion.content"))
+            }
+        }
+
+        builder.setCenterPanel(centerPanel)
+        builder.addOkAction()
+        builder.show()
+    }
 }
