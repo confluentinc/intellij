@@ -79,6 +79,28 @@ abstract class ConnectionSettingsBase : PersistentStateComponent<ConnectionPersi
                 "com.jetbrains.bigdatatools.connection.tunnel.model.ConnectionSshTunnelDataLegacy",
                 "io.confluent.intellijplugin.core.connection.tunnel.model.ConnectionSshTunnelDataLegacy"
             ),
+            // Legacy Kafka connection data class migration
+            Pair(
+                "com.jetbrains.bigdatatools.kafka.rfs.KafkaConnectionData",
+                "io.confluent.intellijplugin.rfs.KafkaConnectionData"
+            ),
+            // Legacy Kafka enum migrations (used in extended properties)
+            Pair(
+                "com.jetbrains.bigdatatools.kafka.rfs.KafkaCloudType",
+                "io.confluent.intellijplugin.rfs.KafkaCloudType"
+            ),
+            Pair(
+                "com.jetbrains.bigdatatools.kafka.rfs.KafkaConfigurationSource",
+                "io.confluent.intellijplugin.rfs.KafkaConfigurationSource"
+            ),
+            Pair(
+                "com.jetbrains.bigdatatools.kafka.rfs.KafkaPropertySource",
+                "io.confluent.intellijplugin.rfs.KafkaPropertySource"
+            ),
+            Pair(
+                "com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryType",
+                "io.confluent.intellijplugin.registry.KafkaRegistryType"
+            ),
         )
 
         fun findPluginByClassName(conn: ExtendedConnectionData): PluginId? {
@@ -276,13 +298,27 @@ abstract class ConnectionSettingsBase : PersistentStateComponent<ConnectionPersi
 
     private var connections = mutableListOf<ConnectionData>()
 
+    // Tracks whether legacy migration from bigdataide_settings.xml has been completed
+    protected var legacyMigrationCompleted: Boolean = false
+
+    // Tracks whether the migration confirmation was displayed to user (should only be shown once at startup when attempting to migrate old saved connections)
+    protected var migrationNotificationShown: Boolean = false
+
     override fun getState(): ConnectionPersistentState? = synchronized(this) {
-        ConnectionPersistentState(connections.map { packData(it) })
+        ConnectionPersistentState(
+            connections = connections.map { packData(it) },
+            legacyMigrationCompleted = legacyMigrationCompleted,
+            migrationNotificationShown = migrationNotificationShown
+        )
     }
 
     protected open fun unpackData(conn: ConnectionData): ConnectionData = ConnectionSettingsBase.unpackData(conn)
 
     override fun loadState(state: ConnectionPersistentState) = synchronized(this) {
+        // Load the migration flags
+        legacyMigrationCompleted = state.legacyMigrationCompleted
+        migrationNotificationShown = state.migrationNotificationShown
+
         val errorHandler = BufferingErrorHandler()
         val connectionData = state.connections.filter { it.connType != null }.map { unpackData(it, errorHandler) }
 
@@ -296,7 +332,6 @@ abstract class ConnectionSettingsBase : PersistentStateComponent<ConnectionPersi
                         t
                     ), it
                 )
-                //thisLogger().error("Migration connection settings failed. Conn name: ${it.name}, id: ${it.innerId}", t)
             }
         }
 
