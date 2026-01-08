@@ -64,13 +64,18 @@ class GlobalConnectionSettings : ConnectionSettingsBase() {
 
     private fun migrateLegacyConnections() {
         try {
-            // Get legacy connections - handling the case where BDT plugin might be installed
+            // Get legacy connections, handling the case where BDT plugin might be installed
             // If BDT is installed, its GlobalConnectionSettings is already registered with the same
             // component name "BigDataIdeGlobalConnectionSettings", so we access it directly to avoid conflicts
-            val legacyResult = getLegacyConnectionsAvoidingConflict()
+            val legacyConnections = if (BdtPlugins.isFullPluginInstalled()) {
+                logger.info("Big Data Tools plugin is installed, accessing its GlobalConnectionSettings directly")
+                getConnectionsFromBdtService()
+            } else {
+                // Fallback to creating a new service that access the same "BigDataIdeGlobalConnectionSettings" component
+                LegacyGlobalConnectionSettings.getInstance().getLegacyConnections()
+            }
 
-            if (legacyResult != null && legacyResult.connections.isNotEmpty()) {
-                val legacyConnections = legacyResult.connections
+            if (legacyConnections.isNotEmpty()) {
                 logger.info("Migrating ${legacyConnections.size} legacy connections from BigDataIdeGlobalConnectionSettings")
 
                 val existingIds = getConnections().map { it.innerId }.toSet()
@@ -78,17 +83,15 @@ class GlobalConnectionSettings : ConnectionSettingsBase() {
 
                 legacyConnections.forEach { legacyConn ->
                     if (legacyConn.innerId !in existingIds) {
-                        logger.info("[MIGRATING] innerId=${legacyConn.innerId}, name=${legacyConn.name}, groupId=${legacyConn.groupId}")
+                        logger.debug("[MIGRATING] innerId=${legacyConn.innerId}, name=${legacyConn.name}, groupId=${legacyConn.groupId}")
                         addConnection(unpackData(legacyConn))
                         migratedCount++
                     } else {
-                        logger.info("[SKIPPING-DUPLICATE] innerId=${legacyConn.innerId}, name=${legacyConn.name} already exists")
+                        logger.debug("[SKIPPING-DUPLICATE] innerId=${legacyConn.innerId}, name=${legacyConn.name} already exists")
                     }
                 }
 
                 logger.info("Migration complete. Migrated $migratedCount connections, skipped ${legacyConnections.size - migratedCount} duplicates")
-                legacyResult.markComplete?.invoke()
-
                 // Mark migration as complete, this will be persisted when getState() is called
                 legacyMigrationCompleted = true
 
@@ -108,48 +111,24 @@ class GlobalConnectionSettings : ConnectionSettingsBase() {
             logger.warn("Failed to migrate legacy global connections", e)
         }
     }
-
-    private data class LegacyConnectionsResult(
-        val connections: List<ExtendedConnectionData>,
-        val markComplete: (() -> Unit)?
-    )
-
-    /**
-     * Gets legacy connections, handling the case where Big Data Tools plugin might be installed.
-     *
-     * When BDT is installed, its GlobalConnectionSettings is already registered with the component
-     * name "BigDataIdeGlobalConnectionSettings". If we try to register our LegacyGlobalConnectionSettings
-     * with the same name, IntelliJ throws a conflict error. To avoid this, we access BDT's service
-     * directly via reflection when BDT is installed.
-     */
-    private fun getLegacyConnectionsAvoidingConflict(): LegacyConnectionsResult? {
-        return if (BdtPlugins.isFullPluginInstalled()) {
-            logger.info("Big Data Tools plugin is installed, accessing its GlobalConnectionSettings directly")
-            getConnectionsFromBdtService()
-        } else {
-            // BDT not installed, safe to use our LegacyGlobalConnectionSettings
-            getConnectionsFromOurLegacyService()
-        }
-    }
-
     /**
      * Uses reflection to access Big Data Tools plugin's GlobalConnectionSettings service.
      * This avoids the component name conflict by reading from BDT's already-registered component.
+     * by reading from BDT's already-registered component.
      *
-     * Since our plugin took over the BDT Kafka plugin with identical data structures (just different
-     * namespace), we serialize BDT's state to XML and deserialize as our type. The existing RENAME_MAP
-     * in ConnectionSettingsBase handles class name translation during deserialization.
+     * When BDT is installed, its GlobalConnectionSettings is already registered with the component
+     * name "BigDataIdeConnectionSettings". If we try to register our LegacyLocalConnectionSettings
+     * with the same name, IntelliJ throws a conflict error.
      */
-    private fun getConnectionsFromBdtService(): LegacyConnectionsResult? {
+    private fun getConnectionsFromBdtService(): List<ExtendedConnectionData> {
         return try {
-            // Get BDT plugin's classloader to load its classes
             val bdtPluginId = PluginId.findId(BdtPlugins.FULL_ID)
             val bdtPlugin = bdtPluginId?.let { PluginManagerCore.getPlugin(it) }
             val bdtClassLoader = bdtPlugin?.pluginClassLoader
 
             if (bdtClassLoader == null) {
                 logger.warn("Could not get Big Data Tools plugin classloader")
-                return null
+                return emptyList()
             }
 
             val bdtClass = bdtClassLoader.loadClass("com.jetbrains.bigdatatools.common.settings.GlobalConnectionSettings")
@@ -158,57 +137,30 @@ class GlobalConnectionSettings : ConnectionSettingsBase() {
             if (bdtService != null) {
                 // Call getState() to get the persisted state
                 val getStateMethod = bdtClass.getMethod("getState")
-                val bdtState = getStateMethod.invoke(bdtService)
-
-                if (bdtState == null) {
-                    logger.info("BDT GlobalConnectionSettings.getState() returned null")
-                    return null
-                }
+                val bdtState = getStateMethod.invoke(bdtService) ?: return emptyList()
 
                 // Serialize BDT's state to XML and deserialize as our ConnectionPersistentState
                 // This leverages the existing RENAME_MAP to handle class name translation
                 val xmlElement = XmlSerializer.serialize(bdtState)
-                logger.info("Serialized BDT state to XML: ${xmlElement}")
+                logger.debug("Serialized BDT state to XML: ${xmlElement}")
 
                 val ourState = XmlSerializer.deserialize(xmlElement, ConnectionPersistentState::class.java)
                 logger.info("Deserialized ${ourState.connections.size} connections from BDT")
-
-                if (ourState.connections.isEmpty()) {
-                    logger.info("No connections found in BDT GlobalConnectionSettings")
-                    return null
-                }
-
-                LegacyConnectionsResult(ourState.connections, null) // No markComplete needed for BDT
+                ourState.connections
             } else {
                 logger.warn("Could not get Big Data Tools GlobalConnectionSettings service instance")
-                null
+                emptyList()
             }
         } catch (e: Exception) {
             logger.warn("Could not access Big Data Tools GlobalConnectionSettings", e)
-            null
-        }
-    }
-
-    /**
-     * Gets connections from our LegacyGlobalConnectionSettings.
-     * Only called when BDT is NOT installed, so no conflict will occur.
-     */
-    private fun getConnectionsFromOurLegacyService(): LegacyConnectionsResult? {
-        val legacySettings = LegacyGlobalConnectionSettings.getInstance()
-        return if (legacySettings.isMigrationNeeded()) {
-            LegacyConnectionsResult(
-                connections = legacySettings.getLegacyConnections(),
-                markComplete = { legacySettings.markMigrationComplete() }
-            )
-        } else {
-            null
+            emptyList()
         }
     }
 
     private fun showMigrationNotification(migratedCount: Int) {
-        logger.info("Scheduling migration notification for $migratedCount connections")
+        logger.debug("Scheduling migration notification for $migratedCount connections")
         invokeLater {
-            logger.info("Creating notification")
+            logger.debug("Creating notification")
             try {
                 val notificationGroup = NotificationGroupManager.getInstance()
                     .getNotificationGroup("kafka")
@@ -225,15 +177,15 @@ class GlobalConnectionSettings : ConnectionSettingsBase() {
                 if (openProjects.isNotEmpty()) {
                     openProjects.forEach { project ->
                         if (!project.isDisposed) {
-                            logger.info("Showing notification in project: ${project.name}")
+                            logger.debug("Showing notification in project: ${project.name}")
                             notification.notify(project)
                         }
                     }
                 } else {
-                    logger.info("No open projects, showing notification without project context")
+                    logger.debug("No open projects, showing notification without project context")
                     notification.notify(null)
                 }
-                logger.info("Migration notification displayed successfully")
+                logger.debug("Migration notification displayed successfully")
             } catch (e: Exception) {
                 logger.warn("Failed to show migration notification", e)
             }
@@ -241,9 +193,9 @@ class GlobalConnectionSettings : ConnectionSettingsBase() {
     }
 
     private fun showNoLegacyNotification() {
-        logger.info("Scheduling no-legacy notification")
+        logger.debug("Scheduling no-legacy notification")
         invokeLater {
-            logger.info("Creating no-legacy notification")
+            logger.debug("Creating no-legacy notification")
             try {
                 val notificationGroup = NotificationGroupManager.getInstance()
                     .getNotificationGroup("kafka")
@@ -272,7 +224,7 @@ class GlobalConnectionSettings : ConnectionSettingsBase() {
                 } else {
                     notification.notify(null)
                 }
-                logger.info("No-legacy notification displayed successfully")
+                logger.debug("No-legacy notification displayed successfully")
             } catch (e: Exception) {
                 logger.warn("Failed to show no-legacy notification", e)
             }
