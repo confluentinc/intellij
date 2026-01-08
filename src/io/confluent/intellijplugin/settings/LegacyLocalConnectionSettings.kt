@@ -17,6 +17,7 @@ import com.intellij.openapi.project.Project
  * into the new ConfluentIntellijKafkaLocalSettings.
  */
 @State(
+
     name = "BigDataIdeConnectionSettings",
     storages = [Storage("bigdataide_settings.xml")]
 )
