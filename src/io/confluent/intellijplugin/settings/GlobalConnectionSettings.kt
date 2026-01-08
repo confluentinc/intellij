@@ -112,12 +112,11 @@ class GlobalConnectionSettings : ConnectionSettingsBase() {
         }
     }
     /**
-     * Uses reflection to access Big Data Tools plugin's GlobalConnectionSettings service.
+     * Access Big Data Tools plugin's GlobalConnectionSettings service.
      * This avoids the component name conflict by reading from BDT's already-registered component.
-     * by reading from BDT's already-registered component.
      *
      * When BDT is installed, its GlobalConnectionSettings is already registered with the component
-     * name "BigDataIdeConnectionSettings". If we try to register our LegacyLocalConnectionSettings
+     * name "BigDataIdeGlobalConnectionSettings". If we try to register our LegacyGlobalConnectionSettings
      * with the same name, IntelliJ throws a conflict error.
      */
     private fun getConnectionsFromBdtService(): List<ExtendedConnectionData> {
