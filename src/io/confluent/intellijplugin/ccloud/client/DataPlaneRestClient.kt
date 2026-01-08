@@ -10,15 +10,13 @@ import io.confluent.intellijplugin.ccloud.auth.CCloudAuthService
  * - Kafka REST API v3: List/describe topics, configs (no extra headers)
  * - Schema Registry API v1: Subjects, schemas (requires "target-sr-cluster" header)
  *
- * Note: For produce/consume, use native Kafka protocol via KafkaClient.
- *
  * @param baseUrl Cluster REST endpoint (e.g., https://pkc-xxx.region.cloud)
  * @param additionalHeaders Extra headers (e.g., "target-sr-cluster" for SR)
  */
 class DataPlaneRestClient(
     baseUrl: String,
     private val additionalHeaders: Map<String, String> = emptyMap()
-) : CCloudRestClient(baseUrl) {
+) : ControlPlaneRestClient(baseUrl) {
 
     /**
      * Get authentication headers with data plane OAuth token.
