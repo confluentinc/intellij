@@ -176,7 +176,7 @@ class CCloudOAuthContextTest {
         }
 
         @Test
-        fun `code challenge should be derived from code verifier`() {
+        fun `code challenge should be non-empty and different from code verifier`() {
             assertTrue(context.codeChallenge.isNotEmpty())
             assertNotEquals(context.codeVerifier, context.codeChallenge)
         }
@@ -266,6 +266,21 @@ class CCloudOAuthContextTest {
             }
 
             assertFalse(context.hasReachedEndOfLifetime())
+        }
+
+        @Test
+        fun `should return true if end of lifetime has been reached`() {
+            // Set absolute lifetime to 0 seconds so it expires immediately
+            System.setProperty("ccloud.refresh-token.absolute-lifetime-seconds", "0")
+            try {
+                runBlocking {
+                    context.createTokensFromAuthorizationCode(MOCK_AUTH_CODE, MOCK_ORG_ID)
+                }
+
+                assertTrue(context.hasReachedEndOfLifetime())
+            } finally {
+                System.clearProperty("ccloud.refresh-token.absolute-lifetime-seconds")
+            }
         }
     }
 
@@ -499,6 +514,28 @@ class CCloudOAuthContextTest {
 
         @Test
         fun `should reset failed attempts counter on success`() {
+            // Cause some failed attempts
+            wireMockServer.stubFor(
+                WireMock.post("/oauth/token")
+                    .willReturn(
+                        WireMock.aResponse()
+                            .withStatus(200)
+                            .withHeader("Content-Type", "application/json")
+                            .withBody("""{"error": "invalid_grant", "error_description": "Refresh token expired"}""")
+                    ).atPriority(1)
+            )
+
+            runBlocking {
+                context.refresh(MOCK_ORG_ID)
+                context.refresh(MOCK_ORG_ID)
+            }
+
+            assertEquals(2, context.getFailedTokenRefreshAttempts())
+
+            // Restore the successful stub and verify counter resets
+            wireMockServer.resetAll()
+            registerWireMockRoutesForCCloudOAuth()
+
             val result = runBlocking {
                 context.refresh(MOCK_ORG_ID)
             }

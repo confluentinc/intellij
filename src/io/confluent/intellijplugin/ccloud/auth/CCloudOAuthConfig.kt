@@ -73,7 +73,9 @@ object CCloudOAuthConfig {
         get() = System.getProperty("ccloud.data-plane.token-exchange-uri") ?: "https://$basePath/api/access_tokens"
 
     // Other
-    val CCLOUD_REFRESH_TOKEN_ABSOLUTE_LIFETIME: Duration = 8.hours
+    val CCLOUD_REFRESH_TOKEN_ABSOLUTE_LIFETIME: Duration
+        get() = System.getProperty("ccloud.refresh-token.absolute-lifetime-seconds")
+            ?.toLongOrNull()?.seconds ?: 8.hours
     val CHECK_TOKEN_EXPIRATION_INTERVAL: Duration = 5.seconds
     const val MAX_TOKEN_REFRESH_ATTEMPTS = 50
 
