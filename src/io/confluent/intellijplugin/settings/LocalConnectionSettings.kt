@@ -8,6 +8,7 @@ import com.intellij.openapi.components.Storage
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.project.Project
+import io.confluent.intellijplugin.core.constants.BdtPlugins
 import io.confluent.intellijplugin.core.settings.connections.ConnectionData
 import io.confluent.intellijplugin.core.util.invokeLater
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
@@ -31,14 +32,14 @@ class LocalConnectionSettings(private val project: Project) : ConnectionSettings
     }
 
     override fun loadState(state: ConnectionPersistentState) {
-        logger.debug("Loading state with ${state.connections.size} connections, legacyMigrationCompleted=${state.legacyMigrationCompleted}")
+        logger.info("Loading state with ${state.connections.size} connections, legacyMigrationCompleted=${state.legacyMigrationCompleted}")
         super.loadState(state)
 
         // Only attempt migration if not already completed
         if (!legacyMigrationCompleted) {
             migrateLegacyConnections()
         } else {
-            logger.debug("Legacy migration already completed, skipping")
+            logger.info("Legacy migration already completed, skipping")
         }
     }
 
@@ -47,18 +48,30 @@ class LocalConnectionSettings(private val project: Project) : ConnectionSettings
      * This is where we check for and migrate legacy connections.
      */
     override fun noStateLoaded() {
-        logger.debug("No state file found, checking for legacy connections...")
+        logger.info("No state file found, checking for legacy connections...")
         super.noStateLoaded()
         migrateLegacyConnections()
     }
 
     private fun migrateLegacyConnections() {
         try {
-            val legacySettings = LegacyLocalConnectionSettings.getInstance(project)
+            // Access Big Data Tools plugin's LocalConnectionSettings service.
+            // This avoids the component name conflict by reading from BDT's already-registered component.
+            // When BDT is installed, its LocalConnectionSettings is already registered with the component
+            // name "BigDataIdeConnectionSettings". If we try to register our LegacyLocalConnectionSettings
+            // with the same name, IntelliJ throws a conflict error.
+            val legacyConnections = if (BdtPlugins.isCorePluginInstalled()) {
+                logger.info("Big Data Tools plugin is installed, accessing its LocalConnectionSettings directly")
+                getConnectionsFromBdtService(
+                    bdtClassName = "com.jetbrains.bigdatatools.common.settings.LocalConnectionSettings",
+                    serviceProvider = { bdtClass -> project.getService(bdtClass) }
+                )
+            } else {
+                LegacyLocalConnectionSettings.getInstance(project).getLegacyConnections()
+            }
 
-            if (legacySettings.isMigrationNeeded()) {
-                val legacyConnections = legacySettings.getLegacyConnections()
-                logger.debug("Migrating ${legacyConnections.size} legacy connections from BigDataIdeConnectionSettings")
+            if (legacyConnections.isNotEmpty()) {
+                logger.info("Migrating ${legacyConnections.size} legacy connections from BigDataIdeConnectionSettings")
 
                 val existingIds = getConnections().map { it.innerId }.toSet()
                 var migratedCount = 0
@@ -73,9 +86,7 @@ class LocalConnectionSettings(private val project: Project) : ConnectionSettings
                     }
                 }
 
-                logger.debug("Migration complete. Migrated $migratedCount connections, skipped ${legacyConnections.size - migratedCount} duplicates")
-                legacySettings.markMigrationComplete()
-
+                logger.info("Migration complete. Migrated $migratedCount connections, skipped ${legacyConnections.size - migratedCount} duplicates")
                 // Mark migration as complete, this will be persisted when getState() is called
                 legacyMigrationCompleted = true
 
@@ -83,10 +94,11 @@ class LocalConnectionSettings(private val project: Project) : ConnectionSettings
                 showMigrationNotification(migratedCount)
                 migrationNotificationShown = true
             } else {
-                logger.debug("No legacy settings file found")
+                logger.info("No legacy settings file found")
                 // For local/per-project settings, no notification needed since they travel with the project
                 // and the export/import workaround doesn't apply to them
             }
+
         } catch (e: Exception) {
             logger.warn("Failed to migrate legacy local connections", e)
         }
