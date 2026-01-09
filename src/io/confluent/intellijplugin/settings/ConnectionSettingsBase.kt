@@ -329,7 +329,7 @@ abstract class ConnectionSettingsBase : PersistentStateComponent<ConnectionPersi
         serviceProvider: (Class<*>) -> Any?
     ): List<ExtendedConnectionData> {
         return try {
-            val bdtPluginId = PluginId.findId(BdtPlugins.FULL_ID)
+            val bdtPluginId = PluginId.findId(BdtPlugins.CORE_ID)
             val bdtPlugin = bdtPluginId?.let { PluginManagerCore.getPlugin(it) }
             val bdtClassLoader = bdtPlugin?.pluginClassLoader
 
