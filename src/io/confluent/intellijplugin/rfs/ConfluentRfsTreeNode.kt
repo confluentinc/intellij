@@ -34,9 +34,9 @@ class ConfluentRfsTreeNode(
     private fun getDisplayName(): String {
         return when {
             rfsPath.isEnvironment -> {
-                // Get the environment display name from data manager
+                // Get the environment display name from client
                 val envId = rfsPath.name
-                confluentDriver.dataManager.getEnvironments()
+                confluentDriver.dataManager.client.getEnvironments()
                     .find { it.id == envId }
                     ?.displayName ?: envId
             }
@@ -45,14 +45,14 @@ class ConfluentRfsTreeNode(
             rfsPath.isCluster -> {
                 val envId = rfsPath.getEnvironmentId() ?: return rfsPath.name
                 val clusterId = rfsPath.name
-                confluentDriver.dataManager.getKafkaClusters(envId)
+                confluentDriver.dataManager.client.getKafkaClusters(envId)
                     .find { it.id == clusterId }
                     ?.displayName ?: clusterId
             }
             rfsPath.isSchemaRegistry -> {
                 val envId = rfsPath.getEnvironmentId() ?: return rfsPath.name
                 val srId = rfsPath.name
-                confluentDriver.dataManager.getSchemaRegistry(envId)
+                confluentDriver.dataManager.client.getSchemaRegistry(envId)
                     .find { it.id == srId }
                     ?.displayName ?: srId
             }
@@ -73,13 +73,13 @@ class ConfluentRfsTreeNode(
         rfsPath.isEnvironment -> rfsPath.name // Show env ID as gray text
         rfsPath.isCluster -> {
             val envId = rfsPath.getEnvironmentId() ?: return null
-            val cluster = confluentDriver.dataManager.getKafkaClusters(envId)
+            val cluster = confluentDriver.dataManager.client.getKafkaClusters(envId)
                 .find { it.id == rfsPath.name }
             cluster?.let { "${it.cloudProvider} / ${it.region}" }
         }
         rfsPath.isSchemaRegistry -> {
             val envId = rfsPath.getEnvironmentId() ?: return null
-            val sr = confluentDriver.dataManager.getSchemaRegistry(envId)
+            val sr = confluentDriver.dataManager.client.getSchemaRegistry(envId)
                 .find { it.id == rfsPath.name }
             sr?.let { "${it.cloudProvider} / ${it.region}" }
         }
