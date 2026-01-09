@@ -8,7 +8,6 @@ import io.confluent.intellijplugin.core.monitoring.connection.MonitoringClient
 import io.confluent.intellijplugin.core.monitoring.data.updater.BdtMonitoringUpdater
 import io.confluent.intellijplugin.core.monitoring.data.updater.MonitoringProgressComponent
 import io.confluent.intellijplugin.core.monitoring.rfs.MonitoringDriver
-import io.confluent.intellijplugin.core.rfs.driver.manager.DriverManager
 import io.confluent.intellijplugin.core.rfs.util.RfsNotificationUtils
 import io.confluent.intellijplugin.core.settings.connections.ConnectionData
 import kotlinx.coroutines.Job
@@ -16,12 +15,13 @@ import kotlinx.coroutines.launch
 
 abstract class MonitoringDataManager(
     val project: Project?,
-    open val settings: IntervalUpdateSettings
+    open val settings: IntervalUpdateSettings,
+    private val driverProvider: () -> MonitoringDriver
 ) : Disposable {
     abstract val connectionData: ConnectionData
 
     val driver: MonitoringDriver
-        get() = DriverManager.getDriverById(project, connectionData.innerId) as MonitoringDriver
+        get() = driverProvider()
 
     @Suppress("LeakingThis")
     val updater = BdtMonitoringUpdater(this).also {

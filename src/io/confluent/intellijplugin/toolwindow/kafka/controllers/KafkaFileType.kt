@@ -1,4 +1,4 @@
-package io.confluent.intellijplugin.toolwindow.controllers
+package io.confluent.intellijplugin.toolwindow.kafka.controllers
 
 import io.confluent.intellijplugin.icons.BigdatatoolsKafkaIcons
 import com.intellij.openapi.fileTypes.FileType

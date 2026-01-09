@@ -1,4 +1,4 @@
-package io.confluent.intellijplugin.toolwindow
+package io.confluent.intellijplugin.toolwindow.kafka
 
 import com.intellij.openapi.fileEditor.ex.FileEditorManagerEx
 import com.intellij.openapi.project.Project
