@@ -67,7 +67,7 @@ class GlobalConnectionSettings : ConnectionSettingsBase() {
             // Get legacy connections, handling the case where BDT plugin might be installed
             // If BDT is installed, its GlobalConnectionSettings is already registered with the same
             // component name "BigDataIdeGlobalConnectionSettings", so we access it directly to avoid conflicts
-            val legacyConnections = if (BdtPlugins.isFullPluginInstalled()) {
+            val legacyConnections = if (BdtPlugins.isCorePluginInstalled()) {
                 logger.info("Big Data Tools plugin is installed, accessing its GlobalConnectionSettings directly")
                 getConnectionsFromBdtService()
             } else {
@@ -111,6 +111,7 @@ class GlobalConnectionSettings : ConnectionSettingsBase() {
             logger.warn("Failed to migrate legacy global connections", e)
         }
     }
+
     /**
      * Access Big Data Tools plugin's GlobalConnectionSettings service.
      * This avoids the component name conflict by reading from BDT's already-registered component.
@@ -121,7 +122,7 @@ class GlobalConnectionSettings : ConnectionSettingsBase() {
      */
     private fun getConnectionsFromBdtService(): List<ExtendedConnectionData> {
         return try {
-            val bdtPluginId = PluginId.findId(BdtPlugins.FULL_ID)
+            val bdtPluginId = PluginId.findId(BdtPlugins.CORE_ID)
             val bdtPlugin = bdtPluginId?.let { PluginManagerCore.getPlugin(it) }
             val bdtClassLoader = bdtPlugin?.pluginClassLoader
 
@@ -139,7 +140,6 @@ class GlobalConnectionSettings : ConnectionSettingsBase() {
                 val bdtState = getStateMethod.invoke(bdtService) ?: return emptyList()
 
                 // Serialize BDT's state to XML and deserialize as our ConnectionPersistentState
-                // This leverages the existing RENAME_MAP to handle class name translation
                 val xmlElement = XmlSerializer.serialize(bdtState)
                 logger.debug("Serialized BDT state to XML: ${xmlElement}")
 

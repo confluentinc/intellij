@@ -61,7 +61,7 @@ class LocalConnectionSettings(private val project: Project) : ConnectionSettings
             // Get legacy connections, handling the case where BDT plugin might be installed
             // If BDT is installed, its LocalConnectionSettings is already registered with the same
             // component name "BigDataIdeConnectionSettings", so we access it directly to avoid conflicts
-            val legacyConnections = if (BdtPlugins.isFullPluginInstalled()) {
+            val legacyConnections = if (BdtPlugins.isCorePluginInstalled()) {
                 logger.info("Big Data Tools plugin is installed, accessing its LocalConnectionSettings directly")
                 getConnectionsFromBdtService()
             } else {
@@ -112,7 +112,7 @@ class LocalConnectionSettings(private val project: Project) : ConnectionSettings
      */
     private fun getConnectionsFromBdtService(): List<ExtendedConnectionData> {
         return try {
-            val bdtPluginId = PluginId.findId(BdtPlugins.FULL_ID)
+            val bdtPluginId = PluginId.findId(BdtPlugins.CORE_ID)
             val bdtPlugin = bdtPluginId?.let { PluginManagerCore.getPlugin(it) }
             val bdtClassLoader = bdtPlugin?.pluginClassLoader
 
