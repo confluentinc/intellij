@@ -22,9 +22,8 @@ class LegacyGlobalConnectionSettings : PersistentStateComponent<ConnectionPersis
     }
 
     private var legacyState: ConnectionPersistentState? = null
-    private var migrationComplete = false
 
-    override fun getState(): ConnectionPersistentState? = null // Never save, read-only
+    override fun getState(): ConnectionPersistentState? = legacyState
 
     override fun loadState(state: ConnectionPersistentState) {
         logger.debug("Found ${state.connections.size} global legacy connections")
@@ -34,14 +33,5 @@ class LegacyGlobalConnectionSettings : PersistentStateComponent<ConnectionPersis
         legacyState = state
     }
 
-    fun getLegacyConnections(): List<ExtendedConnectionData> {
-        return legacyState?.connections ?: emptyList()
-    }
-
-    fun markMigrationComplete() {
-        migrationComplete = true
-        legacyState = null // Clear to free memory
-    }
-
-    fun isMigrationNeeded(): Boolean = !migrationComplete && legacyState != null
+    fun getLegacyConnections(): List<ExtendedConnectionData> = legacyState?.connections ?: emptyList()
 }
