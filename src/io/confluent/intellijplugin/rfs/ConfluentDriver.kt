@@ -64,7 +64,7 @@ class ConfluentDriver(
         return when (depth) {
             // Root level: show environments
             0 -> {
-                dataManager.getEnvironments().map { env ->
+                dataManager.client.getEnvironments().map { env ->
                     ConfluentFileInfo(this, environmentPath(env.id))
                 }
             }
@@ -80,12 +80,12 @@ class ConfluentDriver(
             2 -> {
                 if (rfsPath.name == CLUSTERS_FOLDER) {
                     val envId = rfsPath.parent?.name ?: return emptyList()
-                    dataManager.getKafkaClusters(envId).map { cluster ->
+                    dataManager.client.getKafkaClusters(envId).map { cluster ->
                         ConfluentFileInfo(this, clusterPath(envId, cluster.id))
                     }
                 } else if (rfsPath.name == SCHEMA_REGISTRY_FOLDER) {
                     val envId = rfsPath.parent?.name ?: return emptyList()
-                    dataManager.getSchemaRegistry(envId).map { sr ->
+                    dataManager.client.getSchemaRegistry(envId).map { sr ->
                         ConfluentFileInfo(this, schemaRegistryPath(envId, sr.id))
                     }
                 } else {

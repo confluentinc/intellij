@@ -8,14 +8,12 @@ import kotlinx.serialization.Serializable
 import java.net.HttpURLConnection
 
 /**
- * Base HTTP client for Confluent Cloud REST APIs.
- * Provides common functionality for both control plane and data plane operations.
+ * HTTP client for Confluent Cloud Control Plane REST API.
+ * Handles resource discovery operations (environments, clusters, schema registries).
  *
- * Architecture:
- * - Control Plane: Uses control plane OAuth token for resource discovery (envs, clusters)
- * - Data Plane: Uses data plane OAuth token for cluster operations (topics, schemas)
+ * Uses control plane OAuth token for authentication.
  */
-abstract class CCloudRestClient(
+abstract class ControlPlaneRestClient(
     protected val baseUrl: String
 ) {
     companion object {
@@ -206,6 +204,6 @@ abstract class CCloudRestClient(
 }
 
 /**
- * Exception thrown when Confluent Cloud API calls fail.
+ * Exception thrown when Confluent Cloud Control Plane API calls fail.
  */
 class CCloudApiException(message: String, val statusCode: Int) : Exception(message)

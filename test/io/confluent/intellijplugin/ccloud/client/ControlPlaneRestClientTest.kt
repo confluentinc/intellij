@@ -5,7 +5,7 @@ import com.github.tomakehurst.wiremock.core.WireMockConfiguration
 import com.github.tomakehurst.wiremock.junit5.WireMockExtension
 import com.intellij.testFramework.junit5.TestApplication
 import io.confluent.intellijplugin.ccloud.auth.CCloudAuthService
-import io.confluent.intellijplugin.ccloud.client.CCloudRestClient.PageLimits
+import io.confluent.intellijplugin.ccloud.client.ControlPlaneRestClient.PageLimits
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.*
@@ -14,7 +14,7 @@ import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
 
 @TestApplication
-class CloudRestClientTest {
+class ControlPlaneRestClientTest {
 
     companion object {
         @JvmField
@@ -26,7 +26,7 @@ class CloudRestClientTest {
         private const val TEST_TOKEN = "test-bearer-token"
     }
 
-    private lateinit var client: TestCloudRestClient
+    private lateinit var client: TestControlPlaneRestClient
     private lateinit var authService: CCloudAuthService
 
     @BeforeEach
@@ -35,7 +35,7 @@ class CloudRestClientTest {
         whenever(authService.isSignedIn()).thenReturn(true)
         whenever(authService.getControlPlaneToken()).thenReturn(TEST_TOKEN)
 
-        client = TestCloudRestClient(wireMock.baseUrl(), authService)
+        client = TestControlPlaneRestClient(wireMock.baseUrl(), authService)
     }
 
     private suspend fun fetchItems(limits: PageLimits = PageLimits.DEFAULT): List<String> =
@@ -268,12 +268,12 @@ class CloudRestClientTest {
     }
 
     /**
-     * Test implementation of CCloudRestClient for testing purposes.
+     * Test implementation of ControlPlaneRestClient for testing purposes.
      */
-    private class TestCloudRestClient(
+    private class TestControlPlaneRestClient(
         baseUrl: String,
         private val mockAuthService: CCloudAuthService
-    ) : CCloudRestClient(baseUrl) {
+    ) : ControlPlaneRestClient(baseUrl) {
 
         override fun getAuthHeaders(): Map<String, String> {
             if (!mockAuthService.isSignedIn()) {

@@ -2,10 +2,7 @@ package io.confluent.intellijplugin.data
 
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
-import io.confluent.intellijplugin.ccloud.model.CCloudEnvironment
-import io.confluent.intellijplugin.ccloud.model.KafkaCluster
-import io.confluent.intellijplugin.ccloud.model.SchemaRegistry
-import io.confluent.intellijplugin.client.ConfluentClient
+import io.confluent.intellijplugin.ccloud.client.ControlPlaneCache
 import io.confluent.intellijplugin.core.connection.updater.IntervalUpdateSettings
 import io.confluent.intellijplugin.core.monitoring.data.MonitoringDataManager
 import io.confluent.intellijplugin.core.monitoring.rfs.MonitoringDriver
@@ -13,7 +10,12 @@ import io.confluent.intellijplugin.rfs.ConfluentConnectionData
 
 /**
  * Data manager for Confluent Cloud resources.
- * Manages environments, clusters, and schema registry data.
+ * Provides the ControlPlaneCache for accessing Confluent Cloud control plane resources.
+ *
+ * Access organizational resources directly via the client:
+ * - client.getEnvironments()
+ * - client.getKafkaClusters(environmentId)
+ * - client.getSchemaRegistry(environmentId)
  */
 class ConfluentDataManager(
     project: Project?,
@@ -22,22 +24,10 @@ class ConfluentDataManager(
     driverProvider: () -> MonitoringDriver
 ) : MonitoringDataManager(project, settings, driverProvider) {
 
-    override val client = ConfluentClient(project, connectionData).also { Disposer.register(this, it) }
+    override val client = ControlPlaneCache(project, connectionData).also { Disposer.register(this, it) }
 
     init {
         init()
     }
-
-    fun getEnvironments(): List<CCloudEnvironment> = client.getEnvironments()
-
-    fun getKafkaClusters(environmentId: String): List<KafkaCluster> = client.getKafkaClusters(environmentId)
-
-    fun getSchemaRegistry(environmentId: String): List<SchemaRegistry> = client.getSchemaRegistry(environmentId)
-
-    fun refreshEnvironments(): List<CCloudEnvironment> = client.refreshEnvironments()
-
-    fun refreshClusters(environmentId: String): List<KafkaCluster> = client.refreshClusters(environmentId)
-
-    fun refreshSchemaRegistry(environmentId: String): List<SchemaRegistry> = client.refreshSchemaRegistry(environmentId)
 }
 

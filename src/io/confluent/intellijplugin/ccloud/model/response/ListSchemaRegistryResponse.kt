@@ -1,6 +1,6 @@
 package io.confluent.intellijplugin.ccloud.model.response
 
-import io.confluent.intellijplugin.ccloud.client.CCloudRestClient.ListMetadata
+import io.confluent.intellijplugin.ccloud.client.ControlPlaneRestClient.ListMetadata
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 

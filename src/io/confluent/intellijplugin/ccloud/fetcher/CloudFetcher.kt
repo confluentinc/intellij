@@ -13,12 +13,12 @@ interface CloudFetcher {
     /**
      * Get environments.
      */
-    suspend fun getEnvironments(): List<CCloudEnvironment>
+    suspend fun getEnvironments(): List<Environment>
 
     /**
      * Get Kafka clusters for an environment.
      */
-    suspend fun getKafkaClusters(envId: String): List<KafkaCluster>
+    suspend fun getKafkaClusters(envId: String): List<Cluster>
 
     /**
      * Get Schema Registry cluster for an environment.

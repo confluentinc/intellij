@@ -1,31 +1,31 @@
 package io.confluent.intellijplugin.ccloud.model.response
 
-import io.confluent.intellijplugin.ccloud.client.CCloudRestClient.ListMetadata
+import io.confluent.intellijplugin.ccloud.client.ControlPlaneRestClient.ListMetadata
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /** Response from GET /cmk/v2/clusters?environment={envId} */
 @Serializable
-data class ListKafkaClustersResponse(
-    val data: List<KafkaClusterData> = emptyList(),
+data class ListClustersResponse(
+    val data: List<ClusterData> = emptyList(),
     val metadata: ListMetadata? = null
 )
 
 @Serializable
-data class KafkaClusterData(
+data class ClusterData(
     val id: String,
     @SerialName("display_name") val displayName: String? = null,
-    val spec: KafkaClusterSpec? = null
+    val spec: ClusterSpec? = null
 )
 
 @Serializable
-data class KafkaClusterSpec(
+data class ClusterSpec(
     val cloud: String? = null,
     val region: String? = null,
-    val environment: KafkaClusterEnvironment? = null
+    val environment: ClusterEnvironment? = null
 )
 
 @Serializable
-data class KafkaClusterEnvironment(
+data class ClusterEnvironment(
     val id: String
 )

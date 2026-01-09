@@ -1,11 +1,11 @@
 package io.confluent.intellijplugin.ccloud.fetcher
 
 import io.confluent.intellijplugin.ccloud.auth.CCloudAuthService
-import io.confluent.intellijplugin.ccloud.client.CCloudRestClient
+import io.confluent.intellijplugin.ccloud.client.ControlPlaneRestClient
 import io.confluent.intellijplugin.ccloud.config.CloudConfig
 import io.confluent.intellijplugin.ccloud.model.*
 import io.confluent.intellijplugin.ccloud.model.response.ListEnvironmentsResponse
-import io.confluent.intellijplugin.ccloud.model.response.ListKafkaClustersResponse
+import io.confluent.intellijplugin.ccloud.model.response.ListClustersResponse
 import io.confluent.intellijplugin.ccloud.model.response.ListSchemaRegistryResponse
 import kotlinx.serialization.json.Json
 
@@ -16,7 +16,7 @@ import kotlinx.serialization.json.Json
 class CloudFetcherImpl(
     baseUrl: String = CloudConfig.CONTROL_PLANE_BASE_URL,
     private val authService: CCloudAuthService? = null
-) : CCloudRestClient(baseUrl), CloudFetcher {
+) : ControlPlaneRestClient(baseUrl), CloudFetcher {
 
     private val json = Json {
         ignoreUnknownKeys = true
@@ -43,12 +43,12 @@ class CloudFetcherImpl(
         )
     }
 
-    override suspend fun getEnvironments(): List<CCloudEnvironment> {
+    override suspend fun getEnvironments(): List<Environment> {
         val headers = getAuthHeaders()
         return listItems(headers, CloudConfig.ControlPlane.ENV_LIST_URI) { jsonBody ->
             val response = json.decodeFromString<ListEnvironmentsResponse>(jsonBody)
             val items = response.data.map { envData ->
-                CCloudEnvironment(
+                Environment(
                     id = envData.id,
                     displayName = envData.displayName ?: envData.id
                 )
@@ -57,13 +57,13 @@ class CloudFetcherImpl(
         }
     }
 
-    override suspend fun getKafkaClusters(envId: String): List<KafkaCluster> {
+    override suspend fun getKafkaClusters(envId: String): List<Cluster> {
         val headers = getAuthHeaders()
         val uri = String.format(CloudConfig.ControlPlane.LKC_LIST_URI, envId)
         return listItems(headers, uri) { jsonBody ->
-            val response = json.decodeFromString<ListKafkaClustersResponse>(jsonBody)
+            val response = json.decodeFromString<ListClustersResponse>(jsonBody)
             val items = response.data.map { clusterData ->
-                KafkaCluster(
+                Cluster(
                     id = clusterData.id,
                     displayName = clusterData.displayName ?: clusterData.id,
                     cloudProvider = clusterData.spec?.cloud ?: "Unknown",
