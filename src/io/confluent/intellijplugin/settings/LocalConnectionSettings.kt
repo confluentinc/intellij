@@ -1,6 +1,5 @@
 package io.confluent.intellijplugin.core.settings
 
-import com.intellij.ide.plugins.PluginManagerCore
 import com.intellij.notification.NotificationGroupManager
 import com.intellij.notification.NotificationType
 import com.intellij.openapi.components.Service
@@ -8,9 +7,7 @@ import com.intellij.openapi.components.State
 import com.intellij.openapi.components.Storage
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.thisLogger
-import com.intellij.openapi.extensions.PluginId
 import com.intellij.openapi.project.Project
-import com.intellij.util.xmlb.XmlSerializer
 import io.confluent.intellijplugin.core.constants.BdtPlugins
 import io.confluent.intellijplugin.core.settings.connections.ConnectionData
 import io.confluent.intellijplugin.core.util.invokeLater
@@ -58,12 +55,17 @@ class LocalConnectionSettings(private val project: Project) : ConnectionSettings
 
     private fun migrateLegacyConnections() {
         try {
-            // Get legacy connections, handling the case where BDT plugin might be installed
-            // If BDT is installed, its LocalConnectionSettings is already registered with the same
-            // component name "BigDataIdeConnectionSettings", so we access it directly to avoid conflicts
+            // Access Big Data Tools plugin's LocalConnectionSettings service.
+            // This avoids the component name conflict by reading from BDT's already-registered component.
+            // When BDT is installed, its LocalConnectionSettings is already registered with the component
+            // name "BigDataIdeConnectionSettings". If we try to register our LegacyLocalConnectionSettings
+            // with the same name, IntelliJ throws a conflict error.
             val legacyConnections = if (BdtPlugins.isCorePluginInstalled()) {
                 logger.info("Big Data Tools plugin is installed, accessing its LocalConnectionSettings directly")
-                getConnectionsFromBdtService()
+                getConnectionsFromBdtService(
+                    bdtClassName = "com.jetbrains.bigdatatools.common.settings.LocalConnectionSettings",
+                    serviceProvider = { bdtClass -> project.getService(bdtClass) }
+                )
             } else {
                 LegacyLocalConnectionSettings.getInstance(project).getLegacyConnections()
             }
@@ -99,51 +101,6 @@ class LocalConnectionSettings(private val project: Project) : ConnectionSettings
 
         } catch (e: Exception) {
             logger.warn("Failed to migrate legacy local connections", e)
-        }
-    }
-
-    /**
-     * Access Big Data Tools plugin's LocalConnectionSettings service to avoid the component name conflict
-     * by reading from BDT's already-registered component.
-     *
-     * When BDT is installed, its LocalConnectionSettings is already registered with the component
-     * name "BigDataIdeConnectionSettings". If we try to register our LegacyLocalConnectionSettings
-     * with the same name, IntelliJ throws a conflict error.
-     */
-    private fun getConnectionsFromBdtService(): List<ExtendedConnectionData> {
-        return try {
-            val bdtPluginId = PluginId.findId(BdtPlugins.CORE_ID)
-            val bdtPlugin = bdtPluginId?.let { PluginManagerCore.getPlugin(it) }
-            val bdtClassLoader = bdtPlugin?.pluginClassLoader
-
-            if (bdtClassLoader == null) {
-                logger.warn("Could not get Big Data Tools plugin classloader")
-                return emptyList()
-            }
-
-            val bdtClass = bdtClassLoader.loadClass("com.jetbrains.bigdatatools.common.settings.LocalConnectionSettings")
-            val bdtService = project.getService(bdtClass)
-
-            if (bdtService != null) {
-                // Call getState() to get the persisted state
-                val getStateMethod = bdtClass.getMethod("getState")
-                val bdtState = getStateMethod.invoke(bdtService) ?: return emptyList()
-
-                // Serialize BDT's state to XML and deserialize as our ConnectionPersistentState
-                // This leverages the existing RENAME_MAP to handle class name translation
-                val xmlElement = XmlSerializer.serialize(bdtState)
-                logger.debug("Serialized BDT local state to XML: ${xmlElement}")
-
-                val ourState = XmlSerializer.deserialize(xmlElement, ConnectionPersistentState::class.java)
-                logger.info("Deserialized ${ourState.connections.size} local connections from BDT")
-                ourState.connections
-            } else {
-                logger.warn("Could not get Big Data Tools LocalConnectionSettings service instance")
-                emptyList()
-            }
-        } catch (e: Exception) {
-            logger.warn("Could not access Big Data Tools LocalConnectionSettings", e)
-            emptyList()
         }
     }
 

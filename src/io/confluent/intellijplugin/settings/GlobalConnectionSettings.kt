@@ -1,7 +1,6 @@
 package io.confluent.intellijplugin.core.settings
 
 import com.intellij.ide.plugins.DynamicPluginListener
-import com.intellij.ide.plugins.PluginManagerCore
 import com.intellij.notification.NotificationAction
 import com.intellij.notification.NotificationGroupManager
 import com.intellij.notification.NotificationType
@@ -11,9 +10,7 @@ import com.intellij.openapi.components.State
 import com.intellij.openapi.components.Storage
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.thisLogger
-import com.intellij.openapi.extensions.PluginId
 import com.intellij.openapi.project.ProjectManager
-import com.intellij.util.xmlb.XmlSerializer
 import io.confluent.intellijplugin.core.constants.BdtPlugins
 import io.confluent.intellijplugin.core.util.invokeLater
 import io.confluent.intellijplugin.settings.KafkaUIUtils
@@ -64,12 +61,17 @@ class GlobalConnectionSettings : ConnectionSettingsBase() {
 
     private fun migrateLegacyConnections() {
         try {
-            // Get legacy connections, handling the case where BDT plugin might be installed
-            // If BDT is installed, its GlobalConnectionSettings is already registered with the same
-            // component name "BigDataIdeGlobalConnectionSettings", so we access it directly to avoid conflicts
+            // Access Big Data Tools plugin's GlobalConnectionSettings service.
+            // This avoids the component name conflict by reading from BDT's already-registered component.
+            // When BDT is installed, its GlobalConnectionSettings is already registered with the component
+            // name "BigDataIdeGlobalConnectionSettings". If we try to register our LegacyGlobalConnectionSettings
+            // with the same name, IntelliJ throws a conflict error.
             val legacyConnections = if (BdtPlugins.isCorePluginInstalled()) {
                 logger.info("Big Data Tools plugin is installed, accessing its GlobalConnectionSettings directly")
-                getConnectionsFromBdtService()
+                getConnectionsFromBdtService(
+                    bdtClassName = "com.jetbrains.bigdatatools.common.settings.GlobalConnectionSettings",
+                    serviceProvider = { bdtClass -> ApplicationManager.getApplication().getService(bdtClass) }
+                )
             } else {
                 // Fallback to creating a new service that access the same "BigDataIdeGlobalConnectionSettings" component
                 LegacyGlobalConnectionSettings.getInstance().getLegacyConnections()
@@ -109,50 +111,6 @@ class GlobalConnectionSettings : ConnectionSettingsBase() {
             }
         } catch (e: Exception) {
             logger.warn("Failed to migrate legacy global connections", e)
-        }
-    }
-
-    /**
-     * Access Big Data Tools plugin's GlobalConnectionSettings service.
-     * This avoids the component name conflict by reading from BDT's already-registered component.
-     *
-     * When BDT is installed, its GlobalConnectionSettings is already registered with the component
-     * name "BigDataIdeGlobalConnectionSettings". If we try to register our LegacyGlobalConnectionSettings
-     * with the same name, IntelliJ throws a conflict error.
-     */
-    private fun getConnectionsFromBdtService(): List<ExtendedConnectionData> {
-        return try {
-            val bdtPluginId = PluginId.findId(BdtPlugins.CORE_ID)
-            val bdtPlugin = bdtPluginId?.let { PluginManagerCore.getPlugin(it) }
-            val bdtClassLoader = bdtPlugin?.pluginClassLoader
-
-            if (bdtClassLoader == null) {
-                logger.warn("Could not get Big Data Tools plugin classloader")
-                return emptyList()
-            }
-
-            val bdtClass = bdtClassLoader.loadClass("com.jetbrains.bigdatatools.common.settings.GlobalConnectionSettings")
-            val bdtService = ApplicationManager.getApplication().getService(bdtClass)
-
-            if (bdtService != null) {
-                // Call getState() to get the persisted state
-                val getStateMethod = bdtClass.getMethod("getState")
-                val bdtState = getStateMethod.invoke(bdtService) ?: return emptyList()
-
-                // Serialize BDT's state to XML and deserialize as our ConnectionPersistentState
-                val xmlElement = XmlSerializer.serialize(bdtState)
-                logger.debug("Serialized BDT state to XML: ${xmlElement}")
-
-                val ourState = XmlSerializer.deserialize(xmlElement, ConnectionPersistentState::class.java)
-                logger.info("Deserialized ${ourState.connections.size} connections from BDT")
-                ourState.connections
-            } else {
-                logger.warn("Could not get Big Data Tools GlobalConnectionSettings service instance")
-                emptyList()
-            }
-        } catch (e: Exception) {
-            logger.warn("Could not access Big Data Tools GlobalConnectionSettings", e)
-            emptyList()
         }
     }
 
