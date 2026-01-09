@@ -32,7 +32,7 @@ class CCloudOAuthCallbackServer(
         private const val CONFLUENT_CLOUD_HOMEPAGE = "https://confluent.cloud"
 
         private const val TLS_HANDSHAKE_ERROR_MESSAGE =
-            "Failed to perform the SSL/TLS handshake. " // + "Consider configuring custom certificates in the plugin settings of Kafka for IntelliJ if you are behind a firewall that performs SSL inspection."
+            "Failed to perform the SSL/TLS handshake."
 
         private val STYLES: String by lazy {
             loadResource("/templates/styles.html")
