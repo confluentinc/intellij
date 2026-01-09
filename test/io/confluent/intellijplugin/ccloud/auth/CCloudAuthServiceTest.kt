@@ -66,6 +66,8 @@ class CCloudAuthServiceTest {
 
         @Test
         fun `should be idempotent when called multiple times`() {
+            authService.context = createMockAuthenticatedContext()
+
             authService.signOut()
             authService.signOut()
 
