@@ -11,6 +11,7 @@ import com.intellij.openapi.components.Storage
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.project.ProjectManager
+import io.confluent.intellijplugin.core.constants.BdtPlugins
 import io.confluent.intellijplugin.core.util.invokeLater
 import io.confluent.intellijplugin.settings.KafkaUIUtils
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
@@ -37,14 +38,14 @@ class GlobalConnectionSettings : ConnectionSettingsBase() {
     }
 
     override fun loadState(state: ConnectionPersistentState) {
-        logger.debug("Loading state with ${state.connections.size} connections, legacyMigrationCompleted=${state.legacyMigrationCompleted}")
+        logger.info("Loading state with ${state.connections.size} connections, legacyMigrationCompleted=${state.legacyMigrationCompleted}")
         super.loadState(state)
 
         // Only attempt migration if not already completed
         if (!legacyMigrationCompleted) {
             migrateLegacyConnections()
         } else {
-            logger.debug("Legacy migration already completed, skipping")
+            logger.info("Legacy migration already completed, skipping")
         }
     }
 
@@ -53,18 +54,31 @@ class GlobalConnectionSettings : ConnectionSettingsBase() {
      * This is where we check for and migrate legacy connections.
      */
     override fun noStateLoaded() {
-        logger.debug("No state file found, checking for legacy connections...")
+        logger.info("No state file found, checking for legacy connections...")
         super.noStateLoaded()
         migrateLegacyConnections()
     }
 
     private fun migrateLegacyConnections() {
         try {
-            val legacySettings = LegacyGlobalConnectionSettings.getInstance()
+            // Access Big Data Tools plugin's GlobalConnectionSettings service.
+            // This avoids the component name conflict by reading from BDT's already-registered component.
+            // When BDT is installed, its GlobalConnectionSettings is already registered with the component
+            // name "BigDataIdeGlobalConnectionSettings". If we try to register our LegacyGlobalConnectionSettings
+            // with the same name, IntelliJ throws a conflict error.
+            val legacyConnections = if (BdtPlugins.isCorePluginInstalled()) {
+                logger.info("Big Data Tools plugin is installed, accessing its GlobalConnectionSettings directly")
+                getConnectionsFromBdtService(
+                    bdtClassName = "com.jetbrains.bigdatatools.common.settings.GlobalConnectionSettings",
+                    serviceProvider = { bdtClass -> ApplicationManager.getApplication().getService(bdtClass) }
+                )
+            } else {
+                // Fallback to creating a new service that access the same "BigDataIdeGlobalConnectionSettings" component
+                LegacyGlobalConnectionSettings.getInstance().getLegacyConnections()
+            }
 
-            if (legacySettings.isMigrationNeeded()) {
-                val legacyConnections = legacySettings.getLegacyConnections()
-                logger.debug("Migrating ${legacyConnections.size} legacy connections from BigDataIdeGlobalConnectionSettings")
+            if (legacyConnections.isNotEmpty()) {
+                logger.info("Migrating ${legacyConnections.size} legacy connections from BigDataIdeGlobalConnectionSettings")
 
                 val existingIds = getConnections().map { it.innerId }.toSet()
                 var migratedCount = 0
@@ -79,9 +93,7 @@ class GlobalConnectionSettings : ConnectionSettingsBase() {
                     }
                 }
 
-                logger.debug("Migration complete. Migrated $migratedCount connections, skipped ${legacyConnections.size - migratedCount} duplicates")
-                legacySettings.markMigrationComplete()
-
+                logger.info("Migration complete. Migrated $migratedCount connections, skipped ${legacyConnections.size - migratedCount} duplicates")
                 // Mark migration as complete, this will be persisted when getState() is called
                 legacyMigrationCompleted = true
 
@@ -89,7 +101,7 @@ class GlobalConnectionSettings : ConnectionSettingsBase() {
                 showMigrationNotification(migratedCount)
                 migrationNotificationShown = true
             } else {
-                logger.debug("No legacy settings file found")
+                logger.info("No legacy settings file found")
                 // Don't mark migration complete, user might import old settings later
                 // But show notification once with workaround info
                 if (!migrationNotificationShown) {
