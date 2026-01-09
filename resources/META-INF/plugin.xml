@@ -83,7 +83,11 @@
 
         <toolWindow id="KafkaToolWindow" anchor="bottom" canCloseContents="true"
                     icon="io.confluent.intellijplugin.icons.BigdatatoolsKafkaIcons.KafkaToolWindow"
-                    factoryClass="io.confluent.intellijplugin.toolwindow.KafkaToolWindowFactory"/>
+                    factoryClass="io.confluent.intellijplugin.toolwindow.kafka.KafkaToolWindowFactory"/>
+
+        <toolWindow id="ConfluentToolWindow" anchor="bottom" canCloseContents="true"
+                    icon="io.confluent.intellijplugin.icons.BigdatatoolsKafkaIcons.ConfluentToolWindow"
+                    factoryClass="io.confluent.intellijplugin.toolwindow.confluent.ConfluentToolWindowFactory"/>
 
         <fileEditorProvider implementation="io.confluent.intellijplugin.common.editor.KafkaEditorProvider"/>
         <editorTabTitleProvider implementation="io.confluent.intellijplugin.common.editor.KafkaTabTitleProvider"/>
