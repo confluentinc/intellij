@@ -5,7 +5,7 @@ import kotlinx.serialization.Serializable
 
 /** Represents a Confluent Cloud Kafka cluster. */
 @Serializable
-data class KafkaCluster(
+data class Cluster(
     val id: String,
     @SerialName("display_name") val displayName: String,
     @SerialName("cloud") val cloudProvider: String,

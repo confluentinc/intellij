@@ -5,7 +5,7 @@ import kotlinx.serialization.Serializable
 
 /** Represents a Confluent Cloud environment. */
 @Serializable
-data class CCloudEnvironment(
+data class Environment(
     val id: String,
     @SerialName("display_name") val displayName: String
 )
