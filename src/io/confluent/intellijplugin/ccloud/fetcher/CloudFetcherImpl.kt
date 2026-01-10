@@ -67,7 +67,8 @@ class CloudFetcherImpl(
                     id = clusterData.id,
                     displayName = clusterData.displayName ?: clusterData.id,
                     cloudProvider = clusterData.spec?.cloud ?: "Unknown",
-                    region = clusterData.spec?.region ?: "Unknown"
+                    region = clusterData.spec?.region ?: "Unknown",
+                    httpEndpoint = clusterData.spec?.httpEndpoint ?: ""
                 )
             }
             items to response.metadata?.next
