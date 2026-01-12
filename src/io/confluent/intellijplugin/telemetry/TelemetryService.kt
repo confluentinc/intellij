@@ -53,7 +53,6 @@ class TelemetryService : Disposable {
 
                 // Send plugin activation event on first initialization
                 sendTrackEvent(PluginActivatedEvent.eventName, PluginActivatedEvent.properties())
-                sendIdentifyEvent(emptyMap())
             } catch (e: Exception) {
                 logger.error("Failed to initialize telemetry service", e)
             }
