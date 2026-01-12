@@ -25,8 +25,8 @@ import com.intellij.openapi.diagnostic.thisLogger
 class CCloudAuthService : Disposable {
     private val logger = thisLogger()
 
-    private var context: CCloudOAuthContext? = null
-    private var refreshBean: CCloudTokenRefreshBean? = null
+    internal var context: CCloudOAuthContext? = null
+    internal var refreshBean: CCloudTokenRefreshBean? = null
 
     /**
      * Start the OAuth sign-in flow.
