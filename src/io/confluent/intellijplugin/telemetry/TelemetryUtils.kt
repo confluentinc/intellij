@@ -5,44 +5,62 @@ import com.intellij.ide.util.PropertiesComponent
 import com.intellij.openapi.extensions.PluginId
 import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.util.SystemInfo
+import org.jetbrains.annotations.VisibleForTesting
 import io.confluent.intellijplugin.core.constants.BdtPlugins
-import java.util.UUID
+import io.confluent.intellijplugin.settings.app.KafkaPluginSettings
 import java.security.MessageDigest
+import java.util.UUID
 
 /**
  * Shared utilities for telemetry operations.
  */
 object TelemetryUtils {
     private val logger = thisLogger()
-    private const val MACHINE_ID_KEY = "io.confluent.intellijplugin.commonMachineId"
+    internal const val MACHINE_ID_KEY = "io.confluent.intellijplugin.commonMachineId"
 
-    private val cachedMachineId: String by lazy { loadOrCreateMachineId() }
+    @VisibleForTesting
+    internal var cachedMachineId: Lazy<String> = lazy { loadOrCreateMachineId() }
 
     /**
      * Gets a persistent anonymous machine ID for telemetry.
-     * Lazily generated on first access and cached in memory.
+     * Stored in plugin settings kafka_plugin_settings.xml and auto-generated on first access.
      */
-    fun commonMachineId(): String = cachedMachineId
+    fun commonMachineId(): String = cachedMachineId.value
 
-    private fun loadOrCreateMachineId(): String = try {
-        val properties = PropertiesComponent.getInstance()
-        var machineId = properties.getValue(MACHINE_ID_KEY)
+    @VisibleForTesting
+    internal fun resetCachedMachineId() {
+        cachedMachineId = lazy { loadOrCreateMachineId() }
+    }
 
-        if (machineId == null || !isValidUuid(machineId)) {
+    @VisibleForTesting
+    internal fun loadOrCreateMachineId(): String = try {
+        val settings = KafkaPluginSettings.getInstance()
+        var machineId = settings.machineId
+
+        // Migration to check legacy PropertiesComponent if not in settings
+        if (machineId.isNullOrBlank()) {
+            val properties = PropertiesComponent.getInstance()
+            machineId = properties.getValue(MACHINE_ID_KEY)
+        }
+
+        // Generate new if still not found or invalid
+        if (machineId.isNullOrBlank() || !isValidUuid(machineId)) {
             machineId = UUID.randomUUID().toString()
-            properties.setValue(MACHINE_ID_KEY, machineId)
-            logger.debug("Generated and saved new machine ID: $machineId")
+            logger.debug("Generated new machine ID: $machineId")
         } else {
             logger.debug("Using existing machine ID: $machineId")
         }
 
+        // Always save to persistent settings
+        settings.machineId = machineId
         machineId
     } catch (e: Exception) {
         logger.warn("Failed to get or create common machine ID", e)
         "unknown"
     }
 
-    private fun isValidUuid(value: String): Boolean {
+    @VisibleForTesting
+    internal fun isValidUuid(value: String): Boolean {
         return try {
             UUID.fromString(value)
             true
