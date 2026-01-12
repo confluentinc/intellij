@@ -130,3 +130,12 @@ object PartitionsClearAction : TelemetryEvent {
     override val eventName = "PartitionsClearAction"
     override fun properties() = emptyMap<String, Any>()
 }
+
+/**
+ * Tracks plugin activation at IDE startup.
+ * Sent once per IDE session when the plugin is first activated.
+ */
+object PluginActivatedEvent : TelemetryEvent {
+    override val eventName = "Plugin Activated"
+    override fun properties() = emptyMap<String, Any>()
+}
