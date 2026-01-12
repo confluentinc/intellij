@@ -5,6 +5,20 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonIgnoreUnknownKeys
 
 /**
+ * Exception thrown when an OAuth token exchange fails.
+ * Preserves the HTTP status code from the OAuth server response.
+ *
+ * @param errorCode The OAuth error code (e.g., "invalid_grant", "invalid_request")
+ * @param errorDescription The readable error description from the OAuth server
+ * @param httpStatusCode The HTTP status code from the OAuth server (typically 400 for OAuth errors)
+ */
+class OAuthErrorException(
+    val errorCode: String,
+    val errorDescription: String?,
+    val httpStatusCode: Int
+) : Exception("$errorCode: ${errorDescription ?: "Unknown error"}")
+
+/**
  * This record holds Confluent Cloud OAuth-related errors.
  * @see CCloudOAuthContext
  *
