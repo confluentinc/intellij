@@ -1,7 +1,6 @@
 package io.confluent.intellijplugin.ccloud.client
 
 import com.intellij.util.io.HttpRequests
-import io.confluent.intellijplugin.ccloud.auth.CCloudAuthService
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerialName
@@ -9,10 +8,12 @@ import kotlinx.serialization.Serializable
 import java.net.HttpURLConnection
 
 /**
- * HTTP client for Confluent Cloud control plane API calls.
- * Uses OAuth authentication via CCloudAuthService.
+ * HTTP client for Confluent Cloud Control Plane REST API.
+ * Handles resource discovery operations (environments, clusters, schema registries).
+ *
+ * Uses control plane OAuth token for authentication.
  */
-abstract class CloudRestClient(
+abstract class ControlPlaneRestClient(
     protected val baseUrl: String
 ) {
     companion object {
@@ -99,23 +100,10 @@ abstract class CloudRestClient(
     )
 
     /**
-     * Get headers for API requests using OAuth Bearer token.
+     * Get headers for API requests.
+     * Subclasses override this to provide appropriate authentication (control plane vs data plane tokens).
      */
-    protected open fun getAuthHeaders(): Map<String, String> {
-        val authService = CCloudAuthService.getInstance()
-
-        if (!authService.isSignedIn()) {
-            throw IllegalStateException("Not signed in to Confluent Cloud")
-        }
-
-        val token = authService.getControlPlaneToken()
-            ?: throw IllegalStateException("No control plane token available")
-
-        return mapOf(
-            "Authorization" to "Bearer $token",
-            "Content-Type" to "application/json"
-        )
-    }
+    protected abstract fun getAuthHeaders(): Map<String, String>
 
     /**
      * Fetch items from a paginated Confluent API endpoint.
@@ -125,7 +113,6 @@ abstract class CloudRestClient(
      * @param limits Pagination limits (default: fetch all)
      * @param parser Parses response JSON into (items, nextUrl)
      * @return Items from fetched pages, respecting pagination limits
-     * @see <a href="https://docs.confluent.io/cloud/current/api.html#section/Pagination">Confluent API Pagination</a>
      */
     protected open suspend fun <T> listItems(
         headers: Map<String, String>,
@@ -143,7 +130,7 @@ abstract class CloudRestClient(
 
             // Prevent infinite loops from API bugs
             if (!visitedUrls.add(url)) {
-                throw CloudApiException("Pagination loop detected: duplicate URL encountered", 0)
+                throw CCloudApiException("Pagination loop detected: duplicate URL encountered", 0)
             }
 
             val (statusCode, body) = try {
@@ -166,13 +153,13 @@ abstract class CloudRestClient(
                         statusCode to responseBody
                     }
             } catch (e: HttpRequests.HttpStatusException) {
-                throw CloudApiException("HTTP ${e.statusCode}: ${e.message ?: "Unknown error"}", e.statusCode)
+                throw CCloudApiException("HTTP ${e.statusCode}: ${e.message ?: "Unknown error"}", e.statusCode)
             } catch (e: Exception) {
-                throw CloudApiException("Request failed: ${e.message ?: "Unknown error"}", 0)
+                throw CCloudApiException("Request failed: ${e.message ?: "Unknown error"}", 0)
             }
 
             if (statusCode !in 200..299) {
-                throw CloudApiException("HTTP $statusCode: ${body.ifEmpty { "Unknown error" }}", statusCode)
+                throw CCloudApiException("HTTP $statusCode: ${body.ifEmpty { "Unknown error" }}", statusCode)
             }
 
             val (items, nextPageUrl) = parser(body)
@@ -186,9 +173,36 @@ abstract class CloudRestClient(
 
         allItems
     }
+
+    /**
+     * Fetch a single item from a non-paginated endpoint.
+     *
+     * @param headers HTTP headers for authentication
+     * @param uri Endpoint URI (relative or absolute)
+     * @param parser Parses response JSON
+     * @return Parsed response
+     */
+    protected open suspend fun <T> fetchItem(
+        headers: Map<String, String>,
+        uri: String,
+        parser: (String) -> T
+    ): T = withContext(Dispatchers.IO) {
+        val url = if (uri.startsWith("http")) uri else "$baseUrl$uri"
+
+        HttpRequests.request(url)
+            .connectTimeout(CONNECT_TIMEOUT_MS)
+            .readTimeout(READ_TIMEOUT_MS)
+            .tuner { connection ->
+                headers.forEach { (key, value) ->
+                    connection.setRequestProperty(key, value)
+                }
+            }
+            .readString()
+            .let(parser)
+    }
 }
 
 /**
- * Exception thrown when API calls fail.
+ * Exception thrown when Confluent Cloud Control Plane API calls fail.
  */
-class CloudApiException(message: String, val statusCode: Int) : Exception(message)
+class CCloudApiException(message: String, val statusCode: Int) : Exception(message)

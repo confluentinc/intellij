@@ -70,17 +70,13 @@ internal class ConfluentMainController(
     private var prevError: Throwable? = null
     private val errorPanel = JPanel(BorderLayout())
 
-    private val emptyDetailsPanel = JPanel(BorderLayout()).apply {
-        add(JLabel("Select a cluster or schema registry to view details"), BorderLayout.CENTER)
+    private fun createPlaceholderPanel(message: String) = JPanel(BorderLayout()).apply {
+        add(JLabel(message), BorderLayout.CENTER)
     }
 
-    private val clusterDetailsPanel = JPanel(BorderLayout()).apply {
-        add(JLabel("Cluster details panel - coming soon"), BorderLayout.CENTER)
-    }
-
-    private val schemaRegistryDetailsPanel = JPanel(BorderLayout()).apply {
-        add(JLabel("Schema Registry details panel - coming soon"), BorderLayout.CENTER)
-    }
+    private val emptyDetailsPanel = createPlaceholderPanel("Select a cluster or schema registry to view details")
+    private val clusterDetailsPanel = createPlaceholderPanel("Cluster details panel - coming soon")
+    private val schemaRegistryDetailsPanel = createPlaceholderPanel("Schema Registry details panel - coming soon")
 
     private val driverListener = object : DriverRfsListener {
         override fun driverRefreshFinished(status: DriverConnectionStatus) {
@@ -202,7 +198,7 @@ internal class ConfluentMainController(
     }
 
     private fun selectDefaultPath() {
-        val envs = dataManager.getEnvironments()
+        val envs = dataManager.client.getEnvironments()
         if (envs.isNotEmpty()) {
             val firstEnvPath = RfsPath(listOf(envs.first().id), true)
             open(firstEnvPath)
