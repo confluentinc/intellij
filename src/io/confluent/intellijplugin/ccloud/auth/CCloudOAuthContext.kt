@@ -123,8 +123,8 @@ class CCloudOAuthContext {
                     )
                 }
 
-                val idTokenResponse = exchangeAuthorizationCode(authorizationCode)
-                processTokenExchangeResponse(idTokenResponse, organizationId)
+                val (statusCode, idTokenResponse) = exchangeAuthorizationCode(authorizationCode)
+                processTokenExchangeResponse(statusCode, idTokenResponse, organizationId)
             }.onSuccess {
                 // Reset any existing errors
                 tokens.updateAndGet { oldTokens ->
@@ -158,8 +158,8 @@ class CCloudOAuthContext {
         writeLock.lock()
         try {
             return runCatching {
-                val idTokenResponse = createTokensFromRefreshToken()
-                processTokenExchangeResponse(idTokenResponse, organizationId)
+                val (statusCode, idTokenResponse) = createTokensFromRefreshToken()
+                processTokenExchangeResponse(statusCode, idTokenResponse, organizationId)
             }.onSuccess {
                 // Reset failed attempts counter on success
                 tokens.updateAndGet { it.withSuccessfulTokenRefreshAttempt() }
@@ -182,8 +182,8 @@ class CCloudOAuthContext {
         writeLock.lock()
         try {
             return runCatching {
-                val idTokenResponse = createTokensFromRefreshToken()
-                processTokenExchangeResponse(idTokenResponse, organizationId)
+                val (statusCode, idTokenResponse) = createTokensFromRefreshToken()
+                processTokenExchangeResponse(statusCode, idTokenResponse, organizationId)
             }.onSuccess {
                 tokens.updateAndGet { it.withSuccessfulTokenRefreshAttempt() }
             }.map { this }
@@ -242,9 +242,9 @@ class CCloudOAuthContext {
     /**
      * Exchanges the authorization code for an ID token.
      * @param authorizationCode The authorization code received from Confluent Cloud
-     * @return The ID token exchange response
+     * @return Pair of (HTTP status code, ID token exchange response)
      */
-    private suspend fun exchangeAuthorizationCode(authorizationCode: String): IdTokenExchangeResponse {
+    private suspend fun exchangeAuthorizationCode(authorizationCode: String): Pair<Int, IdTokenExchangeResponse> {
         val formData = mapOf(
             "grant_type" to "authorization_code",
             "client_id" to CCloudOAuthConfig.CCLOUD_OAUTH_CLIENT_ID,
@@ -253,13 +253,13 @@ class CCloudOAuthContext {
             "redirect_uri" to CCloudOAuthConfig.CCLOUD_OAUTH_REDIRECT_URI
         )
 
-        return CCloudOAuthHttpClient.postForm(
+        return CCloudOAuthHttpClient.postFormWithStatus(
             url = CCloudOAuthConfig.CCLOUD_OAUTH_TOKEN_URI,
             formData = formData
         )
     }
 
-    private suspend fun createTokensFromRefreshToken(): IdTokenExchangeResponse {
+    private suspend fun createTokensFromRefreshToken(): Pair<Int, IdTokenExchangeResponse> {
         val refreshToken = tokens.get().refreshToken
         if (isTokenMissing(refreshToken)) {
             throw IllegalStateException("Refresh token is missing.")
@@ -272,7 +272,7 @@ class CCloudOAuthContext {
             "redirect_uri" to CCloudOAuthConfig.CCLOUD_OAUTH_REDIRECT_URI
         )
 
-        return CCloudOAuthHttpClient.postForm(
+        return CCloudOAuthHttpClient.postFormWithStatus(
             url = CCloudOAuthConfig.CCLOUD_OAUTH_TOKEN_URI,
             formData = formData
         )
@@ -282,19 +282,23 @@ class CCloudOAuthContext {
     /**
      * Processes the response of Confluent Cloud's oauth/token endpoint, which includes the ID
      * token, exchanges the ID token for a control plane token, and exchanges the control plane for a data plane token.
+     * @param httpStatusCode The HTTP status code from the token endpoint
      * @param idTokenResponse The response of CCloud's /oauth/token endpoint holding the ID token
      * @param organizationId The Confluent Cloud organization ID
      * @return If successful, updates the CCloudOAuthContext with up-to-date refresh, control plane,
-     * and data plane tokens. If not successful, throws an IllegalStateException at the first point of failure.
+     * and data plane tokens. If not successful, throws an OAuthErrorException at the first point of failure.
      */
     private suspend fun processTokenExchangeResponse(
+        httpStatusCode: Int,
         idTokenResponse: IdTokenExchangeResponse,
         organizationId: String?
     ) {
         // Part 1 - Validate and store refresh token
         if (idTokenResponse.error != null) {
-            throw IllegalStateException(
-                "Retrieving ID token failed: ${idTokenResponse.error} - ${idTokenResponse.errorDescription}"
+            throw OAuthErrorException(
+                errorCode = idTokenResponse.error,
+                errorDescription = idTokenResponse.errorDescription?.toString(),
+                httpStatusCode = httpStatusCode
             )
         }
 
