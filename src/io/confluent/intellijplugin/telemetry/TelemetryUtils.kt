@@ -5,6 +5,7 @@ import com.intellij.ide.util.PropertiesComponent
 import com.intellij.openapi.extensions.PluginId
 import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.util.SystemInfo
+import org.jetbrains.annotations.VisibleForTesting
 import io.confluent.intellijplugin.core.constants.BdtPlugins
 import io.confluent.intellijplugin.settings.app.KafkaPluginSettings
 import java.security.MessageDigest
@@ -15,17 +16,24 @@ import java.util.UUID
  */
 object TelemetryUtils {
     private val logger = thisLogger()
-    private const val MACHINE_ID_KEY = "io.confluent.intellijplugin.commonMachineId"
+    internal const val MACHINE_ID_KEY = "io.confluent.intellijplugin.commonMachineId"
 
-    private val cachedMachineId: String by lazy { loadOrCreateMachineId() }
+    @VisibleForTesting
+    internal var cachedMachineId: Lazy<String> = lazy { loadOrCreateMachineId() }
 
     /**
      * Gets a persistent anonymous machine ID for telemetry.
      * Stored in plugin settings kafka_plugin_settings.xml and auto-generated on first access.
      */
-    fun commonMachineId(): String = cachedMachineId
+    fun commonMachineId(): String = cachedMachineId.value
 
-    private fun loadOrCreateMachineId(): String = try {
+    @VisibleForTesting
+    internal fun resetCachedMachineId() {
+        cachedMachineId = lazy { loadOrCreateMachineId() }
+    }
+
+    @VisibleForTesting
+    internal fun loadOrCreateMachineId(): String = try {
         val settings = KafkaPluginSettings.getInstance()
         var machineId = settings.machineId
 
@@ -51,7 +59,8 @@ object TelemetryUtils {
         "unknown"
     }
 
-    private fun isValidUuid(value: String): Boolean {
+    @VisibleForTesting
+    internal fun isValidUuid(value: String): Boolean {
         return try {
             UUID.fromString(value)
             true
