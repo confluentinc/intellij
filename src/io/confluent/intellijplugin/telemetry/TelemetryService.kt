@@ -50,6 +50,10 @@ class TelemetryService : Disposable {
             try {
                 analytics = Analytics.builder(SegmentConfig.WRITE_KEY).build()
                 logger.debug("Telemetry service initialized successfully")
+
+                // Send plugin activation event on first initialization
+                sendTrackEvent(PluginActivatedEvent.eventName, PluginActivatedEvent.properties())
+                sendIdentifyEvent(emptyMap())
             } catch (e: Exception) {
                 logger.error("Failed to initialize telemetry service", e)
             }
