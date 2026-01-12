@@ -11,11 +11,6 @@ import io.confluent.intellijplugin.rfs.ConfluentConnectionData
 /**
  * Data manager for Confluent Cloud resources.
  * Provides the ControlPlaneCache for accessing Confluent Cloud control plane resources.
- *
- * Access organizational resources directly via the client:
- * - client.getEnvironments()
- * - client.getKafkaClusters(environmentId)
- * - client.getSchemaRegistry(environmentId)
  */
 class ConfluentDataManager(
     project: Project?,
