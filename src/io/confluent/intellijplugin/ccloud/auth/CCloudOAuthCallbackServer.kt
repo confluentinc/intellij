@@ -9,6 +9,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import java.net.InetAddress
 import java.net.InetSocketAddress
+import javax.net.ssl.SSLHandshakeException
 
 /**
  * HTTP server to receive OAuth callback from Confluent Cloud.
@@ -29,6 +30,9 @@ class CCloudOAuthCallbackServer(
     companion object {
         private val logger = thisLogger()
         private const val CONFLUENT_CLOUD_HOMEPAGE = "https://confluent.cloud"
+
+        private const val TLS_HANDSHAKE_ERROR_MESSAGE =
+            "Failed to perform the SSL/TLS handshake."
 
         private val STYLES: String by lazy {
             loadResource("/templates/styles.html")
@@ -100,61 +104,81 @@ class CCloudOAuthCallbackServer(
         logger.info("OAuth callback server stopped")
     }
 
-    private fun handleCallback(exchange: HttpExchange) {
-        val params = parseQueryString(exchange.requestURI.query)
-        val code = params["code"]
-        val state = params["state"]
-        val error = params["error"]
+    /**
+     * Result of processing an OAuth callback. On success, the success context is passed to continue token exchange. On error, the OAuth error message is displayed to the user.
+     */
+    internal data class CallbackResult(
+        val statusCode: Int,
+        val html: String,
+        val successContext: CCloudOAuthContext? = null,
+        val errorMessage: String? = null
+    )
 
-        logger.info("Received OAuth callback: code=${code?.take(10)}..., state=${state?.take(10)}..., error=$error")
-
-        // Validate the callback parameters and handle the different response cases
-        when {
+    /**
+     * Process callback parameters and return the result without side effects.
+     * This pure function is to improve testing easability.
+     * @param code The authorization code
+     * @param state The state parameter
+     * @param error The error parameter
+     * @return The callback result
+     */
+    internal suspend fun processCallback(code: String?, state: String?, error: String?): CallbackResult {
+        return when {
             error != null -> {
                 logger.warn("OAuth callback error: $error")
-                sendResponse(exchange, 400, errorHtml(error))
-                stopAndNotifyError(error)
+                CallbackResult(400, errorHtml(error), errorMessage = error)
             }
 
             state != oauthContext.oauthState -> {
                 val message = "Invalid state parameter"
                 logger.warn("OAuth state mismatch")
-                sendResponse(exchange, 400, errorHtml(message))
-                stopAndNotifyError(message)
+                CallbackResult(400, errorHtml(message), errorMessage = message)
             }
 
             code == null -> {
                 val message = "Missing authorization code"
                 logger.warn("OAuth callback missing code parameter")
-                sendResponse(exchange, 400, errorHtml(message))
-                stopAndNotifyError(message)
+                CallbackResult(400, errorHtml(message), errorMessage = message)
             }
 
             else -> {
                 logger.info("OAuth callback successful, exchanging code for tokens")
+                val tokenResult = oauthContext.createTokensFromAuthorizationCode(code)
 
-                // Exchange code for tokens synchronously so we can show the correct result page
-                val result = runBlocking {
-                    oauthContext.createTokensFromAuthorizationCode(code)
-                }
-
-                result
-                    .onSuccess { context ->
-                        sendResponse(exchange, 200, successHtml(context.getUserEmail()))
-                        CoroutineScope(Dispatchers.IO).launch {
-                            onSuccess(context)
-                            stop()
+                tokenResult.fold(
+                    onSuccess = { context ->
+                        CallbackResult(200, successHtml(context.getUserEmail()), successContext = context)
+                    },
+                    onFailure = { exception ->
+                        var message = exception.message ?: "Token exchange failed"
+                        if (exception is SSLHandshakeException) {
+                            message = TLS_HANDSHAKE_ERROR_MESSAGE
                         }
+                        CallbackResult(500, errorHtml(message), errorMessage = message)
                     }
-                    .onFailure { exception ->
-                        val message = exception.message ?: "Token exchange failed"
-                        sendResponse(exchange, 500, errorHtml(message))
-                        CoroutineScope(Dispatchers.IO).launch {
-                            onError(message)
-                            stop()
-                        }
-                    }
+                )
             }
+        }
+    }
+
+    private fun handleCallback(exchange: HttpExchange) {
+        val params = parseQueryString(exchange.requestURI.query)
+        logger.info("Received OAuth callback: code=${params["code"]?.take(10)}..., state=${params["state"]?.take(10)}..., error=${params["error"]}")
+
+        // Process callback synchronously so we can show the correct result page to the user.
+        // The browser is waiting for the HTTP response, so we must block until token exchange completes.
+        val result = runBlocking {
+            processCallback(params["code"], params["state"], params["error"])
+        }
+
+        sendResponse(exchange, result.statusCode, result.html)
+
+        CoroutineScope(Dispatchers.IO).launch {
+            when {
+                result.successContext != null -> onSuccess(result.successContext)
+                result.errorMessage != null -> onError(result.errorMessage)
+            }
+            stop()
         }
     }
 
@@ -166,20 +190,13 @@ class CCloudOAuthCallbackServer(
         exchange.responseBody.use { it.write(bytes) }
     }
 
-    private fun stopAndNotifyError(message: String) {
-        CoroutineScope(Dispatchers.IO).launch {
-            onError(message)
-            stop()
-        }
-    }
-
-    private fun successHtml(email: String): String {
+    internal fun successHtml(email: String): String {
         return SUCCESS_TEMPLATE
             .replace("{{email}}", email.escapeHtml())
             .replace("{{confluent_cloud_homepage}}", CONFLUENT_CLOUD_HOMEPAGE)
     }
 
-    private fun errorHtml(message: String): String {
+    internal fun errorHtml(message: String): String {
         return FAILURE_TEMPLATE
             .replace("{{error}}", message.escapeHtml())
     }
