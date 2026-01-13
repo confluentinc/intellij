@@ -15,7 +15,8 @@ import com.intellij.util.xmlb.XmlSerializerUtil
 class KafkaPluginSettings : PersistentStateComponent<KafkaPluginSettings> {
     var enableUsageData: Boolean = true
 
-    // Future additional settings can be added here
+    // Persistent anonymous machine ID for telemetry. Auto-generated on first access.
+    var machineId: String? = null
 
     override fun getState(): KafkaPluginSettings = this
 
