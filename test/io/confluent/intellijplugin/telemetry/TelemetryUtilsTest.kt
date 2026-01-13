@@ -1,11 +1,15 @@
 package io.confluent.intellijplugin.telemetry
 
+import com.intellij.ide.util.PropertiesComponent
 import com.intellij.testFramework.junit5.TestApplication
+import io.confluent.intellijplugin.settings.app.KafkaPluginSettings
 import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.MethodSource
+import org.junit.jupiter.params.provider.ValueSource
 import org.mockito.Mockito.mockStatic
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
@@ -130,7 +134,7 @@ class TelemetryUtilsTest {
         fun `returns valid UUID`() {
             val machineId = TelemetryUtils.commonMachineId()
 
-            Assertions.assertNotNull(machineId)
+            assertNotNull(machineId)
             assertNotEquals("unknown", machineId)
             assertDoesNotThrow {
                 UUID.fromString(machineId)
@@ -171,7 +175,7 @@ class TelemetryUtilsTest {
         fun `returns non-empty string`() {
             val version = TelemetryUtils.getPluginVersion()
 
-            Assertions.assertNotNull(version)
+            assertNotNull(version)
             assertTrue(version.isNotEmpty())
         }
 
@@ -180,6 +184,239 @@ class TelemetryUtilsTest {
             assertDoesNotThrow {
                 TelemetryUtils.getPluginVersion()
             }
+        }
+    }
+
+    @Nested
+    @DisplayName("isValidUuid")
+    inner class IsValidUuidTests {
+
+        @ParameterizedTest
+        @ValueSource(strings = [
+            "550e8400-e29b-41d4-a716-446655440000",
+            "123e4567-e89b-12d3-a456-426614174000",
+            "00000000-0000-0000-0000-000000000000",
+            "ffffffff-ffff-ffff-ffff-ffffffffffff",
+            "AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE"
+        ])
+        fun `returns true for valid UUIDs`(uuid: String) {
+            assertTrue(TelemetryUtils.isValidUuid(uuid))
+        }
+
+        @ParameterizedTest
+        @ValueSource(strings = [
+            "",
+            "not-a-uuid",
+            "12345",
+            "550e8400-e29b-41d4-a716",
+            "550e8400-e29b-41d4-a716-44665544000g",
+            "550e8400e29b41d4a716446655440000",
+            "   ",
+            "550e8400-e29b-41d4-a716-446655440000-extra"
+        ])
+        fun `returns false for invalid UUIDs`(invalidUuid: String) {
+            assertFalse(TelemetryUtils.isValidUuid(invalidUuid))
+        }
+    }
+
+    @Nested
+    @DisplayName("loadOrCreateMachineId")
+    inner class LoadOrCreateMachineIdTests {
+
+        @BeforeEach
+        fun setUp() {
+            TelemetryUtils.resetCachedMachineId()
+        }
+
+        @AfterEach
+        fun tearDown() {
+            TelemetryUtils.resetCachedMachineId()
+        }
+
+        @Test
+        fun `returns existing machineId from settings when valid`() {
+            val existingId = UUID.randomUUID().toString()
+            val settings = KafkaPluginSettings.getInstance()
+            settings.machineId = existingId
+
+            val result = TelemetryUtils.loadOrCreateMachineId()
+
+            assertEquals(existingId, result)
+        }
+
+        @Test
+        fun `migrates machineId from PropertiesComponent when settings is null`() {
+            val legacyId = UUID.randomUUID().toString()
+            val settings = KafkaPluginSettings.getInstance()
+            settings.machineId = null
+
+            val properties = PropertiesComponent.getInstance()
+            properties.setValue(TelemetryUtils.MACHINE_ID_KEY, legacyId)
+
+            try {
+                val result = TelemetryUtils.loadOrCreateMachineId()
+
+                assertEquals(legacyId, result)
+                assertEquals(legacyId, settings.machineId, "Should save migrated ID to settings")
+            } finally {
+                properties.unsetValue(TelemetryUtils.MACHINE_ID_KEY)
+            }
+        }
+
+        @Test
+        fun `migrates machineId from PropertiesComponent when settings is blank`() {
+            val legacyId = UUID.randomUUID().toString()
+            val settings = KafkaPluginSettings.getInstance()
+            settings.machineId = "   "
+
+            val properties = PropertiesComponent.getInstance()
+            properties.setValue(TelemetryUtils.MACHINE_ID_KEY, legacyId)
+
+            try {
+                val result = TelemetryUtils.loadOrCreateMachineId()
+
+                assertEquals(legacyId, result)
+                assertEquals(legacyId, settings.machineId, "Should save migrated ID to settings")
+            } finally {
+                properties.unsetValue(TelemetryUtils.MACHINE_ID_KEY)
+            }
+        }
+
+        @Test
+        fun `generates new UUID when both settings and PropertiesComponent are null`() {
+            val settings = KafkaPluginSettings.getInstance()
+            settings.machineId = null
+
+            val properties = PropertiesComponent.getInstance()
+            properties.unsetValue(TelemetryUtils.MACHINE_ID_KEY)
+
+            val result = TelemetryUtils.loadOrCreateMachineId()
+
+            assertNotNull(result)
+            assertNotEquals("unknown", result)
+            assertDoesNotThrow { UUID.fromString(result) }
+            assertEquals(result, settings.machineId, "Should save new ID to settings")
+        }
+
+        @Test
+        fun `generates new UUID when both settings and PropertiesComponent are blank`() {
+            val settings = KafkaPluginSettings.getInstance()
+            settings.machineId = ""
+
+            val properties = PropertiesComponent.getInstance()
+            properties.setValue(TelemetryUtils.MACHINE_ID_KEY, "   ")
+
+            try {
+                val result = TelemetryUtils.loadOrCreateMachineId()
+
+                assertNotNull(result)
+                assertNotEquals("unknown", result)
+                assertDoesNotThrow { UUID.fromString(result) }
+                assertEquals(result, settings.machineId, "Should save new ID to settings")
+            } finally {
+                properties.unsetValue(TelemetryUtils.MACHINE_ID_KEY)
+            }
+        }
+
+        @Test
+        fun `generates new UUID when settings has invalid UUID`() {
+            val settings = KafkaPluginSettings.getInstance()
+            settings.machineId = "not-a-valid-uuid"
+
+            val result = TelemetryUtils.loadOrCreateMachineId()
+
+            assertNotEquals("not-a-valid-uuid", result)
+            assertDoesNotThrow { UUID.fromString(result) }
+            assertEquals(result, settings.machineId, "Should save new ID to settings")
+        }
+
+        @Test
+        fun `generates new UUID when PropertiesComponent has invalid UUID and settings is null`() {
+            val settings = KafkaPluginSettings.getInstance()
+            settings.machineId = null
+
+            val properties = PropertiesComponent.getInstance()
+            properties.setValue(TelemetryUtils.MACHINE_ID_KEY, "invalid-uuid-format")
+
+            try {
+                val result = TelemetryUtils.loadOrCreateMachineId()
+
+                assertNotEquals("invalid-uuid-format", result)
+                assertDoesNotThrow { UUID.fromString(result) }
+                assertEquals(result, settings.machineId, "Should save new ID to settings")
+            } finally {
+                properties.unsetValue(TelemetryUtils.MACHINE_ID_KEY)
+            }
+        }
+
+        @Test
+        fun `always saves to persistent settings`() {
+            val settings = KafkaPluginSettings.getInstance()
+            settings.machineId = null
+
+            val properties = PropertiesComponent.getInstance()
+            properties.unsetValue(TelemetryUtils.MACHINE_ID_KEY)
+
+            val result = TelemetryUtils.loadOrCreateMachineId()
+
+            assertNotNull(settings.machineId)
+            assertEquals(result, settings.machineId)
+        }
+
+        @Test
+        fun `prioritizes settings over PropertiesComponent when both have values`() {
+            val settingsId = UUID.randomUUID().toString()
+            val legacyId = UUID.randomUUID().toString()
+
+            val settings = KafkaPluginSettings.getInstance()
+            settings.machineId = settingsId
+
+            val properties = PropertiesComponent.getInstance()
+            properties.setValue(TelemetryUtils.MACHINE_ID_KEY, legacyId)
+
+            try {
+                val result = TelemetryUtils.loadOrCreateMachineId()
+
+                assertEquals(settingsId, result, "Should use settings value, not PropertiesComponent")
+            } finally {
+                properties.unsetValue(TelemetryUtils.MACHINE_ID_KEY)
+            }
+        }
+
+        @Test
+        fun `commonMachineId caches the result`() {
+            val settings = KafkaPluginSettings.getInstance()
+            settings.machineId = null
+
+            val properties = PropertiesComponent.getInstance()
+            properties.unsetValue(TelemetryUtils.MACHINE_ID_KEY)
+
+            val firstCall = TelemetryUtils.commonMachineId()
+
+            // Change settings after first call
+            settings.machineId = UUID.randomUUID().toString()
+
+            val secondCall = TelemetryUtils.commonMachineId()
+
+            assertEquals(firstCall, secondCall, "commonMachineId should return cached value")
+        }
+
+        @Test
+        fun `resetCachedMachineId clears the cache`() {
+            val settings = KafkaPluginSettings.getInstance()
+            val firstId = UUID.randomUUID().toString()
+            settings.machineId = firstId
+
+            val firstCall = TelemetryUtils.commonMachineId()
+            assertEquals(firstId, firstCall)
+
+            // Reset cache and change settings
+            TelemetryUtils.resetCachedMachineId()
+            val secondId = UUID.randomUUID().toString()
+            settings.machineId = secondId
+
+            val secondCall = TelemetryUtils.commonMachineId()
+            assertEquals(secondId, secondCall, "After reset, should use new settings value")
         }
     }
 
