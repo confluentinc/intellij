@@ -59,4 +59,28 @@ class DataPlaneCache(
         cachedTopics = topics
         return topics
     }
+
+    /** Check if this cache has Schema Registry configured. */
+    fun hasSchemaRegistry(): Boolean = schemaRegistry != null
+
+    /** Get cached subjects (empty if not loaded). */
+    fun getSubjects(): List<SubjectData> = cachedSubjects ?: emptyList()
+
+    /** Fetch subjects from API and update cache. */
+    fun refreshSubjects(): List<SubjectData> {
+        if (schemaRegistry == null) return emptyList()
+
+        val subjects = fetcher?.let { f ->
+            runBlocking { f.listSubjectsWithDetails() }
+        } ?: emptyList()
+        cachedSubjects = subjects
+        return subjects
+    }
+
+    override fun dispose() {
+        kafkaClient = null
+        fetcher = null
+        cachedTopics = null
+        cachedSubjects = null
+    }
 }
