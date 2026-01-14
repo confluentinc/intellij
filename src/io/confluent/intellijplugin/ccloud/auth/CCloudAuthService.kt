@@ -5,6 +5,9 @@ import com.intellij.openapi.Disposable
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.thisLogger
+import io.confluent.intellijplugin.telemetry.CCloudAuthenticationEvent
+import io.confluent.intellijplugin.telemetry.logUsage
+import io.confluent.intellijplugin.telemetry.logUser
 
 /**
  * Application-level service for Confluent Cloud authentication.
@@ -44,10 +47,26 @@ class CCloudAuthService : Disposable {
             oauthContext = oauthContext,
             onSuccess = { authenticatedContext ->
                 completeSignIn(authenticatedContext)
+
+                // Telemetry: identify user and track sign-in
+                authenticatedContext.getUser()?.let { user ->
+                    val emailRegex = Regex("@[a-zA-Z0-9-]+\\.[a-zA-Z0-9-]+")
+                    val domain = if (emailRegex.containsMatchIn(user.email)) {
+                        user.email.substringAfter("@")
+                    } else null
+
+                    logUser(buildMap {
+                        domain?.let { put("ccloudDomain", it) }
+                        user.socialConnection?.let { put("ccloudSocialConnection", it) }
+                    })
+                }
+                logUsage(CCloudAuthenticationEvent(status = "signed in"))
+
                 onSuccess(authenticatedContext.getUserEmail())
             },
             onError = { error ->
                 logger.error("Sign-in failed: $error")
+                logUsage(CCloudAuthenticationEvent(status = "authentication failed", errorType = error))
                 onError(error)
             }
         )
@@ -75,6 +94,10 @@ class CCloudAuthService : Disposable {
      * Sign out, clear current session and stop refresh.
      */
     fun signOut() {
+        if (isSignedIn()) {
+            logUsage(CCloudAuthenticationEvent(status = "signed out"))
+        }
+
         refreshBean?.stop()
         refreshBean = null
         context = null
