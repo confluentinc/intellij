@@ -56,7 +56,6 @@ class CCloudAuthService : Disposable {
                     } else null
 
                     logUser(buildMap {
-                        put("ccloudId", user.id)
                         domain?.let { put("ccloudDomain", it) }
                         user.socialConnection?.let { put("ccloudSocialConnection", it) }
                     })
