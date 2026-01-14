@@ -7,6 +7,10 @@ import io.confluent.intellijplugin.rfs.ConfluentDriver.Companion.isClustersFolde
 import io.confluent.intellijplugin.rfs.ConfluentDriver.Companion.isEnvironment
 import io.confluent.intellijplugin.rfs.ConfluentDriver.Companion.isSchemaRegistryFolder
 import io.confluent.intellijplugin.rfs.ConfluentDriver.Companion.isSchemaRegistry
+import io.confluent.intellijplugin.rfs.ConfluentDriver.Companion.isTopicsFolder
+import io.confluent.intellijplugin.rfs.ConfluentDriver.Companion.isSchemasFolder
+import io.confluent.intellijplugin.rfs.ConfluentDriver.Companion.isTopic
+import io.confluent.intellijplugin.rfs.ConfluentDriver.Companion.isSchema
 import io.confluent.intellijplugin.rfs.ConfluentDriver.Companion.getEnvironmentId
 import io.confluent.intellijplugin.core.monitoring.rfs.MonitoringRfsTreeNode
 import io.confluent.intellijplugin.core.rfs.driver.RfsPath
@@ -18,6 +22,8 @@ import javax.swing.Icon
  * - Environments
  * - Clusters folder / Schema Registry folder
  * - Individual Cluster / Schema Registry
+ * - Topics folder (under cluster)
+ * - Individual Topics
  */
 class ConfluentRfsTreeNode(
     project: Project,
@@ -29,7 +35,7 @@ class ConfluentRfsTreeNode(
         myName = getDisplayName()
     }
 
-    override fun isAlwaysLeaf(): Boolean = rfsPath.isCluster || rfsPath.isSchemaRegistry
+    override fun isAlwaysLeaf(): Boolean = rfsPath.isTopic || rfsPath.isSchema
 
     private fun getDisplayName(): String {
         return when {
@@ -56,6 +62,10 @@ class ConfluentRfsTreeNode(
                     .find { it.id == srId }
                     ?.displayName ?: srId
             }
+            rfsPath.isTopicsFolder -> ConfluentDriver.TOPICS_FOLDER
+            rfsPath.isTopic -> rfsPath.name  // Topic name is already the display name
+            rfsPath.isSchemasFolder -> ConfluentDriver.SCHEMAS_FOLDER
+            rfsPath.isSchema -> rfsPath.name  // Schema/subject name is already the display name
             else -> rfsPath.name
         }
     }
@@ -66,6 +76,10 @@ class ConfluentRfsTreeNode(
         rfsPath.isSchemaRegistryFolder -> AllIcons.Nodes.DataSchema
         rfsPath.isCluster -> AllIcons.Nodes.Module
         rfsPath.isSchemaRegistry -> AllIcons.Nodes.DataSchema
+        rfsPath.isTopicsFolder -> AllIcons.Nodes.Folder
+        rfsPath.isTopic -> AllIcons.Nodes.Tag
+        rfsPath.isSchemasFolder -> AllIcons.Nodes.Folder
+        rfsPath.isSchema -> AllIcons.FileTypes.Json  // Use JSON icon for schemas
         else -> null
     }
 
@@ -87,8 +101,8 @@ class ConfluentRfsTreeNode(
     }
 
     override fun onDoubleClick(): Boolean = when {
-        rfsPath.isCluster || rfsPath.isSchemaRegistry -> true // Details shown in panel
-        else -> false // Allow default expansion behavior
+        rfsPath.isTopic || rfsPath.isSchema -> true // Details shown in panel
+        else -> false // Allow default expansion behavior for folders
     }
 }
 
