@@ -8,6 +8,7 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.serializer
+import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 
 /**
@@ -29,8 +30,6 @@ class DataPlaneFetcherImpl(
         ignoreUnknownKeys = true
         isLenient = true
     }
-
-    // ========== Topics ==========
 
     override suspend fun listTopics(): List<TopicData> {
         val path = String.format(CloudConfig.DataPlane.Kafka.TOPICS_URI, clusterId)
@@ -68,8 +67,6 @@ class DataPlaneFetcherImpl(
         TODO("Implement consumeRecords")
     }
 
-    // ========== Consumer Groups ==========
-
     override suspend fun listConsumerGroups(): List<ConsumerGroupData> {
         TODO("Implement listConsumerGroups")
     }
@@ -77,8 +74,6 @@ class DataPlaneFetcherImpl(
     override suspend fun describeConsumerGroup(groupId: String): ConsumerGroupDetails {
         TODO("Implement describeConsumerGroup")
     }
-
-    // ========== Schema Registry ==========
 
     override suspend fun listSubjects(): List<String> {
         requireSchemaRegistry()
@@ -104,7 +99,7 @@ class DataPlaneFetcherImpl(
                             schemaType = latestSchema.schemaType,
                             compatibility = null
                         )
-                    } catch (e: Exception) {
+                    } catch (_: Exception) {
                         SubjectData(name = subject)
                     }
                 }

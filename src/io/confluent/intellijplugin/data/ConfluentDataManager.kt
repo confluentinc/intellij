@@ -2,8 +2,8 @@ package io.confluent.intellijplugin.data
 
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
-import io.confluent.intellijplugin.ccloud.client.ControlPlaneCache
-import io.confluent.intellijplugin.ccloud.client.DataPlaneCache
+import io.confluent.intellijplugin.ccloud.cache.ControlPlaneCache
+import io.confluent.intellijplugin.ccloud.cache.DataPlaneCache
 import io.confluent.intellijplugin.ccloud.model.Cluster
 import io.confluent.intellijplugin.ccloud.model.Environment
 import io.confluent.intellijplugin.ccloud.model.SchemaRegistry
@@ -56,8 +56,6 @@ class ConfluentDataManager(
         }
         return null
     }
-
-    // ========== Control Plane Convenience Methods ==========
 
     fun getEnvironments(): List<Environment> = client.getEnvironments()
     fun getKafkaClusters(environmentId: String): List<Cluster> = client.getKafkaClusters(environmentId)

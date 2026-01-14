@@ -12,8 +12,6 @@ import io.confluent.intellijplugin.ccloud.model.response.*
  */
 interface DataPlaneFetcher {
 
-    // ========== Topics ==========
-
     /** List all topics. */
     suspend fun listTopics(): List<TopicData>
 
@@ -38,15 +36,11 @@ interface DataPlaneFetcher {
     /** Consume records from a topic. */
     suspend fun consumeRecords(topicName: String, request: ConsumeRequest): List<ConsumerRecord>
 
-    // ========== Consumer Groups ==========
-
     /** List all consumer groups. */
     suspend fun listConsumerGroups(): List<ConsumerGroupData>
 
     /** Get consumer group details (topics, partitions, lag, offset). */
     suspend fun describeConsumerGroup(groupId: String): ConsumerGroupDetails
-
-    // ========== Schema Registry ==========
 
     /** List all subjects (throws if Schema Registry unavailable). */
     suspend fun listSubjects(): List<String>

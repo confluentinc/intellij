@@ -1,4 +1,4 @@
-package io.confluent.intellijplugin.ccloud.client
+package io.confluent.intellijplugin.ccloud.cache
 
 import com.intellij.openapi.project.Project
 import io.confluent.intellijplugin.ccloud.config.CloudConfig
@@ -12,7 +12,6 @@ import kotlinx.coroutines.runBlocking
 
 /**
  * Control plane cache for organizational resources (environments, clusters, schema registries).
- *
  * Caches data from CloudFetcherImpl to reduce API calls. Use refresh*() methods to update cache.
  */
 class ControlPlaneCache(
