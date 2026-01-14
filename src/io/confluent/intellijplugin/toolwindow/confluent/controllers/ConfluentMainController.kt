@@ -266,34 +266,12 @@ internal class ConfluentMainController(
                 return
             }
 
-            // Get data plane cache and fetch topics
-            val cache = dataManager.getDataPlaneCache(cluster)
-            val topics = cache.refreshTopics()
+            // Create topics controller with proper table display
+            val topicsController = ConfluentTopicsController(project, dataManager, cluster, envId, this)
+            topicsDetailsPanel.add(topicsController.getComponent(), BorderLayout.CENTER)
 
-            // Create table
-            val columnNames = arrayOf("", "Topic Name", "Partitions", "Replication Factor")
-            val data = topics.map { topic ->
-                arrayOf(
-                    "",  // Empty column for future favorite icon
-                    topic.topicName,
-                    topic.partitionsCount.toString(),
-                    topic.replicationFactor.toString()
-                )
-            }.toTypedArray()
-
-            val tableModel = DefaultTableModel(data, columnNames)
-            val table = JBTable(tableModel).apply {
-                setDefaultEditor(Any::class.java, null)  // Make table read-only
-            }
-
-            val scrollPane = JBScrollPane(table)
-            topicsDetailsPanel.add(scrollPane, BorderLayout.CENTER)
-
-            // Add info label at the top
-            val infoLabel = JLabel("${topics.size} topic(s)").apply {
-                border = IdeBorderFactory.createBorder(SideBorder.BOTTOM)
-            }
-            topicsDetailsPanel.add(infoLabel, BorderLayout.NORTH)
+            // Trigger initial data load
+            dataManager.updater.invokeRefreshModel(dataManager.getTopicModel(cluster))
 
         } catch (e: Exception) {
             topicsDetailsPanel.add(JLabel("Error loading topics: ${e.message}"), BorderLayout.CENTER)

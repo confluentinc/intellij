@@ -55,6 +55,30 @@ class DataPlaneFetcherImpl(
         TODO("Implement describeTopicPartitions")
     }
 
+    override suspend fun getTopicPartitions(topicName: String): List<PartitionInfo> {
+        val path = "/kafka/v3/clusters/$clusterId/topics/$topicName/partitions"
+        return kafkaClient.fetchList(path) { body ->
+            val response = json.decodeFromString<ListPartitionsResponse>(body)
+            response.data to response.metadata.next
+        }
+    }
+
+    override suspend fun getPartitionReplicas(topicName: String, partitionId: Int): List<ReplicaDetails> {
+        val path = "/kafka/v3/clusters/$clusterId/topics/$topicName/partitions/$partitionId/replicas"
+        return kafkaClient.fetchList(path) { body ->
+            val response = json.decodeFromString<ListReplicasResponse>(body)
+            response.data to response.metadata.next
+        }
+    }
+
+    override suspend fun getTopicMessageCount(topicName: String): Long {
+        val path = "/kafka/v3/clusters/$clusterId/internal/topics/$topicName/partitions/-/records:offsets"
+        return kafkaClient.fetch(path) { body ->
+            val response = json.decodeFromString<TopicOffsetsResponse>(body)
+            response.totalRecords
+        }
+    }
+
     override suspend fun describeTopicConfiguration(topicName: String): Map<String, String> {
         TODO("Implement describeTopicConfiguration")
     }

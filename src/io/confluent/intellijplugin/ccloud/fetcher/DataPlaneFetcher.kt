@@ -27,6 +27,15 @@ interface DataPlaneFetcher {
     /** Get partition details (ID, message count, offset, leader, replicas). */
     suspend fun describeTopicPartitions(topicName: String): List<PartitionData>
 
+    /** Get partition details including ISR (In Sync Replicas) information. */
+    suspend fun getTopicPartitions(topicName: String): List<PartitionInfo>
+
+    /** Get replica details for a specific partition (includes in_sync status). */
+    suspend fun getPartitionReplicas(topicName: String, partitionId: Int): List<ReplicaDetails>
+
+    /** Get total message count for a topic across all partitions. */
+    suspend fun getTopicMessageCount(topicName: String): Long
+
     /** Get topic configuration. */
     suspend fun describeTopicConfiguration(topicName: String): Map<String, String>
 

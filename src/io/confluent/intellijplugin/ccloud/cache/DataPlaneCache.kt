@@ -77,6 +77,29 @@ class DataPlaneCache(
         return subjects
     }
 
+    /**
+     * Enrich topics with additional data (message count).
+     * Returns map of topic name to enrichment data.
+     */
+    suspend fun enrichTopicsData(topics: List<TopicData>): Map<String, TopicEnrichmentData> = coroutineScope {
+        val enrichmentMap = mutableMapOf<String, TopicEnrichmentData>()
+
+        topics.map { topic ->
+            async {
+                try {
+                    val messageCount = fetcher?.getTopicMessageCount(topic.topicName)
+                    if (messageCount != null) {
+                        enrichmentMap[topic.topicName] = TopicEnrichmentData(messageCount = messageCount)
+                    }
+                } catch (e: Exception) {
+                    thisLogger().debug("Failed to fetch message count for topic ${topic.topicName}: ${e.message}")
+                }
+            }
+        }.awaitAll()
+
+        enrichmentMap
+    }
+
     override fun dispose() {
         kafkaClient = null
         fetcher = null
