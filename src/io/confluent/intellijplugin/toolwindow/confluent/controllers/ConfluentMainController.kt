@@ -31,6 +31,7 @@ import io.confluent.intellijplugin.rfs.ConfluentDriver.Companion.getEnvironmentI
 import io.confluent.intellijplugin.rfs.ConfluentDriver.Companion.getSchemaRegistryId
 import io.confluent.intellijplugin.core.monitoring.toolwindow.ComponentController
 import io.confluent.intellijplugin.core.monitoring.toolwindow.MainTreeController
+import io.confluent.intellijplugin.core.rfs.driver.ConnectedConnectionStatus
 import io.confluent.intellijplugin.core.rfs.driver.DriverConnectionStatus
 import io.confluent.intellijplugin.core.rfs.driver.RfsPath
 import io.confluent.intellijplugin.core.rfs.editorviewer.RfsEditorErrorPanel
@@ -100,6 +101,11 @@ internal class ConfluentMainController(
         override fun driverRefreshFinished(status: DriverConnectionStatus) {
             invokeLater {
                 updateMainPanel(status.getException())
+
+                // After successful connection, try to select default path if nothing is selected
+                if (status == ConnectedConnectionStatus && myTree.selectionPath == null) {
+                    selectDefaultPath()
+                }
             }
         }
     }
