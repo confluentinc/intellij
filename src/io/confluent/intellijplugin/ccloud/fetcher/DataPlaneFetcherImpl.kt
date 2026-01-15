@@ -33,10 +33,13 @@ class DataPlaneFetcherImpl(
 
     override suspend fun listTopics(): List<TopicData> {
         val path = String.format(CloudConfig.DataPlane.Kafka.TOPICS_URI, clusterId)
-        return kafkaClient.fetchList(path) { body ->
+        val topics = kafkaClient.fetchList(path) { body ->
             val response = json.decodeFromString<ListTopicsResponse>(body)
             response.data to response.metadata.next
         }
+
+        // Filter out virtual topics that don't exist as actual Kafka topics
+        return topics.filter { it.replicationFactor > 0 }
     }
 
     override suspend fun createTopic(request: CreateTopicRequest): TopicData {
