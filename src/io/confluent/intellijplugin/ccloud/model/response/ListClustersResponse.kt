@@ -22,6 +22,7 @@ data class ClusterData(
 data class ClusterSpec(
     val cloud: String? = null,
     val region: String? = null,
+    @SerialName("http_endpoint") val httpEndpoint: String? = null,
     val environment: ClusterEnvironment? = null
 )
 
