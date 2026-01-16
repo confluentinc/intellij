@@ -24,8 +24,7 @@ import io.confluent.intellijplugin.core.table.renderers.DurationRenderer
 import io.confluent.intellijplugin.core.ui.ExpansionPanel
 import io.confluent.intellijplugin.core.ui.onDoubleClick
 import io.confluent.intellijplugin.core.ui.setSouthComponent
-import io.confluent.intellijplugin.telemetry.MessageViewerPreviewEvent
-import io.confluent.intellijplugin.telemetry.MessageViewerSearchEvent
+import io.confluent.intellijplugin.telemetry.MessageViewerEvent
 import io.confluent.intellijplugin.telemetry.logUsage
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
 import java.awt.BorderLayout
@@ -159,7 +158,7 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
         outputTable.selectionModel.addListSelectionListener { event ->
             if (!event.valueIsAdjusting) {
                 if (outputTable.selectedRow != -1) {
-                    logUsage(MessageViewerPreviewEvent)
+                    logUsage(MessageViewerEvent.Preview)
                 }
                 updateDetails()
             }
@@ -252,7 +251,7 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
             editor.addListener {
                 val isEmpty = editor.text.isNullOrBlank()
                 if (wasEmpty && !isEmpty) {
-                    logUsage(MessageViewerSearchEvent)
+                    logUsage(MessageViewerEvent.Search)
                 }
                 wasEmpty = isEmpty
             }

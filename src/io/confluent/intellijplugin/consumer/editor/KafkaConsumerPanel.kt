@@ -31,7 +31,7 @@ import io.confluent.intellijplugin.core.util.executeOnPooledThread
 import io.confluent.intellijplugin.core.util.invokeLater
 import io.confluent.intellijplugin.core.util.withPluginClassLoader
 import io.confluent.intellijplugin.data.KafkaDataManager
-import io.confluent.intellijplugin.telemetry.MessageViewerStartEvent
+import io.confluent.intellijplugin.telemetry.MessageViewerEvent
 import io.confluent.intellijplugin.telemetry.logUsage
 import org.apache.kafka.clients.consumer.ConsumerConfig
 import io.confluent.intellijplugin.registry.KafkaRegistryFormat
@@ -323,7 +323,7 @@ class KafkaConsumerPanel(
             output.start()
 
             logUsage(
-                MessageViewerStartEvent(
+                MessageViewerEvent.Start(
                     startType = runConfig.getStartsWith().type.name.lowercase(),
                     limitType = runConfig.getLimit().type.name.lowercase(),
                     filterType = runConfig.getFilter().type.name.lowercase(),
