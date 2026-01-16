@@ -161,15 +161,19 @@ object PluginActivatedEvent : TelemetryEvent {
 /**
  * Tracks user interactions with the message viewer.
  * All message viewer events share the same event name with an "action" discriminator.
+ *
+ * @property source Whether the event is from "consumer" or "producer" context
  */
 sealed class MessageViewerEvent : TelemetryEvent {
     override val eventName = "Message Viewer Action"
     abstract val action: String
+    abstract val source: String
 
     /**
      * Tracks when a user starts consuming messages.
      * Captures the configuration options selected when "Start Consuming" is clicked.
      *
+     * @param source Whether invoked from "consumer" or "producer" context
      * @param startType The selected start type (e.g., "now", "beginning", "specific-date")
      * @param limitType The selected limit type (e.g., "none", "topic-records", "date")
      * @param filterType The selected filter type (e.g., "none", "contains", "regex")
@@ -184,7 +188,8 @@ sealed class MessageViewerEvent : TelemetryEvent {
      * @param hasFetchMaxBytes Whether fetch.max.bytes was modified from default
      * @param hasMaxPartitionFetchBytes Whether max.partition.fetch.bytes was modified from default
      */
-    data class Start(
+    data class StartConsumer(
+        override val source: String,
         val startType: String,
         val limitType: String,
         val filterType: String,
@@ -203,6 +208,7 @@ sealed class MessageViewerEvent : TelemetryEvent {
 
         override fun properties() = buildMap<String, Any> {
             put("action", action)
+            put("source", source)
             put("startType", startType)
             put("limitType", limitType)
             put("filterType", filterType)
@@ -221,19 +227,23 @@ sealed class MessageViewerEvent : TelemetryEvent {
 
     /**
      * Tracks when a user searches/filters in the message viewer table.
+     *
+     * @param source Whether invoked from "consumer" or "producer" context
      */
-    data object Search : MessageViewerEvent() {
+    data class Search(override val source: String) : MessageViewerEvent() {
         override val action = "search"
 
-        override fun properties() = mapOf<String, Any>("action" to action)
+        override fun properties() = mapOf<String, Any>("action" to action, "source" to source)
     }
 
     /**
      * Tracks when a user clicks on a message row to view its details/preview.
+     *
+     * @param source Whether invoked from "consumer" or "producer" context
      */
-    data object Preview : MessageViewerEvent() {
-        override val action = "preview"
+    data class Preview(override val source: String) : MessageViewerEvent() {
+        override val action = "preview-message"
 
-        override fun properties() = mapOf<String, Any>("action" to action)
+        override fun properties() = mapOf<String, Any>("action" to action, "source" to source)
     }
 }

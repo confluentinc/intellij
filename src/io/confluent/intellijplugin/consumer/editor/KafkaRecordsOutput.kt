@@ -158,7 +158,7 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
         outputTable.selectionModel.addListSelectionListener { event ->
             if (!event.valueIsAdjusting) {
                 if (outputTable.selectedRow != -1) {
-                    logUsage(MessageViewerEvent.Preview)
+                    logUsage(MessageViewerEvent.Preview(source = if (isProducer) "producer" else "consumer"))
                 }
                 updateDetails()
             }
@@ -246,12 +246,13 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
     }
 
     private fun setupFilterTelemetry(filterHeader: TableFilterHeader) {
+        val source = if (isProducer) "producer" else "consumer"
         filterHeader.columnsController?.forEach { editor ->
             var wasEmpty = true
-            editor.addListener {
-                val isEmpty = editor.text.isNullOrBlank()
+            editor?.addListener {
+                val isEmpty = editor?.text.isNullOrBlank()
                 if (wasEmpty && !isEmpty) {
-                    logUsage(MessageViewerEvent.Search)
+                    logUsage(MessageViewerEvent.Search(source))
                 }
                 wasEmpty = isEmpty
             }

@@ -323,7 +323,8 @@ class KafkaConsumerPanel(
             output.start()
 
             logUsage(
-                MessageViewerEvent.Start(
+                MessageViewerEvent.StartConsumer(
+                    source = "consumer",
                     startType = runConfig.getStartsWith().type.name.lowercase(),
                     limitType = runConfig.getLimit().type.name.lowercase(),
                     filterType = runConfig.getFilter().type.name.lowercase(),
