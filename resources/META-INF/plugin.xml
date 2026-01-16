@@ -85,10 +85,6 @@
                     icon="io.confluent.intellijplugin.icons.BigdatatoolsKafkaIcons.KafkaToolWindow"
                     factoryClass="io.confluent.intellijplugin.toolwindow.kafka.KafkaToolWindowFactory"/>
 
-        <toolWindow id="ConfluentToolWindow" anchor="bottom" canCloseContents="true"
-                    icon="io.confluent.intellijplugin.icons.BigdatatoolsKafkaIcons.ConfluentToolWindow"
-                    factoryClass="io.confluent.intellijplugin.toolwindow.confluent.ConfluentToolWindowFactory"/>
-
         <fileEditorProvider implementation="io.confluent.intellijplugin.common.editor.KafkaEditorProvider"/>
         <editorTabTitleProvider implementation="io.confluent.intellijplugin.common.editor.KafkaTabTitleProvider"/>
 
@@ -101,6 +97,7 @@
     <actions resource-bundle="messages.KafkaBundle">
         <action id="Kafka.GlobalCreateKafkaConnection"
                 class="io.confluent.intellijplugin.actions.CreateKafkaConnectionAction"/>
+
 
         <group id="Kafka.ExportRecords.Actions" popup="true" icon="AllIcons.Actions.Download">
             <action id="Kafka.Export.ToCsv" class="io.confluent.intellijplugin.actions.CsvExportAction"/>
@@ -186,6 +183,11 @@
                     icon="AllIcons.General.Settings"
                     class="io.confluent.intellijplugin.core.monitoring.actions.tabs.MonitoringTabOpenConnectionSetting"
                     use-shortcut-of="EditSource"/>
+            <separator/>
+            <!-- Confluent Cloud specific actions -->
+            <action id="Kafka.MonitoringTabsActions.ConfluentCloudSignOut"
+                    text="Sign Out from Confluent Cloud"
+                    class="io.confluent.intellijplugin.toolwindow.kafka.actions.ConfluentCloudSignOutTabAction"/>
         </group>
 
         <action id="Kafka.BdiTableCopyRowAction"

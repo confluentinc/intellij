@@ -2,6 +2,7 @@ package io.confluent.intellijplugin.toolwindow.kafka
 
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.wm.ToolWindow
+import io.confluent.intellijplugin.ccloud.auth.CCloudAuthService
 import io.confluent.intellijplugin.core.constants.BdtConnectionType
 import io.confluent.intellijplugin.core.constants.BdtPlugins
 import io.confluent.intellijplugin.core.monitoring.toolwindow.MonitoringToolWindowFactory
@@ -16,11 +17,15 @@ class KafkaToolWindowFactory : MonitoringToolWindowFactory() {
     override fun shouldBeAvailable(project: Project): Boolean {
         // We will show ToolWindow stripe button if:
         // 1. Only separate Kafka plugin installed
-        // 2. Full BDT installed and we have any Kafka connection configured.
+        // 2. Full BDT installed and we have any Kafka connection configured
+        // 3. User is signed in to Confluent Cloud
+        val hasDirectConnections = !RfsConnectionDataManager.instance
+            ?.getConnectionsByGroupId(connectionType.id, project).isNullOrEmpty()
+        val isCCloudSignedIn = CCloudAuthService.getInstance().isSignedIn()
+
         return (BdtPlugins.isKafkaPluginInstalled() && !BdtPlugins.isFullPluginInstalled()) ||
-                (BdtPlugins.isFullPluginInstalled() &&
-                        !RfsConnectionDataManager.instance?.getConnectionsByGroupId(connectionType.id, project)
-                            .isNullOrEmpty())
+                (BdtPlugins.isFullPluginInstalled() && hasDirectConnections) ||
+                isCCloudSignedIn
     }
 
     override fun createToolWindowContent(project: Project, toolWindow: ToolWindow) {

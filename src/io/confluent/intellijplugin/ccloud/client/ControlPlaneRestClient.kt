@@ -113,7 +113,6 @@ abstract class ControlPlaneRestClient(
      * @param limits Pagination limits (default: fetch all)
      * @param parser Parses response JSON into (items, nextUrl)
      * @return Items from fetched pages, respecting pagination limits
-     * @see <a href="https://docs.confluent.io/cloud/current/api.html#section/Pagination">Confluent API Pagination</a>
      */
     protected open suspend fun <T> listItems(
         headers: Map<String, String>,
@@ -201,6 +200,7 @@ abstract class ControlPlaneRestClient(
             .readString()
             .let(parser)
     }
+
 }
 
 /**

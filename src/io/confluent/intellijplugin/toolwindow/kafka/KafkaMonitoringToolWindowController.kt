@@ -6,6 +6,7 @@ import com.intellij.openapi.components.Service
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ToolWindowManager
+import io.confluent.intellijplugin.ccloud.auth.CCloudAuthService
 import io.confluent.intellijplugin.core.monitoring.toolwindow.ComponentController
 import io.confluent.intellijplugin.core.monitoring.toolwindow.MonitoringToolWindowController
 import io.confluent.intellijplugin.core.rfs.driver.RfsPath
@@ -13,9 +14,11 @@ import io.confluent.intellijplugin.core.settings.connections.ConnectionData
 import io.confluent.intellijplugin.core.settings.connections.ConnectionFactory
 import io.confluent.intellijplugin.core.settings.manager.RfsConnectionDataManager
 import io.confluent.intellijplugin.registry.KafkaRegistryUtil
+import io.confluent.intellijplugin.rfs.ConfluentConnectionData
 import io.confluent.intellijplugin.rfs.KafkaConnectionData
 import io.confluent.intellijplugin.settings.KafkaConnectionGroup
 import io.confluent.intellijplugin.toolwindow.config.KafkaToolWindowSettings
+import io.confluent.intellijplugin.toolwindow.confluent.controllers.ConfluentMainController
 import io.confluent.intellijplugin.toolwindow.kafka.controllers.KafkaMainController
 
 @Service(Service.Level.PROJECT)
@@ -31,12 +34,31 @@ class KafkaMonitoringToolWindowController(project: Project) : MonitoringToolWind
 
     override fun createConnectionGroup(): ConnectionFactory<*> = KafkaConnectionGroup()
 
-    override fun isSupportedData(connectionData: ConnectionData): Boolean = connectionData is KafkaConnectionData
+    override fun isSupportedData(connectionData: ConnectionData): Boolean =
+        connectionData is KafkaConnectionData || connectionData is ConfluentConnectionData
 
-    override fun createMainController(connectionData: ConnectionData): ComponentController = KafkaMainController(
-        project,
-        connectionData as KafkaConnectionData
-    )
+    override fun createMainController(connectionData: ConnectionData): ComponentController = when (connectionData) {
+        is KafkaConnectionData -> KafkaMainController(project, connectionData)
+        is ConfluentConnectionData -> {
+            // Create the driver from connection data
+            val driver = io.confluent.intellijplugin.rfs.ConfluentDriver(
+                connectionData,
+                project,
+                testConnection = false
+            )
+            driver.initDriverUpdater()
+
+            // Create the controller with the driver
+            val controller = ConfluentMainController(project, driver)
+            controller.init()
+
+            // Register disposables
+            com.intellij.openapi.util.Disposer.register(controller, driver)
+
+            controller
+        }
+        else -> error("Unsupported connection type: ${connectionData::class.simpleName}")
+    }
 
     override fun dispose() {
         super.dispose()
@@ -47,6 +69,43 @@ class KafkaMonitoringToolWindowController(project: Project) : MonitoringToolWind
         super.setUp(toolWindow)
         RfsConnectionDataManager.instance?.addListener(settingsListener)
         KafkaRegistryUtil.disableLoggers()
+
+        // Always add the Confluent Cloud tab (it handles sign-in state internally)
+        addConfluentCloudTab()
+    }
+
+    /**
+     * Adds a fixed "Confluent Cloud" tab that handles sign-in/sign-out internally.
+     */
+    private fun addConfluentCloudTab() {
+        // Check if tab already exists
+        if (contentManager.contents.any { it.getUserData(CONNECTION_ID) == "ccloud" }) {
+            return
+        }
+
+        val controller = io.confluent.intellijplugin.toolwindow.confluent.controllers.ConfluentTabController(project)
+
+        val content = contentManager.factory.createContent(
+            controller.getComponent(),
+            "Confluent Cloud",
+            false
+        ).apply {
+            putUserData(CONNECTION_ID, "ccloud")
+            putUserData(PAGE_CONTROLLER_ID, controller)
+            putUserData(PROJECT, project)
+            isCloseable = false
+        }
+
+        com.intellij.openapi.util.Disposer.register(content, controller)
+        contentManager.addContent(content)
+    }
+
+    /**
+     * Gets the Confluent Cloud tab controller if it exists.
+     */
+    fun getConfluentCloudTabController(): io.confluent.intellijplugin.toolwindow.confluent.controllers.ConfluentTabController? {
+        val content = contentManager.contents.firstOrNull { it.getUserData(CONNECTION_ID) == "ccloud" }
+        return content?.getUserData(PAGE_CONTROLLER_ID) as? io.confluent.intellijplugin.toolwindow.confluent.controllers.ConfluentTabController
     }
 
     override fun focusOn(connectionId: String) = focusOn(connectionId, null)
@@ -66,6 +125,7 @@ class KafkaMonitoringToolWindowController(project: Project) : MonitoringToolWind
             }
         }
     }
+
 
     companion object {
         fun getNotificationGroup(): NotificationGroup {
