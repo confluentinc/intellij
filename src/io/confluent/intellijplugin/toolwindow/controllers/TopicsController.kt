@@ -1,4 +1,4 @@
-package io.confluent.intellijplugin.toolwindow.kafka.controllers
+package io.confluent.intellijplugin.toolwindow.controllers
 
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.actionSystem.*
@@ -21,9 +21,11 @@ import io.confluent.intellijplugin.core.table.renderers.LinkRenderer
 import io.confluent.intellijplugin.core.ui.CustomComponentActionImpl
 import io.confluent.intellijplugin.core.ui.filter.CountFilterPopupComponent
 import io.confluent.intellijplugin.data.KafkaDataManager
+import io.confluent.intellijplugin.data.TopicDataProvider
 import io.confluent.intellijplugin.model.TopicPresentable
 import io.confluent.intellijplugin.model.TopicStatisticInfo
 import io.confluent.intellijplugin.rfs.KafkaDriver
+import io.confluent.intellijplugin.toolwindow.NavigableController
 import io.confluent.intellijplugin.toolwindow.config.KafkaToolWindowSettings
 import io.confluent.intellijplugin.util.KafkaDialogFactory
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
@@ -33,8 +35,8 @@ import javax.swing.event.DocumentEvent
 
 internal class TopicsController(
     val project: Project,
-    private val dataManager: KafkaDataManager,
-    private val mainController: KafkaMainController
+    private val dataManager: TopicDataProvider,
+    private val mainController: NavigableController
 ) : AbstractTableController<TopicPresentable>() {
     val infoPanel = JLabel("").apply {
         foreground = UIUtil.getLabelInfoForeground()
@@ -84,7 +86,7 @@ internal class TopicsController(
         dataTable.selectionModel.selectionMode = ListSelectionModel.MULTIPLE_INTERVAL_SELECTION
 
         dataTable.customDataProvider = UiDataProvider { sink ->
-            sink[MainTreeController.DATA_MANAGER] = dataManager
+            sink[MainTreeController.DATA_MANAGER] = dataManager as io.confluent.intellijplugin.core.monitoring.data.MonitoringDataManager
             sink[MainTreeController.RFS_PATH] = getSelectedItem()?.name?.let { KafkaDriver.topicPath.child(it, false) }
         }
 
@@ -156,11 +158,14 @@ internal class TopicsController(
             }
         } else {
             emptyText.appendText(KafkaMessagesBundle.message("topics.empty.text"), StatusText.DEFAULT_ATTRIBUTES)
-            emptyText.appendLine(
-                KafkaMessagesBundle.message("topics.text.create.link"),
-                SimpleTextAttributes.LINK_PLAIN_ATTRIBUTES
-            ) {
-                KafkaDialogFactory.showCreateTopicDialog(dataManager)
+            // Only show create link for Kafka connections (not Confluent Cloud)
+            if (dataManager is KafkaDataManager) {
+                emptyText.appendLine(
+                    KafkaMessagesBundle.message("topics.text.create.link"),
+                    SimpleTextAttributes.LINK_PLAIN_ATTRIBUTES
+                ) {
+                    KafkaDialogFactory.showCreateTopicDialog(dataManager)
+                }
             }
         }
 

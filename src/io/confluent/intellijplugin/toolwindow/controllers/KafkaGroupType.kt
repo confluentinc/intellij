@@ -1,4 +1,4 @@
-package io.confluent.intellijplugin.toolwindow.kafka.controllers
+package io.confluent.intellijplugin.toolwindow.controllers
 
 import com.intellij.openapi.util.NlsSafe
 import io.confluent.intellijplugin.util.KafkaMessagesBundle

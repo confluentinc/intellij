@@ -1,4 +1,4 @@
-package io.confluent.intellijplugin.toolwindow.confluent.controllers
+package io.confluent.intellijplugin.toolwindow.controllers
 
 import com.intellij.ide.projectView.impl.ProjectViewTree
 import com.intellij.openapi.actionSystem.UiDataProvider
@@ -42,6 +42,9 @@ import io.confluent.intellijplugin.core.rfs.tree.DriverRfsTreeModel
 import io.confluent.intellijplugin.core.rfs.util.RfsUtil
 import io.confluent.intellijplugin.core.rfs.viewer.utils.DriverRfsTreeUtil.lastDriverNode
 import io.confluent.intellijplugin.core.util.invokeLater
+import io.confluent.intellijplugin.data.ClusterScopedDataManager
+import io.confluent.intellijplugin.toolwindow.NavigableController
+import io.confluent.intellijplugin.toolwindow.controllers.TopicsController
 import com.intellij.ui.table.JBTable
 import java.awt.BorderLayout
 import java.awt.CardLayout
@@ -55,14 +58,14 @@ import javax.swing.tree.TreePath
 /**
  * Main controller for Confluent Cloud tool window.
  * Uses core RFS infrastructure for tree management.
- * 
+ *
  * Note: Does NOT extend MainTreeController because we need to pass the driver directly
  * (not through DriverManager, since Confluent connections are dynamically created).
  */
 internal class ConfluentMainController(
     private val project: Project,
     private val driver: ConfluentDriver
-) : ComponentController {
+) : ComponentController, NavigableController {
 
     private val dataManager = driver.dataManager
 
@@ -272,30 +275,17 @@ internal class ConfluentMainController(
                 return
             }
 
-            // Get data plane cache and fetch topics
-            val cache = dataManager.getDataPlaneCache(cluster)
-            val topics = cache.refreshTopics()
+            // Create cluster-scoped data manager wrapper for TopicsController compatibility
+            val clusterDataManager = ClusterScopedDataManager(project, dataManager, cluster)
 
-            // Create table
-            val columnNames = arrayOf("", "Topic Name", "Partitions", "Replication Factor")
-            val data = topics.map { topic ->
-                arrayOf(
-                    "",  // Empty column for future favorite icon
-                    topic.topicName,
-                    topic.partitionsCount.toString(),
-                    topic.replicationFactor.toString()
-                )
-            }.toTypedArray()
+            // Reuse existing Kafka TopicsController with cluster-scoped data
+            val topicsController = TopicsController(project, clusterDataManager, this)
+            Disposer.register(this, topicsController)
 
-            val tableModel = DefaultTableModel(data, columnNames)
-            val table = JBTable(tableModel).apply {
-                setDefaultEditor(Any::class.java, null)  // Make table read-only
-            }
-
-            val scrollPane = JBScrollPane(table)
-            topicsDetailsPanel.add(scrollPane, BorderLayout.CENTER)
+            topicsDetailsPanel.add(topicsController.getComponent(), BorderLayout.CENTER)
 
             // Add info label at the top
+            val topics = clusterDataManager.getTopics()
             val infoLabel = JLabel("${topics.size} topic(s)").apply {
                 border = IdeBorderFactory.createBorder(SideBorder.BOTTOM)
             }
@@ -507,7 +497,7 @@ internal class ConfluentMainController(
         }
     }
 
-    fun open(rfsPath: RfsPath) = RfsUtil.select(driver.getExternalId(), rfsPath, myTree)
+    override fun open(rfsPath: RfsPath) = RfsUtil.select(driver.getExternalId(), rfsPath, myTree)
 
     override fun getComponent(): JComponent = component
 

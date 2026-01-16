@@ -1,4 +1,4 @@
-package io.confluent.intellijplugin.toolwindow.confluent.controllers
+package io.confluent.intellijplugin.toolwindow.controllers
 
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.project.Project

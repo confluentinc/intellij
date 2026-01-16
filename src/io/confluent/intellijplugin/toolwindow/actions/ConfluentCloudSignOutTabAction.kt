@@ -1,4 +1,4 @@
-package io.confluent.intellijplugin.toolwindow.kafka.actions
+package io.confluent.intellijplugin.toolwindow.actions
 
 import com.intellij.notification.Notification
 import com.intellij.notification.NotificationType
@@ -7,7 +7,7 @@ import com.intellij.openapi.actionSystem.AnActionEvent
 import io.confluent.intellijplugin.ccloud.auth.CCloudAuthService
 import io.confluent.intellijplugin.core.monitoring.actions.tabs.MonitoringTabConnectionAction
 import io.confluent.intellijplugin.core.util.ConnectionUtil
-import io.confluent.intellijplugin.toolwindow.kafka.KafkaMonitoringToolWindowController
+import io.confluent.intellijplugin.toolwindow.KafkaMonitoringToolWindowController
 
 /**
  * Action to sign out from Confluent Cloud.

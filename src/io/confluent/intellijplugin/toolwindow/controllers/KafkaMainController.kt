@@ -1,4 +1,4 @@
-package io.confluent.intellijplugin.toolwindow.kafka.controllers
+package io.confluent.intellijplugin.toolwindow.controllers
 
 import com.intellij.openapi.actionSystem.ActionToolbar
 import com.intellij.openapi.project.Project

@@ -1,4 +1,4 @@
-package io.confluent.intellijplugin.toolwindow.kafka
+package io.confluent.intellijplugin.toolwindow
 
 import com.intellij.notification.NotificationGroup
 import com.intellij.notification.NotificationGroupManager
@@ -18,8 +18,8 @@ import io.confluent.intellijplugin.rfs.ConfluentConnectionData
 import io.confluent.intellijplugin.rfs.KafkaConnectionData
 import io.confluent.intellijplugin.settings.KafkaConnectionGroup
 import io.confluent.intellijplugin.toolwindow.config.KafkaToolWindowSettings
-import io.confluent.intellijplugin.toolwindow.confluent.controllers.ConfluentMainController
-import io.confluent.intellijplugin.toolwindow.kafka.controllers.KafkaMainController
+import io.confluent.intellijplugin.toolwindow.controllers.ConfluentMainController
+import io.confluent.intellijplugin.toolwindow.controllers.KafkaMainController
 
 @Service(Service.Level.PROJECT)
 class KafkaMonitoringToolWindowController(project: Project) : MonitoringToolWindowController(project) {
@@ -83,7 +83,7 @@ class KafkaMonitoringToolWindowController(project: Project) : MonitoringToolWind
             return
         }
 
-        val controller = io.confluent.intellijplugin.toolwindow.confluent.controllers.ConfluentTabController(project)
+        val controller = io.confluent.intellijplugin.toolwindow.controllers.ConfluentTabController(project)
 
         val content = contentManager.factory.createContent(
             controller.getComponent(),
@@ -103,9 +103,9 @@ class KafkaMonitoringToolWindowController(project: Project) : MonitoringToolWind
     /**
      * Gets the Confluent Cloud tab controller if it exists.
      */
-    fun getConfluentCloudTabController(): io.confluent.intellijplugin.toolwindow.confluent.controllers.ConfluentTabController? {
+    fun getConfluentCloudTabController(): io.confluent.intellijplugin.toolwindow.controllers.ConfluentTabController? {
         val content = contentManager.contents.firstOrNull { it.getUserData(CONNECTION_ID) == "ccloud" }
-        return content?.getUserData(PAGE_CONTROLLER_ID) as? io.confluent.intellijplugin.toolwindow.confluent.controllers.ConfluentTabController
+        return content?.getUserData(PAGE_CONTROLLER_ID) as? io.confluent.intellijplugin.toolwindow.controllers.ConfluentTabController
     }
 
     override fun focusOn(connectionId: String) = focusOn(connectionId, null)

@@ -1,9 +1,10 @@
 package io.confluent.intellijplugin.icons;
 
-import com.intellij.ui.IconManager;
+import javax.swing.Icon;
+
 import org.jetbrains.annotations.NotNull;
 
-import javax.swing.*;
+import com.intellij.ui.IconManager;
 
 /**
  * NOTE THIS FILE IS AUTO-GENERATED
@@ -21,7 +22,6 @@ public final class BigdatatoolsKafkaIcons {
   /** 16x16 */ public static final @NotNull Icon Bookmark_on = load("icons/bookmark_on.svg", 735821885, 0);
   /** 16x16 */ public static final @NotNull Icon ClearOutputs = load("icons/clearOutputs.svg", 2092497102, 2);
   /** 16x16 */ public static final @NotNull Icon CollapseallVertical = load("icons/collapseallVertical.svg", -991521341, 2);
-  /** 16x16 */ public static final @NotNull Icon ConfluentToolWindow = load("icons/expui/confluent.svg", "icons/confluentToolWindow.svg", 1374881324, 2);
   /** 16x16 */ public static final @NotNull Icon ExpandallVertical = load("icons/expandallVertical.svg", -149901262, 2);
   /** 16x16 */ public static final @NotNull Icon Kafka = load("icons/kafka.svg", -1738989288, 0);
   /** 13x13 */ public static final @NotNull Icon KafkaToolWindow = load("icons/expui/kafka.svg", "icons/kafkaToolWindow.svg", -1317889509, 2);
