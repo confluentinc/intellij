@@ -42,6 +42,9 @@ import io.confluent.intellijplugin.core.rfs.tree.DriverRfsTreeModel
 import io.confluent.intellijplugin.core.rfs.util.RfsUtil
 import io.confluent.intellijplugin.core.rfs.viewer.utils.DriverRfsTreeUtil.lastDriverNode
 import io.confluent.intellijplugin.core.util.invokeLater
+import io.confluent.intellijplugin.data.ClusterScopedDataManager
+import io.confluent.intellijplugin.toolwindow.NavigableController
+import io.confluent.intellijplugin.toolwindow.kafka.controllers.TopicsController
 import com.intellij.ui.table.JBTable
 import java.awt.BorderLayout
 import java.awt.CardLayout
@@ -55,14 +58,14 @@ import javax.swing.tree.TreePath
 /**
  * Main controller for Confluent Cloud tool window.
  * Uses core RFS infrastructure for tree management.
- * 
+ *
  * Note: Does NOT extend MainTreeController because we need to pass the driver directly
  * (not through DriverManager, since Confluent connections are dynamically created).
  */
 internal class ConfluentMainController(
     private val project: Project,
     private val driver: ConfluentDriver
-) : ComponentController {
+) : ComponentController, NavigableController {
 
     private val dataManager = driver.dataManager
 
@@ -272,8 +275,13 @@ internal class ConfluentMainController(
                 return
             }
 
-            // Create topics controller with proper table display
-            val topicsController = ConfluentTopicsController(project, dataManager, cluster, envId, this)
+            // Create cluster-scoped data manager wrapper for TopicsController compatibility
+            val clusterDataManager = ClusterScopedDataManager(project, dataManager, cluster)
+
+            // Reuse existing Kafka TopicsController with cluster-scoped data
+            val topicsController = TopicsController(project, clusterDataManager, this)
+            Disposer.register(this, topicsController)
+
             topicsDetailsPanel.add(topicsController.getComponent(), BorderLayout.CENTER)
 
             // Trigger initial data load
@@ -485,7 +493,7 @@ internal class ConfluentMainController(
         }
     }
 
-    fun open(rfsPath: RfsPath) = RfsUtil.select(driver.getExternalId(), rfsPath, myTree)
+    override fun open(rfsPath: RfsPath) = RfsUtil.select(driver.getExternalId(), rfsPath, myTree)
 
     override fun getComponent(): JComponent = component
 
