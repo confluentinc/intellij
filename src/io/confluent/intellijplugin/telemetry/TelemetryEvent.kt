@@ -157,3 +157,73 @@ object PluginActivatedEvent : TelemetryEvent {
     override val eventName = "Plugin Activated"
     override fun properties() = emptyMap<String, Any>()
 }
+
+/**
+ * Tracks when a user starts consuming messages in the message viewer.
+ * Captures the configuration options selected when "Start Consuming" is clicked.
+ *
+ * @param startType The selected start type (e.g., "now", "beginning", "specific-date")
+ * @param limitType The selected limit type (e.g., "none", "topic-records", "date")
+ * @param filterType The selected filter type (e.g., "none", "contains", "regex")
+ * @param keyType The selected key deserialization type (e.g., "string", "json", "schema-registry")
+ * @param valueType The selected value deserialization type
+ * @param hasPartitions Whether specific partitions were specified
+ * @param hasConsumerGroup Whether a consumer group was specified
+ * @param hasConsumerRecordsLimit Whether consumer records limit was modified from default
+ * @param hasRequestTimeoutMs Whether request.timeout.ms was modified from default
+ * @param hasMaxPollRecords Whether max.poll.records was modified from default
+ * @param hasFetchMaxWaitMs Whether fetch.max.wait.ms was modified from default
+ * @param hasFetchMaxBytes Whether fetch.max.bytes was modified from default
+ * @param hasMaxPartitionFetchBytes Whether max.partition.fetch.bytes was modified from default
+ */
+data class MessageViewerStartEvent(
+    val startType: String,
+    val limitType: String,
+    val filterType: String,
+    val keyType: String,
+    val valueType: String,
+    val hasPartitions: Boolean = false,
+    val hasConsumerGroup: Boolean = false,
+    val hasConsumerRecordsLimit: Boolean = false,
+    val hasRequestTimeoutMs: Boolean = false,
+    val hasMaxPollRecords: Boolean = false,
+    val hasFetchMaxWaitMs: Boolean = false,
+    val hasFetchMaxBytes: Boolean = false,
+    val hasMaxPartitionFetchBytes: Boolean = false,
+) : TelemetryEvent {
+    override val eventName = "Message Viewer Start"
+
+    override fun properties() = buildMap<String, Any> {
+        put("startType", startType)
+        put("limitType", limitType)
+        put("filterType", filterType)
+        put("keyType", keyType)
+        put("valueType", valueType)
+        if (hasPartitions) put("hasPartitions", true)
+        if (hasConsumerGroup) put("hasConsumerGroup", true)
+        if (hasConsumerRecordsLimit) put("hasConsumerRecordsLimit", true)
+        if (hasRequestTimeoutMs) put("hasRequestTimeoutMs", true)
+        if (hasMaxPollRecords) put("hasMaxPollRecords", true)
+        if (hasFetchMaxWaitMs) put("hasFetchMaxWaitMs", true)
+        if (hasFetchMaxBytes) put("hasFetchMaxBytes", true)
+        if (hasMaxPartitionFetchBytes) put("hasMaxPartitionFetchBytes", true)
+    }
+}
+
+/**
+ * Tracks when a user searches/filters in the message viewer table.
+ */
+object MessageViewerSearchEvent : TelemetryEvent {
+    override val eventName = "Message Viewer Search"
+
+    override fun properties() = emptyMap<String, Any>()
+}
+
+/**
+ * Tracks when a user clicks on a message row to view its details/preview.
+ */
+object MessageViewerPreviewEvent : TelemetryEvent {
+    override val eventName = "Message Viewer Preview"
+
+    override fun properties() = emptyMap<String, Any>()
+}

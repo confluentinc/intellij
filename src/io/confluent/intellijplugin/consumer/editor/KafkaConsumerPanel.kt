@@ -31,6 +31,9 @@ import io.confluent.intellijplugin.core.util.executeOnPooledThread
 import io.confluent.intellijplugin.core.util.invokeLater
 import io.confluent.intellijplugin.core.util.withPluginClassLoader
 import io.confluent.intellijplugin.data.KafkaDataManager
+import io.confluent.intellijplugin.telemetry.MessageViewerStartEvent
+import io.confluent.intellijplugin.telemetry.logUsage
+import org.apache.kafka.clients.consumer.ConsumerConfig
 import io.confluent.intellijplugin.registry.KafkaRegistryFormat
 import io.confluent.intellijplugin.util.KafkaConsumerGroupChangeOffsetProcess
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
@@ -318,6 +321,24 @@ class KafkaConsumerPanel(
 
         try {
             output.start()
+
+            logUsage(
+                MessageViewerStartEvent(
+                    startType = runConfig.getStartsWith().type.name.lowercase(),
+                    limitType = runConfig.getLimit().type.name.lowercase(),
+                    filterType = runConfig.getFilter().type.name.lowercase(),
+                    keyType = runConfig.getKeyType().name.lowercase(),
+                    valueType = runConfig.getValueType().name.lowercase(),
+                    hasPartitions = !runConfig.partitions.isNullOrBlank(),
+                    hasConsumerGroup = runConfig.consumerGroup != null,
+                    hasConsumerRecordsLimit = runConfig.settings.containsKey(KafkaConsumerSettings.MAX_CONSUMER_RECORDS),
+                    hasRequestTimeoutMs = runConfig.properties.containsKey(ConsumerConfig.REQUEST_TIMEOUT_MS_CONFIG),
+                    hasMaxPollRecords = runConfig.properties.containsKey(ConsumerConfig.MAX_POLL_RECORDS_CONFIG),
+                    hasFetchMaxWaitMs = runConfig.properties.containsKey(ConsumerConfig.FETCH_MAX_WAIT_MS_CONFIG),
+                    hasFetchMaxBytes = runConfig.properties.containsKey(ConsumerConfig.FETCH_MAX_BYTES_CONFIG),
+                    hasMaxPartitionFetchBytes = runConfig.properties.containsKey(ConsumerConfig.MAX_PARTITION_FETCH_BYTES_CONFIG),
+                )
+            )
 
             if (kafkaConsumerSettingsDelegate.isInitialized()) {
                 val maxElementsCount = kafkaConsumerSettings.getSettings()[KafkaConsumerSettings.MAX_CONSUMER_RECORDS]
