@@ -44,6 +44,7 @@ class AwsSettingsComponentForKafka(
     lateinit var profileComboBox: Cell<ComboBox<String>>
     lateinit var accessKey: Cell<JBTextField>
     lateinit var secretKey: Cell<JBPasswordField>
+    lateinit var sessionToken: Cell<JBPasswordField>
 
     private lateinit var profileRows: RowsRange
     private lateinit var credentialRows: RowsRange
@@ -86,6 +87,9 @@ class AwsSettingsComponentForKafka(
                 }
                 row(KafkaMessagesBundle.message("settings.aws.auth.type.secret.key")) {
                     secretKey = passwordField().onChanged { onChanged(this@AwsSettingsComponentForKafka) }
+                }
+                row(KafkaMessagesBundle.message("settings.aws.auth.type.secret.token")) {
+                    sessionToken = passwordField().onChanged { onChanged(this@AwsSettingsComponentForKafka) }
                 }
                 row {
                     comment(KafkaMessagesBundle.message("kafka.credentials.comment.through.system.properties"))
@@ -133,6 +137,7 @@ class AwsSettingsComponentForKafka(
 
         accessKey.text(info.accessKey ?: System.getProperty(AWS_ACCESS_KEY, "").trim())
         secretKey.text(info.secretKey ?: System.getProperty(AWS_SECRET_KEY, "").trim())
+        sessionToken.text(info.sessionToken ?: System.getProperty(AWS_SESSION_TOKEN, "").trim())
 
         info.region?.let {
             region?.component?.item = AwsRegionEntity(Region.of(it))
@@ -156,6 +161,7 @@ class AwsSettingsComponentForKafka(
             authenticationType = authTypeChooser.component.item.id,
             accessKey = accessKey.component.text,
             secretKey = secretKey.component.text,
+            sessionToken = sessionToken.component.text,
             region = getRegionId()
         )
 
@@ -169,6 +175,7 @@ class AwsSettingsComponentForKafka(
 
         const val AWS_MECHANISM: String = "AWS_MSK_IAM"
         const val AWS_ACCESS_KEY: String = "aws.accessKeyId"
-        const val AWS_SECRET_KEY: String = "aws.secretKey"
+        const val AWS_SECRET_KEY: String = "aws.secretAccessKey"
+        const val AWS_SESSION_TOKEN: String = "aws.sessionToken"
     }
 }
