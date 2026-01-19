@@ -1,6 +1,6 @@
 package io.confluent.intellijplugin.ccloud.model.response
 
-import io.confluent.intellijplugin.ccloud.client.ControlPlaneRestClient.ListMetadata
+import io.confluent.intellijplugin.ccloud.client.CCloudRestClient.ListMetadata
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -22,6 +22,7 @@ data class ClusterData(
 data class ClusterSpec(
     val cloud: String? = null,
     val region: String? = null,
+    @SerialName("http_endpoint") val httpEndpoint: String? = null,
     val environment: ClusterEnvironment? = null
 )
 

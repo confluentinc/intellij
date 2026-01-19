@@ -1,0 +1,16 @@
+{
+  "data": [
+    {
+      "id": "lsrc-abc123",
+      "spec": {
+        "display_name": "Main SR",
+        "cloud": "AWS",
+        "region": "us-east-1",
+        "http_endpoint": "https://sr.us-east-1.aws.confluent.cloud"
+      }
+    }
+  ],
+  "metadata": {
+    "next": null
+  }
+}

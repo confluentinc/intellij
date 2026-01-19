@@ -159,6 +159,7 @@ sourceSets {
     test {
         java.srcDirs(listOf("test"))
         kotlin.srcDirs(listOf("test"))
+        resources.srcDirs(listOf("test/resources"))
     }
 }
 
