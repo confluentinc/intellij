@@ -1,6 +1,6 @@
 package io.confluent.intellijplugin.ccloud.model.response
 
-import io.confluent.intellijplugin.ccloud.client.ControlPlaneRestClient
+import io.confluent.intellijplugin.ccloud.client.CCloudRestClient
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -12,7 +12,7 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class ListTopicsResponse(
     @SerialName("kind") val kind: String = "KafkaTopicList",
-    @SerialName("metadata") val metadata: ControlPlaneRestClient.ListMetadata,
+    @SerialName("metadata") val metadata: CCloudRestClient.ListMetadata,
     @SerialName("data") val data: List<TopicData>
 )
 

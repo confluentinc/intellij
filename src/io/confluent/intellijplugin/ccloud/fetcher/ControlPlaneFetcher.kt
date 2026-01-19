@@ -5,7 +5,7 @@ import io.confluent.intellijplugin.ccloud.model.*
 /**
  * Control plane operations for Confluent Cloud (environments, clusters, schema registries).
  */
-interface CloudFetcher {
+interface ControlPlaneFetcher {
     /** Get all environments. */
     suspend fun getEnvironments(): List<Environment>
 
@@ -15,4 +15,3 @@ interface CloudFetcher {
     /** Get Schema Registry for an environment. */
     suspend fun getSchemaRegistry(envId: String): List<SchemaRegistry>
 }
-

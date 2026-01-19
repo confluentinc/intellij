@@ -37,7 +37,6 @@ object CloudConfig {
     object DataPlane {
         /**
          * Kafka REST API v3 endpoints.
-         * @see <a href="https://docs.confluent.io/cloud/current/api.html#tag/Topic-(v3)">Kafka REST API v3</a>
          */
         object Kafka {
             /** List topics: GET /kafka/v3/clusters/{cluster_id}/topics */
@@ -64,8 +63,6 @@ object CloudConfig {
 
         /**
          * Schema Registry API v1 endpoints.
-         * Requires "target-sr-cluster" header with Schema Registry cluster ID.
-         * @see <a href="https://docs.confluent.io/cloud/current/api.html#tag/Schemas-(v1)">Schema Registry API</a>
          */
         object SchemaRegistry {
             /** List subjects: GET /subjects */

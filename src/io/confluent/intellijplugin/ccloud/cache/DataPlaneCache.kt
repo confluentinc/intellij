@@ -2,7 +2,7 @@ package io.confluent.intellijplugin.ccloud.cache
 
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.diagnostic.thisLogger
-import io.confluent.intellijplugin.ccloud.client.DataPlaneRestClient
+import io.confluent.intellijplugin.ccloud.client.CCloudRestClient
 import io.confluent.intellijplugin.ccloud.fetcher.DataPlaneFetcherImpl
 import io.confluent.intellijplugin.ccloud.model.Cluster
 import io.confluent.intellijplugin.ccloud.model.SchemaRegistry
@@ -24,17 +24,21 @@ class DataPlaneCache(
 ) : Disposable {
 
     private var fetcher: DataPlaneFetcherImpl? = null
-    private var kafkaClient: DataPlaneRestClient? = null
+    private var kafkaClient: CCloudRestClient? = null
 
     // Cached data
     private var cachedTopics: List<TopicData>? = null
     private var cachedSubjects: List<SubjectData>? = null
 
     fun connect() {
-        val kafka = DataPlaneRestClient(cluster.restEndpoint)
+        val kafka = CCloudRestClient(
+            baseUrl = cluster.restEndpoint,
+            authType = CCloudRestClient.AuthType.DATA_PLANE
+        )
         val srClient = if (schemaRegistry != null) {
-            DataPlaneRestClient(
+            CCloudRestClient(
                 baseUrl = schemaRegistry.httpEndpoint.removeSuffix(":443"),
+                authType = CCloudRestClient.AuthType.DATA_PLANE,
                 additionalHeaders = mapOf("target-sr-cluster" to schemaRegistry.id)
             )
         } else null

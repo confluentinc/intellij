@@ -1,8 +1,9 @@
 package io.confluent.intellijplugin.ccloud.cache
 
 import com.intellij.openapi.project.Project
+import io.confluent.intellijplugin.ccloud.client.CCloudRestClient
 import io.confluent.intellijplugin.ccloud.config.CloudConfig
-import io.confluent.intellijplugin.ccloud.fetcher.CloudFetcherImpl
+import io.confluent.intellijplugin.ccloud.fetcher.ControlPlaneFetcherImpl
 import io.confluent.intellijplugin.ccloud.model.Environment
 import io.confluent.intellijplugin.ccloud.model.Cluster
 import io.confluent.intellijplugin.ccloud.model.SchemaRegistry
@@ -12,14 +13,14 @@ import kotlinx.coroutines.runBlocking
 
 /**
  * Control plane cache for organizational resources (environments, clusters, schema registries).
- * Caches data from CloudFetcherImpl to reduce API calls. Use refresh*() methods to update cache.
+ * Caches data from ControlPlaneFetcherImpl to reduce API calls. Use refresh*() methods to update cache.
  */
 class ControlPlaneCache(
     project: Project?,
     private val connectionData: ConfluentConnectionData
 ) : MonitoringClient(project) {
 
-    private var fetcher: CloudFetcherImpl? = null
+    private var fetcher: ControlPlaneFetcherImpl? = null
 
     // Cached data
     private var cachedEnvironments: List<Environment>? = null
@@ -29,8 +30,11 @@ class ControlPlaneCache(
     override fun getRealUri(): String = CloudConfig.CONTROL_PLANE_BASE_URL
 
     override fun connectInner(calledByUser: Boolean) {
-        // OAuth authentication is handled by CCloudAuthService
-        fetcher = CloudFetcherImpl()
+        val client = CCloudRestClient(
+            baseUrl = CloudConfig.CONTROL_PLANE_BASE_URL,
+            authType = CCloudRestClient.AuthType.CONTROL_PLANE
+        )
+        fetcher = ControlPlaneFetcherImpl(client)
     }
 
     override fun checkConnectionInner() {

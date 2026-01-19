@@ -4,11 +4,6 @@ import io.confluent.intellijplugin.ccloud.model.response.*
 
 /**
  * Data plane operations for Confluent Cloud.
- *
- * Covers Kafka REST API v3 and Schema Registry API v1.
- *
- * @see <a href="https://docs.confluent.io/cloud/current/api.html#tag/Topic-(v3)">Kafka REST API v3</a>
- * @see <a href="https://docs.confluent.io/cloud/current/api.html#tag/Schemas-(v1)">Schema Registry API v1</a>
  */
 interface DataPlaneFetcher {
 

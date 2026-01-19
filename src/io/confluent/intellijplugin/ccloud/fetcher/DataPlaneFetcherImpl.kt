@@ -1,6 +1,6 @@
 package io.confluent.intellijplugin.ccloud.fetcher
 
-import io.confluent.intellijplugin.ccloud.client.DataPlaneRestClient
+import io.confluent.intellijplugin.ccloud.client.CCloudRestClient
 import io.confluent.intellijplugin.ccloud.config.CloudConfig
 import io.confluent.intellijplugin.ccloud.model.response.*
 import kotlinx.coroutines.async
@@ -12,16 +12,16 @@ import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 
 /**
- * Data plane fetcher implementation for Kafka REST API v3 and Schema Registry API v1.
+ * Data plane fetcher implementation for Confluent Cloud.
  *
- * @param kafkaClient REST client for Kafka operations
+ * @param kafkaClient REST client for Cluster operations
  * @param schemaRegistryClient REST client for Schema Registry (null if unavailable)
  * @param clusterId Kafka cluster ID
  * @param schemaRegistryId Schema Registry ID (null if unavailable)
  */
 class DataPlaneFetcherImpl(
-    private val kafkaClient: DataPlaneRestClient,
-    private val schemaRegistryClient: DataPlaneRestClient?,
+    private val kafkaClient: CCloudRestClient,
+    private val schemaRegistryClient: CCloudRestClient?,
     private val clusterId: String,
     private val schemaRegistryId: String?
 ) : DataPlaneFetcher {
@@ -87,7 +87,7 @@ class DataPlaneFetcherImpl(
         requireSchemaRegistry()
         val subjects = listSubjects()
 
-        // Fetch details for all subjects in parallel (avoids N+1 sequential API calls)
+        // Fetch details for all subjects in parallel
         return coroutineScope {
             subjects.map { subject ->
                 async {
