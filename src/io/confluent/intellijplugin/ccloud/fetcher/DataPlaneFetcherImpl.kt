@@ -3,6 +3,7 @@ package io.confluent.intellijplugin.ccloud.fetcher
 import io.confluent.intellijplugin.ccloud.client.CCloudRestClient
 import io.confluent.intellijplugin.ccloud.config.CloudConfig
 import io.confluent.intellijplugin.ccloud.model.response.*
+import com.intellij.openapi.diagnostic.thisLogger
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
@@ -99,7 +100,8 @@ class DataPlaneFetcherImpl(
                             schemaType = latestSchema.schemaType,
                             compatibility = null
                         )
-                    } catch (_: Exception) {
+                    } catch (e: Exception) {
+                        thisLogger().warn("Failed to fetch details for subject '$subject': ${e.message}")
                         SubjectData(name = subject)
                     }
                 }

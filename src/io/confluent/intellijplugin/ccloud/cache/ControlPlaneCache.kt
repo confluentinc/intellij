@@ -8,7 +8,6 @@ import io.confluent.intellijplugin.ccloud.model.Environment
 import io.confluent.intellijplugin.ccloud.model.Cluster
 import io.confluent.intellijplugin.ccloud.model.SchemaRegistry
 import io.confluent.intellijplugin.core.monitoring.connection.MonitoringClient
-import io.confluent.intellijplugin.rfs.ConfluentConnectionData
 import kotlinx.coroutines.runBlocking
 
 /**
@@ -16,8 +15,7 @@ import kotlinx.coroutines.runBlocking
  * Caches data from ControlPlaneFetcherImpl to reduce API calls. Use refresh*() methods to update cache.
  */
 class ControlPlaneCache(
-    project: Project?,
-    private val connectionData: ConfluentConnectionData
+    project: Project?
 ) : MonitoringClient(project) {
 
     private var fetcher: ControlPlaneFetcherImpl? = null

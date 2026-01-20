@@ -27,7 +27,7 @@ class ConfluentDataManager(
 ) : MonitoringDataManager(project, settings, driverProvider) {
 
     /** Control plane cache for organizational resources. */
-    override val client = ControlPlaneCache(project, connectionData).also {
+    override val client = ControlPlaneCache(project).also {
         Disposer.register(this, it)
     }
 

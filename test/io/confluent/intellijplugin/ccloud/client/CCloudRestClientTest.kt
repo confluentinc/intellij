@@ -17,7 +17,8 @@ class CCloudRestClientTest {
 
     companion object {
         private lateinit var wireMockServer: WireMockServer
-        private const val TEST_TOKEN = "test-bearer-token"
+        private const val TEST_CONTROL_PLANE_TOKEN = "test-control-plane-token"
+        private const val TEST_DATA_PLANE_TOKEN = "test-data-plane-token"
 
         @JvmStatic
         @BeforeAll
@@ -40,7 +41,8 @@ class CCloudRestClientTest {
     fun setup() {
         authService = mock()
         whenever(authService.isSignedIn()).thenReturn(true)
-        whenever(authService.getControlPlaneToken()).thenReturn(TEST_TOKEN)
+        whenever(authService.getControlPlaneToken()).thenReturn(TEST_CONTROL_PLANE_TOKEN)
+        whenever(authService.getDataPlaneToken()).thenReturn(TEST_DATA_PLANE_TOKEN)
 
         client = CCloudRestClient(
             baseUrl = "http://localhost:${wireMockServer.port()}",
@@ -80,7 +82,7 @@ class CCloudRestClientTest {
         val nextJson = nextUrl?.let { "\"$it\"" } ?: "null"
         wireMockServer.stubFor(
             get("/org/v2/environments")
-                .withHeader("Authorization", equalTo("Bearer $TEST_TOKEN"))
+                .withHeader("Authorization", equalTo("Bearer $TEST_CONTROL_PLANE_TOKEN"))
                 .willReturn(
                     aResponse()
                         .withStatus(200)
@@ -92,7 +94,7 @@ class CCloudRestClientTest {
     private fun stubEnvironmentsError(statusCode: Int) {
         wireMockServer.stubFor(
             get("/org/v2/environments")
-                .withHeader("Authorization", equalTo("Bearer $TEST_TOKEN"))
+                .withHeader("Authorization", equalTo("Bearer $TEST_CONTROL_PLANE_TOKEN"))
                 .willReturn(aResponse().withStatus(statusCode))
         )
     }
@@ -109,7 +111,7 @@ class CCloudRestClientTest {
 
             assertEquals(listOf("env-abc123", "env-def456", "env-ghi789"), result)
             wireMockServer.verify(1, getRequestedFor(urlEqualTo("/org/v2/environments"))
-                .withHeader("Authorization", equalTo("Bearer $TEST_TOKEN")))
+                .withHeader("Authorization", equalTo("Bearer $TEST_CONTROL_PLANE_TOKEN")))
         }
     }
 
@@ -122,7 +124,7 @@ class CCloudRestClientTest {
             // Page 1
             wireMockServer.stubFor(
                 get("/org/v2/environments")
-                    .withHeader("Authorization", equalTo("Bearer $TEST_TOKEN"))
+                    .withHeader("Authorization", equalTo("Bearer $TEST_CONTROL_PLANE_TOKEN"))
                     .willReturn(
                         aResponse()
                             .withStatus(200)
@@ -138,7 +140,7 @@ class CCloudRestClientTest {
             // Page 2
             wireMockServer.stubFor(
                 get(urlPathEqualTo("/org/v2/environments"))
-                    .withHeader("Authorization", equalTo("Bearer $TEST_TOKEN"))
+                    .withHeader("Authorization", equalTo("Bearer $TEST_CONTROL_PLANE_TOKEN"))
                     .withQueryParam("page", equalTo("2"))
                     .willReturn(
                         aResponse()
@@ -155,7 +157,7 @@ class CCloudRestClientTest {
             // Page 3 (last)
             wireMockServer.stubFor(
                 get(urlPathEqualTo("/org/v2/environments"))
-                    .withHeader("Authorization", equalTo("Bearer $TEST_TOKEN"))
+                    .withHeader("Authorization", equalTo("Bearer $TEST_CONTROL_PLANE_TOKEN"))
                     .withQueryParam("page", equalTo("3"))
                     .willReturn(
                         aResponse()
@@ -178,7 +180,7 @@ class CCloudRestClientTest {
             assertEquals(5, result.size)
             assertEquals(listOf("env-abc123", "env-def456", "env-ghi789", "env-jkl012", "env-mno345"), result)
             wireMockServer.verify(3, getRequestedFor(urlPathEqualTo("/org/v2/environments"))
-                .withHeader("Authorization", equalTo("Bearer $TEST_TOKEN")))
+                .withHeader("Authorization", equalTo("Bearer $TEST_CONTROL_PLANE_TOKEN")))
         }
 
         @Test
@@ -201,7 +203,7 @@ class CCloudRestClientTest {
             // Page 1
             wireMockServer.stubFor(
                 get("/org/v2/environments")
-                    .withHeader("Authorization", equalTo("Bearer $TEST_TOKEN"))
+                    .withHeader("Authorization", equalTo("Bearer $TEST_CONTROL_PLANE_TOKEN"))
                     .willReturn(
                         aResponse()
                             .withStatus(200)
@@ -217,7 +219,7 @@ class CCloudRestClientTest {
             // Page 2
             wireMockServer.stubFor(
                 get(urlPathEqualTo("/org/v2/environments"))
-                    .withHeader("Authorization", equalTo("Bearer $TEST_TOKEN"))
+                    .withHeader("Authorization", equalTo("Bearer $TEST_CONTROL_PLANE_TOKEN"))
                     .withQueryParam("page", equalTo("2"))
                     .willReturn(
                         aResponse()
@@ -241,7 +243,7 @@ class CCloudRestClientTest {
             assertEquals(4, result.size)
             assertEquals(listOf("env-abc123", "env-def456", "env-ghi789", "env-jkl012"), result)
             wireMockServer.verify(2, getRequestedFor(urlPathEqualTo("/org/v2/environments"))
-                .withHeader("Authorization", equalTo("Bearer $TEST_TOKEN")))
+                .withHeader("Authorization", equalTo("Bearer $TEST_CONTROL_PLANE_TOKEN")))
         }
 
         @Test
@@ -249,7 +251,7 @@ class CCloudRestClientTest {
             // Page 1
             wireMockServer.stubFor(
                 get("/org/v2/environments")
-                    .withHeader("Authorization", equalTo("Bearer $TEST_TOKEN"))
+                    .withHeader("Authorization", equalTo("Bearer $TEST_CONTROL_PLANE_TOKEN"))
                     .willReturn(
                         aResponse()
                             .withStatus(200)
@@ -265,7 +267,7 @@ class CCloudRestClientTest {
             // Page 2
             wireMockServer.stubFor(
                 get(urlPathEqualTo("/org/v2/environments"))
-                    .withHeader("Authorization", equalTo("Bearer $TEST_TOKEN"))
+                    .withHeader("Authorization", equalTo("Bearer $TEST_CONTROL_PLANE_TOKEN"))
                     .withQueryParam("page", equalTo("2"))
                     .willReturn(
                         aResponse()
@@ -302,6 +304,55 @@ class CCloudRestClientTest {
             val exception = assertThrows<CCloudApiException> { fetchEnvironments() }
 
             assertEquals(403, exception.statusCode)
+        }
+    }
+
+    @Nested
+    @DisplayName("Data Plane Authentication")
+    inner class DataPlaneTests {
+
+        @Test
+        fun `uses data plane token for authentication`() = runBlocking {
+            val kafkaClient = CCloudRestClient(
+                baseUrl = "http://localhost:${wireMockServer.port()}",
+                authType = CCloudRestClient.AuthType.DATA_PLANE,
+                authService = authService
+            )
+
+            wireMockServer.stubFor(
+                get("/kafka/v3/clusters/lkc-abc123/topics")
+                    .withHeader("Authorization", equalTo("Bearer $TEST_DATA_PLANE_TOKEN"))
+                    .willReturn(aResponse().withStatus(200)
+                        .withBody("""{"data": ["topic-1"], "metadata": {"next": null}}"""))
+            )
+
+            val result = kafkaClient.fetchList("/kafka/v3/clusters/lkc-abc123/topics", parser = ::parseEnvironmentIds)
+
+            assertEquals(listOf("topic-1"), result)
+            wireMockServer.verify(getRequestedFor(urlEqualTo("/kafka/v3/clusters/lkc-abc123/topics"))
+                .withHeader("Authorization", equalTo("Bearer $TEST_DATA_PLANE_TOKEN")))
+        }
+
+        @Test
+        fun `includes additional headers for schema registry`() = runBlocking {
+            val srClient = CCloudRestClient(
+                baseUrl = "http://localhost:${wireMockServer.port()}",
+                authType = CCloudRestClient.AuthType.DATA_PLANE,
+                additionalHeaders = mapOf("target-sr-cluster" to "lsrc-abc123"),
+                authService = authService
+            )
+
+            wireMockServer.stubFor(
+                get("/subjects")
+                    .withHeader("Authorization", equalTo("Bearer $TEST_DATA_PLANE_TOKEN"))
+                    .withHeader("target-sr-cluster", equalTo("lsrc-abc123"))
+                    .willReturn(aResponse().withStatus(200)
+                        .withBody("""{"data": ["my-subject"], "metadata": {"next": null}}"""))
+            )
+
+            val result = srClient.fetchList("/subjects", parser = ::parseEnvironmentIds)
+
+            assertEquals(listOf("my-subject"), result)
         }
     }
 

@@ -18,7 +18,7 @@ class ControlPlaneFetcherImplTest {
 
     companion object {
         private lateinit var wireMockServer: WireMockServer
-        private const val TEST_TOKEN = "test-control-plane-token"
+        private const val TEST_CONTROL_PLANE_TOKEN = "test-control-plane-token"
 
         @JvmStatic
         @BeforeAll
@@ -43,7 +43,7 @@ class ControlPlaneFetcherImplTest {
     fun setup() {
         authService = mock()
         whenever(authService.isSignedIn()).thenReturn(true)
-        whenever(authService.getControlPlaneToken()).thenReturn(TEST_TOKEN)
+        whenever(authService.getControlPlaneToken()).thenReturn(TEST_CONTROL_PLANE_TOKEN)
 
         val client = CCloudRestClient(
             baseUrl = "http://localhost:${wireMockServer.port()}",
@@ -61,7 +61,7 @@ class ControlPlaneFetcherImplTest {
     private fun stubGetRequest(path: String, responseBody: String) {
         wireMockServer.stubFor(
             get(path)
-                .withHeader("Authorization", equalTo("Bearer $TEST_TOKEN"))
+                .withHeader("Authorization", equalTo("Bearer $TEST_CONTROL_PLANE_TOKEN"))
                 .willReturn(
                     aResponse()
                         .withStatus(200)

@@ -7,6 +7,7 @@ object ResourceLoader {
     /**
      * Loads a resource file from the classpath.
      * @param path Path relative to the test resources directory
+     * @see <a href="file:test/resources/ccloud-resources-mock-responses/">test/resources/ccloud-resources-mock-responses/</a>
      * @return The contents of the resource file
      * @throws IllegalStateException if the resource is not found
      */
