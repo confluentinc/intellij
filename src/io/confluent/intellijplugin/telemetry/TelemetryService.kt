@@ -36,13 +36,13 @@ class TelemetryService : Disposable {
         fun getInstance(): TelemetryService = service()
 
         // System property to override the Segment write key (for dev testing with ./gradlew runIde)
-        private const val SEGMENT_WRITE_KEY_PROPERTY = "segment.writeKey"
+        private const val SEGMENT_WRITE_KEY_PROPERTY = "confluent.intellijplugin.segment.writeKey"
     }
 
     private fun initialize() {
         if (analytics == null) {
             // Gets the Segment write key, checking system property first for dev override.
-            // Usage: ./gradlew runIde -Dsegment.writeKey=your_dev_key
+            // Usage: ./gradlew runIde -Dconfluent.intellijplugin.segment.writeKey=your_dev_key
             val writeKey = System.getProperty(SEGMENT_WRITE_KEY_PROPERTY)?.takeIf { it.isNotBlank() } ?: SegmentConfig.WRITE_KEY
             if (writeKey.isBlank()) {
                 // If we don't have a key, assume we're in dev mode and skip initialization

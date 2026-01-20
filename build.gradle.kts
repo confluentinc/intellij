@@ -203,8 +203,8 @@ tasks {
         // Pass system properties from gradle.properties or use system property flag with -D flag @see CCloudOAuthConfig
         System.getProperty("ccloud.callback-port")?.let { systemProperty("ccloud.callback-port", it) }
         System.getProperty("ccloud.env")?.let { systemProperty("ccloud.env", it) }
-        // Pass Segment write key for dev telemetry testing: ./gradlew runIde -Dsegment.writeKey=your_key
-        System.getProperty("segment.writeKey")?.let { systemProperty("segment.writeKey", it) }
+        // Pass Segment write key for dev telemetry testing: ./gradlew runIde -Dconfluent.intellijplugin.segment.writeKey=your_key
+        System.getProperty("confluent.intellijplugin.segment.writeKey")?.let { systemProperty("confluent.intellijplugin.segment.writeKey", it) }
     }
 
     patchPluginXml {
