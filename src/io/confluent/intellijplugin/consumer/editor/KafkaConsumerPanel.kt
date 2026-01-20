@@ -117,6 +117,8 @@ class KafkaConsumerPanel(
     private val kafkaConsumerSettingsDelegate = lazy { KafkaConsumerSettings() }
     private val kafkaConsumerSettings: KafkaConsumerSettings by kafkaConsumerSettingsDelegate
 
+    private var hasLoggedStopEvent = false
+
     private val advancedSettings = ActionLink(KafkaMessagesBundle.message("settings.advanced")) {
         kafkaConsumerSettings.show()
     }
@@ -324,7 +326,6 @@ class KafkaConsumerPanel(
 
             logUsage(
                 MessageViewerEvent.StartConsumer(
-                    source = "consumer",
                     startType = runConfig.getStartsWith().type.name.lowercase(),
                     limitType = runConfig.getLimit().type.name.lowercase(),
                     filterType = runConfig.getFilter().type.name.lowercase(),
@@ -514,6 +515,17 @@ class KafkaConsumerPanel(
     }
 
     private fun onStopConsume() = invokeLater {
+        // Guard against double logging (stop() can be called multiple times)
+        if (!hasLoggedStopEvent) {
+            hasLoggedStopEvent = true
+            logUsage(
+                MessageViewerEvent.Stop(
+                    source = MessageViewerEvent.Source.CONSUMER,
+                    durationMs = output.getElapsedTimeMs(),
+                )
+            )
+        }
+
         consumeButton.text = KafkaMessagesBundle.message("action.consume.start.title")
         consumeButton.icon = AllIcons.Actions.Execute
 
@@ -523,6 +535,8 @@ class KafkaConsumerPanel(
     }
 
     private fun onStartConsume() = invokeLater {
+        hasLoggedStopEvent = false
+
         consumeButton.text = KafkaMessagesBundle.message("action.consume.stop.title")
         consumeButton.icon = AllIcons.Actions.Suspend
 
