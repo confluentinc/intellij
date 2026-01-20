@@ -6,6 +6,14 @@ import io.confluent.intellijplugin.util.KafkaMessagesBundle
 
 class MonitoringTabDeleteConnection : MonitoringTabConnectionAction() {
     override fun update(e: AnActionEvent) {
+        val connectionId = e.dataContext.getData(ConnectionUtil.CONNECTION_ID)
+
+        // Hide for Confluent Cloud tab (not a real connection)
+        if (connectionId == "ccloud") {
+            e.presentation.isVisible = false
+            return
+        }
+
         val selectedConnectionIds = getSelectedConnectionIds(e)
         e.presentation.isEnabled = selectedConnectionIds.isNotEmpty()
         e.presentation.text =

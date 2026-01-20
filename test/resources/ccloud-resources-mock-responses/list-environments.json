@@ -1,0 +1,15 @@
+{
+  "data": [
+    {
+      "id": "env-123",
+      "display_name": "Development"
+    },
+    {
+      "id": "env-456",
+      "display_name": "Production"
+    }
+  ],
+  "metadata": {
+    "next": null
+  }
+}
