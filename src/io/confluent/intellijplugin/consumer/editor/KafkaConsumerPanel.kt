@@ -31,6 +31,9 @@ import io.confluent.intellijplugin.core.util.executeOnPooledThread
 import io.confluent.intellijplugin.core.util.invokeLater
 import io.confluent.intellijplugin.core.util.withPluginClassLoader
 import io.confluent.intellijplugin.data.KafkaDataManager
+import io.confluent.intellijplugin.telemetry.MessageViewerEvent
+import io.confluent.intellijplugin.telemetry.logUsage
+import org.apache.kafka.clients.consumer.ConsumerConfig
 import io.confluent.intellijplugin.registry.KafkaRegistryFormat
 import io.confluent.intellijplugin.util.KafkaConsumerGroupChangeOffsetProcess
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
@@ -113,6 +116,8 @@ class KafkaConsumerPanel(
 
     private val kafkaConsumerSettingsDelegate = lazy { KafkaConsumerSettings() }
     private val kafkaConsumerSettings: KafkaConsumerSettings by kafkaConsumerSettingsDelegate
+
+    private var hasLoggedStopEvent = false
 
     private val advancedSettings = ActionLink(KafkaMessagesBundle.message("settings.advanced")) {
         kafkaConsumerSettings.show()
@@ -319,6 +324,24 @@ class KafkaConsumerPanel(
         try {
             output.start()
 
+            logUsage(
+                MessageViewerEvent.StartConsumer(
+                    startType = runConfig.getStartsWith().type.name.lowercase(),
+                    limitType = runConfig.getLimit().type.name.lowercase(),
+                    filterType = runConfig.getFilter().type.name.lowercase(),
+                    keyType = runConfig.getKeyType().name.lowercase(),
+                    valueType = runConfig.getValueType().name.lowercase(),
+                    hasPartitionsSet = !runConfig.partitions.isNullOrBlank(),
+                    hasConsumerGroup = runConfig.consumerGroup != null,
+                    hasConsumerRecordsLimit = runConfig.settings.containsKey(KafkaConsumerSettings.MAX_CONSUMER_RECORDS),
+                    hasRequestTimeoutMs = runConfig.properties.containsKey(ConsumerConfig.REQUEST_TIMEOUT_MS_CONFIG),
+                    hasMaxPollRecords = runConfig.properties.containsKey(ConsumerConfig.MAX_POLL_RECORDS_CONFIG),
+                    hasFetchMaxWaitMs = runConfig.properties.containsKey(ConsumerConfig.FETCH_MAX_WAIT_MS_CONFIG),
+                    hasFetchMaxBytes = runConfig.properties.containsKey(ConsumerConfig.FETCH_MAX_BYTES_CONFIG),
+                    hasMaxPartitionFetchBytes = runConfig.properties.containsKey(ConsumerConfig.MAX_PARTITION_FETCH_BYTES_CONFIG),
+                )
+            )
+
             if (kafkaConsumerSettingsDelegate.isInitialized()) {
                 val maxElementsCount = kafkaConsumerSettings.getSettings()[KafkaConsumerSettings.MAX_CONSUMER_RECORDS]
                 maxElementsCount?.toIntOrNull()?.let {
@@ -492,6 +515,17 @@ class KafkaConsumerPanel(
     }
 
     private fun onStopConsume() = invokeLater {
+        // Guard against double logging (stop() can be called multiple times)
+        if (!hasLoggedStopEvent) {
+            hasLoggedStopEvent = true
+            logUsage(
+                MessageViewerEvent.Stop(
+                    source = MessageViewerEvent.Source.CONSUMER,
+                    durationMs = output.getElapsedTimeMs(),
+                )
+            )
+        }
+
         consumeButton.text = KafkaMessagesBundle.message("action.consume.start.title")
         consumeButton.icon = AllIcons.Actions.Execute
 
@@ -501,6 +535,8 @@ class KafkaConsumerPanel(
     }
 
     private fun onStartConsume() = invokeLater {
+        hasLoggedStopEvent = false
+
         consumeButton.text = KafkaMessagesBundle.message("action.consume.stop.title")
         consumeButton.icon = AllIcons.Actions.Suspend
 
