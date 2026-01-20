@@ -6,7 +6,7 @@ import java.time.Instant;
 public class CredentialProcessOutput {
     private String accessKeyId = "";
     private String secretAccessKey = "";
-    private String sessionToken = null;
+    private String sessionToken = "";
     private Instant expiration = null;
 
     public CredentialProcessOutput() {
