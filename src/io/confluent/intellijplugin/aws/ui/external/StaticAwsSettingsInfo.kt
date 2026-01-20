@@ -7,6 +7,7 @@ data class StaticAwsSettingsInfo(
     @NlsSafe override val profile: String? = null,
     override val accessKey: String? = null,
     override val secretKey: String? = null,
+    override val sessionToken: String? = null,
     override val region: String? = null,
     override val customCredentialPath: String? = null,
     override val customConfigPath: String? = null
