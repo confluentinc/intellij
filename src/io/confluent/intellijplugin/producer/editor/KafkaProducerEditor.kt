@@ -271,12 +271,12 @@ class KafkaProducerEditor(
             MessageViewerEvent.StartProducer(
                 keyType = config.keyType.lowercase(),
                 valueType = config.valueType.lowercase(),
-                isFlowMode = config.flowParams?.mode == Mode.AUTO,
+                autoModeEnabled = config.flowParams?.mode == Mode.AUTO,
                 generateRandomKeys = config.flowParams?.generateRandomKeys == true,
                 generateRandomValues = config.flowParams?.generateRandomValues == true,
                 loadFromCsv = !config.flowParams?.csvFile.isNullOrBlank(),
-                hasForcePartition = config.forcePartition >= 0,
-                compression = config.compression.lowercase(),
+                hasPartitionsSet = config.forcePartition >= 0,
+                compressionType = config.compression.lowercase(),
                 acks = config.acks.lowercase(),
                 idempotence = config.idempotence,
             )

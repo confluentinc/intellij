@@ -331,7 +331,7 @@ class KafkaConsumerPanel(
                     filterType = runConfig.getFilter().type.name.lowercase(),
                     keyType = runConfig.getKeyType().name.lowercase(),
                     valueType = runConfig.getValueType().name.lowercase(),
-                    hasPartitions = !runConfig.partitions.isNullOrBlank(),
+                    hasPartitionsSet = !runConfig.partitions.isNullOrBlank(),
                     hasConsumerGroup = runConfig.consumerGroup != null,
                     hasConsumerRecordsLimit = runConfig.settings.containsKey(KafkaConsumerSettings.MAX_CONSUMER_RECORDS),
                     hasRequestTimeoutMs = runConfig.properties.containsKey(ConsumerConfig.REQUEST_TIMEOUT_MS_CONFIG),

@@ -202,7 +202,7 @@ sealed class MessageViewerEvent : TelemetryEvent {
         val filterType: String,
         val keyType: String,
         val valueType: String,
-        val hasPartitions: Boolean = false,
+        val hasPartitionsSet: Boolean = false,
         val hasConsumerGroup: Boolean = false,
         val hasConsumerRecordsLimit: Boolean = false,
         val hasRequestTimeoutMs: Boolean = false,
@@ -222,7 +222,7 @@ sealed class MessageViewerEvent : TelemetryEvent {
             put("filterType", filterType)
             put("keyType", keyType)
             put("valueType", valueType)
-            if (hasPartitions) put("hasPartitions", true)
+            if (hasPartitionsSet) put("hasPartitionsSet", true)
             if (hasConsumerGroup) put("hasConsumerGroup", true)
             if (hasConsumerRecordsLimit) put("hasConsumerRecordsLimit", true)
             if (hasRequestTimeoutMs) put("hasRequestTimeoutMs", true)
@@ -259,24 +259,24 @@ sealed class MessageViewerEvent : TelemetryEvent {
      *
      * @param keyType The selected key serialization type (e.g., "string", "json", "schema_registry")
      * @param valueType The selected value serialization type
-     * @param isFlowMode Whether flow mode is enabled (multiple messages)
+     * @param autoModeEnabled Whether flow mode is enabled (multiple messages)
      * @param generateRandomKeys Whether random key generation is enabled
      * @param generateRandomValues Whether random value generation is enabled
      * @param loadFromCsv Whether loading data from a CSV file
-     * @param hasForcePartition Whether a specific partition was forced
-     * @param compression The compression type selected
+     * @param hasPartitionsSet Whether a specific partition was forced
+     * @param compressionType The compression type selected
      * @param acks The acknowledgment type selected
      * @param idempotence Whether idempotence is enabled
      */
     data class StartProducer(
         val keyType: String,
         val valueType: String,
-        val isFlowMode: Boolean = false,
+        val autoModeEnabled: Boolean = false,
         val generateRandomKeys: Boolean = false,
         val generateRandomValues: Boolean = false,
         val loadFromCsv: Boolean = false,
-        val hasForcePartition: Boolean = false,
-        val compression: String,
+        val hasPartitionsSet: Boolean = false,
+        val compressionType: String,
         val acks: String,
         val idempotence: Boolean,
     ) : MessageViewerEvent() {
@@ -288,14 +288,14 @@ sealed class MessageViewerEvent : TelemetryEvent {
             put("source", source.value)
             put("keyType", keyType)
             put("valueType", valueType)
-            put("compression", compression)
+            put("compressionType", compressionType)
             put("acks", acks)
             put("idempotence", idempotence)
-            if (isFlowMode) put("isFlowMode", true)
+            if (autoModeEnabled) put("autoModeEnabled", true)
             if (generateRandomKeys) put("generateRandomKeys", true)
             if (generateRandomValues) put("generateRandomValues", true)
             if (loadFromCsv) put("loadFromCsv", true)
-            if (hasForcePartition) put("hasForcePartition", true)
+            if (hasPartitionsSet) put("hasPartitionsSet", true)
         }
     }
 
