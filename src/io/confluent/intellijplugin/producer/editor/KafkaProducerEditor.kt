@@ -32,9 +32,12 @@ import io.confluent.intellijplugin.core.util.executeNotOnEdt
 import io.confluent.intellijplugin.core.util.invokeLater
 import io.confluent.intellijplugin.data.KafkaDataManager
 import io.confluent.intellijplugin.producer.models.AcksType
+import io.confluent.intellijplugin.producer.models.Mode
 import io.confluent.intellijplugin.producer.models.ProducerEditorState
 import io.confluent.intellijplugin.producer.models.ProducerFlowParams
 import io.confluent.intellijplugin.producer.models.RecordCompression
+import io.confluent.intellijplugin.telemetry.MessageViewerEvent
+import io.confluent.intellijplugin.telemetry.logUsage
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
 import java.awt.Dimension
 import java.beans.PropertyChangeListener
@@ -263,6 +266,22 @@ class KafkaProducerEditor(
     }
 
     private fun onStart() = invokeLater {
+        val config = getConfig()
+        logUsage(
+            MessageViewerEvent.StartProducer(
+                keyType = config.keyType.lowercase(),
+                valueType = config.valueType.lowercase(),
+                autoModeEnabled = config.flowParams?.mode == Mode.AUTO,
+                generateRandomKeys = config.flowParams?.generateRandomKeys == true,
+                generateRandomValues = config.flowParams?.generateRandomValues == true,
+                loadFromCsv = !config.flowParams?.csvFile.isNullOrBlank(),
+                hasPartitionsSet = config.forcePartition >= 0,
+                compressionType = config.compression.lowercase(),
+                acks = config.acks.lowercase(),
+                idempotence = config.idempotence,
+            )
+        )
+
         produceButton.text = KafkaMessagesBundle.message("action.produce.stop")
         produceButton.icon = AllIcons.Actions.Suspend
         progress.onStart()
@@ -270,6 +289,13 @@ class KafkaProducerEditor(
     }
 
     private fun onStop() = invokeLater {
+        logUsage(
+            MessageViewerEvent.Stop(
+                source = MessageViewerEvent.Source.PRODUCER,
+                durationMs = output.getElapsedTimeMs(),
+            )
+        )
+
         produceButton.text = KafkaMessagesBundle.message("kafka.producer.action.produce.title")
         produceButton.icon = AllIcons.Actions.Execute
         progress.onStop()
