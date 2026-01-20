@@ -157,3 +157,167 @@ object PluginActivatedEvent : TelemetryEvent {
     override val eventName = "Plugin Activated"
     override fun properties() = emptyMap<String, Any>()
 }
+
+/**
+ * Tracks user interactions with the message viewer.
+ * All message viewer events share the same event name with an "action" discriminator.
+ *
+ * @param action The action performed (e.g., "start", "stop", "search", "preview-message")
+ * @property source Whether the event is from "consumer" or "producer" context
+ */
+sealed class MessageViewerEvent : TelemetryEvent {
+    override val eventName = "Message Viewer Action"
+    abstract val action: String
+    abstract val source: Source
+
+    /**
+     * The source context for message viewer events.
+     */
+    enum class Source(val value: String) {
+        CONSUMER("consumer"),
+        PRODUCER("producer")
+    }
+
+    /**
+     * Tracks when a user starts consuming messages.
+     * Captures the configuration options selected when "Start Consuming" is clicked.
+     *
+     * @param startType The selected start type (e.g., "now", "beginning", "specific_date")
+     * @param limitType The selected limit type (e.g., "none", "topic_number_records", "date")
+     * @param filterType The selected filter type (e.g., "none", "contains", "regex")
+     * @param keyType The selected key deserialization type (e.g., "string", "json", "schema_registry")
+     * @param valueType The selected value deserialization type
+     * @param hasPartitions Whether specific partitions were specified
+     * @param hasConsumerGroup Whether a consumer group was specified
+     * @param hasConsumerRecordsLimit Whether consumer records limit was modified from default
+     * @param hasRequestTimeoutMs Whether request.timeout.ms was modified from default
+     * @param hasMaxPollRecords Whether max.poll.records was modified from default
+     * @param hasFetchMaxWaitMs Whether fetch.max.wait.ms was modified from default
+     * @param hasFetchMaxBytes Whether fetch.max.bytes was modified from default
+     * @param hasMaxPartitionFetchBytes Whether max.partition.fetch.bytes was modified from default
+     */
+    data class StartConsumer(
+        val startType: String,
+        val limitType: String,
+        val filterType: String,
+        val keyType: String,
+        val valueType: String,
+        val hasPartitions: Boolean = false,
+        val hasConsumerGroup: Boolean = false,
+        val hasConsumerRecordsLimit: Boolean = false,
+        val hasRequestTimeoutMs: Boolean = false,
+        val hasMaxPollRecords: Boolean = false,
+        val hasFetchMaxWaitMs: Boolean = false,
+        val hasFetchMaxBytes: Boolean = false,
+        val hasMaxPartitionFetchBytes: Boolean = false,
+    ) : MessageViewerEvent() {
+        override val source = Source.CONSUMER
+        override val action = "start"
+
+        override fun properties() = buildMap<String, Any> {
+            put("action", action)
+            put("source", source.value)
+            put("startType", startType)
+            put("limitType", limitType)
+            put("filterType", filterType)
+            put("keyType", keyType)
+            put("valueType", valueType)
+            if (hasPartitions) put("hasPartitions", true)
+            if (hasConsumerGroup) put("hasConsumerGroup", true)
+            if (hasConsumerRecordsLimit) put("hasConsumerRecordsLimit", true)
+            if (hasRequestTimeoutMs) put("hasRequestTimeoutMs", true)
+            if (hasMaxPollRecords) put("hasMaxPollRecords", true)
+            if (hasFetchMaxWaitMs) put("hasFetchMaxWaitMs", true)
+            if (hasFetchMaxBytes) put("hasFetchMaxBytes", true)
+            if (hasMaxPartitionFetchBytes) put("hasMaxPartitionFetchBytes", true)
+        }
+    }
+
+    /**
+     * Tracks when a user stops consuming/producing messages.
+     * Captures the total time spent in the session.
+     *
+     * @param source Whether invoked from "consumer" or "producer" context
+     * @param durationMs Total time in milliseconds from start to stop
+     */
+    data class Stop(
+        override val source: Source,
+        val durationMs: Long,
+    ) : MessageViewerEvent() {
+        override val action = "stop"
+
+        override fun properties() = mapOf<String, Any>(
+            "action" to action,
+            "source" to source.value,
+            "durationMs" to durationMs,
+        )
+    }
+
+    /**
+     * Tracks when a user starts producing messages.
+     * Captures the configuration options selected when "Produce" is clicked.
+     *
+     * @param keyType The selected key serialization type (e.g., "string", "json", "schema_registry")
+     * @param valueType The selected value serialization type
+     * @param isFlowMode Whether flow mode is enabled (multiple messages)
+     * @param generateRandomKeys Whether random key generation is enabled
+     * @param generateRandomValues Whether random value generation is enabled
+     * @param loadFromCsv Whether loading data from a CSV file
+     * @param hasForcePartition Whether a specific partition was forced
+     * @param compression The compression type selected
+     * @param acks The acknowledgment type selected
+     * @param idempotence Whether idempotence is enabled
+     */
+    data class StartProducer(
+        val keyType: String,
+        val valueType: String,
+        val isFlowMode: Boolean = false,
+        val generateRandomKeys: Boolean = false,
+        val generateRandomValues: Boolean = false,
+        val loadFromCsv: Boolean = false,
+        val hasForcePartition: Boolean = false,
+        val compression: String,
+        val acks: String,
+        val idempotence: Boolean,
+    ) : MessageViewerEvent() {
+        override val source = Source.PRODUCER
+        override val action = "start"
+
+        override fun properties() = buildMap<String, Any> {
+            put("action", action)
+            put("source", source.value)
+            put("keyType", keyType)
+            put("valueType", valueType)
+            put("compression", compression)
+            put("acks", acks)
+            put("idempotence", idempotence)
+            if (isFlowMode) put("isFlowMode", true)
+            if (generateRandomKeys) put("generateRandomKeys", true)
+            if (generateRandomValues) put("generateRandomValues", true)
+            if (loadFromCsv) put("loadFromCsv", true)
+            if (hasForcePartition) put("hasForcePartition", true)
+        }
+    }
+
+    /**
+     * Tracks when a user searches/filters in the message viewer table.
+     *
+     * @param source Whether invoked from "consumer" or "producer" context
+     */
+    data class Search(override val source: Source) : MessageViewerEvent() {
+        override val action = "search"
+
+        override fun properties() = mapOf<String, Any>("action" to action, "source" to source.value)
+    }
+
+    /**
+     * Tracks when a user clicks on a message row to view its details/preview.
+     *
+     * @param source Whether invoked from "consumer" or "producer" context
+     */
+    data class Preview(override val source: Source) : MessageViewerEvent() {
+        override val action = "preview-message"
+
+        override fun properties() = mapOf<String, Any>("action" to action, "source" to source.value)
+    }
+}
