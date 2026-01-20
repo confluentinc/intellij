@@ -63,7 +63,6 @@ val generateSegmentConfig by tasks.registering {
             /** Segment configuration embedded at build time from SEGMENT_WRITE_KEY env var. */
             object SegmentConfig {
                 const val WRITE_KEY = "$segmentWriteKey"
-                val isConfigured = WRITE_KEY.isNotBlank()
             }
 
         """.trimIndent())
@@ -192,6 +191,11 @@ tasks {
 
     test {
         useJUnitPlatform()
+    }
+
+    runIde {
+        // Pass Segment write key for dev telemetry testing: ./gradlew runIde -Dconfluent.intellijplugin.segment.writeKey=your_key
+        System.getProperty("confluent.intellijplugin.segment.writeKey")?.let { systemProperty("confluent.intellijplugin.segment.writeKey", it) }
     }
 
     patchPluginXml {

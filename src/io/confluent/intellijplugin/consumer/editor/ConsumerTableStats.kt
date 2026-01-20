@@ -51,6 +51,8 @@ class ConsumerTableStats {
         startTime = System.currentTimeMillis()
     }
 
+    fun getElapsedTimeMs(): Long = System.currentTimeMillis() - startTime
+
     fun addRecordsBatch(pollTime: Long, elements: List<KafkaRecord>) {
         totalPollTime += pollTime
         totalPollCount += 1
