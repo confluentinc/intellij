@@ -416,7 +416,8 @@ internal class KafkaBrokerSettings(
             SaslConfigs.SASL_JAAS_CONFIG to jaasConfig,
             SASL_CLIENT_CALLBACK_HANDLER_CLASS to "software.amazon.msk.auth.iam.IAMClientCallbackHandler",
             AwsSettingsComponentForKafka.AWS_ACCESS_KEY to info.accessKey,
-            AwsSettingsComponentForKafka.AWS_SECRET_KEY to info.secretKey
+            AwsSettingsComponentForKafka.AWS_SECRET_KEY to info.secretKey,
+            AwsSettingsComponentForKafka.AWS_SESSION_TOKEN to info.sessionToken
         )
     }
 
@@ -542,6 +543,7 @@ internal class KafkaBrokerSettings(
 
         val secretKey = properties[AwsSettingsComponentForKafka.AWS_SECRET_KEY]
         val accessKey = properties[AwsSettingsComponentForKafka.AWS_ACCESS_KEY]
+        val sessionToken = properties[AwsSettingsComponentForKafka.AWS_SESSION_TOKEN]
         val authType = when {
             profile == null && accessKey == null && secretKey == null -> AuthenticationType.DEFAULT
             profile != null -> AuthenticationType.PROFILE_FROM_CREDENTIALS_FILE
@@ -553,6 +555,7 @@ internal class KafkaBrokerSettings(
             profile = profile,
             accessKey = accessKey,
             secretKey = secretKey,
+            sessionToken = sessionToken,
             region = null,
         )
         settingsUi.loadInfo(info)
