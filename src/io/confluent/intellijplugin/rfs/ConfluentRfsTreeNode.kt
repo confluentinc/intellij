@@ -45,9 +45,8 @@ class ConfluentRfsTreeNode(
             }
             rfsPath.isSchemaRegistry(confluentDriver) -> {
                 val srId = rfsPath.name
-                confluentDriver.dataManager.client.getSchemaRegistry(envId)
-                    .find { it.id == srId }
-                    ?.displayName ?: srId
+                val sr = confluentDriver.dataManager.client.getSchemaRegistry(envId)
+                if (sr?.id == srId) sr.displayName else srId
             }
             rfsPath.isTopic || rfsPath.isSchema -> rfsPath.name
             else -> rfsPath.name
@@ -75,8 +74,9 @@ class ConfluentRfsTreeNode(
             }
             rfsPath.isSchemaRegistry(confluentDriver) -> {
                 val sr = confluentDriver.dataManager.client.getSchemaRegistry(envId)
-                    .find { it.id == rfsPath.name }
-                sr?.let { "${it.id} (${it.cloudProvider} / ${it.region})" }
+                if (sr?.id == rfsPath.name) {
+                    "${sr.id} (${sr.cloudProvider} / ${sr.region})"
+                } else null
             }
             else -> null
         }

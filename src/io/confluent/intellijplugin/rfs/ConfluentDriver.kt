@@ -79,11 +79,11 @@ class ConfluentDriver(
                     ConfluentFileInfo(this, clusterPath(cluster.id))
                 }
 
-                val schemaRegistries = dataManager.client.getSchemaRegistry(envId).map { sr ->
+                val schemaRegistry = dataManager.client.getSchemaRegistry(envId)?.let { sr ->
                     ConfluentFileInfo(this, schemaRegistryPath(sr.id))
                 }
 
-                clusters + schemaRegistries
+                clusters + listOfNotNull(schemaRegistry)
             }
             // Cluster/SR level: show topics/schemas directly
             1 -> {
@@ -105,8 +105,8 @@ class ConfluentDriver(
                 }
 
                 // Check if it's a schema registry
-                val sr = dataManager.client.getSchemaRegistry(envId).find { it.id == nodeId }
-                if (sr != null) {
+                val sr = dataManager.client.getSchemaRegistry(envId)
+                if (sr != null && sr.id == nodeId) {
                     log.info("ConfluentDriver: Loading schemas for schema registry $nodeId")
 
                     val clusters = dataManager.getKafkaClusters(envId)
@@ -150,7 +150,7 @@ class ConfluentDriver(
             val envId = driver.selectedEnvironmentId ?: return false
             val nodeId = name
             return driver.dataManager.client.getKafkaClusters(envId).any { it.id == nodeId } ||
-                   driver.dataManager.client.getSchemaRegistry(envId).any { it.id == nodeId }
+                   driver.dataManager.client.getSchemaRegistry(envId)?.id == nodeId
         }
 
         fun RfsPath.isCluster(driver: ConfluentDriver): Boolean {
@@ -162,7 +162,7 @@ class ConfluentDriver(
         fun RfsPath.isSchemaRegistry(driver: ConfluentDriver): Boolean {
             if (elements.size != 1) return false
             val envId = driver.selectedEnvironmentId ?: return false
-            return driver.dataManager.client.getSchemaRegistry(envId).any { it.id == name }
+            return driver.dataManager.client.getSchemaRegistry(envId)?.id == name
         }
 
         val RfsPath.isTopic: Boolean get() = elements.size == 2

@@ -143,17 +143,17 @@ class ControlPlaneFetcherImplTest {
     inner class GetSchemaRegistryTests {
 
         @Test
-        fun `fetches schema registries successfully`() = runBlocking {
+        fun `fetches schema registry successfully`() = runBlocking {
             stubGetRequest("/srcm/v3/clusters?environment=env-123", loadMockResponse("list-schema-registry.json"))
 
             val result = fetcher.getSchemaRegistry("env-123")
 
-            assertEquals(1, result.size)
-            assertEquals("lsrc-abc123", result[0].id)
-            assertEquals("Main SR", result[0].displayName)
-            assertEquals("AWS", result[0].cloudProvider)
-            assertEquals("us-east-1", result[0].region)
-            assertEquals("https://sr.us-east-1.aws.confluent.cloud", result[0].httpEndpoint)
+            assertTrue(result != null)
+            assertEquals("lsrc-abc123", result!!.id)
+            assertEquals("Main SR", result.displayName)
+            assertEquals("AWS", result.cloudProvider)
+            assertEquals("us-east-1", result.region)
+            assertEquals("https://sr.us-east-1.aws.confluent.cloud", result.httpEndpoint)
         }
 
         @Test
@@ -162,12 +162,21 @@ class ControlPlaneFetcherImplTest {
 
             val result = fetcher.getSchemaRegistry("env-123")
 
-            assertEquals(1, result.size)
-            assertEquals("lsrc-abc123", result[0].id)
-            assertEquals("lsrc-abc123", result[0].displayName)  // Falls back to ID
-            assertEquals("Unknown", result[0].cloudProvider)
-            assertEquals("Unknown", result[0].region)
-            assertEquals("", result[0].httpEndpoint)
+            assertTrue(result != null)
+            assertEquals("lsrc-abc123", result!!.id)
+            assertEquals("lsrc-abc123", result.displayName)  // Falls back to ID
+            assertEquals("Unknown", result.cloudProvider)
+            assertEquals("Unknown", result.region)
+            assertEquals("", result.httpEndpoint)
+        }
+
+        @Test
+        fun `returns null when no schema registry exists`() = runBlocking {
+            stubGetRequest("/srcm/v3/clusters?environment=env-123", """{"data": [], "metadata": {"next": null}}""")
+
+            val result = fetcher.getSchemaRegistry("env-123")
+
+            assertTrue(result == null)
         }
 
     }

@@ -53,9 +53,9 @@ class ControlPlaneFetcherImpl(
         }
     }
 
-    override suspend fun getSchemaRegistry(envId: String): List<SchemaRegistry> {
+    override suspend fun getSchemaRegistry(envId: String): SchemaRegistry? {
         val uri = String.format(CloudConfig.ControlPlane.SR_LIST_URI, envId)
-        return client.fetchList(uri) { jsonBody ->
+        val registries = client.fetchList(uri) { jsonBody ->
             val response = json.decodeFromString<ListSchemaRegistryResponse>(jsonBody)
             val items = response.data.map { srData ->
                 SchemaRegistry(
@@ -68,5 +68,6 @@ class ControlPlaneFetcherImpl(
             }
             items to response.metadata?.next
         }
+        return registries.firstOrNull()
     }
 }

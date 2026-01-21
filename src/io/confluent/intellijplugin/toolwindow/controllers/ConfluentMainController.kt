@@ -491,7 +491,7 @@ internal class ConfluentMainController(
 
             val subjectName = rfsPath.name
 
-            val schemaRegistry = dataManager.getSchemaRegistry(envId).find { it.id == srId }
+            val schemaRegistry = dataManager.getSchemaRegistry(envId)?.takeIf { it.id == srId }
             if (schemaRegistry == null) {
                 schemaDetailPanel.add(JLabel("Error: Schema Registry not found"), BorderLayout.CENTER)
                 schemaDetailPanel.revalidate()

@@ -12,6 +12,6 @@ interface ControlPlaneFetcher {
     /** Get Kafka clusters for an environment. */
     suspend fun getKafkaClusters(envId: String): List<Cluster>
 
-    /** Get Schema Registry for an environment. */
-    suspend fun getSchemaRegistry(envId: String): List<SchemaRegistry>
+    /** Get Schema Registry for an environment (0 or 1 per environment). */
+    suspend fun getSchemaRegistry(envId: String): SchemaRegistry?
 }

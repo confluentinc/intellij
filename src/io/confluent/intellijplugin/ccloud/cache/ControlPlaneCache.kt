@@ -23,7 +23,7 @@ class ControlPlaneCache(
     // Cached data
     private var cachedEnvironments: List<Environment>? = null
     private val cachedClusters = mutableMapOf<String, List<Cluster>>()
-    private val cachedSchemaRegistry = mutableMapOf<String, List<SchemaRegistry>>()
+    private val cachedSchemaRegistry = mutableMapOf<String, SchemaRegistry?>()
 
     override fun getRealUri(): String = CloudConfig.CONTROL_PLANE_BASE_URL
 
@@ -53,11 +53,11 @@ class ControlPlaneCache(
         } ?: emptyList()
     }
 
-    /** Get schema registries for an environment (fetches on first access, then cached). */
-    fun getSchemaRegistry(environmentId: String): List<SchemaRegistry> = cachedSchemaRegistry.getOrPut(environmentId) {
+    /** Get schema registry for an environment (fetches on first access, then cached). Returns null if none exists. */
+    fun getSchemaRegistry(environmentId: String): SchemaRegistry? = cachedSchemaRegistry.getOrPut(environmentId) {
         fetcher?.let { f ->
             runBlocking { f.getSchemaRegistry(environmentId) }
-        } ?: emptyList()
+        }
     }
 
     fun refreshEnvironments(): List<Environment> {
@@ -75,12 +75,12 @@ class ControlPlaneCache(
         return clusters
     }
 
-    fun refreshSchemaRegistry(environmentId: String): List<SchemaRegistry> {
-        val registries = fetcher?.let { f ->
+    fun refreshSchemaRegistry(environmentId: String): SchemaRegistry? {
+        val registry = fetcher?.let { f ->
             runBlocking { f.getSchemaRegistry(environmentId) }
-        } ?: emptyList()
-        cachedSchemaRegistry[environmentId] = registries
-        return registries
+        }
+        cachedSchemaRegistry[environmentId] = registry
+        return registry
     }
 
     fun clearCache() {

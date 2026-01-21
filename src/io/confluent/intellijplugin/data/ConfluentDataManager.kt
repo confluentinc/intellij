@@ -51,7 +51,7 @@ class ConfluentDataManager(
         for (env in environments) {
             val clustersInEnv = client.getKafkaClusters(env.id)
             if (clustersInEnv.any { it.id == cluster.id }) {
-                return client.getSchemaRegistry(env.id).firstOrNull()
+                return client.getSchemaRegistry(env.id)
             }
         }
         return null
@@ -59,7 +59,7 @@ class ConfluentDataManager(
 
     fun getEnvironments(): List<Environment> = client.getEnvironments()
     fun getKafkaClusters(environmentId: String): List<Cluster> = client.getKafkaClusters(environmentId)
-    fun getSchemaRegistry(environmentId: String): List<SchemaRegistry> = client.getSchemaRegistry(environmentId)
+    fun getSchemaRegistry(environmentId: String): SchemaRegistry? = client.getSchemaRegistry(environmentId)
 
     // ========== Lifecycle ==========
 
