@@ -9,7 +9,9 @@ import com.intellij.openapi.wm.ToolWindowManager
 import io.confluent.intellijplugin.ccloud.auth.CCloudAuthService
 import io.confluent.intellijplugin.core.monitoring.toolwindow.ComponentController
 import io.confluent.intellijplugin.core.monitoring.toolwindow.MonitoringToolWindowController
+import io.confluent.intellijplugin.core.rfs.driver.ActivitySource
 import io.confluent.intellijplugin.core.rfs.driver.RfsPath
+import io.confluent.intellijplugin.core.rfs.driver.refreshConnectionLaunch
 import io.confluent.intellijplugin.core.settings.connections.ConnectionData
 import io.confluent.intellijplugin.core.settings.connections.ConnectionFactory
 import io.confluent.intellijplugin.core.settings.manager.RfsConnectionDataManager
@@ -71,9 +73,36 @@ class KafkaMonitoringToolWindowController(project: Project) : MonitoringToolWind
         addConfluentCloudTab()
     }
 
-    /**
-     * Adds a fixed "Confluent Cloud" tab that handles sign-in/sign-out internally.
-     */
+    override fun onRefreshAction(e: com.intellij.openapi.actionSystem.AnActionEvent) {
+        val connectionId = contentManager.selectedContent?.getUserData(CONNECTION_ID) ?: return
+
+        if (connectionId == "ccloud") {
+            getConfluentCloudTabController()?.getDriver()?.refreshConnectionLaunch(ActivitySource.ACTION)
+            return
+        }
+
+        super.onRefreshAction(e)
+    }
+
+    override fun onRefreshIntervalChanged(newInterval: Int) {
+        super.onRefreshIntervalChanged(newInterval)
+
+        val ccloudDriver = getConfluentCloudTabController()?.getDriver()
+        if (ccloudDriver != null) {
+            val updater = ccloudDriver.dataManager.updater
+            if (newInterval <= 0) updater.stopAll()
+            else updater.rescheduleAll()
+        }
+    }
+
+    fun getDriverForConnection(connectionId: String): io.confluent.intellijplugin.core.monitoring.rfs.MonitoringDriver? {
+        if (connectionId == "ccloud") {
+            return getConfluentCloudTabController()?.getDriver()
+        }
+        return io.confluent.intellijplugin.core.rfs.driver.manager.DriverManager.getDriverById(project, connectionId)
+            as? io.confluent.intellijplugin.core.monitoring.rfs.MonitoringDriver
+    }
+
     private fun addConfluentCloudTab() {
         if (contentManager.contents.any { it.getUserData(CONNECTION_ID) == "ccloud" }) {
             return

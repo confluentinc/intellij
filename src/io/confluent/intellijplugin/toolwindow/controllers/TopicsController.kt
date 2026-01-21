@@ -22,6 +22,7 @@ import io.confluent.intellijplugin.core.ui.CustomComponentActionImpl
 import io.confluent.intellijplugin.core.ui.filter.CountFilterPopupComponent
 import io.confluent.intellijplugin.data.KafkaDataManager
 import io.confluent.intellijplugin.data.TopicDataProvider
+import io.confluent.intellijplugin.data.TopicOperations
 import io.confluent.intellijplugin.model.TopicPresentable
 import io.confluent.intellijplugin.model.TopicStatisticInfo
 import io.confluent.intellijplugin.rfs.KafkaDriver
@@ -158,7 +159,7 @@ internal class TopicsController(
             }
         } else {
             emptyText.appendText(KafkaMessagesBundle.message("topics.empty.text"), StatusText.DEFAULT_ATTRIBUTES)
-            // Only show create link for Kafka connections (not Confluent Cloud)
+            // Show create link only for Kafka connections (dialog not yet implemented for CCloud)
             if (dataManager is KafkaDataManager) {
                 emptyText.appendLine(
                     KafkaMessagesBundle.message("topics.text.create.link"),
@@ -173,7 +174,12 @@ internal class TopicsController(
     }
 
     override fun getColumnSettings() = KafkaToolWindowSettings.getInstance().topicColumnSettings
-    override fun getRenderableColumns() = TopicPresentable.renderableColumns
+    override fun getRenderableColumns() = if (dataManager.supportsInSyncReplicasData()) {
+        TopicPresentable.renderableColumns
+    } else {
+        // Filter out ISR column for connections that don't support it (e.g., CCloud)
+        TopicPresentable.renderableColumns.filter { it.name != TopicPresentable::inSyncReplicas.name }
+    }
     override fun getDataModel() = dataManager.topicModel
     override fun getAdditionalActions(): List<AnAction> = listOf()
     override fun showColumnFilter(): Boolean = false
