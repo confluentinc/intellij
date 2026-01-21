@@ -55,15 +55,15 @@ class KafkaDataManager(
     override val connectionData: KafkaConnectionData,
     settings: IntervalUpdateSettings,
     driverProvider: () -> MonitoringDriver
-) : MonitoringDataManager(project, settings, driverProvider) {
+) : MonitoringDataManager(project, settings, driverProvider), TopicDataProvider {
     val registryType = connectionData.registryType
 
-    val connectionId = connectionData.innerId
+    override val connectionId = connectionData.innerId
     override val client = KafkaClient(project, connectionData, false).also { Disposer.register(this, it) }
     val consumerPanelStorage = KafkaConsumerPanelStorage(this).also { Disposer.register(this, it) }
 
     private val cacheSchemaType = ConcurrentSkipListMap<String, KafkaRegistryFormat>()
-    internal val topicModel = createTopicsDataModel().also { Disposer.register(this, it) }
+    override val topicModel = createTopicsDataModel().also { Disposer.register(this, it) }
 
     internal val consumerGroupsModel = createConsumerGroupsDataModel().also { Disposer.register(this, it) }
     internal val consumerGroupsOffsets = createConsumerGroupOffsetsStorage().also { Disposer.register(this, it) }
@@ -88,7 +88,7 @@ class KafkaDataManager(
         ).also { Disposer.register(this, it) }
     }
 
-    fun getTopics() = topicModel.data ?: emptyList()
+    override fun getTopics() = topicModel.data ?: emptyList()
 
     @RequiresBackgroundThread
     fun loadTopicNames() = try {
@@ -467,7 +467,7 @@ class KafkaDataManager(
         }
     }
 
-    fun updatePinedTopics(topicName: String, isForAdding: Boolean) {
+    override fun updatePinedTopics(topicName: String, isForAdding: Boolean) {
         val config = KafkaToolWindowSettings.getInstance().getOrCreateConfig(connectionId)
         if (isForAdding) {
             config.topicsPined += topicName

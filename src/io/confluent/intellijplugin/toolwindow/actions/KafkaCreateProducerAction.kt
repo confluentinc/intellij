@@ -17,7 +17,7 @@ import io.confluent.intellijplugin.core.settings.actions.CreateConnectionPopup
 import io.confluent.intellijplugin.data.KafkaDataManager
 import io.confluent.intellijplugin.rfs.KafkaDriver
 import io.confluent.intellijplugin.rfs.KafkaDriver.Companion.isTopicFolder
-import io.confluent.intellijplugin.toolwindow.kafka.controllers.KafkaFileType
+import io.confluent.intellijplugin.toolwindow.controllers.KafkaFileType
 import javax.swing.JComponent
 
 class KafkaCreateProducerAction : DumbAwareAction(), CustomComponentAction {

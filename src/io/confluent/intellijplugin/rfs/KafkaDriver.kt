@@ -11,9 +11,9 @@ import io.confluent.intellijplugin.core.rfs.tree.node.RfsDriverTreeNodeBuilder
 import io.confluent.intellijplugin.data.KafkaDataManager
 import io.confluent.intellijplugin.registry.KafkaRegistryType
 import io.confluent.intellijplugin.telemetry.*
-import io.confluent.intellijplugin.toolwindow.kafka.KafkaMonitoringToolWindowController
+import io.confluent.intellijplugin.toolwindow.KafkaMonitoringToolWindowController
 import io.confluent.intellijplugin.toolwindow.config.KafkaToolWindowSettings
-import io.confluent.intellijplugin.toolwindow.kafka.controllers.KafkaGroupType
+import io.confluent.intellijplugin.toolwindow.controllers.KafkaGroupType
 import javax.swing.Icon
 
 class KafkaDriver(override val connectionData: KafkaConnectionData, project: Project?, testConnection: Boolean) :

@@ -1,8 +1,8 @@
 package io.confluent.intellijplugin.ccloud.client
 
-import io.confluent.intellijplugin.ccloud.client.ControlPlaneRestClient.PageLimits
-import io.confluent.intellijplugin.ccloud.client.ControlPlaneRestClient.PageOfResults
-import io.confluent.intellijplugin.ccloud.client.ControlPlaneRestClient.PaginationState
+import io.confluent.intellijplugin.ccloud.client.CCloudRestClient.PageLimits
+import io.confluent.intellijplugin.ccloud.client.CCloudRestClient.PageOfResults
+import io.confluent.intellijplugin.ccloud.client.CCloudRestClient.PaginationState
 import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.params.ParameterizedTest
@@ -11,26 +11,31 @@ import org.junit.jupiter.params.provider.ValueSource
 
 class PaginationStateTest {
 
+    companion object {
+        private const val INITIAL_URL = "http://first"
+        private const val NEXT_PAGE_URL = "http://next"
+    }
+
     @Nested
     @DisplayName("createPage")
     inner class NewPageTests {
 
         @Test
         fun `returns all items when under limit`() {
-            val state = PaginationState("http://first", PageLimits(maxItems = 100))
+            val state = PaginationState(INITIAL_URL, PageLimits(maxItems = 100))
             val items = listOf("a", "b", "c")
 
-            val page = state.createPage(items, "http://next")
+            val page = state.createPage(items, NEXT_PAGE_URL)
 
             assertEquals(3, page.items.size)
             assertEquals(listOf("a", "b", "c"), page.items)
             assertTrue(page.hasMore)
-            assertEquals("http://next", state.nextUrl)
+            assertEquals(NEXT_PAGE_URL, state.nextUrl)
         }
 
         @Test
         fun `truncates items when exceeding limit`() {
-            val state = PaginationState("http://first", PageLimits(maxItems = 2))
+            val state = PaginationState(INITIAL_URL, PageLimits(maxItems = 2))
             state.createPage(listOf("a"), "http://second")  // 1 item fetched
 
             val page = state.createPage(listOf("b", "c", "d"), null)
@@ -44,7 +49,7 @@ class PaginationStateTest {
         @NullAndEmptySource
         @ValueSource(strings = ["   "])
         fun `treats null, empty, or blank next URL as no more pages`(nextUrl: String?) {
-            val state = PaginationState("http://first")
+            val state = PaginationState(INITIAL_URL)
 
             val page = state.createPage(listOf("a"), nextUrl)
 
@@ -54,7 +59,7 @@ class PaginationStateTest {
 
         @Test
         fun `applies item limit across multiple pages`() {
-            val state = PaginationState("http://first", PageLimits(maxItems = 5))
+            val state = PaginationState(INITIAL_URL, PageLimits(maxItems = 5))
 
             state.createPage(listOf("a", "b"), "http://page2")      // 2 items
             state.createPage(listOf("c", "d"), "http://page3")      // 2 more = 4 total
@@ -71,7 +76,7 @@ class PaginationStateTest {
 
         @Test
         fun `returns false when no more pages`() {
-            val state = PaginationState("http://first")
+            val state = PaginationState(INITIAL_URL)
             val page = PageOfResults<String>(listOf("a"), hasMore = false)
 
             assertFalse(state.shouldContinue(page))
@@ -79,8 +84,8 @@ class PaginationStateTest {
 
         @Test
         fun `returns false when page limit reached`() {
-            val state = PaginationState("http://first", PageLimits(maxPages = 1))
-            state.createPage(listOf("a"), "http://next")  // 1 page fetched
+            val state = PaginationState(INITIAL_URL, PageLimits(maxPages = 1))
+            state.createPage(listOf("a"), NEXT_PAGE_URL)  // 1 page fetched
 
             val page = PageOfResults<String>(emptyList(), hasMore = true)
 
@@ -89,8 +94,8 @@ class PaginationStateTest {
 
         @Test
         fun `returns false when item limit reached`() {
-            val state = PaginationState("http://first", PageLimits(maxItems = 1))
-            state.createPage(listOf("a"), "http://next")  // 1 item fetched
+            val state = PaginationState(INITIAL_URL, PageLimits(maxItems = 1))
+            state.createPage(listOf("a"), NEXT_PAGE_URL)  // 1 item fetched
 
             val page = PageOfResults<String>(emptyList(), hasMore = true)
 

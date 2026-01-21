@@ -1,6 +1,7 @@
 package io.confluent.intellijplugin.rfs
 
 import com.intellij.icons.AllIcons
+import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import io.confluent.intellijplugin.core.monitoring.rfs.MonitoringDriver
@@ -15,18 +16,24 @@ import io.confluent.intellijplugin.toolwindow.config.KafkaToolWindowSettings
 import javax.swing.Icon
 
 /**
- * Driver for Confluent Cloud resources.
- * Provides a 4-level hierarchical tree structure:
- * - Root
- *   - Environments
- *     - Clusters folder / Schema Registry folder
- *       - Individual Cluster / Schema Registry
+ * Driver for Confluent Cloud resources
+ * Tree structure when environment is selected:
+ * - Root (filtered to selected environment)
+ *   - Individual Clusters
+ *     - Individual Topics (direct children)
+ *   - Individual Schema Registries
+ *     - Individual Schemas (direct children)
  */
 class ConfluentDriver(
     override val connectionData: ConfluentConnectionData,
     project: Project?,
     testConnection: Boolean
 ) : MonitoringDriver(project, testConnection) {
+
+    private val log = Logger.getInstance(ConfluentDriver::class.java)
+
+    // Selected environment ID for filtering tree root
+    var selectedEnvironmentId: String? = null
 
     override val dataManager: ConfluentDataManager = ConfluentDataManager(
         project, connectionData, KafkaToolWindowSettings.getInstance(), { this }
@@ -44,10 +51,7 @@ class ConfluentDriver(
         Disposer.register(this, dataManager)
     }
 
-    override fun getController(project: Project): MonitoringToolWindowController? {
-        // Return null for now, can be extended later if needed
-        return null
-    }
+    override fun getController(project: Project): MonitoringToolWindowController? = null
 
     override fun dispose() {}
 
@@ -60,63 +64,127 @@ class ConfluentDriver(
         dataManager.client.connectionError?.let { throw it }
 
         val depth = rfsPath.elements.size
+        log.info("ConfluentDriver.doLoadChildren: path=${rfsPath.stringRepresentation()}, depth=$depth, selectedEnv=$selectedEnvironmentId")
 
         return when (depth) {
-            // Root level: show environments
             0 -> {
-                dataManager.client.getEnvironments().map { env ->
-                    ConfluentFileInfo(this, environmentPath(env.id))
+                val envId = selectedEnvironmentId ?: run {
+                    log.warn("ConfluentDriver: No environment selected")
+                    return emptyList()
                 }
+
+                log.info("ConfluentDriver: Loading root for environment $envId")
+
+                val clusters = dataManager.client.getKafkaClusters(envId).map { cluster ->
+                    ConfluentFileInfo(this, clusterPath(cluster.id))
+                }
+
+                val schemaRegistries = dataManager.client.getSchemaRegistry(envId).map { sr ->
+                    ConfluentFileInfo(this, schemaRegistryPath(sr.id))
+                }
+
+                clusters + schemaRegistries
             }
-            // Environment level: show Clusters and Schema Registry folders
+            // Cluster/SR level: show topics/schemas directly
             1 -> {
-                val envId = rfsPath.name
-                listOf(
-                    ConfluentFileInfo(this, clustersPath(envId)),
-                    ConfluentFileInfo(this, schemaRegistryFolderPath(envId))
-                )
-            }
-            // Clusters folder: show individual clusters
-            2 -> {
-                if (rfsPath.name == CLUSTERS_FOLDER) {
-                    val envId = rfsPath.parent?.name ?: return emptyList()
-                    dataManager.client.getKafkaClusters(envId).map { cluster ->
-                        ConfluentFileInfo(this, clusterPath(envId, cluster.id))
+                val envId = selectedEnvironmentId ?: return emptyList()
+                val nodeId = rfsPath.name
+
+                // Check if it's a cluster
+                val cluster = dataManager.getKafkaClusters(envId).find { it.id == nodeId }
+                if (cluster != null) {
+                    log.info("ConfluentDriver: Loading topics for cluster $nodeId")
+
+                    val cache = dataManager.getDataPlaneCache(cluster)
+                    val topics = cache.refreshTopics()
+                    log.info("ConfluentDriver: Found ${topics.size} topics")
+
+                    return topics.map { topic ->
+                        ConfluentFileInfo(this, topicPath(nodeId, topic.topicName))
                     }
-                } else if (rfsPath.name == SCHEMA_REGISTRY_FOLDER) {
-                    val envId = rfsPath.parent?.name ?: return emptyList()
-                    dataManager.client.getSchemaRegistry(envId).map { sr ->
-                        ConfluentFileInfo(this, schemaRegistryPath(envId, sr.id))
-                    }
-                } else {
-                    emptyList()
                 }
+
+                // Check if it's a schema registry
+                val sr = dataManager.client.getSchemaRegistry(envId).find { it.id == nodeId }
+                if (sr != null) {
+                    log.info("ConfluentDriver: Loading schemas for schema registry $nodeId")
+
+                    val clusters = dataManager.getKafkaClusters(envId)
+                    val firstCluster = clusters.firstOrNull()
+
+                    if (firstCluster == null) {
+                        log.warn("ConfluentDriver: No clusters found in environment $envId")
+                        return emptyList()
+                    }
+
+                    val cache = dataManager.getDataPlaneCache(firstCluster)
+
+                    if (!cache.hasSchemaRegistry()) {
+                        log.warn("ConfluentDriver: No Schema Registry available")
+                        return emptyList()
+                    }
+
+                    val subjects = cache.refreshSubjects()
+                    log.info("ConfluentDriver: Found ${subjects.size} schemas")
+
+                    return subjects.map { subject ->
+                        ConfluentFileInfo(this, schemaPath(nodeId, subject.name))
+                    }
+                }
+
+                log.warn("ConfluentDriver: Node $nodeId not found as cluster or schema registry")
+                emptyList()
             }
-            // Cluster/SR level: leaf nodes (for now, can be extended for Topics, Consumer Groups, etc.)
             else -> emptyList()
         }
     }
 
-    // Path utilities for 4-level hierarchy
-    private fun environmentPath(envId: String) = RfsPath(listOf(envId), true)
-    private fun clustersPath(envId: String) = RfsPath(listOf(envId, CLUSTERS_FOLDER), true)
-    private fun schemaRegistryFolderPath(envId: String) = RfsPath(listOf(envId, SCHEMA_REGISTRY_FOLDER), true)
-    private fun clusterPath(envId: String, clusterId: String) = RfsPath(listOf(envId, CLUSTERS_FOLDER, clusterId), false)
-    private fun schemaRegistryPath(envId: String, srId: String) = RfsPath(listOf(envId, SCHEMA_REGISTRY_FOLDER, srId), false)
+    private fun clusterPath(clusterId: String) = RfsPath(listOf(clusterId), true)
+    private fun schemaRegistryPath(srId: String) = RfsPath(listOf(srId), true)
+    private fun topicPath(clusterId: String, topicName: String) = RfsPath(listOf(clusterId, topicName), false)
+    private fun schemaPath(srId: String, subjectName: String) = RfsPath(listOf(srId, subjectName), false)
 
     companion object {
-        const val CLUSTERS_FOLDER = "Clusters"
-        const val SCHEMA_REGISTRY_FOLDER = "Schema Registry"
+        fun RfsPath.isClusterOrSchemaRegistry(driver: ConfluentDriver): Boolean {
+            if (elements.size != 1) return false
+            val envId = driver.selectedEnvironmentId ?: return false
+            val nodeId = name
+            return driver.dataManager.client.getKafkaClusters(envId).any { it.id == nodeId } ||
+                   driver.dataManager.client.getSchemaRegistry(envId).any { it.id == nodeId }
+        }
 
-        // Path type checks using size instead of depth
-        val RfsPath.isEnvironment: Boolean get() = elements.size == 1
-        val RfsPath.isClustersFolder: Boolean get() = elements.size == 2 && name == CLUSTERS_FOLDER
-        val RfsPath.isSchemaRegistryFolder: Boolean get() = elements.size == 2 && name == SCHEMA_REGISTRY_FOLDER
-        val RfsPath.isCluster: Boolean get() = elements.size == 3 && parent?.name == CLUSTERS_FOLDER
-        val RfsPath.isSchemaRegistry: Boolean get() = elements.size == 3 && parent?.name == SCHEMA_REGISTRY_FOLDER
+        fun RfsPath.isCluster(driver: ConfluentDriver): Boolean {
+            if (elements.size != 1) return false
+            val envId = driver.selectedEnvironmentId ?: return false
+            return driver.dataManager.client.getKafkaClusters(envId).any { it.id == name }
+        }
 
-        // Get environment ID from any path
-        fun RfsPath.getEnvironmentId(): String? = elements.firstOrNull()
+        fun RfsPath.isSchemaRegistry(driver: ConfluentDriver): Boolean {
+            if (elements.size != 1) return false
+            val envId = driver.selectedEnvironmentId ?: return false
+            return driver.dataManager.client.getSchemaRegistry(envId).any { it.id == name }
+        }
+
+        val RfsPath.isTopic: Boolean get() = elements.size == 2
+        val RfsPath.isSchema: Boolean get() = elements.size == 2
+
+        val RfsPath.isEnvironment: Boolean get() = false
+        val RfsPath.isClustersFolder: Boolean get() = false
+        val RfsPath.isSchemaRegistryFolder: Boolean get() = false
+
+        fun RfsPath.getEnvironmentId(driver: ConfluentDriver): String? = driver.selectedEnvironmentId
+
+        fun RfsPath.getClusterId(): String? = when (elements.size) {
+            1 -> elements[0]
+            2 -> elements[0]
+            else -> null
+        }
+
+        fun RfsPath.getSchemaRegistryId(): String? = when (elements.size) {
+            1 -> elements[0]
+            2 -> elements[0]
+            else -> null
+        }
     }
 }
 
