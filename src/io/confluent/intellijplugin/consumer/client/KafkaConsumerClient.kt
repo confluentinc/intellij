@@ -1,6 +1,5 @@
 package io.confluent.intellijplugin.consumer.client
 
-import com.intellij.openapi.Disposable
 import io.confluent.intellijplugin.common.settings.StorageConsumerConfig
 import io.confluent.intellijplugin.consumer.editor.ConsumerEditorUtils
 import io.confluent.intellijplugin.consumer.models.ConsumerProducerFieldConfig
@@ -25,7 +24,7 @@ class KafkaConsumerClient(
     val dataManager: KafkaDataManager,
     val onStart: () -> Unit,
     val onStop: () -> Unit
-) : Disposable {
+) : ConsumerClient {
     val client = dataManager.client
     val connectionData = client.connectionData
     private val isRunning = AtomicBoolean(false)
@@ -34,7 +33,7 @@ class KafkaConsumerClient(
 
     override fun dispose() = stop()
 
-    fun start(
+    override fun start(
         config: StorageConsumerConfig,
         dataManager: KafkaDataManager,
         valueConfig: ConsumerProducerFieldConfig,
@@ -270,12 +269,12 @@ class KafkaConsumerClient(
         return partitions
     }
 
-    fun stop() {
+    override fun stop() {
         isRunning.set(false)
         onStop()
     }
 
-    fun isRunning() = isRunning.get()
+    override fun isRunning() = isRunning.get()
 
     private fun partitionOffsetsForStartOffset(
         consumer: KafkaConsumer<Any, Any>,

@@ -20,7 +20,8 @@ import io.confluent.intellijplugin.common.editor.*
 import io.confluent.intellijplugin.common.models.TopicInEditor
 import io.confluent.intellijplugin.common.settings.KafkaConfigStorage
 import io.confluent.intellijplugin.common.settings.StorageConsumerConfig
-import io.confluent.intellijplugin.consumer.client.KafkaConsumerClient
+import io.confluent.intellijplugin.consumer.client.ConsumerClient
+import io.confluent.intellijplugin.consumer.client.ConsumerClientProvider
 import io.confluent.intellijplugin.consumer.models.*
 import io.confluent.intellijplugin.core.rfs.util.RfsNotificationUtils
 import io.confluent.intellijplugin.core.settings.getValidationInfo
@@ -46,7 +47,7 @@ class KafkaConsumerPanel(
     internal val kafkaManager: KafkaDataManager,
     private val file: VirtualFile
 ) : Disposable {
-    private val consumerClient: KafkaConsumerClient = KafkaConsumerClient(
+    private val consumerClient: ConsumerClient = ConsumerClientProvider.getClient(
         dataManager = kafkaManager,
         onStart = ::onStartConsume,
         onStop = ::onStopConsume
