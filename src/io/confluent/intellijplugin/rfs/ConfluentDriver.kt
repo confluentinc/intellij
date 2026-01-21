@@ -99,8 +99,12 @@ class ConfluentDriver(
                     val topics = cache.refreshTopics()
                     log.info("ConfluentDriver: Found ${topics.size} topics")
 
-                    return topics.map { topic ->
-                        ConfluentFileInfo(this, topicPath(nodeId, topic.topicName))
+                    return if (topics.isEmpty()) {
+                        listOf(ConfluentFileInfo(this, emptyStatePath("No topics available")))
+                    } else {
+                        topics.map { topic ->
+                            ConfluentFileInfo(this, topicPath(nodeId, topic.topicName))
+                        }
                     }
                 }
 
@@ -127,8 +131,12 @@ class ConfluentDriver(
                     val subjects = cache.refreshSubjects()
                     log.info("ConfluentDriver: Found ${subjects.size} schemas")
 
-                    return subjects.map { subject ->
-                        ConfluentFileInfo(this, schemaPath(nodeId, subject.name))
+                    return if (subjects.isEmpty()) {
+                        listOf(ConfluentFileInfo(this, emptyStatePath("No schemas available")))
+                    } else {
+                        subjects.map { subject ->
+                            ConfluentFileInfo(this, schemaPath(nodeId, subject.name))
+                        }
                     }
                 }
 
@@ -143,6 +151,7 @@ class ConfluentDriver(
     private fun schemaRegistryPath(srId: String) = RfsPath(listOf(srId), true)
     private fun topicPath(clusterId: String, topicName: String) = RfsPath(listOf(clusterId, topicName), false)
     private fun schemaPath(srId: String, subjectName: String) = RfsPath(listOf(srId, subjectName), false)
+    private fun emptyStatePath(message: String) = RfsPath(listOf(message), false)
 
     companion object {
         fun RfsPath.isClusterOrSchemaRegistry(driver: ConfluentDriver): Boolean {

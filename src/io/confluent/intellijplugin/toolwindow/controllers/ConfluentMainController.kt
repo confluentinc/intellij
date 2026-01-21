@@ -93,6 +93,7 @@ internal class ConfluentMainController(
     }
 
     private val emptyDetailsPanel = createPlaceholderPanel("Select a cluster or schema registry to view details")
+    private val loadingDetailsPanel = createPlaceholderPanel("Loading...")
     private val topicsDetailsPanel = JPanel(BorderLayout())
 
     private val topicDetailPanel = JPanel(BorderLayout())
@@ -118,6 +119,7 @@ internal class ConfluentMainController(
 
     companion object {
         private const val EMPTY_PANEL = "empty"
+        private const val LOADING_PANEL = "loading"
         private const val TOPICS_PANEL = "topics"
         private const val TOPIC_DETAIL_PANEL = "topicDetail"
         private const val SCHEMAS_PANEL = "schemas"
@@ -127,8 +129,8 @@ internal class ConfluentMainController(
     override fun dispose() {}
 
     fun init() {
-        // Add detail panels to the CardLayout
         details.add(emptyDetailsPanel, EMPTY_PANEL)
+        details.add(loadingDetailsPanel, LOADING_PANEL)
         details.add(topicsDetailsPanel, TOPICS_PANEL)
         details.add(topicDetailPanel, TOPIC_DETAIL_PANEL)
         details.add(schemasDetailsPanel, SCHEMAS_PANEL)
@@ -259,6 +261,7 @@ internal class ConfluentMainController(
     }
 
     private fun refreshTreeForEnvironment(envId: String) {
+        (details.layout as CardLayout).show(details, LOADING_PANEL)
         driver.selectedEnvironmentId = envId
         myTree.clearSelection()
         driver.fileInfoManager.refreshFiles(driver.root)
