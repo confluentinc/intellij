@@ -40,7 +40,6 @@ class KafkaMonitoringToolWindowController(project: Project) : MonitoringToolWind
     override fun createMainController(connectionData: ConnectionData): ComponentController = when (connectionData) {
         is KafkaConnectionData -> KafkaMainController(project, connectionData)
         is ConfluentConnectionData -> {
-            // Create the driver from connection data
             val driver = io.confluent.intellijplugin.rfs.ConfluentDriver(
                 connectionData,
                 project,
@@ -48,11 +47,9 @@ class KafkaMonitoringToolWindowController(project: Project) : MonitoringToolWind
             )
             driver.initDriverUpdater()
 
-            // Create the controller with the driver
             val controller = ConfluentMainController(project, driver)
             controller.init()
 
-            // Register disposables
             com.intellij.openapi.util.Disposer.register(controller, driver)
 
             controller
@@ -70,7 +67,7 @@ class KafkaMonitoringToolWindowController(project: Project) : MonitoringToolWind
         RfsConnectionDataManager.instance?.addListener(settingsListener)
         KafkaRegistryUtil.disableLoggers()
 
-        // Always add the Confluent Cloud tab (it handles sign-in state internally)
+        // Always add the Confluent Cloud tab
         addConfluentCloudTab()
     }
 
@@ -78,10 +75,13 @@ class KafkaMonitoringToolWindowController(project: Project) : MonitoringToolWind
      * Adds a fixed "Confluent Cloud" tab that handles sign-in/sign-out internally.
      */
     private fun addConfluentCloudTab() {
-        // Check if tab already exists
         if (contentManager.contents.any { it.getUserData(CONNECTION_ID) == "ccloud" }) {
             return
         }
+
+        contentManager.contents
+            .filter { it.getUserData(CONNECTION_ID) == null }
+            .forEach { contentManager.removeContent(it, true) }
 
         val controller = io.confluent.intellijplugin.toolwindow.controllers.ConfluentTabController(project)
 

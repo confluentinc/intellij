@@ -3,27 +3,23 @@ package io.confluent.intellijplugin.rfs
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.project.Project
 import io.confluent.intellijplugin.rfs.ConfluentDriver.Companion.isCluster
-import io.confluent.intellijplugin.rfs.ConfluentDriver.Companion.isClustersFolder
-import io.confluent.intellijplugin.rfs.ConfluentDriver.Companion.isEnvironment
-import io.confluent.intellijplugin.rfs.ConfluentDriver.Companion.isSchemaRegistryFolder
 import io.confluent.intellijplugin.rfs.ConfluentDriver.Companion.isSchemaRegistry
-import io.confluent.intellijplugin.rfs.ConfluentDriver.Companion.isTopicsFolder
-import io.confluent.intellijplugin.rfs.ConfluentDriver.Companion.isSchemasFolder
 import io.confluent.intellijplugin.rfs.ConfluentDriver.Companion.isTopic
 import io.confluent.intellijplugin.rfs.ConfluentDriver.Companion.isSchema
 import io.confluent.intellijplugin.rfs.ConfluentDriver.Companion.getEnvironmentId
+import io.confluent.intellijplugin.rfs.ConfluentDriver.Companion.getClusterId
+import io.confluent.intellijplugin.rfs.ConfluentDriver.Companion.getSchemaRegistryId
 import io.confluent.intellijplugin.core.monitoring.rfs.MonitoringRfsTreeNode
 import io.confluent.intellijplugin.core.rfs.driver.RfsPath
 import javax.swing.Icon
 
 /**
- * Custom tree node for Confluent Cloud resources.
- * Provides icons and display text based on the node type:
- * - Environments
- * - Clusters folder / Schema Registry folder
- * - Individual Cluster / Schema Registry
- * - Topics folder (under cluster)
- * - Individual Topics
+ * Custom tree node for Confluent Cloud resources (environment-filtered flattened hierarchy).
+ * With environment selector, the tree shows:
+ * - Individual Clusters (depth 1)
+ * - Individual Schema Registries (depth 1)
+ * - Individual Topics (depth 2, under clusters)
+ * - Individual Schemas (depth 2, under schema registries)
  */
 class ConfluentRfsTreeNode(
     project: Project,
@@ -38,71 +34,57 @@ class ConfluentRfsTreeNode(
     override fun isAlwaysLeaf(): Boolean = rfsPath.isTopic || rfsPath.isSchema
 
     private fun getDisplayName(): String {
+        val envId = confluentDriver.selectedEnvironmentId ?: return rfsPath.name
+
         return when {
-            rfsPath.isEnvironment -> {
-                // Get the environment display name from client
-                val envId = rfsPath.name
-                confluentDriver.dataManager.client.getEnvironments()
-                    .find { it.id == envId }
-                    ?.displayName ?: envId
-            }
-            rfsPath.isClustersFolder -> ConfluentDriver.CLUSTERS_FOLDER
-            rfsPath.isSchemaRegistryFolder -> ConfluentDriver.SCHEMA_REGISTRY_FOLDER
-            rfsPath.isCluster -> {
-                val envId = rfsPath.getEnvironmentId() ?: return rfsPath.name
+            rfsPath.isCluster(confluentDriver) -> {
                 val clusterId = rfsPath.name
                 confluentDriver.dataManager.client.getKafkaClusters(envId)
                     .find { it.id == clusterId }
                     ?.displayName ?: clusterId
             }
-            rfsPath.isSchemaRegistry -> {
-                val envId = rfsPath.getEnvironmentId() ?: return rfsPath.name
+            rfsPath.isSchemaRegistry(confluentDriver) -> {
                 val srId = rfsPath.name
                 confluentDriver.dataManager.client.getSchemaRegistry(envId)
                     .find { it.id == srId }
                     ?.displayName ?: srId
             }
-            rfsPath.isTopicsFolder -> ConfluentDriver.TOPICS_FOLDER
-            rfsPath.isTopic -> rfsPath.name  // Topic name is already the display name
-            rfsPath.isSchemasFolder -> ConfluentDriver.SCHEMAS_FOLDER
-            rfsPath.isSchema -> rfsPath.name  // Schema/subject name is already the display name
+            rfsPath.isTopic || rfsPath.isSchema -> rfsPath.name
             else -> rfsPath.name
         }
     }
 
-    override fun getIdleIcon(): Icon? = when {
-        rfsPath.isEnvironment -> AllIcons.Nodes.Folder
-        rfsPath.isClustersFolder -> AllIcons.Nodes.Module
-        rfsPath.isSchemaRegistryFolder -> AllIcons.Nodes.DataSchema
-        rfsPath.isCluster -> AllIcons.Nodes.Module
-        rfsPath.isSchemaRegistry -> AllIcons.Nodes.DataSchema
-        rfsPath.isTopicsFolder -> AllIcons.Nodes.Folder
-        rfsPath.isTopic -> AllIcons.Nodes.Tag
-        rfsPath.isSchemasFolder -> AllIcons.Nodes.Folder
-        rfsPath.isSchema -> AllIcons.FileTypes.Json  // Use JSON icon for schemas
-        else -> null
+    override fun getIdleIcon(): Icon? {
+        return when {
+            rfsPath.isCluster(confluentDriver) -> AllIcons.Nodes.Module
+            rfsPath.isSchemaRegistry(confluentDriver) -> AllIcons.Nodes.DataSchema
+            rfsPath.isTopic -> AllIcons.Nodes.Tag
+            rfsPath.isSchema -> AllIcons.FileTypes.Json
+            else -> null
+        }
     }
 
-    override fun getGrayText(): String? = when {
-        rfsPath.isEnvironment -> rfsPath.name // Show env ID as gray text
-        rfsPath.isCluster -> {
-            val envId = rfsPath.getEnvironmentId() ?: return null
-            val cluster = confluentDriver.dataManager.client.getKafkaClusters(envId)
-                .find { it.id == rfsPath.name }
-            cluster?.let { "${it.cloudProvider} / ${it.region}" }
+    override fun getGrayText(): String? {
+        val envId = confluentDriver.selectedEnvironmentId ?: return null
+
+        return when {
+            rfsPath.isCluster(confluentDriver) -> {
+                val cluster = confluentDriver.dataManager.client.getKafkaClusters(envId)
+                    .find { it.id == rfsPath.name }
+                cluster?.let { "${it.id} (${it.cloudProvider} / ${it.region})" }
+            }
+            rfsPath.isSchemaRegistry(confluentDriver) -> {
+                val sr = confluentDriver.dataManager.client.getSchemaRegistry(envId)
+                    .find { it.id == rfsPath.name }
+                sr?.let { "${it.id} (${it.cloudProvider} / ${it.region})" }
+            }
+            else -> null
         }
-        rfsPath.isSchemaRegistry -> {
-            val envId = rfsPath.getEnvironmentId() ?: return null
-            val sr = confluentDriver.dataManager.client.getSchemaRegistry(envId)
-                .find { it.id == rfsPath.name }
-            sr?.let { "${it.cloudProvider} / ${it.region}" }
-        }
-        else -> null
     }
 
     override fun onDoubleClick(): Boolean = when {
-        rfsPath.isTopic || rfsPath.isSchema -> true // Details shown in panel
-        else -> false // Allow default expansion behavior for folders
+        rfsPath.isTopic || rfsPath.isSchema -> true
+        else -> false
     }
 }
 
