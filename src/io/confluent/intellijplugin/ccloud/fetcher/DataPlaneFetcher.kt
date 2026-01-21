@@ -51,4 +51,7 @@ interface DataPlaneFetcher {
 
     /** Get schema by global ID. */
     suspend fun getSchemaById(schemaId: Int): SchemaByIdResponse
+
+    /** Get total message count for a topic (across all partitions). */
+    suspend fun getTopicMessageCount(topicName: String): Long
 }

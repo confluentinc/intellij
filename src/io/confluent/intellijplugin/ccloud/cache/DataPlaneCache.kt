@@ -9,10 +9,7 @@ import io.confluent.intellijplugin.ccloud.model.SchemaRegistry
 import io.confluent.intellijplugin.ccloud.model.response.SubjectData
 import io.confluent.intellijplugin.ccloud.model.response.TopicData
 import io.confluent.intellijplugin.ccloud.model.restEndpoint
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.*
 
 /**
  * Data plane cache for cluster-level resources (topics, subjects, consumer groups).
@@ -30,7 +27,12 @@ class DataPlaneCache(
     private var cachedTopics: List<TopicData>? = null
     private var cachedSubjects: List<SubjectData>? = null
 
+    companion object {
+        private const val ENRICHMENT_TIMEOUT_MS = 15_000L // 15 seconds
+    }
+
     fun connect() {
+        thisLogger().info("Connecting DataPlaneCache for cluster ${cluster.id}")
         val kafka = CCloudRestClient(
             baseUrl = cluster.restEndpoint,
             authType = CCloudRestClient.AuthType.DATA_PLANE
@@ -50,6 +52,7 @@ class DataPlaneCache(
             clusterId = cluster.id,
             schemaRegistryId = schemaRegistry?.id
         )
+        thisLogger().info("DataPlaneCache connected for cluster ${cluster.id}")
     }
 
     /** Get cached topics (empty if not loaded). */
@@ -79,6 +82,33 @@ class DataPlaneCache(
         } ?: emptyList()
         cachedSubjects = subjects
         return subjects
+    }
+
+    /** Enrich topics with message count. */
+    suspend fun enrichTopicsData(topics: List<TopicData>): Map<String, TopicEnrichmentData> = coroutineScope {
+        thisLogger().info("Starting enrichment for ${topics.size} topics")
+
+        val results = topics.map { topic ->
+            async {
+                try {
+                    val messageCount = withTimeout(ENRICHMENT_TIMEOUT_MS) {
+                        fetcher?.getTopicMessageCount(topic.topicName)
+                    }
+
+                    thisLogger().info("Enriched ${topic.topicName}: messageCount=$messageCount")
+
+                    topic.topicName to TopicEnrichmentData(
+                        messageCount = messageCount
+                    )
+                } catch (e: Exception) {
+                    thisLogger().warn("Failed to enrich topic ${topic.topicName}: ${e.message}")
+                    topic.topicName to TopicEnrichmentData()
+                }
+            }
+        }.awaitAll().toMap()
+
+        thisLogger().info("Enrichment completed: ${results.size} topics enriched")
+        results
     }
 
     override fun dispose() {
