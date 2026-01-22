@@ -33,10 +33,10 @@ import javax.swing.JPanel
 import javax.swing.JTable
 import kotlin.math.max
 
-class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Disposable {
+class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : IKafkaRecordsOutput {
     private var tableLoadingDecorator: TableLoadingDecorator? = null
 
-    internal val outputModel = ListTableModel(
+    override val outputModel = ListTableModel(
         LinkedList<KafkaRecord>(),
         listOf(TOPIC_FIELD, TIMESTAMP_FIELD, KEY_COLUMN, VALUE_COLUMN, PARTITION_COLUMN) +
                 if (isProducer) listOf(DURATION_COLUMN) else listOf(OFFSET_COLUMN)
@@ -119,8 +119,8 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
 
     private val details: KafkaRecordDetails by detailsDelegate
 
-    val dataPanel: ExpansionPanel
-    val detailsPanel: ExpansionPanel
+    override val dataPanel: ExpansionPanel
+    override val detailsPanel: ExpansionPanel
 
     init {
         val clearButton =
@@ -161,18 +161,18 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
 
     override fun dispose() {}
 
-    fun replace(output: List<KafkaRecord>) {
+    override fun replace(output: List<KafkaRecord>) {
         outputModel.clear()
         output.forEach {
             outputModel.addElement(it)
         }
     }
 
-    fun stop() {
+    override fun stop() {
         tableLoadingDecorator?.let { Disposer.dispose(it) }
     }
 
-    fun start() {
+    override fun start() {
         if (outputTableDelegate.isInitialized()) {
             tableLoadingDecorator?.let { Disposer.dispose(it) }
             tableLoadingDecorator = TableLoadingDecorator.installOn(
@@ -185,22 +185,22 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
         statisticPanel.start()
     }
 
-    fun setMaxRows(limit: Int) {
+    override fun setMaxRows(limit: Int) {
         outputModel.maxElementsCount = limit
     }
 
-    fun addBatchRows(pollTime: Long, elements: List<KafkaRecord>) {
+    override fun addBatchRows(pollTime: Long, elements: List<KafkaRecord>) {
         elements.forEach {
             outputModel.addElement(it)
         }
         statisticPanel.addRecordsBatch(pollTime, elements)
     }
 
-    fun addError(element: KafkaRecord) {
+    override fun addError(element: KafkaRecord) {
         outputModel.addElement(element)
     }
 
-    fun getElements(): List<KafkaRecord> {
+    override fun getElements(): List<KafkaRecord> {
         return outputModel.elements().toList()
     }
 

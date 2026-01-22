@@ -21,7 +21,7 @@ class ListTableModel<T>(
 
     var columnClasses: List<Class<*>>? = null
 
-    /** If maxElementsCount <= data.size, the first element will be removed when adding a new element. */
+    /** If maxElementsCount >= data.size, the first element will be removed when adding a new element. */
     var maxElementsCount = 0
 
     override fun getRowCount() = data.size

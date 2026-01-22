@@ -51,7 +51,16 @@ class KafkaConsumerPanel(
         onStart = ::onStartConsume,
         onStop = ::onStopConsume
     )
-    private val output = KafkaRecordsOutput(project, isProducer = false).also { Disposer.register(this, it) }
+
+    // Feature flag to toggle between Swing table and JCEF WebView
+    // Enable via: -Dkafka.webview.enabled=true or set environment variable
+    private val useWebView = System.getProperty("kafka.webview.enabled")?.toBoolean() ?: false
+
+    private val output: IKafkaRecordsOutput = if (useWebView) {
+        KafkaRecordsWebViewOutput(project, isProducer = false)
+    } else {
+        KafkaRecordsOutput(project, isProducer = false)
+    }.also { Disposer.register(this, it) }
 
     private val startSpecificDate = TimestampTextField(this)
     private val limitSpecificDate = TimestampTextField(this)
