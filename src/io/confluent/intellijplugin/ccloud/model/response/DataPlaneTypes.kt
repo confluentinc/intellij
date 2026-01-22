@@ -1,5 +1,9 @@
 package io.confluent.intellijplugin.ccloud.model.response
 
+import io.confluent.intellijplugin.ccloud.client.CCloudRestClient
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+
 /**
  * Placeholder types for data plane operations (to be implemented).
  * this file will be deleted when the data plane operations are implemented.
@@ -16,3 +20,8 @@ data class ConsumerRecord(val key: String?, val value: String)
 
 data class ConsumerGroupData(val groupId: String, val state: String)
 data class ConsumerGroupDetails(val groupId: String)
+
+@Serializable
+data class TopicOffsetsResponse(
+    @SerialName("total_records") val totalRecords: Long
+)

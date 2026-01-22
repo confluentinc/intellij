@@ -4,6 +4,8 @@ import com.intellij.icons.AllIcons
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
+import io.confluent.intellijplugin.ccloud.model.Cluster
+import io.confluent.intellijplugin.core.monitoring.data.listener.DataModelListener
 import io.confluent.intellijplugin.core.monitoring.rfs.MonitoringDriver
 import io.confluent.intellijplugin.core.monitoring.toolwindow.MonitoringToolWindowController
 import io.confluent.intellijplugin.core.rfs.driver.Driver
@@ -32,8 +34,8 @@ class ConfluentDriver(
 
     private val log = Logger.getInstance(ConfluentDriver::class.java)
 
-    // Selected environment ID for filtering tree root
     var selectedEnvironmentId: String? = null
+    private val registeredClusterListeners = mutableSetOf<String>()
 
     override val dataManager: ConfluentDataManager = ConfluentDataManager(
         project, connectionData, KafkaToolWindowSettings.getInstance(), { this }
@@ -49,6 +51,18 @@ class ConfluentDriver(
 
     init {
         Disposer.register(this, dataManager)
+    }
+
+    private fun registerClusterTopicListener(clusterId: String, cluster: Cluster) {
+        if (registeredClusterListeners.contains(clusterId)) return
+        registeredClusterListeners.add(clusterId)
+
+        val clusterDataManager = dataManager.getOrCreateClusterDataManager(cluster)
+        clusterDataManager.topicModel.addListener(object : DataModelListener {
+            override fun onChanged() {
+                fileInfoManager.refreshFiles(clusterPath(clusterId))
+            }
+        })
     }
 
     override fun getController(project: Project): MonitoringToolWindowController? = null
@@ -94,6 +108,8 @@ class ConfluentDriver(
                 val cluster = dataManager.getKafkaClusters(envId).find { it.id == nodeId }
                 if (cluster != null) {
                     log.info("ConfluentDriver: Loading topics for cluster $nodeId")
+
+                    registerClusterTopicListener(nodeId, cluster)
 
                     val cache = dataManager.getDataPlaneCache(cluster)
                     val topics = cache.refreshTopics()
