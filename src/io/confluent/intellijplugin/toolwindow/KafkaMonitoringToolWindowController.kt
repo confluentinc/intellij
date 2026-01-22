@@ -6,7 +6,11 @@ import com.intellij.openapi.components.Service
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ToolWindowManager
-import io.confluent.intellijplugin.ccloud.auth.CCloudAuthService
+import com.intellij.openapi.wm.ex.ToolWindowManagerListener
+import com.intellij.openapi.wm.impl.InternalDecorator
+import com.intellij.openapi.wm.impl.content.ContentTabLabel
+import com.intellij.ui.ComponentUtil
+import com.intellij.util.ui.UIUtil
 import io.confluent.intellijplugin.core.monitoring.toolwindow.ComponentController
 import io.confluent.intellijplugin.core.monitoring.toolwindow.MonitoringToolWindowController
 import io.confluent.intellijplugin.core.rfs.driver.ActivitySource
@@ -69,7 +73,21 @@ class KafkaMonitoringToolWindowController(project: Project) : MonitoringToolWind
         RfsConnectionDataManager.instance?.addListener(settingsListener)
         KafkaRegistryUtil.disableLoggers()
 
-        // Always add the Confluent Cloud tab
+        fun reapplyIcon() = contentManager.contents.find { it.getUserData(CONNECTION_ID) == "ccloud" }?.let(::applyConfluentCloudIcon)
+
+        contentManager.addContentManagerListener(object : com.intellij.ui.content.ContentManagerListener {
+            override fun contentAdded(event: com.intellij.ui.content.ContentManagerEvent) {
+                if (event.content.getUserData(CONNECTION_ID) == "ccloud") applyConfluentCloudIcon(event.content)
+            }
+            override fun selectionChanged(event: com.intellij.ui.content.ContentManagerEvent) { reapplyIcon() }
+        })
+
+        project.messageBus.connect(this).subscribe(ToolWindowManagerListener.TOPIC, object : ToolWindowManagerListener {
+            override fun stateChanged(toolWindowManager: ToolWindowManager) {
+                if (toolWindowManager.getToolWindow(TOOL_WINDOW_ID)?.isVisible == true) reapplyIcon()
+            }
+        })
+
         addConfluentCloudTab()
     }
 
@@ -127,11 +145,23 @@ class KafkaMonitoringToolWindowController(project: Project) : MonitoringToolWind
 
         com.intellij.openapi.util.Disposer.register(content, controller)
         contentManager.addContent(content)
+        io.confluent.intellijplugin.core.util.invokeLater { applyConfluentCloudIcon(content) }
     }
 
-    /**
-     * Gets the Confluent Cloud tab controller if it exists.
-     */
+    private fun applyConfluentCloudIcon(content: com.intellij.ui.content.Content) {
+        val icon = io.confluent.intellijplugin.icons.BigdatatoolsKafkaIcons.ConfluentTab
+        content.icon = icon
+        ComponentUtil.getParentOfType(InternalDecorator::class.java, contentManager.component)?.let {
+            UIUtil.findComponentsOfType(it, ContentTabLabel::class.java).find { tab -> tab.content == content }?.apply {
+                this.icon = icon
+                this.disabledIcon = icon
+                iconTextGap = 4
+                revalidate()
+                repaint()
+            }
+        }
+    }
+
     fun getConfluentCloudTabController(): io.confluent.intellijplugin.toolwindow.controllers.ConfluentTabController? {
         val content = contentManager.contents.firstOrNull { it.getUserData(CONNECTION_ID) == "ccloud" }
         return content?.getUserData(PAGE_CONTROLLER_ID) as? io.confluent.intellijplugin.toolwindow.controllers.ConfluentTabController
