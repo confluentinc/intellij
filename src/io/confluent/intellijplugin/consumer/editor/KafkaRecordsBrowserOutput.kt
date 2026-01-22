@@ -21,8 +21,7 @@ import javax.swing.JPanel
 import kotlin.math.max
 
 /**
- * Simplified JCEF WebView POC to prove VS Code patterns work in IntelliJ.
- * Uses direct JavaScript calls instead of complex message protocol.
+ * Simple JCEF WebView POC to prove VS Code patterns work in IntelliJ
  */
 class KafkaRecordsBrowserOutput(
     val project: Project,
