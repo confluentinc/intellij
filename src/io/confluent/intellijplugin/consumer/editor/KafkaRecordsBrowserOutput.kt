@@ -226,13 +226,45 @@ class KafkaRecordsBrowserOutput(
             font-size: 13px;
             background: #ffffff;
         }
+        .toolbar {
+            position: sticky;
+            top: 0;
+            background: #f5f5f5;
+            padding: 8px 12px;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            z-index: 20;
+        }
+        .search-box {
+            flex: 1;
+            max-width: 300px;
+            padding: 6px 10px;
+            border: 1px solid #d0d0d0;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+        .search-box:focus {
+            outline: none;
+            border-color: #0078d4;
+        }
+        .message-count {
+            color: #666;
+            font-size: 12px;
+            white-space: nowrap;
+        }
+        .filter-active {
+            color: #0078d4;
+            font-weight: 500;
+        }
         table {
             width: 100%;
             border-collapse: collapse;
         }
         thead {
             position: sticky;
-            top: 0;
+            top: 46px;
             background: #f5f5f5;
             z-index: 10;
         }
@@ -256,14 +288,31 @@ class KafkaRecordsBrowserOutput(
         tr.selected {
             background: #cce5ff !important;
         }
+        tr.hidden {
+            display: none;
+        }
         .loading {
             padding: 20px;
             text-align: center;
             color: #666;
         }
+        .highlight {
+            background-color: #fff3cd;
+            font-weight: 500;
+        }
     </style>
 </head>
 <body>
+    <div class="toolbar">
+        <input
+            type="text"
+            class="search-box"
+            id="searchInput"
+            placeholder="Search messages (key or value)..."
+            autocomplete="off"
+        />
+        <span class="message-count" id="messageCount">0 messages</span>
+    </div>
     <table>
         <thead>
             <tr>
@@ -283,6 +332,13 @@ class KafkaRecordsBrowserOutput(
         let records = [];
         let selectedIndex = -1;
         let maxRows = 0;
+        let searchQuery = '';
+
+        // Setup search input listener
+        document.getElementById('searchInput').addEventListener('input', (e) => {
+            searchQuery = e.target.value.toLowerCase();
+            applyFilter();
+        });
 
         // Called from Kotlin - receives new rows
         window.receiveRows = function(newRows) {
@@ -310,6 +366,8 @@ class KafkaRecordsBrowserOutput(
         window.clearRows = function() {
             records = [];
             selectedIndex = -1;
+            searchQuery = '';
+            document.getElementById('searchInput').value = '';
             renderTable();
         };
 
@@ -317,17 +375,67 @@ class KafkaRecordsBrowserOutput(
             document.getElementById('loading').style.display = isLoading ? 'block' : 'none';
         };
 
+        function matchesSearch(record) {
+            if (!searchQuery) return true;
+
+            const key = (record.key || '').toLowerCase();
+            const value = (record.value || '').toLowerCase();
+            const topic = (record.topic || '').toLowerCase();
+
+            return key.includes(searchQuery) ||
+                   value.includes(searchQuery) ||
+                   topic.includes(searchQuery);
+        }
+
+        function applyFilter() {
+            const rows = document.querySelectorAll('#tableBody tr');
+            let visibleCount = 0;
+
+            records.forEach((record, index) => {
+                const row = rows[index];
+                if (row) {
+                    const matches = matchesSearch(record);
+                    row.classList.toggle('hidden', !matches);
+                    if (matches) visibleCount++;
+                }
+            });
+
+            updateMessageCount(visibleCount);
+        }
+
+        function updateMessageCount(visibleCount) {
+            const countElement = document.getElementById('messageCount');
+            const total = records.length;
+
+            if (searchQuery && visibleCount !== total) {
+                countElement.textContent = 'Showing ' + visibleCount + ' of ' + total + ' messages';
+                countElement.className = 'message-count filter-active';
+            } else {
+                countElement.textContent = total + ' message' + (total !== 1 ? 's' : '');
+                countElement.className = 'message-count';
+            }
+        }
+
         function renderTable() {
             const tbody = document.getElementById('tableBody');
             tbody.innerHTML = '';
 
             if (records.length === 0) {
+                updateMessageCount(0);
                 return;
             }
 
+            let visibleCount = 0;
             records.forEach((record, index) => {
                 const row = tbody.insertRow();
+                const matches = matchesSearch(record);
+
                 row.className = index === selectedIndex ? 'selected' : '';
+                if (!matches) {
+                    row.classList.add('hidden');
+                } else {
+                    visibleCount++;
+                }
                 row.onclick = () => selectRow(index);
 
                 row.insertCell().textContent = record.topic;
@@ -337,6 +445,8 @@ class KafkaRecordsBrowserOutput(
                 row.insertCell().textContent = record.partition;
                 row.insertCell().textContent = record.offset;
             });
+
+            updateMessageCount(visibleCount);
         }
 
         function formatTimestamp(timestamp) {
