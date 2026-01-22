@@ -36,7 +36,7 @@ import kotlin.math.max
  * - scheduler() → Coroutine throttling
  * - BitSet filtering → SimpleBitSet
  */
-class KafkaRecordsWebViewOutput_Enhanced(
+class KafkaRecordsBrowserOutput(
     val project: Project,
     val isProducer: Boolean
 ) : IKafkaRecordsOutput {

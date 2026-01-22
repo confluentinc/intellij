@@ -57,7 +57,7 @@ class KafkaConsumerPanel(
     private val useWebView = System.getProperty("kafka.webview.enabled")?.toBoolean() ?: false
 
     private val output: IKafkaRecordsOutput = if (useWebView) {
-        KafkaRecordsWebViewOutput(project, isProducer = false)
+        KafkaRecordsBrowserOutput(project, isProducer = false)
     } else {
         KafkaRecordsOutput(project, isProducer = false)
     }.also { Disposer.register(this, it) }
