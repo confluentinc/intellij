@@ -325,81 +325,42 @@ internal class ConfluentMainController(
                 return
             }
 
-            val clusterDataManager = ClusterScopedDataManager(project, dataManager, cluster)
+            val clusterDataManager = dataManager.getOrCreateClusterDataManager(cluster)
             val topicsController = TopicsController(project, clusterDataManager, this)
             Disposer.register(this, topicsController)
 
             topicsDetailsPanel.add(topicsController.getComponent(), BorderLayout.CENTER)
-
-            val topics = clusterDataManager.getTopics()
-            val infoLabel = JLabel("${topics.size} topic(s)").apply {
-                border = IdeBorderFactory.createBorder(SideBorder.BOTTOM)
-            }
-            topicsDetailsPanel.add(infoLabel, BorderLayout.NORTH)
+            topicsDetailsPanel.revalidate()
+            topicsDetailsPanel.repaint()
 
         } catch (e: Exception) {
             topicsDetailsPanel.add(JLabel("Error loading topics: ${e.message}"), BorderLayout.CENTER)
+            topicsDetailsPanel.revalidate()
+            topicsDetailsPanel.repaint()
         }
-
-        topicsDetailsPanel.revalidate()
-        topicsDetailsPanel.repaint()
     }
 
     private fun showTopicDetail(rfsPath: RfsPath) {
         topicDetailPanel.removeAll()
 
         try {
-            val envId = rfsPath.getEnvironmentId(driver) ?: run {
-                topicDetailPanel.add(JLabel("Error: Could not determine environment"), BorderLayout.CENTER)
-                topicDetailPanel.revalidate()
-                topicDetailPanel.repaint()
-                return
-            }
-
-            val clusterId = rfsPath.getClusterId() ?: run {
-                topicDetailPanel.add(JLabel("Error: Could not determine cluster"), BorderLayout.CENTER)
-                topicDetailPanel.revalidate()
-                topicDetailPanel.repaint()
-                return
-            }
-
+            val envId = rfsPath.getEnvironmentId(driver)
+                ?: throw IllegalStateException("Could not determine environment")
+            val clusterId = rfsPath.getClusterId()
+                ?: throw IllegalStateException("Could not determine cluster")
             val topicName = rfsPath.name
 
             val cluster = dataManager.getKafkaClusters(envId).find { it.id == clusterId }
-            if (cluster == null) {
-                topicDetailPanel.add(JLabel("Error: Cluster not found"), BorderLayout.CENTER)
-                topicDetailPanel.revalidate()
-                topicDetailPanel.repaint()
-                return
-            }
+                ?: throw IllegalStateException("Cluster $clusterId not found")
 
-            val cache = dataManager.getDataPlaneCache(cluster)
-            val topics = cache.refreshTopics()
-            val topic = topics.find { it.topicName == topicName }
+            val clusterDataManager = dataManager.getOrCreateClusterDataManager(cluster)
 
-            if (topic == null) {
-                topicDetailPanel.add(JLabel("Topic not found: $topicName"), BorderLayout.CENTER)
-                topicDetailPanel.revalidate()
-                topicDetailPanel.repaint()
-                return
-            }
+            val detailsController = TopicDetailsController(project, clusterDataManager)
+            Disposer.register(this, detailsController)
 
-            val detailsText = buildString {
-                appendLine("Topic: ${topic.topicName}")
-                appendLine()
-                appendLine("Partitions: ${topic.partitionsCount}")
-                appendLine("Replication Factor: ${topic.replicationFactor}")
-                appendLine("Internal: ${topic.isInternal}")
-                appendLine()
-                appendLine("Cluster: ${cluster.displayName}")
-                appendLine("Cluster ID: ${cluster.id}")
-            }
+            detailsController.setDetailsId(topicName)
 
-            val detailsLabel = JLabel("<html>${detailsText.replace("\n", "<br/>")}</html>").apply {
-                border = JBUI.Borders.empty(10)
-            }
-
-            topicDetailPanel.add(detailsLabel, BorderLayout.CENTER)
+            topicDetailPanel.add(detailsController.getComponent(), BorderLayout.CENTER)
 
         } catch (e: Exception) {
             topicDetailPanel.add(JLabel("Error loading topic details: ${e.message}"), BorderLayout.CENTER)
@@ -460,11 +421,6 @@ internal class ConfluentMainController(
 
             val scrollPane = JBScrollPane(table)
             schemasDetailsPanel.add(scrollPane, BorderLayout.CENTER)
-
-            val infoLabel = JLabel("${subjects.size} schema(s)").apply {
-                border = IdeBorderFactory.createBorder(SideBorder.BOTTOM)
-            }
-            schemasDetailsPanel.add(infoLabel, BorderLayout.NORTH)
 
         } catch (e: Exception) {
             schemasDetailsPanel.add(JLabel("Error loading schemas: ${e.message}"), BorderLayout.CENTER)
