@@ -12,10 +12,15 @@ import io.confluent.intellijplugin.core.monitoring.data.MonitoringDataManager
 import io.confluent.intellijplugin.core.monitoring.data.model.ObjectDataModel
 import io.confluent.intellijplugin.core.monitoring.data.updater.BdtMonitoringUpdater
 import io.confluent.intellijplugin.core.monitoring.data.storage.RootDataModelStorage
+import io.confluent.intellijplugin.core.monitoring.data.storage.ObjectDataModelStorage
 import io.confluent.intellijplugin.model.TopicPresentable
+import io.confluent.intellijplugin.model.BdtTopicPartition
+import io.confluent.intellijplugin.model.TopicConfig
+import io.confluent.intellijplugin.registry.KafkaRegistryType
 import io.confluent.intellijplugin.rfs.ConfluentConnectionData
 import io.confluent.intellijplugin.toolwindow.config.KafkaToolWindowSettings
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 
 /**
@@ -32,7 +37,7 @@ class ClusterScopedDataManager(
     project,
     confluentDataManager.settings,
     { confluentDataManager.driver }
-), TopicDataProvider, TopicOperations {
+), TopicDataProvider, TopicOperations, TopicDetailDataProvider {
 
     private val dataPlaneCache: DataPlaneCache = confluentDataManager.getDataPlaneCache(cluster)
 
@@ -45,8 +50,14 @@ class ClusterScopedDataManager(
         Disposer.register(this, it)
     }
 
+    override val topicPartitionsModels = createTopicPartitionsStorage().also { Disposer.register(this, it) }
+    override val topicConfigsModels = createTopicConfigsStorage().also { Disposer.register(this, it) }
+
     override val client
         get() = confluentDataManager.client
+
+    override val registryType: KafkaRegistryType
+        get() = KafkaRegistryType.NONE
 
     init {
         RootDataModelStorage(confluentDataManager.updater, listOf(topicModel))
@@ -180,20 +191,43 @@ class ClusterScopedDataManager(
     }
 
     override suspend fun clearTopic(topicName: String): Result<Unit> {
-        // CCloud doesn't support clearing topics via REST API
         return Result.failure(UnsupportedOperationException("Clear topic not supported for Confluent Cloud"))
     }
 
-    override suspend fun describeTopic(topicName: String): TopicDetails {
-        TODO("Implement in Phase 4")
+    override fun clearPartitions(partitions: List<BdtTopicPartition>) {
+        // CCloud REST API doesn't support clearing partitions
     }
 
-    override suspend fun describeTopicPartitions(topicName: String): List<PartitionDetails> {
-        TODO("Implement in Phase 5")
+    override fun supportsClearPartitions(): Boolean = false
+
+    private fun createTopicPartitionsStorage() = ObjectDataModelStorage<String, BdtTopicPartition>(
+        confluentDataManager.updater,
+        BdtTopicPartition::partitionId,
+        dependOn = topicModel
+    ) { topicName ->
+        try {
+            runBlocking(Dispatchers.IO) {
+                dataPlaneCache.getTopicPartitions(topicName)
+            }
+        } catch (e: Exception) {
+            thisLogger().error("Failed to load partitions for $topicName", e)
+            emptyList()
+        }
     }
 
-    override suspend fun describeTopicConfiguration(topicName: String): Map<String, ConfigEntry> {
-        TODO("Implement in Phase 6")
+    private fun createTopicConfigsStorage() = ObjectDataModelStorage<String, TopicConfig>(
+        confluentDataManager.updater,
+        TopicConfig::name
+    ) { topicName ->
+        try {
+            val showFullConfig = KafkaToolWindowSettings.getInstance().showFullTopicConfig
+            runBlocking(Dispatchers.IO) {
+                dataPlaneCache.getTopicConfigs(topicName, showFullConfig)
+            }
+        } catch (e: Exception) {
+            thisLogger().warn("Failed to load configs for $topicName", e)
+            emptyList()
+        }
     }
 
     /**

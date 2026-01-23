@@ -55,8 +55,8 @@ class KafkaDataManager(
     override val connectionData: KafkaConnectionData,
     settings: IntervalUpdateSettings,
     driverProvider: () -> MonitoringDriver
-) : MonitoringDataManager(project, settings, driverProvider), TopicDataProvider, TopicOperations {
-    val registryType = connectionData.registryType
+) : MonitoringDataManager(project, settings, driverProvider), TopicDataProvider, TopicOperations, TopicDetailDataProvider {
+    override val registryType = connectionData.registryType
 
     override val connectionId = connectionData.innerId
     override val client = KafkaClient(project, connectionData, false).also { Disposer.register(this, it) }
@@ -67,8 +67,8 @@ class KafkaDataManager(
 
     internal val consumerGroupsModel = createConsumerGroupsDataModel().also { Disposer.register(this, it) }
     internal val consumerGroupsOffsets = createConsumerGroupOffsetsStorage().also { Disposer.register(this, it) }
-    var topicPartitionsModels = createTopicPartitionsStorage().also { Disposer.register(this, it) }
-    val topicConfigsModels = createTopicConfigsStorage().also { Disposer.register(this, it) }
+    override var topicPartitionsModels = createTopicPartitionsStorage().also { Disposer.register(this, it) }
+    override val topicConfigsModels = createTopicConfigsStorage().also { Disposer.register(this, it) }
 
     private val schemaVersionModels = createSchemaVersionsStorage().also { Disposer.register(this, it) }
 
@@ -429,7 +429,7 @@ class KafkaDataManager(
         topicModel.data?.firstOrNull { it.name == topicName }
 
 
-    fun clearPartitions(partitions: List<BdtTopicPartition>) {
+    override fun clearPartitions(partitions: List<BdtTopicPartition>) {
         if (partitions.isEmpty()) {
             return
         }
@@ -593,50 +593,4 @@ class KafkaDataManager(
             Result.failure(e)
         }
     }
-
-    override suspend fun describeTopic(topicName: String): TopicDetails = withContext(Dispatchers.IO) {
-        val topic = getCachedTopicInfo(topicName)
-            ?: throw IllegalArgumentException("Topic not found: $topicName")
-
-        TopicDetails(
-            name = topic.name,
-            isInternal = topic.internal,
-            partitionsCount = topic.partitions ?: 0,
-            replicationFactor = topic.replicationFactor ?: 0,
-            messageCount = topic.messageCount,
-            inSyncReplicas = topic.inSyncReplicas
-        )
-    }
-
-    override suspend fun describeTopicPartitions(topicName: String): List<PartitionDetails> =
-        withContext(Dispatchers.IO) {
-            val topic = getCachedTopicInfo(topicName)
-                ?: throw IllegalArgumentException("Topic not found: $topicName")
-
-            topic.partitionList.map { partition ->
-                PartitionDetails(
-                    partitionId = partition.partitionId,
-                    leader = partition.leader,
-                    replicasCount = partition.internalReplicas.size,
-                    messageCount = partition.messageCount,
-                    beginOffset = partition.startOffset,
-                    endOffset = partition.endOffset
-                )
-            }
-        }
-
-    override suspend fun describeTopicConfiguration(topicName: String): Map<String, ConfigEntry> =
-        withContext(Dispatchers.IO) {
-            val configs = client.getTopicConfig(topicName)
-            configs.associate { config ->
-                config.name to ConfigEntry(
-                    name = config.name,
-                    value = config.value,
-                    isDefault = config.value == config.defaultValue,
-                    isReadOnly = false, // Kafka admin client doesn't expose this
-                    isSensitive = false, // Kafka admin client doesn't expose this
-                    source = "UNKNOWN" // Kafka admin client doesn't expose this
-                )
-            }
-        }
 }

@@ -10,7 +10,11 @@ import io.confluent.intellijplugin.ccloud.model.response.CreateTopicRequest
 import io.confluent.intellijplugin.ccloud.model.response.SubjectData
 import io.confluent.intellijplugin.ccloud.model.response.TopicData
 import io.confluent.intellijplugin.ccloud.model.restEndpoint
+import io.confluent.intellijplugin.model.BdtTopicPartition
+import io.confluent.intellijplugin.model.InternalReplica
+import io.confluent.intellijplugin.model.TopicConfig
 import kotlinx.coroutines.*
+import java.util.concurrent.ConcurrentHashMap
 
 /**
  * Data plane cache for cluster-level resources (topics, subjects, consumer groups).
@@ -122,6 +126,78 @@ class DataPlaneCache(
     suspend fun deleteTopic(topicName: String) {
         fetcher?.deleteTopic(topicName)
             ?: throw IllegalStateException("DataPlaneCache not connected for cluster ${cluster.id}")
+    }
+
+    /**
+     * Get topic partitions with offsets. Fetches offsets in parallel.
+     * Note: CCloud REST API does not expose /replicas endpoint,
+     * We use topic replication factor for the replicas count instead.
+     */
+    suspend fun getTopicPartitions(topicName: String): List<BdtTopicPartition> = coroutineScope {
+        val f = fetcher ?: throw IllegalStateException("DataPlaneCache not connected")
+
+        val topic = cachedTopics?.find { it.topicName == topicName }
+        val replicationFactor = topic?.replicationFactor ?: 3
+
+        val partitions = f.describeTopicPartitions(topicName)
+
+        partitions.map { partition ->
+            async {
+                val leaderBrokerId = extractBrokerIdFromUrl(partition.leader?.related)
+
+                var startOffset: Long? = null
+                var endOffset: Long? = null
+                try {
+                    val startOffsetResponse =
+                        f.getPartitionOffsets(topicName, partition.partitionId, fromBeginning = true)
+                    val endOffsetResponse =
+                        f.getPartitionOffsets(topicName, partition.partitionId, fromBeginning = false)
+                    startOffset = startOffsetResponse.nextOffset
+                    endOffset = endOffsetResponse.nextOffset
+                } catch (e: Exception) {
+                    thisLogger().warn("Failed to fetch offsets for $topicName/${partition.partitionId}: ${e.message}")
+                }
+
+                BdtTopicPartition(
+                    topic = topicName,
+                    partitionId = partition.partitionId,
+                    leader = leaderBrokerId,
+                    internalReplicas = emptyList(),
+                    inSyncReplicasCount = replicationFactor,
+                    replicas = replicationFactor.toString(),
+                    endOffset = endOffset,
+                    startOffset = startOffset
+                )
+            }
+        }.awaitAll()
+    }
+
+    private fun extractBrokerIdFromUrl(url: String?): Int? {
+        if (url == null) return null
+        // URL format: https://pkc-.../partitions/1/replicas/3
+        // Extract last number as broker ID
+        return url.substringAfterLast("/").toIntOrNull()
+    }
+
+    /**
+     * Get topic configs. Filters by showFullConfig setting.
+     * Note: CCloud REST API returns configs alphabetically, unlike Kafka AdminClient which uses ConfigDef order.
+     */
+    suspend fun getTopicConfigs(topicName: String, showFullConfig: Boolean): List<TopicConfig> {
+        val f = fetcher ?: throw IllegalStateException("DataPlaneCache not connected")
+        val configs = f.describeTopicConfiguration(topicName)
+
+        val filteredConfigs = if (showFullConfig) configs else configs.filter { !it.isDefault }
+
+        return filteredConfigs.map { config ->
+            TopicConfig(
+                name = config.name,
+                value = config.value ?: "",
+                defaultValue = config.synonyms
+                    ?.firstOrNull { it.source == "DEFAULT_CONFIG" }
+                    ?.value ?: ""
+            )
+        }
     }
 
     override fun dispose() {

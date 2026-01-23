@@ -112,7 +112,7 @@ class ConfluentDriver(
                     registerClusterTopicListener(nodeId, cluster)
 
                     val cache = dataManager.getDataPlaneCache(cluster)
-                    val topics = cache.refreshTopics()
+                    val topics = cache.refreshTopics().sortedBy { it.topicName.lowercase() }
                     log.info("ConfluentDriver: Found ${topics.size} topics")
 
                     return if (topics.isEmpty()) {
@@ -144,7 +144,7 @@ class ConfluentDriver(
                         return emptyList()
                     }
 
-                    val subjects = cache.refreshSubjects()
+                    val subjects = cache.refreshSubjects().sortedBy { it.name.lowercase() }
                     log.info("ConfluentDriver: Found ${subjects.size} schemas")
 
                     return if (subjects.isEmpty()) {

@@ -16,14 +16,11 @@ interface DataPlaneFetcher {
     /** Delete a topic. */
     suspend fun deleteTopic(topicName: String)
 
-    /** Get topic details (partitions, replication factor, messages, etc). */
-    suspend fun describeTopic(topicName: String): TopicDetails
-
     /** Get partition details (ID, message count, offset, leader, replicas). */
     suspend fun describeTopicPartitions(topicName: String): List<PartitionData>
 
     /** Get topic configuration. */
-    suspend fun describeTopicConfiguration(topicName: String): Map<String, String>
+    suspend fun describeTopicConfiguration(topicName: String): List<ConfigData>
 
     /** Produce a record to a topic. */
     suspend fun produceRecord(topicName: String, request: ProduceRequest): ProduceResponse
