@@ -3,7 +3,7 @@
     <name>Kafka</name>
     <vendor>Confluent</vendor>
     <version>253.25909.1-pre</version>
-    <idea-version since-build="253.28294.0"/>
+    <idea-version since-build="253.28294"/>
 
     <description><![CDATA[
 <p>Monitor your <a href="https://kafka.apache.org/">Kafka</a> event streaming processes:
@@ -193,6 +193,12 @@
     </actions>
 
     <change-notes><![CDATA[
+<h2 style="padding:0;margin:0;line-height:0px">Changes in 253.25909.4</h2>
+<h4 style="padding:0;margin:0;line-height:0px">Fixed</h4>
+<ul>
+<li>Upgrade kafka-client to 4.0.0</li>
+</ul>
+
 <h2 style="padding:0;margin:0;line-height:0px">Changes in 253.25909.3</h2>
 <h4 style="padding:0;margin:0;line-height:0px">Fixed</h4>
 <ul>
