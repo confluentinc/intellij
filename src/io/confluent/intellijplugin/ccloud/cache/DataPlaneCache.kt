@@ -6,6 +6,7 @@ import io.confluent.intellijplugin.ccloud.client.CCloudRestClient
 import io.confluent.intellijplugin.ccloud.fetcher.DataPlaneFetcherImpl
 import io.confluent.intellijplugin.ccloud.model.Cluster
 import io.confluent.intellijplugin.ccloud.model.SchemaRegistry
+import io.confluent.intellijplugin.ccloud.model.response.CreateTopicRequest
 import io.confluent.intellijplugin.ccloud.model.response.SubjectData
 import io.confluent.intellijplugin.ccloud.model.response.TopicData
 import io.confluent.intellijplugin.ccloud.model.restEndpoint
@@ -109,6 +110,18 @@ class DataPlaneCache(
 
         thisLogger().info("Enrichment completed: ${results.size} topics enriched")
         results
+    }
+
+    /** Create a new topic. */
+    suspend fun createTopic(request: CreateTopicRequest): TopicData {
+        return fetcher?.createTopic(request)
+            ?: throw IllegalStateException("DataPlaneCache not connected for cluster ${cluster.id}")
+    }
+
+    /** Delete a topic. */
+    suspend fun deleteTopic(topicName: String) {
+        fetcher?.deleteTopic(topicName)
+            ?: throw IllegalStateException("DataPlaneCache not connected for cluster ${cluster.id}")
     }
 
     override fun dispose() {

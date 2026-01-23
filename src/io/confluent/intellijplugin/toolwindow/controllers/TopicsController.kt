@@ -16,10 +16,12 @@ import io.confluent.intellijplugin.core.monitoring.table.DataTable
 import io.confluent.intellijplugin.core.monitoring.table.extension.CustomEmptyTextProvider
 import io.confluent.intellijplugin.core.monitoring.toolwindow.AbstractTableController
 import io.confluent.intellijplugin.core.monitoring.toolwindow.MainTreeController
+import io.confluent.intellijplugin.core.rfs.driver.RfsPath
 import io.confluent.intellijplugin.core.table.renderers.FavoriteRenderer
 import io.confluent.intellijplugin.core.table.renderers.LinkRenderer
 import io.confluent.intellijplugin.core.ui.CustomComponentActionImpl
 import io.confluent.intellijplugin.core.ui.filter.CountFilterPopupComponent
+import io.confluent.intellijplugin.data.ClusterScopedDataManager
 import io.confluent.intellijplugin.data.KafkaDataManager
 import io.confluent.intellijplugin.data.TopicDataProvider
 import io.confluent.intellijplugin.data.TopicOperations
@@ -88,18 +90,104 @@ internal class TopicsController(
 
         dataTable.customDataProvider = UiDataProvider { sink ->
             sink[MainTreeController.DATA_MANAGER] = dataManager as io.confluent.intellijplugin.core.monitoring.data.MonitoringDataManager
-            sink[MainTreeController.RFS_PATH] = getSelectedItem()?.name?.let { KafkaDriver.topicPath.child(it, false) }
+
+            // Generate the correct RFS path based on selection and data manager type
+            val selectedTopicName = getSelectedItem()?.name
+            sink[MainTreeController.RFS_PATH] = when (dataManager) {
+                is ClusterScopedDataManager -> {
+                    if (selectedTopicName != null) {
+                        // Confluent Cloud topic: clusterId/topicName
+                        RfsPath(listOf(dataManager.connectionId, selectedTopicName), false)
+                    } else {
+                        // No selection: provide cluster path (clusterId)
+                        RfsPath(listOf(dataManager.connectionId), true)
+                    }
+                }
+                else -> {
+                    if (selectedTopicName != null) {
+                        // Kafka topic: Topics/topicName
+                        KafkaDriver.topicPath.child(selectedTopicName, false)
+                    } else {
+                        // No selection: provide Topics folder path
+                        KafkaDriver.topicPath
+                    }
+                }
+            }
         }
 
         dataManager.topicModel.addListener(object : DataModelListener {
             override fun onChanged() {
+                updateUIForEmptyState()
                 infoPanel.text = TopicStatisticInfo.createFor(dataManager.getTopics()).toString()
             }
 
             override fun onError(msg: String, e: Throwable?) {
+                updateUIForEmptyState()
                 infoPanel.text = TopicStatisticInfo.createFor(dataManager.getTopics()).toString()
             }
         })
+
+        updateUIForEmptyState()
+    }
+
+    private fun updateUIForEmptyState() {
+        val toolWindowSettings = KafkaToolWindowSettings.getInstance()
+        val clusterConfig = toolWindowSettings.getOrCreateConfig(dataManager.connectionId)
+        val hasFilters = !clusterConfig.topicFilterName.isNullOrBlank() ||
+                toolWindowSettings.showFavoriteTopics ||
+                toolWindowSettings.showInternalTopics
+        val hasTopics = dataManager.getTopics().isNotEmpty()
+
+        val shouldShowToolbar = hasTopics || hasFilters
+
+        val layout = decoratedTableComponent.layout as? java.awt.BorderLayout
+        val northComponent = layout?.getLayoutComponent(java.awt.BorderLayout.NORTH)
+        northComponent?.isVisible = shouldShowToolbar
+
+        dataTable.tableHeader?.isVisible = shouldShowToolbar
+
+        infoPanel.isVisible = hasTopics
+
+        if (!hasTopics) {
+            updateEmptyText()
+        }
+    }
+
+    private fun updateEmptyText() {
+        val toolWindowSettings = KafkaToolWindowSettings.getInstance()
+        val clusterConfig = toolWindowSettings.getOrCreateConfig(dataManager.connectionId)
+
+        if (dataTable.parent is javax.swing.JViewport) {
+            dataTable.emptyText.attachTo(dataTable, dataTable)
+        }
+
+        dataTable.emptyText.clear()
+
+        if (!clusterConfig.topicFilterName.isNullOrBlank() || toolWindowSettings.showFavoriteTopics || toolWindowSettings.showInternalTopics) {
+            dataTable.emptyText.appendText(KafkaMessagesBundle.message("topics.empty.text.filter"), StatusText.DEFAULT_ATTRIBUTES)
+            dataTable.emptyText.appendSecondaryText(
+                KafkaMessagesBundle.message("topics.empty.text.filter.additional"),
+                SimpleTextAttributes.LINK_PLAIN_ATTRIBUTES
+            ) {
+                clusterConfig.topicFilterName = null
+                toolWindowSettings.showFavoriteTopics = false
+                toolWindowSettings.showInternalTopics = false
+                searchTextField.text = ""
+                dataManager.updater.invokeRefreshModel(dataManager.topicModel)
+            }
+        } else {
+            dataTable.emptyText.appendText(KafkaMessagesBundle.message("topics.empty.text"))
+            if (dataManager is TopicOperations) {
+                dataTable.emptyText.appendLine(
+                    KafkaMessagesBundle.message("topics.text.create.link"),
+                    SimpleTextAttributes.LINK_ATTRIBUTES
+                ) {
+                    KafkaDialogFactory.showCreateTopicDialog(dataManager)
+                }
+            }
+        }
+
+        dataTable.emptyText.isShowAboveCenter = true
     }
 
     override fun customTableInit(table: DataTable<TopicPresentable>) {
@@ -114,7 +202,17 @@ internal class TopicsController(
             onClick = { row, _ ->
                 val topicName = table.getDataAt(row)?.name
                 topicName?.let {
-                    mainController.open(KafkaDriver.topicPath.child(it, false))
+                    val path = when (dataManager) {
+                        is ClusterScopedDataManager -> {
+                            // Confluent Cloud: clusterId/topicName
+                            RfsPath(listOf(dataManager.connectionId, it), false)
+                        }
+                        else -> {
+                            // Kafka: Topics/topicName
+                            KafkaDriver.topicPath.child(it, false)
+                        }
+                    }
+                    mainController.open(path)
                 }
             }
         }
@@ -143,43 +241,16 @@ internal class TopicsController(
     }
 
     override fun emptyTextProvider() = CustomEmptyTextProvider { emptyText: StatusText ->
-        val toolWindowSettings = KafkaToolWindowSettings.getInstance()
-        val clusterConfig = toolWindowSettings.getOrCreateConfig(dataManager.connectionId)
-        if (!clusterConfig.topicFilterName.isNullOrBlank() || toolWindowSettings.showFavoriteTopics || toolWindowSettings.showInternalTopics) {
-            emptyText.appendText(KafkaMessagesBundle.message("topics.empty.text.filter"), StatusText.DEFAULT_ATTRIBUTES)
-            emptyText.appendSecondaryText(
-                KafkaMessagesBundle.message("topics.empty.text.filter.additional"),
-                SimpleTextAttributes.LINK_PLAIN_ATTRIBUTES
-            ) {
-                clusterConfig.topicFilterName = null
-                toolWindowSettings.showFavoriteTopics = false
-                toolWindowSettings.showInternalTopics = false
-                searchTextField.text = ""
-                dataManager.updater.invokeRefreshModel(dataManager.topicModel)
-            }
-        } else {
-            emptyText.appendText(KafkaMessagesBundle.message("topics.empty.text"), StatusText.DEFAULT_ATTRIBUTES)
-            // Show create link only for Kafka connections (dialog not yet implemented for CCloud)
-            if (dataManager is KafkaDataManager) {
-                emptyText.appendLine(
-                    KafkaMessagesBundle.message("topics.text.create.link"),
-                    SimpleTextAttributes.LINK_PLAIN_ATTRIBUTES
-                ) {
-                    KafkaDialogFactory.showCreateTopicDialog(dataManager)
-                }
-            }
-        }
-
-        emptyText.isShowAboveCenter = false
+        updateEmptyText()
     }
 
-    override fun getColumnSettings() = KafkaToolWindowSettings.getInstance().topicColumnSettings
-    override fun getRenderableColumns() = if (dataManager.supportsInSyncReplicasData()) {
-        TopicPresentable.renderableColumns
+    override fun getColumnSettings() = if (dataManager.supportsInSyncReplicasData()) {
+        KafkaToolWindowSettings.getInstance().kafkaTopicColumnSettings
     } else {
-        // Filter out ISR column for connections that don't support it (e.g., CCloud)
-        TopicPresentable.renderableColumns.filter { it.name != TopicPresentable::inSyncReplicas.name }
+        KafkaToolWindowSettings.getInstance().ccloudTopicColumnSettings
     }
+
+    override fun getRenderableColumns() = TopicPresentable.renderableColumns
     override fun getDataModel() = dataManager.topicModel
     override fun getAdditionalActions(): List<AnAction> = listOf()
     override fun showColumnFilter(): Boolean = false

@@ -330,13 +330,14 @@ internal class ConfluentMainController(
             Disposer.register(this, topicsController)
 
             topicsDetailsPanel.add(topicsController.getComponent(), BorderLayout.CENTER)
+            topicsDetailsPanel.revalidate()
+            topicsDetailsPanel.repaint()
 
         } catch (e: Exception) {
             topicsDetailsPanel.add(JLabel("Error loading topics: ${e.message}"), BorderLayout.CENTER)
+            topicsDetailsPanel.revalidate()
+            topicsDetailsPanel.repaint()
         }
-
-        topicsDetailsPanel.revalidate()
-        topicsDetailsPanel.repaint()
     }
 
     private fun showTopicDetail(rfsPath: RfsPath) {

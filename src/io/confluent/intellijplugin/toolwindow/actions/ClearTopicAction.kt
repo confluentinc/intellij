@@ -13,7 +13,7 @@ class ClearTopicAction : DumbAwareAction() {
         val rfsPath = e.rfsPath ?: return
         val dataManager = e.dataManager as KafkaDataManager
 
-        dataManager.clearTopic(rfsPath.name)
+        dataManager.clearTopicWithConfirmation(rfsPath.name)
     }
 
     override fun update(e: AnActionEvent) {

@@ -9,7 +9,20 @@ import kotlinx.serialization.Serializable
  * this file will be deleted when the data plane operations are implemented.
  */
 
-data class CreateTopicRequest(val topicName: String)
+@Serializable
+data class CreateTopicRequest(
+    @SerialName("topic_name") val topicName: String,
+    @SerialName("partitions_count") val partitionsCount: Int,
+    @SerialName("replication_factor") val replicationFactor: Int? = null,
+    @SerialName("configs") val configs: List<ConfigEntry>? = null
+) {
+    @Serializable
+    data class ConfigEntry(
+        @SerialName("name") val name: String,
+        @SerialName("value") val value: String
+    )
+}
+
 data class TopicDetails(val topicName: String)
 data class PartitionData(val partitionId: Int)
 

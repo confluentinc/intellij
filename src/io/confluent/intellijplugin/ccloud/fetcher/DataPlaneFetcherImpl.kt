@@ -44,11 +44,15 @@ class DataPlaneFetcherImpl(
     }
 
     override suspend fun createTopic(request: CreateTopicRequest): TopicData {
-        TODO("Implement createTopic")
+        val path = String.format(CloudConfig.DataPlane.Kafka.TOPICS_URI, clusterId)
+        val requestBody = json.encodeToString(CreateTopicRequest.serializer(), request)
+        val responseBody = kafkaClient.executeRequest(path, "POST", requestBody)
+        return json.decodeFromString<TopicData>(responseBody)
     }
 
     override suspend fun deleteTopic(topicName: String) {
-        TODO("Implement deleteTopic")
+        val path = String.format(CloudConfig.DataPlane.Kafka.TOPIC_URI, clusterId, topicName)
+        kafkaClient.executeRequest(path, "DELETE")
     }
 
     override suspend fun describeTopic(topicName: String): TopicDetails {

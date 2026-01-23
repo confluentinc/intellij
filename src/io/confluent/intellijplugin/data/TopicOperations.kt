@@ -7,11 +7,16 @@ package io.confluent.intellijplugin.data
 interface TopicOperations {
     /**
      * Create a new topic.
+     *
+     * @param name Topic name
+     * @param partitions Number of partitions
+     * @param replicationFactor Replication factor
+     * @param configs Optional topic configurations
      */
     suspend fun createTopic(
         name: String,
-        partitions: Int,
-        replicationFactor: Int,
+        partitions: Int?,
+        replicationFactor: Int?,
         configs: Map<String, String> = emptyMap()
     ): Result<Unit>
 

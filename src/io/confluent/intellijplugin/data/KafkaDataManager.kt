@@ -55,7 +55,7 @@ class KafkaDataManager(
     override val connectionData: KafkaConnectionData,
     settings: IntervalUpdateSettings,
     driverProvider: () -> MonitoringDriver
-) : MonitoringDataManager(project, settings, driverProvider), TopicDataProvider {
+) : MonitoringDataManager(project, settings, driverProvider), TopicDataProvider, TopicOperations {
     val registryType = connectionData.registryType
 
     override val connectionId = connectionData.innerId
@@ -156,7 +156,7 @@ class KafkaDataManager(
         emptyList()
     }
 
-    fun deleteTopic(topicNames: List<String>) {
+    fun deleteTopicWithConfirmation(topicNames: List<String>) {
         if (topicNames.isEmpty()) {
             return
         }
@@ -408,7 +408,7 @@ class KafkaDataManager(
         client.confluentRegistryClient?.getLatestVersionInfo(schemaName)
             ?: client.glueRegistryClient?.getLatestVersionInfo(schemaName)
 
-    fun clearTopic(topicName: String) {
+    fun clearTopicWithConfirmation(topicName: String) {
         val topic = getCachedTopicInfo(topicName) ?: return
         val msg = KafkaMessagesBundle.message("action.clear.topic.single.message", topic.name)
         val res = Messages.showOkCancelDialog(
@@ -546,4 +546,97 @@ class KafkaDataManager(
             return finalSchemas.sortedWith(compareByDescending<KafkaSchemaInfo> { it.isFavorite }.thenBy { it.name.lowercase() })
         }
     }
+
+    override suspend fun createTopic(
+        name: String,
+        partitions: Int?,
+        replicationFactor: Int?,
+        configs: Map<String, String>
+    ): Result<Unit> = withContext(Dispatchers.IO) {
+        try {
+            // Pass nulls to client - Kafka broker will use defaults
+            client.createTopic(name, partitions, replicationFactor)
+            updater.invokeRefreshModel(topicModel)
+            Result.success(Unit)
+        } catch (e: Exception) {
+            thisLogger().warn("Failed to create topic '$name'", e)
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun deleteTopic(topicNames: List<String>): Result<Unit> = withContext(Dispatchers.IO) {
+        try {
+            if (topicNames.isEmpty()) {
+                return@withContext Result.success(Unit)
+            }
+
+            topicNames.forEach {
+                client.deleteTopic(it)
+            }
+            updater.invokeRefreshModel(topicModel)
+            Result.success(Unit)
+        } catch (e: Exception) {
+            thisLogger().warn("Failed to delete topics: $topicNames", e)
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun clearTopic(topicName: String): Result<Unit> = withContext(Dispatchers.IO) {
+        try {
+            val topic = getCachedTopicInfo(topicName)
+                ?: return@withContext Result.failure(IllegalArgumentException("Topic not found: $topicName"))
+
+            clearPartitionsInternal(topic.partitionList)
+            Result.success(Unit)
+        } catch (e: Exception) {
+            thisLogger().warn("Failed to clear topic '$topicName'", e)
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun describeTopic(topicName: String): TopicDetails = withContext(Dispatchers.IO) {
+        val topic = getCachedTopicInfo(topicName)
+            ?: throw IllegalArgumentException("Topic not found: $topicName")
+
+        TopicDetails(
+            name = topic.name,
+            isInternal = topic.internal,
+            partitionsCount = topic.partitions ?: 0,
+            replicationFactor = topic.replicationFactor ?: 0,
+            messageCount = topic.messageCount,
+            inSyncReplicas = topic.inSyncReplicas
+        )
+    }
+
+    override suspend fun describeTopicPartitions(topicName: String): List<PartitionDetails> =
+        withContext(Dispatchers.IO) {
+            val topic = getCachedTopicInfo(topicName)
+                ?: throw IllegalArgumentException("Topic not found: $topicName")
+
+            topic.partitionList.map { partition ->
+                PartitionDetails(
+                    partitionId = partition.partitionId,
+                    leader = partition.leader,
+                    replicasCount = partition.internalReplicas.size,
+                    messageCount = partition.messageCount,
+                    beginOffset = partition.startOffset,
+                    endOffset = partition.endOffset
+                )
+            }
+        }
+
+    override suspend fun describeTopicConfiguration(topicName: String): Map<String, ConfigEntry> =
+        withContext(Dispatchers.IO) {
+            val configs = client.getTopicConfig(topicName)
+            configs.associate { config ->
+                config.name to ConfigEntry(
+                    name = config.name,
+                    value = config.value,
+                    isDefault = config.value == config.defaultValue,
+                    isReadOnly = false, // Kafka admin client doesn't expose this
+                    isSensitive = false, // Kafka admin client doesn't expose this
+                    source = "UNKNOWN" // Kafka admin client doesn't expose this
+                )
+            }
+        }
 }

@@ -141,6 +141,7 @@ class KafkaMonitoringToolWindowController(project: Project) : MonitoringToolWind
             putUserData(PAGE_CONTROLLER_ID, controller)
             putUserData(PROJECT, project)
             isCloseable = false
+            icon = io.confluent.intellijplugin.icons.BigdatatoolsKafkaIcons.ConfluentTab
         }
 
         com.intellij.openapi.util.Disposer.register(content, controller)

@@ -5,6 +5,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import io.confluent.intellijplugin.ccloud.cache.DataPlaneCache
 import io.confluent.intellijplugin.ccloud.model.Cluster
+import io.confluent.intellijplugin.ccloud.model.response.CreateTopicRequest
 import io.confluent.intellijplugin.ccloud.model.response.TopicData
 import io.confluent.intellijplugin.ccloud.model.response.toPresentable
 import io.confluent.intellijplugin.core.monitoring.data.MonitoringDataManager
@@ -14,6 +15,8 @@ import io.confluent.intellijplugin.core.monitoring.data.storage.RootDataModelSto
 import io.confluent.intellijplugin.model.TopicPresentable
 import io.confluent.intellijplugin.rfs.ConfluentConnectionData
 import io.confluent.intellijplugin.toolwindow.config.KafkaToolWindowSettings
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 /**
  * Cluster-scoped wrapper around ConfluentDataManager that presents the interface
@@ -68,7 +71,6 @@ class ClusterScopedDataManager(
             }
 
             try {
-                // Enrich with message count
                 thisLogger().info("Starting enrichment for ${topicDataList.size} topics in cluster ${cluster.id}")
                 val enrichmentMap = dataPlaneCache.enrichTopicsData(topicDataList)
                 thisLogger().info("Enrichment completed: received ${enrichmentMap.size} results")
@@ -93,16 +95,12 @@ class ClusterScopedDataManager(
         val config = toolWindowSettings.getOrCreateConfig(connectionId)
         val topicFilterName = config.topicFilterName
 
-        // Refresh topics from data plane cache
         val topicDataList = dataPlaneCache.refreshTopics()
 
-        // Convert to TopicPresentable, apply filters, and sort
         val allTopics = topicDataList
             .filter { topicData ->
-                // Filter internal topics
                 val showInternal = toolWindowSettings.showInternalTopics
                 (showInternal || !topicData.isInternal) &&
-                // Apply name filter
                 (topicFilterName == null || topicData.topicName.lowercase().contains(topicFilterName.lowercase()))
             }
             .map { topicData ->
@@ -117,7 +115,6 @@ class ClusterScopedDataManager(
             allTopics
         }.sortedWith(compareByDescending<TopicPresentable> { it.isFavorite }.thenBy { it.name.lowercase() })
 
-        // Apply topic limit
         val topicLimit = config.topicLimit
         (topicLimit?.let { topics.take(it) } ?: topics) to (topicLimit != null && topics.size > topicLimit)
     }
@@ -136,19 +133,50 @@ class ClusterScopedDataManager(
         confluentDataManager.updater.invokeRefreshModel(topicModel)
     }
 
-    // ========== TopicOperations Implementation ==========
-
     override suspend fun createTopic(
         name: String,
-        partitions: Int,
-        replicationFactor: Int,
+        partitions: Int?,
+        replicationFactor: Int?,
         configs: Map<String, String>
-    ): Result<Unit> {
-        TODO("Implement in Phase 2")
+    ): Result<Unit> = withContext(Dispatchers.IO) {
+        try {
+            val request = CreateTopicRequest(
+                topicName = name,
+                // CCloud API: partitionsCount is required. Use 6 as default (common CCloud default)
+                partitionsCount = partitions ?: 6,
+                // CCloud API: null replicationFactor means use cluster default (typically 3)
+                replicationFactor = replicationFactor,
+                configs = configs.map { (k, v) ->
+                    CreateTopicRequest.ConfigEntry(k, v)
+                }.ifEmpty { null }
+            )
+
+            dataPlaneCache.createTopic(request)
+            confluentDataManager.updater.invokeRefreshModel(topicModel)
+
+            Result.success(Unit)
+        } catch (e: Exception) {
+            thisLogger().warn("Failed to create topic '$name'", e)
+            Result.failure(e)
+        }
     }
 
-    override suspend fun deleteTopic(topicNames: List<String>): Result<Unit> {
-        TODO("Implement in Phase 3")
+    override suspend fun deleteTopic(topicNames: List<String>): Result<Unit> = withContext(Dispatchers.IO) {
+        try {
+            if (topicNames.isEmpty()) {
+                return@withContext Result.success(Unit)
+            }
+
+            topicNames.forEach { topicName ->
+                dataPlaneCache.deleteTopic(topicName)
+            }
+            confluentDataManager.updater.invokeRefreshModel(topicModel)
+
+            Result.success(Unit)
+        } catch (e: Exception) {
+            thisLogger().warn("Failed to delete topics: $topicNames", e)
+            Result.failure(e)
+        }
     }
 
     override suspend fun clearTopic(topicName: String): Result<Unit> {

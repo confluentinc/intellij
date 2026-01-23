@@ -70,8 +70,6 @@ class ConfluentDataManager(
     fun getKafkaClusters(environmentId: String): List<Cluster> = client.getKafkaClusters(environmentId)
     fun getSchemaRegistry(environmentId: String): SchemaRegistry? = client.getSchemaRegistry(environmentId)
 
-    // ========== Lifecycle ==========
-
     init {
         init()
     }
