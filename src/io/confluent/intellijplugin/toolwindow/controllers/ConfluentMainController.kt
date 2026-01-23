@@ -325,24 +325,19 @@ internal class ConfluentMainController(
                 return
             }
 
-            val clusterDataManager = ClusterScopedDataManager(project, dataManager, cluster)
+            val clusterDataManager = dataManager.getOrCreateClusterDataManager(cluster)
             val topicsController = TopicsController(project, clusterDataManager, this)
             Disposer.register(this, topicsController)
 
             topicsDetailsPanel.add(topicsController.getComponent(), BorderLayout.CENTER)
-
-            val topics = clusterDataManager.getTopics()
-            val infoLabel = JLabel("${topics.size} topic(s)").apply {
-                border = IdeBorderFactory.createBorder(SideBorder.BOTTOM)
-            }
-            topicsDetailsPanel.add(infoLabel, BorderLayout.NORTH)
+            topicsDetailsPanel.revalidate()
+            topicsDetailsPanel.repaint()
 
         } catch (e: Exception) {
             topicsDetailsPanel.add(JLabel("Error loading topics: ${e.message}"), BorderLayout.CENTER)
+            topicsDetailsPanel.revalidate()
+            topicsDetailsPanel.repaint()
         }
-
-        topicsDetailsPanel.revalidate()
-        topicsDetailsPanel.repaint()
     }
 
     private fun showTopicDetail(rfsPath: RfsPath) {
@@ -460,11 +455,6 @@ internal class ConfluentMainController(
 
             val scrollPane = JBScrollPane(table)
             schemasDetailsPanel.add(scrollPane, BorderLayout.CENTER)
-
-            val infoLabel = JLabel("${subjects.size} schema(s)").apply {
-                border = IdeBorderFactory.createBorder(SideBorder.BOTTOM)
-            }
-            schemasDetailsPanel.add(infoLabel, BorderLayout.NORTH)
 
         } catch (e: Exception) {
             schemasDetailsPanel.add(JLabel("Error loading schemas: ${e.message}"), BorderLayout.CENTER)

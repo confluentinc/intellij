@@ -34,18 +34,25 @@ class DataPlaneFetcherImpl(
 
     override suspend fun listTopics(): List<TopicData> {
         val path = String.format(CloudConfig.DataPlane.Kafka.TOPICS_URI, clusterId)
-        return kafkaClient.fetchList(path) { body ->
+        val topics = kafkaClient.fetchList(path) { body ->
             val response = json.decodeFromString<ListTopicsResponse>(body)
             response.data to response.metadata.next
         }
+
+        // Filter out virtual topics (replicationFactor = 0)
+        return topics.filter { it.replicationFactor > 0 }
     }
 
     override suspend fun createTopic(request: CreateTopicRequest): TopicData {
-        TODO("Implement createTopic")
+        val path = String.format(CloudConfig.DataPlane.Kafka.TOPICS_URI, clusterId)
+        val requestBody = json.encodeToString(CreateTopicRequest.serializer(), request)
+        val responseBody = kafkaClient.executeRequest(path, "POST", requestBody)
+        return json.decodeFromString<TopicData>(responseBody)
     }
 
     override suspend fun deleteTopic(topicName: String) {
-        TODO("Implement deleteTopic")
+        val path = String.format(CloudConfig.DataPlane.Kafka.TOPIC_URI, clusterId, topicName)
+        kafkaClient.executeRequest(path, "DELETE")
     }
 
     override suspend fun describeTopic(topicName: String): TopicDetails {
@@ -130,6 +137,14 @@ class DataPlaneFetcherImpl(
         val path = String.format(CloudConfig.DataPlane.SchemaRegistry.SCHEMA_BY_ID_URI, schemaId)
         return schemaRegistryClient!!.fetch(path) { body ->
             json.decodeFromString<SchemaByIdResponse>(body)
+        }
+    }
+
+    override suspend fun getTopicMessageCount(topicName: String): Long {
+        val path = "/kafka/v3/clusters/$clusterId/internal/topics/$topicName/partitions/-/records:offsets"
+        return kafkaClient.fetch(path) { body ->
+            val response = json.decodeFromString<TopicOffsetsResponse>(body)
+            response.totalRecords
         }
     }
 

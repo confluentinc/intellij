@@ -75,9 +75,6 @@ class CCloudRestClient(
         }
     }
 
-    /**
-     * Limits for pagination requests.
-     */
     data class PageLimits(
         val maxPages: Int = Int.MAX_VALUE,
         val maxItems: Int = Int.MAX_VALUE
@@ -87,9 +84,6 @@ class CCloudRestClient(
         }
     }
 
-    /**
-     * A page of results from a paginated API response.
-     */
     data class PageOfResults<T>(
         val items: List<T>,
         val hasMore: Boolean
@@ -108,9 +102,6 @@ class CCloudRestClient(
         @SerialName("total_size") val totalSize: Int? = null
     )
 
-    /**
-     * Get authentication headers based on auth type.
-     */
     private fun getAuthHeaders(): Map<String, String> {
         val service = authService ?: CCloudAuthService.getInstance()
 
@@ -177,9 +168,6 @@ class CCloudRestClient(
         return executeRequestInternal(getAuthHeaders(), uri, method, body)
     }
 
-    /**
-     * Internal method to fetch items from a paginated endpoint.
-     */
     private suspend fun <T> listItems(
         headers: Map<String, String>,
         uri: String,
@@ -240,9 +228,6 @@ class CCloudRestClient(
         allItems
     }
 
-    /**
-     * Internal method to fetch a single item from a non-paginated endpoint.
-     */
     private suspend fun <T> fetchItem(
         headers: Map<String, String>,
         uri: String,
@@ -262,9 +247,6 @@ class CCloudRestClient(
             .let(parser)
     }
 
-    /**
-     * Internal method to execute HTTP request with any method.
-     */
     private suspend fun executeRequestInternal(
         headers: Map<String, String>,
         uri: String,
@@ -312,7 +294,4 @@ class CCloudRestClient(
     }
 }
 
-/**
- * Exception thrown when Confluent Cloud API calls fail.
- */
 class CCloudApiException(message: String, val statusCode: Int) : Exception(message)
