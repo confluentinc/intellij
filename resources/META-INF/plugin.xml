@@ -193,6 +193,12 @@
     </actions>
 
     <change-notes><![CDATA[
+<h2 style="padding:0;margin:0;line-height:0px">Changes in 253.25909.4</h2>
+<h4 style="padding:0;margin:0;line-height:0px">Fixed</h4>
+<ul>
+<li>Upgrade kafka-client to 4.0.0</li>
+</ul>
+
 <h2 style="padding:0;margin:0;line-height:0px">Changes in 253.25909.3</h2>
 <h4 style="padding:0;margin:0;line-height:0px">Fixed</h4>
 <ul>

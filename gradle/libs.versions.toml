@@ -1,6 +1,6 @@
 [versions]
 moshi = "1.15.0"
-kafka-clients = "3.9.0"
+kafka-clients = "4.0.0"
 confluent = "8.1.0"
 aws-sdk = "2.20.158"
 aws-mskiamauth = "2.3.5"
