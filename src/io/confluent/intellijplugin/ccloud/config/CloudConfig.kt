@@ -59,6 +59,9 @@ object CloudConfig {
 
             /** Describe consumer group: GET /kafka/v3/clusters/{cluster_id}/consumer-groups/{group_id} */
             const val CONSUMER_GROUP_URI = "/kafka/v3/clusters/%s/consumer-groups/%s"
+
+            /** Consume records with guaranteed progress per partition. */
+            const val CCLOUD_SIMPLE_CONSUME_API_PATH = "/kafka/v3/clusters/%s/internal/topics/%s/partitions/-/records:consume_guarantee_progress"
         }
 
         /**
@@ -88,4 +91,3 @@ object CloudConfig {
         }
     }
 }
-
