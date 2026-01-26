@@ -331,7 +331,6 @@ class KafkaConsumerPanel(
                 // Callbacks called in Kafka client threads. That's why, to properly update UI we calling invokeLater
                 consumerClient.start(
                     runConfig,
-                    dataManager = kafkaManager,
                     keyConfig = key.loadFieldConfig(),
                     valueConfig = value.loadFieldConfig(),
                     consume = { pollTime, records ->

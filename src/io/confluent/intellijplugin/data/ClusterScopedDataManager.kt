@@ -31,6 +31,12 @@ class ClusterScopedDataManager(
     private val dataPlaneCache: DataPlaneCache = confluentDataManager.getDataPlaneCache(cluster)
 
     /**
+     * Get the data plane cache for this cluster.
+     * Used by CCloudConsumerClient to access the fetcher.
+     */
+    fun getDataPlaneCache(): DataPlaneCache = dataPlaneCache
+
+    /**
      * Connection ID for this cluster scope.
      * Uses cluster ID to maintain separate settings per cluster.
      */
