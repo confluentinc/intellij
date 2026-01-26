@@ -3,7 +3,6 @@ package io.confluent.intellijplugin.consumer.client
 import com.intellij.openapi.Disposable
 import io.confluent.intellijplugin.common.settings.StorageConsumerConfig
 import io.confluent.intellijplugin.consumer.models.ConsumerProducerFieldConfig
-import io.confluent.intellijplugin.data.KafkaDataManager
 import org.apache.kafka.clients.consumer.ConsumerRecord
 
 /**
@@ -21,7 +20,6 @@ interface ConsumerClient : Disposable {
      * Start consuming records from the configured topic.
      *
      * @param config Consumer configuration (topic, partitions, start position, limits, filters)
-     * @param dataManager The Kafka data manager for the connection
      * @param valueConfig Value deserialization configuration
      * @param keyConfig Key deserialization configuration
      * @param consume Callback for each batch of consumed records (pollTime in ms, records)
@@ -30,7 +28,6 @@ interface ConsumerClient : Disposable {
      */
     fun start(
         config: StorageConsumerConfig,
-        dataManager: KafkaDataManager,
         valueConfig: ConsumerProducerFieldConfig,
         keyConfig: ConsumerProducerFieldConfig,
         consume: (Long, List<ConsumerRecord<Any, Any>>) -> Unit,
