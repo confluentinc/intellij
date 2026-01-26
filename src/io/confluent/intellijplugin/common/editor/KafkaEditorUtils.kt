@@ -29,7 +29,9 @@ import io.confluent.intellijplugin.core.ui.CustomListCellRenderer
 import io.confluent.intellijplugin.core.ui.DarculaTextAreaBorder
 import io.confluent.intellijplugin.core.util.executeNotOnEdt
 import io.confluent.intellijplugin.core.util.invokeLater
+import io.confluent.intellijplugin.data.ClusterScopedDataManager
 import io.confluent.intellijplugin.data.KafkaDataManager
+import io.confluent.intellijplugin.data.TopicDataProvider
 import io.confluent.intellijplugin.registry.KafkaRegistryFormat
 import io.confluent.intellijplugin.registry.KafkaRegistryType
 import io.confluent.intellijplugin.registry.KafkaRegistryUtil
@@ -231,6 +233,40 @@ object KafkaEditorUtils {
         kafkaManager.topicModel.addListener(listener)
         Disposer.register(rootDisposable) {
             kafkaManager.topicModel.removeListener(listener)
+        }
+
+        topicComboBox.withValidator(rootDisposable) {
+            val selectedItem = topicComboBox.selectedItem as? TopicInEditor
+            if (selectedItem == null || selectedItem.name.isBlank())
+                ValidationInfo(KafkaMessagesBundle.message("producer.error.topic.empty"), topicComboBox)
+            else
+                null
+        }
+
+        topicComboBox.getValidator()?.enableValidation()
+
+        listener.onChangedNonEdt()
+
+        return topicComboBox
+    }
+
+    /**
+     * Creates a topic combo box for TopicDataProvider (used by CCloud connections).
+     * Unlike the KafkaDataManager version, this doesn't include validation or registry awareness.
+     */
+    fun createTopicComboBox(rootDisposable: Disposable, topicDataProvider: TopicDataProvider): ComboBox<TopicInEditor> {
+        val topics = topicDataProvider.getTopics()
+        val topicComboBox = ComboBox(topics.map { it.toEditorTopic() }.sortedBy { it.name }.toTypedArray())
+        topicComboBox.isSwingPopup = false
+        topicComboBox.prototypeDisplayValue = TopicInEditor("Topic sample name")
+        topicComboBox.renderer = CustomListCellRenderer<TopicInEditor> { it.name }
+
+        val listener = KafkaDataModelListener(topicComboBox) {
+            topicDataProvider.getTopics().map { it.toEditorTopic() }.sortedBy { it.name } to null
+        }
+        topicDataProvider.topicModel.addListener(listener)
+        Disposer.register(rootDisposable) {
+            topicDataProvider.topicModel.removeListener(listener)
         }
 
         topicComboBox.withValidator(rootDisposable) {

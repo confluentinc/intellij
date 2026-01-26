@@ -1,11 +1,9 @@
 package io.confluent.intellijplugin.data
 
-import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import io.confluent.intellijplugin.ccloud.cache.DataPlaneCache
 import io.confluent.intellijplugin.ccloud.model.Cluster
-import io.confluent.intellijplugin.ccloud.model.response.CreateTopicRequest
 import io.confluent.intellijplugin.ccloud.model.response.TopicData
 import io.confluent.intellijplugin.ccloud.model.response.toPresentable
 import io.confluent.intellijplugin.core.monitoring.data.MonitoringDataManager
@@ -47,6 +45,9 @@ class ClusterScopedDataManager(
     override val connectionData: ConfluentConnectionData
         get() = confluentDataManager.connectionData
 
+    /**
+     * Topic model for this specific cluster.
+     */
     override val topicModel: ObjectDataModel<TopicPresentable> = createTopicsDataModel().also {
         Disposer.register(this, it)
     }
@@ -248,5 +249,6 @@ class ClusterScopedDataManager(
     override fun supportsInSyncReplicasData(): Boolean = false
 
     override fun dispose() {
+        // Don't dispose the parent ConfluentDataManager, just clean up our references
     }
 }

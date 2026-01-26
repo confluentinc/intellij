@@ -65,6 +65,9 @@ class DataPlaneCache(
         thisLogger().info("DataPlaneCache connected for cluster ${cluster.id}")
     }
 
+    /** Get the data plane fetcher for API operations. */
+    fun getFetcher(): DataPlaneFetcherImpl? = fetcher
+
     /** Get cached topics (empty if not loaded). */
     fun getTopics(): List<TopicData> = cachedTopics ?: emptyList()
 

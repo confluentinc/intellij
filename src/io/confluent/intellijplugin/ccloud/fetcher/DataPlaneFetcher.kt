@@ -25,8 +25,7 @@ interface DataPlaneFetcher {
     /** Produce a record to a topic. */
     suspend fun produceRecord(topicName: String, request: ProduceRequest): ProduceResponse
 
-    /** Consume records from a topic. */
-    suspend fun consumeRecords(topicName: String, request: ConsumeRequest): List<ConsumerRecord>
+    suspend fun consumeRecords(topicName: String, request: ConsumeRecordsRequest): ConsumeRecordsResponse
 
     /** List all consumer groups. */
     suspend fun listConsumerGroups(): List<ConsumerGroupData>

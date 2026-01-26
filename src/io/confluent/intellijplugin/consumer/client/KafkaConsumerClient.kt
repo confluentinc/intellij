@@ -36,7 +36,6 @@ class KafkaConsumerClient(
 
     override fun start(
         config: StorageConsumerConfig,
-        dataManager: KafkaDataManager,
         valueConfig: ConsumerProducerFieldConfig,
         keyConfig: ConsumerProducerFieldConfig,
         consume: (Long, List<ConsumerRecord<Any, Any>>) -> Unit,
@@ -50,7 +49,6 @@ class KafkaConsumerClient(
             onStart()
             consumedRecords = startInner(
                 config,
-                dataManager,
                 keyConfig,
                 valueConfig,
                 consumeError,
@@ -65,7 +63,6 @@ class KafkaConsumerClient(
 
     private fun startInner(
         config: StorageConsumerConfig,
-        dataManager: KafkaDataManager,
         keyConfig: ConsumerProducerFieldConfig,
         valueConfig: ConsumerProducerFieldConfig,
         consumeError: (Throwable, Int?, Long?) -> Unit,
