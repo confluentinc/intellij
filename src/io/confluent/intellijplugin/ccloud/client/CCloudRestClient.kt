@@ -22,15 +22,29 @@ class CCloudRestClient(
     private val additionalHeaders: Map<String, String> = emptyMap(),
     private val authService: CCloudAuthService? = null
 ) {
+    companion object {
+        private const val CONNECT_TIMEOUT_MS = 10_000 // 10 seconds
+        private const val READ_TIMEOUT_MS = 60_000    // 1 minute
+    }
+
     enum class AuthType {
         CONTROL_PLANE,  // For environments, clusters, schema registries
         DATA_PLANE      // For topics, schemas, configs
     }
 
-    companion object {
-        private const val CONNECT_TIMEOUT_MS = 10_000 // 10 seconds
-        private const val READ_TIMEOUT_MS = 60_000    // 1 minute
+    data class PageLimits(
+        val maxPages: Int = Int.MAX_VALUE,
+        val maxItems: Int = Int.MAX_VALUE
+    ) {
+        companion object {
+            val DEFAULT = PageLimits()
+        }
     }
+
+    data class PageOfResults<T>(
+        val items: List<T>,
+        val hasMore: Boolean
+    )
 
     /**
      * Pagination state tracking for Confluent API list requests.
@@ -40,7 +54,7 @@ class CCloudRestClient(
         val limits: PageLimits = PageLimits.DEFAULT
     ) {
         var nextUrl: String? = initialUrl
-            private set
+            private set 
 
         private var pageCount = 0
         private var itemCount = 0
@@ -74,20 +88,6 @@ class CCloudRestClient(
             return page.hasMore && pagesRemaining > 0 && itemsRemaining > 0
         }
     }
-
-    data class PageLimits(
-        val maxPages: Int = Int.MAX_VALUE,
-        val maxItems: Int = Int.MAX_VALUE
-    ) {
-        companion object {
-            val DEFAULT = PageLimits()
-        }
-    }
-
-    data class PageOfResults<T>(
-        val items: List<T>,
-        val hasMore: Boolean
-    )
 
     /**
      * Standard metadata returned by Confluent list APIs.
@@ -123,6 +123,20 @@ class CCloudRestClient(
     }
 
     /**
+     * Fetch a single item from a non-paginated endpoint.
+     *
+     * @param path Endpoint path (relative or absolute URL)
+     * @param parser Parses response JSON
+     * @return Parsed response
+     */
+    suspend fun <T> fetch(
+        path: String,
+        parser: (String) -> T
+    ): T {
+        return fetchItem(getAuthHeaders(), path, parser)
+    }
+
+    /**
      * Fetch paginated list of items from a Confluent API endpoint.
      *
      * @param path Endpoint path (relative or absolute URL)
@@ -139,20 +153,6 @@ class CCloudRestClient(
     }
 
     /**
-     * Fetch a single item from a non-paginated endpoint.
-     *
-     * @param path Endpoint path (relative or absolute URL)
-     * @param parser Parses response JSON
-     * @return Parsed response
-     */
-    suspend fun <T> fetch(
-        path: String,
-        parser: (String) -> T
-    ): T {
-        return fetchItem(getAuthHeaders(), path, parser)
-    }
-
-    /**
      * Execute HTTP request with any method (POST, DELETE, PATCH, PUT).
      *
      * @param uri Endpoint path (relative or absolute URL)
@@ -166,6 +166,25 @@ class CCloudRestClient(
         body: String? = null
     ): String {
         return executeRequestInternal(getAuthHeaders(), uri, method, body)
+    }
+
+    private suspend fun <T> fetchItem(
+        headers: Map<String, String>,
+        uri: String,
+        parser: (String) -> T
+    ): T = withContext(Dispatchers.IO) {
+        val url = if (uri.startsWith("http")) uri else "$baseUrl$uri"
+
+        HttpRequests.request(url)
+            .connectTimeout(CONNECT_TIMEOUT_MS)
+            .readTimeout(READ_TIMEOUT_MS)
+            .tuner { connection ->
+                headers.forEach { (key, value) ->
+                    connection.setRequestProperty(key, value)
+                }
+            }
+            .readString()
+            .let(parser)
     }
 
     private suspend fun <T> listItems(
@@ -226,25 +245,6 @@ class CCloudRestClient(
         }
 
         allItems
-    }
-
-    private suspend fun <T> fetchItem(
-        headers: Map<String, String>,
-        uri: String,
-        parser: (String) -> T
-    ): T = withContext(Dispatchers.IO) {
-        val url = if (uri.startsWith("http")) uri else "$baseUrl$uri"
-
-        HttpRequests.request(url)
-            .connectTimeout(CONNECT_TIMEOUT_MS)
-            .readTimeout(READ_TIMEOUT_MS)
-            .tuner { connection ->
-                headers.forEach { (key, value) ->
-                    connection.setRequestProperty(key, value)
-                }
-            }
-            .readString()
-            .let(parser)
     }
 
     private suspend fun executeRequestInternal(

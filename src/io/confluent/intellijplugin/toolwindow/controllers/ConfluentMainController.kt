@@ -56,11 +56,11 @@ import javax.swing.table.DefaultTableModel
 import javax.swing.tree.TreePath
 
 /**
- * Main controller for Confluent Cloud tool window.
- * Uses core RFS infrastructure for tree management.
+ * Main controller for Confluent Cloud tool window using RFS tree infrastructure.
+ * Manages environment selector, cluster/schema registry tree, and detail views for topics and schemas.
  *
- * Note: Does NOT extend MainTreeController because we need to pass the driver directly
- * (not through DriverManager, since Confluent connections are dynamically created).
+ * Does not extend MainTreeController because the driver must be injected directly
+ * instead of retrieved from DriverManager (Confluent Cloud connections are created dynamically).
  */
 internal class ConfluentMainController(
     private val project: Project,
