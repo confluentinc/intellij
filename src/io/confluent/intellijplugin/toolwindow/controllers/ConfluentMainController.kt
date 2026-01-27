@@ -11,6 +11,7 @@ import com.intellij.openapi.ui.Splitter
 import com.intellij.openapi.util.Disposer
 import com.intellij.ui.IdeBorderFactory
 import com.intellij.ui.OnePixelSplitter
+import com.intellij.ui.PopupHandler
 import com.intellij.ui.SideBorder
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.util.ui.JBUI
@@ -21,6 +22,7 @@ import com.intellij.ui.tree.AsyncTreeModel
 import com.intellij.util.ui.tree.TreeModelAdapter
 import com.intellij.openapi.observable.properties.AtomicProperty
 import javax.swing.DefaultComboBoxModel
+import io.confluent.intellijplugin.core.rfs.projectview.actions.RfsActionPlaces
 import io.confluent.intellijplugin.rfs.ConfluentDriver
 import io.confluent.intellijplugin.rfs.ConfluentDriver.Companion.isCluster
 import io.confluent.intellijplugin.rfs.ConfluentDriver.Companion.isSchemaRegistry
@@ -146,15 +148,35 @@ internal class ConfluentMainController(
             }.resizableRow().visibleIf(isErrorView)
         }
         component = UiDataProvider.wrapComponent(panel) { sink ->
-            sink[MainTreeController.DATA_MANAGER] = dataManager
-            sink[MainTreeController.RFS_PATH] = myTree.selectionPath?.lastDriverNode?.rfsPath
+            val selectedPath = myTree.selectionPath?.lastDriverNode?.rfsPath
+
+            // Use cluster-specific manager for clusters/topics (enables topic actions)
+            // TODO: Add SchemaRegistryScopedDataManager for SR clusters/schemas (similar pattern)
+            val dataManagerToProvide = when {
+                selectedPath == null -> dataManager
+                selectedPath.isCluster(driver) || selectedPath.isTopic -> {
+                    val clusterId = selectedPath.getClusterId()
+                    val envId = selectedPath.getEnvironmentId(driver)
+                    if (clusterId != null && envId != null) {
+                        val cluster = dataManager.getKafkaClusters(envId).find { it.id == clusterId }
+                        cluster?.let { dataManager.getOrCreateClusterDataManager(it) } ?: dataManager
+                    } else {
+                        dataManager
+                    }
+                }
+                else -> dataManager
+            }
+
+            sink[MainTreeController.DATA_MANAGER] = dataManagerToProvide
+            sink[MainTreeController.RFS_PATH] = selectedPath
+            sink[MainTreeController.NAVIGABLE_CONTROLLER] = this@ConfluentMainController
         }
 
         driver.addListener(driverListener)
         Disposer.register(this) { driver.removeListener(driverListener) }
         updateMainPanel(dataManager.client.connectionError)
 
-        // TODO: Add Confluent-specific toolbar actions when needed
+        // Add Confluent-specific toolbar actions when needed
 
         treeModel.addTreeModelListener(object : TreeModelAdapter() {
             override fun process(event: TreeModelEvent, type: EventType) {
@@ -177,6 +199,7 @@ internal class ConfluentMainController(
         DriverRfsTreeModel.fixInitFirstConnection(asyncTreeModel, myTree)
 
         RfsPaneSpeedSearch.installOn(myTree)
+        PopupHandler.installPopupMenu(myTree, "Kafka.Actions", RfsActionPlaces.RFS_PANE_POPUP)
         val nodeAnimator = RfsNodeAnimator(treeModel).also {
             Disposer.register(this, it)
         }

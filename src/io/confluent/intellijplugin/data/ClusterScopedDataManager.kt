@@ -13,6 +13,7 @@ import io.confluent.intellijplugin.core.monitoring.data.model.ObjectDataModel
 import io.confluent.intellijplugin.core.monitoring.data.updater.BdtMonitoringUpdater
 import io.confluent.intellijplugin.core.monitoring.data.storage.RootDataModelStorage
 import io.confluent.intellijplugin.core.monitoring.data.storage.ObjectDataModelStorage
+import io.confluent.intellijplugin.core.util.invokeLater
 import io.confluent.intellijplugin.model.TopicPresentable
 import io.confluent.intellijplugin.model.BdtTopicPartition
 import io.confluent.intellijplugin.model.TopicConfig
@@ -149,44 +150,56 @@ class ClusterScopedDataManager(
         partitions: Int?,
         replicationFactor: Int?,
         configs: Map<String, String>
-    ): Result<Unit> = withContext(Dispatchers.IO) {
-        try {
-            val request = CreateTopicRequest(
-                topicName = name,
-                // CCloud API: partitionsCount is required. Use 6 as default (common CCloud default)
-                partitionsCount = partitions ?: 6,
-                // CCloud API: null replicationFactor means use cluster default (typically 3)
-                replicationFactor = replicationFactor,
-                configs = configs.map { (k, v) ->
-                    CreateTopicRequest.ConfigEntry(k, v)
-                }.ifEmpty { null }
-            )
+    ): Result<Unit> {
+        return try {
+            withContext(Dispatchers.IO) {
+                val request = CreateTopicRequest(
+                    topicName = name,
+                    // Use 6 as default partition count (CCloud requirement)
+                    partitionsCount = partitions ?: 6,
+                    // Use 3 as default replication factor (CCloud default)
+                    replicationFactor = replicationFactor,
+                    configs = configs.map { (k, v) ->
+                        CreateTopicRequest.ConfigEntry(k, v)
+                    }.ifEmpty { null }
+                )
 
-            dataPlaneCache.createTopic(request)
-            confluentDataManager.updater.invokeRefreshModel(topicModel)
+                dataPlaneCache.createTopic(request)
+            }
 
             Result.success(Unit)
         } catch (e: Exception) {
             thisLogger().warn("Failed to create topic '$name'", e)
             Result.failure(e)
+        } finally {
+            // Update UI on main thread (EDT) - refresh regardless of success/failure
+            invokeLater {
+                confluentDataManager.updater.invokeRefreshModel(topicModel)
+            }
         }
     }
 
-    override suspend fun deleteTopic(topicNames: List<String>): Result<Unit> = withContext(Dispatchers.IO) {
-        try {
+    override suspend fun deleteTopic(topicNames: List<String>): Result<Unit> {
+        return try {
             if (topicNames.isEmpty()) {
-                return@withContext Result.success(Unit)
+                return Result.success(Unit)
             }
 
-            topicNames.forEach { topicName ->
-                dataPlaneCache.deleteTopic(topicName)
+            withContext(Dispatchers.IO) {
+                topicNames.forEach { topicName ->
+                    dataPlaneCache.deleteTopic(topicName)
+                }
             }
-            confluentDataManager.updater.invokeRefreshModel(topicModel)
 
             Result.success(Unit)
         } catch (e: Exception) {
             thisLogger().warn("Failed to delete topics: $topicNames", e)
             Result.failure(e)
+        } finally {
+            // Update UI on main thread (EDT) - refresh regardless of success/failure
+            invokeLater {
+                confluentDataManager.updater.invokeRefreshModel(topicModel)
+            }
         }
     }
 
@@ -210,7 +223,7 @@ class ClusterScopedDataManager(
                 dataPlaneCache.getTopicPartitions(topicName)
             }
         } catch (e: Exception) {
-            thisLogger().error("Failed to load partitions for $topicName", e)
+            thisLogger().warn("Failed to load partitions for $topicName", e)
             emptyList()
         }
     }

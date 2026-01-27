@@ -7,8 +7,11 @@ import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.ui.Messages
 import io.confluent.intellijplugin.core.monitoring.data.MonitoringDataManager
 import io.confluent.intellijplugin.core.monitoring.toolwindow.MainTreeController.Companion.dataManager
+import io.confluent.intellijplugin.core.monitoring.toolwindow.MainTreeController.Companion.navigableController
 import io.confluent.intellijplugin.core.monitoring.toolwindow.MainTreeController.Companion.rfsPath
+import io.confluent.intellijplugin.core.rfs.driver.RfsPath
 import io.confluent.intellijplugin.core.rfs.util.RfsNotificationUtils
+import io.confluent.intellijplugin.core.util.invokeLater
 import io.confluent.intellijplugin.data.TopicOperations
 import io.confluent.intellijplugin.rfs.KafkaDriver.Companion.isTopicFolder
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
@@ -19,6 +22,7 @@ class DeleteTopicAction : DumbAwareAction() {
         val rfsPath = e.rfsPath ?: return
         val dataManager = e.dataManager as? TopicOperations ?: return
         val monitoringDataManager = dataManager as? MonitoringDataManager ?: return
+        val controller = e.navigableController
 
         val topicName = rfsPath.name
 
@@ -40,6 +44,16 @@ class DeleteTopicAction : DumbAwareAction() {
         monitoringDataManager.driver.coroutineScope.launch {
             try {
                 val result = dataManager.deleteTopic(listOf(topicName))
+
+                result.onSuccess {
+                    // Navigate to parent (cluster) to clear detail view and prevent error after delete a topic
+                    controller?.let {
+                        invokeLater {
+                            val parentPath = rfsPath.parent ?: RfsPath(listOf(rfsPath.elements.first()), true)
+                            it.open(parentPath)
+                        }
+                    }
+                }
 
                 // Show error notification if deletion failed
                 result.onFailure { exception ->

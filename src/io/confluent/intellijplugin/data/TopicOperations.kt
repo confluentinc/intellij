@@ -3,6 +3,9 @@ package io.confluent.intellijplugin.data
 /**
  * Interface for topic operations (create, delete, clear, and configuration).
  * Implemented by both KafkaDataManager (native protocol) and ClusterScopedDataManager (CCloud REST API).
+ *
+ * Actions in `Kafka.Actions` group use this interface to work across both Kafka direct and CCloud tabs.
+ * Actions check `dataManager is TopicOperations` to show/hide based on capability.
  */
 interface TopicOperations {
     /**
