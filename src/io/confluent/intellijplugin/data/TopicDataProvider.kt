@@ -34,4 +34,10 @@ interface TopicDataProvider {
      * Update pinned (favorite) status for a topic.
      */
     fun updatePinedTopics(topicName: String, isForAdding: Boolean)
+
+    /**
+     * Returns true if this connection supports in-sync replicas (ISR) data.
+     * Regular Kafka connections support ISR, but Confluent Cloud REST API does not.
+     */
+    fun supportsInSyncReplicasData(): Boolean = true
 }

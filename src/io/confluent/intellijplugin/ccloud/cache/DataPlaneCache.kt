@@ -6,13 +6,15 @@ import io.confluent.intellijplugin.ccloud.client.CCloudRestClient
 import io.confluent.intellijplugin.ccloud.fetcher.DataPlaneFetcherImpl
 import io.confluent.intellijplugin.ccloud.model.Cluster
 import io.confluent.intellijplugin.ccloud.model.SchemaRegistry
+import io.confluent.intellijplugin.ccloud.model.response.CreateTopicRequest
 import io.confluent.intellijplugin.ccloud.model.response.SubjectData
 import io.confluent.intellijplugin.ccloud.model.response.TopicData
 import io.confluent.intellijplugin.ccloud.model.restEndpoint
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.runBlocking
+import io.confluent.intellijplugin.model.BdtTopicPartition
+import io.confluent.intellijplugin.model.InternalReplica
+import io.confluent.intellijplugin.model.TopicConfig
+import kotlinx.coroutines.*
+import java.util.concurrent.ConcurrentHashMap
 
 /**
  * Data plane cache for cluster-level resources (topics, subjects, consumer groups).
@@ -30,7 +32,12 @@ class DataPlaneCache(
     private var cachedTopics: List<TopicData>? = null
     private var cachedSubjects: List<SubjectData>? = null
 
+    companion object {
+        private const val ENRICHMENT_TIMEOUT_MS = 15_000L // 15 seconds
+    }
+
     fun connect() {
+        thisLogger().info("Connecting DataPlaneCache for cluster ${cluster.id}")
         val kafka = CCloudRestClient(
             baseUrl = cluster.restEndpoint,
             authType = CCloudRestClient.AuthType.DATA_PLANE
@@ -50,6 +57,7 @@ class DataPlaneCache(
             clusterId = cluster.id,
             schemaRegistryId = schemaRegistry?.id
         )
+        thisLogger().info("DataPlaneCache connected for cluster ${cluster.id}")
     }
 
     /** Get cached topics (empty if not loaded). */
@@ -79,6 +87,117 @@ class DataPlaneCache(
         } ?: emptyList()
         cachedSubjects = subjects
         return subjects
+    }
+
+    /** Enrich topics with message count. */
+    suspend fun enrichTopicsData(topics: List<TopicData>): Map<String, TopicEnrichmentData> = coroutineScope {
+        thisLogger().info("Starting enrichment for ${topics.size} topics")
+
+        val results = topics.map { topic ->
+            async {
+                try {
+                    val messageCount = withTimeout(ENRICHMENT_TIMEOUT_MS) {
+                        fetcher?.getTopicMessageCount(topic.topicName)
+                    }
+
+                    thisLogger().info("Enriched ${topic.topicName}: messageCount=$messageCount")
+
+                    topic.topicName to TopicEnrichmentData(
+                        messageCount = messageCount
+                    )
+                } catch (e: Exception) {
+                    thisLogger().warn("Failed to enrich topic ${topic.topicName}: ${e.message}")
+                    topic.topicName to TopicEnrichmentData()
+                }
+            }
+        }.awaitAll().toMap()
+
+        thisLogger().info("Enrichment completed: ${results.size} topics enriched")
+        results
+    }
+
+    /** Create a new topic. */
+    suspend fun createTopic(request: CreateTopicRequest): TopicData {
+        return fetcher?.createTopic(request)
+            ?: throw IllegalStateException("DataPlaneCache not connected for cluster ${cluster.id}")
+    }
+
+    /** Delete a topic. */
+    suspend fun deleteTopic(topicName: String) {
+        fetcher?.deleteTopic(topicName)
+            ?: throw IllegalStateException("DataPlaneCache not connected for cluster ${cluster.id}")
+    }
+
+    /**
+     * Get topic partitions with offsets. Fetches offsets in parallel.
+     * Note: CCloud REST API does not expose /replicas endpoint,
+     * We use topic replication factor for the replicas count instead.
+     */
+    suspend fun getTopicPartitions(topicName: String): List<BdtTopicPartition> = coroutineScope {
+        val f = fetcher ?: throw IllegalStateException("DataPlaneCache not connected")
+
+        val topic = cachedTopics?.find { it.topicName == topicName }
+        val replicationFactor = topic?.replicationFactor ?: 3
+
+        val partitions = f.describeTopicPartitions(topicName)
+
+        partitions.map { partition ->
+            async {
+                val leaderBrokerId = extractBrokerIdFromUrl(partition.leader?.related)
+
+                var startOffset: Long? = null
+                var endOffset: Long? = null
+                try {
+                    val startOffsetResponse =
+                        f.getPartitionOffsets(topicName, partition.partitionId, fromBeginning = true)
+                    val endOffsetResponse =
+                        f.getPartitionOffsets(topicName, partition.partitionId, fromBeginning = false)
+                    startOffset = startOffsetResponse.nextOffset
+                    endOffset = endOffsetResponse.nextOffset
+                } catch (e: Exception) {
+                    thisLogger().warn("Failed to fetch offsets for $topicName/${partition.partitionId}: ${e.message}")
+                }
+
+                BdtTopicPartition(
+                    topic = topicName,
+                    partitionId = partition.partitionId,
+                    leader = leaderBrokerId,
+                    internalReplicas = emptyList(),
+                    inSyncReplicasCount = replicationFactor,
+                    replicas = replicationFactor.toString(),
+                    endOffset = endOffset,
+                    startOffset = startOffset
+                )
+            }
+        }.awaitAll()
+    }
+
+    private fun extractBrokerIdFromUrl(url: String?): Int? {
+        if (url == null) return null
+        // URL format: https://pkc-.../partitions/1/replicas/3
+        // Extract last number as broker ID
+        return url.substringAfterLast("/").toIntOrNull()
+    }
+
+    /**
+     * Get topic configs. Filters by showFullConfig setting.
+     * Note: CCloud REST API returns configs alphabetically, unlike Kafka AdminClient which uses ConfigDef order.
+     */
+    suspend fun getTopicConfigs(topicName: String, showFullConfig: Boolean): List<TopicConfig> {
+        val f = fetcher ?: throw IllegalStateException("DataPlaneCache not connected")
+        val configs = f.describeTopicConfiguration(topicName)
+
+        val filteredConfigs = if (showFullConfig) configs else configs.filter { !it.isDefault }
+
+        return filteredConfigs.map { config ->
+            TopicConfig(
+                name = config.name,
+                value = config.value ?: "",
+                defaultValue = config.synonyms
+                    ?.firstOrNull { it.source == "DEFAULT_CONFIG" }
+                    ?.value ?: ""
+            )
+        }
     }
 
     override fun dispose() {
