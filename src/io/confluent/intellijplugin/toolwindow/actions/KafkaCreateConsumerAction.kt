@@ -48,6 +48,10 @@ class KafkaCreateConsumerAction : DumbAwareAction(), CustomComponentAction {
         }
     }
 
+    // TODO: Remove this override once consumer support is implemented for CCloud
+    override fun update(e: AnActionEvent) {
+        e.presentation.isEnabledAndVisible = e.dataManager is KafkaDataManager
+    }
 
     override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
 

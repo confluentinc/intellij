@@ -141,6 +141,8 @@ class ConfluentTabController(
 
     override fun getComponent(): JComponent = cardPanel
 
+    fun getDriver(): ConfluentDriver? = driver
+
     override fun dispose() {
         // Disposer will handle driver and resourceController
     }

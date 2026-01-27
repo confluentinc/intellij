@@ -18,7 +18,7 @@ data class TopicPresentable(
     val partitions: Int? = null,
     @field:LoadingRendering
     val inSyncReplicas: Int? = null,
-    @field:LoadingRendering(rightAligned = true)
+    @field:LoadingRendering
     val replicationFactor: Int? = null,
     @field:LoadingRendering(rightAligned = true)
     val underReplicatedPartitions: Int? = null,

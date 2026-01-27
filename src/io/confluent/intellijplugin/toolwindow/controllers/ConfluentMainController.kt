@@ -11,6 +11,7 @@ import com.intellij.openapi.ui.Splitter
 import com.intellij.openapi.util.Disposer
 import com.intellij.ui.IdeBorderFactory
 import com.intellij.ui.OnePixelSplitter
+import com.intellij.ui.PopupHandler
 import com.intellij.ui.SideBorder
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.util.ui.JBUI
@@ -21,6 +22,7 @@ import com.intellij.ui.tree.AsyncTreeModel
 import com.intellij.util.ui.tree.TreeModelAdapter
 import com.intellij.openapi.observable.properties.AtomicProperty
 import javax.swing.DefaultComboBoxModel
+import io.confluent.intellijplugin.core.rfs.projectview.actions.RfsActionPlaces
 import io.confluent.intellijplugin.rfs.ConfluentDriver
 import io.confluent.intellijplugin.rfs.ConfluentDriver.Companion.isCluster
 import io.confluent.intellijplugin.rfs.ConfluentDriver.Companion.isSchemaRegistry
@@ -56,11 +58,11 @@ import javax.swing.table.DefaultTableModel
 import javax.swing.tree.TreePath
 
 /**
- * Main controller for Confluent Cloud tool window.
- * Uses core RFS infrastructure for tree management.
+ * Main controller for Confluent Cloud tool window using RFS tree infrastructure.
+ * Manages environment selector, cluster/schema registry tree, and detail views for topics and schemas.
  *
- * Note: Does NOT extend MainTreeController because we need to pass the driver directly
- * (not through DriverManager, since Confluent connections are dynamically created).
+ * Does not extend MainTreeController because the driver must be injected directly
+ * instead of retrieved from DriverManager (Confluent Cloud connections are created dynamically).
  */
 internal class ConfluentMainController(
     private val project: Project,
@@ -146,15 +148,35 @@ internal class ConfluentMainController(
             }.resizableRow().visibleIf(isErrorView)
         }
         component = UiDataProvider.wrapComponent(panel) { sink ->
-            sink[MainTreeController.DATA_MANAGER] = dataManager
-            sink[MainTreeController.RFS_PATH] = myTree.selectionPath?.lastDriverNode?.rfsPath
+            val selectedPath = myTree.selectionPath?.lastDriverNode?.rfsPath
+
+            // Use cluster-specific manager for clusters/topics (enables topic actions)
+            // TODO: Add SchemaRegistryScopedDataManager for SR clusters/schemas (similar pattern)
+            val dataManagerToProvide = when {
+                selectedPath == null -> dataManager
+                selectedPath.isCluster(driver) || selectedPath.isTopic -> {
+                    val clusterId = selectedPath.getClusterId()
+                    val envId = selectedPath.getEnvironmentId(driver)
+                    if (clusterId != null && envId != null) {
+                        val cluster = dataManager.getKafkaClusters(envId).find { it.id == clusterId }
+                        cluster?.let { dataManager.getOrCreateClusterDataManager(it) } ?: dataManager
+                    } else {
+                        dataManager
+                    }
+                }
+                else -> dataManager
+            }
+
+            sink[MainTreeController.DATA_MANAGER] = dataManagerToProvide
+            sink[MainTreeController.RFS_PATH] = selectedPath
+            sink[MainTreeController.NAVIGABLE_CONTROLLER] = this@ConfluentMainController
         }
 
         driver.addListener(driverListener)
         Disposer.register(this) { driver.removeListener(driverListener) }
         updateMainPanel(dataManager.client.connectionError)
 
-        // TODO: Add Confluent-specific toolbar actions when needed
+        // Add Confluent-specific toolbar actions when needed
 
         treeModel.addTreeModelListener(object : TreeModelAdapter() {
             override fun process(event: TreeModelEvent, type: EventType) {
@@ -177,6 +199,7 @@ internal class ConfluentMainController(
         DriverRfsTreeModel.fixInitFirstConnection(asyncTreeModel, myTree)
 
         RfsPaneSpeedSearch.installOn(myTree)
+        PopupHandler.installPopupMenu(myTree, "Kafka.Actions", RfsActionPlaces.RFS_PANE_POPUP)
         val nodeAnimator = RfsNodeAnimator(treeModel).also {
             Disposer.register(this, it)
         }
@@ -325,81 +348,42 @@ internal class ConfluentMainController(
                 return
             }
 
-            val clusterDataManager = ClusterScopedDataManager(project, dataManager, cluster)
+            val clusterDataManager = dataManager.getOrCreateClusterDataManager(cluster)
             val topicsController = TopicsController(project, clusterDataManager, this)
             Disposer.register(this, topicsController)
 
             topicsDetailsPanel.add(topicsController.getComponent(), BorderLayout.CENTER)
-
-            val topics = clusterDataManager.getTopics()
-            val infoLabel = JLabel("${topics.size} topic(s)").apply {
-                border = IdeBorderFactory.createBorder(SideBorder.BOTTOM)
-            }
-            topicsDetailsPanel.add(infoLabel, BorderLayout.NORTH)
+            topicsDetailsPanel.revalidate()
+            topicsDetailsPanel.repaint()
 
         } catch (e: Exception) {
             topicsDetailsPanel.add(JLabel("Error loading topics: ${e.message}"), BorderLayout.CENTER)
+            topicsDetailsPanel.revalidate()
+            topicsDetailsPanel.repaint()
         }
-
-        topicsDetailsPanel.revalidate()
-        topicsDetailsPanel.repaint()
     }
 
     private fun showTopicDetail(rfsPath: RfsPath) {
         topicDetailPanel.removeAll()
 
         try {
-            val envId = rfsPath.getEnvironmentId(driver) ?: run {
-                topicDetailPanel.add(JLabel("Error: Could not determine environment"), BorderLayout.CENTER)
-                topicDetailPanel.revalidate()
-                topicDetailPanel.repaint()
-                return
-            }
-
-            val clusterId = rfsPath.getClusterId() ?: run {
-                topicDetailPanel.add(JLabel("Error: Could not determine cluster"), BorderLayout.CENTER)
-                topicDetailPanel.revalidate()
-                topicDetailPanel.repaint()
-                return
-            }
-
+            val envId = rfsPath.getEnvironmentId(driver)
+                ?: throw IllegalStateException("Could not determine environment")
+            val clusterId = rfsPath.getClusterId()
+                ?: throw IllegalStateException("Could not determine cluster")
             val topicName = rfsPath.name
 
             val cluster = dataManager.getKafkaClusters(envId).find { it.id == clusterId }
-            if (cluster == null) {
-                topicDetailPanel.add(JLabel("Error: Cluster not found"), BorderLayout.CENTER)
-                topicDetailPanel.revalidate()
-                topicDetailPanel.repaint()
-                return
-            }
+                ?: throw IllegalStateException("Cluster $clusterId not found")
 
-            val cache = dataManager.getDataPlaneCache(cluster)
-            val topics = cache.refreshTopics()
-            val topic = topics.find { it.topicName == topicName }
+            val clusterDataManager = dataManager.getOrCreateClusterDataManager(cluster)
 
-            if (topic == null) {
-                topicDetailPanel.add(JLabel("Topic not found: $topicName"), BorderLayout.CENTER)
-                topicDetailPanel.revalidate()
-                topicDetailPanel.repaint()
-                return
-            }
+            val detailsController = TopicDetailsController(project, clusterDataManager)
+            Disposer.register(this, detailsController)
 
-            val detailsText = buildString {
-                appendLine("Topic: ${topic.topicName}")
-                appendLine()
-                appendLine("Partitions: ${topic.partitionsCount}")
-                appendLine("Replication Factor: ${topic.replicationFactor}")
-                appendLine("Internal: ${topic.isInternal}")
-                appendLine()
-                appendLine("Cluster: ${cluster.displayName}")
-                appendLine("Cluster ID: ${cluster.id}")
-            }
+            detailsController.setDetailsId(topicName)
 
-            val detailsLabel = JLabel("<html>${detailsText.replace("\n", "<br/>")}</html>").apply {
-                border = JBUI.Borders.empty(10)
-            }
-
-            topicDetailPanel.add(detailsLabel, BorderLayout.CENTER)
+            topicDetailPanel.add(detailsController.getComponent(), BorderLayout.CENTER)
 
         } catch (e: Exception) {
             topicDetailPanel.add(JLabel("Error loading topic details: ${e.message}"), BorderLayout.CENTER)
@@ -460,11 +444,6 @@ internal class ConfluentMainController(
 
             val scrollPane = JBScrollPane(table)
             schemasDetailsPanel.add(scrollPane, BorderLayout.CENTER)
-
-            val infoLabel = JLabel("${subjects.size} schema(s)").apply {
-                border = IdeBorderFactory.createBorder(SideBorder.BOTTOM)
-            }
-            schemasDetailsPanel.add(infoLabel, BorderLayout.NORTH)
 
         } catch (e: Exception) {
             schemasDetailsPanel.add(JLabel("Error loading schemas: ${e.message}"), BorderLayout.CENTER)
