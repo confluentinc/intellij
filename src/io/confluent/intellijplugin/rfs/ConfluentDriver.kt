@@ -15,6 +15,7 @@ import io.confluent.intellijplugin.core.rfs.tree.DriverRfsTreeModel
 import io.confluent.intellijplugin.core.rfs.tree.node.RfsDriverTreeNodeBuilder
 import io.confluent.intellijplugin.data.ConfluentDataManager
 import io.confluent.intellijplugin.toolwindow.config.KafkaToolWindowSettings
+import io.confluent.intellijplugin.core.util.invokeLater
 import javax.swing.Icon
 
 /**
@@ -60,7 +61,9 @@ class ConfluentDriver(
         val clusterDataManager = dataManager.getOrCreateClusterDataManager(cluster)
         clusterDataManager.topicModel.addListener(object : DataModelListener {
             override fun onChanged() {
-                fileInfoManager.refreshFiles(clusterPath(clusterId))
+                invokeLater {
+                    fileInfoManager.refreshFiles(clusterPath(clusterId))
+                }
             }
         })
     }

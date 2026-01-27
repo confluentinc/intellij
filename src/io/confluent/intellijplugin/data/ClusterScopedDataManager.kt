@@ -83,9 +83,7 @@ class ClusterScopedDataManager(
             }
 
             try {
-                thisLogger().info("Starting enrichment for ${topicDataList.size} topics in cluster ${cluster.id}")
                 val enrichmentMap = dataPlaneCache.enrichTopicsData(topicDataList)
-                thisLogger().info("Enrichment completed: received ${enrichmentMap.size} results")
 
                 val enrichedTopics = basicTopics.map { topic ->
                     enrichmentMap[topic.name]?.let { enrichment ->
@@ -95,7 +93,6 @@ class ClusterScopedDataManager(
                     } ?: topic
                 }
 
-                thisLogger().info("Applied enrichment to ${enrichedTopics.count { it.messageCount != null }} topics with message counts")
                 enrichedTopics to null
             } catch (t: Throwable) {
                 thisLogger().warn("Failed to enrich topic data for cluster ${cluster.id}", t)
