@@ -10,7 +10,6 @@ import org.apache.kafka.common.config.SaslConfigs
 import org.apache.kafka.common.config.SaslConfigs.GSSAPI_MECHANISM
 import org.apache.kafka.common.security.auth.SecurityProtocol
 import java.util.*
-import kotlin.collections.set
 
 object KafkaClientBuilder {
     fun createAdminClient(properties: Properties): BdtKafkaAdminClient {

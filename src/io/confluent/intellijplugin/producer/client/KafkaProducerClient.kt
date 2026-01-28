@@ -1,7 +1,6 @@
 package io.confluent.intellijplugin.producer.client
 
 import com.intellij.charts.dataframe.DataFrame
-import com.intellij.openapi.diagnostic.thisLogger
 import io.confluent.intellijplugin.client.KafkaClient
 import io.confluent.intellijplugin.consumer.editor.KafkaRecord
 import io.confluent.intellijplugin.consumer.models.ConsumerProducerFieldConfig
@@ -32,8 +31,6 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 class KafkaProducerClient(val client: KafkaClient) {
     val connectionData = client.connectionData
-
-    val logger = thisLogger()
 
     val isRunning = AtomicBoolean(false)
 
