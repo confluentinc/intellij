@@ -1,6 +1,7 @@
 package io.confluent.intellijplugin.producer.client
 
 import com.intellij.charts.dataframe.DataFrame
+import com.intellij.openapi.diagnostic.thisLogger
 import io.confluent.intellijplugin.client.KafkaClient
 import io.confluent.intellijplugin.consumer.editor.KafkaRecord
 import io.confluent.intellijplugin.consumer.models.ConsumerProducerFieldConfig
@@ -13,12 +14,14 @@ import io.confluent.intellijplugin.producer.models.Mode
 import io.confluent.intellijplugin.producer.models.ProducerFlowParams
 import io.confluent.intellijplugin.producer.models.RecordCompression
 import io.confluent.intellijplugin.registry.KafkaRegistryType
+import io.confluent.intellijplugin.telemetry.TelemetryUtils
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
 import io.confluent.intellijplugin.util.csv.KafkaCsvUtils
 import io.confluent.intellijplugin.util.generator.FieldTemplateGenerator
 import io.confluent.intellijplugin.util.generator.GenerateRandomData
 import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig
 import io.confluent.kafka.serializers.context.NullContextNameStrategy
+import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.clients.producer.KafkaProducer
 import org.apache.kafka.clients.producer.ProducerConfig
 import org.apache.kafka.clients.producer.ProducerRecord
@@ -29,6 +32,8 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 class KafkaProducerClient(val client: KafkaClient) {
     val connectionData = client.connectionData
+
+    val logger = thisLogger()
 
     val isRunning = AtomicBoolean(false)
 
@@ -169,6 +174,9 @@ class KafkaProducerClient(val client: KafkaClient) {
         props[ProducerConfig.COMPRESSION_TYPE_CONFIG] = recordCompression.name.lowercase()
         props[AbstractKafkaSchemaSerDeConfig.CONTEXT_NAME_STRATEGY] = NullContextNameStrategy::class.java
         props[AbstractKafkaSchemaSerDeConfig.AUTO_REGISTER_SCHEMAS] = false
+        if (!props.containsKey(ConsumerConfig.CLIENT_ID_CONFIG)) {
+            props[ConsumerConfig.CLIENT_ID_CONFIG] = "Confluent for IntelliJ ${TelemetryUtils.getPluginVersion()} - Producer"
+        }
 
         when (connectionData.registryType) {
             KafkaRegistryType.NONE -> {}

@@ -6,6 +6,7 @@ import io.confluent.intellijplugin.consumer.editor.ConsumerEditorUtils
 import io.confluent.intellijplugin.consumer.models.ConsumerProducerFieldConfig
 import io.confluent.intellijplugin.consumer.models.ConsumerStartWith
 import io.confluent.intellijplugin.data.KafkaDataManager
+import io.confluent.intellijplugin.telemetry.TelemetryUtils
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
 import io.confluent.intellijplugin.util.KafkaOffsetUtils
 import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig
@@ -237,6 +238,10 @@ class KafkaConsumerClient(
         valueConfig: ConsumerProducerFieldConfig
     ): KafkaConsumer<Any, Any> {
         val props = client.kafkaProps.clone() as Properties
+
+        if (!props.containsKey(ConsumerConfig.CLIENT_ID_CONFIG)) {
+            props[ConsumerConfig.CLIENT_ID_CONFIG] = "Confluent for IntelliJ ${TelemetryUtils.getPluginVersion()} - Consumer"
+        }
 
         connectionData.registryUrl?.let { props[AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG] = it }
 
