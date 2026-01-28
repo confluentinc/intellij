@@ -20,7 +20,6 @@ import io.confluent.intellijplugin.util.generator.FieldTemplateGenerator
 import io.confluent.intellijplugin.util.generator.GenerateRandomData
 import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig
 import io.confluent.kafka.serializers.context.NullContextNameStrategy
-import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.clients.producer.KafkaProducer
 import org.apache.kafka.clients.producer.ProducerConfig
 import org.apache.kafka.clients.producer.ProducerRecord
@@ -171,8 +170,8 @@ class KafkaProducerClient(val client: KafkaClient) {
         props[ProducerConfig.COMPRESSION_TYPE_CONFIG] = recordCompression.name.lowercase()
         props[AbstractKafkaSchemaSerDeConfig.CONTEXT_NAME_STRATEGY] = NullContextNameStrategy::class.java
         props[AbstractKafkaSchemaSerDeConfig.AUTO_REGISTER_SCHEMAS] = false
-        if (!props.containsKey(ConsumerConfig.CLIENT_ID_CONFIG)) {
-            props[ConsumerConfig.CLIENT_ID_CONFIG] = "Confluent for IntelliJ ${TelemetryUtils.getPluginVersion()} - Producer"
+        if (!props.containsKey(ProducerConfig.CLIENT_ID_CONFIG)) {
+            props[ProducerConfig.CLIENT_ID_CONFIG] = "Confluent for IntelliJ ${TelemetryUtils.getPluginVersion()} - Producer"
         }
 
         when (connectionData.registryType) {
