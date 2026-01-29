@@ -504,8 +504,9 @@ class ConnectionSettingsPanel(val project: Project) : MasterDetailsComponent(),
     ) {
         override fun update(e: AnActionEvent) {
             val myNode = myTree.selectionPath?.lastPathComponent as? MyNode
-            val isConnectionNode = myNode?.configurable is ConnectionConfigurable<*, *>
-            e.presentation.isEnabled = isConnectionNode
+            // disable for group-level ("Message Broker" groups) or empty tree nodes
+            val isValidConnection = myNode?.configurable !is GroupEmptyConfigurable && myNode?.userObject != null
+            e.presentation.isEnabled = isValidConnection
         }
 
         override fun actionPerformed(e: AnActionEvent) {
