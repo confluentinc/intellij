@@ -16,20 +16,14 @@ interface DataPlaneFetcher {
     /** Delete a topic. */
     suspend fun deleteTopic(topicName: String)
 
-    /** Get topic details (partitions, replication factor, messages, etc). */
-    suspend fun describeTopic(topicName: String): TopicDetails
-
     /** Get partition details (ID, message count, offset, leader, replicas). */
     suspend fun describeTopicPartitions(topicName: String): List<PartitionData>
 
     /** Get topic configuration. */
-    suspend fun describeTopicConfiguration(topicName: String): Map<String, String>
+    suspend fun describeTopicConfiguration(topicName: String): List<ConfigData>
 
-    /** Produce a record to a topic. */
-    suspend fun produceRecord(topicName: String, request: ProduceRequest): ProduceResponse
-
-    /** Consume records from a topic. */
-    suspend fun consumeRecords(topicName: String, request: ConsumeRequest): List<ConsumerRecord>
+    /** Get total message count for a topic (across all partitions). */
+    suspend fun getTopicMessageCount(topicName: String): Long
 
     /** List all consumer groups. */
     suspend fun listConsumerGroups(): List<ConsumerGroupData>
@@ -51,4 +45,34 @@ interface DataPlaneFetcher {
 
     /** Get schema by global ID. */
     suspend fun getSchemaById(schemaId: Int): SchemaByIdResponse
+
+    /** Check if a schema already exists. Returns null if not found. */
+    suspend fun checkSchemaExists(
+        subject: String,
+        schema: String,
+        schemaType: String = "AVRO"
+    ): SchemaVersionResponse?
+
+    /** Register a new schema version for a subject. Returns the schema ID. */
+    suspend fun registerSchema(
+        subject: String,
+        schema: String,
+        schemaType: String = "AVRO",
+        references: List<SchemaReference> = emptyList()
+    ): Int
+
+    /** Delete a specific schema version. Returns the deleted version number. */
+    suspend fun deleteSchemaVersion(subject: String, version: String, permanent: Boolean = false): Int
+
+    /** Delete all versions of a subject. Returns list of deleted version numbers. */
+    suspend fun deleteSubject(subject: String, permanent: Boolean = false): List<Int>
+
+    /** Get compatibility level for a subject. Returns null if using global default. */
+    suspend fun getSubjectCompatibility(subject: String): String?
+
+    /** Update compatibility level for a subject. Returns the new compatibility level. */
+    suspend fun updateSubjectCompatibility(subject: String, compatibility: String): String
+
+    /** Get global default compatibility level. */
+    suspend fun getGlobalCompatibility(): String?
 }

@@ -13,12 +13,14 @@ class ClearTopicAction : DumbAwareAction() {
         val rfsPath = e.rfsPath ?: return
         val dataManager = e.dataManager as KafkaDataManager
 
-        dataManager.clearTopic(rfsPath.name)
+        dataManager.clearTopicWithConfirmation(rfsPath.name)
     }
 
     override fun update(e: AnActionEvent) {
         val rfsPath = e.rfsPath
-        e.presentation.isEnabledAndVisible = e.dataManager != null && rfsPath?.parent?.isTopicFolder == true
+        // Only show for Kafka direct connections (CCloud doesn't support clear via REST API)
+        e.presentation.isEnabledAndVisible =
+            e.dataManager is KafkaDataManager && rfsPath?.parent?.isTopicFolder == true
     }
 
     override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT

@@ -5,15 +5,27 @@ import com.intellij.openapi.ui.InputValidatorEx
 import com.intellij.ui.components.JBTextField
 import com.intellij.ui.dsl.builder.AlignX
 import com.intellij.ui.dsl.builder.panel
+import io.confluent.intellijplugin.core.monitoring.data.MonitoringDataManager
+import io.confluent.intellijplugin.core.rfs.util.RfsNotificationUtils
 import io.confluent.intellijplugin.core.settings.buildValidator
 import io.confluent.intellijplugin.core.settings.registerValidator
 import io.confluent.intellijplugin.core.settings.withNumberOrEmptyValidator
 import io.confluent.intellijplugin.core.ui.doOnChange
-import io.confluent.intellijplugin.data.KafkaDataManager
+import io.confluent.intellijplugin.data.TopicDataProvider
+import io.confluent.intellijplugin.data.TopicOperations
+import kotlinx.coroutines.launch
 import javax.swing.JTextField
 
 object KafkaDialogFactory {
-    fun showCreateTopicDialog(dataManager: KafkaDataManager) {
+    fun showCreateTopicDialog(dataManager: TopicOperations) {
+        require(dataManager is TopicDataProvider) {
+            "dataManager must implement both TopicOperations and TopicDataProvider"
+        }
+        require(dataManager is MonitoringDataManager) {
+            "dataManager must extend MonitoringDataManager"
+        }
+        val topicProvider = dataManager as TopicDataProvider
+        val monitoringDataManager = dataManager as MonitoringDataManager
         val builder = DialogBuilder()
         builder.addOkAction()
         builder.addCancelAction()
@@ -36,7 +48,7 @@ object KafkaDialogFactory {
                 return when {
                     inputString.isBlank() -> KafkaMessagesBundle.message("validator.notEmpty")
                     inputString.contains(NOT_SPACES_PATTERN) -> KafkaMessagesBundle.message("validator.notSpaces")
-                    inputString in getTopicNames(dataManager) -> KafkaMessagesBundle.message(
+                    inputString in getTopicNames(topicProvider) -> KafkaMessagesBundle.message(
                         "kafka.validator.already.exist.topic.name",
                         inputString
                     )
@@ -61,10 +73,22 @@ object KafkaDialogFactory {
         if (!builder.showAndGet())
             return
 
-        dataManager.createTopic(nameField.text, numPartition.text.toIntOrNull(), replicationFactor.text.toIntOrNull())
+        monitoringDataManager.driver.coroutineScope.launch {
+            try {
+                val partitions = numPartition.text.toIntOrNull()
+                val replicas = replicationFactor.text.toIntOrNull()
+                val result = dataManager.createTopic(nameField.text, partitions, replicas, emptyMap())
+
+                result.onFailure { exception ->
+                    RfsNotificationUtils.showExceptionMessage(monitoringDataManager.project, exception)
+                }
+            } catch (t: Throwable) {
+                RfsNotificationUtils.showExceptionMessage(monitoringDataManager.project, t)
+            }
+        }
     }
 
-    private fun getTopicNames(dataManager: KafkaDataManager): List<String> = dataManager.getTopics().map { it.name }
+    private fun <T : TopicDataProvider> getTopicNames(dataManager: T): List<String> = dataManager.getTopics().map { it.name }
 }
 
 private val NOT_SPACES_PATTERN = Regex("[ \t\n]")
