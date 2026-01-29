@@ -145,7 +145,6 @@ class ConnectionSettingsPanel(val project: Project) : MasterDetailsComponent(),
     override fun getDisplayName() = KafkaMessagesBundle.message("connections.settings.display.name")
 
     override fun createActions(fromPopup: Boolean): List<AnAction> {
-
         val duplicateAction = DuplicateConnectionAction().apply {
             registerCustomShortcutSet(CommonShortcuts.getDuplicate(), tree)
         }
@@ -502,6 +501,13 @@ class ConnectionSettingsPanel(val project: Project) : MasterDetailsComponent(),
         KafkaMessagesBundle.message("settings.duplicateConnection"), null,
         AllIcons.Actions.Copy
     ) {
+        override fun update(e: AnActionEvent) {
+            val myNode = myTree.selectionPath?.lastPathComponent as? MyNode
+            // disable for group-level ("Message Broker" groups) or empty tree nodes
+            val isValidConnection = myNode?.configurable !is GroupEmptyConfigurable && myNode?.userObject != null
+            e.presentation.isEnabled = isValidConnection
+        }
+
         override fun actionPerformed(e: AnActionEvent) {
             val myNode = myTree.selectionPath?.lastPathComponent as? MyNode ?: return
             (myNode.configurable as? ConnectionConfigurable<*, *>)?.let {
