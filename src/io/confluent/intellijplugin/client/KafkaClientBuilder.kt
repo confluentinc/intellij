@@ -1,8 +1,10 @@
 package io.confluent.intellijplugin.client
 
 import io.confluent.intellijplugin.core.settings.kerberos.BdtKerberosManager
+import io.confluent.intellijplugin.telemetry.TelemetryUtils
 import org.apache.kafka.clients.CommonClientConfigs.SECURITY_PROTOCOL_CONFIG
 import org.apache.kafka.clients.admin.AdminClient
+import org.apache.kafka.clients.admin.AdminClientConfig
 import org.apache.kafka.common.KafkaException
 import org.apache.kafka.common.config.SaslConfigs
 import org.apache.kafka.common.config.SaslConfigs.GSSAPI_MECHANISM
@@ -11,6 +13,9 @@ import java.util.*
 
 object KafkaClientBuilder {
     fun createAdminClient(properties: Properties): BdtKafkaAdminClient {
+        if (!properties.containsKey(AdminClientConfig.CLIENT_ID_CONFIG)) {
+            properties[AdminClientConfig.CLIENT_ID_CONFIG] = "Confluent for IntelliJ ${TelemetryUtils.getPluginVersion()} - Admin"
+        }
         if (properties.isKerberosEnabled) {
             BdtKerberosManager.instance.setupKerberosValues()
         }
