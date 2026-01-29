@@ -145,7 +145,6 @@ class ConnectionSettingsPanel(val project: Project) : MasterDetailsComponent(),
     override fun getDisplayName() = KafkaMessagesBundle.message("connections.settings.display.name")
 
     override fun createActions(fromPopup: Boolean): List<AnAction> {
-// Note to self - this is the top-level one. Comment out and it will remove duplicate action for all in tree
         val duplicateAction = DuplicateConnectionAction().apply {
             registerCustomShortcutSet(CommonShortcuts.getDuplicate(), tree)
         }
