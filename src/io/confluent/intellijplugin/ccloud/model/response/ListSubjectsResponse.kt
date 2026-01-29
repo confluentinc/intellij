@@ -32,7 +32,7 @@ data class SchemaVersionResponse(
     @SerialName("version") val version: Int,
     @SerialName("id") val id: Int,
     @SerialName("schema") val schema: String,
-    @SerialName("schemaType") val schemaType: String? = "AVRO"
+    @SerialName("schemaType") val schemaType: String? = null
 )
 
 /**
@@ -41,7 +41,7 @@ data class SchemaVersionResponse(
 @Serializable
 data class SchemaByIdResponse(
     @SerialName("schema") val schema: String,
-    @SerialName("schemaType") val schemaType: String? = "AVRO"
+    @SerialName("schemaType") val schemaType: String? = null
 )
 
 /**
@@ -53,4 +53,67 @@ data class SubjectData(
     val latestVersion: Int? = null,
     val schemaType: String? = null,
     val compatibility: String? = null
+)
+
+/**
+ * Request for POST /subjects/{subject}/versions (register schema)
+ * and POST /subjects/{subject} (check if schema exists).
+ */
+@Serializable
+data class RegisterSchemaRequest(
+    @SerialName("schema") val schema: String,
+    @SerialName("schemaType") val schemaType: String = "AVRO",
+    @SerialName("references") val references: List<SchemaReference> = emptyList()
+)
+
+/**
+ * Schema reference for nested/imported schemas.
+ */
+@Serializable
+data class SchemaReference(
+    @SerialName("name") val name: String,
+    @SerialName("subject") val subject: String,
+    @SerialName("version") val version: Int
+)
+
+/**
+ * Response from POST /subjects/{subject}/versions
+ * Returns the ID of the registered schema.
+ */
+@Serializable
+data class RegisterSchemaResponse(
+    @SerialName("id") val id: Int
+)
+
+/**
+ * Response from DELETE /subjects/{subject}
+ * Returns array of deleted version numbers.
+ */
+typealias DeleteSubjectResponse = List<Int>
+
+/**
+ * Response from DELETE /subjects/{subject}/versions/{version}
+ * Returns the deleted version number.
+ */
+typealias DeleteVersionResponse = Int
+
+/**
+ * Response from GET /config or GET /config/{subject}
+ */
+@Serializable
+data class CompatibilityConfigResponse(
+    @SerialName("compatibilityLevel") val compatibilityLevel: String? = null,
+    @SerialName("compatibility") val compatibility: String? = null
+) {
+    /** Get compatibility value from either field (API uses both names). */
+    val level: String?
+        get() = compatibilityLevel ?: compatibility
+}
+
+/**
+ * Request for PUT /config/{subject}
+ */
+@Serializable
+data class UpdateCompatibilityRequest(
+    @SerialName("compatibility") val compatibility: String
 )

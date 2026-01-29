@@ -46,8 +46,21 @@ class ConfluentDriver(
     override val icon: Icon = AllIcons.Nodes.Folder
 
     override val treeNodeBuilder: RfsDriverTreeNodeBuilder = object : RfsDriverTreeNodeBuilder() {
-        override fun createNode(project: Project, path: RfsPath, driver: Driver) =
-            ConfluentRfsTreeNode(project, path, this@ConfluentDriver)
+        override fun createNode(project: Project, path: RfsPath, driver: Driver): ConfluentRfsTreeNode {
+            val schemaType = if (path.isSchema) {
+                val envId = selectedEnvironmentId
+                if (envId != null) {
+                    val clusters = dataManager.getKafkaClusters(envId)
+                    val cluster = clusters.firstOrNull()
+                    if (cluster != null) {
+                        val cache = dataManager.getDataPlaneCache(cluster)
+                        cache.getSubjects().find { it.name == path.name }?.schemaType
+                    } else null
+                } else null
+            } else null
+
+            return ConfluentRfsTreeNode(project, path, this@ConfluentDriver, schemaType)
+        }
     }
 
     init {
@@ -193,8 +206,8 @@ class ConfluentDriver(
             return driver.dataManager.client.getSchemaRegistry(envId)?.id == name
         }
 
-        val RfsPath.isTopic: Boolean get() = elements.size == 2
-        val RfsPath.isSchema: Boolean get() = elements.size == 2
+        val RfsPath.isTopic: Boolean get() = elements.size == 2 && elements[0].startsWith("lkc-")
+        val RfsPath.isSchema: Boolean get() = elements.size == 2 && elements[0].startsWith("lsrc-")
 
         val RfsPath.isEnvironment: Boolean get() = false
         val RfsPath.isClustersFolder: Boolean get() = false
