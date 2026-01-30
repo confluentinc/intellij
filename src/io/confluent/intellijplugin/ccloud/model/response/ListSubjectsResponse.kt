@@ -32,7 +32,7 @@ data class SchemaVersionResponse(
     @SerialName("version") val version: Int,
     @SerialName("id") val id: Int,
     @SerialName("schema") val schema: String,
-    @SerialName("schemaType") val schemaType: String? = "AVRO"
+    @SerialName("schemaType") val schemaType: String? = null
 )
 
 /**
@@ -41,7 +41,7 @@ data class SchemaVersionResponse(
 @Serializable
 data class SchemaByIdResponse(
     @SerialName("schema") val schema: String,
-    @SerialName("schemaType") val schemaType: String? = "AVRO"
+    @SerialName("schemaType") val schemaType: String? = null
 )
 
 /**

@@ -93,6 +93,7 @@ abstract class MainTreeController<CONN_TYPE : ConnectionData, DRIVER_TYPE : Moni
         component = UiDataProvider.wrapComponent(panel) { sink ->
             sink[DATA_MANAGER] = dataManager
             sink[RFS_PATH] = myTree.selectionPath?.lastDriverNode?.rfsPath
+            sink[NAVIGABLE_CONTROLLER] = this
         }
 
         driver.addListener(driverListener)
@@ -208,10 +209,16 @@ abstract class MainTreeController<CONN_TYPE : ConnectionData, DRIVER_TYPE : Moni
         val DATA_MANAGER: DataKey<MonitoringDataManager> = DataKey.create("kafka.data.manager")
         val RFS_PATH: DataKey<RfsPath> = DataKey.create("bdt.rfs.path")
 
+        /** Allows actions to change what's selected in the tree */
+        val NAVIGABLE_CONTROLLER: DataKey<NavigableController> = DataKey.create("kafka.navigable.controller")
+
         val AnActionEvent.dataManager
             get() = dataContext.getData(DATA_MANAGER)
 
         val AnActionEvent.rfsPath
             get() = dataContext.getData(RFS_PATH)
+
+        val AnActionEvent.navigableController
+            get() = dataContext.getData(NAVIGABLE_CONTROLLER)
     }
 }
