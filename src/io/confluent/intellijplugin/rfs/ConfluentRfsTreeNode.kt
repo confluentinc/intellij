@@ -24,7 +24,8 @@ import javax.swing.Icon
 class ConfluentRfsTreeNode(
     project: Project,
     rfsPath: RfsPath,
-    private val confluentDriver: ConfluentDriver
+    private val confluentDriver: ConfluentDriver,
+    private val schemaType: String? = null
 ) : MonitoringRfsTreeNode(project, rfsPath, confluentDriver) {
 
     init {
@@ -78,6 +79,7 @@ class ConfluentRfsTreeNode(
                     "${sr.id} (${sr.cloudProvider} / ${sr.region})"
                 } else null
             }
+            rfsPath.isSchema -> schemaType
             else -> null
         }
     }

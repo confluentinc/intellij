@@ -26,15 +26,14 @@ class ConfluentDataManager(
     driverProvider: () -> MonitoringDriver
 ) : MonitoringDataManager(project, settings, driverProvider) {
 
-    /** Control plane cache for organizational resources. */
     override val client = ControlPlaneCache(project).also {
         Disposer.register(this, it)
     }
 
-    /** Data plane caches (one per cluster, created on-demand). */
     private val dataPlaneCache = mutableMapOf<String, DataPlaneCache>()
 
-    /** Get or create data plane cache for a cluster (auto-finds Schema Registry). */
+    private val clusterDataManagers = mutableMapOf<String, ClusterScopedDataManager>()
+
     fun getDataPlaneCache(cluster: Cluster): DataPlaneCache {
         return dataPlaneCache.getOrPut(cluster.id) {
             val schemaRegistry = findSchemaRegistryForCluster(cluster)
@@ -44,6 +43,16 @@ class ConfluentDataManager(
             cache
         }
     }
+
+    fun getOrCreateClusterDataManager(cluster: Cluster): ClusterScopedDataManager {
+        return clusterDataManagers.getOrPut(cluster.id) {
+            ClusterScopedDataManager(project, this, cluster).also {
+                Disposer.register(this, it)
+            }
+        }
+    }
+
+    fun getAllClusterDataManagers(): Collection<ClusterScopedDataManager> = clusterDataManagers.values
 
     /** Find Schema Registry for a cluster's environment. */
     private fun findSchemaRegistryForCluster(cluster: Cluster): SchemaRegistry? {
@@ -60,8 +69,6 @@ class ConfluentDataManager(
     fun getEnvironments(): List<Environment> = client.getEnvironments()
     fun getKafkaClusters(environmentId: String): List<Cluster> = client.getKafkaClusters(environmentId)
     fun getSchemaRegistry(environmentId: String): SchemaRegistry? = client.getSchemaRegistry(environmentId)
-
-    // ========== Lifecycle ==========
 
     init {
         init()

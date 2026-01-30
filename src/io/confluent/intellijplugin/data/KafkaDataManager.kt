@@ -55,8 +55,8 @@ class KafkaDataManager(
     override val connectionData: KafkaConnectionData,
     settings: IntervalUpdateSettings,
     driverProvider: () -> MonitoringDriver
-) : MonitoringDataManager(project, settings, driverProvider), TopicDataProvider {
-    val registryType = connectionData.registryType
+) : MonitoringDataManager(project, settings, driverProvider), TopicDataProvider, TopicOperations, TopicDetailDataProvider {
+    override val registryType = connectionData.registryType
 
     override val connectionId = connectionData.innerId
     override val client = KafkaClient(project, connectionData, false).also { Disposer.register(this, it) }
@@ -67,8 +67,8 @@ class KafkaDataManager(
 
     internal val consumerGroupsModel = createConsumerGroupsDataModel().also { Disposer.register(this, it) }
     internal val consumerGroupsOffsets = createConsumerGroupOffsetsStorage().also { Disposer.register(this, it) }
-    var topicPartitionsModels = createTopicPartitionsStorage().also { Disposer.register(this, it) }
-    val topicConfigsModels = createTopicConfigsStorage().also { Disposer.register(this, it) }
+    override var topicPartitionsModels = createTopicPartitionsStorage().also { Disposer.register(this, it) }
+    override val topicConfigsModels = createTopicConfigsStorage().also { Disposer.register(this, it) }
 
     private val schemaVersionModels = createSchemaVersionsStorage().also { Disposer.register(this, it) }
 
@@ -156,7 +156,7 @@ class KafkaDataManager(
         emptyList()
     }
 
-    fun deleteTopic(topicNames: List<String>) {
+    fun deleteTopicWithConfirmation(topicNames: List<String>) {
         if (topicNames.isEmpty()) {
             return
         }
@@ -408,7 +408,7 @@ class KafkaDataManager(
         client.confluentRegistryClient?.getLatestVersionInfo(schemaName)
             ?: client.glueRegistryClient?.getLatestVersionInfo(schemaName)
 
-    fun clearTopic(topicName: String) {
+    fun clearTopicWithConfirmation(topicName: String) {
         val topic = getCachedTopicInfo(topicName) ?: return
         val msg = KafkaMessagesBundle.message("action.clear.topic.single.message", topic.name)
         val res = Messages.showOkCancelDialog(
@@ -429,7 +429,7 @@ class KafkaDataManager(
         topicModel.data?.firstOrNull { it.name == topicName }
 
 
-    fun clearPartitions(partitions: List<BdtTopicPartition>) {
+    override fun clearPartitions(partitions: List<BdtTopicPartition>) {
         if (partitions.isEmpty()) {
             return
         }
@@ -544,6 +544,53 @@ class KafkaDataManager(
             val finalSchemas = if (kafkaSettings.showFavoriteSchema) schemas.filter { it.isFavorite } else schemas
             // sort firstly by favorite schema then by name
             return finalSchemas.sortedWith(compareByDescending<KafkaSchemaInfo> { it.isFavorite }.thenBy { it.name.lowercase() })
+        }
+    }
+
+    override suspend fun createTopic(
+        name: String,
+        partitions: Int?,
+        replicationFactor: Int?,
+        configs: Map<String, String>
+    ): Result<Unit> = withContext(Dispatchers.IO) {
+        try {
+            // When null, broker uses its default partition/replication settings
+            client.createTopic(name, partitions, replicationFactor)
+            updater.invokeRefreshModel(topicModel)
+            Result.success(Unit)
+        } catch (e: Exception) {
+            thisLogger().warn("Failed to create topic '$name'", e)
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun deleteTopic(topicNames: List<String>): Result<Unit> = withContext(Dispatchers.IO) {
+        try {
+            if (topicNames.isEmpty()) {
+                return@withContext Result.success(Unit)
+            }
+
+            topicNames.forEach {
+                client.deleteTopic(it)
+            }
+            updater.invokeRefreshModel(topicModel)
+            Result.success(Unit)
+        } catch (e: Exception) {
+            thisLogger().warn("Failed to delete topics: $topicNames", e)
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun clearTopic(topicName: String): Result<Unit> = withContext(Dispatchers.IO) {
+        try {
+            val topic = getCachedTopicInfo(topicName)
+                ?: return@withContext Result.failure(IllegalArgumentException("Topic not found: $topicName"))
+
+            clearPartitionsInternal(topic.partitionList)
+            Result.success(Unit)
+        } catch (e: Exception) {
+            thisLogger().warn("Failed to clear topic '$topicName'", e)
+            Result.failure(e)
         }
     }
 }

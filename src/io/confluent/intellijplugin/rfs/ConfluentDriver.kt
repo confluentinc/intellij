@@ -4,6 +4,8 @@ import com.intellij.icons.AllIcons
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
+import io.confluent.intellijplugin.ccloud.model.Cluster
+import io.confluent.intellijplugin.core.monitoring.data.listener.DataModelListener
 import io.confluent.intellijplugin.core.monitoring.rfs.MonitoringDriver
 import io.confluent.intellijplugin.core.monitoring.toolwindow.MonitoringToolWindowController
 import io.confluent.intellijplugin.core.rfs.driver.Driver
@@ -13,6 +15,7 @@ import io.confluent.intellijplugin.core.rfs.tree.DriverRfsTreeModel
 import io.confluent.intellijplugin.core.rfs.tree.node.RfsDriverTreeNodeBuilder
 import io.confluent.intellijplugin.data.ConfluentDataManager
 import io.confluent.intellijplugin.toolwindow.config.KafkaToolWindowSettings
+import io.confluent.intellijplugin.core.util.invokeLater
 import javax.swing.Icon
 
 /**
@@ -32,8 +35,8 @@ class ConfluentDriver(
 
     private val log = Logger.getInstance(ConfluentDriver::class.java)
 
-    // Selected environment ID for filtering tree root
     var selectedEnvironmentId: String? = null
+    private val registeredClusterListeners = mutableSetOf<String>()
 
     override val dataManager: ConfluentDataManager = ConfluentDataManager(
         project, connectionData, KafkaToolWindowSettings.getInstance(), { this }
@@ -43,12 +46,39 @@ class ConfluentDriver(
     override val icon: Icon = AllIcons.Nodes.Folder
 
     override val treeNodeBuilder: RfsDriverTreeNodeBuilder = object : RfsDriverTreeNodeBuilder() {
-        override fun createNode(project: Project, path: RfsPath, driver: Driver) =
-            ConfluentRfsTreeNode(project, path, this@ConfluentDriver)
+        override fun createNode(project: Project, path: RfsPath, driver: Driver): ConfluentRfsTreeNode {
+            val schemaType = if (path.isSchema) {
+                val envId = selectedEnvironmentId
+                if (envId != null) {
+                    val clusters = dataManager.getKafkaClusters(envId)
+                    val cluster = clusters.firstOrNull()
+                    if (cluster != null) {
+                        val cache = dataManager.getDataPlaneCache(cluster)
+                        cache.getSubjects().find { it.name == path.name }?.schemaType
+                    } else null
+                } else null
+            } else null
+
+            return ConfluentRfsTreeNode(project, path, this@ConfluentDriver, schemaType)
+        }
     }
 
     init {
         Disposer.register(this, dataManager)
+    }
+
+    private fun registerClusterTopicListener(clusterId: String, cluster: Cluster) {
+        if (registeredClusterListeners.contains(clusterId)) return
+        registeredClusterListeners.add(clusterId)
+
+        val clusterDataManager = dataManager.getOrCreateClusterDataManager(cluster)
+        clusterDataManager.topicModel.addListener(object : DataModelListener {
+            override fun onChanged() {
+                invokeLater {
+                    fileInfoManager.refreshFiles(clusterPath(clusterId))
+                }
+            }
+        })
     }
 
     override fun getController(project: Project): MonitoringToolWindowController? = null
@@ -95,8 +125,10 @@ class ConfluentDriver(
                 if (cluster != null) {
                     log.info("ConfluentDriver: Loading topics for cluster $nodeId")
 
+                    registerClusterTopicListener(nodeId, cluster)
+
                     val cache = dataManager.getDataPlaneCache(cluster)
-                    val topics = cache.refreshTopics()
+                    val topics = cache.refreshTopics().sortedBy { it.topicName.lowercase() }
                     log.info("ConfluentDriver: Found ${topics.size} topics")
 
                     return if (topics.isEmpty()) {
@@ -128,7 +160,7 @@ class ConfluentDriver(
                         return emptyList()
                     }
 
-                    val subjects = cache.refreshSubjects()
+                    val subjects = cache.refreshSubjects().sortedBy { it.name.lowercase() }
                     log.info("ConfluentDriver: Found ${subjects.size} schemas")
 
                     return if (subjects.isEmpty()) {
@@ -174,8 +206,8 @@ class ConfluentDriver(
             return driver.dataManager.client.getSchemaRegistry(envId)?.id == name
         }
 
-        val RfsPath.isTopic: Boolean get() = elements.size == 2
-        val RfsPath.isSchema: Boolean get() = elements.size == 2
+        val RfsPath.isTopic: Boolean get() = elements.size == 2 && elements[0].startsWith("lkc-")
+        val RfsPath.isSchema: Boolean get() = elements.size == 2 && elements[0].startsWith("lsrc-")
 
         val RfsPath.isEnvironment: Boolean get() = false
         val RfsPath.isClustersFolder: Boolean get() = false
