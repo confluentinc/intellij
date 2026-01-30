@@ -430,9 +430,7 @@ internal class ConfluentMainController(
                 return
             }
 
-            // TODO: fix double-load issue - refreshSubjects() already called in doLoadChildren() for tree expansion,
-            //  then called again here blocking EDT. 
-            val subjects = cache.refreshSubjects()
+            val subjects = cache.getSubjects()
 
             val columnNames = arrayOf("Schema Subject")
             val data = subjects.map { subject ->
