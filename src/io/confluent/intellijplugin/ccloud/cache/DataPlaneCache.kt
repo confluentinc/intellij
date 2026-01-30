@@ -14,7 +14,9 @@ import io.confluent.intellijplugin.model.BdtTopicPartition
 import io.confluent.intellijplugin.model.InternalReplica
 import io.confluent.intellijplugin.model.TopicConfig
 import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.*
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicInteger
 
 /**
  * Data plane cache for cluster-level resources (topics, subjects, consumer groups).
@@ -85,6 +87,7 @@ class DataPlaneCache(
     fun refreshSubjects(): List<SubjectData> {
         if (schemaRegistry == null) return emptyList()
 
+        // TODO: Add progressive loading for schemas similar to enrichTopicsDataProgressively()
         val subjects = fetcher?.let { f ->
             runBlocking { f.listSubjectsWithDetails() }
         } ?: emptyList()
@@ -92,7 +95,48 @@ class DataPlaneCache(
         return subjects
     }
 
-    /** Enrich topics with message count. */
+    /**
+     * Enrich topics with message count progressively.
+     * Emits results one by one as they complete, allowing UI to update incrementally.
+     * Rate limiting happens at HTTP client level (4.5 req/sec token bucket).
+     */
+    fun enrichTopicsDataProgressively(topics: List<TopicData>): Flow<EnrichmentResult> = channelFlow {
+        thisLogger().info("Starting progressive enrichment for ${topics.size} topics")
+        val completed = AtomicInteger(0)
+
+        topics.forEach { topic ->
+            launch {
+                try {
+                    val messageCount = withTimeout(ENRICHMENT_TIMEOUT_MS) {
+                        fetcher?.getTopicMessageCount(topic.topicName)
+                    }
+
+                    val count = completed.incrementAndGet()
+                    send(EnrichmentResult.Success(
+                        topicName = topic.topicName,
+                        data = TopicEnrichmentData(messageCount = messageCount),
+                        progress = count to topics.size
+                    ))
+
+                    thisLogger().info("Enriched ${topic.topicName}: messageCount=$messageCount ($count/${topics.size})")
+                } catch (e: Exception) {
+                    val count = completed.incrementAndGet()
+                    send(EnrichmentResult.Failure(
+                        topicName = topic.topicName,
+                        progress = count to topics.size,
+                        error = e
+                    ))
+
+                    thisLogger().warn("Failed to enrich topic ${topic.topicName}: ${e.message} ($count/${topics.size})")
+                }
+            }
+        }
+    }.flowOn(Dispatchers.IO)
+
+    /**
+     * Enrich topics with message count (blocking until all complete).
+     * Rate limiting happens at HTTP client level (4.5 req/sec token bucket).
+     */
     suspend fun enrichTopicsData(topics: List<TopicData>): Map<String, TopicEnrichmentData> = coroutineScope {
         thisLogger().info("Starting enrichment for ${topics.size} topics")
 
@@ -133,12 +177,10 @@ class DataPlaneCache(
 
     /**
      * Get topic partitions with offsets. Fetches offsets in parallel.
-     * Note: CCloud REST API does not expose /replicas endpoint,
-     * We use topic replication factor for the replicas count instead.
+     * Note: With rate limiting (4.5 req/sec), this takes ~N/2 seconds for N partitions.
      */
     suspend fun getTopicPartitions(topicName: String): List<BdtTopicPartition> = coroutineScope {
         val f = fetcher ?: throw IllegalStateException("DataPlaneCache not connected")
-
         val topic = cachedTopics?.find { it.topicName == topicName }
         val replicationFactor = topic?.replicationFactor ?: 3
 
@@ -209,4 +251,22 @@ class DataPlaneCache(
         cachedTopics = null
         cachedSubjects = null
     }
+}
+
+/** Result of enriching a single topic with additional data. */
+sealed class EnrichmentResult {
+    abstract val topicName: String
+    abstract val progress: Pair<Int, Int>
+
+    data class Success(
+        override val topicName: String,
+        val data: TopicEnrichmentData,
+        override val progress: Pair<Int, Int>
+    ) : EnrichmentResult()
+
+    data class Failure(
+        override val topicName: String,
+        override val progress: Pair<Int, Int>,
+        val error: Exception
+    ) : EnrichmentResult()
 }

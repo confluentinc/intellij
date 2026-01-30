@@ -83,7 +83,9 @@ class ClusterScopedDataManager(
             }
 
             try {
-                val enrichmentMap = dataPlaneCache.enrichTopicsData(topicDataList)
+                val enrichmentMap = runBlocking(Dispatchers.IO) {
+                    dataPlaneCache.enrichTopicsData(topicDataList)
+                }
 
                 val enrichedTopics = basicTopics.map { topic ->
                     enrichmentMap[topic.name]?.let { enrichment ->
