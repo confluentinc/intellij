@@ -554,7 +554,7 @@ class KafkaDataManager(
         configs: Map<String, String>
     ): Result<Unit> = withContext(Dispatchers.IO) {
         try {
-            // Pass nulls to client - Kafka broker will use defaults
+            // When null, broker uses its default partition/replication settings
             client.createTopic(name, partitions, replicationFactor)
             updater.invokeRefreshModel(topicModel)
             Result.success(Unit)

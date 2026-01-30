@@ -46,6 +46,9 @@ class DataPlaneCache(
             CCloudRestClient(
                 baseUrl = schemaRegistry.httpEndpoint.removeSuffix(":443"),
                 authType = CCloudRestClient.AuthType.DATA_PLANE,
+                // Required for OAuth/bearer token auth with CCloud multi-tenant SR endpoints.
+                // Routes request to specific SR cluster since data plane token is not cluster-specific.
+                // See: https://docs.confluent.io/cloud/current/sr/sr-rest-apis.html#oauth-for-ccloud-sr-rest-api
                 additionalHeaders = mapOf("target-sr-cluster" to schemaRegistry.id)
             )
         } else null

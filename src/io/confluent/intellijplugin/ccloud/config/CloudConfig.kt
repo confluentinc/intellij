@@ -65,25 +65,37 @@ object CloudConfig {
          * Schema Registry API v1 endpoints.
          */
         object SchemaRegistry {
+            // Read operations
             /** List subjects: GET /subjects */
             const val SUBJECTS_URI = "/subjects"
 
-            /** Get subject versions: GET /subjects/{subject}/versions */
+            /** Get subject all versions: GET /subjects/{subject}/versions */
             const val SUBJECT_VERSIONS_URI = "/subjects/%s/versions"
 
-            /** Get subject version: GET /subjects/{subject}/versions/{version} */
+            /** Get subject specific version: GET /subjects/{subject}/versions/{version} */
             const val SUBJECT_VERSION_URI = "/subjects/%s/versions/%s"
 
             /** Get schema by ID: GET /schemas/ids/{id} */
             const val SCHEMA_BY_ID_URI = "/schemas/ids/%s"
 
-            /** Delete subject: DELETE /subjects/{subject} */
+            // Write operations
+            /** Register schema: POST /subjects/{subject}/versions */
+            const val REGISTER_SCHEMA_URI = "/subjects/%s/versions"
+
+            /** Check if schema exists: POST /subjects/{subject} */
+            const val CHECK_SCHEMA_URI = "/subjects/%s"
+
+            /** Delete subject: DELETE /subjects/{subject}?permanent={bool} */
             const val DELETE_SUBJECT_URI = "/subjects/%s"
 
-            /** Schema Registry config: GET /config */
+            /** Delete schema version: DELETE /subjects/{subject}/versions/{version}?permanent={bool} */
+            const val DELETE_VERSION_URI = "/subjects/%s/versions/%s"
+
+            // Config operations
+            /** Get global compatibility: GET /config */
             const val CONFIG_URI = "/config"
 
-            /** Subject config: GET /config/{subject} */
+            /** Get/update subject compatibility: GET|PUT /config/{subject} */
             const val SUBJECT_CONFIG_URI = "/config/%s"
         }
     }
