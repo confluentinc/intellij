@@ -43,11 +43,19 @@ class ClusterScopedDataManager(
 
     private val dataPlaneCache: DataPlaneCache = confluentDataManager.getDataPlaneCache(cluster)
 
+    /**
+     * Get the data plane cache for REST API operations.
+     */
+    fun getDataPlaneCache(): DataPlaneCache = dataPlaneCache
+
     override val connectionId: String = cluster.id
 
     override val connectionData: ConfluentConnectionData
         get() = confluentDataManager.connectionData
 
+    /**
+     * Topic model for this specific cluster.
+     */
     override val topicModel: ObjectDataModel<TopicPresentable> = createTopicsDataModel().also {
         Disposer.register(this, it)
     }
@@ -247,5 +255,6 @@ class ClusterScopedDataManager(
     override fun supportsInSyncReplicasData(): Boolean = false
 
     override fun dispose() {
+        // Don't dispose the parent ConfluentDataManager, just clean up our references
     }
 }
