@@ -8,14 +8,14 @@ import com.intellij.openapi.project.DumbAwareToggleAction
 import com.intellij.openapi.project.Project
 import io.confluent.intellijplugin.core.monitoring.toolwindow.DetailsTableMonitoringController
 import io.confluent.intellijplugin.core.util.executeOnPooledThread
-import io.confluent.intellijplugin.data.KafkaDataManager
+import io.confluent.intellijplugin.data.TopicDetailDataProvider
 import io.confluent.intellijplugin.model.TopicConfig
 import io.confluent.intellijplugin.toolwindow.config.KafkaToolWindowSettings
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
 
 class TopicConfigsController(
     val project: Project,
-    private val dataManager: KafkaDataManager
+    private val dataManager: TopicDetailDataProvider
 ) : DetailsTableMonitoringController<TopicConfig, String>() {
     init {
         init()
