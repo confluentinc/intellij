@@ -10,9 +10,13 @@ import io.confluent.intellijplugin.common.settings.StorageConsumerConfig
 import io.confluent.intellijplugin.consumer.models.ConsumerProducerFieldConfig
 import io.confluent.intellijplugin.consumer.models.ConsumerStartType
 import io.confluent.intellijplugin.data.ClusterScopedDataManager
+import io.confluent.intellijplugin.util.KafkaOffsetUtils
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -41,17 +45,21 @@ import kotlin.math.min
  * @param clusterDataManager The cluster-scoped data manager for CCloud connection
  * @param onStart Callback invoked when consumption starts
  * @param onStop Callback invoked when consumption stops
- * @param scope CoroutineScope for the polling loop
+ * @param parentScope CoroutineScope for context (not used directly - we create our own independent scope)
  */
 class CCloudConsumerClient(
     private val clusterDataManager: ClusterScopedDataManager,
     val onStart: () -> Unit,
     val onStop: () -> Unit,
-    private val scope: CoroutineScope
+    @Suppress("UNUSED_PARAMETER") parentScope: CoroutineScope
 ) : ConsumerClient {
 
     private val running = AtomicBoolean(false)
     private var pollingJob: Job? = null
+
+    // Use our own independent scope to prevent cancellation from UI operations
+    // SupervisorJob ensures child coroutine failures don't cancel the scope
+    private var consumerScope: CoroutineScope? = null
 
     // Track next offsets per partition for subsequent requests
     private val nextOffsets = mutableMapOf<Int, Long>()
@@ -68,7 +76,11 @@ class CCloudConsumerClient(
         onStart()
         nextOffsets.clear()
 
-        pollingJob = scope.launch {
+        // Create a new independent scope for this consumption session
+        // Using Dispatchers.IO for network operations
+        consumerScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+        pollingJob = consumerScope!!.launch {
             try {
                 pollLoop(config, consume, timestampUpdate, consumeError)
             } catch (e: CancellationException) {
@@ -97,7 +109,7 @@ class CCloudConsumerClient(
         var isFirstRequest = true
         var consecutiveErrors = 0
 
-        while (running.get() && scope.isActive) {
+        while (running.get() && (consumerScope?.isActive == true)) {
             val startTime = System.currentTimeMillis()
 
             try {
@@ -202,20 +214,25 @@ class CCloudConsumerClient(
             )
 
             ConsumerStartType.OFFSET -> {
+                // Offset is relative to beginning offset (user enters 10 → start from beginningOffset + 10)
                 val offset = startsWith.offset ?: 0L
-                val partitions = fetcher.describeTopicPartitions(topicName)
+                val offsetInfo = fetcher.getTopicPartitionOffsets(topicName)
                 ConsumeRecordsRequest(
-                    offsets = partitions.map { PartitionOffset(it.partitionId, offset) },
+                    offsets = offsetInfo.map { (partitionId, info) ->
+                        PartitionOffset(partitionId, info.beginningOffset + offset)
+                    },
                     maxPollRecords = 100
                 )
             }
 
             ConsumerStartType.LATEST_OFFSET_MINUS_X -> {
-                val offsetDelta = startsWith.offset ?: 0L
+                // Offset is already negative from ConsumerEditorUtils (user enters 10 → offset = -10)
+                // So endOffset + offset = endOffset + (-10) = endOffset - 10
+                val offset = startsWith.offset ?: 0L
                 val offsetInfo = fetcher.getTopicPartitionOffsets(topicName)
                 ConsumeRecordsRequest(
                     offsets = offsetInfo.map { (partitionId, info) ->
-                        PartitionOffset(partitionId, max(0, info.endOffset - offsetDelta))
+                        PartitionOffset(partitionId, max(0, info.endOffset + offset))
                     },
                     maxPollRecords = 100
                 )
@@ -224,10 +241,15 @@ class CCloudConsumerClient(
             ConsumerStartType.SPECIFIC_DATE,
             ConsumerStartType.LAST_HOUR,
             ConsumerStartType.TODAY,
-            ConsumerStartType.YESTERDAY -> ConsumeRecordsRequest(
-                timestamp = startsWith.time,
-                maxPollRecords = 100
-            )
+            ConsumerStartType.YESTERDAY -> {
+                // Use KafkaOffsetUtils to calculate timestamp for LAST_HOUR, TODAY, YESTERDAY
+                // For SPECIFIC_DATE, it returns startsWith.time directly
+                val timestamp = KafkaOffsetUtils.calculateStartTime(startsWith)
+                ConsumeRecordsRequest(
+                    timestamp = timestamp,
+                    maxPollRecords = 100
+                )
+            }
 
             ConsumerStartType.CONSUMER_GROUP -> {
                 // Consumer groups not supported by CCloud REST API - fall back to NOW
@@ -363,6 +385,10 @@ class CCloudConsumerClient(
                 }
             }
         }
+        // Cancel the consumer scope to clean up resources
+        consumerScope?.cancel()
+        consumerScope = null
+        pollingJob = null
         onStop()
     }
 
