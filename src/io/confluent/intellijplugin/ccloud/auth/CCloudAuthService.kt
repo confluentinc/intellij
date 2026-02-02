@@ -1,10 +1,14 @@
 package io.confluent.intellijplugin.ccloud.auth
 
 import com.intellij.ide.BrowserUtil
+import com.intellij.openapi.application.EDT
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.thisLogger
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 import io.confluent.intellijplugin.telemetry.CCloudAuthenticationEvent
 import io.confluent.intellijplugin.telemetry.logUsage
 import io.confluent.intellijplugin.telemetry.logUser
@@ -62,12 +66,23 @@ class CCloudAuthService : Disposable {
                 }
                 logUsage(CCloudAuthenticationEvent(status = "signed in"))
 
-                onSuccess(authenticatedContext.getUserEmail())
+                // Switch to EDT for UI callback
+                runBlocking {
+                    withContext(Dispatchers.EDT) {
+                        onSuccess(authenticatedContext.getUserEmail())
+                    }
+                }
             },
             onError = { error ->
                 logger.error("Sign-in failed: $error")
                 logUsage(CCloudAuthenticationEvent(status = "authentication failed", errorType = error))
-                onError(error)
+
+                // Switch to EDT for UI callback
+                runBlocking {
+                    withContext(Dispatchers.EDT) {
+                        onError(error)
+                    }
+                }
             }
         )
 

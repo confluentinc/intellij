@@ -1,6 +1,8 @@
 package io.confluent.intellijplugin.ccloud.fetcher
 
-import io.confluent.intellijplugin.ccloud.model.*
+import io.confluent.intellijplugin.ccloud.model.Cluster
+import io.confluent.intellijplugin.ccloud.model.Environment
+import io.confluent.intellijplugin.ccloud.model.SchemaRegistry
 
 /**
  * Control plane operations for Confluent Cloud (environments, clusters, schema registries).
