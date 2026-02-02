@@ -50,4 +50,7 @@ interface DataPlaneFetcher {
 
     /** Get total message count for a topic (across all partitions). */
     suspend fun getTopicMessageCount(topicName: String): Long
+
+    /** Get offset info (beginning and end offsets) for all partitions of a topic. */
+    suspend fun getTopicPartitionOffsets(topicName: String): Map<Int, PartitionOffsetInfo>
 }
