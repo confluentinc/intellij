@@ -72,11 +72,13 @@ object CCloudTokenStorage {
                     clearSession()
                     null
                 }
+
                 session.refreshTokenExpiresAt < now -> {
                     logger.info("Stored refresh token expired")
                     clearSession()
                     null
                 }
+
                 else -> {
                     logger.info("Session loaded for user: ${session.userEmail}")
                     session

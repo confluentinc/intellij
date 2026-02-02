@@ -47,7 +47,6 @@ import javax.swing.JPanel
 abstract class AbstractTableController<T : RemoteInfo> : ComponentController {
     protected lateinit var columnModel: DataTableColumnModel<T>
     lateinit var dataTable: DataTable<T>
-    protected lateinit var tableScrollPane: JBScrollPane
     protected lateinit var decoratedTableComponent: SimpleToolWindowPanel
 
     override fun getComponent(): JComponent = decoratedTableComponent

@@ -51,6 +51,11 @@ class KafkaCreateProducerAction : DumbAwareAction(), CustomComponentAction {
         }
     }
 
+    // TODO: Remove this override once producer support is implemented for CCloud
+    override fun update(e: AnActionEvent) {
+        e.presentation.isEnabledAndVisible = e.dataManager is KafkaDataManager
+    }
+
     override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
 
     companion object {

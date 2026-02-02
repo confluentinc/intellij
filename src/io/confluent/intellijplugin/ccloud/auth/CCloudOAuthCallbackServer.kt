@@ -82,7 +82,10 @@ class CCloudOAuthCallbackServer(
         }
 
         try {
-            server = HttpServer.create(InetSocketAddress(InetAddress.getLoopbackAddress(), CCloudOAuthConfig.CALLBACK_PORT), 0).apply {
+            server = HttpServer.create(
+                InetSocketAddress(InetAddress.getLoopbackAddress(), CCloudOAuthConfig.CALLBACK_PORT),
+                0
+            ).apply {
                 createContext(CCloudOAuthConfig.CALLBACK_PATH) { exchange ->
                     handleCallback(exchange)
                 }
@@ -122,7 +125,9 @@ class CCloudOAuthCallbackServer(
         return when (exception) {
             is SSLHandshakeException -> 500 to TLS_HANDSHAKE_ERROR_MESSAGE
 
-            is OAuthErrorException -> { exception.httpStatusCode to "Retrieving ID token failed: ${exception.errorCode} ${exception.errorCode} - ${exception.errorDescription}." }
+            is OAuthErrorException -> {
+                exception.httpStatusCode to "Retrieving ID token failed: ${exception.errorCode} ${exception.errorCode} - ${exception.errorDescription}."
+            }
 
             // Assume network/server errors
             else -> 500 to (exception.message ?: "Token exchange failed")

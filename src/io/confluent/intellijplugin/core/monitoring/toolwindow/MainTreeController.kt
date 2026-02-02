@@ -35,6 +35,7 @@ import io.confluent.intellijplugin.core.rfs.util.RfsUtil
 import io.confluent.intellijplugin.core.rfs.viewer.utils.DriverRfsTreeUtil.lastDriverNode
 import io.confluent.intellijplugin.core.settings.connections.ConnectionData
 import io.confluent.intellijplugin.core.util.invokeLater
+import io.confluent.intellijplugin.toolwindow.NavigableController
 import java.awt.BorderLayout
 import java.awt.CardLayout
 import javax.swing.JComponent
@@ -45,7 +46,7 @@ import javax.swing.tree.TreePath
 abstract class MainTreeController<CONN_TYPE : ConnectionData, DRIVER_TYPE : MonitoringDriver>(
     val project: Project,
     connectionData: CONN_TYPE
-) : ComponentController {
+) : ComponentController, NavigableController {
     @Suppress("UNCHECKED_CAST")
     protected val driver = DriverManager.getDriverById(project, connectionData.innerId) as? DRIVER_TYPE
         ?: error("Data Manager is not initialized")
@@ -92,6 +93,7 @@ abstract class MainTreeController<CONN_TYPE : ConnectionData, DRIVER_TYPE : Moni
         component = UiDataProvider.wrapComponent(panel) { sink ->
             sink[DATA_MANAGER] = dataManager
             sink[RFS_PATH] = myTree.selectionPath?.lastDriverNode?.rfsPath
+            sink[NAVIGABLE_CONTROLLER] = this
         }
 
         driver.addListener(driverListener)
@@ -123,7 +125,7 @@ abstract class MainTreeController<CONN_TYPE : ConnectionData, DRIVER_TYPE : Moni
     /** Should be called only after init() */
     override fun getComponent(): JComponent = component
 
-    fun open(rfsPath: RfsPath) = RfsUtil.select(driver.getExternalId(), rfsPath, myTree)
+    override fun open(rfsPath: RfsPath) = RfsUtil.select(driver.getExternalId(), rfsPath, myTree)
 
     protected open fun createNormalPanel(): OnePixelSplitter {
         treeModel = driver.createTreeModel(driver.root, project)
@@ -207,10 +209,16 @@ abstract class MainTreeController<CONN_TYPE : ConnectionData, DRIVER_TYPE : Moni
         val DATA_MANAGER: DataKey<MonitoringDataManager> = DataKey.create("kafka.data.manager")
         val RFS_PATH: DataKey<RfsPath> = DataKey.create("bdt.rfs.path")
 
+        /** Allows actions to change what's selected in the tree */
+        val NAVIGABLE_CONTROLLER: DataKey<NavigableController> = DataKey.create("kafka.navigable.controller")
+
         val AnActionEvent.dataManager
             get() = dataContext.getData(DATA_MANAGER)
 
         val AnActionEvent.rfsPath
             get() = dataContext.getData(RFS_PATH)
+
+        val AnActionEvent.navigableController
+            get() = dataContext.getData(NAVIGABLE_CONTROLLER)
     }
 }
