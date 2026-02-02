@@ -206,7 +206,7 @@ abstract class MonitoringToolWindowController(protected val project: Project) : 
         }
     }
 
-    private fun onRefreshAction(@Suppress("UNUSED_PARAMETER") e: AnActionEvent) {
+    protected open fun onRefreshAction(@Suppress("UNUSED_PARAMETER") e: AnActionEvent) {
         if (System.currentTimeMillis() - lastAutoRefreshTimestamp < AUTOREFRESH_CLICK_INTERVAL)
             return
         lastAutoRefreshTimestamp = System.currentTimeMillis()
@@ -343,7 +343,7 @@ abstract class MonitoringToolWindowController(protected val project: Project) : 
         }
     }
 
-    private fun onRefreshIntervalChanged(newInterval: Int) {
+    protected open fun onRefreshIntervalChanged(newInterval: Int) {
         settings.dataUpdateIntervalMillis = newInterval
         getEnabledConnectionSettings().forEach {
             val manager = getDataManager(it)?.updater ?: return@forEach

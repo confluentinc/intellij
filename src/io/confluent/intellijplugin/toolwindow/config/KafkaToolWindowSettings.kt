@@ -33,7 +33,7 @@ class KafkaToolWindowSettings : PersistentStateComponent<KafkaToolWindowSettings
 
     val topicPartitionsColumnSettings = ColumnVisibilitySettings(topicPartitionsTableColumns)
 
-    private val topicTableColumns = mutableListOf(
+    private val kafkaTopicTableColumns = mutableListOf(
         TopicPresentable::isFavorite.name,
         TopicPresentable::name.name,
         TopicPresentable::messageCount.name,
@@ -41,7 +41,16 @@ class KafkaToolWindowSettings : PersistentStateComponent<KafkaToolWindowSettings
         TopicPresentable::replicationFactor.name,
         TopicPresentable::inSyncReplicas.name
     )
-    val topicColumnSettings = ColumnVisibilitySettings(topicTableColumns)
+    val kafkaTopicColumnSettings = ColumnVisibilitySettings(kafkaTopicTableColumns)
+
+    private val ccloudTopicTableColumns = mutableListOf(
+        TopicPresentable::isFavorite.name,
+        TopicPresentable::name.name,
+        TopicPresentable::messageCount.name,
+        TopicPresentable::partitions.name,
+        TopicPresentable::replicationFactor.name
+    )
+    val ccloudTopicColumnSettings = ColumnVisibilitySettings(ccloudTopicTableColumns)
 
     var showInternalTopics: Boolean = false
     var showFavoriteTopics: Boolean = false

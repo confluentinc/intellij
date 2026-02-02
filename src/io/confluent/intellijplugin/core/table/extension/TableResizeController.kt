@@ -84,9 +84,7 @@ class TableResizeController private constructor(private val table: JTable) : Tab
 
         table.addHierarchyBoundsListener(object : HierarchyBoundsAdapter() {
             override fun ancestorResized(e: HierarchyEvent) {
-                if (e.changed == table.parent) {
-                    componentResized()
-                }
+                componentResized()
             }
         })
 
@@ -105,7 +103,9 @@ class TableResizeController private constructor(private val table: JTable) : Tab
     override fun tableChanged(e: TableModelEvent?) {
         if (table.rowCount > 0 && table.columnCount > 0) {
             MaterialTableUtils.fitColumnsWidth(table)
-            componentResized()
+            javax.swing.SwingUtilities.invokeLater {
+                componentResized()
+            }
             table.model.removeTableModelListener(this)
         }
     }
