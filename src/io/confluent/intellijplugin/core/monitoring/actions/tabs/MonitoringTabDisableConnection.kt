@@ -8,6 +8,14 @@ import io.confluent.intellijplugin.util.KafkaMessagesBundle
 class MonitoringTabDisableConnection : MonitoringTabConnectionAction() {
     override fun update(e: AnActionEvent) {
         val project = e.project ?: return
+        val connectionId = e.dataContext.getData(ConnectionUtil.CONNECTION_ID)
+
+        // Hide for Confluent Cloud tab (not a real connection)
+        if (connectionId == "ccloud") {
+            e.presentation.isVisible = false
+            return
+        }
+
         val selectedConnectionIds = getSelectedConnectionIds(e)
         val selectedAndEnabledNodes = selectedConnectionIds.filter {
             RfsConnectionDataManager.instance?.getConnectionById(project, it)?.isEnabled == true
