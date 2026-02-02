@@ -17,6 +17,8 @@ import javax.swing.JComponent
  * File editor for CCloud consumer panel.
  *
  * Uses REST API for consuming records from Confluent Cloud topics.
+ * The panel is stored in [ClusterScopedDataManager.consumerPanelStorage] to survive
+ * editor recreations (e.g., when the window is moved or floated).
  */
 class CCloudConsumerEditor(
     private val project: Project,
@@ -25,10 +27,7 @@ class CCloudConsumerEditor(
     topic: String?
 ) : FileEditor, UserDataHolderBase() {
 
-    private val consumerPanel = CCloudConsumerPanel(project, clusterDataManager, file).also {
-        Disposer.register(this, it)
-    }
-
+    internal val consumerPanel = clusterDataManager.consumerPanelStorage.getOrCreate(project, file)
     private val mainComponent = consumerPanel.getComponent()
 
     init {
@@ -36,7 +35,7 @@ class CCloudConsumerEditor(
     }
 
     override fun dispose() {
-        // Panel disposed via Disposer
+        clusterDataManager.consumerPanelStorage.unsubscribe(file)
     }
 
     override fun getName(): String = KafkaMessagesBundle.message("consume.from.topic")
