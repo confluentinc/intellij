@@ -33,7 +33,15 @@ data class ConsumeRecordsRequest(
      * If false/missing and offsets not provided, seek to end.
      */
     @SerialName("from_beginning")
-    val fromBeginning: Boolean? = null
+    val fromBeginning: Boolean? = null,
+
+    /**
+     * Timestamp (epoch millis) to start consuming from.
+     * When provided, consumption starts from the first record with timestamp >= this value.
+     * Used for SPECIFIC_DATE start type.
+     */
+    @SerialName("timestamp")
+    val timestamp: Long? = null
 )
 
 /**

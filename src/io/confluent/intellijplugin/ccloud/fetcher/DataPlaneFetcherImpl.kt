@@ -166,6 +166,25 @@ class DataPlaneFetcherImpl(
         }
     }
 
+    override suspend fun getTopicPartitionOffsets(topicName: String): Map<Int, PartitionOffsetInfo> {
+        val partitions = describeTopicPartitions(topicName)
+
+        // Fetch beginning and end offsets for each partition in parallel
+        return coroutineScope {
+            partitions.map { partition ->
+                async {
+                    val beginningOffset = getPartitionOffsets(topicName, partition.partitionId, fromBeginning = true).nextOffset
+                    val endOffset = getPartitionOffsets(topicName, partition.partitionId, fromBeginning = false).nextOffset
+                    partition.partitionId to PartitionOffsetInfo(
+                        partitionId = partition.partitionId,
+                        beginningOffset = beginningOffset,
+                        endOffset = endOffset
+                    )
+                }
+            }.awaitAll().toMap()
+        }
+    }
+
     private fun requireSchemaRegistry() {
         if (schemaRegistryClient == null || schemaRegistryId == null) {
             throw IllegalStateException("Schema Registry unavailable for cluster $clusterId")

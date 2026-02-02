@@ -1,9 +1,11 @@
 package io.confluent.intellijplugin.data
 
+import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import io.confluent.intellijplugin.ccloud.cache.DataPlaneCache
 import io.confluent.intellijplugin.ccloud.model.Cluster
+import io.confluent.intellijplugin.ccloud.model.response.CreateTopicRequest
 import io.confluent.intellijplugin.ccloud.model.response.TopicData
 import io.confluent.intellijplugin.ccloud.model.response.toPresentable
 import io.confluent.intellijplugin.core.monitoring.data.MonitoringDataManager
@@ -39,6 +41,11 @@ class ClusterScopedDataManager(
 ), TopicDataProvider, TopicOperations, TopicDetailDataProvider {
 
     private val dataPlaneCache: DataPlaneCache = confluentDataManager.getDataPlaneCache(cluster)
+
+    /**
+     * Get the data plane cache for REST API operations.
+     */
+    fun getDataPlaneCache(): DataPlaneCache = dataPlaneCache
 
     override val connectionId: String = cluster.id
 
