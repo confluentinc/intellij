@@ -32,7 +32,7 @@ class CCloudRestClient(
         private const val READ_TIMEOUT_MS = 60_000    // 1 minute
 
         // CCloud API limit (https://docs.confluent.io/cloud/current/quotas/overview.html)
-        private const val RATE_LIMIT_REQUESTS_PER_SEC = 4.5 // Slightly under limit for safety
+        private const val RATE_LIMIT_REQUESTS_PER_SEC = 5.0
         private const val MAX_RETRY_ATTEMPTS = 4
         private const val INITIAL_BACKOFF_MS = 1000L
         private const val MAX_BACKOFF_MS = 10_000L
@@ -68,7 +68,7 @@ class CCloudRestClient(
         val limits: PageLimits = PageLimits.DEFAULT
     ) {
         var nextUrl: String? = initialUrl
-            private set 
+            private set
 
         private var pageCount = 0
         private var itemCount = 0

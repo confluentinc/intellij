@@ -4,8 +4,8 @@ import com.intellij.openapi.project.Project
 import io.confluent.intellijplugin.ccloud.client.CCloudRestClient
 import io.confluent.intellijplugin.ccloud.config.CloudConfig
 import io.confluent.intellijplugin.ccloud.fetcher.ControlPlaneFetcherImpl
-import io.confluent.intellijplugin.ccloud.model.Environment
 import io.confluent.intellijplugin.ccloud.model.Cluster
+import io.confluent.intellijplugin.ccloud.model.Environment
 import io.confluent.intellijplugin.ccloud.model.SchemaRegistry
 import io.confluent.intellijplugin.core.monitoring.connection.MonitoringClient
 import kotlinx.coroutines.runBlocking

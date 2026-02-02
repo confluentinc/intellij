@@ -119,7 +119,8 @@ class CCloudOAuthContext {
                 // Set absolute lifetime on fresh sign-in
                 tokens.updateAndGet { oldTokens ->
                     oldTokens.withEndOfLifetime(
-                        Instant.now().plusSeconds(CCloudOAuthConfig.CCLOUD_REFRESH_TOKEN_ABSOLUTE_LIFETIME.inWholeSeconds)
+                        Instant.now()
+                            .plusSeconds(CCloudOAuthConfig.CCLOUD_REFRESH_TOKEN_ABSOLUTE_LIFETIME.inWholeSeconds)
                     )
                 }
 
@@ -165,7 +166,12 @@ class CCloudOAuthContext {
                 tokens.updateAndGet { it.withSuccessfulTokenRefreshAttempt() }
             }.onFailure { failure ->
                 // Track failed attempt - becomes non-transient after MAX_TOKEN_REFRESH_ATTEMPTS
-                tokens.updateAndGet { it.withFailedTokenRefreshAttempt(failure, CCloudOAuthConfig.MAX_TOKEN_REFRESH_ATTEMPTS) }
+                tokens.updateAndGet {
+                    it.withFailedTokenRefreshAttempt(
+                        failure,
+                        CCloudOAuthConfig.MAX_TOKEN_REFRESH_ATTEMPTS
+                    )
+                }
             }.map { this }
         } finally {
             writeLock.unlock()

@@ -10,12 +10,13 @@ import io.confluent.intellijplugin.ccloud.model.response.CreateTopicRequest
 import io.confluent.intellijplugin.ccloud.model.response.SubjectData
 import io.confluent.intellijplugin.ccloud.model.response.TopicData
 import io.confluent.intellijplugin.ccloud.model.restEndpoint
+import io.confluent.intellijplugin.client.KafkaConstants.DEFAULT_CCLOUD_REPLICATION_FACTOR
 import io.confluent.intellijplugin.model.BdtTopicPartition
-import io.confluent.intellijplugin.model.InternalReplica
 import io.confluent.intellijplugin.model.TopicConfig
 import kotlinx.coroutines.*
-import kotlinx.coroutines.flow.*
-import java.util.concurrent.ConcurrentHashMap
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.channelFlow
+import kotlinx.coroutines.flow.flowOn
 import java.util.concurrent.atomic.AtomicInteger
 
 /**
@@ -112,20 +113,24 @@ class DataPlaneCache(
                     }
 
                     val count = completed.incrementAndGet()
-                    send(EnrichmentResult.Success(
-                        topicName = topic.topicName,
-                        data = TopicEnrichmentData(messageCount = messageCount),
-                        progress = count to topics.size
-                    ))
+                    send(
+                        EnrichmentResult.Success(
+                            topicName = topic.topicName,
+                            data = TopicEnrichmentData(messageCount = messageCount),
+                            progress = count to topics.size
+                        )
+                    )
 
                     thisLogger().info("Enriched ${topic.topicName}: messageCount=$messageCount ($count/${topics.size})")
                 } catch (e: Exception) {
                     val count = completed.incrementAndGet()
-                    send(EnrichmentResult.Failure(
-                        topicName = topic.topicName,
-                        progress = count to topics.size,
-                        error = e
-                    ))
+                    send(
+                        EnrichmentResult.Failure(
+                            topicName = topic.topicName,
+                            progress = count to topics.size,
+                            error = e
+                        )
+                    )
 
                     thisLogger().warn("Failed to enrich topic ${topic.topicName}: ${e.message} ($count/${topics.size})")
                 }
@@ -182,7 +187,7 @@ class DataPlaneCache(
     suspend fun getTopicPartitions(topicName: String): List<BdtTopicPartition> = coroutineScope {
         val f = fetcher ?: throw IllegalStateException("DataPlaneCache not connected")
         val topic = cachedTopics?.find { it.topicName == topicName }
-        val replicationFactor = topic?.replicationFactor ?: 3
+        val replicationFactor = topic?.replicationFactor ?: DEFAULT_CCLOUD_REPLICATION_FACTOR
 
         val partitions = f.describeTopicPartitions(topicName)
 

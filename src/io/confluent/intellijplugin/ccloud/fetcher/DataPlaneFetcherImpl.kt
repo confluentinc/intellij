@@ -63,8 +63,13 @@ class DataPlaneFetcherImpl(
         }
     }
 
-    suspend fun getPartitionOffsets(topicName: String, partitionId: Int, fromBeginning: Boolean = false): PartitionOffsets {
-        val path = "/kafka/v3/clusters/$clusterId/internal/topics/$topicName/partitions/$partitionId/records:offsets?from_beginning=$fromBeginning"
+    suspend fun getPartitionOffsets(
+        topicName: String,
+        partitionId: Int,
+        fromBeginning: Boolean = false
+    ): PartitionOffsets {
+        val path =
+            "/kafka/v3/clusters/$clusterId/internal/topics/$topicName/partitions/$partitionId/records:offsets?from_beginning=$fromBeginning"
         return kafkaClient.fetch(path) { body ->
             json.decodeFromString<PartitionOffsets>(body)
         }

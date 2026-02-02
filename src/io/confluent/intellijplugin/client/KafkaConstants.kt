@@ -4,6 +4,9 @@ import org.apache.kafka.common.config.TopicConfig.*
 
 
 object KafkaConstants {
+    const val DEFAULT_CCLOUD_REPLICATION_FACTOR = 3
+    const val DEFAULT_CCLOUD_PARTITION_COUNT = 6
+
     val TOPIC_DEFAULT_CONFIGS = mapOf(
         CLEANUP_POLICY_CONFIG to CLEANUP_POLICY_DELETE,
         COMPRESSION_TYPE_CONFIG to "producer",

@@ -8,6 +8,7 @@ import io.confluent.intellijplugin.ccloud.model.Cluster
 import io.confluent.intellijplugin.ccloud.model.response.CreateTopicRequest
 import io.confluent.intellijplugin.ccloud.model.response.TopicData
 import io.confluent.intellijplugin.ccloud.model.response.toPresentable
+import io.confluent.intellijplugin.client.KafkaConstants.DEFAULT_CCLOUD_PARTITION_COUNT
 import io.confluent.intellijplugin.core.monitoring.data.MonitoringDataManager
 import io.confluent.intellijplugin.core.monitoring.data.model.ObjectDataModel
 import io.confluent.intellijplugin.core.monitoring.data.updater.BdtMonitoringUpdater
@@ -154,9 +155,7 @@ class ClusterScopedDataManager(
             withContext(Dispatchers.IO) {
                 val request = CreateTopicRequest(
                     topicName = name,
-                    // Use 6 as default partition count (CCloud requirement)
-                    partitionsCount = partitions ?: 6,
-                    // Use 3 as default replication factor (CCloud default)
+                    partitionsCount = partitions ?: DEFAULT_CCLOUD_PARTITION_COUNT,
                     replicationFactor = replicationFactor,
                     configs = configs.map { (k, v) ->
                         CreateTopicRequest.ConfigEntry(k, v)
