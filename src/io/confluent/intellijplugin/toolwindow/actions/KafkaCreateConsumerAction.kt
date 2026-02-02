@@ -14,6 +14,7 @@ import io.confluent.intellijplugin.core.monitoring.toolwindow.MainTreeController
 import io.confluent.intellijplugin.core.rfs.driver.manager.DriverManager
 import io.confluent.intellijplugin.core.settings.actions.CreateConnectionPopup
 import io.confluent.intellijplugin.data.ClusterScopedDataManager
+import io.confluent.intellijplugin.data.ConfluentDataManager
 import io.confluent.intellijplugin.data.KafkaDataManager
 import io.confluent.intellijplugin.rfs.KafkaDriver
 import io.confluent.intellijplugin.rfs.KafkaDriver.Companion.isTopicFolder
@@ -60,9 +61,15 @@ class KafkaCreateConsumerAction : DumbAwareAction(), CustomComponentAction {
             .showCenteredInCurrentWindow(project)
     }
 
-    // TODO: Remove this override once consumer support is implemented for CCloud
     override fun update(e: AnActionEvent) {
-        e.presentation.isEnabledAndVisible = e.dataManager is KafkaDataManager
+        val isKafkaManager = e.dataManager is KafkaDataManager
+        val isCCloudClusterManager = e.dataManager is ClusterScopedDataManager
+        val isCCloudManager = e.dataManager is ConfluentDataManager
+
+        // Always visible for Kafka or any CCloud context
+        e.presentation.isVisible = isKafkaManager || isCCloudClusterManager || isCCloudManager
+        // Only enabled when a cluster is selected
+        e.presentation.isEnabled = isKafkaManager || isCCloudClusterManager
     }
 
     override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT

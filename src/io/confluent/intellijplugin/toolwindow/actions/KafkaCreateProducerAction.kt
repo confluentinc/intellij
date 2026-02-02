@@ -14,6 +14,8 @@ import io.confluent.intellijplugin.core.monitoring.toolwindow.MainTreeController
 import io.confluent.intellijplugin.core.monitoring.toolwindow.MainTreeController.Companion.rfsPath
 import io.confluent.intellijplugin.core.rfs.driver.manager.DriverManager
 import io.confluent.intellijplugin.core.settings.actions.CreateConnectionPopup
+import io.confluent.intellijplugin.data.ClusterScopedDataManager
+import io.confluent.intellijplugin.data.ConfluentDataManager
 import io.confluent.intellijplugin.data.KafkaDataManager
 import io.confluent.intellijplugin.rfs.KafkaDriver
 import io.confluent.intellijplugin.rfs.KafkaDriver.Companion.isTopicFolder
@@ -51,9 +53,15 @@ class KafkaCreateProducerAction : DumbAwareAction(), CustomComponentAction {
         }
     }
 
-    // TODO: Remove this override once producer support is implemented for CCloud
     override fun update(e: AnActionEvent) {
-        e.presentation.isEnabledAndVisible = e.dataManager is KafkaDataManager
+        val isKafkaManager = e.dataManager is KafkaDataManager
+        val isCCloudClusterManager = e.dataManager is ClusterScopedDataManager
+        val isCCloudManager = e.dataManager is ConfluentDataManager
+
+        // Always visible for Kafka or any CCloud context
+        e.presentation.isVisible = isKafkaManager || isCCloudClusterManager || isCCloudManager
+        // Only enabled for native Kafka (CCloud producer not yet implemented)
+        e.presentation.isEnabled = isKafkaManager
     }
 
     override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT

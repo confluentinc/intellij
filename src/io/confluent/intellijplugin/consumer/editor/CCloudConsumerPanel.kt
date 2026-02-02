@@ -363,6 +363,11 @@ class CCloudConsumerPanel(
         else
             KafkaMessagesBundle.message("action.consume.stop.title")
 
+        consumeButton.icon = if (isEnabled)
+            AllIcons.Actions.Execute
+        else
+            AllIcons.Actions.Suspend
+
         topicComboBox.isEnabled = isEnabled
         partitionField.isEnabled = isEnabled
         startFromComboBox.isEnabled = isEnabled
