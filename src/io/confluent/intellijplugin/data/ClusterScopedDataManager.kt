@@ -5,6 +5,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import io.confluent.intellijplugin.ccloud.cache.DataPlaneCache
 import io.confluent.intellijplugin.ccloud.model.Cluster
+import io.confluent.intellijplugin.consumer.editor.CCloudConsumerPanelStorage
 import io.confluent.intellijplugin.ccloud.model.response.CreateTopicRequest
 import io.confluent.intellijplugin.ccloud.model.response.TopicData
 import io.confluent.intellijplugin.ccloud.model.response.toPresentable
@@ -42,6 +43,12 @@ class ClusterScopedDataManager(
 ), TopicDataProvider, TopicOperations, TopicDetailDataProvider {
 
     private val dataPlaneCache: DataPlaneCache = confluentDataManager.getDataPlaneCache(cluster)
+
+    /**
+     * Storage for consumer panels to persist them across editor recreations.
+     * This prevents the consumer from stopping when the window is moved/floated.
+     */
+    val consumerPanelStorage = CCloudConsumerPanelStorage(this).also { Disposer.register(this, it) }
 
     /**
      * Get the data plane cache for REST API operations.

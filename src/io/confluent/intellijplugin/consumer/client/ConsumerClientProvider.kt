@@ -49,7 +49,7 @@ object ConsumerClientProvider {
             clusterDataManager = dataManager,
             onStart = onStart,
             onStop = onStop,
-            scope = dataManager.driver.coroutineScope
+            parentScope = dataManager.driver.coroutineScope
         )
     }
 }
