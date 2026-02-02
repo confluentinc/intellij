@@ -6,8 +6,9 @@ import com.intellij.openapi.Disposable
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.thisLogger
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import io.confluent.intellijplugin.telemetry.CCloudAuthenticationEvent
 import io.confluent.intellijplugin.telemetry.logUsage
@@ -67,10 +68,8 @@ class CCloudAuthService : Disposable {
                 logUsage(CCloudAuthenticationEvent(status = "signed in"))
 
                 // Switch to EDT for UI callback
-                runBlocking {
-                    withContext(Dispatchers.EDT) {
-                        onSuccess(authenticatedContext.getUserEmail())
-                    }
+                CoroutineScope(Dispatchers.EDT).launch {
+                    onSuccess(authenticatedContext.getUserEmail())
                 }
             },
             onError = { error ->
@@ -78,10 +77,8 @@ class CCloudAuthService : Disposable {
                 logUsage(CCloudAuthenticationEvent(status = "authentication failed", errorType = error))
 
                 // Switch to EDT for UI callback
-                runBlocking {
-                    withContext(Dispatchers.EDT) {
-                        onError(error)
-                    }
+                CoroutineScope(Dispatchers.EDT).launch {
+                    onError(error)
                 }
             }
         )
