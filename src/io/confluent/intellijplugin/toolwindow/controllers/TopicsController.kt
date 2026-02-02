@@ -274,8 +274,6 @@ internal class TopicsController(
         }
     }
 
-    override fun getAdditionalActions(): List<AnAction> = listOfNotNull(createCCloudConsumeAction())
-
     override fun showColumnFilter(): Boolean = false
 
     override fun getAdditionalContextActions(): List<AnAction> {
