@@ -61,7 +61,19 @@ class CCloudConsumerPanel(
     private val limitOffset = JBTextField(15)
     private val startOffset = JBTextField(15)
 
-    private val startFromComboBox = ComboBox(ConsumerStartType.entries.toTypedArray()).apply {
+    // Only show start types supported by CCloud REST API (CONSUMER_GROUP requires server-side state)
+    private val supportedStartTypes = listOf(
+        ConsumerStartType.NOW,
+        ConsumerStartType.THE_BEGINNING,
+        ConsumerStartType.LAST_HOUR,
+        ConsumerStartType.TODAY,
+        ConsumerStartType.YESTERDAY,
+        ConsumerStartType.SPECIFIC_DATE,
+        ConsumerStartType.OFFSET,
+        ConsumerStartType.LATEST_OFFSET_MINUS_X
+    )
+
+    private val startFromComboBox = ComboBox(supportedStartTypes.toTypedArray()).apply {
         renderer = CustomListCellRenderer<ConsumerStartType> { it.title }
         item = ConsumerStartType.NOW
         addActionListener {
