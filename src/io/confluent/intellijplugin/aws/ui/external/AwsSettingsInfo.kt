@@ -7,6 +7,7 @@ interface AwsSettingsInfo {
 
     val accessKey: String?
     val secretKey: String?
+    val sessionToken: String?
 
     val region: String?
     val customCredentialPath: String?

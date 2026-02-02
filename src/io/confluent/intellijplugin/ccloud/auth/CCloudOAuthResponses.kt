@@ -72,3 +72,14 @@ data class CheckJwtResponse(
     val error: JsonElement? = null,
     val claims: JsonElement? = null,
 )
+
+/**
+ * Generic error response format used by Auth0 and CCloud APIs.
+ * @see CCloudOAuthHttpClient
+ */
+@Serializable
+@JsonIgnoreUnknownKeys
+data class ErrorResponse(
+    val error: String? = null,
+    @SerialName("error_description") val errorDescription: String? = null
+)

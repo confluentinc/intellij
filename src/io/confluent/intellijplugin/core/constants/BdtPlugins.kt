@@ -10,12 +10,14 @@ object BdtPlugins {
     const val KAFKA_ID = "com.intellij.bigdatatools.kafka"
     const val RFS_ID = "com.intellij.bigdatatools.rfs"
     const val FULL_ID = "com.intellij.bigdatatools"
+    const val CORE_ID = "com.intellij.bigdatatools.core"
 
     val ALL_PLUGINS = BdtPluginType.entries.map { it.pluginId }.toSet()
 
     fun isFullPluginInstalled() = isPluginInstalled(BdtPluginType.FULL)
     fun isKafkaPluginInstalled() = isPluginInstalled(BdtPluginType.KAFKA)
     fun isRfsPluginInstalled() = isPluginInstalled(BdtPluginType.RFS)
+    fun isCorePluginInstalled() = isPluginInstalled(BdtPluginType.CORE)
 
     fun isPluginInstalled(pluginType: BdtPluginType) = isPluginExistsAndEnabled(pluginType.pluginId)
 
