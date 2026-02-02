@@ -1,5 +1,6 @@
 package io.confluent.intellijplugin.consumer.client
 
+import io.confluent.intellijplugin.ccloud.fetcher.DataPlaneFetcher
 import io.confluent.intellijplugin.ccloud.model.response.ConsumeRecordsRequest
 import io.confluent.intellijplugin.ccloud.model.response.ConsumeRecordsResponse
 import io.confluent.intellijplugin.ccloud.model.response.PartitionConsumeRecord
@@ -15,6 +16,8 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
@@ -26,6 +29,8 @@ import org.apache.kafka.common.header.internals.RecordHeaders
 import org.apache.kafka.common.record.TimestampType
 import java.util.Base64
 import java.util.concurrent.atomic.AtomicBoolean
+import kotlin.math.max
+import kotlin.math.min
 
 /**
  * REST-based consumer client for Confluent Cloud.
@@ -90,16 +95,24 @@ class CCloudConsumerClient(
         val limit = config.getLimit()
         var recordsConsumed = 0L
         var isFirstRequest = true
+        var consecutiveErrors = 0
 
         while (running.get() && scope.isActive) {
             val startTime = System.currentTimeMillis()
 
             try {
-                val request = buildConsumeRequest(config, isFirstRequest)
+                val request = if (isFirstRequest) {
+                    buildInitialConsumeRequest(config, fetcher)
+                } else {
+                    buildSubsequentConsumeRequest()
+                }
                 isFirstRequest = false
 
                 val response = fetcher.consumeRecords(topicName, request)
                 val pollTime = System.currentTimeMillis() - startTime
+
+                // Reset error counter on successful request
+                consecutiveErrors = 0
 
                 timestampUpdate()
 
@@ -115,7 +128,7 @@ class CCloudConsumerClient(
 
                 if (allRecords.isEmpty()) {
                     // No new records, back off before next poll
-                    delay(1000)
+                    delay(EMPTY_POLL_DELAY_MS)
                     continue
                 }
 
@@ -143,51 +156,81 @@ class CCloudConsumerClient(
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                consumeError(e, null, null)
-                // Continue polling after error with backoff
-                delay(2000)
+                consecutiveErrors++
+
+                // Check for 401 Unauthorized (token expiration)
+                val is401 = e.message?.contains("401") == true ||
+                    e.cause?.message?.contains("401") == true
+
+                if (is401) {
+                    // Token may have expired - wait for token refresh service
+                    consumeError(e, null, null)
+                    delay(TOKEN_REFRESH_DELAY_MS)
+                } else {
+                    // Apply exponential backoff for other errors
+                    val backoffMs = min(
+                        BASE_BACKOFF_MS * (1L shl min(consecutiveErrors, 5)),
+                        MAX_BACKOFF_MS
+                    )
+                    consumeError(e, null, null)
+                    delay(backoffMs)
+                }
             }
         }
     }
 
-    private fun buildConsumeRequest(config: StorageConsumerConfig, isFirstRequest: Boolean): ConsumeRecordsRequest {
+    /**
+     * Build the initial consume request based on the start position type.
+     * This method may make additional API calls to resolve partition offsets.
+     */
+    private suspend fun buildInitialConsumeRequest(
+        config: StorageConsumerConfig,
+        fetcher: DataPlaneFetcher
+    ): ConsumeRecordsRequest {
         val startsWith = config.getStartsWith()
+        val topicName = config.getInnerTopic()
 
-        return if (isFirstRequest) {
-            // First request: determine starting position
-            when (startsWith.type) {
-                ConsumerStartType.THE_BEGINNING -> ConsumeRecordsRequest(
-                    fromBeginning = true,
-                    maxPollRecords = 100
-                )
-                ConsumerStartType.NOW -> ConsumeRecordsRequest(
-                    fromBeginning = false,
-                    maxPollRecords = 100
-                )
-                ConsumerStartType.OFFSET, ConsumerStartType.LATEST_OFFSET_MINUS_X -> {
-                    // If specific offset is provided, we need partition info
-                    // For now, start from end and let subsequent requests use offset tracking
-                    ConsumeRecordsRequest(
-                        fromBeginning = false,
-                        maxPollRecords = 100
-                    )
-                }
-                else -> ConsumeRecordsRequest(
-                    fromBeginning = false,
+        return when (startsWith.type) {
+            ConsumerStartType.THE_BEGINNING -> ConsumeRecordsRequest(
+                fromBeginning = true,
+                maxPollRecords = 100
+            )
+
+            ConsumerStartType.NOW -> ConsumeRecordsRequest(
+                fromBeginning = false,
+                maxPollRecords = 100
+            )
+
+            ConsumerStartType.OFFSET -> {
+                val offset = startsWith.offset ?: 0L
+                val partitions = fetcher.describeTopicPartitions(topicName)
+                ConsumeRecordsRequest(
+                    offsets = partitions.map { PartitionOffset(it.partitionId, offset) },
                     maxPollRecords = 100
                 )
             }
-        } else {
-            // Subsequent requests: use tracked offsets
-            if (nextOffsets.isNotEmpty()) {
+
+            ConsumerStartType.LATEST_OFFSET_MINUS_X -> {
+                val offsetDelta = startsWith.offset ?: 0L
+                val offsetInfo = fetcher.getTopicPartitionOffsets(topicName)
                 ConsumeRecordsRequest(
-                    offsets = nextOffsets.map { (partitionId, offset) ->
-                        PartitionOffset(partitionId = partitionId, offset = offset)
+                    offsets = offsetInfo.map { (partitionId, info) ->
+                        PartitionOffset(partitionId, max(0, info.endOffset - offsetDelta))
                     },
                     maxPollRecords = 100
                 )
-            } else {
-                // No offsets tracked yet, fetch from end
+            }
+
+            ConsumerStartType.SPECIFIC_DATE,
+            ConsumerStartType.LAST_HOUR,
+            ConsumerStartType.TODAY,
+            ConsumerStartType.YESTERDAY -> ConsumeRecordsRequest(
+                timestamp = startsWith.time,
+                maxPollRecords = 100
+            )
+
+            ConsumerStartType.CONSUMER_GROUP -> {
+                // Consumer groups not supported by CCloud REST API - fall back to NOW
                 ConsumeRecordsRequest(
                     fromBeginning = false,
                     maxPollRecords = 100
@@ -196,7 +239,37 @@ class CCloudConsumerClient(
         }
     }
 
+    /**
+     * Build a subsequent consume request using tracked offsets.
+     */
+    private fun buildSubsequentConsumeRequest(): ConsumeRecordsRequest {
+        return if (nextOffsets.isNotEmpty()) {
+            ConsumeRecordsRequest(
+                offsets = nextOffsets.map { (partitionId, offset) ->
+                    PartitionOffset(partitionId = partitionId, offset = offset)
+                },
+                maxPollRecords = 100
+            )
+        } else {
+            // No offsets tracked yet, fetch from end
+            ConsumeRecordsRequest(
+                fromBeginning = false,
+                maxPollRecords = 100
+            )
+        }
+    }
+
+    /**
+     * Update next offsets from response and sync partition map.
+     * Removes stale partitions that are no longer in the response (handles partition removal).
+     */
     private fun updateNextOffsets(response: ConsumeRecordsResponse) {
+        val activePartitions = response.partitionDataList.map { it.partitionId }.toSet()
+
+        // Remove partitions that are no longer in the response
+        nextOffsets.keys.retainAll(activePartitions)
+
+        // Update offsets for active partitions
         response.partitionDataList.forEach { partitionData ->
             nextOffsets[partitionData.partitionId] = partitionData.nextOffset
         }
@@ -281,7 +354,15 @@ class CCloudConsumerClient(
 
     override fun stop() {
         running.set(false)
-        pollingJob?.cancel()
+        pollingJob?.let { job ->
+            job.cancel()
+            // Wait for graceful shutdown with timeout
+            runBlocking {
+                withTimeoutOrNull(SHUTDOWN_TIMEOUT_MS) {
+                    job.join()
+                }
+            }
+        }
         onStop()
     }
 
@@ -290,5 +371,22 @@ class CCloudConsumerClient(
     override fun dispose() {
         stop()
         nextOffsets.clear()
+    }
+
+    companion object {
+        /** Base delay for exponential backoff on errors. */
+        private const val BASE_BACKOFF_MS = 1_000L
+
+        /** Maximum delay for exponential backoff. */
+        private const val MAX_BACKOFF_MS = 30_000L
+
+        /** Delay when no records are available. */
+        private const val EMPTY_POLL_DELAY_MS = 1_000L
+
+        /** Delay when waiting for token refresh after 401. */
+        private const val TOKEN_REFRESH_DELAY_MS = 5_000L
+
+        /** Timeout for graceful shutdown. */
+        private const val SHUTDOWN_TIMEOUT_MS = 5_000L
     }
 }
