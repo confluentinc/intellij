@@ -28,12 +28,12 @@ main() {
   # https://docs.fossa.com/docs/rotating-fossa-api-key#full-access-token
   export FOSSA_API_KEY=$(vault kv get -field api_key v1/ci/kv/fossa_full_access)
 
-  # Use --debug to capture detailed logs for troubleshooting
-  # Note: v3.13.0+ outputs to fossa.debug.zip, older versions to fossa.debug.json
+  # Keep --debug to show detailed logs for troubleshooting in the event we see weird reports that
+  # don't exit with an error code
   fossa analyze --debug --exclude-path build --only-target gradle
 
-  # Retry on command failure OR invalid output (FOSSA can return empty with exit 0)
-  retry "fossa report attribution --debug --format text > THIRD_PARTY_NOTICES.txt" 3 || exit 1
+  # This might timeout so retry a few times
+  retry "fossa report attribution --debug --format text > THIRD_PARTY_NOTICES.txt" 3
 }
 
 main
