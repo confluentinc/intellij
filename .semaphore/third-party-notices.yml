@@ -23,6 +23,7 @@ blocks:
       prologue:
         commands:
           - checkout
+          - sem-version java 21
           - . vault-setup
           - make ci-sem-cache-restore
           - make setup-sdk
