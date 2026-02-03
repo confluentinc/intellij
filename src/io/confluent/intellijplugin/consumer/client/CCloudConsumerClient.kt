@@ -103,9 +103,14 @@ class CCloudConsumerClient(
 
         val topicName = config.getInnerTopic()
         val limit = config.getLimit()
-        var recordsConsumed = 0L
+        var totalRecordsConsumed = 0L
+        var totalBytesConsumed = 0L
         var isFirstRequest = true
         var consecutiveErrors = 0
+
+        // Per-partition tracking for partition-level limits
+        val partitionRecordCounts = mutableMapOf<Int, Long>()
+        val partitionByteCounts = mutableMapOf<Int, Long>()
 
         while (running.get() && (consumerScope?.isActive == true)) {
             val startTime = System.currentTimeMillis()
@@ -147,12 +152,46 @@ class CCloudConsumerClient(
 
                 if (filteredRecords.isNotEmpty()) {
                     consume(pollTime, filteredRecords)
-                    recordsConsumed += filteredRecords.size
+
+                    // Update topic-level counts
+                    totalRecordsConsumed += filteredRecords.size
+                    val batchBytes = filteredRecords.sumOf { getRecordSize(it) }
+                    totalBytesConsumed += batchBytes
+
+                    // Update per-partition counts
+                    filteredRecords.forEach { record ->
+                        val partition = record.partition()
+                        partitionRecordCounts[partition] = (partitionRecordCounts[partition] ?: 0L) + 1
+                        partitionByteCounts[partition] = (partitionByteCounts[partition] ?: 0L) + getRecordSize(record)
+                    }
                 }
 
                 // Check topic record count limit
-                if (limit.topicRecordsCount != null && recordsConsumed >= limit.topicRecordsCount) {
+                if (limit.topicRecordsCount != null && totalRecordsConsumed >= limit.topicRecordsCount) {
                     break
+                }
+
+                // Check topic max size limit
+                if (limit.topicRecordsSize != null && totalBytesConsumed >= limit.topicRecordsSize) {
+                    break
+                }
+
+                // Check partition record count limit
+                if (limit.partitionRecordsCount != null) {
+                    val allPartitionsReachedLimit = partitionRecordCounts.isNotEmpty() &&
+                        partitionRecordCounts.values.all { it >= limit.partitionRecordsCount }
+                    if (allPartitionsReachedLimit) {
+                        break
+                    }
+                }
+
+                // Check partition max size limit
+                if (limit.partitionRecordsSize != null) {
+                    val allPartitionsReachedLimit = partitionByteCounts.isNotEmpty() &&
+                        partitionByteCounts.values.all { it >= limit.partitionRecordsSize }
+                    if (allPartitionsReachedLimit) {
+                        break
+                    }
                 }
 
                 // Check time limit
@@ -187,6 +226,26 @@ class CCloudConsumerClient(
                 }
             }
         }
+    }
+
+    /**
+     * Calculate the approximate size of a record in bytes.
+     * Uses the serialized sizes if available, otherwise estimates from the value content.
+     */
+    private fun getRecordSize(record: ConsumerRecord<Any, Any>): Long {
+        val keySize = if (record.serializedKeySize() >= 0) {
+            record.serializedKeySize().toLong()
+        } else {
+            record.key()?.toString()?.toByteArray()?.size?.toLong() ?: 0L
+        }
+
+        val valueSize = if (record.serializedValueSize() >= 0) {
+            record.serializedValueSize().toLong()
+        } else {
+            record.value()?.toString()?.toByteArray()?.size?.toLong() ?: 0L
+        }
+
+        return keySize + valueSize
     }
 
     /**
@@ -314,19 +373,55 @@ class CCloudConsumerClient(
             ApiTimestampType.LOG_APPEND_TIME -> TimestampType.LOG_APPEND_TIME
         }
 
+        // Estimate serialized sizes from JSON content
+        // This is an approximation since REST API doesn't return exact wire sizes
+        val keySize = estimateJsonSize(record.key)
+        val valueSize = estimateJsonSize(record.value)
+
         return ConsumerRecord(
             topic,
             record.partitionId,
             record.offset,
             record.timestamp,
             timestampType,
-            -1, // serializedKeySize - not available from REST
-            -1, // serializedValueSize - not available from REST
+            keySize,
+            valueSize,
             key,
             value,
             headers,
             null // leaderEpoch
         )
+    }
+
+    /**
+     * Estimate the serialized size of a JSON element.
+     * For schema-encoded values with __raw__, uses the decoded base64 size.
+     * For other values, uses the string representation size.
+     */
+    private fun estimateJsonSize(element: JsonElement?): Int {
+        if (element == null || element is JsonNull) {
+            return 0
+        }
+
+        // For schema-encoded values, calculate size from base64 decoded content
+        if (element is JsonObject && element.containsKey("__raw__")) {
+            val rawValue = element["__raw__"]?.jsonPrimitive?.content
+            return if (rawValue != null) {
+                try {
+                    Base64.getDecoder().decode(rawValue).size
+                } catch (e: Exception) {
+                    rawValue.toByteArray().size
+                }
+            } else {
+                0
+            }
+        }
+
+        // For plain values, use the string representation
+        return when (element) {
+            is JsonPrimitive -> element.content.toByteArray().size
+            else -> element.toString().toByteArray().size
+        }
     }
 
     /**
