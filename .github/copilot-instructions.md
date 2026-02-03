@@ -33,6 +33,8 @@ sdk env install
 ./gradlew buildPlugin  # Output: build/distributions/
 ```
 
+Run `./gradlew clean` to remove dependencies from prior builds before running `./gradlew build`, when you've updated the build tooling, after larger refactors, or when old changes keep lingering around longer than expected.
+
 ### Secrets for Telemetry (Sentry/Segment)
 
 **For production builds only** - local development does not require telemetry setup.
