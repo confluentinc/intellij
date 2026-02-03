@@ -190,7 +190,7 @@ When Spring Boot plugin is present, adds:
 - **Gradle config**: Version catalog in `gradle/libs.versions.toml`
 - **JVM target**: Java 21 (defined in `build.gradle.kts`)
 - **Kotlin compiler args**: `-Xjvm-default=all`
-- **IntelliJ version**: Targets `2025.2`
+- **IntelliJ version**: Targets `2025.3` (defined in `build.gradle.kts`)
 - **Dependency management**: Kafka serializers explicitly exclude `kafka-clients` to avoid version conflicts; SLF4J is excluded globally
 
 ## Telemetry & Privacy
@@ -209,6 +209,7 @@ Plugin collects anonymous usage statistics (opt-out in Settings → Tools → Ka
 - User manual: `docs/kafka-plugin-manual.md`
 - [IntelliJ Platform Plugin SDK](https://plugins.jetbrains.com/docs/intellij/)
 - [Plugin Marketplace](https://plugins.jetbrains.com/plugin/21704-kafka/)
+- [Confluent Docs](https://docs.confluent.io/cloud/current/client-apps/kafka-plugin-for-jetbrains-ides.html)
 
 ## Plugin File Conventions
 
