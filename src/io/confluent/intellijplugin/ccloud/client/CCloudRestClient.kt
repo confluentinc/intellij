@@ -11,7 +11,6 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import java.net.HttpURLConnection
-import kotlin.math.max
 
 /**
  * HTTP client for Confluent Cloud REST APIs (control plane and data plane).
