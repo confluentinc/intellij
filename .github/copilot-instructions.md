@@ -13,7 +13,7 @@ with the IntelliJ Platform Plugin SDK using Kotlin.
 ### Setup (Required First Step)
 
 ```bash
-# Install SDKMAN and JDK 21 (defined in .sdkmanrc)
+# Install SDKMAN and Java 24 (defined in .sdkmanrc)
 sdk env install
 ```
 
