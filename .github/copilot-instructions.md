@@ -70,6 +70,7 @@ Controllers manage UI components and coordinate with `KafkaDataManager` (which e
 - `TopicsController`, `TopicDetailsController` - Topic management
 - `ConsumerGroupsController`, `ConsumerGroupOffsetsController` - Consumer groups
 - `KafkaRegistryController`, `KafkaSchemaController` - Schema registry
+- `ConfluentMainController`, `ConfluentTabController` - Confluent Cloud
 
 All controllers extend base types and follow `Disposable` pattern (register with `Disposer.register(parent, child)`).
 
