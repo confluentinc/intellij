@@ -189,14 +189,8 @@ When Spring Boot plugin is present, adds:
 - **Gradle config**: Version catalog in `gradle/libs.versions.toml`
 - **JVM target**: Java 21 (defined in `build.gradle.kts`)
 - **Kotlin compiler args**: `-Xjvm-default=all`
-
-## Common Gotchas
-
-1. **Dependency exclusions**: Kafka serializers explicitly exclude `kafka-clients` to avoid version conflicts
-2. **SLF4J**: Excluded globally (`configurations.all { exclude(group = "org.slf4j", module = "slf4j-api") }`)
-3. **SDKMAN required**: Must run `sdk env install` before first build
-4. **Sentry tasks**: Fail without `SENTRY_AUTH_TOKEN`; they're auto-disabled when missing
-5. **IntelliJ version**: Targets `2025.2` Ultimate edition
+- **IntelliJ version**: Targets `2025.2`
+- **Dependency management**: Kafka serializers explicitly exclude `kafka-clients` to avoid version conflicts; SLF4J is excluded globally
 
 ## Telemetry & Privacy
 
