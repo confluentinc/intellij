@@ -16,6 +16,22 @@ queue:
     processing: parallel
 
 blocks:
+  - name: "Generate third party notices"
+    run:
+      when: "pull_request =~ '.*'"
+    task:
+      prologue:
+        commands:
+          - checkout
+          - sem-version java 21
+          - . vault-setup
+          - make ci-sem-cache-restore
+          - make setup-sdk
+      jobs:
+        - name: "Generate third party notices"
+          commands:
+            - make generate-third-party-notices
+
   - name: "Update third party notices PR"
     run:
       when: "branch =~ '.*'"
@@ -24,6 +40,7 @@ blocks:
         commands:
           - checkout
           - . vault-setup
+          - sem-version java 21
           - make ci-sem-cache-restore
           - make setup-sdk
       jobs:
