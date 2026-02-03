@@ -60,6 +60,10 @@ main() {
 
   fossa --version
 
+  # Log Java environment for debugging (FOSSA uses Gradle which requires Java 17+)
+  echo "JAVA_HOME: ${JAVA_HOME:-<not set>}"
+  java -version
+
   # Full access token created using rsanjay@confluent.io's FOSSA account (on Jul 17, 2024).
   # Rotate every 80-180 days.
   # https://docs.fossa.com/docs/rotating-fossa-api-key#full-access-token
