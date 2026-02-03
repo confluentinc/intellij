@@ -61,14 +61,17 @@ main() {
   fossa --version
 
   # Ensure JAVA_HOME is set for FOSSA/Gradle (requires Java 17+)
-  echo "JAVA_HOME: $JAVA_HOME"
   if [ -z "$JAVA_HOME" ]; then
-    # Resolve symlinks to find real JDK path
-    JAVA_BIN=$(readlink -f "$(which java)" 2>/dev/null || which java)
-    echo "JAVA_BIN: $JAVA_BIN"
-    export JAVA_HOME=$(dirname "$(dirname "$JAVA_BIN")")
-    echo "new JAVA_HOME: $JAVA_HOME"
+    if command -v jenv >/dev/null 2>&1; then
+      # CI uses jenv - get JAVA_HOME from jenv
+      export JAVA_HOME=$(jenv prefix)
+    else
+      # Fallback: resolve symlinks to find real JDK path
+      JAVA_BIN=$(readlink -f "$(which java)" 2>/dev/null || which java)
+      export JAVA_HOME=$(dirname "$(dirname "$JAVA_BIN")")
+    fi
   fi
+  echo "JAVA_HOME: $JAVA_HOME"
   java -version
 
   # Full access token created using rsanjay@confluent.io's FOSSA account (on Jul 17, 2024).
