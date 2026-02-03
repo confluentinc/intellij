@@ -60,18 +60,9 @@ main() {
 
   fossa --version
 
-  # Ensure JAVA_HOME is set for FOSSA/Gradle (requires Java 17+)
-  if [ -z "$JAVA_HOME" ]; then
-    if command -v jenv >/dev/null 2>&1; then
-      # CI uses jenv - get JAVA_HOME from jenv
-      export JAVA_HOME=$(jenv prefix)
-    else
-      # Fallback: resolve symlinks to find real JDK path
-      JAVA_BIN=$(readlink -f "$(which java)" 2>/dev/null || which java)
-      export JAVA_HOME=$(dirname "$(dirname "$JAVA_BIN")")
-    fi
-  fi
-  echo "JAVA_HOME: $JAVA_HOME"
+  # Log Java environment (FOSSA/Gradle requires Java 17+)
+  # Java should be configured via `sem-version java 21` in CI
+  echo "JAVA_HOME: ${JAVA_HOME:-<not set>}"
   java -version
 
   # Full access token created using rsanjay@confluent.io's FOSSA account (on Jul 17, 2024).
