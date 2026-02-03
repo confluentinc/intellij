@@ -19,6 +19,8 @@ retry() {
 main() {
   # Verify that fossa CLI is available (should be natively installed in CI agent)
   command -v fossa || { echo "fossa CLI not found in PATH"; exit 1; }
+
+  fossa --version
   
   # Full access token created using rsanjay@confluent.io's FOSSA account (on Jul 17, 2024).
   # Rotate every 80-180 days.
