@@ -2,6 +2,7 @@ package io.confluent.intellijplugin.toolwindow.controllers
 
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.actionSystem.*
+import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.DumbAwareToggleAction
 import com.intellij.openapi.project.Project
 import com.intellij.ui.DocumentAdapter
@@ -29,6 +30,7 @@ import io.confluent.intellijplugin.model.TopicPresentable
 import io.confluent.intellijplugin.model.TopicStatisticInfo
 import io.confluent.intellijplugin.rfs.KafkaDriver
 import io.confluent.intellijplugin.toolwindow.NavigableController
+import io.confluent.intellijplugin.toolwindow.actions.KafkaCreateConsumerAction
 import io.confluent.intellijplugin.toolwindow.config.KafkaToolWindowSettings
 import io.confluent.intellijplugin.util.KafkaDialogFactory
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
@@ -252,12 +254,42 @@ internal class TopicsController(
 
     override fun getRenderableColumns() = TopicPresentable.renderableColumns
     override fun getDataModel() = dataManager.topicModel
-    override fun getAdditionalActions(): List<AnAction> = listOf()
+
+    /**
+     * Creates a consume action for CCloud connections, or null for native Kafka.
+     */
+    private fun createCCloudConsumeAction(): AnAction? {
+        val ccloudManager = dataManager as? ClusterScopedDataManager ?: return null
+        return object : DumbAwareAction(
+            KafkaMessagesBundle.message("action.kafka.create.consumer.text"),
+            KafkaMessagesBundle.message("action.kafka.create.consumer.description"),
+            AllIcons.Actions.Execute
+        ) {
+            override fun actionPerformed(e: AnActionEvent) {
+                val topic = getSelectedItem()
+                KafkaCreateConsumerAction.createConsumer(project, ccloudManager, topic?.name)
+            }
+
+            override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
+        }
+    }
+
     override fun showColumnFilter(): Boolean = false
+
     override fun getAdditionalContextActions(): List<AnAction> {
-        val actionManager = ActionManager.getInstance()
-        val group = actionManager.getAction("Kafka.Topic.Actions") as DefaultActionGroup
-        return group.getChildren(actionManager).toList()
+        val actions = mutableListOf<AnAction>()
+
+        // Add consume action for CCloud connections
+        createCCloudConsumeAction()?.let { actions.add(it) }
+
+        // Add standard Kafka topic actions (for native Kafka connections)
+        if (dataManager is KafkaDataManager) {
+            val actionManager = ActionManager.getInstance()
+            val group = actionManager.getAction("Kafka.Topic.Actions") as DefaultActionGroup
+            actions.addAll(group.getChildren(actionManager).toList())
+        }
+
+        return actions
     }
 
     override fun createTopRightToolbarActions() = listOf(CustomComponentActionImpl(infoPanel))

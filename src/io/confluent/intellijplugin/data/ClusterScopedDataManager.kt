@@ -5,6 +5,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import io.confluent.intellijplugin.ccloud.cache.DataPlaneCache
 import io.confluent.intellijplugin.ccloud.model.Cluster
+import io.confluent.intellijplugin.consumer.editor.CCloudConsumerPanelStorage
 import io.confluent.intellijplugin.ccloud.model.response.CreateTopicRequest
 import io.confluent.intellijplugin.ccloud.model.response.TopicData
 import io.confluent.intellijplugin.ccloud.model.response.toPresentable
@@ -43,11 +44,25 @@ class ClusterScopedDataManager(
 
     private val dataPlaneCache: DataPlaneCache = confluentDataManager.getDataPlaneCache(cluster)
 
+    /**
+     * Storage for consumer panels to persist them across editor recreations.
+     * This prevents the consumer from stopping when the window is moved/floated.
+     */
+    val consumerPanelStorage = CCloudConsumerPanelStorage(this).also { Disposer.register(this, it) }
+
+    /**
+     * Get the data plane cache for REST API operations.
+     */
+    fun getDataPlaneCache(): DataPlaneCache = dataPlaneCache
+
     override val connectionId: String = cluster.id
 
     override val connectionData: ConfluentConnectionData
         get() = confluentDataManager.connectionData
 
+    /**
+     * Topic model for this specific cluster.
+     */
     override val topicModel: ObjectDataModel<TopicPresentable> = createTopicsDataModel().also {
         Disposer.register(this, it)
     }
@@ -247,5 +262,6 @@ class ClusterScopedDataManager(
     override fun supportsInSyncReplicasData(): Boolean = false
 
     override fun dispose() {
+        // Don't dispose the parent ConfluentDataManager, just clean up our references
     }
 }
