@@ -152,7 +152,7 @@ When Spring Boot plugin is present, adds:
 - **Gradle config**: Version catalog in `gradle/libs.versions.toml`
 - **JVM target**: Java 21 (defined in `build.gradle.kts`)
 - **Kotlin compiler args**: `-Xjvm-default=all`
-- **IntelliJ version**: Targets `2025.3` (defined in `build.gradle.kts`)
+- **IntelliJ version**: Targets `2025.3` (defined in `build.gradle.kts`; the `253` prefix in `idea-version since-build` in `resources/META-INF/plugin.xml` corresponds to `2025.3`)
 - **Dependency management**: Kafka serializers explicitly exclude `kafka-clients` to avoid version conflicts; SLF4J is excluded globally
 
 ## Telemetry & Privacy
