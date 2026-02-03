@@ -102,44 +102,6 @@ All user-facing strings use `KafkaMessagesBundle.message("key")` with keys in
 `resources/messages/KafkaBundle.properties`.
 Use `@Nls` annotation for localized strings, `@NlsSafe` for non-localized (e.g., technical identifiers).
 
-## Key Package Structure
-
-```
-src/io/confluent/intellijplugin/
-├── actions/         # Plugin actions and action handlers
-├── aws/             # AWS authentication and MSK support
-├── client/          # Kafka broker communication, authentication
-├── common/          # Common utilities and shared code
-├── completion/      # Code completion support
-├── consumer/        # Consumer functionality and UI
-├── core/            # Shared infrastructure
-│   ├── connection/  # Connection management, SSH tunneling, proxies
-│   ├── constants/   # Constant values and definitions
-│   ├── data/        # Data management utilities
-│   ├── delegate/    # Kotlin delegates and property delegation
-│   ├── filestorages/ # File-based storage implementations
-│   ├── monitoring/  # Monitoring UI and data visualization
-│   ├── rfs/         # Remote File System abstraction for Kafka resources
-│   ├── serializer/  # Moshi-based JSON serialization utilities
-│   ├── settings/    # Plugin settings and preferences
-│   ├── table/       # Table UI components and utilities
-│   ├── ui/          # Reusable UI components
-│   └── util/        # Core utility classes
-├── data/            # Data providers and data-related utilities
-├── model/           # Data classes (*Presentable types)
-├── producer/        # Producer functionality and UI
-├── registry/        # Schema registry integration (Confluent + AWS Glue)
-│   ├── confluent/   # Confluent Schema Registry specific
-│   └── glue/        # AWS Glue SR specific
-├── rfs/             # Remote File System implementations (top-level)
-├── settings/        # Plugin settings UI and configuration
-├── spring/          # Spring Boot integration (optional dependency)
-├── telemetry/       # Sentry and Segment integration
-├── toolwindow/      # Main UI components and controllers
-├── updater/         # Plugin update functionality
-└── util/            # General utility classes and helper functions
-```
-
 ## Code Generation & Build-Time Tasks
 
 Build generates configuration files from environment variables:
