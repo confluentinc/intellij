@@ -64,7 +64,10 @@ main() {
   # Rotate every 80-180 days.
   # https://docs.fossa.com/docs/rotating-fossa-api-key#full-access-token
   export FOSSA_API_KEY=$(vault kv get -field api_key v1/ci/kv/fossa_full_access)
-  fossa analyze --exclude-path build --only-target gradle
+
+  # Use --debug to capture detailed logs for troubleshooting
+  # Note: v3.13.0+ outputs to fossa.debug.zip, older versions to fossa.debug.json
+  fossa analyze --debug --exclude-path build --only-target gradle
   
   # Retry on command failure OR invalid output (FOSSA can return empty with exit 0)
   retry "fossa report attribution --debug --format text > THIRD_PARTY_NOTICES.txt && validate_output" 3 || exit 1
