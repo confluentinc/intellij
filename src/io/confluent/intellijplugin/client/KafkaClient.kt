@@ -451,8 +451,10 @@ class KafkaClient(
             return
         val accessKey = kafkaProps.getProperty(AwsSettingsComponentForKafka.AWS_ACCESS_KEY)?.ifBlank { null }?.trim()
         val secretKey = kafkaProps.getProperty(AwsSettingsComponentForKafka.AWS_SECRET_KEY)?.ifBlank { null }?.trim()
+        val sessionToken = kafkaProps.getProperty(AwsSettingsComponentForKafka.AWS_SESSION_TOKEN)?.ifBlank { null }?.trim()
         accessKey?.let { System.setProperty(AwsSettingsComponentForKafka.AWS_ACCESS_KEY, it) }
         secretKey?.let { System.setProperty(AwsSettingsComponentForKafka.AWS_SECRET_KEY, it) }
+        sessionToken?.let { System.setProperty(AwsSettingsComponentForKafka.AWS_SESSION_TOKEN, it) }
     }
 
     private suspend fun listOffsets(

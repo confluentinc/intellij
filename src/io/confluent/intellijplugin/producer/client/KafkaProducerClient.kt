@@ -13,6 +13,7 @@ import io.confluent.intellijplugin.producer.models.Mode
 import io.confluent.intellijplugin.producer.models.ProducerFlowParams
 import io.confluent.intellijplugin.producer.models.RecordCompression
 import io.confluent.intellijplugin.registry.KafkaRegistryType
+import io.confluent.intellijplugin.telemetry.TelemetryUtils
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
 import io.confluent.intellijplugin.util.csv.KafkaCsvUtils
 import io.confluent.intellijplugin.util.generator.FieldTemplateGenerator
@@ -169,6 +170,9 @@ class KafkaProducerClient(val client: KafkaClient) {
         props[ProducerConfig.COMPRESSION_TYPE_CONFIG] = recordCompression.name.lowercase()
         props[AbstractKafkaSchemaSerDeConfig.CONTEXT_NAME_STRATEGY] = NullContextNameStrategy::class.java
         props[AbstractKafkaSchemaSerDeConfig.AUTO_REGISTER_SCHEMAS] = false
+        if (!props.containsKey(ProducerConfig.CLIENT_ID_CONFIG)) {
+            props[ProducerConfig.CLIENT_ID_CONFIG] = "Confluent for IntelliJ ${TelemetryUtils.getPluginVersion()} - Producer"
+        }
 
         when (connectionData.registryType) {
             KafkaRegistryType.NONE -> {}

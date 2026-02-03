@@ -1,7 +1,9 @@
 <idea-plugin>
     <id>com.intellij.bigdatatools.kafka</id>
     <name>Kafka</name>
-    <vendor>JetBrains</vendor>
+    <vendor>Confluent</vendor>
+    <version>253.25910.0-pre</version>
+    <idea-version since-build="253.28294"/>
 
     <description><![CDATA[
 <p>Monitor your <a href="https://kafka.apache.org/">Kafka</a> event streaming processes:
@@ -12,8 +14,6 @@
    <li>Use Confluent Schema Registry and AWS Glue Schema Registry</li>
 </ul>
 </p>
-
-<p>This plugin is a part of the <a href="https://plugins.jetbrains.com/bundles/8-big-data-tools">Big Data Tools</a> plugin bundle.</p>
     ]]></description>
 
     <depends config-file="spring-boot.xml" optional="true">com.intellij.spring.boot</depends>
@@ -182,6 +182,10 @@
                     icon="AllIcons.General.Settings"
                     class="io.confluent.intellijplugin.core.monitoring.actions.tabs.MonitoringTabOpenConnectionSetting"
                     use-shortcut-of="EditSource"/>
+            <separator/>
+            <action id="Kafka.MonitoringTabsActions.ConfluentCloudSignOut"
+                    text="Sign Out from Confluent Cloud"
+                    class="io.confluent.intellijplugin.toolwindow.actions.ConfluentCloudSignOutTabAction"/>
         </group>
 
         <action id="Kafka.BdiTableCopyRowAction"
@@ -193,33 +197,36 @@
     </actions>
 
     <change-notes><![CDATA[
-<h2 style="padding:0;margin:0;line-height:0px">Changes in 2023.3</h2>
-<h4 style="padding:0;margin:0;line-height:0px">Features</h4>
+<h2 style="padding:0;margin:0;line-height:0px">Changes in 253.25909.3</h2>
+<h4 style="padding:0;margin:0;line-height:0px">Fixed</h4>
 <ul>
-<li>Supported local Protobuf and Avro schema files</li>
-<li>Added the Show schema action for local schema files</li>
-<li>In Spring projects, Kafka connections can be created directly from the gutter</li>
-<li>Added ability to set and create consumer groups for Kafka consumer</li>
-<li>Extended the usability and functionality of the Consumer groups section of the Kafka plugin</li>
-<li>Added highlighting for avro messages for Consumer</li>
-<li>Added integer type for keys/values for Consumer and Producer</li>
-<li>Added Speed Search for Kafka tool window</li>
-<li>Added the Local port field for connections via SSH tunnel and a hint about limitation of such connections</li>
-<li>Now, installing the Kafka plugin does not require the IDE restart</li>
+<li>Authenticate with MSK clusters using explicit access keys and secrets</li>
 </ul>
 
-<h4 style="padding:0;margin:0;line-height:0px">Fixed Bugs</h4>
+<h2 style="padding:0;margin:0;line-height:0px">Changes in 253.25909.2</h2>
+<h4 style="padding:0;margin:0;line-height:0px">Fixed</h4>
 <ul>
-<li>Fixed issues with applying presets to Producer</li>
-<li>Improved validation warnings and error messages</li>
-<li>Better column sizing after changing the Producer options and table clearing</li>
-<li>Fixed generation and tree view for JSON and Protobuf schemas with references</li>
-<li>It’s possible now to put multiple schema registry URL in Kafka configuration</li>
-<li>Key/Value editor fields are hidden when random generation enabled</li>
-<li>Improved the Properties source field for Kafka connection settings</li>
-<li>Fixed exception related to the slash symbol in a Topic or Schema name</li>
+<li>Refine telemetry events</li>
 </ul>
 
-<p>The full release notes are available <a href="https://youtrack.jetbrains.com/issues?q=project:%20BDIDE%20%20Available%20in:%20%7B2023.3%7D%20State:%20Fixed,%20Verified,%20%7BWithout%20verification%7D%20sort%20by:%20project,%20Type,%20votes%20BDT%20Plugin:%20Kafka">here</a>.</p>
+<h2 style="padding:0;margin:0;line-height:0px">Changes in 253.25909.1</h2>
+<h4 style="padding:0;margin:0;line-height:0px">Fixed</h4>
+<ul>
+<li>Fixed missing previous connection settings after updating to the latest plugin and IDE version (2025.3)</li>
+</ul>
+
+<h2 style="padding:0;margin:0;line-height:0px">Changes in 253.25909.0</h2>
+<h4 style="padding:0;margin:0;line-height:0px">Added</h4>
+<ul>
+<li>Compatibility with IntelliJ IDEA Community Edition — no longer requires an Ultimate subscription</li>
+<li>Segment integration for usage telemetry, which can be disabled by going to <strong>Settings > Tools > Kafka</strong> and unchecking the 'Telemetry Settings' option</li>
+<li>Sentry integration for error reports</li>
+</ul>
+
+<h4 style="padding:0;margin:0;line-height:0px">Fixed</h4>
+<ul>
+<li>Fixed the tooltip instructions for setting up a Confluent Cloud connection</li>
+<li>Fixed bug when consuming records using a Protobuf schema stored on AWS Glue Schema Registry</li>
+</ul>
 ]]></change-notes>
 </idea-plugin>

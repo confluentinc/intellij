@@ -4,6 +4,9 @@ import org.apache.kafka.common.config.TopicConfig.*
 
 
 object KafkaConstants {
+    const val DEFAULT_CCLOUD_REPLICATION_FACTOR = 3
+    const val DEFAULT_CCLOUD_PARTITION_COUNT = 6
+
     val TOPIC_DEFAULT_CONFIGS = mapOf(
         CLEANUP_POLICY_CONFIG to CLEANUP_POLICY_DELETE,
         COMPRESSION_TYPE_CONFIG to "producer",
@@ -16,7 +19,6 @@ object KafkaConstants {
         "leader.replication.throttled.replicas" to "",
         MAX_COMPACTION_LAG_MS_CONFIG to "9223372036854775807",
         MAX_MESSAGE_BYTES_CONFIG to "1000012",
-        MESSAGE_TIMESTAMP_DIFFERENCE_MAX_MS_CONFIG to "9223372036854775807",
         MESSAGE_TIMESTAMP_TYPE_CONFIG to "CreateTime",
         MIN_CLEANABLE_DIRTY_RATIO_CONFIG to "0.5",
         MIN_COMPACTION_LAG_MS_CONFIG to "0",

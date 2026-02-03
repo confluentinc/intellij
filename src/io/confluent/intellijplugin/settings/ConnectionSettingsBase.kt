@@ -8,6 +8,8 @@ import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.extensions.PluginId
 import io.confluent.intellijplugin.core.constants.BdtConnectionType
 import io.confluent.intellijplugin.core.constants.BdtPlugins.isSupportedByPlugin
+import com.intellij.util.xmlb.XmlSerializer
+import io.confluent.intellijplugin.core.constants.BdtPlugins
 import io.confluent.intellijplugin.core.settings.connections.ConnectionData
 import io.confluent.intellijplugin.core.settings.connections.ConnectionFactory
 import io.confluent.intellijplugin.core.settings.connections.ConnectionSettingProviderEP
@@ -78,6 +80,28 @@ abstract class ConnectionSettingsBase : PersistentStateComponent<ConnectionPersi
             Pair(
                 "com.jetbrains.bigdatatools.connection.tunnel.model.ConnectionSshTunnelDataLegacy",
                 "io.confluent.intellijplugin.core.connection.tunnel.model.ConnectionSshTunnelDataLegacy"
+            ),
+            // Legacy Kafka connection data class migration
+            Pair(
+                "com.jetbrains.bigdatatools.kafka.rfs.KafkaConnectionData",
+                "io.confluent.intellijplugin.rfs.KafkaConnectionData"
+            ),
+            // Legacy Kafka enum migrations (used in extended properties)
+            Pair(
+                "com.jetbrains.bigdatatools.kafka.rfs.KafkaCloudType",
+                "io.confluent.intellijplugin.rfs.KafkaCloudType"
+            ),
+            Pair(
+                "com.jetbrains.bigdatatools.kafka.rfs.KafkaConfigurationSource",
+                "io.confluent.intellijplugin.rfs.KafkaConfigurationSource"
+            ),
+            Pair(
+                "com.jetbrains.bigdatatools.kafka.rfs.KafkaPropertySource",
+                "io.confluent.intellijplugin.rfs.KafkaPropertySource"
+            ),
+            Pair(
+                "com.jetbrains.bigdatatools.kafka.registry.KafkaRegistryType",
+                "io.confluent.intellijplugin.registry.KafkaRegistryType"
             ),
         )
 
@@ -276,13 +300,76 @@ abstract class ConnectionSettingsBase : PersistentStateComponent<ConnectionPersi
 
     private var connections = mutableListOf<ConnectionData>()
 
+    // Tracks whether legacy migration from bigdataide_settings.xml has been completed
+    protected var legacyMigrationCompleted: Boolean = false
+
+    // Tracks whether the migration confirmation was displayed to user (should only be shown once at startup when attempting to migrate old saved connections)
+    protected var migrationNotificationShown: Boolean = false
+
     override fun getState(): ConnectionPersistentState? = synchronized(this) {
-        ConnectionPersistentState(connections.map { packData(it) })
+        ConnectionPersistentState(
+            connections = connections.map { packData(it) },
+            legacyMigrationCompleted = legacyMigrationCompleted,
+            migrationNotificationShown = migrationNotificationShown
+        )
     }
 
     protected open fun unpackData(conn: ConnectionData): ConnectionData = ConnectionSettingsBase.unpackData(conn)
 
+    /**
+     * Common method to retrieve connections from BDT plugin's service.
+     * This is used during migration when BDT plugin is installed alongside our plugin.
+     *
+     * @param bdtClassName The fully qualified class name of the BDT settings service
+     * @param serviceProvider A function that retrieves the service instance given the loaded class
+     * @return List of ExtendedConnectionData from BDT, or empty list if retrieval fails
+     */
+    protected fun getConnectionsFromBdtService(
+        bdtClassName: String,
+        serviceProvider: (Class<*>) -> Any?
+    ): List<ExtendedConnectionData> {
+        return try {
+            val bdtPluginId = PluginId.findId(BdtPlugins.CORE_ID)
+            val bdtPlugin = bdtPluginId?.let { PluginManagerCore.getPlugin(it) }
+            val bdtClassLoader = bdtPlugin?.pluginClassLoader
+
+            if (bdtClassLoader == null) {
+                logger.warn("Could not get Big Data Tools plugin classloader")
+                return emptyList()
+            }
+
+            val bdtClass = bdtClassLoader.loadClass(bdtClassName)
+            val bdtService = serviceProvider(bdtClass)
+
+            if (bdtService != null) {
+                // Call getState() to get the persisted state
+                val getStateMethod = bdtClass.getMethod("getState")
+                val bdtState = getStateMethod.invoke(bdtService) ?: return emptyList()
+
+                // Serialize BDT's state to XML and deserialize as our ConnectionPersistentState.
+                // This works because both plugins have compatible ConnectionPersistentState XML structure.
+                // Class name translation via RENAME_MAP happens later in unpackData().
+                val xmlElement = XmlSerializer.serialize(bdtState)
+                logger.debug("Serialized BDT state to XML: $xmlElement")
+
+                val ourState = XmlSerializer.deserialize(xmlElement, ConnectionPersistentState::class.java)
+                logger.info("Deserialized ${ourState.connections.size} connections from BDT ($bdtClassName)")
+                ourState.connections
+            } else {
+                logger.warn("Could not get Big Data Tools service instance for $bdtClassName")
+                emptyList()
+            }
+        } catch (e: Exception) {
+            logger.warn("Could not access Big Data Tools service: $bdtClassName", e)
+            emptyList()
+        }
+    }
+
     override fun loadState(state: ConnectionPersistentState) = synchronized(this) {
+        // Load the migration flags
+        legacyMigrationCompleted = state.legacyMigrationCompleted
+        migrationNotificationShown = state.migrationNotificationShown
+
         val errorHandler = BufferingErrorHandler()
         val connectionData = state.connections.filter { it.connType != null }.map { unpackData(it, errorHandler) }
 
@@ -296,7 +383,6 @@ abstract class ConnectionSettingsBase : PersistentStateComponent<ConnectionPersi
                         t
                     ), it
                 )
-                //thisLogger().error("Migration connection settings failed. Conn name: ${it.name}, id: ${it.innerId}", t)
             }
         }
 

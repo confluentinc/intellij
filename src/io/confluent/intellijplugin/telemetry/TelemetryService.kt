@@ -7,7 +7,6 @@ import com.intellij.openapi.components.Service
 import com.intellij.openapi.diagnostic.thisLogger
 import com.segment.analytics.Analytics
 import io.confluent.intellijplugin.settings.app.KafkaPluginSettings
-import com.intellij.openapi.application.PermanentInstallationID
 import com.intellij.openapi.components.service
 import com.intellij.openapi.extensions.PluginId
 import com.intellij.openapi.util.SystemInfo
@@ -35,54 +34,37 @@ class TelemetryService : Disposable {
 
     companion object {
         fun getInstance(): TelemetryService = service()
+
+        // System property to override the Segment write key (for dev testing with ./gradlew runIde)
+        private const val SEGMENT_WRITE_KEY_PROPERTY = "confluent.intellijplugin.segment.writeKey"
     }
 
     private fun initialize() {
         if (analytics == null) {
-            if (!SegmentConfig.isConfigured) {
+            // Gets the Segment write key, checking system property first for dev override.
+            // Usage: ./gradlew runIde -Dconfluent.intellijplugin.segment.writeKey=your_dev_key
+            val writeKey = System.getProperty(SEGMENT_WRITE_KEY_PROPERTY)?.takeIf { it.isNotBlank() } ?: SegmentConfig.WRITE_KEY
+            if (writeKey.isBlank()) {
                 // If we don't have a key, assume we're in dev mode and skip initialization
                 if (!warnedAboutSegmentKey) {
                     warnedAboutSegmentKey = true
-                    logger.debug("No Segment write key found, telemetry disabled")
+                    logger.debug("No Segment write key found, telemetry disabled. Use -D$SEGMENT_WRITE_KEY_PROPERTY=your_key to enable.")
                 }
                 return
             }
 
             try {
-                analytics = Analytics.builder(SegmentConfig.WRITE_KEY).build()
+                analytics = Analytics.builder(writeKey).build()
                 logger.debug("Telemetry service initialized successfully")
+
+                // Send plugin activation event on first initialization
+                sendTrackEvent(PluginActivatedEvent.eventName, PluginActivatedEvent.properties())
             } catch (e: Exception) {
                 logger.error("Failed to initialize telemetry service", e)
             }
         }
     }
 
-
-    /**
-     * Gets the anonymous user ID for telemetry.
-     * Uses IntelliJ's permanent installation ID.
-     */
-    private fun getUserId(): String {
-        return try {
-            PermanentInstallationID.get()
-        } catch (e: Exception) {
-            logger.warn("Failed to get installation ID", e)
-            "unknown"
-        }
-    }
-
-    /**
-     * Gets the current Kafka plugin version.
-     */
-    private fun getPluginVersion(): String {
-        return try {
-            val pluginId = PluginId.getId(BdtPlugins.KAFKA_ID)
-            PluginManagerCore.getPlugin(pluginId)?.version ?: "unknown"
-        } catch (e: Exception) {
-            logger.warn("Failed to get plugin version", e)
-            "unknown"
-        }
-    }
 
     /**
      * Builds the common context information for Segment events.
@@ -107,7 +89,7 @@ class TelemetryService : Disposable {
         put("ideMajorVersion", appInfo.majorVersion)
         put("ideIsEAP", appInfo.isEAP.toString())
         put("pluginName", "confluent.intellijplugin")
-        put("pluginVersion", getPluginVersion())
+        put("pluginVersion", TelemetryUtils.getPluginVersion())
     }
 
     /**
@@ -126,7 +108,7 @@ class TelemetryService : Disposable {
 
         try {
             analytics?.enqueue(TrackMessage.builder(event)
-                    .userId(getUserId())
+                    .userId(TelemetryUtils.commonMachineId())
                     .context(buildContext())
                     .properties(properties + buildCommonProperties())
             )
@@ -152,7 +134,7 @@ class TelemetryService : Disposable {
 
         try {
             analytics?.enqueue(IdentifyMessage.builder()
-                .userId(getUserId())
+                .userId(TelemetryUtils.commonMachineId())
                 .context(buildContext())
                 .traits(traits + buildCommonProperties())
             )

@@ -10,6 +10,7 @@ rootProject.extensions.add("java.targetCompatibility", "21")
 plugins {
     id("java")
     id("org.jetbrains.kotlin.jvm")
+    kotlin("plugin.serialization") version "2.2.21"
     id("org.jetbrains.intellij.platform") version "2.9.0"
     id("io.sentry.jvm.gradle") version "5.12.1"
 }
@@ -26,16 +27,16 @@ sentry {
 val generateSentryConfig by tasks.registering {
     val outputDir = layout.buildDirectory.dir("generated/sources/sentryconfig/kotlin")
     val sentryDsn = System.getenv("SENTRY_DSN") ?: ""
-    
+
     outputs.dir(outputDir)
     inputs.property("sentryDsn", sentryDsn)
-    
+
     doLast {
         val configFile = outputDir.get().asFile.resolve("io/confluent/intellijplugin/telemetry/SentryConfig.kt")
         configFile.parentFile.mkdirs()
         configFile.writeText("""
             package io.confluent.intellijplugin.telemetry
-            
+
             /** Sentry configuration embedded at build time from SENTRY_DSN env var. */
             object SentryConfig {
                 const val DSN = "$sentryDsn"
@@ -63,7 +64,6 @@ val generateSegmentConfig by tasks.registering {
             /** Segment configuration embedded at build time from SEGMENT_WRITE_KEY env var. */
             object SegmentConfig {
                 const val WRITE_KEY = "$segmentWriteKey"
-                val isConfigured = WRITE_KEY.isNotBlank()
             }
 
         """.trimIndent())
@@ -90,7 +90,7 @@ intellijPlatform {
 dependencies {
     intellijPlatform {
         jetbrainsRuntime()
-        intellijIdeaUltimate("2025.2", useInstaller = true)
+        intellijIdea("2025.3"){useInstaller.set(true)}
 
         bundledPlugin("com.intellij.modules.json")
         bundledPlugin("com.intellij.microservices.jvm")
@@ -103,6 +103,7 @@ dependencies {
         testFramework(TestFrameworkType.JUnit5)
     }
     implementation(libs.moshi.kotlin)
+    implementation(libs.kotlinx.serialization.json)
     implementation(libs.kafka.clients)
 
     listOf(
@@ -120,6 +121,7 @@ dependencies {
     implementation(libs.aws.sso)
     implementation(libs.aws.sts)
     implementation(libs.aws.ssooidc)
+    implementation(libs.aws.mskiamauth)
     implementation("com.segment.analytics.java:analytics:3.5.2")
 
     implementation(libs.glue.schema.registry.serde)
@@ -130,8 +132,11 @@ dependencies {
     testImplementation(libs.kotlin.metadata.jvm)
     testImplementation(libs.junit.jupiter.api)
     testRuntimeOnly(libs.junit.jupiter.engine)
+    testRuntimeOnly(libs.junit.platform.launcher)
     testImplementation(libs.junit.jupiter.params)
     testImplementation(libs.mockito.kotlin)
+    testImplementation(libs.mockito.inline)
+    testImplementation(libs.wiremock)
     // JUnit 4 runtime required due to IJPL-159134: JUnit5 Test Framework refers to JUnit4 classes
     // See: https://youtrack.jetbrains.com/issue/IJPL-159134
     testRuntimeOnly(libs.junit4)
@@ -153,6 +158,7 @@ sourceSets {
     test {
         java.srcDirs(listOf("test"))
         kotlin.srcDirs(listOf("test"))
+        resources.srcDirs(listOf("test/resources"))
     }
 }
 
@@ -162,9 +168,9 @@ tasks.named("compileKotlin") {
 
 // Ensure all Sentry plugin tasks run after custom config generation
 afterEvaluate {
-    tasks.filter { 
-        (it.name.startsWith("sentry") || it.name.contains("Sentry")) && 
-        it.name != "generateSentryConfig" 
+    tasks.filter {
+        (it.name.startsWith("sentry") || it.name.contains("Sentry")) &&
+        it.name != "generateSentryConfig"
     }.forEach { sentryTask ->
         sentryTask.mustRunAfter(generateSentryConfig, generateSegmentConfig)
     }
@@ -190,8 +196,27 @@ tasks {
 
     test {
         useJUnitPlatform()
+        systemProperty("ccloud.callback-port", "26639")
+        System.getProperty("ccloud.env")?.let { systemProperty("ccloud.env", it) }
     }
-    
+
+    runIde {
+        // Pass system properties from gradle.properties or use system property flag with -D flag @see CCloudOAuthConfig
+        System.getProperty("ccloud.callback-port")?.let { systemProperty("ccloud.callback-port", it) }
+        System.getProperty("ccloud.env")?.let { systemProperty("ccloud.env", it) }
+        // Pass Segment write key for dev telemetry testing: ./gradlew runIde -Dconfluent.intellijplugin.segment.writeKey=your_key
+        System.getProperty("confluent.intellijplugin.segment.writeKey")?.let { systemProperty("confluent.intellijplugin.segment.writeKey", it) }
+    }
+
+    patchPluginXml {
+        val releaseName = System.getenv("RELEASE_NAME")
+        // if RELEASE_NAME is set (e.g. from a release job in CI), patch it in plugin.xml
+        // so the resulting plugin zip has the correct version number when installed
+        if (!releaseName.isNullOrEmpty()) {
+            version = releaseName.removePrefix("v")
+        }
+    }
+
     // Skip Sentry tasks when auth token is missing
     if (System.getenv("SENTRY_AUTH_TOKEN").isNullOrEmpty()) {
         // Disable all Sentry Gradle plugin tasks that require auth token

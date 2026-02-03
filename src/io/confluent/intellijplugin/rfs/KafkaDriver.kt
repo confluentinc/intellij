@@ -14,6 +14,7 @@ import io.confluent.intellijplugin.telemetry.*
 import io.confluent.intellijplugin.toolwindow.KafkaMonitoringToolWindowController
 import io.confluent.intellijplugin.toolwindow.config.KafkaToolWindowSettings
 import io.confluent.intellijplugin.toolwindow.controllers.KafkaGroupType
+import io.confluent.intellijplugin.core.util.invokeLater
 import javax.swing.Icon
 
 class KafkaDriver(override val connectionData: KafkaConnectionData, project: Project?, testConnection: Boolean) :
@@ -24,7 +25,8 @@ class KafkaDriver(override val connectionData: KafkaConnectionData, project: Pro
     private var hasTrackedConnection = false
     override val dataManager: KafkaDataManager = KafkaDataManager(
         project, connectionData,
-        KafkaToolWindowSettings.getInstance()
+        KafkaToolWindowSettings.getInstance(),
+        { this }
     )
     override val presentableName: String = connectionData.name
     override val icon: Icon = BigdatatoolsKafkaIcons.Kafka
@@ -42,18 +44,24 @@ class KafkaDriver(override val connectionData: KafkaConnectionData, project: Pro
 
         dataManager.topicModel.addListener(object : DataModelListener {
             override fun onChanged() {
-                fileInfoManager.refreshFiles(topicPath)
+                invokeLater {
+                    fileInfoManager.refreshFiles(topicPath)
+                }
             }
         })
         dataManager.consumerGroupsModel.addListener(object : DataModelListener {
             override fun onChanged() {
-                fileInfoManager.refreshFiles(consumerPath)
+                invokeLater {
+                    fileInfoManager.refreshFiles(consumerPath)
+                }
             }
         })
 
         dataManager.schemaRegistryModel?.addListener(object : DataModelListener {
             override fun onChanged() {
-                fileInfoManager.refreshFiles(schemasPath)
+                invokeLater {
+                    fileInfoManager.refreshFiles(schemasPath)
+                }
             }
         })
     }

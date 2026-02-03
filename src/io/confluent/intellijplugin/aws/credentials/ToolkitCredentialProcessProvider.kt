@@ -78,7 +78,7 @@ class ToolkitCredentialProcessProvider internal constructor(
                 e
             )
         }
-        val credentials = when (val token = result.sessionToken) {
+        val credentials: AwsCredentials = when (val token = result.sessionToken) {
             null -> AwsBasicCredentials.create(result.accessKeyId, result.secretAccessKey)
             else -> AwsSessionCredentials.create(result.accessKeyId, result.secretAccessKey, token)
         }
