@@ -30,3 +30,9 @@ blocks:
         - name: "Update third party notices PR"
           commands:
             - make update-third-party-notices-pr
+      epilogue:
+        always:
+          commands:
+            # push FOSSA debug file for troubleshooting if it exists
+            - "[ -f fossa.debug.json ] && artifact push workflow fossa.debug.json || true"
+            - "[ -f fossa.debug.zip ] && artifact push workflow fossa.debug.zip || true"
