@@ -66,8 +66,8 @@ main() {
   export FOSSA_API_KEY=$(vault kv get -field api_key v1/ci/kv/fossa_full_access)
   fossa analyze --exclude-path build --only-target gradle
   
-  # This might timeout so retry a few times
-  retry "fossa report attribution --format text > THIRD_PARTY_NOTICES.txt" 3
+  # Retry on command failure OR invalid output (FOSSA can return empty with exit 0)
+  retry "fossa report attribution --debug --format text > THIRD_PARTY_NOTICES.txt && validate_output" 3 || exit 1
 }
 
 main
