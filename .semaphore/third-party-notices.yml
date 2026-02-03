@@ -16,6 +16,28 @@ queue:
     processing: parallel
 
 blocks:
+  - name: "Generate third party notices"
+    run:
+      when: "pull_request =~ '.*'"
+    task:
+      prologue:
+        commands:
+          - checkout
+          - sem-version java 21
+          - . vault-setup
+          - make ci-sem-cache-restore
+          - make setup-sdk
+      jobs:
+        - name: "Generate third party notices"
+          commands:
+            - make generate-third-party-notices
+      epilogue:
+        always:
+          commands:
+            # push FOSSA debug file for troubleshooting if it exists
+            - "[ -f fossa.debug.json ] && artifact push workflow fossa.debug.json || true"
+            - "[ -f fossa.debug.zip ] && artifact push workflow fossa.debug.zip || true"
+
   - name: "Update third party notices PR"
     run:
       when: "branch =~ '.*'"
