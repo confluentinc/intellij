@@ -177,9 +177,6 @@ afterEvaluate {
 }
 
 java {
-    toolchain {
-        languageVersion = JavaLanguageVersion.of(ext("java.sourceCompatibility"))
-    }
     sourceCompatibility = JavaVersion.toVersion(ext("java.sourceCompatibility"))
     targetCompatibility = JavaVersion.toVersion(ext("java.targetCompatibility"))
 }

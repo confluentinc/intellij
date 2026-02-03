@@ -23,9 +23,7 @@ blocks:
       prologue:
         commands:
           - checkout
-          - ./gradlew --version || true
           - sem-version java 21
-          - ./gradlew --version || true
           - . vault-setup
           - make ci-sem-cache-restore
           - make setup-sdk
