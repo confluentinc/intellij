@@ -64,7 +64,7 @@ Uses Confluent's `cc-mk-include` system. Makefile auto-downloads required mk fil
 
 ### Controller Pattern
 
-Controllers manage UI components and coordinate with `KafkaDataManager`:
+Controllers manage UI components and coordinate with `KafkaDataManager` (which extends `MonitoringDataManager`):
 
 - `KafkaMainController` - Main tree view and navigation
 - `TopicsController`, `TopicDetailsController` - Topic management
@@ -116,7 +116,7 @@ src/io/confluent/intellijplugin/
 │   ├── constants/   # Constant values and definitions
 │   ├── data/        # Data management utilities
 │   ├── delegate/    # Kotlin delegates and property delegation
-│   ├── filestorages/# File-based storage implementations
+│   ├── filestorages/ # File-based storage implementations
 │   ├── monitoring/  # Monitoring UI and data visualization
 │   ├── rfs/         # Remote File System abstraction for Kafka resources
 │   ├── serializer/  # Moshi-based JSON serialization utilities
