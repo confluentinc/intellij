@@ -51,6 +51,7 @@ internal class KafkaRecordDetails(project: Project, parentDisposable: Disposable
     private val keyFieldJson = KafkaRegistrySchemaEditor(project, parentDisposable, isEditable = false).apply {
         component.border =
             BorderFactory.createCompoundBorder(DarculaTextAreaBorder(), ComponentColoredBorder(3, 5, 3, 5))
+        component.preferredSize = Dimension(400, 50)
     }
 
     private val valueViewerType = ComboBox(FieldViewerType.entries.toTypedArray()).apply {
@@ -59,6 +60,7 @@ internal class KafkaRecordDetails(project: Project, parentDisposable: Disposable
     private val valueFieldJson = KafkaRegistrySchemaEditor(project, parentDisposable, isEditable = false).apply {
         component.border =
             BorderFactory.createCompoundBorder(DarculaTextAreaBorder(), ComponentColoredBorder(3, 5, 3, 5))
+        component.preferredSize = Dimension(400, 50)
     }
 
     private val headers = PropertiesTable(emptyList(), isEditable = false)
