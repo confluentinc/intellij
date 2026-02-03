@@ -31,12 +31,6 @@ blocks:
         - name: "Generate third party notices"
           commands:
             - make generate-third-party-notices
-      epilogue:
-        always:
-          commands:
-            # push FOSSA debug file for troubleshooting if it exists
-            - "[ -f fossa.debug.json ] && artifact push workflow fossa.debug.json || true"
-            - "[ -f fossa.debug.zip ] && artifact push workflow fossa.debug.zip || true"
 
   - name: "Update third party notices PR"
     run:
@@ -46,6 +40,7 @@ blocks:
         commands:
           - checkout
           - . vault-setup
+          - sem-version java 21
           - make ci-sem-cache-restore
           - make setup-sdk
       jobs:
