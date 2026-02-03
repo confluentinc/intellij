@@ -60,8 +60,15 @@ main() {
 
   fossa --version
 
-  # Log Java environment for debugging (FOSSA uses Gradle which requires Java 17+)
-  echo "JAVA_HOME: ${JAVA_HOME:-<not set>}"
+  # Ensure JAVA_HOME is set for FOSSA/Gradle (requires Java 17+)
+  echo "JAVA_HOME: $JAVA_HOME"
+  if [ -z "$JAVA_HOME" ]; then
+    # Resolve symlinks to find real JDK path
+    JAVA_BIN=$(readlink -f "$(which java)" 2>/dev/null || which java)
+    echo "JAVA_BIN: $JAVA_BIN"
+    export JAVA_HOME=$(dirname "$(dirname "$JAVA_BIN")")
+    echo "new JAVA_HOME: $JAVA_HOME"
+  fi
   java -version
 
   # Full access token created using rsanjay@confluent.io's FOSSA account (on Jul 17, 2024).
