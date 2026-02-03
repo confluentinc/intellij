@@ -223,3 +223,43 @@ Plugin collects anonymous usage statistics (opt-out in Settings → Tools → Ka
 4. **Controllers**: Extend base controller types, implement `Disposable`, register with parent
 5. **Data context**: Define `DataKey` constants for action data access
 6. **Tests**: Create JUnit 5 tests with `@TestApplication` for platform features
+
+## Pull Request Reviews
+
+When reviewing pull requests, verify changes follow IntelliJ Platform best practices. Reference the
+[IntelliJ Platform SDK documentation](https://plugins.jetbrains.com/docs/intellij/) for authoritative guidance.
+
+### Key Review Checkpoints
+
+**Threading Model** ([docs](https://plugins.jetbrains.com/docs/intellij/threading-model.html)):
+- Write actions must run on EDT only (`WriteAction.run()` / `WriteAction.compute()`)
+- Read actions from background threads use `ReadAction.compute()` or `ReadAction.nonBlocking()`
+- Long operations must not block EDT - use background tasks or coroutines
+- PSI/VFS modifications never from UI renderers or `SwingUtilities.invokeLater()`
+
+**IDE Infrastructure** ([docs](https://plugins.jetbrains.com/docs/intellij/ide-infrastructure.html)):
+- Use `Logger.getInstance()` for logging, not log4j directly
+- Check `Disposable` cleanup - register children with `Disposer.register(parent, child)`
+- Network requests use `HttpConfigurable` for proxy support
+
+**Services & Extensions**:
+- Services registered in `plugin.xml` with appropriate scope (application/project)
+- Extensions use correct extension points
+- No static state that persists across projects
+
+**Localization**:
+- All user-facing strings use `KafkaMessagesBundle.message("key")`
+- New strings added to `KafkaBundle.properties`
+- Use `@Nls` / `@NlsSafe` annotations appropriately
+
+### Auto-Generated Files (Skip in Reviews)
+
+The following files are automatically generated and should not be reviewed or modified manually:
+
+- `THIRD_PARTY_NOTICES.txt` - Auto-generated license notices from dependencies
+- `build/generated/` - Build-time generated sources (SentryConfig.kt, SegmentConfig.kt)
+- `gen/` - Auto-generated sources from grammar definitions
+- `mk-files/` - Auto-downloaded Makefile includes from `cc-mk-include`
+- `.mk-include-timestamp` - Build system timestamp file
+- `*.iml` files - IntelliJ module files (auto-managed by IDE)
+- `gradle/wrapper/` - Gradle wrapper files (managed by Gradle)
