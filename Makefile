@@ -131,6 +131,11 @@ setup-sdk:
 build: setup-sdk
 	$(GRADLE) build -Dorg.gradle.console=plain
 
+# build without tests (used by targets that only need compiled JARs)
+.PHONY: assemble
+assemble: setup-sdk
+	$(GRADLE) assemble -Dorg.gradle.console=plain
+
 .PHONY: build-plugin
 build-plugin: setup-sdk
 	$(GRADLE) buildPlugin -Dorg.gradle.console=plain
@@ -147,9 +152,9 @@ generate-third-party-notices:
 	./scripts/generate-third-party-notices.sh
 
 # Collects and appends all NOTICE files from the project's dependency JARs into a NOTICE-binary.txt file.
-# Runs gradle build before collecting the notices to ensure the JARs are available.
+# Runs gradle assemble before collecting the notices to ensure the JARs are available.
 .PHONY: collect-notices-binary
-collect-notices-binary: build
+collect-notices-binary: assemble
 	./scripts/collect-notices-binary.sh . .
 
 # Creates a PR against the currently checked out branch with a newly generated `THIRD_PARTY_NOTICES.txt` file.
