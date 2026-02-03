@@ -45,13 +45,11 @@ import kotlin.math.min
  * @param clusterDataManager The cluster-scoped data manager for CCloud connection
  * @param onStart Callback invoked when consumption starts
  * @param onStop Callback invoked when consumption stops
- * @param parentScope CoroutineScope for context (not used directly - we create our own independent scope)
  */
 class CCloudConsumerClient(
     private val clusterDataManager: ClusterScopedDataManager,
     val onStart: () -> Unit,
     val onStop: () -> Unit,
-    @Suppress("UNUSED_PARAMETER") parentScope: CoroutineScope
 ) : ConsumerClient {
 
     private val running = AtomicBoolean(false)
