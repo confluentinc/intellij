@@ -23,10 +23,10 @@ class KafkaFileInfo(override val driver: KafkaDriver, override val path: RfsPath
     override fun doDeleteAsync() = object : RemoteFsDeleteTask(path) {
         override fun run(indicator: ProgressIndicator) {
             when (path.parent) {
-                KafkaDriver.topicPath -> driver.dataManager.deleteTopicWithConfirmation(listOf(path.name))
-                KafkaDriver.schemasPath -> runBlockingCancellable {
-                    driver.dataManager.deleteSchema(path.name).join()
+                KafkaDriver.topicPath -> runBlockingCancellable {
+                    driver.dataManager.deleteTopic(listOf(path.name))
                 }
+                KafkaDriver.schemasPath -> driver.dataManager.deleteSchema(path.name)
             }
         }
     }
