@@ -13,13 +13,16 @@ import io.confluent.intellijplugin.core.monitoring.rfs.MonitoringDriver
 import io.confluent.intellijplugin.rfs.ConfluentConnectionData
 
 /**
- * Data manager for Confluent Cloud resources.
+ * Organization-level manager for Confluent Cloud.
  *
+ * Coordinates access to multiple Kafka clusters within a Confluent Cloud organization.
  * Manages two-tier caching:
- * - Control plane: One ControlPlaneCache for organizational resources
- * - Data plane: One DataPlaneCache per cluster for topics/subjects/consumer groups
+ * - Control plane: One ControlPlaneCache for organizational resources (environments, clusters)
+ * - Data plane: One DataPlaneCache per cluster for cluster resources (topics, schemas, consumer groups)
+ *
+ * This manager creates and maintains [CCloudClusterDataManager] instances for each cluster.
  */
-class ConfluentDataManager(
+class CCloudOrgManager(
     project: Project?,
     override val connectionData: ConfluentConnectionData,
     override val settings: IntervalUpdateSettings,
@@ -32,7 +35,7 @@ class ConfluentDataManager(
 
     private val dataPlaneCache = mutableMapOf<String, DataPlaneCache>()
 
-    private val clusterDataManagers = mutableMapOf<String, ClusterScopedDataManager>()
+    private val clusterDataManagers = mutableMapOf<String, CCloudClusterDataManager>()
 
     fun getDataPlaneCache(cluster: Cluster): DataPlaneCache {
         return dataPlaneCache.getOrPut(cluster.id) {
@@ -44,15 +47,15 @@ class ConfluentDataManager(
         }
     }
 
-    fun getOrCreateClusterDataManager(cluster: Cluster): ClusterScopedDataManager {
+    fun getOrCreateClusterDataManager(cluster: Cluster): CCloudClusterDataManager {
         return clusterDataManagers.getOrPut(cluster.id) {
-            ClusterScopedDataManager(project, this, cluster).also {
+            CCloudClusterDataManager(project, this, cluster).also {
                 Disposer.register(this, it)
             }
         }
     }
 
-    fun getAllClusterDataManagers(): Collection<ClusterScopedDataManager> = clusterDataManagers.values
+    fun getAllClusterDataManagers(): Collection<CCloudClusterDataManager> = clusterDataManagers.values
 
     /** Find Schema Registry for a cluster's environment. */
     private fun findSchemaRegistryForCluster(cluster: Cluster): SchemaRegistry? {
