@@ -23,9 +23,9 @@ class AddToFavoriteAction : DumbAwareToggleAction() {
 
         val config = KafkaToolWindowSettings.getInstance().getOrCreateConfig(dataManager.connectionId)
         return when {
-            rfsPath.isTopic() -> config.topicsPined.contains(rfsPath.name)
-            rfsPath.isSchema() -> config.schemasPined.contains(rfsPath.name)
-            rfsPath.isConsumerGroup() -> config.consumerGroupPined.contains(rfsPath.name)
+            rfsPath.isTopic() -> config.topicsPinned.contains(rfsPath.name)
+            rfsPath.isSchema() -> config.schemasPinned.contains(rfsPath.name)
+            rfsPath.isConsumerGroup() -> config.consumerGroupPinned.contains(rfsPath.name)
             else -> false
         }
     }
@@ -35,9 +35,9 @@ class AddToFavoriteAction : DumbAwareToggleAction() {
         val dataManager = e.dataManager as? BaseClusterDataManager ?: return
 
         when {
-            rfsPath.isTopic() -> dataManager.updatePinedTopics(rfsPath.name, state)
-            rfsPath.isSchema() -> dataManager.updatePinedSchemas(rfsPath.name, state)
-            rfsPath.isConsumerGroup() -> dataManager.updatePinedConsumerGroups(rfsPath.name, state)
+            rfsPath.isTopic() -> dataManager.updatePinnedTopics(rfsPath.name, state)
+            rfsPath.isSchema() -> dataManager.updatePinnedSchemas(rfsPath.name, state)
+            rfsPath.isConsumerGroup() -> dataManager.updatePinnedConsumerGroups(rfsPath.name, state)
             else -> Unit
         }
     }

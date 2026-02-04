@@ -191,7 +191,7 @@ internal class TopicsController(
         FavoriteRenderer.installOnColumn(table, columnModel.getColumn(0)).apply {
             onClick = { row, _ ->
                 val topic = table.getDataAt(row)
-                topic?.let { dataManager.updatePinedTopics(it.name, !it.isFavorite) }
+                topic?.let { dataManager.updatePinnedTopics(it.name, !it.isFavorite) }
             }
         }
 

@@ -141,12 +141,12 @@ abstract class BaseClusterDataManager(
 
     fun getTopics(): List<TopicPresentable> = topicModel.data ?: emptyList()
 
-    fun updatePinedTopics(topicName: String, isForAdding: Boolean) {
+    fun updatePinnedTopics(topicName: String, isForAdding: Boolean) {
         val config = KafkaToolWindowSettings.getInstance().getOrCreateConfig(connectionId)
         if (isForAdding) {
-            config.topicsPined += topicName
+            config.topicsPinned += topicName
         } else {
-            config.topicsPined -= topicName
+            config.topicsPinned -= topicName
         }
         // Refresh model in background to avoid EDT blocking
         driver.coroutineScope.launch {
@@ -159,12 +159,12 @@ abstract class BaseClusterDataManager(
     fun getCachedConsumerGroup(consumerGroup: String): ConsumerGroupPresentable? =
         consumerGroupsModel.data?.firstOrNull { it.consumerGroup == consumerGroup }
 
-    fun updatePinedConsumerGroups(consumerGroup: String, isForAdding: Boolean) {
+    fun updatePinnedConsumerGroups(consumerGroup: String, isForAdding: Boolean) {
         val config = KafkaToolWindowSettings.getInstance().getOrCreateConfig(connectionId)
         if (isForAdding) {
-            config.consumerGroupPined += consumerGroup
+            config.consumerGroupPinned += consumerGroup
         } else {
-            config.consumerGroupPined -= consumerGroup
+            config.consumerGroupPinned -= consumerGroup
         }
         // Refresh model in background to avoid EDT blocking
         driver.coroutineScope.launch {
@@ -179,12 +179,12 @@ abstract class BaseClusterDataManager(
 
     fun getSchemaByName(name: String) = getCachedSchema(name)
 
-    fun updatePinedSchemas(schemaName: String, isForAdding: Boolean) {
+    fun updatePinnedSchemas(schemaName: String, isForAdding: Boolean) {
         val config = KafkaToolWindowSettings.getInstance().getOrCreateConfig(connectionId)
         if (isForAdding) {
-            config.schemasPined += schemaName
+            config.schemasPinned += schemaName
         } else {
-            config.schemasPined -= schemaName
+            config.schemasPinned -= schemaName
         }
         // Refresh model in background to avoid EDT blocking
         driver.coroutineScope.launch {
@@ -314,7 +314,7 @@ abstract class BaseClusterDataManager(
 
         val sortedTopics = sortTopicsWithFavorites(
             filteredTopics,
-            pinnedTopics = config.topicsPined,
+            pinnedTopics = config.topicsPinned,
             showFavoriteOnly = toolWindowSettings.showFavoriteTopics
         )
 
@@ -408,7 +408,7 @@ abstract class BaseClusterDataManager(
 
             val sortedSchemas = sortSchemasWithFavorites(
                 rawSchemas,
-                pinnedSchemas = config.schemasPined,
+                pinnedSchemas = config.schemasPinned,
                 showFavoriteOnly = toolWindowSettings.showFavoriteSchema
             )
 
