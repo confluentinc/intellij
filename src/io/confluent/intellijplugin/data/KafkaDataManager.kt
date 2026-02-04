@@ -322,19 +322,6 @@ class KafkaDataManager(
         client.confluentRegistryClient?.getLatestVersionInfo(schemaName)
             ?: client.glueRegistryClient?.getLatestVersionInfo(schemaName)
 
-    fun createTopic(name: String, numPartition: Int?, replicaFactor: Int?) = actionWrapper {
-        client.createTopic(name, numPartition, replicaFactor)
-        updater.invokeRefreshModel(topicModel)
-    }
-
-    private fun actionWrapper(body: () -> Unit) = driver.coroutineScope.launch {
-        try {
-            body()
-        } catch (t: Throwable) {
-            RfsNotificationUtils.showExceptionMessage(project, t)
-        }
-    }
-
     fun clearTopicWithConfirmation(topicName: String) {
         driver.coroutineScope.launch {
             try {
