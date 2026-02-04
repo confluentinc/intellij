@@ -12,7 +12,7 @@ data class KafkaClusterConfig(
     var consumerLimit: Int? = 100,
     var consumerFilterName: String? = null,
 
-    var topicsPined: MutableSet<String> = mutableSetOf(),
-    var schemasPined: MutableSet<String> = mutableSetOf(),
-    var consumerGroupPined: MutableSet<String> = mutableSetOf()
+    var topicsPinned: MutableSet<String> = mutableSetOf(),
+    var schemasPinned: MutableSet<String> = mutableSetOf(),
+    var consumerGroupPinned: MutableSet<String> = mutableSetOf()
 )

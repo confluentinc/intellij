@@ -44,7 +44,7 @@ import io.confluent.intellijplugin.core.rfs.tree.DriverRfsTreeModel
 import io.confluent.intellijplugin.core.rfs.util.RfsUtil
 import io.confluent.intellijplugin.core.rfs.viewer.utils.DriverRfsTreeUtil.lastDriverNode
 import io.confluent.intellijplugin.core.util.invokeLater
-import io.confluent.intellijplugin.data.ClusterScopedDataManager
+import io.confluent.intellijplugin.data.CCloudClusterDataManager
 import io.confluent.intellijplugin.toolwindow.NavigableController
 import io.confluent.intellijplugin.toolwindow.controllers.TopicsController
 import com.intellij.ui.table.JBTable
