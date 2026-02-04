@@ -256,7 +256,7 @@ internal class TopicsController(
      * Creates a consume action for CCloud connections, or null for native Kafka.
      */
     private fun createCCloudConsumeAction(): AnAction? {
-        val ccloudManager = dataManager as? ClusterScopedDataManager ?: return null
+        val ccloudManager = dataManager as? CCloudClusterDataManager ?: return null
         return object : DumbAwareAction(
             KafkaMessagesBundle.message("action.kafka.create.consumer.text"),
             KafkaMessagesBundle.message("action.kafka.create.consumer.description"),

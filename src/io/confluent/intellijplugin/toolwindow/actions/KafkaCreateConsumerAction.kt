@@ -13,8 +13,8 @@ import io.confluent.intellijplugin.core.monitoring.toolwindow.MainTreeController
 import io.confluent.intellijplugin.core.monitoring.toolwindow.MainTreeController.Companion.rfsPath
 import io.confluent.intellijplugin.core.rfs.driver.manager.DriverManager
 import io.confluent.intellijplugin.core.settings.actions.CreateConnectionPopup
-import io.confluent.intellijplugin.data.ClusterScopedDataManager
-import io.confluent.intellijplugin.data.ConfluentDataManager
+import io.confluent.intellijplugin.data.CCloudClusterDataManager
+import io.confluent.intellijplugin.data.CCloudOrgManager
 import io.confluent.intellijplugin.data.KafkaDataManager
 import io.confluent.intellijplugin.rfs.KafkaDriver
 import io.confluent.intellijplugin.rfs.KafkaDriver.Companion.isTopicFolder
@@ -43,7 +43,7 @@ class KafkaCreateConsumerAction : DumbAwareAction(), CustomComponentAction {
         }
 
         // Check for CCloud data manager
-        val ccloudDataManager = e.dataManager as? ClusterScopedDataManager
+        val ccloudDataManager = e.dataManager as? CCloudClusterDataManager
         if (ccloudDataManager != null) {
             createConsumer(project, ccloudDataManager, null)
             return
@@ -63,11 +63,11 @@ class KafkaCreateConsumerAction : DumbAwareAction(), CustomComponentAction {
 
     override fun update(e: AnActionEvent) {
         val isKafkaManager = e.dataManager is KafkaDataManager
-        val isCCloudClusterManager = e.dataManager is ClusterScopedDataManager
-        val isCCloudManager = e.dataManager is ConfluentDataManager
+        val isCCloudClusterManager = e.dataManager is CCloudClusterDataManager
+        val isCCloudOrgManager = e.dataManager is CCloudOrgManager
 
         // Always visible for Kafka or any CCloud context
-        e.presentation.isVisible = isKafkaManager || isCCloudClusterManager || isCCloudManager
+        e.presentation.isVisible = isKafkaManager || isCCloudClusterManager || isCCloudOrgManager
         // Only enabled when a cluster is selected
         e.presentation.isEnabled = isKafkaManager || isCCloudClusterManager
     }
@@ -91,7 +91,7 @@ class KafkaCreateConsumerAction : DumbAwareAction(), CustomComponentAction {
         /**
          * Creates a consumer for CCloud connections.
          */
-        fun createConsumer(project: Project, dataManager: ClusterScopedDataManager, defaultTopic: String?) {
+        fun createConsumer(project: Project, dataManager: CCloudClusterDataManager, defaultTopic: String?) {
             val clusterName = dataManager.connectionId
             val file = LightVirtualFile("$clusterName Consumer", KafkaFileType(), "").apply {
                 putUserData(KafkaEditorProvider.CCLOUD_MANAGER_KEY, dataManager)
