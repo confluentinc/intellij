@@ -7,7 +7,7 @@ import com.intellij.openapi.project.DumbAwareToggleAction
 import io.confluent.intellijplugin.core.monitoring.toolwindow.MainTreeController.Companion.dataManager
 import io.confluent.intellijplugin.core.monitoring.toolwindow.MainTreeController.Companion.rfsPath
 import io.confluent.intellijplugin.core.rfs.driver.RfsPath
-import io.confluent.intellijplugin.data.KafkaDataManager
+import io.confluent.intellijplugin.data.BaseClusterDataManager
 import io.confluent.intellijplugin.rfs.KafkaDriver.Companion.isConsumers
 import io.confluent.intellijplugin.rfs.KafkaDriver.Companion.isSchemas
 import io.confluent.intellijplugin.rfs.KafkaDriver.Companion.isTopicFolder
@@ -19,7 +19,7 @@ class AddToFavoriteAction : DumbAwareToggleAction() {
 
     override fun isSelected(e: AnActionEvent): Boolean {
         val rfsPath = e.rfsPath ?: return false
-        val dataManager = e.dataManager as? KafkaDataManager ?: return false
+        val dataManager = e.dataManager as? BaseClusterDataManager ?: return false
 
         val config = KafkaToolWindowSettings.getInstance().getOrCreateConfig(dataManager.connectionId)
         return when {
@@ -32,7 +32,7 @@ class AddToFavoriteAction : DumbAwareToggleAction() {
 
     override fun setSelected(e: AnActionEvent, state: Boolean) {
         val rfsPath = e.rfsPath ?: return
-        val dataManager = e.dataManager as? KafkaDataManager ?: return
+        val dataManager = e.dataManager as? BaseClusterDataManager ?: return
 
         when {
             rfsPath.isTopic() -> dataManager.updatePinedTopics(rfsPath.name, state)
@@ -61,7 +61,26 @@ class AddToFavoriteAction : DumbAwareToggleAction() {
         }
     }
 
-    private fun RfsPath.isTopic() = this.parent?.isTopicFolder == true
-    private fun RfsPath.isSchema() = this.parent?.isSchemas == true
-    private fun RfsPath.isConsumerGroup() = this.parent?.isConsumers == true
+    private fun RfsPath.isTopic(): Boolean {
+        val parentPath = this.parent ?: return false
+        // Kafka: parent is "Topics" folder
+        // CCloud: parent is cluster ID (lkc-*)
+        return parentPath.name == "Topics" ||
+               (parentPath.elements.size == 1 && parentPath.name.startsWith("lkc-") && parentPath.isDirectory)
+    }
+
+    private fun RfsPath.isSchema(): Boolean {
+        val parentPath = this.parent ?: return false
+        // Kafka: parent is "Schema Registry" folder
+        // CCloud: parent is schema registry ID (lsrc-*)
+        return parentPath.name == "Schema Registry" ||
+               (parentPath.elements.size == 1 && parentPath.name.startsWith("lsrc-") && parentPath.isDirectory)
+    }
+
+    private fun RfsPath.isConsumerGroup(): Boolean {
+        val parentPath = this.parent ?: return false
+        // Kafka: parent is "Consumer Groups" folder
+        // CCloud: Not yet supported (TODO)
+        return parentPath.name == "Consumer Groups"
+    }
 }

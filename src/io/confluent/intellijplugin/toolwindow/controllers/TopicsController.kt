@@ -21,10 +21,9 @@ import io.confluent.intellijplugin.core.table.renderers.FavoriteRenderer
 import io.confluent.intellijplugin.core.table.renderers.LinkRenderer
 import io.confluent.intellijplugin.core.ui.CustomComponentActionImpl
 import io.confluent.intellijplugin.core.ui.filter.CountFilterPopupComponent
-import io.confluent.intellijplugin.data.ClusterScopedDataManager
+import io.confluent.intellijplugin.data.BaseClusterDataManager
+import io.confluent.intellijplugin.data.CCloudClusterDataManager
 import io.confluent.intellijplugin.data.KafkaDataManager
-import io.confluent.intellijplugin.data.TopicDataProvider
-import io.confluent.intellijplugin.data.TopicOperations
 import io.confluent.intellijplugin.model.TopicPresentable
 import io.confluent.intellijplugin.model.TopicStatisticInfo
 import io.confluent.intellijplugin.rfs.KafkaDriver
@@ -38,7 +37,7 @@ import javax.swing.event.DocumentEvent
 
 internal class TopicsController(
     val project: Project,
-    private val dataManager: TopicDataProvider,
+    private val dataManager: BaseClusterDataManager,
     private val mainController: NavigableController
 ) : AbstractTableController<TopicPresentable>() {
     val infoPanel = JLabel("").apply {
@@ -94,7 +93,7 @@ internal class TopicsController(
             // Generate the correct RFS path based on selection and data manager type
             val selectedTopicName = getSelectedItem()?.name
             sink[MainTreeController.RFS_PATH] = when (dataManager) {
-                is ClusterScopedDataManager -> {
+                is CCloudClusterDataManager -> {
                     if (selectedTopicName != null) {
                         // Confluent Cloud topic: clusterId/topicName
                         RfsPath(listOf(dataManager.connectionId, selectedTopicName), false)
@@ -177,13 +176,11 @@ internal class TopicsController(
             }
         } else {
             dataTable.emptyText.appendText(KafkaMessagesBundle.message("topics.empty.text"))
-            if (dataManager is TopicOperations) {
-                dataTable.emptyText.appendLine(
-                    KafkaMessagesBundle.message("topics.text.create.link"),
-                    SimpleTextAttributes.LINK_ATTRIBUTES
-                ) {
-                    KafkaDialogFactory.showCreateTopicDialog(dataManager)
-                }
+            dataTable.emptyText.appendLine(
+                KafkaMessagesBundle.message("topics.text.create.link"),
+                SimpleTextAttributes.LINK_ATTRIBUTES
+            ) {
+                KafkaDialogFactory.showCreateTopicDialog(dataManager)
             }
         }
 
@@ -203,7 +200,7 @@ internal class TopicsController(
                 val topicName = table.getDataAt(row)?.name
                 topicName?.let {
                     val path = when (dataManager) {
-                        is ClusterScopedDataManager -> {
+                        is CCloudClusterDataManager -> {
                             // Confluent Cloud: clusterId/topicName
                             RfsPath(listOf(dataManager.connectionId, it), false)
                         }
