@@ -131,10 +131,11 @@ setup-sdk:
 build: setup-sdk
 	$(GRADLE) build -Dorg.gradle.console=plain
 
-# build without tests (used by targets that only need compiled JARs)
-.PHONY: assemble
-assemble: setup-sdk
-	$(GRADLE) assemble -Dorg.gradle.console=plain
+# prepare the IntelliJ plugin sandbox with all dependencies (without running tests), which is
+# required for the `collect-notices-binary` target to gather all NOTICE files from dependency JARs
+.PHONY: prepare-sandbox
+prepare-sandbox: setup-sdk
+	$(GRADLE) prepareSandbox -Dorg.gradle.console=plain
 
 .PHONY: build-plugin
 build-plugin: setup-sdk
@@ -152,9 +153,9 @@ generate-third-party-notices:
 	./scripts/generate-third-party-notices.sh
 
 # Collects and appends all NOTICE files from the project's dependency JARs into a NOTICE-binary.txt file.
-# Runs gradle assemble before collecting the notices to ensure the JARs are available.
+# Runs gradle prepareSandbox before collecting the notices to ensure the dependency JARs are available.
 .PHONY: collect-notices-binary
-collect-notices-binary: assemble
+collect-notices-binary: prepare-sandbox
 	./scripts/collect-notices-binary.sh . .
 
 # Creates a PR against the currently checked out branch with a newly generated `THIRD_PARTY_NOTICES.txt` file.
