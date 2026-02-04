@@ -56,6 +56,13 @@ class KafkaDataManager(
     override val connectionId = connectionData.innerId
     override val client = KafkaClient(project, connectionData, false).also { Disposer.register(this, it) }
 
+    // Consumer panel feature overrides
+
+    override fun supportsConsumerGroups(): Boolean = false
+    override fun supportsAdvancedSettings(): Boolean = true
+    override fun supportsPresets(): Boolean = true
+    override fun supportsDetailsPanel(): Boolean = true
+
     private val cacheSchemaType = ConcurrentSkipListMap<String, KafkaRegistryFormat>()
 
     init {
