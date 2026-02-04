@@ -10,7 +10,6 @@ import com.intellij.util.concurrency.annotations.RequiresBackgroundThread
 import io.confluent.intellijplugin.client.BdtKafkaMapper
 import io.confluent.intellijplugin.client.KafkaClient
 import io.confluent.intellijplugin.common.models.RegistrySchemaInEditor
-import io.confluent.intellijplugin.consumer.editor.KafkaConsumerPanelStorage
 import io.confluent.intellijplugin.core.connection.updater.IntervalUpdateSettings
 import io.confluent.intellijplugin.core.monitoring.data.storage.RootDataModelStorage
 import io.confluent.intellijplugin.core.monitoring.rfs.MonitoringDriver
@@ -56,7 +55,6 @@ class KafkaDataManager(
     override val registryType = connectionData.registryType
     override val connectionId = connectionData.innerId
     override val client = KafkaClient(project, connectionData, false).also { Disposer.register(this, it) }
-    val consumerPanelStorage = KafkaConsumerPanelStorage(this).also { Disposer.register(this, it) }
 
     private val cacheSchemaType = ConcurrentSkipListMap<String, KafkaRegistryFormat>()
 
