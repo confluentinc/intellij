@@ -1,6 +1,7 @@
 package io.confluent.intellijplugin.consumer.client
 
-import io.confluent.intellijplugin.data.ClusterScopedDataManager
+import io.confluent.intellijplugin.data.BaseClusterDataManager
+import io.confluent.intellijplugin.data.CCloudClusterDataManager
 import io.confluent.intellijplugin.data.KafkaDataManager
 
 /**
@@ -8,47 +9,35 @@ import io.confluent.intellijplugin.data.KafkaDataManager
  *
  * Selects between:
  * - [KafkaConsumerClient] for native Kafka connections (KafkaDataManager)
- * - [CCloudConsumerClient] for Confluent Cloud connections (ClusterScopedDataManager)
+ * - [CCloudConsumerClient] for Confluent Cloud connections (CCloudClusterDataManager)
  */
 object ConsumerClientProvider {
 
     /**
-     * Creates a consumer client for native Kafka connections.
+     * Creates a consumer client based on the data manager type.
      *
-     * @param dataManager The Kafka data manager for native connections
+     * @param dataManager The cluster data manager (either KafkaDataManager or CCloudClusterDataManager)
      * @param onStart Callback invoked when consumption starts
      * @param onStop Callback invoked when consumption stops
-     * @return A [KafkaConsumerClient] for native Kafka protocol
+     * @return A [ConsumerClient] appropriate for the connection type
      */
     fun getClient(
-        dataManager: KafkaDataManager,
+        dataManager: BaseClusterDataManager,
         onStart: () -> Unit,
         onStop: () -> Unit
     ): ConsumerClient {
-        return KafkaConsumerClient(
-            dataManager = dataManager,
-            onStart = onStart,
-            onStop = onStop
-        )
-    }
-
-    /**
-     * Creates a consumer client for Confluent Cloud connections.
-     *
-     * @param dataManager The cluster-scoped data manager for CCloud connections
-     * @param onStart Callback invoked when consumption starts
-     * @param onStop Callback invoked when consumption stops
-     * @return A [CCloudConsumerClient] for REST-based consumption
-     */
-    fun getClient(
-        dataManager: ClusterScopedDataManager,
-        onStart: () -> Unit,
-        onStop: () -> Unit
-    ): ConsumerClient {
-        return CCloudConsumerClient(
-            clusterDataManager = dataManager,
-            onStart = onStart,
-            onStop = onStop,
-        )
+        return when (dataManager) {
+            is KafkaDataManager -> KafkaConsumerClient(
+                dataManager = dataManager,
+                onStart = onStart,
+                onStop = onStop
+            )
+            is CCloudClusterDataManager -> CCloudConsumerClient(
+                clusterDataManager = dataManager,
+                onStart = onStart,
+                onStop = onStop,
+            )
+            else -> throw IllegalArgumentException("Unsupported data manager type: ${dataManager::class.simpleName}")
+        }
     }
 }
