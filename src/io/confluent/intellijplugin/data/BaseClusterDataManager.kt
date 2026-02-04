@@ -20,6 +20,8 @@ import io.confluent.intellijplugin.model.ConsumerGroupOffsetInfo
 import io.confluent.intellijplugin.model.ConsumerGroupPresentable
 import io.confluent.intellijplugin.model.TopicConfig
 import io.confluent.intellijplugin.model.TopicPresentable
+import io.confluent.intellijplugin.ccloud.cache.DataPlaneCache
+import io.confluent.intellijplugin.consumer.editor.KafkaConsumerPanelStorage
 import io.confluent.intellijplugin.registry.common.KafkaSchemaInfo
 import io.confluent.intellijplugin.registry.KafkaRegistryType
 import io.confluent.intellijplugin.toolwindow.config.KafkaToolWindowSettings
@@ -138,6 +140,18 @@ abstract class BaseClusterDataManager(
     open fun supportsClearPartitions(): Boolean = true
 
     open fun supportsInSyncReplicasData(): Boolean = true
+
+    // Consumer panel feature capabilities
+
+    abstract fun supportsConsumerGroups(): Boolean
+    fun supportsSchemaRegistry(): Boolean = registryType != KafkaRegistryType.NONE
+    abstract fun supportsAdvancedSettings(): Boolean
+    abstract fun supportsPresets(): Boolean
+    abstract fun supportsDetailsPanel(): Boolean
+
+    val consumerPanelStorage: KafkaConsumerPanelStorage by lazy {
+        KafkaConsumerPanelStorage(this).also { Disposer.register(this, it) }
+    }
 
     fun getTopics(): List<TopicPresentable> = topicModel.data ?: emptyList()
 
