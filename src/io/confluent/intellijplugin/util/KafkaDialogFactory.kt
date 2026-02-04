@@ -11,21 +11,12 @@ import io.confluent.intellijplugin.core.settings.buildValidator
 import io.confluent.intellijplugin.core.settings.registerValidator
 import io.confluent.intellijplugin.core.settings.withNumberOrEmptyValidator
 import io.confluent.intellijplugin.core.ui.doOnChange
-import io.confluent.intellijplugin.data.TopicDataProvider
-import io.confluent.intellijplugin.data.TopicOperations
+import io.confluent.intellijplugin.data.BaseClusterDataManager
 import kotlinx.coroutines.launch
 import javax.swing.JTextField
 
 object KafkaDialogFactory {
-    fun showCreateTopicDialog(dataManager: TopicOperations) {
-        require(dataManager is TopicDataProvider) {
-            "dataManager must implement both TopicOperations and TopicDataProvider"
-        }
-        require(dataManager is MonitoringDataManager) {
-            "dataManager must extend MonitoringDataManager"
-        }
-        val topicProvider = dataManager as TopicDataProvider
-        val monitoringDataManager = dataManager as MonitoringDataManager
+    fun showCreateTopicDialog(dataManager: BaseClusterDataManager) {
         val builder = DialogBuilder()
         builder.addOkAction()
         builder.addCancelAction()
@@ -48,7 +39,7 @@ object KafkaDialogFactory {
                 return when {
                     inputString.isBlank() -> KafkaMessagesBundle.message("validator.notEmpty")
                     inputString.contains(NOT_SPACES_PATTERN) -> KafkaMessagesBundle.message("validator.notSpaces")
-                    inputString in getTopicNames(topicProvider) -> KafkaMessagesBundle.message(
+                    inputString in getTopicNames(dataManager) -> KafkaMessagesBundle.message(
                         "kafka.validator.already.exist.topic.name",
                         inputString
                     )
@@ -73,22 +64,23 @@ object KafkaDialogFactory {
         if (!builder.showAndGet())
             return
 
-        monitoringDataManager.driver.coroutineScope.launch {
+        dataManager.driver.coroutineScope.launch {
             try {
                 val partitions = numPartition.text.toIntOrNull()
                 val replicas = replicationFactor.text.toIntOrNull()
                 val result = dataManager.createTopic(nameField.text, partitions, replicas, emptyMap())
 
                 result.onFailure { exception ->
-                    RfsNotificationUtils.showExceptionMessage(monitoringDataManager.project, exception)
+                    RfsNotificationUtils.showExceptionMessage(dataManager.project, exception)
                 }
             } catch (t: Throwable) {
-                RfsNotificationUtils.showExceptionMessage(monitoringDataManager.project, t)
+                RfsNotificationUtils.showExceptionMessage(dataManager.project, t)
             }
         }
     }
-
-    private fun <T : TopicDataProvider> getTopicNames(dataManager: T): List<String> = dataManager.getTopics().map { it.name }
 }
+
+private fun getTopicNames(dataManager: BaseClusterDataManager): List<String> =
+    dataManager.getTopics().map { it.name }
 
 private val NOT_SPACES_PATTERN = Regex("[ \t\n]")
