@@ -9,7 +9,7 @@ import io.confluent.intellijplugin.ccloud.model.response.TimestampType as ApiTim
 import io.confluent.intellijplugin.common.settings.StorageConsumerConfig
 import io.confluent.intellijplugin.consumer.models.ConsumerProducerFieldConfig
 import io.confluent.intellijplugin.consumer.models.ConsumerStartType
-import io.confluent.intellijplugin.data.ClusterScopedDataManager
+import io.confluent.intellijplugin.data.CCloudClusterDataManager
 import io.confluent.intellijplugin.util.KafkaOffsetUtils
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -42,12 +42,12 @@ import kotlin.math.min
  * Uses Confluent Cloud internal REST API with OAuth authentication
  * to consume records from Kafka topics.
  *
- * @param clusterDataManager The cluster-scoped data manager for CCloud connection
+ * @param clusterDataManager The cluster data manager for CCloud connection
  * @param onStart Callback invoked when consumption starts
  * @param onStop Callback invoked when consumption stops
  */
 class CCloudConsumerClient(
-    private val clusterDataManager: ClusterScopedDataManager,
+    private val clusterDataManager: CCloudClusterDataManager,
     val onStart: () -> Unit,
     val onStop: () -> Unit,
 ) : ConsumerClient {
