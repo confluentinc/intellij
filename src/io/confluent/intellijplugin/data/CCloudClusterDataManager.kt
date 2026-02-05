@@ -4,6 +4,7 @@ import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.progress.runBlockingMaybeCancellable
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
+import com.intellij.util.concurrency.annotations.RequiresBackgroundThread
 import io.confluent.intellijplugin.ccloud.cache.DataPlaneCache
 import io.confluent.intellijplugin.ccloud.model.Cluster
 import io.confluent.intellijplugin.ccloud.model.response.CreateTopicRequest
@@ -156,6 +157,14 @@ class CCloudClusterDataManager(
     override suspend fun listSchemaVersions(schemaName: String): List<Long> {
         // TODO: Implement when CCloud REST API supports schema versions
         return emptyList()
+    }
+
+    @RequiresBackgroundThread
+    override fun loadTopicNames(): List<TopicPresentable> = try {
+        dataPlaneCache.getTopics().map { it.toPresentable() }
+    } catch (t: Throwable) {
+        thisLogger().warn("Failed to load topic names for cluster ${cluster.id}", t)
+        emptyList()
     }
 
     override suspend fun createTopic(

@@ -7,6 +7,7 @@ import com.intellij.openapi.progress.runBlockingMaybeCancellable
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.util.Disposer
+import com.intellij.util.concurrency.annotations.RequiresBackgroundThread
 import io.confluent.intellijplugin.core.connection.updater.IntervalUpdateSettings
 import io.confluent.intellijplugin.core.monitoring.data.MonitoringDataManager
 import io.confluent.intellijplugin.core.monitoring.data.model.FieldGroupsData
@@ -154,6 +155,9 @@ abstract class BaseClusterDataManager(
     }
 
     fun getTopics(): List<TopicPresentable> = topicModel.data ?: emptyList()
+
+    @RequiresBackgroundThread
+    abstract fun loadTopicNames(): List<TopicPresentable>
 
     fun updatePinnedTopics(topicName: String, isForAdding: Boolean) {
         val config = KafkaToolWindowSettings.getInstance().getOrCreateConfig(connectionId)
