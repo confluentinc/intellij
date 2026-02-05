@@ -183,7 +183,7 @@ class KafkaDataManager(
     }
 
     @RequiresBackgroundThread
-    fun loadTopicNames() = try {
+    override fun loadTopicNames() = try {
         client.getTopics(false)
     } catch (t: Throwable) {
         thisLogger().warn(t)

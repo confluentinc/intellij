@@ -29,9 +29,8 @@ import io.confluent.intellijplugin.core.ui.CustomListCellRenderer
 import io.confluent.intellijplugin.core.ui.DarculaTextAreaBorder
 import io.confluent.intellijplugin.core.util.executeNotOnEdt
 import io.confluent.intellijplugin.core.util.invokeLater
-import io.confluent.intellijplugin.data.ClusterScopedDataManager
+import io.confluent.intellijplugin.data.BaseClusterDataManager
 import io.confluent.intellijplugin.data.KafkaDataManager
-import io.confluent.intellijplugin.data.TopicDataProvider
 import io.confluent.intellijplugin.registry.KafkaRegistryFormat
 import io.confluent.intellijplugin.registry.KafkaRegistryType
 import io.confluent.intellijplugin.registry.KafkaRegistryUtil
@@ -148,7 +147,7 @@ object KafkaEditorUtils {
 
     fun createFieldTypeComboBox(
         topicCombobox: ComboBox<TopicInEditor>,
-        dataManager: KafkaDataManager,
+        dataManager: BaseClusterDataManager,
         isKey: Boolean,
         onChange: (ComboBox<KafkaFieldType>) -> Unit
     ): ComboBox<KafkaFieldType> {
@@ -166,25 +165,26 @@ object KafkaEditorUtils {
             }
         }
 
-        if (dataManager.registryType != KafkaRegistryType.NONE) {
+        if (dataManager.registryType != KafkaRegistryType.NONE && dataManager is KafkaDataManager) {
+            val kafkaDataManager = dataManager
             topicCombobox.addItemListener {
                 if (it.stateChange != SELECTED)
                     return@addItemListener
 
                 executeNotOnEdt {
                     val schemaType: Any =
-                        calculateSchemaTypeForTopic(dataManager, topicCombobox, isKey) ?: return@executeNotOnEdt
+                        calculateSchemaTypeForTopic(kafkaDataManager, topicCombobox, isKey) ?: return@executeNotOnEdt
                     runInEdt {
                         fieldsCombobox.selectedItem = schemaType
                     }
                 }
             }
-        }
 
-        executeNotOnEdt {
-            val schemaType = calculateSchemaTypeForTopic(dataManager, topicCombobox, isKey) ?: return@executeNotOnEdt
-            runInEdt {
-                fieldsCombobox.selectedItem = schemaType
+            executeNotOnEdt {
+                val schemaType = calculateSchemaTypeForTopic(kafkaDataManager, topicCombobox, isKey) ?: return@executeNotOnEdt
+                runInEdt {
+                    fieldsCombobox.selectedItem = schemaType
+                }
             }
         }
 
@@ -193,12 +193,12 @@ object KafkaEditorUtils {
 
     fun createConsumerGroups(
         rootDisposable: Disposable,
-        kafkaManager: KafkaDataManager,
+        dataManager: BaseClusterDataManager,
         withEmpty: Boolean
     ): ComboBox<String> {
         val calcData = {
             val prefix = if (withEmpty) listOf("") else listOf()
-            val cachedData = kafkaManager.consumerGroupsModel.data?.map { it.consumerGroup } ?: emptyList()
+            val cachedData = dataManager.consumerGroupsModel.data?.map { it.consumerGroup } ?: emptyList()
             prefix + cachedData
         }
 
@@ -211,16 +211,16 @@ object KafkaEditorUtils {
             override fun onChanged() = updateEditableComboBox(comboBox, calcData())
         }
 
-        kafkaManager.consumerGroupsModel.addListener(listener)
+        dataManager.consumerGroupsModel.addListener(listener)
         Disposer.register(rootDisposable) {
-            kafkaManager.consumerGroupsModel.removeListener(listener)
+            dataManager.consumerGroupsModel.removeListener(listener)
         }
         comboBox.isEditable = true
         return comboBox
     }
 
-    fun createTopicComboBox(rootDisposable: Disposable, kafkaManager: KafkaDataManager): ComboBox<TopicInEditor> {
-        val topics = kafkaManager.getTopics()
+    fun createTopicComboBox(rootDisposable: Disposable, dataManager: BaseClusterDataManager): ComboBox<TopicInEditor> {
+        val topics = dataManager.getTopics()
         val topicComboBox = ComboBox(topics.map { it.toEditorTopic() }.sortedBy { it.name }.toTypedArray())
         topicComboBox.isSwingPopup = false
         topicComboBox.prototypeDisplayValue =
@@ -228,45 +228,11 @@ object KafkaEditorUtils {
         topicComboBox.renderer = CustomListCellRenderer<TopicInEditor> { it.name }
 
         val listener = KafkaDataModelListener(topicComboBox) {
-            kafkaManager.loadTopicNames().map { it.toEditorTopic() }.sortedBy { it.name } to null
+            dataManager.loadTopicNames().map { it.toEditorTopic() }.sortedBy { it.name } to null
         }
-        kafkaManager.topicModel.addListener(listener)
+        dataManager.topicModel.addListener(listener)
         Disposer.register(rootDisposable) {
-            kafkaManager.topicModel.removeListener(listener)
-        }
-
-        topicComboBox.withValidator(rootDisposable) {
-            val selectedItem = topicComboBox.selectedItem as? TopicInEditor
-            if (selectedItem == null || selectedItem.name.isBlank())
-                ValidationInfo(KafkaMessagesBundle.message("producer.error.topic.empty"), topicComboBox)
-            else
-                null
-        }
-
-        topicComboBox.getValidator()?.enableValidation()
-
-        listener.onChangedNonEdt()
-
-        return topicComboBox
-    }
-
-    /**
-     * Creates a topic combo box for TopicDataProvider (used by CCloud connections).
-     * Unlike the KafkaDataManager version, this doesn't include validation or registry awareness.
-     */
-    fun createTopicComboBox(rootDisposable: Disposable, topicDataProvider: TopicDataProvider): ComboBox<TopicInEditor> {
-        val topics = topicDataProvider.getTopics()
-        val topicComboBox = ComboBox(topics.map { it.toEditorTopic() }.sortedBy { it.name }.toTypedArray())
-        topicComboBox.isSwingPopup = false
-        topicComboBox.prototypeDisplayValue = TopicInEditor("Topic sample name")
-        topicComboBox.renderer = CustomListCellRenderer<TopicInEditor> { it.name }
-
-        val listener = KafkaDataModelListener(topicComboBox) {
-            topicDataProvider.getTopics().map { it.toEditorTopic() }.sortedBy { it.name } to null
-        }
-        topicDataProvider.topicModel.addListener(listener)
-        Disposer.register(rootDisposable) {
-            topicDataProvider.topicModel.removeListener(listener)
+            dataManager.topicModel.removeListener(listener)
         }
 
         topicComboBox.withValidator(rootDisposable) {
