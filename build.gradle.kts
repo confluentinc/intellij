@@ -179,7 +179,7 @@ afterEvaluate {
         (it.name.startsWith("sentry") || it.name.contains("Sentry")) &&
         it.name != "generateSentryConfig"
     }.forEach { sentryTask ->
-        sentryTask.mustRunAfter(generateSentryConfig, generateSegmentConfig)
+        sentryTask.mustRunAfter(generateSentryConfig, generateSegmentConfig, "openApiGenerate")
     }
 }
 
