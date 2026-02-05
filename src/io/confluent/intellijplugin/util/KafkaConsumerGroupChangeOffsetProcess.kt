@@ -19,7 +19,7 @@ import io.confluent.intellijplugin.consumer.models.ConsumerStartType
 import io.confluent.intellijplugin.consumer.models.ConsumerStartWith
 import io.confluent.intellijplugin.core.rfs.util.RfsNotificationUtils
 import io.confluent.intellijplugin.core.ui.CustomListCellRenderer
-import io.confluent.intellijplugin.data.KafkaDataManager
+import io.confluent.intellijplugin.data.BaseClusterDataManager
 import kotlinx.coroutines.*
 import java.awt.Component
 import java.awt.Container
@@ -29,7 +29,7 @@ import java.util.*
 
 internal class KafkaConsumerGroupChangeOffsetProcess(
     val project: Project,
-    val dataManager: KafkaDataManager,
+    val dataManager: BaseClusterDataManager,
     val consumerGroup: String
 ) {
     private val coroutineScope = dataManager.driver.coroutineScope
