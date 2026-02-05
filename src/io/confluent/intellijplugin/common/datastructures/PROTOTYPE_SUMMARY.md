@@ -44,6 +44,55 @@ This prototype validates that Java's built-in concurrent collections provide the
 ./gradlew test --tests "*.FilterBitSetTest"
 ```
 
+## Viewing and Interpreting Results
+
+### Test Output Location
+
+After running tests, results are available in:
+
+```
+build/reports/tests/test/index.html    # HTML report (open in browser)
+build/test-results/test/                # XML results (for CI integration)
+```
+
+### Console Output
+
+Benchmark tests print timing data directly to stdout. To see this output:
+
+```bash
+# Run with console output visible
+./gradlew test --tests "*.IndexBenchmark" --info
+
+# Or check the test output file
+cat build/reports/tests/test/classes/io.confluent.intellijplugin.common.datastructures.IndexBenchmark.html
+```
+
+### Interpreting Benchmark Numbers
+
+| Metric | What It Means | Good Result |
+|--------|---------------|-------------|
+| **Speedup** | New implementation time / baseline time | Higher is better (>10x at scale) |
+| **Overhead ratio** | Time with eviction / time without | Should be <1.5x for O(1) eviction |
+| **ms/operation** | Milliseconds per insert/query | Lower is better |
+
+### Variance and Reliability
+
+- **First run**: JVM warmup may skew results. Benchmarks include warmup phases.
+- **GC pauses**: Can cause outliers. Run multiple times if results seem inconsistent.
+- **Heap size**: Default heap may cause OOM at 500K+ records. Use `-Xmx4g` for large tests.
+
+```bash
+# Run with increased heap
+./gradlew test --tests "*.IndexBenchmark" -Dorg.gradle.jvmargs="-Xmx4g"
+```
+
+### Expected vs Actual
+
+Compare your results against the tables in "Benchmark Results" below. Significant deviations (>2x) may indicate:
+- Different hardware characteristics
+- JVM version differences
+- Background system load during test
+
 ---
 
 ## Benchmark Results
