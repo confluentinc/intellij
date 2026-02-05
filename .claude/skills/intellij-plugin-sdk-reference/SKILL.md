@@ -1,76 +1,90 @@
 ---
 name: intellij-plugin-sdk-reference
-description: IntelliJ Platform SDK API reference, documentation lookup, and core platform concepts (PSI, Project Model, Extensions)
+description: IntelliJ Platform SDK reference - critical rules, common pitfalls, and core concepts (threading, PSI, VFS, services)
 allowed-tools:
   - Read
   - Grep
   - Glob
   - WebFetch
   - WebSearch
-  - Bash
 ---
 
-# IntelliJ SDK Reference
+# IntelliJ Platform SDK Reference
 
-Critical SDK concepts and how to find detailed API documentation.
+Critical rules and core concepts for IntelliJ plugin development.
 
-## Finding API Documentation
+## Critical Rules (Never Violate These)
 
-**When you need detailed API information, search:**
-1. **Official Docs:** https://plugins.jetbrains.com/docs/intellij/
-2. **Platform Explorer:** https://plugins.jetbrains.com/intellij-platform-explorer/
-3. **GitHub source:** https://github.com/JetBrains/intellij-community
----
+### Threading
 
-## plugin.xml Required Fields
+1. **Never block EDT** - Use `scope.launch(Dispatchers.Default)` for heavy work, `withContext(Dispatchers.EDT)` for UI updates
+2. **Never use `Application/Project.getCoroutineScope()`** - Inject `CoroutineScope` into service constructor
+3. **Always use read/write actions for PSI** - Wrap reads in `readAction {}`, modifications in `writeAction {}` on background thread
+4. **Never refresh VFS while holding read lock** - Use `virtualFile.refresh(async = true)` outside read actions
+5. **Keep VFS listeners fast** - Run on EDT in write action; dispatch heavy work to background
 
-**These fields are MANDATORY - plugin fails to load without them:**
+**Dispatchers:**
+- `Dispatchers.EDT` - UI updates only
+- `Dispatchers.Default` - CPU-bound work
+- `Dispatchers.IO` - File/network I/O (use sparingly)
 
-```xml
-<idea-plugin>
-    <id>com.example.myplugin</id>                    <!-- Unique identifier -->
-    <name>My Plugin Name</name>                      <!-- Display name -->
-    <version>1.0.0</version>                         <!-- Semantic version -->
-    <vendor>Company/Author</vendor>                  <!-- Vendor name -->
-    <description>Plugin description</description>    <!-- Marketplace description -->
+### Kotlin
 
-    <!-- IDE version compatibility - since-build is REQUIRED -->
-    <idea-version since-build="253.28294" until-build="253.*"/>
+1. **Never use `object` for extensions** - Use `class` (except `FileType`)
+2. **Minimize companion objects** - Heavy initialization slows startup; use `lazy`
+3. **Only constants/loggers in companions** - Everything else goes in instance fields
 
-    <!-- Platform dependency -->
-    <depends>com.intellij.modules.platform</depends>
-</idea-plugin>
-```
+### Resources
 
-**Why critical:** Missing required fields prevents plugin from loading in IDE.
+1. **Always register disposables** - `MessageBus.connect(parentDisposable)`, `Disposer.register(parent, child)`
+2. **Use smart pointers for PSI** - `SmartPointerManager.createPointer(element)` survives modifications
+3. **Make services Disposable if needed** - If registering listeners/resources
 
-**Search for details:** https://plugins.jetbrains.com/docs/intellij/plugin-configuration-file.html
+### Common Pitfalls
 
----
+1. **App services storing Project refs** - Memory leak; use parameters instead
+2. **Wrong service scope** - App-level state → APP service, project-specific → PROJECT service
+3. **Heavy constructors** - Use `lazy`; constructors block IDE startup
+4. **Missing `@TestApplication`** - Required for tests using Platform APIs
+5. **Holding PSI references across modifications** - Use smart pointers
 
 ## Core Concepts
 
-### Project Model
-All SDK operations need a project context:
-- **Project** - Root organizational unit
-- **Module** - Independent unit of functionality
-- **Library** - JAR dependencies (Module/Project/Global)
-- **SDK** - Build environment (e.g., JDK)
-- **Facet** - Framework-specific configurations
+### Services
 
-**Search for details:** https://plugins.jetbrains.com/docs/intellij/project-model.html
-
----
-
-## PSI (Program Structure Interface)
-
-PSI parses files and creates code models. **Foundation for all code analysis/manipulation.**
-
-### CRITICAL RULES
-
-**1. Never Modify PSI on EDT:**
 ```kotlin
-// ✅ CORRECT - Background thread + write action
+// Application-scoped (singleton)
+@Service(Service.Level.APP)
+class MyAppService {
+    companion object {
+        fun getInstance() = service<MyAppService>()
+    }
+}
+
+// Project-scoped (one per project)
+@Service(Service.Level.PROJECT)
+class MyProjectService(
+    private val project: Project,
+    private val scope: CoroutineScope  // Auto-injected, auto-cancelled
+) {
+    companion object {
+        fun getInstance(project: Project) = project.service<MyProjectService>()
+    }
+}
+```
+
+### PSI (Program Structure Interface)
+
+Code parsing and manipulation - **foundation for all code analysis**.
+
+```kotlin
+// Reading PSI (always in read action)
+readAction {
+    val psiFile = PsiManager.getInstance(project).findFile(virtualFile)
+    val text = psiFile.text
+}
+
+// Modifying PSI (background thread + write action)
 scope.launch(Dispatchers.Default) {
     writeAction {
         val factory = KtPsiFactory(project)
@@ -78,73 +92,100 @@ scope.launch(Dispatchers.Default) {
     }
 }
 
-// ❌ WRONG - On EDT, will deadlock/crash
-ktClass.addDeclaration(factory.createFunction("fun foo() {}"))
-```
-
-**2. Always Use Read Actions:**
-```kotlin
-// ✅ CORRECT
-readAction {
-    val text = psiFile.text
-}
-
-// ❌ WRONG - No read lock
-val text = psiFile.text  // Can throw exceptions
-```
-
-**3. Use Smart Pointers:**
-PSI elements become invalid after modifications. Always use smart pointers:
-```kotlin
+// Smart pointers (survive modifications)
 val pointer = SmartPointerManager.createPointer(psiElement)
-// Later, after modifications...
-val element = pointer.element  // May be null if invalidated
+// Later...
+pointer.element?.navigate()  // Safe, may be null
 ```
 
-**Why critical:** Violating these rules causes IDE deadlocks, crashes, or data corruption.
+### Virtual File System (VFS)
 
-**Search for PSI patterns:** https://plugins.jetbrains.com/docs/intellij/psi.html
-
----
-
-## Virtual File System (VFS)
-
-VFS provides file system abstraction and change tracking.
-
-### CRITICAL RULES
-
-**1. Never Refresh While Holding Read Lock:**
-```kotlin
-// ❌ WRONG - Deadlock!
-readAction {
-    virtualFile.refresh(async = false, recursive = true)  // Deadlock!
-}
-
-// ✅ CORRECT - Release read lock first
-virtualFile.refresh(async = true, recursive = true)
-```
-
-**2. VFS Events Fire on EDT in Write Action:**
-VFS listeners receive events on EDT within write action. Keep listeners fast or dispatch to background.
+Platform file system abstraction with change tracking.
 
 ```kotlin
+// Finding files
+val file = LocalFileSystem.getInstance().findFileByPath("/path/to/file")
+val projectFile = project.baseDir.findFileByRelativePath("src/Main.kt")
+
+// Listening to changes
 connection.subscribe(VirtualFileManager.VFS_CHANGES, object : BulkFileListener {
     override fun after(events: List<VFileEvent>) {
-        // ⚠️ This runs on EDT in write action - keep it fast!
-        events.forEach { event -> /* quick processing only */ }
+        // ⚠️ Runs on EDT in write action - keep fast!
+        scope.launch(Dispatchers.Default) {
+            events.forEach { processEvent(it) }
+        }
     }
 })
 ```
 
-**Why critical:** Violating these rules causes deadlocks. VFS refresh with read lock is a guaranteed deadlock.
+### Project Model
 
-**Search for VFS details:** https://plugins.jetbrains.com/docs/intellij/virtual-file-system.html
+- `Project` - Root organizational unit
+- `Module` - Independent functionality unit
+- `VirtualFile` - Platform file abstraction (not `java.io.File`)
+- `PsiFile` - Parsed file representation (AST)
 
----
+### plugin.xml
 
-## Resources
+Required fields:
 
-**Documentation:**
-- Plugin SDK: https://plugins.jetbrains.com/docs/intellij/welcome.html
-- API Changes: https://plugins.jetbrains.com/docs/intellij/api-notable.html
+```xml
+<idea-plugin>
+    <id>com.example.myplugin</id>
+    <name>My Plugin</name>
+    <version>1.0.0</version>
+    <vendor>Author</vendor>
+    <description>Description</description>
+    <idea-version since-build="253.28294" until-build="253.*"/>
+    <depends>com.intellij.modules.platform</depends>
+</idea-plugin>
+```
+
+## Exploring the Platform
+
+### Finding APIs
+
+1. **Extension Points** - Autocomplete in `plugin.xml` `<extensions>` blocks shows available EPs
+2. **Platform Explorer** - Search for real-world examples of API usage
+3. **Find Usages** - Navigate to Manager/Service classes, find usages to see how they're used
+4. **Package Contents** - Explore `com.intellij.openapi.*` packages for related functionality
+
+### Debugging Entry Points
+
+Set strategic breakpoints to find code responsible for features:
+- `DocumentImpl.changedUpdate()` - Document modifications
+- `HighlightInfoHolder.add()` - Code highlighting
+- `AnAction.actionPerformed()` - Action execution
+
+### Development Tools
+
+Enable **Internal Mode** (`Help > Edit Custom Properties` → add `idea.is.internal=true`):
+- **UI Inspector** (`Tools > Internal Actions > UI > UI Inspector`) - Inspect any UI component
+- **PSI Viewer** (`Tools > View PSI Structure`) - Visualize PSI tree
+- **Internal Actions** - Access platform debugging tools
+
+### Important Rules
+
+- **Never use `Impl` classes** - Only use public APIs
+- **Avoid `@ApiStatus.Internal`** - Internal APIs can change without notice
+- **Check API Changes** - https://plugins.jetbrains.com/docs/intellij/api-notable.html
+
+## Documentation
+
+**Core docs:**
+- SDK: https://plugins.jetbrains.com/docs/intellij/welcome.html
 - Threading: https://plugins.jetbrains.com/docs/intellij/general-threading-rules.html
+- Coroutines: https://plugins.jetbrains.com/docs/intellij/coroutine-scopes.html
+- PSI: https://plugins.jetbrains.com/docs/intellij/psi.html
+- VFS: https://plugins.jetbrains.com/docs/intellij/virtual-file-system.html
+
+**Lookup:**
+- Platform Explorer: https://plugins.jetbrains.com/intellij-platform-explorer/
+- GitHub: https://github.com/JetBrains/intellij-community
+- API Changes: https://plugins.jetbrains.com/docs/intellij/api-notable.html
+
+**Packages:**
+- `com.intellij.openapi.*` - Core platform
+- `com.intellij.psi.*` - PSI APIs
+- `com.intellij.ui.*` - UI components
+- `com.intellij.execution.*` - Run configs
