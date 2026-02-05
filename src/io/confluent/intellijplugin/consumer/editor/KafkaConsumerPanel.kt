@@ -14,6 +14,7 @@ import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.ui.components.ActionLink
 import com.intellij.ui.components.JBTextField
 import com.intellij.ui.dsl.builder.*
+import com.intellij.openapi.observable.util.and
 import com.intellij.ui.layout.enteredTextSatisfies
 import com.intellij.ui.layout.not
 import io.confluent.intellijplugin.common.editor.*
@@ -64,7 +65,11 @@ class KafkaConsumerPanel(
     private val startOffset = JBTextField(15)
     private val startConsumerGroup = KafkaEditorUtils.createConsumerGroups(this, kafkaManager, withEmpty = false)
 
-    private val startFromComboBox = ComboBox(ConsumerStartType.entries.toTypedArray()).apply {
+    private val startFromComboBox = ComboBox(
+        ConsumerStartType.entries
+            .filter { it != ConsumerStartType.CONSUMER_GROUP || kafkaManager.supportsConsumerGroups() }
+            .toTypedArray()
+    ).apply {
         renderer = CustomListCellRenderer<ConsumerStartType> { it.title }
         item = ConsumerStartType.NOW
         addActionListener {
@@ -180,6 +185,10 @@ class KafkaConsumerPanel(
 
     private val isEnabledAutoCommit = AtomicBooleanProperty(false)
 
+    // Capability flags from data manager
+    private val supportsConsumerGroups = AtomicBooleanProperty(kafkaManager.supportsConsumerGroups())
+    private val supportsAdvancedSettings = AtomicBooleanProperty(kafkaManager.supportsAdvancedSettings())
+
     private val settingsPanelDelegate = lazy {
         val isConsumerSetup =
             (consumerGroup.editor.editorComponent as JTextField).enteredTextSatisfies { !it.trim().isEmpty() }
@@ -208,7 +217,7 @@ class KafkaConsumerPanel(
                 row { cell(startOffset) }.visibleIf(startOffsetBlock)
                 row {
                     cell(startConsumerGroup).align(AlignX.FILL).resizableColumn()
-                }.visibleIf(startConsumerGroupBlock)
+                }.visibleIf(startConsumerGroupBlock.and(supportsConsumerGroups))
 
                 row(KafkaMessagesBundle.message("settings.filters.limit")) {
                     cell(limitComboBox).align(AlignX.FILL).resizableColumn()
@@ -232,23 +241,25 @@ class KafkaConsumerPanel(
                     comment(KafkaMessagesBundle.message("settings.partitions.not.available.if.consumer.group.setup.comment"))
                 }.topGap(TopGap.NONE).visibleIf(isConsumerSetup).bottomGap(BottomGap.NONE)
 
-                row(KafkaMessagesBundle.message("settings.consumer.group.label")) {
-                    cell(consumerGroup).align(AlignX.FILL).resizableColumn()
-                }.topGap(TopGap.SMALL)
-                row {
-                    checkBox(KafkaMessagesBundle.message("settings.consumer.enable.auto.commit.label")).bindSelected(
-                        isEnabledAutoCommit
-                    )
-                        .visibleIf(isConsumerSetup)
-                }.bottomGap(BottomGap.SMALL)
-                row {
-                    link(KafkaMessagesBundle.message("task.change.offset")) {
-                        KafkaConsumerGroupChangeOffsetProcess(project, kafkaManager, consumerGroup.item).showAndUpdate()
-                    }
-                }.topGap(TopGap.NONE).visibleIf(isConsumerSetup)
+                rowsRange {
+                    row(KafkaMessagesBundle.message("settings.consumer.group.label")) {
+                        cell(consumerGroup).align(AlignX.FILL).resizableColumn()
+                    }.topGap(TopGap.SMALL)
+                    row {
+                        checkBox(KafkaMessagesBundle.message("settings.consumer.enable.auto.commit.label")).bindSelected(
+                            isEnabledAutoCommit
+                        )
+                            .visibleIf(isConsumerSetup)
+                    }.bottomGap(BottomGap.SMALL)
+                    row {
+                        link(KafkaMessagesBundle.message("task.change.offset")) {
+                            KafkaConsumerGroupChangeOffsetProcess(project, kafkaManager, consumerGroup.item).showAndUpdate()
+                        }
+                    }.topGap(TopGap.NONE).visibleIf(isConsumerSetup)
+                }.visibleIf(supportsConsumerGroups)
             }
 
-            row { cell(advancedSettings) }
+            row { cell(advancedSettings) }.visibleIf(supportsAdvancedSettings)
         }
 
         KafkaProducerConsumerPanel.createPanel(panel, consumeButton, progress)
@@ -276,23 +287,34 @@ class KafkaConsumerPanel(
         restoreFromFile()
 
         presetsSplitter.proportionsKey = "kafka.consumer.multisplitter.proportions"
-        presetsSplitter.add(
-            ExpansionPanel(
-                KafkaMessagesBundle.message("toggle.presets"),
-                { presets.component },
-                PRESETS_SHOW_ID,
-                false
+
+        if (kafkaManager.supportsPresets()) {
+            presetsSplitter.add(
+                ExpansionPanel(
+                    KafkaMessagesBundle.message("toggle.presets"),
+                    { presets.component },
+                    PRESETS_SHOW_ID,
+                    false
+                )
             )
-        )
+        }
+
         presetsSplitter.add(
             ExpansionPanel(
                 KafkaMessagesBundle.message("toggle.settings"), { settingsPanel },
                 SETTINGS_SHOW_ID, true,
-                listOf(SavePresetAction(KafkaConfigStorage.getInstance().consumerConfig) { getRunConfig() })
+                if (kafkaManager.supportsPresets()) {
+                    listOf(SavePresetAction(KafkaConfigStorage.getInstance().consumerConfig) { getRunConfig() })
+                } else {
+                    emptyList()
+                }
             )
         )
         presetsSplitter.add(output.dataPanel)
-        presetsSplitter.add(output.detailsPanel)
+
+        if (kafkaManager.supportsDetailsPanel()) {
+            presetsSplitter.add(output.detailsPanel)
+        }
 
         presetsSplitter.centralComponent = output.dataPanel
 
