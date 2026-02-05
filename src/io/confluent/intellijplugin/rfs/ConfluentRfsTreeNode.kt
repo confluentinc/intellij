@@ -58,10 +58,21 @@ class ConfluentRfsTreeNode(
         return when {
             rfsPath.isCluster(confluentDriver) -> AllIcons.Nodes.Module
             rfsPath.isSchemaRegistry(confluentDriver) -> AllIcons.Nodes.DataSchema
-            rfsPath.isTopic -> AllIcons.Nodes.Tag
+            rfsPath.isTopic -> if (checkIsFavorite()) AllIcons.Nodes.Favorite else AllIcons.Nodes.Tag
             rfsPath.isSchema -> AllIcons.FileTypes.Json
             else -> null
         }
+    }
+
+    private fun checkIsFavorite(): Boolean {
+        val envId = confluentDriver.selectedEnvironmentId ?: return false
+        val clusterId = rfsPath.elements.getOrNull(0) ?: return false
+
+        val cluster = confluentDriver.dataManager.getKafkaClusters(envId)
+            .find { it.id == clusterId } ?: return false
+
+        val clusterDataManager = confluentDriver.dataManager.getOrCreateClusterDataManager(cluster)
+        return clusterDataManager.getTopics().find { it.name == rfsPath.name }?.isFavorite == true
     }
 
     override fun getGrayText(): String? {
