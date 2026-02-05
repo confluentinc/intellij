@@ -31,7 +31,7 @@ import io.confluent.intellijplugin.core.ui.MultiSplitter
 import io.confluent.intellijplugin.core.util.executeOnPooledThread
 import io.confluent.intellijplugin.core.util.invokeLater
 import io.confluent.intellijplugin.core.util.withPluginClassLoader
-import io.confluent.intellijplugin.data.KafkaDataManager
+import io.confluent.intellijplugin.data.BaseClusterDataManager
 import io.confluent.intellijplugin.telemetry.MessageViewerEvent
 import io.confluent.intellijplugin.telemetry.logUsage
 import org.apache.kafka.clients.consumer.ConsumerConfig
@@ -47,7 +47,7 @@ import kotlin.math.max
 
 class KafkaConsumerPanel(
     val project: Project,
-    internal val kafkaManager: KafkaDataManager,
+    internal val kafkaManager: BaseClusterDataManager,
     private val file: VirtualFile
 ) : Disposable {
     private val consumerClient: ConsumerClient = ConsumerClientProvider.getClient(

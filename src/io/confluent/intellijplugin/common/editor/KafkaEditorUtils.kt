@@ -30,7 +30,6 @@ import io.confluent.intellijplugin.core.ui.DarculaTextAreaBorder
 import io.confluent.intellijplugin.core.util.executeNotOnEdt
 import io.confluent.intellijplugin.core.util.invokeLater
 import io.confluent.intellijplugin.data.BaseClusterDataManager
-import io.confluent.intellijplugin.data.KafkaDataManager
 import io.confluent.intellijplugin.registry.KafkaRegistryFormat
 import io.confluent.intellijplugin.registry.KafkaRegistryType
 import io.confluent.intellijplugin.registry.KafkaRegistryUtil
@@ -165,15 +164,14 @@ object KafkaEditorUtils {
             }
         }
 
-        if (dataManager.registryType != KafkaRegistryType.NONE && dataManager is KafkaDataManager) {
-            val kafkaDataManager = dataManager
+        if (dataManager.registryType != KafkaRegistryType.NONE) {
             topicCombobox.addItemListener {
                 if (it.stateChange != SELECTED)
                     return@addItemListener
 
                 executeNotOnEdt {
                     val schemaType: Any =
-                        calculateSchemaTypeForTopic(kafkaDataManager, topicCombobox, isKey) ?: return@executeNotOnEdt
+                        calculateSchemaTypeForTopic(dataManager, topicCombobox, isKey) ?: return@executeNotOnEdt
                     runInEdt {
                         fieldsCombobox.selectedItem = schemaType
                     }
@@ -181,7 +179,7 @@ object KafkaEditorUtils {
             }
 
             executeNotOnEdt {
-                val schemaType = calculateSchemaTypeForTopic(kafkaDataManager, topicCombobox, isKey) ?: return@executeNotOnEdt
+                val schemaType = calculateSchemaTypeForTopic(dataManager, topicCombobox, isKey) ?: return@executeNotOnEdt
                 runInEdt {
                     fieldsCombobox.selectedItem = schemaType
                 }
@@ -252,7 +250,7 @@ object KafkaEditorUtils {
 
     fun createSchemaComboBox(
         rootDisposable: Disposable,
-        kafkaManager: KafkaDataManager,
+        kafkaManager: BaseClusterDataManager,
         topicComboBox: ComboBox<TopicInEditor>,
         isKey: Boolean
     ): ComboBox<RegistrySchemaInEditor> {
@@ -317,13 +315,13 @@ object KafkaEditorUtils {
     }
 
     private fun calculateSchemaTypeForTopic(
-        kafkaManager: KafkaDataManager,
+        kafkaManager: BaseClusterDataManager,
         topicComboBox: ComboBox<TopicInEditor>,
         isKey: Boolean
     ): KafkaFieldType? {
         val schema =
             calculateTopicSchemaName(kafkaManager, topicComboBox.item?.name ?: "", isKey, schemas = null) ?: return null
-        val type = KafkaRegistryUtil.getSchemaType(schema, kafkaManager)
+        val type = kafkaManager.getCachedOrLoadSchema(schema).type
         return if (type != null)
             KafkaFieldType.SCHEMA_REGISTRY
         else
@@ -331,7 +329,7 @@ object KafkaEditorUtils {
     }
 
     private fun calculateSchemasForCombobox(
-        kafkaManager: KafkaDataManager,
+        kafkaManager: BaseClusterDataManager,
         topicComboBox: ComboBox<TopicInEditor>,
         isKey: Boolean,
         prevSchema: String?
@@ -345,7 +343,7 @@ object KafkaEditorUtils {
     }
 
     private fun calculateTopicSchemaName(
-        kafkaManager: KafkaDataManager,
+        kafkaManager: BaseClusterDataManager,
         topic: String,
         isKey: Boolean,
         schemas: List<RegistrySchemaInEditor>?
