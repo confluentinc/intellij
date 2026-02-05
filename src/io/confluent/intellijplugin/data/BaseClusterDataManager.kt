@@ -144,9 +144,9 @@ abstract class BaseClusterDataManager(
     fun updatePinnedTopics(topicName: String, isForAdding: Boolean) {
         val config = KafkaToolWindowSettings.getInstance().getOrCreateConfig(connectionId)
         if (isForAdding) {
-            config.topicsPinned += topicName
+            config.topicsPined += topicName
         } else {
-            config.topicsPinned -= topicName
+            config.topicsPined -= topicName
         }
         // Refresh model in background to avoid EDT blocking
         driver.coroutineScope.launch {
@@ -162,9 +162,9 @@ abstract class BaseClusterDataManager(
     fun updatePinnedConsumerGroups(consumerGroup: String, isForAdding: Boolean) {
         val config = KafkaToolWindowSettings.getInstance().getOrCreateConfig(connectionId)
         if (isForAdding) {
-            config.consumerGroupPinned += consumerGroup
+            config.consumerGroupPined += consumerGroup
         } else {
-            config.consumerGroupPinned -= consumerGroup
+            config.consumerGroupPined -= consumerGroup
         }
         // Refresh model in background to avoid EDT blocking
         driver.coroutineScope.launch {
@@ -182,9 +182,9 @@ abstract class BaseClusterDataManager(
     fun updatePinnedSchemas(schemaName: String, isForAdding: Boolean) {
         val config = KafkaToolWindowSettings.getInstance().getOrCreateConfig(connectionId)
         if (isForAdding) {
-            config.schemasPinned += schemaName
+            config.schemasPined += schemaName
         } else {
-            config.schemasPinned -= schemaName
+            config.schemasPined -= schemaName
         }
         // Refresh model in background to avoid EDT blocking
         driver.coroutineScope.launch {
@@ -314,7 +314,7 @@ abstract class BaseClusterDataManager(
 
         val sortedTopics = sortTopicsWithFavorites(
             filteredTopics,
-            pinnedTopics = config.topicsPinned,
+            pinnedTopics = config.topicsPined,
             showFavoriteOnly = toolWindowSettings.showFavoriteTopics
         )
 
@@ -408,7 +408,7 @@ abstract class BaseClusterDataManager(
 
             val sortedSchemas = sortSchemasWithFavorites(
                 rawSchemas,
-                pinnedSchemas = config.schemasPinned,
+                pinnedSchemas = config.schemasPined,
                 showFavoriteOnly = toolWindowSettings.showFavoriteSchema
             )
 

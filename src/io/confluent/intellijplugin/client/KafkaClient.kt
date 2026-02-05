@@ -167,7 +167,7 @@ class KafkaClient(
         return result.map {
             ConsumerGroupPresentable(
                 state = it.state().getOrNull() ?: ConsumerGroupState.UNKNOWN, consumerGroup = it.groupId(),
-                isFavorite = config.consumerGroupPinned.contains(it.groupId())
+                isFavorite = config.consumerGroupPined.contains(it.groupId())
             )
         }
             .sortedWith(compareByDescending<ConsumerGroupPresentable> { it.isFavorite }.thenBy { it.consumerGroup.lowercase() })
@@ -485,7 +485,7 @@ class KafkaClient(
     private fun List<TopicPresentable>.sortedTopics(): List<TopicPresentable> {
         val kafkaSettings = KafkaToolWindowSettings.getInstance()
         val config = kafkaSettings.getOrCreateConfig(connectionData.innerId)
-        val topics = this.map { topic -> topic.copy(isFavorite = config.topicsPinned.contains(topic.name)) }
+        val topics = this.map { topic -> topic.copy(isFavorite = config.topicsPined.contains(topic.name)) }
 
         val finalTopics = if (kafkaSettings.showFavoriteTopics) topics.filter { it.isFavorite } else topics
         // sort firstly by favorite topics then by name

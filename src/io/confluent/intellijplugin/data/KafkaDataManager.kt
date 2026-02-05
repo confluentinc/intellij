@@ -470,7 +470,7 @@ class KafkaDataManager(
         fun List<KafkaSchemaInfo>.sortedSchemas(connectionId: String): List<KafkaSchemaInfo> {
             val kafkaSettings = KafkaToolWindowSettings.getInstance()
             val config = kafkaSettings.getOrCreateConfig(connectionId)
-            val schemas = this.map { schema -> schema.copy(isFavorite = config.schemasPinned.contains(schema.name)) }
+            val schemas = this.map { schema -> schema.copy(isFavorite = config.schemasPined.contains(schema.name)) }
             val finalSchemas = if (kafkaSettings.showFavoriteSchema) schemas.filter { it.isFavorite } else schemas
             return finalSchemas.sortedWith(compareByDescending<KafkaSchemaInfo> { it.isFavorite }.thenBy { it.name.lowercase() })
         }
