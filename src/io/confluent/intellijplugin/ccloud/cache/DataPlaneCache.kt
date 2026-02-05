@@ -70,10 +70,8 @@ class DataPlaneCache(
     fun getTopics(): List<TopicData> = cachedTopics ?: emptyList()
 
     /** Fetch topics from API and update cache. */
-    fun refreshTopics(): List<TopicData> {
-        val topics = fetcher?.let { f ->
-            runBlocking { f.listTopics() }
-        } ?: emptyList()
+    suspend fun refreshTopics(): List<TopicData> {
+        val topics = fetcher?.listTopics() ?: emptyList()
         cachedTopics = topics
         return topics
     }
@@ -84,14 +82,13 @@ class DataPlaneCache(
     /** Get cached subjects (empty if not loaded). */
     fun getSubjects(): List<SubjectData> = cachedSubjects ?: emptyList()
 
-    /** Fetch subjects from API and update cache. */
+    /** Fetch subjects from API and update cache. Blocks calling thread. */
     fun refreshSubjects(): List<SubjectData> {
         if (schemaRegistry == null) return emptyList()
 
         // TODO: Add progressive loading for schemas similar to enrichTopicsDataProgressively()
-        val subjects = fetcher?.let { f ->
-            runBlocking { f.listSubjectsWithDetails() }
-        } ?: emptyList()
+        // Uses runBlocking since called from non-suspend RFS framework (doLoadChildren)
+        val subjects = runBlocking { fetcher?.listSubjectsWithDetails() } ?: emptyList()
         cachedSubjects = subjects
         return subjects
     }
@@ -184,6 +181,27 @@ class DataPlaneCache(
      * Get topic partitions with offsets. Fetches offsets in parallel.
      * Note: With rate limiting (4.5 req/sec), this takes ~N/2 seconds for N partitions.
      */
+    suspend fun getTopicPartitionsQuick(topicName: String): List<BdtTopicPartition> {
+        val f = fetcher ?: throw IllegalStateException("DataPlaneCache not connected")
+        val topic = cachedTopics?.find { it.topicName == topicName }
+        val replicationFactor = topic?.replicationFactor ?: DEFAULT_CCLOUD_REPLICATION_FACTOR
+
+        val partitions = f.describeTopicPartitions(topicName)
+
+        return partitions.map { partition ->
+            BdtTopicPartition(
+                topic = topicName,
+                partitionId = partition.partitionId,
+                leader = extractBrokerIdFromUrl(partition.leader?.related),
+                internalReplicas = emptyList(),
+                inSyncReplicasCount = replicationFactor,
+                replicas = replicationFactor.toString(),
+                endOffset = null,
+                startOffset = null
+            )
+        }
+    }
+
     suspend fun getTopicPartitions(topicName: String): List<BdtTopicPartition> = coroutineScope {
         val f = fetcher ?: throw IllegalStateException("DataPlaneCache not connected")
         val topic = cachedTopics?.find { it.topicName == topicName }
@@ -222,11 +240,30 @@ class DataPlaneCache(
         }.awaitAll()
     }
 
+    fun enrichPartitionsProgressively(topicName: String, partitions: List<BdtTopicPartition>): Flow<BdtTopicPartition> = channelFlow {
+        val f = fetcher ?: return@channelFlow
+
+        partitions.forEach { partition ->
+            launch {
+                try {
+                    val startOffsetResponse = f.getPartitionOffsets(topicName, partition.partitionId, fromBeginning = true)
+                    val endOffsetResponse = f.getPartitionOffsets(topicName, partition.partitionId, fromBeginning = false)
+
+                    send(partition.copy(
+                        startOffset = startOffsetResponse.nextOffset,
+                        endOffset = endOffsetResponse.nextOffset
+                    ))
+                } catch (e: Exception) {
+                    thisLogger().warn("Failed to fetch offsets for $topicName/${partition.partitionId}: ${e.message}")
+                    send(partition)
+                }
+            }
+        }
+    }.flowOn(Dispatchers.IO)
+
     private fun extractBrokerIdFromUrl(url: String?): Int? {
-        if (url == null) return null
-        // URL format: https://pkc-.../partitions/1/replicas/3
-        // Extract last number as broker ID
-        return url.substringAfterLast("/").toIntOrNull()
+        if (url.isNullOrEmpty()) return null
+        return url.substringAfterLast("/", "").toIntOrNull()
     }
 
     /**

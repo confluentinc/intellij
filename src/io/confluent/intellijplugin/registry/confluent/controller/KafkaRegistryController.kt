@@ -108,7 +108,7 @@ internal class KafkaRegistryController(
         FavoriteRenderer.installOnColumn(table, columnModel.getColumn(0)).apply {
             onClick = { row, _ ->
                 val schemaInfo = table.getDataAt(row)
-                schemaInfo?.let { dataManager.updatePinedSchemas(it.name, !it.isFavorite) }
+                schemaInfo?.let { dataManager.updatePinnedSchemas(it.name, !it.isFavorite) }
             }
         }
 
