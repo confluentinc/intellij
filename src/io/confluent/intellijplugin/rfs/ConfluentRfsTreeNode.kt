@@ -11,6 +11,7 @@ import io.confluent.intellijplugin.rfs.ConfluentDriver.Companion.getClusterId
 import io.confluent.intellijplugin.rfs.ConfluentDriver.Companion.getSchemaRegistryId
 import io.confluent.intellijplugin.core.monitoring.rfs.MonitoringRfsTreeNode
 import io.confluent.intellijplugin.core.rfs.driver.RfsPath
+import io.confluent.intellijplugin.toolwindow.config.KafkaToolWindowSettings
 import javax.swing.Icon
 
 /**
@@ -72,7 +73,8 @@ class ConfluentRfsTreeNode(
             .find { it.id == clusterId } ?: return false
 
         val clusterDataManager = confluentDriver.dataManager.getOrCreateClusterDataManager(cluster)
-        return clusterDataManager.getTopics().find { it.name == rfsPath.name }?.isFavorite == true
+        val config = KafkaToolWindowSettings.getInstance().getOrCreateConfig(clusterDataManager.connectionId)
+        return config.topicsPinned.contains(rfsPath.name)
     }
 
     override fun getGrayText(): String? {

@@ -84,7 +84,9 @@ class CCloudClusterDataManager(
                             if (p.partitionId == enrichedPartition.partitionId) enrichedPartition else p
                         }
                         withContext(Dispatchers.Default) {
-                            storage.setData(updated)
+                            if (!Disposer.isDisposed(storage)) {
+                                storage.setData(updated)
+                            }
                         }
                     }
             }
