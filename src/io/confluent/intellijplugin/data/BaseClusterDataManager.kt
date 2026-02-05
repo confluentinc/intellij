@@ -71,8 +71,6 @@ abstract class BaseClusterDataManager(
         topics: List<TopicPresentable>
     ): Pair<List<TopicPresentable>, Throwable?>
 
-    protected abstract suspend fun fetchTopicPartitions(topicName: String): List<BdtTopicPartition>
-
     protected abstract suspend fun getTopicConfig(topicName: String, showFullConfig: Boolean): List<TopicConfig>
 
     protected abstract suspend fun loadConsumerGroups(): List<ConsumerGroupPresentable>

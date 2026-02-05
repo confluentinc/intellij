@@ -92,13 +92,6 @@ class KafkaDataManager(
         }
     }
 
-    override suspend fun fetchTopicPartitions(topicName: String): List<BdtTopicPartition> {
-        val topics = topicModel.data ?: emptyList()
-        val topic = topics.find { it.name == topicName }
-            ?: error(KafkaMessagesBundle.message("topic.not.found", topicName))
-        return topic.partitionList
-    }
-
     override suspend fun getTopicConfig(
         topicName: String,
         showFullConfig: Boolean

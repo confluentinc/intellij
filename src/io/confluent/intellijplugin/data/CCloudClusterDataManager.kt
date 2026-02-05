@@ -1,33 +1,26 @@
 package io.confluent.intellijplugin.data
 
 import com.intellij.openapi.diagnostic.thisLogger
-import com.intellij.openapi.progress.runBlockingMaybeCancellable
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import io.confluent.intellijplugin.ccloud.cache.DataPlaneCache
 import io.confluent.intellijplugin.ccloud.model.Cluster
 import io.confluent.intellijplugin.ccloud.model.response.CreateTopicRequest
-import io.confluent.intellijplugin.ccloud.model.response.TopicData
 import io.confluent.intellijplugin.ccloud.model.response.toPresentable
 import io.confluent.intellijplugin.client.KafkaConstants
-import io.confluent.intellijplugin.core.monitoring.data.MonitoringDataManager
-import io.confluent.intellijplugin.core.monitoring.data.model.ObjectDataModel
-import io.confluent.intellijplugin.core.monitoring.data.updater.BdtMonitoringUpdater
-import io.confluent.intellijplugin.core.monitoring.data.storage.RootDataModelStorage
 import io.confluent.intellijplugin.core.monitoring.data.storage.ObjectDataModelStorage
+import io.confluent.intellijplugin.core.monitoring.data.storage.RootDataModelStorage
 import io.confluent.intellijplugin.core.util.invokeLater
 import io.confluent.intellijplugin.model.BdtTopicPartition
 import io.confluent.intellijplugin.model.ConsumerGroupOffsetInfo
 import io.confluent.intellijplugin.model.ConsumerGroupPresentable
 import io.confluent.intellijplugin.model.TopicConfig
 import io.confluent.intellijplugin.model.TopicPresentable
-import io.confluent.intellijplugin.registry.common.KafkaSchemaInfo
 import io.confluent.intellijplugin.registry.KafkaRegistryType
+import io.confluent.intellijplugin.registry.common.KafkaSchemaInfo
 import io.confluent.intellijplugin.rfs.ConfluentConnectionData
 import io.confluent.intellijplugin.toolwindow.config.KafkaToolWindowSettings
-import io.confluent.intellijplugin.util.KafkaMessagesBundle
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
@@ -139,11 +132,6 @@ class CCloudClusterDataManager(
             topics to t
         }
     }
-
-    override suspend fun fetchTopicPartitions(topicName: String): List<BdtTopicPartition> =
-        withContext(Dispatchers.IO) {
-            dataPlaneCache.getTopicPartitions(topicName)
-        }
 
     override suspend fun getTopicConfig(
         topicName: String,
