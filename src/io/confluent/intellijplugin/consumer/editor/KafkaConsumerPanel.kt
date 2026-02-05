@@ -20,7 +20,8 @@ import io.confluent.intellijplugin.common.editor.*
 import io.confluent.intellijplugin.common.models.TopicInEditor
 import io.confluent.intellijplugin.common.settings.KafkaConfigStorage
 import io.confluent.intellijplugin.common.settings.StorageConsumerConfig
-import io.confluent.intellijplugin.consumer.client.KafkaConsumerClient
+import io.confluent.intellijplugin.consumer.client.ConsumerClient
+import io.confluent.intellijplugin.consumer.client.ConsumerClientProvider
 import io.confluent.intellijplugin.consumer.models.*
 import io.confluent.intellijplugin.core.rfs.util.RfsNotificationUtils
 import io.confluent.intellijplugin.core.settings.getValidationInfo
@@ -30,7 +31,7 @@ import io.confluent.intellijplugin.core.ui.MultiSplitter
 import io.confluent.intellijplugin.core.util.executeOnPooledThread
 import io.confluent.intellijplugin.core.util.invokeLater
 import io.confluent.intellijplugin.core.util.withPluginClassLoader
-import io.confluent.intellijplugin.data.KafkaDataManager
+import io.confluent.intellijplugin.data.BaseClusterDataManager
 import io.confluent.intellijplugin.telemetry.MessageViewerEvent
 import io.confluent.intellijplugin.telemetry.logUsage
 import org.apache.kafka.clients.consumer.ConsumerConfig
@@ -46,10 +47,10 @@ import kotlin.math.max
 
 class KafkaConsumerPanel(
     val project: Project,
-    internal val kafkaManager: KafkaDataManager,
+    internal val kafkaManager: BaseClusterDataManager,
     private val file: VirtualFile
 ) : Disposable {
-    private val consumerClient: KafkaConsumerClient = KafkaConsumerClient(
+    private val consumerClient: ConsumerClient = ConsumerClientProvider.getClient(
         dataManager = kafkaManager,
         onStart = ::onStartConsume,
         onStop = ::onStopConsume
@@ -353,7 +354,6 @@ class KafkaConsumerPanel(
                 // Callbacks called in Kafka client threads. That's why, to properly update UI we calling invokeLater
                 consumerClient.start(
                     runConfig,
-                    dataManager = kafkaManager,
                     keyConfig = key.loadFieldConfig(),
                     valueConfig = value.loadFieldConfig(),
                     consume = { pollTime, records ->

@@ -24,7 +24,6 @@ import io.confluent.intellijplugin.core.ui.revalidateOnLinesChanged
 import io.confluent.intellijplugin.core.util.executeNotOnEdt
 import io.confluent.intellijplugin.core.util.invokeLater
 import io.confluent.intellijplugin.core.util.toPresentableText
-import io.confluent.intellijplugin.data.KafkaDataManager
 import io.confluent.intellijplugin.registry.KafkaRegistryFormat
 import io.confluent.intellijplugin.registry.KafkaRegistryUtil
 import io.confluent.intellijplugin.registry.ui.KafkaRegistrySchemaEditor
@@ -38,7 +37,6 @@ import javax.swing.JPanel
 class CustomSchemaController(
     private val project: Project,
     private val isKey: Boolean,
-    private val kafkaManager: KafkaDataManager,
 ) : Disposable {
     private lateinit var customSchemaSource: SegmentedButton<KafkaCustomSchemaSource>
     private lateinit var customSchemaFile: Cell<TextFieldWithBrowseButton>
@@ -124,7 +122,7 @@ class CustomSchemaController(
             KafkaFieldType.AVRO_CUSTOM -> KafkaRegistryFormat.AVRO
             else -> error("Wrong type")
         }
-        return KafkaRegistryUtil.parseSchema(format, schemaText, kafkaManager).getOrThrow()
+        return KafkaRegistryUtil.parseSchema(format, schemaText).getOrThrow()
     }
 
     fun setProducerConfig(config: StorageProducerConfig) {
