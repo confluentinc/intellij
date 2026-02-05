@@ -5,7 +5,6 @@ import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.ValueSource
-import java.util.LinkedList
 
 /**
  * Benchmarks comparing the new data structures against baseline implementations.
@@ -24,6 +23,29 @@ import java.util.LinkedList
  * | FIFO eviction | MessageBuffer.add (O(1)) | ArrayList.removeFirst (O(n)) |
  */
 class IndexBenchmark {
+
+    /**
+     * Simple record to simulate KafkaRecord fields for realistic filtering.
+     */
+    private data class MockRecord(
+        val topic: String,
+        val partition: Int,
+        val offset: Long,
+        val key: String?,
+        val value: String
+    ) {
+        /**
+         * Simulates TableModel.getValueAt() - returns Any? requiring toString() for filtering.
+         */
+        fun getValueAt(columnIndex: Int): Any? = when (columnIndex) {
+            0 -> topic
+            1 -> partition
+            2 -> offset
+            3 -> key
+            4 -> value
+            else -> null
+        }
+    }
 
     @Nested
     inner class MessageBufferVsArrayList {
@@ -174,33 +196,66 @@ class IndexBenchmark {
     inner class FilterBitSetVsPredicate {
 
         /**
-         * Compares BitSet intersection vs re-evaluating predicates.
+         * Simulates TableRowFilter behavior: getValueAt -> toString -> contains/regex.
+         * This matches the actual implementation in TableRowFilter.kt.
+         */
+        private fun simulateTableRowFilter(
+            records: List<MockRecord>,
+            columnIndex: Int,
+            searchText: String,
+            caseInsensitive: Boolean = false
+        ): Int {
+            val regex = if (caseInsensitive) Regex("(?i).*$searchText.*") else null
+            return records.count { record ->
+                val value: Any? = record.getValueAt(columnIndex)
+                if (caseInsensitive) {
+                    value?.toString()?.matches(regex!!) == true
+                } else {
+                    value?.toString()?.contains(searchText) == true
+                }
+            }
+        }
+
+        /**
+         * Compares BitSet intersection vs re-evaluating predicates using realistic
+         * string-based filtering that matches TableRowFilter behavior.
+         *
+         * The baseline simulates what TableRowFilter.include() does:
+         * 1. getValueAt(row, column) - field access
+         * 2. toString() - string conversion
+         * 3. contains() or regex match - string matching
          */
         @ParameterizedTest(name = "Filter intersection at {0} elements")
         @ValueSource(ints = [100_000, 500_000, 1_000_000])
         fun `should compare filter intersection performance`(size: Int) {
             val metrics = PerformanceMetrics("Filter intersection @ $size")
 
-            // Setup: two bitsets with ~50% set each, ~25% overlap
-            val filter1 = FilterBitSet(size)
-            val filter2 = FilterBitSet(size)
-
-            for (i in 0 until size) {
-                if (i % 2 == 0) filter1.set(i)
-                if (i % 3 == 0) filter2.set(i)
+            // Generate realistic test data
+            val records = List(size) { i ->
+                MockRecord(
+                    topic = if (i % 2 == 0) "orders-topic" else "users-topic",
+                    partition = i % 10,
+                    offset = i.toLong(),
+                    key = "key-$i",
+                    value = if (i % 3 == 0) "payload with error code" else "normal payload data"
+                )
             }
 
-            // Also create predicate-based filters
-            val predicate1: (Int) -> Boolean = { it % 2 == 0 }
-            val predicate2: (Int) -> Boolean = { it % 3 == 0 }
+            // Pre-compute BitSet filters (simulates cached filter results)
+            val filter1 = FilterBitSet(size)
+            val filter2 = FilterBitSet(size)
+            records.forEachIndexed { index, record ->
+                if (record.topic.contains("orders")) filter1.set(index)
+                if (record.value.contains("error")) filter2.set(index)
+            }
 
             // Warmup
             PerformanceMetrics.warmup {
                 filter1.intersect(filter2)
-                (0 until 1000).count { predicate1(it) && predicate2(it) }
+                simulateTableRowFilter(records.take(1000), 0, "orders")
             }
 
-            // Benchmark BitSet intersection
+            // Benchmark BitSet intersection (cached filter results)
             var bitsetCardinality = 0
             metrics.measure("BitSet.intersect") {
                 repeat(10) {
@@ -208,21 +263,27 @@ class IndexBenchmark {
                 }
             }
 
-            // Benchmark predicate re-evaluation
+            // Benchmark TableRowFilter-style re-evaluation
+            // This is what happens today: re-scan all rows for each filter combination
             var predicateCount = 0
-            metrics.measure("Predicate") {
+            metrics.measure("TableRowFilter-style") {
                 repeat(10) {
-                    predicateCount = (0 until size).count { predicate1(it) && predicate2(it) }
+                    // Simulates applying two column filters and counting matches
+                    // Uses getValueAt() -> toString() -> contains() like TableRowFilter.include()
+                    predicateCount = records.count { record ->
+                        record.getValueAt(0)?.toString()?.contains("orders") == true &&
+                            record.getValueAt(4)?.toString()?.contains("error") == true
+                    }
                 }
             }
 
             val bitsetMs = metrics.totalMs("BitSet.intersect")
-            val predicateMs = metrics.totalMs("Predicate")
+            val predicateMs = metrics.totalMs("TableRowFilter-style")
             val speedup = predicateMs / bitsetMs
 
             println("=== Filter Intersection @ $size elements ===")
-            println("BitSet.intersect: ${bitsetMs}ms (cardinality: ${bitsetCardinality / 10})")
-            println("Predicate eval:   ${predicateMs}ms (count: ${predicateCount / 10})")
+            println("BitSet.intersect:       ${bitsetMs}ms (cardinality: ${bitsetCardinality / 10})")
+            println("TableRowFilter-style:   ${predicateMs}ms (count: ${predicateCount / 10})")
             println("Speedup: ${speedup}x")
             println()
 
@@ -231,6 +292,64 @@ class IndexBenchmark {
                 val perIterationMs = bitsetMs / 10
                 println(if (perIterationMs < 5) "PASS: ${perIterationMs}ms meets <5ms target" else "WARN: ${perIterationMs}ms exceeds 5ms target")
             }
+        }
+
+        /**
+         * Additional benchmark: case-insensitive regex matching (worst case for TableRowFilter).
+         */
+        @ParameterizedTest(name = "Case-insensitive filter at {0} elements")
+        @ValueSource(ints = [100_000, 500_000])
+        fun `should compare case-insensitive filter performance`(size: Int) {
+            val metrics = PerformanceMetrics("Case-insensitive filter @ $size")
+
+            val records = List(size) { i ->
+                MockRecord(
+                    topic = "Topic-$i",
+                    partition = i % 10,
+                    offset = i.toLong(),
+                    key = "Key-$i",
+                    value = if (i % 4 == 0) "ERROR: Something failed" else "Info: Normal message"
+                )
+            }
+
+            // Pre-compute BitSet filter
+            val cachedFilter = FilterBitSet(size)
+            val regex = Regex("(?i).*error.*")
+            records.forEachIndexed { index, record ->
+                if (record.value.matches(regex)) cachedFilter.set(index)
+            }
+
+            // Warmup
+            PerformanceMetrics.warmup {
+                cachedFilter.matchingIndices().take(100).toList()
+                simulateTableRowFilter(records.take(1000), 4, "error", caseInsensitive = true)
+            }
+
+            // Benchmark: iterate cached BitSet
+            var bitsetCount = 0
+            metrics.measure("BitSet.matchingIndices") {
+                repeat(10) {
+                    bitsetCount = cachedFilter.matchingIndices().count()
+                }
+            }
+
+            // Benchmark: re-evaluate regex on every row (TableRowFilter with compareCaseInsensitive=true)
+            var regexCount = 0
+            metrics.measure("Regex re-evaluation") {
+                repeat(10) {
+                    regexCount = simulateTableRowFilter(records, 4, "error", caseInsensitive = true)
+                }
+            }
+
+            val bitsetMs = metrics.totalMs("BitSet.matchingIndices")
+            val regexMs = metrics.totalMs("Regex re-evaluation")
+            val speedup = regexMs / bitsetMs
+
+            println("=== Case-Insensitive Filter @ $size elements ===")
+            println("BitSet (cached):      ${bitsetMs}ms (count: ${bitsetCount / 10})")
+            println("Regex re-evaluation:  ${regexMs}ms (count: ${regexCount / 10})")
+            println("Speedup: ${speedup}x")
+            println()
         }
 
         @Test
