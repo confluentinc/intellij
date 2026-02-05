@@ -3,17 +3,12 @@ package io.confluent.intellijplugin.data
 import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.progress.runBlockingMaybeCancellable
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.util.Disposer
 import com.intellij.util.concurrency.annotations.RequiresBackgroundThread
 import io.confluent.intellijplugin.ccloud.cache.DataPlaneCache
 import io.confluent.intellijplugin.ccloud.model.Cluster
 import io.confluent.intellijplugin.ccloud.model.response.CreateTopicRequest
-import io.confluent.intellijplugin.ccloud.model.response.TopicData
 import io.confluent.intellijplugin.ccloud.model.response.toPresentable
 import io.confluent.intellijplugin.client.KafkaConstants
-import io.confluent.intellijplugin.core.monitoring.data.MonitoringDataManager
-import io.confluent.intellijplugin.core.monitoring.data.model.ObjectDataModel
-import io.confluent.intellijplugin.core.monitoring.data.updater.BdtMonitoringUpdater
 import io.confluent.intellijplugin.core.monitoring.data.storage.RootDataModelStorage
 import io.confluent.intellijplugin.core.monitoring.data.storage.ObjectDataModelStorage
 import io.confluent.intellijplugin.core.util.invokeLater
@@ -22,14 +17,15 @@ import io.confluent.intellijplugin.model.ConsumerGroupOffsetInfo
 import io.confluent.intellijplugin.model.ConsumerGroupPresentable
 import io.confluent.intellijplugin.model.TopicConfig
 import io.confluent.intellijplugin.model.TopicPresentable
+import io.confluent.intellijplugin.common.models.RegistrySchemaInEditor
 import io.confluent.intellijplugin.registry.common.KafkaSchemaInfo
 import io.confluent.intellijplugin.registry.KafkaRegistryType
+import io.confluent.intellijplugin.registry.SchemaVersionInfo
 import io.confluent.intellijplugin.rfs.ConfluentConnectionData
-import io.confluent.intellijplugin.toolwindow.config.KafkaToolWindowSettings
-import io.confluent.intellijplugin.util.KafkaMessagesBundle
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
+import org.apache.kafka.clients.consumer.OffsetAndMetadata
+import org.apache.kafka.common.TopicPartition
 
 /**
  * Cluster-level data manager for Confluent Cloud using the CCloud REST API.
@@ -157,6 +153,49 @@ class CCloudClusterDataManager(
     override suspend fun listSchemaVersions(schemaName: String): List<Long> {
         // TODO: Implement when CCloud REST API supports schema versions
         return emptyList()
+    }
+
+    override suspend fun loadConsumerGroupOffset(name: String): List<ConsumerGroupOffsetInfo> {
+        // TODO: Implement when CCloud REST API supports consumer group offsets
+        return emptyList()
+    }
+
+    override suspend fun loadTopicInfo(name: String): TopicPresentable = withContext(Dispatchers.IO) {
+        val topics = dataPlaneCache.getTopics()
+        topics.find { it.topicName == name }?.toPresentable()
+            ?: throw IllegalArgumentException("Topic not found: $name")
+    }
+
+    override suspend fun resetOffsets(
+        consumeGroupId: String,
+        offsets: Map<TopicPartition, OffsetAndMetadata>
+    ) {
+        // TODO: Implement when CCloud REST API supports consumer group offset management
+        throw UnsupportedOperationException("Reset offsets not supported for Confluent Cloud")
+    }
+
+    override suspend fun getOffsetsForData(
+        partitions: Set<TopicPartition>,
+        timestamp: Long
+    ): Map<TopicPartition, Long> {
+        // TODO: Implement when CCloud REST API supports offset queries by timestamp
+        throw UnsupportedOperationException("Get offsets for timestamp not supported for Confluent Cloud")
+    }
+
+    @RequiresBackgroundThread
+    override fun getSchemasForEditor(): List<RegistrySchemaInEditor> {
+        // Schema registry not supported for CCloud connections yet
+        return emptyList()
+    }
+
+    override fun getLatestVersionInfo(schemaName: String): SchemaVersionInfo? {
+        // Schema registry not supported for CCloud connections yet
+        return null
+    }
+
+    override fun getCachedOrLoadSchema(name: String): KafkaSchemaInfo {
+        // Schema registry not supported for CCloud connections yet
+        throw UnsupportedOperationException("Schema registry not supported for Confluent Cloud")
     }
 
     @RequiresBackgroundThread
