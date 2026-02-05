@@ -25,7 +25,7 @@ MK_INCLUDE_TIMEOUT_MINS ?= 240
 # If this latest validated release is breaking you, please file a ticket with DevProd describing the issue, and
 # if necessary you can temporarily override MK_INCLUDE_VERSION above the managed section headers until the bad
 # release is yanked.
-MK_INCLUDE_VERSION ?= v0.1603.0
+MK_INCLUDE_VERSION ?= v0.1616.0
 
 # Make sure we always have a copy of the latest cc-mk-include release less than $(MK_INCLUDE_TIMEOUT_MINS) old:
 # Note: The simply-expanded make variable makes sure this is run once per make invocation.
@@ -131,6 +131,12 @@ setup-sdk:
 build: setup-sdk
 	$(GRADLE) build -Dorg.gradle.console=plain
 
+# prepare the IntelliJ plugin sandbox with all dependencies (without running tests), which is
+# required for the `collect-notices-binary` target to gather all NOTICE files from dependency JARs
+.PHONY: prepare-sandbox
+prepare-sandbox: setup-sdk
+	$(GRADLE) prepareSandbox -Dorg.gradle.console=plain
+
 .PHONY: build-plugin
 build-plugin: setup-sdk
 	$(GRADLE) buildPlugin -Dorg.gradle.console=plain
@@ -147,9 +153,9 @@ generate-third-party-notices:
 	./scripts/generate-third-party-notices.sh
 
 # Collects and appends all NOTICE files from the project's dependency JARs into a NOTICE-binary.txt file.
-# Runs gradle build before collecting the notices to ensure the JARs are available.
+# Runs gradle prepareSandbox before collecting the notices to ensure the dependency JARs are available.
 .PHONY: collect-notices-binary
-collect-notices-binary: build
+collect-notices-binary: prepare-sandbox
 	./scripts/collect-notices-binary.sh . .
 
 # Creates a PR against the currently checked out branch with a newly generated `THIRD_PARTY_NOTICES.txt` file.

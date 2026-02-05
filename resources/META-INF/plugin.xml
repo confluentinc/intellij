@@ -182,6 +182,10 @@
                     icon="AllIcons.General.Settings"
                     class="io.confluent.intellijplugin.core.monitoring.actions.tabs.MonitoringTabOpenConnectionSetting"
                     use-shortcut-of="EditSource"/>
+            <separator/>
+            <action id="Kafka.MonitoringTabsActions.ConfluentCloudSignOut"
+                    text="Sign Out from Confluent Cloud"
+                    class="io.confluent.intellijplugin.toolwindow.actions.ConfluentCloudSignOutTabAction"/>
         </group>
 
         <action id="Kafka.BdiTableCopyRowAction"
