@@ -12,6 +12,7 @@ data class KafkaClusterConfig(
     var consumerLimit: Int? = 100,
     var consumerFilterName: String? = null,
 
+    // Keep legacy spelling "Pined" for XML serialization compatibility
     var topicsPined: MutableSet<String> = mutableSetOf(),
     var schemasPined: MutableSet<String> = mutableSetOf(),
     var consumerGroupPined: MutableSet<String> = mutableSetOf()

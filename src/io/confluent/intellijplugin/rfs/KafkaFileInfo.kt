@@ -7,6 +7,7 @@ import io.confluent.intellijplugin.core.rfs.driver.FileInfoBase
 import io.confluent.intellijplugin.core.rfs.driver.RfsPath
 import io.confluent.intellijplugin.core.rfs.driver.task.RemoteFsDeleteTask
 import io.confluent.intellijplugin.core.rfs.driver.task.RfsCopyMoveTask
+import io.confluent.intellijplugin.core.rfs.util.RfsNotificationUtils
 import java.io.InputStream
 
 class KafkaFileInfo(override val driver: KafkaDriver, override val path: RfsPath) : FileInfoBase() {
@@ -23,10 +24,12 @@ class KafkaFileInfo(override val driver: KafkaDriver, override val path: RfsPath
     override fun doDeleteAsync() = object : RemoteFsDeleteTask(path) {
         override fun run(indicator: ProgressIndicator) {
             when (path.parent) {
-                KafkaDriver.topicPath -> driver.dataManager.deleteTopicWithConfirmation(listOf(path.name))
-                KafkaDriver.schemasPath -> runBlockingCancellable {
-                    driver.dataManager.deleteSchema(path.name).join()
+                KafkaDriver.topicPath -> runBlockingCancellable {
+                    driver.dataManager.deleteTopic(listOf(path.name)).onFailure {
+                        RfsNotificationUtils.showExceptionMessage(driver.project, it)
+                    }
                 }
+                KafkaDriver.schemasPath -> driver.dataManager.deleteSchema(path.name)
             }
         }
     }
