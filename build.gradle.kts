@@ -13,6 +13,7 @@ plugins {
     kotlin("plugin.serialization") version "2.2.21"
     id("org.jetbrains.intellij.platform") version "2.9.0"
     id("io.sentry.jvm.gradle") version "5.12.1"
+    id("org.openapi.generator") version "7.19.0"
 }
 
 sentry {
@@ -151,7 +152,8 @@ sourceSets {
             "src",
             "gen",
             layout.buildDirectory.dir("generated/sources/sentryconfig/kotlin"),
-            layout.buildDirectory.dir("generated/sources/segmentconfig/kotlin")
+            layout.buildDirectory.dir("generated/sources/segmentconfig/kotlin"),
+            layout.buildDirectory.dir("generated/sources/openapi/kotlin")
         ))
         resources.srcDirs(listOf("resources"))
     }
@@ -163,7 +165,12 @@ sourceSets {
 }
 
 tasks.named("compileKotlin") {
-    dependsOn(generateSentryConfig, generateSegmentConfig)
+    dependsOn(generateSentryConfig, generateSegmentConfig, "openApiGenerate")
+}
+
+tasks.named("openApiGenerate") {
+    inputs.file("$rootDir/openapi/scaffolding-service.openapi.yaml")
+    outputs.dir(layout.buildDirectory.dir("generated/sources/openapi/kotlin"))
 }
 
 // Ensure all Sentry plugin tasks run after custom config generation
@@ -234,3 +241,19 @@ tasks {
 
 fun ext(name: String): String =
     rootProject.extensions[name] as? String ?: error("Property `$name` is not defined")
+
+openApiGenerate {
+    inputSpec.set("$rootDir/openapi/scaffolding-service.openapi.yaml")
+    generatorName.set("kotlin")
+    outputDir.set(layout.buildDirectory.dir("generated/sources/openapi/kotlin").map { it.asFile.path })
+    modelPackage.set("io.confluent.intellijplugin.scaffold.model")
+    globalProperties.set(mapOf(
+        "models" to "",
+        "modelDocs" to "false",
+        "modelTests" to "false"
+    ))
+    configOptions.set(mapOf(
+        "serializationLibrary" to "moshi",
+        "sourceFolder" to ""
+    ))
+}
