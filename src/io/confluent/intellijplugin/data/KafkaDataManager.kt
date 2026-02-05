@@ -192,22 +192,15 @@ class KafkaDataManager(
 
     fun getCachedTopicByName(name: String) = getTopics().firstOrNull { it.name == name }
 
-    suspend fun loadConsumerGroupOffset(name: String): List<ConsumerGroupOffsetInfo> {
+    override suspend fun loadConsumerGroupOffset(name: String): List<ConsumerGroupOffsetInfo> {
         return listConsumerGroupOffsets(name)
     }
 
     @RequiresBackgroundThread
-    suspend fun loadTopicInfo(name: String) = client.getDetailedTopicsInfo(listOf(name)).first()
-
-    fun initRefreshSchemasIfRequired() {
-        val schemaModel = schemaRegistryModel
-        if (schemaModel?.isInitedByFirstTime == false) {
-            updater.invokeRefreshModel(schemaModel)
-        }
-    }
+    override suspend fun loadTopicInfo(name: String) = client.getDetailedTopicsInfo(listOf(name)).first()
 
     @RequiresBackgroundThread
-    fun getSchemasForEditor() = try {
+    override fun getSchemasForEditor() = try {
         val (schemas, _) = client.confluentRegistryClient?.listSchemas(null, null, false, connectionId)
             ?: client.glueRegistryClient?.listSchemas(null, null, connectionId)
             ?: (emptyList<KafkaSchemaInfo>() to false)
@@ -310,7 +303,7 @@ class KafkaDataManager(
 
     fun isSchemaExists(name: String) = getCachedSchema(name) != null
 
-    fun getCachedOrLoadSchema(name: String): KafkaSchemaInfo =
+    override fun getCachedOrLoadSchema(name: String): KafkaSchemaInfo =
         getCachedSchema(name)?.takeIf { it.type != null } ?: loadSchema(name)
 
     private fun getCachedOrLoadSchemaType(name: String) =
@@ -323,7 +316,7 @@ class KafkaDataManager(
             ?: client.glueRegistryClient?.loadSchemaInfo(schemaName)
             ?: error("Schema registry not configured")
 
-    fun getLatestVersionInfo(schemaName: String) =
+    override fun getLatestVersionInfo(schemaName: String) =
         client.confluentRegistryClient?.getLatestVersionInfo(schemaName)
             ?: client.glueRegistryClient?.getLatestVersionInfo(schemaName)
 
@@ -395,13 +388,13 @@ class KafkaDataManager(
         }
     }
 
-    suspend fun resetOffsets(consumeGroupId: String, offsets: Map<TopicPartition, OffsetAndMetadata>) {
+    override suspend fun resetOffsets(consumeGroupId: String, offsets: Map<TopicPartition, OffsetAndMetadata>) {
         client.resetOffsets(consumeGroupId, offsets)
         updater.invokeRefreshModel(consumerGroupsModel)
         updater.invokeRefreshModel(consumerGroupsOffsets[consumeGroupId])
     }
 
-    suspend fun getOffsetsForData(partitions: Set<TopicPartition>, timestamp: Long): Map<TopicPartition, Long> =
+    override suspend fun getOffsetsForData(partitions: Set<TopicPartition>, timestamp: Long): Map<TopicPartition, Long> =
         client.getOffsetsForDate(partitions.toList(), timestamp)
 
     fun deleteConsumerGroup(name: String) {

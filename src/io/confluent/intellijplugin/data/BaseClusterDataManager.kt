@@ -21,15 +21,18 @@ import io.confluent.intellijplugin.model.ConsumerGroupOffsetInfo
 import io.confluent.intellijplugin.model.ConsumerGroupPresentable
 import io.confluent.intellijplugin.model.TopicConfig
 import io.confluent.intellijplugin.model.TopicPresentable
-import io.confluent.intellijplugin.ccloud.cache.DataPlaneCache
+import io.confluent.intellijplugin.common.models.RegistrySchemaInEditor
 import io.confluent.intellijplugin.consumer.editor.KafkaConsumerPanelStorage
 import io.confluent.intellijplugin.registry.common.KafkaSchemaInfo
 import io.confluent.intellijplugin.registry.KafkaRegistryType
+import io.confluent.intellijplugin.registry.SchemaVersionInfo
 import io.confluent.intellijplugin.toolwindow.config.KafkaToolWindowSettings
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.apache.kafka.clients.consumer.OffsetAndMetadata
+import org.apache.kafka.common.TopicPartition
 
 abstract class BaseClusterDataManager(
     project: Project?,
@@ -92,6 +95,20 @@ abstract class BaseClusterDataManager(
     ): Pair<List<KafkaSchemaInfo>, Throwable?>
 
     protected abstract suspend fun listSchemaVersions(schemaName: String): List<Long>
+
+    abstract suspend fun loadConsumerGroupOffset(name: String): List<ConsumerGroupOffsetInfo>
+
+    abstract suspend fun loadTopicInfo(name: String): TopicPresentable
+
+    abstract suspend fun resetOffsets(
+        consumeGroupId: String,
+        offsets: Map<TopicPartition, OffsetAndMetadata>
+    )
+
+    abstract suspend fun getOffsetsForData(
+        partitions: Set<TopicPartition>,
+        timestamp: Long
+    ): Map<TopicPartition, Long>
 
     abstract suspend fun createTopic(
         name: String,
@@ -196,6 +213,20 @@ abstract class BaseClusterDataManager(
         schemaRegistryModel?.data?.firstOrNull { it.name == name }
 
     fun getSchemaByName(name: String) = getCachedSchema(name)
+
+    open fun initRefreshSchemasIfRequired() {
+        val schemaModel = schemaRegistryModel
+        if (schemaModel?.isInitedByFirstTime == false) {
+            updater.invokeRefreshModel(schemaModel)
+        }
+    }
+
+    @RequiresBackgroundThread
+    abstract fun getSchemasForEditor(): List<RegistrySchemaInEditor>
+
+    abstract fun getLatestVersionInfo(schemaName: String): SchemaVersionInfo?
+
+    abstract fun getCachedOrLoadSchema(name: String): KafkaSchemaInfo
 
     fun updatePinnedSchemas(schemaName: String, isForAdding: Boolean) {
         val config = KafkaToolWindowSettings.getInstance().getOrCreateConfig(connectionId)
