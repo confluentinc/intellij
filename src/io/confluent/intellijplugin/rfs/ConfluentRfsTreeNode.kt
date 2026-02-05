@@ -11,6 +11,7 @@ import io.confluent.intellijplugin.rfs.ConfluentDriver.Companion.getClusterId
 import io.confluent.intellijplugin.rfs.ConfluentDriver.Companion.getSchemaRegistryId
 import io.confluent.intellijplugin.core.monitoring.rfs.MonitoringRfsTreeNode
 import io.confluent.intellijplugin.core.rfs.driver.RfsPath
+import io.confluent.intellijplugin.toolwindow.config.KafkaToolWindowSettings
 import javax.swing.Icon
 
 /**
@@ -58,10 +59,22 @@ class ConfluentRfsTreeNode(
         return when {
             rfsPath.isCluster(confluentDriver) -> AllIcons.Nodes.Module
             rfsPath.isSchemaRegistry(confluentDriver) -> AllIcons.Nodes.DataSchema
-            rfsPath.isTopic -> AllIcons.Nodes.Tag
+            rfsPath.isTopic -> if (checkIsFavorite()) AllIcons.Nodes.Favorite else AllIcons.Nodes.Tag
             rfsPath.isSchema -> AllIcons.FileTypes.Json
             else -> null
         }
+    }
+
+    private fun checkIsFavorite(): Boolean {
+        val envId = confluentDriver.selectedEnvironmentId ?: return false
+        val clusterId = rfsPath.elements.getOrNull(0) ?: return false
+
+        val cluster = confluentDriver.dataManager.getKafkaClusters(envId)
+            .find { it.id == clusterId } ?: return false
+
+        val clusterDataManager = confluentDriver.dataManager.getOrCreateClusterDataManager(cluster)
+        val config = KafkaToolWindowSettings.getInstance().getOrCreateConfig(clusterDataManager.connectionId)
+        return config.topicsPinned.contains(rfsPath.name)
     }
 
     override fun getGrayText(): String? {
