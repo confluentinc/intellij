@@ -13,7 +13,7 @@ import io.confluent.intellijplugin.core.rfs.driver.FileInfo
 import io.confluent.intellijplugin.core.rfs.driver.RfsPath
 import io.confluent.intellijplugin.core.rfs.tree.DriverRfsTreeModel
 import io.confluent.intellijplugin.core.rfs.tree.node.RfsDriverTreeNodeBuilder
-import io.confluent.intellijplugin.data.ConfluentDataManager
+import io.confluent.intellijplugin.data.CCloudOrgManager
 import io.confluent.intellijplugin.toolwindow.config.KafkaToolWindowSettings
 import io.confluent.intellijplugin.core.util.invokeLater
 import javax.swing.Icon
@@ -38,7 +38,7 @@ class ConfluentDriver(
     var selectedEnvironmentId: String? = null
     private val registeredClusterListeners = mutableSetOf<String>()
 
-    override val dataManager: ConfluentDataManager = ConfluentDataManager(
+    override val dataManager: CCloudOrgManager = CCloudOrgManager(
         project, connectionData, KafkaToolWindowSettings.getInstance(), { this }
     )
 
@@ -131,16 +131,19 @@ class ConfluentDriver(
 
                     registerClusterTopicListener(nodeId, cluster)
 
-                    val cache = dataManager.getDataPlaneCache(cluster)
-                    val topics = cache.refreshTopics().sortedBy { it.topicName.lowercase() }
+                    val clusterDataManager = dataManager.getOrCreateClusterDataManager(cluster)
+                    val topics = clusterDataManager.getTopics()
                     logger.info("ConfluentDriver: Found ${topics.size} topics")
 
-                    return if (topics.isEmpty()) {
-                        listOf(ConfluentFileInfo(this, emptyStatePath("No topics available")))
-                    } else {
-                        topics.map { topic ->
-                            ConfluentFileInfo(this, topicPath(nodeId, topic.topicName))
-                        }
+                    return when {
+                        topics.isEmpty() && clusterDataManager.topicModel.isInitedByFirstTime == false ->
+                            listOf(ConfluentFileInfo(this, emptyStatePath("Loading...")))
+                        topics.isEmpty() ->
+                            listOf(ConfluentFileInfo(this, emptyStatePath("No topics available")))
+                        else ->
+                            topics.map { topic ->
+                                ConfluentFileInfo(this, topicPath(nodeId, topic.name))
+                            }
                     }
                 }
 
@@ -212,6 +215,11 @@ class ConfluentDriver(
 
         val RfsPath.isTopic: Boolean get() = elements.size == 2 && elements[0].startsWith("lkc-")
         val RfsPath.isSchema: Boolean get() = elements.size == 2 && elements[0].startsWith("lsrc-")
+
+        // Path properties matching KafkaDriver for action compatibility
+        val RfsPath.isTopicFolder: Boolean get() = elements.size == 1 && elements[0].startsWith("lkc-") && isDirectory
+        val RfsPath.isSchemas: Boolean get() = elements.size == 1 && elements[0].startsWith("lsrc-") && isDirectory
+        val RfsPath.isConsumers: Boolean get() = false // TODO: Implement consumer groups path validation
 
         val RfsPath.isEnvironment: Boolean get() = false
         val RfsPath.isClustersFolder: Boolean get() = false
