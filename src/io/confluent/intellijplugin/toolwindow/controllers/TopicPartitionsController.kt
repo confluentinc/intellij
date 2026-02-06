@@ -6,12 +6,12 @@ import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.project.DumbAwareAction
 import io.confluent.intellijplugin.core.monitoring.toolwindow.DetailsTableMonitoringController
-import io.confluent.intellijplugin.data.TopicDetailDataProvider
+import io.confluent.intellijplugin.data.BaseClusterDataManager
 import io.confluent.intellijplugin.model.BdtTopicPartition
 import io.confluent.intellijplugin.toolwindow.config.KafkaToolWindowSettings
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
 
-class TopicPartitionsController(private val dataManager: TopicDetailDataProvider) :
+class TopicPartitionsController(private val dataManager: BaseClusterDataManager) :
     DetailsTableMonitoringController<BdtTopicPartition, String>() {
     private val clearPartition = object : DumbAwareAction(
         KafkaMessagesBundle.message("action.kafka.ClearPartition.text"),

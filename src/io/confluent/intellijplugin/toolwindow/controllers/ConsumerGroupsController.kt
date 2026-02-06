@@ -42,7 +42,7 @@ internal class ConsumerGroupsController(
             onClick = { row, _ ->
                 val consumerGroupPresentable = table.getDataAt(row)
                 consumerGroupPresentable?.let {
-                    dataManager.updatePinedConsumerGroups(
+                    dataManager.updatePinnedConsumerGroups(
                         it.consumerGroup,
                         !it.isFavorite
                     )
