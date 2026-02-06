@@ -6,12 +6,7 @@ description:
   plugin features. Triggers on questions like "how do I create a tool window", "what's the API for X",
   "IntelliJ threading rules", or checking platform API compatibility.
 user-invocable: false
-allowed-tools:
-  - Read
-  - Grep
-  - Glob
-  - WebFetch
-  - WebSearch
+allowed-tools: Read, Grep, Glob, WebFetch, WebSearch
 ---
 
 # IntelliJ Platform SDK Lookup
