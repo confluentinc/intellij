@@ -165,12 +165,7 @@ sourceSets {
 }
 
 tasks.named("compileKotlin") {
-    dependsOn(generateSentryConfig, generateSegmentConfig, "openApiGenerate")
-}
-
-tasks.named("openApiGenerate") {
-    inputs.file("$rootDir/openapi/scaffolding-service.openapi.yaml")
-    outputs.dir(layout.buildDirectory.dir("generated/sources/openapi/kotlin"))
+    dependsOn(generateSentryConfig, generateSegmentConfig)
 }
 
 // Ensure all Sentry plugin tasks run after custom config generation
@@ -179,7 +174,7 @@ afterEvaluate {
         (it.name.startsWith("sentry") || it.name.contains("Sentry")) &&
         it.name != "generateSentryConfig"
     }.forEach { sentryTask ->
-        sentryTask.mustRunAfter(generateSentryConfig, generateSegmentConfig, "openApiGenerate")
+        sentryTask.mustRunAfter(generateSentryConfig, generateSegmentConfig, "openApiGenerate", "openApiValidate")
     }
 }
 
@@ -256,4 +251,7 @@ openApiGenerate {
         "serializationLibrary" to "moshi",
         "sourceFolder" to ""
     ))
+}
+openApiValidate {
+    inputSpec.set("$rootDir/openapi/scaffolding-service.openapi.yaml")
 }
