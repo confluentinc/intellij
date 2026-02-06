@@ -74,7 +74,7 @@ class ConfluentRfsTreeNode(
 
         val clusterDataManager = confluentDriver.dataManager.getOrCreateClusterDataManager(cluster)
         val config = KafkaToolWindowSettings.getInstance().getOrCreateConfig(clusterDataManager.connectionId)
-        return config.topicsPinned.contains(rfsPath.name)
+        return config.topicsPined.contains(rfsPath.name)
     }
 
     override fun getGrayText(): String? {

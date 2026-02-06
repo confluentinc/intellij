@@ -24,6 +24,7 @@ blocks:
         commands:
           - checkout
           - . vault-setup
+          - sem-version java 21
           - make ci-sem-cache-restore
           - make setup-sdk
       jobs:

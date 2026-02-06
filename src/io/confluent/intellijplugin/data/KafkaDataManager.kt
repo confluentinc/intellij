@@ -435,7 +435,7 @@ class KafkaDataManager(
                 withContext(Dispatchers.Default) {
                     val currentTopics = topicModel.data ?: emptyList()
                     val config = KafkaToolWindowSettings.getInstance().getOrCreateConfig(connectionId)
-                    val enrichedTopic = newTopic.copy(isFavorite = config.topicsPinned.contains(name))
+                    val enrichedTopic = newTopic.copy(isFavorite = config.topicsPined.contains(name))
 
                     val updatedTopics = (currentTopics + enrichedTopic).sortedWith(
                         compareByDescending<TopicPresentable> { it.isFavorite }
