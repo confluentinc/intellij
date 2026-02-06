@@ -1,32 +1,27 @@
 package io.confluent.intellijplugin.data
 
 import com.intellij.openapi.diagnostic.thisLogger
-import com.intellij.openapi.progress.runBlockingMaybeCancellable
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import io.confluent.intellijplugin.ccloud.cache.DataPlaneCache
 import io.confluent.intellijplugin.ccloud.model.Cluster
 import io.confluent.intellijplugin.ccloud.model.response.CreateTopicRequest
-import io.confluent.intellijplugin.ccloud.model.response.TopicData
 import io.confluent.intellijplugin.ccloud.model.response.toPresentable
 import io.confluent.intellijplugin.client.KafkaConstants
-import io.confluent.intellijplugin.core.monitoring.data.MonitoringDataManager
-import io.confluent.intellijplugin.core.monitoring.data.model.ObjectDataModel
-import io.confluent.intellijplugin.core.monitoring.data.updater.BdtMonitoringUpdater
-import io.confluent.intellijplugin.core.monitoring.data.storage.RootDataModelStorage
 import io.confluent.intellijplugin.core.monitoring.data.storage.ObjectDataModelStorage
+import io.confluent.intellijplugin.core.monitoring.data.storage.RootDataModelStorage
 import io.confluent.intellijplugin.core.util.invokeLater
 import io.confluent.intellijplugin.model.BdtTopicPartition
 import io.confluent.intellijplugin.model.ConsumerGroupOffsetInfo
 import io.confluent.intellijplugin.model.ConsumerGroupPresentable
 import io.confluent.intellijplugin.model.TopicConfig
 import io.confluent.intellijplugin.model.TopicPresentable
-import io.confluent.intellijplugin.registry.common.KafkaSchemaInfo
 import io.confluent.intellijplugin.registry.KafkaRegistryType
+import io.confluent.intellijplugin.registry.common.KafkaSchemaInfo
 import io.confluent.intellijplugin.rfs.ConfluentConnectionData
 import io.confluent.intellijplugin.toolwindow.config.KafkaToolWindowSettings
-import io.confluent.intellijplugin.util.KafkaMessagesBundle
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 
@@ -64,18 +59,39 @@ class CCloudClusterDataManager(
         get() = KafkaRegistryType.NONE
 
     init {
-        RootDataModelStorage(updater, listOf(topicModel))
+        RootDataModelStorage(updater, listOf(topicModel)).also { Disposer.register(this, it) }
     }
 
     override fun createTopicPartitionsStorage() = ObjectDataModelStorage<String, BdtTopicPartition>(
         updater,
-        BdtTopicPartition::partitionId,
-        dependOn = topicModel
+        BdtTopicPartition::partitionId
     ) { topicName ->
         try {
-            runBlockingMaybeCancellable {
-                fetchTopicPartitions(topicName)
+            // Load basic partition info immediately
+            val quickPartitions = runBlocking(Dispatchers.IO) {
+                dataPlaneCache.getTopicPartitionsQuick(topicName)
             }
+
+            if (quickPartitions.isEmpty()) return@ObjectDataModelStorage quickPartitions
+
+            // Enrich with offsets progressively in background and unblock UI with loading state
+            driver.coroutineScope.launch(Dispatchers.IO) {
+                dataPlaneCache.enrichPartitionsProgressively(topicName, quickPartitions)
+                    .collect { enrichedPartition ->
+                        val storage = topicPartitionsModels[topicName] ?: return@collect
+                        val current = storage.data ?: return@collect
+                        val updated = current.map { p ->
+                            if (p.partitionId == enrichedPartition.partitionId) enrichedPartition else p
+                        }
+                        withContext(Dispatchers.Default) {
+                            if (!Disposer.isDisposed(storage)) {
+                                storage.setData(updated)
+                            }
+                        }
+                    }
+            }
+
+            quickPartitions
         } catch (e: Exception) {
             thisLogger().warn("Failed to load partitions for topic '$topicName' in cluster ${cluster.id}", e)
             emptyList()
@@ -118,11 +134,6 @@ class CCloudClusterDataManager(
             topics to t
         }
     }
-
-    override suspend fun fetchTopicPartitions(topicName: String): List<BdtTopicPartition> =
-        withContext(Dispatchers.IO) {
-            dataPlaneCache.getTopicPartitions(topicName)
-        }
 
     override suspend fun getTopicConfig(
         topicName: String,
@@ -174,26 +185,42 @@ class CCloudClusterDataManager(
                         CreateTopicRequest.ConfigEntry(k, v)
                     }.ifEmpty { null }
                 )
-
                 dataPlaneCache.createTopic(request)
+            }
+
+            val newTopic = withContext(Dispatchers.IO) {
+                dataPlaneCache.getTopics().find { it.topicName == name }?.toPresentable()
+            }
+
+            if (newTopic != null) {
+                withContext(Dispatchers.Default) {
+                    val currentTopics = topicModel.data ?: emptyList()
+                    val config = KafkaToolWindowSettings.getInstance().getOrCreateConfig(connectionId)
+                    val enrichedTopic = newTopic.copy(isFavorite = config.topicsPined.contains(name))
+
+                    val updatedTopics = (currentTopics + enrichedTopic).sortedWith(
+                        compareByDescending<TopicPresentable> { it.isFavorite }
+                            .thenBy { it.name.lowercase() }
+                    )
+
+                    topicModel.setData(updatedTopics)
+                }
+            } else {
+                thisLogger().warn("Created topic '$name' not found in cache, triggering full refresh")
+                invokeLater { updater.invokeRefreshModel(topicModel) }
             }
 
             Result.success(Unit)
         } catch (e: Exception) {
             thisLogger().warn("Failed to create topic '$name'", e)
+            invokeLater { updater.invokeRefreshModel(topicModel) }
             Result.failure(e)
-        } finally {
-            invokeLater {
-                updater.invokeRefreshModel(topicModel)
-            }
         }
     }
 
     override suspend fun deleteTopic(topicNames: List<String>): Result<Unit> {
         return try {
-            if (topicNames.isEmpty()) {
-                return Result.success(Unit)
-            }
+            if (topicNames.isEmpty()) return Result.success(Unit)
 
             withContext(Dispatchers.IO) {
                 topicNames.forEach { topicName ->
@@ -201,14 +228,17 @@ class CCloudClusterDataManager(
                 }
             }
 
+            withContext(Dispatchers.Default) {
+                val currentTopics = topicModel.data ?: emptyList()
+                val updatedTopics = currentTopics.filterNot { it.name in topicNames }
+                topicModel.setData(updatedTopics)
+            }
+
             Result.success(Unit)
         } catch (e: Exception) {
             thisLogger().warn("Failed to delete topics: $topicNames", e)
+            invokeLater { updater.invokeRefreshModel(topicModel) }
             Result.failure(e)
-        } finally {
-            invokeLater {
-                updater.invokeRefreshModel(topicModel)
-            }
         }
     }
 
