@@ -92,13 +92,6 @@ class KafkaDataManager(
         }
     }
 
-    override suspend fun fetchTopicPartitions(topicName: String): List<BdtTopicPartition> {
-        val topics = topicModel.data ?: emptyList()
-        val topic = topics.find { it.name == topicName }
-            ?: error(KafkaMessagesBundle.message("topic.not.found", topicName))
-        return topic.partitionList
-    }
-
     override suspend fun getTopicConfig(
         topicName: String,
         showFullConfig: Boolean
@@ -428,25 +421,61 @@ class KafkaDataManager(
         partitions: Int?,
         replicationFactor: Int?,
         configs: Map<String, String>
-    ): Result<Unit> = withContext(Dispatchers.IO) {
-        try {
-            client.createTopic(name, partitions, replicationFactor)
-            updater.invokeRefreshModel(topicModel)
+    ): Result<Unit> {
+        return try {
+            withContext(Dispatchers.IO) {
+                client.createTopic(name, partitions, replicationFactor)
+            }
+
+            val newTopic = withContext(Dispatchers.IO) {
+                client.getDetailedTopicsInfo(listOf(name)).firstOrNull()
+            }
+
+            if (newTopic != null) {
+                withContext(Dispatchers.Default) {
+                    val currentTopics = topicModel.data ?: emptyList()
+                    val config = KafkaToolWindowSettings.getInstance().getOrCreateConfig(connectionId)
+                    val enrichedTopic = newTopic.copy(isFavorite = config.topicsPined.contains(name))
+
+                    val updatedTopics = (currentTopics + enrichedTopic).sortedWith(
+                        compareByDescending<TopicPresentable> { it.isFavorite }
+                            .thenBy { it.name.lowercase() }
+                    )
+
+                    topicModel.setData(updatedTopics)
+                }
+            } else {
+                thisLogger().warn("Created topic '$name' not found, triggering full refresh")
+                updater.invokeRefreshModel(topicModel)
+            }
+
             Result.success(Unit)
         } catch (e: Exception) {
             thisLogger().warn("Failed to create topic '$name'", e)
+            updater.invokeRefreshModel(topicModel)
             Result.failure(e)
         }
     }
 
-    override suspend fun deleteTopic(topicNames: List<String>): Result<Unit> = withContext(Dispatchers.IO) {
-        try {
-            if (topicNames.isEmpty()) return@withContext Result.success(Unit)
-            topicNames.forEach { client.deleteTopic(it) }
-            updater.invokeRefreshModel(topicModel)
+    override suspend fun deleteTopic(topicNames: List<String>): Result<Unit> {
+        return try {
+            if (topicNames.isEmpty()) return Result.success(Unit)
+
+            withContext(Dispatchers.IO) {
+                topicNames.forEach { client.deleteTopic(it) }
+            }
+
+            withContext(Dispatchers.Default) {
+                val currentTopics = topicModel.data ?: emptyList()
+                val updatedTopics = currentTopics.filterNot { it.name in topicNames }
+                topicModel.setData(updatedTopics)
+            }
+
             Result.success(Unit)
         } catch (e: Exception) {
             thisLogger().warn("Failed to delete topics: $topicNames", e)
+            // On error, do full refresh to ensure consistency
+            updater.invokeRefreshModel(topicModel)
             Result.failure(e)
         }
     }

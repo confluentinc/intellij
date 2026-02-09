@@ -1,6 +1,7 @@
 package io.confluent.intellijplugin.model
 
 import io.confluent.intellijplugin.core.monitoring.data.model.RemoteInfo
+import io.confluent.intellijplugin.core.table.renderers.LoadingRendering
 import io.confluent.intellijplugin.core.table.renderers.NoRendering
 import io.confluent.intellijplugin.util.KafkaLocalizedField
 
@@ -12,9 +13,12 @@ data class BdtTopicPartition(
     val internalReplicas: List<InternalReplica>,
     val inSyncReplicasCount: Int,
     val replicas: String,
+    @field:LoadingRendering(rightAligned = true)
     val endOffset: Long?,
+    @field:LoadingRendering(rightAligned = true)
     val startOffset: Long?,
 ) : RemoteInfo {
+    @field:LoadingRendering(rightAligned = true)
     val messageCount: Long? = if (startOffset != null && endOffset != null)
         endOffset - startOffset
     else
