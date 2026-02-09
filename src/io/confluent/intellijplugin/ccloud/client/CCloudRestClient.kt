@@ -382,9 +382,10 @@ class CCloudRestClient(
             val directMessage = json.optString("message")?.takeIf { it.isNotEmpty() }
             val message = errorsArrayMessage ?: directMessage
 
-            message?.let { "HTTP $statusCode: $it" } ?: "HTTP $statusCode: ${responseBody.take(200)}"
+            message?.let { "$it (HTTP $statusCode)" }
+                ?: "Request failed with HTTP $statusCode: ${responseBody.take(200)}"
         } catch (e: Exception) {
-            "HTTP $statusCode: ${responseBody.take(200)}"
+            "Request failed with HTTP $statusCode: ${responseBody.take(200)}"
         }
     }
 }
