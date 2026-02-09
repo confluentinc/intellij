@@ -7,6 +7,8 @@ import com.squareup.moshi.Moshi
 import com.squareup.moshi.ToJson
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import io.confluent.intellijplugin.scaffold.model.Scaffoldv1TemplateList
+import io.confluent.intellijplugin.scaffold.model.TypedTemplateListItem
+import io.confluent.intellijplugin.scaffold.model.toTyped
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.time.OffsetDateTime
@@ -36,8 +38,6 @@ class ScaffoldHttpClient(private val baseUrl: String = "https://api.confluent.cl
         }
 
         // Moshi JSON adapter - required because generated models use @Json annotations
-        // Note: The generated 'spec' field is typed as kotlin.Any, so it will be deserialized as a Map.
-        // Consumers should use Moshi to convert the Map to the appropriate spec type (e.g., Scaffoldv1TemplateSpec).
         private val moshi = Moshi.Builder()
             .add(OffsetDateTimeAdapter())
             .add(KotlinJsonAdapterFactory())
@@ -70,4 +70,19 @@ class ScaffoldHttpClient(private val baseUrl: String = "https://api.confluent.cl
             thisLogger().debug("Parsed ${result.data.size} templates")
             result
         }
+
+    /**
+     * Fetches templates from a specific template collection with properly typed spec fields.
+     *
+     * The auto-generated models type the 'spec' field as kotlin.Any. This method converts
+     * them to TypedTemplateListItem with properly typed Scaffoldv1TemplateSpec.
+     *
+     * @param collectionName The name of the template collection (default: "vscode")
+     * @return List of templates with typed spec fields
+     * @throws HttpRequests.HttpStatusException if the server returns 4xx or 5xx status
+     */
+    suspend fun fetchTypedTemplates(collectionName: String = "vscode"): List<TypedTemplateListItem> {
+        val templateList = fetchTemplates(collectionName)
+        return templateList.toTyped(moshi)
+    }
 }
