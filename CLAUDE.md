@@ -172,7 +172,7 @@ Custom extension point `connectionSettingProvider` defined in `plugin.xml` for p
 ## Code Style
 
 - Handle exceptions gracefully with user-visible error messages
-- Use `thisLogger()` for logging
+- Use `thisLogger()` for logging (never use `println` for debug output - use `thisLogger().debug()` instead)
 
 ## Common Mistakes to Avoid
 
