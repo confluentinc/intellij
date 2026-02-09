@@ -7,13 +7,14 @@ import com.intellij.openapi.ui.Messages
 import io.confluent.intellijplugin.scaffold.client.ScaffoldHttpClient
 import io.confluent.intellijplugin.scaffold.models.TemplateDisplayInfo
 import io.confluent.intellijplugin.scaffold.ui.ScaffoldTemplateSelectionDialog
+import io.confluent.intellijplugin.util.KafkaMessagesBundle
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /**
- * Action to browse and select Confluent scaffold templates.
+ * Action to browse and select Confluent project templates.
  * Accessible via Cmd+Shift+A (or Ctrl+Shift+A on Windows/Linux).
  */
 class SelectScaffoldTemplateAction : DumbAwareAction() {
@@ -40,7 +41,11 @@ class SelectScaffoldTemplateAction : DumbAwareAction() {
                 // Show dialog on Main dispatcher
                 withContext(Dispatchers.Main) {
                     if (templates.isEmpty()) {
-                        Messages.showInfoMessage(project, "No templates available.", "Scaffold Templates")
+                        Messages.showInfoMessage(
+                            project,
+                            KafkaMessagesBundle.message("scaffold.action.no.templates.message"),
+                            KafkaMessagesBundle.message("scaffold.action.no.templates.title")
+                        )
                         return@withContext
                     }
 
@@ -53,8 +58,8 @@ class SelectScaffoldTemplateAction : DumbAwareAction() {
                 withContext(Dispatchers.Main) {
                     Messages.showErrorDialog(
                         project,
-                        "Failed to load scaffold templates: ${ex.message}",
-                        "Scaffold Templates Error"
+                        KafkaMessagesBundle.message("scaffold.action.error.message", ex.message ?: "Unknown error"),
+                        KafkaMessagesBundle.message("scaffold.action.error.title")
                     )
                 }
             }
