@@ -97,6 +97,10 @@
     <actions resource-bundle="messages.KafkaBundle">
         <action id="Kafka.GlobalCreateKafkaConnection"
                 class="io.confluent.intellijplugin.actions.CreateKafkaConnectionAction"/>
+        <action id="Kafka.SelectScaffoldTemplate"
+                class="io.confluent.intellijplugin.scaffold.actions.SelectScaffoldTemplateAction"
+                text="Select Scaffold Template"
+                description="Browse and select Confluent scaffold templates"/>
 
         <group id="Kafka.ExportRecords.Actions" popup="true" icon="AllIcons.Actions.Download">
             <action id="Kafka.Export.ToCsv" class="io.confluent.intellijplugin.actions.CsvExportAction"/>
