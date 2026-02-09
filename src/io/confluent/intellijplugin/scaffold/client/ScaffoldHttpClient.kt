@@ -13,9 +13,7 @@ import java.time.format.DateTimeFormatter
 
 /**
  * HTTP client for Confluent Scaffolding API operations.
- * No authentication required for public endpoints.
- *
- * API Documentation: https://api.confluent.cloud/scaffold/v1
+ * No authentication required for public endpoints
  */
 class ScaffoldHttpClient(private val baseUrl: String = "https://api.confluent.cloud") {
 
