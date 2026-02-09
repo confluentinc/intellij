@@ -1,5 +1,6 @@
 package io.confluent.intellijplugin.scaffold.client
 
+import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.util.io.HttpRequests
 import com.squareup.moshi.FromJson
 import com.squareup.moshi.Moshi
@@ -53,7 +54,7 @@ class ScaffoldHttpClient(private val baseUrl: String = "https://api.confluent.cl
     suspend fun fetchTemplates(collectionName: String = "vscode"): Scaffoldv1TemplateList =
         withContext(Dispatchers.IO) {
             val url = "$baseUrl/scaffold/v1/template-collections/$collectionName/templates"
-            println("ScaffoldHttpClient: Fetching from URL: $url")
+            thisLogger().debug("Fetching from URL: $url")
 
             val responseBody = HttpRequests.request(url)
                 .connectTimeout(CONNECT_TIMEOUT_MS)
@@ -61,12 +62,12 @@ class ScaffoldHttpClient(private val baseUrl: String = "https://api.confluent.cl
                 .throwStatusCodeException(true)
                 .readString()
 
-            println("ScaffoldHttpClient: Received response (${responseBody.length} chars)")
+            thisLogger().debug("Received response (${responseBody.length} chars)")
 
             val adapter = moshi.adapter(Scaffoldv1TemplateList::class.java)
             val result = adapter.fromJson(responseBody) ?: throw IllegalStateException("Failed to parse template list response")
 
-            println("ScaffoldHttpClient: Parsed ${result.data.size} templates")
+            thisLogger().debug("Parsed ${result.data.size} templates")
             result
         }
 }
