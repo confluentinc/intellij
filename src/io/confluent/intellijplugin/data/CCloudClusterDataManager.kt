@@ -83,10 +83,8 @@ class CCloudClusterDataManager(
                         val updated = current.map { p ->
                             if (p.partitionId == enrichedPartition.partitionId) enrichedPartition else p
                         }
-                        withContext(Dispatchers.Default) {
-                            if (!Disposer.isDisposed(storage)) {
-                                storage.setData(updated)
-                            }
+                        invokeLater {
+                            storage.setData(updated)
                         }
                     }
             }

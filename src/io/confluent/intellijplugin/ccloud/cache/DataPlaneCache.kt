@@ -87,7 +87,7 @@ class DataPlaneCache(
         if (schemaRegistry == null) return emptyList()
 
         // TODO: Add progressive loading for schemas similar to enrichTopicsDataProgressively()
-        // Uses runBlocking since called from non-suspend RFS framework (doLoadChildren)
+        // runBlocking required: called from non-suspend doLoadChildren() but needs to call suspend functions
         val subjects = runBlocking { fetcher?.listSubjectsWithDetails() } ?: emptyList()
         cachedSubjects = subjects
         return subjects
