@@ -1,0 +1,12 @@
+{
+  "api_version": "scaffold/v1",
+  "kind": "TemplateList",
+  "metadata": {
+    "first": "string",
+    "last": "string",
+    "prev": "string",
+    "next": "string",
+    "total_size": 0
+  },
+  "data": []
+}

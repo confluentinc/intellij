@@ -2,14 +2,16 @@ package io.confluent.intellijplugin.scaffold.client
 
 import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.util.io.HttpRequests
-import com.squareup.moshi.FromJson
+import com.squareup.moshi.JsonAdapter
 import com.squareup.moshi.Moshi
+import com.squareup.moshi.Types
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import io.confluent.intellijplugin.scaffold.model.Scaffoldv1TemplateList
 import io.confluent.intellijplugin.scaffold.model.TypedTemplateListItem
 import io.confluent.intellijplugin.scaffold.model.toTyped
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.lang.reflect.Type
 import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
 
@@ -28,16 +30,46 @@ class ScaffoldHttpClient(
         const val READ_TIMEOUT_MS = 60_000 // 1 minute
 
         // Custom adapter for OffsetDateTime (RFC3339 format)
-        private class OffsetDateTimeAdapter {
-            @FromJson
-            fun fromJson(value: String?): OffsetDateTime? {
-                return value?.let { OffsetDateTime.parse(it, DateTimeFormatter.ISO_OFFSET_DATE_TIME) }
+        private object OffsetDateTimeAdapter : JsonAdapter<OffsetDateTime>() {
+            override fun fromJson(reader: com.squareup.moshi.JsonReader): OffsetDateTime? {
+                return if (reader.peek() == com.squareup.moshi.JsonReader.Token.NULL) {
+                    reader.nextNull()
+                } else {
+                    OffsetDateTime.parse(reader.nextString(), DateTimeFormatter.ISO_OFFSET_DATE_TIME)
+                }
+            }
+
+            override fun toJson(writer: com.squareup.moshi.JsonWriter, value: OffsetDateTime?) {
+                if (value == null) {
+                    writer.nullValue()
+                } else {
+                    writer.value(value.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME))
+                }
             }
         }
 
-        // Moshi JSON adapter - required because generated models use @Json annotations
-        private val moshi = Moshi.Builder()
-            .add(OffsetDateTimeAdapter())
+        // Custom factory to handle kotlin.Any fields (leaves them as raw types)
+        private object AnyAdapterFactory : JsonAdapter.Factory {
+            override fun create(type: Type, annotations: MutableSet<out Annotation>, moshi: Moshi): JsonAdapter<*>? {
+                if (Types.getRawType(type) == Any::class.java) {
+                    return object : JsonAdapter<Any>() {
+                        override fun fromJson(reader: com.squareup.moshi.JsonReader): Any? {
+                            return reader.readJsonValue()
+                        }
+                        override fun toJson(writer: com.squareup.moshi.JsonWriter, value: Any?) {
+                            writer.jsonValue(value)
+                        }
+                    }
+                }
+                return null
+            }
+        }
+
+        // Moshi JSON adapter for generated models
+        // AnyAdapterFactory must come before KotlinJsonAdapterFactory to handle kotlin.Any fields
+        val moshi = Moshi.Builder()
+            .add(OffsetDateTime::class.java, OffsetDateTimeAdapter)
+            .add(AnyAdapterFactory)
             .add(KotlinJsonAdapterFactory())
             .build()
     }

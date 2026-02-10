@@ -5,8 +5,7 @@ import com.github.tomakehurst.wiremock.client.WireMock
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig
 import com.intellij.testFramework.junit5.TestApplication
 import com.intellij.util.io.HttpRequests
-import com.squareup.moshi.JsonDataException
-import io.confluent.intellijplugin.scaffold.model.Scaffoldv1TemplateList
+import com.squareup.moshi.JsonEncodingException
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -15,6 +14,8 @@ import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Assertions.assertTrue
 import java.net.SocketTimeoutException
+import java.nio.file.Files
+import java.nio.file.Paths
 
 @TestApplication
 class ScaffoldHttpClientTest {
@@ -35,12 +36,10 @@ class ScaffoldHttpClientTest {
             wireMockServer.stop()
         }
 
-        // Helper to extract fields from spec Map (since spec is typed as kotlin.Any)
-        @Suppress("UNCHECKED_CAST")
-        private fun getSpecField(spec: Any?, fieldName: String): Any? {
-            if (spec == null) return null
-            if (spec !is Map<*, *>) return null
-            return (spec as? Map<String, Any?>)?.get(fieldName)
+        // Helper to load fixture files
+        private fun loadFixture(filename: String): String {
+            val path = Paths.get("test/resources/scaffold-mock-responses/$filename")
+            return Files.readString(path)
         }
     }
 
@@ -63,70 +62,26 @@ class ScaffoldHttpClientTest {
                         WireMock.aResponse()
                             .withStatus(200)
                             .withHeader("Content-Type", "application/json")
-                            .withBody("""
-                                {
-                                    "api_version": "scaffold/v1",
-                                    "kind": "TemplateList",
-                                    "metadata": {
-                                        "first": "string",
-                                        "last": "string",
-                                        "prev": "string",
-                                        "next": "string",
-                                        "total_size": 2
-                                    },
-                                    "data": [
-                                        {
-                                            "metadata": {
-                                                "self": "https://api.confluent.cloud/scaffold/v1/templates/template-1",
-                                                "resource_name": "crn://confluent.cloud/template=template-1"
-                                            },
-                                            "spec": {
-                                                "name": "template-1",
-                                                "display_name": "Template 1",
-                                                "description": "First template",
-                                                "version": "1.0.0",
-                                                "language": "Java",
-                                                "tags": ["kafka", "streams"]
-                                            }
-                                        },
-                                        {
-                                            "metadata": {
-                                                "self": "https://api.confluent.cloud/scaffold/v1/templates/template-2",
-                                                "resource_name": "crn://confluent.cloud/template=template-2"
-                                            },
-                                            "spec": {
-                                                "name": "template-2",
-                                                "display_name": "Template 2",
-                                                "description": "Second template",
-                                                "version": "2.0.0",
-                                                "language": "Python",
-                                                "tags": ["kafka", "producer"]
-                                            }
-                                        }
-                                    ]
-                                }
-                            """.trimIndent())
+                            .withBody(loadFixture("template-list-success.json"))
                     )
             )
 
             val client = ScaffoldHttpClient(baseUrl())
             val result = runBlocking {
-                client.fetchTemplates("vscode")
+                client.fetchTypedTemplates("vscode")
             }
 
-            assertEquals(Scaffoldv1TemplateList.ApiVersion.scaffoldSlashV1, result.apiVersion)
-            assertEquals(Scaffoldv1TemplateList.Kind.TemplateList, result.kind)
-            assertEquals(2, result.data.size)
+            assertEquals(2, result.size)
 
-            val template1 = result.data.firstOrNull { getSpecField(it.spec, "name") == "template-1" }
+            val template1 = result.firstOrNull { it.spec.name == "template-1" }
             assertNotNull(template1)
             assertNotNull(template1!!.spec)
-            assertEquals("template-1", getSpecField(template1.spec, "name"))
-            assertEquals("Template 1", getSpecField(template1.spec, "display_name"))
-            assertEquals("First template", getSpecField(template1.spec, "description"))
-            assertEquals("1.0.0", getSpecField(template1.spec, "version"))
-            assertEquals("Java", getSpecField(template1.spec, "language"))
-            assertEquals(listOf("kafka", "streams"), getSpecField(template1.spec, "tags"))
+            assertEquals("template-1", template1.spec.name)
+            assertEquals("Template 1", template1.spec.displayName)
+            assertEquals("First template", template1.spec.description)
+            assertEquals("1.0.0", template1.spec.version)
+            assertEquals("Java", template1.spec.language)
+            assertEquals(listOf("kafka", "streams"), template1.spec.tags)
         }
 
         @Test
@@ -143,7 +98,7 @@ class ScaffoldHttpClientTest {
             val client = ScaffoldHttpClient(baseUrl())
             val exception = assertThrows(HttpRequests.HttpStatusException::class.java) {
                 runBlocking {
-                    client.fetchTemplates("vscode")
+                    client.fetchTypedTemplates("vscode")
                 }
             }
 
@@ -168,7 +123,7 @@ class ScaffoldHttpClientTest {
             )
             assertThrows(SocketTimeoutException::class.java) {
                 runBlocking {
-                    client.fetchTemplates("vscode")
+                    client.fetchTypedTemplates("vscode")
                 }
             }
         }
@@ -186,9 +141,9 @@ class ScaffoldHttpClientTest {
             )
 
             val client = ScaffoldHttpClient(baseUrl())
-            assertThrows(JsonDataException::class.java) {
+            assertThrows(JsonEncodingException::class.java) {
                 runBlocking {
-                    client.fetchTemplates("vscode")
+                    client.fetchTypedTemplates("vscode")
                 }
             }
         }
@@ -207,7 +162,7 @@ class ScaffoldHttpClientTest {
             val client = ScaffoldHttpClient(baseUrl())
             val exception = assertThrows(HttpRequests.HttpStatusException::class.java) {
                 runBlocking {
-                    client.fetchTemplates("nonexistent")
+                    client.fetchTypedTemplates("nonexistent")
                 }
             }
 
@@ -222,31 +177,16 @@ class ScaffoldHttpClientTest {
                         WireMock.aResponse()
                             .withStatus(200)
                             .withHeader("Content-Type", "application/json")
-                            .withBody("""
-                                {
-                                    "api_version": "scaffold/v1",
-                                    "kind": "TemplateList",
-                                    "metadata": {
-                                        "first": "string",
-                                        "last": "string",
-                                        "prev": "string",
-                                        "next": "string",
-                                        "total_size": 0
-                                    },
-                                    "data": []
-                                }
-                            """.trimIndent())
+                            .withBody(loadFixture("template-list-empty.json"))
                     )
             )
 
             val client = ScaffoldHttpClient(baseUrl())
             val result = runBlocking {
-                client.fetchTemplates("vscode")
+                client.fetchTypedTemplates("vscode")
             }
 
-            assertEquals(Scaffoldv1TemplateList.ApiVersion.scaffoldSlashV1, result.apiVersion)
-            assertEquals(Scaffoldv1TemplateList.Kind.TemplateList, result.kind)
-            assertTrue(result.data.isEmpty())
+            assertTrue(result.isEmpty())
         }
 
         @Test
@@ -257,47 +197,24 @@ class ScaffoldHttpClientTest {
                         WireMock.aResponse()
                             .withStatus(200)
                             .withHeader("Content-Type", "application/json")
-                            .withBody("""
-                                {
-                                    "api_version": "scaffold/v1",
-                                    "kind": "TemplateList",
-                                    "metadata": {
-                                        "first": "string",
-                                        "last": "string",
-                                        "prev": "string",
-                                        "next": "string",
-                                        "total_size": 1
-                                    },
-                                    "data": [
-                                        {
-                                            "metadata": {
-                                                "self": "https://api.confluent.cloud/scaffold/v1/templates/minimal",
-                                                "resource_name": "crn://confluent.cloud/template=minimal"
-                                            },
-                                            "spec": {
-                                                "name": "minimal-template"
-                                            }
-                                        }
-                                    ]
-                                }
-                            """.trimIndent())
+                            .withBody(loadFixture("template-list-minimal.json"))
                     )
             )
 
             val client = ScaffoldHttpClient(baseUrl())
             val result = runBlocking {
-                client.fetchTemplates("vscode")
+                client.fetchTypedTemplates("vscode")
             }
 
-            assertEquals(1, result.data.size)
-            val firstTemplate = result.data.first()
+            assertEquals(1, result.size)
+            val firstTemplate = result.first()
             assertNotNull(firstTemplate.spec)
-            assertEquals("minimal-template", getSpecField(firstTemplate.spec, "name"))
-            assertNull(getSpecField(firstTemplate.spec, "display_name"))
-            assertNull(getSpecField(firstTemplate.spec, "description"))
-            assertNull(getSpecField(firstTemplate.spec, "version"))
-            assertNull(getSpecField(firstTemplate.spec, "language"))
-            assertNull(getSpecField(firstTemplate.spec, "tags"))
+            assertEquals("minimal-template", firstTemplate.spec.name)
+            assertNull(firstTemplate.spec.displayName)
+            assertNull(firstTemplate.spec.description)
+            assertNull(firstTemplate.spec.version)
+            assertNull(firstTemplate.spec.language)
+            assertNull(firstTemplate.spec.tags)
         }
     }
 }

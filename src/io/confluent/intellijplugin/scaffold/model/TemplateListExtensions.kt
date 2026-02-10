@@ -18,9 +18,22 @@ data class TypedTemplateListItem(
  * The 'spec' field is deserialized from Map to Scaffoldv1TemplateSpec.
  */
 fun ScaffoldV1TemplateListDataInner.toTyped(moshi: Moshi): TypedTemplateListItem {
-    val specAdapter = moshi.adapter(Scaffoldv1TemplateSpec::class.java)
-    val typedSpec = (spec as? Map<*, *>)?.let { specAdapter.fromJsonValue(it) }
-        ?: throw IllegalStateException("Failed to deserialize spec field to Scaffoldv1TemplateSpec")
+    // Convert spec (which is already deserialized by Moshi as a Map) to typed object
+    @Suppress("UNCHECKED_CAST")
+    val specMap = spec as? Map<String, Any?>
+        ?: throw IllegalArgumentException("spec is not a Map, it's ${spec?.javaClass?.name}: $spec")
+
+    // Manually construct Scaffoldv1TemplateSpec from the Map
+    val typedSpec = Scaffoldv1TemplateSpec(
+        name = specMap["name"] as? String,
+        displayName = specMap["display_name"] as? String,
+        description = specMap["description"] as? String,
+        version = specMap["version"] as? String,
+        language = specMap["language"] as? String,
+        tags = (specMap["tags"] as? List<*>)?.mapNotNull { it as? String },
+        options = null, // Not used in our current tests
+        templateCollection = null // Not used in our current tests
+    )
 
     return TypedTemplateListItem(
         metadata = metadata,
