@@ -25,8 +25,7 @@ interface DataPlaneFetcher {
     /** Produce a record to a topic. */
     suspend fun produceRecord(topicName: String, request: ProduceRequest): ProduceResponse
 
-    /** Consume records from a topic. */
-    suspend fun consumeRecords(topicName: String, request: ConsumeRequest): List<ConsumerRecord>
+    suspend fun consumeRecords(topicName: String, request: ConsumeRecordsRequest): ConsumeRecordsResponse
 
     /** List all consumer groups. */
     suspend fun listConsumerGroups(): List<ConsumerGroupData>
@@ -51,4 +50,10 @@ interface DataPlaneFetcher {
 
     /** Get total message count for a topic (across all partitions). */
     suspend fun getTopicMessageCount(topicName: String): Long
+
+    /** Get beginning offsets for all partitions of a topic. Returns partition ID to offset. */
+    suspend fun getTopicBeginningOffsets(topicName: String): Map<Int, Long>
+
+    /** Get end offsets for all partitions of a topic. Returns partition ID to offset. */
+    suspend fun getTopicEndOffsets(topicName: String): Map<Int, Long>
 }
