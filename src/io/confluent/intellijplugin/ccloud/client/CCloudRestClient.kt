@@ -7,6 +7,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.runInterruptible
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -234,7 +235,7 @@ class CCloudRestClient(
         headers: Map<String, String>,
         uri: String,
         parser: (String) -> T
-    ): T = withContext(Dispatchers.IO) {
+    ): T = runInterruptible(Dispatchers.IO) {
         val url = if (uri.startsWith("http")) uri else "$baseUrl$uri"
 
         try {
@@ -323,7 +324,7 @@ class CCloudRestClient(
         uri: String,
         method: String,
         body: String? = null
-    ): String = withContext(Dispatchers.IO) {
+    ): String = runInterruptible(Dispatchers.IO) {
         val url = if (uri.startsWith("http")) uri else "$baseUrl$uri"
 
         val (statusCode, responseBody) = try {

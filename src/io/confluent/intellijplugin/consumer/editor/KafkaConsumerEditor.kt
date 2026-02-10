@@ -7,18 +7,18 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.UserDataHolderBase
 import com.intellij.openapi.vfs.VirtualFile
 import io.confluent.intellijplugin.common.models.TopicInEditor
-import io.confluent.intellijplugin.data.KafkaDataManager
+import io.confluent.intellijplugin.data.BaseClusterDataManager
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
 import java.beans.PropertyChangeListener
 import javax.swing.JComponent
 
 class KafkaConsumerEditor(
     val project: Project,
-    private val kafkaManager: KafkaDataManager,
+    private val dataManager: BaseClusterDataManager,
     private val file: VirtualFile,
     topic: String?
 ) : FileEditor, UserDataHolderBase() {
-    internal val customizable = kafkaManager.consumerPanelStorage.getOrCreate(project, file)
+    internal val customizable = dataManager.consumerPanelStorage.getOrCreate(project, file)
     private val mainComponent = customizable.getComponent()
 
     init {
@@ -26,7 +26,7 @@ class KafkaConsumerEditor(
     }
 
     override fun dispose() {
-        kafkaManager.consumerPanelStorage.unsubscribe(file)
+        dataManager.consumerPanelStorage.unsubscribe(file)
     }
 
     override fun getName(): String = KafkaMessagesBundle.message("consume.from.topic")

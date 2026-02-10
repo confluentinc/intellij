@@ -7,9 +7,9 @@ import com.intellij.openapi.project.ProjectManager
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.util.Alarm
-import io.confluent.intellijplugin.data.KafkaDataManager
+import io.confluent.intellijplugin.data.BaseClusterDataManager
 
-class KafkaConsumerPanelStorage(private val dataManager: KafkaDataManager) : Disposable {
+class KafkaConsumerPanelStorage(private val dataManager: BaseClusterDataManager) : Disposable {
     private val alarm = Alarm(Alarm.ThreadToUse.SWING_THREAD, this)
     private val storage = mutableMapOf<VirtualFile, KafkaConsumerPanel>()
 
