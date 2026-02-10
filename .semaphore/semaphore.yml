@@ -43,6 +43,11 @@ blocks:
       # don't run the build or unit tests on non-functional changes...
       when: "change_in('/', {exclude: ['/.deployed-versions/', '.github/'], default_branch: 'main'})"
     task:
+      epilogue:
+        always:
+          commands:
+            - sem-version java 17
+            - emit-sonarqube-data --run_only_sonar_scan --enable_sonarqube_enterprise
       jobs:
         - name: "Build, Test, Release"
           commands:
