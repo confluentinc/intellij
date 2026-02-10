@@ -16,6 +16,7 @@ import io.confluent.intellijplugin.core.settings.actions.CreateConnectionPopup
 import io.confluent.intellijplugin.data.CCloudClusterDataManager
 import io.confluent.intellijplugin.data.CCloudOrgManager
 import io.confluent.intellijplugin.data.KafkaDataManager
+import io.confluent.intellijplugin.rfs.ConfluentDriver.Companion.isTopic
 import io.confluent.intellijplugin.rfs.KafkaDriver
 import io.confluent.intellijplugin.rfs.KafkaDriver.Companion.isTopicFolder
 import io.confluent.intellijplugin.toolwindow.controllers.KafkaFileType
@@ -45,7 +46,9 @@ class KafkaCreateConsumerAction : DumbAwareAction(), CustomComponentAction {
         // Check for CCloud data manager
         val ccloudDataManager = e.dataManager as? CCloudClusterDataManager
         if (ccloudDataManager != null) {
-            createConsumer(project, ccloudDataManager, null)
+            val rfsPath = e.rfsPath
+            val defaultTopic = if (rfsPath?.isTopic == true) rfsPath.name else null
+            createConsumer(project, ccloudDataManager, defaultTopic)
             return
         }
 
