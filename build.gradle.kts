@@ -14,6 +14,7 @@ plugins {
     id("org.jetbrains.intellij.platform") version "2.9.0"
     id("io.sentry.jvm.gradle") version "5.12.1"
     id("org.openapi.generator") version "7.19.0"
+    id("jacoco")
 }
 
 sentry {
@@ -196,6 +197,10 @@ kotlin {
     }
 }
 
+tasks.withType<Test> {
+    finalizedBy(tasks.jacocoTestReport, tasks.jacocoTestCoverageVerification)
+}
+
 tasks {
     wrapper {
         gradleVersion = ext("gradle.version")
@@ -228,6 +233,12 @@ tasks {
         // so the resulting plugin zip has the correct version number when installed
         if (!releaseName.isNullOrEmpty()) {
             version = releaseName.removePrefix("v")
+        }
+    }
+
+    jacocoTestReport {
+        reports {
+            xml.required = true
         }
     }
 
