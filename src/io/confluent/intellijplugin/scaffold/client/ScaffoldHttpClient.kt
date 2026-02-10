@@ -138,6 +138,6 @@ class ScaffoldHttpClient(
      */
     suspend fun fetchTypedTemplates(collectionName: String = "vscode"): List<TypedTemplateListItem> {
         val templateList = fetchTemplates(collectionName)
-        return templateList.toTyped(moshi)
+        return templateList.toTyped()
     }
 }

@@ -1,7 +1,5 @@
 package io.confluent.intellijplugin.scaffold.model
 
-import com.squareup.moshi.Moshi
-
 /**
  * Wrapper for ScaffoldV1TemplateListDataInner with properly typed spec field.
  * The auto-generated model types 'spec' as kotlin.Any, but we know it's Scaffoldv1TemplateSpec.
@@ -17,7 +15,7 @@ data class TypedTemplateListItem(
  * Converts the auto-generated ScaffoldV1TemplateListDataInner to a typed wrapper.
  * The 'spec' field is deserialized from Map to Scaffoldv1TemplateSpec.
  */
-fun ScaffoldV1TemplateListDataInner.toTyped(moshi: Moshi): TypedTemplateListItem {
+fun ScaffoldV1TemplateListDataInner.toTyped(): TypedTemplateListItem {
     // Convert spec (which is already deserialized by Moshi as a Map) to typed object
     @Suppress("UNCHECKED_CAST")
     val specMap = spec as? Map<String, Any?>
@@ -46,6 +44,6 @@ fun ScaffoldV1TemplateListDataInner.toTyped(moshi: Moshi): TypedTemplateListItem
 /**
  * Converts all items in a template list to typed wrappers.
  */
-fun Scaffoldv1TemplateList.toTyped(moshi: Moshi): List<TypedTemplateListItem> {
-    return data.map { it.toTyped(moshi) }
+fun Scaffoldv1TemplateList.toTyped(): List<TypedTemplateListItem> {
+    return data.map { it.toTyped() }
 }
