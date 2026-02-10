@@ -229,7 +229,7 @@ class CCloudConsumerClient(
     }
 
     private fun isRetryableStatus(statusCode: Int): Boolean =
-        statusCode == 401 || statusCode == 429 || statusCode == 503
+        statusCode == 401 || statusCode == 429 || statusCode in 500..599
 
     /**
      * Calculate the approximate size of a record in bytes.
