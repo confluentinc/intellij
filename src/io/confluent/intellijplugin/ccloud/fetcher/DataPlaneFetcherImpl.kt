@@ -171,20 +171,23 @@ class DataPlaneFetcherImpl(
         }
     }
 
-    override suspend fun getTopicPartitionOffsets(topicName: String): Map<Int, PartitionOffsetInfo> {
-        val partitions = describeTopicPartitions(topicName)
+    override suspend fun getTopicBeginningOffsets(topicName: String): Map<Int, Long> =
+        fetchOffsetsForAllPartitions(topicName, fromBeginning = true)
 
-        // Fetch beginning and end offsets for each partition in parallel
+    override suspend fun getTopicEndOffsets(topicName: String): Map<Int, Long> =
+        fetchOffsetsForAllPartitions(topicName, fromBeginning = false)
+
+    private suspend fun fetchOffsetsForAllPartitions(
+        topicName: String,
+        fromBeginning: Boolean
+    ): Map<Int, Long> {
+        val partitions = describeTopicPartitions(topicName)
         return coroutineScope {
             partitions.map { partition ->
                 async {
-                    val beginningOffset = getPartitionOffsets(topicName, partition.partitionId, fromBeginning = true).nextOffset
-                    val endOffset = getPartitionOffsets(topicName, partition.partitionId, fromBeginning = false).nextOffset
-                    partition.partitionId to PartitionOffsetInfo(
-                        partitionId = partition.partitionId,
-                        beginningOffset = beginningOffset,
-                        endOffset = endOffset
-                    )
+                    partition.partitionId to getPartitionOffsets(
+                        topicName, partition.partitionId, fromBeginning
+                    ).nextOffset
                 }
             }.awaitAll().toMap()
         }

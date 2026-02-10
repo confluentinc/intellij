@@ -47,8 +47,6 @@ class KafkaEditorProvider : WeighedFileEditorProvider(), DumbAware {
         val KAFKA_MANAGER_KEY = Key<KafkaDataManager>("KAFKA_MANAGER")
         val KAFKA_EDITOR_TYPE = Key<KafkaEditorType>("KAFKA_EDITOR_TYPE")
         val KAFKA_DEFAULT_TOPIC = Key<String>("KAFKA_DEFAULT_TOPIC")
-
-        /** Key for CCloud data manager */
         val CCLOUD_MANAGER_KEY = Key<CCloudClusterDataManager>("CCLOUD_MANAGER")
     }
 }

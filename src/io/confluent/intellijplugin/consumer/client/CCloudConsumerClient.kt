@@ -1,5 +1,6 @@
 package io.confluent.intellijplugin.consumer.client
 
+import io.confluent.intellijplugin.ccloud.client.CCloudApiException
 import io.confluent.intellijplugin.ccloud.fetcher.DataPlaneFetcher
 import io.confluent.intellijplugin.ccloud.model.response.ConsumeRecordsRequest
 import io.confluent.intellijplugin.ccloud.model.response.ConsumeRecordsResponse
@@ -20,8 +21,6 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
@@ -205,28 +204,32 @@ class CCloudConsumerClient(
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
+                consumeError(e, null, null)
+
+                val statusCode = (e as? CCloudApiException)?.statusCode
+                if (statusCode != null && !isRetryableStatus(statusCode)) {
+                    break
+                }
+
                 consecutiveErrors++
 
-                // Check for 401 Unauthorized (token expiration)
-                val is401 = e.message?.contains("401") == true ||
-                    e.cause?.message?.contains("401") == true
-
-                if (is401) {
+                if (statusCode == 401) {
                     // Token may have expired - wait for token refresh service
-                    consumeError(e, null, null)
                     delay(TOKEN_REFRESH_DELAY_MS)
                 } else {
-                    // Apply exponential backoff for other errors
+                    // Apply exponential backoff for retryable errors
                     val backoffMs = min(
                         BASE_BACKOFF_MS * (1L shl min(consecutiveErrors, 5)),
                         MAX_BACKOFF_MS
                     )
-                    consumeError(e, null, null)
                     delay(backoffMs)
                 }
             }
         }
     }
+
+    private fun isRetryableStatus(statusCode: Int): Boolean =
+        statusCode == 401 || statusCode == 429 || statusCode == 503
 
     /**
      * Calculate the approximate size of a record in bytes.
@@ -262,23 +265,23 @@ class CCloudConsumerClient(
         return when (startsWith.type) {
             ConsumerStartType.THE_BEGINNING -> ConsumeRecordsRequest(
                 fromBeginning = true,
-                maxPollRecords = 100
+                maxPollRecords = DEFAULT_MAX_POLL_RECORDS
             )
 
             ConsumerStartType.NOW -> ConsumeRecordsRequest(
                 fromBeginning = false,
-                maxPollRecords = 100
+                maxPollRecords = DEFAULT_MAX_POLL_RECORDS
             )
 
             ConsumerStartType.OFFSET -> {
                 // Offset is relative to beginning offset (user enters 10 → start from beginningOffset + 10)
                 val offset = startsWith.offset ?: 0L
-                val offsetInfo = fetcher.getTopicPartitionOffsets(topicName)
+                val beginningOffsets = fetcher.getTopicBeginningOffsets(topicName)
                 ConsumeRecordsRequest(
-                    offsets = offsetInfo.map { (partitionId, info) ->
-                        PartitionOffset(partitionId, info.beginningOffset + offset)
+                    offsets = beginningOffsets.map { (partitionId, beginningOffset) ->
+                        PartitionOffset(partitionId, beginningOffset + offset)
                     },
-                    maxPollRecords = 100
+                    maxPollRecords = DEFAULT_MAX_POLL_RECORDS
                 )
             }
 
@@ -286,12 +289,12 @@ class CCloudConsumerClient(
                 // Offset is already negative from ConsumerEditorUtils (user enters 10 → offset = -10)
                 // So endOffset + offset = endOffset + (-10) = endOffset - 10
                 val offset = startsWith.offset ?: 0L
-                val offsetInfo = fetcher.getTopicPartitionOffsets(topicName)
+                val endOffsets = fetcher.getTopicEndOffsets(topicName)
                 ConsumeRecordsRequest(
-                    offsets = offsetInfo.map { (partitionId, info) ->
-                        PartitionOffset(partitionId, max(0, info.endOffset + offset))
+                    offsets = endOffsets.map { (partitionId, endOffset) ->
+                        PartitionOffset(partitionId, max(0, endOffset + offset))
                     },
-                    maxPollRecords = 100
+                    maxPollRecords = DEFAULT_MAX_POLL_RECORDS
                 )
             }
 
@@ -304,7 +307,7 @@ class CCloudConsumerClient(
                 val timestamp = KafkaOffsetUtils.calculateStartTime(startsWith)
                 ConsumeRecordsRequest(
                     timestamp = timestamp,
-                    maxPollRecords = 100
+                    maxPollRecords = DEFAULT_MAX_POLL_RECORDS
                 )
             }
 
@@ -312,7 +315,7 @@ class CCloudConsumerClient(
                 // Consumer groups not supported by CCloud REST API - fall back to NOW
                 ConsumeRecordsRequest(
                     fromBeginning = false,
-                    maxPollRecords = 100
+                    maxPollRecords = DEFAULT_MAX_POLL_RECORDS
                 )
             }
         }
@@ -327,13 +330,13 @@ class CCloudConsumerClient(
                 offsets = nextOffsets.map { (partitionId, offset) ->
                     PartitionOffset(partitionId = partitionId, offset = offset)
                 },
-                maxPollRecords = 100
+                maxPollRecords = DEFAULT_MAX_POLL_RECORDS
             )
         } else {
             // No offsets tracked yet, fetch from end
             ConsumeRecordsRequest(
                 fromBeginning = false,
-                maxPollRecords = 100
+                maxPollRecords = DEFAULT_MAX_POLL_RECORDS
             )
         }
     }
@@ -469,20 +472,11 @@ class CCloudConsumerClient(
 
     override fun stop() {
         running.set(false)
-        pollingJob?.let { job ->
-            job.cancel()
-            // Wait for graceful shutdown with timeout
-            runBlocking {
-                withTimeoutOrNull(SHUTDOWN_TIMEOUT_MS) {
-                    job.join()
-                }
-            }
-        }
-        // Cancel the consumer scope to clean up resources
+        // Cancel the job and scope; the finally block in pollLoop handles onStop()
+        pollingJob?.cancel()
         consumerScope?.cancel()
         consumerScope = null
         pollingJob = null
-        onStop()
     }
 
     override fun isRunning(): Boolean = running.get()
@@ -505,7 +499,7 @@ class CCloudConsumerClient(
         /** Delay when waiting for token refresh after 401. */
         private const val TOKEN_REFRESH_DELAY_MS = 5_000L
 
-        /** Timeout for graceful shutdown. */
-        private const val SHUTDOWN_TIMEOUT_MS = 5_000L
+        /** Default maximum number of records per consume request. */
+        private const val DEFAULT_MAX_POLL_RECORDS = 100
     }
 }

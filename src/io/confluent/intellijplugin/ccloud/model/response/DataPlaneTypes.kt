@@ -51,16 +51,6 @@ data class PartitionOffsets(
     @SerialName("next_offset") val nextOffset: Long
 )
 
-/**
- * Offset information for a partition, including both beginning and end offsets.
- * Used for calculating start positions like LATEST_OFFSET_MINUS_X.
- */
-data class PartitionOffsetInfo(
-    val partitionId: Int,
-    val beginningOffset: Long,
-    val endOffset: Long
-)
-
 // Config data
 @Serializable
 data class ListConfigsResponse(
