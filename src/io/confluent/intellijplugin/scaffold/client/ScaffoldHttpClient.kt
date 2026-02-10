@@ -4,7 +4,6 @@ import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.util.io.HttpRequests
 import com.squareup.moshi.FromJson
 import com.squareup.moshi.Moshi
-import com.squareup.moshi.ToJson
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import io.confluent.intellijplugin.scaffold.model.Scaffoldv1TemplateList
 import io.confluent.intellijplugin.scaffold.model.TypedTemplateListItem
@@ -18,22 +17,21 @@ import java.time.format.DateTimeFormatter
  * HTTP client for Confluent Scaffolding API operations.
  * No authentication required for public endpoints
  */
-class ScaffoldHttpClient(private val baseUrl: String = "https://api.confluent.cloud") {
+class ScaffoldHttpClient(
+    private val baseUrl: String = "https://api.confluent.cloud",
+    private val connectTimeoutMs: Int = CONNECT_TIMEOUT_MS,
+    private val readTimeoutMs: Int = READ_TIMEOUT_MS
+) {
 
     companion object {
-        private const val CONNECT_TIMEOUT_MS = 10_000 // 10 seconds
-        private const val READ_TIMEOUT_MS = 60_000 // 1 minute
+        const val CONNECT_TIMEOUT_MS = 10_000 // 10 seconds
+        const val READ_TIMEOUT_MS = 60_000 // 1 minute
 
         // Custom adapter for OffsetDateTime (RFC3339 format)
         private class OffsetDateTimeAdapter {
             @FromJson
             fun fromJson(value: String?): OffsetDateTime? {
                 return value?.let { OffsetDateTime.parse(it, DateTimeFormatter.ISO_OFFSET_DATE_TIME) }
-            }
-
-            @ToJson
-            fun toJson(value: OffsetDateTime?): String? {
-                return value?.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)
             }
         }
 
@@ -57,10 +55,12 @@ class ScaffoldHttpClient(private val baseUrl: String = "https://api.confluent.cl
             thisLogger().debug("Fetching from URL: $url")
 
             val responseBody = HttpRequests.request(url)
-                .connectTimeout(CONNECT_TIMEOUT_MS)
-                .readTimeout(READ_TIMEOUT_MS)
-                .throwStatusCodeException(true)
-                .readString()
+                .connectTimeout(connectTimeoutMs)
+                .readTimeout(readTimeoutMs)
+                .throwStatusCodeException(false)
+                .connect { request ->
+                    readResponseBody(request)
+                }
 
             thisLogger().debug("Received response (${responseBody.length} chars)")
 
@@ -70,6 +70,29 @@ class ScaffoldHttpClient(private val baseUrl: String = "https://api.confluent.cl
             thisLogger().debug("Parsed ${result.data.size} templates")
             result
         }
+
+    /**
+     * Read response body from the appropriate stream based on status code.
+     * @param request The request to read the response body from
+     * @return The response body as a string
+     */
+    private fun readResponseBody(request: HttpRequests.Request): String {
+        val conn = request.connection as java.net.HttpURLConnection
+        val statusCode = conn.responseCode
+
+        if (statusCode >= 500) {
+            val errorBody = conn.errorStream?.reader()?.readText()
+            val message = if (errorBody.isNullOrBlank()) "Server error" else "Server error: $errorBody"
+            throw HttpRequests.HttpStatusException(message, statusCode, conn.url.toString())
+        }
+
+        if (statusCode >= 400) {
+            val errorBody = conn.errorStream?.reader()?.readText() ?: ""
+            throw HttpRequests.HttpStatusException(errorBody, statusCode, conn.url.toString())
+        }
+
+        return request.inputStream.reader().readText()
+    }
 
     /**
      * Fetches templates from a specific template collection with properly typed spec fields.

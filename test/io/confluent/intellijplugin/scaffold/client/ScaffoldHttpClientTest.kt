@@ -5,6 +5,7 @@ import com.github.tomakehurst.wiremock.client.WireMock
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig
 import com.intellij.testFramework.junit5.TestApplication
 import com.intellij.util.io.HttpRequests
+import com.squareup.moshi.JsonDataException
 import io.confluent.intellijplugin.scaffold.model.Scaffoldv1TemplateList
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.*
@@ -117,14 +118,15 @@ class ScaffoldHttpClientTest {
             assertEquals(Scaffoldv1TemplateList.Kind.TemplateList, result.kind)
             assertEquals(2, result.data.size)
 
-            val firstTemplate = result.data.first()
-            assertNotNull(firstTemplate.spec)
-            assertEquals("template-1", getSpecField(firstTemplate.spec, "name"))
-            assertEquals("Template 1", getSpecField(firstTemplate.spec, "display_name"))
-            assertEquals("First template", getSpecField(firstTemplate.spec, "description"))
-            assertEquals("1.0.0", getSpecField(firstTemplate.spec, "version"))
-            assertEquals("Java", getSpecField(firstTemplate.spec, "language"))
-            assertEquals(listOf("kafka", "streams"), getSpecField(firstTemplate.spec, "tags"))
+            val template1 = result.data.firstOrNull { getSpecField(it.spec, "name") == "template-1" }
+            assertNotNull(template1)
+            assertNotNull(template1!!.spec)
+            assertEquals("template-1", getSpecField(template1.spec, "name"))
+            assertEquals("Template 1", getSpecField(template1.spec, "display_name"))
+            assertEquals("First template", getSpecField(template1.spec, "description"))
+            assertEquals("1.0.0", getSpecField(template1.spec, "version"))
+            assertEquals("Java", getSpecField(template1.spec, "language"))
+            assertEquals(listOf("kafka", "streams"), getSpecField(template1.spec, "tags"))
         }
 
         @Test
@@ -154,12 +156,16 @@ class ScaffoldHttpClientTest {
                 WireMock.get("/scaffold/v1/template-collections/vscode/templates")
                     .willReturn(
                         WireMock.aResponse()
-                            .withFixedDelay(65000) // Exceeds 60s read timeout
+                            .withFixedDelay(500) // Exceeds test read timeout
                             .withStatus(200)
                     )
             )
 
-            val client = ScaffoldHttpClient(baseUrl())
+            val client = ScaffoldHttpClient(
+                baseUrl = baseUrl(),
+                connectTimeoutMs = 100,
+                readTimeoutMs = 200
+            )
             assertThrows(SocketTimeoutException::class.java) {
                 runBlocking {
                     client.fetchTemplates("vscode")
@@ -180,7 +186,7 @@ class ScaffoldHttpClientTest {
             )
 
             val client = ScaffoldHttpClient(baseUrl())
-            assertThrows(Exception::class.java) {
+            assertThrows(JsonDataException::class.java) {
                 runBlocking {
                     client.fetchTemplates("vscode")
                 }
