@@ -11,7 +11,9 @@ import com.intellij.openapi.util.Disposer
 import com.intellij.ui.JBColor
 import com.intellij.ui.PopupHandler
 import com.intellij.ui.ScrollPaneFactory
+import com.intellij.ui.jcef.JBCefApp
 import io.confluent.intellijplugin.common.editor.ListTableModel
+import io.confluent.intellijplugin.core.util.BdIdeRegistryUtil
 import io.confluent.intellijplugin.core.table.MaterialTable
 import io.confluent.intellijplugin.core.table.MaterialTableUtils
 import io.confluent.intellijplugin.core.table.extension.TableCellPreview
@@ -36,6 +38,10 @@ import javax.swing.JTable
 import kotlin.math.max
 
 class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Disposable {
+    private val useJcefTable: Boolean = BdIdeRegistryUtil.JCEF_CONSUMER_TABLE_ENABLED
+        && JBCefApp.isSupported()
+
+    private var jcefTable: JcefRecordsTable? = null
     private var tableLoadingDecorator: TableLoadingDecorator? = null
 
     internal val outputModel = ListTableModel(
@@ -107,8 +113,22 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
 
     private val outputTablePanelDelegate = lazy {
         JPanel(BorderLayout()).apply {
-            add(ScrollPaneFactory.createScrollPane(outputTable, true), BorderLayout.CENTER)
-            statisticPanel.toolbar.targetComponent = outputTable
+            if (useJcefTable) {
+                val columnNames = listOf(TOPIC_FIELD, TIMESTAMP_FIELD, KEY_COLUMN, VALUE_COLUMN, PARTITION_COLUMN) +
+                    if (isProducer) listOf(DURATION_COLUMN) else listOf(OFFSET_COLUMN)
+                val table = JcefRecordsTable(columnNames, isProducer, this@KafkaRecordsOutput)
+                jcefTable = table
+                add(table.component, BorderLayout.CENTER)
+                table.onRowSelected = { index ->
+                    logUsage(MessageViewerEvent.Preview(source = if (isProducer) MessageViewerEvent.Source.PRODUCER else MessageViewerEvent.Source.CONSUMER))
+                    if (detailsDelegate.isInitialized()) {
+                        details.update(outputModel.getValueAt(index))
+                    }
+                }
+            } else {
+                add(ScrollPaneFactory.createScrollPane(outputTable, true), BorderLayout.CENTER)
+                statisticPanel.toolbar.targetComponent = outputTable
+            }
             setSouthComponent(statisticPanel.toolbar.component)
         }
     }
@@ -129,7 +149,8 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
         val clearButton =
             DumbAwareAction.create(KafkaMessagesBundle.message("action.clear.output"), AllIcons.Actions.GC) {
                 outputModel.clear()
-                if (outputTableDelegate.isInitialized()) {
+                jcefTable?.clear()
+                if (!useJcefTable && outputTableDelegate.isInitialized()) {
                     TableFirstRowAdded(outputTable) {
                         MaterialTableUtils.fitColumnsWidth(outputTable)
                         TableResizeController.getFor(outputTable)?.componentResized()
@@ -155,12 +176,14 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
             }
         }
 
-        outputTable.selectionModel.addListSelectionListener { event ->
-            if (!event.valueIsAdjusting) {
-                if (outputTable.selectedRow != -1) {
-                    logUsage(MessageViewerEvent.Preview(source = if (isProducer) MessageViewerEvent.Source.PRODUCER else MessageViewerEvent.Source.CONSUMER))
+        if (!useJcefTable) {
+            outputTable.selectionModel.addListSelectionListener { event ->
+                if (!event.valueIsAdjusting) {
+                    if (outputTable.selectedRow != -1) {
+                        logUsage(MessageViewerEvent.Preview(source = if (isProducer) MessageViewerEvent.Source.PRODUCER else MessageViewerEvent.Source.CONSUMER))
+                    }
+                    updateDetails()
                 }
-                updateDetails()
             }
         }
     }
@@ -172,14 +195,21 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
         output.forEach {
             outputModel.addElement(it)
         }
+        jcefTable?.replaceAllRows(output)
     }
 
     fun stop() {
-        tableLoadingDecorator?.let { Disposer.dispose(it) }
+        if (useJcefTable) {
+            jcefTable?.hideLoading()
+        } else {
+            tableLoadingDecorator?.let { Disposer.dispose(it) }
+        }
     }
 
     fun start() {
-        if (outputTableDelegate.isInitialized()) {
+        if (useJcefTable) {
+            jcefTable?.showLoading(KafkaMessagesBundle.message("consumer.table.awaiting"))
+        } else if (outputTableDelegate.isInitialized()) {
             tableLoadingDecorator?.let { Disposer.dispose(it) }
             tableLoadingDecorator = TableLoadingDecorator.installOn(
                 outputTable,
@@ -196,14 +226,36 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
     }
 
     fun addBatchRows(pollTime: Long, elements: List<KafkaRecord>) {
+        val sizeBefore = outputModel.elements().size
         elements.forEach {
             outputModel.addElement(it)
         }
         statisticPanel.addRecordsBatch(pollTime, elements)
+
+        if (jcefTable != null) {
+            val sizeAfter = outputModel.elements().size
+            val expectedSize = sizeBefore + elements.size
+            if (sizeAfter < expectedSize) {
+                // Eviction occurred — do a full refresh
+                jcefTable?.replaceAllRows(outputModel.elements())
+            } else {
+                jcefTable?.addRows(elements)
+            }
+        }
     }
 
     fun addError(element: KafkaRecord) {
+        val sizeBefore = outputModel.elements().size
         outputModel.addElement(element)
+
+        if (jcefTable != null) {
+            val sizeAfter = outputModel.elements().size
+            if (sizeAfter < sizeBefore + 1) {
+                jcefTable?.replaceAllRows(outputModel.elements())
+            } else {
+                jcefTable?.addRows(listOf(element))
+            }
+        }
     }
 
     fun getElapsedTimeMs(): Long = statisticPanel.getElapsedTimeMs()
@@ -238,7 +290,7 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
     }
 
     private fun updateDetails() {
-        if (detailsDelegate.isInitialized()) {
+        if (!useJcefTable && detailsDelegate.isInitialized()) {
             val row = if (outputTable.selectedRow == -1)
                 null
             else
