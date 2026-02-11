@@ -83,12 +83,12 @@ class CCloudClusterDataManager(
             driver.coroutineScope.launch(Dispatchers.IO) {
                 dataPlaneCache.enrichPartitionsProgressively(topicName, quickPartitions)
                     .collect { enrichedPartition ->
-                        val storage = topicPartitionsModels[topicName] ?: return@collect
-                        val current = storage.data ?: return@collect
-                        val updated = current.map { p ->
-                            if (p.partitionId == enrichedPartition.partitionId) enrichedPartition else p
-                        }
                         invokeLater {
+                            val storage = topicPartitionsModels[topicName]
+                            val current = storage.data ?: return@invokeLater
+                            val updated = current.map { p ->
+                                if (p.partitionId == enrichedPartition.partitionId) enrichedPartition else p
+                            }
                             storage.setData(updated)
                         }
                     }
