@@ -24,11 +24,13 @@ import io.confluent.intellijplugin.registry.common.KafkaSchemaInfo
 import io.confluent.intellijplugin.rfs.ConfluentConnectionData
 import io.confluent.intellijplugin.toolwindow.config.KafkaToolWindowSettings
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.TopicPartition
+import java.util.concurrent.ConcurrentHashMap
 
 /**
  * Cluster-level data manager for Confluent Cloud using the CCloud REST API.
@@ -51,6 +53,7 @@ class CCloudClusterDataManager(
 ) {
 
     private val dataPlaneCache: DataPlaneCache = orgManager.getDataPlaneCache(cluster)
+    private val partitionEnrichmentJobs = ConcurrentHashMap<String, Job>()
 
     override val connectionId: String = cluster.id
 
@@ -67,6 +70,17 @@ class CCloudClusterDataManager(
         RootDataModelStorage(updater, listOf(topicModel)).also { Disposer.register(this, it) }
     }
 
+    /**
+     * Executes the given action on the EDT, but only if this data manager is not disposed.
+     * This prevents queued EDT callbacks from running after disposal during shutdown.
+     */
+    private fun invokeLaterIfNotDisposed(action: () -> Unit) {
+        invokeLater {
+            if (Disposer.isDisposed(this@CCloudClusterDataManager)) return@invokeLater
+            action()
+        }
+    }
+
     override fun createTopicPartitionsStorage() = ObjectDataModelStorage<String, BdtTopicPartition>(
         updater,
         BdtTopicPartition::partitionId
@@ -79,20 +93,29 @@ class CCloudClusterDataManager(
 
             if (quickPartitions.isEmpty()) return@ObjectDataModelStorage quickPartitions
 
+            // Cancel any existing enrichment job for this topic to avoid duplicate work
+            partitionEnrichmentJobs[topicName]?.cancel()
+
             // Enrich with offsets progressively in background and unblock UI with loading state
-            driver.coroutineScope.launch(Dispatchers.IO) {
-                dataPlaneCache.enrichPartitionsProgressively(topicName, quickPartitions)
-                    .collect { enrichedPartition ->
-                        invokeLater {
-                            val storage = topicPartitionsModels[topicName]
-                            val current = storage.data ?: return@invokeLater
-                            val updated = current.map { p ->
-                                if (p.partitionId == enrichedPartition.partitionId) enrichedPartition else p
+            val job = driver.coroutineScope.launch(Dispatchers.IO) {
+                try {
+                    dataPlaneCache.enrichPartitionsProgressively(topicName, quickPartitions)
+                        .collect { enrichedPartition ->
+                            invokeLaterIfNotDisposed {
+                                val storage = topicPartitionsModels[topicName]
+                                val current = storage.data ?: return@invokeLaterIfNotDisposed
+                                val updated = current.map { p ->
+                                    if (p.partitionId == enrichedPartition.partitionId) enrichedPartition else p
+                                }
+                                storage.setData(updated)
                             }
-                            storage.setData(updated)
                         }
-                    }
+                } finally {
+                    partitionEnrichmentJobs.remove(topicName)
+                }
             }
+
+            partitionEnrichmentJobs[topicName] = job
 
             quickPartitions
         } catch (e: Exception) {
@@ -261,13 +284,17 @@ class CCloudClusterDataManager(
                 }
             } else {
                 thisLogger().warn("Created topic '$name' not found in cache, triggering full refresh")
-                invokeLater { updater.invokeRefreshModel(topicModel) }
+                invokeLaterIfNotDisposed {
+                    updater.invokeRefreshModel(topicModel)
+                }
             }
 
             Result.success(Unit)
         } catch (e: Exception) {
             thisLogger().warn("Failed to create topic '$name'", e)
-            invokeLater { updater.invokeRefreshModel(topicModel) }
+            invokeLaterIfNotDisposed {
+                updater.invokeRefreshModel(topicModel)
+            }
             Result.failure(e)
         }
     }
@@ -291,7 +318,9 @@ class CCloudClusterDataManager(
             Result.success(Unit)
         } catch (e: Exception) {
             thisLogger().warn("Failed to delete topics: $topicNames", e)
-            invokeLater { updater.invokeRefreshModel(topicModel) }
+            invokeLaterIfNotDisposed {
+                updater.invokeRefreshModel(topicModel)
+            }
             Result.failure(e)
         }
     }
@@ -314,5 +343,8 @@ class CCloudClusterDataManager(
     override fun supportsDetailsPanel(): Boolean = false
     fun getDataPlaneCache(): DataPlaneCache = dataPlaneCache
 
-    override fun dispose() {}
+    override fun dispose() {
+        partitionEnrichmentJobs.values.forEach { it.cancel() }
+        partitionEnrichmentJobs.clear()
+    }
 }
