@@ -77,8 +77,6 @@ abstract class BaseClusterDataManager(
         topics: List<TopicPresentable>
     ): Pair<List<TopicPresentable>, Throwable?>
 
-    protected abstract suspend fun fetchTopicPartitions(topicName: String): List<BdtTopicPartition>
-
     protected abstract suspend fun getTopicConfig(topicName: String, showFullConfig: Boolean): List<TopicConfig>
 
     protected abstract suspend fun loadConsumerGroups(): List<ConsumerGroupPresentable>
@@ -183,9 +181,21 @@ abstract class BaseClusterDataManager(
         } else {
             config.topicsPined -= topicName
         }
-        // Refresh model in background to avoid EDT blocking
-        driver.coroutineScope.launch {
-            updater.invokeRefreshModel(topicModel)
+
+        driver.coroutineScope.launch(Dispatchers.Default) {
+            val currentTopics = topicModel.data ?: emptyList()
+            val updatedTopics = currentTopics.map { topic ->
+                if (topic.name == topicName) {
+                    topic.copy(isFavorite = isForAdding)
+                } else {
+                    topic
+                }
+            }.sortedWith(
+                compareByDescending<TopicPresentable> { it.isFavorite }
+                    .thenBy { it.name.lowercase() }
+            )
+
+            topicModel.setData(updatedTopics)
         }
     }
 
@@ -201,9 +211,21 @@ abstract class BaseClusterDataManager(
         } else {
             config.consumerGroupPined -= consumerGroup
         }
-        // Refresh model in background to avoid EDT blocking
-        driver.coroutineScope.launch {
-            updater.invokeRefreshModel(consumerGroupsModel)
+
+        driver.coroutineScope.launch(Dispatchers.Default) {
+            val currentGroups = consumerGroupsModel.data ?: emptyList()
+            val updatedGroups = currentGroups.map { group ->
+                if (group.consumerGroup == consumerGroup) {
+                    group.copy(isFavorite = isForAdding)
+                } else {
+                    group
+                }
+            }.sortedWith(
+                compareByDescending<ConsumerGroupPresentable> { it.isFavorite }
+                    .thenBy { it.consumerGroup.lowercase() }
+            )
+
+            consumerGroupsModel.setData(updatedGroups)
         }
     }
 
@@ -235,9 +257,23 @@ abstract class BaseClusterDataManager(
         } else {
             config.schemasPined -= schemaName
         }
-        // Refresh model in background to avoid EDT blocking
-        driver.coroutineScope.launch {
-            schemaRegistryModel?.let { updater.invokeRefreshModel(it) }
+
+        driver.coroutineScope.launch(Dispatchers.Default) {
+            schemaRegistryModel?.let { model ->
+                val currentSchemas = model.data ?: emptyList()
+                val updatedSchemas = currentSchemas.map { schema ->
+                    if (schema.name == schemaName) {
+                        schema.copy(isFavorite = isForAdding)
+                    } else {
+                        schema
+                    }
+                }.sortedWith(
+                    compareByDescending<KafkaSchemaInfo> { it.isFavorite }
+                        .thenBy { it.name.lowercase() }
+                )
+
+                model.setData(updatedSchemas)
+            }
         }
     }
 

@@ -11,6 +11,7 @@ import kotlinx.coroutines.runInterruptible
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import org.json.JSONObject
 import java.net.HttpURLConnection
 
 /**
@@ -304,7 +305,8 @@ class CCloudRestClient(
             }
 
             if (statusCode !in 200..299) {
-                throw CCloudApiException("HTTP $statusCode: ${body.ifEmpty { "Unknown error" }}", statusCode)
+                val errorMessage = extractErrorMessage(body, statusCode)
+                throw CCloudApiException(errorMessage, statusCode)
             }
 
             val (items, nextPageUrl) = parser(body)
@@ -331,6 +333,7 @@ class CCloudRestClient(
             HttpRequests.request(url)
                 .connectTimeout(CONNECT_TIMEOUT_MS)
                 .readTimeout(READ_TIMEOUT_MS)
+                .throwStatusCodeException(false)
                 .tuner { conn ->
                     (conn as? HttpURLConnection)?.requestMethod = method
                     headers.forEach { (key, value) -> conn.setRequestProperty(key, value) }
@@ -359,10 +362,32 @@ class CCloudRestClient(
         }
 
         if (statusCode !in 200..299) {
-            throw CCloudApiException("HTTP $statusCode: ${responseBody.ifEmpty { "Unknown error" }}", statusCode)
+            val errorMessage = extractErrorMessage(responseBody, statusCode)
+            throw CCloudApiException(errorMessage, statusCode)
         }
 
         responseBody
+    }
+
+    private fun extractErrorMessage(responseBody: String, statusCode: Int): String {
+        if (responseBody.isEmpty()) return "HTTP $statusCode: Unknown error"
+
+        return try {
+            val json = JSONObject(responseBody)
+            val errorsArrayMessage = json.optJSONArray("errors")
+                ?.takeIf { it.length() > 0 }
+                ?.getJSONObject(0)
+                ?.optString("message")
+                ?.takeIf { it.isNotEmpty() }
+
+            val directMessage = json.optString("message")?.takeIf { it.isNotEmpty() }
+            val message = errorsArrayMessage ?: directMessage
+
+            message?.let { "$it (HTTP $statusCode)" }
+                ?: "Request failed with HTTP $statusCode: ${responseBody.take(200)}"
+        } catch (e: Exception) {
+            "Request failed with HTTP $statusCode: ${responseBody.take(200)}"
+        }
     }
 }
 
