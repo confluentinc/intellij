@@ -156,6 +156,13 @@
         autoScroll = (tableContainer.scrollHeight - tableContainer.scrollTop - tableContainer.clientHeight) < threshold;
     });
 
+    tableBody.addEventListener("click", function(e) {
+        var tr = e.target.closest("tr");
+        if (tr && tr.hasAttribute("data-index")) {
+            selectRow(parseInt(tr.getAttribute("data-index"), 10));
+        }
+    });
+
     function scrollToBottom() {
         if (autoScroll) {
             tableContainer.scrollTop = tableContainer.scrollHeight;
@@ -215,10 +222,6 @@
             for (var c = 0; c < columns.length; c++) {
                 tr.appendChild(createCell(record[columns[c]]));
             }
-
-            tr.addEventListener("click", (function(idx) {
-                return function() { selectRow(idx); };
-            })(currentIndex));
 
             fragment.appendChild(tr);
         }

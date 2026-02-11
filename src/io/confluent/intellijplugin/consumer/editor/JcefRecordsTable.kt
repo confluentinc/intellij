@@ -65,6 +65,7 @@ class JcefRecordsTable(
         browser.loadHTML(htmlContent)
 
         Disposer.register(parentDisposable, this)
+        Disposer.register(this, browser)
     }
 
     fun addRows(records: List<KafkaRecord>) {
@@ -106,7 +107,11 @@ class JcefRecordsTable(
         }
     }
 
-    override fun dispose() {}
+    override fun dispose() {
+        browserReady = false
+        pendingBatches.clear()
+        onRowSelected = null
+    }
 
     private fun injectRowSelectedCallback(cefBrowser: CefBrowser) {
         val jsCallback = jsQueryRowSelected.inject("index")
@@ -123,7 +128,7 @@ class JcefRecordsTable(
                 add(JsonPrimitive(name))
             }
         }
-        val base64 = Base64.getEncoder().encodeToString(colKeys.toString().toByteArray())
+        val base64 = Base64.getEncoder().encodeToString(colKeys.toString().toByteArray(Charsets.UTF_8))
         cefBrowser.executeJavaScript(
             "window.initColumns(JSON.parse(atob('$base64')))",
             cefBrowser.url, 0
@@ -155,7 +160,7 @@ class JcefRecordsTable(
                 })
             }
         }
-        return Base64.getEncoder().encodeToString(jsonArray.toString().toByteArray())
+        return Base64.getEncoder().encodeToString(jsonArray.toString().toByteArray(Charsets.UTF_8))
     }
 
     private fun getColumnValue(record: KafkaRecord, columnIndex: Int): Any? {

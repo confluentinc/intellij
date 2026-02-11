@@ -94,7 +94,7 @@
                 implementation="io.confluent.intellijplugin.core.monitoring.toolwindow.MonitoringTabActionProvider"/>
 
         <registryKey key="kafka.consumer.jcef.table.enabled"
-                     description="Enable experimental JCEF-based HTML table for consumer output"
+                     description="Enable experimental JCEF-based HTML table for consumer and producer output"
                      defaultValue="false"
                      restartRequired="false"/>
     </extensions>

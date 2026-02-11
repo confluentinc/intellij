@@ -245,8 +245,17 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
     }
 
     fun addError(element: KafkaRecord) {
+        val sizeBefore = outputModel.elements().size
         outputModel.addElement(element)
-        jcefTable?.addRows(listOf(element))
+
+        if (jcefTable != null) {
+            val sizeAfter = outputModel.elements().size
+            if (sizeAfter < sizeBefore + 1) {
+                jcefTable?.replaceAllRows(outputModel.elements())
+            } else {
+                jcefTable?.addRows(listOf(element))
+            }
+        }
     }
 
     fun getElapsedTimeMs(): Long = statisticPanel.getElapsedTimeMs()
