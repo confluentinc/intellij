@@ -43,6 +43,9 @@ object BdIdeRegistryUtil {
     val DRIVER_AUTO_REFRESH_PERIOD: Int
         get() = getInt("bdide.rfs.auto.refresh.period", 60)
 
+    val JCEF_CONSUMER_TABLE_ENABLED: Boolean
+        get() = getBoolean("kafka.consumer.jcef.table.enabled", default = false)
+
     fun isInternalFeaturesAvailable(): Boolean = getBoolean("bdide.is.internal.features.available", false, true)
 
     fun minimalRefreshDriverTime(): Duration =
