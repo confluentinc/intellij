@@ -142,8 +142,8 @@ class KafkaSchemaController(
             version1Schema = it
             val prettySchema = KafkaRegistryUtil.getPrettySchema(schemaType = it.type.name, schema = it.schema)
             val parsedSchema = KafkaRegistryUtil.parseSchema(
-                schemaType = it.type, newText = it.schema, references = it.references,
-                dataManager = dataManager
+                schemaType = it.type, newText = it.schema,
+                client = dataManager.client.confluentRegistryClient, references = it.references
             ).getOrNull()
                 ?: return@onSuccess
             invokeLater {
