@@ -22,7 +22,7 @@ import javax.swing.JPanel
  */
 class ConfluentTabController(
     private val project: Project
-) : ComponentController, Disposable {
+) : ComponentController, Disposable, CCloudAuthService.AuthStateListener {
 
     private val cardLayout = CardLayout()
     private val cardPanel = JPanel(cardLayout)
@@ -40,12 +40,22 @@ class ConfluentTabController(
     init {
         cardPanel.add(signInPanel, SIGN_IN_CARD)
 
+        CCloudAuthService.getInstance().addAuthStateListener(this)
+
         // Initialize with appropriate view
         if (CCloudAuthService.getInstance().isSignedIn()) {
             showResourcesView()
         } else {
             showSignInView()
         }
+    }
+
+    override fun onSignedIn(email: String) {
+        showResourcesView()
+    }
+
+    override fun onSignedOut() {
+        signOut()
     }
 
     private fun createSignInPanel(): JComponent {
@@ -69,32 +79,7 @@ class ConfluentTabController(
     }
 
     private fun performSignIn() {
-        CCloudAuthService.getInstance().signIn(
-            onSuccess = { email ->
-                showResourcesView()
-
-                com.intellij.notification.Notifications.Bus.notify(
-                    com.intellij.notification.Notification(
-                        "Kafka Notification",
-                        "Signed in to Confluent Cloud",
-                        "Signed in as $email",
-                        com.intellij.notification.NotificationType.INFORMATION
-                    ),
-                    project
-                )
-            },
-            onError = { error ->
-                com.intellij.notification.Notifications.Bus.notify(
-                    com.intellij.notification.Notification(
-                        "Kafka Notification",
-                        "Sign in failed",
-                        error,
-                        com.intellij.notification.NotificationType.ERROR
-                    ),
-                    project
-                )
-            }
-        )
+        CCloudAuthService.getInstance().signIn()
     }
 
     private fun showSignInView() {
@@ -144,6 +129,6 @@ class ConfluentTabController(
     fun getDriver(): ConfluentDriver? = driver
 
     override fun dispose() {
-        // Disposer will handle driver and resourceController
+        CCloudAuthService.getInstance().removeAuthStateListener(this)
     }
 }
