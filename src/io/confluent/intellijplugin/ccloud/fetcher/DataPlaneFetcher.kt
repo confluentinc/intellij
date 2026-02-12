@@ -33,20 +33,23 @@ interface DataPlaneFetcher {
     /** Get consumer group details (topics, partitions, lag, offset). */
     suspend fun describeConsumerGroup(groupId: String): ConsumerGroupDetails
 
-    /** List all subjects (throws if Schema Registry unavailable). */
-    suspend fun listSubjects(): List<String>
+    /** List all schemas (throws if Schema Registry unavailable). */
+    suspend fun listSchemas(): List<String>
 
-    /** List subjects with metadata (version, type, etc). */
-    suspend fun listSubjectsWithDetails(): List<SubjectData>
+    /** Load enriched schema info for a single schema (matches Kafka ConfluentRegistryClient). */
+    suspend fun loadSchemaInfo(schemaName: String): SchemaData
 
-    /** List all versions for a subject. */
-    suspend fun listSubjectVersions(subject: String): List<Int>
+    /** List all versions for a schema. */
+    suspend fun listSchemaVersions(schemaName: String): List<Int>
 
-    /** Get schema by version ("latest" or version number). */
-    suspend fun getSchemaByVersion(subject: String, version: String): SchemaVersionResponse
+    /** Get schema version info for a specific version ("latest" or version number). */
+    suspend fun getSchemaVersionInfo(schemaName: String, version: String): SchemaVersionResponse
+
+    /** Get latest schema version info (convenience method, matches Kafka). */
+    suspend fun getLatestVersionInfo(schemaName: String): SchemaVersionResponse
 
     /** Get schema by global ID. */
-    suspend fun getSchemaById(schemaId: Int): SchemaByIdResponse
+    suspend fun getSchemaIdInfo(schemaId: Int): SchemaByIdResponse
 
     /** Get total message count for a topic (across all partitions). */
     suspend fun getTopicMessageCount(topicName: String): Long
