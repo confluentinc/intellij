@@ -39,7 +39,7 @@ class CCloudAuthService(private val scope: CoroutineScope) : Disposable {
     internal var context: CCloudOAuthContext? = null
     internal var refreshBean: CCloudTokenRefreshBean? = null
 
-    private val authStateListeners = mutableListOf<AuthStateListener>()
+    internal val authStateListeners = mutableListOf<AuthStateListener>()
 
     /**
      * Listener for authentication state changes. Callbacks are invoked on the EDT.
@@ -85,23 +85,14 @@ class CCloudAuthService(private val scope: CoroutineScope) : Disposable {
                 }
                 logUsage(CCloudAuthenticationEvent(status = "signed in"))
 
-                val email = authenticatedContext.getUserEmail()
-
-                // Dispatch to EDT so UI updates work even when triggered from a modal dialog (from Settings)
-                ApplicationManager.getApplication().invokeLater({
-                    authStateListeners.toList().forEach { it.onSignedIn(email) }
-                    notifyInfo(
-                        KafkaMessagesBundle.message("confluent.cloud.notification.sign.in.success"),
-                        KafkaMessagesBundle.message("confluent.cloud.notification.sign.in.success.text", email)
-                    )
-                }, ModalityState.any())
+                notifySignedIn(authenticatedContext.getUserEmail())
             },
             onError = { error ->
                 logger.error("Sign-in failed: $error")
                 logUsage(CCloudAuthenticationEvent(status = "authentication failed", errorType = error))
 
                 ApplicationManager.getApplication().invokeLater({
-                    notifyError(KafkaMessagesBundle.message("confluent.cloud.notification.sign.in.failure"), error)
+                    showSignInFailureNotification(error)
                 }, ModalityState.any())
             }
         )
@@ -148,19 +139,47 @@ class CCloudAuthService(private val scope: CoroutineScope) : Disposable {
         }
 
         if (wasSignedIn && notifyListeners) {
+            // Dispatch to EDT so UI updates work even when triggered from a modal dialog (from Settings)
             ApplicationManager.getApplication().invokeLater({
                 authStateListeners.toList().forEach { it.onSignedOut() }
-                notifyInfo(KafkaMessagesBundle.message("confluent.cloud.notification.sign.out"))
+                showSignOutNotification()
             }, ModalityState.any())
         }
     }
 
-    private fun notifyInfo(title: String, content: String = "") {
-        Notifications.Bus.notify(Notification("Kafka Notification", title, content, NotificationType.INFORMATION))
+    internal fun notifySignedIn(email: String) {
+        // Dispatch to EDT so UI updates work even when triggered from a modal dialog (from Settings)
+        ApplicationManager.getApplication().invokeLater({
+            authStateListeners.toList().forEach { it.onSignedIn(email) }
+            showSignInSuccessNotification(email)
+        }, ModalityState.any())
     }
 
-    private fun notifyError(title: String, content: String) {
-        Notifications.Bus.notify(Notification("Kafka Notification", title, content, NotificationType.ERROR))
+    internal fun showSignInSuccessNotification(email: String) {
+        Notifications.Bus.notify(Notification(
+            "Kafka Notification",
+            KafkaMessagesBundle.message("confluent.cloud.notification.sign.in.success"),
+            KafkaMessagesBundle.message("confluent.cloud.notification.sign.in.success.text", email),
+            NotificationType.INFORMATION
+        ))
+    }
+
+    internal fun showSignInFailureNotification(error: String) {
+        Notifications.Bus.notify(Notification(
+            "Kafka Notification",
+            KafkaMessagesBundle.message("confluent.cloud.notification.sign.in.failure"),
+            error,
+            NotificationType.ERROR
+        ))
+    }
+
+    internal fun showSignOutNotification() {
+        Notifications.Bus.notify(Notification(
+            "Kafka Notification",
+            KafkaMessagesBundle.message("confluent.cloud.notification.sign.out"),
+            "",
+            NotificationType.INFORMATION
+        ))
     }
 
     // State accessors
