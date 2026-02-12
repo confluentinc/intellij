@@ -189,6 +189,13 @@ class ConnectionSettingsPanel(val project: Project) : MasterDetailsComponent(),
             }
         }
 
+        // Ensure empty top-level groups are added to the tree
+        topLevelGroups.forEach { topLevelGroup ->
+            if (topLevelGroup.retrieveNode().parent == null) {
+                myRoot.add(topLevelGroup.retrieveNode())
+            }
+        }
+
         (myTree.model as DefaultTreeModel).reload(myRoot)
 
         expandAllNodes()
@@ -422,7 +429,7 @@ class ConnectionSettingsPanel(val project: Project) : MasterDetailsComponent(),
         @Suppress("DialogTitleCapitalization")
         override fun getBannerSlogan(): String = group.name
         override fun getDisplayName(): String = group.name
-        override fun createOptionsPanel(): JComponent = JPanel()
+        override fun createOptionsPanel(): JComponent = group.createOptionsPanel()
         override fun isModified(): Boolean = false
         override fun getIcon(expanded: Boolean): Icon? = group.icon
     }
