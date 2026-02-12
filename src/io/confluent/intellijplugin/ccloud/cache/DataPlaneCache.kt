@@ -24,8 +24,8 @@ import kotlinx.coroutines.flow.flowOn
 import java.util.concurrent.atomic.AtomicInteger
 
 /**
- * Data plane cache for cluster-level resources (topics, subjects, consumer groups).
- * One cache instance per cluster. Call refresh*() methods to populate/update cache.
+ * Data plane cache for cluster resources (topics, schemas, consumer groups).
+ * One cache per cluster. Call refresh*() to populate/update cache.
  */
 class DataPlaneCache(
     private val cluster: Cluster,
@@ -70,49 +70,44 @@ class DataPlaneCache(
         thisLogger().info("DataPlaneCache connected for cluster ${cluster.id}")
     }
 
-    /** Get the data plane fetcher for API operations. */
     fun getFetcher(): DataPlaneFetcherImpl? = fetcher
 
-    /** Get cached topics (empty if not loaded). */
     fun getTopics(): List<TopicData> = cachedTopics ?: emptyList()
 
-    /** Fetch topics from API and update cache. */
+    /** Fetch topics from API, update cache. */
     suspend fun refreshTopics(): List<TopicData> {
-        val topics = fetcher?.listTopics() ?: emptyList()
+        val topics = fetcher?.getTopics() ?: emptyList()
         cachedTopics = topics
         return topics
     }
 
-    /** Check if this cache has Schema Registry configured. */
+    /** Check if Schema Registry is configured. */
     fun hasSchemaRegistry(): Boolean = schemaRegistry != null
 
-    /** Get cached schemas (empty if not loaded). */
     fun getSchemas(): List<SchemaData> = cachedSchemas ?: emptyList()
 
-    /** Fetch schemas from API and update cache. Fast initial load (names only). */
+    /** Fetch schemas from API, update cache. Fast initial load (names only). */
     fun refreshSchemas(): List<SchemaData> {
         if (schemaRegistry == null) return emptyList()
 
-        // Fast initial load: fetch names only, enrichment happens separately
-        // runBlocking required: called from non-suspend doLoadChildren() but needs to call suspend functions
-        val schemaNames = runBlocking { fetcher?.getAllSubjects() } ?: emptyList()
-        val schemas = schemaNames.map { SchemaData(name = it) }
+        // Fast load: fetch subject names only, enrichment happens separately
+        val subjectNames = runBlocking { fetcher?.getAllSubjects() } ?: emptyList()
+        val schemas = subjectNames.map { SchemaData(name = it) }
         cachedSchemas = schemas
         return schemas
     }
 
     /**
-     * Enrich schemas with version/type/compatibility progressively.
-     * Emits results one by one as they complete, allowing UI to update incrementally.
+     * Enrich schemas with metadata progressively. Emits results as they complete for incremental UI updates.
      */
-    fun enrichSchemasDataProgressively(schemas: List<SchemaData>): Flow<SchemaEnrichmentResult> = channelFlow {
+    fun enrichSchemasProgressively(schemas: List<SchemaData>): Flow<SchemaEnrichmentResult> = channelFlow {
         thisLogger().info("Starting progressive enrichment for ${schemas.size} schemas")
         val completed = AtomicInteger(0)
 
         schemas.forEach { schema ->
             launch {
                 try {
-                    val enrichedSchema = withTimeout(ENRICHMENT_TIMEOUT_MS) {
+                    val info = withTimeout(ENRICHMENT_TIMEOUT_MS) {
                         fetcher?.loadSchemaInfo(schema.name)
                     }
 
@@ -121,15 +116,15 @@ class DataPlaneCache(
                         SchemaEnrichmentResult.Success(
                             schemaName = schema.name,
                             data = SchemaEnrichmentData(
-                                latestVersion = enrichedSchema?.latestVersion,
-                                schemaType = enrichedSchema?.schemaType,
-                                compatibility = enrichedSchema?.compatibility
+                                latestVersion = info?.latestVersion,
+                                schemaType = info?.schemaType,
+                                compatibility = info?.compatibility
                             ),
                             progress = count to schemas.size
                         )
                     )
 
-                    thisLogger().info("Enriched ${schema.name}: version=${enrichedSchema?.latestVersion}, type=${enrichedSchema?.schemaType} ($count/${schemas.size})")
+                    thisLogger().info("Enriched ${schema.name}: version=${info?.latestVersion}, type=${info?.schemaType} ($count/${schemas.size})")
                 } catch (e: Exception) {
                     val count = completed.incrementAndGet()
                     send(
@@ -140,34 +135,34 @@ class DataPlaneCache(
                         )
                     )
 
-                    thisLogger().warn("Failed to enrich schema ${schema.name}: ${e.message} ($count/${schemas.size})")
+                    thisLogger().warn("Failed to enrich ${schema.name}: ${e.message} ($count/${schemas.size})")
                 }
             }
         }
     }.flowOn(Dispatchers.IO)
 
     /**
-     * Enrich schemas with version/type/compatibility (blocking until all complete).
+     * Enrich schemas with metadata, blocking until all complete.
      */
-    suspend fun enrichSchemasData(schemas: List<SchemaData>): Map<String, SchemaEnrichmentData> = coroutineScope {
+    suspend fun enrichSchemas(schemas: List<SchemaData>): Map<String, SchemaEnrichmentData> = coroutineScope {
         thisLogger().info("Starting enrichment for ${schemas.size} schemas")
 
         val results = schemas.map { schema ->
             async {
                 try {
-                    val enrichedSchema = withTimeout(ENRICHMENT_TIMEOUT_MS) {
+                    val info = withTimeout(ENRICHMENT_TIMEOUT_MS) {
                         fetcher?.loadSchemaInfo(schema.name)
                     }
 
-                    thisLogger().info("Enriched ${schema.name}: version=${enrichedSchema?.latestVersion}, type=${enrichedSchema?.schemaType}")
+                    thisLogger().info("Enriched ${schema.name}: version=${info?.latestVersion}, type=${info?.schemaType}")
 
                     schema.name to SchemaEnrichmentData(
-                        latestVersion = enrichedSchema?.latestVersion,
-                        schemaType = enrichedSchema?.schemaType,
-                        compatibility = enrichedSchema?.compatibility
+                        latestVersion = info?.latestVersion,
+                        schemaType = info?.schemaType,
+                        compatibility = info?.compatibility
                     )
                 } catch (e: Exception) {
-                    thisLogger().warn("Failed to enrich schema ${schema.name}: ${e.message}")
+                    thisLogger().warn("Failed to enrich ${schema.name}: ${e.message}")
                     schema.name to SchemaEnrichmentData()
                 }
             }
@@ -178,8 +173,7 @@ class DataPlaneCache(
     }
 
     /**
-     * Enrich topics with message count progressively.
-     * Emits results one by one as they complete, allowing UI to update incrementally.
+     * Enrich topics with message count progressively. Emits results as they complete for incremental UI updates.
      */
     fun enrichTopicsDataProgressively(topics: List<TopicData>): Flow<TopicEnrichmentResult> = channelFlow {
         thisLogger().info("Starting progressive enrichment for ${topics.size} topics")
@@ -219,7 +213,7 @@ class DataPlaneCache(
     }.flowOn(Dispatchers.IO)
 
     /**
-     * Enrich topics with message count (blocking until all complete).
+     * Enrich topics with message count, blocking until all complete.
      */
     suspend fun enrichTopicsData(topics: List<TopicData>): Map<String, TopicEnrichmentData> = coroutineScope {
         thisLogger().info("Starting enrichment for ${topics.size} topics")
@@ -247,22 +241,17 @@ class DataPlaneCache(
         results
     }
 
-    /** Create a new topic. */
     suspend fun createTopic(request: CreateTopicRequest): TopicData {
         return fetcher?.createTopic(request)
             ?: throw IllegalStateException("DataPlaneCache not connected for cluster ${cluster.id}")
     }
 
-    /** Delete a topic. */
     suspend fun deleteTopic(topicName: String) {
         fetcher?.deleteTopic(topicName)
             ?: throw IllegalStateException("DataPlaneCache not connected for cluster ${cluster.id}")
     }
 
-    /**
-     * Get topic partitions without offsets (fast). 
-     * Use enrichPartitionsProgressively() to load offsets incrementally.
-     */
+    /** Get topic partitions without offsets. Use enrichPartitionsProgressively() for offsets. */
     suspend fun getTopicPartitionsQuick(topicName: String): List<BdtTopicPartition> {
         val f = fetcher ?: throw IllegalStateException("DataPlaneCache not connected")
         val topic = cachedTopics?.find { it.topicName == topicName }
@@ -321,7 +310,7 @@ class DataPlaneCache(
      */
     suspend fun getTopicConfigs(topicName: String, showFullConfig: Boolean): List<TopicConfig> {
         val f = fetcher ?: throw IllegalStateException("DataPlaneCache not connected")
-        val configs = f.describeTopicConfiguration(topicName)
+        val configs = f.getTopicConfig(topicName)
 
         val filteredConfigs = if (showFullConfig) configs else configs.filter { !it.isDefault }
 

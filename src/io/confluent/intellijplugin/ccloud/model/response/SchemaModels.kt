@@ -3,10 +3,9 @@ package io.confluent.intellijplugin.ccloud.model.response
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
-/** Response from GET /subjects - Returns list of schema names. */
-typealias ListSchemasResponse = List<String>
+typealias ListSubjectsResponse = List<String>
 
-/** Schema details for UI presentation. */
+/** Schema info for UI (subject name + metadata). */
 data class SchemaData(
     val name: String,
     val latestVersion: Int? = null,
@@ -14,17 +13,15 @@ data class SchemaData(
     val compatibility: String? = null
 )
 
-/** Enrichment data for schemas (requires additional API calls beyond basic schema list). */
+/** Schema metadata from enrichment. */
 data class SchemaEnrichmentData(
     val latestVersion: Int? = null,
     val schemaType: String? = null,
     val compatibility: String? = null
 )
 
-/** Response from GET /subjects/{subject}/versions - Returns version numbers. */
-typealias SchemaVersionsResponse = List<Int>
+typealias SchemaVersionsResponse = List<Long>
 
-/** Response from GET /subjects/{subject}/versions/{version} */
 @Serializable
 data class SchemaVersionResponse(
     @SerialName("subject") val subject: String,
@@ -34,14 +31,13 @@ data class SchemaVersionResponse(
     @SerialName("schemaType") val schemaType: String? = null
 )
 
-/** Response from GET /schemas/ids/{id} */
 @Serializable
 data class SchemaByIdResponse(
     @SerialName("schema") val schema: String,
     @SerialName("schemaType") val schemaType: String? = null
 )
 
-/** Result of enriching a single schema with additional data. */
+/** Result of schema enrichment. */
 sealed class SchemaEnrichmentResult {
     abstract val schemaName: String
     abstract val progress: Pair<Int, Int>

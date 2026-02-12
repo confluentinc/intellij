@@ -31,7 +31,7 @@ class DataPlaneFetcherImpl(
         isLenient = true
     }
 
-    override suspend fun listTopics(): List<TopicData> {
+    override suspend fun getTopics(): List<TopicData> {
         val path = String.format(CloudConfig.DataPlane.Kafka.TOPICS_URI, clusterId)
         val topics = kafkaClient.fetchList(path) { body ->
             val response = json.decodeFromString<ListTopicsResponse>(body)
@@ -74,7 +74,7 @@ class DataPlaneFetcherImpl(
         }
     }
 
-    override suspend fun describeTopicConfiguration(topicName: String): List<ConfigData> {
+    override suspend fun getTopicConfig(topicName: String): List<ConfigData> {
         val path = String.format(CloudConfig.DataPlane.Kafka.TOPIC_CONFIGS_URI, clusterId, topicName)
         return kafkaClient.fetchList(path) { body ->
             val response = json.decodeFromString<ListConfigsResponse>(body)
@@ -112,40 +112,44 @@ class DataPlaneFetcherImpl(
         }
     }
 
-    override suspend fun loadSchemaInfo(schemaName: String): SchemaData {
+    override suspend fun loadSchemaInfo(subjectName: String): SchemaData {
         requireSchemaRegistry()
         return try {
-            val latestSchema = getSchemaVersionInfo(schemaName, "latest")
+            val latestSchema = getLatestVersionInfo(subjectName)
             SchemaData(
-                name = schemaName,
+                name = subjectName,
                 latestVersion = latestSchema.version,
                 schemaType = latestSchema.schemaType,
                 compatibility = null
             )
         } catch (e: Exception) {
-            thisLogger().warn("Failed to fetch details for schema '$schemaName': ${e.message}")
-            SchemaData(name = schemaName)
+            thisLogger().warn("Failed to fetch schema info for '$subjectName': ${e.message}")
+            SchemaData(name = subjectName)
         }
     }
 
-    override suspend fun listSchemaVersions(schemaName: String): List<Int> {
+    override suspend fun listSchemaVersions(subjectName: String): List<Long> {
         requireSchemaRegistry()
-        val path = String.format(CloudConfig.DataPlane.SchemaRegistry.SUBJECT_VERSIONS_URI, schemaName)
+        val path = String.format(CloudConfig.DataPlane.SchemaRegistry.SUBJECT_VERSIONS_URI, subjectName)
         return schemaRegistryClient!!.fetch(path) { body ->
-            json.decodeFromString(ListSerializer(Int.serializer()), body)
+            json.decodeFromString(ListSerializer(Int.serializer()), body).map { it.toLong() }
         }
     }
 
-    override suspend fun getSchemaVersionInfo(schemaName: String, version: String): SchemaVersionResponse {
+    override suspend fun getSchemaVersionInfo(subjectName: String, version: Long): SchemaVersionResponse {
         requireSchemaRegistry()
-        val path = String.format(CloudConfig.DataPlane.SchemaRegistry.SUBJECT_VERSION_URI, schemaName, version)
+        val path = String.format(CloudConfig.DataPlane.SchemaRegistry.SUBJECT_VERSION_URI, subjectName, version.toString())
         return schemaRegistryClient!!.fetch(path) { body ->
             json.decodeFromString<SchemaVersionResponse>(body)
         }
     }
 
-    override suspend fun getLatestVersionInfo(schemaName: String): SchemaVersionResponse {
-        return getSchemaVersionInfo(schemaName, "latest")
+    override suspend fun getLatestVersionInfo(subjectName: String): SchemaVersionResponse {
+        requireSchemaRegistry()
+        val path = String.format(CloudConfig.DataPlane.SchemaRegistry.SUBJECT_VERSION_URI, subjectName, "latest")
+        return schemaRegistryClient!!.fetch(path) { body ->
+            json.decodeFromString<SchemaVersionResponse>(body)
+        }
     }
 
     override suspend fun getSchemaIdInfo(schemaId: Int): SchemaByIdResponse {
