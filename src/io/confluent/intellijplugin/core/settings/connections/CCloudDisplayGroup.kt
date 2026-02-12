@@ -1,8 +1,5 @@
 package io.confluent.intellijplugin.core.settings.connections
 
-import com.intellij.notification.Notification
-import com.intellij.notification.NotificationType
-import com.intellij.notification.Notifications
 import com.intellij.ui.SimpleTextAttributes
 import com.intellij.ui.components.JBPanelWithEmptyText
 import com.intellij.ui.dsl.builder.Align
@@ -65,28 +62,7 @@ class CCloudDisplayGroup : ConnectionGroup(
                             KafkaMessagesBundle.message("confluent.cloud.welcome.panel.cta"),
                             SimpleTextAttributes.LINK_ATTRIBUTES
                         ) {
-                            CCloudAuthService.getInstance().signIn(
-                                onSuccess = { email ->
-                                    Notifications.Bus.notify(
-                                        Notification(
-                                            "Kafka Notification",
-                                            KafkaMessagesBundle.message("confluent.cloud.notification.sign.in.success"),
-                                            "Signed in as $email",
-                                            NotificationType.INFORMATION
-                                        )
-                                    )
-                                },
-                                onError = { error ->
-                                    Notifications.Bus.notify(
-                                        Notification(
-                                            "Kafka Notification",
-                                            KafkaMessagesBundle.message("confluent.cloud.notification.sign.in.failure"),
-                                            error,
-                                            NotificationType.ERROR
-                                        )
-                                    )
-                                }
-                            )
+                            CCloudAuthService.getInstance().signIn()
                         }
                         appendText(
                             KafkaMessagesBundle.message("confluent.cloud.welcome.panel.label"),
