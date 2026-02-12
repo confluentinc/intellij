@@ -13,6 +13,8 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
 import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.verify
@@ -27,7 +29,7 @@ class CCloudAuthServiceTest {
     @BeforeEach
     fun setUp() {
         parentDisposable = Disposer.newDisposable("test")
-        authService = CCloudAuthService()
+        authService = CCloudAuthService(CoroutineScope(SupervisorJob()))
     }
 
     @AfterEach

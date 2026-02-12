@@ -23,7 +23,7 @@ import javax.swing.JPanel
  */
 class ConfluentTabController(
     private val project: Project
-) : ComponentController, Disposable {
+) : ComponentController, Disposable, CCloudAuthService.AuthStateListener {
 
     private val cardLayout = CardLayout()
     private val cardPanel = JPanel(cardLayout)
@@ -41,12 +41,22 @@ class ConfluentTabController(
     init {
         cardPanel.add(signInPanel, SIGN_IN_CARD)
 
+        CCloudAuthService.getInstance().addAuthStateListener(this)
+
         // Initialize with appropriate view
         if (CCloudAuthService.getInstance().isSignedIn()) {
             showResourcesView()
         } else {
             showSignInView()
         }
+    }
+
+    override fun onSignedIn(email: String) {
+        showResourcesView()
+    }
+
+    override fun onSignedOut() {
+        signOut()
     }
 
     private fun createSignInPanel(): JComponent {
@@ -145,6 +155,6 @@ class ConfluentTabController(
     fun getDriver(): ConfluentDriver? = driver
 
     override fun dispose() {
-        // Disposer will handle driver and resourceController
+        CCloudAuthService.getInstance().removeAuthStateListener(this)
     }
 }
