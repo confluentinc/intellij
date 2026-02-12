@@ -186,7 +186,7 @@ class KafkaProducerEditor(
         )
         presetsSplitter.add(
             ExpansionPanel(
-                KafkaMessagesBundle.message("toggle.settings"), { settingsPanel },
+                KafkaMessagesBundle.message("toggle.configuration"), { settingsPanel },
                 SETTINGS_SHOW_ID, true,
                 listOf(
                     SavePresetAction(

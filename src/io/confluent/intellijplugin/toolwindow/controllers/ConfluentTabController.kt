@@ -11,6 +11,7 @@ import io.confluent.intellijplugin.ccloud.auth.CCloudAuthService
 import io.confluent.intellijplugin.core.monitoring.toolwindow.ComponentController
 import io.confluent.intellijplugin.rfs.ConfluentConnectionData
 import io.confluent.intellijplugin.rfs.ConfluentDriver
+import io.confluent.intellijplugin.util.KafkaMessagesBundle
 import java.awt.BorderLayout
 import java.awt.CardLayout
 import javax.swing.JComponent
@@ -53,14 +54,14 @@ class ConfluentTabController(
             row {
                 cell(JBPanelWithEmptyText().apply {
                     emptyText.apply {
-                        appendText("Connect to Confluent Cloud\n\n", StatusText.DEFAULT_ATTRIBUTES)
+                        appendText(KafkaMessagesBundle.message("confluent.cloud.welcome.panel.title"), StatusText.DEFAULT_ATTRIBUTES)
                         appendSecondaryText(
-                            "Sign in with OAuth",
+                            KafkaMessagesBundle.message("confluent.cloud.welcome.panel.cta"),
                             com.intellij.ui.SimpleTextAttributes.LINK_ATTRIBUTES
                         ) {
                             performSignIn()
                         }
-                        appendText(" to access your environments, clusters, and resources.", StatusText.DEFAULT_ATTRIBUTES)
+                        appendText(KafkaMessagesBundle.message("confluent.cloud.welcome.panel.label"), StatusText.DEFAULT_ATTRIBUTES)
                         isShowAboveCenter = false
                     }
                 }).align(Align.FILL)
@@ -76,7 +77,7 @@ class ConfluentTabController(
                 com.intellij.notification.Notifications.Bus.notify(
                     com.intellij.notification.Notification(
                         "Kafka Notification",
-                        "Signed in to Confluent Cloud",
+                        KafkaMessagesBundle.message("confluent.cloud.notification.sign.in.success"),
                         "Signed in as $email",
                         com.intellij.notification.NotificationType.INFORMATION
                     ),
@@ -87,7 +88,7 @@ class ConfluentTabController(
                 com.intellij.notification.Notifications.Bus.notify(
                     com.intellij.notification.Notification(
                         "Kafka Notification",
-                        "Sign in failed",
+                        KafkaMessagesBundle.message("confluent.cloud.notification.sign.in.failure"),
                         error,
                         com.intellij.notification.NotificationType.ERROR
                     ),
