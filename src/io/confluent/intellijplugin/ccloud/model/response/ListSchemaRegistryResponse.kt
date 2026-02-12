@@ -4,7 +4,7 @@ import io.confluent.intellijplugin.ccloud.client.CCloudRestClient.ListMetadata
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
-/** Response from GET /srcm/v3/clusters?environment={envId} */
+/** Response from GET /srcm/v3/clusters?environment={envId} (lists Schema Registry cluster). */
 @Serializable
 data class ListSchemaRegistryResponse(
     val data: List<SchemaRegistryData> = emptyList(),

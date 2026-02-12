@@ -61,7 +61,8 @@ object CloudConfig {
             const val CONSUMER_GROUP_URI = "/kafka/v3/clusters/%s/consumer-groups/%s"
 
             /** Consume records with guaranteed progress per partition. */
-            const val CCLOUD_SIMPLE_CONSUME_API_PATH = "/kafka/v3/clusters/%s/internal/topics/%s/partitions/-/records:consume_guarantee_progress"
+            const val CCLOUD_SIMPLE_CONSUME_API_PATH =
+                "/kafka/v3/clusters/%s/internal/topics/%s/partitions/-/records:consume_guarantee_progress"
         }
 
         /**
