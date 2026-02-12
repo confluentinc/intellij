@@ -3,6 +3,9 @@ package io.confluent.intellijplugin.ccloud.auth
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.util.Disposer
 import com.intellij.testFramework.junit5.TestApplication
+import javax.swing.SwingUtilities
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -13,11 +16,15 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.SupervisorJob
+import org.mockito.kotlin.any
+import org.mockito.kotlin.doNothing
 import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.mock
+import org.mockito.kotlin.never
+import org.mockito.kotlin.spy
+import org.mockito.kotlin.times
 import org.mockito.kotlin.verify
+import org.mockito.kotlin.whenever
 import java.time.Instant
 
 @TestApplication
@@ -315,6 +322,128 @@ class CCloudAuthServiceTest {
 
             assertNull(authService.getContext())
             assertFalse(authService.isRefreshRunning())
+        }
+    }
+
+    @Nested
+    @DisplayName("addAuthStateListener / removeAuthStateListener")
+    inner class AuthStateListenerRegistration {
+
+        @Test
+        fun `should add listener`() {
+            val listener = mock<CCloudAuthService.AuthStateListener>()
+
+            authService.addAuthStateListener(listener)
+
+            assertTrue(authService.authStateListeners.contains(listener))
+        }
+
+        @Test
+        fun `should remove listener`() {
+            val listener = mock<CCloudAuthService.AuthStateListener>()
+            authService.addAuthStateListener(listener)
+
+            authService.removeAuthStateListener(listener)
+
+            assertFalse(authService.authStateListeners.contains(listener))
+        }
+
+        @Test
+        fun `should only remove specified listener`() {
+            val listener1 = mock<CCloudAuthService.AuthStateListener>()
+            val listener2 = mock<CCloudAuthService.AuthStateListener>()
+            authService.addAuthStateListener(listener1)
+            authService.addAuthStateListener(listener2)
+
+            authService.removeAuthStateListener(listener1)
+
+            assertFalse(authService.authStateListeners.contains(listener1))
+            assertTrue(authService.authStateListeners.contains(listener2))
+        }
+    }
+
+    @Nested
+    @DisplayName("auth state listener and notification dispatch")
+    inner class AuthStateListenerDispatch {
+
+        private lateinit var spyService: CCloudAuthService
+
+        @BeforeEach
+        fun setUpSpy() {
+            spyService = spy(CCloudAuthService(CoroutineScope(SupervisorJob())))
+            doNothing().whenever(spyService).showSignOutNotification()
+            doNothing().whenever(spyService).showSignInSuccessNotification(any())
+        }
+
+        @AfterEach
+        fun tearDownSpy() {
+            spyService.dispose()
+        }
+
+        @Test
+        fun `should notify listener and show notification on sign in`() {
+            val listener = mock<CCloudAuthService.AuthStateListener>()
+            spyService.addAuthStateListener(listener)
+
+            spyService.notifySignedIn("test@example.com")
+            SwingUtilities.invokeAndWait {}
+
+            verify(listener).onSignedIn("test@example.com")
+            verify(spyService).showSignInSuccessNotification("test@example.com")
+        }
+
+        @Test
+        fun `should notify listener and show notification on sign out`() {
+            val listener = mock<CCloudAuthService.AuthStateListener>()
+            spyService.addAuthStateListener(listener)
+            spyService.context = createMockAuthenticatedContext()
+
+            spyService.signOut()
+            SwingUtilities.invokeAndWait {}
+
+            verify(listener).onSignedOut()
+            verify(spyService).showSignOutNotification()
+        }
+
+        @Test
+        fun `should not notify on sign out when not signed in`() {
+            val listener = mock<CCloudAuthService.AuthStateListener>()
+            spyService.addAuthStateListener(listener)
+
+            spyService.signOut()
+            SwingUtilities.invokeAndWait {}
+
+            verify(listener, never()).onSignedOut()
+            verify(spyService, never()).showSignOutNotification()
+        }
+
+        @Test
+        fun `should notify multiple listeners`() {
+            val listener1 = mock<CCloudAuthService.AuthStateListener>()
+            val listener2 = mock<CCloudAuthService.AuthStateListener>()
+            spyService.addAuthStateListener(listener1)
+            spyService.addAuthStateListener(listener2)
+            spyService.context = createMockAuthenticatedContext()
+
+            spyService.signOut()
+            SwingUtilities.invokeAndWait {}
+
+            verify(listener1).onSignedOut()
+            verify(listener2).onSignedOut()
+        }
+
+        @Test
+        fun `should only notify once during idempotent sign out`() {
+            val listener = mock<CCloudAuthService.AuthStateListener>()
+            spyService.addAuthStateListener(listener)
+            spyService.context = createMockAuthenticatedContext()
+
+            spyService.signOut()
+            spyService.signOut()
+            SwingUtilities.invokeAndWait {}
+
+            verify(listener, times(1)).onSignedOut()
+            verify(spyService, times(1)).showSignOutNotification()
         }
     }
 
