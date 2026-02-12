@@ -432,6 +432,11 @@ class ConnectionSettingsPanel(val project: Project) : MasterDetailsComponent(),
         override fun createOptionsPanel(): JComponent = group.createOptionsPanel()
         override fun isModified(): Boolean = false
         override fun getIcon(expanded: Boolean): Icon? = group.icon
+
+        override fun disposeUIResources() {
+            super.disposeUIResources()
+            group.disposeOptionsPanel()
+        }
     }
 
     private abstract inner class AbstractAddActionGroup(

@@ -17,6 +17,7 @@ import io.confluent.intellijplugin.util.KafkaMessagesBundle
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import java.util.concurrent.CopyOnWriteArrayList
 
 /**
  * Application-level service for Confluent Cloud authentication.
@@ -39,7 +40,7 @@ class CCloudAuthService(private val scope: CoroutineScope) : Disposable {
     internal var context: CCloudOAuthContext? = null
     internal var refreshBean: CCloudTokenRefreshBean? = null
 
-    internal val authStateListeners = mutableListOf<AuthStateListener>()
+    internal val authStateListeners = CopyOnWriteArrayList<AuthStateListener>()
 
     /**
      * Listener for authentication state changes. Callbacks are invoked on the EDT.

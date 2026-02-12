@@ -23,12 +23,21 @@ class CCloudDisplayGroup : ConnectionGroup(
         private const val SIGNED_IN_CARD = "signedin"
     }
 
+    private var authListener: CCloudAuthService.AuthStateListener? = null
+
     override fun createOptionsPanel(): JComponent {
         val cardLayout = CardLayout()
         val cardPanel = JPanel(cardLayout)
+        var signedInPanel: JComponent? = null
+
+        fun replaceSignedInPanel() {
+            signedInPanel?.let { cardPanel.remove(it) }
+            signedInPanel = createSignedInPanel()
+            cardPanel.add(signedInPanel, SIGNED_IN_CARD)
+        }
 
         cardPanel.add(createSignInPanel(), SIGN_IN_CARD)
-        cardPanel.add(createSignedInPanel(), SIGNED_IN_CARD)
+        replaceSignedInPanel()
 
         val activeCard = if (CCloudAuthService.getInstance().isSignedIn()) SIGNED_IN_CARD else SIGN_IN_CARD
         cardLayout.show(cardPanel, activeCard)
@@ -36,7 +45,7 @@ class CCloudDisplayGroup : ConnectionGroup(
         // Listen for auth state changes from other UI surfaces
         val listener = object : CCloudAuthService.AuthStateListener {
             override fun onSignedIn(email: String) {
-                cardPanel.add(createSignedInPanel(), SIGNED_IN_CARD)
+                replaceSignedInPanel()
                 cardLayout.show(cardPanel, SIGNED_IN_CARD)
             }
 
@@ -44,9 +53,15 @@ class CCloudDisplayGroup : ConnectionGroup(
                 cardLayout.show(cardPanel, SIGN_IN_CARD)
             }
         }
+        authListener = listener
         CCloudAuthService.getInstance().addAuthStateListener(listener)
 
         return cardPanel
+    }
+
+    override fun disposeOptionsPanel() {
+        authListener?.let { CCloudAuthService.getInstance().removeAuthStateListener(it) }
+        authListener = null
     }
 
     private fun createSignInPanel(): JComponent {
