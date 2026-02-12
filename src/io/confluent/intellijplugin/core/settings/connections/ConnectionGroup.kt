@@ -21,6 +21,9 @@ abstract class ConnectionGroup(
 
     /** Override to provide a custom panel when this group is selected in the settings tree. */
     open fun createOptionsPanel(): JComponent = JPanel()
+
+    /** Called when the settings dialog is closed. Override to clean up listeners or resources. */
+    open fun disposeOptionsPanel() {}
 }
 
 abstract class ConnectionFactory<T : ConnectionData>(
