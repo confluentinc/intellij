@@ -124,3 +124,9 @@ enum class TimestampType {
     CREATE_TIME,
     LOG_APPEND_TIME
 }
+
+data class ProduceRequest(val value: String)
+data class ProduceResponse(val success: Boolean)
+
+data class ConsumerGroupData(val groupId: String, val state: String)
+data class ConsumerGroupDetails(val groupId: String)

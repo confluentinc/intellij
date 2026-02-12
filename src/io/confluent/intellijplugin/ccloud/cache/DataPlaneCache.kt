@@ -8,7 +8,11 @@ import io.confluent.intellijplugin.ccloud.model.Cluster
 import io.confluent.intellijplugin.ccloud.model.SchemaRegistry
 import io.confluent.intellijplugin.ccloud.model.response.CreateTopicRequest
 import io.confluent.intellijplugin.ccloud.model.response.SchemaData
+import io.confluent.intellijplugin.ccloud.model.response.SchemaEnrichmentData
+import io.confluent.intellijplugin.ccloud.model.response.SchemaEnrichmentResult
 import io.confluent.intellijplugin.ccloud.model.response.TopicData
+import io.confluent.intellijplugin.ccloud.model.response.TopicEnrichmentData
+import io.confluent.intellijplugin.ccloud.model.response.TopicEnrichmentResult
 import io.confluent.intellijplugin.ccloud.model.restEndpoint
 import io.confluent.intellijplugin.client.KafkaConstants.DEFAULT_CCLOUD_REPLICATION_FACTOR
 import io.confluent.intellijplugin.model.BdtTopicPartition
@@ -98,10 +102,86 @@ class DataPlaneCache(
     }
 
     /**
+     * Enrich schemas with version/type/compatibility progressively.
+     * Emits results one by one as they complete, allowing UI to update incrementally.
+     */
+    fun enrichSchemasDataProgressively(schemas: List<SchemaData>): Flow<SchemaEnrichmentResult> = channelFlow {
+        thisLogger().info("Starting progressive enrichment for ${schemas.size} schemas")
+        val completed = AtomicInteger(0)
+
+        schemas.forEach { schema ->
+            launch {
+                try {
+                    val enrichedSchema = withTimeout(ENRICHMENT_TIMEOUT_MS) {
+                        fetcher?.loadSchemaInfo(schema.name)
+                    }
+
+                    val count = completed.incrementAndGet()
+                    send(
+                        SchemaEnrichmentResult.Success(
+                            schemaName = schema.name,
+                            data = SchemaEnrichmentData(
+                                latestVersion = enrichedSchema?.latestVersion,
+                                schemaType = enrichedSchema?.schemaType,
+                                compatibility = enrichedSchema?.compatibility
+                            ),
+                            progress = count to schemas.size
+                        )
+                    )
+
+                    thisLogger().info("Enriched ${schema.name}: version=${enrichedSchema?.latestVersion}, type=${enrichedSchema?.schemaType} ($count/${schemas.size})")
+                } catch (e: Exception) {
+                    val count = completed.incrementAndGet()
+                    send(
+                        SchemaEnrichmentResult.Failure(
+                            schemaName = schema.name,
+                            progress = count to schemas.size,
+                            error = e
+                        )
+                    )
+
+                    thisLogger().warn("Failed to enrich schema ${schema.name}: ${e.message} ($count/${schemas.size})")
+                }
+            }
+        }
+    }.flowOn(Dispatchers.IO)
+
+    /**
+     * Enrich schemas with version/type/compatibility (blocking until all complete).
+     */
+    suspend fun enrichSchemasData(schemas: List<SchemaData>): Map<String, SchemaEnrichmentData> = coroutineScope {
+        thisLogger().info("Starting enrichment for ${schemas.size} schemas")
+
+        val results = schemas.map { schema ->
+            async {
+                try {
+                    val enrichedSchema = withTimeout(ENRICHMENT_TIMEOUT_MS) {
+                        fetcher?.loadSchemaInfo(schema.name)
+                    }
+
+                    thisLogger().info("Enriched ${schema.name}: version=${enrichedSchema?.latestVersion}, type=${enrichedSchema?.schemaType}")
+
+                    schema.name to SchemaEnrichmentData(
+                        latestVersion = enrichedSchema?.latestVersion,
+                        schemaType = enrichedSchema?.schemaType,
+                        compatibility = enrichedSchema?.compatibility
+                    )
+                } catch (e: Exception) {
+                    thisLogger().warn("Failed to enrich schema ${schema.name}: ${e.message}")
+                    schema.name to SchemaEnrichmentData()
+                }
+            }
+        }.awaitAll().toMap()
+
+        thisLogger().info("Enrichment completed: ${results.size} schemas enriched")
+        results
+    }
+
+    /**
      * Enrich topics with message count progressively.
      * Emits results one by one as they complete, allowing UI to update incrementally.
      */
-    fun enrichTopicsDataProgressively(topics: List<TopicData>): Flow<EnrichmentResult> = channelFlow {
+    fun enrichTopicsDataProgressively(topics: List<TopicData>): Flow<TopicEnrichmentResult> = channelFlow {
         thisLogger().info("Starting progressive enrichment for ${topics.size} topics")
         val completed = AtomicInteger(0)
 
@@ -114,7 +194,7 @@ class DataPlaneCache(
 
                     val count = completed.incrementAndGet()
                     send(
-                        EnrichmentResult.Success(
+                        TopicEnrichmentResult.Success(
                             topicName = topic.topicName,
                             data = TopicEnrichmentData(messageCount = messageCount),
                             progress = count to topics.size
@@ -125,7 +205,7 @@ class DataPlaneCache(
                 } catch (e: Exception) {
                     val count = completed.incrementAndGet()
                     send(
-                        EnrichmentResult.Failure(
+                        TopicEnrichmentResult.Failure(
                             topicName = topic.topicName,
                             progress = count to topics.size,
                             error = e
@@ -262,22 +342,4 @@ class DataPlaneCache(
         cachedTopics = null
         cachedSchemas = null
     }
-}
-
-/** Result of enriching a single topic with additional data. */
-sealed class EnrichmentResult {
-    abstract val topicName: String
-    abstract val progress: Pair<Int, Int>
-
-    data class Success(
-        override val topicName: String,
-        val data: TopicEnrichmentData,
-        override val progress: Pair<Int, Int>
-    ) : EnrichmentResult()
-
-    data class Failure(
-        override val topicName: String,
-        override val progress: Pair<Int, Int>,
-        val error: Exception
-    ) : EnrichmentResult()
 }
