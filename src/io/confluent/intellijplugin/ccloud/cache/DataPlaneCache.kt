@@ -7,7 +7,7 @@ import io.confluent.intellijplugin.ccloud.fetcher.DataPlaneFetcherImpl
 import io.confluent.intellijplugin.ccloud.model.Cluster
 import io.confluent.intellijplugin.ccloud.model.SchemaRegistry
 import io.confluent.intellijplugin.ccloud.model.response.CreateTopicRequest
-import io.confluent.intellijplugin.ccloud.model.response.SubjectData
+import io.confluent.intellijplugin.ccloud.model.response.SchemaData
 import io.confluent.intellijplugin.ccloud.model.response.TopicData
 import io.confluent.intellijplugin.ccloud.model.restEndpoint
 import io.confluent.intellijplugin.client.KafkaConstants.DEFAULT_CCLOUD_REPLICATION_FACTOR
@@ -33,7 +33,7 @@ class DataPlaneCache(
 
     // Cached data
     private var cachedTopics: List<TopicData>? = null
-    private var cachedSubjects: List<SubjectData>? = null
+    private var cachedSchemas: List<SchemaData>? = null
 
     companion object {
         private const val ENRICHMENT_TIMEOUT_MS = 15_000L // 15 seconds
@@ -82,18 +82,19 @@ class DataPlaneCache(
     /** Check if this cache has Schema Registry configured. */
     fun hasSchemaRegistry(): Boolean = schemaRegistry != null
 
-    /** Get cached subjects (empty if not loaded). */
-    fun getSubjects(): List<SubjectData> = cachedSubjects ?: emptyList()
+    /** Get cached schemas (empty if not loaded). */
+    fun getSchemas(): List<SchemaData> = cachedSchemas ?: emptyList()
 
-    /** Fetch subjects from API and update cache. Blocks calling thread. */
-    fun refreshSubjects(): List<SubjectData> {
+    /** Fetch schemas from API and update cache. Fast initial load (names only). */
+    fun refreshSchemas(): List<SchemaData> {
         if (schemaRegistry == null) return emptyList()
 
-        // TODO: Add progressive loading for schemas similar to enrichTopicsDataProgressively()
+        // Fast initial load: fetch names only, enrichment happens separately
         // runBlocking required: called from non-suspend doLoadChildren() but needs to call suspend functions
-        val subjects = runBlocking { fetcher?.listSubjectsWithDetails() } ?: emptyList()
-        cachedSubjects = subjects
-        return subjects
+        val schemaNames = runBlocking { fetcher?.listSchemas() } ?: emptyList()
+        val schemas = schemaNames.map { SchemaData(name = it) }
+        cachedSchemas = schemas
+        return schemas
     }
 
     /**
@@ -259,7 +260,7 @@ class DataPlaneCache(
         kafkaClient = null
         fetcher = null
         cachedTopics = null
-        cachedSubjects = null
+        cachedSchemas = null
     }
 }
 
