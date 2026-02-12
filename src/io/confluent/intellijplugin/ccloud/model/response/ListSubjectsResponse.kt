@@ -45,10 +45,10 @@ data class SchemaByIdResponse(
 )
 
 /**
- * Subject details for UI presentation.
- * Combines subject name with additional metadata.
+ * Schema details for UI presentation.
+ * Combines schema name with additional metadata.
  */
-data class SubjectData(
+data class SchemaData(
     val name: String,
     val latestVersion: Int? = null,
     val schemaType: String? = null,

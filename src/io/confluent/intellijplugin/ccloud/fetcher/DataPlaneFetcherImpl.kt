@@ -106,7 +106,7 @@ class DataPlaneFetcherImpl(
         TODO("Implement describeConsumerGroup")
     }
 
-    override suspend fun listSubjects(): List<String> {
+    override suspend fun listSchemas(): List<String> {
         requireSchemaRegistry()
         val path = CloudConfig.DataPlane.SchemaRegistry.SUBJECTS_URI
         return schemaRegistryClient!!.fetch(path) { body ->
@@ -114,48 +114,43 @@ class DataPlaneFetcherImpl(
         }
     }
 
-    override suspend fun listSubjectsWithDetails(): List<SubjectData> {
+    override suspend fun loadSchemaInfo(schemaName: String): SchemaData {
         requireSchemaRegistry()
-        val subjects = listSubjects()
-
-        // Fetch details for all subjects in parallel
-        return coroutineScope {
-            subjects.map { subject ->
-                async {
-                    try {
-                        val latestSchema = getSchemaByVersion(subject, "latest")
-                        SubjectData(
-                            name = subject,
-                            latestVersion = latestSchema.version,
-                            schemaType = latestSchema.schemaType,
-                            compatibility = null
-                        )
-                    } catch (e: Exception) {
-                        thisLogger().warn("Failed to fetch details for subject '$subject': ${e.message}")
-                        SubjectData(name = subject)
-                    }
-                }
-            }.awaitAll()
+        return try {
+            val latestSchema = getSchemaVersionInfo(schemaName, "latest")
+            SchemaData(
+                name = schemaName,
+                latestVersion = latestSchema.version,
+                schemaType = latestSchema.schemaType,
+                compatibility = null
+            )
+        } catch (e: Exception) {
+            thisLogger().warn("Failed to fetch details for schema '$schemaName': ${e.message}")
+            SchemaData(name = schemaName)
         }
     }
 
-    override suspend fun listSubjectVersions(subject: String): List<Int> {
+    override suspend fun listSchemaVersions(schemaName: String): List<Int> {
         requireSchemaRegistry()
-        val path = String.format(CloudConfig.DataPlane.SchemaRegistry.SUBJECT_VERSIONS_URI, subject)
+        val path = String.format(CloudConfig.DataPlane.SchemaRegistry.SUBJECT_VERSIONS_URI, schemaName)
         return schemaRegistryClient!!.fetch(path) { body ->
             json.decodeFromString(ListSerializer(Int.serializer()), body)
         }
     }
 
-    override suspend fun getSchemaByVersion(subject: String, version: String): SchemaVersionResponse {
+    override suspend fun getSchemaVersionInfo(schemaName: String, version: String): SchemaVersionResponse {
         requireSchemaRegistry()
-        val path = String.format(CloudConfig.DataPlane.SchemaRegistry.SUBJECT_VERSION_URI, subject, version)
+        val path = String.format(CloudConfig.DataPlane.SchemaRegistry.SUBJECT_VERSION_URI, schemaName, version)
         return schemaRegistryClient!!.fetch(path) { body ->
             json.decodeFromString<SchemaVersionResponse>(body)
         }
     }
 
-    override suspend fun getSchemaById(schemaId: Int): SchemaByIdResponse {
+    override suspend fun getLatestVersionInfo(schemaName: String): SchemaVersionResponse {
+        return getSchemaVersionInfo(schemaName, "latest")
+    }
+
+    override suspend fun getSchemaIdInfo(schemaId: Int): SchemaByIdResponse {
         requireSchemaRegistry()
         val path = String.format(CloudConfig.DataPlane.SchemaRegistry.SCHEMA_BY_ID_URI, schemaId)
         return schemaRegistryClient!!.fetch(path) { body ->
