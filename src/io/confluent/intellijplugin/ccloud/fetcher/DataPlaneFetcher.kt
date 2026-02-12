@@ -27,14 +27,14 @@ interface DataPlaneFetcher {
 
     suspend fun consumeRecords(topicName: String, request: ConsumeRecordsRequest): ConsumeRecordsResponse
 
-    /** List all consumer groups. */
-    suspend fun listConsumerGroups(): List<ConsumerGroupData>
+    /** Get all consumer groups (aligns with Kafka KafkaClient.getConsumerGroups). */
+    suspend fun getConsumerGroups(): List<ConsumerGroupData>
 
     /** Get consumer group details (topics, partitions, lag, offset). */
     suspend fun describeConsumerGroup(groupId: String): ConsumerGroupDetails
 
-    /** List all schemas (throws if Schema Registry unavailable). */
-    suspend fun listSchemas(): List<String>
+    /** Get all schema subjects (aligns with ConfluentRegistryClient.getAllSubjects, returns raw subject names). */
+    suspend fun getAllSubjects(): List<String>
 
     /** Load enriched schema info for a single schema (matches Kafka ConfluentRegistryClient). */
     suspend fun loadSchemaInfo(schemaName: String): SchemaData

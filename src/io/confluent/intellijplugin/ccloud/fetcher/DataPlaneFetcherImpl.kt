@@ -96,15 +96,15 @@ class DataPlaneFetcherImpl(
         return json.decodeFromString<ConsumeRecordsResponse>(responseBody)
     }
 
-    override suspend fun listConsumerGroups(): List<ConsumerGroupData> {
-        TODO("Implement listConsumerGroups")
+    override suspend fun getConsumerGroups(): List<ConsumerGroupData> {
+        TODO("Implement getConsumerGroups")
     }
 
     override suspend fun describeConsumerGroup(groupId: String): ConsumerGroupDetails {
         TODO("Implement describeConsumerGroup")
     }
 
-    override suspend fun listSchemas(): List<String> {
+    override suspend fun getAllSubjects(): List<String> {
         requireSchemaRegistry()
         val path = CloudConfig.DataPlane.SchemaRegistry.SUBJECTS_URI
         return schemaRegistryClient!!.fetch(path) { body ->

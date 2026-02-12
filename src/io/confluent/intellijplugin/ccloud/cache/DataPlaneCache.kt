@@ -6,7 +6,13 @@ import io.confluent.intellijplugin.ccloud.client.CCloudRestClient
 import io.confluent.intellijplugin.ccloud.fetcher.DataPlaneFetcherImpl
 import io.confluent.intellijplugin.ccloud.model.Cluster
 import io.confluent.intellijplugin.ccloud.model.SchemaRegistry
-import io.confluent.intellijplugin.ccloud.model.response.*
+import io.confluent.intellijplugin.ccloud.model.response.CreateTopicRequest
+import io.confluent.intellijplugin.ccloud.model.response.SchemaData
+import io.confluent.intellijplugin.ccloud.model.response.SchemaEnrichmentData
+import io.confluent.intellijplugin.ccloud.model.response.SchemaEnrichmentResult
+import io.confluent.intellijplugin.ccloud.model.response.TopicData
+import io.confluent.intellijplugin.ccloud.model.response.TopicEnrichmentData
+import io.confluent.intellijplugin.ccloud.model.response.TopicEnrichmentResult
 import io.confluent.intellijplugin.ccloud.model.restEndpoint
 import io.confluent.intellijplugin.client.KafkaConstants.DEFAULT_CCLOUD_REPLICATION_FACTOR
 import io.confluent.intellijplugin.model.BdtTopicPartition
@@ -89,7 +95,7 @@ class DataPlaneCache(
 
         // Fast initial load: fetch names only, enrichment happens separately
         // runBlocking required: called from non-suspend doLoadChildren() but needs to call suspend functions
-        val schemaNames = runBlocking { fetcher?.listSchemas() } ?: emptyList()
+        val schemaNames = runBlocking { fetcher?.getAllSubjects() } ?: emptyList()
         val schemas = schemaNames.map { SchemaData(name = it) }
         cachedSchemas = schemas
         return schemas
