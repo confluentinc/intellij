@@ -12,7 +12,6 @@ import io.confluent.intellijplugin.core.monitoring.toolwindow.ComponentControlle
 import io.confluent.intellijplugin.rfs.ConfluentConnectionData
 import io.confluent.intellijplugin.rfs.ConfluentDriver
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
-import java.awt.BorderLayout
 import java.awt.CardLayout
 import javax.swing.JComponent
 import javax.swing.JPanel

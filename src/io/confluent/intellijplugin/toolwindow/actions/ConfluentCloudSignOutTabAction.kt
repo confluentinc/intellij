@@ -7,7 +7,6 @@ import com.intellij.openapi.actionSystem.AnActionEvent
 import io.confluent.intellijplugin.ccloud.auth.CCloudAuthService
 import io.confluent.intellijplugin.core.monitoring.actions.tabs.MonitoringTabConnectionAction
 import io.confluent.intellijplugin.core.util.ConnectionUtil
-import io.confluent.intellijplugin.toolwindow.KafkaMonitoringToolWindowController
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
 
 /**

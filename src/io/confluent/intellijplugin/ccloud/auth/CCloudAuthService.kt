@@ -1,6 +1,9 @@
 package io.confluent.intellijplugin.ccloud.auth
 
 import com.intellij.ide.BrowserUtil
+import com.intellij.notification.Notification
+import com.intellij.notification.NotificationType
+import com.intellij.notification.Notifications
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.ModalityState
@@ -10,6 +13,7 @@ import com.intellij.openapi.diagnostic.thisLogger
 import io.confluent.intellijplugin.telemetry.CCloudAuthenticationEvent
 import io.confluent.intellijplugin.telemetry.logUsage
 import io.confluent.intellijplugin.telemetry.logUser
+import io.confluent.intellijplugin.util.KafkaMessagesBundle
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -20,9 +24,8 @@ import kotlinx.coroutines.launch
  *
  * Usage:
  *  ```
- *  CCloudAuthService.getInstance().signIn(
- *      onSuccess = { email -> showSuccess("Signed in as $email") },
- *      onError = { error -> showError(error) }
+ *  CCloudAuthService.getInstance().signIn()  // Opens browser, notifies listeners on completion
+ *  CCloudAuthService.getInstance().signOut()  // Clears session, notifies listeners
  *  ```
  *
  * @see CCloudOAuthContext
@@ -56,12 +59,9 @@ class CCloudAuthService(private val scope: CoroutineScope) : Disposable {
 
     /**
      * Start the OAuth sign-in flow.
-     * Opens browser for authentication and calls back on completion.
+     * Opens browser for authentication, shows notifications, and notifies listeners on completion.
      */
-    fun signIn(
-        onSuccess: (userEmail: String) -> Unit = {},
-        onError: (error: String) -> Unit = {}
-    ) {
+    fun signIn() {
         logger.info("Starting OAuth sign-in flow")
 
         val oauthContext = CCloudOAuthContext()
@@ -90,7 +90,10 @@ class CCloudAuthService(private val scope: CoroutineScope) : Disposable {
                 // Dispatch to EDT so UI updates work even when triggered from a modal dialog (from Settings)
                 ApplicationManager.getApplication().invokeLater({
                     authStateListeners.toList().forEach { it.onSignedIn(email) }
-                    onSuccess(email)
+                    notifyInfo(
+                        KafkaMessagesBundle.message("confluent.cloud.notification.sign.in.success"),
+                        KafkaMessagesBundle.message("confluent.cloud.notification.sign.in.success.text", email)
+                    )
                 }, ModalityState.any())
             },
             onError = { error ->
@@ -98,7 +101,7 @@ class CCloudAuthService(private val scope: CoroutineScope) : Disposable {
                 logUsage(CCloudAuthenticationEvent(status = "authentication failed", errorType = error))
 
                 ApplicationManager.getApplication().invokeLater({
-                    onError(error)
+                    notifyError(KafkaMessagesBundle.message("confluent.cloud.notification.sign.in.failure"), error)
                 }, ModalityState.any())
             }
         )
@@ -147,8 +150,17 @@ class CCloudAuthService(private val scope: CoroutineScope) : Disposable {
         if (wasSignedIn && notifyListeners) {
             ApplicationManager.getApplication().invokeLater({
                 authStateListeners.toList().forEach { it.onSignedOut() }
+                notifyInfo(KafkaMessagesBundle.message("confluent.cloud.notification.sign.out"))
             }, ModalityState.any())
         }
+    }
+
+    private fun notifyInfo(title: String, content: String = "") {
+        Notifications.Bus.notify(Notification("Kafka Notification", title, content, NotificationType.INFORMATION))
+    }
+
+    private fun notifyError(title: String, content: String) {
+        Notifications.Bus.notify(Notification("Kafka Notification", title, content, NotificationType.ERROR))
     }
 
     // State accessors
