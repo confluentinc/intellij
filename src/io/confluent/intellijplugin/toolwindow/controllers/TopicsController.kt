@@ -279,12 +279,9 @@ internal class TopicsController(
         // Add consume action for CCloud connections
         createCCloudConsumeAction()?.let { actions.add(it) }
 
-        // Add standard topic actions (create, delete, clear) for all cluster types
-        if (dataManager is BaseClusterDataManager) {
-            val actionManager = ActionManager.getInstance()
-            val group = actionManager.getAction("Kafka.Topic.Actions") as DefaultActionGroup
-            actions.addAll(group.getChildren(actionManager).toList())
-        }
+        val actionManager = ActionManager.getInstance()
+        val group = actionManager.getAction("Kafka.Topic.Actions") as DefaultActionGroup
+        actions.addAll(group.getChildren(actionManager).toList())
 
         return actions
     }

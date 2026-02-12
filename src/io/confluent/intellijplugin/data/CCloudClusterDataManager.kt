@@ -3,6 +3,7 @@ package io.confluent.intellijplugin.data
 import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.util.concurrency.annotations.RequiresBackgroundThread
 import io.confluent.intellijplugin.ccloud.cache.DataPlaneCache
 import io.confluent.intellijplugin.ccloud.model.Cluster
@@ -75,10 +76,10 @@ class CCloudClusterDataManager(
      * This prevents queued EDT callbacks from running after disposal during shutdown.
      */
     private fun invokeLaterIfNotDisposed(action: () -> Unit) {
-        invokeLater {
-            if (Disposer.isDisposed(this@CCloudClusterDataManager)) return@invokeLater
-            action()
-        }
+        ApplicationManager.getApplication().invokeLater(
+            { action() },
+            { Disposer.isDisposed(this@CCloudClusterDataManager) }
+        )
     }
 
     override fun createTopicPartitionsStorage() = ObjectDataModelStorage<String, BdtTopicPartition>(
