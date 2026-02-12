@@ -78,7 +78,7 @@ class ConfluentTabController(
                     com.intellij.notification.Notification(
                         "Kafka Notification",
                         KafkaMessagesBundle.message("confluent.cloud.notification.sign.in.success"),
-                        "Signed in as $email",
+                        KafkaMessagesBundle.message("confluent.cloud.notification.sign.in.success.text", email),
                         com.intellij.notification.NotificationType.INFORMATION
                     ),
                     project
