@@ -28,14 +28,7 @@ class ConfluentCloudSignOutTabAction : MonitoringTabConnectionAction() {
 
         if (connectionId != "ccloud") return
 
-        // Sign out from auth service
         CCloudAuthService.getInstance().signOut()
-
-        // Get the Confluent Cloud tab controller and tell it to sign out
-        val tabController = KafkaMonitoringToolWindowController.getInstance(project)
-            ?.getConfluentCloudTabController()
-
-        tabController?.signOut()
 
         Notifications.Bus.notify(
             Notification(

@@ -2,6 +2,8 @@ package io.confluent.intellijplugin.core.settings.connections
 
 import org.jetbrains.annotations.Nls
 import javax.swing.Icon
+import javax.swing.JComponent
+import javax.swing.JPanel
 import kotlin.random.Random
 
 abstract class ConnectionGroup(
@@ -16,6 +18,9 @@ abstract class ConnectionGroup(
         // only intermediate groups can be invisible (=flat), currently we don't have such
         require(visible || parentGroupId != null)
     }
+
+    /** Override to provide a custom panel when this group is selected in the settings tree. */
+    open fun createOptionsPanel(): JComponent = JPanel()
 }
 
 abstract class ConnectionFactory<T : ConnectionData>(
