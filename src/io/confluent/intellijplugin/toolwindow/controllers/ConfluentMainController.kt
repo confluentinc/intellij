@@ -362,7 +362,7 @@ internal class ConfluentMainController(
 
             val columnNames = arrayOf("Property", "Value")
             val data = arrayOf(
-                arrayOf<Any>("ID", environment.id),
+                arrayOf<Any>("Environment ID", environment.id),
                 arrayOf<Any>("Name", environment.displayName),
                 arrayOf<Any>("Stream Governance Package", environment.streamGovernancePackage ?: "N/A")
             )
