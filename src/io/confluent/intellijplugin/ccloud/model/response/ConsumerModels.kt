@@ -124,7 +124,3 @@ enum class TimestampType {
     CREATE_TIME,
     LOG_APPEND_TIME
 }
-
-// TODO: Temporary placeholders for produce API. Create ProducerModels.kt when implementing.
-data class ProduceRequest(val value: String)
-data class ProduceResponse(val success: Boolean)

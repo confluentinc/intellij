@@ -82,10 +82,6 @@ class DataPlaneFetcherImpl(
         }
     }
 
-    override suspend fun produceRecord(topicName: String, request: ProduceRequest): ProduceResponse {
-        TODO("Implement produceRecord")
-    }
-
     override suspend fun consumeRecords(
         topicName: String,
         request: ConsumeRecordsRequest
@@ -129,7 +125,8 @@ class DataPlaneFetcherImpl(
 
     override suspend fun getSchemaVersionInfo(subjectName: String, version: Long): SchemaVersionResponse {
         requireSchemaRegistry()
-        val path = String.format(CloudConfig.DataPlane.SchemaRegistry.SUBJECT_VERSION_URI, subjectName, version.toString())
+        val path =
+            String.format(CloudConfig.DataPlane.SchemaRegistry.SUBJECT_VERSION_URI, subjectName, version.toString())
         return schemaRegistryClient!!.fetch(path) { body ->
             json.decodeFromString<SchemaVersionResponse>(body)
         }

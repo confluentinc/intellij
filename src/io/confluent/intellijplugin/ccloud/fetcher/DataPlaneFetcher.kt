@@ -14,9 +14,8 @@ interface DataPlaneFetcher {
     suspend fun getTopicBeginningOffsets(topicName: String): Map<Int, Long>
     suspend fun getTopicEndOffsets(topicName: String): Map<Int, Long>
 
-    suspend fun produceRecord(topicName: String, request: ProduceRequest): ProduceResponse
     suspend fun consumeRecords(topicName: String, request: ConsumeRecordsRequest): ConsumeRecordsResponse
-    
+
     /** Get all subject names from Schema Registry. */
     suspend fun getAllSubjects(): List<String>
 
