@@ -53,12 +53,16 @@ class ControlPlaneCache(
         } ?: emptyList()
     }
 
+    fun getCachedKafkaClusters(environmentId: String): List<Cluster>? = cachedClusters[environmentId]
+
     /** Get schema registry for an environment (fetches on first access, then cached). Returns null if none exists. */
     fun getSchemaRegistry(environmentId: String): SchemaRegistry? = cachedSchemaRegistry.getOrPut(environmentId) {
         fetcher?.let { f ->
             runBlocking { f.getSchemaRegistry(environmentId) }
         }
     }
+
+    fun getCachedSchemaRegistry(environmentId: String): SchemaRegistry? = cachedSchemaRegistry[environmentId]
 
     fun refreshEnvironments(): List<Environment> {
         cachedEnvironments = fetcher?.let { f ->

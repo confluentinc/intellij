@@ -13,6 +13,7 @@ import io.confluent.intellijplugin.rfs.ConfluentDriver.Companion.getSchemaRegist
 import io.confluent.intellijplugin.core.monitoring.rfs.MonitoringRfsTreeNode
 import io.confluent.intellijplugin.core.rfs.driver.RfsPath
 import io.confluent.intellijplugin.toolwindow.config.KafkaToolWindowSettings
+import io.confluent.intellijplugin.util.KafkaMessagesBundle.message
 import javax.swing.Icon
 
 /**
@@ -39,7 +40,7 @@ class ConfluentRfsTreeNode(
 
         return when {
             rfsPath.isCluster(confluentDriver) -> getCluster(envId)?.displayName ?: rfsPath.name
-            rfsPath.isSchemaRegistry(confluentDriver) -> "Schema Registry"
+            rfsPath.isSchemaRegistry(confluentDriver) -> message("field.type.registry")
             rfsPath.isTopic || rfsPath.isSchema -> rfsPath.name
             else -> rfsPath.name
         }
@@ -88,11 +89,11 @@ class ConfluentRfsTreeNode(
     }
 
     private fun getCluster(envId: String) =
-        confluentDriver.dataManager.client.getKafkaClusters(envId)
-            .find { it.id == rfsPath.name }
+        confluentDriver.dataManager.client.getCachedKafkaClusters(envId)
+            ?.find { it.id == rfsPath.name }
 
     private fun getSchemaRegistry(envId: String) =
-        confluentDriver.dataManager.client.getSchemaRegistry(envId)
+        confluentDriver.dataManager.client.getCachedSchemaRegistry(envId)
 
     private fun getTooltipText(): String? {
         val envId = confluentDriver.selectedEnvironmentId ?: return null

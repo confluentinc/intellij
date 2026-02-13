@@ -3,6 +3,7 @@ package io.confluent.intellijplugin.toolwindow.controllers
 import com.intellij.ide.projectView.impl.ProjectViewTree
 import com.intellij.openapi.actionSystem.UiDataProvider
 import com.intellij.openapi.application.runInEdt
+import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.observable.properties.AtomicBooleanProperty
 import com.intellij.openapi.observable.util.not
 import com.intellij.openapi.project.Project
@@ -48,6 +49,7 @@ import io.confluent.intellijplugin.data.CCloudClusterDataManager
 import io.confluent.intellijplugin.ccloud.model.Environment
 import io.confluent.intellijplugin.toolwindow.NavigableController
 import io.confluent.intellijplugin.toolwindow.controllers.TopicsController
+import io.confluent.intellijplugin.util.KafkaMessagesBundle.message
 import com.intellij.ui.table.JBTable
 import java.awt.BorderLayout
 import java.awt.CardLayout
@@ -100,14 +102,15 @@ internal class ConfluentMainController(
         try {
             panel.add(contentBuilder(), BorderLayout.CENTER)
         } catch (e: Exception) {
-            panel.add(JLabel("Error: ${e.message}"), BorderLayout.CENTER)
+            thisLogger().warn("Error updating panel", e)
+            panel.add(JLabel(message("table.loading.error", e.message ?: "Unknown error")), BorderLayout.CENTER)
         }
         panel.revalidate()
         panel.repaint()
     }
 
-    private val emptyDetailsPanel = createPlaceholderPanel("Select a cluster or schema registry to view details")
-    private val loadingDetailsPanel = createPlaceholderPanel("Loading...")
+    private val emptyDetailsPanel = createPlaceholderPanel(message("confluent.cloud.details.placeholder"))
+    private val loadingDetailsPanel = createPlaceholderPanel(message("table.loading"))
     private val environmentDetailsPanel = JPanel(BorderLayout())
     private val topicsDetailsPanel = JPanel(BorderLayout())
 
@@ -252,7 +255,7 @@ internal class ConfluentMainController(
         // Create environment selector panel with empty model (will be populated after connection)
         val selectorPanel = panel {
             row {
-                label("Environment:")
+                label(message("confluent.cloud.environment.selector.label"))
                 comboBox(environmentComboBoxModel)
                     .also {                     comboBoxComponent ->
                         comboBoxComponent.component.addActionListener {
@@ -373,12 +376,12 @@ internal class ConfluentMainController(
 
     private fun createEnvironmentTable(environment: Environment): JComponent {
         val data = arrayOf(
-            arrayOf<Any>("Environment ID", environment.id),
-            arrayOf<Any>("Name", environment.displayName),
-            arrayOf<Any>("Stream Governance Package", environment.streamGovernancePackage ?: "N/A")
+            arrayOf<Any>(message("confluent.cloud.environment.table.id"), environment.id),
+            arrayOf<Any>(message("confluent.cloud.environment.table.name"), environment.displayName),
+            arrayOf<Any>(message("confluent.cloud.environment.table.governance"), environment.streamGovernancePackage ?: "N/A")
         )
 
-        val table = JBTable(DefaultTableModel(data, arrayOf("Property", "Value"))).apply {
+        val table = JBTable(DefaultTableModel(data, arrayOf(message("confluent.cloud.table.column.property"), message("confluent.cloud.table.column.value")))).apply {
             setDefaultEditor(Any::class.java, null)
             tableHeader = null
         }
