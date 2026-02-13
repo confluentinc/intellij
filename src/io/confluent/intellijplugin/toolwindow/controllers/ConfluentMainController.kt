@@ -105,6 +105,8 @@ internal class ConfluentMainController(
 
     private val schemaDetailPanel = JPanel(BorderLayout())
 
+    private var hasShownInitialEnvironmentDetails = false
+
     private val driverListener = object : DriverRfsListener {
         override fun driverRefreshFinished(status: DriverConnectionStatus) {
             invokeLater {
@@ -113,8 +115,14 @@ internal class ConfluentMainController(
                 if (status == ConnectedConnectionStatus) {
                     installToolbarIfNeeded()
                     populateEnvironmentSelector()
-                    if (myTree.selectionPath == null) {
-                        selectDefaultPath()
+
+                    if (!hasShownInitialEnvironmentDetails) {
+                        hasShownInitialEnvironmentDetails = true
+                        val envId = selectedEnvironmentId.get()
+                        if (envId != null) {
+                            showEnvironmentDetails(envId)
+                            (details.layout as CardLayout).show(details, ENVIRONMENT_PANEL)
+                        }
                     }
                 }
             }
@@ -179,16 +187,6 @@ internal class ConfluentMainController(
         driver.addListener(driverListener)
         Disposer.register(this) { driver.removeListener(driverListener) }
         updateMainPanel(dataManager.client.connectionError)
-
-        treeModel.addTreeModelListener(object : TreeModelAdapter() {
-            override fun process(event: TreeModelEvent, type: EventType) {
-                if (myTree.selectionPath == null) {
-                    runInEdt {
-                        selectDefaultPath()
-                    }
-                }
-            }
-        })
     }
 
     private fun createNormalPanel(): OnePixelSplitter {
@@ -217,16 +215,6 @@ internal class ConfluentMainController(
                 lastSelectedPath = treePath
 
             val rfsPath = treePath?.lastDriverNode?.rfsPath
-            if (rfsPath == null) {
-                invokeLater {
-                    if (::lastSelectedPath.isInitialized) {
-                        val latestRfsPath = lastSelectedPath.lastDriverNode?.rfsPath
-                        if (latestRfsPath != null && treeModel.getTreePath(latestRfsPath) != null)
-                            myTree.selectionPath = lastSelectedPath
-                        else selectDefaultPath()
-                    }
-                }
-            }
             showDetailsComponent(rfsPath)
         }
 
@@ -382,6 +370,7 @@ internal class ConfluentMainController(
             val tableModel = DefaultTableModel(data, columnNames)
             val table = JBTable(tableModel).apply {
                 setDefaultEditor(Any::class.java, null)
+                tableHeader = null
             }
 
             val scrollPane = JBScrollPane(table)
@@ -575,14 +564,6 @@ internal class ConfluentMainController(
 
         schemaDetailPanel.revalidate()
         schemaDetailPanel.repaint()
-    }
-
-    private fun selectDefaultPath() {
-        val envs = dataManager.client.getEnvironments()
-        if (envs.isNotEmpty()) {
-            val firstEnvPath = RfsPath(listOf(envs.first().id), true)
-            open(firstEnvPath)
-        }
     }
 
     override fun open(rfsPath: RfsPath) = RfsUtil.select(driver.getExternalId(), rfsPath, myTree)

@@ -1,6 +1,7 @@
 package io.confluent.intellijplugin.rfs
 
 import com.intellij.icons.AllIcons
+import com.intellij.ide.projectView.PresentationData
 import com.intellij.openapi.project.Project
 import io.confluent.intellijplugin.rfs.ConfluentDriver.Companion.isCluster
 import io.confluent.intellijplugin.rfs.ConfluentDriver.Companion.isSchemaRegistry
@@ -85,6 +86,29 @@ class ConfluentRfsTreeNode(
             }
             rfsPath.isSchema -> schemaType
             else -> null
+        }
+    }
+
+    override fun update(presentation: PresentationData) {
+        super.update(presentation)
+
+        val envId = confluentDriver.selectedEnvironmentId ?: return
+
+        when {
+            rfsPath.isCluster(confluentDriver) -> {
+                val cluster = confluentDriver.dataManager.client.getKafkaClusters(envId)
+                    .find { it.id == rfsPath.name }
+                cluster?.let {
+                    // more info in tooltip can be added later if needed
+                    presentation.tooltip = "ID: ${it.id}"
+                }
+            }
+            rfsPath.isSchemaRegistry(confluentDriver) -> {
+                val sr = confluentDriver.dataManager.client.getSchemaRegistry(envId)
+                sr?.let {
+                    presentation.tooltip = "ID: ${it.id}"
+                }
+            }
         }
     }
 
