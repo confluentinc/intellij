@@ -150,7 +150,11 @@ class CCloudDisplayGroup : ConnectionGroup(
                             StatusText.DEFAULT_ATTRIBUTES
                         )
                         if (orgName != null) {
-                            appendLine(orgName, StatusText.DEFAULT_ATTRIBUTES, null)
+                            appendLine(
+                                KafkaMessagesBundle.message("confluent.cloud.settings.organization.label", orgName),
+                                StatusText.DEFAULT_ATTRIBUTES,
+                                null
+                            )
                         }
                         if (sessionExpiry.isNotEmpty()) {
                             appendLine(
