@@ -33,6 +33,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.TopicPartition
+import org.jetbrains.concurrency.Promise
 
 abstract class BaseClusterDataManager(
     project: Project?,
@@ -249,6 +250,21 @@ abstract class BaseClusterDataManager(
     abstract fun getLatestVersionInfo(schemaName: String): SchemaVersionInfo?
 
     abstract fun getCachedOrLoadSchema(name: String): KafkaSchemaInfo
+
+    abstract fun getSchemaVersionInfo(schemaName: String, version: Long): Promise<SchemaVersionInfo>
+
+    abstract fun parseSchemaForDisplay(versionInfo: SchemaVersionInfo): Result<io.confluent.kafka.schemaregistry.ParsedSchema>
+
+    // Schema write operations - override in subclasses that support writes (KafkaDataManager)
+    open fun updateSchema(versionInfo: SchemaVersionInfo, newSchema: String): Promise<Unit> {
+        throw UnsupportedOperationException("Schema updates not supported for this connection type")
+    }
+
+    open fun deleteRegistrySchemaVersion(versionInfo: SchemaVersionInfo) {
+        throw UnsupportedOperationException("Schema deletion not supported for this connection type")
+    }
+
+    fun getSchemaVersionsModel(schemaName: String) = schemaVersionModels[schemaName]
 
     fun updatePinnedSchemas(schemaName: String, isForAdding: Boolean) {
         val config = KafkaToolWindowSettings.getInstance().getOrCreateConfig(connectionId)

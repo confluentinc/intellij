@@ -31,6 +31,7 @@ import io.confluent.intellijplugin.core.monitoring.toolwindow.DetailsMonitoringC
 import io.confluent.intellijplugin.core.ui.CustomComponentActionImpl
 import io.confluent.intellijplugin.core.util.ToolbarUtils
 import io.confluent.intellijplugin.core.util.invokeLater
+import io.confluent.intellijplugin.data.BaseClusterDataManager
 import io.confluent.intellijplugin.data.KafkaDataManager
 import io.confluent.intellijplugin.registry.KafkaRegistryFormat
 import io.confluent.intellijplugin.registry.KafkaRegistryType
@@ -53,7 +54,7 @@ import javax.swing.JPanel
 
 class KafkaSchemaController(
     private val project: Project,
-    private val dataManager: KafkaDataManager
+    private val dataManager: BaseClusterDataManager
 ) : ComponentController,
     DetailsMonitoringController<String> {
     private val config: KafkaClusterConfig
@@ -141,10 +142,7 @@ class KafkaSchemaController(
 
             version1Schema = it
             val prettySchema = KafkaRegistryUtil.getPrettySchema(schemaType = it.type.name, schema = it.schema)
-            val parsedSchema = KafkaRegistryUtil.parseSchema(
-                schemaType = it.type, newText = it.schema,
-                client = dataManager.client.confluentRegistryClient, references = it.references
-            ).getOrNull()
+            val parsedSchema = dataManager.parseSchemaForDisplay(it).getOrNull()
                 ?: return@onSuccess
             invokeLater {
                 schemaView.setText(
@@ -303,7 +301,7 @@ class KafkaSchemaController(
             override fun update(e: AnActionEvent) {
                 e.presentation.description = ""
                 e.presentation.isEnabledAndVisible = version1Schema != null && version1.component.itemCount > 1
-                if (e.presentation.isEnabledAndVisible && dataManager.connectionData.registryType == KafkaRegistryType.AWS_GLUE) {
+                if (e.presentation.isEnabledAndVisible && dataManager.registryType == KafkaRegistryType.AWS_GLUE) {
                     val versions = version1.component.getUserData(SchemaVersionsComboboxController.VERSIONS_LIST_KEY)
                     val selectedItem = version1.component.item
                     e.presentation.isEnabledAndVisible = selectedItem != versions?.lastOrNull()
