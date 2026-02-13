@@ -29,7 +29,8 @@ class ControlPlaneFetcherImpl(
             val items = response.data.map { envData ->
                 Environment(
                     id = envData.id,
-                    displayName = envData.displayName ?: envData.id
+                    displayName = envData.displayName ?: envData.id,
+                    streamGovernancePackage = envData.streamGovernanceConfig?.packageName
                 )
             }
             items to response.metadata?.next
@@ -43,7 +44,7 @@ class ControlPlaneFetcherImpl(
             val items = response.data.map { clusterData ->
                 Cluster(
                     id = clusterData.id,
-                    displayName = clusterData.displayName ?: clusterData.id,
+                    displayName = clusterData.spec?.displayName ?: clusterData.id,
                     cloudProvider = clusterData.spec?.cloud ?: "Unknown",
                     region = clusterData.spec?.region ?: "Unknown",
                     httpEndpoint = clusterData.spec?.httpEndpoint ?: ""
