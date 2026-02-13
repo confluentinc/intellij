@@ -1,13 +1,9 @@
 package io.confluent.intellijplugin.toolwindow.actions
 
-import com.intellij.notification.Notification
-import com.intellij.notification.NotificationType
-import com.intellij.notification.Notifications
 import com.intellij.openapi.actionSystem.AnActionEvent
 import io.confluent.intellijplugin.ccloud.auth.CCloudAuthService
 import io.confluent.intellijplugin.core.monitoring.actions.tabs.MonitoringTabConnectionAction
 import io.confluent.intellijplugin.core.util.ConnectionUtil
-import io.confluent.intellijplugin.util.KafkaMessagesBundle
 
 /**
  * Action to sign out from Confluent Cloud.
@@ -23,21 +19,10 @@ class ConfluentCloudSignOutTabAction : MonitoringTabConnectionAction() {
     }
 
     override fun actionPerformed(e: AnActionEvent) {
-        val project = e.project ?: return
         val connectionId = e.dataContext.getData(ConnectionUtil.CONNECTION_ID)
 
         if (connectionId != "ccloud") return
 
         CCloudAuthService.getInstance().signOut()
-
-        Notifications.Bus.notify(
-            Notification(
-                "Kafka Notification",
-                KafkaMessagesBundle.message("confluent.cloud.notification.sign.out"),
-                "",
-                NotificationType.INFORMATION
-            ),
-            project
-        )
     }
 }
