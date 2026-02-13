@@ -61,7 +61,8 @@ object CloudConfig {
             const val CONSUMER_GROUP_URI = "/kafka/v3/clusters/%s/consumer-groups/%s"
 
             /** Consume records with guaranteed progress per partition. */
-            const val CCLOUD_SIMPLE_CONSUME_API_PATH = "/kafka/v3/clusters/%s/internal/topics/%s/partitions/-/records:consume_guarantee_progress"
+            const val CCLOUD_SIMPLE_CONSUME_API_PATH =
+                "/kafka/v3/clusters/%s/internal/topics/%s/partitions/-/records:consume_guarantee_progress"
         }
 
         /**
@@ -93,13 +94,6 @@ object CloudConfig {
 
             /** Delete schema version: DELETE /subjects/{subject}/versions/{version}?permanent={bool} */
             const val DELETE_VERSION_URI = "/subjects/%s/versions/%s"
-
-            // Config operations
-            /** Get global compatibility: GET /config */
-            const val CONFIG_URI = "/config"
-
-            /** Get/update subject compatibility: GET|PUT /config/{subject} */
-            const val SUBJECT_CONFIG_URI = "/config/%s"
         }
     }
 }
