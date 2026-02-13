@@ -131,7 +131,7 @@ For each changed file, verify compliance with project standards:
 - [ ] **Exception handling**: Graceful handling with user-visible error messages
 - [ ] **No secrets**: No `.env`, credentials, or sensitive data committed
 - [ ] **Minimal changes**: Only necessary changes, no unrelated refactoring
-- - [ ] **Precise imports**: No unused imports
+- [ ] **Precise imports**: No unused imports
 
 ### 4. Security Considerations
 
