@@ -29,7 +29,8 @@ class ControlPlaneFetcherImpl(
             val items = response.data.map { envData ->
                 Environment(
                     id = envData.id,
-                    displayName = envData.displayName ?: envData.id
+                    displayName = envData.displayName ?: envData.id,
+                    streamGovernancePackage = envData.streamGovernanceConfig?.packageName
                 )
             }
             items to response.metadata?.next

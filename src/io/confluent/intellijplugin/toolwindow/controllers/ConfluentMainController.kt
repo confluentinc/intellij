@@ -45,6 +45,7 @@ import io.confluent.intellijplugin.core.rfs.util.RfsUtil
 import io.confluent.intellijplugin.core.rfs.viewer.utils.DriverRfsTreeUtil.lastDriverNode
 import io.confluent.intellijplugin.core.util.invokeLater
 import io.confluent.intellijplugin.data.CCloudClusterDataManager
+import io.confluent.intellijplugin.ccloud.model.Environment
 import io.confluent.intellijplugin.toolwindow.NavigableController
 import io.confluent.intellijplugin.toolwindow.controllers.TopicsController
 import com.intellij.ui.table.JBTable
@@ -94,8 +95,20 @@ internal class ConfluentMainController(
         add(JLabel(message), BorderLayout.CENTER)
     }
 
+    private inline fun updatePanel(panel: JPanel, contentBuilder: () -> JComponent) {
+        panel.removeAll()
+        try {
+            panel.add(contentBuilder(), BorderLayout.CENTER)
+        } catch (e: Exception) {
+            panel.add(JLabel("Error: ${e.message}"), BorderLayout.CENTER)
+        }
+        panel.revalidate()
+        panel.repaint()
+    }
+
     private val emptyDetailsPanel = createPlaceholderPanel("Select a cluster or schema registry to view details")
     private val loadingDetailsPanel = createPlaceholderPanel("Loading...")
+    private val environmentDetailsPanel = JPanel(BorderLayout())
     private val topicsDetailsPanel = JPanel(BorderLayout())
 
     private val topicDetailPanel = JPanel(BorderLayout())
@@ -103,6 +116,8 @@ internal class ConfluentMainController(
     private val schemasDetailsPanel = JPanel(BorderLayout())
 
     private val schemaDetailPanel = JPanel(BorderLayout())
+
+    private var hasShownInitialEnvironmentDetails = false
 
     private val driverListener = object : DriverRfsListener {
         override fun driverRefreshFinished(status: DriverConnectionStatus) {
@@ -112,9 +127,18 @@ internal class ConfluentMainController(
                 if (status == ConnectedConnectionStatus) {
                     installToolbarIfNeeded()
                     populateEnvironmentSelector()
-                    if (myTree.selectionPath == null) {
-                        selectDefaultPath()
+
+                    if (!hasShownInitialEnvironmentDetails) {
+                        hasShownInitialEnvironmentDetails = true
+                        val envId = selectedEnvironmentId.get()
+                        if (envId != null) {
+                            showEnvironmentDetails(envId)
+                            (details.layout as CardLayout).show(details, ENVIRONMENT_PANEL)
+                        }
                     }
+                } else {
+                    // Reset so environment details show on next connection
+                    hasShownInitialEnvironmentDetails = false
                 }
             }
         }
@@ -123,6 +147,7 @@ internal class ConfluentMainController(
     companion object {
         private const val EMPTY_PANEL = "empty"
         private const val LOADING_PANEL = "loading"
+        private const val ENVIRONMENT_PANEL = "environment"
         private const val TOPICS_PANEL = "topics"
         private const val TOPIC_DETAIL_PANEL = "topicDetail"
         private const val SCHEMAS_PANEL = "schemas"
@@ -134,6 +159,7 @@ internal class ConfluentMainController(
     fun init() {
         details.add(emptyDetailsPanel, EMPTY_PANEL)
         details.add(loadingDetailsPanel, LOADING_PANEL)
+        details.add(environmentDetailsPanel, ENVIRONMENT_PANEL)
         details.add(topicsDetailsPanel, TOPICS_PANEL)
         details.add(topicDetailPanel, TOPIC_DETAIL_PANEL)
         details.add(schemasDetailsPanel, SCHEMAS_PANEL)
@@ -176,16 +202,6 @@ internal class ConfluentMainController(
         driver.addListener(driverListener)
         Disposer.register(this) { driver.removeListener(driverListener) }
         updateMainPanel(dataManager.client.connectionError)
-
-        treeModel.addTreeModelListener(object : TreeModelAdapter() {
-            override fun process(event: TreeModelEvent, type: EventType) {
-                if (myTree.selectionPath == null) {
-                    runInEdt {
-                        selectDefaultPath()
-                    }
-                }
-            }
-        })
     }
 
     private fun createNormalPanel(): OnePixelSplitter {
@@ -214,16 +230,6 @@ internal class ConfluentMainController(
                 lastSelectedPath = treePath
 
             val rfsPath = treePath?.lastDriverNode?.rfsPath
-            if (rfsPath == null) {
-                invokeLater {
-                    if (::lastSelectedPath.isInitialized) {
-                        val latestRfsPath = lastSelectedPath.lastDriverNode?.rfsPath
-                        if (latestRfsPath != null && treeModel.getTreePath(latestRfsPath) != null)
-                            myTree.selectionPath = lastSelectedPath
-                        else selectDefaultPath()
-                    }
-                }
-            }
             showDetailsComponent(rfsPath)
         }
 
@@ -295,7 +301,7 @@ internal class ConfluentMainController(
         environmentComboBoxModel.removeAllElements()
 
         environments.forEach { env ->
-            environmentComboBoxModel.addElement(EnvironmentItem(env.id, env.displayName ?: env.id))
+            environmentComboBoxModel.addElement(EnvironmentItem(env.id, env.displayName))
         }
 
         if (environments.isNotEmpty() && selectedEnvironmentId.get() == null) {
@@ -307,13 +313,14 @@ internal class ConfluentMainController(
     }
 
     private fun refreshTreeForEnvironment(envId: String) {
-        (details.layout as CardLayout).show(details, LOADING_PANEL)
         driver.selectedEnvironmentId = envId
         myTree.clearSelection()
         driver.fileInfoManager.refreshFiles(driver.root)
 
+        // Show environment details when switching environments
         invokeLater {
-            selectDefaultPath()
+            showEnvironmentDetails(envId)
+            (details.layout as CardLayout).show(details, ENVIRONMENT_PANEL)
         }
     }
 
@@ -324,7 +331,16 @@ internal class ConfluentMainController(
     private fun showDetailsComponent(rfsPath: RfsPath?) {
         val layout = details.layout as CardLayout
         when {
-            rfsPath == null -> layout.show(details, EMPTY_PANEL)
+            rfsPath == null -> {
+                // Show environment details if an environment is selected
+                val envId = selectedEnvironmentId.get()
+                if (envId != null) {
+                    showEnvironmentDetails(envId)
+                    layout.show(details, ENVIRONMENT_PANEL)
+                } else {
+                    layout.show(details, EMPTY_PANEL)
+                }
+            }
             rfsPath.isCluster(driver) -> {
                 showTopicsDetails(rfsPath)
                 layout.show(details, TOPICS_PANEL)
@@ -345,44 +361,46 @@ internal class ConfluentMainController(
         }
     }
 
+    private fun showEnvironmentDetails(envId: String) {
+        updatePanel(environmentDetailsPanel) {
+            val environment = dataManager.client.getEnvironments()
+                .find { it.id == envId }
+                ?: throw IllegalStateException("Environment not found")
+
+            createEnvironmentTable(environment)
+        }
+    }
+
+    private fun createEnvironmentTable(environment: Environment): JComponent {
+        val data = arrayOf(
+            arrayOf<Any>("Environment ID", environment.id),
+            arrayOf<Any>("Name", environment.displayName),
+            arrayOf<Any>("Stream Governance Package", environment.streamGovernancePackage ?: "N/A")
+        )
+
+        val table = JBTable(DefaultTableModel(data, arrayOf("Property", "Value"))).apply {
+            setDefaultEditor(Any::class.java, null)
+            tableHeader = null
+        }
+
+        return JBScrollPane(table)
+    }
+
     private fun showTopicsDetails(rfsPath: RfsPath) {
-        topicsDetailsPanel.removeAll()
-
-        try {
-            val envId = rfsPath.getEnvironmentId(driver) ?: run {
-                topicsDetailsPanel.add(JLabel("Error: Could not determine environment"), BorderLayout.CENTER)
-                topicsDetailsPanel.revalidate()
-                topicsDetailsPanel.repaint()
-                return
-            }
-
-            val clusterId = rfsPath.getClusterId() ?: run {
-                topicsDetailsPanel.add(JLabel("Error: Could not determine cluster"), BorderLayout.CENTER)
-                topicsDetailsPanel.revalidate()
-                topicsDetailsPanel.repaint()
-                return
-            }
+        updatePanel(topicsDetailsPanel) {
+            val envId = rfsPath.getEnvironmentId(driver)
+                ?: throw IllegalStateException("Could not determine environment")
+            val clusterId = rfsPath.getClusterId()
+                ?: throw IllegalStateException("Could not determine cluster")
 
             val cluster = dataManager.getKafkaClusters(envId).find { it.id == clusterId }
-            if (cluster == null) {
-                topicsDetailsPanel.add(JLabel("Error: Cluster not found"), BorderLayout.CENTER)
-                topicsDetailsPanel.revalidate()
-                topicsDetailsPanel.repaint()
-                return
-            }
+                ?: throw IllegalStateException("Cluster not found")
 
             val clusterDataManager = dataManager.getOrCreateClusterDataManager(cluster)
             val topicsController = TopicsController(project, clusterDataManager, this)
             Disposer.register(this, topicsController)
 
-            topicsDetailsPanel.add(topicsController.getComponent(), BorderLayout.CENTER)
-            topicsDetailsPanel.revalidate()
-            topicsDetailsPanel.repaint()
-
-        } catch (e: Exception) {
-            topicsDetailsPanel.add(JLabel("Error loading topics: ${e.message}"), BorderLayout.CENTER)
-            topicsDetailsPanel.revalidate()
-            topicsDetailsPanel.repaint()
+            topicsController.getComponent()
         }
     }
 
@@ -417,63 +435,27 @@ internal class ConfluentMainController(
     }
 
     private fun showSchemasDetails(rfsPath: RfsPath) {
-        schemasDetailsPanel.removeAll()
+        updatePanel(schemasDetailsPanel) {
+            val envId = rfsPath.getEnvironmentId(driver)
+                ?: throw IllegalStateException("Could not determine environment")
 
-        try {
-            val envId = rfsPath.getEnvironmentId(driver) ?: run {
-                schemasDetailsPanel.add(JLabel("Error: Could not determine environment"), BorderLayout.CENTER)
-                schemasDetailsPanel.revalidate()
-                schemasDetailsPanel.repaint()
-                return
-            }
-
-            val srId = rfsPath.getSchemaRegistryId() ?: run {
-                schemasDetailsPanel.add(JLabel("Error: Could not determine schema registry"), BorderLayout.CENTER)
-                schemasDetailsPanel.revalidate()
-                schemasDetailsPanel.repaint()
-                return
-            }
-
-            val clusters = dataManager.getKafkaClusters(envId)
-            val cluster = clusters.firstOrNull()
-
-            if (cluster == null) {
-                schemasDetailsPanel.add(JLabel("Error: No clusters found in environment"), BorderLayout.CENTER)
-                schemasDetailsPanel.revalidate()
-                schemasDetailsPanel.repaint()
-                return
-            }
+            val cluster = dataManager.getKafkaClusters(envId).firstOrNull()
+                ?: throw IllegalStateException("No clusters found in environment")
 
             val cache = dataManager.getDataPlaneCache(cluster)
-
             if (!cache.hasSchemaRegistry()) {
-                schemasDetailsPanel.add(JLabel("Error: No Schema Registry available"), BorderLayout.CENTER)
-                schemasDetailsPanel.revalidate()
-                schemasDetailsPanel.repaint()
-                return
+                throw IllegalStateException("No Schema Registry available")
             }
 
             val subjects = cache.getSubjects()
+            val data = subjects.map { arrayOf<Any>(it.name) }.toTypedArray()
 
-            val columnNames = arrayOf("Schema Subject")
-            val data = subjects.map { subject ->
-                arrayOf<Any>(subject.name)
-            }.toTypedArray()
-
-            val tableModel = DefaultTableModel(data, columnNames)
-            val table = JBTable(tableModel).apply {
+            val table = JBTable(DefaultTableModel(data, arrayOf("Schema Subject"))).apply {
                 setDefaultEditor(Any::class.java, null)
             }
 
-            val scrollPane = JBScrollPane(table)
-            schemasDetailsPanel.add(scrollPane, BorderLayout.CENTER)
-
-        } catch (e: Exception) {
-            schemasDetailsPanel.add(JLabel("Error loading schemas: ${e.message}"), BorderLayout.CENTER)
+            JBScrollPane(table)
         }
-
-        schemasDetailsPanel.revalidate()
-        schemasDetailsPanel.repaint()
     }
 
     private fun showSchemaDetail(rfsPath: RfsPath) {
@@ -525,14 +507,6 @@ internal class ConfluentMainController(
 
         schemaDetailPanel.revalidate()
         schemaDetailPanel.repaint()
-    }
-
-    private fun selectDefaultPath() {
-        val envs = dataManager.client.getEnvironments()
-        if (envs.isNotEmpty()) {
-            val firstEnvPath = RfsPath(listOf(envs.first().id), true)
-            open(firstEnvPath)
-        }
     }
 
     override fun open(rfsPath: RfsPath) = RfsUtil.select(driver.getExternalId(), rfsPath, myTree)
