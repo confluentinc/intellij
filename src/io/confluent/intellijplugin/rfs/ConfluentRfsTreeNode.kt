@@ -1,6 +1,7 @@
 package io.confluent.intellijplugin.rfs
 
 import com.intellij.icons.AllIcons
+import com.intellij.ide.projectView.PresentationData
 import com.intellij.openapi.project.Project
 import io.confluent.intellijplugin.rfs.ConfluentDriver.Companion.isCluster
 import io.confluent.intellijplugin.rfs.ConfluentDriver.Companion.isSchemaRegistry
@@ -12,6 +13,7 @@ import io.confluent.intellijplugin.rfs.ConfluentDriver.Companion.getSchemaRegist
 import io.confluent.intellijplugin.core.monitoring.rfs.MonitoringRfsTreeNode
 import io.confluent.intellijplugin.core.rfs.driver.RfsPath
 import io.confluent.intellijplugin.toolwindow.config.KafkaToolWindowSettings
+import io.confluent.intellijplugin.util.KafkaMessagesBundle.message
 import javax.swing.Icon
 
 /**
@@ -29,27 +31,16 @@ class ConfluentRfsTreeNode(
     private val schemaType: String? = null
 ) : MonitoringRfsTreeNode(project, rfsPath, confluentDriver) {
 
-    init {
-        myName = getDisplayName()
-    }
-
     override fun isAlwaysLeaf(): Boolean = rfsPath.isTopic || rfsPath.isSchema
+
+    override fun name(): String = getDisplayName()
 
     private fun getDisplayName(): String {
         val envId = confluentDriver.selectedEnvironmentId ?: return rfsPath.name
 
         return when {
-            rfsPath.isCluster(confluentDriver) -> {
-                val clusterId = rfsPath.name
-                confluentDriver.dataManager.client.getKafkaClusters(envId)
-                    .find { it.id == clusterId }
-                    ?.displayName ?: clusterId
-            }
-            rfsPath.isSchemaRegistry(confluentDriver) -> {
-                val srId = rfsPath.name
-                val sr = confluentDriver.dataManager.client.getSchemaRegistry(envId)
-                if (sr?.id == srId) sr.displayName else srId
-            }
+            rfsPath.isCluster(confluentDriver) -> getCluster(envId)?.displayName ?: rfsPath.name
+            rfsPath.isSchemaRegistry(confluentDriver) -> message("field.type.registry")
             rfsPath.isTopic || rfsPath.isSchema -> rfsPath.name
             else -> rfsPath.name
         }
@@ -82,17 +73,34 @@ class ConfluentRfsTreeNode(
 
         return when {
             rfsPath.isCluster(confluentDriver) -> {
-                val cluster = confluentDriver.dataManager.client.getKafkaClusters(envId)
-                    .find { it.id == rfsPath.name }
-                cluster?.let { "${it.id} (${it.cloudProvider} / ${it.region})" }
+                getCluster(envId)?.let { "${it.cloudProvider} / ${it.region}" }
             }
             rfsPath.isSchemaRegistry(confluentDriver) -> {
-                val sr = confluentDriver.dataManager.client.getSchemaRegistry(envId)
-                if (sr?.id == rfsPath.name) {
-                    "${sr.id} (${sr.cloudProvider} / ${sr.region})"
-                } else null
+                getSchemaRegistry(envId)?.let { "${it.cloudProvider} / ${it.region}" }
             }
             rfsPath.isSchema -> schemaType
+            else -> null
+        }
+    }
+
+    override fun update(presentation: PresentationData) {
+        super.update(presentation)
+        presentation.tooltip = getTooltipText()
+    }
+
+    private fun getCluster(envId: String) =
+        confluentDriver.dataManager.client.getCachedKafkaClusters(envId)
+            ?.find { it.id == rfsPath.name }
+
+    private fun getSchemaRegistry(envId: String) =
+        confluentDriver.dataManager.client.getCachedSchemaRegistry(envId)
+
+    private fun getTooltipText(): String? {
+        val envId = confluentDriver.selectedEnvironmentId ?: return null
+
+        return when {
+            rfsPath.isCluster(confluentDriver) -> getCluster(envId)?.let { "ID: ${it.id}" }
+            rfsPath.isSchemaRegistry(confluentDriver) -> getSchemaRegistry(envId)?.let { "ID: ${it.id}" }
             else -> null
         }
     }
