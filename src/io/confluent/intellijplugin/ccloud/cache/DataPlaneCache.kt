@@ -117,8 +117,7 @@ class DataPlaneCache(
                             schemaName = schema.name,
                             data = SchemaEnrichmentData(
                                 latestVersion = info?.latestVersion,
-                                schemaType = info?.schemaType,
-                                compatibility = info?.compatibility
+                                schemaType = info?.schemaType
                             ),
                             progress = count to schemas.size
                         )
@@ -158,8 +157,7 @@ class DataPlaneCache(
 
                     schema.name to SchemaEnrichmentData(
                         latestVersion = info?.latestVersion,
-                        schemaType = info?.schemaType,
-                        compatibility = info?.compatibility
+                        schemaType = info?.schemaType
                     )
                 } catch (e: Exception) {
                     thisLogger().warn("Failed to enrich ${schema.name}: ${e.message}")

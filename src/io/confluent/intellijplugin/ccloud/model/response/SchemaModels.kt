@@ -9,15 +9,13 @@ typealias ListSubjectsResponse = List<String>
 data class SchemaData(
     val name: String,
     val latestVersion: Int? = null,
-    val schemaType: String? = null,
-    val compatibility: String? = null
+    val schemaType: String? = null
 )
 
 /** Schema metadata from enrichment. */
 data class SchemaEnrichmentData(
     val latestVersion: Int? = null,
-    val schemaType: String? = null,
-    val compatibility: String? = null
+    val schemaType: String? = null
 )
 
 typealias SchemaVersionsResponse = List<Long>

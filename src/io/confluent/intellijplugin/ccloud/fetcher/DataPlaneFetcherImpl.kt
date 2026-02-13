@@ -96,14 +96,6 @@ class DataPlaneFetcherImpl(
         return json.decodeFromString<ConsumeRecordsResponse>(responseBody)
     }
 
-    override suspend fun getConsumerGroups(): List<ConsumerGroupData> {
-        TODO("Implement getConsumerGroups")
-    }
-
-    override suspend fun describeConsumerGroup(groupId: String): ConsumerGroupDetails {
-        TODO("Implement describeConsumerGroup")
-    }
-
     override suspend fun getAllSubjects(): List<String> {
         requireSchemaRegistry()
         val path = CloudConfig.DataPlane.SchemaRegistry.SUBJECTS_URI
@@ -119,8 +111,7 @@ class DataPlaneFetcherImpl(
             SchemaData(
                 name = subjectName,
                 latestVersion = latestSchema.version,
-                schemaType = latestSchema.schemaType,
-                compatibility = null
+                schemaType = latestSchema.schemaType ?: "AVRO"
             )
         } catch (e: Exception) {
             thisLogger().warn("Failed to fetch schema info for '$subjectName': ${e.message}")

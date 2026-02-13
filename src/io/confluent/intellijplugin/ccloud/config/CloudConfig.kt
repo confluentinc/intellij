@@ -94,13 +94,6 @@ object CloudConfig {
 
             /** Delete schema version: DELETE /subjects/{subject}/versions/{version}?permanent={bool} */
             const val DELETE_VERSION_URI = "/subjects/%s/versions/%s"
-
-            // Config operations
-            /** Get global compatibility: GET /config */
-            const val CONFIG_URI = "/config"
-
-            /** Get/update subject compatibility: GET|PUT /config/{subject} */
-            const val SUBJECT_CONFIG_URI = "/config/%s"
         }
     }
 }

@@ -10,15 +10,17 @@ interface DataPlaneFetcher {
     suspend fun deleteTopic(topicName: String)
     suspend fun describeTopicPartitions(topicName: String): List<PartitionData>
     suspend fun getTopicConfig(topicName: String): List<ConfigData>
+    suspend fun getTopicMessageCount(topicName: String): Long
+    suspend fun getTopicBeginningOffsets(topicName: String): Map<Int, Long>
+    suspend fun getTopicEndOffsets(topicName: String): Map<Int, Long>
+
     suspend fun produceRecord(topicName: String, request: ProduceRequest): ProduceResponse
     suspend fun consumeRecords(topicName: String, request: ConsumeRecordsRequest): ConsumeRecordsResponse
-    suspend fun getConsumerGroups(): List<ConsumerGroupData>
-    suspend fun describeConsumerGroup(groupId: String): ConsumerGroupDetails
-
+    
     /** Get all subject names from Schema Registry. */
     suspend fun getAllSubjects(): List<String>
 
-    /** Load schema info (version, type, compatibility) for a subject. */
+    /** Load schema info (version, type) for a subject. */
     suspend fun loadSchemaInfo(subjectName: String): SchemaData
 
     /** List all versions for a subject. */
@@ -32,8 +34,4 @@ interface DataPlaneFetcher {
 
     /** Get schema by global ID. */
     suspend fun getSchemaIdInfo(schemaId: Int): SchemaByIdResponse
-
-    suspend fun getTopicMessageCount(topicName: String): Long
-    suspend fun getTopicBeginningOffsets(topicName: String): Map<Int, Long>
-    suspend fun getTopicEndOffsets(topicName: String): Map<Int, Long>
 }
