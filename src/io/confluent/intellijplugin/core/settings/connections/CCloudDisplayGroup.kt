@@ -1,18 +1,20 @@
 package io.confluent.intellijplugin.core.settings.connections
 
-import com.intellij.ui.SimpleTextAttributes
-import com.intellij.ui.components.JBPanelWithEmptyText
-import com.intellij.ui.dsl.builder.Align
+import com.intellij.ui.dsl.builder.AlignX
+import com.intellij.ui.dsl.builder.BottomGap
+import com.intellij.ui.dsl.builder.TopGap
 import com.intellij.ui.dsl.builder.panel
-import com.intellij.util.ui.StatusText
+import com.intellij.util.IconUtil
 import io.confluent.intellijplugin.ccloud.auth.CCloudAuthService
 import io.confluent.intellijplugin.icons.BigdatatoolsKafkaIcons
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
 import java.awt.CardLayout
+import java.awt.GridBagLayout
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
+import javax.swing.JButton
 import javax.swing.JComponent
 import javax.swing.JPanel
 import javax.swing.Timer
@@ -27,6 +29,7 @@ class CCloudDisplayGroup : ConnectionGroup(
         private const val SIGN_IN_CARD = "signin"
         private const val SIGNED_IN_CARD = "signedin"
         private const val EXPIRY_REFRESH_INTERVAL_MS = 60_000
+        private const val ICON_SCALE = 2.5f
 
         private val dateTimeFormatter = DateTimeFormatter.ofPattern("MMM d, h:mm a")
 
@@ -110,29 +113,31 @@ class CCloudDisplayGroup : ConnectionGroup(
     }
 
     private fun createSignInPanel(): JComponent {
-        return panel {
-            row {
-                cell(JBPanelWithEmptyText().apply {
-                    emptyText.apply {
-                        appendText(
-                            KafkaMessagesBundle.message("confluent.cloud.welcome.panel.title"),
-                            StatusText.DEFAULT_ATTRIBUTES
-                        )
-                        appendSecondaryText(
-                            KafkaMessagesBundle.message("confluent.cloud.welcome.panel.cta"),
-                            SimpleTextAttributes.LINK_ATTRIBUTES
-                        ) {
-                            CCloudAuthService.getInstance().signIn()
-                        }
-                        appendText(
-                            KafkaMessagesBundle.message("confluent.cloud.welcome.panel.label"),
-                            StatusText.DEFAULT_ATTRIBUTES
-                        )
-                        isShowAboveCenter = false
-                    }
-                }).align(Align.FILL)
-            }.resizableRow()
+        val signInButton = JButton(KafkaMessagesBundle.message("confluent.cloud.welcome.panel.cta")).apply {
+            putClientProperty("JButton.buttonType", "default")
+            addActionListener { CCloudAuthService.getInstance().signIn() }
         }
+
+        val content = panel {
+            row {
+                icon(IconUtil.scale(BigdatatoolsKafkaIcons.ConfluentTab, null, ICON_SCALE))
+                    .align(AlignX.CENTER)
+            }.bottomGap(BottomGap.SMALL)
+            row {
+                label(KafkaMessagesBundle.message("confluent.cloud.welcome.panel.title"))
+                    .align(AlignX.CENTER)
+                    .bold()
+            }.bottomGap(BottomGap.NONE)
+            row {
+                comment(KafkaMessagesBundle.message("confluent.cloud.welcome.panel.label"))
+                    .align(AlignX.CENTER)
+            }.bottomGap(BottomGap.SMALL)
+            row {
+                cell(signInButton).align(AlignX.CENTER)
+            }
+        }
+
+        return JPanel(GridBagLayout()).apply { add(content) }
     }
 
     private fun createSignedInPanel(): JComponent {
@@ -141,38 +146,38 @@ class CCloudDisplayGroup : ConnectionGroup(
         val orgName = authService.getOrganizationName()
         val sessionExpiry = formatSessionExpiry(authService.getSessionEndOfLifetime())
 
-        return panel {
-            row {
-                cell(JBPanelWithEmptyText().apply {
-                    emptyText.apply {
-                        appendText(
-                            KafkaMessagesBundle.message("confluent.cloud.notification.sign.in.success.text", email),
-                            StatusText.DEFAULT_ATTRIBUTES
-                        )
-                        if (orgName != null) {
-                            appendLine(
-                                KafkaMessagesBundle.message("confluent.cloud.settings.organization.label", orgName),
-                                StatusText.DEFAULT_ATTRIBUTES,
-                                null
-                            )
-                        }
-                        if (sessionExpiry.isNotEmpty()) {
-                            appendLine(
-                                "Session expires $sessionExpiry",
-                                SimpleTextAttributes.GRAYED_ATTRIBUTES,
-                                null
-                            )
-                        }
-                        appendLine(
-                            KafkaMessagesBundle.message("confluent.cloud.settings.sign.out"),
-                            SimpleTextAttributes.LINK_ATTRIBUTES
-                        ) {
-                            CCloudAuthService.getInstance().signOut()
-                        }
-                        isShowAboveCenter = false
-                    }
-                }).align(Align.FILL)
-            }.resizableRow()
+        val signOutButton = JButton(KafkaMessagesBundle.message("confluent.cloud.settings.sign.out")).apply {
+            putClientProperty("JButton.buttonType", "default")
+            addActionListener { CCloudAuthService.getInstance().signOut() }
         }
+
+        val content = panel {
+            row {
+                icon(IconUtil.scale(BigdatatoolsKafkaIcons.ConfluentTab, null, ICON_SCALE))
+                    .align(AlignX.CENTER)
+            }.bottomGap(BottomGap.SMALL)
+            row {
+                label(KafkaMessagesBundle.message("confluent.cloud.notification.sign.in.success.text", email))
+                    .align(AlignX.CENTER)
+                    .bold()
+            }.bottomGap(BottomGap.NONE)
+            if (orgName != null) {
+                row {
+                    comment(KafkaMessagesBundle.message("confluent.cloud.settings.organization.label", orgName))
+                        .align(AlignX.CENTER)
+                }.topGap(TopGap.NONE).bottomGap(BottomGap.NONE)
+            }
+            if (sessionExpiry.isNotEmpty()) {
+                row {
+                    comment(KafkaMessagesBundle.message("confluent.cloud.settings.session.expires.label", sessionExpiry))
+                        .align(AlignX.CENTER)
+                }.topGap(TopGap.NONE)
+            }
+            row {
+                cell(signOutButton).align(AlignX.CENTER)
+            }
+        }
+
+        return JPanel(GridBagLayout()).apply { add(content) }
     }
 }
