@@ -64,18 +64,11 @@ class ConfluentRfsTreeNode(
             rfsPath.isCluster(confluentDriver) -> {
                 val cluster = confluentDriver.dataManager.client.getKafkaClusters(envId)
                     .find { it.id == rfsPath.name }
-                cluster?.let {
-                    val displayNameMatchesId = it.displayName.equals(it.id, ignoreCase = true)
-                    if (displayNameMatchesId) {
-                        "${it.cloudProvider} / ${it.region}"
-                    } else {
-                        "${it.id} (${it.cloudProvider} / ${it.region})"
-                    }
-                }
+                cluster?.let { "${it.cloudProvider} / ${it.region}" }
             }
             rfsPath.isSchemaRegistry(confluentDriver) -> {
                 val sr = confluentDriver.dataManager.client.getSchemaRegistry(envId)
-                sr?.let { "${it.id} (${it.cloudProvider} / ${it.region})" }
+                sr?.let { "${it.cloudProvider} / ${it.region}" }
             }
             rfsPath.isSchema -> schemaType
             else -> null
