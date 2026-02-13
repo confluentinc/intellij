@@ -111,6 +111,7 @@ internal class ConfluentMainController(
                 updateMainPanel(status.getException())
 
                 if (status == ConnectedConnectionStatus) {
+                    installToolbarIfNeeded()
                     populateEnvironmentSelector()
                     if (myTree.selectionPath == null) {
                         selectDefaultPath()
@@ -179,8 +180,6 @@ internal class ConfluentMainController(
         Disposer.register(this) { driver.removeListener(driverListener) }
         updateMainPanel(dataManager.client.connectionError)
 
-        // Add Confluent-specific toolbar actions when needed
-
         treeModel.addTreeModelListener(object : TreeModelAdapter() {
             override fun process(event: TreeModelEvent, type: EventType) {
                 if (myTree.selectionPath == null) {
@@ -239,6 +238,9 @@ internal class ConfluentMainController(
         }
     }
 
+    private lateinit var treePanel: SimpleToolWindowPanel
+    private var toolbarInstalled = false
+
     private fun createTreePanel(): SimpleToolWindowPanel {
         val scroll = JBScrollPane(myTree).apply {
             border = IdeBorderFactory.createBorder(SideBorder.LEFT)
@@ -263,10 +265,31 @@ internal class ConfluentMainController(
             border = JBUI.Borders.empty(4, 8)
         }
 
-        return SimpleToolWindowPanel(false, false).apply {
+        // Create content panel with selector and tree
+        val contentPanel = JPanel(BorderLayout()).apply {
             add(selectorPanel, BorderLayout.NORTH)
             add(scroll, BorderLayout.CENTER)
         }
+
+        // Wrap in SimpleToolWindowPanel to support toolbar (added after connection)
+        treePanel = SimpleToolWindowPanel(true, true)
+        treePanel.setContent(contentPanel)
+
+        return treePanel
+    }
+
+    private fun installToolbarIfNeeded() {
+        if (toolbarInstalled) return
+        toolbarInstalled = true
+
+        // Create Producer/Consumer toolbar (same as native Kafka connections)
+        val toolbar = io.confluent.intellijplugin.core.util.ToolbarUtils.createActionToolbar(
+            "ConfluentMainController",
+            io.confluent.intellijplugin.util.KafkaControllerUtils.createTopicToolbar(),
+            true
+        )
+        toolbar.targetComponent = treePanel
+        treePanel.toolbar = toolbar.component
     }
 
     private fun populateEnvironmentSelector() {
