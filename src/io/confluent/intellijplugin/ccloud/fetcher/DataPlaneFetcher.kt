@@ -2,58 +2,36 @@ package io.confluent.intellijplugin.ccloud.fetcher
 
 import io.confluent.intellijplugin.ccloud.model.response.*
 
-/**
- * Data plane operations for Confluent Cloud.
- */
+/** Data plane operations for Confluent Cloud. */
 interface DataPlaneFetcher {
 
-    /** List all topics. */
-    suspend fun listTopics(): List<TopicData>
-
-    /** Create a topic. */
+    suspend fun getTopics(): List<TopicData>
     suspend fun createTopic(request: CreateTopicRequest): TopicData
-
-    /** Delete a topic. */
     suspend fun deleteTopic(topicName: String)
-
-    /** Get partition details (ID, message count, offset, leader, replicas). */
     suspend fun describeTopicPartitions(topicName: String): List<PartitionData>
+    suspend fun getTopicConfig(topicName: String): List<ConfigData>
+    suspend fun getTopicMessageCount(topicName: String): Long
+    suspend fun getTopicBeginningOffsets(topicName: String): Map<Int, Long>
+    suspend fun getTopicEndOffsets(topicName: String): Map<Int, Long>
 
-    /** Get topic configuration. */
-    suspend fun describeTopicConfiguration(topicName: String): List<ConfigData>
-
-    /** Produce a record to a topic. */
     suspend fun produceRecord(topicName: String, request: ProduceRequest): ProduceResponse
-
     suspend fun consumeRecords(topicName: String, request: ConsumeRecordsRequest): ConsumeRecordsResponse
+    
+    /** Get all subject names from Schema Registry. */
+    suspend fun getAllSubjects(): List<String>
 
-    /** List all consumer groups. */
-    suspend fun listConsumerGroups(): List<ConsumerGroupData>
-
-    /** Get consumer group details (topics, partitions, lag, offset). */
-    suspend fun describeConsumerGroup(groupId: String): ConsumerGroupDetails
-
-    /** List all subjects (throws if Schema Registry unavailable). */
-    suspend fun listSubjects(): List<String>
-
-    /** List subjects with metadata (version, type, etc). */
-    suspend fun listSubjectsWithDetails(): List<SubjectData>
+    /** Load schema info (version, type) for a subject. */
+    suspend fun loadSchemaInfo(subjectName: String): SchemaData
 
     /** List all versions for a subject. */
-    suspend fun listSubjectVersions(subject: String): List<Int>
+    suspend fun listSchemaVersions(subjectName: String): List<Long>
 
-    /** Get schema by version ("latest" or version number). */
-    suspend fun getSchemaByVersion(subject: String, version: String): SchemaVersionResponse
+    /** Get schema content for a specific version. */
+    suspend fun getSchemaVersionInfo(subjectName: String, version: Long): SchemaVersionResponse
+
+    /** Get latest schema version. */
+    suspend fun getLatestVersionInfo(subjectName: String): SchemaVersionResponse
 
     /** Get schema by global ID. */
-    suspend fun getSchemaById(schemaId: Int): SchemaByIdResponse
-
-    /** Get total message count for a topic (across all partitions). */
-    suspend fun getTopicMessageCount(topicName: String): Long
-
-    /** Get beginning offsets for all partitions of a topic. Returns partition ID to offset. */
-    suspend fun getTopicBeginningOffsets(topicName: String): Map<Int, Long>
-
-    /** Get end offsets for all partitions of a topic. Returns partition ID to offset. */
-    suspend fun getTopicEndOffsets(topicName: String): Map<Int, Long>
+    suspend fun getSchemaIdInfo(schemaId: Int): SchemaByIdResponse
 }

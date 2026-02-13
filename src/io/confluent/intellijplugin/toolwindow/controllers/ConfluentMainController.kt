@@ -453,11 +453,11 @@ internal class ConfluentMainController(
                 return
             }
 
-            val subjects = cache.getSubjects()
+            val schemas = cache.getSchemas()
 
             val columnNames = arrayOf("Schema Subject")
-            val data = subjects.map { subject ->
-                arrayOf<Any>(subject.name)
+            val data = schemas.map { schema ->
+                arrayOf<Any>(schema.name)
             }.toTypedArray()
 
             val tableModel = DefaultTableModel(data, columnNames)
