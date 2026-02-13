@@ -191,6 +191,8 @@ class CCloudAuthService(private val scope: CoroutineScope) : Disposable {
 
     fun getOrganizationName(): String? = context?.getCurrentOrganization()?.name
 
+    fun getSessionEndOfLifetime(): java.time.Instant? = context?.getEndOfLifetime()
+
     fun isRefreshRunning(): Boolean = refreshBean?.isRunning() == true
 
     // Token accessors
