@@ -29,27 +29,20 @@ class ConfluentRfsTreeNode(
     private val schemaType: String? = null
 ) : MonitoringRfsTreeNode(project, rfsPath, confluentDriver) {
 
-    init {
-        myName = getDisplayName()
-    }
-
     override fun isAlwaysLeaf(): Boolean = rfsPath.isTopic || rfsPath.isSchema
+
+    override fun name(): String = getDisplayName()
 
     private fun getDisplayName(): String {
         val envId = confluentDriver.selectedEnvironmentId ?: return rfsPath.name
 
         return when {
             rfsPath.isCluster(confluentDriver) -> {
-                val clusterId = rfsPath.name
                 confluentDriver.dataManager.client.getKafkaClusters(envId)
-                    .find { it.id == clusterId }
-                    ?.displayName ?: clusterId
+                    .find { it.id == rfsPath.name }
+                    ?.displayName ?: rfsPath.name
             }
-            rfsPath.isSchemaRegistry(confluentDriver) -> {
-                val srId = rfsPath.name
-                val sr = confluentDriver.dataManager.client.getSchemaRegistry(envId)
-                if (sr?.id == srId) sr.displayName else srId
-            }
+            rfsPath.isSchemaRegistry(confluentDriver) -> "Schema Registry"
             rfsPath.isTopic || rfsPath.isSchema -> rfsPath.name
             else -> rfsPath.name
         }
@@ -84,13 +77,11 @@ class ConfluentRfsTreeNode(
             rfsPath.isCluster(confluentDriver) -> {
                 val cluster = confluentDriver.dataManager.client.getKafkaClusters(envId)
                     .find { it.id == rfsPath.name }
-                cluster?.let { "${it.id} (${it.cloudProvider} / ${it.region})" }
+                cluster?.let { "${it.cloudProvider} / ${it.region}" }
             }
             rfsPath.isSchemaRegistry(confluentDriver) -> {
                 val sr = confluentDriver.dataManager.client.getSchemaRegistry(envId)
-                if (sr?.id == rfsPath.name) {
-                    "${sr.id} (${sr.cloudProvider} / ${sr.region})"
-                } else null
+                sr?.let { "${it.cloudProvider} / ${it.region}" }
             }
             rfsPath.isSchema -> schemaType
             else -> null

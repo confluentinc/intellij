@@ -96,6 +96,7 @@ internal class ConfluentMainController(
 
     private val emptyDetailsPanel = createPlaceholderPanel("Select a cluster or schema registry to view details")
     private val loadingDetailsPanel = createPlaceholderPanel("Loading...")
+    private val environmentDetailsPanel = JPanel(BorderLayout())
     private val topicsDetailsPanel = JPanel(BorderLayout())
 
     private val topicDetailPanel = JPanel(BorderLayout())
@@ -123,6 +124,7 @@ internal class ConfluentMainController(
     companion object {
         private const val EMPTY_PANEL = "empty"
         private const val LOADING_PANEL = "loading"
+        private const val ENVIRONMENT_PANEL = "environment"
         private const val TOPICS_PANEL = "topics"
         private const val TOPIC_DETAIL_PANEL = "topicDetail"
         private const val SCHEMAS_PANEL = "schemas"
@@ -134,6 +136,7 @@ internal class ConfluentMainController(
     fun init() {
         details.add(emptyDetailsPanel, EMPTY_PANEL)
         details.add(loadingDetailsPanel, LOADING_PANEL)
+        details.add(environmentDetailsPanel, ENVIRONMENT_PANEL)
         details.add(topicsDetailsPanel, TOPICS_PANEL)
         details.add(topicDetailPanel, TOPIC_DETAIL_PANEL)
         details.add(schemasDetailsPanel, SCHEMAS_PANEL)
@@ -307,13 +310,14 @@ internal class ConfluentMainController(
     }
 
     private fun refreshTreeForEnvironment(envId: String) {
-        (details.layout as CardLayout).show(details, LOADING_PANEL)
         driver.selectedEnvironmentId = envId
         myTree.clearSelection()
         driver.fileInfoManager.refreshFiles(driver.root)
 
+        // Show environment details when switching environments
         invokeLater {
-            selectDefaultPath()
+            showEnvironmentDetails(envId)
+            (details.layout as CardLayout).show(details, ENVIRONMENT_PANEL)
         }
     }
 
@@ -324,7 +328,16 @@ internal class ConfluentMainController(
     private fun showDetailsComponent(rfsPath: RfsPath?) {
         val layout = details.layout as CardLayout
         when {
-            rfsPath == null -> layout.show(details, EMPTY_PANEL)
+            rfsPath == null -> {
+                // Show environment details if an environment is selected
+                val envId = selectedEnvironmentId.get()
+                if (envId != null) {
+                    showEnvironmentDetails(envId)
+                    layout.show(details, ENVIRONMENT_PANEL)
+                } else {
+                    layout.show(details, EMPTY_PANEL)
+                }
+            }
             rfsPath.isCluster(driver) -> {
                 showTopicsDetails(rfsPath)
                 layout.show(details, TOPICS_PANEL)
@@ -343,6 +356,43 @@ internal class ConfluentMainController(
             }
             else -> layout.show(details, EMPTY_PANEL)
         }
+    }
+
+    private fun showEnvironmentDetails(envId: String) {
+        environmentDetailsPanel.removeAll()
+
+        try {
+            val environment = dataManager.client.getEnvironments()
+                .find { it.id == envId }
+
+            if (environment == null) {
+                environmentDetailsPanel.add(JLabel("Error: Environment not found"), BorderLayout.CENTER)
+                environmentDetailsPanel.revalidate()
+                environmentDetailsPanel.repaint()
+                return
+            }
+
+            val columnNames = arrayOf("Property", "Value")
+            val data = arrayOf(
+                arrayOf<Any>("ID", environment.id),
+                arrayOf<Any>("Name", environment.displayName),
+                arrayOf<Any>("Stream Governance Package", environment.streamGovernancePackage ?: "N/A")
+            )
+
+            val tableModel = DefaultTableModel(data, columnNames)
+            val table = JBTable(tableModel).apply {
+                setDefaultEditor(Any::class.java, null)
+            }
+
+            val scrollPane = JBScrollPane(table)
+            environmentDetailsPanel.add(scrollPane, BorderLayout.CENTER)
+
+        } catch (e: Exception) {
+            environmentDetailsPanel.add(JLabel("Error loading environment details: ${e.message}"), BorderLayout.CENTER)
+        }
+
+        environmentDetailsPanel.revalidate()
+        environmentDetailsPanel.repaint()
     }
 
     private fun showTopicsDetails(rfsPath: RfsPath) {
