@@ -13,7 +13,6 @@ import io.confluent.intellijplugin.client.KafkaConstants
 import io.confluent.intellijplugin.common.models.RegistrySchemaInEditor
 import io.confluent.intellijplugin.core.monitoring.data.storage.ObjectDataModelStorage
 import io.confluent.intellijplugin.core.monitoring.data.storage.RootDataModelStorage
-import io.confluent.intellijplugin.core.util.invokeLater
 import io.confluent.intellijplugin.core.util.runAsync
 import io.confluent.intellijplugin.model.BdtTopicPartition
 import io.confluent.intellijplugin.model.ConsumerGroupOffsetInfo
@@ -59,6 +58,7 @@ class CCloudClusterDataManager(
 
     private val dataPlaneCache: DataPlaneCache = orgManager.getDataPlaneCache(cluster)
     private val partitionEnrichmentJobs = ConcurrentHashMap<String, Job>()
+    private var topicEnrichmentJob: Job? = null
 
     override val connectionId: String = cluster.id
 
@@ -72,13 +72,7 @@ class CCloudClusterDataManager(
         get() = if (dataPlaneCache.hasSchemaRegistry()) KafkaRegistryType.CONFLUENT else KafkaRegistryType.NONE
 
     init {
-        // Register models for auto-refresh (schema model only if SR available)
-        val models = if (dataPlaneCache.hasSchemaRegistry()) {
-            listOfNotNull(topicModel, schemaRegistryModel)
-        } else {
-            listOf(topicModel)
-        }
-        RootDataModelStorage(updater, models).also { Disposer.register(this, it) }
+        RootDataModelStorage(updater, listOf(topicModel)).also { Disposer.register(this, it) }
     }
 
     /**
@@ -156,15 +150,32 @@ class CCloudClusterDataManager(
                 return@withContext topics to null
             }
 
-            val enrichmentMap = dataPlaneCache.enrichTopicsData(topicDataList)
+            topicEnrichmentJob?.cancel()
 
-            val enrichedTopics = topics.map { topic ->
-                enrichmentMap[topic.name]?.let { enrichment ->
-                    topic.copy(messageCount = enrichment.messageCount)
-                } ?: topic
+            topicEnrichmentJob = driver.coroutineScope.launch(Dispatchers.IO) {
+                dataPlaneCache.enrichTopicsDataProgressively(topicDataList)
+                    .collect { result ->
+                        when (result) {
+                            is io.confluent.intellijplugin.ccloud.model.response.TopicEnrichmentResult.Success -> {
+                                invokeLaterIfNotDisposed {
+                                    val current = topicModel.data ?: return@invokeLaterIfNotDisposed
+                                    val updated = current.map { topic ->
+                                        if (topic.name == result.topicName) {
+                                            topic.copy(messageCount = result.data.messageCount)
+                                        } else {
+                                            topic
+                                        }
+                                    }
+                                    topicModel.setData(updated)
+                                }
+                            }
+                            is io.confluent.intellijplugin.ccloud.model.response.TopicEnrichmentResult.Failure -> {
+                                thisLogger().warn("Failed to enrich topic ${result.topicName}: ${result.error.message}")
+                            }
+                        }
+                    }
             }
-
-            enrichedTopics to null
+            topics to null
         } catch (t: Throwable) {
             thisLogger().warn("Failed to load detailed topic info for cluster ${cluster.id}", t)
             topics to t
@@ -217,8 +228,8 @@ class CCloudClusterDataManager(
 
             // Apply limit if provided
             val hasMore = limit != null && result.size > limit
-            if (limit != null && result.size > limit) {
-                result = result.take(limit)
+            if (hasMore) {
+                result = result.take(limit!!)
             }
 
             result to hasMore
@@ -264,7 +275,7 @@ class CCloudClusterDataManager(
                                         schema
                                     }
                                 }
-                                invokeLater {
+                                invokeLaterIfNotDisposed {
                                     model.setData(updated)
                                 }
                             }
@@ -283,7 +294,7 @@ class CCloudClusterDataManager(
                                         schema
                                     }
                                 }
-                                invokeLater {
+                                invokeLaterIfNotDisposed {
                                     model.setData(updated)
                                 }
                             }
@@ -552,6 +563,7 @@ class CCloudClusterDataManager(
     fun getDataPlaneCache(): DataPlaneCache = dataPlaneCache
 
     override fun dispose() {
+        topicEnrichmentJob?.cancel()
         partitionEnrichmentJobs.values.forEach { it.cancel() }
         partitionEnrichmentJobs.clear()
     }
