@@ -279,12 +279,9 @@ internal class TopicsController(
         // Add consume action for CCloud connections
         createCCloudConsumeAction()?.let { actions.add(it) }
 
-        // Add standard Kafka topic actions (for native Kafka connections)
-        if (dataManager is KafkaDataManager) {
-            val actionManager = ActionManager.getInstance()
-            val group = actionManager.getAction("Kafka.Topic.Actions") as DefaultActionGroup
-            actions.addAll(group.getChildren(actionManager).toList())
-        }
+        val actionManager = ActionManager.getInstance()
+        val group = actionManager.getAction("Kafka.Topic.Actions") as DefaultActionGroup
+        actions.addAll(group.getChildren(actionManager).toList())
 
         return actions
     }
