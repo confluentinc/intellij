@@ -251,6 +251,52 @@ openApiGenerate {
         "sourceFolder" to ""
     ))
 }
+
+// Fix kotlin.Any types caused by ambiguous allOf compositions in upstream OpenAPI spec
+tasks.named("openApiGenerate") {
+    outputs.dir(file("$rootDir/gen"))
+
+    doLast {
+        val modelDir = file("$rootDir/gen/io/confluent/intellijplugin/scaffold/model")
+
+        // Fix pagination link types (first, last, prev, next) from Any to URI
+        listOf("ScaffoldV1TemplateListMetadata.kt", "ScaffoldV1TemplateCollectionListMetadata.kt").forEach {
+            modelDir.resolve(it).apply {
+                if (exists()) writeText(readText()
+                    .replace("val first: kotlin.Any?", "val first: java.net.URI?")
+                    .replace("val last: kotlin.Any?", "val last: java.net.URI?")
+                    .replace("val prev: kotlin.Any?", "val prev: java.net.URI?")
+                    .replace("val next: kotlin.Any?", "val next: java.net.URI?"))
+            }
+        }
+
+        // Fix metadata self/resourceName types from Any to URI
+        listOf("ScaffoldV1TemplateMetadata.kt", "ScaffoldV1TemplateCollectionMetadata.kt").forEach {
+            modelDir.resolve(it).apply {
+                if (exists()) writeText(readText()
+                    .replace("val self: kotlin.Any?", "val self: java.net.URI?")
+                    .replace("val resourceName: kotlin.Any?", "val resourceName: java.net.URI?"))
+            }
+        }
+
+        // Fix spec types - template responses
+        listOf("GetScaffoldV1Template200Response.kt", "ScaffoldV1TemplateListDataInner.kt").forEach {
+            modelDir.resolve(it).apply {
+                if (exists()) writeText(readText()
+                    .replace("val spec: kotlin.Any", "val spec: Scaffoldv1TemplateSpec"))
+            }
+        }
+
+        // Fix spec types - template collection responses
+        listOf("GetScaffoldV1TemplateCollection200Response.kt", "ScaffoldV1TemplateCollectionListDataInner.kt").forEach {
+            modelDir.resolve(it).apply {
+                if (exists()) writeText(readText()
+                    .replace("val spec: kotlin.Any", "val spec: Scaffoldv1TemplateCollectionSpec"))
+            }
+        }
+    }
+}
+
 openApiValidate {
     inputSpec.set("$rootDir/openapi/scaffolding-service.openapi.yaml")
 }

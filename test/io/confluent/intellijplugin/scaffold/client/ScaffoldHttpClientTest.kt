@@ -68,12 +68,12 @@ class ScaffoldHttpClientTest {
 
             val client = ScaffoldHttpClient(baseUrl())
             val result = runBlocking {
-                client.fetchTypedTemplates("vscode")
+                client.fetchTemplates("vscode")
             }
 
-            assertEquals(2, result.size)
+            assertEquals(2, result.data.size)
 
-            val template1 = result.firstOrNull { it.spec.name == "template-1" }
+            val template1 = result.data.firstOrNull { it.spec.name == "template-1" }
             assertNotNull(template1)
             assertNotNull(template1!!.spec)
             assertEquals("template-1", template1.spec.name)
@@ -98,7 +98,7 @@ class ScaffoldHttpClientTest {
             val client = ScaffoldHttpClient(baseUrl())
             val exception = assertThrows(HttpRequests.HttpStatusException::class.java) {
                 runBlocking {
-                    client.fetchTypedTemplates("vscode")
+                    client.fetchTemplates("vscode")
                 }
             }
 
@@ -123,7 +123,7 @@ class ScaffoldHttpClientTest {
             )
             assertThrows(SocketTimeoutException::class.java) {
                 runBlocking {
-                    client.fetchTypedTemplates("vscode")
+                    client.fetchTemplates("vscode")
                 }
             }
         }
@@ -143,7 +143,7 @@ class ScaffoldHttpClientTest {
             val client = ScaffoldHttpClient(baseUrl())
             assertThrows(JsonEncodingException::class.java) {
                 runBlocking {
-                    client.fetchTypedTemplates("vscode")
+                    client.fetchTemplates("vscode")
                 }
             }
         }
@@ -162,7 +162,7 @@ class ScaffoldHttpClientTest {
             val client = ScaffoldHttpClient(baseUrl())
             val exception = assertThrows(HttpRequests.HttpStatusException::class.java) {
                 runBlocking {
-                    client.fetchTypedTemplates("nonexistent")
+                    client.fetchTemplates("nonexistent")
                 }
             }
 
@@ -183,10 +183,10 @@ class ScaffoldHttpClientTest {
 
             val client = ScaffoldHttpClient(baseUrl())
             val result = runBlocking {
-                client.fetchTypedTemplates("vscode")
+                client.fetchTemplates("vscode")
             }
 
-            assertTrue(result.isEmpty())
+            assertTrue(result.data.isEmpty())
         }
 
         @Test
@@ -203,11 +203,11 @@ class ScaffoldHttpClientTest {
 
             val client = ScaffoldHttpClient(baseUrl())
             val result = runBlocking {
-                client.fetchTypedTemplates("vscode")
+                client.fetchTemplates("vscode")
             }
 
-            assertEquals(1, result.size)
-            val firstTemplate = result.first()
+            assertEquals(1, result.data.size)
+            val firstTemplate = result.data.first()
             assertNotNull(firstTemplate.spec)
             assertEquals("minimal-template", firstTemplate.spec.name)
             assertNull(firstTemplate.spec.displayName)
