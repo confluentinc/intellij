@@ -202,6 +202,17 @@ class KafkaRecordTest {
             assertEquals("", kafkaRecord.topic)
             assertTrue(kafkaRecord.headers.isEmpty())
         }
+
+        @Test
+        fun `should set keyFormat and valueFormat independently for failed records`() {
+            val kafkaRecord = KafkaRecord.createFor(
+                KafkaFieldType.STRING, KafkaFieldType.STRING,
+                KafkaRegistryFormat.AVRO, KafkaRegistryFormat.PROTOBUF,
+                Result.failure(RuntimeException("fail"))
+            )
+            assertEquals(KafkaRegistryFormat.AVRO, kafkaRecord.keyFormat)
+            assertEquals(KafkaRegistryFormat.PROTOBUF, kafkaRecord.valueFormat)
+        }
     }
 
     @Nested
