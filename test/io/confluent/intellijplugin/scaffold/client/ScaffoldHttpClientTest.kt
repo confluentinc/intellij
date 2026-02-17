@@ -216,5 +216,201 @@ class ScaffoldHttpClientTest {
             assertNull(firstTemplate.spec.language)
             assertNull(firstTemplate.spec.tags)
         }
+
+        @Test
+        fun `handles 400 bad request`() {
+            wireMockServer.stubFor(
+                WireMock.get("/scaffold/v1/template-collections/vscode/templates")
+                    .willReturn(
+                        WireMock.aResponse()
+                            .withStatus(400)
+                            .withBody("Bad Request: Invalid collection name")
+                    )
+            )
+
+            val client = ScaffoldHttpClient(baseUrl())
+            val exception = assertThrows(HttpRequests.HttpStatusException::class.java) {
+                runBlocking {
+                    client.fetchTemplates("vscode")
+                }
+            }
+
+            assertEquals(400, exception.statusCode)
+            assertTrue(exception.message?.contains("Bad Request") == true)
+        }
+
+        @Test
+        fun `handles 401 unauthorized`() {
+            wireMockServer.stubFor(
+                WireMock.get("/scaffold/v1/template-collections/vscode/templates")
+                    .willReturn(
+                        WireMock.aResponse()
+                            .withStatus(401)
+                            .withBody("Unauthorized")
+                    )
+            )
+
+            val client = ScaffoldHttpClient(baseUrl())
+            val exception = assertThrows(HttpRequests.HttpStatusException::class.java) {
+                runBlocking {
+                    client.fetchTemplates("vscode")
+                }
+            }
+
+            assertEquals(401, exception.statusCode)
+            assertTrue(exception.message?.contains("Unauthorized") == true)
+        }
+
+        @Test
+        fun `handles 403 forbidden`() {
+            wireMockServer.stubFor(
+                WireMock.get("/scaffold/v1/template-collections/vscode/templates")
+                    .willReturn(
+                        WireMock.aResponse()
+                            .withStatus(403)
+                            .withBody("Forbidden")
+                    )
+            )
+
+            val client = ScaffoldHttpClient(baseUrl())
+            val exception = assertThrows(HttpRequests.HttpStatusException::class.java) {
+                runBlocking {
+                    client.fetchTemplates("vscode")
+                }
+            }
+
+            assertEquals(403, exception.statusCode)
+            assertTrue(exception.message?.contains("Forbidden") == true)
+        }
+
+        @Test
+        fun `handles 500 error with empty body`() {
+            wireMockServer.stubFor(
+                WireMock.get("/scaffold/v1/template-collections/vscode/templates")
+                    .willReturn(
+                        WireMock.aResponse()
+                            .withStatus(500)
+                            .withBody("")
+                    )
+            )
+
+            val client = ScaffoldHttpClient(baseUrl())
+            val exception = assertThrows(HttpRequests.HttpStatusException::class.java) {
+                runBlocking {
+                    client.fetchTemplates("vscode")
+                }
+            }
+
+            assertEquals(500, exception.statusCode)
+            assertEquals("Server error", exception.message)
+        }
+
+        @Test
+        fun `handles 500 error with detailed error body`() {
+            wireMockServer.stubFor(
+                WireMock.get("/scaffold/v1/template-collections/vscode/templates")
+                    .willReturn(
+                        WireMock.aResponse()
+                            .withStatus(500)
+                            .withBody("Database connection failed")
+                    )
+            )
+
+            val client = ScaffoldHttpClient(baseUrl())
+            val exception = assertThrows(HttpRequests.HttpStatusException::class.java) {
+                runBlocking {
+                    client.fetchTemplates("vscode")
+                }
+            }
+
+            assertEquals(500, exception.statusCode)
+            assertEquals("Server error: Database connection failed", exception.message)
+        }
+
+        @Test
+        fun `handles 502 bad gateway`() {
+            wireMockServer.stubFor(
+                WireMock.get("/scaffold/v1/template-collections/vscode/templates")
+                    .willReturn(
+                        WireMock.aResponse()
+                            .withStatus(502)
+                            .withBody("Bad Gateway")
+                    )
+            )
+
+            val client = ScaffoldHttpClient(baseUrl())
+            val exception = assertThrows(HttpRequests.HttpStatusException::class.java) {
+                runBlocking {
+                    client.fetchTemplates("vscode")
+                }
+            }
+
+            assertEquals(502, exception.statusCode)
+            assertTrue(exception.message?.contains("Bad Gateway") == true)
+        }
+
+        @Test
+        fun `handles 503 service unavailable`() {
+            wireMockServer.stubFor(
+                WireMock.get("/scaffold/v1/template-collections/vscode/templates")
+                    .willReturn(
+                        WireMock.aResponse()
+                            .withStatus(503)
+                            .withBody("Service Unavailable")
+                    )
+            )
+
+            val client = ScaffoldHttpClient(baseUrl())
+            val exception = assertThrows(HttpRequests.HttpStatusException::class.java) {
+                runBlocking {
+                    client.fetchTemplates("vscode")
+                }
+            }
+
+            assertEquals(503, exception.statusCode)
+        }
+
+        @Test
+        fun `parses datetime and URI fields correctly`() {
+            wireMockServer.stubFor(
+                WireMock.get("/scaffold/v1/template-collections/vscode/templates")
+                    .willReturn(
+                        WireMock.aResponse()
+                            .withStatus(200)
+                            .withHeader("Content-Type", "application/json")
+                            .withBody(loadFixture("template-list-with-timestamps.json"))
+                    )
+            )
+
+            val client = ScaffoldHttpClient(baseUrl())
+            val result = runBlocking {
+                client.fetchTemplates("vscode")
+            }
+
+            assertEquals(1, result.data.size)
+            val template = result.data.first()
+
+            // Verify URI parsing
+            assertNotNull(template.metadata.self)
+            assertEquals("https", template.metadata.self?.scheme)
+            assertEquals("api.confluent.cloud", template.metadata.self?.host)
+
+            // Verify OffsetDateTime parsing
+            assertNotNull(template.metadata.createdAt)
+            assertEquals(2024, template.metadata.createdAt?.year)
+            assertEquals(1, template.metadata.createdAt?.monthValue)
+            assertEquals(15, template.metadata.createdAt?.dayOfMonth)
+
+            assertNotNull(template.metadata.updatedAt)
+            assertEquals(2024, template.metadata.updatedAt?.year)
+            assertEquals(2, template.metadata.updatedAt?.monthValue)
+
+            // Verify null datetime field
+            assertNull(template.metadata.deletedAt)
+
+            // Verify list metadata URIs
+            assertNotNull(result.metadata.first)
+            assertNull(result.metadata.prev)
+        }
     }
 }
