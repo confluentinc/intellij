@@ -63,13 +63,16 @@ internal object ConsumerEditorUtils {
 
             for (column in 0 until tableModel.columnCount) {
                 val cellValue = tableModel.getValueAt(row, column)?.toString()
-                val parsedCell = JsonPrimitive(cellValue)
-                jsonObject.add(columnNames[column], parsedCell)
+                if (cellValue == null) {
+                    jsonObject.add(columnNames[column], com.google.gson.JsonNull.INSTANCE)
+                } else {
+                    jsonObject.add(columnNames[column], JsonPrimitive(cellValue))
+                }
             }
 
             jsonArray.add(jsonObject)
         }
-        return GsonBuilder().setPrettyPrinting().create().toJson(jsonArray)
+        return GsonBuilder().setPrettyPrinting().serializeNulls().create().toJson(jsonArray)
     }
 
     private fun <T> getJTableAsCsv(tableModel: ListTableModel<T>, separator: String): String {
