@@ -228,6 +228,23 @@ class ConsumerEditorUtilsTest {
             // Should contain 3 objects
             assertEquals(3, Regex("\"Id\"").findAll(result).count())
         }
+
+        @Test
+        fun `should handle null cell values as JSON null`() {
+            val model = createTableModel(listOf("Col"), listOf(listOf(null)))
+            val result = ConsumerEditorUtils.getTableContent(model, "json")
+            // Gson pretty-prints JsonNull as the literal "null"
+            assertEquals(
+                """
+                [
+                  {
+                    "Col": null
+                  }
+                ]
+                """.trimIndent(),
+                result
+            )
+        }
     }
 
     @Nested
