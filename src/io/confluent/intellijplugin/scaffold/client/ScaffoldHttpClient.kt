@@ -77,6 +77,7 @@ class ScaffoldHttpClient(
      * @param collectionName The name of the template collection (default: "vscode")
      * @return List of templates in the collection
      * @throws HttpRequests.HttpStatusException if the server returns 4xx or 5xx status
+     * TODO: update param from "vscode" default to intellij
      */
     suspend fun fetchTemplates(collectionName: String = "vscode"): Scaffoldv1TemplateList =
         withContext(Dispatchers.IO) {
