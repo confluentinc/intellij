@@ -4,6 +4,7 @@ import com.google.gson.GsonBuilder
 import com.google.gson.JsonArray
 import com.google.gson.JsonObject
 import com.google.gson.JsonPrimitive
+import com.google.gson.JsonNull
 import com.intellij.openapi.util.text.StringUtil
 import io.confluent.intellijplugin.common.editor.ListTableModel
 import io.confluent.intellijplugin.consumer.models.ConsumerStartType
@@ -64,7 +65,7 @@ internal object ConsumerEditorUtils {
             for (column in 0 until tableModel.columnCount) {
                 val cellValue = tableModel.getValueAt(row, column)?.toString()
                 if (cellValue == null) {
-                    jsonObject.add(columnNames[column], com.google.gson.JsonNull.INSTANCE)
+                    jsonObject.add(columnNames[column], JsonNull.INSTANCE)
                 } else {
                     jsonObject.add(columnNames[column], JsonPrimitive(cellValue))
                 }
