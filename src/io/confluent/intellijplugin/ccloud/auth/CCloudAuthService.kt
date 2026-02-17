@@ -1,18 +1,23 @@
 package io.confluent.intellijplugin.ccloud.auth
 
 import com.intellij.ide.BrowserUtil
-import com.intellij.openapi.application.EDT
+import com.intellij.notification.Notification
+import com.intellij.notification.NotificationType
+import com.intellij.notification.Notifications
 import com.intellij.openapi.Disposable
+import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.thisLogger
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import io.confluent.intellijplugin.telemetry.CCloudAuthenticationEvent
 import io.confluent.intellijplugin.telemetry.logUsage
 import io.confluent.intellijplugin.telemetry.logUser
+import io.confluent.intellijplugin.util.KafkaMessagesBundle
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import java.util.concurrent.CopyOnWriteArrayList
 
 /**
  * Application-level service for Confluent Cloud authentication.
@@ -20,9 +25,8 @@ import io.confluent.intellijplugin.telemetry.logUser
  *
  * Usage:
  *  ```
- *  CCloudAuthService.getInstance().signIn(
- *      onSuccess = { email -> showSuccess("Signed in as $email") },
- *      onError = { error -> showError(error) }
+ *  CCloudAuthService.getInstance().signIn()  // Opens browser, notifies listeners on completion
+ *  CCloudAuthService.getInstance().signOut()  // Clears session, notifies listeners
  *  ```
  *
  * @see CCloudOAuthContext
@@ -30,20 +34,35 @@ import io.confluent.intellijplugin.telemetry.logUser
  * @see CCloudTokenStorage
  */
 @Service(Service.Level.APP)
-class CCloudAuthService : Disposable {
+class CCloudAuthService(private val scope: CoroutineScope) : Disposable {
     private val logger = thisLogger()
 
     internal var context: CCloudOAuthContext? = null
     internal var refreshBean: CCloudTokenRefreshBean? = null
 
+    internal val authStateListeners = CopyOnWriteArrayList<AuthStateListener>()
+
+    /**
+     * Listener for authentication state changes. Callbacks are invoked on the EDT.
+     */
+    interface AuthStateListener {
+        fun onSignedIn(email: String) {}
+        fun onSignedOut() {}
+    }
+
+    fun addAuthStateListener(listener: AuthStateListener) {
+        authStateListeners.add(listener)
+    }
+
+    fun removeAuthStateListener(listener: AuthStateListener) {
+        authStateListeners.remove(listener)
+    }
+
     /**
      * Start the OAuth sign-in flow.
-     * Opens browser for authentication and calls back on completion.
+     * Opens browser for authentication, shows notifications, and notifies listeners on completion.
      */
-    fun signIn(
-        onSuccess: (userEmail: String) -> Unit = {},
-        onError: (error: String) -> Unit = {}
-    ) {
+    fun signIn() {
         logger.info("Starting OAuth sign-in flow")
 
         val oauthContext = CCloudOAuthContext()
@@ -67,19 +86,15 @@ class CCloudAuthService : Disposable {
                 }
                 logUsage(CCloudAuthenticationEvent(status = "signed in"))
 
-                // Switch to EDT for UI callback
-                CoroutineScope(Dispatchers.EDT).launch {
-                    onSuccess(authenticatedContext.getUserEmail())
-                }
+                notifySignedIn(authenticatedContext.getUserEmail())
             },
             onError = { error ->
                 logger.error("Sign-in failed: $error")
                 logUsage(CCloudAuthenticationEvent(status = "authentication failed", errorType = error))
 
-                // Switch to EDT for UI callback
-                CoroutineScope(Dispatchers.EDT).launch {
-                    onError(error)
-                }
+                ApplicationManager.getApplication().invokeLater({
+                    showSignInFailureNotification(error)
+                }, ModalityState.any())
             }
         )
 
@@ -93,7 +108,7 @@ class CCloudAuthService : Disposable {
      * @param authenticatedContext The authenticated context to sign in with
      */
     private fun completeSignIn(authenticatedContext: CCloudOAuthContext) {
-        signOut()
+        signOut(notifyListeners = false)
 
         context = authenticatedContext
         CCloudTokenStorage.saveSession(authenticatedContext)
@@ -104,16 +119,68 @@ class CCloudAuthService : Disposable {
 
     /**
      * Sign out, clear current session and stop refresh.
+     * PasswordSafe I/O runs on a background thread; listeners are notified on EDT.
      */
-    fun signOut() {
-        if (isSignedIn()) {
+    fun signOut() = signOut(notifyListeners = true)
+
+    private fun signOut(notifyListeners: Boolean) {
+        val wasSignedIn = isSignedIn()
+
+        if (wasSignedIn) {
             logUsage(CCloudAuthenticationEvent(status = "signed out"))
         }
 
         refreshBean?.stop()
         refreshBean = null
         context = null
-        CCloudTokenStorage.clearSession()
+
+        // PasswordSafe access is a slow operation — run off EDT
+        scope.launch(Dispatchers.IO) {
+            CCloudTokenStorage.clearSession()
+        }
+
+        if (wasSignedIn && notifyListeners) {
+            // Dispatch to EDT so UI updates work even when triggered from a modal dialog (from Settings)
+            ApplicationManager.getApplication().invokeLater({
+                authStateListeners.toList().forEach { it.onSignedOut() }
+                showSignOutNotification()
+            }, ModalityState.any())
+        }
+    }
+
+    internal fun notifySignedIn(email: String) {
+        // Dispatch to EDT so UI updates work even when triggered from a modal dialog (from Settings)
+        ApplicationManager.getApplication().invokeLater({
+            authStateListeners.toList().forEach { it.onSignedIn(email) }
+            showSignInSuccessNotification(email)
+        }, ModalityState.any())
+    }
+
+    internal fun showSignInSuccessNotification(email: String) {
+        Notifications.Bus.notify(Notification(
+            "Kafka Notification",
+            KafkaMessagesBundle.message("confluent.cloud.notification.sign.in.success"),
+            KafkaMessagesBundle.message("confluent.cloud.notification.sign.in.success.text", email),
+            NotificationType.INFORMATION
+        ))
+    }
+
+    internal fun showSignInFailureNotification(error: String) {
+        Notifications.Bus.notify(Notification(
+            "Kafka Notification",
+            KafkaMessagesBundle.message("confluent.cloud.notification.sign.in.failure"),
+            error,
+            NotificationType.ERROR
+        ))
+    }
+
+    internal fun showSignOutNotification() {
+        Notifications.Bus.notify(Notification(
+            "Kafka Notification",
+            KafkaMessagesBundle.message("confluent.cloud.notification.sign.out"),
+            "",
+            NotificationType.INFORMATION
+        ))
     }
 
     // State accessors
@@ -123,6 +190,8 @@ class CCloudAuthService : Disposable {
     fun getUserEmail(): String? = context?.getUserEmail()
 
     fun getOrganizationName(): String? = context?.getCurrentOrganization()?.name
+
+    fun getSessionEndOfLifetime(): java.time.Instant? = context?.getEndOfLifetime()
 
     fun isRefreshRunning(): Boolean = refreshBean?.isRunning() == true
 
@@ -142,6 +211,7 @@ class CCloudAuthService : Disposable {
         refreshBean?.stop()
         refreshBean = null
         context = null
+        // scope is automatically cancelled by the platform when the service is disposed
     }
 
     companion object {
