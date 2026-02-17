@@ -590,11 +590,10 @@ class ConsumerFilterTest {
     }
 
     @Nested
-    @DisplayName("Null headers edge cases")
-    inner class NullHeadersEdgeCases {
+    @DisplayName("Empty headers edge cases")
+    inner class EmptyHeadersEdgeCases {
 
-        private fun recordWithNullHeaders(): ConsumerRecord<Any, Any> {
-            // ConsumerRecord with null headers - use the constructor that allows it
+        private fun recordWithEmptyHeaders(): ConsumerRecord<Any, Any> {
             return ConsumerRecord(
                 "test-topic",
                 0,
@@ -620,7 +619,7 @@ class ConsumerFilterTest {
                 type = ConsumerFilterType.DOES_NOT_CONTAINS
             )
             // empty headers list => all { !it.contains("missing") } => true (vacuous truth)
-            assertTrue(filter.isRecordPassFilter(recordWithNullHeaders()))
+            assertTrue(filter.isRecordPassFilter(recordWithEmptyHeaders()))
         }
 
         @Test
@@ -633,7 +632,7 @@ class ConsumerFilterTest {
                 type = ConsumerFilterType.CONTAINS
             )
             // empty headers list => any { it.contains("something") } => false
-            assertFalse(filter.isRecordPassFilter(recordWithNullHeaders()))
+            assertFalse(filter.isRecordPassFilter(recordWithEmptyHeaders()))
         }
     }
 }
