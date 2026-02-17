@@ -334,6 +334,8 @@ class CCloudAuthServiceTest {
             assertNull(authService.getSessionEndOfLifetime())
         }
 
+        @Test
+        fun `should return end of lifetime from context`() {
             val expectedInstant = Instant.now().plusSeconds(7200)
             val mockContext = mock<CCloudOAuthContext> {
                 on { getEndOfLifetime() } doReturn expectedInstant
