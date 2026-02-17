@@ -35,7 +35,8 @@ val generateSentryConfig by tasks.registering {
     doLast {
         val configFile = outputDir.get().asFile.resolve("io/confluent/intellijplugin/telemetry/SentryConfig.kt")
         configFile.parentFile.mkdirs()
-        configFile.writeText("""
+        configFile.writeText(
+            """
             package io.confluent.intellijplugin.telemetry
 
             /** Sentry configuration embedded at build time from SENTRY_DSN env var. */
@@ -44,7 +45,8 @@ val generateSentryConfig by tasks.registering {
                 val isConfigured = DSN.isNotBlank()
             }
 
-        """.trimIndent())
+        """.trimIndent()
+        )
     }
 }
 
@@ -59,7 +61,8 @@ val generateSegmentConfig by tasks.registering {
     doLast {
         val configFile = outputDir.get().asFile.resolve("io/confluent/intellijplugin/telemetry/SegmentConfig.kt")
         configFile.parentFile.mkdirs()
-        configFile.writeText("""
+        configFile.writeText(
+            """
             package io.confluent.intellijplugin.telemetry
 
             /** Segment configuration embedded at build time from SEGMENT_WRITE_KEY env var. */
@@ -67,7 +70,8 @@ val generateSegmentConfig by tasks.registering {
                 const val WRITE_KEY = "$segmentWriteKey"
             }
 
-        """.trimIndent())
+        """.trimIndent()
+        )
     }
 }
 
@@ -91,7 +95,7 @@ intellijPlatform {
 dependencies {
     intellijPlatform {
         jetbrainsRuntime()
-        intellijIdea("2025.3"){useInstaller.set(true)}
+        intellijIdea("2025.3") { useInstaller.set(true) }
 
         bundledPlugin("com.intellij.modules.json")
         bundledPlugin("com.intellij.microservices.jvm")
@@ -148,12 +152,14 @@ configurations.all { exclude(group = "org.slf4j", module = "slf4j-api") }
 sourceSets {
     main {
         java.srcDirs(listOf("src", "gen"))
-        kotlin.srcDirs(listOf(
-            "src",
-            "gen",
-            layout.buildDirectory.dir("generated/sources/sentryconfig/kotlin"),
-            layout.buildDirectory.dir("generated/sources/segmentconfig/kotlin"),
-        ))
+        kotlin.srcDirs(
+            listOf(
+                "src",
+                "gen",
+                layout.buildDirectory.dir("generated/sources/sentryconfig/kotlin"),
+                layout.buildDirectory.dir("generated/sources/segmentconfig/kotlin"),
+            )
+        )
         resources.srcDirs(listOf("resources"))
     }
     test {
@@ -171,7 +177,7 @@ tasks.named("compileKotlin") {
 afterEvaluate {
     tasks.filter {
         (it.name.startsWith("sentry") || it.name.contains("Sentry")) &&
-        it.name != "generateSentryConfig"
+                it.name != "generateSentryConfig"
     }.forEach { sentryTask ->
         sentryTask.mustRunAfter(generateSentryConfig, generateSegmentConfig, "openApiGenerate", "openApiValidate")
     }
@@ -206,7 +212,14 @@ tasks {
         System.getProperty("ccloud.callback-port")?.let { systemProperty("ccloud.callback-port", it) }
         System.getProperty("ccloud.env")?.let { systemProperty("ccloud.env", it) }
         // Pass Segment write key for dev telemetry testing: ./gradlew runIde -Dconfluent.intellijplugin.segment.writeKey=your_key
-        System.getProperty("confluent.intellijplugin.segment.writeKey")?.let { systemProperty("confluent.intellijplugin.segment.writeKey", it) }
+        System.getProperty("confluent.intellijplugin.segment.writeKey")
+            ?.let { systemProperty("confluent.intellijplugin.segment.writeKey", it) }
+
+        // open a project directly, skipping the Welcome window
+        // (override with: IDEA_PROJECT_PATH=/path/to/project before running `gradle runIde`)
+        argumentProviders += CommandLineArgumentProvider {
+            listOf(System.getenv("IDEA_PROJECT_PATH") ?: "$projectDir")
+        }
     }
 
     patchPluginXml {
@@ -241,15 +254,19 @@ openApiGenerate {
     generatorName.set("kotlin")
     outputDir.set("$rootDir/gen")
     modelPackage.set("io.confluent.intellijplugin.scaffold.model")
-    globalProperties.set(mapOf(
-        "models" to "",
-        "modelDocs" to "false",
-        "modelTests" to "false"
-    ))
-    configOptions.set(mapOf(
-        "serializationLibrary" to "moshi",
-        "sourceFolder" to ""
-    ))
+    globalProperties.set(
+        mapOf(
+            "models" to "",
+            "modelDocs" to "false",
+            "modelTests" to "false"
+        )
+    )
+    configOptions.set(
+        mapOf(
+            "serializationLibrary" to "moshi",
+            "sourceFolder" to ""
+        )
+    )
 }
 
 // Fix kotlin.Any types caused by ambiguous allOf compositions in upstream OpenAPI spec

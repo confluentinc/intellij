@@ -10,6 +10,7 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
 /**
@@ -87,8 +88,14 @@ class DataPlaneFetcherImpl(
         TODO("Implement produceRecord")
     }
 
-    override suspend fun consumeRecords(topicName: String, request: ConsumeRequest): List<ConsumerRecord> {
-        TODO("Implement consumeRecords")
+    override suspend fun consumeRecords(
+        topicName: String,
+        request: ConsumeRecordsRequest
+    ): ConsumeRecordsResponse {
+        val path = String.format(CloudConfig.DataPlane.Kafka.CCLOUD_SIMPLE_CONSUME_API_PATH, clusterId, topicName)
+        val requestBody = json.encodeToString(request)
+        val responseBody = kafkaClient.executeRequest(path, "POST", requestBody)
+        return json.decodeFromString<ConsumeRecordsResponse>(responseBody)
     }
 
     override suspend fun listConsumerGroups(): List<ConsumerGroupData> {
@@ -161,6 +168,28 @@ class DataPlaneFetcherImpl(
         return kafkaClient.fetch(path) { body ->
             val response = json.decodeFromString<TopicOffsetsResponse>(body)
             response.totalRecords
+        }
+    }
+
+    override suspend fun getTopicBeginningOffsets(topicName: String): Map<Int, Long> =
+        fetchOffsetsForAllPartitions(topicName, fromBeginning = true)
+
+    override suspend fun getTopicEndOffsets(topicName: String): Map<Int, Long> =
+        fetchOffsetsForAllPartitions(topicName, fromBeginning = false)
+
+    private suspend fun fetchOffsetsForAllPartitions(
+        topicName: String,
+        fromBeginning: Boolean
+    ): Map<Int, Long> {
+        val partitions = describeTopicPartitions(topicName)
+        return coroutineScope {
+            partitions.map { partition ->
+                async {
+                    partition.partitionId to getPartitionOffsets(
+                        topicName, partition.partitionId, fromBeginning
+                    ).nextOffset
+                }
+            }.awaitAll().toMap()
         }
     }
 

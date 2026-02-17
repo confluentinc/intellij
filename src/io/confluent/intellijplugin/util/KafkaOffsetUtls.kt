@@ -2,7 +2,7 @@ package io.confluent.intellijplugin.util
 
 import io.confluent.intellijplugin.consumer.models.ConsumerStartType
 import io.confluent.intellijplugin.consumer.models.ConsumerStartWith
-import io.confluent.intellijplugin.data.KafkaDataManager
+import io.confluent.intellijplugin.data.BaseClusterDataManager
 import io.confluent.intellijplugin.model.BdtTopicPartition
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.TopicPartition
@@ -12,7 +12,7 @@ object KafkaOffsetUtils {
     suspend fun calculateOffsets(
         partitions: List<BdtTopicPartition>,
         startWith: ConsumerStartWith,
-        dataManager: KafkaDataManager
+        dataManager: BaseClusterDataManager
     ): Map<TopicPartition, OffsetAndMetadata> {
         val topicPartitions: Map<TopicPartition, BdtTopicPartition> =
             partitions.associateBy { TopicPartition(it.topic, it.partitionId) }

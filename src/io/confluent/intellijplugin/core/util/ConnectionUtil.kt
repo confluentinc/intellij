@@ -205,6 +205,12 @@ object ConnectionUtil {
 
 fun Throwable.toPresentableText(): @Nls String {
     val source = realSource()
+
+    // CCloudApiException already has well-formatted messages, return as-is
+    if (source.javaClass.simpleName == "CCloudApiException") {
+        return source.message ?: "Unknown error"
+    }
+
     return source.javaClass.simpleName.toString() +
             if (source.message != null) ": " + source.message.toString() else ""
 }

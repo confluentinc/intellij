@@ -8,6 +8,7 @@ import io.confluent.intellijplugin.ccloud.auth.CCloudAuthService
 import io.confluent.intellijplugin.core.monitoring.actions.tabs.MonitoringTabConnectionAction
 import io.confluent.intellijplugin.core.util.ConnectionUtil
 import io.confluent.intellijplugin.toolwindow.KafkaMonitoringToolWindowController
+import io.confluent.intellijplugin.util.KafkaMessagesBundle
 
 /**
  * Action to sign out from Confluent Cloud.
@@ -40,7 +41,7 @@ class ConfluentCloudSignOutTabAction : MonitoringTabConnectionAction() {
         Notifications.Bus.notify(
             Notification(
                 "Kafka Notification",
-                "Signed out from Confluent Cloud",
+                KafkaMessagesBundle.message("confluent.cloud.notification.sign.out"),
                 "",
                 NotificationType.INFORMATION
             ),

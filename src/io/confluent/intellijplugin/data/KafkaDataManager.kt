@@ -10,7 +10,6 @@ import com.intellij.util.concurrency.annotations.RequiresBackgroundThread
 import io.confluent.intellijplugin.client.BdtKafkaMapper
 import io.confluent.intellijplugin.client.KafkaClient
 import io.confluent.intellijplugin.common.models.RegistrySchemaInEditor
-import io.confluent.intellijplugin.consumer.editor.KafkaConsumerPanelStorage
 import io.confluent.intellijplugin.core.connection.updater.IntervalUpdateSettings
 import io.confluent.intellijplugin.core.monitoring.data.storage.RootDataModelStorage
 import io.confluent.intellijplugin.core.monitoring.rfs.MonitoringDriver
@@ -56,7 +55,13 @@ class KafkaDataManager(
     override val registryType = connectionData.registryType
     override val connectionId = connectionData.innerId
     override val client = KafkaClient(project, connectionData, false).also { Disposer.register(this, it) }
-    val consumerPanelStorage = KafkaConsumerPanelStorage(this).also { Disposer.register(this, it) }
+
+    // Consumer panel feature overrides
+
+    override fun supportsConsumerGroups(): Boolean = true
+    override fun supportsAdvancedSettings(): Boolean = true
+    override fun supportsPresets(): Boolean = true
+    override fun supportsDetailsPanel(): Boolean = true
 
     private val cacheSchemaType = ConcurrentSkipListMap<String, KafkaRegistryFormat>()
 
@@ -90,13 +95,6 @@ class KafkaDataManager(
         } catch (t: Throwable) {
             topics.map { BdtKafkaMapper.mockInternalTopic(it.name) } to t
         }
-    }
-
-    override suspend fun fetchTopicPartitions(topicName: String): List<BdtTopicPartition> {
-        val topics = topicModel.data ?: emptyList()
-        val topic = topics.find { it.name == topicName }
-            ?: error(KafkaMessagesBundle.message("topic.not.found", topicName))
-        return topic.partitionList
     }
 
     override suspend fun getTopicConfig(
@@ -178,7 +176,7 @@ class KafkaDataManager(
     }
 
     @RequiresBackgroundThread
-    fun loadTopicNames() = try {
+    override fun loadTopicNames() = try {
         client.getTopics(false)
     } catch (t: Throwable) {
         thisLogger().warn(t)
@@ -187,22 +185,15 @@ class KafkaDataManager(
 
     fun getCachedTopicByName(name: String) = getTopics().firstOrNull { it.name == name }
 
-    suspend fun loadConsumerGroupOffset(name: String): List<ConsumerGroupOffsetInfo> {
+    override suspend fun loadConsumerGroupOffset(name: String): List<ConsumerGroupOffsetInfo> {
         return listConsumerGroupOffsets(name)
     }
 
     @RequiresBackgroundThread
-    suspend fun loadTopicInfo(name: String) = client.getDetailedTopicsInfo(listOf(name)).first()
-
-    fun initRefreshSchemasIfRequired() {
-        val schemaModel = schemaRegistryModel
-        if (schemaModel?.isInitedByFirstTime == false) {
-            updater.invokeRefreshModel(schemaModel)
-        }
-    }
+    override suspend fun loadTopicInfo(name: String) = client.getDetailedTopicsInfo(listOf(name)).first()
 
     @RequiresBackgroundThread
-    fun getSchemasForEditor() = try {
+    override fun getSchemasForEditor() = try {
         val (schemas, _) = client.confluentRegistryClient?.listSchemas(null, null, false, connectionId)
             ?: client.glueRegistryClient?.listSchemas(null, null, connectionId)
             ?: (emptyList<KafkaSchemaInfo>() to false)
@@ -305,7 +296,7 @@ class KafkaDataManager(
 
     fun isSchemaExists(name: String) = getCachedSchema(name) != null
 
-    fun getCachedOrLoadSchema(name: String): KafkaSchemaInfo =
+    override fun getCachedOrLoadSchema(name: String): KafkaSchemaInfo =
         getCachedSchema(name)?.takeIf { it.type != null } ?: loadSchema(name)
 
     private fun getCachedOrLoadSchemaType(name: String) =
@@ -318,7 +309,7 @@ class KafkaDataManager(
             ?: client.glueRegistryClient?.loadSchemaInfo(schemaName)
             ?: error("Schema registry not configured")
 
-    fun getLatestVersionInfo(schemaName: String) =
+    override fun getLatestVersionInfo(schemaName: String) =
         client.confluentRegistryClient?.getLatestVersionInfo(schemaName)
             ?: client.glueRegistryClient?.getLatestVersionInfo(schemaName)
 
@@ -390,13 +381,13 @@ class KafkaDataManager(
         }
     }
 
-    suspend fun resetOffsets(consumeGroupId: String, offsets: Map<TopicPartition, OffsetAndMetadata>) {
+    override suspend fun resetOffsets(consumeGroupId: String, offsets: Map<TopicPartition, OffsetAndMetadata>) {
         client.resetOffsets(consumeGroupId, offsets)
         updater.invokeRefreshModel(consumerGroupsModel)
         updater.invokeRefreshModel(consumerGroupsOffsets[consumeGroupId])
     }
 
-    suspend fun getOffsetsForData(partitions: Set<TopicPartition>, timestamp: Long): Map<TopicPartition, Long> =
+    override suspend fun getOffsetsForData(partitions: Set<TopicPartition>, timestamp: Long): Map<TopicPartition, Long> =
         client.getOffsetsForDate(partitions.toList(), timestamp)
 
     fun deleteConsumerGroup(name: String) {
@@ -428,25 +419,61 @@ class KafkaDataManager(
         partitions: Int?,
         replicationFactor: Int?,
         configs: Map<String, String>
-    ): Result<Unit> = withContext(Dispatchers.IO) {
-        try {
-            client.createTopic(name, partitions, replicationFactor)
-            updater.invokeRefreshModel(topicModel)
+    ): Result<Unit> {
+        return try {
+            withContext(Dispatchers.IO) {
+                client.createTopic(name, partitions, replicationFactor)
+            }
+
+            val newTopic = withContext(Dispatchers.IO) {
+                client.getDetailedTopicsInfo(listOf(name)).firstOrNull()
+            }
+
+            if (newTopic != null) {
+                withContext(Dispatchers.Default) {
+                    val currentTopics = topicModel.data ?: emptyList()
+                    val config = KafkaToolWindowSettings.getInstance().getOrCreateConfig(connectionId)
+                    val enrichedTopic = newTopic.copy(isFavorite = config.topicsPined.contains(name))
+
+                    val updatedTopics = (currentTopics + enrichedTopic).sortedWith(
+                        compareByDescending<TopicPresentable> { it.isFavorite }
+                            .thenBy { it.name.lowercase() }
+                    )
+
+                    topicModel.setData(updatedTopics)
+                }
+            } else {
+                thisLogger().warn("Created topic '$name' not found, triggering full refresh")
+                updater.invokeRefreshModel(topicModel)
+            }
+
             Result.success(Unit)
         } catch (e: Exception) {
             thisLogger().warn("Failed to create topic '$name'", e)
+            updater.invokeRefreshModel(topicModel)
             Result.failure(e)
         }
     }
 
-    override suspend fun deleteTopic(topicNames: List<String>): Result<Unit> = withContext(Dispatchers.IO) {
-        try {
-            if (topicNames.isEmpty()) return@withContext Result.success(Unit)
-            topicNames.forEach { client.deleteTopic(it) }
-            updater.invokeRefreshModel(topicModel)
+    override suspend fun deleteTopic(topicNames: List<String>): Result<Unit> {
+        return try {
+            if (topicNames.isEmpty()) return Result.success(Unit)
+
+            withContext(Dispatchers.IO) {
+                topicNames.forEach { client.deleteTopic(it) }
+            }
+
+            withContext(Dispatchers.Default) {
+                val currentTopics = topicModel.data ?: emptyList()
+                val updatedTopics = currentTopics.filterNot { it.name in topicNames }
+                topicModel.setData(updatedTopics)
+            }
+
             Result.success(Unit)
         } catch (e: Exception) {
             thisLogger().warn("Failed to delete topics: $topicNames", e)
+            // On error, do full refresh to ensure consistency
+            updater.invokeRefreshModel(topicModel)
             Result.failure(e)
         }
     }

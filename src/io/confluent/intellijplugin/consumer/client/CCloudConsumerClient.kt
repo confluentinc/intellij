@@ -1,0 +1,505 @@
+package io.confluent.intellijplugin.consumer.client
+
+import io.confluent.intellijplugin.ccloud.client.CCloudApiException
+import io.confluent.intellijplugin.ccloud.fetcher.DataPlaneFetcher
+import io.confluent.intellijplugin.ccloud.model.response.ConsumeRecordsRequest
+import io.confluent.intellijplugin.ccloud.model.response.ConsumeRecordsResponse
+import io.confluent.intellijplugin.ccloud.model.response.PartitionConsumeRecord
+import io.confluent.intellijplugin.ccloud.model.response.PartitionOffset
+import io.confluent.intellijplugin.ccloud.model.response.TimestampType as ApiTimestampType
+import io.confluent.intellijplugin.common.settings.StorageConsumerConfig
+import io.confluent.intellijplugin.consumer.models.ConsumerProducerFieldConfig
+import io.confluent.intellijplugin.consumer.models.ConsumerStartType
+import io.confluent.intellijplugin.data.CCloudClusterDataManager
+import io.confluent.intellijplugin.util.KafkaOffsetUtils
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonNull
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.jsonPrimitive
+import org.apache.kafka.clients.consumer.ConsumerRecord
+import org.apache.kafka.common.header.internals.RecordHeader
+import org.apache.kafka.common.header.internals.RecordHeaders
+import org.apache.kafka.common.record.TimestampType
+import java.util.Base64
+import java.util.concurrent.atomic.AtomicBoolean
+import kotlin.math.max
+import kotlin.math.min
+
+/**
+ * REST-based consumer client for Confluent Cloud.
+ *
+ * Uses Confluent Cloud internal REST API with OAuth authentication
+ * to consume records from Kafka topics.
+ *
+ * @param clusterDataManager The cluster data manager for CCloud connection
+ * @param onStart Callback invoked when consumption starts
+ * @param onStop Callback invoked when consumption stops
+ */
+class CCloudConsumerClient(
+    private val clusterDataManager: CCloudClusterDataManager,
+    val onStart: () -> Unit,
+    val onStop: () -> Unit,
+) : ConsumerClient {
+
+    private val running = AtomicBoolean(false)
+    private var pollingJob: Job? = null
+
+    // Use our own independent scope to prevent cancellation from UI operations
+    // SupervisorJob ensures child coroutine failures don't cancel the scope
+    private var consumerScope: CoroutineScope? = null
+
+    // Track next offsets per partition for subsequent requests
+    private val nextOffsets = mutableMapOf<Int, Long>()
+
+    override fun start(
+        config: StorageConsumerConfig,
+        valueConfig: ConsumerProducerFieldConfig,
+        keyConfig: ConsumerProducerFieldConfig,
+        consume: (Long, List<ConsumerRecord<Any, Any>>) -> Unit,
+        timestampUpdate: () -> Unit,
+        consumeError: (Throwable, Int?, Long?) -> Unit
+    ) {
+        running.set(true)
+        onStart()
+        nextOffsets.clear()
+
+        // Create a new independent scope for this consumption session
+        // Using Dispatchers.IO for network operations
+        consumerScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+        pollingJob = consumerScope!!.launch {
+            try {
+                pollLoop(config, consume, timestampUpdate, consumeError)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                consumeError(e, null, null)
+            } finally {
+                running.set(false)
+                onStop()
+            }
+        }
+    }
+
+    private suspend fun pollLoop(
+        config: StorageConsumerConfig,
+        consume: (Long, List<ConsumerRecord<Any, Any>>) -> Unit,
+        timestampUpdate: () -> Unit,
+        consumeError: (Throwable, Int?, Long?) -> Unit
+    ) {
+        val fetcher = clusterDataManager.getDataPlaneCache().getFetcher()
+            ?: throw IllegalStateException("DataPlaneFetcher not initialized")
+
+        val topicName = config.getInnerTopic()
+        val limit = config.getLimit()
+        var totalRecordsConsumed = 0L
+        var totalBytesConsumed = 0L
+        var isFirstRequest = true
+        var consecutiveErrors = 0
+
+        // Per-partition tracking for partition-level limits
+        val partitionRecordCounts = mutableMapOf<Int, Long>()
+        val partitionByteCounts = mutableMapOf<Int, Long>()
+
+        while (running.get() && (consumerScope?.isActive == true)) {
+            val startTime = System.currentTimeMillis()
+
+            try {
+                val request = if (isFirstRequest) {
+                    buildInitialConsumeRequest(config, fetcher)
+                } else {
+                    buildSubsequentConsumeRequest()
+                }
+                isFirstRequest = false
+
+                val response = fetcher.consumeRecords(topicName, request)
+                val pollTime = System.currentTimeMillis() - startTime
+
+                // Reset error counter on successful request
+                consecutiveErrors = 0
+
+                timestampUpdate()
+
+                // Update next offsets from response
+                updateNextOffsets(response)
+
+                // Flatten all records from all partitions
+                val allRecords = response.partitionDataList.flatMap { partitionData ->
+                    partitionData.records.map { record ->
+                        convertToConsumerRecord(record, topicName)
+                    }
+                }
+
+                if (allRecords.isEmpty()) {
+                    // No new records, back off before next poll
+                    delay(EMPTY_POLL_DELAY_MS)
+                    continue
+                }
+
+                // Apply filters (client-side)
+                val filteredRecords = applyFilters(allRecords, config)
+
+                if (filteredRecords.isNotEmpty()) {
+                    consume(pollTime, filteredRecords)
+
+                    // Update topic-level counts
+                    totalRecordsConsumed += filteredRecords.size
+                    val batchBytes = filteredRecords.sumOf { getRecordSize(it) }
+                    totalBytesConsumed += batchBytes
+
+                    // Update per-partition counts
+                    filteredRecords.forEach { record ->
+                        val partition = record.partition()
+                        partitionRecordCounts[partition] = (partitionRecordCounts[partition] ?: 0L) + 1
+                        partitionByteCounts[partition] = (partitionByteCounts[partition] ?: 0L) + getRecordSize(record)
+                    }
+                }
+
+                // Check topic record count limit
+                if (limit.topicRecordsCount != null && totalRecordsConsumed >= limit.topicRecordsCount) {
+                    break
+                }
+
+                // Check topic max size limit
+                if (limit.topicRecordsSize != null && totalBytesConsumed >= limit.topicRecordsSize) {
+                    break
+                }
+
+                // Check partition record count limit
+                if (limit.partitionRecordsCount != null) {
+                    val allPartitionsReachedLimit = partitionRecordCounts.isNotEmpty() &&
+                        partitionRecordCounts.values.all { it >= limit.partitionRecordsCount }
+                    if (allPartitionsReachedLimit) {
+                        break
+                    }
+                }
+
+                // Check partition max size limit
+                if (limit.partitionRecordsSize != null) {
+                    val allPartitionsReachedLimit = partitionByteCounts.isNotEmpty() &&
+                        partitionByteCounts.values.all { it >= limit.partitionRecordsSize }
+                    if (allPartitionsReachedLimit) {
+                        break
+                    }
+                }
+
+                // Check time limit
+                if (limit.time != null) {
+                    val latestTimestamp = allRecords.maxOfOrNull { it.timestamp() } ?: 0L
+                    if (latestTimestamp > limit.time) {
+                        break
+                    }
+                }
+
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                consumeError(e, null, null)
+
+                val statusCode = (e as? CCloudApiException)?.statusCode
+                if (statusCode != null && !isRetryableStatus(statusCode)) {
+                    break
+                }
+
+                consecutiveErrors++
+
+                if (statusCode == 401) {
+                    // Token may have expired - wait for token refresh service
+                    delay(TOKEN_REFRESH_DELAY_MS)
+                } else {
+                    // Apply exponential backoff for retryable errors
+                    val backoffMs = min(
+                        BASE_BACKOFF_MS * (1L shl min(consecutiveErrors, 5)),
+                        MAX_BACKOFF_MS
+                    )
+                    delay(backoffMs)
+                }
+            }
+        }
+    }
+
+    private fun isRetryableStatus(statusCode: Int): Boolean =
+        statusCode == 401 || statusCode == 429 || statusCode in 500..599
+
+    /**
+     * Calculate the approximate size of a record in bytes.
+     * Uses the serialized sizes if available, otherwise estimates from the value content.
+     */
+    private fun getRecordSize(record: ConsumerRecord<Any, Any>): Long {
+        val keySize = if (record.serializedKeySize() >= 0) {
+            record.serializedKeySize().toLong()
+        } else {
+            record.key()?.toString()?.toByteArray()?.size?.toLong() ?: 0L
+        }
+
+        val valueSize = if (record.serializedValueSize() >= 0) {
+            record.serializedValueSize().toLong()
+        } else {
+            record.value()?.toString()?.toByteArray()?.size?.toLong() ?: 0L
+        }
+
+        return keySize + valueSize
+    }
+
+    /**
+     * Build the initial consume request based on the start position type.
+     * This method may make additional API calls to resolve partition offsets.
+     */
+    private suspend fun buildInitialConsumeRequest(
+        config: StorageConsumerConfig,
+        fetcher: DataPlaneFetcher
+    ): ConsumeRecordsRequest {
+        val startsWith = config.getStartsWith()
+        val topicName = config.getInnerTopic()
+
+        return when (startsWith.type) {
+            ConsumerStartType.THE_BEGINNING -> ConsumeRecordsRequest(
+                fromBeginning = true,
+                maxPollRecords = DEFAULT_MAX_POLL_RECORDS
+            )
+
+            ConsumerStartType.NOW -> ConsumeRecordsRequest(
+                fromBeginning = false,
+                maxPollRecords = DEFAULT_MAX_POLL_RECORDS
+            )
+
+            ConsumerStartType.OFFSET -> {
+                // Offset is relative to beginning offset (user enters 10 → start from beginningOffset + 10)
+                val offset = startsWith.offset ?: 0L
+                val beginningOffsets = fetcher.getTopicBeginningOffsets(topicName)
+                ConsumeRecordsRequest(
+                    offsets = beginningOffsets.map { (partitionId, beginningOffset) ->
+                        PartitionOffset(partitionId, beginningOffset + offset)
+                    },
+                    maxPollRecords = DEFAULT_MAX_POLL_RECORDS
+                )
+            }
+
+            ConsumerStartType.LATEST_OFFSET_MINUS_X -> {
+                // Offset is already negative from ConsumerEditorUtils (user enters 10 → offset = -10)
+                // So endOffset + offset = endOffset + (-10) = endOffset - 10
+                val offset = startsWith.offset ?: 0L
+                val endOffsets = fetcher.getTopicEndOffsets(topicName)
+                ConsumeRecordsRequest(
+                    offsets = endOffsets.map { (partitionId, endOffset) ->
+                        PartitionOffset(partitionId, max(0, endOffset + offset))
+                    },
+                    maxPollRecords = DEFAULT_MAX_POLL_RECORDS
+                )
+            }
+
+            ConsumerStartType.SPECIFIC_DATE,
+            ConsumerStartType.LAST_HOUR,
+            ConsumerStartType.TODAY,
+            ConsumerStartType.YESTERDAY -> {
+                // Use KafkaOffsetUtils to calculate timestamp for LAST_HOUR, TODAY, YESTERDAY
+                // For SPECIFIC_DATE, it returns startsWith.time directly
+                val timestamp = KafkaOffsetUtils.calculateStartTime(startsWith)
+                ConsumeRecordsRequest(
+                    timestamp = timestamp,
+                    maxPollRecords = DEFAULT_MAX_POLL_RECORDS
+                )
+            }
+
+            ConsumerStartType.CONSUMER_GROUP -> {
+                // Consumer groups not supported by CCloud REST API - fall back to NOW
+                ConsumeRecordsRequest(
+                    fromBeginning = false,
+                    maxPollRecords = DEFAULT_MAX_POLL_RECORDS
+                )
+            }
+        }
+    }
+
+    /**
+     * Build a subsequent consume request using tracked offsets.
+     */
+    private fun buildSubsequentConsumeRequest(): ConsumeRecordsRequest {
+        return if (nextOffsets.isNotEmpty()) {
+            ConsumeRecordsRequest(
+                offsets = nextOffsets.map { (partitionId, offset) ->
+                    PartitionOffset(partitionId = partitionId, offset = offset)
+                },
+                maxPollRecords = DEFAULT_MAX_POLL_RECORDS
+            )
+        } else {
+            // No offsets tracked yet, fetch from end
+            ConsumeRecordsRequest(
+                fromBeginning = false,
+                maxPollRecords = DEFAULT_MAX_POLL_RECORDS
+            )
+        }
+    }
+
+    /**
+     * Update next offsets from response and sync partition map.
+     * Removes stale partitions that are no longer in the response (handles partition removal).
+     */
+    private fun updateNextOffsets(response: ConsumeRecordsResponse) {
+        val activePartitions = response.partitionDataList.map { it.partitionId }.toSet()
+
+        // Remove partitions that are no longer in the response
+        nextOffsets.keys.retainAll(activePartitions)
+
+        // Update offsets for active partitions
+        response.partitionDataList.forEach { partitionData ->
+            nextOffsets[partitionData.partitionId] = partitionData.nextOffset
+        }
+    }
+
+    private fun convertToConsumerRecord(
+        record: PartitionConsumeRecord,
+        topic: String
+    ): ConsumerRecord<Any, Any> {
+        val key = extractValue(record.key)
+        val value = extractValue(record.value)
+
+        val headers = RecordHeaders(
+            record.headers.map { header ->
+                RecordHeader(header.key, header.value.toByteArray())
+            }
+        )
+
+        val timestampType = when (record.timestampType) {
+            ApiTimestampType.NO_TIMESTAMP_TYPE -> TimestampType.NO_TIMESTAMP_TYPE
+            ApiTimestampType.CREATE_TIME -> TimestampType.CREATE_TIME
+            ApiTimestampType.LOG_APPEND_TIME -> TimestampType.LOG_APPEND_TIME
+        }
+
+        // Estimate serialized sizes from JSON content
+        // This is an approximation since REST API doesn't return exact wire sizes
+        val keySize = estimateJsonSize(record.key)
+        val valueSize = estimateJsonSize(record.value)
+
+        return ConsumerRecord(
+            topic,
+            record.partitionId,
+            record.offset,
+            record.timestamp,
+            timestampType,
+            keySize,
+            valueSize,
+            key,
+            value,
+            headers,
+            null // leaderEpoch
+        )
+    }
+
+    /**
+     * Estimate the serialized size of a JSON element.
+     * For schema-encoded values with __raw__, uses the decoded base64 size.
+     * For other values, uses the string representation size.
+     */
+    private fun estimateJsonSize(element: JsonElement?): Int {
+        if (element == null || element is JsonNull) {
+            return 0
+        }
+
+        // For schema-encoded values, calculate size from base64 decoded content
+        if (element is JsonObject && element.containsKey("__raw__")) {
+            val rawValue = element["__raw__"]?.jsonPrimitive?.content
+            return if (rawValue != null) {
+                try {
+                    Base64.getDecoder().decode(rawValue).size
+                } catch (e: Exception) {
+                    rawValue.toByteArray().size
+                }
+            } else {
+                0
+            }
+        }
+
+        // For plain values, use the string representation
+        return when (element) {
+            is JsonPrimitive -> element.content.toByteArray().size
+            else -> element.toString().toByteArray().size
+        }
+    }
+
+    /**
+     * Extract value from JSON element.
+     * Handles both plain values and schema-encoded values ({"__raw__": "base64"}).
+     */
+    private fun extractValue(element: JsonElement?): Any? {
+        if (element == null || element is JsonNull) {
+            return null
+        }
+
+        // Check if it's a schema-encoded value
+        if (element is JsonObject && element.containsKey("__raw__")) {
+            val rawValue = element["__raw__"]?.jsonPrimitive?.content
+            return if (rawValue != null) {
+                try {
+                    Base64.getDecoder().decode(rawValue)
+                } catch (e: Exception) {
+                    rawValue
+                }
+            } else {
+                null
+            }
+        }
+
+        // Plain JSON value - convert to string representation
+        return when (element) {
+            is JsonPrimitive -> {
+                if (element.isString) element.content
+                else element.content
+            }
+            else -> element.toString()
+        }
+    }
+
+    private fun applyFilters(
+        records: List<ConsumerRecord<Any, Any>>,
+        config: StorageConsumerConfig
+    ): List<ConsumerRecord<Any, Any>> {
+        val filter = config.getFilter()
+        return records.filter { record ->
+            filter.isRecordPassFilter(record)
+        }
+    }
+
+    override fun stop() {
+        running.set(false)
+        // Cancel the job and scope; the finally block in pollLoop handles onStop()
+        pollingJob?.cancel()
+        consumerScope?.cancel()
+        consumerScope = null
+        pollingJob = null
+    }
+
+    override fun isRunning(): Boolean = running.get()
+
+    override fun dispose() {
+        stop()
+        nextOffsets.clear()
+    }
+
+    companion object {
+        /** Base delay for exponential backoff on errors. */
+        private const val BASE_BACKOFF_MS = 1_000L
+
+        /** Maximum delay for exponential backoff. */
+        private const val MAX_BACKOFF_MS = 30_000L
+
+        /** Delay when no records are available. */
+        private const val EMPTY_POLL_DELAY_MS = 1_000L
+
+        /** Delay when waiting for token refresh after 401. */
+        private const val TOKEN_REFRESH_DELAY_MS = 5_000L
+
+        /** Default maximum number of records per consume request. */
+        private const val DEFAULT_MAX_POLL_RECORDS = 100
+    }
+}
