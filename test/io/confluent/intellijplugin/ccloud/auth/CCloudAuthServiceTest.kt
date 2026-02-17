@@ -326,6 +326,25 @@ class CCloudAuthServiceTest {
     }
 
     @Nested
+    @DisplayName("getSessionEndOfLifetime")
+    inner class GetSessionEndOfLifetime {
+
+        @Test
+        fun `should return null when not signed in`() {
+            assertNull(authService.getSessionEndOfLifetime())
+        }
+
+            val expectedInstant = Instant.now().plusSeconds(7200)
+            val mockContext = mock<CCloudOAuthContext> {
+                on { getEndOfLifetime() } doReturn expectedInstant
+            }
+            authService.context = mockContext
+
+            assertEquals(expectedInstant, authService.getSessionEndOfLifetime())
+        }
+    }
+
+    @Nested
     @DisplayName("addAuthStateListener / removeAuthStateListener")
     inner class AuthStateListenerRegistration {
 
@@ -430,6 +449,31 @@ class CCloudAuthServiceTest {
 
             verify(listener1).onSignedOut()
             verify(listener2).onSignedOut()
+        }
+
+        @Test
+        fun `should not notify removed listener on sign out`() {
+            val listener = mock<CCloudAuthService.AuthStateListener>()
+            spyService.addAuthStateListener(listener)
+            spyService.removeAuthStateListener(listener)
+            spyService.context = createMockAuthenticatedContext()
+
+            spyService.signOut()
+            SwingUtilities.invokeAndWait {}
+
+            verify(listener, never()).onSignedOut()
+        }
+
+        @Test
+        fun `should not notify removed listener on sign in`() {
+            val listener = mock<CCloudAuthService.AuthStateListener>()
+            spyService.addAuthStateListener(listener)
+            spyService.removeAuthStateListener(listener)
+
+            spyService.notifySignedIn("test@example.com")
+            SwingUtilities.invokeAndWait {}
+
+            verify(listener, never()).onSignedIn(any())
         }
 
         @Test
