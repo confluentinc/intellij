@@ -185,6 +185,61 @@ fun `should parse response`() {
 - Syntax highlighting and validation in JSON files
 - Reduced test file clutter
 
+### Testing UI Components (Kotlin UI DSL)
+
+Use `UIUtil.findComponentOfType` / `UIUtil.findComponentsOfType` to traverse the built component tree:
+
+```kotlin
+// Find a plain button (excludes ActionLink which also extends JButton)
+val button = UIUtil.findComponentsOfType(panel, JButton::class.java)
+    .filterNot { it is ActionLink }
+    .firstOrNull()
+
+// Find a link() — UI DSL renders link() as ActionLink extends JButton
+val link = UIUtil.findComponentOfType(panel, ActionLink::class.java)
+
+// Simulate a click
+button?.doClick()
+link?.doClick()
+```
+
+Key facts:
+- `link()` in UI DSL v2 renders as `com.intellij.ui.components.ActionLink extends JButton`
+- `UIUtil.findComponentsOfType<JButton>` returns **both** plain buttons and `ActionLink`s — filter by `is ActionLink` to separate them
+- `doClick()` triggers all registered action listeners synchronously
+
+### Testing Actions
+
+Use `TestActionEvent.createTestEvent()` with a `DataContext` lambda to provide context data, then assert on `event.presentation`:
+
+```kotlin
+val event = TestActionEvent.createTestEvent(action) { key ->
+    if (key == ConnectionUtil.CONNECTION_ID.name) "ccloud" else null
+}
+action.update(event)
+// assert on event.presentation.text / .icon / .isVisible / .isEnabled
+```
+
+### Replacing Services in Tests
+
+Use `replaceService` to swap app- or project-scoped services with mocks. Restored automatically when the disposable is disposed:
+
+```kotlin
+@TestApplication
+class MyTest {
+    private val disposable = Disposer.newDisposable("MyTest")
+
+    @BeforeEach
+    fun setUp() {
+        ApplicationManager.getApplication()
+            .replaceService(CCloudAuthService::class.java, mock(), disposable)
+    }
+
+    @AfterEach
+    fun tearDown() = Disposer.dispose(disposable)
+}
+```
+
 ## UI Development
 
 Uses [Kotlin UI DSL v2](https://plugins.jetbrains.com/docs/intellij/kotlin-ui-dsl-version-2.html) (`com.intellij.ui.dsl.builder.*`).
@@ -205,7 +260,7 @@ Custom extension point `connectionSettingProvider` defined in `plugin.xml` for p
 ## Code Style
 
 - Handle exceptions gracefully with user-visible error messages
-- Use `thisLogger()` for logging (never use `println` for debug output - use `thisLogger().debug()` instead)
+- Use `thisLogger()` for logging
 
 ## Common Mistakes to Avoid
 
