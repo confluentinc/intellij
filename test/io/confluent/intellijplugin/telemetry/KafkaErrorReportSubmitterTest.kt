@@ -3,7 +3,6 @@ package io.confluent.intellijplugin.telemetry
 import com.intellij.openapi.diagnostic.IdeaLoggingEvent
 import com.intellij.testFramework.junit5.TestApplication
 import org.junit.jupiter.api.*
-import org.junit.jupiter.api.Assertions
 import org.mockito.kotlin.*
 
 /**
