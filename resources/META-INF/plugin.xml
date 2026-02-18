@@ -112,6 +112,10 @@
                 <action id="kafka.create.consumer"
                         class="io.confluent.intellijplugin.toolwindow.actions.KafkaCreateConsumerAction"
                         icon="AllIcons.General.Settings"/>
+                <action id="Kafka.CopyClusterIdAction"
+                        class="io.confluent.intellijplugin.toolwindow.actions.CopyClusterIdAction"
+                        icon="AllIcons.Actions.Copy">
+                </action>
 
                 <separator/>
             </group>
