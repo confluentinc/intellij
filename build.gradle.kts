@@ -211,6 +211,8 @@ tasks {
         useJUnitPlatform()
         systemProperty("ccloud.callback-port", "26639")
         System.getProperty("ccloud.env")?.let { systemProperty("ccloud.env", it) }
+        System.getProperty("scaffold.api.env")?.let { systemProperty("scaffold.api.env", it) }
+        System.getProperty("scaffold.api.base-url")?.let { systemProperty("scaffold.api.base-url", it) }
         configure<JacocoTaskExtension> {
             isIncludeNoLocationClasses = true
             excludes = listOf("jdk.internal.*")
@@ -221,6 +223,8 @@ tasks {
         // Pass system properties from gradle.properties or use system property flag with -D flag @see CCloudOAuthConfig
         System.getProperty("ccloud.callback-port")?.let { systemProperty("ccloud.callback-port", it) }
         System.getProperty("ccloud.env")?.let { systemProperty("ccloud.env", it) }
+        System.getProperty("scaffold.api.env")?.let { systemProperty("scaffold.api.env", it) }
+        System.getProperty("scaffold.api.base-url")?.let { systemProperty("scaffold.api.base-url", it) }
         // Pass Segment write key for dev telemetry testing: ./gradlew runIde -Dconfluent.intellijplugin.segment.writeKey=your_key
         System.getProperty("confluent.intellijplugin.segment.writeKey")
             ?.let { systemProperty("confluent.intellijplugin.segment.writeKey", it) }
@@ -284,6 +288,28 @@ openApiGenerate {
         )
     )
 }
+
+// Fix kotlin.Any types caused by ambiguous allOf compositions in upstream OpenAPI spec
+tasks.named("openApiGenerate") {
+    outputs.dir(file("$rootDir/gen"))
+
+    doLast {
+        // Apply patches to fix type issues from ambiguous OpenAPI spec
+        // Patches are more maintainable and reviewable than inline string replacement
+        listOf(
+            "fix-pagination-metadata-types.patch",
+            "fix-object-metadata-types.patch",
+            "fix-template-spec-types.patch",
+            "fix-template-collection-spec-types.patch"
+        ).forEach { patchFile ->
+            exec {
+                workingDir = rootDir
+                commandLine = listOf("git", "apply", "--directory=gen", "openapi/patches/$patchFile")
+            }
+        }
+    }
+}
+
 openApiValidate {
     inputSpec.set("$rootDir/openapi/scaffolding-service.openapi.yaml")
 }

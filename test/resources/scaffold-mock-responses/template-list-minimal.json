@@ -1,0 +1,27 @@
+{
+  "api_version": "scaffold/v1",
+  "kind": "TemplateList",
+  "metadata": {
+    "first": "string",
+    "last": "string",
+    "prev": "string",
+    "next": "string",
+    "total_size": 1
+  },
+  "data": [
+    {
+      "metadata": {
+        "self": "https://api.confluent.cloud/scaffold/v1/templates/minimal",
+        "resource_name": "crn://confluent.cloud/template=minimal"
+      },
+      "spec": {
+        "name": "minimal-template",
+        "template_collection": {
+          "id": "intellij",
+          "related": "https://api.confluent.cloud/scaffold/v1/template-collections/intellij",
+          "resource_name": "crn://confluent.cloud/template-collection=intellij"
+        }
+      }
+    }
+  ]
+}

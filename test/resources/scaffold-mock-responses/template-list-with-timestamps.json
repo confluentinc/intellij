@@ -1,0 +1,35 @@
+{
+  "api_version": "scaffold/v1",
+  "kind": "TemplateList",
+  "metadata": {
+    "first": "https://api.confluent.cloud/scaffold/v1/templates?page=1",
+    "last": "https://api.confluent.cloud/scaffold/v1/templates?page=1",
+    "prev": null,
+    "next": null,
+    "total_size": 1
+  },
+  "data": [
+    {
+      "metadata": {
+        "self": "https://api.confluent.cloud/scaffold/v1/templates/template-with-dates",
+        "resource_name": "crn://confluent.cloud/template=template-with-dates",
+        "created_at": "2024-01-15T10:30:00Z",
+        "updated_at": "2024-02-01T14:20:30Z",
+        "deleted_at": null
+      },
+      "spec": {
+        "name": "template-with-dates",
+        "display_name": "Template With Dates",
+        "description": "Template with timestamp fields",
+        "version": "1.0.0",
+        "language": "Java",
+        "tags": ["kafka"],
+        "template_collection": {
+          "id": "intellij",
+          "related": "https://api.confluent.cloud/scaffold/v1/template-collections/intellij",
+          "resource_name": "crn://confluent.cloud/template-collection=intellij"
+        }
+      }
+    }
+  ]
+}

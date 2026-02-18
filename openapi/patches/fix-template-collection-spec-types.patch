@@ -1,0 +1,22 @@
+--- a/io/confluent/intellijplugin/scaffold/model/GetScaffoldV1TemplateCollection200Response.kt
++++ b/io/confluent/intellijplugin/scaffold/model/GetScaffoldV1TemplateCollection200Response.kt
+@@ -41,7 +41,7 @@ data class GetScaffoldV1TemplateCollection200Response (
+     val kind: GetScaffoldV1TemplateCollection200Response.Kind,
+
+     @Json(name = "spec")
+-    val spec: kotlin.Any,
++    val spec: Scaffoldv1TemplateCollectionSpec,
+
+     @Json(name = "metadata")
+     val metadata: ScaffoldV1TemplateCollectionMetadata? = null
+--- a/io/confluent/intellijplugin/scaffold/model/ScaffoldV1TemplateCollectionListDataInner.kt
++++ b/io/confluent/intellijplugin/scaffold/model/ScaffoldV1TemplateCollectionListDataInner.kt
+@@ -36,7 +36,7 @@ data class ScaffoldV1TemplateCollectionListDataInner (
+     val metadata: ScaffoldV1TemplateCollectionMetadata,
+
+     @Json(name = "spec")
+-    val spec: kotlin.Any,
++    val spec: Scaffoldv1TemplateCollectionSpec,
+
+     /* APIVersion defines the schema version of this representation of a resource. */
+     @Json(name = "api_version")
