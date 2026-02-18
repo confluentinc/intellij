@@ -528,4 +528,111 @@ class ConsumerFilterTest {
             assertFalse(filter.isRecordPassFilter(testRecord))
         }
     }
+
+    @Nested
+    @DisplayName("Null value edge cases")
+    inner class NullValueEdgeCases {
+
+        @Test
+        fun `should not pass DOES_NOT_CONTAINS when record value is null`() {
+            val filter = ConsumerFilter(
+                filterKey = null,
+                filterValue = "anything",
+                filterHeadKey = null,
+                filterHeadValue = null,
+                type = ConsumerFilterType.DOES_NOT_CONTAINS
+            )
+            val testRecord = record(value = null)
+            // null?.contains("anything") → null, and null == false → false
+            assertFalse(filter.isRecordPassFilter(testRecord))
+        }
+
+        @Test
+        fun `should not pass DOES_NOT_CONTAINS when record key is null`() {
+            val filter = ConsumerFilter(
+                filterKey = "anything",
+                filterValue = null,
+                filterHeadKey = null,
+                filterHeadValue = null,
+                type = ConsumerFilterType.DOES_NOT_CONTAINS
+            )
+            val testRecord = record(key = null)
+            // null?.contains("anything") → null, and null == false → false
+            assertFalse(filter.isRecordPassFilter(testRecord))
+        }
+
+        @Test
+        fun `should not pass REGEX when record key is null`() {
+            val filter = ConsumerFilter(
+                filterKey = ".*",
+                filterValue = null,
+                filterHeadKey = null,
+                filterHeadValue = null,
+                type = ConsumerFilterType.REGEX
+            )
+            val testRecord = record(key = null)
+            // key?.matches(Regex(".*")) == true => null == true => false
+            assertFalse(filter.isRecordPassFilter(testRecord))
+        }
+
+        @Test
+        fun `should not pass REGEX when record value is null`() {
+            val filter = ConsumerFilter(
+                filterKey = null,
+                filterValue = ".*",
+                filterHeadKey = null,
+                filterHeadValue = null,
+                type = ConsumerFilterType.REGEX
+            )
+            val testRecord = record(value = null)
+            assertFalse(filter.isRecordPassFilter(testRecord))
+        }
+    }
+
+    @Nested
+    @DisplayName("Empty headers edge cases")
+    inner class EmptyHeadersEdgeCases {
+
+        private fun recordWithEmptyHeaders(): ConsumerRecord<Any, Any> {
+            return ConsumerRecord(
+                "test-topic",
+                0,
+                0L,
+                0L,
+                TimestampType.CREATE_TIME,
+                0,
+                0,
+                "key" as Any,
+                "value" as Any,
+                RecordHeaders(),
+                java.util.Optional.empty()
+            )
+        }
+
+        @Test
+        fun `should pass when headers are empty and header key filter is set with DOES_NOT_CONTAINS`() {
+            val filter = ConsumerFilter(
+                filterKey = null,
+                filterValue = null,
+                filterHeadKey = "missing",
+                filterHeadValue = null,
+                type = ConsumerFilterType.DOES_NOT_CONTAINS
+            )
+            // empty headers list => all { !it.contains("missing") } => true (vacuous truth)
+            assertTrue(filter.isRecordPassFilter(recordWithEmptyHeaders()))
+        }
+
+        @Test
+        fun `should not pass when headers are empty and header value filter is set with CONTAINS`() {
+            val filter = ConsumerFilter(
+                filterKey = null,
+                filterValue = null,
+                filterHeadKey = null,
+                filterHeadValue = "something",
+                type = ConsumerFilterType.CONTAINS
+            )
+            // empty headers list => any { it.contains("something") } => false
+            assertFalse(filter.isRecordPassFilter(recordWithEmptyHeaders()))
+        }
+    }
 }
