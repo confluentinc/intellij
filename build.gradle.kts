@@ -1,3 +1,4 @@
+import org.gradle.testing.jacoco.plugins.JacocoTaskExtension
 import org.jetbrains.intellij.platform.gradle.TestFrameworkType
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
@@ -210,6 +211,10 @@ tasks {
         useJUnitPlatform()
         systemProperty("ccloud.callback-port", "26639")
         System.getProperty("ccloud.env")?.let { systemProperty("ccloud.env", it) }
+        configure<JacocoTaskExtension> {
+            isIncludeNoLocationClasses = true
+            excludes = listOf("jdk.internal.*")
+        }
     }
 
     runIde {
