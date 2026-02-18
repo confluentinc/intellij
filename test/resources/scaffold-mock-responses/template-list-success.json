@@ -20,7 +20,12 @@
         "description": "First template",
         "version": "1.0.0",
         "language": "Java",
-        "tags": ["kafka", "streams"]
+        "tags": ["kafka", "streams"],
+        "template_collection": {
+          "id": "intellij",
+          "related": "https://api.confluent.cloud/scaffold/v1/template-collections/intellij",
+          "resource_name": "crn://confluent.cloud/template-collection=intellij"
+        }
       }
     },
     {
@@ -34,7 +39,12 @@
         "description": "Second template",
         "version": "2.0.0",
         "language": "Python",
-        "tags": ["kafka", "producer"]
+        "tags": ["kafka", "producer"],
+        "template_collection": {
+          "id": "intellij",
+          "related": "https://api.confluent.cloud/scaffold/v1/template-collections/intellij",
+          "resource_name": "crn://confluent.cloud/template-collection=intellij"
+        }
       }
     }
   ]
