@@ -131,16 +131,19 @@ class ConfluentDriver(
 
                     registerClusterTopicListener(nodeId, cluster)
 
-                    val cache = dataManager.getDataPlaneCache(cluster)
-                    val topics = cache.refreshTopics().sortedBy { it.topicName.lowercase() }
+                    val clusterDataManager = dataManager.getOrCreateClusterDataManager(cluster)
+                    val topics = clusterDataManager.getTopics()
                     logger.info("ConfluentDriver: Found ${topics.size} topics")
 
-                    return if (topics.isEmpty()) {
-                        listOf(ConfluentFileInfo(this, emptyStatePath("No topics available")))
-                    } else {
-                        topics.map { topic ->
-                            ConfluentFileInfo(this, topicPath(nodeId, topic.topicName))
-                        }
+                    return when {
+                        topics.isEmpty() && clusterDataManager.topicModel.isInitedByFirstTime == false ->
+                            listOf(ConfluentFileInfo(this, emptyStatePath("Loading...")))
+                        topics.isEmpty() ->
+                            listOf(ConfluentFileInfo(this, emptyStatePath("No topics available")))
+                        else ->
+                            topics.map { topic ->
+                                ConfluentFileInfo(this, topicPath(nodeId, topic.name))
+                            }
                     }
                 }
 

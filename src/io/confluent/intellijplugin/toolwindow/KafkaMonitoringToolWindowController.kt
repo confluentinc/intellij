@@ -26,6 +26,7 @@ import io.confluent.intellijplugin.settings.KafkaConnectionGroup
 import io.confluent.intellijplugin.toolwindow.config.KafkaToolWindowSettings
 import io.confluent.intellijplugin.toolwindow.controllers.ConfluentMainController
 import io.confluent.intellijplugin.toolwindow.controllers.KafkaMainController
+import io.confluent.intellijplugin.util.KafkaMessagesBundle
 
 @Service(Service.Level.PROJECT)
 class KafkaMonitoringToolWindowController(project: Project) : MonitoringToolWindowController(project) {
@@ -134,7 +135,7 @@ class KafkaMonitoringToolWindowController(project: Project) : MonitoringToolWind
 
         val content = contentManager.factory.createContent(
             controller.getComponent(),
-            "Confluent Cloud",
+            KafkaMessagesBundle.message("confluent.cloud.name"),
             false
         ).apply {
             putUserData(CONNECTION_ID, "ccloud")

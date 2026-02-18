@@ -7,6 +7,7 @@ import com.intellij.openapi.progress.runBlockingMaybeCancellable
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.util.Disposer
+import com.intellij.util.concurrency.annotations.RequiresBackgroundThread
 import io.confluent.intellijplugin.core.connection.updater.IntervalUpdateSettings
 import io.confluent.intellijplugin.core.monitoring.data.MonitoringDataManager
 import io.confluent.intellijplugin.core.monitoring.data.model.FieldGroupsData
@@ -20,13 +21,18 @@ import io.confluent.intellijplugin.model.ConsumerGroupOffsetInfo
 import io.confluent.intellijplugin.model.ConsumerGroupPresentable
 import io.confluent.intellijplugin.model.TopicConfig
 import io.confluent.intellijplugin.model.TopicPresentable
+import io.confluent.intellijplugin.common.models.RegistrySchemaInEditor
+import io.confluent.intellijplugin.consumer.editor.KafkaConsumerPanelStorage
 import io.confluent.intellijplugin.registry.common.KafkaSchemaInfo
 import io.confluent.intellijplugin.registry.KafkaRegistryType
+import io.confluent.intellijplugin.registry.SchemaVersionInfo
 import io.confluent.intellijplugin.toolwindow.config.KafkaToolWindowSettings
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.apache.kafka.clients.consumer.OffsetAndMetadata
+import org.apache.kafka.common.TopicPartition
 
 abstract class BaseClusterDataManager(
     project: Project?,
@@ -71,8 +77,6 @@ abstract class BaseClusterDataManager(
         topics: List<TopicPresentable>
     ): Pair<List<TopicPresentable>, Throwable?>
 
-    protected abstract suspend fun fetchTopicPartitions(topicName: String): List<BdtTopicPartition>
-
     protected abstract suspend fun getTopicConfig(topicName: String, showFullConfig: Boolean): List<TopicConfig>
 
     protected abstract suspend fun loadConsumerGroups(): List<ConsumerGroupPresentable>
@@ -89,6 +93,20 @@ abstract class BaseClusterDataManager(
     ): Pair<List<KafkaSchemaInfo>, Throwable?>
 
     protected abstract suspend fun listSchemaVersions(schemaName: String): List<Long>
+
+    abstract suspend fun loadConsumerGroupOffset(name: String): List<ConsumerGroupOffsetInfo>
+
+    abstract suspend fun loadTopicInfo(name: String): TopicPresentable
+
+    abstract suspend fun resetOffsets(
+        consumeGroupId: String,
+        offsets: Map<TopicPartition, OffsetAndMetadata>
+    )
+
+    abstract suspend fun getOffsetsForData(
+        partitions: Set<TopicPartition>,
+        timestamp: Long
+    ): Map<TopicPartition, Long>
 
     abstract suspend fun createTopic(
         name: String,
@@ -139,7 +157,22 @@ abstract class BaseClusterDataManager(
 
     open fun supportsInSyncReplicasData(): Boolean = true
 
+    // Consumer panel feature capabilities
+
+    abstract fun supportsConsumerGroups(): Boolean
+    fun supportsSchemaRegistry(): Boolean = registryType != KafkaRegistryType.NONE
+    abstract fun supportsAdvancedSettings(): Boolean
+    abstract fun supportsPresets(): Boolean
+    abstract fun supportsDetailsPanel(): Boolean
+
+    val consumerPanelStorage: KafkaConsumerPanelStorage by lazy {
+        KafkaConsumerPanelStorage(this).also { Disposer.register(this, it) }
+    }
+
     fun getTopics(): List<TopicPresentable> = topicModel.data ?: emptyList()
+
+    @RequiresBackgroundThread
+    abstract fun loadTopicNames(): List<TopicPresentable>
 
     fun updatePinnedTopics(topicName: String, isForAdding: Boolean) {
         val config = KafkaToolWindowSettings.getInstance().getOrCreateConfig(connectionId)
@@ -148,9 +181,21 @@ abstract class BaseClusterDataManager(
         } else {
             config.topicsPined -= topicName
         }
-        // Refresh model in background to avoid EDT blocking
-        driver.coroutineScope.launch {
-            updater.invokeRefreshModel(topicModel)
+
+        driver.coroutineScope.launch(Dispatchers.Default) {
+            val currentTopics = topicModel.data ?: emptyList()
+            val updatedTopics = currentTopics.map { topic ->
+                if (topic.name == topicName) {
+                    topic.copy(isFavorite = isForAdding)
+                } else {
+                    topic
+                }
+            }.sortedWith(
+                compareByDescending<TopicPresentable> { it.isFavorite }
+                    .thenBy { it.name.lowercase() }
+            )
+
+            topicModel.setData(updatedTopics)
         }
     }
 
@@ -166,9 +211,21 @@ abstract class BaseClusterDataManager(
         } else {
             config.consumerGroupPined -= consumerGroup
         }
-        // Refresh model in background to avoid EDT blocking
-        driver.coroutineScope.launch {
-            updater.invokeRefreshModel(consumerGroupsModel)
+
+        driver.coroutineScope.launch(Dispatchers.Default) {
+            val currentGroups = consumerGroupsModel.data ?: emptyList()
+            val updatedGroups = currentGroups.map { group ->
+                if (group.consumerGroup == consumerGroup) {
+                    group.copy(isFavorite = isForAdding)
+                } else {
+                    group
+                }
+            }.sortedWith(
+                compareByDescending<ConsumerGroupPresentable> { it.isFavorite }
+                    .thenBy { it.consumerGroup.lowercase() }
+            )
+
+            consumerGroupsModel.setData(updatedGroups)
         }
     }
 
@@ -179,6 +236,20 @@ abstract class BaseClusterDataManager(
 
     fun getSchemaByName(name: String) = getCachedSchema(name)
 
+    open fun initRefreshSchemasIfRequired() {
+        val schemaModel = schemaRegistryModel
+        if (schemaModel?.isInitedByFirstTime == false) {
+            updater.invokeRefreshModel(schemaModel)
+        }
+    }
+
+    @RequiresBackgroundThread
+    abstract fun getSchemasForEditor(): List<RegistrySchemaInEditor>
+
+    abstract fun getLatestVersionInfo(schemaName: String): SchemaVersionInfo?
+
+    abstract fun getCachedOrLoadSchema(name: String): KafkaSchemaInfo
+
     fun updatePinnedSchemas(schemaName: String, isForAdding: Boolean) {
         val config = KafkaToolWindowSettings.getInstance().getOrCreateConfig(connectionId)
         if (isForAdding) {
@@ -186,9 +257,23 @@ abstract class BaseClusterDataManager(
         } else {
             config.schemasPined -= schemaName
         }
-        // Refresh model in background to avoid EDT blocking
-        driver.coroutineScope.launch {
-            schemaRegistryModel?.let { updater.invokeRefreshModel(it) }
+
+        driver.coroutineScope.launch(Dispatchers.Default) {
+            schemaRegistryModel?.let { model ->
+                val currentSchemas = model.data ?: emptyList()
+                val updatedSchemas = currentSchemas.map { schema ->
+                    if (schema.name == schemaName) {
+                        schema.copy(isFavorite = isForAdding)
+                    } else {
+                        schema
+                    }
+                }.sortedWith(
+                    compareByDescending<KafkaSchemaInfo> { it.isFavorite }
+                        .thenBy { it.name.lowercase() }
+                )
+
+                model.setData(updatedSchemas)
+            }
         }
     }
 

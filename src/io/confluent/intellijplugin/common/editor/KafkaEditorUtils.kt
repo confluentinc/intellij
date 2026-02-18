@@ -29,7 +29,7 @@ import io.confluent.intellijplugin.core.ui.CustomListCellRenderer
 import io.confluent.intellijplugin.core.ui.DarculaTextAreaBorder
 import io.confluent.intellijplugin.core.util.executeNotOnEdt
 import io.confluent.intellijplugin.core.util.invokeLater
-import io.confluent.intellijplugin.data.KafkaDataManager
+import io.confluent.intellijplugin.data.BaseClusterDataManager
 import io.confluent.intellijplugin.registry.KafkaRegistryFormat
 import io.confluent.intellijplugin.registry.KafkaRegistryType
 import io.confluent.intellijplugin.registry.KafkaRegistryUtil
@@ -146,7 +146,7 @@ object KafkaEditorUtils {
 
     fun createFieldTypeComboBox(
         topicCombobox: ComboBox<TopicInEditor>,
-        dataManager: KafkaDataManager,
+        dataManager: BaseClusterDataManager,
         isKey: Boolean,
         onChange: (ComboBox<KafkaFieldType>) -> Unit
     ): ComboBox<KafkaFieldType> {
@@ -177,12 +177,12 @@ object KafkaEditorUtils {
                     }
                 }
             }
-        }
 
-        executeNotOnEdt {
-            val schemaType = calculateSchemaTypeForTopic(dataManager, topicCombobox, isKey) ?: return@executeNotOnEdt
-            runInEdt {
-                fieldsCombobox.selectedItem = schemaType
+            executeNotOnEdt {
+                val schemaType = calculateSchemaTypeForTopic(dataManager, topicCombobox, isKey) ?: return@executeNotOnEdt
+                runInEdt {
+                    fieldsCombobox.selectedItem = schemaType
+                }
             }
         }
 
@@ -191,12 +191,12 @@ object KafkaEditorUtils {
 
     fun createConsumerGroups(
         rootDisposable: Disposable,
-        kafkaManager: KafkaDataManager,
+        dataManager: BaseClusterDataManager,
         withEmpty: Boolean
     ): ComboBox<String> {
         val calcData = {
             val prefix = if (withEmpty) listOf("") else listOf()
-            val cachedData = kafkaManager.consumerGroupsModel.data?.map { it.consumerGroup } ?: emptyList()
+            val cachedData = dataManager.consumerGroupsModel.data?.map { it.consumerGroup } ?: emptyList()
             prefix + cachedData
         }
 
@@ -209,16 +209,16 @@ object KafkaEditorUtils {
             override fun onChanged() = updateEditableComboBox(comboBox, calcData())
         }
 
-        kafkaManager.consumerGroupsModel.addListener(listener)
+        dataManager.consumerGroupsModel.addListener(listener)
         Disposer.register(rootDisposable) {
-            kafkaManager.consumerGroupsModel.removeListener(listener)
+            dataManager.consumerGroupsModel.removeListener(listener)
         }
         comboBox.isEditable = true
         return comboBox
     }
 
-    fun createTopicComboBox(rootDisposable: Disposable, kafkaManager: KafkaDataManager): ComboBox<TopicInEditor> {
-        val topics = kafkaManager.getTopics()
+    fun createTopicComboBox(rootDisposable: Disposable, dataManager: BaseClusterDataManager): ComboBox<TopicInEditor> {
+        val topics = dataManager.getTopics()
         val topicComboBox = ComboBox(topics.map { it.toEditorTopic() }.sortedBy { it.name }.toTypedArray())
         topicComboBox.isSwingPopup = false
         topicComboBox.prototypeDisplayValue =
@@ -226,11 +226,11 @@ object KafkaEditorUtils {
         topicComboBox.renderer = CustomListCellRenderer<TopicInEditor> { it.name }
 
         val listener = KafkaDataModelListener(topicComboBox) {
-            kafkaManager.loadTopicNames().map { it.toEditorTopic() }.sortedBy { it.name } to null
+            dataManager.loadTopicNames().map { it.toEditorTopic() }.sortedBy { it.name } to null
         }
-        kafkaManager.topicModel.addListener(listener)
+        dataManager.topicModel.addListener(listener)
         Disposer.register(rootDisposable) {
-            kafkaManager.topicModel.removeListener(listener)
+            dataManager.topicModel.removeListener(listener)
         }
 
         topicComboBox.withValidator(rootDisposable) {
@@ -250,7 +250,7 @@ object KafkaEditorUtils {
 
     fun createSchemaComboBox(
         rootDisposable: Disposable,
-        kafkaManager: KafkaDataManager,
+        kafkaManager: BaseClusterDataManager,
         topicComboBox: ComboBox<TopicInEditor>,
         isKey: Boolean
     ): ComboBox<RegistrySchemaInEditor> {
@@ -315,13 +315,13 @@ object KafkaEditorUtils {
     }
 
     private fun calculateSchemaTypeForTopic(
-        kafkaManager: KafkaDataManager,
+        kafkaManager: BaseClusterDataManager,
         topicComboBox: ComboBox<TopicInEditor>,
         isKey: Boolean
     ): KafkaFieldType? {
         val schema =
             calculateTopicSchemaName(kafkaManager, topicComboBox.item?.name ?: "", isKey, schemas = null) ?: return null
-        val type = KafkaRegistryUtil.getSchemaType(schema, kafkaManager)
+        val type = kafkaManager.getCachedOrLoadSchema(schema).type
         return if (type != null)
             KafkaFieldType.SCHEMA_REGISTRY
         else
@@ -329,7 +329,7 @@ object KafkaEditorUtils {
     }
 
     private fun calculateSchemasForCombobox(
-        kafkaManager: KafkaDataManager,
+        kafkaManager: BaseClusterDataManager,
         topicComboBox: ComboBox<TopicInEditor>,
         isKey: Boolean,
         prevSchema: String?
@@ -343,7 +343,7 @@ object KafkaEditorUtils {
     }
 
     private fun calculateTopicSchemaName(
-        kafkaManager: KafkaDataManager,
+        kafkaManager: BaseClusterDataManager,
         topic: String,
         isKey: Boolean,
         schemas: List<RegistrySchemaInEditor>?

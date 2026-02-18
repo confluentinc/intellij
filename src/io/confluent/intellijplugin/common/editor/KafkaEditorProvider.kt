@@ -10,6 +10,8 @@ import com.intellij.openapi.vfs.VirtualFile
 import io.confluent.intellijplugin.common.models.KafkaEditorType
 import io.confluent.intellijplugin.consumer.editor.KafkaConsumerEditor
 import io.confluent.intellijplugin.core.data.StructuredFilesUtil
+import io.confluent.intellijplugin.data.BaseClusterDataManager
+import io.confluent.intellijplugin.data.CCloudClusterDataManager
 import io.confluent.intellijplugin.data.KafkaDataManager
 import io.confluent.intellijplugin.producer.editor.KafkaProducerEditor
 
@@ -17,12 +19,21 @@ class KafkaEditorProvider : WeighedFileEditorProvider(), DumbAware {
     override fun accept(project: Project, file: VirtualFile): Boolean = file.getUserData(KAFKA_EDITOR_TYPE) != null
 
     override fun createEditor(project: Project, file: VirtualFile): FileEditor {
-        val manager = file.getUserData(KAFKA_MANAGER_KEY) ?: error("Kafka manager is not found")
         val type = file.getUserData(KAFKA_EDITOR_TYPE) ?: error("Kafka editor type is not found")
         val topic = file.getUserData(KAFKA_DEFAULT_TOPIC)
+
+        // Get either native Kafka or CCloud data manager
+        val dataManager: BaseClusterDataManager = file.getUserData(KAFKA_MANAGER_KEY)
+            ?: file.getUserData(CCLOUD_MANAGER_KEY)
+            ?: error("Data manager is not found")
+
         return when (type) {
-            KafkaEditorType.CONSUMER -> KafkaConsumerEditor(project, manager, file, topic)
-            KafkaEditorType.PRODUCER -> KafkaProducerEditor(project, manager, file, topic)
+            KafkaEditorType.CONSUMER -> KafkaConsumerEditor(project, dataManager, file, topic)
+            KafkaEditorType.PRODUCER -> {
+                val kafkaManager = dataManager as? KafkaDataManager
+                    ?: error("Producer only supported for native Kafka connections")
+                KafkaProducerEditor(project, kafkaManager, file, topic)
+            }
         }
     }
 
@@ -36,6 +47,7 @@ class KafkaEditorProvider : WeighedFileEditorProvider(), DumbAware {
         val KAFKA_MANAGER_KEY = Key<KafkaDataManager>("KAFKA_MANAGER")
         val KAFKA_EDITOR_TYPE = Key<KafkaEditorType>("KAFKA_EDITOR_TYPE")
         val KAFKA_DEFAULT_TOPIC = Key<String>("KAFKA_DEFAULT_TOPIC")
+        val CCLOUD_MANAGER_KEY = Key<CCloudClusterDataManager>("CCLOUD_MANAGER")
     }
 }
 

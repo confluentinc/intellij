@@ -7,7 +7,7 @@ import com.intellij.openapi.fileTypes.PlainTextLanguage
 import com.intellij.openapi.util.NlsSafe
 import com.intellij.util.concurrency.annotations.RequiresBackgroundThread
 import io.confluent.intellijplugin.common.models.KafkaFieldType
-import io.confluent.intellijplugin.data.KafkaDataManager
+import io.confluent.intellijplugin.data.BaseClusterDataManager
 import io.confluent.intellijplugin.registry.confluent.ConfluentRegistryClient
 import io.confluent.intellijplugin.registry.serde.BdtAvroSchemaProvider
 import io.confluent.intellijplugin.registry.serde.BdtJsonSchemaProvider
@@ -35,41 +35,56 @@ object KafkaRegistryUtil {
 
     fun getSchemaType(
         schemaName: String,
-        dataManager: KafkaDataManager
+        dataManager: BaseClusterDataManager
     ): KafkaRegistryFormat? = dataManager.getCachedOrLoadSchema(schemaName).type
 
     @RequiresBackgroundThread
     fun loadSchema(
         schemaName: String,
         fieldType: KafkaFieldType,
-        dataManager: KafkaDataManager
+        dataManager: BaseClusterDataManager
     ): ParsedSchema? {
         if (fieldType !in KafkaFieldType.registryValues)
             return null
 
         val versionInfo = dataManager.getLatestVersionInfo(schemaName) ?: return null
-        return parseSchema(versionInfo.type, versionInfo.schema, dataManager, versionInfo.references).getOrThrow()
+        return parseSchema(versionInfo.type, versionInfo.schema, versionInfo.references).getOrThrow()
     }
 
+    /**
+     * Parse schema text using default schema providers.
+     * Works without any registry client.
+     */
     fun parseSchema(
         schemaType: KafkaRegistryFormat,
         newText: @NlsSafe String,
-        dataManager: KafkaDataManager,
         references: List<SchemaReference> = emptyList()
-    ): Result<ParsedSchema> =
-        parseSchema(schemaType, newText, dataManager.client.confluentRegistryClient, references)
+    ): Result<ParsedSchema> = parseSchemaWithProviders(schemaType, newText, references, getRegistrySchemaProviders())
 
+    /**
+     * Parse schema text using schema providers from a ConfluentRegistryClient.
+     * Falls back to default providers if client is null.
+     */
     fun parseSchema(
         schemaType: KafkaRegistryFormat,
         newText: @NlsSafe String,
         client: ConfluentRegistryClient?,
         references: List<SchemaReference> = emptyList()
     ): Result<ParsedSchema> {
+        val providers = client?.internalClient?.schemaProviders?.values ?: getRegistrySchemaProviders()
+        return parseSchemaWithProviders(schemaType, newText, references, providers)
+    }
+
+    private fun parseSchemaWithProviders(
+        schemaType: KafkaRegistryFormat,
+        newText: @NlsSafe String,
+        references: List<SchemaReference>,
+        providers: Collection<io.confluent.kafka.schemaregistry.SchemaProvider>
+    ): Result<ParsedSchema> {
         return try {
-            val providers = client?.internalClient?.schemaProviders?.values ?: getRegistrySchemaProviders()
             val provider = providers.firstOrNull {
                 it.schemaType() == schemaType.name
-            } ?: error("Schema type is not found ${schemaType}")
+            } ?: error("Schema type is not found $schemaType")
 
             val schema = Schema(null, null, null, schemaType.name, references, newText)
             val value = provider.parseSchemaOrElseThrow(schema, true, false)
