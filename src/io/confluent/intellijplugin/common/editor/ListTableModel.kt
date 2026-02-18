@@ -11,10 +11,6 @@ class ListTableModel<T>(
     private val columnMapper: (T, Int) -> Any?
 ) : AbstractTableModel() {
 
-    // Immutable snapshot used by Swing's read methods (getRowCount/getValueAt)
-    // to ensure consistent data within a single rendering pass.
-    private var snapshot: List<T> = ArrayList(data)
-
     val columnModel: TableColumnModel by lazy {
         DefaultTableColumnModel().apply {
             columnNames.forEachIndexed { index, name ->
@@ -28,18 +24,20 @@ class ListTableModel<T>(
     /** If maxElementsCount <= data.size, the first element will be removed when adding a new element. */
     var maxElementsCount = 0
 
-    override fun getRowCount() = snapshot.size
+    override fun getRowCount() = data.size
     override fun getColumnCount() = columnNames.size
-    override fun getValueAt(rowIndex: Int, columnIndex: Int) = columnMapper(snapshot[rowIndex], columnIndex)
+    override fun getValueAt(rowIndex: Int, columnIndex: Int): Any? {
+        val row = data.getOrNull(rowIndex) ?: return null
+        return columnMapper(row, columnIndex)
+    }
     override fun getColumnClass(columnIndex: Int): Class<*> {
         return columnClasses?.get(columnIndex) ?: super.getColumnClass(columnIndex)
     }
 
-    fun getValueAt(rowIndex: Int): T? = if (rowIndex in snapshot.indices) snapshot[rowIndex] else null
+    fun getValueAt(rowIndex: Int): T? = data.getOrNull(rowIndex)
 
     fun clear() {
         data.clear()
-        snapshot = emptyList()
         fireTableDataChanged()
     }
 
@@ -49,13 +47,11 @@ class ListTableModel<T>(
             for (i in 0 until elementsToRemove) {
                 data.removeFirst()
             }
-            snapshot = ArrayList(data)
             fireTableRowsDeleted(0, elementsToRemove - 1)
         }
         data += element
-        snapshot = ArrayList(data)
         fireTableRowsInserted(data.size - 1, data.size - 1)
     }
 
-    fun elements(): List<T> = snapshot
+    fun elements(): List<T> = data
 }
