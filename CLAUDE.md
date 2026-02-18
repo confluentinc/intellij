@@ -154,7 +154,7 @@ test {
 
 ### Test Fixtures
 
-**Never use inline JSON strings in tests.** Instead, create separate fixture files in `test/resources/` directory.
+**Never use inline JSON strings in tests when it comes to mocked API endpoints.** Instead, create separate fixture files in `test/resources/` directory.
 
 **Bad:**
 
