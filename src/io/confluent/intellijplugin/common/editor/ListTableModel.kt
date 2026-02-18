@@ -26,12 +26,15 @@ class ListTableModel<T>(
 
     override fun getRowCount() = data.size
     override fun getColumnCount() = columnNames.size
-    override fun getValueAt(rowIndex: Int, columnIndex: Int) = columnMapper(data[rowIndex], columnIndex)
+    override fun getValueAt(rowIndex: Int, columnIndex: Int): Any? {
+        val row = data.getOrNull(rowIndex) ?: return null
+        return columnMapper(row, columnIndex)
+    }
     override fun getColumnClass(columnIndex: Int): Class<*> {
         return columnClasses?.get(columnIndex) ?: super.getColumnClass(columnIndex)
     }
 
-    fun getValueAt(rowIndex: Int): T? = if (rowIndex in data.indices) data[rowIndex] else null
+    fun getValueAt(rowIndex: Int): T? = data.getOrNull(rowIndex)
 
     fun clear() {
         data.clear()
