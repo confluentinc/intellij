@@ -183,8 +183,8 @@
                     class="io.confluent.intellijplugin.core.monitoring.actions.tabs.MonitoringTabOpenConnectionSetting"
                     use-shortcut-of="EditSource"/>
             <separator/>
-            <action id="Kafka.MonitoringTabsActions.ConfluentCloudSignOut"
-                    class="io.confluent.intellijplugin.toolwindow.actions.ConfluentCloudSignOutTabAction"/>
+            <action id="Kafka.MonitoringTabsActions.ConfluentCloudAuth"
+                    class="io.confluent.intellijplugin.toolwindow.actions.ConfluentCloudTabAction"/>
         </group>
 
         <action id="Kafka.BdiTableCopyRowAction"
