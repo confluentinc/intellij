@@ -71,6 +71,32 @@ class KafkaErrorReportSubmitterTest {
         }
     }
 
+    @Nested
+    @DisplayName("UI text")
+    inner class UITextTests {
+
+        @Test
+        fun `should return correct report action text`() {
+            val submitter = KafkaErrorReportSubmitter()
+
+            val text = submitter.getReportActionText()
+
+            Assertions.assertEquals("Report to plugin vendor (Confluent, Inc.)", text)
+        }
+
+        @Test
+        fun `should return privacy notice text`() {
+            val submitter = KafkaErrorReportSubmitter()
+
+            val text = submitter.getPrivacyNoticeText()
+
+            Assertions.assertEquals(
+                "Error reports help improve the Kafka plugin. No personal data is collected.",
+                text
+            )
+        }
+    }
+
     /**
      * Helper function to create a mock IdeaLoggingEvent with throwableText
      */
