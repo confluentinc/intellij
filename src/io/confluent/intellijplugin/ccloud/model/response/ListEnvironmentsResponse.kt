@@ -14,5 +14,11 @@ data class ListEnvironmentsResponse(
 @Serializable
 data class EnvironmentData(
     val id: String,
-    @SerialName("display_name") val displayName: String? = null
+    @SerialName("display_name") val displayName: String? = null,
+    @SerialName("stream_governance_config") val streamGovernanceConfig: StreamGovernanceConfig? = null
+)
+
+@Serializable
+data class StreamGovernanceConfig(
+    @SerialName("package") val packageName: String? = null
 )
