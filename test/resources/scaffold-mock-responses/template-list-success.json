@@ -11,8 +11,8 @@
   "data": [
     {
       "metadata": {
-        "self": "https://api.confluent.cloud/scaffold/v1/templates/template-1",
-        "resource_name": "crn://confluent.cloud/template=template-1"
+        "self": "https://api.confluent.cloud/scaffold/v1/template-collections/intellij/templates/template-1",
+        "resource_name": "crn://confluent.cloud/template-collection=intellij/template=template-1"
       },
       "spec": {
         "name": "template-1",
@@ -30,8 +30,8 @@
     },
     {
       "metadata": {
-        "self": "https://api.confluent.cloud/scaffold/v1/templates/template-2",
-        "resource_name": "crn://confluent.cloud/template=template-2"
+        "self": "https://api.confluent.cloud/scaffold/v1/template-collections/intellij/templates/template-2",
+        "resource_name": "crn://confluent.cloud/template-collection=intellij/template=template-2"
       },
       "spec": {
         "name": "template-2",

@@ -11,8 +11,8 @@
   "data": [
     {
       "metadata": {
-        "self": "https://api.confluent.cloud/scaffold/v1/templates/template-with-dates",
-        "resource_name": "crn://confluent.cloud/template=template-with-dates",
+        "self": "https://api.confluent.cloud/scaffold/v1/template-collections/intellij/templates/template-with-dates",
+        "resource_name": "crn://confluent.cloud/template-collection=intellij/template=template-with-dates",
         "created_at": "2024-01-15T10:30:00Z",
         "updated_at": "2024-02-01T14:20:30Z",
         "deleted_at": null

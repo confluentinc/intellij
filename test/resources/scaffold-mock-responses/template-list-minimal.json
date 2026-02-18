@@ -11,8 +11,8 @@
   "data": [
     {
       "metadata": {
-        "self": "https://api.confluent.cloud/scaffold/v1/templates/minimal",
-        "resource_name": "crn://confluent.cloud/template=minimal"
+        "self": "https://api.confluent.cloud/scaffold/v1/template-collections/intellij/templates/minimal-template",
+        "resource_name": "crn://confluent.cloud/template-collection=intellij/template=minimal-template"
       },
       "spec": {
         "name": "minimal-template",
