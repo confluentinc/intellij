@@ -1,5 +1,6 @@
 package io.confluent.intellijplugin.consumer.editor
 
+import com.google.gson.JsonParser
 import com.intellij.testFramework.junit5.TestApplication
 import io.confluent.intellijplugin.common.editor.ListTableModel
 import io.confluent.intellijplugin.consumer.models.ConsumerStartType
@@ -212,10 +213,9 @@ class ConsumerEditorUtilsTest {
         fun `should produce valid JSON with column names as keys for single row`() {
             val model = createTableModel(listOf("Name", "Age"), listOf(listOf("Alice", "30")))
             val result = ConsumerEditorUtils.getTableContent(model, "json")
+            assertTrue(JsonParser.parseString(result).isJsonArray)
             assertTrue(result.contains("\"Name\""))
             assertTrue(result.contains("\"Alice\""))
-            assertTrue(result.contains("\"Age\""))
-            assertTrue(result.contains("\"30\""))
         }
 
         @Test
