@@ -8,12 +8,10 @@ import io.confluent.intellijplugin.core.monitoring.toolwindow.MainTreeController
 import io.confluent.intellijplugin.core.monitoring.toolwindow.MainTreeController.Companion.rfsPath
 import io.confluent.intellijplugin.core.table.ClipboardUtils
 import io.confluent.intellijplugin.data.CCloudClusterDataManager
+import io.confluent.intellijplugin.data.CCloudOrgManager
 import io.confluent.intellijplugin.rfs.ConfluentDriver.Companion.getClusterId
 
-/**
- * Action to copy cluster ID to clipboard from context menu.
- * Visible only when a Confluent Cloud cluster node is selected in the tree.
- */
+/** Copies Confluent Cloud cluster ID to clipboard (Kafka or Schema Registry). */
 class CopyClusterIdAction : AnAction(), DumbAware {
     override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
 
@@ -25,11 +23,24 @@ class CopyClusterIdAction : AnAction(), DumbAware {
 
     override fun update(e: AnActionEvent) {
         val rfsPath = e.rfsPath
+        val dataManager = e.dataManager
 
-        e.presentation.isEnabledAndVisible =
-            e.dataManager is CCloudClusterDataManager &&
+        // Hide from toolbar, only show in context menu
+        if (!e.isFromContextMenu) {
+            e.presentation.isEnabledAndVisible = false
+            return
+        }
+
+        val isKafkaCluster = dataManager is CCloudClusterDataManager &&
             rfsPath != null &&
             rfsPath.elements.size == 1 &&
             rfsPath.name.startsWith("lkc-")
+
+        val isSchemaRegistry = dataManager is CCloudOrgManager &&
+            rfsPath != null &&
+            rfsPath.elements.size == 1 &&
+            rfsPath.name.startsWith("lsrc-")
+
+        e.presentation.isEnabledAndVisible = isKafkaCluster || isSchemaRegistry
     }
 }

@@ -130,11 +130,11 @@ internal class ConfluentMainController(
                 if (status == ConnectedConnectionStatus) {
                     installToolbarIfNeeded()
                     populateEnvironmentSelector()
+                    selectedEnvironmentId.get()?.let { envId ->
+                        driver.fileInfoManager.refreshFiles(driver.root)
 
-                    if (!hasShownInitialEnvironmentDetails) {
-                        hasShownInitialEnvironmentDetails = true
-                        val envId = selectedEnvironmentId.get()
-                        if (envId != null) {
+                        if (!hasShownInitialEnvironmentDetails) {
+                            hasShownInitialEnvironmentDetails = true
                             showEnvironmentDetails(envId)
                             (details.layout as CardLayout).show(details, ENVIRONMENT_PANEL)
                         }
