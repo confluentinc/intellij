@@ -7,9 +7,9 @@
 
 The following 3rd-party software packages may be used by or distributed with git@github.com:confluentinc/intellij.git. Any information relevant to third-party vendors listed below are collected using common, reasonable means.
 
-Date generated: 2026-2-6
+Date generated: 2026-2-18
 
-Revision ID: fd1b2fd17cec52abf9e3eb3b92ae6c12ca09b902
+Revision ID: e056484284272f3cc599a7d31b1c2a9d9df0de9d
 
 ================================================================================
 ================================================================================
@@ -69,6 +69,9 @@ No licenses found
 - Apache HttpCore (4.4.13) [Apache-2.0]
 - Apache HttpCore (4.4.16) [Apache-2.0]
 - Apache Kafka (4.0.0) [Apache-2.0]
+- asm (9.8) [Apache-2.0, BSD-3-Clause]
+- asm-commons (9.8) [Apache-2.0, BSD-3-Clause]
+- asm-tree (9.8) [Apache-2.0, BSD-3-Clause]
 - AssertJ Core (4.0.0-M1) [Apache-2.0]
 - Automaton (1.11-8) [BSD-2-Clause, BSD-3-Clause]
 - AutoValue Annotations (1.10.1) [Apache-2.0]
@@ -184,6 +187,10 @@ No licenses found
 - Jackson-dataformat-CSV (2.19.0) [Apache-2.0]
 - jackson-module-kotlin (2.19.0) [Apache-2.0]
 - Jackson-module-parameter-names (2.19.0) [Apache-2.0]
+- JaCoCo :: Agent (0.8.13) [EPL-2.0]
+- JaCoCo :: Ant (0.8.13) [EPL-2.0]
+- JaCoCo :: Core (0.8.13) [EPL-2.0]
+- JaCoCo :: Report (0.8.13) [EPL-2.0, Apache-2.0]
 - Jakarta Annotations API (2.1.1) [GPL-2.0-with-classpath-exception, EPL-2.0, BSD-3-Clause]
 - java-diff-utils (4.12) [Apache-2.0]
 - javapoet (0.6.0) [Apache-2.0]
@@ -192,7 +199,7 @@ No licenses found
 - JetBrains Java Annotations (13.0) [Apache-2.0]
 - JetBrains Java Annotations (26.0.2) [Apache-2.0]
 - JetBrains Marketplace ZIP Signer (0.1.43) [Apache-2.0]
-- JetBrains Plugin Verifier CLI (1.398) [Apache-2.0]
+- JetBrains Plugin Verifier CLI (1.400) [Apache-2.0]
 - JGoodies Forms (1.1-preview) [BSD-2-Clause]
 - Jimfs (1.1) [Apache-2.0]
 - jmail (2.0.1) [MIT]
@@ -219,7 +226,7 @@ No licenses found
 - kafka-schema-serializer (8.1.0) [Apache-2.0, Confluent]
 - Kotlin Build Tools Api (2.2.21) [Apache-2.0]
 - Kotlin Build Tools Impl (2.2.21) [Apache-2.0]
-- Kotlin Compiler Embeddable (2.2.21) [Apache-2.0, NPL-1.1, BSD-3-Clause, MPL-1.1, GPL-1.0-or-later, LGPL-2.1-or-later, GPL-2.0-or-later]
+- Kotlin Compiler Embeddable (2.2.21) [Apache-2.0, BSD-3-Clause, NPL-1.1, MPL-1.1, GPL-1.0-or-later, LGPL-2.1-or-later, GPL-2.0-or-later]
 - Kotlin Compiler Runner (2.2.21) [Apache-2.0]
 - Kotlin Daemon Client (2.2.21) [Apache-2.0]
 - Kotlin Daemon Embeddable (2.2.21) [Apache-2.0]
@@ -338,7 +345,7 @@ Apache-2.0
 
 --------------------------------------------------------------------------------
 File matches:
-org/jetbrains/kotlin/abi/tools/v2/klib/KlibDumpImpl.kt
+org/jetbrains/kotlin/abi/tools/AbiTools.kt
 --------------------------------------------------------------------------------
 
 Copyright 2010-2024 JetBrains s.r.o. and Kotlin Programming Language contributors.
@@ -375,7 +382,6 @@ org/jetbrains/kotlin/abi/tools/api/AbiToolsInterface.kt
 org/jetbrains/kotlin/abi/tools/api/v2/AbiToolsV2.kt
 org/jetbrains/kotlin/abi/tools/api/v2/KlibDump.kt
 org/jetbrains/kotlin/abi/tools/api/v2/KlibTarget.kt
-pom.xml
 --------------------------------------------------------------------------------
 
 Copyright 2010-2024 JetBrains s.r.o. and Kotlin Programming Language contributors.
@@ -488,10 +494,6 @@ Package Depth: Transitive
 * Declared Licenses *
 MIT
 
---------------------------------------------------------------------------------
-File matches:
-parent-poms/mvn+com.segment.analytics.java:analytics-parent$3.5.2/pom.xml
---------------------------------------------------------------------------------
 
 Copyright (c) <year> <copyright holders>
 Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -519,7 +521,6 @@ Apache-2.0
 --------------------------------------------------------------------------------
 File matches:
 com/segment/analytics/gson/Iso8601Utils.java
-parent-poms/mvn+org.sonatype.oss:oss-parent$7/pom.xml
 --------------------------------------------------------------------------------
 
 
@@ -8270,10 +8271,6 @@ org/apache/http/util/package-info.java
 org/apache/http/util/TextUtils.java
 org/apache/http/util/VersionInfo.java
 org/apache/http/version.properties
-parent-poms/mvn+org.apache:apache$21/pom.xml
-parent-poms/mvn+org.apache.httpcomponents:httpcomponents-core$4.4.16/pom.xml
-parent-poms/mvn+org.apache.httpcomponents:httpcomponents-parent$11/pom.xml
-pom.xml
 --------------------------------------------------------------------------------
 
 
@@ -8700,6 +8697,296 @@ org/apache/kafka/clients/MetadataRecoveryStrategy.java
    See the License for the specific language governing permissions and
    limitations under the License.
 
+
+
+--------------------------------------------------------------------------------
+Package Title: asm (9.8)
+
+Package Locator: mvn+org.ow2.asm:asm$9.8
+
+Package Depth: Transitive
+--------------------------------------------------------------------------------
+
+* Declared Licenses *
+Apache-2.0, BSD-3-Clause
+
+* Apache-2.0 *
+--------------------------------------------------------------------------------
+File matches:
+parent-poms/mvn+org.ow2:ow2$1.5.1/pom.xml
+--------------------------------------------------------------------------------
+
+Copyright 2011-2012 Bull S.A.S.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+
+See the License for the specific language governing permissions and limitations under the License.
+
+* BSD-3-Clause *
+--------------------------------------------------------------------------------
+File matches:
+org/objectweb/asm/AnnotationVisitor.java
+org/objectweb/asm/AnnotationWriter.java
+org/objectweb/asm/Attribute.java
+org/objectweb/asm/ByteVector.java
+org/objectweb/asm/ClassReader.java
+org/objectweb/asm/ClassTooLargeException.java
+org/objectweb/asm/ClassVisitor.java
+org/objectweb/asm/ClassWriter.java
+org/objectweb/asm/ConstantDynamic.java
+org/objectweb/asm/Constants.java
+org/objectweb/asm/Context.java
+org/objectweb/asm/CurrentFrame.java
+org/objectweb/asm/Edge.java
+org/objectweb/asm/FieldVisitor.java
+org/objectweb/asm/FieldWriter.java
+org/objectweb/asm/Frame.java
+org/objectweb/asm/Handle.java
+org/objectweb/asm/Handler.java
+org/objectweb/asm/Label.java
+org/objectweb/asm/MethodTooLargeException.java
+org/objectweb/asm/MethodVisitor.java
+org/objectweb/asm/MethodWriter.java
+org/objectweb/asm/ModuleVisitor.java
+org/objectweb/asm/Opcodes.java
+org/objectweb/asm/package.html
+org/objectweb/asm/RecordComponentVisitor.java
+org/objectweb/asm/RecordComponentWriter.java
+org/objectweb/asm/signature/package.html
+org/objectweb/asm/signature/SignatureReader.java
+org/objectweb/asm/signature/SignatureVisitor.java
+org/objectweb/asm/signature/SignatureWriter.java
+org/objectweb/asm/SymbolTable.java
+org/objectweb/asm/Type.java
+org/objectweb/asm/TypePath.java
+org/objectweb/asm/TypeReference.java
+pom.xml
+--------------------------------------------------------------------------------
+
+Copyright (c) 2000-2011 INRIA, France Telecom . All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+   1. Redistributions of source code must retain the above copyright notice,
+      this list of conditions and the following disclaimer.
+
+   2. Redistributions in binary form must reproduce the above copyright notice,
+      this list of conditions and the following disclaimer in the documentation
+      and/or other materials provided with the distribution.
+
+   3. Neither the name of the copyright holder nor the names of its
+      contributors may be used to endorse or promote products derived from
+      this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+
+--------------------------------------------------------------------------------
+Package Title: asm-commons (9.8)
+
+Package Locator: mvn+org.ow2.asm:asm-commons$9.8
+
+Package Depth: Transitive
+--------------------------------------------------------------------------------
+
+* Declared Licenses *
+Apache-2.0, BSD-3-Clause
+
+* Apache-2.0 *
+--------------------------------------------------------------------------------
+File matches:
+parent-poms/mvn+org.ow2:ow2$1.5.1/pom.xml
+--------------------------------------------------------------------------------
+
+Copyright 2011-2012 Bull S.A.S.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+
+See the License for the specific language governing permissions and limitations under the License.
+
+* BSD-3-Clause *
+--------------------------------------------------------------------------------
+File matches:
+org/objectweb/asm/commons/AdviceAdapter.java
+org/objectweb/asm/commons/AnalyzerAdapter.java
+org/objectweb/asm/commons/AnnotationRemapper.java
+org/objectweb/asm/commons/ClassRemapper.java
+org/objectweb/asm/commons/CodeSizeEvaluator.java
+org/objectweb/asm/commons/FieldRemapper.java
+org/objectweb/asm/commons/GeneratorAdapter.java
+org/objectweb/asm/commons/InstructionAdapter.java
+org/objectweb/asm/commons/JSRInlinerAdapter.java
+org/objectweb/asm/commons/LocalVariablesSorter.java
+org/objectweb/asm/commons/Method.java
+org/objectweb/asm/commons/MethodRemapper.java
+org/objectweb/asm/commons/ModuleHashesAttribute.java
+org/objectweb/asm/commons/ModuleRemapper.java
+org/objectweb/asm/commons/ModuleResolutionAttribute.java
+org/objectweb/asm/commons/ModuleTargetAttribute.java
+org/objectweb/asm/commons/package.html
+org/objectweb/asm/commons/RecordComponentRemapper.java
+org/objectweb/asm/commons/Remapper.java
+org/objectweb/asm/commons/SerialVersionUIDAdder.java
+org/objectweb/asm/commons/SignatureRemapper.java
+org/objectweb/asm/commons/SimpleRemapper.java
+org/objectweb/asm/commons/StaticInitMerger.java
+org/objectweb/asm/commons/TableSwitchGenerator.java
+org/objectweb/asm/commons/TryCatchBlockSorter.java
+pom.xml
+--------------------------------------------------------------------------------
+
+Copyright (c) 2000-2011 INRIA, France Telecom . All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+   1. Redistributions of source code must retain the above copyright notice,
+      this list of conditions and the following disclaimer.
+
+   2. Redistributions in binary form must reproduce the above copyright notice,
+      this list of conditions and the following disclaimer in the documentation
+      and/or other materials provided with the distribution.
+
+   3. Neither the name of the copyright holder nor the names of its
+      contributors may be used to endorse or promote products derived from
+      this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+
+--------------------------------------------------------------------------------
+Package Title: asm-tree (9.8)
+
+Package Locator: mvn+org.ow2.asm:asm-tree$9.8
+
+Package Depth: Transitive
+--------------------------------------------------------------------------------
+
+* Declared Licenses *
+Apache-2.0, BSD-3-Clause
+
+* Apache-2.0 *
+--------------------------------------------------------------------------------
+File matches:
+parent-poms/mvn+org.ow2:ow2$1.5.1/pom.xml
+--------------------------------------------------------------------------------
+
+Copyright 2011-2012 Bull S.A.S.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+
+See the License for the specific language governing permissions and limitations under the License.
+
+* BSD-3-Clause *
+--------------------------------------------------------------------------------
+File matches:
+org/objectweb/asm/tree/AbstractInsnNode.java
+org/objectweb/asm/tree/AnnotationNode.java
+org/objectweb/asm/tree/ClassNode.java
+org/objectweb/asm/tree/FieldInsnNode.java
+org/objectweb/asm/tree/FrameNode.java
+org/objectweb/asm/tree/IincInsnNode.java
+org/objectweb/asm/tree/InnerClassNode.java
+org/objectweb/asm/tree/InsnList.java
+org/objectweb/asm/tree/InsnNode.java
+org/objectweb/asm/tree/IntInsnNode.java
+org/objectweb/asm/tree/InvokeDynamicInsnNode.java
+org/objectweb/asm/tree/JumpInsnNode.java
+org/objectweb/asm/tree/LabelNode.java
+org/objectweb/asm/tree/LdcInsnNode.java
+org/objectweb/asm/tree/LineNumberNode.java
+org/objectweb/asm/tree/LocalVariableAnnotationNode.java
+org/objectweb/asm/tree/LocalVariableNode.java
+org/objectweb/asm/tree/LookupSwitchInsnNode.java
+org/objectweb/asm/tree/MethodInsnNode.java
+org/objectweb/asm/tree/MethodNode.java
+org/objectweb/asm/tree/ModuleExportNode.java
+org/objectweb/asm/tree/ModuleNode.java
+org/objectweb/asm/tree/ModuleOpenNode.java
+org/objectweb/asm/tree/ModuleProvideNode.java
+org/objectweb/asm/tree/ModuleRequireNode.java
+org/objectweb/asm/tree/MultiANewArrayInsnNode.java
+org/objectweb/asm/tree/package.html
+org/objectweb/asm/tree/ParameterNode.java
+org/objectweb/asm/tree/RecordComponentNode.java
+org/objectweb/asm/tree/TableSwitchInsnNode.java
+org/objectweb/asm/tree/TryCatchBlockNode.java
+org/objectweb/asm/tree/TypeAnnotationNode.java
+org/objectweb/asm/tree/TypeInsnNode.java
+org/objectweb/asm/tree/Util.java
+org/objectweb/asm/tree/VarInsnNode.java
+pom.xml
+--------------------------------------------------------------------------------
+
+Copyright (c) 2000-2011 INRIA, France Telecom . All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+   1. Redistributions of source code must retain the above copyright notice,
+      this list of conditions and the following disclaimer.
+
+   2. Redistributions in binary form must reproduce the above copyright notice,
+      this list of conditions and the following disclaimer in the documentation
+      and/or other materials provided with the distribution.
+
+   3. Neither the name of the copyright holder nor the names of its
+      contributors may be used to endorse or promote products derived from
+      this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 --------------------------------------------------------------------------------
@@ -9878,9 +10165,6 @@ Apache-2.0
 File matches:
 META-INF/LICENSE.txt
 META-INF/maven/software.amazon.awssdk/annotations/pom.xml
-parent-poms/mvn+software.amazon.awssdk:aws-sdk-java-pom$2.36.3/pom.xml
-parent-poms/mvn+software.amazon.awssdk:core$2.36.3/pom.xml
-pom.xml
 software/amazon/awssdk/annotations/Generated.java
 software/amazon/awssdk/annotations/Immutable.java
 software/amazon/awssdk/annotations/Mutable.java
@@ -10349,9 +10633,6 @@ Apache-2.0
 File matches:
 META-INF/LICENSE.txt
 META-INF/maven/software.amazon.awssdk/arns/pom.xml
-parent-poms/mvn+software.amazon.awssdk:aws-sdk-java-pom$2.36.3/pom.xml
-parent-poms/mvn+software.amazon.awssdk:core$2.36.3/pom.xml
-pom.xml
 software/amazon/awssdk/arns/Arn.java
 software/amazon/awssdk/arns/ArnResource.java
 --------------------------------------------------------------------------------
@@ -10579,9 +10860,6 @@ Apache-2.0
 File matches:
 META-INF/LICENSE.txt
 META-INF/maven/software.amazon.awssdk/auth/pom.xml
-parent-poms/mvn+software.amazon.awssdk:aws-sdk-java-pom$2.32.25/pom.xml
-parent-poms/mvn+software.amazon.awssdk:core$2.32.25/pom.xml
-pom.xml
 software/amazon/awssdk/auth/credentials/AnonymousCredentialsProvider.java
 software/amazon/awssdk/auth/credentials/AwsBasicCredentials.java
 software/amazon/awssdk/auth/credentials/AwsCredentials.java
@@ -10885,9 +11163,6 @@ Apache-2.0
 File matches:
 META-INF/LICENSE.txt
 META-INF/maven/software.amazon.awssdk/auth/pom.xml
-parent-poms/mvn+software.amazon.awssdk:aws-sdk-java-pom$2.36.3/pom.xml
-parent-poms/mvn+software.amazon.awssdk:core$2.36.3/pom.xml
-pom.xml
 software/amazon/awssdk/auth/credentials/AnonymousCredentialsProvider.java
 software/amazon/awssdk/auth/credentials/AwsBasicCredentials.java
 software/amazon/awssdk/auth/credentials/AwsCredentials.java
@@ -11490,9 +11765,6 @@ Apache-2.0
 File matches:
 META-INF/LICENSE.txt
 META-INF/maven/software.amazon.awssdk/aws-core/pom.xml
-parent-poms/mvn+software.amazon.awssdk:aws-sdk-java-pom$2.36.3/pom.xml
-parent-poms/mvn+software.amazon.awssdk:core$2.36.3/pom.xml
-pom.xml
 software/amazon/awssdk/awscore/auth/AuthSchemePreferenceResolver.java
 software/amazon/awssdk/awscore/AwsClient.java
 software/amazon/awssdk/awscore/AwsExecutionAttribute.java
@@ -11821,9 +12093,6 @@ Apache-2.0
 File matches:
 META-INF/LICENSE.txt
 META-INF/maven/software.amazon.awssdk/checksums/pom.xml
-parent-poms/mvn+software.amazon.awssdk:aws-sdk-java-pom$2.32.25/pom.xml
-parent-poms/mvn+software.amazon.awssdk:core$2.32.25/pom.xml
-pom.xml
 software/amazon/awssdk/checksums/DefaultChecksumAlgorithm.java
 software/amazon/awssdk/checksums/internal/BaseCrcChecksum.java
 software/amazon/awssdk/checksums/internal/ConstructorCache.java
@@ -12064,9 +12333,6 @@ Apache-2.0
 File matches:
 META-INF/LICENSE.txt
 META-INF/maven/software.amazon.awssdk/checksums/pom.xml
-parent-poms/mvn+software.amazon.awssdk:aws-sdk-java-pom$2.36.3/pom.xml
-parent-poms/mvn+software.amazon.awssdk:core$2.36.3/pom.xml
-pom.xml
 software/amazon/awssdk/checksums/DefaultChecksumAlgorithm.java
 software/amazon/awssdk/checksums/internal/BaseCrcChecksum.java
 software/amazon/awssdk/checksums/internal/ConstructorCache.java
@@ -12536,9 +12802,6 @@ Apache-2.0
 File matches:
 META-INF/LICENSE.txt
 META-INF/maven/software.amazon.awssdk/checksums-spi/pom.xml
-parent-poms/mvn+software.amazon.awssdk:aws-sdk-java-pom$2.36.3/pom.xml
-parent-poms/mvn+software.amazon.awssdk:core$2.36.3/pom.xml
-pom.xml
 software/amazon/awssdk/checksums/spi/ChecksumAlgorithm.java
 --------------------------------------------------------------------------------
 
@@ -13040,10 +13303,6 @@ Apache-2.0
 File matches:
 META-INF/LICENSE.txt
 META-INF/maven/software.amazon.awssdk/aws-json-protocol/pom.xml
-parent-poms/mvn+software.amazon.awssdk:aws-sdk-java-pom$2.36.3/pom.xml
-parent-poms/mvn+software.amazon.awssdk:core$2.36.3/pom.xml
-parent-poms/mvn+software.amazon.awssdk:protocols$2.36.3/pom.xml
-pom.xml
 software/amazon/awssdk/protocols/json/AwsJsonProtocol.java
 software/amazon/awssdk/protocols/json/AwsJsonProtocolFactory.java
 software/amazon/awssdk/protocols/json/AwsJsonProtocolMetadata.java
@@ -13566,10 +13825,6 @@ Apache-2.0
 File matches:
 META-INF/LICENSE.txt
 META-INF/maven/software.amazon.awssdk/aws-query-protocol/pom.xml
-parent-poms/mvn+software.amazon.awssdk:aws-sdk-java-pom$2.36.3/pom.xml
-parent-poms/mvn+software.amazon.awssdk:core$2.36.3/pom.xml
-parent-poms/mvn+software.amazon.awssdk:protocols$2.36.3/pom.xml
-pom.xml
 software/amazon/awssdk/protocols/query/AwsEc2ProtocolFactory.java
 software/amazon/awssdk/protocols/query/AwsQueryProtocolFactory.java
 software/amazon/awssdk/protocols/query/internal/marshall/ListQueryMarshaller.java
@@ -14057,9 +14312,6 @@ Apache-2.0
 File matches:
 META-INF/LICENSE.txt
 META-INF/maven/software.amazon.awssdk/json-utils/pom.xml
-parent-poms/mvn+software.amazon.awssdk:aws-sdk-java-pom$2.36.3/pom.xml
-parent-poms/mvn+software.amazon.awssdk:core$2.36.3/pom.xml
-pom.xml
 software/amazon/awssdk/protocols/jsoncore/internal/ArrayJsonNode.java
 software/amazon/awssdk/protocols/jsoncore/internal/BooleanJsonNode.java
 software/amazon/awssdk/protocols/jsoncore/internal/EmbeddedObjectJsonNode.java
@@ -14539,10 +14791,6 @@ Apache-2.0
 File matches:
 META-INF/LICENSE.txt
 META-INF/maven/software.amazon.awssdk/protocol-core/pom.xml
-parent-poms/mvn+software.amazon.awssdk:aws-sdk-java-pom$2.36.3/pom.xml
-parent-poms/mvn+software.amazon.awssdk:core$2.36.3/pom.xml
-parent-poms/mvn+software.amazon.awssdk:protocols$2.36.3/pom.xml
-pom.xml
 software/amazon/awssdk/protocols/core/AbstractMarshallingRegistry.java
 software/amazon/awssdk/protocols/core/ExceptionMetadata.java
 software/amazon/awssdk/protocols/core/InstantToString.java
@@ -15012,9 +15260,6 @@ Apache-2.0
 File matches:
 META-INF/LICENSE.txt
 META-INF/maven/software.amazon.awssdk/endpoints-spi/pom.xml
-parent-poms/mvn+software.amazon.awssdk:aws-sdk-java-pom$2.36.3/pom.xml
-parent-poms/mvn+software.amazon.awssdk:core$2.36.3/pom.xml
-pom.xml
 software/amazon/awssdk/endpoints/Endpoint.java
 software/amazon/awssdk/endpoints/EndpointAttributeKey.java
 software/amazon/awssdk/endpoints/EndpointProvider.java
@@ -15477,9 +15722,6 @@ Apache-2.0
 File matches:
 META-INF/LICENSE.txt
 META-INF/maven/software.amazon.awssdk/http-auth/pom.xml
-parent-poms/mvn+software.amazon.awssdk:aws-sdk-java-pom$2.36.3/pom.xml
-parent-poms/mvn+software.amazon.awssdk:core$2.36.3/pom.xml
-pom.xml
 software/amazon/awssdk/http/auth/internal/scheme/DefaultBearerAuthScheme.java
 software/amazon/awssdk/http/auth/internal/scheme/DefaultNoAuthAuthScheme.java
 software/amazon/awssdk/http/auth/internal/signer/DefaultBearerHttpSigner.java
@@ -16004,9 +16246,6 @@ Apache-2.0
 File matches:
 META-INF/LICENSE.txt
 META-INF/maven/software.amazon.awssdk/http-auth-aws/pom.xml
-parent-poms/mvn+software.amazon.awssdk:aws-sdk-java-pom$2.36.3/pom.xml
-parent-poms/mvn+software.amazon.awssdk:core$2.36.3/pom.xml
-pom.xml
 software/amazon/awssdk/http/auth/aws/crt/internal/io/CrtInputStream.java
 software/amazon/awssdk/http/auth/aws/crt/internal/signer/AwsChunkedV4aPayloadSigner.java
 software/amazon/awssdk/http/auth/aws/crt/internal/signer/DefaultAwsCrtV4aHttpSigner.java
@@ -16527,9 +16766,6 @@ Apache-2.0
 File matches:
 META-INF/LICENSE.txt
 META-INF/maven/software.amazon.awssdk/http-auth-aws-eventstream/pom.xml
-parent-poms/mvn+software.amazon.awssdk:aws-sdk-java-pom$2.36.3/pom.xml
-parent-poms/mvn+software.amazon.awssdk:core$2.36.3/pom.xml
-pom.xml
 software/amazon/awssdk/http/auth/aws/eventstream/HttpAuthAwsEventStream.java
 --------------------------------------------------------------------------------
 
@@ -17003,9 +17239,6 @@ Apache-2.0
 File matches:
 META-INF/LICENSE.txt
 META-INF/maven/software.amazon.awssdk/http-auth-spi/pom.xml
-parent-poms/mvn+software.amazon.awssdk:aws-sdk-java-pom$2.36.3/pom.xml
-parent-poms/mvn+software.amazon.awssdk:core$2.36.3/pom.xml
-pom.xml
 software/amazon/awssdk/http/auth/spi/internal/scheme/DefaultAuthSchemeOption.java
 software/amazon/awssdk/http/auth/spi/internal/signer/DefaultAsyncSignedRequest.java
 software/amazon/awssdk/http/auth/spi/internal/signer/DefaultAsyncSignRequest.java
@@ -17523,8 +17756,6 @@ Apache-2.0
 File matches:
 META-INF/LICENSE.txt
 META-INF/maven/software.amazon.awssdk/http-client-spi/pom.xml
-parent-poms/mvn+software.amazon.awssdk:aws-sdk-java-pom$2.36.3/pom.xml
-pom.xml
 software/amazon/awssdk/http/Abortable.java
 software/amazon/awssdk/http/AbortableInputStream.java
 software/amazon/awssdk/http/async/AbortableInputStreamSubscriber.java
@@ -18018,9 +18249,6 @@ File matches:
 META-INF/LICENSE.txt
 META-INF/maven/software.amazon.awssdk/apache-client/pom.xml
 META-INF/services/software.amazon.awssdk.http.SdkHttpService
-parent-poms/mvn+software.amazon.awssdk:aws-sdk-java-pom$2.36.3/pom.xml
-parent-poms/mvn+software.amazon.awssdk:http-clients$2.36.3/pom.xml
-pom.xml
 software/amazon/awssdk/http/apache/ApacheHttpClient.java
 software/amazon/awssdk/http/apache/ApacheSdkHttpService.java
 software/amazon/awssdk/http/apache/internal/ApacheHttpRequestConfig.java
@@ -18270,9 +18498,6 @@ META-INF/LICENSE.txt
 META-INF/maven/software.amazon.awssdk/netty-nio-client/pom.xml
 META-INF/native-image/software.amazon.awssdk/netty-nio-client/native-image.properties
 META-INF/services/software.amazon.awssdk.http.async.SdkAsyncHttpService
-parent-poms/mvn+software.amazon.awssdk:aws-sdk-java-pom$2.36.3/pom.xml
-parent-poms/mvn+software.amazon.awssdk:http-clients$2.36.3/pom.xml
-pom.xml
 software/amazon/awssdk/http/nio/netty/Http2Configuration.java
 software/amazon/awssdk/http/nio/netty/internal/AutoReadDisableChannelPoolListener.java
 software/amazon/awssdk/http/nio/netty/internal/AutoReadEnableChannelPoolListener.java
@@ -18822,9 +19047,6 @@ File matches:
 META-INF/LICENSE.txt
 META-INF/maven/software.amazon.awssdk/url-connection-client/pom.xml
 META-INF/services/software.amazon.awssdk.http.SdkHttpService
-parent-poms/mvn+software.amazon.awssdk:aws-sdk-java-pom$2.36.3/pom.xml
-parent-poms/mvn+software.amazon.awssdk:http-clients$2.36.3/pom.xml
-pom.xml
 software/amazon/awssdk/http/urlconnection/ProxyConfiguration.java
 software/amazon/awssdk/http/urlconnection/UrlConnectionFactory.java
 software/amazon/awssdk/http/urlconnection/UrlConnectionHttpClient.java
@@ -19294,9 +19516,6 @@ Apache-2.0
 File matches:
 META-INF/LICENSE.txt
 META-INF/maven/software.amazon.awssdk/identity-spi/pom.xml
-parent-poms/mvn+software.amazon.awssdk:aws-sdk-java-pom$2.36.3/pom.xml
-parent-poms/mvn+software.amazon.awssdk:core$2.36.3/pom.xml
-pom.xml
 software/amazon/awssdk/identity/spi/AwsCredentialsIdentity.java
 software/amazon/awssdk/identity/spi/AwsSessionCredentialsIdentity.java
 software/amazon/awssdk/identity/spi/Identity.java
@@ -19773,8 +19992,6 @@ Apache-2.0
 --------------------------------------------------------------------------------
 File matches:
 META-INF/LICENSE.txt
-parent-poms/mvn+software.amazon.awssdk:aws-sdk-java-pom$2.36.3/pom.xml
-parent-poms/mvn+software.amazon.awssdk:core$2.36.3/pom.xml
 software/amazon/awssdk/metrics/internal/DefaultMetricCollection.java
 software/amazon/awssdk/metrics/internal/DefaultMetricCollector.java
 software/amazon/awssdk/metrics/internal/DefaultMetricRecord.java
@@ -20252,9 +20469,6 @@ Apache-2.0
 File matches:
 META-INF/LICENSE.txt
 META-INF/maven/software.amazon.awssdk/profiles/pom.xml
-parent-poms/mvn+software.amazon.awssdk:aws-sdk-java-pom$2.36.3/pom.xml
-parent-poms/mvn+software.amazon.awssdk:core$2.36.3/pom.xml
-pom.xml
 software/amazon/awssdk/profiles/internal/ProfileFileReader.java
 software/amazon/awssdk/profiles/internal/ProfileFileRefresher.java
 software/amazon/awssdk/profiles/internal/ProfileSection.java
@@ -21136,9 +21350,6 @@ Apache-2.0
 File matches:
 META-INF/LICENSE.txt
 META-INF/maven/software.amazon.awssdk/regions/pom.xml
-parent-poms/mvn+software.amazon.awssdk:aws-sdk-java-pom$2.36.3/pom.xml
-parent-poms/mvn+software.amazon.awssdk:core$2.36.3/pom.xml
-pom.xml
 software/amazon/awssdk/regions/DefaultServiceMetadata.java
 software/amazon/awssdk/regions/EndpointTag.java
 software/amazon/awssdk/regions/GeneratedPartitionMetadataProvider.java
@@ -22030,9 +22241,6 @@ Apache-2.0
 File matches:
 META-INF/LICENSE.txt
 META-INF/maven/software.amazon.awssdk/retries/pom.xml
-parent-poms/mvn+software.amazon.awssdk:aws-sdk-java-pom$2.36.3/pom.xml
-parent-poms/mvn+software.amazon.awssdk:core$2.36.3/pom.xml
-pom.xml
 software/amazon/awssdk/retries/AdaptiveRetryStrategy.java
 software/amazon/awssdk/retries/DefaultRetryStrategy.java
 software/amazon/awssdk/retries/internal/BaseRetryStrategy.java
@@ -22530,9 +22738,6 @@ Apache-2.0
 File matches:
 META-INF/LICENSE.txt
 META-INF/maven/software.amazon.awssdk/retries-spi/pom.xml
-parent-poms/mvn+software.amazon.awssdk:aws-sdk-java-pom$2.36.3/pom.xml
-parent-poms/mvn+software.amazon.awssdk:core$2.36.3/pom.xml
-pom.xml
 software/amazon/awssdk/retries/api/AcquireInitialTokenRequest.java
 software/amazon/awssdk/retries/api/AcquireInitialTokenResponse.java
 software/amazon/awssdk/retries/api/BackoffStrategy.java
@@ -23383,9 +23588,6 @@ File matches:
 META-INF/LICENSE.txt
 META-INF/maven/software.amazon.awssdk/sdk-core/pom.xml
 META-INF/native-image/software.amazon.awssdk/sdk-core/native-image.properties
-parent-poms/mvn+software.amazon.awssdk:aws-sdk-java-pom$2.36.3/pom.xml
-parent-poms/mvn+software.amazon.awssdk:core$2.36.3/pom.xml
-pom.xml
 software/amazon/awssdk/core/adapter/StandardMemberCopier.java
 software/amazon/awssdk/core/adapter/TypeAdapter.java
 software/amazon/awssdk/core/ApiName.java
@@ -24714,9 +24916,6 @@ Apache-2.0
 File matches:
 META-INF/LICENSE.txt
 META-INF/maven/software.amazon.awssdk/glue/pom.xml
-parent-poms/mvn+software.amazon.awssdk:aws-sdk-java-pom$2.36.3/pom.xml
-parent-poms/mvn+software.amazon.awssdk:services$2.36.3/pom.xml
-pom.xml
 software/amazon/awssdk/services/glue/auth/scheme/GlueAuthSchemeParams.java
 software/amazon/awssdk/services/glue/auth/scheme/GlueAuthSchemeProvider.java
 software/amazon/awssdk/services/glue/auth/scheme/internal/DefaultGlueAuthSchemeParams.java
@@ -25205,6 +25404,9 @@ software/amazon/awssdk/services/glue/model/DeleteDevEndpointResponse.java
 software/amazon/awssdk/services/glue/model/DeleteGlueIdentityCenterConfigurationRequest.java
 software/amazon/awssdk/services/glue/model/DeleteGlueIdentityCenterConfigurationResponse.java
 software/amazon/awssdk/services/glue/model/DeleteIntegrationRequest.java
+software/amazon/awssdk/services/glue/model/DeleteIntegrationResponse.java
+software/amazon/awssdk/services/glue/model/DeleteIntegrationTablePropertiesRequest.java
+software/amazon/awssdk/services/glue/model/DeleteIntegrationTablePropertiesResponse.java
 software/amazon/awssdk/services/glue/model/DQAdditionalOptionsCopier.java
 software/amazon/awssdk/services/glue/model/DQCompositeRuleEvaluationMethod.java
 software/amazon/awssdk/services/glue/model/DQDLAliasesCopier.java
@@ -25820,9 +26022,6 @@ Apache-2.0
 File matches:
 META-INF/LICENSE.txt
 META-INF/maven/software.amazon.awssdk/sts/pom.xml
-parent-poms/mvn+software.amazon.awssdk:aws-sdk-java-pom$2.36.3/pom.xml
-parent-poms/mvn+software.amazon.awssdk:services$2.36.3/pom.xml
-pom.xml
 software/amazon/awssdk/services/sts/auth/scheme/internal/DefaultStsAuthSchemeParams.java
 software/amazon/awssdk/services/sts/auth/scheme/internal/DefaultStsAuthSchemeProvider.java
 software/amazon/awssdk/services/sts/auth/scheme/internal/PreferredStsAuthSchemeProvider.java
@@ -26545,9 +26744,6 @@ Apache-2.0
 File matches:
 META-INF/LICENSE.txt
 META-INF/maven/software.amazon.awssdk/sso/pom.xml
-parent-poms/mvn+software.amazon.awssdk:aws-sdk-java-pom$2.36.3/pom.xml
-parent-poms/mvn+software.amazon.awssdk:services$2.36.3/pom.xml
-pom.xml
 software/amazon/awssdk/services/sso/auth/ExpiredTokenException.java
 software/amazon/awssdk/services/sso/auth/scheme/internal/DefaultSsoAuthSchemeParams.java
 software/amazon/awssdk/services/sso/auth/scheme/internal/DefaultSsoAuthSchemeProvider.java
@@ -27240,9 +27436,6 @@ Apache-2.0
 File matches:
 META-INF/LICENSE.txt
 META-INF/maven/software.amazon.awssdk/ssooidc/pom.xml
-parent-poms/mvn+software.amazon.awssdk:aws-sdk-java-pom$2.36.3/pom.xml
-parent-poms/mvn+software.amazon.awssdk:services$2.36.3/pom.xml
-pom.xml
 software/amazon/awssdk/services/ssooidc/auth/scheme/internal/DefaultSsoOidcAuthSchemeParams.java
 software/amazon/awssdk/services/ssooidc/auth/scheme/internal/DefaultSsoOidcAuthSchemeProvider.java
 software/amazon/awssdk/services/ssooidc/auth/scheme/internal/PreferredSsoOidcAuthSchemeProvider.java
@@ -27825,8 +28018,6 @@ Apache-2.0
 File matches:
 META-INF/LICENSE.txt
 META-INF/maven/software.amazon.awssdk/third-party-jackson-core/pom.xml
-parent-poms/mvn+software.amazon.awssdk:aws-sdk-java-pom$2.36.3/pom.xml
-parent-poms/mvn+software.amazon.awssdk:third-party$2.36.3/pom.xml
 --------------------------------------------------------------------------------
 
 
@@ -28052,8 +28243,6 @@ Apache-2.0
 File matches:
 META-INF/LICENSE.txt
 META-INF/maven/software.amazon.awssdk/utils/pom.xml
-parent-poms/mvn+software.amazon.awssdk:aws-sdk-java-pom$2.32.25/pom.xml
-pom.xml
 software/amazon/awssdk/utils/async/AddingTrailingDataSubscriber.java
 software/amazon/awssdk/utils/async/BaseSubscriberAdapter.java
 software/amazon/awssdk/utils/async/BufferingSubscriber.java
@@ -28370,8 +28559,6 @@ Apache-2.0
 File matches:
 META-INF/LICENSE.txt
 META-INF/maven/software.amazon.awssdk/utils/pom.xml
-parent-poms/mvn+software.amazon.awssdk:aws-sdk-java-pom$2.36.3/pom.xml
-pom.xml
 software/amazon/awssdk/utils/async/AddingTrailingDataSubscriber.java
 software/amazon/awssdk/utils/async/BaseSubscriberAdapter.java
 software/amazon/awssdk/utils/async/BufferingSubscriber.java
@@ -28688,8 +28875,6 @@ Apache-2.0
 File matches:
 META-INF/LICENSE.txt
 META-INF/maven/software.amazon.awssdk/utils-lite/pom.xml
-parent-poms/mvn+software.amazon.awssdk:aws-sdk-java-pom$2.36.3/pom.xml
-pom.xml
 software/amazon/awssdk/utilslite/SdkInternalThreadLocal.java
 --------------------------------------------------------------------------------
 
@@ -30205,7 +30390,6 @@ net/bytebuddy/utility/visitor/LocalVariableAwareMethodVisitor.java
 net/bytebuddy/utility/visitor/MetadataAwareClassVisitor.java
 net/bytebuddy/utility/visitor/package-info.java
 net/bytebuddy/utility/visitor/StackAwareMethodVisitor.java
-parent-poms/mvn+net.bytebuddy:byte-buddy-parent$1.14.15/pom.xml
 --------------------------------------------------------------------------------
 
 Apache License
@@ -31243,7 +31427,7 @@ MIT
 
 --------------------------------------------------------------------------------
 File matches:
-pom.xml
+META-INF/LICENSE.txt
 --------------------------------------------------------------------------------
 
 Checker Framework qualifiers
@@ -32483,8 +32667,6 @@ com/google/errorprone/annotations/RestrictedApi.java
 com/google/errorprone/annotations/SuppressPackageLocation.java
 com/google/errorprone/annotations/Var.java
 META-INF/maven/com.google.errorprone/error_prone_annotations/pom.xml
-parent-poms/mvn+com.google.errorprone:error_prone_parent$2.18.0/pom.xml
-pom.xml
 --------------------------------------------------------------------------------
 
 Copyright 2015 The Error Prone Authors.
@@ -33862,8 +34044,6 @@ com/google/j2objc/annotations/RetainedLocalRef.java
 com/google/j2objc/annotations/RetainedWith.java
 com/google/j2objc/annotations/Weak.java
 com/google/j2objc/annotations/WeakOuter.java
-parent-poms/mvn+org.sonatype.oss:oss-parent$9/pom.xml
-pom.xml
 --------------------------------------------------------------------------------
 
 Copyright 2012 Google Inc. All Rights Reserved.
@@ -33929,12 +34109,6 @@ Apache-2.0
 File matches:
 META-INF/LICENSE
 META-INF/maven/com.fasterxml.jackson.dataformat/jackson-dataformat-cbor/pom.xml
-parent-poms/mvn+com.fasterxml:oss-parent$65/pom.xml
-parent-poms/mvn+com.fasterxml.jackson:jackson-base$2.19.0/pom.xml
-parent-poms/mvn+com.fasterxml.jackson:jackson-bom$2.19.0/pom.xml
-parent-poms/mvn+com.fasterxml.jackson:jackson-parent$2.19/pom.xml
-parent-poms/mvn+com.fasterxml.jackson.dataformat:jackson-dataformats-binary$2.19.0/pom.xml
-pom.xml
 --------------------------------------------------------------------------------
 
 Apache License
@@ -34003,12 +34177,6 @@ Apache-2.0
 File matches:
 META-INF/LICENSE
 META-INF/maven/com.fasterxml.jackson.datatype/jackson-datatype-guava/pom.xml
-parent-poms/mvn+com.fasterxml:oss-parent$65/pom.xml
-parent-poms/mvn+com.fasterxml.jackson:jackson-base$2.19.0/pom.xml
-parent-poms/mvn+com.fasterxml.jackson:jackson-bom$2.19.0/pom.xml
-parent-poms/mvn+com.fasterxml.jackson:jackson-parent$2.19/pom.xml
-parent-poms/mvn+com.fasterxml.jackson.datatype:jackson-datatypes-collections$2.19.0/pom.xml
-pom.xml
 --------------------------------------------------------------------------------
 
 Apache License
@@ -34076,10 +34244,6 @@ Apache-2.0
 --------------------------------------------------------------------------------
 File matches:
 META-INF/LICENSE
-parent-poms/mvn+com.fasterxml:oss-parent$65/pom.xml
-parent-poms/mvn+com.fasterxml.jackson:jackson-base$2.19.0/pom.xml
-parent-poms/mvn+com.fasterxml.jackson:jackson-bom$2.19.0/pom.xml
-parent-poms/mvn+com.fasterxml.jackson:jackson-parent$2.19/pom.xml
 --------------------------------------------------------------------------------
 
 Copyright [yyyy] [name of copyright owner]
@@ -34112,11 +34276,6 @@ Apache-2.0
 File matches:
 META-INF/LICENSE
 META-INF/maven/com.fasterxml.jackson.datatype/jackson-datatype-joda/pom.xml
-parent-poms/mvn+com.fasterxml:oss-parent$65/pom.xml
-parent-poms/mvn+com.fasterxml.jackson:jackson-base$2.19.0/pom.xml
-parent-poms/mvn+com.fasterxml.jackson:jackson-bom$2.19.0/pom.xml
-parent-poms/mvn+com.fasterxml.jackson:jackson-parent$2.19/pom.xml
-pom.xml
 --------------------------------------------------------------------------------
 
 This copy of Jackson JSON processor streaming parser/generator is licensed under the
@@ -34169,10 +34328,6 @@ com/fasterxml/jackson/datatype/jsr310/ser/OffsetTimeSerializer.java
 com/fasterxml/jackson/datatype/jsr310/ser/YearMonthSerializer.java
 com/fasterxml/jackson/datatype/jsr310/ser/YearSerializer.java
 META-INF/LICENSE
-parent-poms/mvn+com.fasterxml:oss-parent$65/pom.xml
-parent-poms/mvn+com.fasterxml.jackson:jackson-base$2.19.0/pom.xml
-parent-poms/mvn+com.fasterxml.jackson:jackson-bom$2.19.0/pom.xml
-parent-poms/mvn+com.fasterxml.jackson:jackson-parent$2.19/pom.xml
 --------------------------------------------------------------------------------
 
 This copy of Jackson JSON processor Java 8 Date/Time module is licensed under the
@@ -34201,9 +34356,6 @@ Apache-2.0
 File matches:
 META-INF/LICENSE
 META-INF/maven/com.fasterxml.jackson.core/jackson-annotations/pom.xml
-parent-poms/mvn+com.fasterxml:oss-parent$65/pom.xml
-parent-poms/mvn+com.fasterxml.jackson:jackson-parent$2.19/pom.xml
-pom.xml
 --------------------------------------------------------------------------------
 
 
@@ -34427,11 +34579,6 @@ File matches:
 META-INF/jackson-core-LICENSE
 META-INF/LICENSE
 META-INF/maven/com.fasterxml.jackson.core/jackson-core/pom.xml
-parent-poms/mvn+com.fasterxml:oss-parent$65/pom.xml
-parent-poms/mvn+com.fasterxml.jackson:jackson-base$2.19.0/pom.xml
-parent-poms/mvn+com.fasterxml.jackson:jackson-bom$2.19.0/pom.xml
-parent-poms/mvn+com.fasterxml.jackson:jackson-parent$2.19/pom.xml
-pom.xml
 --------------------------------------------------------------------------------
 
 
@@ -34688,11 +34835,6 @@ com/fasterxml/jackson/databind/util/internal/package-info.java
 com/fasterxml/jackson/databind/util/internal/PrivateMaxEntriesMap.java
 META-INF/LICENSE
 META-INF/maven/com.fasterxml.jackson.core/jackson-databind/pom.xml
-parent-poms/mvn+com.fasterxml:oss-parent$65/pom.xml
-parent-poms/mvn+com.fasterxml.jackson:jackson-base$2.19.0/pom.xml
-parent-poms/mvn+com.fasterxml.jackson:jackson-bom$2.19.0/pom.xml
-parent-poms/mvn+com.fasterxml.jackson:jackson-parent$2.19/pom.xml
-pom.xml
 --------------------------------------------------------------------------------
 
 
@@ -34915,12 +35057,6 @@ Apache-2.0
 File matches:
 META-INF/LICENSE
 META-INF/maven/com.fasterxml.jackson.dataformat/jackson-dataformat-csv/pom.xml
-parent-poms/mvn+com.fasterxml:oss-parent$65/pom.xml
-parent-poms/mvn+com.fasterxml.jackson:jackson-base$2.19.0/pom.xml
-parent-poms/mvn+com.fasterxml.jackson:jackson-bom$2.19.0/pom.xml
-parent-poms/mvn+com.fasterxml.jackson:jackson-parent$2.19/pom.xml
-parent-poms/mvn+com.fasterxml.jackson.dataformat:jackson-dataformats-text$2.19.0/pom.xml
-pom.xml
 --------------------------------------------------------------------------------
 
 Copyright [yyyy] [name of copyright owner]
@@ -34953,11 +35089,6 @@ Apache-2.0
 File matches:
 META-INF/LICENSE
 META-INF/maven/com.fasterxml.jackson.module/jackson-module-kotlin/pom.xml
-parent-poms/mvn+com.fasterxml:oss-parent$65/pom.xml
-parent-poms/mvn+com.fasterxml.jackson:jackson-base$2.19.0/pom.xml
-parent-poms/mvn+com.fasterxml.jackson:jackson-bom$2.19.0/pom.xml
-parent-poms/mvn+com.fasterxml.jackson:jackson-parent$2.19/pom.xml
-pom.xml
 --------------------------------------------------------------------------------
 
 This copy of Jackson JSON processor databind module is licensed under the
@@ -34985,10 +35116,6 @@ Apache-2.0
 --------------------------------------------------------------------------------
 File matches:
 META-INF/LICENSE
-parent-poms/mvn+com.fasterxml:oss-parent$65/pom.xml
-parent-poms/mvn+com.fasterxml.jackson:jackson-base$2.19.0/pom.xml
-parent-poms/mvn+com.fasterxml.jackson:jackson-bom$2.19.0/pom.xml
-parent-poms/mvn+com.fasterxml.jackson:jackson-parent$2.19/pom.xml
 --------------------------------------------------------------------------------
 
 Apache License
@@ -35040,6 +35167,534 @@ distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
+
+
+--------------------------------------------------------------------------------
+Package Title: JaCoCo :: Agent (0.8.13)
+
+Package Locator: mvn+org.jacoco:org.jacoco.agent$0.8.13
+
+Package Depth: Direct
+--------------------------------------------------------------------------------
+
+* Declared Licenses *
+EPL-2.0
+
+--------------------------------------------------------------------------------
+File matches:
+META-INF/maven/org.jacoco/org.jacoco.agent/pom.xml
+--------------------------------------------------------------------------------
+
+THE ACCOMPANYING PROGRAM IS PROVIDED UNDER THE TERMS OF THIS ECLIPSE PUBLIC LICENSE ("AGREEMENT"). ANY USE, REPRODUCTION OR DISTRIBUTION OF THE PROGRAM CONSTITUTES RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT.
+   1. DEFINITIONS
+   "Contribution" means:
+      a) in the case of the initial Contributor, the initial content Distributed under this Agreement, and
+      b) in the case of each subsequent Contributor:
+         i) changes to the Program, and
+         ii) additions to the Program;
+      where such changes and/or additions to the Program originate from and are Distributed by that particular Contributor. A Contribution "originates" from a Contributor if it was added to the Program by such Contributor itself or anyone acting on such Contributor's behalf. Contributions do not include changes or additions to the Program that are not Modified Works.
+   "Contributor" means any person or entity that Distributes the Program.
+   "Licensed Patents" mean patent claims licensable by a Contributor which are necessarily infringed by the use or sale of its Contribution alone or when combined with the Program.
+   "Program" means the Contributions Distributed in accordance with this Agreement.
+   "Recipient" means anyone who receives the Program under this Agreement or any Secondary License (as applicable), including Contributors.
+   "Derivative Works" shall mean any work, whether in Source Code or other form, that is based on (or derived from) the Program and for which the editorial revisions, annotations, elaborations, or other modifications represent, as a whole, an original work of authorship.
+   "Modified Works" shall mean any work in Source Code or other form that results from an addition to, deletion from, or modification of the contents of the Program, including, for purposes of clarity any new file in Source Code form that contains any contents of the Program. Modified Works shall not include works that contain only declarations, interfaces, types, classes, structures, or files of the Program solely in each case in order to link to, bind by name, or subclass the Program or Modified Works thereof.
+   "Distribute" means the acts of a) distributing or b) making available in any manner that enables the transfer of a copy.
+   "Source Code" means the form of a Program preferred for making modifications, including but not limited to software source code, documentation source, and configuration files.
+   "Secondary License" means either the GNU General Public License, Version 2.0, or any later versions of that license, including any exceptions or additional permissions as identified by the initial Contributor.
+   2. GRANT OF RIGHTS
+      a) Subject to the terms of this Agreement, each Contributor hereby grants Recipient a non-exclusive, worldwide, royalty-free copyright license to reproduce, prepare Derivative Works of, publicly display, publicly perform, Distribute and sublicense the Contribution of such Contributor, if any, and such Derivative Works.
+      b) Subject to the terms of this Agreement, each Contributor hereby grants Recipient a non-exclusive, worldwide, royalty-free patent license under Licensed Patents to make, use, sell, offer to sell, import and otherwise transfer the Contribution of such Contributor, if any, in Source Code or other form. This patent license shall apply to the combination of the Contribution and the Program if, at the time the Contribution is added by the Contributor, such addition of the Contribution causes such combination to be covered by the Licensed Patents. The patent license shall not apply to any other combinations which include the Contribution. No hardware per se is licensed hereunder.
+      c) Recipient understands that although each Contributor grants the licenses to its Contributions set forth herein, no assurances are provided by any Contributor that the Program does not infringe the patent or other intellectual property rights of any other entity. Each Contributor disclaims any liability to Recipient for claims brought by any other entity based on infringement of intellectual property rights or otherwise. As a condition to exercising the rights and licenses granted hereunder, each Recipient hereby assumes sole responsibility to secure any other intellectual property rights needed, if any. For example, if a third party patent license is required to allow Recipient to Distribute the Program, it is Recipient's responsibility to acquire that license before distributing the Program.
+      d) Each Contributor represents that to its knowledge it has sufficient copyright rights in its Contribution, if any, to grant the copyright license set forth in this Agreement.
+      e) Notwithstanding the terms of any Secondary License, no Contributor makes additional grants to any Recipient (other than those set forth in this Agreement) as a result of such Recipient's receipt of the Program under the terms of a Secondary License (if permitted under the terms of Section 3).
+   3. REQUIREMENTS
+      3.1 If a Contributor Distributes the Program in any form, then:
+         a) the Program must also be made available as Source Code, in accordance with section 3.2, and the Contributor must accompany the Program with a statement that the Source Code for the Program is available under this Agreement, and informs Recipients how to obtain it in a reasonable manner on or through a medium customarily used for software exchange; and
+         b) the Contributor may Distribute the Program under a license different than this Agreement, provided that such license:
+            i) effectively disclaims on behalf of all other Contributors all warranties and conditions, express and implied, including warranties or conditions of title and non-infringement, and implied warranties or conditions of merchantability and fitness for a particular purpose;
+            ii) effectively excludes on behalf of all other Contributors all liability for damages, including direct, indirect, special, incidental and consequential damages, such as lost profits;
+            iii) does not attempt to limit or alter the recipients' rights in the Source Code under section 3.2; and
+            iv) requires any subsequent distribution of the Program by any party to be under a license that satisfies the requirements of this section 3.
+      3.2 When the Program is Distributed as Source Code:
+         a) it must be made available under this Agreement, or if the Program (i) is combined with other material in a separate file or files made available under a Secondary License, and (ii) the initial Contributor attached to the Source Code the notice described in Exhibit A of this Agreement, then the Program may be made available under the terms of such Secondary Licenses, and
+         b) a copy of this Agreement must be included with each copy of the Program.
+      3.3 Contributors may not remove or alter any copyright, patent, trademark, attribution notices, disclaimers of warranty, or limitations of liability ("notices") contained within the Program from any copy of the Program which they Distribute, provided that Contributors may add their own appropriate notices.
+   4. COMMERCIAL DISTRIBUTION
+   Commercial distributors of software may accept certain responsibilities with respect to end users, business partners and the like. While this license is intended to facilitate the commercial use of the Program, the Contributor who includes the Program in a commercial product offering should do so in a manner which does not create potential liability for other Contributors. Therefore, if a Contributor includes the Program in a commercial product offering, such Contributor ("Commercial Contributor") hereby agrees to defend and indemnify every other Contributor ("Indemnified Contributor") against any losses, damages and costs (collectively "Losses") arising from claims, lawsuits and other legal actions brought by a third party against the Indemnified Contributor to the extent caused by the acts or omissions of such Commercial Contributor in connection with its distribution of the Program in a commercial product offering. The obligations in this section do not apply to any claims or Losses relating to any actual or alleged intellectual property infringement. In order to qualify, an Indemnified Contributor must: a) promptly notify the Commercial Contributor in writing of such claim, and b) allow the Commercial Contributor to control, and cooperate with the Commercial Contributor in, the defense and any related settlement negotiations. The Indemnified Contributor may participate in any such claim at its own expense.
+   For example, a Contributor might include the Program in a commercial product offering, Product X. That Contributor is then a Commercial Contributor. If that Commercial Contributor then makes performance claims, or offers warranties related to Product X, those performance claims and warranties are such Commercial Contributor's responsibility alone. Under this section, the Commercial Contributor would have to defend claims against the other Contributors related to those performance claims and warranties, and if a court requires any other Contributor to pay any damages as a result, the Commercial Contributor must pay those damages.
+   5. NO WARRANTY
+   EXCEPT AS EXPRESSLY SET FORTH IN THIS AGREEMENT, AND TO THE EXTENT PERMITTED BY APPLICABLE LAW, THE PROGRAM IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED INCLUDING, WITHOUT LIMITATION, ANY WARRANTIES OR CONDITIONS OF TITLE, NON-INFRINGEMENT, MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE. Each Recipient is solely responsible for determining the appropriateness of using and distributing the Program and assumes all risks associated with its exercise of rights under this Agreement, including but not limited to the risks and costs of program errors, compliance with applicable laws, damage to or loss of data, programs or equipment, and unavailability or interruption of operations.
+   6. DISCLAIMER OF LIABILITY
+   EXCEPT AS EXPRESSLY SET FORTH IN THIS AGREEMENT, AND TO THE EXTENT PERMITTED BY APPLICABLE LAW, NEITHER RECIPIENT NOR ANY CONTRIBUTORS SHALL HAVE ANY LIABILITY FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING WITHOUT LIMITATION LOST PROFITS), HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OR DISTRIBUTION OF THE PROGRAM OR THE EXERCISE OF ANY RIGHTS GRANTED HEREUNDER, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
+   7. GENERAL
+   If any provision of this Agreement is invalid or unenforceable under applicable law, it shall not affect the validity or enforceability of the remainder of the terms of this Agreement, and without further action by the parties hereto, such provision shall be reformed to the minimum extent necessary to make such provision valid and enforceable.
+   If Recipient institutes patent litigation against any entity (including a cross-claim or counterclaim in a lawsuit) alleging that the Program itself (excluding combinations of the Program with other software or hardware) infringes such Recipient's patent(s), then such Recipient's rights granted under Section 2(b) shall terminate as of the date such litigation is filed.
+   All Recipient's rights under this Agreement shall terminate if it fails to comply with any of the material terms or conditions of this Agreement and does not cure such failure in a reasonable period of time after becoming aware of such noncompliance. If all Recipient's rights under this Agreement terminate, Recipient agrees to cease use and distribution of the Program as soon as reasonably practicable. However, Recipient's obligations under this Agreement and any licenses granted by Recipient relating to the Program shall continue and survive.
+   Everyone is permitted to copy and distribute copies of this Agreement, but in order to avoid inconsistency the Agreement is copyrighted and may only be modified in the following manner. The Agreement Steward reserves the right to publish new versions (including revisions) of this Agreement from time to time. No one other than the Agreement Steward has the right to modify this Agreement. The Eclipse Foundation is the initial Agreement Steward. The Eclipse Foundation may assign the responsibility to serve as the Agreement Steward to a suitable separate entity. Each new version of the Agreement will be given a distinguishing version number. The Program (including Contributions) may always be Distributed subject to the version of the Agreement under which it was received. In addition, after a new version of the Agreement is published, Contributor may elect to Distribute the Program (including its Contributions) under the new version.
+   Except as expressly stated in Sections 2(a) and 2(b) above, Recipient receives no rights or licenses to the intellectual property of any Contributor under this Agreement, whether expressly, by implication, estoppel or otherwise. All rights in the Program not expressly granted under this Agreement are reserved. Nothing in this Agreement is intended to be enforceable by any entity that is not a Contributor or Recipient. No third-party beneficiary rights are created under this Agreement.
+   Exhibit A - Form of Secondary Licenses Notice
+   "This Source Code may also be made available under the following Secondary Licenses when the conditions for such availability set forth in the Eclipse Public License, v. 2.0 are satisfied: {name license(s), version(s), and exceptions or additional permissions here}."
+   Simply including a copy of this Agreement, including this Exhibit A is not sufficient to license the Source Code under Secondary Licenses.
+   If it is not possible or desirable to put the notice in a particular file, then You may include the notice in a location (such as a LICENSE file in a relevant directory) where a recipient would be likely to look for such a notice.
+   You may add additional accurate notices of copyright ownership.
+
+
+--------------------------------------------------------------------------------
+Package Title: JaCoCo :: Ant (0.8.13)
+
+Package Locator: mvn+org.jacoco:org.jacoco.ant$0.8.13
+
+Package Depth: Direct
+--------------------------------------------------------------------------------
+
+* Declared Licenses *
+EPL-2.0
+
+--------------------------------------------------------------------------------
+File matches:
+META-INF/maven/org.jacoco/org.jacoco.ant/pom.xml
+org/jacoco/ant/AbstractCoverageTask.java
+org/jacoco/ant/AgentTask.java
+org/jacoco/ant/AntFilesLocator.java
+org/jacoco/ant/antlib.xml
+org/jacoco/ant/AntResourcesLocator.java
+org/jacoco/ant/CoverageTask.java
+org/jacoco/ant/DumpTask.java
+org/jacoco/ant/InstrumentTask.java
+org/jacoco/ant/MergeTask.java
+org/jacoco/ant/ReportTask.java
+parent-poms/mvn+org.jacoco:org.jacoco.build$0.8.13/pom.xml
+pom.xml
+--------------------------------------------------------------------------------
+
+THE ACCOMPANYING PROGRAM IS PROVIDED UNDER THE TERMS OF THIS ECLIPSE PUBLIC LICENSE ("AGREEMENT"). ANY USE, REPRODUCTION OR DISTRIBUTION OF THE PROGRAM CONSTITUTES RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT.
+   1. DEFINITIONS
+   "Contribution" means:
+      a) in the case of the initial Contributor, the initial content Distributed under this Agreement, and
+      b) in the case of each subsequent Contributor:
+         i) changes to the Program, and
+         ii) additions to the Program;
+      where such changes and/or additions to the Program originate from and are Distributed by that particular Contributor. A Contribution "originates" from a Contributor if it was added to the Program by such Contributor itself or anyone acting on such Contributor's behalf. Contributions do not include changes or additions to the Program that are not Modified Works.
+   "Contributor" means any person or entity that Distributes the Program.
+   "Licensed Patents" mean patent claims licensable by a Contributor which are necessarily infringed by the use or sale of its Contribution alone or when combined with the Program.
+   "Program" means the Contributions Distributed in accordance with this Agreement.
+   "Recipient" means anyone who receives the Program under this Agreement or any Secondary License (as applicable), including Contributors.
+   "Derivative Works" shall mean any work, whether in Source Code or other form, that is based on (or derived from) the Program and for which the editorial revisions, annotations, elaborations, or other modifications represent, as a whole, an original work of authorship.
+   "Modified Works" shall mean any work in Source Code or other form that results from an addition to, deletion from, or modification of the contents of the Program, including, for purposes of clarity any new file in Source Code form that contains any contents of the Program. Modified Works shall not include works that contain only declarations, interfaces, types, classes, structures, or files of the Program solely in each case in order to link to, bind by name, or subclass the Program or Modified Works thereof.
+   "Distribute" means the acts of a) distributing or b) making available in any manner that enables the transfer of a copy.
+   "Source Code" means the form of a Program preferred for making modifications, including but not limited to software source code, documentation source, and configuration files.
+   "Secondary License" means either the GNU General Public License, Version 2.0, or any later versions of that license, including any exceptions or additional permissions as identified by the initial Contributor.
+   2. GRANT OF RIGHTS
+      a) Subject to the terms of this Agreement, each Contributor hereby grants Recipient a non-exclusive, worldwide, royalty-free copyright license to reproduce, prepare Derivative Works of, publicly display, publicly perform, Distribute and sublicense the Contribution of such Contributor, if any, and such Derivative Works.
+      b) Subject to the terms of this Agreement, each Contributor hereby grants Recipient a non-exclusive, worldwide, royalty-free patent license under Licensed Patents to make, use, sell, offer to sell, import and otherwise transfer the Contribution of such Contributor, if any, in Source Code or other form. This patent license shall apply to the combination of the Contribution and the Program if, at the time the Contribution is added by the Contributor, such addition of the Contribution causes such combination to be covered by the Licensed Patents. The patent license shall not apply to any other combinations which include the Contribution. No hardware per se is licensed hereunder.
+      c) Recipient understands that although each Contributor grants the licenses to its Contributions set forth herein, no assurances are provided by any Contributor that the Program does not infringe the patent or other intellectual property rights of any other entity. Each Contributor disclaims any liability to Recipient for claims brought by any other entity based on infringement of intellectual property rights or otherwise. As a condition to exercising the rights and licenses granted hereunder, each Recipient hereby assumes sole responsibility to secure any other intellectual property rights needed, if any. For example, if a third party patent license is required to allow Recipient to Distribute the Program, it is Recipient's responsibility to acquire that license before distributing the Program.
+      d) Each Contributor represents that to its knowledge it has sufficient copyright rights in its Contribution, if any, to grant the copyright license set forth in this Agreement.
+      e) Notwithstanding the terms of any Secondary License, no Contributor makes additional grants to any Recipient (other than those set forth in this Agreement) as a result of such Recipient's receipt of the Program under the terms of a Secondary License (if permitted under the terms of Section 3).
+   3. REQUIREMENTS
+      3.1 If a Contributor Distributes the Program in any form, then:
+         a) the Program must also be made available as Source Code, in accordance with section 3.2, and the Contributor must accompany the Program with a statement that the Source Code for the Program is available under this Agreement, and informs Recipients how to obtain it in a reasonable manner on or through a medium customarily used for software exchange; and
+         b) the Contributor may Distribute the Program under a license different than this Agreement, provided that such license:
+            i) effectively disclaims on behalf of all other Contributors all warranties and conditions, express and implied, including warranties or conditions of title and non-infringement, and implied warranties or conditions of merchantability and fitness for a particular purpose;
+            ii) effectively excludes on behalf of all other Contributors all liability for damages, including direct, indirect, special, incidental and consequential damages, such as lost profits;
+            iii) does not attempt to limit or alter the recipients' rights in the Source Code under section 3.2; and
+            iv) requires any subsequent distribution of the Program by any party to be under a license that satisfies the requirements of this section 3.
+      3.2 When the Program is Distributed as Source Code:
+         a) it must be made available under this Agreement, or if the Program (i) is combined with other material in a separate file or files made available under a Secondary License, and (ii) the initial Contributor attached to the Source Code the notice described in Exhibit A of this Agreement, then the Program may be made available under the terms of such Secondary Licenses, and
+         b) a copy of this Agreement must be included with each copy of the Program.
+      3.3 Contributors may not remove or alter any copyright, patent, trademark, attribution notices, disclaimers of warranty, or limitations of liability ("notices") contained within the Program from any copy of the Program which they Distribute, provided that Contributors may add their own appropriate notices.
+   4. COMMERCIAL DISTRIBUTION
+   Commercial distributors of software may accept certain responsibilities with respect to end users, business partners and the like. While this license is intended to facilitate the commercial use of the Program, the Contributor who includes the Program in a commercial product offering should do so in a manner which does not create potential liability for other Contributors. Therefore, if a Contributor includes the Program in a commercial product offering, such Contributor ("Commercial Contributor") hereby agrees to defend and indemnify every other Contributor ("Indemnified Contributor") against any losses, damages and costs (collectively "Losses") arising from claims, lawsuits and other legal actions brought by a third party against the Indemnified Contributor to the extent caused by the acts or omissions of such Commercial Contributor in connection with its distribution of the Program in a commercial product offering. The obligations in this section do not apply to any claims or Losses relating to any actual or alleged intellectual property infringement. In order to qualify, an Indemnified Contributor must: a) promptly notify the Commercial Contributor in writing of such claim, and b) allow the Commercial Contributor to control, and cooperate with the Commercial Contributor in, the defense and any related settlement negotiations. The Indemnified Contributor may participate in any such claim at its own expense.
+   For example, a Contributor might include the Program in a commercial product offering, Product X. That Contributor is then a Commercial Contributor. If that Commercial Contributor then makes performance claims, or offers warranties related to Product X, those performance claims and warranties are such Commercial Contributor's responsibility alone. Under this section, the Commercial Contributor would have to defend claims against the other Contributors related to those performance claims and warranties, and if a court requires any other Contributor to pay any damages as a result, the Commercial Contributor must pay those damages.
+   5. NO WARRANTY
+   EXCEPT AS EXPRESSLY SET FORTH IN THIS AGREEMENT, AND TO THE EXTENT PERMITTED BY APPLICABLE LAW, THE PROGRAM IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED INCLUDING, WITHOUT LIMITATION, ANY WARRANTIES OR CONDITIONS OF TITLE, NON-INFRINGEMENT, MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE. Each Recipient is solely responsible for determining the appropriateness of using and distributing the Program and assumes all risks associated with its exercise of rights under this Agreement, including but not limited to the risks and costs of program errors, compliance with applicable laws, damage to or loss of data, programs or equipment, and unavailability or interruption of operations.
+   6. DISCLAIMER OF LIABILITY
+   EXCEPT AS EXPRESSLY SET FORTH IN THIS AGREEMENT, AND TO THE EXTENT PERMITTED BY APPLICABLE LAW, NEITHER RECIPIENT NOR ANY CONTRIBUTORS SHALL HAVE ANY LIABILITY FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING WITHOUT LIMITATION LOST PROFITS), HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OR DISTRIBUTION OF THE PROGRAM OR THE EXERCISE OF ANY RIGHTS GRANTED HEREUNDER, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
+   7. GENERAL
+   If any provision of this Agreement is invalid or unenforceable under applicable law, it shall not affect the validity or enforceability of the remainder of the terms of this Agreement, and without further action by the parties hereto, such provision shall be reformed to the minimum extent necessary to make such provision valid and enforceable.
+   If Recipient institutes patent litigation against any entity (including a cross-claim or counterclaim in a lawsuit) alleging that the Program itself (excluding combinations of the Program with other software or hardware) infringes such Recipient's patent(s), then such Recipient's rights granted under Section 2(b) shall terminate as of the date such litigation is filed.
+   All Recipient's rights under this Agreement shall terminate if it fails to comply with any of the material terms or conditions of this Agreement and does not cure such failure in a reasonable period of time after becoming aware of such noncompliance. If all Recipient's rights under this Agreement terminate, Recipient agrees to cease use and distribution of the Program as soon as reasonably practicable. However, Recipient's obligations under this Agreement and any licenses granted by Recipient relating to the Program shall continue and survive.
+   Everyone is permitted to copy and distribute copies of this Agreement, but in order to avoid inconsistency the Agreement is copyrighted and may only be modified in the following manner. The Agreement Steward reserves the right to publish new versions (including revisions) of this Agreement from time to time. No one other than the Agreement Steward has the right to modify this Agreement. The Eclipse Foundation is the initial Agreement Steward. The Eclipse Foundation may assign the responsibility to serve as the Agreement Steward to a suitable separate entity. Each new version of the Agreement will be given a distinguishing version number. The Program (including Contributions) may always be Distributed subject to the version of the Agreement under which it was received. In addition, after a new version of the Agreement is published, Contributor may elect to Distribute the Program (including its Contributions) under the new version.
+   Except as expressly stated in Sections 2(a) and 2(b) above, Recipient receives no rights or licenses to the intellectual property of any Contributor under this Agreement, whether expressly, by implication, estoppel or otherwise. All rights in the Program not expressly granted under this Agreement are reserved. Nothing in this Agreement is intended to be enforceable by any entity that is not a Contributor or Recipient. No third-party beneficiary rights are created under this Agreement.
+   Exhibit A - Form of Secondary Licenses Notice
+   "This Source Code may also be made available under the following Secondary Licenses when the conditions for such availability set forth in the Eclipse Public License, v. 2.0 are satisfied: {name license(s), version(s), and exceptions or additional permissions here}."
+   Simply including a copy of this Agreement, including this Exhibit A is not sufficient to license the Source Code under Secondary Licenses.
+   If it is not possible or desirable to put the notice in a particular file, then You may include the notice in a location (such as a LICENSE file in a relevant directory) where a recipient would be likely to look for such a notice.
+   You may add additional accurate notices of copyright ownership.
+
+
+--------------------------------------------------------------------------------
+Package Title: JaCoCo :: Core (0.8.13)
+
+Package Locator: mvn+org.jacoco:org.jacoco.core$0.8.13
+
+Package Depth: Transitive
+--------------------------------------------------------------------------------
+
+* Declared Licenses *
+EPL-2.0
+
+--------------------------------------------------------------------------------
+File matches:
+META-INF/maven/org.jacoco/org.jacoco.core/pom.xml
+org/jacoco/core/analysis/Analyzer.java
+org/jacoco/core/analysis/CounterComparator.java
+org/jacoco/core/analysis/CoverageBuilder.java
+org/jacoco/core/analysis/CoverageNodeImpl.java
+org/jacoco/core/analysis/IBundleCoverage.java
+org/jacoco/core/analysis/IClassCoverage.java
+org/jacoco/core/analysis/ICounter.java
+org/jacoco/core/analysis/ICoverageNode.java
+org/jacoco/core/analysis/ICoverageVisitor.java
+org/jacoco/core/analysis/ILine.java
+org/jacoco/core/analysis/IMethodCoverage.java
+org/jacoco/core/analysis/IPackageCoverage.java
+org/jacoco/core/analysis/ISourceFileCoverage.java
+org/jacoco/core/analysis/ISourceNode.java
+org/jacoco/core/analysis/NodeComparator.java
+org/jacoco/core/analysis/package-info.java
+org/jacoco/core/data/ExecutionData.java
+org/jacoco/core/data/ExecutionDataReader.java
+org/jacoco/core/data/ExecutionDataStore.java
+org/jacoco/core/data/ExecutionDataWriter.java
+org/jacoco/core/data/IExecutionDataVisitor.java
+org/jacoco/core/data/IncompatibleExecDataVersionException.java
+org/jacoco/core/data/ISessionInfoVisitor.java
+org/jacoco/core/data/package-info.java
+org/jacoco/core/data/SessionInfo.java
+org/jacoco/core/data/SessionInfoStore.java
+org/jacoco/core/instr/Instrumenter.java
+org/jacoco/core/instr/package-info.java
+org/jacoco/core/internal/analysis/BundleCoverageImpl.java
+org/jacoco/core/internal/analysis/ClassAnalyzer.java
+org/jacoco/core/internal/analysis/ClassCoverageImpl.java
+org/jacoco/core/internal/analysis/CounterImpl.java
+org/jacoco/core/internal/analysis/filter/AbstractMatcher.java
+org/jacoco/core/internal/analysis/filter/AnnotationGeneratedFilter.java
+org/jacoco/core/internal/analysis/filter/AssertFilter.java
+org/jacoco/core/internal/analysis/filter/BridgeFilter.java
+org/jacoco/core/internal/analysis/filter/EnumEmptyConstructorFilter.java
+org/jacoco/core/internal/analysis/filter/EnumFilter.java
+org/jacoco/core/internal/analysis/filter/ExhaustiveSwitchFilter.java
+org/jacoco/core/internal/analysis/filter/Filters.java
+org/jacoco/core/internal/analysis/filter/FilterSet.java
+org/jacoco/core/internal/analysis/filter/FinallyFilter.java
+org/jacoco/core/internal/analysis/filter/IFilter.java
+org/jacoco/core/internal/analysis/filter/IFilterContext.java
+org/jacoco/core/internal/analysis/filter/IFilterOutput.java
+org/jacoco/core/internal/analysis/filter/KotlinComposeFilter.java
+org/jacoco/core/internal/analysis/filter/KotlinCoroutineFilter.java
+org/jacoco/core/internal/analysis/filter/KotlinDefaultArgumentsFilter.java
+org/jacoco/core/internal/analysis/filter/KotlinDefaultMethodsFilter.java
+org/jacoco/core/internal/analysis/filter/KotlinEnumFilter.java
+org/jacoco/core/internal/analysis/filter/KotlinGeneratedFilter.java
+org/jacoco/core/internal/analysis/filter/KotlinInlineClassFilter.java
+org/jacoco/core/internal/analysis/filter/KotlinInlineFilter.java
+org/jacoco/core/internal/analysis/filter/KotlinJvmOverloadsFilter.java
+org/jacoco/core/internal/analysis/filter/KotlinLateinitFilter.java
+org/jacoco/core/internal/analysis/filter/KotlinNotNullOperatorFilter.java
+org/jacoco/core/internal/analysis/filter/KotlinSafeCallOperatorFilter.java
+org/jacoco/core/internal/analysis/filter/KotlinSMAP.java
+org/jacoco/core/internal/analysis/filter/KotlinSyntheticAccessorsFilter.java
+org/jacoco/core/internal/analysis/filter/KotlinUnsafeCastOperatorFilter.java
+org/jacoco/core/internal/analysis/filter/KotlinWhenFilter.java
+org/jacoco/core/internal/analysis/filter/KotlinWhenStringFilter.java
+org/jacoco/core/internal/analysis/filter/PrivateEmptyNoArgConstructorFilter.java
+org/jacoco/core/internal/analysis/filter/RecordPatternFilter.java
+org/jacoco/core/internal/analysis/filter/RecordsFilter.java
+org/jacoco/core/internal/analysis/filter/StringSwitchFilter.java
+org/jacoco/core/internal/analysis/filter/StringSwitchJavacFilter.java
+org/jacoco/core/internal/analysis/filter/SynchronizedFilter.java
+org/jacoco/core/internal/analysis/filter/SyntheticFilter.java
+org/jacoco/core/internal/analysis/filter/TryWithResourcesEcjFilter.java
+org/jacoco/core/internal/analysis/filter/TryWithResourcesJavac11Filter.java
+org/jacoco/core/internal/analysis/filter/TryWithResourcesJavacFilter.java
+org/jacoco/core/internal/analysis/Instruction.java
+org/jacoco/core/internal/analysis/InstructionsBuilder.java
+org/jacoco/core/internal/analysis/LineImpl.java
+org/jacoco/core/internal/analysis/MethodAnalyzer.java
+org/jacoco/core/internal/analysis/MethodCoverageCalculator.java
+org/jacoco/core/internal/analysis/MethodCoverageImpl.java
+org/jacoco/core/internal/analysis/PackageCoverageImpl.java
+org/jacoco/core/internal/analysis/SourceFileCoverageImpl.java
+org/jacoco/core/internal/analysis/SourceNodeImpl.java
+org/jacoco/core/internal/analysis/StringPool.java
+org/jacoco/core/internal/ContentTypeDetector.java
+org/jacoco/core/internal/data/CompactDataInput.java
+org/jacoco/core/internal/data/CompactDataOutput.java
+org/jacoco/core/internal/data/CRC64.java
+org/jacoco/core/internal/flow/ClassProbesAdapter.java
+org/jacoco/core/internal/flow/ClassProbesVisitor.java
+org/jacoco/core/internal/flow/FrameSnapshot.java
+org/jacoco/core/internal/flow/IFrame.java
+org/jacoco/core/internal/flow/IProbeIdGenerator.java
+org/jacoco/core/internal/flow/LabelFlowAnalyzer.java
+org/jacoco/core/internal/flow/LabelInfo.java
+org/jacoco/core/internal/flow/MethodProbesAdapter.java
+org/jacoco/core/internal/flow/MethodProbesVisitor.java
+org/jacoco/core/internal/flow/MethodSanitizer.java
+org/jacoco/core/internal/InputStreams.java
+org/jacoco/core/internal/instr/ClassFieldProbeArrayStrategy.java
+org/jacoco/core/internal/instr/ClassInstrumenter.java
+org/jacoco/core/internal/instr/CondyProbeArrayStrategy.java
+org/jacoco/core/internal/instr/DuplicateFrameEliminator.java
+org/jacoco/core/internal/instr/InstrSupport.java
+org/jacoco/core/internal/instr/InterfaceFieldProbeArrayStrategy.java
+org/jacoco/core/internal/instr/IProbeArrayStrategy.java
+org/jacoco/core/internal/instr/IProbeInserter.java
+org/jacoco/core/internal/instr/LocalProbeArrayStrategy.java
+org/jacoco/core/internal/instr/MethodInstrumenter.java
+org/jacoco/core/internal/instr/NoneProbeArrayStrategy.java
+org/jacoco/core/internal/instr/ProbeArrayStrategyFactory.java
+org/jacoco/core/internal/instr/ProbeCounter.java
+org/jacoco/core/internal/instr/ProbeInserter.java
+org/jacoco/core/internal/instr/SignatureRemover.java
+org/jacoco/core/internal/Pack200Streams.java
+org/jacoco/core/JaCoCo.java
+org/jacoco/core/package-info.java
+org/jacoco/core/runtime/AbstractRuntime.java
+org/jacoco/core/runtime/AgentOptions.java
+org/jacoco/core/runtime/CommandLineSupport.java
+org/jacoco/core/runtime/IExecutionDataAccessorGenerator.java
+org/jacoco/core/runtime/InjectedClassRuntime.java
+org/jacoco/core/runtime/IRemoteCommandVisitor.java
+org/jacoco/core/runtime/IRuntime.java
+org/jacoco/core/runtime/LoggerRuntime.java
+org/jacoco/core/runtime/ModifiedSystemClassRuntime.java
+org/jacoco/core/runtime/OfflineInstrumentationAccessGenerator.java
+org/jacoco/core/runtime/package-info.java
+org/jacoco/core/runtime/RemoteControlReader.java
+org/jacoco/core/runtime/RemoteControlWriter.java
+org/jacoco/core/runtime/RuntimeData.java
+org/jacoco/core/runtime/SystemPropertiesRuntime.java
+org/jacoco/core/runtime/WildcardMatcher.java
+org/jacoco/core/tools/ExecDumpClient.java
+org/jacoco/core/tools/ExecFileLoader.java
+org/jacoco/core/tools/package-info.java
+parent-poms/mvn+org.jacoco:org.jacoco.build$0.8.13/pom.xml
+pom.xml
+--------------------------------------------------------------------------------
+
+THE ACCOMPANYING PROGRAM IS PROVIDED UNDER THE TERMS OF THIS ECLIPSE PUBLIC LICENSE ("AGREEMENT"). ANY USE, REPRODUCTION OR DISTRIBUTION OF THE PROGRAM CONSTITUTES RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT.
+   1. DEFINITIONS
+   "Contribution" means:
+      a) in the case of the initial Contributor, the initial content Distributed under this Agreement, and
+      b) in the case of each subsequent Contributor:
+         i) changes to the Program, and
+         ii) additions to the Program;
+      where such changes and/or additions to the Program originate from and are Distributed by that particular Contributor. A Contribution "originates" from a Contributor if it was added to the Program by such Contributor itself or anyone acting on such Contributor's behalf. Contributions do not include changes or additions to the Program that are not Modified Works.
+   "Contributor" means any person or entity that Distributes the Program.
+   "Licensed Patents" mean patent claims licensable by a Contributor which are necessarily infringed by the use or sale of its Contribution alone or when combined with the Program.
+   "Program" means the Contributions Distributed in accordance with this Agreement.
+   "Recipient" means anyone who receives the Program under this Agreement or any Secondary License (as applicable), including Contributors.
+   "Derivative Works" shall mean any work, whether in Source Code or other form, that is based on (or derived from) the Program and for which the editorial revisions, annotations, elaborations, or other modifications represent, as a whole, an original work of authorship.
+   "Modified Works" shall mean any work in Source Code or other form that results from an addition to, deletion from, or modification of the contents of the Program, including, for purposes of clarity any new file in Source Code form that contains any contents of the Program. Modified Works shall not include works that contain only declarations, interfaces, types, classes, structures, or files of the Program solely in each case in order to link to, bind by name, or subclass the Program or Modified Works thereof.
+   "Distribute" means the acts of a) distributing or b) making available in any manner that enables the transfer of a copy.
+   "Source Code" means the form of a Program preferred for making modifications, including but not limited to software source code, documentation source, and configuration files.
+   "Secondary License" means either the GNU General Public License, Version 2.0, or any later versions of that license, including any exceptions or additional permissions as identified by the initial Contributor.
+   2. GRANT OF RIGHTS
+      a) Subject to the terms of this Agreement, each Contributor hereby grants Recipient a non-exclusive, worldwide, royalty-free copyright license to reproduce, prepare Derivative Works of, publicly display, publicly perform, Distribute and sublicense the Contribution of such Contributor, if any, and such Derivative Works.
+      b) Subject to the terms of this Agreement, each Contributor hereby grants Recipient a non-exclusive, worldwide, royalty-free patent license under Licensed Patents to make, use, sell, offer to sell, import and otherwise transfer the Contribution of such Contributor, if any, in Source Code or other form. This patent license shall apply to the combination of the Contribution and the Program if, at the time the Contribution is added by the Contributor, such addition of the Contribution causes such combination to be covered by the Licensed Patents. The patent license shall not apply to any other combinations which include the Contribution. No hardware per se is licensed hereunder.
+      c) Recipient understands that although each Contributor grants the licenses to its Contributions set forth herein, no assurances are provided by any Contributor that the Program does not infringe the patent or other intellectual property rights of any other entity. Each Contributor disclaims any liability to Recipient for claims brought by any other entity based on infringement of intellectual property rights or otherwise. As a condition to exercising the rights and licenses granted hereunder, each Recipient hereby assumes sole responsibility to secure any other intellectual property rights needed, if any. For example, if a third party patent license is required to allow Recipient to Distribute the Program, it is Recipient's responsibility to acquire that license before distributing the Program.
+      d) Each Contributor represents that to its knowledge it has sufficient copyright rights in its Contribution, if any, to grant the copyright license set forth in this Agreement.
+      e) Notwithstanding the terms of any Secondary License, no Contributor makes additional grants to any Recipient (other than those set forth in this Agreement) as a result of such Recipient's receipt of the Program under the terms of a Secondary License (if permitted under the terms of Section 3).
+   3. REQUIREMENTS
+      3.1 If a Contributor Distributes the Program in any form, then:
+         a) the Program must also be made available as Source Code, in accordance with section 3.2, and the Contributor must accompany the Program with a statement that the Source Code for the Program is available under this Agreement, and informs Recipients how to obtain it in a reasonable manner on or through a medium customarily used for software exchange; and
+         b) the Contributor may Distribute the Program under a license different than this Agreement, provided that such license:
+            i) effectively disclaims on behalf of all other Contributors all warranties and conditions, express and implied, including warranties or conditions of title and non-infringement, and implied warranties or conditions of merchantability and fitness for a particular purpose;
+            ii) effectively excludes on behalf of all other Contributors all liability for damages, including direct, indirect, special, incidental and consequential damages, such as lost profits;
+            iii) does not attempt to limit or alter the recipients' rights in the Source Code under section 3.2; and
+            iv) requires any subsequent distribution of the Program by any party to be under a license that satisfies the requirements of this section 3.
+      3.2 When the Program is Distributed as Source Code:
+         a) it must be made available under this Agreement, or if the Program (i) is combined with other material in a separate file or files made available under a Secondary License, and (ii) the initial Contributor attached to the Source Code the notice described in Exhibit A of this Agreement, then the Program may be made available under the terms of such Secondary Licenses, and
+         b) a copy of this Agreement must be included with each copy of the Program.
+      3.3 Contributors may not remove or alter any copyright, patent, trademark, attribution notices, disclaimers of warranty, or limitations of liability ("notices") contained within the Program from any copy of the Program which they Distribute, provided that Contributors may add their own appropriate notices.
+   4. COMMERCIAL DISTRIBUTION
+   Commercial distributors of software may accept certain responsibilities with respect to end users, business partners and the like. While this license is intended to facilitate the commercial use of the Program, the Contributor who includes the Program in a commercial product offering should do so in a manner which does not create potential liability for other Contributors. Therefore, if a Contributor includes the Program in a commercial product offering, such Contributor ("Commercial Contributor") hereby agrees to defend and indemnify every other Contributor ("Indemnified Contributor") against any losses, damages and costs (collectively "Losses") arising from claims, lawsuits and other legal actions brought by a third party against the Indemnified Contributor to the extent caused by the acts or omissions of such Commercial Contributor in connection with its distribution of the Program in a commercial product offering. The obligations in this section do not apply to any claims or Losses relating to any actual or alleged intellectual property infringement. In order to qualify, an Indemnified Contributor must: a) promptly notify the Commercial Contributor in writing of such claim, and b) allow the Commercial Contributor to control, and cooperate with the Commercial Contributor in, the defense and any related settlement negotiations. The Indemnified Contributor may participate in any such claim at its own expense.
+   For example, a Contributor might include the Program in a commercial product offering, Product X. That Contributor is then a Commercial Contributor. If that Commercial Contributor then makes performance claims, or offers warranties related to Product X, those performance claims and warranties are such Commercial Contributor's responsibility alone. Under this section, the Commercial Contributor would have to defend claims against the other Contributors related to those performance claims and warranties, and if a court requires any other Contributor to pay any damages as a result, the Commercial Contributor must pay those damages.
+   5. NO WARRANTY
+   EXCEPT AS EXPRESSLY SET FORTH IN THIS AGREEMENT, AND TO THE EXTENT PERMITTED BY APPLICABLE LAW, THE PROGRAM IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED INCLUDING, WITHOUT LIMITATION, ANY WARRANTIES OR CONDITIONS OF TITLE, NON-INFRINGEMENT, MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE. Each Recipient is solely responsible for determining the appropriateness of using and distributing the Program and assumes all risks associated with its exercise of rights under this Agreement, including but not limited to the risks and costs of program errors, compliance with applicable laws, damage to or loss of data, programs or equipment, and unavailability or interruption of operations.
+   6. DISCLAIMER OF LIABILITY
+   EXCEPT AS EXPRESSLY SET FORTH IN THIS AGREEMENT, AND TO THE EXTENT PERMITTED BY APPLICABLE LAW, NEITHER RECIPIENT NOR ANY CONTRIBUTORS SHALL HAVE ANY LIABILITY FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING WITHOUT LIMITATION LOST PROFITS), HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OR DISTRIBUTION OF THE PROGRAM OR THE EXERCISE OF ANY RIGHTS GRANTED HEREUNDER, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
+   7. GENERAL
+   If any provision of this Agreement is invalid or unenforceable under applicable law, it shall not affect the validity or enforceability of the remainder of the terms of this Agreement, and without further action by the parties hereto, such provision shall be reformed to the minimum extent necessary to make such provision valid and enforceable.
+   If Recipient institutes patent litigation against any entity (including a cross-claim or counterclaim in a lawsuit) alleging that the Program itself (excluding combinations of the Program with other software or hardware) infringes such Recipient's patent(s), then such Recipient's rights granted under Section 2(b) shall terminate as of the date such litigation is filed.
+   All Recipient's rights under this Agreement shall terminate if it fails to comply with any of the material terms or conditions of this Agreement and does not cure such failure in a reasonable period of time after becoming aware of such noncompliance. If all Recipient's rights under this Agreement terminate, Recipient agrees to cease use and distribution of the Program as soon as reasonably practicable. However, Recipient's obligations under this Agreement and any licenses granted by Recipient relating to the Program shall continue and survive.
+   Everyone is permitted to copy and distribute copies of this Agreement, but in order to avoid inconsistency the Agreement is copyrighted and may only be modified in the following manner. The Agreement Steward reserves the right to publish new versions (including revisions) of this Agreement from time to time. No one other than the Agreement Steward has the right to modify this Agreement. The Eclipse Foundation is the initial Agreement Steward. The Eclipse Foundation may assign the responsibility to serve as the Agreement Steward to a suitable separate entity. Each new version of the Agreement will be given a distinguishing version number. The Program (including Contributions) may always be Distributed subject to the version of the Agreement under which it was received. In addition, after a new version of the Agreement is published, Contributor may elect to Distribute the Program (including its Contributions) under the new version.
+   Except as expressly stated in Sections 2(a) and 2(b) above, Recipient receives no rights or licenses to the intellectual property of any Contributor under this Agreement, whether expressly, by implication, estoppel or otherwise. All rights in the Program not expressly granted under this Agreement are reserved. Nothing in this Agreement is intended to be enforceable by any entity that is not a Contributor or Recipient. No third-party beneficiary rights are created under this Agreement.
+   Exhibit A - Form of Secondary Licenses Notice
+   "This Source Code may also be made available under the following Secondary Licenses when the conditions for such availability set forth in the Eclipse Public License, v. 2.0 are satisfied: {name license(s), version(s), and exceptions or additional permissions here}."
+   Simply including a copy of this Agreement, including this Exhibit A is not sufficient to license the Source Code under Secondary Licenses.
+   If it is not possible or desirable to put the notice in a particular file, then You may include the notice in a location (such as a LICENSE file in a relevant directory) where a recipient would be likely to look for such a notice.
+   You may add additional accurate notices of copyright ownership.
+
+
+--------------------------------------------------------------------------------
+Package Title: JaCoCo :: Report (0.8.13)
+
+Package Locator: mvn+org.jacoco:org.jacoco.report$0.8.13
+
+Package Depth: Transitive
+--------------------------------------------------------------------------------
+
+* Declared Licenses *
+EPL-2.0
+
+--------------------------------------------------------------------------------
+File matches:
+META-INF/maven/org.jacoco/org.jacoco.report/pom.xml
+org/jacoco/report/check/BundleChecker.java
+org/jacoco/report/check/IViolationsOutput.java
+org/jacoco/report/check/Limit.java
+org/jacoco/report/check/package-info.java
+org/jacoco/report/check/Rule.java
+org/jacoco/report/check/RulesChecker.java
+org/jacoco/report/csv/ClassRowWriter.java
+org/jacoco/report/csv/CSVFormatter.java
+org/jacoco/report/csv/CSVGroupHandler.java
+org/jacoco/report/csv/DelimitedWriter.java
+org/jacoco/report/csv/package-info.java
+org/jacoco/report/DirectorySourceFileLocator.java
+org/jacoco/report/FileMultiReportOutput.java
+org/jacoco/report/html/HTMLFormatter.java
+org/jacoco/report/html/package-info.java
+org/jacoco/report/ILanguageNames.java
+org/jacoco/report/IMultiReportOutput.java
+org/jacoco/report/InputStreamSourceFileLocator.java
+org/jacoco/report/internal/AbstractGroupVisitor.java
+org/jacoco/report/internal/html/HTMLElement.java
+org/jacoco/report/internal/html/HTMLGroupVisitor.java
+org/jacoco/report/internal/html/IHTMLReportContext.java
+org/jacoco/report/internal/html/ILinkable.java
+org/jacoco/report/internal/html/index/ElementIndex.java
+org/jacoco/report/internal/html/index/IIndexUpdate.java
+org/jacoco/report/internal/html/index/package-info.java
+org/jacoco/report/internal/html/page/BundlePage.java
+org/jacoco/report/internal/html/page/ClassPage.java
+org/jacoco/report/internal/html/page/GroupPage.java
+org/jacoco/report/internal/html/page/MethodItem.java
+org/jacoco/report/internal/html/page/NodePage.java
+org/jacoco/report/internal/html/page/PackagePage.java
+org/jacoco/report/internal/html/page/PackageSourcePage.java
+org/jacoco/report/internal/html/page/ReportPage.java
+org/jacoco/report/internal/html/page/SessionsPage.java
+org/jacoco/report/internal/html/page/SourceFileItem.java
+org/jacoco/report/internal/html/page/SourceFilePage.java
+org/jacoco/report/internal/html/page/SourceHighlighter.java
+org/jacoco/report/internal/html/page/TablePage.java
+org/jacoco/report/internal/html/resources/package-info.java
+org/jacoco/report/internal/html/resources/Resources.java
+org/jacoco/report/internal/html/resources/sort.js
+org/jacoco/report/internal/html/resources/Styles.java
+org/jacoco/report/internal/html/table/BarColumn.java
+org/jacoco/report/internal/html/table/CounterColumn.java
+org/jacoco/report/internal/html/table/IColumnRenderer.java
+org/jacoco/report/internal/html/table/ITableItem.java
+org/jacoco/report/internal/html/table/LabelColumn.java
+org/jacoco/report/internal/html/table/package-info.java
+org/jacoco/report/internal/html/table/PercentageColumn.java
+org/jacoco/report/internal/html/table/SortIndex.java
+org/jacoco/report/internal/html/table/Table.java
+org/jacoco/report/internal/html/table/TableItemComparator.java
+org/jacoco/report/internal/NormalizedFileNames.java
+org/jacoco/report/internal/ReportOutputFolder.java
+org/jacoco/report/internal/xml/ReportElement.java
+org/jacoco/report/internal/xml/XMLCoverageWriter.java
+org/jacoco/report/internal/xml/XMLElement.java
+org/jacoco/report/internal/xml/XMLGroupVisitor.java
+org/jacoco/report/IReportGroupVisitor.java
+org/jacoco/report/IReportVisitor.java
+org/jacoco/report/ISourceFileLocator.java
+org/jacoco/report/JavaNames.java
+org/jacoco/report/MultiReportVisitor.java
+org/jacoco/report/MultiSourceFileLocator.java
+org/jacoco/report/package-info.java
+org/jacoco/report/xml/package-info.java
+org/jacoco/report/xml/report.dtd
+org/jacoco/report/xml/XMLFormatter.java
+org/jacoco/report/ZipMultiReportOutput.java
+parent-poms/mvn+org.jacoco:org.jacoco.build$0.8.13/pom.xml
+pom.xml
+--------------------------------------------------------------------------------
+
+THE ACCOMPANYING PROGRAM IS PROVIDED UNDER THE TERMS OF THIS ECLIPSE PUBLIC LICENSE ("AGREEMENT"). ANY USE, REPRODUCTION OR DISTRIBUTION OF THE PROGRAM CONSTITUTES RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT.
+   1. DEFINITIONS
+   "Contribution" means:
+      a) in the case of the initial Contributor, the initial content Distributed under this Agreement, and
+      b) in the case of each subsequent Contributor:
+         i) changes to the Program, and
+         ii) additions to the Program;
+      where such changes and/or additions to the Program originate from and are Distributed by that particular Contributor. A Contribution "originates" from a Contributor if it was added to the Program by such Contributor itself or anyone acting on such Contributor's behalf. Contributions do not include changes or additions to the Program that are not Modified Works.
+   "Contributor" means any person or entity that Distributes the Program.
+   "Licensed Patents" mean patent claims licensable by a Contributor which are necessarily infringed by the use or sale of its Contribution alone or when combined with the Program.
+   "Program" means the Contributions Distributed in accordance with this Agreement.
+   "Recipient" means anyone who receives the Program under this Agreement or any Secondary License (as applicable), including Contributors.
+   "Derivative Works" shall mean any work, whether in Source Code or other form, that is based on (or derived from) the Program and for which the editorial revisions, annotations, elaborations, or other modifications represent, as a whole, an original work of authorship.
+   "Modified Works" shall mean any work in Source Code or other form that results from an addition to, deletion from, or modification of the contents of the Program, including, for purposes of clarity any new file in Source Code form that contains any contents of the Program. Modified Works shall not include works that contain only declarations, interfaces, types, classes, structures, or files of the Program solely in each case in order to link to, bind by name, or subclass the Program or Modified Works thereof.
+   "Distribute" means the acts of a) distributing or b) making available in any manner that enables the transfer of a copy.
+   "Source Code" means the form of a Program preferred for making modifications, including but not limited to software source code, documentation source, and configuration files.
+   "Secondary License" means either the GNU General Public License, Version 2.0, or any later versions of that license, including any exceptions or additional permissions as identified by the initial Contributor.
+   2. GRANT OF RIGHTS
+      a) Subject to the terms of this Agreement, each Contributor hereby grants Recipient a non-exclusive, worldwide, royalty-free copyright license to reproduce, prepare Derivative Works of, publicly display, publicly perform, Distribute and sublicense the Contribution of such Contributor, if any, and such Derivative Works.
+      b) Subject to the terms of this Agreement, each Contributor hereby grants Recipient a non-exclusive, worldwide, royalty-free patent license under Licensed Patents to make, use, sell, offer to sell, import and otherwise transfer the Contribution of such Contributor, if any, in Source Code or other form. This patent license shall apply to the combination of the Contribution and the Program if, at the time the Contribution is added by the Contributor, such addition of the Contribution causes such combination to be covered by the Licensed Patents. The patent license shall not apply to any other combinations which include the Contribution. No hardware per se is licensed hereunder.
+      c) Recipient understands that although each Contributor grants the licenses to its Contributions set forth herein, no assurances are provided by any Contributor that the Program does not infringe the patent or other intellectual property rights of any other entity. Each Contributor disclaims any liability to Recipient for claims brought by any other entity based on infringement of intellectual property rights or otherwise. As a condition to exercising the rights and licenses granted hereunder, each Recipient hereby assumes sole responsibility to secure any other intellectual property rights needed, if any. For example, if a third party patent license is required to allow Recipient to Distribute the Program, it is Recipient's responsibility to acquire that license before distributing the Program.
+      d) Each Contributor represents that to its knowledge it has sufficient copyright rights in its Contribution, if any, to grant the copyright license set forth in this Agreement.
+      e) Notwithstanding the terms of any Secondary License, no Contributor makes additional grants to any Recipient (other than those set forth in this Agreement) as a result of such Recipient's receipt of the Program under the terms of a Secondary License (if permitted under the terms of Section 3).
+   3. REQUIREMENTS
+      3.1 If a Contributor Distributes the Program in any form, then:
+         a) the Program must also be made available as Source Code, in accordance with section 3.2, and the Contributor must accompany the Program with a statement that the Source Code for the Program is available under this Agreement, and informs Recipients how to obtain it in a reasonable manner on or through a medium customarily used for software exchange; and
+         b) the Contributor may Distribute the Program under a license different than this Agreement, provided that such license:
+            i) effectively disclaims on behalf of all other Contributors all warranties and conditions, express and implied, including warranties or conditions of title and non-infringement, and implied warranties or conditions of merchantability and fitness for a particular purpose;
+            ii) effectively excludes on behalf of all other Contributors all liability for damages, including direct, indirect, special, incidental and consequential damages, such as lost profits;
+            iii) does not attempt to limit or alter the recipients' rights in the Source Code under section 3.2; and
+            iv) requires any subsequent distribution of the Program by any party to be under a license that satisfies the requirements of this section 3.
+      3.2 When the Program is Distributed as Source Code:
+         a) it must be made available under this Agreement, or if the Program (i) is combined with other material in a separate file or files made available under a Secondary License, and (ii) the initial Contributor attached to the Source Code the notice described in Exhibit A of this Agreement, then the Program may be made available under the terms of such Secondary Licenses, and
+         b) a copy of this Agreement must be included with each copy of the Program.
+      3.3 Contributors may not remove or alter any copyright, patent, trademark, attribution notices, disclaimers of warranty, or limitations of liability ("notices") contained within the Program from any copy of the Program which they Distribute, provided that Contributors may add their own appropriate notices.
+   4. COMMERCIAL DISTRIBUTION
+   Commercial distributors of software may accept certain responsibilities with respect to end users, business partners and the like. While this license is intended to facilitate the commercial use of the Program, the Contributor who includes the Program in a commercial product offering should do so in a manner which does not create potential liability for other Contributors. Therefore, if a Contributor includes the Program in a commercial product offering, such Contributor ("Commercial Contributor") hereby agrees to defend and indemnify every other Contributor ("Indemnified Contributor") against any losses, damages and costs (collectively "Losses") arising from claims, lawsuits and other legal actions brought by a third party against the Indemnified Contributor to the extent caused by the acts or omissions of such Commercial Contributor in connection with its distribution of the Program in a commercial product offering. The obligations in this section do not apply to any claims or Losses relating to any actual or alleged intellectual property infringement. In order to qualify, an Indemnified Contributor must: a) promptly notify the Commercial Contributor in writing of such claim, and b) allow the Commercial Contributor to control, and cooperate with the Commercial Contributor in, the defense and any related settlement negotiations. The Indemnified Contributor may participate in any such claim at its own expense.
+   For example, a Contributor might include the Program in a commercial product offering, Product X. That Contributor is then a Commercial Contributor. If that Commercial Contributor then makes performance claims, or offers warranties related to Product X, those performance claims and warranties are such Commercial Contributor's responsibility alone. Under this section, the Commercial Contributor would have to defend claims against the other Contributors related to those performance claims and warranties, and if a court requires any other Contributor to pay any damages as a result, the Commercial Contributor must pay those damages.
+   5. NO WARRANTY
+   EXCEPT AS EXPRESSLY SET FORTH IN THIS AGREEMENT, AND TO THE EXTENT PERMITTED BY APPLICABLE LAW, THE PROGRAM IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED INCLUDING, WITHOUT LIMITATION, ANY WARRANTIES OR CONDITIONS OF TITLE, NON-INFRINGEMENT, MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE. Each Recipient is solely responsible for determining the appropriateness of using and distributing the Program and assumes all risks associated with its exercise of rights under this Agreement, including but not limited to the risks and costs of program errors, compliance with applicable laws, damage to or loss of data, programs or equipment, and unavailability or interruption of operations.
+   6. DISCLAIMER OF LIABILITY
+   EXCEPT AS EXPRESSLY SET FORTH IN THIS AGREEMENT, AND TO THE EXTENT PERMITTED BY APPLICABLE LAW, NEITHER RECIPIENT NOR ANY CONTRIBUTORS SHALL HAVE ANY LIABILITY FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING WITHOUT LIMITATION LOST PROFITS), HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OR DISTRIBUTION OF THE PROGRAM OR THE EXERCISE OF ANY RIGHTS GRANTED HEREUNDER, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
+   7. GENERAL
+   If any provision of this Agreement is invalid or unenforceable under applicable law, it shall not affect the validity or enforceability of the remainder of the terms of this Agreement, and without further action by the parties hereto, such provision shall be reformed to the minimum extent necessary to make such provision valid and enforceable.
+   If Recipient institutes patent litigation against any entity (including a cross-claim or counterclaim in a lawsuit) alleging that the Program itself (excluding combinations of the Program with other software or hardware) infringes such Recipient's patent(s), then such Recipient's rights granted under Section 2(b) shall terminate as of the date such litigation is filed.
+   All Recipient's rights under this Agreement shall terminate if it fails to comply with any of the material terms or conditions of this Agreement and does not cure such failure in a reasonable period of time after becoming aware of such noncompliance. If all Recipient's rights under this Agreement terminate, Recipient agrees to cease use and distribution of the Program as soon as reasonably practicable. However, Recipient's obligations under this Agreement and any licenses granted by Recipient relating to the Program shall continue and survive.
+   Everyone is permitted to copy and distribute copies of this Agreement, but in order to avoid inconsistency the Agreement is copyrighted and may only be modified in the following manner. The Agreement Steward reserves the right to publish new versions (including revisions) of this Agreement from time to time. No one other than the Agreement Steward has the right to modify this Agreement. The Eclipse Foundation is the initial Agreement Steward. The Eclipse Foundation may assign the responsibility to serve as the Agreement Steward to a suitable separate entity. Each new version of the Agreement will be given a distinguishing version number. The Program (including Contributions) may always be Distributed subject to the version of the Agreement under which it was received. In addition, after a new version of the Agreement is published, Contributor may elect to Distribute the Program (including its Contributions) under the new version.
+   Except as expressly stated in Sections 2(a) and 2(b) above, Recipient receives no rights or licenses to the intellectual property of any Contributor under this Agreement, whether expressly, by implication, estoppel or otherwise. All rights in the Program not expressly granted under this Agreement are reserved. Nothing in this Agreement is intended to be enforceable by any entity that is not a Contributor or Recipient. No third-party beneficiary rights are created under this Agreement.
+   Exhibit A - Form of Secondary Licenses Notice
+   "This Source Code may also be made available under the following Secondary Licenses when the conditions for such availability set forth in the Eclipse Public License, v. 2.0 are satisfied: {name license(s), version(s), and exceptions or additional permissions here}."
+   Simply including a copy of this Agreement, including this Exhibit A is not sufficient to license the Source Code under Secondary Licenses.
+   If it is not possible or desirable to put the notice in a particular file, then You may include the notice in a location (such as a LICENSE file in a relevant directory) where a recipient would be likely to look for such a notice.
+   You may add additional accurate notices of copyright ownership.
+
+
+* Other Licenses *
+Apache-2.0
+
+--------------------------------------------------------------------------------
+File matches:
+org/jacoco/report/internal/html/resources/prettify.js
+--------------------------------------------------------------------------------
+
+
+Copyright 2006 Google Inc.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+
+See the License for the specific language governing permissions and limitations under the License.
 
 
 --------------------------------------------------------------------------------
@@ -36386,9 +37041,9 @@ See the License for the specific language governing permissions and limitations 
 
 
 --------------------------------------------------------------------------------
-Package Title: JetBrains Plugin Verifier CLI (1.398)
+Package Title: JetBrains Plugin Verifier CLI (1.400)
 
-Package Locator: mvn+org.jetbrains.intellij.plugins:verifier-cli$1.398
+Package Locator: mvn+org.jetbrains.intellij.plugins:verifier-cli$1.400
 
 Package Depth: Direct
 --------------------------------------------------------------------------------
@@ -36436,6 +37091,7 @@ com/jetbrains/pluginverifier/tasks/checkTrunkApi/CheckTrunkApiRunner.kt
 com/jetbrains/pluginverifier/tasks/checkTrunkApi/CheckTrunkApiTask.kt
 com/jetbrains/pluginverifier/tasks/CommandRunner.kt
 com/jetbrains/pluginverifier/tasks/InvalidPluginFile.kt
+com/jetbrains/pluginverifier/tasks/Sorting.kt
 com/jetbrains/pluginverifier/tasks/Task.kt
 com/jetbrains/pluginverifier/tasks/TaskParameters.kt
 com/jetbrains/pluginverifier/tasks/TaskParametersBuilder.kt
@@ -36443,7 +37099,6 @@ com/jetbrains/pluginverifier/tasks/TaskResult.kt
 com/jetbrains/pluginverifier/tasks/TaskResultPrinter.kt
 com/jetbrains/pluginverifier/tasks/twoTargets/TwoTargetsResultPrinter.kt
 com/jetbrains/pluginverifier/tasks/twoTargets/TwoTargetsVerificationResults.kt
-pom.xml
 --------------------------------------------------------------------------------
 
 Copyright 2000-2020 JetBrains s.r.o. and other contributors. Use of this source code is governed by the Apache 2.0 license that can be found in the LICENSE file.
@@ -37452,7 +38107,7 @@ EPL-2.0
 
 --------------------------------------------------------------------------------
 File matches:
-org/junit/jupiter/api/AssertAll.java
+org/junit/jupiter/api/extension/Extensions.java
 --------------------------------------------------------------------------------
 
 Eclipse Public License - v 2.0
@@ -38904,7 +39559,7 @@ proprietary-license
 
 --------------------------------------------------------------------------------
 File matches:
-io/confluent/kafka/schemaregistry/json/JsonSchemaComparator.java
+io/confluent/kafka/schemaregistry/json/jackson/JsonSkemaObjectDeserializer.java
 --------------------------------------------------------------------------------
 
 
@@ -40205,7 +40860,6 @@ org/jetbrains/kotlin/buildtools/api/SharedApiClassesClassLoader.kt
 org/jetbrains/kotlin/buildtools/api/SourcesChanges.kt
 org/jetbrains/kotlin/buildtools/internal/classLoaderUtils.kt
 org/jetbrains/kotlin/buildtools/internal/KotlinBuildToolsInternalJdkUtils.kt
-pom.xml
 --------------------------------------------------------------------------------
 
 Copyright 2010-2023 JetBrains s.r.o. and Kotlin Programming Language contributors.
@@ -40248,7 +40902,6 @@ org/jetbrains/kotlin/buildtools/internal/icAdapters.kt
 org/jetbrains/kotlin/buildtools/internal/JvmCompilationConfigurationImpl.kt
 org/jetbrains/kotlin/buildtools/internal/KotlinLoggerMessageCollectorAdapter.kt
 org/jetbrains/kotlin/buildtools/internal/KotlinMessageRenderer.kt
-pom.xml
 --------------------------------------------------------------------------------
 
 Copyright 2010-2023 JetBrains s.r.o. and Kotlin Programming Language contributors.
@@ -40797,7 +41450,41 @@ See the License for the specific language governing permissions and limitations 
 
 
 * Other Licenses *
-NPL-1.1, BSD-3-Clause, MPL-1.1, GPL-1.0-or-later, LGPL-2.1-or-later, GPL-2.0-or-later
+BSD-3-Clause, NPL-1.1, MPL-1.1, GPL-1.0-or-later, LGPL-2.1-or-later, GPL-2.0-or-later
+
+* BSD-3-Clause *
+--------------------------------------------------------------------------------
+File matches:
+org/jetbrains/kotlin/js/backend/ast/JsCompositeBlock.kt
+--------------------------------------------------------------------------------
+
+
+Copyright (c) 2008 Google Inc.  All rights reserved. . All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+   1. Redistributions of source code must retain the above copyright notice,
+      this list of conditions and the following disclaimer.
+
+   2. Redistributions in binary form must reproduce the above copyright notice,
+      this list of conditions and the following disclaimer in the documentation
+      and/or other materials provided with the distribution.
+
+   3. Neither the name of the copyright holder nor the names of its
+      contributors may be used to endorse or promote products derived from
+      this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 * NPL-1.1 *
 --------------------------------------------------------------------------------
@@ -40917,40 +41604,6 @@ Mozilla Public License Version 1.1
    13. Multiple-licensed code
    Initial Developer may designate portions of the Covered Code as "Multiple-Licensed". "Multiple-Licensed" means that the Initial Developer permits you to utilize portions of the Covered Code under Your choice of the MPL or the alternative licenses, if any, specified by the Initial Developer in the file described in Exhibit A.
 
-* BSD-3-Clause *
---------------------------------------------------------------------------------
-File matches:
-org/jetbrains/kotlin/js/backend/ast/JsForIn.java
---------------------------------------------------------------------------------
-
-
-Copyright (c) 2008 Google Inc.  All rights reserved. . All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are met:
-
-   1. Redistributions of source code must retain the above copyright notice,
-      this list of conditions and the following disclaimer.
-
-   2. Redistributions in binary form must reproduce the above copyright notice,
-      this list of conditions and the following disclaimer in the documentation
-      and/or other materials provided with the distribution.
-
-   3. Neither the name of the copyright holder nor the names of its
-      contributors may be used to endorse or promote products derived from
-      this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
-FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
-OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
 * MPL-1.1 *
 --------------------------------------------------------------------------------
 File matches:
@@ -41038,7 +41691,6 @@ org/jetbrains/kotlin/compilerRunner/CompilerOutputParser.kt
 org/jetbrains/kotlin/compilerRunner/KotlinCompilerClass.kt
 org/jetbrains/kotlin/compilerRunner/KotlinCompilerRunnerUtils.kt
 org/jetbrains/kotlin/compilerRunner/utils.kt
-pom.xml
 --------------------------------------------------------------------------------
 
 Copyright 2010-2016 JetBrains s.r.o.
@@ -41092,7 +41744,6 @@ org/jetbrains/kotlin/daemon/common/RemoteInputStream.kt
 org/jetbrains/kotlin/daemon/common/RemoteOperationsTracer.kt
 org/jetbrains/kotlin/daemon/common/RemoteOutputStream.kt
 org/jetbrains/kotlin/daemon/common/ReplStateFacade.kt
-pom.xml
 RemoteInputStreamServer.kt
 RemoteOutputStreamServer.kt
 RemoteReplCompilerState.kt
@@ -41150,7 +41801,6 @@ org/jetbrains/kotlin/daemon/report/DaemonMessageReporter.kt
 org/jetbrains/kotlin/daemon/report/DebugMessagesICReporter.kt
 org/jetbrains/kotlin/daemon/report/getICReporter.kt
 org/jetbrains/kotlin/daemon/report/RemoteBuildMetricsReporterAdapter.kt
-pom.xml
 --------------------------------------------------------------------------------
 
 Copyright 2010-2024 JetBrains s.r.o. and Kotlin Programming Language contributors.
@@ -41373,7 +42023,6 @@ org/jetbrains/kotlin/metadata/jvm/serialization/JvmStringTable.kt
 org/jetbrains/kotlin/metadata/serialization/Interner.kt
 org/jetbrains/kotlin/metadata/serialization/MutableTable.kt
 org/jetbrains/kotlin/metadata/serialization/StringTable.kt
-pom.xml
 --------------------------------------------------------------------------------
 
 Copyright 2010-2023 JetBrains s.r.o. and Kotlin Programming Language contributors.
@@ -43007,7 +43656,6 @@ kotlin/script/extensions/samWithReceiver.kt
 kotlin/script/templates/annotations_deprecated.kt
 kotlin/script/templates/annotations.kt
 kotlin/script/templates/standard/templates.kt
-pom.xml
 --------------------------------------------------------------------------------
 
 Copyright 2010-2017 JetBrains s.r.o.
@@ -43159,7 +43807,6 @@ kotlin/script/experimental/impl/runSuspend.kt
 kotlin/script/experimental/util/filterByAnnotationType.kt
 kotlin/script/experimental/util/linkedSnippet.kt
 kotlin/script/experimental/util/propertiesCollection.kt
-pom.xml
 --------------------------------------------------------------------------------
 
 Copyright 2000-2018 JetBrains s.r.o. and Kotlin Programming Language contributors.
@@ -43262,7 +43909,6 @@ org/jetbrains/kotlin/scripting/compiler/plugin/services/FirScriptDefinitionProvi
 org/jetbrains/kotlin/scripting/compiler/plugin/services/FirScriptResolutionConfigurationExtensionImpl.kt
 org/jetbrains/kotlin/scripting/compiler/plugin/services/ScriptConfigurationUtils.kt
 org/jetbrains/kotlin/scripting/compiler/plugin/TestReplPluginRegistrar.kt
-pom.xml
 --------------------------------------------------------------------------------
 
 Copyright 2010-2019 JetBrains s.r.o. and Kotlin Programming Language contributors.
@@ -43481,7 +44127,6 @@ org/jetbrains/kotlin/scripting/resolve/scriptDescriptorUtil.kt
 org/jetbrains/kotlin/scripting/resolve/ScriptProvidedPropertyDescriptor.kt
 org/jetbrains/kotlin/scripting/resolve/ScriptReportSink.kt
 org/jetbrains/kotlin/scripting/utils.kt
-pom.xml
 --------------------------------------------------------------------------------
 
 Copyright 2010-2019 JetBrains s.r.o. and Kotlin Programming Language contributors.
@@ -43634,7 +44279,6 @@ kotlin/script/experimental/jvm/util/jvmClasspathUtil.kt
 kotlin/script/experimental/jvm/util/runtimeExceptionReporting.kt
 kotlin/script/experimental/jvm/util/SnippetsHistory.kt
 kotlin/script/experimental/jvm/util/sourceCodeUtils.kt
-pom.xml
 --------------------------------------------------------------------------------
 
 Copyright 2010-2020 JetBrains s.r.o. and Kotlin Programming Language contributors.
@@ -44070,7 +44714,6 @@ jvmMain/kotlin/util/NumbersJVM.kt
 jvmMain/kotlin/util/Synchronized.kt
 jvmMain/kotlin/util/UnsignedJVM.kt
 jvmMain/kotlin/uuid/UuidJVM.kt
-pom.xml
 --------------------------------------------------------------------------------
 
 Copyright 2010-2025 JetBrains s.r.o. and Kotlin Programming Language contributors.
@@ -44345,7 +44988,6 @@ org/jetbrains/kotlinx/serialization/compiler/resolve/NamingConventions.kt
 org/jetbrains/kotlinx/serialization/compiler/resolve/SearchUtils.kt
 org/jetbrains/kotlinx/serialization/compiler/resolve/SerializableProperties.kt
 org/jetbrains/kotlinx/serialization/compiler/resolve/SerializableProperty.kt
-pom.xml
 --------------------------------------------------------------------------------
 
 Copyright 2010-2017 JetBrains s.r.o.
@@ -45471,10 +46113,6 @@ Package Depth: Direct
 * Declared Licenses *
 MIT
 
---------------------------------------------------------------------------------
-File matches:
-pom.xml
---------------------------------------------------------------------------------
 
 The MIT License
 
@@ -45512,7 +46150,7 @@ MIT
 
 --------------------------------------------------------------------------------
 File matches:
-org/mockito/kotlin/LenientStubber.kt
+org/mockito/kotlin/internal/SuspendableAnswer.kt
 --------------------------------------------------------------------------------
 
 Copyright (c) 2024 Mockito contributors
@@ -45580,7 +46218,6 @@ main/com/squareup/moshi/RecordJsonAdapter.java
 main/com/squareup/moshi/StandardJsonAdapters.java
 main/com/squareup/moshi/ToJson.java
 main/com/squareup/moshi/Types.java
-pom.xml
 --------------------------------------------------------------------------------
 
 Copyright 2019 Square, Inc.
@@ -50322,10 +50959,6 @@ Package Depth: Direct
 * Declared Licenses *
 Apache-2.0
 
---------------------------------------------------------------------------------
-File matches:
-pom.xml
---------------------------------------------------------------------------------
 
 Copyright [yyyy] [name of copyright owner]
 
@@ -59006,6 +59639,8 @@ Copyright (c) 2011-2025 Thomas Akehurst
 
 Copyright (c) 2011 FasterXML, LLC
 
+Copyright (c) 2011-2012 Bull S.A.S.
+
 Copyright (c) 2012-2025 the original author or authors.
 
 Copyright (c) 2012 Google LLC
@@ -59035,6 +59670,8 @@ Copyright (c) 2018 The Guava Authors
 Copyright (c) 2012 Ryan J. McDonough
 
 Copyright (c) 2012 Google Inc. All Rights Reserved.
+
+Copyright (c) 2006 Google Inc.
 
 Copyright (c) 2009-2017 java-diff-utils.
 
@@ -59183,9 +59820,9 @@ BSD 3-Clause "New" or "Revised" License
 
 Copyright (c) 2008 Google Inc.  All rights reserved.
 
-Copyright (c) 2001-2011 Anders Moeller
-
 Copyright (c) 2000-2011 INRIA, France Telecom
+
+Copyright (c) 2001-2011 Anders Moeller
 
 Copyright (c) 2000-2002 bob mcwhirter & James Strachan.
 
@@ -59562,6 +60199,8 @@ Copyright (c)  the software, and
 
 Copyright (c) 2018, 2020 Oracle and/or its affiliates. All rights reserved.
 
+Copyright (c) 2009, 2025 Mountainminds GmbH & Co. KG and Contributors
+
 Copyright (c) 2015-2025 the original author or authors.
 Eclipse Public License - v 2.0
 THE ACCOMPANYING PROGRAM IS PROVIDED UNDER THE TERMS OF THIS ECLIPSE PUBLIC LICENSE ("AGREEMENT"). ANY USE, REPRODUCTION OR DISTRIBUTION OF THE PROGRAM CONSTITUTES RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT.
@@ -59748,15 +60387,19 @@ GNU General Public License v2.0 w/Classpath exception
 
 Copyright (c) 1989, 1991 Free Software Foundation, Inc.
 
-Copyright (c) 2021 Oracle and/or its affiliates. All rights reserved.
-
 Copyright (c) 2005, 2020 Oracle and/or its affiliates. All rights reserved.
-
-Copyright (c) 2020 Oracle and/or its affiliates. All rights reserved.
 
 Copyright (c) 2009, 2022 Oracle and/or its affiliates. All rights reserved.
 
+Copyright (c) 2021 Oracle and/or its affiliates. All rights reserved.
+
+Copyright (c) 2020 Oracle and/or its affiliates. All rights reserved.
+
 Copyright (c) 2009, 2020 Oracle and/or its affiliates. All rights reserved.
+
+Copyright (c) 2018, 2020 Oracle and/or its affiliates. All rights reserved.
+
+Copyright (c)  the software, and
 
 Copyright (c) 2012, 2022 Oracle and/or its affiliates. All rights reserved.
 
@@ -59783,10 +60426,6 @@ Copyright (c)  update}</update>
 Copyright (c)  ignoreyear}</ignoreYear>
 
 Copyright (c) 2019, 2021 Eclipse Foundation. All rights reserved.<br>
-
-Copyright (c) 2018, 2020 Oracle and/or its affiliates. All rights reserved.
-
-Copyright (c)  the software, and
 <<beginOptional>> GNU GENERAL PUBLIC LICENSE
 Version 2, June 1991<<endOptional>>
 Copyright (C) 1989, 1991 Free Software Foundation, Inc.
@@ -60460,8 +61099,6 @@ Proprietary License
 Copyright (c) 2023 Confluent Inc.
 
 Copyright (c) 2020 Confluent Inc.
-
-Copyright (c) 2021 Confluent Inc.
 This is a catch-all license used when we find many different proprietary licenses.
 
 --------------------------------------------------------------------------------
@@ -60469,4 +61106,4 @@ This is a catch-all license used when we find many different proprietary license
 --------------------------------------------------------------------------------
 --------------------------------------------------------------------------------
 
-Report Generated by FOSSA on 2026-2-6
+Report Generated by FOSSA on 2026-2-18
