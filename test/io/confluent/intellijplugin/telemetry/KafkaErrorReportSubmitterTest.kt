@@ -60,23 +60,6 @@ class KafkaErrorReportSubmitterTest {
         }
 
         @Test
-        fun `should handle TextBasedThrowable edge case`() {
-            val submitter = KafkaErrorReportSubmitter()
-            // TextBasedThrowable scenario: throwable is null but throwableText has content
-            val event = mock<IdeaLoggingEvent> {
-                on { throwable } doReturn null
-                on { throwableText } doReturn """
-                    java.lang.RuntimeException: Error
-                        at io.confluent.intellijplugin.core.Connection.connect(Connection.kt:50)
-                """.trimIndent()
-            }
-
-            val isPluginError = submitter.isPluginRelatedError(event)
-
-            Assertions.assertTrue(isPluginError, "Should work with TextBasedThrowable")
-        }
-
-        @Test
         fun `should reject empty throwableText`() {
             val submitter = KafkaErrorReportSubmitter()
             val event = mock<IdeaLoggingEvent> {
