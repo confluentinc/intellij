@@ -15,7 +15,12 @@
         "resource_name": "crn://confluent.cloud/template=minimal"
       },
       "spec": {
-        "name": "minimal-template"
+        "name": "minimal-template",
+        "template_collection": {
+          "id": "intellij",
+          "related": "https://api.confluent.cloud/scaffold/v1/template-collections/intellij",
+          "resource_name": "crn://confluent.cloud/template-collection=intellij"
+        }
       }
     }
   ]
