@@ -284,6 +284,28 @@ openApiGenerate {
         )
     )
 }
+
+// Fix kotlin.Any types caused by ambiguous allOf compositions in upstream OpenAPI spec
+tasks.named("openApiGenerate") {
+    outputs.dir(file("$rootDir/gen"))
+
+    doLast {
+        // Apply patches to fix type issues from ambiguous OpenAPI spec
+        // Patches are more maintainable and reviewable than inline string replacement
+        listOf(
+            "fix-pagination-metadata-types.patch",
+            "fix-object-metadata-types.patch",
+            "fix-template-spec-types.patch",
+            "fix-template-collection-spec-types.patch"
+        ).forEach { patchFile ->
+            exec {
+                workingDir = rootDir
+                commandLine = listOf("git", "apply", "--directory=gen", "openapi/patches/$patchFile")
+            }
+        }
+    }
+}
+
 openApiValidate {
     inputSpec.set("$rootDir/openapi/scaffolding-service.openapi.yaml")
 }

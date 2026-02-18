@@ -33,10 +33,10 @@ import com.squareup.moshi.JsonClass
 data class ScaffoldV1TemplateMetadata (
 
     @Json(name = "self")
-    val self: kotlin.Any?,
+    val self: java.net.URI?,
 
     @Json(name = "resource_name")
-    val resourceName: kotlin.Any? = null,
+    val resourceName: java.net.URI? = null,
 
     /* The date and time at which this object was created. It is represented in RFC3339 format and is in UTC. */
     @Json(name = "created_at")

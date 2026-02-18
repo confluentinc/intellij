@@ -33,16 +33,16 @@ import com.squareup.moshi.JsonClass
 data class ScaffoldV1TemplateCollectionListMetadata (
 
     @Json(name = "first")
-    val first: kotlin.Any? = null,
+    val first: java.net.URI? = null,
 
     @Json(name = "last")
-    val last: kotlin.Any? = null,
+    val last: java.net.URI? = null,
 
     @Json(name = "prev")
-    val prev: kotlin.Any? = null,
+    val prev: java.net.URI? = null,
 
     @Json(name = "next")
-    val next: kotlin.Any? = null,
+    val next: java.net.URI? = null,
 
     /* Number of records in the full result set. This response may be paginated and have a smaller number of records. */
     @Json(name = "total_size")
