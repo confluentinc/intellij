@@ -2,16 +2,16 @@
   "data": [
     {
       "id": "lkc-abc123",
-      "display_name": "Main Cluster",
       "spec": {
+        "display_name": "Main Cluster",
         "cloud": "AWS",
         "region": "us-east-1"
       }
     },
     {
       "id": "lkc-def456",
-      "display_name": "Secondary Cluster",
       "spec": {
+        "display_name": "Secondary Cluster",
         "cloud": "GCP",
         "region": "us-central1"
       }

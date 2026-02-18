@@ -152,6 +152,39 @@ test {
 }
 ```
 
+### Test Fixtures
+
+**Never use inline JSON strings in tests when it comes to mocked API endpoints.** Instead, create separate fixture files in `test/resources/` directory.
+
+**Bad:**
+
+```kotlin
+@Test
+fun `should parse response`() {
+    val json = """{"id": 1, "name": "test", "config": {...}}"""
+    val result = parser.parse(json)
+    // ...
+}
+```
+
+**Good:**
+
+```kotlin
+@Test
+fun `should parse response`() {
+    val json = javaClass.getResourceAsStream("/fixtures/sample-response.json")!!.readText()
+    val result = parser.parse(json)
+    // ...
+}
+```
+
+**Benefits:**
+
+- Improved readability and maintainability
+- Easier to update test data
+- Syntax highlighting and validation in JSON files
+- Reduced test file clutter
+
 ## UI Development
 
 Uses [Kotlin UI DSL v2](https://plugins.jetbrains.com/docs/intellij/kotlin-ui-dsl-version-2.html) (`com.intellij.ui.dsl.builder.*`).
@@ -172,7 +205,7 @@ Custom extension point `connectionSettingProvider` defined in `plugin.xml` for p
 ## Code Style
 
 - Handle exceptions gracefully with user-visible error messages
-- Use `thisLogger()` for logging
+- Use `thisLogger()` for logging (never use `println` for debug output - use `thisLogger().debug()` instead)
 
 ## Common Mistakes to Avoid
 
