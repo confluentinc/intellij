@@ -174,6 +174,10 @@ class ConnectionSettingsPanel(val project: Project) : MasterDetailsComponent(),
         addedConnections.clear()
         myRoot.removeAllChildren()
 
+        // Add all top-level groups to myRoot in priority order before populating connections,
+        // so retrieveNode() calls below find the group already placed and don't append it out of order.
+        topLevelGroups.forEach { it.retrieveNode() }
+
         for (connection in settings.getConnections(project)) {
             val groupNode = groupToActionNode[connection.groupId] ?: topLevelGroups.firstOrNull()
 
@@ -186,13 +190,6 @@ class ConnectionSettingsPanel(val project: Project) : MasterDetailsComponent(),
                 if (BdIdeRegistryUtil.isInternalFeaturesAvailable()) {
                     logger.warn("Missing group id:${connection.groupId}")
                 }
-            }
-        }
-
-        // Ensure empty top-level groups are added to the tree
-        topLevelGroups.forEach { topLevelGroup ->
-            if (topLevelGroup.retrieveNode().parent == null) {
-                myRoot.add(topLevelGroup.retrieveNode())
             }
         }
 
