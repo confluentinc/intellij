@@ -67,7 +67,7 @@ class KafkaConsumerPanel(
     private val output = createMessageViewerOutput().also { Disposer.register(this, it) }
 
     private fun createMessageViewerOutput(): KafkaRecordsOutput {
-        // TODO: When WebView implementation is ready, switch based on useWebViewMessageViewer flag
+        // TODO NC: When browser implementation is ready, switch based on flag
         // return if (useWebViewMessageViewer) {
         //     KafkaRecordsBrowserOutput(project, isProducer = false)
         // } else {
@@ -75,7 +75,7 @@ class KafkaConsumerPanel(
         // }
 
         if (useWebViewMessageViewer) {
-            thisLogger().info("WebView message viewer flag enabled, but implementation not yet integrated. Using default viewer.")
+            thisLogger().info("WebView message viewer flag enabled, but implementation not ready. Using default viewer.")
         }
         return KafkaRecordsOutput(project, isProducer = false)
     }
