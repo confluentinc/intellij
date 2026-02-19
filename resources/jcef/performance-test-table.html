@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+    :root {
+        --bg: #ffffff;
+        --bg-header: #f5f5f5;
+        --bg-row-hover: #e8f0fe;
+        --bg-row-selected: #cce5ff;
+        --text: #1e1e1e;
+        --text-secondary: #6e6e6e;
+        --border: #d4d4d4;
+        --error-text: #c0392b;
+        --overlay-bg: rgba(255, 255, 255, 0.85);
+        --overlay-text: #555;
+    }
+
+    @media (prefers-color-scheme: dark) {
+        :root {
+            --bg: #2b2d30;
+            --bg-header: #313335;
+            --bg-row-hover: #3c3f41;
+            --bg-row-selected: #2d5377;
+            --text: #bbbbbb;
+            --text-secondary: #999999;
+            --border: #444444;
+            --error-text: #e74c3c;
+            --overlay-bg: rgba(43, 45, 48, 0.9);
+            --overlay-text: #999;
+        }
+    }
+
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        font-size: 13px;
+        color: var(--text);
+        background: var(--bg);
+        overflow: hidden;
+    }
+
+    .table-container {
+        width: 100%;
+        height: 100vh;
+        overflow: auto;
+        position: relative;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        table-layout: fixed;
+    }
+
+    thead {
+        position: sticky;
+        top: 0;
+        z-index: 2;
+    }
+
+    thead th {
+        background: var(--bg-header);
+        color: var(--text);
+        font-weight: 600;
+        text-align: left;
+        padding: 6px 10px;
+        border-bottom: 1px solid var(--border);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        user-select: none;
+    }
+
+    tbody tr {
+        cursor: pointer;
+        border-bottom: 1px solid var(--border);
+    }
+
+    tbody tr:hover {
+        background: var(--bg-row-hover);
+    }
+
+    tbody tr.selected {
+        background: var(--bg-row-selected);
+    }
+
+    tbody td {
+        padding: 4px 10px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    tbody tr.error-row td {
+        color: var(--error-text);
+    }
+
+    .overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: var(--overlay-bg);
+        z-index: 10;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .overlay.visible {
+        display: flex;
+    }
+
+    .overlay-text {
+        color: var(--overlay-text);
+        font-size: 14px;
+    }
+</style>
+</head>
+<body>
+<div class="table-container" id="tableContainer">
+    <table id="dataTable">
+        <thead id="tableHead"><tr></tr></thead>
+        <tbody id="tableBody"></tbody>
+    </table>
+</div>
+<div class="overlay" id="loadingOverlay">
+    <span class="overlay-text" id="loadingText"></span>
+</div>
+
+<script>
+(function() {
+    "use strict";
+
+    var selectedIndex = -1;
+    var columns = [];
+    var rowCount = 0;
+    var autoScroll = true;
+
+    var tableContainer = document.getElementById("tableContainer");
+    var tableHead = document.getElementById("tableHead").querySelector("tr");
+    var tableBody = document.getElementById("tableBody");
+    var loadingOverlay = document.getElementById("loadingOverlay");
+    var loadingText = document.getElementById("loadingText");
+
+    tableContainer.addEventListener("scroll", function() {
+        var threshold = 50;
+        autoScroll = (tableContainer.scrollHeight - tableContainer.scrollTop - tableContainer.clientHeight) < threshold;
+    });
+
+    tableBody.addEventListener("click", function(e) {
+        var tr = e.target.closest("tr");
+        if (tr && tr.hasAttribute("data-index")) {
+            selectRow(parseInt(tr.getAttribute("data-index"), 10));
+        }
+    });
+
+    function scrollToBottom() {
+        if (autoScroll) {
+            tableContainer.scrollTop = tableContainer.scrollHeight;
+        }
+    }
+
+    function selectRow(index) {
+        var rows = tableBody.querySelectorAll("tr");
+        if (selectedIndex >= 0 && selectedIndex < rows.length) {
+            rows[selectedIndex].classList.remove("selected");
+        }
+        selectedIndex = index;
+        if (index >= 0 && index < rows.length) {
+            rows[index].classList.add("selected");
+        }
+        if (window.__onRowSelected) {
+            window.__onRowSelected(index);
+        }
+    }
+
+    function createCell(text) {
+        var td = document.createElement("td");
+        td.textContent = text != null ? String(text) : "";
+        return td;
+    }
+
+    window.initColumns = function(cols) {
+        columns = cols;
+        tableHead.innerHTML = "";
+        for (var i = 0; i < cols.length; i++) {
+            var th = document.createElement("th");
+            th.textContent = cols[i];
+            tableHead.appendChild(th);
+        }
+    };
+
+    window.addRows = function(base64Data) {
+        var t0 = performance.now();
+
+        var json = atob(base64Data);
+        var records = JSON.parse(json);
+
+        if (loadingOverlay.classList.contains("visible")) {
+            loadingOverlay.classList.remove("visible");
+        }
+
+        var fragment = document.createDocumentFragment();
+        for (var i = 0; i < records.length; i++) {
+            var record = records[i];
+            var tr = document.createElement("tr");
+            var currentIndex = rowCount + i;
+
+            if (record.isError) {
+                tr.classList.add("error-row");
+            }
+
+            tr.setAttribute("data-index", currentIndex);
+
+            for (var c = 0; c < columns.length; c++) {
+                tr.appendChild(createCell(record[columns[c]]));
+            }
+
+            fragment.appendChild(tr);
+        }
+
+        tableBody.appendChild(fragment);
+        rowCount += records.length;
+        scrollToBottom();
+
+        var t1 = performance.now();
+
+        // Report performance back to Kotlin
+        if (window.__perfCallback) {
+            window.__perfCallback(JSON.stringify({
+                operation: 'addRows',
+                rowCount: records.length,
+                durationMs: t1 - t0,
+                domNodeCount: tableBody.children.length
+            }));
+        }
+    };
+
+    window.clearTable = function() {
+        var t0 = performance.now();
+
+        tableBody.innerHTML = "";
+        selectedIndex = -1;
+        rowCount = 0;
+        autoScroll = true;
+
+        var t1 = performance.now();
+
+        if (window.__perfCallback) {
+            window.__perfCallback(JSON.stringify({
+                operation: 'clearTable',
+                rowCount: 0,
+                durationMs: t1 - t0,
+                domNodeCount: 0
+            }));
+        }
+    };
+
+    window.showLoading = function(message) {
+        loadingText.textContent = message || "Loading...";
+        loadingOverlay.classList.add("visible");
+    };
+
+    window.hideLoading = function() {
+        loadingOverlay.classList.remove("visible");
+    };
+
+    window.replaceAllRows = function(base64Data) {
+        var t0 = performance.now();
+
+        window.clearTable();
+        window.addRows(base64Data);
+
+        var t1 = performance.now();
+
+        if (window.__perfCallback) {
+            window.__perfCallback(JSON.stringify({
+                operation: 'replaceAllRows',
+                rowCount: rowCount,
+                durationMs: t1 - t0,
+                domNodeCount: tableBody.children.length
+            }));
+        }
+    };
+})();
+</script>
+</body>
+</html>

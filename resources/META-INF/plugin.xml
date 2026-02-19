@@ -91,6 +91,13 @@
         <action id="Kafka.GlobalCreateKafkaConnection"
                 class="io.confluent.intellijplugin.actions.CreateKafkaConnectionAction"/>
 
+        <action id="Kafka.Dev.JcefPerformanceBenchmark"
+                class="io.confluent.intellijplugin.actions.dev.JcefPerformanceBenchmarkAction"
+                text="JCEF Performance Benchmark"
+                description="Run DOM manipulation performance tests on JCEF browser">
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+        </action>
+
         <group id="Kafka.ExportRecords.Actions" popup="true" icon="AllIcons.Actions.Download">
             <action id="Kafka.Export.ToCsv" class="io.confluent.intellijplugin.actions.CsvExportAction"/>
             <action id="Kafka.Export.ToTsv" class="io.confluent.intellijplugin.actions.TsvExportAction"/>
