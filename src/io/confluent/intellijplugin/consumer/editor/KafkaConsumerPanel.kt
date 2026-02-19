@@ -60,17 +60,12 @@ class KafkaConsumerPanel(
 
     // Feature flag to enable new message viewer UI (WebView-based)
     // Default: false (uses existing Swing-based table viewer)
-    private val useWebViewMessageViewer: Boolean = run {
-        val propertyValue = System.getProperty(CONSUMER_WEBVIEW_PROPERTY) ?: "false"
-        when(propertyValue) {
-            "true" -> true
-            "false" -> false
-            else -> {
-                thisLogger().warn("Invalid value for $CONSUMER_WEBVIEW_PROPERTY: '$propertyValue'. Expected 'true' or 'false'. Defaulting to false.")
-                false
+    private val useWebViewMessageViewer: Boolean =
+        System.getProperty(CONSUMER_WEBVIEW_PROPERTY)?.trim()?.takeIf { it.isNotBlank() }?.let { value ->
+            value.toBooleanStrictOrNull() ?: false.also {
+                thisLogger().warn("Invalid value for $CONSUMER_WEBVIEW_PROPERTY: '$value'. Expected 'true' or 'false'. Defaulting to false.")
             }
-        }
-    }
+        } ?: false
 
     private val output = createMessageViewerOutput().also { Disposer.register(this, it) }
 
