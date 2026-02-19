@@ -116,6 +116,11 @@
                 <separator/>
             </group>
 
+            <action id="Kafka.CopyClusterIdAction"
+                    class="io.confluent.intellijplugin.toolwindow.actions.CopyClusterIdAction"
+                    icon="AllIcons.Actions.Copy">
+            </action>
+
             <action id="Kafka.AddToFavoriteAction"
                     class="io.confluent.intellijplugin.toolwindow.actions.AddToFavoriteAction"
                     icon="AllIcons.Nodes.Favorite">
@@ -184,7 +189,6 @@
                     use-shortcut-of="EditSource"/>
             <separator/>
             <action id="Kafka.MonitoringTabsActions.ConfluentCloudSignOut"
-                    text="Sign Out from Confluent Cloud"
                     class="io.confluent.intellijplugin.toolwindow.actions.ConfluentCloudSignOutTabAction"/>
         </group>
 

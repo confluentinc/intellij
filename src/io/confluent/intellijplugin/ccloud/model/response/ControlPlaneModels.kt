@@ -20,7 +20,13 @@ data class ListEnvironmentsResponse(
 @Serializable
 data class EnvironmentData(
     val id: String,
-    @SerialName("display_name") val displayName: String? = null
+    @SerialName("display_name") val displayName: String? = null,
+    @SerialName("stream_governance_config") val streamGovernanceConfig: StreamGovernanceConfig? = null
+)
+
+@Serializable
+data class StreamGovernanceConfig(
+    @SerialName("package") val packageName: String? = null
 )
 
 /** Response from GET /cmk/v2/clusters?environment={envId} */
@@ -39,6 +45,7 @@ data class ClusterData(
 
 @Serializable
 data class ClusterSpec(
+    @SerialName("display_name") val displayName: String? = null,
     val cloud: String? = null,
     val region: String? = null,
     @SerialName("http_endpoint") val httpEndpoint: String? = null,

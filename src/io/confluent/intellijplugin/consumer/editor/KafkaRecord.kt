@@ -80,7 +80,7 @@ data class KafkaRecord(
                     valueSize = 0,
                     headers = emptyList(),
                     keyFormat = keyFormat ?: KafkaRegistryFormat.UNKNOWN,
-                    valueFormat = keyFormat ?: KafkaRegistryFormat.UNKNOWN
+                    valueFormat = valueFormat ?: KafkaRegistryFormat.UNKNOWN
                 )
             }
 

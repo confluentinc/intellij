@@ -53,4 +53,6 @@ sonarqube:
   languages:
     - java
     - kotlin
+  coverage_reports:
+    - "**/jacocoTestReport.xml"
   main_branch: main

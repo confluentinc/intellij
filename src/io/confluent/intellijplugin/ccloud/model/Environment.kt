@@ -7,5 +7,6 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class Environment(
     val id: String,
-    @SerialName("display_name") val displayName: String
+    @SerialName("display_name") val displayName: String,
+    val streamGovernancePackage: String? = null
 )
