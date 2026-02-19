@@ -59,13 +59,10 @@ class KafkaConsumerPanel(
     )
 
     // Feature flag to enable new message viewer UI (WebView-based)
-    // Enable via: -Dkafka.message.viewer.webview=true or KAFKA_MESSAGE_VIEWER_WEBVIEW=true
+    // Enable via: -Dkafka.message.viewer.webview=true
     // Default: false (uses existing Swing-based table viewer)
-    private val useWebViewMessageViewer: Boolean = run {
-        val sysProp = System.getProperty("kafka.message.viewer.webview")?.toBoolean()
-        val envVar = System.getenv("KAFKA_MESSAGE_VIEWER_WEBVIEW")?.toBoolean()
-        sysProp ?: envVar ?: false
-    }
+    private val useWebViewMessageViewer: Boolean =
+        System.getProperty("kafka.message.viewer.webview")?.toBoolean() ?: false
 
     private val output = createMessageViewerOutput().also { Disposer.register(this, it) }
 
