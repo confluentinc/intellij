@@ -26,15 +26,16 @@ class ListTableModel<T>(
 
     override fun getRowCount() = data.size
     override fun getColumnCount() = columnNames.size
-    override fun getValueAt(rowIndex: Int, columnIndex: Int): Any? {
-        val row = data.getOrNull(rowIndex) ?: return null
-        return columnMapper(row, columnIndex)
-    }
+    // Guard against stale indices from concurrent list modification.
+    // TODO: address with MessageViewer upgrade
+    override fun getValueAt(rowIndex: Int, columnIndex: Int): Any? =
+        try { columnMapper(data[rowIndex], columnIndex) } catch (_: Exception) { null }
     override fun getColumnClass(columnIndex: Int): Class<*> {
         return columnClasses?.get(columnIndex) ?: super.getColumnClass(columnIndex)
     }
 
-    fun getValueAt(rowIndex: Int): T? = data.getOrNull(rowIndex)
+    fun getValueAt(rowIndex: Int): T? =
+        try { data[rowIndex] } catch (_: Exception) { null }
 
     fun clear() {
         data.clear()
