@@ -11,6 +11,7 @@ import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.Task
 import com.intellij.openapi.ui.Messages
 import com.intellij.util.Consumer
+import io.confluent.intellijplugin.util.KafkaMessagesBundle
 import java.awt.Component
 
 /**
@@ -25,10 +26,11 @@ class KafkaErrorReportSubmitter : ErrorReportSubmitter() {
 
     private val logger = Logger.getInstance(KafkaErrorReportSubmitter::class.java)
 
-    override fun getReportActionText(): String = "Report to plugin vendor (Confluent, Inc.)"
+    override fun getReportActionText(): String =
+        KafkaMessagesBundle.message("error.report.action.text")
 
-    override fun getPrivacyNoticeText(): String? =
-        "Error reports help improve the Kafka plugin. No personal data is collected."
+    override fun getPrivacyNoticeText(): String =
+        KafkaMessagesBundle.message("error.report.privacy.notice")
 
     /**
      * Handles error submission to Sentry.
@@ -54,12 +56,11 @@ class KafkaErrorReportSubmitter : ErrorReportSubmitter() {
         }
 
         if (pluginErrors.isEmpty()) {
-            logger.debug("No plugin-related errors to report, skipping submission")
-            consumer.consume(SubmittedReportInfo(SubmittedReportInfo.SubmissionStatus.FAILED))
+            logger.debug("No plugin-related errors to report, delegating to JetBrains reporter")
             return false
         }
 
-        object : Task.Backgroundable(project, "Sending Error Report") {
+        object : Task.Backgroundable(project, KafkaMessagesBundle.message("error.report.sending.title")) {
             override fun run(indicator: ProgressIndicator) {
                 try {
                     logger.info("Sending ${pluginErrors.size} plugin error(s) to Sentry")
@@ -71,7 +72,7 @@ class KafkaErrorReportSubmitter : ErrorReportSubmitter() {
                         } else {
                             // Create a fallback exception for message-only events
                             val fallbackException = RuntimeException(
-                                ideaEvent.message ?: "Unknown error occurred in Kafka plugin"
+                                ideaEvent.message ?: KafkaMessagesBundle.message("error.report.unknown.error")
                             )
                             SentryClient.captureException(fallbackException)
                         }
@@ -82,8 +83,8 @@ class KafkaErrorReportSubmitter : ErrorReportSubmitter() {
                     ApplicationManager.getApplication().invokeLater {
                         Messages.showInfoMessage(
                             parentComponent,
-                            "Thank you for reporting this issue! It helps us improve the Kafka plugin.",
-                            "Error Report Sent"
+                            KafkaMessagesBundle.message("error.report.success.message"),
+                            KafkaMessagesBundle.message("error.report.success.title")
                         )
                         consumer.consume(SubmittedReportInfo(SubmittedReportInfo.SubmissionStatus.NEW_ISSUE))
                     }
@@ -93,8 +94,8 @@ class KafkaErrorReportSubmitter : ErrorReportSubmitter() {
                     ApplicationManager.getApplication().invokeLater {
                         Messages.showErrorDialog(
                             parentComponent,
-                            "Failed to send error report: ${e.message}",
-                            "Error Report Failed"
+                            KafkaMessagesBundle.message("error.report.failed.message", e.message ?: ""),
+                            KafkaMessagesBundle.message("error.report.failed.title")
                         )
                         consumer.consume(SubmittedReportInfo(SubmittedReportInfo.SubmissionStatus.FAILED))
                     }
