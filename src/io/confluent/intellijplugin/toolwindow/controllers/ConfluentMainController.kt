@@ -46,6 +46,8 @@ import io.confluent.intellijplugin.core.rfs.util.RfsUtil
 import io.confluent.intellijplugin.core.rfs.viewer.utils.DriverRfsTreeUtil.lastDriverNode
 import io.confluent.intellijplugin.core.util.invokeLater
 import io.confluent.intellijplugin.data.CCloudClusterDataManager
+import io.confluent.intellijplugin.registry.confluent.controller.KafkaRegistryController
+import io.confluent.intellijplugin.registry.confluent.controller.KafkaSchemaController
 import io.confluent.intellijplugin.ccloud.model.Environment
 import io.confluent.intellijplugin.toolwindow.NavigableController
 import io.confluent.intellijplugin.toolwindow.controllers.TopicsController
@@ -119,6 +121,10 @@ internal class ConfluentMainController(
     private val schemasDetailsPanel = JPanel(BorderLayout())
 
     private val schemaDetailPanel = JPanel(BorderLayout())
+
+    // Controller caching to avoid recreating on every selection
+    private val registryControllers = mutableMapOf<String, KafkaRegistryController>()
+    private val schemaControllers = mutableMapOf<String, KafkaSchemaController>()
 
     private var hasShownInitialEnvironmentDetails = false
 
@@ -441,23 +447,22 @@ internal class ConfluentMainController(
         updatePanel(schemasDetailsPanel) {
             val envId = rfsPath.getEnvironmentId(driver)
                 ?: throw IllegalStateException("Could not determine environment")
+            val srId = rfsPath.getSchemaRegistryId()
+                ?: throw IllegalStateException("Could not determine schema registry")
 
             val cluster = dataManager.getKafkaClusters(envId).firstOrNull()
                 ?: throw IllegalStateException("No clusters found in environment")
 
-            val cache = dataManager.getDataPlaneCache(cluster)
-            if (!cache.hasSchemaRegistry()) {
+            val clusterDataManager = dataManager.getOrCreateClusterDataManager(cluster)
+
+            if (!clusterDataManager.supportsSchemaRegistry()) {
                 throw IllegalStateException("No Schema Registry available")
             }
 
-            val subjects = cache.getSubjects()
-            val data = subjects.map { arrayOf<Any>(it.name) }.toTypedArray()
+            clusterDataManager.initRefreshSchemasIfRequired()
 
-            val table = JBTable(DefaultTableModel(data, arrayOf("Schema Subject"))).apply {
-                setDefaultEditor(Any::class.java, null)
-            }
-
-            JBScrollPane(table)
+            val registryController = getOrCreateRegistryController(srId, clusterDataManager)
+            registryController.getComponent()
         }
     }
 
@@ -465,44 +470,30 @@ internal class ConfluentMainController(
         schemaDetailPanel.removeAll()
 
         try {
-            val envId = rfsPath.getEnvironmentId(driver) ?: run {
-                schemaDetailPanel.add(JLabel("Error: Could not determine environment"), BorderLayout.CENTER)
-                schemaDetailPanel.revalidate()
-                schemaDetailPanel.repaint()
-                return
-            }
-
-            val srId = rfsPath.getSchemaRegistryId() ?: run {
-                schemaDetailPanel.add(JLabel("Error: Could not determine schema registry"), BorderLayout.CENTER)
-                schemaDetailPanel.revalidate()
-                schemaDetailPanel.repaint()
-                return
-            }
-
+            val envId = rfsPath.getEnvironmentId(driver)
+                ?: throw IllegalStateException("Could not determine environment")
+            val srId = rfsPath.getSchemaRegistryId()
+                ?: throw IllegalStateException("Could not determine schema registry")
             val subjectName = rfsPath.name
 
-            val schemaRegistry = dataManager.getSchemaRegistry(envId)?.takeIf { it.id == srId }
-            if (schemaRegistry == null) {
-                schemaDetailPanel.add(JLabel("Error: Schema Registry not found"), BorderLayout.CENTER)
+            val cluster = dataManager.getKafkaClusters(envId).firstOrNull()
+                ?: throw IllegalStateException("No clusters found in environment")
+
+            val clusterDataManager = dataManager.getOrCreateClusterDataManager(cluster)
+
+            if (!clusterDataManager.supportsSchemaRegistry()) {
+                schemaDetailPanel.add(JLabel("Error: No Schema Registry available"), BorderLayout.CENTER)
                 schemaDetailPanel.revalidate()
                 schemaDetailPanel.repaint()
                 return
             }
 
-            val detailsText = buildString {
-                appendLine("Schema Subject: $subjectName")
-                appendLine()
-                appendLine("Schema Registry: ${schemaRegistry.displayName}")
-                appendLine("Schema Registry ID: ${schemaRegistry.id}")
-                appendLine()
-                appendLine("Click to view schema details (coming soon)")
-            }
+            // Use full-featured Kafka schema detail controller (version comparison, structure view, etc.)
+            val detailsController = ConfluentSchemaDetailController(project, clusterDataManager)
+            Disposer.register(this, detailsController)
+            detailsController.setDetailsId(subjectName)
 
-            val detailsLabel = JLabel("<html>${detailsText.replace("\n", "<br/>")}</html>").apply {
-                border = JBUI.Borders.empty(10)
-            }
-
-            schemaDetailPanel.add(detailsLabel, BorderLayout.CENTER)
+            schemaDetailPanel.add(detailsController.getComponent(), BorderLayout.CENTER)
 
         } catch (e: Exception) {
             schemaDetailPanel.add(JLabel("Error loading schema details: ${e.message}"), BorderLayout.CENTER)
@@ -515,6 +506,32 @@ internal class ConfluentMainController(
     override fun open(rfsPath: RfsPath) = RfsUtil.select(driver.getExternalId(), rfsPath, myTree)
 
     override fun getComponent(): JComponent = component
+
+    // Helper function to show error message in a panel
+    private fun showError(panel: JPanel, message: String) {
+        panel.removeAll()
+        panel.add(JLabel(message), BorderLayout.CENTER)
+        panel.revalidate()
+        panel.repaint()
+    }
+
+    // Get or create cached KafkaRegistryController for a schema registry
+    private fun getOrCreateRegistryController(srId: String, clusterDataManager: CCloudClusterDataManager): KafkaRegistryController {
+        return registryControllers.getOrPut(srId) {
+            KafkaRegistryController(project, clusterDataManager, this).also {
+                Disposer.register(this, it)
+            }
+        }
+    }
+
+    // Get or create cached KafkaSchemaController for a schema registry
+    private fun getOrCreateSchemaController(srId: String, clusterDataManager: CCloudClusterDataManager): KafkaSchemaController {
+        return schemaControllers.getOrPut(srId) {
+            KafkaSchemaController(project, clusterDataManager).also {
+                Disposer.register(this, it)
+            }
+        }
+    }
 
     private fun updateMainPanel(exception: Throwable?) {
         if (exception == null) {

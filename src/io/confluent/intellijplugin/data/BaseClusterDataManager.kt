@@ -33,6 +33,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.TopicPartition
+import org.jetbrains.concurrency.Promise
 
 abstract class BaseClusterDataManager(
     project: Project?,
@@ -250,6 +251,21 @@ abstract class BaseClusterDataManager(
 
     abstract fun getCachedOrLoadSchema(name: String): KafkaSchemaInfo
 
+    abstract fun getSchemaVersionInfo(schemaName: String, version: Long): Promise<SchemaVersionInfo>
+
+    abstract fun parseSchemaForDisplay(versionInfo: SchemaVersionInfo): Result<io.confluent.kafka.schemaregistry.ParsedSchema>
+
+    // Schema write operations - override in subclasses that support writes (KafkaDataManager)
+    open fun updateSchema(versionInfo: SchemaVersionInfo, newSchema: String): Promise<Unit> {
+        throw UnsupportedOperationException("Schema updates not supported for this connection type")
+    }
+
+    open fun deleteRegistrySchemaVersion(versionInfo: SchemaVersionInfo) {
+        throw UnsupportedOperationException("Schema deletion not supported for this connection type")
+    }
+
+    fun getSchemaVersionsModel(schemaName: String) = schemaVersionModels[schemaName]
+
     fun updatePinnedSchemas(schemaName: String, isForAdding: Boolean) {
         val config = KafkaToolWindowSettings.getInstance().getOrCreateConfig(connectionId)
         if (isForAdding) {
@@ -317,6 +333,17 @@ abstract class BaseClusterDataManager(
             topics.take(limit) to true
         } else {
             topics to false
+        }
+    }
+
+    protected fun applySchemaLimit(
+        schemas: List<KafkaSchemaInfo>,
+        limit: Int?
+    ): Pair<List<KafkaSchemaInfo>, Boolean> {
+        return if (limit != null && schemas.size > limit) {
+            schemas.take(limit) to true
+        } else {
+            schemas to false
         }
     }
 
@@ -484,9 +511,9 @@ abstract class BaseClusterDataManager(
             val toolWindowSettings = KafkaToolWindowSettings.getInstance()
             val config = toolWindowSettings.getOrCreateConfig(connectionId)
 
-            val (rawSchemas, hasMore) = runBlockingMaybeCancellable {
+            val (rawSchemas, _) = runBlockingMaybeCancellable {
                 listSchemasNames(
-                    limit = config.registryLimit,
+                    limit = null, // Don't apply limit here, apply after sorting (same as topics)
                     filter = config.schemaFilterName
                 )
             }
@@ -497,7 +524,7 @@ abstract class BaseClusterDataManager(
                 showFavoriteOnly = toolWindowSettings.showFavoriteSchema
             )
 
-            sortedSchemas to hasMore
+            applySchemaLimit(sortedSchemas, config.registryLimit)
         }
     }
 

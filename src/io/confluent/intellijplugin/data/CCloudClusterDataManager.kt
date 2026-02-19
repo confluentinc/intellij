@@ -13,13 +13,15 @@ import io.confluent.intellijplugin.client.KafkaConstants
 import io.confluent.intellijplugin.common.models.RegistrySchemaInEditor
 import io.confluent.intellijplugin.core.monitoring.data.storage.ObjectDataModelStorage
 import io.confluent.intellijplugin.core.monitoring.data.storage.RootDataModelStorage
-import io.confluent.intellijplugin.core.util.invokeLater
+import io.confluent.intellijplugin.core.util.runAsync
 import io.confluent.intellijplugin.model.BdtTopicPartition
 import io.confluent.intellijplugin.model.ConsumerGroupOffsetInfo
 import io.confluent.intellijplugin.model.ConsumerGroupPresentable
 import io.confluent.intellijplugin.model.TopicConfig
 import io.confluent.intellijplugin.model.TopicPresentable
+import io.confluent.intellijplugin.registry.KafkaRegistryFormat
 import io.confluent.intellijplugin.registry.KafkaRegistryType
+import io.confluent.intellijplugin.registry.KafkaRegistryUtil
 import io.confluent.intellijplugin.registry.SchemaVersionInfo
 import io.confluent.intellijplugin.registry.common.KafkaSchemaInfo
 import io.confluent.intellijplugin.rfs.ConfluentConnectionData
@@ -32,6 +34,7 @@ import kotlinx.coroutines.withContext
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.TopicPartition
 import java.util.concurrent.ConcurrentHashMap
+import org.jetbrains.concurrency.Promise
 
 /**
  * Cluster-level data manager for Confluent Cloud using the CCloud REST API.
@@ -55,6 +58,8 @@ class CCloudClusterDataManager(
 
     private val dataPlaneCache: DataPlaneCache = orgManager.getDataPlaneCache(cluster)
     private val partitionEnrichmentJobs = ConcurrentHashMap<String, Job>()
+    private var topicEnrichmentJob: Job? = null
+    private var schemaEnrichmentJob: Job? = null
 
     override val connectionId: String = cluster.id
 
@@ -65,7 +70,7 @@ class CCloudClusterDataManager(
         get() = orgManager.client
 
     override val registryType: KafkaRegistryType
-        get() = KafkaRegistryType.NONE
+        get() = if (dataPlaneCache.hasSchemaRegistry()) KafkaRegistryType.CONFLUENT else KafkaRegistryType.NONE
 
     init {
         RootDataModelStorage(updater, listOf(topicModel)).also { Disposer.register(this, it) }
@@ -97,7 +102,6 @@ class CCloudClusterDataManager(
             // Cancel any existing enrichment job for this topic to avoid duplicate work
             partitionEnrichmentJobs[topicName]?.cancel()
 
-            // Enrich with offsets progressively in background and unblock UI with loading state
             val job = driver.coroutineScope.launch(Dispatchers.IO) {
                 try {
                     dataPlaneCache.enrichPartitionsProgressively(topicName, quickPartitions)
@@ -147,15 +151,32 @@ class CCloudClusterDataManager(
                 return@withContext topics to null
             }
 
-            val enrichmentMap = dataPlaneCache.enrichTopicsData(topicDataList)
+            topicEnrichmentJob?.cancel()
 
-            val enrichedTopics = topics.map { topic ->
-                enrichmentMap[topic.name]?.let { enrichment ->
-                    topic.copy(messageCount = enrichment.messageCount)
-                } ?: topic
+            topicEnrichmentJob = driver.coroutineScope.launch(Dispatchers.IO) {
+                dataPlaneCache.enrichTopicsDataProgressively(topicDataList)
+                    .collect { result ->
+                        when (result) {
+                            is io.confluent.intellijplugin.ccloud.model.response.TopicEnrichmentResult.Success -> {
+                                invokeLaterIfNotDisposed {
+                                    val current = topicModel.data ?: return@invokeLaterIfNotDisposed
+                                    val updated = current.map { topic ->
+                                        if (topic.name == result.topicName) {
+                                            topic.copy(messageCount = result.data.messageCount)
+                                        } else {
+                                            topic
+                                        }
+                                    }
+                                    topicModel.setData(updated)
+                                }
+                            }
+                            is io.confluent.intellijplugin.ccloud.model.response.TopicEnrichmentResult.Failure -> {
+                                thisLogger().warn("Failed to enrich topic ${result.topicName}: ${result.error.message}")
+                            }
+                        }
+                    }
             }
-
-            enrichedTopics to null
+            topics to null
         } catch (t: Throwable) {
             thisLogger().warn("Failed to load detailed topic info for cluster ${cluster.id}", t)
             topics to t
@@ -179,21 +200,121 @@ class CCloudClusterDataManager(
         return emptyList()
     }
 
-    override suspend fun listSchemasNames(limit: Int?, filter: String?): Pair<List<KafkaSchemaInfo>, Boolean> {
-        // TODO: Implement when CCloud REST API supports schema registry
-        return emptyList<KafkaSchemaInfo>() to false
+    override suspend fun listSchemasNames(limit: Int?, filter: String?): Pair<List<KafkaSchemaInfo>, Boolean> = withContext(Dispatchers.IO) {
+        if (!dataPlaneCache.hasSchemaRegistry()) {
+            return@withContext emptyList<KafkaSchemaInfo>() to false
+        }
+
+        try {
+            val schemas = dataPlaneCache.getSchemas().ifEmpty {
+                dataPlaneCache.refreshSchemas()
+            }
+            val config = KafkaToolWindowSettings.getInstance().getOrCreateConfig(connectionId)
+
+            var result = schemas.map { schemaData ->
+                KafkaSchemaInfo(
+                    name = schemaData.name,
+                    type = schemaData.schemaType?.let { KafkaRegistryFormat.parse(it) },
+                    version = schemaData.latestVersion?.toLong(),
+                    isFavorite = config.schemasPined.contains(schemaData.name)
+                )
+            }
+
+            if (!filter.isNullOrBlank()) {
+                result = result.filter { it.name.contains(filter, ignoreCase = true) }
+            }
+
+            result to false
+        } catch (e: Exception) {
+            thisLogger().warn("Failed to list schemas for cluster ${cluster.id}", e)
+            emptyList<KafkaSchemaInfo>() to false
+        }
     }
 
     override suspend fun updateSchemaList(
         schemas: List<KafkaSchemaInfo>
-    ): Pair<List<KafkaSchemaInfo>, Throwable?> {
-        // TODO: Implement when CCloud REST API supports schema registry
-        return schemas to null
+    ): Pair<List<KafkaSchemaInfo>, Throwable?> = withContext(Dispatchers.IO) {
+        if (!dataPlaneCache.hasSchemaRegistry() || schemas.isEmpty()) {
+            return@withContext schemas to null
+        }
+
+        try {
+            val schemaDataList = schemas.map { schema ->
+                io.confluent.intellijplugin.ccloud.model.response.SchemaData(
+                    name = schema.name,
+                    latestVersion = schema.version?.toInt(),
+                    schemaType = schema.type?.name
+                )
+            }
+
+            schemaEnrichmentJob?.cancel()
+
+            val currentSchemas = schemas.toMutableList()
+
+            val job = driver.coroutineScope.launch(Dispatchers.IO) {
+                try {
+                    dataPlaneCache.enrichSchemasProgressively(schemaDataList)
+                        .collect { result ->
+                        val model = schemaRegistryModel ?: return@collect
+
+                        when (result) {
+                            is io.confluent.intellijplugin.ccloud.model.response.SchemaEnrichmentResult.Success -> {
+                                val index = currentSchemas.indexOfFirst { it.name == result.schemaName }
+                                if (index == -1) return@collect
+
+                                currentSchemas[index] = currentSchemas[index].copy(
+                                    version = result.data.latestVersion?.toLong(),
+                                    type = result.data.schemaType?.let { KafkaRegistryFormat.parse(it) }
+                                )
+
+                                invokeLaterIfNotDisposed {
+                                    model.setData(currentSchemas.toList())
+                                }
+                            }
+                            is io.confluent.intellijplugin.ccloud.model.response.SchemaEnrichmentResult.Failure -> {
+                                thisLogger().warn("Failed to enrich schema ${result.schemaName}: ${result.error.message}")
+
+                                val index = currentSchemas.indexOfFirst { it.name == result.schemaName }
+                                if (index == -1) return@collect
+
+                                val errorMessage = result.error.message ?: "Unknown error"
+                                currentSchemas[index] = currentSchemas[index].copy(
+                                    version = -1L,
+                                    type = null,
+                                    description = "Error: $errorMessage"
+                                )
+
+                                invokeLaterIfNotDisposed {
+                                    model.setData(currentSchemas.toList())
+                                }
+                            }
+                        }
+                    }
+                } finally {
+                    schemaEnrichmentJob = null
+                }
+            }
+
+            schemaEnrichmentJob = job
+
+            schemas to null
+        } catch (e: Exception) {
+            thisLogger().warn("Failed to update schema list for cluster ${cluster.id}", e)
+            schemas to e
+        }
     }
 
-    override suspend fun listSchemaVersions(schemaName: String): List<Long> {
-        // TODO: Implement when CCloud REST API supports schema versions
-        return emptyList()
+    override suspend fun listSchemaVersions(schemaName: String): List<Long> = withContext(Dispatchers.IO) {
+        if (!dataPlaneCache.hasSchemaRegistry()) {
+            return@withContext emptyList()
+        }
+
+        try {
+            dataPlaneCache.getFetcher()?.listSchemaVersions(schemaName) ?: emptyList()
+        } catch (e: Exception) {
+            thisLogger().warn("Failed to list schema versions for '$schemaName' in cluster ${cluster.id}", e)
+            emptyList()
+        }
     }
 
     override suspend fun loadConsumerGroupOffset(name: String): List<ConsumerGroupOffsetInfo> {
@@ -225,18 +346,110 @@ class CCloudClusterDataManager(
 
     @RequiresBackgroundThread
     override fun getSchemasForEditor(): List<RegistrySchemaInEditor> {
-        // Schema registry not supported for CCloud connections yet
-        return emptyList()
+        if (!dataPlaneCache.hasSchemaRegistry()) {
+            return emptyList()
+        }
+
+        return try {
+            val schemas = getSchemas()
+            schemas.map { schema ->
+                RegistrySchemaInEditor(
+                    schemaName = schema.name,
+                    schemaFormat = schema.type ?: KafkaRegistryFormat.UNKNOWN
+                )
+            }.sorted()
+        } catch (e: Exception) {
+            thisLogger().warn("Failed to get schemas for editor in cluster ${cluster.id}", e)
+            emptyList()
+        }
     }
 
     override fun getLatestVersionInfo(schemaName: String): SchemaVersionInfo? {
-        // Schema registry not supported for CCloud connections yet
-        return null
+        if (!dataPlaneCache.hasSchemaRegistry()) {
+            return null
+        }
+
+        return try {
+            runBlocking(Dispatchers.IO) {
+                val versionResponse = dataPlaneCache.getFetcher()?.getLatestVersionInfo(schemaName)
+                versionResponse?.let {
+                    SchemaVersionInfo(
+                        schemaName = it.subject,
+                        version = it.version.toLong(),
+                        type = KafkaRegistryFormat.parse(it.schemaType),
+                        schema = it.schema
+                    )
+                }
+            }
+        } catch (e: Exception) {
+            thisLogger().warn("Failed to get latest version info for '$schemaName' in cluster ${cluster.id}", e)
+            null
+        }
+    }
+
+    override fun getSchemaVersionInfo(schemaName: String, version: Long): Promise<SchemaVersionInfo> = runAsync {
+        if (!dataPlaneCache.hasSchemaRegistry()) {
+            error("Schema registry not configured for this cluster")
+        }
+
+        try {
+            runBlocking(Dispatchers.IO) {
+                val versionResponse = dataPlaneCache.getFetcher()?.getSchemaVersionInfo(schemaName, version)
+                    ?: error("Failed to fetch schema version info")
+
+                SchemaVersionInfo(
+                    schemaName = versionResponse.subject,
+                    version = versionResponse.version.toLong(),
+                    type = KafkaRegistryFormat.parse(versionResponse.schemaType),
+                    schema = versionResponse.schema
+                )
+            }
+        } catch (e: Exception) {
+            thisLogger().warn("Failed to get schema version info for '$schemaName' version $version in cluster ${cluster.id}", e)
+            throw e
+        }
+    }
+
+    override fun parseSchemaForDisplay(versionInfo: SchemaVersionInfo): Result<io.confluent.kafka.schemaregistry.ParsedSchema> {
+        // CCloud doesn't need the registry client for parsing - parse schemas standalone
+        return KafkaRegistryUtil.parseSchema(
+            versionInfo.type,
+            versionInfo.schema,
+            client = null,
+            versionInfo.references
+        )
     }
 
     override fun getCachedOrLoadSchema(name: String): KafkaSchemaInfo {
-        // Schema registry not supported for CCloud connections yet
-        throw UnsupportedOperationException("Schema registry not supported for Confluent Cloud")
+        if (!dataPlaneCache.hasSchemaRegistry()) {
+            throw UnsupportedOperationException("Schema registry not configured for this cluster")
+        }
+
+        // Check if already cached with full metadata
+        val cached = getCachedSchema(name)
+        if (cached != null && cached.type != null) {
+            return cached
+        }
+
+        // Load from API if not cached or incomplete
+        return try {
+            runBlocking(Dispatchers.IO) {
+                val schemaData = dataPlaneCache.getFetcher()?.loadSchemaInfo(name)
+                val config = KafkaToolWindowSettings.getInstance().getOrCreateConfig(connectionId)
+
+                schemaData?.let {
+                    KafkaSchemaInfo(
+                        name = it.name,
+                        type = it.schemaType?.let { type -> KafkaRegistryFormat.parse(type) },
+                        version = it.latestVersion?.toLong(),
+                        isFavorite = config.schemasPined.contains(it.name)
+                    )
+                } ?: throw IllegalArgumentException("Schema not found: $name")
+            }
+        } catch (e: Exception) {
+            thisLogger().warn("Failed to load schema '$name' in cluster ${cluster.id}", e)
+            throw e
+        }
     }
 
     @RequiresBackgroundThread
@@ -345,6 +558,8 @@ class CCloudClusterDataManager(
     fun getDataPlaneCache(): DataPlaneCache = dataPlaneCache
 
     override fun dispose() {
+        topicEnrichmentJob?.cancel()
+        schemaEnrichmentJob?.cancel()
         partitionEnrichmentJobs.values.forEach { it.cancel() }
         partitionEnrichmentJobs.clear()
     }

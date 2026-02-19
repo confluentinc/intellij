@@ -20,21 +20,22 @@ import io.confluent.intellijplugin.core.table.renderers.FavoriteRenderer
 import io.confluent.intellijplugin.core.table.renderers.LinkRenderer
 import io.confluent.intellijplugin.core.ui.CustomComponentActionImpl
 import io.confluent.intellijplugin.core.ui.filter.CountFilterPopupComponent
+import io.confluent.intellijplugin.data.BaseClusterDataManager
 import io.confluent.intellijplugin.data.KafkaDataManager
 import io.confluent.intellijplugin.registry.KafkaRegistryAddSchemaDialog
 import io.confluent.intellijplugin.registry.KafkaRegistryType
 import io.confluent.intellijplugin.registry.common.KafkaSchemaInfo
 import io.confluent.intellijplugin.rfs.KafkaDriver
 import io.confluent.intellijplugin.toolwindow.config.KafkaToolWindowSettings
-import io.confluent.intellijplugin.toolwindow.controllers.KafkaMainController
+import io.confluent.intellijplugin.toolwindow.NavigableController
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
 import javax.swing.ListSelectionModel
 import javax.swing.event.DocumentEvent
 
 internal class KafkaRegistryController(
     val project: Project,
-    val dataManager: KafkaDataManager,
-    private val mainController: KafkaMainController
+    val dataManager: BaseClusterDataManager,
+    private val mainController: NavigableController
 ) : AbstractTableController<KafkaSchemaInfo>() {
     val registryType = dataManager.registryType
     private val model: ObjectDataModel<KafkaSchemaInfo> = dataManager.schemaRegistryModel!!
@@ -94,11 +95,14 @@ internal class KafkaRegistryController(
             }
         } else {
             emptyText.appendText(KafkaMessagesBundle.message("schemas.empty.text"), StatusText.DEFAULT_ATTRIBUTES)
-            emptyText.appendLine(
-                KafkaMessagesBundle.message("schemas.empty.text.create.link"),
-                SimpleTextAttributes.LINK_PLAIN_ATTRIBUTES
-            ) {
-                KafkaRegistryAddSchemaDialog(project, dataManager).show()
+            // Only show create link for KafkaDataManager (not CCloud)
+            if (dataManager is KafkaDataManager) {
+                emptyText.appendLine(
+                    KafkaMessagesBundle.message("schemas.empty.text.create.link"),
+                    SimpleTextAttributes.LINK_PLAIN_ATTRIBUTES
+                ) {
+                    KafkaRegistryAddSchemaDialog(project, dataManager).show()
+                }
             }
         }
         emptyText.isShowAboveCenter = false
