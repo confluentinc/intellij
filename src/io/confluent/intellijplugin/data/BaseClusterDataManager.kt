@@ -336,6 +336,17 @@ abstract class BaseClusterDataManager(
         }
     }
 
+    protected fun applySchemaLimit(
+        schemas: List<KafkaSchemaInfo>,
+        limit: Int?
+    ): Pair<List<KafkaSchemaInfo>, Boolean> {
+        return if (limit != null && schemas.size > limit) {
+            schemas.take(limit) to true
+        } else {
+            schemas to false
+        }
+    }
+
     protected fun applyConsumerGroupFilters(
         groups: List<ConsumerGroupPresentable>,
         filterName: String?
@@ -500,9 +511,9 @@ abstract class BaseClusterDataManager(
             val toolWindowSettings = KafkaToolWindowSettings.getInstance()
             val config = toolWindowSettings.getOrCreateConfig(connectionId)
 
-            val (rawSchemas, hasMore) = runBlockingMaybeCancellable {
+            val (rawSchemas, _) = runBlockingMaybeCancellable {
                 listSchemasNames(
-                    limit = config.registryLimit,
+                    limit = null, // Don't apply limit here, apply after sorting (same as topics)
                     filter = config.schemaFilterName
                 )
             }
@@ -513,7 +524,7 @@ abstract class BaseClusterDataManager(
                 showFavoriteOnly = toolWindowSettings.showFavoriteSchema
             )
 
-            sortedSchemas to hasMore
+            applySchemaLimit(sortedSchemas, config.registryLimit)
         }
     }
 

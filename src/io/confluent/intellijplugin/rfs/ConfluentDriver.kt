@@ -37,6 +37,7 @@ class ConfluentDriver(
 
     var selectedEnvironmentId: String? = null
     private val registeredClusterListeners = mutableSetOf<String>()
+    private val registeredSchemaListeners = mutableSetOf<String>()
 
     override val dataManager: CCloudOrgManager = CCloudOrgManager(
         project, connectionData, KafkaToolWindowSettings.getInstance(), { this }
@@ -80,6 +81,20 @@ class ConfluentDriver(
             override fun onChanged() {
                 invokeLater {
                     fileInfoManager.refreshFiles(clusterPath(clusterId))
+                }
+            }
+        })
+    }
+
+    private fun registerSchemaRegistryListener(srId: String, cluster: Cluster) {
+        if (registeredSchemaListeners.contains(srId)) return
+        registeredSchemaListeners.add(srId)
+
+        val clusterDataManager = dataManager.getOrCreateClusterDataManager(cluster)
+        clusterDataManager.schemaRegistryModel?.addListener(object : DataModelListener {
+            override fun onChanged() {
+                invokeLater {
+                    fileInfoManager.refreshFiles(schemaRegistryPath(srId))
                 }
             }
         })
@@ -160,6 +175,8 @@ class ConfluentDriver(
                         return emptyList()
                     }
 
+                    registerSchemaRegistryListener(nodeId, firstCluster)
+
                     val cache = dataManager.getDataPlaneCache(firstCluster)
 
                     if (!cache.hasSchemaRegistry()) {
@@ -167,15 +184,19 @@ class ConfluentDriver(
                         return emptyList()
                     }
 
-                    val schemas = cache.refreshSchemas().sortedBy { it.name.lowercase() }
+                    val clusterDataManager = dataManager.getOrCreateClusterDataManager(firstCluster)
+                    val schemas = clusterDataManager.getSchemas()
                     logger.info("ConfluentDriver: Found ${schemas.size} schemas")
 
-                    return if (schemas.isEmpty()) {
-                        listOf(ConfluentFileInfo(this, emptyStatePath("No schemas available")))
-                    } else {
-                        schemas.map { schema ->
-                            ConfluentFileInfo(this, schemaPath(nodeId, schema.name))
-                        }
+                    return when {
+                        schemas.isEmpty() && clusterDataManager.schemaRegistryModel?.isInitedByFirstTime == false ->
+                            listOf(ConfluentFileInfo(this, emptyStatePath("Loading...")))
+                        schemas.isEmpty() ->
+                            listOf(ConfluentFileInfo(this, emptyStatePath("No schemas available")))
+                        else ->
+                            schemas.map { schema ->
+                                ConfluentFileInfo(this, schemaPath(nodeId, schema.name))
+                            }
                     }
                 }
 

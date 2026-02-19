@@ -59,6 +59,7 @@ class CCloudClusterDataManager(
     private val dataPlaneCache: DataPlaneCache = orgManager.getDataPlaneCache(cluster)
     private val partitionEnrichmentJobs = ConcurrentHashMap<String, Job>()
     private var topicEnrichmentJob: Job? = null
+    private var schemaEnrichmentJob: Job? = null
 
     override val connectionId: String = cluster.id
 
@@ -205,13 +206,11 @@ class CCloudClusterDataManager(
         }
 
         try {
-            // Use cached schemas if available, only refresh if empty (improves tree view performance)
             val schemas = dataPlaneCache.getSchemas().ifEmpty {
                 dataPlaneCache.refreshSchemas()
             }
             val config = KafkaToolWindowSettings.getInstance().getOrCreateConfig(connectionId)
 
-            // Convert SchemaData to KafkaSchemaInfo
             var result = schemas.map { schemaData ->
                 KafkaSchemaInfo(
                     name = schemaData.name,
@@ -221,18 +220,11 @@ class CCloudClusterDataManager(
                 )
             }
 
-            // Apply filter if provided
             if (!filter.isNullOrBlank()) {
                 result = result.filter { it.name.contains(filter, ignoreCase = true) }
             }
 
-            // Apply limit if provided
-            val hasMore = limit != null && result.size > limit
-            if (hasMore) {
-                result = result.take(limit!!)
-            }
-
-            result to hasMore
+            result to false
         } catch (e: Exception) {
             thisLogger().warn("Failed to list schemas for cluster ${cluster.id}", e)
             emptyList<KafkaSchemaInfo>() to false
@@ -247,7 +239,6 @@ class CCloudClusterDataManager(
         }
 
         try {
-            // Convert to SchemaData for enrichment
             val schemaDataList = schemas.map { schema ->
                 io.confluent.intellijplugin.ccloud.model.response.SchemaData(
                     name = schema.name,
@@ -256,51 +247,55 @@ class CCloudClusterDataManager(
                 )
             }
 
-            // Enrich progressively in background (similar to partition enrichment pattern)
-            driver.coroutineScope.launch(Dispatchers.IO) {
-                dataPlaneCache.enrichSchemasProgressively(schemaDataList)
-                    .collect { result ->
+            schemaEnrichmentJob?.cancel()
+
+            val currentSchemas = schemas.toMutableList()
+
+            val job = driver.coroutineScope.launch(Dispatchers.IO) {
+                try {
+                    dataPlaneCache.enrichSchemasProgressively(schemaDataList)
+                        .collect { result ->
                         val model = schemaRegistryModel ?: return@collect
-                        val current = model.data ?: return@collect
 
                         when (result) {
                             is io.confluent.intellijplugin.ccloud.model.response.SchemaEnrichmentResult.Success -> {
-                                val updated = current.map { schema ->
-                                    if (schema.name == result.schemaName) {
-                                        schema.copy(
-                                            version = result.data.latestVersion?.toLong(),
-                                            type = result.data.schemaType?.let { KafkaRegistryFormat.parse(it) }
-                                        )
-                                    } else {
-                                        schema
-                                    }
-                                }
+                                val index = currentSchemas.indexOfFirst { it.name == result.schemaName }
+                                if (index == -1) return@collect
+
+                                currentSchemas[index] = currentSchemas[index].copy(
+                                    version = result.data.latestVersion?.toLong(),
+                                    type = result.data.schemaType?.let { KafkaRegistryFormat.parse(it) }
+                                )
+
                                 invokeLaterIfNotDisposed {
-                                    model.setData(updated)
+                                    model.setData(currentSchemas.toList())
                                 }
                             }
                             is io.confluent.intellijplugin.ccloud.model.response.SchemaEnrichmentResult.Failure -> {
                                 thisLogger().warn("Failed to enrich schema ${result.schemaName}: ${result.error.message}")
-                                // Update UI to show the actual error instead of staying "Loading..." forever
+
+                                val index = currentSchemas.indexOfFirst { it.name == result.schemaName }
+                                if (index == -1) return@collect
+
                                 val errorMessage = result.error.message ?: "Unknown error"
-                                val updated = current.map { schema ->
-                                    if (schema.name == result.schemaName) {
-                                        schema.copy(
-                                            version = -1L, // Sentinel value to stop showing "Loading..."
-                                            type = null, // Keep null to avoid showing misleading type
-                                            description = "Error: $errorMessage"
-                                        )
-                                    } else {
-                                        schema
-                                    }
-                                }
+                                currentSchemas[index] = currentSchemas[index].copy(
+                                    version = -1L,
+                                    type = null,
+                                    description = "Error: $errorMessage"
+                                )
+
                                 invokeLaterIfNotDisposed {
-                                    model.setData(updated)
+                                    model.setData(currentSchemas.toList())
                                 }
                             }
                         }
                     }
+                } finally {
+                    schemaEnrichmentJob = null
+                }
             }
+
+            schemaEnrichmentJob = job
 
             schemas to null
         } catch (e: Exception) {
@@ -564,6 +559,7 @@ class CCloudClusterDataManager(
 
     override fun dispose() {
         topicEnrichmentJob?.cancel()
+        schemaEnrichmentJob?.cancel()
         partitionEnrichmentJobs.values.forEach { it.cancel() }
         partitionEnrichmentJobs.clear()
     }
