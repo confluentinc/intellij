@@ -59,10 +59,18 @@ class KafkaConsumerPanel(
     )
 
     // Feature flag to enable new message viewer UI (WebView-based)
-    // Enable via: -Dkafka.message.viewer.webview=true
     // Default: false (uses existing Swing-based table viewer)
-    private val useWebViewMessageViewer: Boolean =
-        System.getProperty("kafka.message.viewer.webview")?.toBoolean() ?: false
+    private val useWebViewMessageViewer: Boolean = run {
+        val propertyValue = System.getProperty(CONSUMER_WEBVIEW_PROPERTY) ?: "false"
+        when(propertyValue) {
+            "true" -> true
+            "false" -> false
+            else -> {
+                thisLogger().warn("Invalid value for $CONSUMER_WEBVIEW_PROPERTY: '$propertyValue'. Expected 'true' or 'false'. Defaulting to false.")
+                false
+            }
+        }
+    }
 
     private val output = createMessageViewerOutput().also { Disposer.register(this, it) }
 
@@ -646,5 +654,9 @@ class KafkaConsumerPanel(
         // A number of string keys for PropertiesComponent.getInstance().getBoolean(**_**_ID, false)
         private const val SETTINGS_SHOW_ID = "io.confluent.intellijplugin.consumer.settings.show"
         private const val PRESETS_SHOW_ID = "io.confluent.intellijplugin.consumer.presets.show"
+
+        // System property to enable WebView-based message viewer (for development/testing)
+        // Usage: ./gradlew runIde -Dconfluent.intellijplugin.consumer.webview=true
+        private const val CONSUMER_WEBVIEW_PROPERTY = "confluent.intellijplugin.consumer.webview"
     }
 }
