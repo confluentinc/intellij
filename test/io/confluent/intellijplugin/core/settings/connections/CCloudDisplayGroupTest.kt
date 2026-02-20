@@ -1,16 +1,97 @@
 package io.confluent.intellijplugin.core.settings.connections
 
+import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.util.Disposer
 import com.intellij.testFramework.junit5.TestApplication
+import com.intellij.testFramework.replaceService
+import io.confluent.intellijplugin.ccloud.auth.CCloudAuthService
 import io.confluent.intellijplugin.core.settings.connections.CCloudDisplayGroup.Companion.formatSessionExpiry
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
+import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
+import java.awt.CardLayout
 import java.time.Instant
+import javax.swing.JPanel
 
 @TestApplication
 class CCloudDisplayGroupTest {
+
+    private val disposable = Disposer.newDisposable("CCloudDisplayGroupTest")
+    private lateinit var mockAuthService: CCloudAuthService
+
+    @BeforeEach
+    fun setUp() {
+        mockAuthService = CCloudAuthService(CoroutineScope(SupervisorJob()))
+        ApplicationManager.getApplication()
+            .replaceService(CCloudAuthService::class.java, mockAuthService, disposable)
+    }
+
+    @AfterEach
+    fun tearDown() {
+        mockAuthService.dispose()
+        Disposer.dispose(disposable)
+    }
+
+    @Nested
+    @DisplayName("createOptionsPanel")
+    inner class CreateOptionsPanel {
+
+        @Test
+        fun `should return a panel with CardLayout`() {
+            val group = CCloudDisplayGroup()
+
+            val panel = group.createOptionsPanel()
+
+            assertNotNull(panel)
+            assertTrue(panel is JPanel)
+            assertTrue((panel as JPanel).layout is CardLayout)
+
+            group.disposeOptionsPanel()
+        }
+
+        @Test
+        fun `should register auth state listener on creation`() {
+            val group = CCloudDisplayGroup()
+            val listenersBefore = mockAuthService.authStateListeners.size
+
+            group.createOptionsPanel()
+
+            assertEquals(listenersBefore + 1, mockAuthService.authStateListeners.size)
+
+            group.disposeOptionsPanel()
+        }
+    }
+
+    @Nested
+    @DisplayName("disposeOptionsPanel")
+    inner class DisposeOptionsPanel {
+
+        @Test
+        fun `should remove auth state listener on dispose`() {
+            val group = CCloudDisplayGroup()
+            group.createOptionsPanel()
+            val listenersAfterCreate = mockAuthService.authStateListeners.size
+
+            group.disposeOptionsPanel()
+
+            assertEquals(listenersAfterCreate - 1, mockAuthService.authStateListeners.size)
+        }
+
+        @Test
+        fun `should be safe to call without prior createOptionsPanel`() {
+            val group = CCloudDisplayGroup()
+
+            // Should not throw
+            group.disposeOptionsPanel()
+        }
+    }
 
     @Nested
     @DisplayName("formatSessionExpiry")
