@@ -7,6 +7,8 @@ import io.confluent.intellijplugin.ccloud.auth.CCloudAuthService
 import io.confluent.intellijplugin.ccloud.ui.CCloudSignInPanel
 import io.confluent.intellijplugin.core.monitoring.toolwindow.ComponentController
 import io.confluent.intellijplugin.core.settings.ConnectionSettings
+import io.confluent.intellijplugin.rfs.KafkaCloudType
+import io.confluent.intellijplugin.rfs.KafkaConfigurationSource
 import io.confluent.intellijplugin.settings.KafkaConnectionGroup
 import io.confluent.intellijplugin.rfs.ConfluentConnectionData
 import io.confluent.intellijplugin.rfs.ConfluentDriver
@@ -35,7 +37,12 @@ class ConfluentTabController(
 
     init {
         cardPanel.add(CCloudSignInPanel.create {
-            ConnectionSettings.create(project, KafkaConnectionGroup(), null, true)
+            val group = KafkaConnectionGroup()
+            val connectionData = group.createBlankData().apply {
+                brokerConfigurationSource = KafkaConfigurationSource.CLOUD
+                brokerCloudSource = KafkaCloudType.CONFLUENT
+            }
+            ConnectionSettings.create(project, group, connectionData, true)
         }, SIGN_IN_CARD)
 
         CCloudAuthService.getInstance().addAuthStateListener(this)
