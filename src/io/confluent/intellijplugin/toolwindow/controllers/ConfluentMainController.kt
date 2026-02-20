@@ -194,6 +194,7 @@ internal class ConfluentMainController(
                         dataManager
                     }
                 }
+
                 else -> dataManager
             }
 
@@ -257,7 +258,7 @@ internal class ConfluentMainController(
             row {
                 label(message("confluent.cloud.environment.selector.label"))
                 comboBox(environmentComboBoxModel)
-                    .also {                     comboBoxComponent ->
+                    .also { comboBoxComponent ->
                         comboBoxComponent.component.addActionListener {
                             val selected = environmentComboBoxModel.selectedItem as? EnvironmentItem
                             if (selected != null && selected.id != selectedEnvironmentId.get()) {
@@ -344,22 +345,27 @@ internal class ConfluentMainController(
                     layout.show(details, EMPTY_PANEL)
                 }
             }
+
             rfsPath.isCluster(driver) -> {
                 showTopicsDetails(rfsPath)
                 layout.show(details, TOPICS_PANEL)
             }
+
             rfsPath.isTopic -> {
                 showTopicDetail(rfsPath)
                 layout.show(details, TOPIC_DETAIL_PANEL)
             }
+
             rfsPath.isSchemaRegistry(driver) -> {
                 showSchemasDetails(rfsPath)
                 layout.show(details, SCHEMAS_PANEL)
             }
+
             rfsPath.isSchema -> {
                 showSchemaDetail(rfsPath)
                 layout.show(details, SCHEMA_DETAIL_PANEL)
             }
+
             else -> layout.show(details, EMPTY_PANEL)
         }
     }
@@ -378,10 +384,18 @@ internal class ConfluentMainController(
         val data = arrayOf(
             arrayOf<Any>(message("confluent.cloud.environment.table.id"), environment.id),
             arrayOf<Any>(message("confluent.cloud.environment.table.name"), environment.displayName),
-            arrayOf<Any>(message("confluent.cloud.environment.table.governance"), environment.streamGovernancePackage ?: "N/A")
+            arrayOf<Any>(
+                message("confluent.cloud.environment.table.governance"),
+                environment.streamGovernancePackage ?: "N/A"
+            )
         )
 
-        val table = JBTable(DefaultTableModel(data, arrayOf(message("confluent.cloud.table.column.property"), message("confluent.cloud.table.column.value")))).apply {
+        val table = JBTable(
+            DefaultTableModel(
+                data,
+                arrayOf(message("confluent.cloud.table.column.property"), message("confluent.cloud.table.column.value"))
+            )
+        ).apply {
             setDefaultEditor(Any::class.java, null)
             tableHeader = null
         }
@@ -451,8 +465,6 @@ internal class ConfluentMainController(
             }
 
             val schemas = cache.getSchemas()
-
-            val columnNames = arrayOf("Schema Subject")
             val data = schemas.map { schema ->
                 arrayOf<Any>(schema.name)
             }.toTypedArray()

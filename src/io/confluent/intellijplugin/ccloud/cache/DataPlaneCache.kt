@@ -158,18 +158,18 @@ class DataPlaneCache(
                             fetcher?.loadSchemaInfo(schema.name)
                         }
 
-                    thisLogger().info("Enriched ${schema.name}: version=${info?.latestVersion}, type=${info?.schemaType}")
+                        thisLogger().info("Enriched ${schema.name}: version=${info?.latestVersion}, type=${info?.schemaType}")
 
-                    schema.name to SchemaEnrichmentData(
-                        latestVersion = info?.latestVersion,
-                        schemaType = info?.schemaType
-                    )
-                } catch (e: Exception) {
-                    thisLogger().warn("Failed to enrich ${schema.name}: ${e.message}")
-                    schema.name to SchemaEnrichmentData()
+                        schema.name to SchemaEnrichmentData(
+                            latestVersion = info?.latestVersion,
+                            schemaType = info?.schemaType
+                        )
+                    } catch (e: Exception) {
+                        thisLogger().warn("Failed to enrich ${schema.name}: ${e.message}")
+                        schema.name to SchemaEnrichmentData()
+                    }
                 }
-            }
-        }.awaitAll().toMap()
+            }.awaitAll().toMap()
 
             thisLogger().info("Enrichment completed: ${results.size} schemas enriched")
             results
