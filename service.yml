@@ -57,12 +57,4 @@ sonarqube:
     - "**/jacocoTestReport.xml"
   coverage_sources:
     - "src"
-  coverage_exclusions:
-    - "**/test/**/*"
-    - "**/tests/**/*"
-    - "**/mock/**/*"
-    - "**/mocks/**/*"
-    - "**/*mock*"
-    - "**/*test*"
-    - "gen/**/*"
   main_branch: main
