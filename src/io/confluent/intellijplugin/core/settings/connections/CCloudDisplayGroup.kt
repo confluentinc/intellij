@@ -47,13 +47,12 @@ class CCloudDisplayGroup : ConnectionGroup(
             val localTime = endOfLifetime.atZone(ZoneId.systemDefault())
             val absolute = dateTimeFormatter.format(localTime)
 
-            val relative = when {
-                hours > 0 && minutes > 0 -> "in ${hours}h ${minutes}m"
-                hours > 0 -> "in ${hours}h"
-                minutes > 0 -> "in ${minutes}m"
-                else -> "in <1m"
+            return when {
+                hours > 0 && minutes > 0 -> KafkaMessagesBundle.message("confluent.cloud.settings.session.expiry.hours.minutes", hours, minutes, absolute)
+                hours > 0 -> KafkaMessagesBundle.message("confluent.cloud.settings.session.expiry.hours", hours, absolute)
+                minutes > 0 -> KafkaMessagesBundle.message("confluent.cloud.settings.session.expiry.minutes", minutes, absolute)
+                else -> KafkaMessagesBundle.message("confluent.cloud.settings.session.expiry.less.than.minute", absolute)
             }
-            return "$relative ($absolute)"
         }
     }
 
