@@ -1,5 +1,6 @@
 package io.confluent.intellijplugin.common.editor
 
+import com.intellij.openapi.diagnostic.thisLogger
 import javax.swing.table.AbstractTableModel
 import javax.swing.table.DefaultTableColumnModel
 import javax.swing.table.TableColumn
@@ -29,7 +30,12 @@ class ListTableModel<T>(
     // Guard against stale indices from concurrent list modification.
     // TODO: address with MessageViewer upgrade
     override fun getValueAt(rowIndex: Int, columnIndex: Int): Any? =
-        try { columnMapper(data[rowIndex], columnIndex) } catch (_: Exception) { null }
+        try {
+            columnMapper(data[rowIndex], columnIndex)
+        } catch (e: Exception) {
+            thisLogger().warn(e)
+            null
+        }
     override fun getColumnClass(columnIndex: Int): Class<*> {
         return columnClasses?.get(columnIndex) ?: super.getColumnClass(columnIndex)
     }
