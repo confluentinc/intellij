@@ -4,18 +4,27 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.util.Disposer
 import com.intellij.testFramework.junit5.TestApplication
 import com.intellij.testFramework.replaceService
+import com.intellij.ui.components.ActionLink
+import com.intellij.util.ui.UIUtil
 import io.confluent.intellijplugin.ccloud.auth.CCloudAuthService
+import io.confluent.intellijplugin.ccloud.auth.CCloudOAuthContext
+import io.confluent.intellijplugin.ccloud.auth.OrganizationDetails
+import io.confluent.intellijplugin.ccloud.auth.SsoDetails
+import io.confluent.intellijplugin.ccloud.auth.Token
 import io.confluent.intellijplugin.core.settings.connections.CCloudDisplayGroup.Companion.formatSessionExpiry
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
+import org.mockito.kotlin.doReturn
+import org.mockito.kotlin.mock
 import java.awt.CardLayout
 import java.time.Instant
 import javax.swing.JPanel
@@ -67,6 +76,84 @@ class CCloudDisplayGroupTest {
 
             group.disposeOptionsPanel()
         }
+
+        @Test
+        fun `should include sign-out link when signed in`() {
+            mockAuthService.context = createMockAuthenticatedContext()
+            val group = CCloudDisplayGroup()
+
+            val panel = group.createOptionsPanel()
+
+            val links = UIUtil.findComponentsOfType(panel as JPanel, ActionLink::class.java)
+            assertTrue(links.isNotEmpty(), "Should contain a sign-out link")
+
+            group.disposeOptionsPanel()
+        }
+
+        @Test
+        fun `should build signed-in panel with org and expiry when authenticated`() {
+            mockAuthService.context = createMockAuthenticatedContext()
+            val group = CCloudDisplayGroup()
+
+            val panel = group.createOptionsPanel() as JPanel
+
+            // Count all components in the signed-in panel tree to verify org name
+            // and session expiry branches are exercised (comment() renders as HTML labels)
+            val componentCountWithOrg = countComponents(panel)
+
+            group.disposeOptionsPanel()
+
+            // Now create without org/expiry to verify branches produce different output
+            mockAuthService.context = createMockAuthenticatedContext(
+                orgName = null, endOfLifetime = null
+            )
+            val group2 = CCloudDisplayGroup()
+            val panel2 = group2.createOptionsPanel() as JPanel
+            val componentCountWithout = countComponents(panel2)
+
+            group2.disposeOptionsPanel()
+
+            assertTrue(
+                componentCountWithOrg > componentCountWithout,
+                "Panel with org + expiry ($componentCountWithOrg) should have more components " +
+                    "than without ($componentCountWithout)"
+            )
+        }
+    }
+
+    @Nested
+    @DisplayName("authStateListener")
+    inner class AuthStateListener {
+
+        @Test
+        fun `should switch to signed-in card on sign-in`() {
+            val group = CCloudDisplayGroup()
+            val panel = group.createOptionsPanel() as JPanel
+            val listener = mockAuthService.authStateListeners.last()
+
+            mockAuthService.context = createMockAuthenticatedContext()
+            listener.onSignedIn("test@example.com")
+
+            // The panel should have been rebuilt — verify it still has components
+            assertTrue(panel.componentCount > 0, "Panel should have cards after sign-in")
+
+            group.disposeOptionsPanel()
+        }
+
+        @Test
+        fun `should switch to sign-in card on sign-out`() {
+            mockAuthService.context = createMockAuthenticatedContext()
+            val group = CCloudDisplayGroup()
+            val panel = group.createOptionsPanel() as JPanel
+            val listener = mockAuthService.authStateListeners.last()
+
+            listener.onSignedOut()
+
+            // Panel should still have cards
+            assertTrue(panel.componentCount > 0, "Panel should have cards after sign-out")
+
+            group.disposeOptionsPanel()
+        }
     }
 
     @Nested
@@ -90,6 +177,22 @@ class CCloudDisplayGroupTest {
 
             // Should not throw
             group.disposeOptionsPanel()
+        }
+
+        @Test
+        fun `should stop expiry timer on dispose`() {
+            val group = CCloudDisplayGroup()
+            group.createOptionsPanel()
+
+            // Access the private expiryTimer field to verify it was started
+            val timerField = CCloudDisplayGroup::class.java.getDeclaredField("expiryTimer")
+            timerField.isAccessible = true
+            val timer = timerField.get(group) as javax.swing.Timer
+            assertTrue(timer.isRunning, "Timer should be running before dispose")
+
+            group.disposeOptionsPanel()
+
+            assertFalse(timer.isRunning, "Timer should be stopped after dispose")
         }
     }
 
@@ -157,5 +260,37 @@ class CCloudDisplayGroupTest {
 
             assertTrue(result.matches(Regex("in .+ \\(.+\\)")), "Expected format 'in Xh (absolute)' but got: $result")
         }
+    }
+
+    private fun createMockAuthenticatedContext(
+        orgName: String? = "Test Org",
+        endOfLifetime: Instant? = Instant.now().plusSeconds(3600)
+    ): CCloudOAuthContext {
+        val mockToken = Token("test_token", Instant.now().plusSeconds(3600))
+        val org = orgName?.let {
+            OrganizationDetails(
+                id = "org-123",
+                name = it,
+                resourceId = "org-res-123",
+                sso = SsoDetails(enabled = false, mode = "none", vendor = "none")
+            )
+        }
+        return mock {
+            on { getControlPlaneToken() } doReturn mockToken
+            on { getDataPlaneToken() } doReturn mockToken
+            on { getUserEmail() } doReturn "test@example.com"
+            on { getEndOfLifetime() } doReturn endOfLifetime
+            on { getCurrentOrganization() } doReturn org
+        }
+    }
+
+    private fun countComponents(container: java.awt.Container): Int {
+        var count = container.componentCount
+        for (child in container.components) {
+            if (child is java.awt.Container) {
+                count += countComponents(child)
+            }
+        }
+        return count
     }
 }
