@@ -55,4 +55,6 @@ sonarqube:
     - kotlin
   coverage_reports:
     - "**/jacocoTestReport.xml"
+  coverage_sources:
+    - "src"
   main_branch: main
