@@ -5,26 +5,35 @@ import io.confluent.intellijplugin.model.TopicPresentable
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
-/** Response from GET /kafka/v3/clusters/{cluster_id}/topics */
+/**
+ * Generic wrapper for paginated Confluent Cloud Data Plane API responses.
+ * Made generic to avoid duplicating the same `kind`/`metadata`/`data` structure for each resource type
+ * (topics, partitions, configs all share this pagination format).
+ */
 @Serializable
-data class ListTopicsResponse(
-    @SerialName("kind") val kind: String = "KafkaTopicList",
+data class DataPlaneListResponse<T>(
+    @SerialName("kind") val kind: String? = null,
     @SerialName("metadata") val metadata: CCloudRestClient.ListMetadata,
-    @SerialName("data") val data: List<TopicData>
+    @SerialName("data") val data: List<T>
 )
 
-/** Kafka topic resource from Confluent Cloud Data Plane API. */
+interface DataPlaneResource {
+    val kind: String
+}
+
+typealias ListTopicsResponse = DataPlaneListResponse<TopicData>
+
 @Serializable
 data class TopicData(
-    @SerialName("kind") val kind: String = "KafkaTopic",
+    @SerialName("kind") override val kind: String = "KafkaTopic",
     @SerialName("cluster_id") val clusterId: String,
     @SerialName("topic_name") val topicName: String,
     @SerialName("is_internal") val isInternal: Boolean = false,
     @SerialName("replication_factor") val replicationFactor: Int,
     @SerialName("partitions_count") val partitionsCount: Int
-)
+) : DataPlaneResource
 
-/** Enrichment data for topics (requires additional API calls beyond basic topic list). */
+/** Additional topic data from separate API calls. */
 data class TopicEnrichmentData(
     val messageCount: Long? = null
 )
@@ -48,11 +57,8 @@ data class TopicOffsetsResponse(
     @SerialName("total_records") val totalRecords: Long
 )
 
-@Serializable
-data class ListPartitionsResponse(
-    @SerialName("data") val data: List<PartitionData>,
-    @SerialName("metadata") val metadata: CCloudRestClient.ListMetadata
-)
+/** Response from GET /kafka/v3/clusters/{cluster_id}/topics/{topic_name}/partitions */
+typealias ListPartitionsResponse = DataPlaneListResponse<PartitionData>
 
 @Serializable
 data class PartitionData(
@@ -75,11 +81,8 @@ data class PartitionOffsets(
     @SerialName("next_offset") val nextOffset: Long
 )
 
-@Serializable
-data class ListConfigsResponse(
-    @SerialName("data") val data: List<ConfigData>,
-    @SerialName("metadata") val metadata: CCloudRestClient.ListMetadata
-)
+/** Response from GET /kafka/v3/clusters/{cluster_id}/topics/{topic_name}/configs */
+typealias ListConfigsResponse = DataPlaneListResponse<ConfigData>
 
 @Serializable
 data class ConfigData(
@@ -96,7 +99,6 @@ data class ConfigSynonym(
     @SerialName("source") val source: String
 )
 
-/** Converts TopicData (from REST API) to TopicPresentable (for UI). */
 fun TopicData.toPresentable(enrichmentData: TopicEnrichmentData? = null): TopicPresentable {
     return TopicPresentable(
         name = topicName,
@@ -111,19 +113,16 @@ fun TopicData.toPresentable(enrichmentData: TopicEnrichmentData? = null): TopicP
     )
 }
 
-/** Converts list of TopicData to TopicPresentables without enrichment. */
 fun List<TopicData>.toPresentable(): List<TopicPresentable> {
     return map { it.toPresentable() }
 }
 
-/** Converts list of TopicData to TopicPresentables with enrichment data. */
 fun List<TopicData>.toPresentableWithEnrichment(enrichmentMap: Map<String, TopicEnrichmentData>): List<TopicPresentable> {
     return map { topicData ->
         topicData.toPresentable(enrichmentMap[topicData.topicName])
     }
 }
 
-/** Result of enriching a single topic with additional data. */
 sealed class TopicEnrichmentResult {
     abstract val topicName: String
     abstract val progress: Pair<Int, Int>

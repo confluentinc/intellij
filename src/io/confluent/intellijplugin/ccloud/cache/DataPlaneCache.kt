@@ -101,6 +101,8 @@ class DataPlaneCache(
      * Enrich schemas with metadata progressively. Emits results as they complete for incremental UI updates.
      */
     fun enrichSchemasProgressively(schemas: List<SchemaData>): Flow<SchemaEnrichmentResult> = channelFlow {
+        if (fetcher == null) return@channelFlow
+
         thisLogger().info("Starting progressive enrichment for ${schemas.size} schemas")
         val completed = AtomicInteger(0)
 
@@ -143,15 +145,18 @@ class DataPlaneCache(
     /**
      * Enrich schemas with metadata, blocking until all complete.
      */
-    suspend fun enrichSchemas(schemas: List<SchemaData>): Map<String, SchemaEnrichmentData> = coroutineScope {
-        thisLogger().info("Starting enrichment for ${schemas.size} schemas")
+    suspend fun enrichSchemas(schemas: List<SchemaData>): Map<String, SchemaEnrichmentData> {
+        if (fetcher == null) return emptyMap()
 
-        val results = schemas.map { schema ->
-            async {
-                try {
-                    val info = withTimeout(ENRICHMENT_TIMEOUT_MS) {
-                        fetcher?.loadSchemaInfo(schema.name)
-                    }
+        return coroutineScope {
+            thisLogger().info("Starting enrichment for ${schemas.size} schemas")
+
+            val results = schemas.map { schema ->
+                async {
+                    try {
+                        val info = withTimeout(ENRICHMENT_TIMEOUT_MS) {
+                            fetcher?.loadSchemaInfo(schema.name)
+                        }
 
                     thisLogger().info("Enriched ${schema.name}: version=${info?.latestVersion}, type=${info?.schemaType}")
 
@@ -166,14 +171,17 @@ class DataPlaneCache(
             }
         }.awaitAll().toMap()
 
-        thisLogger().info("Enrichment completed: ${results.size} schemas enriched")
-        results
+            thisLogger().info("Enrichment completed: ${results.size} schemas enriched")
+            results
+        }
     }
 
     /**
      * Enrich topics with message count progressively. Emits results as they complete for incremental UI updates.
      */
     fun enrichTopicsDataProgressively(topics: List<TopicData>): Flow<TopicEnrichmentResult> = channelFlow {
+        if (fetcher == null) return@channelFlow
+
         thisLogger().info("Starting progressive enrichment for ${topics.size} topics")
         val completed = AtomicInteger(0)
 
@@ -213,15 +221,18 @@ class DataPlaneCache(
     /**
      * Enrich topics with message count, blocking until all complete.
      */
-    suspend fun enrichTopicsData(topics: List<TopicData>): Map<String, TopicEnrichmentData> = coroutineScope {
-        thisLogger().info("Starting enrichment for ${topics.size} topics")
+    suspend fun enrichTopicsData(topics: List<TopicData>): Map<String, TopicEnrichmentData> {
+        if (fetcher == null) return emptyMap()
 
-        val results = topics.map { topic ->
-            async {
-                try {
-                    val messageCount = withTimeout(ENRICHMENT_TIMEOUT_MS) {
-                        fetcher?.getTopicMessageCount(topic.topicName)
-                    }
+        return coroutineScope {
+            thisLogger().info("Starting enrichment for ${topics.size} topics")
+
+            val results = topics.map { topic ->
+                async {
+                    try {
+                        val messageCount = withTimeout(ENRICHMENT_TIMEOUT_MS) {
+                            fetcher?.getTopicMessageCount(topic.topicName)
+                        }
 
                     thisLogger().info("Enriched ${topic.topicName}: messageCount=$messageCount")
 
@@ -235,8 +246,9 @@ class DataPlaneCache(
             }
         }.awaitAll().toMap()
 
-        thisLogger().info("Enrichment completed: ${results.size} topics enriched")
-        results
+            thisLogger().info("Enrichment completed: ${results.size} topics enriched")
+            results
+        }
     }
 
     suspend fun createTopic(request: CreateTopicRequest): TopicData {
