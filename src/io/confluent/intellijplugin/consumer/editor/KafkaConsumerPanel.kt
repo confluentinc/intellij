@@ -3,6 +3,7 @@ package io.confluent.intellijplugin.consumer.editor
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.invokeAndWaitIfNeeded
+import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.observable.properties.AtomicBooleanProperty
 import com.intellij.openapi.project.Project
@@ -56,7 +57,31 @@ class KafkaConsumerPanel(
         onStart = ::onStartConsume,
         onStop = ::onStopConsume
     )
-    private val output = KafkaRecordsOutput(project, isProducer = false).also { Disposer.register(this, it) }
+
+    // Feature flag to enable new message viewer UI (WebView-based)
+    // Default: false (uses existing Swing-based table viewer)
+    private val useWebViewMessageViewer: Boolean =
+        System.getProperty(CONSUMER_WEBVIEW_PROPERTY)?.trim()?.takeIf { it.isNotBlank() }?.let { value ->
+            value.toBooleanStrictOrNull() ?: false.also {
+                thisLogger().warn("Invalid value for $CONSUMER_WEBVIEW_PROPERTY: '$value'. Expected 'true' or 'false'. Defaulting to false.")
+            }
+        } ?: false
+
+    private val output = createMessageViewerOutput().also { Disposer.register(this, it) }
+
+    private fun createMessageViewerOutput(): KafkaRecordsOutput {
+        // TODO NC: When browser implementation is ready, switch based on flag
+        // return if (useWebViewMessageViewer) {
+        //     KafkaRecordsBrowserOutput(project, isProducer = false)
+        // } else {
+        //     KafkaRecordsOutput(project, isProducer = false)
+        // }
+
+        if (useWebViewMessageViewer) {
+            thisLogger().info("WebView message viewer flag enabled, but implementation not ready. Using default viewer.")
+        }
+        return KafkaRecordsOutput(project, isProducer = false)
+    }
 
     private val startSpecificDate = TimestampTextField(this)
     private val limitSpecificDate = TimestampTextField(this)
@@ -624,5 +649,9 @@ class KafkaConsumerPanel(
         // A number of string keys for PropertiesComponent.getInstance().getBoolean(**_**_ID, false)
         private const val SETTINGS_SHOW_ID = "io.confluent.intellijplugin.consumer.settings.show"
         private const val PRESETS_SHOW_ID = "io.confluent.intellijplugin.consumer.presets.show"
+
+        // System property to enable WebView-based message viewer (for development/testing)
+        // Usage: ./gradlew runIde -Dconfluent.intellijplugin.consumer.webview=true
+        private const val CONSUMER_WEBVIEW_PROPERTY = "confluent.intellijplugin.consumer.webview"
     }
 }

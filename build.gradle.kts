@@ -224,6 +224,9 @@ tasks {
         // Pass Segment write key for dev telemetry testing: ./gradlew runIde -Dconfluent.intellijplugin.segment.writeKey=your_key
         System.getProperty("confluent.intellijplugin.segment.writeKey")
             ?.let { systemProperty("confluent.intellijplugin.segment.writeKey", it) }
+        // Enable WebView message viewer feature flag: ./gradlew runIde -Dconfluent.intellijplugin.consumer.webview=true
+        System.getProperty("confluent.intellijplugin.consumer.webview")
+            ?.let { systemProperty("confluent.intellijplugin.consumer.webview", it) }
 
         // open a project directly, skipping the Welcome window
         // (override with: IDEA_PROJECT_PATH=/path/to/project before running `gradle runIde`)
