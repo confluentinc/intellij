@@ -174,6 +174,10 @@ class ConnectionSettingsPanel(val project: Project) : MasterDetailsComponent(),
         addedConnections.clear()
         myRoot.removeAllChildren()
 
+        // Add all top-level groups to myRoot in priority order before populating connections,
+        // so retrieveNode() calls below find the group already placed and don't append it out of order.
+        topLevelGroups.forEach { it.retrieveNode() }
+
         for (connection in settings.getConnections(project)) {
             val groupNode = groupToActionNode[connection.groupId] ?: topLevelGroups.firstOrNull()
 
@@ -422,9 +426,14 @@ class ConnectionSettingsPanel(val project: Project) : MasterDetailsComponent(),
         @Suppress("DialogTitleCapitalization")
         override fun getBannerSlogan(): String = group.name
         override fun getDisplayName(): String = group.name
-        override fun createOptionsPanel(): JComponent = JPanel()
+        override fun createOptionsPanel(): JComponent = group.createOptionsPanel()
         override fun isModified(): Boolean = false
         override fun getIcon(expanded: Boolean): Icon? = group.icon
+
+        override fun disposeUIResources() {
+            super.disposeUIResources()
+            group.disposeOptionsPanel()
+        }
     }
 
     private abstract inner class AbstractAddActionGroup(
