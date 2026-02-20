@@ -4,12 +4,16 @@ import com.intellij.openapi.actionSystem.*
 import com.intellij.openapi.project.Project
 import com.intellij.util.containers.MultiMap
 import io.confluent.intellijplugin.core.settings.connections.BrokerConnectionGroup
+import io.confluent.intellijplugin.core.settings.connections.CCloudDisplayGroup
 import io.confluent.intellijplugin.core.settings.connections.ConnectionFactory
 import io.confluent.intellijplugin.core.settings.connections.ConnectionGroup
 import io.confluent.intellijplugin.core.settings.connections.ConnectionSettingProviderEP
 
 object StandaloneCreateConnectionUtil {
-    val groupsPriority: Map<String, Int> = mapOf(BrokerConnectionGroup.GROUP_ID to 0)
+    val groupsPriority: Map<String, Int> = mapOf(
+        CCloudDisplayGroup.GROUP_ID to 0,
+        BrokerConnectionGroup.GROUP_ID to 1
+    )
 
     class FlattenedGroup(private val treeGroup: ActionGroup) : ActionGroup() {
         override fun getChildren(e: AnActionEvent?): Array<AnAction> {
