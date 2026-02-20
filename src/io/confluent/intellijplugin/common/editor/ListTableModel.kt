@@ -12,6 +12,8 @@ class ListTableModel<T>(
     private val columnMapper: (T, Int) -> Any?
 ) : AbstractTableModel() {
 
+    private val logger = thisLogger()
+
     val columnModel: TableColumnModel by lazy {
         DefaultTableColumnModel().apply {
             columnNames.forEachIndexed { index, name ->
@@ -33,7 +35,7 @@ class ListTableModel<T>(
         try {
             columnMapper(data[rowIndex], columnIndex)
         } catch (e: Exception) {
-            thisLogger().warn(e)
+            logger.warn(e)
             null
         }
     override fun getColumnClass(columnIndex: Int): Class<*> {
@@ -41,7 +43,12 @@ class ListTableModel<T>(
     }
 
     fun getValueAt(rowIndex: Int): T? =
-        try { data[rowIndex] } catch (_: Exception) { null }
+        try {
+            data[rowIndex]
+        } catch (e: Exception) {
+            logger.warn(e)
+            null
+        }
 
     fun clear() {
         data.clear()
