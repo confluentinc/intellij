@@ -1,5 +1,6 @@
 package io.confluent.intellijplugin.common.editor
 
+import com.intellij.openapi.diagnostic.thisLogger
 import javax.swing.table.AbstractTableModel
 import javax.swing.table.DefaultTableColumnModel
 import javax.swing.table.TableColumn
@@ -10,6 +11,8 @@ class ListTableModel<T>(
     private val columnNames: List<String>,
     private val columnMapper: (T, Int) -> Any?
 ) : AbstractTableModel() {
+
+    private val logger = thisLogger()
 
     val columnModel: TableColumnModel by lazy {
         DefaultTableColumnModel().apply {
@@ -26,12 +29,26 @@ class ListTableModel<T>(
 
     override fun getRowCount() = data.size
     override fun getColumnCount() = columnNames.size
-    override fun getValueAt(rowIndex: Int, columnIndex: Int) = columnMapper(data[rowIndex], columnIndex)
+    // Guard against stale indices from concurrent list modification.
+    // TODO: address with MessageViewer upgrade
+    override fun getValueAt(rowIndex: Int, columnIndex: Int): Any? =
+        try {
+            columnMapper(data[rowIndex], columnIndex)
+        } catch (e: Exception) {
+            logger.warn(e)
+            null
+        }
     override fun getColumnClass(columnIndex: Int): Class<*> {
         return columnClasses?.get(columnIndex) ?: super.getColumnClass(columnIndex)
     }
 
-    fun getValueAt(rowIndex: Int): T? = if (rowIndex in data.indices) data[rowIndex] else null
+    fun getValueAt(rowIndex: Int): T? =
+        try {
+            data[rowIndex]
+        } catch (e: Exception) {
+            logger.warn(e)
+            null
+        }
 
     fun clear() {
         data.clear()
