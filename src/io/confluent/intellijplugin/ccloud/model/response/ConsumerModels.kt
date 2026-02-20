@@ -5,7 +5,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
 
 /**
- * Request/response models for the CCloud consume API.
+ * Request/response models for the CCloud consume and produce APIs.
  */
 
 @Serializable

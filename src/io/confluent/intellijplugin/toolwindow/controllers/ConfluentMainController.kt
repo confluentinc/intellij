@@ -450,8 +450,12 @@ internal class ConfluentMainController(
                 throw IllegalStateException("No Schema Registry available")
             }
 
-            val subjects = cache.getSubjects()
-            val data = subjects.map { arrayOf<Any>(it.name) }.toTypedArray()
+            val schemas = cache.getSchemas()
+
+            val columnNames = arrayOf("Schema Subject")
+            val data = schemas.map { schema ->
+                arrayOf<Any>(schema.name)
+            }.toTypedArray()
 
             val table = JBTable(DefaultTableModel(data, arrayOf("Schema Subject"))).apply {
                 setDefaultEditor(Any::class.java, null)
