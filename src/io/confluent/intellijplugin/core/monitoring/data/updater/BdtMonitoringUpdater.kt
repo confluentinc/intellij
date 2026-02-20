@@ -184,7 +184,7 @@ class BdtMonitoringUpdater(val dataManager: MonitoringDataManager) : Disposable 
                 .filterIsInstance<ObjectDataModel<*>>()
                 .filter { it.additionalInfoLoading != null }
 
-            val disposable = Disposer.newDisposable()
+            val disposable = Disposer.newDisposable(this)
             isCurrentCanceled.afterChange {
                 Disposer.dispose(disposable)
                 notify {
