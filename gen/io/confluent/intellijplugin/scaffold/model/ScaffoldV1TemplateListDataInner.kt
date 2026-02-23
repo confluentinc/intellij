@@ -36,7 +36,7 @@ data class ScaffoldV1TemplateListDataInner (
     val metadata: ScaffoldV1TemplateMetadata,
 
     @Json(name = "spec")
-    val spec: kotlin.Any,
+    val spec: Scaffoldv1TemplateSpec,
 
     /* APIVersion defines the schema version of this representation of a resource. */
     @Json(name = "api_version")

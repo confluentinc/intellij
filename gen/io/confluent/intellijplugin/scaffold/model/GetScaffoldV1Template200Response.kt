@@ -41,7 +41,7 @@ data class GetScaffoldV1Template200Response (
     val kind: GetScaffoldV1Template200Response.Kind,
 
     @Json(name = "spec")
-    val spec: kotlin.Any,
+    val spec: Scaffoldv1TemplateSpec,
 
     @Json(name = "metadata")
     val metadata: ScaffoldV1TemplateMetadata? = null

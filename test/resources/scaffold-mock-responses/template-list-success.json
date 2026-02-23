@@ -1,0 +1,51 @@
+{
+  "api_version": "scaffold/v1",
+  "kind": "TemplateList",
+  "metadata": {
+    "first": "string",
+    "last": "string",
+    "prev": "string",
+    "next": "string",
+    "total_size": 2
+  },
+  "data": [
+    {
+      "metadata": {
+        "self": "https://api.confluent.cloud/scaffold/v1/template-collections/intellij/templates/template-1",
+        "resource_name": "crn://confluent.cloud/template-collection=intellij/template=template-1"
+      },
+      "spec": {
+        "name": "template-1",
+        "display_name": "Template 1",
+        "description": "First template",
+        "version": "1.0.0",
+        "language": "Java",
+        "tags": ["kafka", "streams"],
+        "template_collection": {
+          "id": "intellij",
+          "related": "https://api.confluent.cloud/scaffold/v1/template-collections/intellij",
+          "resource_name": "crn://confluent.cloud/template-collection=intellij"
+        }
+      }
+    },
+    {
+      "metadata": {
+        "self": "https://api.confluent.cloud/scaffold/v1/template-collections/intellij/templates/template-2",
+        "resource_name": "crn://confluent.cloud/template-collection=intellij/template=template-2"
+      },
+      "spec": {
+        "name": "template-2",
+        "display_name": "Template 2",
+        "description": "Second template",
+        "version": "2.0.0",
+        "language": "Python",
+        "tags": ["kafka", "producer"],
+        "template_collection": {
+          "id": "intellij",
+          "related": "https://api.confluent.cloud/scaffold/v1/template-collections/intellij",
+          "resource_name": "crn://confluent.cloud/template-collection=intellij"
+        }
+      }
+    }
+  ]
+}
