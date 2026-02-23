@@ -54,7 +54,7 @@ class ConfluentDriver(
                     val cluster = clusters.firstOrNull()
                     if (cluster != null) {
                         val cache = dataManager.getDataPlaneCache(cluster)
-                        cache.getSubjects().find { it.name == path.name }?.schemaType
+                        cache.getSchemas().find { it.name == path.name }?.schemaType
                     } else null
                 } else null
             } else null
@@ -167,14 +167,14 @@ class ConfluentDriver(
                         return emptyList()
                     }
 
-                    val subjects = cache.refreshSubjects().sortedBy { it.name.lowercase() }
-                    logger.info("ConfluentDriver: Found ${subjects.size} schemas")
+                    val schemas = cache.refreshSchemas().sortedBy { it.name.lowercase() }
+                    logger.info("ConfluentDriver: Found ${schemas.size} schemas")
 
-                    return if (subjects.isEmpty()) {
+                    return if (schemas.isEmpty()) {
                         listOf(ConfluentFileInfo(this, emptyStatePath("No schemas available")))
                     } else {
-                        subjects.map { subject ->
-                            ConfluentFileInfo(this, schemaPath(nodeId, subject.name))
+                        schemas.map { schema ->
+                            ConfluentFileInfo(this, schemaPath(nodeId, schema.name))
                         }
                     }
                 }

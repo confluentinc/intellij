@@ -1,16 +1,14 @@
 package io.confluent.intellijplugin.ccloud.fetcher
 
+import com.intellij.openapi.diagnostic.thisLogger
 import io.confluent.intellijplugin.ccloud.client.CCloudRestClient
 import io.confluent.intellijplugin.ccloud.config.CloudConfig
 import io.confluent.intellijplugin.ccloud.model.response.*
-import com.intellij.openapi.diagnostic.thisLogger
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.serializer
-import kotlinx.serialization.decodeFromString
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
 /**
@@ -33,7 +31,7 @@ class DataPlaneFetcherImpl(
         isLenient = true
     }
 
-    override suspend fun listTopics(): List<TopicData> {
+    override suspend fun getTopics(): List<TopicData> {
         val path = String.format(CloudConfig.DataPlane.Kafka.TOPICS_URI, clusterId)
         val topics = kafkaClient.fetchList(path) { body ->
             val response = json.decodeFromString<ListTopicsResponse>(body)
@@ -76,16 +74,12 @@ class DataPlaneFetcherImpl(
         }
     }
 
-    override suspend fun describeTopicConfiguration(topicName: String): List<ConfigData> {
+    override suspend fun getTopicConfig(topicName: String): List<ConfigData> {
         val path = String.format(CloudConfig.DataPlane.Kafka.TOPIC_CONFIGS_URI, clusterId, topicName)
         return kafkaClient.fetchList(path) { body ->
             val response = json.decodeFromString<ListConfigsResponse>(body)
             response.data to response.metadata.next
         }
-    }
-
-    override suspend fun produceRecord(topicName: String, request: ProduceRequest): ProduceResponse {
-        TODO("Implement produceRecord")
     }
 
     override suspend fun consumeRecords(
@@ -98,15 +92,7 @@ class DataPlaneFetcherImpl(
         return json.decodeFromString<ConsumeRecordsResponse>(responseBody)
     }
 
-    override suspend fun listConsumerGroups(): List<ConsumerGroupData> {
-        TODO("Implement listConsumerGroups")
-    }
-
-    override suspend fun describeConsumerGroup(groupId: String): ConsumerGroupDetails {
-        TODO("Implement describeConsumerGroup")
-    }
-
-    override suspend fun listSubjects(): List<String> {
+    override suspend fun getAllSubjects(): List<String> {
         requireSchemaRegistry()
         val path = CloudConfig.DataPlane.SchemaRegistry.SUBJECTS_URI
         return schemaRegistryClient!!.fetch(path) { body ->
@@ -114,48 +100,47 @@ class DataPlaneFetcherImpl(
         }
     }
 
-    override suspend fun listSubjectsWithDetails(): List<SubjectData> {
+    override suspend fun loadSchemaInfo(subjectName: String): SchemaData {
         requireSchemaRegistry()
-        val subjects = listSubjects()
-
-        // Fetch details for all subjects in parallel
-        return coroutineScope {
-            subjects.map { subject ->
-                async {
-                    try {
-                        val latestSchema = getSchemaByVersion(subject, "latest")
-                        SubjectData(
-                            name = subject,
-                            latestVersion = latestSchema.version,
-                            schemaType = latestSchema.schemaType,
-                            compatibility = null
-                        )
-                    } catch (e: Exception) {
-                        thisLogger().warn("Failed to fetch details for subject '$subject': ${e.message}")
-                        SubjectData(name = subject)
-                    }
-                }
-            }.awaitAll()
+        return try {
+            val latestSchema = getLatestVersionInfo(subjectName)
+            SchemaData(
+                name = subjectName,
+                latestVersion = latestSchema.version,
+                schemaType = latestSchema.schemaType ?: "AVRO"
+            )
+        } catch (e: Exception) {
+            thisLogger().warn("Failed to fetch schema info for '$subjectName': ${e.message}")
+            SchemaData(name = subjectName)
         }
     }
 
-    override suspend fun listSubjectVersions(subject: String): List<Int> {
+    override suspend fun listSchemaVersions(subjectName: String): List<Long> {
         requireSchemaRegistry()
-        val path = String.format(CloudConfig.DataPlane.SchemaRegistry.SUBJECT_VERSIONS_URI, subject)
+        val path = String.format(CloudConfig.DataPlane.SchemaRegistry.SUBJECT_VERSIONS_URI, subjectName)
         return schemaRegistryClient!!.fetch(path) { body ->
-            json.decodeFromString(ListSerializer(Int.serializer()), body)
+            json.decodeFromString(ListSerializer(Int.serializer()), body).map { it.toLong() }
         }
     }
 
-    override suspend fun getSchemaByVersion(subject: String, version: String): SchemaVersionResponse {
+    override suspend fun getSchemaVersionInfo(subjectName: String, version: Long): SchemaVersionResponse {
         requireSchemaRegistry()
-        val path = String.format(CloudConfig.DataPlane.SchemaRegistry.SUBJECT_VERSION_URI, subject, version)
+        val path =
+            String.format(CloudConfig.DataPlane.SchemaRegistry.SUBJECT_VERSION_URI, subjectName, version.toString())
         return schemaRegistryClient!!.fetch(path) { body ->
             json.decodeFromString<SchemaVersionResponse>(body)
         }
     }
 
-    override suspend fun getSchemaById(schemaId: Int): SchemaByIdResponse {
+    override suspend fun getLatestVersionInfo(subjectName: String): SchemaVersionResponse {
+        requireSchemaRegistry()
+        val path = String.format(CloudConfig.DataPlane.SchemaRegistry.SUBJECT_VERSION_URI, subjectName, "latest")
+        return schemaRegistryClient!!.fetch(path) { body ->
+            json.decodeFromString<SchemaVersionResponse>(body)
+        }
+    }
+
+    override suspend fun getSchemaIdInfo(schemaId: Int): SchemaByIdResponse {
         requireSchemaRegistry()
         val path = String.format(CloudConfig.DataPlane.SchemaRegistry.SCHEMA_BY_ID_URI, schemaId)
         return schemaRegistryClient!!.fetch(path) { body ->
