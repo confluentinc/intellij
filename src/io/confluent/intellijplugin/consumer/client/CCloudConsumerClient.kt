@@ -560,22 +560,26 @@ class CCloudConsumerClient(
     @VisibleForTesting
     internal fun convertJsonToType(element: JsonElement, type: KafkaFieldType): Any? {
         if (element is JsonNull) return null
-        val content = (element as? JsonPrimitive)?.content
-            ?: throw SerializationException("Cannot convert ${element::class.simpleName} to $type")
         return when (type) {
             KafkaFieldType.NULL -> null
-            KafkaFieldType.LONG -> content.toLongOrNull()
-                ?: throw SerializationException("Cannot convert '$content' to LONG")
-            KafkaFieldType.INTEGER -> content.toIntOrNull()
-                ?: throw SerializationException("Cannot convert '$content' to INTEGER")
-            KafkaFieldType.DOUBLE -> content.toDoubleOrNull()
-                ?: throw SerializationException("Cannot convert '$content' to DOUBLE")
-            KafkaFieldType.FLOAT -> content.toFloatOrNull()
-                ?: throw SerializationException("Cannot convert '$content' to FLOAT")
-            KafkaFieldType.BASE64 -> Base64.getDecoder().decode(content)
             KafkaFieldType.JSON -> element.toString()
-            KafkaFieldType.STRING -> content
-            else -> throw IllegalArgumentException("Unsupported field type for JSON conversion: $type")
+            KafkaFieldType.STRING -> (element as? JsonPrimitive)?.content ?: element.toString()
+            else -> {
+                val content = (element as? JsonPrimitive)?.content
+                    ?: throw SerializationException("Cannot convert ${element::class.simpleName} to $type")
+                when (type) {
+                    KafkaFieldType.LONG -> content.toLongOrNull()
+                        ?: throw SerializationException("Cannot convert '$content' to LONG")
+                    KafkaFieldType.INTEGER -> content.toIntOrNull()
+                        ?: throw SerializationException("Cannot convert '$content' to INTEGER")
+                    KafkaFieldType.DOUBLE -> content.toDoubleOrNull()
+                        ?: throw SerializationException("Cannot convert '$content' to DOUBLE")
+                    KafkaFieldType.FLOAT -> content.toFloatOrNull()
+                        ?: throw SerializationException("Cannot convert '$content' to FLOAT")
+                    KafkaFieldType.BASE64 -> Base64.getDecoder().decode(content)
+                    else -> throw IllegalArgumentException("Unsupported field type for JSON conversion: $type")
+                }
+            }
         }
     }
 
