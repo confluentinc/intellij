@@ -7,7 +7,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Thanks for taking the time to tell us about your issue using the Confluent Kafka plugin for JetBrains IDEs!
+        Thanks for taking the time to tell us about your issue using the Confluent plugin for JetBrains IDEs!
 
         Requests for features and improvements to the plugin or documentation should be opened in [discussions](https://github.com/confluentinc/intellij/discussions/new?category=ideas).
 
@@ -43,7 +43,7 @@ body:
   - type: input
     id: plugin_version
     attributes:
-      label: Version of Confluent Kafka plugin
+      label: Version of Confluent plugin
       description: What version of the plugin are you using? (found in Settings > Plugins)
       placeholder: ex. 1.2.3
     validations:

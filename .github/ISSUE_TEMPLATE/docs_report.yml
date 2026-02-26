@@ -1,5 +1,5 @@
 name: 'Report a documentation issue'
-description: Report an issue with the Confluent Kafka plugin documentation.
+description: Report an issue with the Confluent plugin documentation.
 title: 'Docs: '
 labels:
   - 'documentation'
