@@ -18,6 +18,8 @@ import org.apache.avro.generic.GenericDatumWriter
 import org.apache.avro.io.EncoderFactory
 import org.apache.kafka.common.header.internals.RecordHeader
 import org.apache.kafka.common.header.internals.RecordHeaders
+import org.apache.kafka.common.errors.SerializationException
+import org.apache.kafka.common.serialization.VoidDeserializer
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
@@ -301,7 +303,7 @@ class CCloudConsumerClientTest {
         }
 
         @Test
-        fun `should fall back to raw bytes when schema fetch fails`() = runBlocking {
+        fun `should throw when schema fetch fails`() = runBlocking {
             val schemaId = 10
             val wireBytes = buildV0Payload(schemaId, byteArrayOf(1, 2, 3))
             val headers = RecordHeaders()
@@ -309,14 +311,13 @@ class CCloudConsumerClientTest {
             whenever(mockFetcher.getSchemaIdInfo(schemaId))
                 .thenThrow(RuntimeException("Schema Registry unavailable"))
 
-            val result = client.deserializeSchemaEncoded(wireBytes, mockFetcher, headers, isKey = false)
-
-            assertTrue(result is ByteArray, "Expected ByteArray fallback but got ${result::class.simpleName}")
-            assertArrayEquals(wireBytes, result as ByteArray)
+            assertThrows(RuntimeException::class.java) {
+                runBlocking { client.deserializeSchemaEncoded(wireBytes, mockFetcher, headers, isKey = false) }
+            }
         }
 
         @Test
-        fun `should fall back to raw bytes when deserialization fails`() = runBlocking {
+        fun `should throw when deserialization fails`() = runBlocking {
             val schemaId = 11
             // Garbage payload that can't be decoded as Avro
             val wireBytes = buildV0Payload(schemaId, byteArrayOf(0xFF.toByte(), 0xFE.toByte()))
@@ -326,9 +327,9 @@ class CCloudConsumerClientTest {
                 SchemaByIdResponse(schema = avroSchemaJson, schemaType = "AVRO")
             )
 
-            val result = client.deserializeSchemaEncoded(wireBytes, mockFetcher, headers, isKey = false)
-
-            assertTrue(result is ByteArray, "Expected ByteArray fallback but got ${result::class.simpleName}")
+            assertThrows(Exception::class.java) {
+                runBlocking { client.deserializeSchemaEncoded(wireBytes, mockFetcher, headers, isKey = false) }
+            }
         }
     }
 
@@ -412,9 +413,10 @@ class CCloudConsumerClientTest {
         }
 
         @Test
-        fun `should fall back to string for non-numeric LONG`() {
-            val result = client.convertJsonToType(JsonPrimitive("not-a-number"), KafkaFieldType.LONG)
-            assertEquals("not-a-number", result)
+        fun `should throw for non-numeric LONG`() {
+            assertThrows(SerializationException::class.java) {
+                client.convertJsonToType(JsonPrimitive("not-a-number"), KafkaFieldType.LONG)
+            }
         }
 
         @Test
@@ -424,9 +426,10 @@ class CCloudConsumerClientTest {
         }
 
         @Test
-        fun `should fall back to string for non-numeric INTEGER`() {
-            val result = client.convertJsonToType(JsonPrimitive("abc"), KafkaFieldType.INTEGER)
-            assertEquals("abc", result)
+        fun `should throw for non-numeric INTEGER`() {
+            assertThrows(SerializationException::class.java) {
+                client.convertJsonToType(JsonPrimitive("abc"), KafkaFieldType.INTEGER)
+            }
         }
 
         @Test
@@ -450,9 +453,10 @@ class CCloudConsumerClientTest {
         }
 
         @Test
-        fun `should fall back to string for invalid BASE64`() {
-            val result = client.convertJsonToType(JsonPrimitive("not-base64!!!"), KafkaFieldType.BASE64)
-            assertEquals("not-base64!!!", result)
+        fun `should throw for invalid BASE64`() {
+            assertThrows(IllegalArgumentException::class.java) {
+                client.convertJsonToType(JsonPrimitive("not-base64!!!"), KafkaFieldType.BASE64)
+            }
         }
 
         @Test
@@ -481,10 +485,11 @@ class CCloudConsumerClientTest {
         }
 
         @Test
-        fun `should fall back to toString for JsonObject with numeric type`() {
+        fun `should throw for JsonObject with numeric type`() {
             val obj = JsonObject(mapOf("a" to JsonPrimitive(1)))
-            val result = client.convertJsonToType(obj, KafkaFieldType.LONG)
-            assertEquals("""{"a":1}""", result)
+            assertThrows(SerializationException::class.java) {
+                client.convertJsonToType(obj, KafkaFieldType.LONG)
+            }
         }
     }
 
@@ -495,54 +500,65 @@ class CCloudConsumerClientTest {
         @Test
         fun `should read 8-byte big-endian LONG`() {
             val bytes = ByteBuffer.allocate(8).putLong(123456789L).array()
-            val result = client.convertBytesToType(bytes, KafkaFieldType.LONG)
+            val result = client.convertBytesToType(bytes, "test-topic", KafkaFieldType.LONG)
             assertEquals(123456789L, result)
         }
 
         @Test
-        fun `should fall back to UTF-8 string for non-8-byte LONG`() {
+        fun `should throw SerializationException for non-8-byte LONG`() {
+            // Matches native consumer: LongDeserializer throws on wrong byte length
             val bytes = "42".toByteArray()
-            val result = client.convertBytesToType(bytes, KafkaFieldType.LONG)
-            assertEquals("42", result)
+            assertThrows(org.apache.kafka.common.errors.SerializationException::class.java) {
+                client.convertBytesToType(bytes, "test-topic", KafkaFieldType.LONG)
+            }
         }
 
         @Test
         fun `should read 4-byte big-endian INTEGER`() {
             val bytes = ByteBuffer.allocate(4).putInt(42).array()
-            val result = client.convertBytesToType(bytes, KafkaFieldType.INTEGER)
+            val result = client.convertBytesToType(bytes, "test-topic", KafkaFieldType.INTEGER)
             assertEquals(42, result)
         }
 
         @Test
         fun `should read 8-byte DOUBLE`() {
             val bytes = ByteBuffer.allocate(8).putDouble(3.14).array()
-            val result = client.convertBytesToType(bytes, KafkaFieldType.DOUBLE)
+            val result = client.convertBytesToType(bytes, "test-topic", KafkaFieldType.DOUBLE)
             assertEquals(3.14, result)
         }
 
         @Test
         fun `should read 4-byte FLOAT`() {
             val bytes = ByteBuffer.allocate(4).putFloat(2.5f).array()
-            val result = client.convertBytesToType(bytes, KafkaFieldType.FLOAT)
+            val result = client.convertBytesToType(bytes, "test-topic", KafkaFieldType.FLOAT)
             assertEquals(2.5f, result)
         }
 
         @Test
         fun `should return raw bytes for BASE64`() {
             val bytes = byteArrayOf(1, 2, 3)
-            val result = client.convertBytesToType(bytes, KafkaFieldType.BASE64)
+            val result = client.convertBytesToType(bytes, "test-topic", KafkaFieldType.BASE64)
             assertArrayEquals(bytes, result as ByteArray)
         }
 
         @Test
-        fun `should return null for NULL type`() {
-            val result = client.convertBytesToType(byteArrayOf(1, 2), KafkaFieldType.NULL)
+        fun `should return null for NULL type with null data`() {
+            val deserializer = VoidDeserializer()
+            val result = deserializer.deserialize("test-topic", null)
             assertNull(result)
         }
 
         @Test
+        fun `should throw for NULL type with non-null data`() {
+            val bytes = byteArrayOf(1, 2)
+            assertThrows(IllegalArgumentException::class.java) {
+                client.convertBytesToType(bytes, "test-topic", KafkaFieldType.NULL)
+            }
+        }
+
+        @Test
         fun `should return UTF-8 string for STRING type`() {
-            val result = client.convertBytesToType("hello".toByteArray(), KafkaFieldType.STRING)
+            val result = client.convertBytesToType("hello".toByteArray(), "test-topic", KafkaFieldType.STRING)
             assertEquals("hello", result)
         }
     }
@@ -575,7 +591,7 @@ class CCloudConsumerClientTest {
             val avroPayload = encodeAvroPayload(avroSchemaJson, "Alice", 30)
             val wireBytes = buildV0Payload(schemaId, avroPayload)
 
-            val result = client.convertBytesToType(wireBytes, KafkaFieldType.STRING)
+            val result = client.convertBytesToType(wireBytes, "test-topic", KafkaFieldType.STRING)
 
             assertTrue(result is String, "Expected String but got ${result!!::class.simpleName}")
             // No schema deserialization should have occurred

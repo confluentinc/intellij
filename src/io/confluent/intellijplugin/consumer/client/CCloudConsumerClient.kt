@@ -1,6 +1,5 @@
 package io.confluent.intellijplugin.consumer.client
 
-import com.intellij.openapi.diagnostic.thisLogger
 import io.confluent.intellijplugin.ccloud.client.CCloudApiException
 import io.confluent.intellijplugin.ccloud.fetcher.DataPlaneFetcher
 import io.confluent.intellijplugin.ccloud.model.response.ConsumeRecordsRequest
@@ -42,6 +41,8 @@ import org.apache.kafka.common.header.internals.RecordHeaders
 import org.apache.kafka.common.record.TimestampType
 import com.google.protobuf.DynamicMessage
 import io.confluent.kafka.schemaregistry.ParsedSchema
+import org.apache.kafka.common.errors.SerializationException
+import org.apache.kafka.common.serialization.*
 import org.jetbrains.annotations.VisibleForTesting
 import java.nio.ByteBuffer
 import java.util.Base64
@@ -85,6 +86,10 @@ class CCloudConsumerClient(
     @VisibleForTesting
     internal var currentValueConfig: ConsumerProducerFieldConfig? = null
 
+    // Cached deserializers for the current session — created once in start(), reused for all records
+    private var keyDeserializer: Deserializer<*>? = null
+    private var valueDeserializer: Deserializer<*>? = null
+
     override fun start(
         config: StorageConsumerConfig,
         valueConfig: ConsumerProducerFieldConfig,
@@ -99,6 +104,8 @@ class CCloudConsumerClient(
         schemaCache.clear()
         currentKeyConfig = keyConfig
         currentValueConfig = valueConfig
+        keyDeserializer = createDeserializer(keyConfig.type)
+        valueDeserializer = createDeserializer(valueConfig.type)
 
         // Create a new independent scope for this consumption session
         // Using Dispatchers.IO for network operations
@@ -159,10 +166,15 @@ class CCloudConsumerClient(
 
                 updateNextOffsets(response)
 
-                // Flatten all records from all partitions
+                // Flatten all records from all partitions, skipping records with deserialization errors
                 val allRecords = response.partitionDataList.flatMap { partitionData ->
-                    partitionData.records.map { record ->
-                        convertToConsumerRecord(record, topicName, fetcher)
+                    partitionData.records.mapNotNull { record ->
+                        try {
+                            convertToConsumerRecord(record, topicName, fetcher)
+                        } catch (e: Exception) {
+                            consumeError(e, record.partitionId, record.offset)
+                            null
+                        }
                     }
                 }
 
@@ -401,8 +413,8 @@ class CCloudConsumerClient(
             }
         )
 
-        val key = extractValue(record.key, fetcher, headers, isKey = true)
-        val value = extractValue(record.value, fetcher, headers, isKey = false)
+        val key = extractValue(record.key, topic, fetcher, headers, isKey = true)
+        val value = extractValue(record.value, topic, fetcher, headers, isKey = false)
 
         val timestampType = when (record.timestampType) {
             ApiTimestampType.NO_TIMESTAMP_TYPE -> TimestampType.NO_TIMESTAMP_TYPE
@@ -472,6 +484,7 @@ class CCloudConsumerClient(
      */
     private suspend fun extractValue(
         element: JsonElement?,
+        topic: String,
         fetcher: DataPlaneFetcher,
         headers: RecordHeaders,
         isKey: Boolean
@@ -486,11 +499,7 @@ class CCloudConsumerClient(
         // Binary values from REST API: {"__raw__": "base64-encoded-bytes"}
         if (element is JsonObject && element.containsKey("__raw__")) {
             val rawValue = element["__raw__"]?.jsonPrimitive?.content ?: return null
-            val bytes = try {
-                Base64.getDecoder().decode(rawValue)
-            } catch (e: Exception) {
-                return rawValue
-            }
+            val bytes = Base64.getDecoder().decode(rawValue)
 
             // Only deserialize via schema when user selected SCHEMA_REGISTRY
             if (fieldType == KafkaFieldType.SCHEMA_REGISTRY) {
@@ -498,7 +507,7 @@ class CCloudConsumerClient(
             }
 
             // For other types, convert raw bytes like native deserializers would
-            return convertBytesToType(bytes, fieldType)
+            return convertBytesToType(bytes, topic, fieldType)
         }
 
         // Plain JSON values (non-binary): convert based on selected type
@@ -506,45 +515,57 @@ class CCloudConsumerClient(
     }
 
     /**
-     * Convert raw bytes to the selected type, mirroring native Kafka deserializers.
+     * Create a Kafka deserializer for the given field type.
+     * Called once per session in start() — the instance is reused for all records.
+     */
+    private fun createDeserializer(type: KafkaFieldType): Deserializer<*> = when (type) {
+        KafkaFieldType.STRING, KafkaFieldType.JSON -> StringDeserializer()
+        KafkaFieldType.LONG -> LongDeserializer()
+        KafkaFieldType.INTEGER -> IntegerDeserializer()
+        KafkaFieldType.DOUBLE -> DoubleDeserializer()
+        KafkaFieldType.FLOAT -> FloatDeserializer()
+        KafkaFieldType.BASE64 -> ByteArrayDeserializer()
+        KafkaFieldType.NULL -> VoidDeserializer()
+        else -> throw IllegalArgumentException("Unsupported field type for byte deserialization: $type")
+    }
+
+    /**
+     * Convert raw bytes to the selected type using the cached Kafka deserializer.
      */
     @VisibleForTesting
-    internal fun convertBytesToType(bytes: ByteArray, type: KafkaFieldType): Any? {
-        return when (type) {
-            KafkaFieldType.NULL -> null
-            KafkaFieldType.BASE64 -> bytes
-            KafkaFieldType.LONG -> if (bytes.size == 8) ByteBuffer.wrap(bytes).getLong()
-                                   else String(bytes, Charsets.UTF_8)
-            KafkaFieldType.INTEGER -> if (bytes.size == 4) ByteBuffer.wrap(bytes).getInt()
-                                      else String(bytes, Charsets.UTF_8)
-            KafkaFieldType.DOUBLE -> if (bytes.size == 8) ByteBuffer.wrap(bytes).getDouble()
-                                     else String(bytes, Charsets.UTF_8)
-            KafkaFieldType.FLOAT -> if (bytes.size == 4) ByteBuffer.wrap(bytes).getFloat()
-                                    else String(bytes, Charsets.UTF_8)
-            // STRING, JSON, and all other types: treat bytes as UTF-8
-            else -> String(bytes, Charsets.UTF_8)
-        }
+    internal fun convertBytesToType(bytes: ByteArray, topic: String, type: KafkaFieldType): Any? {
+        val deserializer = when (type) {
+            currentKeyConfig?.type -> keyDeserializer
+            currentValueConfig?.type -> valueDeserializer
+            else -> null
+        } ?: createDeserializer(type)
+
+        return deserializer.deserialize(topic, bytes)
     }
 
     /**
      * Convert a JSON element to the appropriate Kotlin type based on the selected [KafkaFieldType].
-     * Uses safe `toXxxOrNull()` conversions, non-numeric strings fall back to string representation.
+     * Throws [SerializationException] if the value cannot be converted to the requested type
      */
     @VisibleForTesting
     internal fun convertJsonToType(element: JsonElement, type: KafkaFieldType): Any? {
         if (element is JsonNull) return null
         val content = (element as? JsonPrimitive)?.content
+            ?: throw SerializationException("Cannot convert ${element::class.simpleName} to $type")
         return when (type) {
             KafkaFieldType.NULL -> null
-            KafkaFieldType.LONG -> content?.toLongOrNull() ?: content ?: element.toString()
-            KafkaFieldType.INTEGER -> content?.toIntOrNull() ?: content ?: element.toString()
-            KafkaFieldType.DOUBLE -> content?.toDoubleOrNull() ?: content ?: element.toString()
-            KafkaFieldType.FLOAT -> content?.toFloatOrNull() ?: content ?: element.toString()
-            KafkaFieldType.BASE64 -> if (content != null) try {
-                Base64.getDecoder().decode(content)
-            } catch (e: IllegalArgumentException) { content } else element.toString()
+            KafkaFieldType.LONG -> content.toLongOrNull()
+                ?: throw SerializationException("Cannot convert '$content' to LONG")
+            KafkaFieldType.INTEGER -> content.toIntOrNull()
+                ?: throw SerializationException("Cannot convert '$content' to INTEGER")
+            KafkaFieldType.DOUBLE -> content.toDoubleOrNull()
+                ?: throw SerializationException("Cannot convert '$content' to DOUBLE")
+            KafkaFieldType.FLOAT -> content.toFloatOrNull()
+                ?: throw SerializationException("Cannot convert '$content' to FLOAT")
+            KafkaFieldType.BASE64 -> Base64.getDecoder().decode(content)
             KafkaFieldType.JSON -> element.toString()
-            else -> content ?: element.toString() // STRING and fallback
+            KafkaFieldType.STRING -> content
+            else -> throw IllegalArgumentException("Unsupported field type for JSON conversion: $type")
         }
     }
 
@@ -572,32 +593,22 @@ class CCloudConsumerClient(
 
         if (schemaGuid == null && schemaId == null) return bytes
 
-        val parsedSchema = try {
-            val cacheKey = schemaGuid?.toString() ?: schemaId.toString()
-            fetchAndParseSchema(cacheKey) {
-                if (schemaGuid != null) {
-                    fetcher.getSchemaByGuid(schemaGuid.toString())
-                } else {
-                    fetcher.getSchemaIdInfo(schemaId!!)
-                }
+        val cacheKey = schemaGuid?.toString() ?: schemaId.toString()
+        val parsedSchema = fetchAndParseSchema(cacheKey) {
+            if (schemaGuid != null) {
+                fetcher.getSchemaByGuid(schemaGuid.toString())
+            } else {
+                fetcher.getSchemaIdInfo(schemaId!!)
             }
-        } catch (e: Exception) {
-            thisLogger().warn("Failed to fetch/parse schema", e)
-            return bytes
-        } ?: return bytes
+        } ?: throw SerializationException("Failed to parse schema for key=$cacheKey")
 
-        return try {
-            // V0: strip 5-byte header (magic + schema ID). V1: payload has no prefix.
-            val payloadBytes = if (schemaGuid != null) bytes else bytes.copyOfRange(5, bytes.size)
-            when (parsedSchema) {
-                is AvroSchema -> deserializeAvro(payloadBytes, parsedSchema)
-                is ProtobufSchema -> deserializeProtobuf(payloadBytes, parsedSchema)
-                is JsonSchema -> String(payloadBytes, Charsets.UTF_8)
-                else -> bytes
-            }
-        } catch (e: Exception) {
-            thisLogger().warn("Failed to deserialize", e)
-            bytes
+        // V0: strip 5-byte header (magic + schema ID). V1: payload has no prefix.
+        val payloadBytes = if (schemaGuid != null) bytes else bytes.copyOfRange(5, bytes.size)
+        return when (parsedSchema) {
+            is AvroSchema -> deserializeAvro(payloadBytes, parsedSchema)
+            is ProtobufSchema -> deserializeProtobuf(payloadBytes, parsedSchema)
+            is JsonSchema -> String(payloadBytes, Charsets.UTF_8)
+            else -> throw SerializationException("Unsupported schema type: ${parsedSchema.schemaType()}")
         }
     }
 
@@ -693,6 +704,8 @@ class CCloudConsumerClient(
         pollingJob = null
         currentKeyConfig = null
         currentValueConfig = null
+        keyDeserializer = null
+        valueDeserializer = null
     }
 
     override fun isRunning(): Boolean = running.get()
