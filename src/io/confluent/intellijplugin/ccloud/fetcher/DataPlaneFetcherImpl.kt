@@ -148,6 +148,14 @@ class DataPlaneFetcherImpl(
         }
     }
 
+    override suspend fun getSchemaByGuid(guid: String): SchemaByIdResponse {
+        requireSchemaRegistry()
+        val path = String.format(CloudConfig.DataPlane.SchemaRegistry.SCHEMA_BY_GUID_URI, guid)
+        return schemaRegistryClient!!.fetch(path) { body ->
+            json.decodeFromString<SchemaByIdResponse>(body)
+        }
+    }
+
     override suspend fun getTopicMessageCount(topicName: String): Long {
         val path = "/kafka/v3/clusters/$clusterId/internal/topics/$topicName/partitions/-/records:offsets"
         return kafkaClient.fetch(path) { body ->
