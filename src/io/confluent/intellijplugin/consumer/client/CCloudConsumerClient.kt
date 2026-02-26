@@ -104,8 +104,8 @@ class CCloudConsumerClient(
         schemaCache.clear()
         currentKeyConfig = keyConfig
         currentValueConfig = valueConfig
-        keyDeserializer = createDeserializer(keyConfig.type)
-        valueDeserializer = createDeserializer(valueConfig.type)
+        keyDeserializer = createDeserializerOrNull(keyConfig.type)
+        valueDeserializer = createDeserializerOrNull(valueConfig.type)
 
         // Create a new independent scope for this consumption session
         // Using Dispatchers.IO for network operations
@@ -506,7 +506,7 @@ class CCloudConsumerClient(
                 return deserializeSchemaEncoded(bytes, fetcher, headers, isKey)
             }
 
-            // For other types, convert raw bytes like native deserializers would
+            // For other types, convert raw bytes
             return convertBytesToType(bytes, topic, fieldType)
         }
 
@@ -515,8 +515,8 @@ class CCloudConsumerClient(
     }
 
     /**
-     * Create a Kafka deserializer for the given field type.
-     * Called once per session in start() — the instance is reused for all records.
+     * Create a Kafka deserializer for the given primitive field type.
+     * Throws for schema types, those are handled by [deserializeSchemaEncoded].
      */
     private fun createDeserializer(type: KafkaFieldType): Deserializer<*> = when (type) {
         KafkaFieldType.STRING, KafkaFieldType.JSON -> StringDeserializer()
@@ -530,7 +530,17 @@ class CCloudConsumerClient(
     }
 
     /**
+     * Create a deserializer if the type is a primitive type, null for schema types.
+     * Used in [start] to cache deserializers, schema types use [deserializeSchemaEncoded] instead.
+     */
+    private fun createDeserializerOrNull(type: KafkaFieldType): Deserializer<*>? = when (type) {
+        KafkaFieldType.SCHEMA_REGISTRY, KafkaFieldType.PROTOBUF_CUSTOM, KafkaFieldType.AVRO_CUSTOM -> null
+        else -> createDeserializer(type)
+    }
+
+    /**
      * Convert raw bytes to the selected type using the cached Kafka deserializer.
+     * Should never be called with schema types — [extractValue] routes those to [deserializeSchemaEncoded].
      */
     @VisibleForTesting
     internal fun convertBytesToType(bytes: ByteArray, topic: String, type: KafkaFieldType): Any? {
@@ -676,7 +686,7 @@ class CCloudConsumerClient(
         val messageName = schema.toMessageName(indexes)
         val descriptor = schema.toDescriptor(messageName)
             ?: schema.toDescriptor()
-            ?: throw org.apache.kafka.common.errors.SerializationException(
+            ?: throw SerializationException(
                 "No descriptor for ${schema.name()}"
             )
         // Read remaining bytes after message indexes
