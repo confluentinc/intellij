@@ -1,6 +1,5 @@
 name: 'Report a bug'
 description: Report a bug with the Confluent plugin for JetBrains IDEs.
-type: Bug
 labels:
   - 'needs triage'
 body:
