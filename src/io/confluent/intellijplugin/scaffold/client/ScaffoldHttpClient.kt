@@ -18,8 +18,8 @@ import java.time.format.DateTimeFormatter
  * No authentication required for public endpoints
  *
  * Environment can be configured via:
- * - System property: -Dscaffold.api.env=[prod|stag|devel] (default: prod)
- * - Direct URL override: -Dscaffold.api.base-url=<url>
+ * - System property: -Dconfluent.intellijplugin.scaffold.api.env=[prod|stag|devel] (default: prod)
+ * - Direct URL override: -Dconfluent.intellijplugin.scaffold.api.base-url=<url>
  */
 class ScaffoldHttpClient(
     private val baseUrl: String = DEFAULT_BASE_URL,
@@ -35,7 +35,7 @@ class ScaffoldHttpClient(
             PROD, STAG, DEVEL
         }
 
-        private val envProperty: String = System.getProperty("scaffold.api.env") ?: "prod"
+        private val envProperty: String = System.getProperty("confluent.intellijplugin.scaffold.api.env") ?: "prod"
 
         private val env: ScaffoldEnv = when (envProperty) {
             "prod" -> ScaffoldEnv.PROD
@@ -51,7 +51,7 @@ class ScaffoldHttpClient(
         }
 
         val DEFAULT_BASE_URL: String
-            get() = System.getProperty("scaffold.api.base-url") ?: "https://api.$basePath"
+            get() = System.getProperty("confluent.intellijplugin.scaffold.api.base-url") ?: "https://api.$basePath"
 
         // Custom adapter for OffsetDateTime (RFC3339 format)
         private object OffsetDateTimeAdapter : JsonAdapter<OffsetDateTime>() {
