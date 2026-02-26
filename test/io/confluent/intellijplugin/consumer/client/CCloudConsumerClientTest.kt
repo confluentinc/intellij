@@ -16,6 +16,7 @@ import org.apache.avro.Schema
 import org.apache.avro.generic.GenericData
 import org.apache.avro.generic.GenericDatumWriter
 import org.apache.avro.io.EncoderFactory
+import io.confluent.kafka.serializers.schema.id.SchemaId
 import org.apache.kafka.common.header.internals.RecordHeader
 import org.apache.kafka.common.header.internals.RecordHeaders
 import org.apache.kafka.common.errors.SerializationException
@@ -132,7 +133,7 @@ class CCloudConsumerClientTest {
         fun `should extract UUID from value schema header`() {
             val guid = UUID.randomUUID()
             val headers = RecordHeaders(listOf(
-                RecordHeader("confluent.value.schemaId", buildV1HeaderValue(guid))
+                RecordHeader(SchemaId.VALUE_SCHEMA_ID_HEADER, buildV1HeaderValue(guid))
             ))
             val result = client.getSchemaGuidFromHeaders(headers, isKey = false)
             assertEquals(guid, result)
@@ -142,7 +143,7 @@ class CCloudConsumerClientTest {
         fun `should extract UUID from key schema header`() {
             val guid = UUID.randomUUID()
             val headers = RecordHeaders(listOf(
-                RecordHeader("confluent.key.schemaId", buildV1HeaderValue(guid))
+                RecordHeader(SchemaId.KEY_SCHEMA_ID_HEADER, buildV1HeaderValue(guid))
             ))
             val result = client.getSchemaGuidFromHeaders(headers, isKey = true)
             assertEquals(guid, result)
@@ -158,7 +159,7 @@ class CCloudConsumerClientTest {
         @Test
         fun `should return null when header value is too short`() {
             val headers = RecordHeaders(listOf(
-                RecordHeader("confluent.value.schemaId", byteArrayOf(0x01, 0x02))
+                RecordHeader(SchemaId.VALUE_SCHEMA_ID_HEADER, byteArrayOf(0x01, 0x02))
             ))
             val result = client.getSchemaGuidFromHeaders(headers, isKey = false)
             assertNull(result)
@@ -171,7 +172,7 @@ class CCloudConsumerClientTest {
             buffer.putLong(0L)
             buffer.putLong(0L)
             val headers = RecordHeaders(listOf(
-                RecordHeader("confluent.value.schemaId", buffer.array())
+                RecordHeader(SchemaId.VALUE_SCHEMA_ID_HEADER, buffer.array())
             ))
             val result = client.getSchemaGuidFromHeaders(headers, isKey = false)
             assertNull(result)
@@ -207,7 +208,7 @@ class CCloudConsumerClientTest {
             val avroPayload = encodeAvroPayload(avroSchemaJson, "Bob", 25)
             // V1: no prefix on payload, schema ID in header
             val headers = RecordHeaders(listOf(
-                RecordHeader("confluent.value.schemaId", buildV1HeaderValue(guid))
+                RecordHeader(SchemaId.VALUE_SCHEMA_ID_HEADER, buildV1HeaderValue(guid))
             ))
 
             whenever(mockFetcher.getSchemaByGuid(guid.toString())).thenReturn(
@@ -276,7 +277,7 @@ class CCloudConsumerClientTest {
 
             // Header has V1 GUID
             val headers = RecordHeaders(listOf(
-                RecordHeader("confluent.value.schemaId", buildV1HeaderValue(guid))
+                RecordHeader(SchemaId.VALUE_SCHEMA_ID_HEADER, buildV1HeaderValue(guid))
             ))
 
             whenever(mockFetcher.getSchemaByGuid(guid.toString())).thenReturn(
@@ -367,7 +368,7 @@ class CCloudConsumerClientTest {
             val rawHeaderValue = buildV1HeaderValue(guid)
 
             val headers = RecordHeaders(listOf(
-                RecordHeader("confluent.value.schemaId", rawHeaderValue)
+                RecordHeader(SchemaId.VALUE_SCHEMA_ID_HEADER, rawHeaderValue)
             ))
 
             val result = client.getSchemaGuidFromHeaders(headers, isKey = false)
@@ -380,8 +381,8 @@ class CCloudConsumerClientTest {
             val valueGuid = UUID.randomUUID()
 
             val headers = RecordHeaders(listOf(
-                RecordHeader("confluent.key.schemaId", buildV1HeaderValue(keyGuid)),
-                RecordHeader("confluent.value.schemaId", buildV1HeaderValue(valueGuid))
+                RecordHeader(SchemaId.KEY_SCHEMA_ID_HEADER, buildV1HeaderValue(keyGuid)),
+                RecordHeader(SchemaId.VALUE_SCHEMA_ID_HEADER, buildV1HeaderValue(valueGuid))
             ))
 
             assertEquals(keyGuid, client.getSchemaGuidFromHeaders(headers, isKey = true))
