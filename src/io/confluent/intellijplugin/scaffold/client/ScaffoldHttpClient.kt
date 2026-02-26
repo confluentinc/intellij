@@ -102,12 +102,11 @@ class ScaffoldHttpClient(
     /**
      * Fetches templates from a specific template collection.
      *
-     * @param collectionName The name of the template collection (default: "vscode")
+     * @param collectionName The name of the template collection (default: "intellij")
      * @return List of templates in the collection
      * @throws HttpRequests.HttpStatusException if the server returns 4xx or 5xx status
-     * TODO: update param from "vscode" default to intellij
      */
-    suspend fun fetchTemplates(collectionName: String = "vscode"): Scaffoldv1TemplateList =
+    suspend fun fetchTemplates(collectionName: String = "intellij"): Scaffoldv1TemplateList =
         withContext(Dispatchers.IO) {
             val url = "$baseUrl/scaffold/v1/template-collections/$collectionName/templates"
             thisLogger().debug("Fetching from URL: $url")
