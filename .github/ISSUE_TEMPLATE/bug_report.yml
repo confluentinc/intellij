@@ -9,8 +9,6 @@ body:
       value: |
         Thanks for taking the time to tell us about your issue using the Confluent plugin for JetBrains IDEs!
 
-        Requests for features and improvements to the plugin or documentation should be opened in [discussions](https://github.com/confluentinc/intellij/discussions/new?category=ideas).
-
         Before opening a new issue, please do a [search](https://github.com/confluentinc/intellij/issues) of existing issues and :+1: upvote the existing issue instead. This will result in a quicker resolution.
   - type: checkboxes
     id: terms

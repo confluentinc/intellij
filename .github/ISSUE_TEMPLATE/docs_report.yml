@@ -10,7 +10,7 @@ body:
       value: |
         Before opening a new documentation issue, is this something you can help us with? Your contributions are welcomed and appreciated.
 
-        If you are reporting a documentation request rather than a bug, please open it in our [discussions](https://github.com/confluentinc/intellij/discussions/new?category=ideas) instead.
+        If you are reporting a documentation request rather than a bug, please open a [feature request issue](https://github.com/confluentinc/intellij/issues/new/choose) instead.
   - type: markdown
     attributes:
       value: Thank you for helping us update our docs!

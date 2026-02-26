@@ -1,0 +1,63 @@
+name: 'Feature request'
+description: Request a new feature or improvement for the Confluent plugin for JetBrains IDEs.
+title: 'Feature: '
+labels:
+  - 'enhancement'
+  - 'needs triage'
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before opening a new feature request, please do a [search](https://github.com/confluentinc/intellij/issues) of existing issues and :+1: upvote the existing issue instead. This will result in a quicker resolution.
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Code of Conduct
+      description: By submitting this issue, you agree to follow our [Code of Conduct](https://github.com/confluentinc/intellij/blob/main/CODE_OF_CONDUCT.md).
+      options:
+        - label: I agree to follow this project's Code of Conduct
+          required: true
+  - type: textarea
+    attributes:
+      label: Describe the feature
+      description: A clear and concise description of the feature or improvement you'd like.
+      placeholder: I would like the plugin to support...
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Problem it solves
+      description: What problem or limitation does this address? What is your use case?
+      placeholder: Currently, I have to... which makes it difficult to...
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Proposed solution
+      description: If you have ideas on how this could be implemented, describe them here.
+    validations:
+      required: false
+  - type: dropdown
+    attributes:
+      label: Which area(s) would this affect? (Select all that apply)
+      multiple: true
+      options:
+        - 'Not sure'
+        - 'Installation'
+        - 'Connections'
+        - 'Confluent Cloud'
+        - 'Confluent Platform'
+        - 'Topics'
+        - 'Schemas'
+        - 'Messages / Consumer'
+        - 'Producer'
+        - 'Schema Registry'
+        - 'AWS / MSK'
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Additional context
+      description: Any other context, screenshots, or references that might help.
+    validations:
+      required: false
