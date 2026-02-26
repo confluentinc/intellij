@@ -1,0 +1,103 @@
+name: 'Report a bug'
+description: Report a bug with the Confluent Kafka plugin for JetBrains IDEs.
+type: Bug
+labels:
+  - 'needs triage'
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to tell us about your issue using the Confluent plugin for JetBrains IDEs!
+
+        Requests for features and improvements to the plugin or documentation should be opened in [discussions](https://github.com/confluentinc/intellij/discussions/new?category=ideas).
+
+        Before opening a new issue, please do a [search](https://github.com/confluentinc/intellij/issues) of existing issues and :+1: upvote the existing issue instead. This will result in a quicker resolution.
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Code of Conduct
+      description: By submitting this issue, you agree to follow our [Code of Conduct](https://github.com/confluentinc/intellij/blob/main/CODE_OF_CONDUCT.md).
+      options:
+        - label: I agree to follow this project's Code of Conduct
+          required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: On what operating system are you seeing the problem?
+      multiple: true
+      options:
+        - macOS (Intel/x64)
+        - macOS (Apple/arm64)
+        - Linux (x64)
+        - Linux (arm64)
+        - Windows (x64)
+        - Other
+  - type: textarea
+    id: ide_version
+    attributes:
+      label: IDE version
+      description: What JetBrains IDE and version are you using? (e.g. IntelliJ IDEA 2025.1)
+      placeholder: Copy from 'Help > About' and paste here
+    validations:
+      required: true
+  - type: input
+    id: plugin_version
+    attributes:
+      label: Version of Confluent plugin
+      description: What version of the plugin are you using? (found in Settings > Plugins)
+      placeholder: ex. 1.2.3
+    validations:
+      required: false
+  - type: textarea
+    attributes:
+      label: To Reproduce
+      description: A step-by-step description of how to reproduce the issue. Screenshots can be provided in the issue body below.
+      placeholder: |
+        1.
+        2. Click X
+        3. Y will happen
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Current vs. Expected behavior
+      description: A clear and concise description of what the bug is, and what you expected to happen.
+      placeholder: 'Following the steps from the previous section, I expected A to happen, but I observed B instead'
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant log output
+      description: |
+        Please copy and paste any relevant log output. This will be automatically formatted into code, so no need for backticks. (You can find IDE logs via Help > Show Log in Files/Explorer.)
+      render: shell
+  - type: dropdown
+    attributes:
+      label: Which area(s) are affected? (Select all that apply)
+      multiple: true
+      options:
+        - 'Not sure'
+        - 'Installation'
+        - 'Connections'
+        - 'Confluent Cloud'
+        - 'Confluent Platform'
+        - 'Topics'
+        - 'Schemas'
+        - 'Messages / Consumer'
+        - 'Producer'
+        - 'Schema Registry'
+        - 'AWS / MSK'
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Additional context
+      description: |
+        Any extra information that might help us investigate. Does the issue happen repeatedly? Are you able to log into Confluent Cloud?
+      placeholder: |
+        Yes, the issue happens (almost) every time I perform the steps above.
+
+        or
+
+        No, the issue is intermittent.
