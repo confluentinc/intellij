@@ -13,7 +13,6 @@ import io.confluent.intellijplugin.client.KafkaConstants
 import io.confluent.intellijplugin.common.models.RegistrySchemaInEditor
 import io.confluent.intellijplugin.core.monitoring.data.storage.ObjectDataModelStorage
 import io.confluent.intellijplugin.core.monitoring.data.storage.RootDataModelStorage
-import io.confluent.intellijplugin.core.util.invokeLater
 import io.confluent.intellijplugin.model.BdtTopicPartition
 import io.confluent.intellijplugin.model.ConsumerGroupOffsetInfo
 import io.confluent.intellijplugin.model.ConsumerGroupPresentable
@@ -65,7 +64,8 @@ class CCloudClusterDataManager(
         get() = orgManager.client
 
     override val registryType: KafkaRegistryType
-        get() = KafkaRegistryType.NONE
+        get() = if (dataPlaneCache.hasSchemaRegistry()) KafkaRegistryType.CONFLUENT
+                else KafkaRegistryType.NONE
 
     init {
         RootDataModelStorage(updater, listOf(topicModel)).also { Disposer.register(this, it) }
