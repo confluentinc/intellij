@@ -7,11 +7,18 @@ import io.confluent.intellijplugin.ccloud.model.response.ConsumeRecordsResponse
 import io.confluent.intellijplugin.ccloud.model.response.PartitionConsumeRecord
 import io.confluent.intellijplugin.ccloud.model.response.PartitionOffset
 import io.confluent.intellijplugin.ccloud.model.response.TimestampType as ApiTimestampType
+import io.confluent.intellijplugin.common.models.KafkaFieldType
 import io.confluent.intellijplugin.common.settings.StorageConsumerConfig
 import io.confluent.intellijplugin.consumer.models.ConsumerProducerFieldConfig
 import io.confluent.intellijplugin.consumer.models.ConsumerStartType
 import io.confluent.intellijplugin.data.CCloudClusterDataManager
+import io.confluent.intellijplugin.registry.KafkaRegistryFormat
+import io.confluent.intellijplugin.registry.KafkaRegistryUtil
 import io.confluent.intellijplugin.util.KafkaOffsetUtils
+import io.confluent.kafka.schemaregistry.avro.AvroSchema
+import io.confluent.kafka.schemaregistry.json.JsonSchema
+import io.confluent.kafka.schemaregistry.protobuf.MessageIndexes
+import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchema
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -26,11 +33,21 @@ import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonPrimitive
+import org.apache.avro.generic.GenericDatumReader
+import org.apache.avro.io.DecoderFactory
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.common.header.internals.RecordHeader
 import org.apache.kafka.common.header.internals.RecordHeaders
 import org.apache.kafka.common.record.TimestampType
+import com.google.protobuf.DynamicMessage
+import io.confluent.kafka.schemaregistry.ParsedSchema
+import org.apache.kafka.common.errors.SerializationException
+import org.apache.kafka.common.serialization.*
+import org.jetbrains.annotations.VisibleForTesting
+import java.nio.ByteBuffer
 import java.util.Base64
+import java.util.UUID
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.math.max
 import kotlin.math.min
@@ -61,6 +78,18 @@ class CCloudConsumerClient(
     // Track next offsets per partition for subsequent requests
     private val nextOffsets = mutableMapOf<Int, Long>()
 
+    // Cache parsed schemas by schema ID or GUID string to avoid redundant fetches
+    private val schemaCache = ConcurrentHashMap<String, ParsedSchema?>()
+
+    @VisibleForTesting
+    internal var currentKeyConfig: ConsumerProducerFieldConfig? = null
+    @VisibleForTesting
+    internal var currentValueConfig: ConsumerProducerFieldConfig? = null
+
+    // Cached deserializers for the current session — created once in start(), reused for all records
+    private var keyDeserializer: Deserializer<*>? = null
+    private var valueDeserializer: Deserializer<*>? = null
+
     override fun start(
         config: StorageConsumerConfig,
         valueConfig: ConsumerProducerFieldConfig,
@@ -72,6 +101,11 @@ class CCloudConsumerClient(
         running.set(true)
         onStart()
         nextOffsets.clear()
+        schemaCache.clear()
+        currentKeyConfig = keyConfig
+        currentValueConfig = valueConfig
+        keyDeserializer = createDeserializerOrNull(keyConfig.type)
+        valueDeserializer = createDeserializerOrNull(valueConfig.type)
 
         // Create a new independent scope for this consumption session
         // Using Dispatchers.IO for network operations
@@ -130,13 +164,17 @@ class CCloudConsumerClient(
 
                 timestampUpdate()
 
-                // Update next offsets from response
                 updateNextOffsets(response)
 
-                // Flatten all records from all partitions
+                // Flatten all records from all partitions, skipping records with deserialization errors
                 val allRecords = response.partitionDataList.flatMap { partitionData ->
-                    partitionData.records.map { record ->
-                        convertToConsumerRecord(record, topicName)
+                    partitionData.records.mapNotNull { record ->
+                        try {
+                            convertToConsumerRecord(record, topicName, fetcher)
+                        } catch (e: Exception) {
+                            consumeError(e, record.partitionId, record.offset)
+                            null
+                        }
                     }
                 }
 
@@ -274,7 +312,7 @@ class CCloudConsumerClient(
             )
 
             ConsumerStartType.OFFSET -> {
-                // Offset is relative to beginning offset (user enters 10 → start from beginningOffset + 10)
+                // Offset is relative to beginning offset (user enters 10 -> start from beginningOffset + 10)
                 val offset = startsWith.offset ?: 0L
                 val beginningOffsets = fetcher.getTopicBeginningOffsets(topicName)
                 ConsumeRecordsRequest(
@@ -286,7 +324,7 @@ class CCloudConsumerClient(
             }
 
             ConsumerStartType.LATEST_OFFSET_MINUS_X -> {
-                // Offset is already negative from ConsumerEditorUtils (user enters 10 → offset = -10)
+                // Offset is already negative from ConsumerEditorUtils (user enters 10 -> offset = -10)
                 // So endOffset + offset = endOffset + (-10) = endOffset - 10
                 val offset = startsWith.offset ?: 0L
                 val endOffsets = fetcher.getTopicEndOffsets(topicName)
@@ -357,18 +395,26 @@ class CCloudConsumerClient(
         }
     }
 
-    private fun convertToConsumerRecord(
+    private suspend fun convertToConsumerRecord(
         record: PartitionConsumeRecord,
-        topic: String
+        topic: String,
+        fetcher: DataPlaneFetcher
     ): ConsumerRecord<Any, Any> {
-        val key = extractValue(record.key)
-        val value = extractValue(record.value)
-
+        // Decode headers FIRST, Cloud REST API returns header values as base64-encoded strings.
+        // Must decode to byte[] (not UTF-8 string) so schema GUIDs in headers can be detected.
         val headers = RecordHeaders(
             record.headers.map { header ->
-                RecordHeader(header.key, header.value.toByteArray())
+                val decodedValue = try {
+                    Base64.getDecoder().decode(header.value)
+                } catch (e: IllegalArgumentException) {
+                    header.value.toByteArray()
+                }
+                RecordHeader(header.key, decodedValue)
             }
         )
+
+        val key = extractValue(record.key, topic, fetcher, headers, isKey = true)
+        val value = extractValue(record.value, topic, fetcher, headers, isKey = false)
 
         val timestampType = when (record.timestampType) {
             ApiTimestampType.NO_TIMESTAMP_TYPE -> TimestampType.NO_TIMESTAMP_TYPE
@@ -428,36 +474,229 @@ class CCloudConsumerClient(
     }
 
     /**
-     * Extract value from JSON element.
-     * Handles both plain values and schema-encoded values ({"__raw__": "base64"}).
+     * Extract value from JSON element with type-aware conversion.
+     *
+     * Mirrors the native consumer's selector behavior:
+     * - The user's dropdown selection (STRING, LONG, SCHEMA_REGISTRY, etc.) determines
+     *   how data is interpreted, just like how native consumer picks a Deserializer.
+     * - SCHEMA_REGISTRY → full schema-aware deserialization (Avro/Protobuf/JSON Schema)
+     * - Other types → decode raw bytes and convert to the selected primitive type
      */
-    private fun extractValue(element: JsonElement?): Any? {
+    private suspend fun extractValue(
+        element: JsonElement?,
+        topic: String,
+        fetcher: DataPlaneFetcher,
+        headers: RecordHeaders,
+        isKey: Boolean
+    ): Any? {
         if (element == null || element is JsonNull) {
             return null
         }
 
-        // Check if it's a schema-encoded value
+        val fieldType = (if (isKey) currentKeyConfig else currentValueConfig)?.type
+            ?: KafkaFieldType.STRING
+
+        // Binary values from REST API: {"__raw__": "base64-encoded-bytes"}
         if (element is JsonObject && element.containsKey("__raw__")) {
-            val rawValue = element["__raw__"]?.jsonPrimitive?.content
-            return if (rawValue != null) {
-                try {
-                    Base64.getDecoder().decode(rawValue)
-                } catch (e: Exception) {
-                    rawValue
-                }
-            } else {
-                null
+            val rawValue = element["__raw__"]?.jsonPrimitive?.content ?: return null
+            val bytes = Base64.getDecoder().decode(rawValue)
+
+            // Only deserialize via schema when user selected SCHEMA_REGISTRY
+            if (fieldType == KafkaFieldType.SCHEMA_REGISTRY) {
+                return deserializeSchemaEncoded(bytes, fetcher, headers, isKey)
             }
+
+            // For other types, convert raw bytes
+            return convertBytesToType(bytes, topic, fieldType)
         }
 
-        // Plain JSON value - convert to string representation
-        return when (element) {
-            is JsonPrimitive -> {
-                if (element.isString) element.content
-                else element.content
+        // Plain JSON values (non-binary): convert based on selected type
+        return convertJsonToType(element, fieldType)
+    }
+
+    /**
+     * Create a Kafka deserializer for the given primitive field type.
+     * Throws for schema types, those are handled by [deserializeSchemaEncoded].
+     */
+    private fun createDeserializer(type: KafkaFieldType): Deserializer<*> = when (type) {
+        KafkaFieldType.STRING, KafkaFieldType.JSON -> StringDeserializer()
+        KafkaFieldType.LONG -> LongDeserializer()
+        KafkaFieldType.INTEGER -> IntegerDeserializer()
+        KafkaFieldType.DOUBLE -> DoubleDeserializer()
+        KafkaFieldType.FLOAT -> FloatDeserializer()
+        KafkaFieldType.BASE64 -> ByteArrayDeserializer()
+        KafkaFieldType.NULL -> VoidDeserializer()
+        else -> throw IllegalArgumentException("Unsupported field type for byte deserialization: $type")
+    }
+
+    /**
+     * Create a deserializer if the type is a primitive type, null for schema types.
+     * Used in [start] to cache deserializers, schema types use [deserializeSchemaEncoded] instead.
+     */
+    private fun createDeserializerOrNull(type: KafkaFieldType): Deserializer<*>? = when (type) {
+        KafkaFieldType.SCHEMA_REGISTRY, KafkaFieldType.PROTOBUF_CUSTOM, KafkaFieldType.AVRO_CUSTOM -> null
+        else -> createDeserializer(type)
+    }
+
+    /**
+     * Convert raw bytes to the selected type using the cached Kafka deserializer.
+     * Should never be called with schema types — [extractValue] routes those to [deserializeSchemaEncoded].
+     */
+    @VisibleForTesting
+    internal fun convertBytesToType(bytes: ByteArray, topic: String, type: KafkaFieldType): Any? {
+        val deserializer = when (type) {
+            currentKeyConfig?.type -> keyDeserializer
+            currentValueConfig?.type -> valueDeserializer
+            else -> null
+        } ?: createDeserializer(type)
+
+        return deserializer.deserialize(topic, bytes)
+    }
+
+    /**
+     * Convert a JSON element to the appropriate Kotlin type based on the selected [KafkaFieldType].
+     * Throws [SerializationException] if the value cannot be converted to the requested type
+     */
+    @VisibleForTesting
+    internal fun convertJsonToType(element: JsonElement, type: KafkaFieldType): Any? {
+        if (element is JsonNull) return null
+        return when (type) {
+            KafkaFieldType.NULL -> null
+            KafkaFieldType.JSON -> element.toString()
+            KafkaFieldType.STRING -> (element as? JsonPrimitive)?.content ?: element.toString()
+            else -> {
+                val content = (element as? JsonPrimitive)?.content
+                    ?: throw SerializationException("Cannot convert ${element::class.simpleName} to $type")
+                when (type) {
+                    KafkaFieldType.LONG -> content.toLongOrNull()
+                        ?: throw SerializationException("Cannot convert '$content' to LONG")
+                    KafkaFieldType.INTEGER -> content.toIntOrNull()
+                        ?: throw SerializationException("Cannot convert '$content' to INTEGER")
+                    KafkaFieldType.DOUBLE -> content.toDoubleOrNull()
+                        ?: throw SerializationException("Cannot convert '$content' to DOUBLE")
+                    KafkaFieldType.FLOAT -> content.toFloatOrNull()
+                        ?: throw SerializationException("Cannot convert '$content' to FLOAT")
+                    KafkaFieldType.BASE64 -> Base64.getDecoder().decode(content)
+                    else -> throw IllegalArgumentException("Unsupported field type for JSON conversion: $type")
+                }
             }
-            else -> element.toString()
         }
+    }
+
+    /**
+     * Deserialize schema-encoded bytes using V1 (header GUID) or V0 (payload prefix) wire format.
+     *
+     * Priority order:
+     * 1. V1: Schema GUID from `confluent.key.schemaId` / `confluent.value.schemaId` headers
+     * 2. V0: Schema ID from payload prefix (magic byte 0x00 + 4-byte big-endian int)
+     * 3. Fallback: return raw bytes as-is
+     *
+     */
+    @VisibleForTesting
+    internal suspend fun deserializeSchemaEncoded(
+        bytes: ByteArray,
+        fetcher: DataPlaneFetcher,
+        headers: RecordHeaders,
+        isKey: Boolean
+    ): Any {
+        // Priority 1: Schema GUID from headers (V1)
+        val schemaGuid = getSchemaGuidFromHeaders(headers, isKey)
+
+        // Priority 2: Schema ID from payload (V0)
+        val schemaId = getSchemaIdFromRawBytes(bytes)
+
+        if (schemaGuid == null && schemaId == null) return bytes
+
+        val cacheKey = schemaGuid?.toString() ?: schemaId.toString()
+        val parsedSchema = fetchAndParseSchema(cacheKey) {
+            if (schemaGuid != null) {
+                fetcher.getSchemaByGuid(schemaGuid.toString())
+            } else {
+                fetcher.getSchemaIdInfo(schemaId!!)
+            }
+        } ?: throw SerializationException("Failed to parse schema for key=$cacheKey")
+
+        // V0: strip 5-byte header (magic + schema ID). V1: payload has no prefix.
+        val payloadBytes = if (schemaGuid != null) bytes else bytes.copyOfRange(5, bytes.size)
+        return when (parsedSchema) {
+            is AvroSchema -> deserializeAvro(payloadBytes, parsedSchema)
+            is ProtobufSchema -> deserializeProtobuf(payloadBytes, parsedSchema)
+            is JsonSchema -> String(payloadBytes, Charsets.UTF_8)
+            else -> throw SerializationException("Unsupported schema type: ${parsedSchema.schemaType()}")
+        }
+    }
+
+    /**
+     * Fetch schema from SR, parse it, and cache the result.
+     * Uses [schemaCache] keyed by schema ID or GUID string.
+     */
+    private suspend fun fetchAndParseSchema(
+        cacheKey: String,
+        fetch: suspend () -> io.confluent.intellijplugin.ccloud.model.response.SchemaByIdResponse
+    ): ParsedSchema? {
+        return schemaCache.getOrPut(cacheKey) {
+            val response = fetch()
+            val schemaType = KafkaRegistryFormat.fromSchemaType(response.schemaType)
+            KafkaRegistryUtil.parseSchema(schemaType, response.schema).getOrThrow()
+        }
+    }
+
+    // ── Wire format detection ───────────────────────────────────────────
+
+    /**
+     * Extract V0 schema ID from payload: magic byte 0x00 + 4-byte big-endian int.
+     */
+    @VisibleForTesting
+    internal fun getSchemaIdFromRawBytes(rawBytes: ByteArray): Int? {
+        if (rawBytes.size < 5 || rawBytes[0] != MAGIC_BYTE_V0) return null
+        return ByteBuffer.wrap(rawBytes, 1, 4).getInt()
+    }
+
+    /**
+     * Extract V1 schema GUID from Kafka headers: magic byte 0x01 + 16-byte UUID.
+     */
+    @VisibleForTesting
+    internal fun getSchemaGuidFromHeaders(headers: RecordHeaders, isKey: Boolean): UUID? {
+        val headerName = if (isKey) KEY_SCHEMA_ID_HEADER else VALUE_SCHEMA_ID_HEADER
+        val header = headers.lastHeader(headerName) ?: return null
+        val value = header.value() ?: return null
+        if (value.size < 17 || value[0] != MAGIC_BYTE_V1) return null
+        val buffer = ByteBuffer.wrap(value)
+        buffer.get() // skip magic byte
+        return UUID(buffer.getLong(), buffer.getLong())
+    }
+
+    // ── Format-specific deserializers ───────────────────────────────────
+
+    /**
+     * Deserialize Avro binary payload to a typed Avro object (e.g. GenericData.Record).
+     * Returns the datum directly so the UI layer (KafkaEditorUtils.getValueAsString)
+     * can apply format-aware rendering via AvroSchemaUtils.toJson().
+     */
+    private fun deserializeAvro(payload: ByteArray, schema: AvroSchema): Any {
+        val reader = GenericDatumReader<Any>(schema.rawSchema())
+        val decoder = DecoderFactory.get().binaryDecoder(payload, null)
+        return reader.read(null, decoder)
+    }
+
+    /**
+     * Deserialize Protobuf binary payload (with varint message indexes) to a DynamicMessage.
+     * Returns the message directly so the UI layer (KafkaEditorUtils.getValueAsString)
+     * can apply format-aware rendering via ProtobufSchemaUtils.toJson().
+     */
+    private fun deserializeProtobuf(payload: ByteArray, schema: ProtobufSchema): DynamicMessage {
+        val buffer = ByteBuffer.wrap(payload)
+        val indexes = MessageIndexes.readFrom(buffer)
+        val messageName = schema.toMessageName(indexes)
+        val descriptor = schema.toDescriptor(messageName)
+            ?: schema.toDescriptor()
+            ?: throw SerializationException(
+                "No descriptor for ${schema.name()}"
+            )
+        // Read remaining bytes after message indexes
+        val remaining = ByteArray(buffer.remaining())
+        buffer.get(remaining)
+        return DynamicMessage.parseFrom(descriptor, remaining)
     }
 
     private fun applyFilters(
@@ -477,6 +716,10 @@ class CCloudConsumerClient(
         consumerScope?.cancel()
         consumerScope = null
         pollingJob = null
+        currentKeyConfig = null
+        currentValueConfig = null
+        keyDeserializer = null
+        valueDeserializer = null
     }
 
     override fun isRunning(): Boolean = running.get()
@@ -484,6 +727,7 @@ class CCloudConsumerClient(
     override fun dispose() {
         stop()
         nextOffsets.clear()
+        schemaCache.clear()
     }
 
     companion object {
@@ -501,5 +745,17 @@ class CCloudConsumerClient(
 
         /** Default maximum number of records per consume request. */
         private const val DEFAULT_MAX_POLL_RECORDS = 100
+
+        /** V0 wire format magic byte: payload prefix with 4-byte schema ID. */
+        private const val MAGIC_BYTE_V0: Byte = 0x00
+
+        /** V1 wire format magic byte: 16-byte UUID in header value. */
+        private const val MAGIC_BYTE_V1: Byte = 0x01
+
+        /** Kafka header key for key schema GUID (V1 wire format). */
+        private const val KEY_SCHEMA_ID_HEADER = "confluent.key.schemaId"
+
+        /** Kafka header key for value schema GUID (V1 wire format). */
+        private const val VALUE_SCHEMA_ID_HEADER = "confluent.value.schemaId"
     }
 }
