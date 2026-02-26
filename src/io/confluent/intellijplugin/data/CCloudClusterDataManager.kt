@@ -193,7 +193,7 @@ class CCloudClusterDataManager(
             val infos = limited.map { schema ->
                 KafkaSchemaInfo(
                     name = schema.name,
-                    type = schema.schemaType?.let { KafkaRegistryFormat.fromSchemaType(it) }
+                    type = KafkaRegistryFormat.fromSchemaType(schema.schemaType)
                 )
             }
             infos to (limit != null && filtered.size > limit)
@@ -216,7 +216,7 @@ class CCloudClusterDataManager(
                 enrichmentMap[schema.name]?.let { enrichment ->
                     schema.copy(
                         version = enrichment.latestVersion?.toLong(),
-                        type = enrichment.schemaType?.let { KafkaRegistryFormat.fromSchemaType(it) } ?: schema.type
+                        type = KafkaRegistryFormat.fromSchemaType(enrichment.schemaType)
                     )
                 } ?: schema
             }
