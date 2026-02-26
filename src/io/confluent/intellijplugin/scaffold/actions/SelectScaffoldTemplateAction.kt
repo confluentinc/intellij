@@ -8,6 +8,7 @@ import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.ui.Messages
 import io.confluent.intellijplugin.scaffold.client.ScaffoldHttpClient
 import io.confluent.intellijplugin.scaffold.ui.ScaffoldTemplateSelectionDialog
+import io.confluent.intellijplugin.scaffold.util.TemplateIdeFilter
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -24,7 +25,7 @@ class SelectScaffoldTemplateAction : DumbAwareAction() {
             try {
                 val client = ScaffoldHttpClient()
                 val templateList = client.fetchTemplates()
-                val templates = templateList.data.toList()
+                val templates = TemplateIdeFilter.sortByIdeAffinity(templateList.data.toList())
 
                 withContext(Dispatchers.EDT) {
                     if (templates.isEmpty()) {
