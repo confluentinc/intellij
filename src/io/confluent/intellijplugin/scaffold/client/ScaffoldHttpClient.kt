@@ -7,6 +7,7 @@ import com.squareup.moshi.JsonReader
 import com.squareup.moshi.JsonWriter
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
+import io.confluent.intellijplugin.scaffold.model.ApplyScaffoldV1TemplateRequest
 import io.confluent.intellijplugin.scaffold.model.Scaffoldv1TemplateList
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -127,6 +128,50 @@ class ScaffoldHttpClient(
             thisLogger().debug("Parsed ${result.data.size} templates")
             result
         }
+
+    /**
+     * Applies a template and returns the generated project as a ZIP byte array.
+     *
+     * @param collectionName The name of the template collection
+     * @param templateName The name of the template to apply
+     * @param options User-provided option values for template generation
+     * @return ZIP file bytes of the generated project
+     * @throws HttpRequests.HttpStatusException if the server returns 4xx or 5xx status
+     */
+    suspend fun applyTemplate(
+        collectionName: String = "intellij",
+        templateName: String,
+        options: Map<String, String>
+    ): ByteArray = withContext(Dispatchers.IO) {
+        val url = "$baseUrl/scaffold/v1/template-collections/$collectionName/templates/$templateName/apply"
+        thisLogger().debug("Applying template at URL: $url")
+
+        val requestBody = moshi.adapter(ApplyScaffoldV1TemplateRequest::class.java)
+            .toJson(ApplyScaffoldV1TemplateRequest(options = options))
+
+        HttpRequests.post(url, "application/json")
+            .connectTimeout(connectTimeoutMs)
+            .readTimeout(readTimeoutMs)
+            .throwStatusCodeException(false)
+            .connect { request ->
+                request.write(requestBody)
+                val conn = request.connection as java.net.HttpURLConnection
+                val statusCode = conn.responseCode
+
+                if (statusCode >= 500) {
+                    val errorBody = conn.errorStream?.reader()?.readText()
+                    val message = if (errorBody.isNullOrBlank()) "Server error" else "Server error: $errorBody"
+                    throw HttpRequests.HttpStatusException(message, statusCode, conn.url.toString())
+                }
+
+                if (statusCode >= 400) {
+                    val errorBody = conn.errorStream?.reader()?.readText() ?: ""
+                    throw HttpRequests.HttpStatusException(errorBody, statusCode, conn.url.toString())
+                }
+
+                request.inputStream.readAllBytes()
+            }
+    }
 
     /**
      * Read response body from the appropriate stream based on status code.
