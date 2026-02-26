@@ -41,6 +41,7 @@ import org.apache.kafka.common.header.internals.RecordHeaders
 import org.apache.kafka.common.record.TimestampType
 import com.google.protobuf.DynamicMessage
 import io.confluent.kafka.schemaregistry.ParsedSchema
+import io.confluent.kafka.serializers.schema.id.SchemaId
 import org.apache.kafka.common.errors.SerializationException
 import org.apache.kafka.common.serialization.*
 import org.jetbrains.annotations.VisibleForTesting
@@ -657,7 +658,7 @@ class CCloudConsumerClient(
      */
     @VisibleForTesting
     internal fun getSchemaGuidFromHeaders(headers: RecordHeaders, isKey: Boolean): UUID? {
-        val headerName = if (isKey) KEY_SCHEMA_ID_HEADER else VALUE_SCHEMA_ID_HEADER
+        val headerName = if (isKey) SchemaId.KEY_SCHEMA_ID_HEADER else SchemaId.VALUE_SCHEMA_ID_HEADER
         val header = headers.lastHeader(headerName) ?: return null
         val value = header.value() ?: return null
         if (value.size < 17 || value[0] != MAGIC_BYTE_V1) return null
@@ -746,16 +747,7 @@ class CCloudConsumerClient(
         /** Default maximum number of records per consume request. */
         private const val DEFAULT_MAX_POLL_RECORDS = 100
 
-        /** V0 wire format magic byte: payload prefix with 4-byte schema ID. */
-        private const val MAGIC_BYTE_V0: Byte = 0x00
-
-        /** V1 wire format magic byte: 16-byte UUID in header value. */
-        private const val MAGIC_BYTE_V1: Byte = 0x01
-
-        /** Kafka header key for key schema GUID (V1 wire format). */
-        private const val KEY_SCHEMA_ID_HEADER = "confluent.key.schemaId"
-
-        /** Kafka header key for value schema GUID (V1 wire format). */
-        private const val VALUE_SCHEMA_ID_HEADER = "confluent.value.schemaId"
+        private val MAGIC_BYTE_V0 = SchemaId.MAGIC_BYTE_V0
+        private val MAGIC_BYTE_V1 = SchemaId.MAGIC_BYTE_V1
     }
 }
