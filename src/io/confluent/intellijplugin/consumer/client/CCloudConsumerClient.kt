@@ -617,7 +617,7 @@ class CCloudConsumerClient(
             }
         } ?: throw SerializationException("Failed to parse schema for key=$cacheKey")
 
-        // V0: strip 5-byte header (magic + schema ID). V1: payload has no prefix.
+        // V0: strip 5-byte prefix (magic + schema ID). V1: payload has no prefix.
         val payloadBytes = if (schemaGuid != null) bytes else bytes.copyOfRange(5, bytes.size)
         return when (parsedSchema) {
             is AvroSchema -> deserializeAvro(payloadBytes, parsedSchema)
