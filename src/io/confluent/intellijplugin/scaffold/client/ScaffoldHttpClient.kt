@@ -18,8 +18,8 @@ import java.time.format.DateTimeFormatter
  * No authentication required for public endpoints
  *
  * Environment can be configured via:
- * - System property: -Dscaffold.api.env=[prod|stag|devel] (default: prod)
- * - Direct URL override: -Dscaffold.api.base-url=<url>
+ * - System property: -Dconfluent.intellijplugin.scaffold.api.env=[prod|stag|devel] (default: prod)
+ * - Direct URL override: -Dconfluent.intellijplugin.scaffold.api.base-url=<url>
  */
 class ScaffoldHttpClient(
     private val baseUrl: String = DEFAULT_BASE_URL,
@@ -35,7 +35,7 @@ class ScaffoldHttpClient(
             PROD, STAG, DEVEL
         }
 
-        private val envProperty: String = System.getProperty("scaffold.api.env") ?: "prod"
+        private val envProperty: String = System.getProperty("confluent.intellijplugin.scaffold.api.env") ?: "prod"
 
         private val env: ScaffoldEnv = when (envProperty) {
             "prod" -> ScaffoldEnv.PROD
@@ -51,7 +51,7 @@ class ScaffoldHttpClient(
         }
 
         val DEFAULT_BASE_URL: String
-            get() = System.getProperty("scaffold.api.base-url") ?: "https://api.$basePath"
+            get() = System.getProperty("confluent.intellijplugin.scaffold.api.base-url") ?: "https://api.$basePath"
 
         // Custom adapter for OffsetDateTime (RFC3339 format)
         private object OffsetDateTimeAdapter : JsonAdapter<OffsetDateTime>() {
@@ -102,12 +102,11 @@ class ScaffoldHttpClient(
     /**
      * Fetches templates from a specific template collection.
      *
-     * @param collectionName The name of the template collection (default: "vscode")
+     * @param collectionName The name of the template collection (default: "intellij")
      * @return List of templates in the collection
      * @throws HttpRequests.HttpStatusException if the server returns 4xx or 5xx status
-     * TODO: update param from "vscode" default to intellij
      */
-    suspend fun fetchTemplates(collectionName: String = "vscode"): Scaffoldv1TemplateList =
+    suspend fun fetchTemplates(collectionName: String = "intellij"): Scaffoldv1TemplateList =
         withContext(Dispatchers.IO) {
             val url = "$baseUrl/scaffold/v1/template-collections/$collectionName/templates"
             thisLogger().debug("Fetching from URL: $url")
