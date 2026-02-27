@@ -160,7 +160,6 @@ abstract class BaseClusterDataManager(
     // Consumer panel feature capabilities
 
     abstract fun supportsConsumerGroups(): Boolean
-    fun supportsSchemaRegistry(): Boolean = registryType != KafkaRegistryType.NONE
     abstract fun supportsAdvancedSettings(): Boolean
     abstract fun supportsPresets(): Boolean
     abstract fun supportsDetailsPanel(): Boolean
