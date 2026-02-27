@@ -92,7 +92,7 @@ class TemplateOptionsFormDialog(
             }
 
             option.pattern?.let { pattern ->
-                if (value.isNotEmpty() && !Regex(pattern).matches(value)) {
+                if (value.isNotEmpty() && !Regex(pattern).containsMatchIn(value)) {
                     val description = option.patternDescription ?: pattern
                     return ValidationInfo(
                         KafkaMessagesBundle.message("scaffold.options.validation.pattern", option.displayName, description),
