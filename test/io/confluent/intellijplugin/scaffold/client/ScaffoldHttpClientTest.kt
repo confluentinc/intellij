@@ -55,9 +55,9 @@ class ScaffoldHttpClientTest {
     inner class FetchTemplates {
 
         @Test
-        fun `successfully fetches templates for vscode collection`() {
+        fun `successfully fetches templates for intellij collection`() {
             wireMockServer.stubFor(
-                WireMock.get("/scaffold/v1/template-collections/vscode/templates")
+                WireMock.get("/scaffold/v1/template-collections/intellij/templates")
                     .willReturn(
                         WireMock.aResponse()
                             .withStatus(200)
@@ -68,7 +68,7 @@ class ScaffoldHttpClientTest {
 
             val client = ScaffoldHttpClient(baseUrl())
             val result = runBlocking {
-                client.fetchTemplates("vscode")
+                client.fetchTemplates("intellij")
             }
 
             assertEquals(2, result.data.size)
@@ -87,7 +87,7 @@ class ScaffoldHttpClientTest {
         @Test
         fun `handles 500 server errors`() {
             wireMockServer.stubFor(
-                WireMock.get("/scaffold/v1/template-collections/vscode/templates")
+                WireMock.get("/scaffold/v1/template-collections/intellij/templates")
                     .willReturn(
                         WireMock.aResponse()
                             .withStatus(500)
@@ -98,7 +98,7 @@ class ScaffoldHttpClientTest {
             val client = ScaffoldHttpClient(baseUrl())
             val exception = assertThrows(HttpRequests.HttpStatusException::class.java) {
                 runBlocking {
-                    client.fetchTemplates("vscode")
+                    client.fetchTemplates("intellij")
                 }
             }
 
@@ -108,7 +108,7 @@ class ScaffoldHttpClientTest {
         @Test
         fun `handles network timeouts`() {
             wireMockServer.stubFor(
-                WireMock.get("/scaffold/v1/template-collections/vscode/templates")
+                WireMock.get("/scaffold/v1/template-collections/intellij/templates")
                     .willReturn(
                         WireMock.aResponse()
                             .withFixedDelay(500) // Exceeds test read timeout
@@ -123,7 +123,7 @@ class ScaffoldHttpClientTest {
             )
             assertThrows(SocketTimeoutException::class.java) {
                 runBlocking {
-                    client.fetchTemplates("vscode")
+                    client.fetchTemplates("intellij")
                 }
             }
         }
@@ -131,7 +131,7 @@ class ScaffoldHttpClientTest {
         @Test
         fun `handles malformed JSON responses`() {
             wireMockServer.stubFor(
-                WireMock.get("/scaffold/v1/template-collections/vscode/templates")
+                WireMock.get("/scaffold/v1/template-collections/intellij/templates")
                     .willReturn(
                         WireMock.aResponse()
                             .withStatus(200)
@@ -143,7 +143,7 @@ class ScaffoldHttpClientTest {
             val client = ScaffoldHttpClient(baseUrl())
             assertThrows(JsonEncodingException::class.java) {
                 runBlocking {
-                    client.fetchTemplates("vscode")
+                    client.fetchTemplates("intellij")
                 }
             }
         }
@@ -172,7 +172,7 @@ class ScaffoldHttpClientTest {
         @Test
         fun `handles empty template list`() {
             wireMockServer.stubFor(
-                WireMock.get("/scaffold/v1/template-collections/vscode/templates")
+                WireMock.get("/scaffold/v1/template-collections/intellij/templates")
                     .willReturn(
                         WireMock.aResponse()
                             .withStatus(200)
@@ -183,7 +183,7 @@ class ScaffoldHttpClientTest {
 
             val client = ScaffoldHttpClient(baseUrl())
             val result = runBlocking {
-                client.fetchTemplates("vscode")
+                client.fetchTemplates("intellij")
             }
 
             assertTrue(result.data.isEmpty())
@@ -192,7 +192,7 @@ class ScaffoldHttpClientTest {
         @Test
         fun `handles templates with null metadata fields`() {
             wireMockServer.stubFor(
-                WireMock.get("/scaffold/v1/template-collections/vscode/templates")
+                WireMock.get("/scaffold/v1/template-collections/intellij/templates")
                     .willReturn(
                         WireMock.aResponse()
                             .withStatus(200)
@@ -203,7 +203,7 @@ class ScaffoldHttpClientTest {
 
             val client = ScaffoldHttpClient(baseUrl())
             val result = runBlocking {
-                client.fetchTemplates("vscode")
+                client.fetchTemplates("intellij")
             }
 
             assertEquals(1, result.data.size)
@@ -220,7 +220,7 @@ class ScaffoldHttpClientTest {
         @Test
         fun `handles 400 bad request`() {
             wireMockServer.stubFor(
-                WireMock.get("/scaffold/v1/template-collections/vscode/templates")
+                WireMock.get("/scaffold/v1/template-collections/intellij/templates")
                     .willReturn(
                         WireMock.aResponse()
                             .withStatus(400)
@@ -231,7 +231,7 @@ class ScaffoldHttpClientTest {
             val client = ScaffoldHttpClient(baseUrl())
             val exception = assertThrows(HttpRequests.HttpStatusException::class.java) {
                 runBlocking {
-                    client.fetchTemplates("vscode")
+                    client.fetchTemplates("intellij")
                 }
             }
 
@@ -242,7 +242,7 @@ class ScaffoldHttpClientTest {
         @Test
         fun `handles 401 unauthorized`() {
             wireMockServer.stubFor(
-                WireMock.get("/scaffold/v1/template-collections/vscode/templates")
+                WireMock.get("/scaffold/v1/template-collections/intellij/templates")
                     .willReturn(
                         WireMock.aResponse()
                             .withStatus(401)
@@ -253,7 +253,7 @@ class ScaffoldHttpClientTest {
             val client = ScaffoldHttpClient(baseUrl())
             val exception = assertThrows(HttpRequests.HttpStatusException::class.java) {
                 runBlocking {
-                    client.fetchTemplates("vscode")
+                    client.fetchTemplates("intellij")
                 }
             }
 
@@ -264,7 +264,7 @@ class ScaffoldHttpClientTest {
         @Test
         fun `handles 403 forbidden`() {
             wireMockServer.stubFor(
-                WireMock.get("/scaffold/v1/template-collections/vscode/templates")
+                WireMock.get("/scaffold/v1/template-collections/intellij/templates")
                     .willReturn(
                         WireMock.aResponse()
                             .withStatus(403)
@@ -275,7 +275,7 @@ class ScaffoldHttpClientTest {
             val client = ScaffoldHttpClient(baseUrl())
             val exception = assertThrows(HttpRequests.HttpStatusException::class.java) {
                 runBlocking {
-                    client.fetchTemplates("vscode")
+                    client.fetchTemplates("intellij")
                 }
             }
 
@@ -286,7 +286,7 @@ class ScaffoldHttpClientTest {
         @Test
         fun `handles 500 error with empty body`() {
             wireMockServer.stubFor(
-                WireMock.get("/scaffold/v1/template-collections/vscode/templates")
+                WireMock.get("/scaffold/v1/template-collections/intellij/templates")
                     .willReturn(
                         WireMock.aResponse()
                             .withStatus(500)
@@ -297,7 +297,7 @@ class ScaffoldHttpClientTest {
             val client = ScaffoldHttpClient(baseUrl())
             val exception = assertThrows(HttpRequests.HttpStatusException::class.java) {
                 runBlocking {
-                    client.fetchTemplates("vscode")
+                    client.fetchTemplates("intellij")
                 }
             }
 
@@ -308,7 +308,7 @@ class ScaffoldHttpClientTest {
         @Test
         fun `handles 500 error with detailed error body`() {
             wireMockServer.stubFor(
-                WireMock.get("/scaffold/v1/template-collections/vscode/templates")
+                WireMock.get("/scaffold/v1/template-collections/intellij/templates")
                     .willReturn(
                         WireMock.aResponse()
                             .withStatus(500)
@@ -319,7 +319,7 @@ class ScaffoldHttpClientTest {
             val client = ScaffoldHttpClient(baseUrl())
             val exception = assertThrows(HttpRequests.HttpStatusException::class.java) {
                 runBlocking {
-                    client.fetchTemplates("vscode")
+                    client.fetchTemplates("intellij")
                 }
             }
 
@@ -330,7 +330,7 @@ class ScaffoldHttpClientTest {
         @Test
         fun `handles 502 bad gateway`() {
             wireMockServer.stubFor(
-                WireMock.get("/scaffold/v1/template-collections/vscode/templates")
+                WireMock.get("/scaffold/v1/template-collections/intellij/templates")
                     .willReturn(
                         WireMock.aResponse()
                             .withStatus(502)
@@ -341,7 +341,7 @@ class ScaffoldHttpClientTest {
             val client = ScaffoldHttpClient(baseUrl())
             val exception = assertThrows(HttpRequests.HttpStatusException::class.java) {
                 runBlocking {
-                    client.fetchTemplates("vscode")
+                    client.fetchTemplates("intellij")
                 }
             }
 
@@ -352,7 +352,7 @@ class ScaffoldHttpClientTest {
         @Test
         fun `handles 503 service unavailable`() {
             wireMockServer.stubFor(
-                WireMock.get("/scaffold/v1/template-collections/vscode/templates")
+                WireMock.get("/scaffold/v1/template-collections/intellij/templates")
                     .willReturn(
                         WireMock.aResponse()
                             .withStatus(503)
@@ -363,7 +363,7 @@ class ScaffoldHttpClientTest {
             val client = ScaffoldHttpClient(baseUrl())
             val exception = assertThrows(HttpRequests.HttpStatusException::class.java) {
                 runBlocking {
-                    client.fetchTemplates("vscode")
+                    client.fetchTemplates("intellij")
                 }
             }
 
@@ -373,7 +373,7 @@ class ScaffoldHttpClientTest {
         @Test
         fun `parses datetime and URI fields correctly`() {
             wireMockServer.stubFor(
-                WireMock.get("/scaffold/v1/template-collections/vscode/templates")
+                WireMock.get("/scaffold/v1/template-collections/intellij/templates")
                     .willReturn(
                         WireMock.aResponse()
                             .withStatus(200)
@@ -384,7 +384,7 @@ class ScaffoldHttpClientTest {
 
             val client = ScaffoldHttpClient(baseUrl())
             val result = runBlocking {
-                client.fetchTemplates("vscode")
+                client.fetchTemplates("intellij")
             }
 
             assertEquals(1, result.data.size)
