@@ -77,7 +77,8 @@ class CCloudConsumerClient(
     private var consumerScope: CoroutineScope? = null
 
     // Track next offsets per partition for subsequent requests
-    private val nextOffsets = mutableMapOf<Int, Long>()
+    @VisibleForTesting
+    internal val nextOffsets = mutableMapOf<Int, Long>()
 
     // Cache parsed schemas by schema ID or GUID string to avoid redundant fetches
     private val schemaCache = ConcurrentHashMap<String, ParsedSchema?>()
@@ -267,14 +268,16 @@ class CCloudConsumerClient(
         }
     }
 
-    private fun isRetryableStatus(statusCode: Int): Boolean =
+    @VisibleForTesting
+    internal fun isRetryableStatus(statusCode: Int): Boolean =
         statusCode == 401 || statusCode == 429 || statusCode in 500..599
 
     /**
      * Calculate the approximate size of a record in bytes.
      * Uses the serialized sizes if available, otherwise estimates from the value content.
      */
-    private fun getRecordSize(record: ConsumerRecord<Any, Any>): Long {
+    @VisibleForTesting
+    internal fun getRecordSize(record: ConsumerRecord<Any, Any>): Long {
         val keySize = if (record.serializedKeySize() >= 0) {
             record.serializedKeySize().toLong()
         } else {
@@ -363,7 +366,8 @@ class CCloudConsumerClient(
     /**
      * Build a subsequent consume request using tracked offsets.
      */
-    private fun buildSubsequentConsumeRequest(): ConsumeRecordsRequest {
+    @VisibleForTesting
+    internal fun buildSubsequentConsumeRequest(): ConsumeRecordsRequest {
         return if (nextOffsets.isNotEmpty()) {
             ConsumeRecordsRequest(
                 offsets = nextOffsets.map { (partitionId, offset) ->
@@ -448,7 +452,8 @@ class CCloudConsumerClient(
      * For schema-encoded values with __raw__, uses the decoded base64 size.
      * For other values, uses the string representation size.
      */
-    private fun estimateJsonSize(element: JsonElement?): Int {
+    @VisibleForTesting
+    internal fun estimateJsonSize(element: JsonElement?): Int {
         if (element == null || element is JsonNull) {
             return 0
         }
@@ -483,7 +488,8 @@ class CCloudConsumerClient(
      * - SCHEMA_REGISTRY → full schema-aware deserialization (Avro/Protobuf/JSON Schema)
      * - Other types → decode raw bytes and convert to the selected primitive type
      */
-    private suspend fun extractValue(
+    @VisibleForTesting
+    internal suspend fun extractValue(
         element: JsonElement?,
         topic: String,
         fetcher: DataPlaneFetcher,
@@ -519,7 +525,8 @@ class CCloudConsumerClient(
      * Create a Kafka deserializer for the given primitive field type.
      * Throws for schema types, those are handled by [deserializeSchemaEncoded].
      */
-    private fun createDeserializer(type: KafkaFieldType): Deserializer<*> = when (type) {
+    @VisibleForTesting
+    internal fun createDeserializer(type: KafkaFieldType): Deserializer<*> = when (type) {
         KafkaFieldType.STRING, KafkaFieldType.JSON -> StringDeserializer()
         KafkaFieldType.LONG -> LongDeserializer()
         KafkaFieldType.INTEGER -> IntegerDeserializer()
@@ -534,7 +541,8 @@ class CCloudConsumerClient(
      * Create a deserializer if the type is a primitive type, null for schema types.
      * Used in [start] to cache deserializers, schema types use [deserializeSchemaEncoded] instead.
      */
-    private fun createDeserializerOrNull(type: KafkaFieldType): Deserializer<*>? = when (type) {
+    @VisibleForTesting
+    internal fun createDeserializerOrNull(type: KafkaFieldType): Deserializer<*>? = when (type) {
         KafkaFieldType.SCHEMA_REGISTRY, KafkaFieldType.PROTOBUF_CUSTOM, KafkaFieldType.AVRO_CUSTOM -> null
         else -> createDeserializer(type)
     }
@@ -685,7 +693,8 @@ class CCloudConsumerClient(
      * Returns the message directly so the UI layer (KafkaEditorUtils.getValueAsString)
      * can apply format-aware rendering via ProtobufSchemaUtils.toJson().
      */
-    private fun deserializeProtobuf(payload: ByteArray, schema: ProtobufSchema): DynamicMessage {
+    @VisibleForTesting
+    internal fun deserializeProtobuf(payload: ByteArray, schema: ProtobufSchema): DynamicMessage {
         val buffer = ByteBuffer.wrap(payload)
         val indexes = MessageIndexes.readFrom(buffer)
         val messageName = schema.toMessageName(indexes)

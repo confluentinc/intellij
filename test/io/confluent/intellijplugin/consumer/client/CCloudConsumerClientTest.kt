@@ -8,6 +8,9 @@ import io.confluent.intellijplugin.consumer.models.ConsumerProducerFieldConfig
 import io.confluent.intellijplugin.data.CCloudClusterDataManager
 import io.confluent.intellijplugin.registry.KafkaRegistryFormat
 import io.confluent.intellijplugin.registry.KafkaRegistryType
+import io.confluent.kafka.schemaregistry.protobuf.MessageIndexes
+import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchema
+import com.google.protobuf.DynamicMessage
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
@@ -17,10 +20,12 @@ import org.apache.avro.generic.GenericData
 import org.apache.avro.generic.GenericDatumWriter
 import org.apache.avro.io.EncoderFactory
 import io.confluent.kafka.serializers.schema.id.SchemaId
+import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.common.header.internals.RecordHeader
 import org.apache.kafka.common.header.internals.RecordHeaders
 import org.apache.kafka.common.errors.SerializationException
-import org.apache.kafka.common.serialization.VoidDeserializer
+import org.apache.kafka.common.record.TimestampType
+import org.apache.kafka.common.serialization.*
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
@@ -597,6 +602,362 @@ class CCloudConsumerClientTest {
             assertTrue(result is String, "Expected String but got ${result!!::class.simpleName}")
             // No schema deserialization should have occurred
             verifyNoInteractions(mockFetcher)
+        }
+    }
+
+    private val protoSchemaText = javaClass.getResourceAsStream(
+        "/fixtures/schemas/user-proto-schema.proto"
+    )!!.readBytes().toString(Charsets.UTF_8)
+
+    /** Set up type configs and cached deserializers without launching the poll loop. */
+    private fun startWithConfigs(
+        keyType: KafkaFieldType = KafkaFieldType.STRING,
+        valueType: KafkaFieldType = KafkaFieldType.STRING
+    ) {
+        client.currentKeyConfig = fieldConfig(keyType, isKey = true)
+        client.currentValueConfig = fieldConfig(valueType, isKey = false)
+    }
+
+    @Nested
+    @DisplayName("extractValue")
+    inner class ExtractValue {
+
+        @Test
+        fun `should return null for null element`() = runBlocking {
+            startWithConfigs()
+            val result = client.extractValue(null, "t", mockFetcher, RecordHeaders(), isKey = false)
+            assertNull(result)
+        }
+
+        @Test
+        fun `should return null for JsonNull element`() = runBlocking {
+            startWithConfigs()
+            val result = client.extractValue(JsonNull, "t", mockFetcher, RecordHeaders(), isKey = false)
+            assertNull(result)
+        }
+
+        @Test
+        fun `should deserialize __raw__ with SCHEMA_REGISTRY via schema`() = runBlocking {
+            startWithConfigs(valueType = KafkaFieldType.SCHEMA_REGISTRY)
+
+            val schemaId = 1
+            val avroPayload = encodeAvroPayload(avroSchemaJson, "Eve", 28)
+            val wireBytes = buildV0Payload(schemaId, avroPayload)
+            val rawElement = JsonObject(mapOf("__raw__" to JsonPrimitive(Base64.getEncoder().encodeToString(wireBytes))))
+
+            whenever(mockFetcher.getSchemaIdInfo(schemaId)).thenReturn(
+                SchemaByIdResponse(schema = avroSchemaJson, schemaType = "AVRO")
+            )
+
+            val result = client.extractValue(rawElement, "t", mockFetcher, RecordHeaders(), isKey = false)
+            assertTrue(result is GenericData.Record)
+            assertEquals("Eve", (result as GenericData.Record).get("name").toString())
+        }
+
+        @Test
+        fun `should convert __raw__ with STRING type to UTF-8 string`() = runBlocking {
+            startWithConfigs(valueType = KafkaFieldType.STRING)
+
+            val rawElement = JsonObject(mapOf("__raw__" to JsonPrimitive(Base64.getEncoder().encodeToString("hello".toByteArray()))))
+            val result = client.extractValue(rawElement, "test-topic", mockFetcher, RecordHeaders(), isKey = false)
+            assertEquals("hello", result)
+        }
+
+        @Test
+        fun `should convert __raw__ with LONG type to Long`() = runBlocking {
+            startWithConfigs(valueType = KafkaFieldType.LONG)
+
+            val longBytes = ByteBuffer.allocate(8).putLong(42L).array()
+            val rawElement = JsonObject(mapOf("__raw__" to JsonPrimitive(Base64.getEncoder().encodeToString(longBytes))))
+            val result = client.extractValue(rawElement, "test-topic", mockFetcher, RecordHeaders(), isKey = false)
+            assertEquals(42L, result)
+        }
+
+        @Test
+        fun `should convert plain JsonPrimitive with STRING type to string content`() = runBlocking {
+            startWithConfigs(valueType = KafkaFieldType.STRING)
+            val result = client.extractValue(JsonPrimitive("hello"), "t", mockFetcher, RecordHeaders(), isKey = false)
+            assertEquals("hello", result)
+        }
+
+        @Test
+        fun `should convert plain JsonPrimitive with LONG type to parsed Long`() = runBlocking {
+            startWithConfigs(valueType = KafkaFieldType.LONG)
+            val result = client.extractValue(JsonPrimitive("999"), "t", mockFetcher, RecordHeaders(), isKey = false)
+            assertEquals(999L, result)
+        }
+
+        @Test
+        fun `should default to STRING when no config is set`() = runBlocking {
+            // Do NOT call startWithConfigs — leave configs null
+            val result = client.extractValue(JsonPrimitive("fallback"), "t", mockFetcher, RecordHeaders(), isKey = false)
+            assertEquals("fallback", result)
+        }
+
+        @Test
+        fun `should return null when __raw__ content is empty string decoded as bytes`() = runBlocking {
+            startWithConfigs(valueType = KafkaFieldType.STRING)
+            val rawElement = JsonObject(mapOf("__raw__" to JsonPrimitive(Base64.getEncoder().encodeToString(byteArrayOf()))))
+            val result = client.extractValue(rawElement, "test-topic", mockFetcher, RecordHeaders(), isKey = false)
+            assertEquals("", result)
+        }
+    }
+
+    @Nested
+    @DisplayName("estimateJsonSize")
+    inner class EstimateJsonSize {
+
+        @Test
+        fun `should return 0 for null`() {
+            assertEquals(0, client.estimateJsonSize(null))
+        }
+
+        @Test
+        fun `should return 0 for JsonNull`() {
+            assertEquals(0, client.estimateJsonSize(JsonNull))
+        }
+
+        @Test
+        fun `should decode base64 in __raw__ and return byte count`() {
+            val original = "hello world".toByteArray()
+            val encoded = Base64.getEncoder().encodeToString(original)
+            val element = JsonObject(mapOf("__raw__" to JsonPrimitive(encoded)))
+            assertEquals(original.size, client.estimateJsonSize(element))
+        }
+
+        @Test
+        fun `should fall back to string byte count for invalid base64 in __raw__`() {
+            val invalidBase64 = "not-valid-base64!!!"
+            val element = JsonObject(mapOf("__raw__" to JsonPrimitive(invalidBase64)))
+            assertEquals(invalidBase64.toByteArray().size, client.estimateJsonSize(element))
+        }
+
+        @Test
+        fun `should return toString byte count for __raw__ with empty string`() {
+            val element = JsonObject(mapOf("__raw__" to JsonPrimitive("")))
+            assertEquals(0, client.estimateJsonSize(element))
+        }
+
+        @Test
+        fun `should return UTF-8 byte count for JsonPrimitive`() {
+            val text = "hello"
+            assertEquals(text.toByteArray().size, client.estimateJsonSize(JsonPrimitive(text)))
+        }
+
+        @Test
+        fun `should return toString byte count for JsonObject without __raw__`() {
+            val obj = JsonObject(mapOf("key" to JsonPrimitive("val")))
+            assertEquals(obj.toString().toByteArray().size, client.estimateJsonSize(obj))
+        }
+    }
+
+    @Nested
+    @DisplayName("createDeserializerOrNull")
+    inner class CreateDeserializerOrNull {
+
+        @Test
+        fun `should return null for SCHEMA_REGISTRY`() {
+            assertNull(client.createDeserializerOrNull(KafkaFieldType.SCHEMA_REGISTRY))
+        }
+
+        @Test
+        fun `should return null for PROTOBUF_CUSTOM`() {
+            assertNull(client.createDeserializerOrNull(KafkaFieldType.PROTOBUF_CUSTOM))
+        }
+
+        @Test
+        fun `should return null for AVRO_CUSTOM`() {
+            assertNull(client.createDeserializerOrNull(KafkaFieldType.AVRO_CUSTOM))
+        }
+
+        @Test
+        fun `should return StringDeserializer for STRING`() {
+            assertTrue(client.createDeserializerOrNull(KafkaFieldType.STRING) is StringDeserializer)
+        }
+
+        @Test
+        fun `should return LongDeserializer for LONG`() {
+            assertTrue(client.createDeserializerOrNull(KafkaFieldType.LONG) is LongDeserializer)
+        }
+    }
+
+    @Nested
+    @DisplayName("createDeserializer edge cases")
+    inner class CreateDeserializerEdgeCases {
+
+        @Test
+        fun `should throw for SCHEMA_REGISTRY type`() {
+            assertThrows(IllegalArgumentException::class.java) {
+                client.createDeserializer(KafkaFieldType.SCHEMA_REGISTRY)
+            }
+        }
+    }
+
+    @Nested
+    @DisplayName("isRetryableStatus")
+    inner class IsRetryableStatus {
+
+        @Test
+        fun `401 should be retryable`() {
+            assertTrue(client.isRetryableStatus(401))
+        }
+
+        @Test
+        fun `429 should be retryable`() {
+            assertTrue(client.isRetryableStatus(429))
+        }
+
+        @Test
+        fun `500 should be retryable`() {
+            assertTrue(client.isRetryableStatus(500))
+        }
+
+        @Test
+        fun `503 should be retryable`() {
+            assertTrue(client.isRetryableStatus(503))
+        }
+
+        @Test
+        fun `400 should not be retryable`() {
+            assertFalse(client.isRetryableStatus(400))
+        }
+
+        @Test
+        fun `404 should not be retryable`() {
+            assertFalse(client.isRetryableStatus(404))
+        }
+    }
+
+    @Nested
+    @DisplayName("convertJsonToType - uncovered branches")
+    inner class ConvertJsonToTypeGaps {
+
+        @Test
+        fun `SCHEMA_REGISTRY type should throw IllegalArgumentException`() {
+            assertThrows(IllegalArgumentException::class.java) {
+                client.convertJsonToType(JsonPrimitive("value"), KafkaFieldType.SCHEMA_REGISTRY)
+            }
+        }
+
+        @Test
+        fun `JsonObject with STRING should return toString`() {
+            val obj = JsonObject(mapOf("a" to JsonPrimitive(1)))
+            val result = client.convertJsonToType(obj, KafkaFieldType.STRING)
+            assertEquals(obj.toString(), result)
+        }
+
+        @Test
+        fun `JsonObject with JSON should return toString`() {
+            val obj = JsonObject(mapOf("a" to JsonPrimitive(1)))
+            val result = client.convertJsonToType(obj, KafkaFieldType.JSON)
+            assertEquals(obj.toString(), result)
+        }
+    }
+
+    @Nested
+    @DisplayName("Cached deserializer usage in convertBytesToType")
+    inner class CachedDeserializerUsage {
+
+        @Test
+        fun `should use cached deserializer when type matches key config`() {
+            startWithConfigs(keyType = KafkaFieldType.LONG)
+            val bytes = ByteBuffer.allocate(8).putLong(77L).array()
+            val result = client.convertBytesToType(bytes, "test-topic", KafkaFieldType.LONG)
+            assertEquals(77L, result)
+        }
+
+        @Test
+        fun `should create fresh deserializer when type matches neither config`() {
+            startWithConfigs(keyType = KafkaFieldType.STRING, valueType = KafkaFieldType.STRING)
+            val bytes = ByteBuffer.allocate(8).putLong(88L).array()
+            // LONG doesn't match either config → creates fresh LongDeserializer
+            val result = client.convertBytesToType(bytes, "test-topic", KafkaFieldType.LONG)
+            assertEquals(88L, result)
+        }
+    }
+
+    @Nested
+    @DisplayName("Protobuf deserialization")
+    inner class ProtobufDeserialization {
+
+        @Test
+        fun `should deserialize V0 protobuf payload to DynamicMessage`() {
+            val schema = ProtobufSchema(protoSchemaText)
+            // Build protobuf payload with MessageIndexes prefix
+            // Index [0] means the first (and only) message type in the schema
+            val indexBytes = MessageIndexes(listOf(0)).toByteArray()
+
+            // Build a User message using DynamicMessage
+            val descriptor = schema.toDescriptor()!!
+            val protoMsg = DynamicMessage.newBuilder(descriptor)
+                .setField(descriptor.findFieldByName("name"), "Alice")
+                .setField(descriptor.findFieldByName("age"), 30)
+                .build()
+            val msgBytes = protoMsg.toByteArray()
+
+            val fullPayload = indexBytes + msgBytes
+
+            val result = client.deserializeProtobuf(fullPayload, schema)
+            assertTrue(result is DynamicMessage)
+            assertEquals("Alice", result.getField(descriptor.findFieldByName("name")))
+            assertEquals(30, result.getField(descriptor.findFieldByName("age")))
+        }
+    }
+
+    @Nested
+    @DisplayName("buildSubsequentConsumeRequest")
+    inner class BuildSubsequentConsumeRequest {
+
+        @Test
+        fun `should return fromBeginning=false when nextOffsets is empty`() {
+            val request = client.buildSubsequentConsumeRequest()
+            assertEquals(false, request.fromBeginning)
+            assertNull(request.offsets)
+        }
+
+        @Test
+        fun `should include partition offsets when nextOffsets is populated`() {
+            client.nextOffsets[0] = 100L
+            client.nextOffsets[1] = 200L
+            val request = client.buildSubsequentConsumeRequest()
+            assertNull(request.fromBeginning)
+            assertNotNull(request.offsets)
+            assertEquals(2, request.offsets!!.size)
+            val offsetMap = request.offsets!!.associate { it.partitionId to it.offset }
+            assertEquals(100L, offsetMap[0])
+            assertEquals(200L, offsetMap[1])
+        }
+    }
+
+    @Nested
+    @DisplayName("getRecordSize")
+    inner class GetRecordSize {
+
+        private fun buildRecord(keySize: Int, valueSize: Int, key: Any? = "k", value: Any? = "v"): ConsumerRecord<Any, Any> {
+            return ConsumerRecord(
+                "topic", 0, 0L, 0L, TimestampType.CREATE_TIME,
+                keySize, valueSize, key, value,
+                RecordHeaders(), null
+            )
+        }
+
+        @Test
+        fun `should return sum of positive serialized sizes`() {
+            val record = buildRecord(keySize = 10, valueSize = 20)
+            assertEquals(30L, client.getRecordSize(record))
+        }
+
+        @Test
+        fun `should estimate from toString when serialized sizes are negative`() {
+            val record = buildRecord(keySize = -1, valueSize = -1, key = "abc", value = "defgh")
+            // "abc" = 3 bytes, "defgh" = 5 bytes
+            assertEquals(8L, client.getRecordSize(record))
+        }
+
+        @Test
+        fun `should handle null key and value with negative sizes`() {
+            val record = buildRecord(keySize = -1, valueSize = -1, key = null, value = null)
+            assertEquals(0L, client.getRecordSize(record))
         }
     }
 }
