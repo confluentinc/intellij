@@ -23,16 +23,21 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
+import org.mockito.kotlin.any
+import org.mockito.kotlin.doNothing
 import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.doThrow
 import org.mockito.kotlin.mock
+import org.mockito.kotlin.spy
+import org.mockito.kotlin.verify
+import org.mockito.kotlin.whenever
 import javax.swing.SwingUtilities
 
 @TestApplication
 class SelectScaffoldTemplateActionTest {
 
     private fun createTemplateList(
-        templates: Set<ScaffoldV1TemplateListDataInner> = emptySet()
+        templates: Set<ScaffoldV1TemplateListDataInner> = setOf(createTemplate())
     ): Scaffoldv1TemplateList {
         return Scaffoldv1TemplateList(
             apiVersion = Scaffoldv1TemplateList.ApiVersion.scaffoldSlashV1,
@@ -90,21 +95,16 @@ class SelectScaffoldTemplateActionTest {
 
         @Test
         fun `action runs background task when project is available`() {
-            val mockClient = mock<ScaffoldHttpClient> {
-                onBlocking { fetchTemplates() } doReturn createTemplateList()
-            }
-            val action = SelectScaffoldTemplateAction(clientFactory = { mockClient })
+            val action = spy(SelectScaffoldTemplateAction())
+            doNothing().whenever(action).fetchAndShowTemplates(any())
+
             val project = ProjectManager.getInstance().defaultProject
             val dataContext = SimpleDataContext.getProjectContext(project)
             val event = AnActionEvent.createFromDataContext("test", Presentation(), dataContext)
 
-            TestDialogManager.setTestDialog { 0 }
-            try {
-                action.actionPerformed(event)
-                SwingUtilities.invokeAndWait {}
-            } finally {
-                TestDialogManager.setTestDialog(TestDialog.DEFAULT)
-            }
+            action.actionPerformed(event)
+
+            verify(action).fetchAndShowTemplates(project)
         }
     }
 
