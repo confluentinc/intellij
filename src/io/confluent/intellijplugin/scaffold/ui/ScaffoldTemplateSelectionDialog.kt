@@ -46,9 +46,7 @@ class ScaffoldTemplateSelectionDialog(
                     it.spec.displayName ?: it.spec.name ?: KafkaMessagesBundle.message("scaffold.dialog.template.unknown")
                 }).align(AlignX.FILL).resizableColumn().applyToComponent {
                     addActionListener {
-                        @Suppress("UNCHECKED_CAST")
-                        val selected = (it.source as? javax.swing.JComboBox<ScaffoldV1TemplateListDataInner>)?.selectedItem
-                                as? ScaffoldV1TemplateListDataInner
+                        val selected = comboModel.selectedItem as? ScaffoldV1TemplateListDataInner
                         if (selected != null) {
                             updateDetails(selected)
                         }
@@ -79,7 +77,6 @@ class ScaffoldTemplateSelectionDialog(
     }
 
     override fun doOKAction() {
-        @Suppress("UNCHECKED_CAST")
         selectedTemplate = comboModel.selectedItem as? ScaffoldV1TemplateListDataInner
         super.doOKAction()
     }

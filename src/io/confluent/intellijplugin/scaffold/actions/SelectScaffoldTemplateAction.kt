@@ -14,7 +14,7 @@ import io.confluent.intellijplugin.scaffold.client.ScaffoldHttpClient
 import io.confluent.intellijplugin.scaffold.model.ScaffoldV1TemplateListDataInner
 import io.confluent.intellijplugin.scaffold.ui.ScaffoldTemplateSelectionDialog
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
-import kotlinx.coroutines.runBlocking
+import com.intellij.openapi.progress.runBlockingMaybeCancellable
 
 class SelectScaffoldTemplateAction(
     private val clientFactory: () -> ScaffoldHttpClient = { ScaffoldHttpClient() }
@@ -36,7 +36,7 @@ class SelectScaffoldTemplateAction(
 
     internal fun fetchTemplates(): List<ScaffoldV1TemplateListDataInner> {
         val client = clientFactory()
-        return runBlocking { client.fetchTemplates() }.data.toList()
+        return runBlockingMaybeCancellable { client.fetchTemplates() }.data.toList()
     }
 
     internal fun fetchAndShowTemplates(project: Project) {
