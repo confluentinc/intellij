@@ -120,24 +120,38 @@ class KafkaDriver(override val connectionData: KafkaConnectionData, project: Pro
             )
 
             rfsPath.isTopicFolder -> {
-                dataManager.topicModel.error?.let { throw it }
-                dataManager.topicModel.data?.map { topicPath.child(it.name, false) } ?: emptyList()
+                val model = dataManager.topicModel
+                model.error?.let { throw it }
+                when (val data = model.data) {
+                    null -> if (model.isInitedByFirstTime) emptyList() else listOf(emptyStatePath("Loading..."))
+                    else -> data.map { topicPath.child(it.name, false) }
+                }
             }
 
             rfsPath.isConsumers -> {
-                dataManager.consumerGroupsModel.error?.let { throw it }
-                dataManager.consumerGroupsModel.data?.map { consumerPath.child(it.consumerGroup, false) } ?: emptyList()
+                val model = dataManager.consumerGroupsModel
+                model.error?.let { throw it }
+                when (val data = model.data) {
+                    null -> if (model.isInitedByFirstTime) emptyList() else listOf(emptyStatePath("Loading..."))
+                    else -> data.map { consumerPath.child(it.consumerGroup, false) }
+                }
             }
 
             rfsPath.isSchemas -> {
-                dataManager.schemaRegistryModel?.error?.let { throw it }
-                dataManager.schemaRegistryModel?.data?.map { schemasPath.child(it.name, false) } ?: emptyList()
+                val model = dataManager.schemaRegistryModel
+                model?.error?.let { throw it }
+                when (val data = model?.data) {
+                    null -> if (model?.isInitedByFirstTime == true) emptyList() else listOf(emptyStatePath("Loading..."))
+                    else -> data.map { schemasPath.child(it.name, false) }
+                }
             }
 
             else -> null
         }
         return children?.map { KafkaFileInfo(this, it) }
     }
+
+    private fun emptyStatePath(message: String) = RfsPath(listOf(message), false)
 
     override fun getController(project: Project) = KafkaMonitoringToolWindowController.getInstance(project)
 

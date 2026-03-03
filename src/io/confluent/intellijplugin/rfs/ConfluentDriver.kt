@@ -37,6 +37,10 @@ class ConfluentDriver(
 
     var selectedEnvironmentId: String? = null
     private val registeredClusterListeners = mutableSetOf<String>()
+    private val registeredSchemaListeners = mutableSetOf<String>()
+
+    // Weak reference to the main controller for navigation
+    internal var mainController: io.confluent.intellijplugin.toolwindow.NavigableController? = null
 
     override val dataManager: CCloudOrgManager = CCloudOrgManager(
         project, connectionData, KafkaToolWindowSettings.getInstance(), { this }
@@ -47,23 +51,7 @@ class ConfluentDriver(
 
     override val treeNodeBuilder: RfsDriverTreeNodeBuilder = object : RfsDriverTreeNodeBuilder() {
         override fun createNode(project: Project, path: RfsPath, driver: Driver): ConfluentRfsTreeNode {
-            val schemaType = if (path.isSchema) {
-                val envId = selectedEnvironmentId
-                if (envId != null) {
-                    val clusters = dataManager.getKafkaClusters(envId)
-                    val cluster = clusters.firstOrNull()
-                    if (cluster != null) {
-                        val cache = dataManager.getDataPlaneCache(cluster)
-                        cache.getSchemas().find { it.name == path.name }?.schemaType
-                    } else null
-                } else null
-            } else null
-
-            if (path.isSchema && schemaType == null) {
-                logger.debug("Schema type is null for '${path.name}' (env: $selectedEnvironmentId)")
-            }
-
-            return ConfluentRfsTreeNode(project, path, this@ConfluentDriver, schemaType)
+            return ConfluentRfsTreeNode(project, path, this@ConfluentDriver)
         }
     }
 
@@ -80,6 +68,20 @@ class ConfluentDriver(
             override fun onChanged() {
                 invokeLater {
                     fileInfoManager.refreshFiles(clusterPath(clusterId))
+                }
+            }
+        })
+    }
+
+    private fun registerSchemaRegistryListener(srId: String, cluster: Cluster) {
+        if (registeredSchemaListeners.contains(srId)) return
+        registeredSchemaListeners.add(srId)
+
+        val clusterDataManager = dataManager.getOrCreateClusterDataManager(cluster)
+        clusterDataManager.schemaRegistryModel?.addListener(object : DataModelListener {
+            override fun onChanged() {
+                invokeLater {
+                    fileInfoManager.refreshFiles(schemaRegistryPath(srId))
                 }
             }
         })
@@ -160,6 +162,8 @@ class ConfluentDriver(
                         return emptyList()
                     }
 
+                    registerSchemaRegistryListener(nodeId, firstCluster)
+
                     val cache = dataManager.getDataPlaneCache(firstCluster)
 
                     if (!cache.hasSchemaRegistry()) {
@@ -167,15 +171,21 @@ class ConfluentDriver(
                         return emptyList()
                     }
 
-                    val schemas = cache.refreshSchemas().sortedBy { it.name.lowercase() }
+                    val clusterDataManager = dataManager.getOrCreateClusterDataManager(firstCluster)
+                    clusterDataManager.initRefreshSchemasIfRequired()
+
+                    val schemas = clusterDataManager.getSchemas()
                     logger.info("ConfluentDriver: Found ${schemas.size} schemas")
 
-                    return if (schemas.isEmpty()) {
-                        listOf(ConfluentFileInfo(this, emptyStatePath("No schemas available")))
-                    } else {
-                        schemas.map { schema ->
-                            ConfluentFileInfo(this, schemaPath(nodeId, schema.name))
-                        }
+                    return when {
+                        schemas.isEmpty() && clusterDataManager.schemaRegistryModel?.isInitedByFirstTime == false ->
+                            listOf(ConfluentFileInfo(this, emptyStatePath("Loading...")))
+                        schemas.isEmpty() ->
+                            listOf(ConfluentFileInfo(this, emptyStatePath("No schemas available")))
+                        else ->
+                            schemas.map { schema ->
+                                ConfluentFileInfo(this, schemaPath(nodeId, schema.name))
+                            }
                     }
                 }
 
@@ -202,15 +212,11 @@ class ConfluentDriver(
         }
 
         fun RfsPath.isCluster(driver: ConfluentDriver): Boolean {
-            if (elements.size != 1) return false
-            val envId = driver.selectedEnvironmentId ?: return false
-            return driver.dataManager.client.getKafkaClusters(envId).any { it.id == name }
+            return elements.size == 1 && name.startsWith("lkc-")
         }
 
         fun RfsPath.isSchemaRegistry(driver: ConfluentDriver): Boolean {
-            if (elements.size != 1) return false
-            val envId = driver.selectedEnvironmentId ?: return false
-            return driver.dataManager.client.getSchemaRegistry(envId)?.id == name
+            return elements.size == 1 && name.startsWith("lsrc-")
         }
 
         val RfsPath.isTopic: Boolean get() = elements.size == 2 && elements[0].startsWith("lkc-")
@@ -240,4 +246,3 @@ class ConfluentDriver(
         }
     }
 }
-
