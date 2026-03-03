@@ -18,15 +18,15 @@ class ScaffoldTemplateSelectionDialog(
     private val templates: List<ScaffoldV1TemplateListDataInner>
 ) : DialogWrapper(project) {
 
-    private val comboModel = DefaultComboBoxModel(templates.toTypedArray())
-    private val descriptionArea = JBTextArea(4, 40).apply {
+    internal val comboModel = DefaultComboBoxModel(templates.toTypedArray())
+    internal val descriptionArea = JBTextArea(4, 40).apply {
         isEditable = false
         lineWrap = true
         wrapStyleWord = true
     }
-    private val languageLabel = JBLabel()
-    private val versionLabel = JBLabel()
-    private val tagsLabel = JBLabel()
+    internal val languageLabel = JBLabel()
+    internal val versionLabel = JBLabel()
+    internal val tagsLabel = JBLabel()
 
     private lateinit var templateComboBox: JComboBox<ScaffoldV1TemplateListDataInner>
 
