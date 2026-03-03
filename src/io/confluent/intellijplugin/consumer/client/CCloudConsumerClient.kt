@@ -81,7 +81,7 @@ class CCloudConsumerClient(
     internal val nextOffsets = mutableMapOf<Int, Long>()
 
     // Cache parsed schemas by schema ID or GUID string to avoid redundant fetches
-    private val schemaCache = ConcurrentHashMap<String, ParsedSchema?>()
+    private val schemaCache = ConcurrentHashMap<String, ParsedSchema>()
 
     @VisibleForTesting
     internal var currentKeyConfig: ConsumerProducerFieldConfig? = null
@@ -449,8 +449,6 @@ class CCloudConsumerClient(
 
     /**
      * Estimate the serialized size of a JSON element.
-     * For schema-encoded values with __raw__, uses the decoded base64 size.
-     * For other values, uses the string representation size.
      */
     @VisibleForTesting
     internal fun estimateJsonSize(element: JsonElement?): Int {
@@ -481,10 +479,6 @@ class CCloudConsumerClient(
 
     /**
      * Extract value from JSON element with type-aware conversion.
-     *
-     * Mirrors the native consumer's selector behavior:
-     * - The user's dropdown selection (STRING, LONG, SCHEMA_REGISTRY, etc.) determines
-     *   how data is interpreted, just like how native consumer picks a Deserializer.
      * - SCHEMA_REGISTRY → full schema-aware deserialization (Avro/Protobuf/JSON Schema)
      * - Other types → decode raw bytes and convert to the selected primitive type
      */
@@ -549,7 +543,7 @@ class CCloudConsumerClient(
 
     /**
      * Convert raw bytes to the selected type using the cached Kafka deserializer.
-     * Should never be called with schema types — [extractValue] routes those to [deserializeSchemaEncoded].
+     * Should never be called with schema types, [extractValue] routes those to [deserializeSchemaEncoded].
      */
     @VisibleForTesting
     internal fun convertBytesToType(bytes: ByteArray, topic: String, type: KafkaFieldType): Any? {
@@ -597,7 +591,7 @@ class CCloudConsumerClient(
      *
      * Priority order:
      * 1. V1: Schema GUID from `confluent.key.schemaId` / `confluent.value.schemaId` headers
-     * 2. V0: Schema ID from payload prefix (magic byte 0x00 + 4-byte big-endian int)
+     * 2. V0: Schema ID from payload prefix
      * 3. Fallback: return raw bytes as-is
      *
      */
@@ -650,37 +644,32 @@ class CCloudConsumerClient(
         }
     }
 
-    // ── Wire format detection ───────────────────────────────────────────
-
     /**
-     * Extract V0 schema ID from payload: magic byte 0x00 + 4-byte big-endian int.
+     * Extract V0 schema ID from payload
      */
     @VisibleForTesting
     internal fun getSchemaIdFromRawBytes(rawBytes: ByteArray): Int? {
-        if (rawBytes.size < 5 || rawBytes[0] != MAGIC_BYTE_V0) return null
+        if (rawBytes.size < 5 || rawBytes[0] != SchemaId.MAGIC_BYTE_V0) return null
         return ByteBuffer.wrap(rawBytes, 1, 4).getInt()
     }
 
     /**
-     * Extract V1 schema GUID from Kafka headers: magic byte 0x01 + 16-byte UUID.
+     * Extract V1 schema GUID from Kafka headers
      */
     @VisibleForTesting
     internal fun getSchemaGuidFromHeaders(headers: RecordHeaders, isKey: Boolean): UUID? {
         val headerName = if (isKey) SchemaId.KEY_SCHEMA_ID_HEADER else SchemaId.VALUE_SCHEMA_ID_HEADER
         val header = headers.lastHeader(headerName) ?: return null
         val value = header.value() ?: return null
-        if (value.size < 17 || value[0] != MAGIC_BYTE_V1) return null
+        if (value.size < 17 || value[0] != SchemaId.MAGIC_BYTE_V1) return null
         val buffer = ByteBuffer.wrap(value)
         buffer.get() // skip magic byte
         return UUID(buffer.getLong(), buffer.getLong())
     }
 
-    // ── Format-specific deserializers ───────────────────────────────────
-
     /**
      * Deserialize Avro binary payload to a typed Avro object (e.g. GenericData.Record).
      * Returns the datum directly so the UI layer (KafkaEditorUtils.getValueAsString)
-     * can apply format-aware rendering via AvroSchemaUtils.toJson().
      */
     private fun deserializeAvro(payload: ByteArray, schema: AvroSchema): Any {
         val reader = GenericDatumReader<Any>(schema.rawSchema())
@@ -691,7 +680,6 @@ class CCloudConsumerClient(
     /**
      * Deserialize Protobuf binary payload (with varint message indexes) to a DynamicMessage.
      * Returns the message directly so the UI layer (KafkaEditorUtils.getValueAsString)
-     * can apply format-aware rendering via ProtobufSchemaUtils.toJson().
      */
     @VisibleForTesting
     internal fun deserializeProtobuf(payload: ByteArray, schema: ProtobufSchema): DynamicMessage {
@@ -755,8 +743,5 @@ class CCloudConsumerClient(
 
         /** Default maximum number of records per consume request. */
         private const val DEFAULT_MAX_POLL_RECORDS = 100
-
-        private val MAGIC_BYTE_V0 = SchemaId.MAGIC_BYTE_V0
-        private val MAGIC_BYTE_V1 = SchemaId.MAGIC_BYTE_V1
     }
 }

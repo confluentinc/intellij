@@ -44,7 +44,7 @@ class CCloudConsumerClientTest {
     private lateinit var mockFetcher: DataPlaneFetcher
     private lateinit var client: CCloudConsumerClient
 
-    // ── Fixtures ────────────────────────────────────────────────────────
+    // Fixtures
 
     private val avroSchemaJson = javaClass.getResourceAsStream(
         "/fixtures/schemas/user-avro-schema.json"
@@ -69,12 +69,10 @@ class CCloudConsumerClientTest {
         )
     }
 
-    // ── Helper methods ──────────────────────────────────────────────────
-
     /** Build V0 wire-format bytes: magic 0x00 + 4-byte schema ID + payload. */
     private fun buildV0Payload(schemaId: Int, payload: ByteArray): ByteArray {
         val buffer = ByteBuffer.allocate(5 + payload.size)
-        buffer.put(0x00) // magic byte V0
+        buffer.put(SchemaId.MAGIC_BYTE_V0)
         buffer.putInt(schemaId)
         buffer.put(payload)
         return buffer.array()
@@ -83,7 +81,7 @@ class CCloudConsumerClientTest {
     /** Build V1 header value: magic 0x01 + 16-byte UUID. */
     private fun buildV1HeaderValue(guid: UUID): ByteArray {
         val buffer = ByteBuffer.allocate(17)
-        buffer.put(0x01) // magic byte V1
+        buffer.put(SchemaId.MAGIC_BYTE_V1)
         buffer.putLong(guid.mostSignificantBits)
         buffer.putLong(guid.leastSignificantBits)
         return buffer.array()
@@ -124,10 +122,8 @@ class CCloudConsumerClientTest {
         client.currentValueConfig = fieldConfig(valueType, isKey = false)
     }
 
-    // ── Wire format detection ───────────────────────────────────────────
-
     @Nested
-    @DisplayName("Wire format detection - V0 (payload prefix)")
+    @DisplayName("Wire format detection, V0 (payload prefix)")
     inner class V0Detection {
 
         @Test
@@ -159,7 +155,7 @@ class CCloudConsumerClientTest {
     }
 
     @Nested
-    @DisplayName("Wire format detection - V1 (header GUID)")
+    @DisplayName("Wire format detection, V1 (header GUID)")
     inner class V1Detection {
 
         @Test
@@ -226,8 +222,6 @@ class CCloudConsumerClientTest {
         }
     }
 
-    // ── Schema deserialization ───────────────────────────────────────────
-
     @Nested
     @DisplayName("Avro deserialization")
     inner class AvroDeserialization {
@@ -278,7 +272,7 @@ class CCloudConsumerClientTest {
             val wireBytes = buildV0Payload(schemaId, avroPayload)
             val headers = RecordHeaders()
 
-            // SR convention: null schemaType means AVRO
+            // SR convention: null schemaType should expect AVRO
             whenever(mockFetcher.getSchemaIdInfo(schemaId)).thenReturn(
                 SchemaByIdResponse(schema = avroSchemaJson, schemaType = null)
             )
@@ -331,7 +325,6 @@ class CCloudConsumerClientTest {
             val fullPayload = indexBytes + protoMsg.toByteArray()
 
             val result = client.deserializeProtobuf(fullPayload, schema)
-            assertTrue(result is DynamicMessage)
             assertEquals("Alice", result.getField(descriptor.findFieldByName("name")))
             assertEquals(30, result.getField(descriptor.findFieldByName("age")))
         }
@@ -342,7 +335,7 @@ class CCloudConsumerClientTest {
     inner class PriorityAndFallback {
 
         @Test
-        fun `should prefer V1 header GUID over V0 payload ID`() = runBlocking {
+        fun `should prefer V1 header GUID over V0 payload ID`(): Unit = runBlocking {
             val guid = UUID.randomUUID()
             val v0SchemaId = 99
 
@@ -378,7 +371,7 @@ class CCloudConsumerClientTest {
         }
 
         @Test
-        fun `should throw when schema fetch fails`() = runBlocking {
+        fun `should throw when schema fetch fails`(): Unit = runBlocking {
             val schemaId = 10
             val wireBytes = buildV0Payload(schemaId, byteArrayOf(1, 2, 3))
             val headers = RecordHeaders()
@@ -392,7 +385,7 @@ class CCloudConsumerClientTest {
         }
 
         @Test
-        fun `should throw when deserialization fails`() = runBlocking {
+        fun `should throw when deserialization fails`(): Unit = runBlocking {
             val schemaId = 11
             // Garbage payload that can't be decoded as Avro
             val wireBytes = buildV0Payload(schemaId, byteArrayOf(0xFF.toByte(), 0xFE.toByte()))
@@ -413,7 +406,7 @@ class CCloudConsumerClientTest {
     inner class SchemaCaching {
 
         @Test
-        fun `should cache schema and not re-fetch for same schema ID`() = runBlocking {
+        fun `should cache schema and not re-fetch for same schema ID`(): Unit = runBlocking {
             val schemaId = 5
             val avroPayload = encodeAvroPayload(avroSchemaJson, "Eve", 28)
             val wireBytes = buildV0Payload(schemaId, avroPayload)
@@ -431,8 +424,6 @@ class CCloudConsumerClientTest {
             verify(mockFetcher, times(1)).getSchemaIdInfo(schemaId)
         }
     }
-
-    // ── Value extraction ────────────────────────────────────────────────
 
     @Nested
     @DisplayName("extractValue")
@@ -505,7 +496,7 @@ class CCloudConsumerClientTest {
 
         @Test
         fun `should default to STRING when no config is set`() = runBlocking {
-            // Do NOT call startWithConfigs — leave configs null
+            // Do NOT call startWithConfigs, leave configs null to avoid potential reader exception
             val result = client.extractValue(JsonPrimitive("fallback"), "t", mockFetcher, RecordHeaders(), isKey = false)
             assertEquals("fallback", result)
         }
@@ -518,8 +509,6 @@ class CCloudConsumerClientTest {
             assertEquals("", result)
         }
     }
-
-    // ── Size estimation ─────────────────────────────────────────────────
 
     @Nested
     @DisplayName("estimateJsonSize")
@@ -568,8 +557,6 @@ class CCloudConsumerClientTest {
             assertEquals(obj.toString().toByteArray().size, client.estimateJsonSize(obj))
         }
     }
-
-    // ── Type conversion ─────────────────────────────────────────────────
 
     @Nested
     @DisplayName("convertJsonToType")
@@ -702,9 +689,8 @@ class CCloudConsumerClientTest {
 
         @Test
         fun `should throw SerializationException for non-8-byte LONG`() {
-            // Matches native consumer: LongDeserializer throws on wrong byte length
             val bytes = "42".toByteArray()
-            assertThrows(org.apache.kafka.common.errors.SerializationException::class.java) {
+            assertThrows(SerializationException::class.java) {
                 client.convertBytesToType(bytes, "test-topic", KafkaFieldType.LONG)
             }
         }
@@ -753,8 +739,6 @@ class CCloudConsumerClientTest {
         }
     }
 
-    // ── Deserializer factory ────────────────────────────────────────────
-
     @Nested
     @DisplayName("Deserializer factory")
     inner class DeserializerFactory {
@@ -792,8 +776,6 @@ class CCloudConsumerClientTest {
         }
     }
 
-    // ── Request building ────────────────────────────────────────────────
-
     @Nested
     @DisplayName("buildSubsequentConsumeRequest")
     inner class BuildSubsequentConsumeRequest {
@@ -813,7 +795,7 @@ class CCloudConsumerClientTest {
             assertNull(request.fromBeginning)
             assertNotNull(request.offsets)
             assertEquals(2, request.offsets!!.size)
-            val offsetMap = request.offsets!!.associate { it.partitionId to it.offset }
+            val offsetMap = request.offsets.associate { it.partitionId to it.offset }
             assertEquals(100L, offsetMap[0])
             assertEquals(200L, offsetMap[1])
         }
