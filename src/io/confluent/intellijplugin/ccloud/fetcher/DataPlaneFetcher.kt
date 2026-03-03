@@ -33,4 +33,7 @@ interface DataPlaneFetcher {
 
     /** Get schema by global ID. */
     suspend fun getSchemaIdInfo(schemaId: Int): SchemaByIdResponse
+
+    /** Get schema by GUID (used in V1 wire format with header-based schema references). */
+    suspend fun getSchemaByGuid(guid: String): SchemaByIdResponse
 }
