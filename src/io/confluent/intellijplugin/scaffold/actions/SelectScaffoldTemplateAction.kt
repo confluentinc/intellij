@@ -2,62 +2,70 @@ package io.confluent.intellijplugin.scaffold.actions
 
 import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnActionEvent
-import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.application.EDT
+import com.intellij.openapi.application.ModalityState
+import com.intellij.openapi.application.asContextElement
 import com.intellij.openapi.diagnostic.thisLogger
-import com.intellij.openapi.progress.ProgressIndicator
-import com.intellij.openapi.progress.ProgressManager
-import com.intellij.openapi.progress.Task
+import com.intellij.openapi.progress.currentThreadCoroutineScope
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.Messages
+import com.intellij.platform.ide.progress.withBackgroundProgress
 import io.confluent.intellijplugin.scaffold.client.ScaffoldHttpClient
 import io.confluent.intellijplugin.scaffold.model.ScaffoldV1TemplateListDataInner
 import io.confluent.intellijplugin.scaffold.ui.ScaffoldTemplateSelectionDialog
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
-import com.intellij.openapi.progress.runBlockingMaybeCancellable
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class SelectScaffoldTemplateAction(
-    private val clientFactory: () -> ScaffoldHttpClient = { ScaffoldHttpClient() }
+    private val clientFactory: () -> ScaffoldHttpClient = { ScaffoldHttpClient() },
+    private val dialogFactory: (Project, List<ScaffoldV1TemplateListDataInner>) -> ScaffoldTemplateSelectionDialog =
+        ::ScaffoldTemplateSelectionDialog
 ) : DumbAwareAction() {
 
     override fun actionPerformed(e: AnActionEvent) {
         val project = e.project ?: return
 
-        ProgressManager.getInstance().run(object : Task.Backgroundable(
-            project,
-            KafkaMessagesBundle.message("scaffold.action.fetch.templates.progress"),
-            true
-        ) {
-            override fun run(indicator: ProgressIndicator) {
-                fetchAndShowTemplates(project)
-            }
-        })
+        currentThreadCoroutineScope().launch {
+            fetchAndShowTemplates(project)
+        }
     }
 
-    internal fun fetchTemplates(): List<ScaffoldV1TemplateListDataInner> {
+    internal suspend fun fetchTemplates(): List<ScaffoldV1TemplateListDataInner> {
         val client = clientFactory()
-        return runBlockingMaybeCancellable { client.fetchTemplates() }.data.toList()
+        return client.fetchTemplates().data.toList()
     }
 
-    internal fun fetchAndShowTemplates(project: Project) {
+    internal suspend fun fetchAndShowTemplates(project: Project) {
         try {
-            val templates = fetchTemplates()
+            val templates = withBackgroundProgress(
+                project,
+                KafkaMessagesBundle.message("scaffold.action.fetch.templates.progress"),
+                cancellable = true
+            ) {
+                fetchTemplates()
+            }
 
-            ApplicationManager.getApplication().invokeLater({
-                if (project.isDisposed) return@invokeLater
+            withContext(Dispatchers.EDT + ModalityState.defaultModalityState().asContextElement()) {
+                if (project.isDisposed) return@withContext
 
-                val dialog = ScaffoldTemplateSelectionDialog(project, templates)
+                val dialog = dialogFactory(project, templates)
                 if (dialog.showAndGet()) {
                     val selected = dialog.selectedTemplate
                     if (selected != null) {
                         thisLogger().debug("Selected template: ${selected.spec.displayName ?: selected.spec.name}")
                     }
                 }
-            }, project.disposed)
+            }
+        } catch (ex: CancellationException) {
+            throw ex
         } catch (ex: Exception) {
             thisLogger().warn("Failed to fetch templates", ex)
-            ApplicationManager.getApplication().invokeLater({
-                if (project.isDisposed) return@invokeLater
+            withContext(Dispatchers.EDT + ModalityState.defaultModalityState().asContextElement()) {
+                if (project.isDisposed) return@withContext
                 Messages.showErrorDialog(
                     project,
                     KafkaMessagesBundle.message(
@@ -66,7 +74,7 @@ class SelectScaffoldTemplateAction(
                     ),
                     KafkaMessagesBundle.message("scaffold.action.error.title")
                 )
-            }, project.disposed)
+            }
         }
     }
 
