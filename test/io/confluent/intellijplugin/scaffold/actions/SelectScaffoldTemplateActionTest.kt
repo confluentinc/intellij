@@ -1,9 +1,15 @@
 package io.confluent.intellijplugin.scaffold.actions
 
 import com.intellij.openapi.actionSystem.ActionManager
+import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnActionEvent
+import com.intellij.openapi.actionSystem.CommonDataKeys
 import com.intellij.openapi.actionSystem.DataContext
 import com.intellij.openapi.actionSystem.Presentation
+import com.intellij.openapi.actionSystem.impl.SimpleDataContext
+import com.intellij.openapi.project.ProjectManager
+import com.intellij.openapi.ui.TestDialog
+import com.intellij.openapi.ui.TestDialogManager
 import com.intellij.testFramework.junit5.TestApplication
 import io.confluent.intellijplugin.scaffold.client.ScaffoldHttpClient
 import io.confluent.intellijplugin.scaffold.model.ScaffoldV1TemplateListDataInner
@@ -21,6 +27,7 @@ import org.junit.jupiter.api.Test
 import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.doThrow
 import org.mockito.kotlin.mock
+import javax.swing.SwingUtilities
 
 @TestApplication
 class SelectScaffoldTemplateActionTest {
@@ -80,6 +87,25 @@ class SelectScaffoldTemplateActionTest {
             )
             // Should not throw - gracefully handles null project
             action.actionPerformed(event)
+        }
+
+        @Test
+        fun `action runs background task when project is available`() {
+            val mockClient = mock<ScaffoldHttpClient> {
+                onBlocking { fetchTemplates() } doReturn createTemplateList()
+            }
+            val action = SelectScaffoldTemplateAction(clientFactory = { mockClient })
+            val project = ProjectManager.getInstance().defaultProject
+            val dataContext = SimpleDataContext.getProjectContext(project)
+            val event = AnActionEvent.createFromDataContext("test", Presentation(), dataContext)
+
+            TestDialogManager.setTestDialog { 0 }
+            try {
+                action.actionPerformed(event)
+                SwingUtilities.invokeAndWait {}
+            } finally {
+                TestDialogManager.setTestDialog(TestDialog.DEFAULT)
+            }
         }
     }
 
@@ -144,5 +170,56 @@ class SelectScaffoldTemplateActionTest {
 
             assertTrue(clientCreated, "Client factory should be invoked")
         }
+    }
+
+    @Nested
+    @DisplayName("getActionUpdateThread")
+    inner class GetActionUpdateThread {
+
+        @Test
+        fun `returns BGT`() {
+            val action = SelectScaffoldTemplateAction()
+            assertEquals(ActionUpdateThread.BGT, action.actionUpdateThread)
+        }
+    }
+
+    @Nested
+    @DisplayName("fetchAndShowTemplates")
+    inner class FetchAndShowTemplates {
+
+        private val project = ProjectManager.getInstance().defaultProject
+
+        @Test
+        fun `shows info message when templates list is empty`() {
+            val mockClient = mock<ScaffoldHttpClient> {
+                onBlocking { fetchTemplates() } doReturn createTemplateList()
+            }
+            val action = SelectScaffoldTemplateAction(clientFactory = { mockClient })
+
+            TestDialogManager.setTestDialog { 0 }
+            try {
+                action.fetchAndShowTemplates(project)
+                SwingUtilities.invokeAndWait {}
+            } finally {
+                TestDialogManager.setTestDialog(TestDialog.DEFAULT)
+            }
+        }
+
+        @Test
+        fun `shows error dialog when fetch throws exception`() {
+            val mockClient = mock<ScaffoldHttpClient> {
+                onBlocking { fetchTemplates() } doThrow RuntimeException("Connection refused")
+            }
+            val action = SelectScaffoldTemplateAction(clientFactory = { mockClient })
+
+            TestDialogManager.setTestDialog { 0 }
+            try {
+                action.fetchAndShowTemplates(project)
+                SwingUtilities.invokeAndWait {}
+            } finally {
+                TestDialogManager.setTestDialog(TestDialog.DEFAULT)
+            }
+        }
+
     }
 }
