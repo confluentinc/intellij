@@ -10,6 +10,7 @@ enum class KafkaRegistryFormat(@Nls val presentable: String) {
     UNKNOWN(KafkaMessagesBundle.message("registry.format.unknown"));
 
     companion object {
-        fun parse(s: String?) = entries.firstOrNull { it.name.lowercase() == s?.lowercase() } ?: UNKNOWN
+        // Per Schema Registry spec, AVRO is the default when schemaType is not specified
+        fun parse(s: String?) = entries.firstOrNull { it.name.lowercase() == s?.lowercase() } ?: AVRO
     }
 }
