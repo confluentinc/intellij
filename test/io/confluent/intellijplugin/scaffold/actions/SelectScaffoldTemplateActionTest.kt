@@ -3,7 +3,6 @@ package io.confluent.intellijplugin.scaffold.actions
 import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnActionEvent
-import com.intellij.openapi.actionSystem.CommonDataKeys
 import com.intellij.openapi.actionSystem.DataContext
 import com.intellij.openapi.actionSystem.Presentation
 import com.intellij.openapi.actionSystem.impl.SimpleDataContext
@@ -114,18 +113,6 @@ class SelectScaffoldTemplateActionTest {
     inner class FetchTemplates {
 
         @Test
-        fun `returns empty list when no templates available`() {
-            val mockClient = mock<ScaffoldHttpClient> {
-                onBlocking { fetchTemplates() } doReturn createTemplateList()
-            }
-
-            val action = SelectScaffoldTemplateAction(clientFactory = { mockClient })
-            val result = action.fetchTemplates()
-
-            assertTrue(result.isEmpty())
-        }
-
-        @Test
         fun `returns templates on successful fetch`() {
             val templates = setOf(
                 createTemplate(name = "template-1", displayName = "Template 1"),
@@ -188,22 +175,6 @@ class SelectScaffoldTemplateActionTest {
     inner class FetchAndShowTemplates {
 
         private val project = ProjectManager.getInstance().defaultProject
-
-        @Test
-        fun `shows info message when templates list is empty`() {
-            val mockClient = mock<ScaffoldHttpClient> {
-                onBlocking { fetchTemplates() } doReturn createTemplateList()
-            }
-            val action = SelectScaffoldTemplateAction(clientFactory = { mockClient })
-
-            TestDialogManager.setTestDialog { 0 }
-            try {
-                action.fetchAndShowTemplates(project)
-                SwingUtilities.invokeAndWait {}
-            } finally {
-                TestDialogManager.setTestDialog(TestDialog.DEFAULT)
-            }
-        }
 
         @Test
         fun `shows error dialog when fetch throws exception`() {

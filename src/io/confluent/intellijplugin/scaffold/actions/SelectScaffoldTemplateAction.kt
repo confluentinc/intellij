@@ -46,15 +46,6 @@ class SelectScaffoldTemplateAction(
             ApplicationManager.getApplication().invokeLater({
                 if (project.isDisposed) return@invokeLater
 
-                if (templates.isEmpty()) {
-                    Messages.showInfoMessage(
-                        project,
-                        KafkaMessagesBundle.message("scaffold.action.no.templates.message"),
-                        KafkaMessagesBundle.message("scaffold.action.no.templates.title")
-                    )
-                    return@invokeLater
-                }
-
                 val dialog = ScaffoldTemplateSelectionDialog(project, templates)
                 if (dialog.showAndGet()) {
                     val selected = dialog.selectedTemplate
