@@ -4,34 +4,50 @@ import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.application.EDT
+import com.intellij.openapi.progress.runBlockingMaybeCancellable
 import com.intellij.util.concurrency.annotations.RequiresBackgroundThread
 import io.confluent.intellijplugin.ccloud.cache.DataPlaneCache
 import io.confluent.intellijplugin.ccloud.model.Cluster
 import io.confluent.intellijplugin.ccloud.model.response.CreateTopicRequest
 import io.confluent.intellijplugin.ccloud.model.response.toPresentable
+import io.confluent.intellijplugin.ccloud.model.response.toSchemaReferences
 import io.confluent.intellijplugin.client.KafkaConstants
 import io.confluent.intellijplugin.common.models.RegistrySchemaInEditor
+import io.confluent.intellijplugin.core.monitoring.data.model.ObjectDataModel
 import io.confluent.intellijplugin.core.monitoring.data.storage.ObjectDataModelStorage
 import io.confluent.intellijplugin.core.monitoring.data.storage.RootDataModelStorage
-import io.confluent.intellijplugin.core.util.invokeLater
+import io.confluent.intellijplugin.toolwindow.config.KafkaClusterConfig
+import io.confluent.intellijplugin.core.util.runAsync
+import io.confluent.intellijplugin.core.rfs.driver.SafeExecutor
+import io.confluent.intellijplugin.core.rfs.util.RfsNotificationUtils
+import io.confluent.intellijplugin.core.util.asSilent
+import kotlin.time.Duration
+import kotlinx.coroutines.future.asCompletableFuture
+import org.jetbrains.concurrency.asPromise
 import io.confluent.intellijplugin.model.BdtTopicPartition
 import io.confluent.intellijplugin.model.ConsumerGroupOffsetInfo
 import io.confluent.intellijplugin.model.ConsumerGroupPresentable
 import io.confluent.intellijplugin.model.TopicConfig
 import io.confluent.intellijplugin.model.TopicPresentable
+import io.confluent.intellijplugin.registry.KafkaRegistryFormat
 import io.confluent.intellijplugin.registry.KafkaRegistryType
+import io.confluent.intellijplugin.registry.KafkaRegistryUtil
 import io.confluent.intellijplugin.registry.SchemaVersionInfo
 import io.confluent.intellijplugin.registry.common.KafkaSchemaInfo
 import io.confluent.intellijplugin.rfs.ConfluentConnectionData
 import io.confluent.intellijplugin.toolwindow.config.KafkaToolWindowSettings
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.runInterruptible
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.TopicPartition
 import java.util.concurrent.ConcurrentHashMap
+import org.jetbrains.concurrency.Promise
 
 /**
  * Cluster-level data manager for Confluent Cloud using the CCloud REST API.
@@ -55,6 +71,18 @@ class CCloudClusterDataManager(
 
     private val dataPlaneCache: DataPlaneCache = orgManager.getDataPlaneCache(cluster)
     private val partitionEnrichmentJobs = ConcurrentHashMap<String, Job>()
+    private var topicEnrichmentJob: Job? = null
+    private var schemaEnrichmentJob: Job? = null
+
+    // Cache partition data to avoid EDT blocking when updates are triggered by topic model changes
+    private val partitionCache = ConcurrentHashMap<String, List<BdtTopicPartition>>()
+
+    // Cache schema version info to avoid repeated API calls
+    private val schemaVersionCache = ConcurrentHashMap<Pair<String, Long>, SchemaVersionInfo>()
+
+    private fun invalidateSchemaVersionCache(schemaName: String) {
+        schemaVersionCache.keys.removeIf { it.first == schemaName }
+    }
 
     override val connectionId: String = cluster.id
 
@@ -65,10 +93,82 @@ class CCloudClusterDataManager(
         get() = orgManager.client
 
     override val registryType: KafkaRegistryType
-        get() = KafkaRegistryType.NONE
+        get() = if (dataPlaneCache.hasSchemaRegistry()) KafkaRegistryType.CONFLUENT else KafkaRegistryType.NONE
+
+    /**
+     * Gets the Schema Registry ID for this cluster's environment.
+     * Returns null if no schema registry is configured.
+     */
+    fun getSchemaRegistryId(): String? = orgManager.getEnvironments().firstNotNullOfOrNull { env ->
+        if (orgManager.getKafkaClusters(env.id).any { it.id == cluster.id }) {
+            orgManager.getSchemaRegistry(env.id)?.id
+        } else null
+    }
+
+    /**
+     * Get the RFS path for a schema subject in CCloud format: [schemaRegistryId, schemaName]
+     */
+    override fun getSchemaPath(schemaName: String): io.confluent.intellijplugin.core.rfs.driver.RfsPath {
+        val srId = getSchemaRegistryId()
+            ?: throw IllegalStateException("Schema Registry ID not available")
+        return io.confluent.intellijplugin.core.rfs.driver.RfsPath(listOf(srId, schemaName), isDirectory = false)
+    }
+
+    /**
+     * Gets the configuration for this cluster's Schema Registry.
+     * Uses SR ID as the config key so all clusters sharing the same SR share the same schema favorites.
+     * Returns null if no schema registry is configured.
+     */
+    private fun getSchemaRegistryConfig(): KafkaClusterConfig? {
+        val srId = getSchemaRegistryId() ?: return null
+        return KafkaToolWindowSettings.getInstance().getOrCreateConfig(srId)
+    }
 
     init {
-        RootDataModelStorage(updater, listOf(topicModel)).also { Disposer.register(this, it) }
+        RootDataModelStorage(updater, listOfNotNull(topicModel, schemaRegistryModel)).also {
+            Disposer.register(this, it)
+        }
+    }
+
+    /**
+     * Override to use Schema Registry config (not cluster config) for schema filtering, sorting, and limits.
+     * This ensures all clusters sharing the same SR see the same schema view configuration.
+     */
+    override fun createSchemaRegistryDataModel(): ObjectDataModel<KafkaSchemaInfo>? {
+        if (registryType == KafkaRegistryType.NONE) return null
+
+        return ObjectDataModel(
+            idFieldName = KafkaSchemaInfo::name,
+            additionalInfoLoading = null  // Don't block progress bar for enrichment
+        ) {
+            val toolWindowSettings = KafkaToolWindowSettings.getInstance()
+            // Use SR config (not cluster config) for all schema-related settings
+            val config = getSchemaRegistryConfig()
+
+            val (rawSchemas, _) = runBlockingMaybeCancellable {
+                listSchemasNames(
+                    limit = null, // Don't apply limit here, apply after sorting (same as base class)
+                    filter = config?.schemaFilterName
+                )
+            }
+
+            val sortedSchemas = sortSchemasWithFavorites(
+                rawSchemas,
+                pinnedSchemas = config?.schemasPined ?: emptySet(),
+                showFavoriteOnly = toolWindowSettings.showFavoriteSchema
+            )
+
+            val (finalSchemas, _) = applySchemaLimit(sortedSchemas, config?.registryLimit)
+
+            // Launch background enrichment for schemas without metadata
+            val schemasNeedingEnrichment = finalSchemas.filter { it.version == null }
+            if (schemasNeedingEnrichment.isNotEmpty()) {
+                schemaEnrichmentJob?.cancel()
+                schemaEnrichmentJob = launchSchemaEnrichment(schemasNeedingEnrichment)
+            }
+
+            finalSchemas to false
+        }
     }
 
     /**
@@ -84,50 +184,65 @@ class CCloudClusterDataManager(
 
     override fun createTopicPartitionsStorage() = ObjectDataModelStorage<String, BdtTopicPartition>(
         updater,
-        BdtTopicPartition::partitionId
+        BdtTopicPartition::partitionId,
+        dependOn = null
     ) { topicName ->
+        val cached = partitionCache[topicName]
+        if (cached != null) {
+            return@ObjectDataModelStorage cached
+        }
+
+        val existingJob = partitionEnrichmentJobs[topicName]
+        if (existingJob != null && existingJob.isActive) {
+            return@ObjectDataModelStorage partitionCache[topicName] ?: emptyList()
+        }
+
         try {
-            // Load basic partition info immediately
-            val quickPartitions = runBlocking(Dispatchers.IO) {
+            val quickPartitions = runBlockingMaybeCancellable {
                 dataPlaneCache.getTopicPartitionsQuick(topicName)
             }
+            partitionCache[topicName] = quickPartitions
 
-            if (quickPartitions.isEmpty()) return@ObjectDataModelStorage quickPartitions
-
-            // Cancel any existing enrichment job for this topic to avoid duplicate work
-            partitionEnrichmentJobs[topicName]?.cancel()
-
-            // Enrich with offsets progressively in background and unblock UI with loading state
-            val job = driver.coroutineScope.launch(Dispatchers.IO) {
-                try {
-                    dataPlaneCache.enrichPartitionsProgressively(topicName, quickPartitions)
-                        .collect { enrichedPartition ->
-                            invokeLaterIfNotDisposed {
-                                val storage = topicPartitionsModels[topicName]
-                                val current = storage.data ?: return@invokeLaterIfNotDisposed
-                                val updated = current.map { p ->
-                                    if (p.partitionId == enrichedPartition.partitionId) enrichedPartition else p
+            if (quickPartitions.isNotEmpty()) {
+                val job = driver.coroutineScope.launch(Dispatchers.IO) {
+                    try {
+                        dataPlaneCache.enrichPartitionsProgressively(topicName, quickPartitions)
+                            .collect { enrichedPartition ->
+                                invokeLaterIfNotDisposed {
+                                    val storage = topicPartitionsModels[topicName]
+                                    val current = storage.data ?: return@invokeLaterIfNotDisposed
+                                    val updated = current.map { p ->
+                                        if (p.partitionId == enrichedPartition.partitionId) enrichedPartition else p
+                                    }
+                                    partitionCache[topicName] = updated
+                                    storage.setData(updated)
                                 }
-                                storage.setData(updated)
                             }
+                    } catch (e: Exception) {
+                        if (e !is kotlinx.coroutines.CancellationException) {
+                            thisLogger().warn("Failed to enrich partitions for topic '$topicName' in cluster ${cluster.id}", e)
                         }
-                } finally {
-                    partitionEnrichmentJobs.remove(topicName)
+                    } finally {
+                        partitionEnrichmentJobs.remove(topicName)
+                    }
                 }
+                partitionEnrichmentJobs[topicName] = job
             }
-
-            partitionEnrichmentJobs[topicName] = job
 
             quickPartitions
         } catch (e: Exception) {
             thisLogger().warn("Failed to load partitions for topic '$topicName' in cluster ${cluster.id}", e)
+            partitionCache[topicName] = emptyList()
             emptyList()
         }
     }
 
     override suspend fun loadTopics(): List<TopicPresentable> = withContext(Dispatchers.IO) {
         try {
-            dataPlaneCache.refreshTopics().map { it.toPresentable() }
+            val topics = dataPlaneCache.getTopics().ifEmpty {
+                dataPlaneCache.refreshTopics()
+            }
+            topics.map { it.toPresentable() }
         } catch (t: Throwable) {
             thisLogger().warn("Failed to load topics for cluster ${cluster.id}", t)
             emptyList()
@@ -147,15 +262,33 @@ class CCloudClusterDataManager(
                 return@withContext topics to null
             }
 
-            val enrichmentMap = dataPlaneCache.enrichTopicsData(topicDataList)
+            topicEnrichmentJob?.cancel()
+            topicEnrichmentJob = null
 
-            val enrichedTopics = topics.map { topic ->
-                enrichmentMap[topic.name]?.let { enrichment ->
-                    topic.copy(messageCount = enrichment.messageCount)
-                } ?: topic
+            topicEnrichmentJob = driver.coroutineScope.launch(Dispatchers.IO) {
+                dataPlaneCache.enrichTopicsDataProgressively(topicDataList)
+                    .collect { result ->
+                        when (result) {
+                            is io.confluent.intellijplugin.ccloud.model.response.TopicEnrichmentResult.Success -> {
+                                invokeLaterIfNotDisposed {
+                                    val current = topicModel.data ?: return@invokeLaterIfNotDisposed
+                                    val updated = current.map { topic ->
+                                        if (topic.name == result.topicName) {
+                                            topic.copy(messageCount = result.data.messageCount)
+                                        } else {
+                                            topic
+                                        }
+                                    }
+                                    topicModel.setData(updated)
+                                }
+                            }
+                            is io.confluent.intellijplugin.ccloud.model.response.TopicEnrichmentResult.Failure -> {
+                                thisLogger().warn("Failed to enrich topic ${result.topicName}: ${result.error.message}")
+                            }
+                        }
+                    }
             }
-
-            enrichedTopics to null
+            topics to null
         } catch (t: Throwable) {
             thisLogger().warn("Failed to load detailed topic info for cluster ${cluster.id}", t)
             topics to t
@@ -179,21 +312,122 @@ class CCloudClusterDataManager(
         return emptyList()
     }
 
-    override suspend fun listSchemasNames(limit: Int?, filter: String?): Pair<List<KafkaSchemaInfo>, Boolean> {
-        // TODO: Implement when CCloud REST API supports schema registry
-        return emptyList<KafkaSchemaInfo>() to false
+    override suspend fun listSchemasNames(limit: Int?, filter: String?): Pair<List<KafkaSchemaInfo>, Boolean> = withContext(Dispatchers.IO) {
+        if (!dataPlaneCache.hasSchemaRegistry()) {
+            return@withContext emptyList<KafkaSchemaInfo>() to false
+        }
+
+        try {
+            val schemas = dataPlaneCache.getSchemas().ifEmpty {
+                dataPlaneCache.refreshSchemas()
+            }
+            // Use SR config (not cluster config) so all clusters sharing an SR see the same favorites
+            val config = getSchemaRegistryConfig()
+
+            var result = schemas.map { schemaData ->
+                KafkaSchemaInfo(
+                    name = schemaData.name,
+                    type = schemaData.schemaType?.let { KafkaRegistryFormat.parse(it) },
+                    version = schemaData.latestVersion?.toLong(),
+                    compatibility = schemaData.compatibility,
+                    isFavorite = config?.schemasPined?.contains(schemaData.name) == true
+                )
+            }
+
+            if (!filter.isNullOrBlank()) {
+                result = result.filter { it.name.contains(filter, ignoreCase = true) }
+            }
+
+            result to false
+        } catch (e: Exception) {
+            thisLogger().warn("Failed to list schemas for cluster ${cluster.id}", e)
+            emptyList<KafkaSchemaInfo>() to false
+        }
+    }
+
+    /** Launch non-blocking schema enrichment job with progressive UI updates. */
+    private fun launchSchemaEnrichment(schemas: List<KafkaSchemaInfo>): Job {
+        val schemaDataList = schemas.map { schema ->
+            io.confluent.intellijplugin.ccloud.model.response.SchemaData(
+                name = schema.name,
+                latestVersion = schema.version?.toInt(),
+                schemaType = schema.type?.name
+            )
+        }
+
+        val startTime = System.currentTimeMillis()
+        var successCount = 0
+
+        return driver.coroutineScope.launch(Dispatchers.IO) {
+            dataPlaneCache.enrichSchemasProgressively(schemaDataList)
+                .collect { result ->
+                    val model = schemaRegistryModel ?: return@collect
+
+                    when (result) {
+                        is io.confluent.intellijplugin.ccloud.model.response.SchemaEnrichmentResult.Success -> {
+                            successCount++
+
+                            invokeLaterIfNotDisposed {
+                                val currentSchemas = model.data ?: return@invokeLaterIfNotDisposed
+                                val index = currentSchemas.indexOfFirst { it.name == result.schemaName }
+                                if (index == -1) return@invokeLaterIfNotDisposed
+
+                                val updatedSchemas = currentSchemas.mapIndexed { i, schema ->
+                                    if (i == index) {
+                                        schema.copy(
+                                            version = result.data.latestVersion?.toLong(),
+                                            type = result.data.schemaType?.let { KafkaRegistryFormat.parse(it) }
+                                        )
+                                    } else {
+                                        schema
+                                    }
+                                }
+
+                                model.setData(updatedSchemas)
+                            }
+                        }
+                        is io.confluent.intellijplugin.ccloud.model.response.SchemaEnrichmentResult.Failure -> {
+                            if (result.error !is kotlinx.coroutines.CancellationException) {
+                                thisLogger().warn("CCloud: Schema enrichment failure (${result.progress.first}/${result.progress.second}): ${result.schemaName} - ${result.error.message}", result.error)
+                            }
+                        }
+                    }
+
+                    if (result.progress.first == result.progress.second) {
+                        val elapsed = System.currentTimeMillis() - startTime
+                        thisLogger().info("CCloud: Schema enrichment completed - success=$successCount, failure=${result.progress.second - successCount}, total=${result.progress.second}, elapsed=${elapsed}ms")
+                    }
+                }
+        }
     }
 
     override suspend fun updateSchemaList(
         schemas: List<KafkaSchemaInfo>
-    ): Pair<List<KafkaSchemaInfo>, Throwable?> {
-        // TODO: Implement when CCloud REST API supports schema registry
-        return schemas to null
+    ): Pair<List<KafkaSchemaInfo>, Throwable?> = withContext(Dispatchers.IO) {
+        if (!dataPlaneCache.hasSchemaRegistry() || schemas.isEmpty()) {
+            return@withContext schemas to null
+        }
+
+        try {
+            schemaEnrichmentJob = launchSchemaEnrichment(schemas)
+            schemas to null
+        } catch (e: Exception) {
+            thisLogger().warn("Failed to update schema list for cluster ${cluster.id}", e)
+            schemas to e
+        }
     }
 
-    override suspend fun listSchemaVersions(schemaName: String): List<Long> {
-        // TODO: Implement when CCloud REST API supports schema versions
-        return emptyList()
+    override suspend fun listSchemaVersions(schemaName: String): List<Long> = withContext(Dispatchers.IO) {
+        if (!dataPlaneCache.hasSchemaRegistry()) {
+            return@withContext emptyList()
+        }
+
+        try {
+            dataPlaneCache.getFetcher()?.listSchemaVersions(schemaName) ?: emptyList()
+        } catch (e: Exception) {
+            thisLogger().warn("Failed to list schema versions for '$schemaName' in cluster ${cluster.id}", e)
+            emptyList()
+        }
     }
 
     override suspend fun loadConsumerGroupOffset(name: String): List<ConsumerGroupOffsetInfo> {
@@ -225,18 +459,319 @@ class CCloudClusterDataManager(
 
     @RequiresBackgroundThread
     override fun getSchemasForEditor(): List<RegistrySchemaInEditor> {
-        // Schema registry not supported for CCloud connections yet
-        return emptyList()
+        if (!dataPlaneCache.hasSchemaRegistry()) {
+            return emptyList()
+        }
+
+        return try {
+            val schemas = getSchemas()
+            schemas.map { schema ->
+                RegistrySchemaInEditor(
+                    schemaName = schema.name,
+                    schemaFormat = schema.type ?: KafkaRegistryFormat.UNKNOWN
+                )
+            }.sorted()
+        } catch (e: Exception) {
+            thisLogger().warn("Failed to get schemas for editor in cluster ${cluster.id}", e)
+            emptyList()
+        }
     }
 
     override fun getLatestVersionInfo(schemaName: String): SchemaVersionInfo? {
-        // Schema registry not supported for CCloud connections yet
-        return null
+        if (!dataPlaneCache.hasSchemaRegistry()) {
+            return null
+        }
+
+        return try {
+            runBlocking(Dispatchers.IO) {
+                val versionResponse = dataPlaneCache.getFetcher()?.getLatestVersionInfo(schemaName)
+                versionResponse?.let {
+                    SchemaVersionInfo(
+                        schemaName = it.subject,
+                        version = it.version.toLong(),
+                        type = KafkaRegistryFormat.parse(it.schemaType),
+                        schema = it.schema,
+                        references = it.references.toSchemaReferences()
+                    )
+                }
+            }
+        } catch (e: Exception) {
+            thisLogger().warn("Failed to get latest version info for '$schemaName' in cluster ${cluster.id}", e)
+            null
+        }
+    }
+
+    override fun getSchemaVersionInfo(schemaName: String, version: Long): Promise<SchemaVersionInfo> = runAsync {
+        if (!dataPlaneCache.hasSchemaRegistry()) {
+            error("Schema registry not configured for this cluster")
+        }
+
+        val cacheKey = schemaName to version
+        schemaVersionCache[cacheKey]?.let { return@runAsync it }
+
+        try {
+            runBlocking(Dispatchers.IO) {
+                val versionResponse = dataPlaneCache.getFetcher()?.getSchemaVersionInfo(schemaName, version)
+                    ?: error("Failed to fetch schema version info")
+
+                val schemaVersionInfo = SchemaVersionInfo(
+                    schemaName = versionResponse.subject,
+                    version = versionResponse.version.toLong(),
+                    type = KafkaRegistryFormat.parse(versionResponse.schemaType),
+                    schema = versionResponse.schema,
+                    references = versionResponse.references.toSchemaReferences()
+                )
+                schemaVersionCache[cacheKey] = schemaVersionInfo
+                schemaVersionInfo
+            }
+        } catch (e: Exception) {
+            thisLogger().warn("Failed to get schema version info for '$schemaName' version $version in cluster ${cluster.id}", e)
+            throw e
+        }
+    }
+
+    override fun parseSchemaForDisplay(versionInfo: SchemaVersionInfo): Result<io.confluent.kafka.schemaregistry.ParsedSchema> {
+        // CCloud doesn't need the registry client for parsing - parse schemas standalone
+        return KafkaRegistryUtil.parseSchema(
+            versionInfo.type,
+            versionInfo.schema,
+            client = null,
+            versionInfo.references
+        )
     }
 
     override fun getCachedOrLoadSchema(name: String): KafkaSchemaInfo {
-        // Schema registry not supported for CCloud connections yet
-        throw UnsupportedOperationException("Schema registry not supported for Confluent Cloud")
+        if (!dataPlaneCache.hasSchemaRegistry()) {
+            throw UnsupportedOperationException("Schema registry not configured for this cluster")
+        }
+
+        // Check if already cached with full metadata
+        val cached = getCachedSchema(name)
+        if (cached != null && cached.type != null) {
+            return cached
+        }
+
+        // Load from API if not cached or incomplete
+        return try {
+            runBlocking(Dispatchers.IO) {
+                val schemaData = dataPlaneCache.getFetcher()?.loadSchemaInfo(name)
+                // Use SR config (not cluster config) so all clusters sharing an SR see the same favorites
+                val config = getSchemaRegistryConfig()
+
+                schemaData?.let {
+                    KafkaSchemaInfo(
+                        name = it.name,
+                        type = it.schemaType?.let { type -> KafkaRegistryFormat.parse(type) },
+                        version = it.latestVersion?.toLong(),
+                        isFavorite = config?.schemasPined?.contains(it.name) == true
+                    )
+                } ?: throw IllegalArgumentException("Schema not found: $name")
+            }
+        } catch (e: Exception) {
+            thisLogger().warn("Failed to load schema '$name' in cluster ${cluster.id}", e)
+            throw e
+        }
+    }
+
+    // Schema write operations
+
+    override fun updateSchema(versionInfo: SchemaVersionInfo, newSchema: String): Promise<Unit> =
+        SafeExecutor.instance.asyncSuspend(
+            taskName = null,
+            timeout = Duration.INFINITE
+        ) {
+            if (!dataPlaneCache.hasSchemaRegistry()) {
+                error("Schema registry not configured for this cluster")
+            }
+
+            val parsedSchema = KafkaRegistryUtil.parseSchema(
+                versionInfo.type,
+                newSchema,
+                client = null,
+                versionInfo.references
+            ).getOrThrow()
+
+            val request = io.confluent.intellijplugin.ccloud.model.response.RegisterSchemaRequest(
+                schema = parsedSchema.canonicalString(),
+                schemaType = versionInfo.type.name,
+                references = versionInfo.references.map { ref ->
+                    io.confluent.intellijplugin.ccloud.model.response.SchemaReferenceResponse(
+                        name = ref.name,
+                        subject = ref.subject,
+                        version = ref.version
+                    )
+                }.takeIf { it.isNotEmpty() }
+            )
+
+            dataPlaneCache.getFetcher()?.registerSchema(versionInfo.schemaName, request)
+                ?: error("Schema Registry fetcher not available")
+
+            invalidateSchemaVersionCache(versionInfo.schemaName)
+            updateSingleSchemaInList(versionInfo.schemaName)
+            schemaVersionModels[versionInfo.schemaName]?.let { updater.invokeRefreshModel(it) }
+            Unit
+        }.deferred.asCompletableFuture().asPromise().asSilent()
+
+    override fun deleteRegistrySchemaVersion(versionInfo: SchemaVersionInfo) {
+        driver.coroutineScope.launch {
+            try {
+                if (!dataPlaneCache.hasSchemaRegistry()) {
+                    error("Schema registry not configured for this cluster")
+                }
+
+                withContext(Dispatchers.IO) {
+                    val fetcher = dataPlaneCache.getFetcher() ?: error("Schema Registry fetcher not available")
+                    fetcher.deleteSchemaVersion(versionInfo.schemaName, versionInfo.version, permanent = false)
+                }
+
+                invalidateSchemaVersionCache(versionInfo.schemaName)
+                schemaVersionModels[versionInfo.schemaName]?.let { updater.invokeRefreshModel(it) }
+                updateSingleSchemaInList(versionInfo.schemaName)
+            } catch (t: Throwable) {
+                io.confluent.intellijplugin.core.rfs.util.RfsNotificationUtils.showExceptionMessage(project, t)
+            }
+        }
+    }
+
+    fun deleteSchema(schemaName: String) {
+        driver.coroutineScope.launch {
+            try {
+                if (!dataPlaneCache.hasSchemaRegistry()) {
+                    error("Schema registry not configured for this cluster")
+                }
+
+                val registryInfo = getCachedSchema(schemaName) ?: return@launch
+                val confirmed = if (registryInfo.isSoftDeleted) {
+                    withContext(Dispatchers.EDT) {
+                        com.intellij.openapi.ui.Messages.showOkCancelDialog(
+                            project,
+                            io.confluent.intellijplugin.util.KafkaMessagesBundle.message(
+                                "action.remove.schema.confirm.dialog.msg.permanent",
+                                registryInfo.name
+                            ),
+                            io.confluent.intellijplugin.util.KafkaMessagesBundle.message("action.remove.schema.confirm.dialog.title"),
+                            com.intellij.openapi.ui.Messages.getOkButton(),
+                            com.intellij.openapi.ui.Messages.getCancelButton(),
+                            com.intellij.openapi.ui.Messages.getQuestionIcon()
+                        ) == com.intellij.openapi.ui.Messages.OK
+                    }
+                } else {
+                    withContext(Dispatchers.EDT) {
+                        com.intellij.openapi.ui.Messages.showOkCancelDialog(
+                            project,
+                            io.confluent.intellijplugin.util.KafkaMessagesBundle.message(
+                                "action.remove.schema.confirm.dialog.msg.soft",
+                                registryInfo.name
+                            ),
+                            io.confluent.intellijplugin.util.KafkaMessagesBundle.message("action.remove.schema.confirm.dialog.title"),
+                            com.intellij.openapi.ui.Messages.getOkButton(),
+                            com.intellij.openapi.ui.Messages.getCancelButton(),
+                            com.intellij.openapi.ui.Messages.getQuestionIcon()
+                        ) == com.intellij.openapi.ui.Messages.OK
+                    }
+                }
+                if (!confirmed) return@launch
+                deleteSchemaWithoutConfirmation(registryInfo.name, permanent = registryInfo.isSoftDeleted)
+            } catch (t: Throwable) {
+                io.confluent.intellijplugin.core.rfs.util.RfsNotificationUtils.showExceptionMessage(project, t)
+            }
+        }
+    }
+
+    private suspend fun deleteSchemaWithoutConfirmation(schemaName: String, permanent: Boolean) {
+        withContext(Dispatchers.IO) {
+            dataPlaneCache.getFetcher()?.deleteSubject(schemaName, permanent)
+                ?: error("Schema Registry fetcher not available")
+        }
+        invalidateSchemaVersionCache(schemaName)
+        removeSingleSchemaFromList(schemaName)
+    }
+
+    fun createSchema(schemaName: String, parsedSchema: io.confluent.kafka.schemaregistry.ParsedSchema) =
+        io.confluent.intellijplugin.core.util.runAsyncSuspend {
+            if (!dataPlaneCache.hasSchemaRegistry()) {
+                error("Schema registry not configured for this cluster")
+            }
+
+            withContext(Dispatchers.IO) {
+                val request = io.confluent.intellijplugin.ccloud.model.response.RegisterSchemaRequest(
+                    schema = parsedSchema.canonicalString(),
+                    schemaType = parsedSchema.schemaType()
+                )
+
+                dataPlaneCache.getFetcher()?.registerSchema(schemaName, request)
+                    ?: error("Schema Registry fetcher not available")
+            }
+            // Add to list immediately (fast, no full refresh)
+            updateSingleSchemaInList(schemaName)
+        }
+
+    /**
+     * Update a single schema in the list after create/update operation.
+     * Avoids slow full refresh by fetching only the affected schema.
+     */
+    private suspend fun updateSingleSchemaInList(schemaName: String) {
+        try {
+            // Fetch the updated schema info
+            val updatedSchemaData = withContext(Dispatchers.IO) {
+                dataPlaneCache.getFetcher()?.loadSchemaInfo(schemaName)
+            } ?: return
+
+            // Use SR config (not cluster config) for favorites
+            val config = getSchemaRegistryConfig()
+
+            val updatedSchema = KafkaSchemaInfo(
+                name = updatedSchemaData.name,
+                type = updatedSchemaData.schemaType?.let { KafkaRegistryFormat.parse(it) },
+                version = updatedSchemaData.latestVersion?.toLong(),
+                isFavorite = config?.schemasPined?.contains(updatedSchemaData.name) == true
+            )
+
+            withContext(Dispatchers.Default) {
+                val currentSchemas = schemaRegistryModel?.data ?: emptyList()
+                val existingIndex = currentSchemas.indexOfFirst { it.name == schemaName }
+
+                val updatedSchemas = if (existingIndex >= 0) {
+                    // Update existing schema
+                    currentSchemas.toMutableList().apply {
+                        set(existingIndex, updatedSchema)
+                    }
+                } else {
+                    // Add new schema
+                    currentSchemas + updatedSchema
+                }
+
+                // Re-sort the list to maintain consistency
+                val sortedSchemas = sortSchemasWithFavorites(
+                    updatedSchemas,
+                    pinnedSchemas = config?.schemasPined ?: emptySet(),
+                    showFavoriteOnly = KafkaToolWindowSettings.getInstance().showFavoriteSchema
+                )
+
+                schemaRegistryModel?.setData(sortedSchemas)
+            }
+        } catch (e: Exception) {
+            thisLogger().warn("Failed to update single schema '$schemaName', falling back to full refresh", e)
+            // Fall back to full refresh on error
+            schemaRegistryModel?.let { updater.invokeRefreshModel(it) }
+        }
+    }
+
+    /**
+     * Remove a schema from the list after delete operation.
+     */
+    private suspend fun removeSingleSchemaFromList(schemaName: String) {
+        try {
+            withContext(Dispatchers.Default) {
+                val currentSchemas = schemaRegistryModel?.data ?: emptyList()
+                val updatedSchemas = currentSchemas.filterNot { it.name == schemaName }
+                schemaRegistryModel?.setData(updatedSchemas)
+            }
+        } catch (e: Exception) {
+            thisLogger().warn("Failed to remove schema '$schemaName' from list", e)
+            // Fall back to full refresh on error
+            schemaRegistryModel?.let { updater.invokeRefreshModel(it) }
+        }
     }
 
     @RequiresBackgroundThread
@@ -310,9 +845,15 @@ class CCloudClusterDataManager(
                 }
             }
 
-            withContext(Dispatchers.Default) {
-                val currentTopics = topicModel.data ?: emptyList()
-                val updatedTopics = currentTopics.filterNot { it.name in topicNames }
+            // Immediately update local state for instant UI feedback
+            val currentTopics = topicModel.data ?: emptyList()
+            val updatedTopics = currentTopics.filterNot { it.name in topicNames }
+
+            // Clear partition cache for deleted topics
+            topicNames.forEach { partitionCache.remove(it) }
+
+            // Update topic model on EDT for immediate UI update
+            invokeLaterIfNotDisposed {
                 topicModel.setData(updatedTopics)
             }
 
@@ -332,6 +873,14 @@ class CCloudClusterDataManager(
 
     override fun clearPartitions(partitions: List<BdtTopicPartition>) {}
 
+    /**
+     * Override to use Schema Registry ID (not cluster connection ID) for schema favorites.
+     * This ensures all clusters sharing the same SR see the same schema favorites.
+     */
+    override fun getSchemaFavoritesConfigId(): String {
+        return getSchemaRegistryId() ?: connectionId
+    }
+
     override fun supportsClearPartitions(): Boolean = false
 
     override fun supportsInSyncReplicasData(): Boolean = false
@@ -344,8 +893,17 @@ class CCloudClusterDataManager(
     override fun supportsDetailsPanel(): Boolean = false
     fun getDataPlaneCache(): DataPlaneCache = dataPlaneCache
 
-    override fun dispose() {
+    /** Cancel all ongoing enrichment jobs (topics, schemas, partitions). Called when refresh is cancelled. */
+    fun cancelAllEnrichmentJobs() {
+        topicEnrichmentJob?.cancel()
+        schemaEnrichmentJob?.cancel()
         partitionEnrichmentJobs.values.forEach { it.cancel() }
+    }
+
+    override fun dispose() {
+        cancelAllEnrichmentJobs()
         partitionEnrichmentJobs.clear()
+        partitionCache.clear()
+        schemaVersionCache.clear()
     }
 }
