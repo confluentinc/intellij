@@ -20,6 +20,7 @@ class ScaffoldTemplateSelectionDialog(
     private val comboModel = DefaultComboBoxModel(templates.toTypedArray())
     private val descriptionArea = JTextArea(4, 40).apply {
         isEditable = false
+        isFocusable = false
         lineWrap = true
         wrapStyleWord = true
     }
@@ -42,7 +43,7 @@ class ScaffoldTemplateSelectionDialog(
         return panel {
             row(KafkaMessagesBundle.message("scaffold.dialog.template")) {
                 comboBox(comboModel, CustomListCellRenderer<ScaffoldV1TemplateListDataInner> {
-                    it.spec.displayName ?: it.spec.name ?: "Unknown Template"
+                    it.spec.displayName ?: it.spec.name ?: KafkaMessagesBundle.message("scaffold.dialog.template.unknown")
                 }).align(AlignX.FILL).resizableColumn().applyToComponent {
                     addActionListener {
                         @Suppress("UNCHECKED_CAST")
