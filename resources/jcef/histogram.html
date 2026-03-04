@@ -14,18 +14,7 @@ body { background: #ffffff; color: #333; }
 #container { width: 100%; height: 100%; position: relative; }
 canvas { display: block; width: 100%; height: 100%; }
 
-#tooltip {
-    display: none;
-    position: absolute;
-    background: rgba(0,0,0,0.85);
-    color: #fff;
-    padding: 6px 10px;
-    border-radius: 4px;
-    font-size: 11px;
-    pointer-events: none;
-    white-space: nowrap;
-    z-index: 10;
-}
+#tooltip { display: none; }
 </style>
 </head>
 <body>
@@ -234,9 +223,15 @@ canvas { display: block; width: 100%; height: 100%; }
         }
     }
 
-    // Mouse hover for tooltip
+    // Mouse hover - send tooltip data to Swing via bridge
+    function sendTooltip(msg) {
+        if (window.__tooltipCallback) {
+            window.__tooltipCallback(msg);
+        }
+    }
+
     canvas.addEventListener('mousemove', function(e) {
-        if (buckets.length === 0) { tooltip.style.display = 'none'; hoveredBucket = -1; return; }
+        if (buckets.length === 0) { sendTooltip(''); hoveredBucket = -1; return; }
 
         const rect = canvas.getBoundingClientRect();
         const mx = e.clientX - rect.left;
@@ -248,7 +243,7 @@ canvas { display: block; width: 100%; height: 100%; }
 
         const idx = Math.floor((mx - marginLeft) / (barW + barGap));
         if (idx < 0 || idx >= buckets.length) {
-            tooltip.style.display = 'none';
+            sendTooltip('');
             if (hoveredBucket !== -1) { hoveredBucket = -1; scheduleRender(); }
             return;
         }
@@ -262,27 +257,18 @@ canvas { display: block; width: 100%; height: 100%; }
             const c = b.counts.get(p) || 0;
             if (c > 0) {
                 const color = colors[p % colors.length];
-                lines.push('<span style="color:' + color + '">\u25A0</span> P' + p + ': ' + c);
+                lines.push('<font color="' + color + '">\u25A0</font> P' + p + ': ' + c);
                 total += c;
             }
         }
         const timeRange = formatTime(b.minTs) + ' - ' + formatTime(b.maxTs);
-        tooltip.innerHTML = '<b>' + timeRange + '</b> (total: ' + total + ')<br>' + lines.join('<br>');
-        tooltip.style.display = 'block';
-
-        // Position tooltip
-        let tx = e.clientX - rect.left + 12;
-        let ty = e.clientY - rect.top - 10;
-        if (tx + tooltip.offsetWidth > rect.width) tx = mx - tooltip.offsetWidth - 12;
-        if (ty < 0) ty = 4;
-        tooltip.style.left = tx + 'px';
-        tooltip.style.top = ty + 'px';
-
+        const html = '<html><b>' + timeRange + '</b> (total: ' + total + ')<br>' + lines.join('<br>') + '</html>';
+        sendTooltip(html);
         scheduleRender();
     });
 
     canvas.addEventListener('mouseleave', function() {
-        tooltip.style.display = 'none';
+        sendTooltip('');
         if (hoveredBucket !== -1) { hoveredBucket = -1; scheduleRender(); }
     });
 
