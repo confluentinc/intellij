@@ -39,8 +39,8 @@ class KafkaRegistryFormatTest {
         }
 
         @Test
-        fun `should default unknown types to AVRO`() {
-            assertEquals(KafkaRegistryFormat.AVRO, KafkaRegistryFormat.fromSchemaType("UNKNOWN_TYPE"))
+        fun `should return UNKNOWN for unrecognized types`() {
+            assertEquals(KafkaRegistryFormat.UNKNOWN, KafkaRegistryFormat.fromSchemaType("UNKNOWN_TYPE"))
         }
     }
 }
