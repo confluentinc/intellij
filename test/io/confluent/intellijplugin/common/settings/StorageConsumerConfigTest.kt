@@ -132,6 +132,28 @@ class StorageConsumerConfigTest {
     }
 
     @Nested
+    @DisplayName("Connection type")
+    inner class ConnectionType {
+
+        @Test
+        fun `should default connectionType to null`() {
+            assertNull(createConfig().connectionType)
+        }
+
+        @Test
+        fun `should preserve ccloud connectionType when set via copy`() {
+            val config = createConfig().copy(connectionType = "ccloud")
+            assertEquals("ccloud", config.connectionType)
+        }
+
+        @Test
+        fun `should preserve null connectionType for native presets`() {
+            val config = createConfig().copy(connectionType = null)
+            assertNull(config.connectionType)
+        }
+    }
+
+    @Nested
     @DisplayName("Deserialization fallbacks")
     inner class DeserializationFallbacks {
 
