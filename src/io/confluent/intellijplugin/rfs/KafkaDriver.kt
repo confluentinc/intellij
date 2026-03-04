@@ -15,6 +15,7 @@ import io.confluent.intellijplugin.toolwindow.KafkaMonitoringToolWindowControlle
 import io.confluent.intellijplugin.toolwindow.config.KafkaToolWindowSettings
 import io.confluent.intellijplugin.toolwindow.controllers.KafkaGroupType
 import io.confluent.intellijplugin.core.util.invokeLater
+import io.confluent.intellijplugin.util.KafkaMessagesBundle.message
 import javax.swing.Icon
 
 class KafkaDriver(override val connectionData: KafkaConnectionData, project: Project?, testConnection: Boolean) :
@@ -123,7 +124,7 @@ class KafkaDriver(override val connectionData: KafkaConnectionData, project: Pro
                 val model = dataManager.topicModel
                 model.error?.let { throw it }
                 when (val data = model.data) {
-                    null -> if (model.isInitedByFirstTime) emptyList() else listOf(emptyStatePath("Loading..."))
+                    null -> if (model.isInitedByFirstTime) emptyList() else listOf(emptyStatePath(message("confluent.cloud.tree.loading")))
                     else -> data.map { topicPath.child(it.name, false) }
                 }
             }
@@ -132,17 +133,21 @@ class KafkaDriver(override val connectionData: KafkaConnectionData, project: Pro
                 val model = dataManager.consumerGroupsModel
                 model.error?.let { throw it }
                 when (val data = model.data) {
-                    null -> if (model.isInitedByFirstTime) emptyList() else listOf(emptyStatePath("Loading..."))
+                    null -> if (model.isInitedByFirstTime) emptyList() else listOf(emptyStatePath(message("confluent.cloud.tree.loading")))
                     else -> data.map { consumerPath.child(it.consumerGroup, false) }
                 }
             }
 
             rfsPath.isSchemas -> {
                 val model = dataManager.schemaRegistryModel
-                model?.error?.let { throw it }
-                when (val data = model?.data) {
-                    null -> if (model?.isInitedByFirstTime == true) emptyList() else listOf(emptyStatePath("Loading..."))
-                    else -> data.map { schemasPath.child(it.name, false) }
+                if (model == null) {
+                    emptyList()
+                } else {
+                    model.error?.let { throw it }
+                    when (val data = model.data) {
+                        null -> if (model.isInitedByFirstTime) emptyList() else listOf(emptyStatePath(message("confluent.cloud.tree.loading")))
+                        else -> data.map { schemasPath.child(it.name, false) }
+                    }
                 }
             }
 

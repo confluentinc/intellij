@@ -71,16 +71,11 @@ class ConfluentRfsTreeNode(
     }
 
     private fun checkIsSchemaFavorite(): Boolean {
-        val envId = confluentDriver.selectedEnvironmentId ?: return false
-
         // Get SR ID from path: [srId, schemaName]
         val srId = rfsPath.elements.getOrNull(0) ?: return false
+        if (srId.isBlank()) return false
 
-        // Verify this SR exists in the current environment
-        val schemaRegistry = confluentDriver.dataManager.client.getSchemaRegistry(envId) ?: return false
-        if (schemaRegistry.id != srId) return false
 
-        // Use SR ID as config key (not cluster ID) so all clusters sharing this SR see the same favorites
         val config = KafkaToolWindowSettings.getInstance().getOrCreateConfig(srId)
         return config.schemasPined.contains(rfsPath.name)
     }
@@ -99,16 +94,8 @@ class ConfluentRfsTreeNode(
                     ?.let { "${it.cloudProvider} / ${it.region}" }
             }
             rfsPath.isSchema -> {
-                val srId = rfsPath.elements.getOrNull(0) ?: return null
-                val schemaName = rfsPath.name
-
-                val sr = confluentDriver.dataManager.client.getSchemaRegistry(envId)
-                if (sr == null || sr.id != srId) return null
-
-                val cluster = confluentDriver.dataManager.getKafkaClusters(envId).firstOrNull() ?: return null
-                val clusterDataManager = confluentDriver.dataManager.getOrCreateClusterDataManager(cluster)
-
-                clusterDataManager.getCachedSchema(schemaName)?.type?.presentable
+                // Avoid potentially blocking operations 
+                null
             }
             else -> null
         }

@@ -16,6 +16,7 @@ import io.confluent.intellijplugin.core.rfs.tree.node.RfsDriverTreeNodeBuilder
 import io.confluent.intellijplugin.data.CCloudOrgManager
 import io.confluent.intellijplugin.toolwindow.config.KafkaToolWindowSettings
 import io.confluent.intellijplugin.core.util.invokeLater
+import io.confluent.intellijplugin.util.KafkaMessagesBundle.message
 import javax.swing.Icon
 
 /**
@@ -139,9 +140,9 @@ class ConfluentDriver(
 
                     return when {
                         topics.isEmpty() && clusterDataManager.topicModel.isInitedByFirstTime == false ->
-                            listOf(ConfluentFileInfo(this, emptyStatePath("Loading...")))
+                            listOf(ConfluentFileInfo(this, emptyStatePath(message("confluent.cloud.tree.loading"))))
                         topics.isEmpty() ->
-                            listOf(ConfluentFileInfo(this, emptyStatePath("No topics available")))
+                            listOf(ConfluentFileInfo(this, emptyStatePath(message("confluent.cloud.tree.no.topics"))))
                         else ->
                             topics.map { topic ->
                                 ConfluentFileInfo(this, topicPath(nodeId, topic.name))
@@ -179,9 +180,9 @@ class ConfluentDriver(
 
                     return when {
                         schemas.isEmpty() && clusterDataManager.schemaRegistryModel?.isInitedByFirstTime == false ->
-                            listOf(ConfluentFileInfo(this, emptyStatePath("Loading...")))
+                            listOf(ConfluentFileInfo(this, emptyStatePath(message("confluent.cloud.tree.loading"))))
                         schemas.isEmpty() ->
-                            listOf(ConfluentFileInfo(this, emptyStatePath("No schemas available")))
+                            listOf(ConfluentFileInfo(this, emptyStatePath(message("confluent.cloud.tree.no.schemas"))))
                         else ->
                             schemas.map { schema ->
                                 ConfluentFileInfo(this, schemaPath(nodeId, schema.name))

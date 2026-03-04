@@ -232,7 +232,7 @@ class CCloudClusterDataManager(
             quickPartitions
         } catch (e: Exception) {
             thisLogger().warn("Failed to load partitions for topic '$topicName' in cluster ${cluster.id}", e)
-            partitionCache[topicName] = emptyList()
+            partitionCache.remove(topicName)
             emptyList()
         }
     }
