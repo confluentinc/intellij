@@ -313,33 +313,25 @@ class KafkaConsumerPanel(
 
         presetsSplitter.proportionsKey = "kafka.consumer.multisplitter.proportions"
 
-        if (kafkaManager.supportsPresets()) {
-            presetsSplitter.add(
-                ExpansionPanel(
-                    KafkaMessagesBundle.message("toggle.presets"),
-                    { presets.component },
-                    PRESETS_SHOW_ID,
-                    false
-                )
+        presetsSplitter.add(
+            ExpansionPanel(
+                KafkaMessagesBundle.message("toggle.presets"),
+                { presets.component },
+                PRESETS_SHOW_ID,
+                false
             )
-        }
+        )
 
         presetsSplitter.add(
             ExpansionPanel(
                 KafkaMessagesBundle.message("toggle.configuration"), { settingsPanel },
                 SETTINGS_SHOW_ID, true,
-                if (kafkaManager.supportsPresets()) {
-                    listOf(SavePresetAction(KafkaConfigStorage.getInstance().consumerConfig) { getRunConfig() })
-                } else {
-                    emptyList()
-                }
+                listOf(SavePresetAction(KafkaConfigStorage.getInstance().consumerConfig) { getRunConfig() })
             )
         )
         presetsSplitter.add(output.dataPanel)
 
-        if (kafkaManager.supportsDetailsPanel()) {
-            presetsSplitter.add(output.detailsPanel)
-        }
+        presetsSplitter.add(output.detailsPanel)
 
         presetsSplitter.centralComponent = output.dataPanel
 
