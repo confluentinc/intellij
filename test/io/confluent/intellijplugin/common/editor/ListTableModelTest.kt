@@ -108,13 +108,15 @@ class ListTableModelTest {
             assertEquals(10, model.rowCount, "Should not exceed max capacity")
             assertEquals(2, events.size, "Should have delete event + insert event")
 
-            // First event should be deletion
+            // First event should be deletion (evict before adding)
             assertEquals(TableModelEvent.DELETE, events[0].type)
             assertEquals(0, events[0].firstRow)
             assertEquals(2, events[0].lastRow)  // Removed 3 elements
 
-            // Second event should be insertion
+            // Second event should be insertion with correct indices
             assertEquals(TableModelEvent.INSERT, events[1].type)
+            assertEquals(5, events[1].firstRow)
+            assertEquals(9, events[1].lastRow)
 
             // Verify oldest elements were removed
             assertEquals("item4", model.getValueAt(0))
@@ -221,6 +223,38 @@ class ListTableModelTest {
             assertEquals(0, model.rowCount)
             assertEquals(1, events.size)
             assertEquals(TableModelEvent.UPDATE, events[0].type)
+        }
+
+        @Test
+        fun `clear should reset batching state so new adds flush correctly`() {
+            // Given - simulate the bug scenario: add data, clear, then add more
+            model.addBatch(listOf("old1", "old2"))
+            ApplicationManager.getApplication().invokeAndWait { }
+            events.clear()
+
+            // When - clear and then add new data
+            model.clear()
+            events.clear()
+            model.addBatch(listOf("new1", "new2"))
+            ApplicationManager.getApplication().invokeAndWait { }
+
+            // Then - new data should appear
+            assertEquals(2, model.rowCount, "New data should be flushed after clear")
+            assertEquals("new1", model.getValueAt(0))
+            assertEquals("new2", model.getValueAt(1))
+        }
+
+        @Test
+        fun `clear should discard unflushed pending adds`() {
+            // Given - add batch but don't flush yet
+            model.addBatch(listOf("pending1", "pending2"))
+
+            // When - clear before EDT flush
+            model.clear()
+            ApplicationManager.getApplication().invokeAndWait { }
+
+            // Then - pending data should be discarded
+            assertEquals(0, model.rowCount, "Pending adds should be discarded on clear")
         }
     }
 }

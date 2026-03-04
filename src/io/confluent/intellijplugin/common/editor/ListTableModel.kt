@@ -56,6 +56,10 @@ class ListTableModel<T>(
         }
 
     fun clear() {
+        synchronized(pendingAdds) {
+            pendingAdds.clear()
+        }
+        flushScheduled = false
         data.clear()
         fireTableDataChanged()
     }
@@ -81,33 +85,42 @@ class ListTableModel<T>(
         if (!flushScheduled) {
             flushScheduled = true
             invokeLater {
-                flushPendingAdds()
-                flushScheduled = false
+                try {
+                    flushPendingAdds()
+                } finally {
+                    flushScheduled = false
+                }
             }
         }
     }
 
     private fun flushPendingAdds() {
-        val toAdd = synchronized(pendingAdds) {
+        var toAdd = synchronized(pendingAdds) {
             val batch = pendingAdds.toList()
             pendingAdds.clear()
             batch
         }
         if (toAdd.isEmpty()) return
 
-        // Add elements first
-        val startIndex = data.size
-        data.addAll(toAdd)
-
-        // Then handle capacity limit if needed
-        if (maxElementsCount > 0 && data.size > maxElementsCount) {
-            val elementsToRemove = data.size - maxElementsCount
-            repeat(elementsToRemove) { data.removeAt(0) }
-            fireTableRowsDeleted(0, elementsToRemove - 1)
+        // If batch alone exceeds capacity, keep only the latest items
+        if (maxElementsCount > 0 && toAdd.size > maxElementsCount) {
+            toAdd = toAdd.takeLast(maxElementsCount)
         }
 
-        // Fire insert event for the added range
-        fireTableRowsInserted(startIndex, data.size - 1)  // Single event for entire batch!
+        // Evict oldest existing elements to make room for the batch
+        if (maxElementsCount > 0) {
+            val totalAfterAdd = data.size + toAdd.size
+            if (totalAfterAdd > maxElementsCount) {
+                val elementsToRemove = totalAfterAdd - maxElementsCount
+                repeat(elementsToRemove) { data.removeAt(0) }
+                fireTableRowsDeleted(0, elementsToRemove - 1)
+            }
+        }
+
+        // Add elements after eviction so startIndex is correct
+        val startIndex = data.size
+        data.addAll(toAdd)
+        fireTableRowsInserted(startIndex, data.size - 1)
     }
 
     fun elements(): List<T> = data
