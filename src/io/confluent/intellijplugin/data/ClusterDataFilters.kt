@@ -8,7 +8,7 @@ import io.confluent.intellijplugin.registry.common.KafkaSchemaInfo
  * Pure utility functions for filtering, sorting, and paginating cluster data.
  * Used exclusively in [BaseClusterDataManager].
  */
-object ClusterDataFilters {
+internal object ClusterDataFilters {
 
     fun applyTopicFilters(
         topics: List<TopicPresentable>,
@@ -17,7 +17,7 @@ object ClusterDataFilters {
     ): List<TopicPresentable> {
         return topics.filter { topic ->
             (showInternalTopics || !topic.internal) &&
-                (filterName == null || topic.name.lowercase().contains(filterName.lowercase()))
+                (filterName == null || topic.name.contains(filterName, ignoreCase = true))
         }
     }
 
@@ -53,13 +53,12 @@ object ClusterDataFilters {
         }
     }
 
-    // TODO(human): Should this be case-insensitive like applyTopicFilters and applySchemaFilters?
     fun applyConsumerGroupFilters(
         groups: List<ConsumerGroupPresentable>,
         filterName: String?
     ): List<ConsumerGroupPresentable> {
         return groups.filter { group ->
-            filterName == null || group.consumerGroup.contains(filterName)
+            filterName == null || group.consumerGroup.contains(filterName, ignoreCase = true)
         }
     }
 
@@ -79,7 +78,7 @@ object ClusterDataFilters {
         filterName: String?
     ): List<KafkaSchemaInfo> {
         return schemas.filter { schema ->
-            filterName == null || schema.name.lowercase().contains(filterName.lowercase())
+            filterName == null || schema.name.contains(filterName, ignoreCase = true)
         }
     }
 

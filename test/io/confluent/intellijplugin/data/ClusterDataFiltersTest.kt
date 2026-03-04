@@ -226,6 +226,15 @@ class ClusterDataFiltersTest {
 
             assertTrue(result.isEmpty())
         }
+
+        @Test
+        fun `should filter groups case-insensitively`() {
+            val groups = listOf(group("My-App-Group"), group("other-group"))
+
+            val result = ClusterDataFilters.applyConsumerGroupFilters(groups, filterName = "my-app")
+
+            assertEquals(listOf("My-App-Group"), result.map { it.consumerGroup })
+        }
     }
 
     @Nested
@@ -247,6 +256,16 @@ class ClusterDataFiltersTest {
             val groups = listOf(group("a"), group("b"))
 
             val (result, hasMore) = ClusterDataFilters.applyConsumerGroupLimit(groups, limit = null)
+
+            assertEquals(2, result.size)
+            assertFalse(hasMore)
+        }
+
+        @Test
+        fun `should return all with hasMore false when size is under limit`() {
+            val groups = listOf(group("a"), group("b"))
+
+            val (result, hasMore) = ClusterDataFilters.applyConsumerGroupLimit(groups, limit = 5)
 
             assertEquals(2, result.size)
             assertFalse(hasMore)
