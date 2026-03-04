@@ -3,6 +3,7 @@ package io.confluent.intellijplugin.scaffold.ui
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.ui.components.JBLabel
+import com.intellij.ui.components.JBTextArea
 import com.intellij.ui.dsl.builder.AlignX
 import com.intellij.ui.dsl.builder.panel
 import io.confluent.intellijplugin.core.ui.CustomListCellRenderer
@@ -11,7 +12,6 @@ import io.confluent.intellijplugin.util.KafkaMessagesBundle
 import javax.swing.DefaultComboBoxModel
 import javax.swing.JComboBox
 import javax.swing.JComponent
-import javax.swing.JEditorPane
 
 class ScaffoldTemplateSelectionDialog(
     project: Project,
@@ -19,7 +19,11 @@ class ScaffoldTemplateSelectionDialog(
 ) : DialogWrapper(project) {
 
     internal val comboModel = DefaultComboBoxModel(templates.toTypedArray())
-    internal lateinit var descriptionText: JEditorPane
+    internal val descriptionArea = JBTextArea(4, 40).apply {
+        isEditable = false
+        lineWrap = true
+        wrapStyleWord = true
+    }
     internal val languageLabel = JBLabel()
     internal val versionLabel = JBLabel()
     internal val tagsLabel = JBLabel()
@@ -53,9 +57,7 @@ class ScaffoldTemplateSelectionDialog(
                 }
             }
             row(KafkaMessagesBundle.message("scaffold.dialog.template.description")) {
-                text("").align(AlignX.FILL).resizableColumn().applyToComponent {
-                    descriptionText = this
-                }
+                scrollCell(descriptionArea).align(AlignX.FILL).resizableColumn()
             }
             row(KafkaMessagesBundle.message("scaffold.dialog.template.language")) {
                 cell(languageLabel)
@@ -75,7 +77,7 @@ class ScaffoldTemplateSelectionDialog(
 
     private fun updateDetails(template: ScaffoldV1TemplateListDataInner) {
         val spec = template.spec
-        descriptionText.text = spec.description ?: ""
+        descriptionArea.text = spec.description ?: ""
         languageLabel.text = spec.language ?: ""
         versionLabel.text = spec.version ?: ""
         tagsLabel.text = spec.tags?.joinToString(", ") ?: ""
