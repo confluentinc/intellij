@@ -19,10 +19,14 @@ class ScaffoldTemplateSelectionDialog(
 ) : DialogWrapper(project) {
 
     internal val comboModel = DefaultComboBoxModel(templates.toTypedArray())
-    internal val descriptionArea = JBTextArea(4, 40).apply {
+    internal val descriptionArea = JBTextArea(4, 20).apply {
         isEditable = false
         lineWrap = true
         wrapStyleWord = true
+        isOpaque = false
+        border = null
+        font = JBLabel().font
+        isFocusable = false
     }
     internal val languageLabel = JBLabel()
     internal val versionLabel = JBLabel()
@@ -57,7 +61,7 @@ class ScaffoldTemplateSelectionDialog(
                 }
             }
             row(KafkaMessagesBundle.message("scaffold.dialog.template.description")) {
-                scrollCell(descriptionArea).align(AlignX.FILL).resizableColumn()
+                cell(descriptionArea).align(AlignX.FILL).resizableColumn()
             }
             row(KafkaMessagesBundle.message("scaffold.dialog.template.language")) {
                 cell(languageLabel)
