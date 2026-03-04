@@ -615,7 +615,8 @@ class CCloudConsumerClient(
 
         if (schemaGuid == null && schemaId == null) return bytes
 
-        val cacheKey = schemaGuid?.toString() ?: schemaId.toString()
+        val srClusterId = clusterDataManager.getDataPlaneCache().getSchemaRegistryId() ?: ""
+        val cacheKey = "$srClusterId:${schemaGuid?.toString() ?: schemaId.toString()}"
         val parsedSchema = fetchAndParseSchema(cacheKey) {
             if (schemaGuid != null) {
                 fetcher.getSchemaByGuid(schemaGuid.toString())

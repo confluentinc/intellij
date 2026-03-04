@@ -1,6 +1,7 @@
 package io.confluent.intellijplugin.consumer.client
 
 import com.intellij.testFramework.junit5.TestApplication
+import io.confluent.intellijplugin.ccloud.cache.DataPlaneCache
 import io.confluent.intellijplugin.ccloud.fetcher.DataPlaneFetcher
 import io.confluent.intellijplugin.ccloud.model.response.SchemaByIdResponse
 import io.confluent.intellijplugin.common.models.KafkaFieldType
@@ -45,6 +46,10 @@ class CCloudConsumerClientTest {
     private lateinit var mockFetcher: DataPlaneFetcher
     private lateinit var client: CCloudConsumerClient
 
+    companion object {
+        private const val TEST_SR_CLUSTER_ID = "lsrc-test123"
+    }
+
     // Fixtures
 
     private val avroSchemaJson = javaClass.getResourceAsStream(
@@ -61,7 +66,12 @@ class CCloudConsumerClientTest {
 
     @BeforeEach
     fun setUp() {
-        mockDataManager = mock()
+        val mockDataPlaneCache = mock<DataPlaneCache> {
+            on { getSchemaRegistryId() } doReturn TEST_SR_CLUSTER_ID
+        }
+        mockDataManager = mock {
+            on { getDataPlaneCache() } doReturn mockDataPlaneCache
+        }
         mockFetcher = mock()
         client = CCloudConsumerClient(
             clusterDataManager = mockDataManager,
@@ -440,7 +450,8 @@ class CCloudConsumerClientTest {
             val headers = RecordHeaders()
 
             // Pre-populate cache with a mock ParsedSchema that isn't Avro/Protobuf/Json
-            client.schemaCache[schemaId.toString()] = mock<ParsedSchema> {
+            // Cache key is prefixed with SR cluster ID
+            client.schemaCache["$TEST_SR_CLUSTER_ID:$schemaId"] = mock<ParsedSchema> {
                 on { schemaType() } doReturn "UNKNOWN"
             }
 
