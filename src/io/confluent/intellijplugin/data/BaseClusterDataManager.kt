@@ -161,8 +161,6 @@ abstract class BaseClusterDataManager(
 
     abstract fun supportsConsumerGroups(): Boolean
     abstract fun supportsAdvancedSettings(): Boolean
-    abstract fun supportsPresets(): Boolean
-    abstract fun supportsDetailsPanel(): Boolean
 
     val consumerPanelStorage: KafkaConsumerPanelStorage by lazy {
         KafkaConsumerPanelStorage(this).also { Disposer.register(this, it) }
