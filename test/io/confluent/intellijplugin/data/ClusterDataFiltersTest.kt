@@ -1,5 +1,3 @@
-@file:Suppress("DEPRECATION")
-
 package io.confluent.intellijplugin.data
 
 import io.confluent.intellijplugin.model.ConsumerGroupPresentable
