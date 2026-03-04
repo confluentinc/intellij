@@ -631,28 +631,6 @@ class KafkaConsumerPanel(
         partitionField.text = config.partitions
 
         kafkaConsumerSettings.applyConfig(config)
-
-        warnOnCCloudPresetIncompatibilities(config)
-    }
-
-    private fun warnOnCCloudPresetIncompatibilities(config: StorageConsumerConfig) {
-        val title = KafkaMessagesBundle.message("consumer.preset.ccloud.incompatible.title")
-        if (!kafkaManager.supportsConsumerGroups() &&
-            config.getStartsWith().type == ConsumerStartType.CONSUMER_GROUP
-        ) {
-            RfsNotificationUtils.notifyWarning(
-                message = KafkaMessagesBundle.message("consumer.preset.ccloud.consumer.group.warning"),
-                title = title,
-                project = project
-            )
-        }
-        if (!kafkaManager.supportsAdvancedSettings() && config.properties.isNotEmpty()) {
-            RfsNotificationUtils.notifyWarning(
-                message = KafkaMessagesBundle.message("consumer.preset.ccloud.properties.warning"),
-                title = title,
-                project = project
-            )
-        }
     }
 
     internal fun getRecords(): ListTableModel<KafkaRecord> = output.outputModel
