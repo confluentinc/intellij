@@ -169,7 +169,8 @@ class CCloudConsumerClient(
 
                 updateNextOffsets(response)
 
-                // Flatten all records from all partitions, skipping records with deserialization errors
+                // Flatten all records from all partitions; deserialization failures are reported
+                // as error rows in the consumer output via consumeError() without stopping consumption
                 val allRecords = response.partitionDataList.flatMap { partitionData ->
                     partitionData.records.mapNotNull { record ->
                         try {
