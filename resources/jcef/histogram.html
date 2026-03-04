@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { width: 100%; height: 100%; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 11px; }
+
+body { background: #ffffff; color: #333; }
+@media (prefers-color-scheme: dark) {
+    body { background: #2b2d30; color: #bbb; }
+}
+
+#container { width: 100%; height: 100%; position: relative; }
+canvas { display: block; width: 100%; height: 100%; }
+
+#tooltip {
+    display: none;
+    position: absolute;
+    background: rgba(0,0,0,0.85);
+    color: #fff;
+    padding: 6px 10px;
+    border-radius: 4px;
+    font-size: 11px;
+    pointer-events: none;
+    white-space: nowrap;
+    z-index: 10;
+}
+</style>
+</head>
+<body>
+<div id="container">
+    <canvas id="canvas"></canvas>
+    <div id="tooltip"></div>
+</div>
+<script>
+(function() {
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const tooltip = document.getElementById('tooltip');
+    const container = document.getElementById('container');
+
+    const LIGHT_COLORS = [
+        '#4285f4','#ea4335','#fbbc04','#34a853','#ff6d01','#46bdc6',
+        '#7b1fa2','#c2185b','#0097a7','#689f38','#f57f17','#5d4037'
+    ];
+    const DARK_COLORS = [
+        '#8ab4f8','#f28b82','#fdd663','#81c995','#fcad70','#78d9e2',
+        '#ce93d8','#f48fb1','#4dd0e1','#aed581','#fff176','#a1887f'
+    ];
+
+    let records = [];       // {ts: number, p: number}[]
+    let buckets = [];       // [{minTs, maxTs, counts: Map<partition, count>}]
+    let allPartitions = []; // sorted unique partitions
+    let renderScheduled = false;
+    let hoveredBucket = -1;
+
+    function isDark() {
+        return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    }
+
+    function getColors() { return isDark() ? DARK_COLORS : LIGHT_COLORS; }
+
+    function computeBuckets() {
+        if (records.length === 0) { buckets = []; allPartitions = []; return; }
+
+        const minTs = records[0].ts;
+        const maxTs = records[records.length - 1].ts;
+        const span = maxTs - minTs;
+
+        let numBuckets;
+        if (span === 0) {
+            numBuckets = 1;
+        } else {
+            numBuckets = Math.max(1, Math.min(60, Math.round(canvas.width / 14)));
+        }
+
+        const bucketSize = span === 0 ? 1 : span / numBuckets;
+        buckets = [];
+        const partSet = new Set();
+
+        for (let i = 0; i < numBuckets; i++) {
+            buckets.push({
+                minTs: minTs + i * bucketSize,
+                maxTs: minTs + (i + 1) * bucketSize,
+                counts: new Map()
+            });
+        }
+
+        for (const r of records) {
+            let idx = span === 0 ? 0 : Math.floor((r.ts - minTs) / bucketSize);
+            if (idx >= numBuckets) idx = numBuckets - 1;
+            const b = buckets[idx];
+            b.counts.set(r.p, (b.counts.get(r.p) || 0) + 1);
+            partSet.add(r.p);
+        }
+
+        allPartitions = Array.from(partSet).sort((a, b) => a - b);
+    }
+
+    function render() {
+        renderScheduled = false;
+        const dpr = window.devicePixelRatio || 1;
+        const w = container.clientWidth;
+        const h = container.clientHeight;
+        canvas.width = w * dpr;
+        canvas.height = h * dpr;
+        ctx.scale(dpr, dpr);
+
+        const dark = isDark();
+        const bgColor = dark ? '#2b2d30' : '#ffffff';
+        const textColor = dark ? '#999' : '#888';
+        const gridColor = dark ? '#3c3f41' : '#eee';
+        const colors = getColors();
+
+        ctx.fillStyle = bgColor;
+        ctx.fillRect(0, 0, w, h);
+
+        if (buckets.length === 0) {
+            ctx.fillStyle = textColor;
+            ctx.font = '12px -apple-system, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('No data', w / 2, h / 2);
+            return;
+        }
+
+        const marginLeft = 36;
+        const marginRight = 10;
+        const marginTop = 8;
+        const marginBottom = 22;
+        const chartW = w - marginLeft - marginRight;
+        const chartH = h - marginTop - marginBottom;
+
+        if (chartW <= 0 || chartH <= 0) return;
+
+        // Find max bucket total
+        let maxCount = 0;
+        for (const b of buckets) {
+            let total = 0;
+            for (const c of b.counts.values()) total += c;
+            if (total > maxCount) maxCount = total;
+        }
+        if (maxCount === 0) maxCount = 1;
+
+        // Y-axis ticks
+        const yTicks = niceYTicks(maxCount);
+        const yMax = yTicks[yTicks.length - 1] || maxCount;
+
+        // Grid lines
+        ctx.strokeStyle = gridColor;
+        ctx.lineWidth = 1;
+        ctx.font = '10px -apple-system, sans-serif';
+        ctx.fillStyle = textColor;
+        ctx.textAlign = 'right';
+        for (const tick of yTicks) {
+            const y = marginTop + chartH - (tick / yMax) * chartH;
+            ctx.beginPath();
+            ctx.moveTo(marginLeft, y);
+            ctx.lineTo(w - marginRight, y);
+            ctx.stroke();
+            ctx.fillText(String(tick), marginLeft - 4, y + 3);
+        }
+
+        // Bars
+        const barGap = Math.max(1, Math.min(2, chartW / buckets.length * 0.1));
+        const barW = Math.max(1, (chartW - barGap * buckets.length) / buckets.length);
+
+        for (let i = 0; i < buckets.length; i++) {
+            const b = buckets[i];
+            const x = marginLeft + i * (barW + barGap);
+            let yOffset = 0;
+
+            for (const p of allPartitions) {
+                const count = b.counts.get(p) || 0;
+                if (count === 0) continue;
+                const barH = (count / yMax) * chartH;
+                const y = marginTop + chartH - yOffset - barH;
+                ctx.fillStyle = colors[p % colors.length];
+                ctx.fillRect(x, y, barW, barH);
+                yOffset += barH;
+            }
+
+            // Hover highlight
+            if (i === hoveredBucket) {
+                ctx.fillStyle = dark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
+                ctx.fillRect(x, marginTop, barW, chartH);
+            }
+        }
+
+        // X-axis labels (time)
+        ctx.fillStyle = textColor;
+        ctx.textAlign = 'center';
+        ctx.font = '10px -apple-system, sans-serif';
+        const labelCount = Math.min(buckets.length, Math.floor(chartW / 60));
+        if (labelCount > 0) {
+            const step = Math.max(1, Math.floor(buckets.length / labelCount));
+            for (let i = 0; i < buckets.length; i += step) {
+                const b = buckets[i];
+                const x = marginLeft + i * (barW + barGap) + barW / 2;
+                const label = formatTime(b.minTs);
+                ctx.fillText(label, x, h - 4);
+            }
+        }
+    }
+
+    function niceYTicks(maxVal) {
+        if (maxVal <= 0) return [0];
+        const rough = maxVal / 4;
+        const mag = Math.pow(10, Math.floor(Math.log10(rough)));
+        let step = mag;
+        if (rough / mag >= 5) step = mag * 5;
+        else if (rough / mag >= 2) step = mag * 2;
+        step = Math.max(1, step);
+        const ticks = [];
+        for (let v = 0; v <= maxVal + step * 0.5; v += step) {
+            ticks.push(Math.round(v));
+            if (ticks.length > 10) break;
+        }
+        return ticks;
+    }
+
+    function formatTime(ts) {
+        const d = new Date(ts);
+        const hh = String(d.getHours()).padStart(2, '0');
+        const mm = String(d.getMinutes()).padStart(2, '0');
+        const ss = String(d.getSeconds()).padStart(2, '0');
+        return hh + ':' + mm + ':' + ss;
+    }
+
+    function scheduleRender() {
+        if (!renderScheduled) {
+            renderScheduled = true;
+            requestAnimationFrame(render);
+        }
+    }
+
+    // Mouse hover for tooltip
+    canvas.addEventListener('mousemove', function(e) {
+        if (buckets.length === 0) { tooltip.style.display = 'none'; hoveredBucket = -1; return; }
+
+        const rect = canvas.getBoundingClientRect();
+        const mx = e.clientX - rect.left;
+        const marginLeft = 36;
+        const marginRight = 10;
+        const chartW = rect.width - marginLeft - marginRight;
+        const barGap = Math.max(1, Math.min(2, chartW / buckets.length * 0.1));
+        const barW = Math.max(1, (chartW - barGap * buckets.length) / buckets.length);
+
+        const idx = Math.floor((mx - marginLeft) / (barW + barGap));
+        if (idx < 0 || idx >= buckets.length) {
+            tooltip.style.display = 'none';
+            if (hoveredBucket !== -1) { hoveredBucket = -1; scheduleRender(); }
+            return;
+        }
+
+        hoveredBucket = idx;
+        const b = buckets[idx];
+        const colors = getColors();
+        let total = 0;
+        let lines = [];
+        for (const p of allPartitions) {
+            const c = b.counts.get(p) || 0;
+            if (c > 0) {
+                const color = colors[p % colors.length];
+                lines.push('<span style="color:' + color + '">\u25A0</span> P' + p + ': ' + c);
+                total += c;
+            }
+        }
+        const timeRange = formatTime(b.minTs) + ' - ' + formatTime(b.maxTs);
+        tooltip.innerHTML = '<b>' + timeRange + '</b> (total: ' + total + ')<br>' + lines.join('<br>');
+        tooltip.style.display = 'block';
+
+        // Position tooltip
+        let tx = e.clientX - rect.left + 12;
+        let ty = e.clientY - rect.top - 10;
+        if (tx + tooltip.offsetWidth > rect.width) tx = mx - tooltip.offsetWidth - 12;
+        if (ty < 0) ty = 4;
+        tooltip.style.left = tx + 'px';
+        tooltip.style.top = ty + 'px';
+
+        scheduleRender();
+    });
+
+    canvas.addEventListener('mouseleave', function() {
+        tooltip.style.display = 'none';
+        if (hoveredBucket !== -1) { hoveredBucket = -1; scheduleRender(); }
+    });
+
+    // ResizeObserver
+    new ResizeObserver(function() {
+        computeBuckets();
+        scheduleRender();
+    }).observe(container);
+
+    // Theme change
+    if (window.matchMedia) {
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function() {
+            scheduleRender();
+        });
+    }
+
+    // Public API
+    window.addRecords = function(base64) {
+        try {
+            const json = atob(base64);
+            const items = JSON.parse(json);
+            for (const item of items) {
+                records.push(item);
+            }
+            // Keep records sorted by timestamp
+            records.sort(function(a, b) { return a.ts - b.ts; });
+            computeBuckets();
+            scheduleRender();
+        } catch (e) {
+            console.error('addRecords error:', e);
+        }
+    };
+
+    window.clearHistogram = function() {
+        records = [];
+        buckets = [];
+        allPartitions = [];
+        hoveredBucket = -1;
+        tooltip.style.display = 'none';
+        scheduleRender();
+    };
+})();
+</script>
+</body>
+</html>

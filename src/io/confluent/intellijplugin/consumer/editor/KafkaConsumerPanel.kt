@@ -67,6 +67,9 @@ class KafkaConsumerPanel(
             }
         } ?: false
 
+    private val useHistogram: Boolean =
+        System.getProperty(CONSUMER_HISTOGRAM_PROPERTY)?.trim()?.toBooleanStrictOrNull() ?: false
+
     private val output = createMessageViewerOutput().also { Disposer.register(this, it) }
 
     private fun createMessageViewerOutput(): KafkaRecordsOutput {
@@ -80,7 +83,7 @@ class KafkaConsumerPanel(
         if (useWebViewMessageViewer) {
             thisLogger().info("WebView message viewer flag enabled, but implementation not ready. Using default viewer.")
         }
-        return KafkaRecordsOutput(project, isProducer = false)
+        return KafkaRecordsOutput(project, isProducer = false, showHistogram = useHistogram)
     }
 
     private val startSpecificDate = TimestampTextField(this)
@@ -653,5 +656,9 @@ class KafkaConsumerPanel(
         // System property to enable WebView-based message viewer (for development/testing)
         // Usage: ./gradlew runIde -Dconfluent.intellijplugin.consumer.webview=true
         private const val CONSUMER_WEBVIEW_PROPERTY = "confluent.intellijplugin.consumer.webview"
+
+        // System property to enable histogram above consumer table
+        // Usage: ./gradlew runIde -Dconfluent.intellijplugin.consumer.histogram=true
+        private const val CONSUMER_HISTOGRAM_PROPERTY = "confluent.intellijplugin.consumer.histogram"
     }
 }

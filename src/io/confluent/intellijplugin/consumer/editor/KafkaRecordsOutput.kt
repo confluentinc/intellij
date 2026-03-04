@@ -35,7 +35,8 @@ import javax.swing.JPanel
 import javax.swing.JTable
 import kotlin.math.max
 
-class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Disposable {
+class KafkaRecordsOutput(val project: Project, val isProducer: Boolean, showHistogram: Boolean = false) : Disposable {
+    private val histogramPanel: HistogramPanel? = if (showHistogram) HistogramPanel(this) else null
     private var tableLoadingDecorator: TableLoadingDecorator? = null
 
     internal val outputModel = ListTableModel(
@@ -107,6 +108,7 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
 
     private val outputTablePanelDelegate = lazy {
         JPanel(BorderLayout()).apply {
+            histogramPanel?.let { add(it.component, BorderLayout.NORTH) }
             add(ScrollPaneFactory.createScrollPane(outputTable, true), BorderLayout.CENTER)
             statisticPanel.toolbar.targetComponent = outputTable
             setSouthComponent(statisticPanel.toolbar.component)
@@ -129,6 +131,7 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
         val clearButton =
             DumbAwareAction.create(KafkaMessagesBundle.message("action.clear.output"), AllIcons.Actions.GC) {
                 outputModel.clear()
+                histogramPanel?.clear()
                 if (outputTableDelegate.isInitialized()) {
                     TableFirstRowAdded(outputTable) {
                         MaterialTableUtils.fitColumnsWidth(outputTable)
@@ -169,9 +172,11 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
 
     fun replace(output: List<KafkaRecord>) {
         outputModel.clear()
+        histogramPanel?.clear()
         output.forEach {
             outputModel.addElement(it)
         }
+        histogramPanel?.addRecords(output)
     }
 
     fun stop() {
@@ -199,6 +204,7 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
         elements.forEach {
             outputModel.addElement(it)
         }
+        histogramPanel?.addRecords(elements)
         statisticPanel.addRecordsBatch(pollTime, elements)
     }
 
