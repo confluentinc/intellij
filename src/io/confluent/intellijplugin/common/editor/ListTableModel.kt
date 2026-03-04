@@ -2,6 +2,7 @@ package io.confluent.intellijplugin.common.editor
 
 import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.diagnostic.thisLogger
+import java.util.concurrent.atomic.AtomicBoolean
 import javax.swing.table.AbstractTableModel
 import javax.swing.table.DefaultTableColumnModel
 import javax.swing.table.TableColumn
@@ -30,7 +31,7 @@ class ListTableModel<T>(
 
     // Batching support for performance
     private val pendingAdds = mutableListOf<T>()
-    private var flushScheduled = false
+    private val flushScheduled = AtomicBoolean(false)
 
     override fun getRowCount() = data.size
     override fun getColumnCount() = columnNames.size
@@ -59,7 +60,7 @@ class ListTableModel<T>(
         synchronized(pendingAdds) {
             pendingAdds.clear()
         }
-        flushScheduled = false
+        flushScheduled.set(false)
         data.clear()
         fireTableDataChanged()
     }
@@ -82,13 +83,16 @@ class ListTableModel<T>(
     fun addElement(element: T) = addBatch(listOf(element))
 
     private fun scheduleFlush() {
-        if (!flushScheduled) {
-            flushScheduled = true
+        if (flushScheduled.compareAndSet(false, true)) {
             invokeLater {
                 try {
                     flushPendingAdds()
                 } finally {
-                    flushScheduled = false
+                    flushScheduled.set(false)
+                    // Re-check: items may have been added while we were flushing
+                    synchronized(pendingAdds) { pendingAdds.isNotEmpty() }.let { hasMore ->
+                        if (hasMore) scheduleFlush()
+                    }
                 }
             }
         }
@@ -112,7 +116,7 @@ class ListTableModel<T>(
             val totalAfterAdd = data.size + toAdd.size
             if (totalAfterAdd > maxElementsCount) {
                 val elementsToRemove = totalAfterAdd - maxElementsCount
-                repeat(elementsToRemove) { data.removeAt(0) }
+                data.subList(0, elementsToRemove).clear()
                 fireTableRowsDeleted(0, elementsToRemove - 1)
             }
         }
