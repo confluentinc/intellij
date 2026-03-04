@@ -81,7 +81,8 @@ class CCloudConsumerClient(
     internal val nextOffsets = mutableMapOf<Int, Long>()
 
     // Cache parsed schemas by schema ID or GUID string to avoid redundant fetches
-    private val schemaCache = ConcurrentHashMap<String, ParsedSchema>()
+    @VisibleForTesting
+    internal val schemaCache = ConcurrentHashMap<String, ParsedSchema>()
 
     @VisibleForTesting
     internal var currentKeyConfig: ConsumerProducerFieldConfig? = null

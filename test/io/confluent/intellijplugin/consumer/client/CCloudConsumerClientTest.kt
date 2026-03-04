@@ -1030,5 +1030,4 @@ class CCloudConsumerClientTest {
             assertEquals(20L, client.getRecordSize(record))
         }
     }
-    }
 }
