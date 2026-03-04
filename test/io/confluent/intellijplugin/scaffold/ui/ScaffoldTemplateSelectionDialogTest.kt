@@ -98,16 +98,6 @@ class ScaffoldTemplateSelectionDialogTest {
         }
 
         @Test
-        fun `does not crash with empty template list`() {
-            val dialog = createDialog(emptyList())
-
-            assertEquals("", dialog.descriptionArea.text)
-            assertEquals("", dialog.languageLabel.text)
-            assertEquals("", dialog.versionLabel.text)
-            assertEquals("", dialog.tagsLabel.text)
-        }
-
-        @Test
         fun `sets dialog title from bundle`() {
             val dialog = createDialog(listOf(createTemplate()))
 

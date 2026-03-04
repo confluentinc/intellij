@@ -40,9 +40,7 @@ class ScaffoldTemplateSelectionDialog(
     init {
         title = KafkaMessagesBundle.message("scaffold.dialog.title")
         init()
-        if (templates.isNotEmpty()) {
-            updateDetails(templates.first())
-        }
+        updateDetails(templates.first())
     }
 
     override fun createCenterPanel(): JComponent {

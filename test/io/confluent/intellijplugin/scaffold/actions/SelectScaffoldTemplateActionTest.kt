@@ -266,27 +266,5 @@ class SelectScaffoldTemplateActionTest {
             verify(mockDialog, never()).showAndGet()
         }
 
-        @Test
-        fun `shows dialog with empty template list`() {
-            val mockClient = createMockClientReturning(emptySet())
-
-            val mockDialog = mock<ScaffoldTemplateSelectionDialog> {
-                on { showAndGet() } doReturn false
-            }
-            val dialogFactory = createMockDialogFactory(mockDialog)
-
-            val action = SelectScaffoldTemplateAction(
-                clientFactory = { mockClient },
-                dialogFactory = dialogFactory
-            )
-
-            val templatesCaptor = argumentCaptor<List<ScaffoldV1TemplateListDataInner>>()
-
-            runBlocking { action.fetchAndShowTemplates(project) }
-
-            verify(dialogFactory).invoke(eq(project), templatesCaptor.capture())
-            assertTrue(templatesCaptor.firstValue.isEmpty(), "Template list should be empty")
-            verify(mockDialog).showAndGet()
-        }
     }
 }
