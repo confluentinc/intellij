@@ -60,8 +60,6 @@ class KafkaDataManager(
 
     override fun supportsConsumerGroups(): Boolean = true
     override fun supportsAdvancedSettings(): Boolean = true
-    override fun supportsPresets(): Boolean = true
-    override fun supportsDetailsPanel(): Boolean = true
 
     /**
      * Get the RFS path for a schema subject in Kafka format: ["Schema Registry Group", schemaName]

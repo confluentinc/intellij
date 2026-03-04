@@ -889,8 +889,6 @@ class CCloudClusterDataManager(
 
     override fun supportsConsumerGroups(): Boolean = false
     override fun supportsAdvancedSettings(): Boolean = false
-    override fun supportsPresets(): Boolean = false
-    override fun supportsDetailsPanel(): Boolean = false
     fun getDataPlaneCache(): DataPlaneCache = dataPlaneCache
 
     /** Cancel all ongoing enrichment jobs (topics, schemas, partitions). Called when refresh is cancelled. */
