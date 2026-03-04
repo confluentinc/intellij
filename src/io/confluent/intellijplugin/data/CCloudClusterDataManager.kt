@@ -404,6 +404,7 @@ class CCloudClusterDataManager(
 
     override fun supportsConsumerGroups(): Boolean = false
     override fun supportsAdvancedSettings(): Boolean = false
+    override fun presetConnectionTag() = "ccloud"
     fun getDataPlaneCache(): DataPlaneCache = dataPlaneCache
 
     override fun dispose() {

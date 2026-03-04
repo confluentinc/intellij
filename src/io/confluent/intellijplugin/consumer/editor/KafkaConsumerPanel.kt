@@ -292,8 +292,10 @@ class KafkaConsumerPanel(
 
     private val settingsPanel: JPanel by settingsPanelDelegate
 
+    private val scopedConsumerConfig = KafkaConfigStorage.getInstance().consumerConfigFor(kafkaManager.presetConnectionTag())
+
     private val presetsDelegate = lazy {
-        val presets = ConsumerPresets()
+        val presets = ConsumerPresets(scopedConsumerConfig)
         Disposer.register(this, presets)
         presets.onApply = { applyConfig(it) }
         presets.component.apply {
@@ -326,7 +328,7 @@ class KafkaConsumerPanel(
             ExpansionPanel(
                 KafkaMessagesBundle.message("toggle.configuration"), { settingsPanel },
                 SETTINGS_SHOW_ID, true,
-                listOf(SavePresetAction(KafkaConfigStorage.getInstance().consumerConfig) { getRunConfig() })
+                listOf(SavePresetAction(scopedConsumerConfig) { getRunConfig() })
             )
         )
         presetsSplitter.add(output.dataPanel)
@@ -485,7 +487,7 @@ class KafkaConsumerPanel(
 
             customKeySchema = key.getCustomSchemaConfig(),
             customValueSchema = value.getCustomSchemaConfig()
-        )
+        ).copy(connectionType = kafkaManager.presetConnectionTag())
     }
 
     fun getComponent(): JComponent = presetsSplitter
