@@ -82,6 +82,9 @@ object CloudConfig {
             /** Get schema by ID: GET /schemas/ids/{id} */
             const val SCHEMA_BY_ID_URI = "/schemas/ids/%s"
 
+            /** Get schema by GUID: GET /schemas/guids/{guid} */
+            const val SCHEMA_BY_GUID_URI = "/schemas/guids/%s"
+
             // Write operations
             /** Register schema: POST /subjects/{subject}/versions */
             const val REGISTER_SCHEMA_URI = "/subjects/%s/versions"
