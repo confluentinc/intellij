@@ -33,4 +33,19 @@ interface DataPlaneFetcher {
 
     /** Get schema by global ID. */
     suspend fun getSchemaIdInfo(schemaId: Int): SchemaByIdResponse
+
+    /** Register a new schema or new version of existing schema. */
+    suspend fun registerSchema(subjectName: String, request: RegisterSchemaRequest): RegisterSchemaResponse
+
+    /** Check if schema already exists. */
+    suspend fun checkSchemaExists(subjectName: String, request: RegisterSchemaRequest): CheckSchemaExistsResponse
+
+    /** Delete a subject (all versions). If permanent=true, hard delete; otherwise soft delete. */
+    suspend fun deleteSubject(subjectName: String, permanent: Boolean = false): DeleteSubjectResponse
+
+    /** Delete a specific schema version. If permanent=true, hard delete; otherwise soft delete. */
+    suspend fun deleteSchemaVersion(subjectName: String, version: Long, permanent: Boolean = false): DeleteSchemaVersionResponse
+
+    /** Get compatibility level for a specific subject. Returns null if using global default. */
+    suspend fun getSubjectCompatibility(subjectName: String): CompatibilityResponse
 }
