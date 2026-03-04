@@ -188,7 +188,8 @@ class CCloudConsumerClient(
                 }
 
                 // Apply filters (client-side)
-                val filteredRecords = applyFilters(allRecords, config)
+                val filter = config.getFilter()
+                val filteredRecords = allRecords.filter { filter.isRecordPassFilter(it) }
 
                 if (filteredRecords.isNotEmpty()) {
                     consume(pollTime, filteredRecords)
@@ -459,7 +460,8 @@ class CCloudConsumerClient(
 
         // For schema-encoded values, calculate size from base64 decoded content
         if (element is JsonObject && element.containsKey("__raw__")) {
-            val rawValue = element["__raw__"]?.jsonPrimitive?.content
+            val rawElement = element["__raw__"]
+            val rawValue = if (rawElement is JsonNull) null else rawElement?.jsonPrimitive?.content
             return if (rawValue != null) {
                 try {
                     Base64.getDecoder().decode(rawValue).size
@@ -500,7 +502,9 @@ class CCloudConsumerClient(
 
         // Binary values from REST API: {"__raw__": "base64-encoded-bytes"}
         if (element is JsonObject && element.containsKey("__raw__")) {
-            val rawValue = element["__raw__"]?.jsonPrimitive?.content ?: return null
+            val rawElement = element["__raw__"]
+            val rawValue = if (rawElement is JsonNull) null else rawElement?.jsonPrimitive?.content
+            if (rawValue == null) return null
             val bytes = Base64.getDecoder().decode(rawValue)
 
             // Only deserialize via schema when user selected SCHEMA_REGISTRY
@@ -618,7 +622,7 @@ class CCloudConsumerClient(
             } else {
                 fetcher.getSchemaIdInfo(schemaId!!)
             }
-        } ?: throw SerializationException("Failed to parse schema for key=$cacheKey")
+        }
 
         // V0: strip 5-byte prefix (magic + schema ID). V1: payload has no prefix.
         val payloadBytes = if (schemaGuid != null) bytes else bytes.copyOfRange(5, bytes.size)
@@ -637,7 +641,7 @@ class CCloudConsumerClient(
     private suspend fun fetchAndParseSchema(
         cacheKey: String,
         fetch: suspend () -> io.confluent.intellijplugin.ccloud.model.response.SchemaByIdResponse
-    ): ParsedSchema? {
+    ): ParsedSchema {
         return schemaCache.getOrPut(cacheKey) {
             val response = fetch()
             val schemaType = KafkaRegistryFormat.fromSchemaType(response.schemaType)
@@ -696,16 +700,6 @@ class CCloudConsumerClient(
         val remaining = ByteArray(buffer.remaining())
         buffer.get(remaining)
         return DynamicMessage.parseFrom(descriptor, remaining)
-    }
-
-    private fun applyFilters(
-        records: List<ConsumerRecord<Any, Any>>,
-        config: StorageConsumerConfig
-    ): List<ConsumerRecord<Any, Any>> {
-        val filter = config.getFilter()
-        return records.filter { record ->
-            filter.isRecordPassFilter(record)
-        }
     }
 
     override fun stop() {
