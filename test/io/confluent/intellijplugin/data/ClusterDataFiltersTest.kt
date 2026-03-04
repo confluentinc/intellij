@@ -3,7 +3,7 @@ package io.confluent.intellijplugin.data
 import io.confluent.intellijplugin.model.ConsumerGroupPresentable
 import io.confluent.intellijplugin.model.TopicPresentable
 import io.confluent.intellijplugin.registry.common.KafkaSchemaInfo
-import org.apache.kafka.common.ConsumerGroupState
+import org.apache.kafka.common.GroupState
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Nested
@@ -15,7 +15,7 @@ class ClusterDataFiltersTest {
         TopicPresentable(name = name, internal = internal)
 
     private fun group(name: String) =
-        ConsumerGroupPresentable(state = ConsumerGroupState.STABLE, consumerGroup = name)
+        ConsumerGroupPresentable(state = GroupState.STABLE, consumerGroup = name)
 
     private fun schema(name: String) =
         KafkaSchemaInfo(name = name)
