@@ -124,10 +124,10 @@ canvas { display: block; width: 100%; height: 100%; }
             return;
         }
 
-        const marginLeft = 36;
-        const marginRight = 10;
-        const marginTop = 8;
-        const marginBottom = 22;
+        const marginLeft = 28;
+        const marginRight = 6;
+        const marginTop = 4;
+        const marginBottom = 14;
         const chartW = w - marginLeft - marginRight;
         const chartH = h - marginTop - marginBottom;
 
@@ -149,7 +149,7 @@ canvas { display: block; width: 100%; height: 100%; }
         // Grid lines
         ctx.strokeStyle = gridColor;
         ctx.lineWidth = 1;
-        ctx.font = '10px -apple-system, sans-serif';
+        ctx.font = '9px -apple-system, sans-serif';
         ctx.fillStyle = textColor;
         ctx.textAlign = 'right';
         for (const tick of yTicks) {
@@ -190,7 +190,7 @@ canvas { display: block; width: 100%; height: 100%; }
         // X-axis labels (time)
         ctx.fillStyle = textColor;
         ctx.textAlign = 'center';
-        ctx.font = '10px -apple-system, sans-serif';
+        ctx.font = '9px -apple-system, sans-serif';
         const labelCount = Math.min(buckets.length, Math.floor(chartW / 60));
         if (labelCount > 0) {
             const step = Math.max(1, Math.floor(buckets.length / labelCount));
@@ -205,7 +205,7 @@ canvas { display: block; width: 100%; height: 100%; }
 
     function niceYTicks(maxVal) {
         if (maxVal <= 0) return [0];
-        const rough = maxVal / 4;
+        const rough = maxVal / 2;
         const mag = Math.pow(10, Math.floor(Math.log10(rough)));
         let step = mag;
         if (rough / mag >= 5) step = mag * 5;
@@ -240,8 +240,8 @@ canvas { display: block; width: 100%; height: 100%; }
 
         const rect = canvas.getBoundingClientRect();
         const mx = e.clientX - rect.left;
-        const marginLeft = 36;
-        const marginRight = 10;
+        const marginLeft = 28;
+        const marginRight = 6;
         const chartW = rect.width - marginLeft - marginRight;
         const barGap = Math.max(1, Math.min(2, chartW / buckets.length * 0.1));
         const barW = Math.max(1, (chartW - barGap * buckets.length) / buckets.length);

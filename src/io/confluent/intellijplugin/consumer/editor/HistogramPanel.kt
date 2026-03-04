@@ -7,10 +7,12 @@ import com.intellij.ui.jcef.JBCefBrowser
 import org.cef.browser.CefBrowser
 import org.cef.browser.CefFrame
 import org.cef.handler.CefLoadHandlerAdapter
+import java.awt.BorderLayout
 import java.awt.Dimension
 import java.util.Base64
 import java.util.concurrent.CopyOnWriteArrayList
 import javax.swing.JComponent
+import javax.swing.JPanel
 
 class HistogramPanel(parentDisposable: Disposable) : Disposable {
 
@@ -23,12 +25,12 @@ class HistogramPanel(parentDisposable: Disposable) : Disposable {
 
     private val pendingCalls = CopyOnWriteArrayList<String>()
 
-    val component: JComponent
-        get() = browser.component.apply {
-            preferredSize = Dimension(0, HISTOGRAM_HEIGHT)
-            maximumSize = Dimension(Int.MAX_VALUE, HISTOGRAM_HEIGHT)
-            minimumSize = Dimension(0, HISTOGRAM_HEIGHT)
-        }
+    val component: JComponent = JPanel(BorderLayout()).apply {
+        preferredSize = Dimension(0, HISTOGRAM_HEIGHT)
+        maximumSize = Dimension(Int.MAX_VALUE, HISTOGRAM_HEIGHT)
+        minimumSize = Dimension(0, HISTOGRAM_HEIGHT)
+        add(browser.component, BorderLayout.CENTER)
+    }
 
     init {
         Disposer.register(parentDisposable, this)
@@ -40,9 +42,9 @@ class HistogramPanel(parentDisposable: Disposable) : Disposable {
             }
         }, browser.cefBrowser)
 
-        val histogramUrl = javaClass.getResource("/jcef/histogram.html")
-        if (histogramUrl != null) {
-            browser.loadURL(histogramUrl.toExternalForm())
+        val html = javaClass.getResourceAsStream("/jcef/histogram.html")?.bufferedReader()?.readText()
+        if (html != null) {
+            browser.loadHTML(html)
         } else {
             thisLogger().error("histogram.html not found in resources")
         }
@@ -83,6 +85,6 @@ class HistogramPanel(parentDisposable: Disposable) : Disposable {
     override fun dispose() {}
 
     companion object {
-        private const val HISTOGRAM_HEIGHT = 150
+        private const val HISTOGRAM_HEIGHT = 80
     }
 }
