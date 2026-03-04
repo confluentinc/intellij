@@ -27,6 +27,7 @@ import io.confluent.intellijplugin.toolwindow.config.KafkaToolWindowSettings
 import io.confluent.intellijplugin.toolwindow.controllers.ConfluentMainController
 import io.confluent.intellijplugin.toolwindow.controllers.KafkaMainController
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
+import kotlinx.coroutines.launch
 
 @Service(Service.Level.PROJECT)
 class KafkaMonitoringToolWindowController(project: Project) : MonitoringToolWindowController(project) {
@@ -56,6 +57,8 @@ class KafkaMonitoringToolWindowController(project: Project) : MonitoringToolWind
 
             val controller = ConfluentMainController(project, driver)
             controller.init()
+            // Set controller reference for navigation from tree nodes
+            driver.mainController = controller
 
             com.intellij.openapi.util.Disposer.register(controller, driver)
 
@@ -96,7 +99,21 @@ class KafkaMonitoringToolWindowController(project: Project) : MonitoringToolWind
         val connectionId = contentManager.selectedContent?.getUserData(CONNECTION_ID) ?: return
 
         if (connectionId == "ccloud") {
-            getConfluentCloudTabController()?.getDriver()?.refreshConnectionLaunch(ActivitySource.ACTION)
+            val tabController = getConfluentCloudTabController()
+            val driver = tabController?.getDriver()
+
+            driver?.let {
+                it.dataManager.updater.stopAll()
+                it.dataManager.cancelAllEnrichmentJobs()
+
+                tabController.getMainController()?.refreshControlPlane()
+
+                it.safeExecutor.coroutineScope.launch {
+                    it.dataManager.updater.reloadAll(checkConnection = false)
+                }
+            }
+
+            tabController?.refreshDetailPanel()
             return
         }
 
@@ -112,6 +129,14 @@ class KafkaMonitoringToolWindowController(project: Project) : MonitoringToolWind
             if (newInterval <= 0) updater.stopAll()
             else updater.rescheduleAll()
         }
+    }
+
+    override fun getDriverForToolbar(connectionId: String?): io.confluent.intellijplugin.core.monitoring.rfs.MonitoringDriver? {
+        // CCloud driver is not in DriverManager, get it from ConfluentTabController
+        if (connectionId == "ccloud") {
+            return getConfluentCloudTabController()?.getDriver()
+        }
+        return super.getDriverForToolbar(connectionId)
     }
 
     fun getDriverForConnection(connectionId: String): io.confluent.intellijplugin.core.monitoring.rfs.MonitoringDriver? {
@@ -131,7 +156,11 @@ class KafkaMonitoringToolWindowController(project: Project) : MonitoringToolWind
             .filter { it.getUserData(CONNECTION_ID) == null }
             .forEach { contentManager.removeContent(it, true) }
 
-        val controller = io.confluent.intellijplugin.toolwindow.controllers.ConfluentTabController(project)
+        // Pass callback to refresh toolbar when driver is created (after sign-in)
+        val controller = io.confluent.intellijplugin.toolwindow.controllers.ConfluentTabController(
+            project,
+            onDriverCreated = { refreshCCloudToolbar() }
+        )
 
         val content = contentManager.factory.createContent(
             controller.getComponent(),
@@ -167,6 +196,15 @@ class KafkaMonitoringToolWindowController(project: Project) : MonitoringToolWind
     fun getConfluentCloudTabController(): io.confluent.intellijplugin.toolwindow.controllers.ConfluentTabController? {
         val content = contentManager.contents.firstOrNull { it.getUserData(CONNECTION_ID) == "ccloud" }
         return content?.getUserData(PAGE_CONTROLLER_ID) as? io.confluent.intellijplugin.toolwindow.controllers.ConfluentTabController
+    }
+
+    private fun refreshCCloudToolbar() {
+        // Refresh toolbar actions to show progress component after CCloud driver is created
+        com.intellij.openapi.application.ApplicationManager.getApplication().invokeLater {
+            if (contentManager.selectedContent?.getUserData(CONNECTION_ID) == "ccloud") {
+                setupActions("ccloud")
+            }
+        }
     }
 
     override fun focusOn(connectionId: String) = focusOn(connectionId, null)

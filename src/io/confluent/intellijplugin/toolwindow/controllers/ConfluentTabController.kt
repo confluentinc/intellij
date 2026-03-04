@@ -21,7 +21,8 @@ import javax.swing.JPanel
  * Shows sign-in UI when not authenticated, resource tree when authenticated.
  */
 class ConfluentTabController(
-    private val project: Project
+    private val project: Project,
+    private val onDriverCreated: (() -> Unit)? = null  // Callback to refresh toolbar after driver created
 ) : ComponentController, Disposable, CCloudAuthService.AuthStateListener {
 
     private val cardLayout = CardLayout()
@@ -69,6 +70,7 @@ class ConfluentTabController(
 
     private fun showResourcesView() {
         // Create driver and controller if not already created
+        val wasDriverNull = driver == null
         if (driver == null) {
             val connectionData = ConfluentConnectionData("Confluent Cloud")
 
@@ -80,6 +82,8 @@ class ConfluentTabController(
             resourceController = ConfluentMainController(project, driver!!).also {
                 it.init()
                 Disposer.register(driver!!, it)
+                // Set controller reference for navigation from tree nodes
+                driver!!.mainController = it
 
                 // Add to card panel
                 cardPanel.add(it.getComponent(), RESOURCES_CARD)
@@ -87,6 +91,11 @@ class ConfluentTabController(
         }
 
         cardLayout.show(cardPanel, RESOURCES_CARD)
+
+        // If driver was just created, notify parent to refresh toolbar with progress component
+        if (wasDriverNull) {
+            onDriverCreated?.invoke()
+        }
     }
 
     fun signOut() {
@@ -108,6 +117,13 @@ class ConfluentTabController(
     override fun getComponent(): JComponent = cardPanel
 
     fun getDriver(): ConfluentDriver? = driver
+
+    internal fun getMainController(): ConfluentMainController? = resourceController
+
+    /** Refresh currently visible detail panel (schema or topic details). */
+    fun refreshDetailPanel() {
+        resourceController?.refreshDetailPanel()
+    }
 
     override fun dispose() {
         CCloudAuthService.getInstance().removeAuthStateListener(this)
