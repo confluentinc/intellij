@@ -68,6 +68,20 @@ object RfsNotificationUtils {
         project: Project? = null
     ) = notifySuccess(message, title, listOfNotNull(action), project)
 
+    fun notifyWarning(
+        @NotificationContent message: String,
+        @NotificationTitle title: String,
+        project: Project? = null
+    ) = invokeLater {
+        val notification = Notification(
+            ACTION_FAILURE_NOTIFICATION_GROUP,
+            title,
+            message,
+            NotificationType.WARNING
+        )
+        Notifications.Bus.notify(notification, project)
+    }
+
     // ToDo This looks like a copy of TestConnectionPanelWrapper.showDetailsPopup, we should extract common part.
     fun showExceptionMessage(
         project: Project?,
