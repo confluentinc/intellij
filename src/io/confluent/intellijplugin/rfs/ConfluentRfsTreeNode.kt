@@ -8,13 +8,9 @@ import io.confluent.intellijplugin.rfs.ConfluentDriver.Companion.isCluster
 import io.confluent.intellijplugin.rfs.ConfluentDriver.Companion.isSchemaRegistry
 import io.confluent.intellijplugin.rfs.ConfluentDriver.Companion.isTopic
 import io.confluent.intellijplugin.rfs.ConfluentDriver.Companion.isSchema
-import io.confluent.intellijplugin.rfs.ConfluentDriver.Companion.getEnvironmentId
-import io.confluent.intellijplugin.rfs.ConfluentDriver.Companion.getClusterId
-import io.confluent.intellijplugin.rfs.ConfluentDriver.Companion.getSchemaRegistryId
 import io.confluent.intellijplugin.core.monitoring.rfs.MonitoringRfsTreeNode
 import io.confluent.intellijplugin.core.rfs.driver.RfsPath
 import io.confluent.intellijplugin.toolwindow.config.KafkaToolWindowSettings
-import io.confluent.intellijplugin.util.KafkaMessagesBundle.message
 import javax.swing.Icon
 
 /**

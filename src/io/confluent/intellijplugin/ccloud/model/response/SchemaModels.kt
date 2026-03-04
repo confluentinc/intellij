@@ -3,8 +3,6 @@ package io.confluent.intellijplugin.ccloud.model.response
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
-typealias ListSubjectsResponse = List<String>
-
 /** Schema info for UI (subject name + metadata). */
 data class SchemaData(
     val name: String,
@@ -19,8 +17,6 @@ data class SchemaEnrichmentData(
     val schemaType: String? = null,
     val compatibility: String? = null
 )
-
-typealias SchemaVersionsResponse = List<Long>
 
 @Serializable
 data class SchemaVersionResponse(
@@ -101,8 +97,11 @@ data class CheckSchemaExistsResponse(
     @SerialName("schemaType") val schemaType: String? = null
 )
 
-/** Response from deleting schema or version (returns list of deleted version numbers). */
-typealias DeleteSchemaResponse = List<Int>
+/** Response from deleting a subject (returns list of deleted version numbers). */
+typealias DeleteSubjectResponse = List<Int>
+
+/** Response from deleting a schema version (returns the deleted version number). */
+typealias DeleteSchemaVersionResponse = Int
 
 // Compatibility operation models
 

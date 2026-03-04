@@ -222,20 +222,20 @@ class DataPlaneFetcherImpl(
         return json.decodeFromString<CheckSchemaExistsResponse>(responseBody)
     }
 
-    override suspend fun deleteSubject(subjectName: String, permanent: Boolean): DeleteSchemaResponse {
+    override suspend fun deleteSubject(subjectName: String, permanent: Boolean): DeleteSubjectResponse {
         requireSchemaRegistry()
         val encodedSubject = encodeUrlPathSegment(subjectName)
         val path = String.format(CloudConfig.DataPlane.SchemaRegistry.DELETE_SUBJECT_URI, encodedSubject)
         val pathWithQuery = if (permanent) "$path?permanent=true" else path
         val responseBody = schemaRegistryClient!!.executeRequest(pathWithQuery, "DELETE")
-        return json.decodeFromString<DeleteSchemaResponse>(responseBody)
+        return json.decodeFromString<DeleteSubjectResponse>(responseBody)
     }
 
     override suspend fun deleteSchemaVersion(
         subjectName: String,
         version: Long,
         permanent: Boolean
-    ): DeleteSchemaResponse {
+    ): DeleteSchemaVersionResponse {
         requireSchemaRegistry()
         val encodedSubject = encodeUrlPathSegment(subjectName)
         val path = String.format(
@@ -245,9 +245,7 @@ class DataPlaneFetcherImpl(
         )
         val pathWithQuery = if (permanent) "$path?permanent=true" else path
         val responseBody = schemaRegistryClient!!.executeRequest(pathWithQuery, "DELETE")
-        // DELETE version returns a single integer, but we need List<Int> for the return type
-        val deletedVersion = json.decodeFromString<Int>(responseBody)
-        return listOf(deletedVersion)
+        return json.decodeFromString<DeleteSchemaVersionResponse>(responseBody)
     }
 
     override suspend fun getSubjectCompatibility(subjectName: String): CompatibilityResponse {
