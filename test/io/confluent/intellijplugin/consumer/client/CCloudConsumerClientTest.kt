@@ -8,6 +8,7 @@ import io.confluent.intellijplugin.consumer.models.ConsumerProducerFieldConfig
 import io.confluent.intellijplugin.data.CCloudClusterDataManager
 import io.confluent.intellijplugin.registry.KafkaRegistryFormat
 import io.confluent.intellijplugin.registry.KafkaRegistryType
+import io.confluent.kafka.schemaregistry.ParsedSchema
 import io.confluent.kafka.schemaregistry.protobuf.MessageIndexes
 import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchema
 import com.google.protobuf.DynamicMessage
