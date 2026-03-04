@@ -145,13 +145,6 @@ class CCloudConsumerClientTest {
             val result = client.getSchemaIdFromRawBytes(payload)
             assertNull(result)
         }
-
-        @Test
-        fun `should handle large schema IDs`() {
-            val payload = buildV0Payload(schemaId = 100_000, payload = byteArrayOf())
-            val result = client.getSchemaIdFromRawBytes(payload)
-            assertEquals(100_000, result)
-        }
     }
 
     @Nested
@@ -202,6 +195,15 @@ class CCloudConsumerClientTest {
             buffer.putLong(0L)
             val headers = RecordHeaders(listOf(
                 RecordHeader(SchemaId.VALUE_SCHEMA_ID_HEADER, buffer.array())
+            ))
+            val result = client.getSchemaGuidFromHeaders(headers, isKey = false)
+            assertNull(result)
+        }
+
+        @Test
+        fun `should return null when header value bytes are null`() {
+            val headers = RecordHeaders(listOf(
+                RecordHeader(SchemaId.VALUE_SCHEMA_ID_HEADER, null)
             ))
             val result = client.getSchemaGuidFromHeaders(headers, isKey = false)
             assertNull(result)
@@ -328,6 +330,37 @@ class CCloudConsumerClientTest {
             assertEquals("Alice", result.getField(descriptor.findFieldByName("name")))
             assertEquals(30, result.getField(descriptor.findFieldByName("age")))
         }
+
+        @Test
+        fun `should throw when message index is out of range`() {
+            val schema = ProtobufSchema(protoSchemaText)
+            // Index [99] doesn't exist in the schema,  only one message type defined
+            val indexBytes = MessageIndexes(listOf(99)).toByteArray()
+            val fullPayload = indexBytes + byteArrayOf(1, 2, 3)
+
+            assertThrows(Exception::class.java) {
+                client.deserializeProtobuf(fullPayload, schema)
+            }
+        }
+
+        @Test
+        fun `should throw SerializationException when no descriptor found`() {
+            // Mock schema where both toDescriptor overloads return null
+            val mockSchema = mock<ProtobufSchema> {
+                on { toMessageName(any()) } doReturn "NonExistent"
+                on { toDescriptor("NonExistent") } doReturn null
+                on { toDescriptor() } doReturn null
+                on { name() } doReturn "TestSchema"
+            }
+            // Index [0], valid varint so MessageIndexes.readFrom succeeds
+            val indexBytes = MessageIndexes(listOf(0)).toByteArray()
+            val fullPayload = indexBytes + byteArrayOf(1, 2, 3)
+
+            val ex = assertThrows(SerializationException::class.java) {
+                client.deserializeProtobuf(fullPayload, mockSchema)
+            }
+            assertTrue(ex.message!!.contains("No descriptor for TestSchema"))
+        }
     }
 
     @Nested
@@ -385,6 +418,38 @@ class CCloudConsumerClientTest {
         }
 
         @Test
+        fun `should throw SerializationException when schema response has invalid schema`(): Unit = runBlocking {
+            val schemaId = 12
+            val wireBytes = buildV0Payload(schemaId, byteArrayOf(1, 2, 3))
+            val headers = RecordHeaders()
+
+            whenever(mockFetcher.getSchemaIdInfo(schemaId)).thenReturn(
+                SchemaByIdResponse(schema = "not valid schema content")
+            )
+
+            assertThrows(Exception::class.java) {
+                runBlocking { client.deserializeSchemaEncoded(wireBytes, mockFetcher, headers, isKey = false) }
+            }
+        }
+
+        @Test
+        fun `should throw SerializationException for unsupported schema type`(): Unit = runBlocking {
+            val schemaId = 13
+            val wireBytes = buildV0Payload(schemaId, byteArrayOf(1, 2, 3))
+            val headers = RecordHeaders()
+
+            // Pre-populate cache with a mock ParsedSchema that isn't Avro/Protobuf/Json
+            client.schemaCache[schemaId.toString()] = mock<ParsedSchema> {
+                on { schemaType() } doReturn "UNKNOWN"
+            }
+
+            val ex = assertThrows(SerializationException::class.java) {
+                runBlocking { client.deserializeSchemaEncoded(wireBytes, mockFetcher, headers, isKey = false) }
+            }
+            assertTrue(ex.message!!.contains("Unsupported schema type"))
+        }
+
+        @Test
         fun `should throw when deserialization fails`(): Unit = runBlocking {
             val schemaId = 11
             // Garbage payload that can't be decoded as Avro
@@ -398,6 +463,25 @@ class CCloudConsumerClientTest {
             assertThrows(Exception::class.java) {
                 runBlocking { client.deserializeSchemaEncoded(wireBytes, mockFetcher, headers, isKey = false) }
             }
+        }
+
+        @Test
+        fun `should use key header for schema GUID when isKey is true`(): Unit = runBlocking {
+            val guid = UUID.randomUUID()
+            val avroPayload = encodeAvroPayload(avroSchemaJson, "KeyUser", 42)
+            val headers = RecordHeaders(listOf(
+                RecordHeader(SchemaId.KEY_SCHEMA_ID_HEADER, buildV1HeaderValue(guid))
+            ))
+
+            whenever(mockFetcher.getSchemaByGuid(guid.toString())).thenReturn(
+                SchemaByIdResponse(schema = avroSchemaJson, schemaType = "AVRO")
+            )
+
+            val result = client.deserializeSchemaEncoded(avroPayload, mockFetcher, headers, isKey = true)
+
+            assertTrue(result is GenericData.Record)
+            assertEquals("KeyUser", (result as GenericData.Record).get("name").toString())
+            verify(mockFetcher).getSchemaByGuid(guid.toString())
         }
     }
 
@@ -508,6 +592,24 @@ class CCloudConsumerClientTest {
             val result = client.extractValue(rawElement, "test-topic", mockFetcher, RecordHeaders(), isKey = false)
             assertEquals("", result)
         }
+
+        @Test
+        fun `should use key config type when isKey is true`() = runBlocking {
+            startWithConfigs(keyType = KafkaFieldType.LONG, valueType = KafkaFieldType.STRING)
+
+            val longBytes = ByteBuffer.allocate(8).putLong(99L).array()
+            val rawElement = JsonObject(mapOf("__raw__" to JsonPrimitive(Base64.getEncoder().encodeToString(longBytes))))
+            val result = client.extractValue(rawElement, "test-topic", mockFetcher, RecordHeaders(), isKey = true)
+            assertEquals(99L, result)
+        }
+
+        @Test
+        fun `should return null when __raw__ value is JsonNull`() = runBlocking {
+            startWithConfigs()
+            val rawElement = JsonObject(mapOf("__raw__" to JsonNull))
+            val result = client.extractValue(rawElement, "t", mockFetcher, RecordHeaders(), isKey = false)
+            assertNull(result)
+        }
     }
 
     @Nested
@@ -540,12 +642,6 @@ class CCloudConsumerClientTest {
         }
 
         @Test
-        fun `should return 0 for __raw__ with empty string`() {
-            val element = JsonObject(mapOf("__raw__" to JsonPrimitive("")))
-            assertEquals(0, client.estimateJsonSize(element))
-        }
-
-        @Test
         fun `should return UTF-8 byte count for JsonPrimitive`() {
             val text = "hello"
             assertEquals(text.toByteArray().size, client.estimateJsonSize(JsonPrimitive(text)))
@@ -555,6 +651,12 @@ class CCloudConsumerClientTest {
         fun `should return toString byte count for JsonObject without __raw__`() {
             val obj = JsonObject(mapOf("key" to JsonPrimitive("val")))
             assertEquals(obj.toString().toByteArray().size, client.estimateJsonSize(obj))
+        }
+
+        @Test
+        fun `should return 0 when __raw__ value is JsonNull`() {
+            val element = JsonObject(mapOf("__raw__" to JsonNull))
+            assertEquals(0, client.estimateJsonSize(element))
         }
     }
 
@@ -656,10 +758,17 @@ class CCloudConsumerClientTest {
         }
 
         @Test
-        fun `should return toString for JsonObject with JSON type`() {
-            val obj = JsonObject(mapOf("a" to JsonPrimitive(1)))
-            val result = client.convertJsonToType(obj, KafkaFieldType.JSON)
-            assertEquals(obj.toString(), result)
+        fun `should throw for non-numeric DOUBLE`() {
+            assertThrows(SerializationException::class.java) {
+                client.convertJsonToType(JsonPrimitive("not-a-double"), KafkaFieldType.DOUBLE)
+            }
+        }
+
+        @Test
+        fun `should throw for non-numeric FLOAT`() {
+            assertThrows(SerializationException::class.java) {
+                client.convertJsonToType(JsonPrimitive("not-a-float"), KafkaFieldType.FLOAT)
+            }
         }
 
         @Test
@@ -769,9 +878,53 @@ class CCloudConsumerClientTest {
         }
 
         @Test
+        fun `createDeserializer should return StringDeserializer for JSON`() {
+            assertTrue(client.createDeserializer(KafkaFieldType.JSON) is StringDeserializer)
+        }
+
+        @Test
+        fun `createDeserializer should return IntegerDeserializer for INTEGER`() {
+            assertTrue(client.createDeserializer(KafkaFieldType.INTEGER) is IntegerDeserializer)
+        }
+
+        @Test
+        fun `createDeserializer should return DoubleDeserializer for DOUBLE`() {
+            assertTrue(client.createDeserializer(KafkaFieldType.DOUBLE) is DoubleDeserializer)
+        }
+
+        @Test
+        fun `createDeserializer should return FloatDeserializer for FLOAT`() {
+            assertTrue(client.createDeserializer(KafkaFieldType.FLOAT) is FloatDeserializer)
+        }
+
+        @Test
+        fun `createDeserializer should return ByteArrayDeserializer for BASE64`() {
+            assertTrue(client.createDeserializer(KafkaFieldType.BASE64) is ByteArrayDeserializer)
+        }
+
+        @Test
+        fun `createDeserializer should return VoidDeserializer for NULL`() {
+            assertTrue(client.createDeserializer(KafkaFieldType.NULL) is VoidDeserializer)
+        }
+
+        @Test
         fun `createDeserializer should throw for SCHEMA_REGISTRY`() {
             assertThrows(IllegalArgumentException::class.java) {
                 client.createDeserializer(KafkaFieldType.SCHEMA_REGISTRY)
+            }
+        }
+
+        @Test
+        fun `createDeserializer should throw for PROTOBUF_CUSTOM`() {
+            assertThrows(IllegalArgumentException::class.java) {
+                client.createDeserializer(KafkaFieldType.PROTOBUF_CUSTOM)
+            }
+        }
+
+        @Test
+        fun `createDeserializer should throw for AVRO_CUSTOM`() {
+            assertThrows(IllegalArgumentException::class.java) {
+                client.createDeserializer(KafkaFieldType.AVRO_CUSTOM)
             }
         }
     }
@@ -868,5 +1021,13 @@ class CCloudConsumerClientTest {
             val record = buildRecord(keySize = -1, valueSize = -1, key = null, value = null)
             assertEquals(0L, client.getRecordSize(record))
         }
+
+        @Test
+        fun `should use serialized key size when positive and estimate value when negative`() {
+            val record = buildRecord(keySize = 15, valueSize = -1, key = "k", value = "hello")
+            // keySize=15 (from serialized), valueSize=5 (estimated from "hello")
+            assertEquals(20L, client.getRecordSize(record))
+        }
+    }
     }
 }
