@@ -172,6 +172,9 @@ abstract class BaseClusterDataManager(
     abstract fun supportsPresets(): Boolean
     abstract fun supportsDetailsPanel(): Boolean
 
+    // Flag for filtering saved presets depending on CCloud ("ccloud") vs Native (null) connection type
+    open fun presetConnectionTag(): String? = null
+
     val consumerPanelStorage: KafkaConsumerPanelStorage by lazy {
         KafkaConsumerPanelStorage(this).also { Disposer.register(this, it) }
     }
