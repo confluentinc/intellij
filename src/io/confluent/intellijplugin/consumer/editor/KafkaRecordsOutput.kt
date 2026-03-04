@@ -29,7 +29,7 @@ import io.confluent.intellijplugin.telemetry.logUsage
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
 import java.awt.BorderLayout
 import java.awt.Dimension
-import java.util.*
+import java.util.Date
 import javax.swing.BorderFactory
 import javax.swing.JPanel
 import javax.swing.JTable
@@ -39,7 +39,7 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
     private var tableLoadingDecorator: TableLoadingDecorator? = null
 
     internal val outputModel = ListTableModel(
-        LinkedList<KafkaRecord>(),
+        ArrayList<KafkaRecord>(1000),  // Pre-size for efficiency, O(1) random access
         listOf(TOPIC_FIELD, TIMESTAMP_FIELD, KEY_COLUMN, VALUE_COLUMN, PARTITION_COLUMN) +
                 if (isProducer) listOf(DURATION_COLUMN) else listOf(OFFSET_COLUMN)
     ) { data, index ->
@@ -196,9 +196,7 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
     }
 
     fun addBatchRows(pollTime: Long, elements: List<KafkaRecord>) {
-        elements.forEach {
-            outputModel.addElement(it)
-        }
+        outputModel.addBatch(elements)  // Use batch method for efficiency
         statisticPanel.addRecordsBatch(pollTime, elements)
     }
 
