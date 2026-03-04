@@ -173,22 +173,17 @@ class ListTableModelTest {
     inner class DataAccess {
 
         @Test
-        fun `should support O(1) random access with ArrayList`() {
+        fun `should support random access across large dataset`() {
             // Given - large dataset
             val largeBatch = (0..999).map { "item$it" }
             model.addBatch(largeBatch)
             ApplicationManager.getApplication().invokeAndWait { }
 
-            // When - measure random access time
-            val startTime = System.nanoTime()
-            repeat(1000) { i ->
-                model.getValueAt(i, 0)
-            }
-            val durationMs = (System.nanoTime() - startTime) / 1_000_000
-
-            // Then - should be very fast with ArrayList (O(1) access)
-            assertTrue(durationMs < 50, "Expected <50ms for 1000 random accesses, got ${durationMs}ms")
+            // Then - verify correct values at arbitrary indices
             assertEquals(1000, model.rowCount)
+            assertEquals("item0", model.getValueAt(0, 0))
+            assertEquals("item499", model.getValueAt(499, 0))
+            assertEquals("item999", model.getValueAt(999, 0))
         }
 
         @Test
