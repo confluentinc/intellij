@@ -145,7 +145,14 @@ class KafkaConsumerPanel(
     private val key = KafkaConsumerFieldComponent(project, this, isKey = true).also { Disposer.register(this, it) }
     private val value = KafkaConsumerFieldComponent(project, this, isKey = false).also { Disposer.register(this, it) }
 
-    private val kafkaConsumerSettingsDelegate = lazy { KafkaConsumerSettings() }
+    private val kafkaConsumerSettingsDelegate = lazy {
+        val supportedProperties = if (kafkaManager.presetConnectionTag() == "ccloud") {
+            KafkaConsumerSettings.CCLOUD_PROPERTIES
+        } else {
+            KafkaConsumerSettings.ALL_PROPERTIES
+        }
+        KafkaConsumerSettings(supportedProperties)
+    }
     private val kafkaConsumerSettings: KafkaConsumerSettings by kafkaConsumerSettingsDelegate
 
     private var hasLoggedStopEvent = false

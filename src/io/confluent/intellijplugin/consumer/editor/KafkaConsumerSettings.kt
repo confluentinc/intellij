@@ -10,10 +10,31 @@ import org.apache.kafka.clients.consumer.ConsumerConfig
 import javax.swing.JTextField
 import javax.swing.text.JTextComponent
 
-class KafkaConsumerSettings {
+class KafkaConsumerSettings(
+    supportedProperties: Set<String> = ALL_PROPERTIES
+) {
 
     companion object {
         const val MAX_CONSUMER_RECORDS = "consumer.records.limit"
+        const val MESSAGE_MAX_BYTES = "consumer.message.max.bytes"
+
+        /** Default message max bytes: 4MB (matches ide-sidecar default). */
+        const val DEFAULT_MESSAGE_MAX_BYTES = 4 * 1024 * 1024
+
+        /** All Kafka consumer config properties (for native connections). */
+        val ALL_PROPERTIES: Set<String> = setOf(
+            ConsumerConfig.REQUEST_TIMEOUT_MS_CONFIG,
+            ConsumerConfig.MAX_POLL_RECORDS_CONFIG,
+            ConsumerConfig.FETCH_MAX_WAIT_MS_CONFIG,
+            ConsumerConfig.FETCH_MAX_BYTES_CONFIG,
+            ConsumerConfig.MAX_PARTITION_FETCH_BYTES_CONFIG
+        )
+
+        /** Kafka consumer config properties supported by CCloud REST API. */
+        val CCLOUD_PROPERTIES: Set<String> = setOf(
+            ConsumerConfig.MAX_POLL_RECORDS_CONFIG,
+            ConsumerConfig.FETCH_MAX_BYTES_CONFIG
+        )
     }
 
     // Properties from org.apache.kafka.clients.consumer.ConsumerConfig
@@ -29,7 +50,7 @@ class KafkaConsumerSettings {
             ConsumerConfig.FETCH_MAX_WAIT_MS_CONFIG,
             ConsumerConfig.FETCH_MAX_BYTES_CONFIG,
             ConsumerConfig.MAX_PARTITION_FETCH_BYTES_CONFIG
-        ).forEach {
+        ).filter { it in supportedProperties }.forEach {
 
             val textField = JTextField().apply {
                 val defaults = ConsumerConfig.configDef().configKeys()[it]
@@ -43,6 +64,11 @@ class KafkaConsumerSettings {
 
         settingsFields[MAX_CONSUMER_RECORDS] = JTextField().apply {
             toolTipText = "<html>${KafkaMessagesBundle.message("consumer.records.limit.descr")}</html>"
+        }
+
+        settingsFields[MESSAGE_MAX_BYTES] = JTextField().apply {
+            text = DEFAULT_MESSAGE_MAX_BYTES.toString()
+            toolTipText = "<html>${KafkaMessagesBundle.message("consumer.message.max.bytes.descr")}</html>"
         }
     }
 
@@ -86,10 +112,12 @@ class KafkaConsumerSettings {
                 row(KafkaMessagesBundle.messageOrKey(it.key), it.value)
             }
 
-            separator()
+            if (propertiesFields.isNotEmpty()) {
+                separator()
 
-            propertiesFields.forEach {
-                row(KafkaMessagesBundle.messageOrKey(it.key), it.value)
+                propertiesFields.forEach {
+                    row(KafkaMessagesBundle.messageOrKey(it.key), it.value)
+                }
             }
         }
 

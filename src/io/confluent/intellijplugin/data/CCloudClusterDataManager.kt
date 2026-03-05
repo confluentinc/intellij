@@ -403,7 +403,7 @@ class CCloudClusterDataManager(
     // Consumer panel feature overrides - CCloud doesn't support these features yet
 
     override fun supportsConsumerGroups(): Boolean = false
-    override fun supportsAdvancedSettings(): Boolean = false
+    override fun supportsAdvancedSettings(): Boolean = true
     override fun presetConnectionTag() = "ccloud"
     fun getDataPlaneCache(): DataPlaneCache = dataPlaneCache
 
