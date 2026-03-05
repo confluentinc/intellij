@@ -32,7 +32,7 @@ class ScaffoldTemplateSelectionDialog(
     internal val versionLabel = JBLabel()
     internal val tagsLabel = JBLabel()
 
-    private lateinit var templateComboBox: JComboBox<ScaffoldV1TemplateListDataInner>
+    private var templateComboBox: JComboBox<ScaffoldV1TemplateListDataInner>? = null
 
     var selectedTemplate: ScaffoldV1TemplateListDataInner? = null
         private set
@@ -73,7 +73,7 @@ class ScaffoldTemplateSelectionDialog(
         }
     }
 
-    override fun getPreferredFocusedComponent(): JComponent = templateComboBox
+    override fun getPreferredFocusedComponent(): JComponent? = templateComboBox
 
     override fun getDimensionServiceKey(): String = "kafka.scaffold.template.selection.dialog"
 
@@ -85,7 +85,7 @@ class ScaffoldTemplateSelectionDialog(
         tagsLabel.text = spec.tags?.joinToString(", ") ?: ""
     }
 
-    override fun doOKAction() {
+    public override fun doOKAction() {
         selectedTemplate = comboModel.selectedItem as? ScaffoldV1TemplateListDataInner
         super.doOKAction()
     }

@@ -91,17 +91,21 @@ class ScaffoldTemplateSelectionDialogTest {
             )
             val dialog = createDialog(listOf(template))
 
-            assertEquals("Kafka Streams starter", dialog.descriptionArea.text)
-            assertEquals("Python", dialog.languageLabel.text)
-            assertEquals("2.1.0", dialog.versionLabel.text)
-            assertEquals("streaming, kafka", dialog.tagsLabel.text)
+            onEdt {
+                assertEquals("Kafka Streams starter", dialog.descriptionArea.text)
+                assertEquals("Python", dialog.languageLabel.text)
+                assertEquals("2.1.0", dialog.versionLabel.text)
+                assertEquals("streaming, kafka", dialog.tagsLabel.text)
+            }
         }
 
         @Test
         fun `sets dialog title from bundle`() {
             val dialog = createDialog(listOf(createTemplate()))
 
-            assertEquals("Select Project Template", dialog.title)
+            onEdt {
+                assertEquals("Select Project Template", dialog.title)
+            }
         }
 
         @Test
@@ -131,14 +135,14 @@ class ScaffoldTemplateSelectionDialogTest {
             )
             val dialog = createDialog(listOf(template1, template2))
 
-            assertEquals("First description", dialog.descriptionArea.text)
-
-            onEdt { dialog.comboModel.selectedItem = template2 }
-
-            assertEquals("Second description", dialog.descriptionArea.text)
-            assertEquals("Python", dialog.languageLabel.text)
-            assertEquals("3.0.0", dialog.versionLabel.text)
-            assertEquals("python, streaming", dialog.tagsLabel.text)
+            onEdt {
+                assertEquals("First description", dialog.descriptionArea.text)
+                dialog.comboModel.selectedItem = template2
+                assertEquals("Second description", dialog.descriptionArea.text)
+                assertEquals("Python", dialog.languageLabel.text)
+                assertEquals("3.0.0", dialog.versionLabel.text)
+                assertEquals("python, streaming", dialog.tagsLabel.text)
+            }
         }
 
         @Test
@@ -160,12 +164,42 @@ class ScaffoldTemplateSelectionDialogTest {
             onEdt {
                 dialog.comboModel.selectedItem = template2
                 dialog.comboModel.selectedItem = template1
+                assertEquals("Alpha", dialog.descriptionArea.text)
+                assertEquals("Go", dialog.languageLabel.text)
+                assertEquals("0.1.0", dialog.versionLabel.text)
+                assertEquals("go", dialog.tagsLabel.text)
+            }
+        }
+    }
+
+    @Nested
+    inner class `doOKAction` {
+
+        @Test
+        fun `selectedTemplate is populated after OK`() {
+            val template = createTemplate(name = "chosen-template", displayName = "Chosen")
+            val dialog = createDialog(listOf(template))
+
+            onEdt {
+                dialog.comboModel.selectedItem = template
+                dialog.doOKAction()
             }
 
-            assertEquals("Alpha", dialog.descriptionArea.text)
-            assertEquals("Go", dialog.languageLabel.text)
-            assertEquals("0.1.0", dialog.versionLabel.text)
-            assertEquals("go", dialog.tagsLabel.text)
+            assertEquals("chosen-template", dialog.selectedTemplate?.spec?.name)
+        }
+
+        @Test
+        fun `selectedTemplate reflects current combo selection`() {
+            val template1 = createTemplate(name = "first", displayName = "First")
+            val template2 = createTemplate(name = "second", displayName = "Second")
+            val dialog = createDialog(listOf(template1, template2))
+
+            onEdt {
+                dialog.comboModel.selectedItem = template2
+                dialog.doOKAction()
+            }
+
+            assertEquals("second", dialog.selectedTemplate?.spec?.name)
         }
     }
 
@@ -187,10 +221,12 @@ class ScaffoldTemplateSelectionDialogTest {
             )
             val dialog = createDialog(listOf(template))
 
-            assertEquals("", dialog.descriptionArea.text)
-            assertEquals("", dialog.languageLabel.text)
-            assertEquals("", dialog.versionLabel.text)
-            assertEquals("", dialog.tagsLabel.text)
+            onEdt {
+                assertEquals("", dialog.descriptionArea.text)
+                assertEquals("", dialog.languageLabel.text)
+                assertEquals("", dialog.versionLabel.text)
+                assertEquals("", dialog.tagsLabel.text)
+            }
         }
 
         @Test
@@ -198,7 +234,9 @@ class ScaffoldTemplateSelectionDialogTest {
             val template = createTemplate(tags = emptyList())
             val dialog = createDialog(listOf(template))
 
-            assertEquals("", dialog.tagsLabel.text)
+            onEdt {
+                assertEquals("", dialog.tagsLabel.text)
+            }
         }
     }
 }
