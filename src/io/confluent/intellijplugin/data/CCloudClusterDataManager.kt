@@ -772,30 +772,6 @@ class CCloudClusterDataManager(
             // Fall back to full refresh on error
             schemaRegistryModel?.let { updater.invokeRefreshModel(it) }
         }
-        val fetcher = dataPlaneCache.getFetcher() ?: return null
-        return try {
-            val response = runBlocking { fetcher.getLatestVersionInfo(schemaName) }
-            SchemaVersionInfo(
-                schemaName = schemaName,
-                version = response.version.toLong(),
-                type = KafkaRegistryFormat.fromSchemaType(response.schemaType),
-                schema = response.schema
-            )
-        } catch (e: Exception) {
-            thisLogger().warn("Failed to load latest version for '$schemaName'", e)
-            null
-        }
-    }
-
-    override fun getCachedOrLoadSchema(name: String): KafkaSchemaInfo {
-        val schemas = dataPlaneCache.getSchemas().ifEmpty { dataPlaneCache.refreshSchemas() }
-        val cached = schemas.firstOrNull { it.name == name }
-        return KafkaSchemaInfo(
-            name = name,
-            // Schema exists -> resolve type (null schemaType defaults to AVRO per SR convention)
-            // Schema not found -> type stays null so auto-select knows there's no match
-            type = if (cached != null) KafkaRegistryFormat.fromSchemaType(cached.schemaType) else null
-        )
     }
 
     @RequiresBackgroundThread

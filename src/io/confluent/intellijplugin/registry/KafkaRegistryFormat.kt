@@ -17,7 +17,7 @@ enum class KafkaRegistryFormat(@Nls val presentable: String) {
                 return AVRO
             }
             return entries.firstOrNull { it.name.equals(normalized, ignoreCase = true) } ?: UNKNOWN
-        fun parse(s: String?) = entries.firstOrNull { it.name.lowercase() == s?.lowercase() } ?: UNKNOWN
+        }
 
         /**
          * Map Schema Registry schema type string to format enum.
