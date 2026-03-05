@@ -554,7 +554,8 @@ class CCloudConsumerClient(
         if (schemaGuid == null && schemaId == null) return bytes
 
         val registryId = SchemaRegistryClusterId(
-            clusterDataManager.getDataPlaneCache().getSchemaRegistryId() ?: ""
+            clusterDataManager.getDataPlaneCache().getSchemaRegistryId()
+                ?: throw IllegalStateException("Schema Registry ID is required for schema deserialization")
         )
         val cacheKey = if (schemaGuid != null) SchemaCacheKey.ByGuid(schemaGuid) else SchemaCacheKey.ById(schemaId!!)
         val parsedSchema = fetchAndParseSchema(registryId, cacheKey) {
