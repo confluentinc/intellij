@@ -18,7 +18,7 @@ class ListTableModelTest {
     @BeforeEach
     fun setup() {
         model = ListTableModel(
-            ArrayList(100),
+            ArrayDeque(100),
             listOf("Column1", "Column2"),
         ) { data, index ->
             when (index) {

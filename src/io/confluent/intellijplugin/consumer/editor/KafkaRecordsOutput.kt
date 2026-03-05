@@ -39,7 +39,7 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
     private var tableLoadingDecorator: TableLoadingDecorator? = null
 
     internal val outputModel = ListTableModel(
-        ArrayList<KafkaRecord>(1000),  // Pre-size for efficiency, O(1) random access
+        ArrayDeque<KafkaRecord>(1000),  // Circular buffer: O(1) random access + O(1) head removal for eviction
         listOf(TOPIC_FIELD, TIMESTAMP_FIELD, KEY_COLUMN, VALUE_COLUMN, PARTITION_COLUMN) +
                 if (isProducer) listOf(DURATION_COLUMN) else listOf(OFFSET_COLUMN)
     ) { data, index ->
