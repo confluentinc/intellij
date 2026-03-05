@@ -464,8 +464,18 @@ class CCloudConsumerClient(
         val keySize = keyBytes?.size ?: 0
         val valueSize = valueBytes?.size ?: 0
 
-        val key = extractValue(keyBytes, topic, fetcher, headers, isKey = true)
-        val value = extractValue(valueBytes, topic, fetcher, headers, isKey = false)
+        // Enforce message max bytes limit — skip deserialization for oversized values
+        val maxBytes = resolvedMessageMaxBytes
+        val key = if (maxBytes != null && keySize > maxBytes) {
+            TRUNCATION_MARKER.format(keySize, maxBytes)
+        } else {
+            extractValue(keyBytes, topic, fetcher, headers, isKey = true)
+        }
+        val value = if (maxBytes != null && valueSize > maxBytes) {
+            TRUNCATION_MARKER.format(valueSize, maxBytes)
+        } else {
+            extractValue(valueBytes, topic, fetcher, headers, isKey = false)
+        }
 
         val timestampType = when (record.timestampType) {
             ApiTimestampType.NO_TIMESTAMP_TYPE -> TimestampType.NO_TIMESTAMP_TYPE
@@ -706,5 +716,9 @@ class CCloudConsumerClient(
 
         /** Default maximum number of records per consume request. */
         private const val DEFAULT_MAX_POLL_RECORDS = 100
+
+        /** Marker shown in place of oversized record values. */
+        @VisibleForTesting
+        internal const val TRUNCATION_MARKER = "[Message too large: %d bytes exceeds limit of %d bytes]"
     }
 }
