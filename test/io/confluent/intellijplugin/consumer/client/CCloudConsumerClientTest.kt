@@ -550,21 +550,6 @@ class CCloudConsumerClientTest {
         }
 
         @Test
-        fun `should convert bytes with STRING type to UTF-8 string`() = runBlocking {
-            startWithConfigs(valueType = KafkaFieldType.STRING)
-            val result = client.extractValue("hello".toByteArray(), "test-topic", mockFetcher, RecordHeaders(), isKey = false)
-            assertEquals("hello", result)
-        }
-
-        @Test
-        fun `should convert bytes with LONG type to Long`() = runBlocking {
-            startWithConfigs(valueType = KafkaFieldType.LONG)
-            val longBytes = ByteBuffer.allocate(8).putLong(42L).array()
-            val result = client.extractValue(longBytes, "test-topic", mockFetcher, RecordHeaders(), isKey = false)
-            assertEquals(42L, result)
-        }
-
-        @Test
         fun `should default to STRING when no config is set`() = runBlocking {
             // Do NOT call startWithConfigs, leave configs null to avoid potential reader exception
             val result = client.extractValue("fallback".toByteArray(), "t", mockFetcher, RecordHeaders(), isKey = false)
@@ -584,6 +569,73 @@ class CCloudConsumerClientTest {
             val longBytes = ByteBuffer.allocate(8).putLong(99L).array()
             val result = client.extractValue(longBytes, "test-topic", mockFetcher, RecordHeaders(), isKey = true)
             assertEquals(99L, result)
+        }
+
+        @Test
+        fun `should deserialize all primitive field types from raw bytes`() = runBlocking {
+            data class Case(val type: KafkaFieldType, val bytes: ByteArray, val expected: Any?)
+
+            val cases = listOf(
+                Case(KafkaFieldType.STRING, "hello".toByteArray(), "hello"),
+                Case(KafkaFieldType.JSON, """{"a":1}""".toByteArray(), """{"a":1}"""),
+                Case(KafkaFieldType.LONG, ByteBuffer.allocate(8).putLong(42L).array(), 42L),
+                Case(KafkaFieldType.INTEGER, ByteBuffer.allocate(4).putInt(7).array(), 7),
+                Case(KafkaFieldType.DOUBLE, ByteBuffer.allocate(8).putDouble(3.14).array(), 3.14),
+                Case(KafkaFieldType.FLOAT, ByteBuffer.allocate(4).putFloat(2.5f).array(), 2.5f),
+                Case(KafkaFieldType.BASE64, byteArrayOf(1, 2, 3), byteArrayOf(1, 2, 3)),
+            )
+
+            for (case in cases) {
+                startWithConfigs(valueType = case.type)
+                val result = client.extractValue(case.bytes, "t", mockFetcher, RecordHeaders(), isKey = false)
+                if (case.expected is ByteArray) {
+                    assertArrayEquals(case.expected, result as ByteArray, "Failed for ${case.type}")
+                } else {
+                    assertEquals(case.expected, result, "Failed for ${case.type}")
+                }
+            }
+        }
+
+        @Test
+        fun `should throw for NULL type with non-null bytes`() {
+            startWithConfigs(valueType = KafkaFieldType.NULL)
+            assertThrows(IllegalArgumentException::class.java) {
+                runBlocking {
+                    client.extractValue(byteArrayOf(1, 2), "t", mockFetcher, RecordHeaders(), isKey = false)
+                }
+            }
+        }
+
+        @Test
+        fun `should throw for unsupported schema field types`() {
+            for (type in listOf(KafkaFieldType.PROTOBUF_CUSTOM, KafkaFieldType.AVRO_CUSTOM)) {
+                startWithConfigs(valueType = type)
+                assertThrows(IllegalArgumentException::class.java) {
+                    runBlocking {
+                        client.extractValue("data".toByteArray(), "t", mockFetcher, RecordHeaders(), isKey = false)
+                    }
+                }
+            }
+        }
+    }
+
+    @Nested
+    @DisplayName("createDeserializerOrNull")
+    inner class CreateDeserializerOrNull {
+
+        @Test
+        fun `should return null for schema types`() {
+            for (type in listOf(KafkaFieldType.SCHEMA_REGISTRY, KafkaFieldType.PROTOBUF_CUSTOM, KafkaFieldType.AVRO_CUSTOM)) {
+                assertNull(client.createDeserializerOrNull(type), "Expected null for $type")
+            }
+        }
+
+        @Test
+        fun `should return a deserializer for primitive types`() {
+            for (type in listOf(KafkaFieldType.STRING, KafkaFieldType.LONG, KafkaFieldType.INTEGER,
+                KafkaFieldType.DOUBLE, KafkaFieldType.FLOAT, KafkaFieldType.BASE64, KafkaFieldType.JSON, KafkaFieldType.NULL)) {
+                assertNotNull(client.createDeserializerOrNull(type), "Expected non-null for $type")
+            }
         }
     }
 
@@ -629,156 +681,6 @@ class CCloudConsumerClientTest {
         @Test
         fun `should return null when __raw__ value is JsonNull`() {
             assertNull(client.decodeRawBytes(JsonObject(mapOf("__raw__" to JsonNull))))
-        }
-    }
-
-    @Nested
-    @DisplayName("convertBytesToType")
-    inner class ConvertBytesToType {
-
-        @Test
-        fun `should return UTF-8 string for STRING type`() {
-            val result = client.convertBytesToType("hello".toByteArray(), "test-topic", KafkaFieldType.STRING)
-            assertEquals("hello", result)
-        }
-
-        @Test
-        fun `should read 8-byte big-endian LONG`() {
-            val bytes = ByteBuffer.allocate(8).putLong(123456789L).array()
-            val result = client.convertBytesToType(bytes, "test-topic", KafkaFieldType.LONG)
-            assertEquals(123456789L, result)
-        }
-
-        @Test
-        fun `should throw SerializationException for non-8-byte LONG`() {
-            val bytes = "42".toByteArray()
-            assertThrows(SerializationException::class.java) {
-                client.convertBytesToType(bytes, "test-topic", KafkaFieldType.LONG)
-            }
-        }
-
-        @Test
-        fun `should read 4-byte big-endian INTEGER`() {
-            val bytes = ByteBuffer.allocate(4).putInt(42).array()
-            val result = client.convertBytesToType(bytes, "test-topic", KafkaFieldType.INTEGER)
-            assertEquals(42, result)
-        }
-
-        @Test
-        fun `should read 8-byte DOUBLE`() {
-            val bytes = ByteBuffer.allocate(8).putDouble(3.14).array()
-            val result = client.convertBytesToType(bytes, "test-topic", KafkaFieldType.DOUBLE)
-            assertEquals(3.14, result)
-        }
-
-        @Test
-        fun `should read 4-byte FLOAT`() {
-            val bytes = ByteBuffer.allocate(4).putFloat(2.5f).array()
-            val result = client.convertBytesToType(bytes, "test-topic", KafkaFieldType.FLOAT)
-            assertEquals(2.5f, result)
-        }
-
-        @Test
-        fun `should return raw bytes for BASE64`() {
-            val bytes = byteArrayOf(1, 2, 3)
-            val result = client.convertBytesToType(bytes, "test-topic", KafkaFieldType.BASE64)
-            assertArrayEquals(bytes, result as ByteArray)
-        }
-
-        @Test
-        fun `should return null for NULL type with null data`() {
-            val deserializer = VoidDeserializer()
-            val result = deserializer.deserialize("test-topic", null)
-            assertNull(result)
-        }
-
-        @Test
-        fun `should throw for NULL type with non-null data`() {
-            val bytes = byteArrayOf(1, 2)
-            assertThrows(IllegalArgumentException::class.java) {
-                client.convertBytesToType(bytes, "test-topic", KafkaFieldType.NULL)
-            }
-        }
-    }
-
-    @Nested
-    @DisplayName("Deserializer factory")
-    inner class DeserializerFactory {
-
-        @Test
-        fun `createDeserializerOrNull should return null for SCHEMA_REGISTRY`() {
-            assertNull(client.createDeserializerOrNull(KafkaFieldType.SCHEMA_REGISTRY))
-        }
-
-        @Test
-        fun `createDeserializerOrNull should return null for PROTOBUF_CUSTOM`() {
-            assertNull(client.createDeserializerOrNull(KafkaFieldType.PROTOBUF_CUSTOM))
-        }
-
-        @Test
-        fun `createDeserializerOrNull should return null for AVRO_CUSTOM`() {
-            assertNull(client.createDeserializerOrNull(KafkaFieldType.AVRO_CUSTOM))
-        }
-
-        @Test
-        fun `createDeserializerOrNull should return StringDeserializer for STRING`() {
-            assertTrue(client.createDeserializerOrNull(KafkaFieldType.STRING) is StringDeserializer)
-        }
-
-        @Test
-        fun `createDeserializerOrNull should return LongDeserializer for LONG`() {
-            assertTrue(client.createDeserializerOrNull(KafkaFieldType.LONG) is LongDeserializer)
-        }
-
-        @Test
-        fun `createDeserializer should return StringDeserializer for JSON`() {
-            assertTrue(client.createDeserializer(KafkaFieldType.JSON) is StringDeserializer)
-        }
-
-        @Test
-        fun `createDeserializer should return IntegerDeserializer for INTEGER`() {
-            assertTrue(client.createDeserializer(KafkaFieldType.INTEGER) is IntegerDeserializer)
-        }
-
-        @Test
-        fun `createDeserializer should return DoubleDeserializer for DOUBLE`() {
-            assertTrue(client.createDeserializer(KafkaFieldType.DOUBLE) is DoubleDeserializer)
-        }
-
-        @Test
-        fun `createDeserializer should return FloatDeserializer for FLOAT`() {
-            assertTrue(client.createDeserializer(KafkaFieldType.FLOAT) is FloatDeserializer)
-        }
-
-        @Test
-        fun `createDeserializer should return ByteArrayDeserializer for BASE64`() {
-            assertTrue(client.createDeserializer(KafkaFieldType.BASE64) is ByteArrayDeserializer)
-        }
-
-        @Test
-        fun `createDeserializer should return VoidDeserializer for NULL`() {
-            assertTrue(client.createDeserializer(KafkaFieldType.NULL) is VoidDeserializer)
-        }
-
-        @Test
-        fun `createDeserializer should throw for SCHEMA_REGISTRY`() {
-            assertThrows(IllegalArgumentException::class.java) {
-                client.createDeserializer(KafkaFieldType.SCHEMA_REGISTRY)
-            }
-        }
-
-        @Test
-        fun `createDeserializer should throw for PROTOBUF_CUSTOM`() {
-            assertThrows(IllegalArgumentException::class.java) {
-                client.createDeserializer(KafkaFieldType.PROTOBUF_CUSTOM)
-            }
-        }
-
-        @Test
-        fun `createDeserializer should throw for AVRO_CUSTOM`() {
-            assertThrows(IllegalArgumentException::class.java) {
-                client.createDeserializer(KafkaFieldType.AVRO_CUSTOM)
-            }
         }
     }
 
