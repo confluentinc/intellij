@@ -34,6 +34,7 @@ import io.confluent.intellijplugin.core.util.executeOnPooledThread
 import io.confluent.intellijplugin.core.util.invokeLater
 import io.confluent.intellijplugin.core.util.withPluginClassLoader
 import io.confluent.intellijplugin.data.BaseClusterDataManager
+import io.confluent.intellijplugin.data.CCloudClusterDataManager
 import io.confluent.intellijplugin.telemetry.MessageViewerEvent
 import io.confluent.intellijplugin.telemetry.logUsage
 import org.apache.kafka.clients.consumer.ConsumerConfig
@@ -146,7 +147,7 @@ class KafkaConsumerPanel(
     private val value = KafkaConsumerFieldComponent(project, this, isKey = false).also { Disposer.register(this, it) }
 
     private val kafkaConsumerSettingsDelegate = lazy {
-        val supportedProperties = if (kafkaManager.presetConnectionTag() == "ccloud") {
+        val supportedProperties = if (kafkaManager is CCloudClusterDataManager) {
             KafkaConsumerSettings.CCLOUD_PROPERTIES
         } else {
             KafkaConsumerSettings.ALL_PROPERTIES
