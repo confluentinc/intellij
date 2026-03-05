@@ -1,4 +1,4 @@
-# Welcome! :blue-heart:
+# Welcome! 💙
 
 We’re glad you’re here, and that you’re thinking about contributing to our repo. As the maintainers, we understand 
 that AI-enabled workflows are ubiquitous now, and we don't forbid the use of AI. In fact, we’d like to help you use 
