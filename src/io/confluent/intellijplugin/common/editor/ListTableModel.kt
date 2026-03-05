@@ -84,6 +84,7 @@ class ListTableModel<T>(
      * addElement() multiple times as it fires only one table event instead of one per element.
      */
     fun addBatch(elements: List<T>) {
+        if (elements.isEmpty()) return
         synchronized(pendingAdds) {
             pendingAdds.addAll(elements)
         }
