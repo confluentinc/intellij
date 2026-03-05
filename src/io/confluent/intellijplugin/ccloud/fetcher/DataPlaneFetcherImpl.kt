@@ -92,6 +92,29 @@ class DataPlaneFetcherImpl(
         return json.decodeFromString<ConsumeRecordsResponse>(responseBody)
     }
 
+    override suspend fun consumePartitionRecords(
+        topicName: String,
+        partitionId: Int,
+        timestamp: Long?,
+        offset: Long?,
+        maxPollRecords: Int?
+    ): PartitionConsumeData {
+        val basePath = String.format(
+            CloudConfig.DataPlane.Kafka.CCLOUD_SINGLE_PARTITION_CONSUME_API_PATH,
+            clusterId, topicName, partitionId
+        )
+        val params = buildList {
+            add("return_raw_base64_records=true")
+            timestamp?.let { add("timestamp=$it") }
+            offset?.let { add("offset=$it") }
+            maxPollRecords?.let { add("max_poll_records=$it") }
+        }
+        val path = "$basePath?${params.joinToString("&")}"
+        return kafkaClient.fetch(path) { body ->
+            json.decodeFromString<SinglePartitionConsumeResponse>(body).partitionData
+        }
+    }
+
     override suspend fun getAllSubjects(): List<String> {
         requireSchemaRegistry()
         val path = CloudConfig.DataPlane.SchemaRegistry.SUBJECTS_URI
@@ -163,6 +186,9 @@ class DataPlaneFetcherImpl(
             response.totalRecords
         }
     }
+
+    override suspend fun getPartitionOffset(topicName: String, partitionId: Int, fromBeginning: Boolean): Long =
+        getPartitionOffsets(topicName, partitionId, fromBeginning).nextOffset
 
     override suspend fun getTopicBeginningOffsets(topicName: String): Map<Int, Long> =
         fetchOffsetsForAllPartitions(topicName, fromBeginning = true)
