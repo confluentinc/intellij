@@ -20,12 +20,16 @@ import io.confluent.kafka.schemaregistry.avro.AvroSchema
 import io.confluent.kafka.schemaregistry.json.JsonSchema
 import io.confluent.kafka.schemaregistry.protobuf.MessageIndexes
 import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchema
+import io.confluent.intellijplugin.util.KafkaMessagesBundle
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -175,14 +179,12 @@ class CCloudConsumerClient(
             val startTime = System.currentTimeMillis()
 
             try {
-                val request = if (isFirstRequest) {
-                    buildInitialConsumeRequest(config, fetcher, partitionFilter)
+                val response = if (isFirstRequest) {
+                    fetchInitialRecords(config, fetcher, topicName, partitionFilter)
                 } else {
-                    buildSubsequentConsumeRequest()
+                    fetcher.consumeRecords(topicName, buildSubsequentConsumeRequest())
                 }
                 isFirstRequest = false
-
-                val response = fetcher.consumeRecords(topicName, request)
                 val pollTime = System.currentTimeMillis() - startTime
 
                 // Reset error counter on successful request
@@ -348,116 +350,175 @@ class CCloudConsumerClient(
     }
 
     /**
-     * Build the initial consume request based on the start position type.
-     * This method may make additional API calls to resolve partition offsets.
+     * Fetch initial records, choosing the optimal path based on whether partitions are filtered.
      *
-     * When [partitionFilter] is non-null, requests are constrained to only those partitions
-     * by using explicit offsets (the CCloud API only fetches from partitions listed in [offsets]).
+     * With a partition filter:
+     * - Offset-based types resolve offsets only for filtered partitions (via [getPartitionOffset]),
+     *   then use the POST endpoint with those specific offsets.
+     * - Timestamp-based types use the single-partition GET endpoint in parallel, because the
+     *   POST endpoint's `timestamp` parameter applies to ALL partitions.
+     *
+     * Without a partition filter, uses the standard multi-partition POST endpoint directly.
      */
-    private suspend fun buildInitialConsumeRequest(
+    private suspend fun fetchInitialRecords(
         config: StorageConsumerConfig,
         fetcher: DataPlaneFetcher,
+        topicName: String,
         partitionFilter: Set<Int>?
-    ): ConsumeRecordsRequest {
-        val startsWith = config.getStartsWith()
-        val topicName = config.getInnerTopic()
+    ): ConsumeRecordsResponse {
+        if (partitionFilter == null) {
+            return fetcher.consumeRecords(topicName, buildInitialConsumeRequest(config, fetcher))
+        }
 
+        val startsWith = config.getStartsWith()
         return when (startsWith.type) {
             ConsumerStartType.THE_BEGINNING -> {
-                if (partitionFilter != null) {
-                    // Resolve beginning offsets for filtered partitions only
-                    val beginningOffsets = fetcher.getTopicBeginningOffsets(topicName)
-                        .filterKeys { it in partitionFilter }
-                    ConsumeRecordsRequest(
-                        offsets = beginningOffsets.map { (partitionId, offset) ->
-                            PartitionOffset(partitionId, offset)
-                        },
-                        maxPollRecords = resolvedMaxPollRecords,
-                        fetchMaxBytes = resolvedFetchMaxBytes
-                    )
-                } else {
-                    ConsumeRecordsRequest(
-                        fromBeginning = true,
-                        maxPollRecords = resolvedMaxPollRecords,
-                        fetchMaxBytes = resolvedFetchMaxBytes
-                    )
-                }
+                val offsets = resolveOffsetsForPartitions(fetcher, topicName, partitionFilter, fromBeginning = true)
+                fetcher.consumeRecords(topicName, consumeRequest(
+                    offsets = offsets.map { (pid, off) -> PartitionOffset(pid, off) }
+                ))
             }
 
             ConsumerStartType.NOW -> {
-                if (partitionFilter != null) {
-                    // Resolve end offsets for filtered partitions only
-                    val endOffsets = fetcher.getTopicEndOffsets(topicName)
-                        .filterKeys { it in partitionFilter }
-                    ConsumeRecordsRequest(
-                        offsets = endOffsets.map { (partitionId, offset) ->
-                            PartitionOffset(partitionId, offset)
-                        },
-                        maxPollRecords = resolvedMaxPollRecords,
-                        fetchMaxBytes = resolvedFetchMaxBytes
-                    )
-                } else {
-                    ConsumeRecordsRequest(
-                        fromBeginning = false,
-                        maxPollRecords = resolvedMaxPollRecords,
-                        fetchMaxBytes = resolvedFetchMaxBytes
-                    )
-                }
+                val offsets = resolveOffsetsForPartitions(fetcher, topicName, partitionFilter, fromBeginning = false)
+                fetcher.consumeRecords(topicName, consumeRequest(
+                    offsets = offsets.map { (pid, off) -> PartitionOffset(pid, off) }
+                ))
             }
 
             ConsumerStartType.OFFSET -> {
-                // Offset is relative to beginning offset (user enters 10 -> start from beginningOffset + 10)
-                val offset = startsWith.offset ?: 0L
-                val beginningOffsets = fetcher.getTopicBeginningOffsets(topicName)
-                    .filterByPartitions(partitionFilter)
-                ConsumeRecordsRequest(
-                    offsets = beginningOffsets.map { (partitionId, beginningOffset) ->
-                        PartitionOffset(partitionId, beginningOffset + offset)
-                    },
-                    maxPollRecords = resolvedMaxPollRecords,
-                    fetchMaxBytes = resolvedFetchMaxBytes
-                )
+                val userOffset = startsWith.offset ?: 0L
+                val offsets = resolveOffsetsForPartitions(fetcher, topicName, partitionFilter, fromBeginning = true)
+                fetcher.consumeRecords(topicName, consumeRequest(
+                    offsets = offsets.map { (pid, off) -> PartitionOffset(pid, off + userOffset) }
+                ))
             }
 
             ConsumerStartType.LATEST_OFFSET_MINUS_X -> {
-                // Offset is already negative from ConsumerEditorUtils (user enters 10 -> offset = -10)
-                // So endOffset + offset = endOffset + (-10) = endOffset - 10
-                val offset = startsWith.offset ?: 0L
-                val endOffsets = fetcher.getTopicEndOffsets(topicName)
-                    .filterByPartitions(partitionFilter)
-                ConsumeRecordsRequest(
-                    offsets = endOffsets.map { (partitionId, endOffset) ->
-                        PartitionOffset(partitionId, max(0, endOffset + offset))
-                    },
-                    maxPollRecords = resolvedMaxPollRecords,
-                    fetchMaxBytes = resolvedFetchMaxBytes
-                )
+                val userOffset = startsWith.offset ?: 0L
+                val offsets = resolveOffsetsForPartitions(fetcher, topicName, partitionFilter, fromBeginning = false)
+                fetcher.consumeRecords(topicName, consumeRequest(
+                    offsets = offsets.map { (pid, off) -> PartitionOffset(pid, max(0, off + userOffset)) }
+                ))
             }
 
             ConsumerStartType.SPECIFIC_DATE,
             ConsumerStartType.LAST_HOUR,
             ConsumerStartType.TODAY,
             ConsumerStartType.YESTERDAY -> {
-                // Use KafkaOffsetUtils to calculate timestamp for LAST_HOUR, TODAY, YESTERDAY
-                // For SPECIFIC_DATE, it returns startsWith.time directly
+                // Must use single-partition GET: POST timestamp applies to ALL partitions
                 val timestamp = KafkaOffsetUtils.calculateStartTime(startsWith)
-                // Note: timestamp-based requests go to all partitions; partition filtering
-                // is applied on the response in pollLoop
-                ConsumeRecordsRequest(
-                    timestamp = timestamp,
-                    maxPollRecords = resolvedMaxPollRecords,
-                    fetchMaxBytes = resolvedFetchMaxBytes
-                )
+                    ?: error("Failed to calculate start time for ${startsWith.type}")
+                fetchPartitionsByTimestamp(fetcher, topicName, partitionFilter, timestamp)
             }
 
-            ConsumerStartType.CONSUMER_GROUP -> {
+            ConsumerStartType.CONSUMER_GROUP ->
                 error("Consumer group start type is not yet supported for CCloud connections")
-            }
         }
     }
 
-    private fun Map<Int, Long>.filterByPartitions(partitionFilter: Set<Int>?): Map<Int, Long> =
-        if (partitionFilter != null) filterKeys { it in partitionFilter } else this
+    /**
+     * Build the initial consume request for the multi-partition POST endpoint (unfiltered only).
+     */
+    private suspend fun buildInitialConsumeRequest(
+        config: StorageConsumerConfig,
+        fetcher: DataPlaneFetcher
+    ): ConsumeRecordsRequest {
+        val startsWith = config.getStartsWith()
+        val topicName = config.getInnerTopic()
+
+        return when (startsWith.type) {
+            ConsumerStartType.THE_BEGINNING -> consumeRequest(fromBeginning = true)
+            ConsumerStartType.NOW -> consumeRequest(fromBeginning = false)
+
+            ConsumerStartType.OFFSET -> {
+                val offset = startsWith.offset ?: 0L
+                val beginningOffsets = fetcher.getTopicBeginningOffsets(topicName)
+                consumeRequest(
+                    offsets = beginningOffsets.map { (pid, off) -> PartitionOffset(pid, off + offset) }
+                )
+            }
+
+            ConsumerStartType.LATEST_OFFSET_MINUS_X -> {
+                val offset = startsWith.offset ?: 0L
+                val endOffsets = fetcher.getTopicEndOffsets(topicName)
+                consumeRequest(
+                    offsets = endOffsets.map { (pid, off) -> PartitionOffset(pid, max(0, off + offset)) }
+                )
+            }
+
+            ConsumerStartType.SPECIFIC_DATE,
+            ConsumerStartType.LAST_HOUR,
+            ConsumerStartType.TODAY,
+            ConsumerStartType.YESTERDAY -> consumeRequest(
+                timestamp = KafkaOffsetUtils.calculateStartTime(startsWith)
+            )
+
+            ConsumerStartType.CONSUMER_GROUP ->
+                error("Consumer group start type is not yet supported for CCloud connections")
+        }
+    }
+
+    /**
+     * Helper to create a [ConsumeRecordsRequest] with resolved advanced settings.
+     */
+    private fun consumeRequest(
+        offsets: List<PartitionOffset>? = null,
+        fromBeginning: Boolean? = null,
+        timestamp: Long? = null
+    ) = ConsumeRecordsRequest(
+        offsets = offsets,
+        fromBeginning = fromBeginning,
+        timestamp = timestamp,
+        maxPollRecords = resolvedMaxPollRecords,
+        fetchMaxBytes = resolvedFetchMaxBytes
+    )
+
+    /**
+     * Resolve offsets for only the specified partitions in parallel.
+     * Uses [DataPlaneFetcher.getPartitionOffset] per partition instead of
+     * [DataPlaneFetcher.getTopicBeginningOffsets]/[DataPlaneFetcher.getTopicEndOffsets]
+     * which fetch offsets for ALL partitions.
+     */
+    private suspend fun resolveOffsetsForPartitions(
+        fetcher: DataPlaneFetcher,
+        topicName: String,
+        partitions: Set<Int>,
+        fromBeginning: Boolean
+    ): Map<Int, Long> = coroutineScope {
+        partitions.map { partitionId ->
+            async { partitionId to fetcher.getPartitionOffset(topicName, partitionId, fromBeginning) }
+        }.awaitAll().toMap()
+    }
+
+    /**
+     * Fetch records from specific partitions by timestamp using parallel single-partition GET calls.
+     * The POST endpoint's `timestamp` parameter applies to ALL partitions, so we must use
+     * individual GET calls to target only the filtered partitions.
+     */
+    private suspend fun fetchPartitionsByTimestamp(
+        fetcher: DataPlaneFetcher,
+        topicName: String,
+        partitions: Set<Int>,
+        timestamp: Long
+    ): ConsumeRecordsResponse = coroutineScope {
+        val partitionDataList = partitions.map { partitionId ->
+            async {
+                fetcher.consumePartitionRecords(
+                    topicName = topicName,
+                    partitionId = partitionId,
+                    timestamp = timestamp,
+                    maxPollRecords = resolvedMaxPollRecords
+                )
+            }
+        }.awaitAll()
+
+        ConsumeRecordsResponse(
+            clusterId = "",
+            topicName = topicName,
+            partitionDataList = partitionDataList
+        )
+    }
 
     /**
      * Build a subsequent consume request using tracked offsets.
@@ -737,7 +798,7 @@ class CCloudConsumerClient(
             )
         // Read remaining bytes after message indexes
         val remaining = ByteArray(buffer.remaining())
-        buffer.get(remaining)
+        buffer[remaining]
         return DynamicMessage.parseFrom(descriptor, remaining)
     }
 
