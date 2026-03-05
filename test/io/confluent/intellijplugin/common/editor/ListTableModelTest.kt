@@ -202,6 +202,51 @@ class ListTableModelTest {
     }
 
     @Nested
+    inner class ReplaceAllOperation {
+
+        @Test
+        fun `replaceAll should make data available immediately without EDT flush`() {
+            // When
+            model.replaceAll(listOf("a", "b", "c"))
+
+            // Then - data is available synchronously, no invokeAndWait needed
+            assertEquals(3, model.rowCount)
+            assertEquals("a", model.getValueAt(0))
+            assertEquals("b", model.getValueAt(1))
+            assertEquals("c", model.getValueAt(2))
+            assertEquals(listOf("a", "b", "c"), model.elements())
+        }
+
+        @Test
+        fun `replaceAll should discard unflushed pending adds`() {
+            // Given - add batch but don't flush yet
+            model.addBatch(listOf("pending1", "pending2"))
+
+            // When - replaceAll before EDT flush
+            model.replaceAll(listOf("replaced"))
+            ApplicationManager.getApplication().invokeAndWait { }
+
+            // Then - only the replaced data should exist
+            assertEquals(1, model.rowCount)
+            assertEquals("replaced", model.getValueAt(0))
+        }
+
+        @Test
+        fun `replaceAll should clear existing data before adding new elements`() {
+            // Given
+            model.addBatch(listOf("old1", "old2"))
+            ApplicationManager.getApplication().invokeAndWait { }
+
+            // When
+            model.replaceAll(listOf("new1"))
+
+            // Then
+            assertEquals(1, model.rowCount)
+            assertEquals("new1", model.getValueAt(0))
+        }
+    }
+
+    @Nested
     inner class ClearOperation {
 
         @Test
