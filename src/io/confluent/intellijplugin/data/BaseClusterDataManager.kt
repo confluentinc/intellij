@@ -168,8 +168,6 @@ abstract class BaseClusterDataManager(
     // Consumer panel feature capabilities
 
     abstract fun supportsConsumerGroups(): Boolean
-    abstract fun supportsPresets(): Boolean
-    abstract fun supportsDetailsPanel(): Boolean
 
     // Flag for filtering saved presets depending on CCloud ("ccloud") vs Native (null) connection type
     open fun presetConnectionTag(): String? = null

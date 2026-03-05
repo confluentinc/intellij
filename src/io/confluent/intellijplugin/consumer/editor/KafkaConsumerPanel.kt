@@ -299,8 +299,10 @@ class KafkaConsumerPanel(
 
     private val settingsPanel: JPanel by settingsPanelDelegate
 
+    private val scopedConsumerConfig = KafkaConfigStorage.getInstance().consumerConfigFor(kafkaManager.presetConnectionTag())
+
     private val presetsDelegate = lazy {
-        val presets = ConsumerPresets()
+        val presets = ConsumerPresets(scopedConsumerConfig)
         Disposer.register(this, presets)
         presets.onApply = { applyConfig(it) }
         presets.component.apply {

@@ -886,7 +886,6 @@ class CCloudClusterDataManager(
     override fun supportsInSyncReplicasData(): Boolean = false
 
     override fun supportsConsumerGroups(): Boolean = false
-    override fun supportsAdvancedSettings(): Boolean = false
     override fun presetConnectionTag() = "ccloud"
     fun getDataPlaneCache(): DataPlaneCache = dataPlaneCache
 
