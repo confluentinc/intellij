@@ -99,43 +99,6 @@ To build the plugin for deployment:
 This creates a ZIP file in `build/distributions` that can be installed in IntelliJ IDEA
 `Settings -> Plugins -> Install Plugin from Disk`.
 
-### Publishing to JetBrains Marketplace
-
-There are two ways to publish new versions of the plugin to
-the [Marketplace](https://plugins.jetbrains.com/docs/intellij/publishing-plugin.html):
-
-- Manual upload via the plugin’s detail page on the Marketplace
-- Automatic upload using Gradle tasks
-
-To publish using Gradle:
-
-1. [Configure](https://plugins.jetbrains.com/docs/intellij/publishing-plugin.html#providing-your-personal-access-token-to-gradle)
-   your
-   `Personal Access Token` via Gradle
-2. Run the publishPlugin task:
-   ```bash
-   ./gradlew publishPlugin
-   ```
-
-### Application Secrets Setup
-
-The plugin requires various secrets for telemetry and error reporting (Sentry, Segment, etc.).
-
-**Using Vault:**
-```bash
-vault_login                 # Authenticate once
-. scripts/get-secrets.sh    # Get secrets
-./gradlew build
-```
-
-**Store secrets:**
-```bash
-vault_login
-vault kv put v1/ci/kv/intellij/telemetry \
-  sentry_auth_token="your-token" \
-  sentry_dsn="https://your-dsn"
-```
-
 #### Additional Helpful Gradle Tasks
 
 To explore other useful tasks, run:
