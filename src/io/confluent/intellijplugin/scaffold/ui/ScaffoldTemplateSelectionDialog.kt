@@ -73,10 +73,6 @@ class ScaffoldTemplateSelectionDialog(
         }
     }
 
-    override fun getPreferredFocusedComponent(): JComponent? = templateComboBox
-
-    override fun getDimensionServiceKey(): String = "kafka.scaffold.template.selection.dialog"
-
     private fun updateDetails(template: ScaffoldV1TemplateListDataInner) {
         val spec = template.spec
         descriptionArea.text = spec.description ?: ""
