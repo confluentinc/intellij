@@ -164,9 +164,14 @@ abstract class MonitoringToolWindowController(protected val project: Project) : 
         })
     }
 
-    private fun setupActions(connectionId: String?) {
-        val dataManager = if (connectionId == null) null
-        else (DriverManager.getDriverById(project, connectionId) as? MonitoringDriver)?.dataManager
+    // Allow subclasses to provide custom driver lookup (e.g., CCloud driver not in DriverManager)
+    protected open fun getDriverForToolbar(connectionId: String?): MonitoringDriver? {
+        return if (connectionId == null) null
+        else DriverManager.getDriverById(project, connectionId) as? MonitoringDriver
+    }
+
+    protected fun setupActions(connectionId: String?) {
+        val dataManager = getDriverForToolbar(connectionId)?.dataManager
         val progressComponent = dataManager?.progressComponent?.component
 
 

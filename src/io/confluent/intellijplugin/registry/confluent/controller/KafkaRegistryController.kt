@@ -20,21 +20,22 @@ import io.confluent.intellijplugin.core.table.renderers.FavoriteRenderer
 import io.confluent.intellijplugin.core.table.renderers.LinkRenderer
 import io.confluent.intellijplugin.core.ui.CustomComponentActionImpl
 import io.confluent.intellijplugin.core.ui.filter.CountFilterPopupComponent
+import io.confluent.intellijplugin.data.BaseClusterDataManager
 import io.confluent.intellijplugin.data.KafkaDataManager
 import io.confluent.intellijplugin.registry.KafkaRegistryAddSchemaDialog
 import io.confluent.intellijplugin.registry.KafkaRegistryType
 import io.confluent.intellijplugin.registry.common.KafkaSchemaInfo
 import io.confluent.intellijplugin.rfs.KafkaDriver
 import io.confluent.intellijplugin.toolwindow.config.KafkaToolWindowSettings
-import io.confluent.intellijplugin.toolwindow.controllers.KafkaMainController
+import io.confluent.intellijplugin.toolwindow.NavigableController
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
 import javax.swing.ListSelectionModel
 import javax.swing.event.DocumentEvent
 
 internal class KafkaRegistryController(
     val project: Project,
-    val dataManager: KafkaDataManager,
-    private val mainController: KafkaMainController
+    val dataManager: BaseClusterDataManager,
+    private val mainController: NavigableController
 ) : AbstractTableController<KafkaSchemaInfo>() {
     val registryType = dataManager.registryType
     private val model: ObjectDataModel<KafkaSchemaInfo> = dataManager.schemaRegistryModel!!
@@ -73,17 +74,26 @@ internal class KafkaRegistryController(
             sink[MainTreeController.RFS_PATH] =
                 getSelectedItem()?.name?.let { KafkaDriver.schemasPath.child(it, false) }
         }
+
+        updateEmptyText()
     }
 
-    override fun emptyTextProvider() = CustomEmptyTextProvider { emptyText: StatusText ->
+    private fun updateEmptyText() {
         val toolWindowSettings = KafkaToolWindowSettings.getInstance()
         val clusterConfig = toolWindowSettings.getOrCreateConfig(dataManager.connectionId)
+
+        if (dataTable.parent is javax.swing.JViewport) {
+            dataTable.emptyText.attachTo(dataTable, dataTable)
+        }
+
+        dataTable.emptyText.clear()
+
         if (!clusterConfig.schemaFilterName.isNullOrBlank() || toolWindowSettings.showFavoriteSchema) {
-            emptyText.appendText(
+            dataTable.emptyText.appendText(
                 KafkaMessagesBundle.message("schemas.empty.text.filter"),
                 StatusText.DEFAULT_ATTRIBUTES
             )
-            emptyText.appendSecondaryText(
+            dataTable.emptyText.appendSecondaryText(
                 KafkaMessagesBundle.message("topics.empty.text.filter.additional"),
                 SimpleTextAttributes.LINK_PLAIN_ATTRIBUTES
             ) {
@@ -93,15 +103,20 @@ internal class KafkaRegistryController(
                 dataManager.schemaRegistryModel?.let { dataModel -> dataManager.updater.invokeRefreshModel(dataModel) }
             }
         } else {
-            emptyText.appendText(KafkaMessagesBundle.message("schemas.empty.text"), StatusText.DEFAULT_ATTRIBUTES)
-            emptyText.appendLine(
+            dataTable.emptyText.appendText(KafkaMessagesBundle.message("schemas.empty.text"))
+            dataTable.emptyText.appendLine(
                 KafkaMessagesBundle.message("schemas.empty.text.create.link"),
-                SimpleTextAttributes.LINK_PLAIN_ATTRIBUTES
+                SimpleTextAttributes.LINK_ATTRIBUTES
             ) {
                 KafkaRegistryAddSchemaDialog(project, dataManager).show()
             }
         }
-        emptyText.isShowAboveCenter = false
+
+        dataTable.emptyText.isShowAboveCenter = true
+    }
+
+    override fun emptyTextProvider() = CustomEmptyTextProvider {
+        updateEmptyText()
     }
 
     override fun customTableInit(table: DataTable<KafkaSchemaInfo>) {
@@ -116,7 +131,8 @@ internal class KafkaRegistryController(
             onClick = { row, _ ->
                 val schema = table.getDataAt(row)?.name
                 schema?.let {
-                    mainController.open(KafkaDriver.schemasPath.child(it, false))
+                    // Use dataManager to get proper schema path (Kafka vs CCloud)
+                    mainController.open(dataManager.getSchemaPath(it))
                 }
             }
         }
@@ -141,6 +157,12 @@ internal class KafkaRegistryController(
             CustomComponentActionImpl(countFilter),
             showFavoriteSchemasAction
         )
+    }
+
+    override fun createTopRightToolbarActions(): List<AnAction> {
+        val actionManager = ActionManager.getInstance()
+        val group = actionManager.getAction("Kafka.Schema.Actions") as DefaultActionGroup
+        return group.getChildren(actionManager).toList()
     }
 
     override fun getAdditionalContextActions(): List<AnAction> {
