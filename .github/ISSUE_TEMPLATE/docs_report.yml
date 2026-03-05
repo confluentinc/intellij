@@ -27,7 +27,6 @@ body:
   - type: markdown
     attributes:
       value: |
-        Apache Kafka® is a registered trademark of the [Apache Software Foundation](https://www.apache.org/). Confluent® is a registered trademark of Confluent, Inc.
   - type: input
     attributes:
       label: Does the docs page already exist? Please link to it.
