@@ -450,8 +450,9 @@ class CCloudConsumerClientTest {
             val headers = RecordHeaders()
 
             // Pre-populate cache with a mock ParsedSchema that isn't Avro/Protobuf/Json
-            // Cache key is prefixed with SR cluster ID
-            client.schemaCache["$TEST_SR_CLUSTER_ID:$schemaId"] = mock<ParsedSchema> {
+            val registryId = SchemaRegistryClusterId(TEST_SR_CLUSTER_ID)
+            client.schemaCache
+                .getOrPut(registryId) { java.util.concurrent.ConcurrentHashMap() }[SchemaCacheKey.ById(schemaId)] = mock<ParsedSchema> {
                 on { schemaType() } doReturn "UNKNOWN"
             }
 
