@@ -11,5 +11,17 @@ enum class KafkaRegistryFormat(@Nls val presentable: String) {
 
     companion object {
         fun parse(s: String?) = entries.firstOrNull { it.name.lowercase() == s?.lowercase() } ?: UNKNOWN
+
+        /**
+         * Map Schema Registry schema type string to format enum.
+         * Per SR convention, null schemaType defaults to AVRO.
+         * Unrecognized types return UNKNOWN.
+         */
+        fun fromSchemaType(type: String?): KafkaRegistryFormat = when (type?.uppercase()) {
+            null, "AVRO" -> AVRO  // null defaults to AVRO per SR convention
+            "PROTOBUF" -> PROTOBUF
+            "JSON" -> JSON
+            else -> UNKNOWN
+        }
     }
 }

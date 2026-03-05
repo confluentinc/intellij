@@ -84,6 +84,9 @@ class DataPlaneCache(
     /** Check if Schema Registry is configured. */
     fun hasSchemaRegistry(): Boolean = schemaRegistry != null
 
+    /** Get Schema Registry cluster ID (null if unavailable). */
+    fun getSchemaRegistryId(): String? = schemaRegistry?.id
+
     fun getSchemas(): List<SchemaData> = cachedSchemas ?: emptyList()
 
     /** Fetch schemas from API, update cache. Fast initial load (names only). */

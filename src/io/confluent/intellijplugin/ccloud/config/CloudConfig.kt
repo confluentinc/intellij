@@ -62,7 +62,7 @@ object CloudConfig {
 
             /** Consume records with guaranteed progress per partition. */
             const val CCLOUD_SIMPLE_CONSUME_API_PATH =
-                "/kafka/v3/clusters/%s/internal/topics/%s/partitions/-/records:consume_guarantee_progress"
+                "/kafka/v3/clusters/%s/internal/topics/%s/partitions/-/records:consume_guarantee_progress?return_raw_base64_records=true"
         }
 
         /**
@@ -81,6 +81,9 @@ object CloudConfig {
 
             /** Get schema by ID: GET /schemas/ids/{id} */
             const val SCHEMA_BY_ID_URI = "/schemas/ids/%s"
+
+            /** Get schema by GUID: GET /schemas/guids/{guid} */
+            const val SCHEMA_BY_GUID_URI = "/schemas/guids/%s"
 
             // Write operations
             /** Register schema: POST /subjects/{subject}/versions */
