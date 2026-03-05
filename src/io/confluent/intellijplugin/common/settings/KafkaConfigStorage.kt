@@ -14,22 +14,25 @@ interface ConfigChangeListener<T> {
 class KafkaRunConfig(
     val configsGetter: () -> List<StorageConfig>,
     val configsSetter: (List<StorageConfig>) -> Unit,
-    private val changeListeners: MutableList<ConfigChangeListener<StorageConfig>>
+    private val changeListeners: MutableList<ConfigChangeListener<StorageConfig>>,
+    private val filter: (StorageConfig) -> Boolean = { true }
 ) {
 
     fun hasConfig(config: StorageConfig) = loadConfigs().contains(config)
 
-    fun loadConfigs() = configsGetter()
+    fun loadConfigs() = configsGetter().filter(filter)
+
+    fun shouldShow(config: StorageConfig) = filter(config)
 
     private fun saveConfigs(list: List<StorageConfig>) = configsSetter(list)
 
     fun addConfig(config: StorageConfig) {
-        saveConfigs(loadConfigs() + config)
+        saveConfigs(configsGetter() + config)
         changeListeners.forEach { it.configAdded(config) }
     }
 
     fun removeConfig(config: StorageConfig) {
-        saveConfigs(loadConfigs().filter { it != config })
+        saveConfigs(configsGetter().filter { it != config })
         changeListeners.forEach { it.configRemoved(config) }
     }
 
@@ -52,6 +55,13 @@ class KafkaConfigStorage : PersistentStateComponent<KafkaConfigStorage> {
     val consumerConfig = KafkaRunConfig(
         { consumerRunConfigs },
         { consumerRunConfigs = it as List<StorageConsumerConfig> }, consumerChangeListeners
+    )
+
+    fun consumerConfigFor(connectionType: String?) = KafkaRunConfig(
+        { consumerRunConfigs },
+        { consumerRunConfigs = it as List<StorageConsumerConfig> },
+        consumerChangeListeners,
+        filter = { (it as? StorageConsumerConfig)?.connectionType == connectionType }
     )
 
     val producerConfig = KafkaRunConfig(
