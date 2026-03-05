@@ -168,10 +168,7 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
     override fun dispose() {}
 
     fun replace(output: List<KafkaRecord>) {
-        outputModel.clear()
-        output.forEach {
-            outputModel.addElement(it)
-        }
+        outputModel.replaceAll(output)
     }
 
     fun stop() {

@@ -66,6 +66,20 @@ class ListTableModel<T>(
     }
 
     /**
+     * Synchronously replace all data. Unlike addBatch(), this does not defer via invokeLater,
+     * so callers can read elements() immediately after this call returns.
+     */
+    fun replaceAll(elements: List<T>) {
+        synchronized(pendingAdds) {
+            pendingAdds.clear()
+        }
+        flushScheduled.set(false)
+        data.clear()
+        data.addAll(elements)
+        fireTableDataChanged()
+    }
+
+    /**
      * Add multiple elements in a single batch. This is much more efficient than calling
      * addElement() multiple times as it fires only one table event instead of one per element.
      */
