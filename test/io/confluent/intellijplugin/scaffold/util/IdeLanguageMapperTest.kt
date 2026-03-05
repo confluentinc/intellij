@@ -103,85 +103,85 @@ class IdeLanguageMapperTest {
         @Test
         fun `preferred language templates sort first`() {
             val templates = listOf(
-                createTemplate(name = "go-template", language = "Go"),
-                createTemplate(name = "java-template", language = "Java"),
-                createTemplate(name = "python-template", language = "Python")
+                createTemplate(name = "go-client", language = "Go"),
+                createTemplate(name = "java-client", language = "Java"),
+                createTemplate(name = "python-client", language = "Python")
             )
 
             val sorted = IdeLanguageMapper.sortByPreferredLanguage(templates, listOf("Java", "Kotlin"))
 
-            assertEquals("java-template", sorted[0].spec.name)
+            assertEquals("java-client", sorted[0].spec.name)
         }
 
         @Test
         fun `preserves original order for non-preferred templates`() {
             val templates = listOf(
-                createTemplate(name = "go-template", language = "Go"),
-                createTemplate(name = "python-template", language = "Python"),
-                createTemplate(name = "java-template", language = "Java")
+                createTemplate(name = "go-client", language = "Go"),
+                createTemplate(name = "python-client", language = "Python"),
+                createTemplate(name = "java-client", language = "Java")
             )
 
             val sorted = IdeLanguageMapper.sortByPreferredLanguage(templates, listOf("Java"))
 
-            assertEquals("java-template", sorted[0].spec.name)
-            assertEquals("go-template", sorted[1].spec.name)
-            assertEquals("python-template", sorted[2].spec.name)
+            assertEquals("java-client", sorted[0].spec.name)
+            assertEquals("go-client", sorted[1].spec.name)
+            assertEquals("python-client", sorted[2].spec.name)
         }
 
         @Test
         fun `case-insensitive matching`() {
             val templates = listOf(
-                createTemplate(name = "go-template", language = "Go"),
-                createTemplate(name = "java-template", language = "java")
+                createTemplate(name = "go-client", language = "Go"),
+                createTemplate(name = "java-sink-connector", language = "java")
             )
 
             val sorted = IdeLanguageMapper.sortByPreferredLanguage(templates, listOf("Java"))
 
-            assertEquals("java-template", sorted[0].spec.name)
+            assertEquals("java-sink-connector", sorted[0].spec.name)
         }
 
         @Test
         fun `handles null language gracefully`() {
             val templates = listOf(
-                createTemplate(name = "null-lang", language = null),
-                createTemplate(name = "java-template", language = "Java")
+                createTemplate(name = "rest-api-client", language = null),
+                createTemplate(name = "java-client", language = "Java")
             )
 
             val sorted = IdeLanguageMapper.sortByPreferredLanguage(templates, listOf("Java"))
 
-            assertEquals("java-template", sorted[0].spec.name)
-            assertEquals("null-lang", sorted[1].spec.name)
+            assertEquals("java-client", sorted[0].spec.name)
+            assertEquals("rest-api-client", sorted[1].spec.name)
         }
 
         @Test
         fun `empty preferred list returns original order`() {
             val templates = listOf(
-                createTemplate(name = "go-template", language = "Go"),
-                createTemplate(name = "java-template", language = "Java")
+                createTemplate(name = "go-client", language = "Go"),
+                createTemplate(name = "java-client", language = "Java")
             )
 
             val sorted = IdeLanguageMapper.sortByPreferredLanguage(templates, emptyList())
 
-            assertEquals("go-template", sorted[0].spec.name)
-            assertEquals("java-template", sorted[1].spec.name)
+            assertEquals("go-client", sorted[0].spec.name)
+            assertEquals("java-client", sorted[1].spec.name)
         }
 
         @Test
         fun `multiple preferred languages all sort first`() {
             val templates = listOf(
-                createTemplate(name = "python-template", language = "Python"),
-                createTemplate(name = "kotlin-template", language = "Kotlin"),
-                createTemplate(name = "go-template", language = "Go"),
-                createTemplate(name = "java-template", language = "Java")
+                createTemplate(name = "python-client", language = "Python"),
+                createTemplate(name = "kafka-streams-simple-example", language = "Kotlin"),
+                createTemplate(name = "go-client", language = "Go"),
+                createTemplate(name = "java-client", language = "Java")
             )
 
             val sorted = IdeLanguageMapper.sortByPreferredLanguage(templates, listOf("Java", "Kotlin"))
 
             val preferredNames = sorted.take(2).map { it.spec.name }.toSet()
-            assertEquals(setOf("kotlin-template", "java-template"), preferredNames)
+            assertEquals(setOf("kafka-streams-simple-example", "java-client"), preferredNames)
 
             val nonPreferredNames = sorted.drop(2).map { it.spec.name }.toSet()
-            assertEquals(setOf("python-template", "go-template"), nonPreferredNames)
+            assertEquals(setOf("python-client", "go-client"), nonPreferredNames)
         }
     }
 }
