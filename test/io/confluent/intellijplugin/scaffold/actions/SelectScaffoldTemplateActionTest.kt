@@ -38,6 +38,7 @@ import org.mockito.kotlin.eq
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
+import java.nio.file.Files
 import java.nio.file.Path
 
 @TestApplication
@@ -488,7 +489,11 @@ class SelectScaffoldTemplateActionTest {
 
             runBlocking { verify(mockClient).applyTemplate(eq("my-template"), eq("intellij"), eq(optionValues)) }
             assertNotNull(openedPath, "Project should be opened")
-            assertEquals(tempDir, openedPath)
+            assertTrue(openedPath!!.startsWith(tempDir), "Project should be under chosen directory")
+            assertTrue(openedPath!!.fileName.toString().startsWith("my-template-"), "Project folder should start with template name and hash")
+            assertTrue(openedPath!!.fileName.toString().length == "my-template-".length + 8, "Project folder should have 8-char hash suffix")
+            // Verify the zip contents were extracted into the project dir
+            assertTrue(Files.exists(openedPath!!.resolve("my-project/test.txt")), "Zip contents should be extracted into project dir")
 
             // Clean up
             tempDir.toFile().deleteRecursively()
@@ -540,7 +545,9 @@ class SelectScaffoldTemplateActionTest {
         private fun createTestZipBytes(): ByteArray {
             val baos = java.io.ByteArrayOutputStream()
             val zos = java.util.zip.ZipOutputStream(baos)
-            zos.putNextEntry(java.util.zip.ZipEntry("test.txt"))
+            zos.putNextEntry(java.util.zip.ZipEntry("my-project/"))
+            zos.closeEntry()
+            zos.putNextEntry(java.util.zip.ZipEntry("my-project/test.txt"))
             zos.write("hello".toByteArray())
             zos.closeEntry()
             zos.close()

@@ -28,6 +28,7 @@ import kotlinx.coroutines.withContext
 import java.io.ByteArrayInputStream
 import java.nio.file.Files
 import java.nio.file.Path
+import java.util.UUID
 import java.util.zip.ZipInputStream
 
 class SelectScaffoldTemplateAction(
@@ -97,6 +98,11 @@ class SelectScaffoldTemplateAction(
 
                 val templateName = selected.spec.name ?: return@withContext
 
+                val hash = UUID.randomUUID().toString().substring(0, 8)
+                val projectDirName = "${templateName}-${hash}"
+                val projectDir = targetDir.resolve(projectDirName)
+                Files.createDirectories(projectDir)
+
                 val zipBytes = withBackgroundProgress(
                     project,
                     KafkaMessagesBundle.message("scaffold.action.apply.template.progress"),
@@ -106,10 +112,10 @@ class SelectScaffoldTemplateAction(
                     client.applyTemplate(templateName, options = options)
                 }
 
-                extractZip(zipBytes, targetDir)
+                extractZip(zipBytes, projectDir)
 
                 try {
-                    projectOpener(targetDir)
+                    projectOpener(projectDir)
                 } catch (ex: Exception) {
                     thisLogger().warn("Failed to open project", ex)
                     Messages.showErrorDialog(

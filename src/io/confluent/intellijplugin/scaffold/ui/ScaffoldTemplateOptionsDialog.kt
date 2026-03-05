@@ -28,6 +28,11 @@ class ScaffoldTemplateOptionsDialog(
             .sortedWith(compareBy<Map.Entry<String, Scaffoldv1TemplateOption>> { it.value.order ?: 0 }.thenBy { it.key })
             .map { it.key to it.value }
 
+    private val compiledPatterns: Map<String, Regex?> =
+        sortedOptions.associate { (key, option) ->
+            key to option.pattern?.let { runCatching { Regex(it) }.getOrNull() }
+        }
+
     init {
         title = KafkaMessagesBundle.message("scaffold.options.dialog.title")
         init()
@@ -65,7 +70,7 @@ class ScaffoldTemplateOptionsDialog(
                                     emptyText.text = option.hint
                                 }
                             }.validationOnInput { field ->
-                                validateField(key, option, field.text)
+                                validateField(option, field.text, compiledPatterns[key])
                             }.component
                         }
                     }
@@ -80,7 +85,7 @@ class ScaffoldTemplateOptionsDialog(
         }
     }
 
-    private fun validateField(key: String, option: Scaffoldv1TemplateOption, text: String): ValidationInfo? {
+    private fun validateField(option: Scaffoldv1TemplateOption, text: String, compiledPattern: Regex?): ValidationInfo? {
         val minLength = option.minLength
         if (minLength != null && minLength > 0 && text.length < minLength) {
             return ValidationInfo(
@@ -88,8 +93,7 @@ class ScaffoldTemplateOptionsDialog(
             )
         }
 
-        val pattern = option.pattern
-        if (pattern != null && text.isNotEmpty() && !Regex(pattern).matches(text)) {
+        if (compiledPattern != null && text.isNotEmpty() && !compiledPattern.matches(text)) {
             val errorMsg = option.patternDescription
                 ?: KafkaMessagesBundle.message("scaffold.options.validation.pattern", option.displayName)
             return ValidationInfo(errorMsg)
