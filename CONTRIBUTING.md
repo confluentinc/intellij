@@ -1,10 +1,11 @@
-## Greetings contributor 👾!
+## Greetings contributor!
 
-Thanks for your intent to contribute to our codebase. We look forward to working with you! 
+👾Thanks for your intent to contribute to our codebase. We look forward to working with you! 
 This project is an open-source IntelliJ plugin for data streaming, managed by Confluent.
 
 There are a few “rules of engagement” we’d like you to know before getting into technical details:
-Building trust with the maintainers of this repo 🤝
+
+## Building trust with the maintainers of this repo 🤝
 
 Please do not open a PR that does not have an associated issue. Before getting started with anything,  
 read our [AI_POLICY.md](./AI_POLICY.md)
@@ -22,12 +23,12 @@ Is it introducing new libraries that need not be introduced? Is there any prelim
 new branch? Check that the tests pass locally. Do they increase the coverage? 
 Did you clicktest both happy and sad paths? When you create your PR description, consider including the following:
 
-	  - PR title that is legible from something like a changelog 
-	  - Summary of changes, readable and not overly full of bullet points 
-	  - Before/after screenshots and an optional demo video for significant UI changes
-	  - Steps to clicktest both happy and sad paths 
-	  - Related ticket(s) 
-	  - A link or description of how this will be used later on, if part of a multi-branch contribution
+- PR title that is legible from something like a changelog 
+- Summary of changes, readable and not overly full of bullet points 
+- Before/after screenshots and an optional demo video for significant UI changes
+- Steps to clicktest both happy and sad paths 
+- Related ticket(s) 
+- A link or description of how this will be used later on, if part of a multi-branch contribution
 
 ## Ways To Contribute
 
@@ -36,7 +37,7 @@ make feature requests, and engage with us in GitHub discussions.
 
 ## Setting up your development environment
 
-For for tool installation and getting started with a local build, etc, see our README.md
+For tool installation and getting started with a local build, etc, see our README.md
 
 ## Short helpful links
 
@@ -75,7 +76,7 @@ Static resources like icons and templates are in resources, core logic is in [`s
 We use the Kotlin DSL (preferred) and Swing for UI components. 
 Text copy is kept in [KafkaBundle.properties](/resources/messages/KafkaBundle.properties). All styling is in the component properties.
 
-Auto-generated files are in `src/build`, don’t check them in!
+Auto-generated files are in `src/build/generated`, don’t check them in!
 
 ## Testing
 We unit-test everything we add to this codebase, and PRs must pass the SonarQube quality gate for test coverage 
