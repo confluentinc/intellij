@@ -116,7 +116,7 @@ class ListTableModel<T>(
             val totalAfterAdd = data.size + toAdd.size
             if (totalAfterAdd > maxElementsCount) {
                 val elementsToRemove = totalAfterAdd - maxElementsCount
-                data.subList(0, elementsToRemove).clear()
+                repeat(elementsToRemove) { data.removeFirst() }
                 fireTableRowsDeleted(0, elementsToRemove - 1)
             }
         }
