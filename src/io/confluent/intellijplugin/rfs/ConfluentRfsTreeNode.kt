@@ -3,17 +3,14 @@ package io.confluent.intellijplugin.rfs
 import com.intellij.icons.AllIcons
 import com.intellij.ide.projectView.PresentationData
 import com.intellij.openapi.project.Project
+import io.confluent.intellijplugin.icons.BigdatatoolsKafkaIcons
 import io.confluent.intellijplugin.rfs.ConfluentDriver.Companion.isCluster
 import io.confluent.intellijplugin.rfs.ConfluentDriver.Companion.isSchemaRegistry
 import io.confluent.intellijplugin.rfs.ConfluentDriver.Companion.isTopic
 import io.confluent.intellijplugin.rfs.ConfluentDriver.Companion.isSchema
-import io.confluent.intellijplugin.rfs.ConfluentDriver.Companion.getEnvironmentId
-import io.confluent.intellijplugin.rfs.ConfluentDriver.Companion.getClusterId
-import io.confluent.intellijplugin.rfs.ConfluentDriver.Companion.getSchemaRegistryId
 import io.confluent.intellijplugin.core.monitoring.rfs.MonitoringRfsTreeNode
 import io.confluent.intellijplugin.core.rfs.driver.RfsPath
 import io.confluent.intellijplugin.toolwindow.config.KafkaToolWindowSettings
-import io.confluent.intellijplugin.util.KafkaMessagesBundle.message
 import javax.swing.Icon
 
 /**
@@ -27,8 +24,7 @@ import javax.swing.Icon
 class ConfluentRfsTreeNode(
     project: Project,
     rfsPath: RfsPath,
-    private val confluentDriver: ConfluentDriver,
-    private val schemaType: String? = null
+    private val confluentDriver: ConfluentDriver
 ) : MonitoringRfsTreeNode(project, rfsPath, confluentDriver) {
 
     override fun isAlwaysLeaf(): Boolean = rfsPath.isTopic || rfsPath.isSchema
@@ -50,15 +46,15 @@ class ConfluentRfsTreeNode(
 
     override fun getIdleIcon(): Icon? {
         return when {
-            rfsPath.isCluster(confluentDriver) -> AllIcons.Nodes.Module
-            rfsPath.isSchemaRegistry(confluentDriver) -> AllIcons.Nodes.DataSchema
-            rfsPath.isTopic -> if (checkIsFavorite()) AllIcons.Nodes.Favorite else AllIcons.Nodes.Tag
-            rfsPath.isSchema -> AllIcons.FileTypes.Json
+            rfsPath.isCluster(confluentDriver) -> BigdatatoolsKafkaIcons.ConfluentKafkaCluster
+            rfsPath.isSchemaRegistry(confluentDriver) -> BigdatatoolsKafkaIcons.ConfluentSrCluster
+            rfsPath.isTopic -> if (checkIsTopicFavorite()) AllIcons.Nodes.Favorite else BigdatatoolsKafkaIcons.ConfluentTopic
+            rfsPath.isSchema -> if (checkIsSchemaFavorite()) AllIcons.Nodes.Favorite else BigdatatoolsKafkaIcons.ConfluentSchema
             else -> null
         }
     }
 
-    private fun checkIsFavorite(): Boolean {
+    private fun checkIsTopicFavorite(): Boolean {
         val envId = confluentDriver.selectedEnvironmentId ?: return false
         val clusterId = rfsPath.elements.getOrNull(0) ?: return false
 
@@ -68,6 +64,16 @@ class ConfluentRfsTreeNode(
         val clusterDataManager = confluentDriver.dataManager.getOrCreateClusterDataManager(cluster)
         val config = KafkaToolWindowSettings.getInstance().getOrCreateConfig(clusterDataManager.connectionId)
         return config.topicsPined.contains(rfsPath.name)
+    }
+
+    private fun checkIsSchemaFavorite(): Boolean {
+        // Get SR ID from path: [srId, schemaName]
+        val srId = rfsPath.elements.getOrNull(0) ?: return false
+        if (srId.isBlank()) return false
+
+
+        val config = KafkaToolWindowSettings.getInstance().getOrCreateConfig(srId)
+        return config.schemasPined.contains(rfsPath.name)
     }
 
     override fun getGrayText(): String? {
@@ -83,7 +89,10 @@ class ConfluentRfsTreeNode(
                 confluentDriver.dataManager.client.getSchemaRegistry(envId)
                     ?.let { "${it.cloudProvider} / ${it.region}" }
             }
-            rfsPath.isSchema -> schemaType
+            rfsPath.isSchema -> {
+                // Avoid potentially blocking operations 
+                null
+            }
             else -> null
         }
     }
@@ -107,9 +116,10 @@ class ConfluentRfsTreeNode(
         }
     }
 
-    override fun onDoubleClick(): Boolean = when {
-        rfsPath.isTopic || rfsPath.isSchema -> true
-        else -> false
+    override fun onDoubleClick(): Boolean {
+        // Navigation handled by tree selection listener, not double-click
+        // This matches Kafka tab behavior where single-click selection navigates
+        return false
     }
 }
 

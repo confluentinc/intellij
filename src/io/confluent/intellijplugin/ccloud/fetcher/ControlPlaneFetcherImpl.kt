@@ -26,7 +26,7 @@ class ControlPlaneFetcherImpl(
     override suspend fun getEnvironments(): List<Environment> {
         return client.fetchList(CloudConfig.ControlPlane.ENV_LIST_URI) { jsonBody ->
             val response = json.decodeFromString<ListEnvironmentsResponse>(jsonBody)
-            val items = response.data.map { envData ->
+            val items = response.dataOrEmpty().map { envData ->
                 Environment(
                     id = envData.id,
                     displayName = envData.displayName ?: envData.id,
@@ -41,7 +41,7 @@ class ControlPlaneFetcherImpl(
         val uri = String.format(CloudConfig.ControlPlane.LKC_LIST_URI, envId)
         return client.fetchList(uri) { jsonBody ->
             val response = json.decodeFromString<ListClustersResponse>(jsonBody)
-            val items = response.data.map { clusterData ->
+            val items = response.dataOrEmpty().map { clusterData ->
                 Cluster(
                     id = clusterData.id,
                     displayName = clusterData.displayName ?: clusterData.spec?.displayName ?: clusterData.id,
@@ -58,7 +58,7 @@ class ControlPlaneFetcherImpl(
         val uri = String.format(CloudConfig.ControlPlane.SR_LIST_URI, envId)
         val registries = client.fetchList(uri) { jsonBody ->
             val response = json.decodeFromString<ListSchemaRegistryResponse>(jsonBody)
-            val items = response.data.map { srData ->
+            val items = response.dataOrEmpty().map { srData ->
                 SchemaRegistry(
                     id = srData.id,
                     displayName = srData.spec?.displayName ?: srData.id,

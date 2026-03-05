@@ -40,11 +40,12 @@ class DataPlaneCache(
     private var cachedSchemas: List<SchemaData>? = null
 
     companion object {
-        private const val ENRICHMENT_TIMEOUT_MS = 15_000L // 15 seconds
+        private const val ENRICHMENT_TIMEOUT_MS = 30_000L
+        // Matches CCloudRestClient.RATE_LIMIT_REQUESTS_PER_SEC (5 req/sec token bucket)
+        private const val CONCURRENT_REQUEST_LIMIT = 5
     }
 
     fun connect() {
-        thisLogger().info("Connecting DataPlaneCache for cluster ${cluster.id}")
         val kafka = CCloudRestClient(
             baseUrl = cluster.restEndpoint,
             authType = CCloudRestClient.AuthType.DATA_PLANE
@@ -67,7 +68,7 @@ class DataPlaneCache(
             clusterId = cluster.id,
             schemaRegistryId = schemaRegistry?.id
         )
-        thisLogger().info("DataPlaneCache connected for cluster ${cluster.id}")
+        thisLogger().info("Connected DataPlaneCache for cluster ${cluster.id}")
     }
 
     fun getFetcher(): DataPlaneFetcherImpl? = fetcher
@@ -86,28 +87,30 @@ class DataPlaneCache(
 
     fun getSchemas(): List<SchemaData> = cachedSchemas ?: emptyList()
 
-    /** Fetch schemas from API, update cache. Fast initial load (names only). */
+    /** Fetch schema names from API, preserving existing enrichment data. */
     fun refreshSchemas(): List<SchemaData> {
         if (schemaRegistry == null) return emptyList()
 
-        // Fast load: fetch subject names only, enrichment happens separately
         val subjectNames = runBlocking { fetcher?.getAllSubjects() } ?: emptyList()
-        val schemas = subjectNames.map { SchemaData(name = it) }
+        val existingByName = cachedSchemas?.associateBy { it.name } ?: emptyMap()
+        val schemas = subjectNames.map { name ->
+            existingByName[name] ?: SchemaData(name = name)
+        }
         cachedSchemas = schemas
         return schemas
     }
 
-    /**
-     * Enrich schemas with metadata progressively. Emits results as they complete for incremental UI updates.
-     */
     fun enrichSchemasProgressively(schemas: List<SchemaData>): Flow<SchemaEnrichmentResult> = channelFlow {
         if (fetcher == null) return@channelFlow
 
-        thisLogger().info("Starting progressive enrichment for ${schemas.size} schemas")
+        val concurrentLimit = CONCURRENT_REQUEST_LIMIT
+        thisLogger().info("Starting progressive enrichment for ${schemas.size} schemas (max $concurrentLimit concurrent)")
         val completed = AtomicInteger(0)
+        val semaphore = kotlinx.coroutines.sync.Semaphore(concurrentLimit)
 
         schemas.forEach { schema ->
             launch {
+                semaphore.acquire()
                 try {
                     val info = withTimeout(ENRICHMENT_TIMEOUT_MS) {
                         fetcher?.loadSchemaInfo(schema.name)
@@ -119,13 +122,14 @@ class DataPlaneCache(
                             schemaName = schema.name,
                             data = SchemaEnrichmentData(
                                 latestVersion = info?.latestVersion,
-                                schemaType = info?.schemaType
+                                schemaType = info?.schemaType,
+                                compatibility = info?.compatibility
                             ),
                             progress = count to schemas.size
                         )
                     )
 
-                    thisLogger().info("Enriched ${schema.name}: version=${info?.latestVersion}, type=${info?.schemaType} ($count/${schemas.size})")
+                    thisLogger().debug("Enriched ${schema.name}: version=${info?.latestVersion}, type=${info?.schemaType}, compatibility=${info?.compatibility} ($count/${schemas.size})")
                 } catch (e: Exception) {
                     val count = completed.incrementAndGet()
                     send(
@@ -136,7 +140,9 @@ class DataPlaneCache(
                         )
                     )
 
-                    thisLogger().warn("Failed to enrich ${schema.name}: ${e.message} ($count/${schemas.size})")
+                    thisLogger().debug("Failed to enrich ${schema.name}: ${e.message} ($count/${schemas.size})")
+                } finally {
+                    semaphore.release()
                 }
             }
         }
@@ -158,35 +164,36 @@ class DataPlaneCache(
                             fetcher?.loadSchemaInfo(schema.name)
                         }
 
-                        thisLogger().info("Enriched ${schema.name}: version=${info?.latestVersion}, type=${info?.schemaType}")
+                    thisLogger().debug("Enriched ${schema.name}: version=${info?.latestVersion}, type=${info?.schemaType}, compatibility=${info?.compatibility}")
 
-                        schema.name to SchemaEnrichmentData(
-                            latestVersion = info?.latestVersion,
-                            schemaType = info?.schemaType
-                        )
-                    } catch (e: Exception) {
-                        thisLogger().warn("Failed to enrich ${schema.name}: ${e.message}")
-                        schema.name to SchemaEnrichmentData()
-                    }
+                    schema.name to SchemaEnrichmentData(
+                        latestVersion = info?.latestVersion,
+                        schemaType = info?.schemaType,
+                        compatibility = info?.compatibility
+                    )
+                } catch (e: Exception) {
+                    thisLogger().warn("Failed to enrich ${schema.name}: ${e.message}")
+                    schema.name to SchemaEnrichmentData()
                 }
-            }.awaitAll().toMap()
+            }
+        }.awaitAll().toMap()
 
             thisLogger().info("Enrichment completed: ${results.size} schemas enriched")
             results
         }
     }
 
-    /**
-     * Enrich topics with message count progressively. Emits results as they complete for incremental UI updates.
-     */
     fun enrichTopicsDataProgressively(topics: List<TopicData>): Flow<TopicEnrichmentResult> = channelFlow {
         if (fetcher == null) return@channelFlow
 
-        thisLogger().info("Starting progressive enrichment for ${topics.size} topics")
+        val concurrentLimit = CONCURRENT_REQUEST_LIMIT
+        thisLogger().info("Starting progressive enrichment for ${topics.size} topics (max $concurrentLimit concurrent)")
         val completed = AtomicInteger(0)
+        val semaphore = kotlinx.coroutines.sync.Semaphore(concurrentLimit)
 
         topics.forEach { topic ->
             launch {
+                semaphore.acquire()
                 try {
                     val messageCount = withTimeout(ENRICHMENT_TIMEOUT_MS) {
                         fetcher?.getTopicMessageCount(topic.topicName)
@@ -201,7 +208,7 @@ class DataPlaneCache(
                         )
                     )
 
-                    thisLogger().info("Enriched ${topic.topicName}: messageCount=$messageCount ($count/${topics.size})")
+                    thisLogger().debug("Enriched ${topic.topicName}: messageCount=$messageCount ($count/${topics.size})")
                 } catch (e: Exception) {
                     val count = completed.incrementAndGet()
                     send(
@@ -212,7 +219,9 @@ class DataPlaneCache(
                         )
                     )
 
-                    thisLogger().warn("Failed to enrich topic ${topic.topicName}: ${e.message} ($count/${topics.size})")
+                    thisLogger().debug("Failed to enrich topic ${topic.topicName}: ${e.message} ($count/${topics.size})")
+                } finally {
+                    semaphore.release()
                 }
             }
         }
@@ -234,7 +243,7 @@ class DataPlaneCache(
                             fetcher?.getTopicMessageCount(topic.topicName)
                         }
 
-                    thisLogger().info("Enriched ${topic.topicName}: messageCount=$messageCount")
+                    thisLogger().debug("Enriched ${topic.topicName}: messageCount=$messageCount")
 
                     topic.topicName to TopicEnrichmentData(
                         messageCount = messageCount
@@ -287,8 +296,12 @@ class DataPlaneCache(
         channelFlow {
             val f = fetcher ?: return@channelFlow
 
+            val concurrentLimit = 2  // 2 partitions × 2 API calls = 4 req/sec
+            val semaphore = kotlinx.coroutines.sync.Semaphore(concurrentLimit)
+
             partitions.forEach { partition ->
                 launch {
+                    semaphore.acquire()
                     try {
                         val startOffsetResponse =
                             f.getPartitionOffsets(topicName, partition.partitionId, fromBeginning = true)
@@ -302,8 +315,12 @@ class DataPlaneCache(
                             )
                         )
                     } catch (e: Exception) {
-                        thisLogger().warn("Failed to fetch offsets for $topicName/${partition.partitionId}: ${e.message}")
+                        if (e !is kotlinx.coroutines.CancellationException) {
+                            thisLogger().warn("Failed to fetch offsets for $topicName/${partition.partitionId}: ${e.message}")
+                        }
                         send(partition)
+                    } finally {
+                        semaphore.release()
                     }
                 }
             }

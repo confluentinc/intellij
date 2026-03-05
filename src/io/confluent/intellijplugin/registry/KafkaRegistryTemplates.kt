@@ -48,7 +48,11 @@ message MyRecord {
         templates[providerType] ?: error("Not found default for $providerType")
 
     fun getDefaultIfNotConfigured(prevText: String, newProvider: KafkaRegistryFormat): String? {
-        val isDefault = prevText.isBlank() || prevText in templates.values
+        // Normalize whitespace for comparison (formatted JSON may have different whitespace than template)
+        val normalizedPrevText = prevText.replace("\\s+".toRegex(), " ").trim()
+        val isDefault = prevText.isBlank() || templates.values.any { template ->
+            template.replace("\\s+".toRegex(), " ").trim() == normalizedPrevText
+        }
         return getDefault(newProvider).takeIf { isDefault }
     }
 }
