@@ -62,7 +62,7 @@ object CloudConfig {
 
             /** Consume records with guaranteed progress per partition. */
             const val CCLOUD_SIMPLE_CONSUME_API_PATH =
-                "/kafka/v3/clusters/%s/internal/topics/%s/partitions/-/records:consume_guarantee_progress"
+                "/kafka/v3/clusters/%s/internal/topics/%s/partitions/-/records:consume_guarantee_progress?return_raw_base64_records=true"
         }
 
         /**

@@ -526,268 +526,109 @@ class CCloudConsumerClientTest {
     inner class ExtractValue {
 
         @Test
-        fun `should return null for null element`() = runBlocking {
+        fun `should return null for null bytes`() = runBlocking {
             startWithConfigs()
             val result = client.extractValue(null, "t", mockFetcher, RecordHeaders(), isKey = false)
             assertNull(result)
         }
 
         @Test
-        fun `should return null for JsonNull element`() = runBlocking {
-            startWithConfigs()
-            val result = client.extractValue(JsonNull, "t", mockFetcher, RecordHeaders(), isKey = false)
-            assertNull(result)
-        }
-
-        @Test
-        fun `should deserialize __raw__ with SCHEMA_REGISTRY via schema`() = runBlocking {
+        fun `should deserialize with SCHEMA_REGISTRY via schema`() = runBlocking {
             startWithConfigs(valueType = KafkaFieldType.SCHEMA_REGISTRY)
 
             val schemaId = 1
             val avroPayload = encodeAvroPayload(avroSchemaJson, "Eve", 28)
             val wireBytes = buildV0Payload(schemaId, avroPayload)
-            val rawElement = JsonObject(mapOf("__raw__" to JsonPrimitive(Base64.getEncoder().encodeToString(wireBytes))))
 
             whenever(mockFetcher.getSchemaIdInfo(schemaId)).thenReturn(
                 SchemaByIdResponse(schema = avroSchemaJson, schemaType = "AVRO")
             )
 
-            val result = client.extractValue(rawElement, "t", mockFetcher, RecordHeaders(), isKey = false)
+            val result = client.extractValue(wireBytes, "t", mockFetcher, RecordHeaders(), isKey = false)
             assertTrue(result is GenericData.Record)
             assertEquals("Eve", (result as GenericData.Record).get("name").toString())
         }
 
         @Test
-        fun `should convert __raw__ with STRING type to UTF-8 string`() = runBlocking {
+        fun `should convert bytes with STRING type to UTF-8 string`() = runBlocking {
             startWithConfigs(valueType = KafkaFieldType.STRING)
-
-            val rawElement = JsonObject(mapOf("__raw__" to JsonPrimitive(Base64.getEncoder().encodeToString("hello".toByteArray()))))
-            val result = client.extractValue(rawElement, "test-topic", mockFetcher, RecordHeaders(), isKey = false)
+            val result = client.extractValue("hello".toByteArray(), "test-topic", mockFetcher, RecordHeaders(), isKey = false)
             assertEquals("hello", result)
         }
 
         @Test
-        fun `should convert __raw__ with LONG type to Long`() = runBlocking {
+        fun `should convert bytes with LONG type to Long`() = runBlocking {
             startWithConfigs(valueType = KafkaFieldType.LONG)
-
             val longBytes = ByteBuffer.allocate(8).putLong(42L).array()
-            val rawElement = JsonObject(mapOf("__raw__" to JsonPrimitive(Base64.getEncoder().encodeToString(longBytes))))
-            val result = client.extractValue(rawElement, "test-topic", mockFetcher, RecordHeaders(), isKey = false)
+            val result = client.extractValue(longBytes, "test-topic", mockFetcher, RecordHeaders(), isKey = false)
             assertEquals(42L, result)
-        }
-
-        @Test
-        fun `should convert plain JsonPrimitive with STRING type to string content`() = runBlocking {
-            startWithConfigs(valueType = KafkaFieldType.STRING)
-            val result = client.extractValue(JsonPrimitive("hello"), "t", mockFetcher, RecordHeaders(), isKey = false)
-            assertEquals("hello", result)
-        }
-
-        @Test
-        fun `should convert plain JsonPrimitive with LONG type to parsed Long`() = runBlocking {
-            startWithConfigs(valueType = KafkaFieldType.LONG)
-            val result = client.extractValue(JsonPrimitive("999"), "t", mockFetcher, RecordHeaders(), isKey = false)
-            assertEquals(999L, result)
         }
 
         @Test
         fun `should default to STRING when no config is set`() = runBlocking {
             // Do NOT call startWithConfigs, leave configs null to avoid potential reader exception
-            val result = client.extractValue(JsonPrimitive("fallback"), "t", mockFetcher, RecordHeaders(), isKey = false)
+            val result = client.extractValue("fallback".toByteArray(), "t", mockFetcher, RecordHeaders(), isKey = false)
             assertEquals("fallback", result)
         }
 
         @Test
-        fun `should return empty string when __raw__ decodes to empty bytes`() = runBlocking {
+        fun `should return empty string when bytes are empty`() = runBlocking {
             startWithConfigs(valueType = KafkaFieldType.STRING)
-            val rawElement = JsonObject(mapOf("__raw__" to JsonPrimitive(Base64.getEncoder().encodeToString(byteArrayOf()))))
-            val result = client.extractValue(rawElement, "test-topic", mockFetcher, RecordHeaders(), isKey = false)
+            val result = client.extractValue(byteArrayOf(), "test-topic", mockFetcher, RecordHeaders(), isKey = false)
             assertEquals("", result)
         }
 
         @Test
         fun `should use key config type when isKey is true`() = runBlocking {
             startWithConfigs(keyType = KafkaFieldType.LONG, valueType = KafkaFieldType.STRING)
-
             val longBytes = ByteBuffer.allocate(8).putLong(99L).array()
-            val rawElement = JsonObject(mapOf("__raw__" to JsonPrimitive(Base64.getEncoder().encodeToString(longBytes))))
-            val result = client.extractValue(rawElement, "test-topic", mockFetcher, RecordHeaders(), isKey = true)
+            val result = client.extractValue(longBytes, "test-topic", mockFetcher, RecordHeaders(), isKey = true)
             assertEquals(99L, result)
-        }
-
-        @Test
-        fun `should return null when __raw__ value is JsonNull`() = runBlocking {
-            startWithConfigs()
-            val rawElement = JsonObject(mapOf("__raw__" to JsonNull))
-            val result = client.extractValue(rawElement, "t", mockFetcher, RecordHeaders(), isKey = false)
-            assertNull(result)
         }
     }
 
     @Nested
-    @DisplayName("estimateJsonSize")
-    inner class EstimateJsonSize {
+    @DisplayName("decodeRawBytes")
+    inner class DecodeRawBytes {
 
         @Test
-        fun `should return 0 for null`() {
-            assertEquals(0, client.estimateJsonSize(null))
+        fun `should return null for null element`() {
+            assertNull(client.decodeRawBytes(null))
         }
 
         @Test
-        fun `should return 0 for JsonNull`() {
-            assertEquals(0, client.estimateJsonSize(JsonNull))
+        fun `should return null for JsonNull element`() {
+            assertNull(client.decodeRawBytes(JsonNull))
         }
 
         @Test
-        fun `should decode base64 in __raw__ and return byte count`() {
+        fun `should decode base64 from __raw__ element`() {
             val original = "hello world".toByteArray()
             val encoded = Base64.getEncoder().encodeToString(original)
             val element = JsonObject(mapOf("__raw__" to JsonPrimitive(encoded)))
-            assertEquals(original.size, client.estimateJsonSize(element))
+            assertArrayEquals(original, client.decodeRawBytes(element))
         }
 
         @Test
-        fun `should fall back to string byte count for invalid base64 in __raw__`() {
-            val invalidBase64 = "not-valid-base64!!!"
-            val element = JsonObject(mapOf("__raw__" to JsonPrimitive(invalidBase64)))
-            assertEquals(invalidBase64.toByteArray().size, client.estimateJsonSize(element))
+        fun `should return null for JsonObject without __raw__`() {
+            val element = JsonObject(mapOf("key" to JsonPrimitive("val")))
+            assertNull(client.decodeRawBytes(element))
         }
 
         @Test
-        fun `should return UTF-8 byte count for JsonPrimitive`() {
-            val text = "hello"
-            assertEquals(text.toByteArray().size, client.estimateJsonSize(JsonPrimitive(text)))
+        fun `should return empty array for empty base64`() {
+            val element = JsonObject(mapOf("__raw__" to JsonPrimitive("")))
+            assertArrayEquals(byteArrayOf(), client.decodeRawBytes(element))
         }
 
         @Test
-        fun `should return toString byte count for JsonObject without __raw__`() {
-            val obj = JsonObject(mapOf("key" to JsonPrimitive("val")))
-            assertEquals(obj.toString().toByteArray().size, client.estimateJsonSize(obj))
+        fun `should return null for plain JsonPrimitive`() {
+            assertNull(client.decodeRawBytes(JsonPrimitive("hello")))
         }
 
         @Test
-        fun `should return 0 when __raw__ value is JsonNull`() {
-            val element = JsonObject(mapOf("__raw__" to JsonNull))
-            assertEquals(0, client.estimateJsonSize(element))
-        }
-    }
-
-    @Nested
-    @DisplayName("convertJsonToType")
-    inner class ConvertJsonToType {
-
-        @Test
-        fun `should return string content for STRING type`() {
-            val result = client.convertJsonToType(JsonPrimitive("hello world"), KafkaFieldType.STRING)
-            assertEquals("hello world", result)
-        }
-
-        @Test
-        fun `should return JSON string for JSON type`() {
-            val result = client.convertJsonToType(JsonPrimitive("value"), KafkaFieldType.JSON)
-            // JSON type returns element.toString() which wraps strings in quotes
-            assertEquals("\"value\"", result)
-        }
-
-        @Test
-        fun `should convert string primitive to LONG`() {
-            val result = client.convertJsonToType(JsonPrimitive("12345"), KafkaFieldType.LONG)
-            assertEquals(12345L, result)
-        }
-
-        @Test
-        fun `should throw for non-numeric LONG`() {
-            assertThrows(SerializationException::class.java) {
-                client.convertJsonToType(JsonPrimitive("not-a-number"), KafkaFieldType.LONG)
-            }
-        }
-
-        @Test
-        fun `should convert string primitive to INTEGER`() {
-            val result = client.convertJsonToType(JsonPrimitive("42"), KafkaFieldType.INTEGER)
-            assertEquals(42, result)
-        }
-
-        @Test
-        fun `should throw for non-numeric INTEGER`() {
-            assertThrows(SerializationException::class.java) {
-                client.convertJsonToType(JsonPrimitive("abc"), KafkaFieldType.INTEGER)
-            }
-        }
-
-        @Test
-        fun `should convert string primitive to DOUBLE`() {
-            val result = client.convertJsonToType(JsonPrimitive("3.14"), KafkaFieldType.DOUBLE)
-            assertEquals(3.14, result)
-        }
-
-        @Test
-        fun `should convert string primitive to FLOAT`() {
-            val result = client.convertJsonToType(JsonPrimitive("2.5"), KafkaFieldType.FLOAT)
-            assertEquals(2.5f, result)
-        }
-
-        @Test
-        fun `should decode valid BASE64 to ByteArray`() {
-            val original = "hello".toByteArray()
-            val encoded = Base64.getEncoder().encodeToString(original)
-            val result = client.convertJsonToType(JsonPrimitive(encoded), KafkaFieldType.BASE64)
-            assertArrayEquals(original, result as ByteArray)
-        }
-
-        @Test
-        fun `should throw for invalid BASE64`() {
-            assertThrows(IllegalArgumentException::class.java) {
-                client.convertJsonToType(JsonPrimitive("not-base64!!!"), KafkaFieldType.BASE64)
-            }
-        }
-
-        @Test
-        fun `should return null for NULL type`() {
-            val result = client.convertJsonToType(JsonPrimitive("anything"), KafkaFieldType.NULL)
-            assertNull(result)
-        }
-
-        @Test
-        fun `should return null for JsonNull`() {
-            val result = client.convertJsonToType(JsonNull, KafkaFieldType.STRING)
-            assertNull(result)
-        }
-
-        @Test
-        fun `should throw for JsonObject with numeric type`() {
-            val obj = JsonObject(mapOf("a" to JsonPrimitive(1)))
-            assertThrows(SerializationException::class.java) {
-                client.convertJsonToType(obj, KafkaFieldType.LONG)
-            }
-        }
-
-        @Test
-        fun `should return toString for JsonObject with STRING type`() {
-            val obj = JsonObject(mapOf("a" to JsonPrimitive(1)))
-            val result = client.convertJsonToType(obj, KafkaFieldType.STRING)
-            assertEquals(obj.toString(), result)
-        }
-
-        @Test
-        fun `should throw for non-numeric DOUBLE`() {
-            assertThrows(SerializationException::class.java) {
-                client.convertJsonToType(JsonPrimitive("not-a-double"), KafkaFieldType.DOUBLE)
-            }
-        }
-
-        @Test
-        fun `should throw for non-numeric FLOAT`() {
-            assertThrows(SerializationException::class.java) {
-                client.convertJsonToType(JsonPrimitive("not-a-float"), KafkaFieldType.FLOAT)
-            }
-        }
-
-        @Test
-        fun `should throw for SCHEMA_REGISTRY type`() {
-            assertThrows(IllegalArgumentException::class.java) {
-                client.convertJsonToType(JsonPrimitive("value"), KafkaFieldType.SCHEMA_REGISTRY)
-            }
+        fun `should return null when __raw__ value is JsonNull`() {
+            assertNull(client.decodeRawBytes(JsonObject(mapOf("__raw__" to JsonNull))))
         }
     }
 

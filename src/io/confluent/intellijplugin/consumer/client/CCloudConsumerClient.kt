@@ -31,7 +31,6 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonPrimitive
 import org.apache.avro.generic.GenericDatumReader
 import org.apache.avro.io.DecoderFactory
@@ -403,6 +402,19 @@ class CCloudConsumerClient(
         }
     }
 
+    /**
+     * Decode a raw base64 JSON element to bytes.
+     * With `return_raw_base64_records=true`, all record values arrive as `{"__raw__": "<base64>"}`.
+     */
+    @VisibleForTesting
+    internal fun decodeRawBytes(element: JsonElement?): ByteArray? {
+        if (element == null || element is JsonNull) return null
+        val rawElement = (element as? JsonObject)?.get("__raw__")
+        if (rawElement == null || rawElement is JsonNull) return null
+        val raw = rawElement.jsonPrimitive.content
+        return Base64.getDecoder().decode(raw)
+    }
+
     private suspend fun convertToConsumerRecord(
         record: PartitionConsumeRecord,
         topic: String,
@@ -421,19 +433,20 @@ class CCloudConsumerClient(
             }
         )
 
-        val key = extractValue(record.key, topic, fetcher, headers, isKey = true)
-        val value = extractValue(record.value, topic, fetcher, headers, isKey = false)
+        // Decode base64 once — all records use __raw__ format thanks to return_raw_base64_records=true
+        val keyBytes = decodeRawBytes(record.key)
+        val valueBytes = decodeRawBytes(record.value)
+        val keySize = keyBytes?.size ?: 0
+        val valueSize = valueBytes?.size ?: 0
+
+        val key = extractValue(keyBytes, topic, fetcher, headers, isKey = true)
+        val value = extractValue(valueBytes, topic, fetcher, headers, isKey = false)
 
         val timestampType = when (record.timestampType) {
             ApiTimestampType.NO_TIMESTAMP_TYPE -> TimestampType.NO_TIMESTAMP_TYPE
             ApiTimestampType.CREATE_TIME -> TimestampType.CREATE_TIME
             ApiTimestampType.LOG_APPEND_TIME -> TimestampType.LOG_APPEND_TIME
         }
-
-        // Estimate serialized sizes from JSON content
-        // This is an approximation since REST API doesn't return exact wire sizes
-        val keySize = estimateJsonSize(record.key)
-        val valueSize = estimateJsonSize(record.value)
 
         return ConsumerRecord(
             topic,
@@ -451,74 +464,28 @@ class CCloudConsumerClient(
     }
 
     /**
-     * Estimate the serialized size of a JSON element.
-     */
-    @VisibleForTesting
-    internal fun estimateJsonSize(element: JsonElement?): Int {
-        if (element == null || element is JsonNull) {
-            return 0
-        }
-
-        // For schema-encoded values, calculate size from base64 decoded content
-        if (element is JsonObject && element.containsKey("__raw__")) {
-            val rawElement = element["__raw__"]
-            val rawValue = if (rawElement is JsonNull) null else rawElement?.jsonPrimitive?.content
-            return if (rawValue != null) {
-                try {
-                    Base64.getDecoder().decode(rawValue).size
-                } catch (e: Exception) {
-                    rawValue.toByteArray().size
-                }
-            } else {
-                0
-            }
-        }
-
-        // For plain values, use the string representation
-        return when (element) {
-            is JsonPrimitive -> element.content.toByteArray().size
-            else -> element.toString().toByteArray().size
-        }
-    }
-
-    /**
-     * Extract value from JSON element with type-aware conversion.
+     * Extract a typed value from raw bytes.
      * - SCHEMA_REGISTRY → full schema-aware deserialization (Avro/Protobuf/JSON Schema)
-     * - Other types → decode raw bytes and convert to the selected primitive type
+     * - Other types → convert raw bytes using the appropriate Kafka deserializer
      */
     @VisibleForTesting
     internal suspend fun extractValue(
-        element: JsonElement?,
+        bytes: ByteArray?,
         topic: String,
         fetcher: DataPlaneFetcher,
         headers: RecordHeaders,
         isKey: Boolean
     ): Any? {
-        if (element == null || element is JsonNull) {
-            return null
-        }
+        if (bytes == null) return null
 
         val fieldType = (if (isKey) currentKeyConfig else currentValueConfig)?.type
             ?: KafkaFieldType.STRING
 
-        // Binary values from REST API: {"__raw__": "base64-encoded-bytes"}
-        if (element is JsonObject && element.containsKey("__raw__")) {
-            val rawElement = element["__raw__"]
-            val rawValue = if (rawElement is JsonNull) null else rawElement?.jsonPrimitive?.content
-            if (rawValue == null) return null
-            val bytes = Base64.getDecoder().decode(rawValue)
-
-            // Only deserialize via schema when user selected SCHEMA_REGISTRY
-            if (fieldType == KafkaFieldType.SCHEMA_REGISTRY) {
-                return deserializeSchemaEncoded(bytes, fetcher, headers, isKey)
-            }
-
-            // For other types, convert raw bytes
-            return convertBytesToType(bytes, topic, fieldType)
+        if (fieldType == KafkaFieldType.SCHEMA_REGISTRY) {
+            return deserializeSchemaEncoded(bytes, fetcher, headers, isKey)
         }
 
-        // Plain JSON values (non-binary): convert based on selected type
-        return convertJsonToType(element, fieldType)
+        return convertBytesToType(bytes, topic, fieldType)
     }
 
     /**
@@ -562,35 +529,6 @@ class CCloudConsumerClient(
         return deserializer.deserialize(topic, bytes)
     }
 
-    /**
-     * Convert a JSON element to the appropriate Kotlin type based on the selected [KafkaFieldType].
-     * Throws [SerializationException] if the value cannot be converted to the requested type
-     */
-    @VisibleForTesting
-    internal fun convertJsonToType(element: JsonElement, type: KafkaFieldType): Any? {
-        if (element is JsonNull) return null
-        return when (type) {
-            KafkaFieldType.NULL -> null
-            KafkaFieldType.JSON -> element.toString()
-            KafkaFieldType.STRING -> (element as? JsonPrimitive)?.content ?: element.toString()
-            else -> {
-                val content = (element as? JsonPrimitive)?.content
-                    ?: throw SerializationException("Cannot convert ${element::class.simpleName} to $type")
-                when (type) {
-                    KafkaFieldType.LONG -> content.toLongOrNull()
-                        ?: throw SerializationException("Cannot convert '$content' to LONG")
-                    KafkaFieldType.INTEGER -> content.toIntOrNull()
-                        ?: throw SerializationException("Cannot convert '$content' to INTEGER")
-                    KafkaFieldType.DOUBLE -> content.toDoubleOrNull()
-                        ?: throw SerializationException("Cannot convert '$content' to DOUBLE")
-                    KafkaFieldType.FLOAT -> content.toFloatOrNull()
-                        ?: throw SerializationException("Cannot convert '$content' to FLOAT")
-                    KafkaFieldType.BASE64 -> Base64.getDecoder().decode(content)
-                    else -> throw IllegalArgumentException("Unsupported field type for JSON conversion: $type")
-                }
-            }
-        }
-    }
 
     /**
      * Deserialize schema-encoded bytes using V1 (header GUID) or V0 (payload prefix) wire format.
