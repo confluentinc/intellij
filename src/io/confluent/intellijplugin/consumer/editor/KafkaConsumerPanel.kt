@@ -34,6 +34,7 @@ import io.confluent.intellijplugin.core.util.executeOnPooledThread
 import io.confluent.intellijplugin.core.util.invokeLater
 import io.confluent.intellijplugin.core.util.withPluginClassLoader
 import io.confluent.intellijplugin.data.BaseClusterDataManager
+import io.confluent.intellijplugin.data.CCloudClusterDataManager
 import io.confluent.intellijplugin.telemetry.MessageViewerEvent
 import io.confluent.intellijplugin.telemetry.logUsage
 import org.apache.kafka.clients.consumer.ConsumerConfig
@@ -145,7 +146,14 @@ class KafkaConsumerPanel(
     private val key = KafkaConsumerFieldComponent(project, this, isKey = true).also { Disposer.register(this, it) }
     private val value = KafkaConsumerFieldComponent(project, this, isKey = false).also { Disposer.register(this, it) }
 
-    private val kafkaConsumerSettingsDelegate = lazy { KafkaConsumerSettings() }
+    private val kafkaConsumerSettingsDelegate = lazy {
+        val supportedProperties = if (kafkaManager is CCloudClusterDataManager) {
+            KafkaConsumerSettings.CCLOUD_PROPERTIES
+        } else {
+            KafkaConsumerSettings.ALL_PROPERTIES
+        }
+        KafkaConsumerSettings(supportedProperties)
+    }
     private val kafkaConsumerSettings: KafkaConsumerSettings by kafkaConsumerSettingsDelegate
 
     private var hasLoggedStopEvent = false
@@ -212,7 +220,6 @@ class KafkaConsumerPanel(
 
     // Capability flags from data manager
     private val supportsConsumerGroups = AtomicBooleanProperty(kafkaManager.supportsConsumerGroups())
-    private val supportsAdvancedSettings = AtomicBooleanProperty(kafkaManager.supportsAdvancedSettings())
 
     private val settingsPanelDelegate = lazy {
         val isConsumerSetup =
@@ -284,7 +291,7 @@ class KafkaConsumerPanel(
                 }.visibleIf(supportsConsumerGroups)
             }
 
-            row { cell(advancedSettings) }.visibleIf(supportsAdvancedSettings)
+            row { cell(advancedSettings) }
         }
 
         KafkaProducerConsumerPanel.createPanel(panel, consumeButton, progress)
