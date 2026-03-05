@@ -59,7 +59,6 @@ class KafkaDataManager(
     // Consumer panel feature overrides
 
     override fun supportsConsumerGroups(): Boolean = true
-    override fun supportsAdvancedSettings(): Boolean = true
     override fun supportsPresets(): Boolean = true
     override fun supportsDetailsPanel(): Boolean = true
 
