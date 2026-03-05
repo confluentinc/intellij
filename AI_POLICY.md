@@ -25,10 +25,10 @@ We have a folder of [repo-specific skills](./.claude/skills) for you to use with
 As we are each responsible for the code we contribute, we are also responsible for respecting reviewers' 
 time and avoiding AI slop. We consider slop to be:
 
-Massive PRs created without empathy for the reviewer, often containing long, bullet-pointed PR descriptions
-Code that creates new patterns or functions, without having supported reasoning or considering pre-existing patterns or functions
-Excessive comments describing what the code is, instead of why it was implemented a certain way
-A PR that is not attached to a specific pre-existing open ticket or new ticket that isn’t well defined
+- Massive PRs created without empathy for the reviewer, often containing long, bullet-pointed PR descriptions
+- Code that creates new patterns or functions, without having supported reasoning or considering pre-existing patterns or functions
+- Excessive comments describing what the code is, instead of why it was implemented a certain way
+- A PR that is not attached to a specific pre-existing open ticket or new ticket that isn’t well defined
 
 If we have determined a pull request, issue, or discussion post falls into this category, **it will be closed**.
 __________________________________________________________________________________
