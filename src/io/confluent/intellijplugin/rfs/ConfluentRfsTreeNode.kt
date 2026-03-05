@@ -50,7 +50,7 @@ class ConfluentRfsTreeNode(
             rfsPath.isCluster(confluentDriver) -> BigdatatoolsKafkaIcons.ConfluentKafkaCluster
             rfsPath.isSchemaRegistry(confluentDriver) -> BigdatatoolsKafkaIcons.ConfluentSrCluster
             rfsPath.isTopic -> if (checkIsTopicFavorite()) AllIcons.Nodes.Favorite else BigdatatoolsKafkaIcons.ConfluentTopic
-            rfsPath.isSchema -> if (checkIsSchemaFavorite()) AllIcons.Nodes.Favorite else BigdatatoolsKafkaIcons.ConfluentSchema
+            rfsPath.isSchema -> BigdatatoolsKafkaIcons.ConfluentSchema
             else -> null
         }
     }
