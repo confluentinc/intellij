@@ -54,9 +54,39 @@ class IdeLanguageMapperTest {
         }
 
         @Test
-        fun `returns JavaScript for WebStorm`() {
+        fun `returns JavaScript and TypeScript for WebStorm`() {
             val languages = IdeLanguageMapper.getPreferredLanguages { "WS" }
-            assertEquals(listOf("JavaScript"), languages)
+            assertEquals(listOf("JavaScript", "TypeScript"), languages)
+        }
+
+        @Test
+        fun `returns Python for PyCharm Professional`() {
+            val languages = IdeLanguageMapper.getPreferredLanguages { "PY" }
+            assertEquals(listOf("Python"), languages)
+        }
+
+        @Test
+        fun `returns C and C++ for CLion`() {
+            val languages = IdeLanguageMapper.getPreferredLanguages { "CL" }
+            assertEquals(listOf("C/C++"), languages)
+        }
+
+        @Test
+        fun `returns C# and dotNET for Rider`() {
+            val languages = IdeLanguageMapper.getPreferredLanguages { "RD" }
+            assertEquals(listOf("C#", ".NET"), languages)
+        }
+
+        @Test
+        fun `returns Ruby for RubyMine`() {
+            val languages = IdeLanguageMapper.getPreferredLanguages { "RM" }
+            assertEquals(listOf("Ruby"), languages)
+        }
+
+        @Test
+        fun `returns PHP for PhpStorm`() {
+            val languages = IdeLanguageMapper.getPreferredLanguages { "PS" }
+            assertEquals(listOf("PHP"), languages)
         }
 
         @Test
