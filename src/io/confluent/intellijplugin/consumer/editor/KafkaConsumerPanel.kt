@@ -220,7 +220,6 @@ class KafkaConsumerPanel(
 
     // Capability flags from data manager
     private val supportsConsumerGroups = AtomicBooleanProperty(kafkaManager.supportsConsumerGroups())
-    private val supportsAdvancedSettings = AtomicBooleanProperty(kafkaManager.supportsAdvancedSettings())
 
     private val settingsPanelDelegate = lazy {
         val isConsumerSetup =
@@ -292,7 +291,7 @@ class KafkaConsumerPanel(
                 }.visibleIf(supportsConsumerGroups)
             }
 
-            row { cell(advancedSettings) }.visibleIf(supportsAdvancedSettings)
+            row { cell(advancedSettings) }
         }
 
         KafkaProducerConsumerPanel.createPanel(panel, consumeButton, progress)
