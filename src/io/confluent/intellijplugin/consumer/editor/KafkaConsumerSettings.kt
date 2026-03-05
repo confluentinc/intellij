@@ -16,10 +16,6 @@ class KafkaConsumerSettings(
 
     companion object {
         const val MAX_CONSUMER_RECORDS = "consumer.records.limit"
-        const val MESSAGE_MAX_BYTES = "consumer.message.max.bytes"
-
-        /** Default message max bytes: 4MB (matches ide-sidecar default). */
-        const val DEFAULT_MESSAGE_MAX_BYTES = 4 * 1024 * 1024
 
         /** All Kafka consumer config properties (for native connections). */
         val ALL_PROPERTIES: Set<String> = setOf(
@@ -64,11 +60,6 @@ class KafkaConsumerSettings(
 
         settingsFields[MAX_CONSUMER_RECORDS] = JTextField().apply {
             toolTipText = "<html>${KafkaMessagesBundle.message("consumer.records.limit.descr")}</html>"
-        }
-
-        settingsFields[MESSAGE_MAX_BYTES] = JTextField().apply {
-            text = DEFAULT_MESSAGE_MAX_BYTES.toString()
-            toolTipText = "<html>${KafkaMessagesBundle.message("consumer.message.max.bytes.descr")}</html>"
         }
     }
 

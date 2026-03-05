@@ -17,21 +17,9 @@ class KafkaConsumerSettingsTest {
         @Test
         fun `should show all 5 Kafka properties with ALL_PROPERTIES`() {
             val settings = KafkaConsumerSettings(KafkaConsumerSettings.ALL_PROPERTIES)
-            val properties = settings.getProperties()
-
-            // All properties have defaults, so getProperties() returns only non-default values
-            // Instead, verify via show() that all fields exist by checking the settings can be created
-            // We verify the count by checking that defaults are applied for all 5 properties
-            val allDefaults = ConsumerConfig.configDef().configKeys()
-            val expectedKeys = setOf(
-                ConsumerConfig.REQUEST_TIMEOUT_MS_CONFIG,
-                ConsumerConfig.MAX_POLL_RECORDS_CONFIG,
-                ConsumerConfig.FETCH_MAX_WAIT_MS_CONFIG,
-                ConsumerConfig.FETCH_MAX_BYTES_CONFIG,
-                ConsumerConfig.MAX_PARTITION_FETCH_BYTES_CONFIG
-            )
 
             // Properties at default values should not appear in getProperties() output
+            val properties = settings.getProperties()
             assertTrue(properties.isEmpty(), "Properties at default values should not be returned")
         }
 
@@ -51,18 +39,13 @@ class KafkaConsumerSettingsTest {
             val ccloudSettings = KafkaConsumerSettings(KafkaConsumerSettings.CCLOUD_PROPERTIES)
             val nativeSettings = KafkaConsumerSettings(KafkaConsumerSettings.ALL_PROPERTIES)
 
-            // Both should have MAX_CONSUMER_RECORDS and MESSAGE_MAX_BYTES in settings
-            // MESSAGE_MAX_BYTES has a default value, so it appears in getSettings()
+            // Both should have MAX_CONSUMER_RECORDS in settings
             val ccloudPluginSettings = ccloudSettings.getSettings()
             val nativePluginSettings = nativeSettings.getSettings()
 
-            // MESSAGE_MAX_BYTES default (4194304) should appear since it's a valid int
-            assertTrue(ccloudPluginSettings.containsKey(KafkaConsumerSettings.MESSAGE_MAX_BYTES))
-            assertTrue(nativePluginSettings.containsKey(KafkaConsumerSettings.MESSAGE_MAX_BYTES))
-            assertEquals(
-                KafkaConsumerSettings.DEFAULT_MESSAGE_MAX_BYTES.toString(),
-                ccloudPluginSettings[KafkaConsumerSettings.MESSAGE_MAX_BYTES]
-            )
+            // MAX_CONSUMER_RECORDS has no default, so it won't appear until set
+            assertFalse(ccloudPluginSettings.containsKey(KafkaConsumerSettings.MAX_CONSUMER_RECORDS))
+            assertFalse(nativePluginSettings.containsKey(KafkaConsumerSettings.MAX_CONSUMER_RECORDS))
         }
 
         @Test
@@ -123,21 +106,4 @@ class KafkaConsumerSettingsTest {
         }
     }
 
-    @Nested
-    @DisplayName("MESSAGE_MAX_BYTES setting")
-    inner class MessageMaxBytesSetting {
-
-        @Test
-        fun `should have default value of 4MB`() {
-            assertEquals(4 * 1024 * 1024, KafkaConsumerSettings.DEFAULT_MESSAGE_MAX_BYTES)
-        }
-
-        @Test
-        fun `should include MESSAGE_MAX_BYTES in settings output with default`() {
-            val settings = KafkaConsumerSettings()
-            val result = settings.getSettings()
-            assertTrue(result.containsKey(KafkaConsumerSettings.MESSAGE_MAX_BYTES))
-            assertEquals("4194304", result[KafkaConsumerSettings.MESSAGE_MAX_BYTES])
-        }
-    }
 }
