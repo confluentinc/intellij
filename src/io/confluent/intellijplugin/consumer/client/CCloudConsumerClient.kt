@@ -10,6 +10,7 @@ import io.confluent.intellijplugin.ccloud.model.response.TimestampType as ApiTim
 import io.confluent.intellijplugin.common.models.KafkaFieldType
 import io.confluent.intellijplugin.common.settings.StorageConsumerConfig
 import io.confluent.intellijplugin.consumer.models.ConsumerProducerFieldConfig
+import io.confluent.intellijplugin.consumer.editor.KafkaConsumerSettings
 import io.confluent.intellijplugin.consumer.models.ConsumerStartType
 import io.confluent.intellijplugin.data.CCloudClusterDataManager
 import io.confluent.intellijplugin.registry.KafkaRegistryFormat
@@ -34,6 +35,7 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import org.apache.avro.generic.GenericDatumReader
 import org.apache.avro.io.DecoderFactory
+import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.common.header.internals.RecordHeader
 import org.apache.kafka.common.header.internals.RecordHeaders
@@ -92,6 +94,14 @@ class CCloudConsumerClient(
     private var keyDeserializer: Deserializer<*>? = null
     private var valueDeserializer: Deserializer<*>? = null
 
+    // Resolved config values for the current session
+    @VisibleForTesting
+    internal var resolvedMaxPollRecords: Int = DEFAULT_MAX_POLL_RECORDS
+    @VisibleForTesting
+    internal var resolvedFetchMaxBytes: Int? = null
+    @VisibleForTesting
+    internal var resolvedMessageMaxBytes: Int? = KafkaConsumerSettings.DEFAULT_MESSAGE_MAX_BYTES
+
     override fun start(
         config: StorageConsumerConfig,
         valueConfig: ConsumerProducerFieldConfig,
@@ -108,6 +118,13 @@ class CCloudConsumerClient(
         currentValueConfig = valueConfig
         keyDeserializer = createDeserializerOrNull(keyConfig.type)
         valueDeserializer = createDeserializerOrNull(valueConfig.type)
+
+        // Resolve advanced settings from config
+        resolvedMaxPollRecords = config.properties[ConsumerConfig.MAX_POLL_RECORDS_CONFIG]
+            ?.toIntOrNull() ?: DEFAULT_MAX_POLL_RECORDS
+        resolvedFetchMaxBytes = config.properties[ConsumerConfig.FETCH_MAX_BYTES_CONFIG]?.toIntOrNull()
+        resolvedMessageMaxBytes = config.settings[KafkaConsumerSettings.MESSAGE_MAX_BYTES]
+            ?.toIntOrNull() ?: KafkaConsumerSettings.DEFAULT_MESSAGE_MAX_BYTES
 
         // Create a new independent scope for this consumption session
         // Using Dispatchers.IO for network operations
@@ -309,12 +326,14 @@ class CCloudConsumerClient(
         return when (startsWith.type) {
             ConsumerStartType.THE_BEGINNING -> ConsumeRecordsRequest(
                 fromBeginning = true,
-                maxPollRecords = DEFAULT_MAX_POLL_RECORDS
+                maxPollRecords = resolvedMaxPollRecords,
+                fetchMaxBytes = resolvedFetchMaxBytes
             )
 
             ConsumerStartType.NOW -> ConsumeRecordsRequest(
                 fromBeginning = false,
-                maxPollRecords = DEFAULT_MAX_POLL_RECORDS
+                maxPollRecords = resolvedMaxPollRecords,
+                fetchMaxBytes = resolvedFetchMaxBytes
             )
 
             ConsumerStartType.OFFSET -> {
@@ -325,7 +344,8 @@ class CCloudConsumerClient(
                     offsets = beginningOffsets.map { (partitionId, beginningOffset) ->
                         PartitionOffset(partitionId, beginningOffset + offset)
                     },
-                    maxPollRecords = DEFAULT_MAX_POLL_RECORDS
+                    maxPollRecords = resolvedMaxPollRecords,
+                    fetchMaxBytes = resolvedFetchMaxBytes
                 )
             }
 
@@ -338,7 +358,8 @@ class CCloudConsumerClient(
                     offsets = endOffsets.map { (partitionId, endOffset) ->
                         PartitionOffset(partitionId, max(0, endOffset + offset))
                     },
-                    maxPollRecords = DEFAULT_MAX_POLL_RECORDS
+                    maxPollRecords = resolvedMaxPollRecords,
+                    fetchMaxBytes = resolvedFetchMaxBytes
                 )
             }
 
@@ -351,7 +372,8 @@ class CCloudConsumerClient(
                 val timestamp = KafkaOffsetUtils.calculateStartTime(startsWith)
                 ConsumeRecordsRequest(
                     timestamp = timestamp,
-                    maxPollRecords = DEFAULT_MAX_POLL_RECORDS
+                    maxPollRecords = resolvedMaxPollRecords,
+                    fetchMaxBytes = resolvedFetchMaxBytes
                 )
             }
 
@@ -359,7 +381,8 @@ class CCloudConsumerClient(
                 // Consumer groups not supported by CCloud REST API - fall back to NOW
                 ConsumeRecordsRequest(
                     fromBeginning = false,
-                    maxPollRecords = DEFAULT_MAX_POLL_RECORDS
+                    maxPollRecords = resolvedMaxPollRecords,
+                    fetchMaxBytes = resolvedFetchMaxBytes
                 )
             }
         }
@@ -375,13 +398,15 @@ class CCloudConsumerClient(
                 offsets = nextOffsets.map { (partitionId, offset) ->
                     PartitionOffset(partitionId = partitionId, offset = offset)
                 },
-                maxPollRecords = DEFAULT_MAX_POLL_RECORDS
+                maxPollRecords = resolvedMaxPollRecords,
+                fetchMaxBytes = resolvedFetchMaxBytes
             )
         } else {
             // No offsets tracked yet, fetch from end
             ConsumeRecordsRequest(
                 fromBeginning = false,
-                maxPollRecords = DEFAULT_MAX_POLL_RECORDS
+                maxPollRecords = resolvedMaxPollRecords,
+                fetchMaxBytes = resolvedFetchMaxBytes
             )
         }
     }
@@ -439,8 +464,18 @@ class CCloudConsumerClient(
         val keySize = keyBytes?.size ?: 0
         val valueSize = valueBytes?.size ?: 0
 
-        val key = extractValue(keyBytes, topic, fetcher, headers, isKey = true)
-        val value = extractValue(valueBytes, topic, fetcher, headers, isKey = false)
+        // Enforce message max bytes limit — skip deserialization for oversized values
+        val maxBytes = resolvedMessageMaxBytes
+        val key = if (maxBytes != null && keySize > maxBytes) {
+            TRUNCATION_MARKER.format(keySize, maxBytes)
+        } else {
+            extractValue(keyBytes, topic, fetcher, headers, isKey = true)
+        }
+        val value = if (maxBytes != null && valueSize > maxBytes) {
+            TRUNCATION_MARKER.format(valueSize, maxBytes)
+        } else {
+            extractValue(valueBytes, topic, fetcher, headers, isKey = false)
+        }
 
         val timestampType = when (record.timestampType) {
             ApiTimestampType.NO_TIMESTAMP_TYPE -> TimestampType.NO_TIMESTAMP_TYPE
@@ -653,6 +688,9 @@ class CCloudConsumerClient(
         currentValueConfig = null
         keyDeserializer = null
         valueDeserializer = null
+        resolvedMaxPollRecords = DEFAULT_MAX_POLL_RECORDS
+        resolvedFetchMaxBytes = null
+        resolvedMessageMaxBytes = KafkaConsumerSettings.DEFAULT_MESSAGE_MAX_BYTES
     }
 
     override fun isRunning(): Boolean = running.get()
@@ -678,5 +716,9 @@ class CCloudConsumerClient(
 
         /** Default maximum number of records per consume request. */
         private const val DEFAULT_MAX_POLL_RECORDS = 100
+
+        /** Marker shown in place of oversized record values. */
+        @VisibleForTesting
+        internal const val TRUNCATION_MARKER = "[Message too large: %d bytes exceeds limit of %d bytes]"
     }
 }
