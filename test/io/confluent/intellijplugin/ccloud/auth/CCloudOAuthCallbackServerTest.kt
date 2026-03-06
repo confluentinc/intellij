@@ -261,6 +261,32 @@ class CCloudOAuthCallbackServerTest {
     }
 
     @Nested
+    @DisplayName("error handling")
+    inner class ErrorHandlingTests {
+
+        @Test
+        fun `getErrorStatusAndMessage formats OAuthErrorException without duplicate errorCode`() {
+            val server = CCloudOAuthCallbackServer(
+                oauthContext = CCloudOAuthContext(),
+                onSuccess = {},
+                onError = {}
+            )
+            val (status, message) = server.getErrorStatusAndMessage(
+                OAuthErrorException("invalid_grant", "Authorization code has expired", 400)
+            )
+
+            assertEquals(400, status)
+            assertEquals("Retrieving ID token failed: invalid_grant - Authorization code has expired.", message)
+            // Verify errorCode appears exactly once
+            assertEquals(
+                1,
+                message.split("invalid_grant").size - 1,
+                "errorCode should appear exactly once in the message"
+            )
+        }
+    }
+
+    @Nested
     @DisplayName("HTML rendering")
     inner class HtmlRenderingTests {
 
