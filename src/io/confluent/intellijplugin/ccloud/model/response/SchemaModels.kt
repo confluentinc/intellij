@@ -2,6 +2,7 @@ package io.confluent.intellijplugin.ccloud.model.response
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import io.confluent.kafka.schemaregistry.client.rest.entities.SchemaReference as ClientSchemaReference
 
 /** Schema info for UI (subject name + metadata). */
 data class SchemaData(
@@ -43,9 +44,9 @@ data class SchemaByIdResponse(
 )
 
 /** Convert API response references to Schema Registry client library format. */
-fun List<SchemaReferenceResponse>?.toSchemaReferences(): List<io.confluent.kafka.schemaregistry.client.rest.entities.SchemaReference> {
+fun List<SchemaReferenceResponse>?.toSchemaReferences(): List<ClientSchemaReference> {
     return this?.map { ref ->
-        io.confluent.kafka.schemaregistry.client.rest.entities.SchemaReference(
+        ClientSchemaReference(
             ref.name,
             ref.subject,
             ref.version
@@ -109,10 +110,4 @@ typealias DeleteSchemaVersionResponse = Int
 @Serializable
 data class CompatibilityResponse(
     @SerialName("compatibilityLevel") val compatibilityLevel: String? = null
-)
-
-/** Request to update compatibility level. */
-@Serializable
-data class UpdateCompatibilityRequest(
-    @SerialName("compatibility") val compatibility: String
 )
