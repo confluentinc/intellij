@@ -628,8 +628,7 @@ class CCloudClusterDataManager(
                 }.takeIf { it.isNotEmpty() }
             )
 
-            dataPlaneCache.getFetcher()?.registerSchema(versionInfo.schemaName, request)
-                ?: error(KafkaMessagesBundle.message("error.schema.registry.fetcher.not.available"))
+            dataPlaneCache.createSchema(versionInfo.schemaName, request)
 
             invalidateSchemaVersionCache(versionInfo.schemaName)
             updateSingleSchemaInList(versionInfo.schemaName)
@@ -705,8 +704,7 @@ class CCloudClusterDataManager(
 
     private suspend fun deleteSchemaWithoutConfirmation(schemaName: String, permanent: Boolean) {
         withContext(Dispatchers.IO) {
-            dataPlaneCache.getFetcher()?.deleteSubject(schemaName, permanent)
-                ?: error(KafkaMessagesBundle.message("error.schema.registry.fetcher.not.available"))
+            dataPlaneCache.deleteSchema(schemaName, permanent)
         }
         invalidateSchemaVersionCache(schemaName)
         removeSingleSchemaFromList(schemaName)
@@ -723,8 +721,7 @@ class CCloudClusterDataManager(
                     schema = parsedSchema.canonicalString(),
                     schemaType = parsedSchema.schemaType()
                 )
-                dataPlaneCache.getFetcher()?.registerSchema(schemaName, request)
-                    ?: error(KafkaMessagesBundle.message("error.schema.registry.fetcher.not.available"))
+                dataPlaneCache.createSchema(schemaName, request)
             }
             updateSingleSchemaInList(schemaName)
         }
