@@ -7,6 +7,7 @@ import io.confluent.intellijplugin.consumer.models.ConsumerProducerFieldConfig
 import io.confluent.intellijplugin.core.rfs.util.RfsNotificationUtils
 import io.confluent.intellijplugin.core.settings.connections.Property
 import io.confluent.intellijplugin.core.util.withPluginClassLoader
+import io.confluent.intellijplugin.data.BaseClusterDataManager
 import io.confluent.intellijplugin.data.KafkaDataManager
 import io.confluent.intellijplugin.producer.models.AcksType
 import io.confluent.intellijplugin.producer.models.Mode
@@ -28,15 +29,15 @@ import java.util.*
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 
-class KafkaProducerClient(val client: KafkaClient) {
+class KafkaProducerClient(val client: KafkaClient) : ProducerClient {
     val connectionData = client.connectionData
 
     val isRunning = AtomicBoolean(false)
 
-    fun isRunning(): Boolean = isRunning.get()
+    override fun isRunning(): Boolean = isRunning.get()
 
-    fun start(
-        dataManager: KafkaDataManager,
+    override fun start(
+        dataManager: BaseClusterDataManager,
         topic: String,
         key: ConsumerProducerFieldConfig,
         value: ConsumerProducerFieldConfig,
@@ -48,6 +49,7 @@ class KafkaProducerClient(val client: KafkaClient) {
         flowParams: ProducerFlowParams,
         onUpdate: (Long, List<KafkaRecord>) -> Unit
     ) {
+        val kafkaDataManager = dataManager as KafkaDataManager
         try {
             if (isRunning())
                 error("Producer is already run")
@@ -55,8 +57,8 @@ class KafkaProducerClient(val client: KafkaClient) {
 
             @Suppress("UNCHECKED_CAST")
             val producer = withPluginClassLoader {
-                val keySerializer: Serializer<out Any> = key.type.getSerializer(dataManager, producerField = key)
-                val valueSerializer = value.type.getSerializer(dataManager, producerField = value)
+                val keySerializer: Serializer<out Any> = key.type.getSerializer(kafkaDataManager, producerField = key)
+                val valueSerializer = value.type.getSerializer(kafkaDataManager, producerField = value)
                 KafkaProducer(props, keySerializer, valueSerializer) as KafkaProducer<Any, Any>
             }
             try {
@@ -192,10 +194,16 @@ class KafkaProducerClient(val client: KafkaClient) {
         return props
     }
 
-    fun stop() {
+    override fun stop() {
         if (!isRunning())
             error("Producer is not run")
         isRunning.set(false)
+    }
+
+    override fun dispose() {
+        if (isRunning()) {
+            isRunning.set(false)
+        }
     }
 
 
