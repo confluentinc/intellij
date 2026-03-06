@@ -393,6 +393,56 @@ class CCloudProducerClientTest {
     }
 
     @Nested
+    @DisplayName("isRetryableStatus")
+    inner class IsRetryableStatus {
+
+        @Test
+        fun `should retry on 429 rate limit`() {
+            assertTrue(client.isRetryableStatus(429))
+        }
+
+        @Test
+        fun `should retry on 500 server error`() {
+            assertTrue(client.isRetryableStatus(500))
+        }
+
+        @Test
+        fun `should retry on 502 bad gateway`() {
+            assertTrue(client.isRetryableStatus(502))
+        }
+
+        @Test
+        fun `should retry on 503 service unavailable`() {
+            assertTrue(client.isRetryableStatus(503))
+        }
+
+        @Test
+        fun `should not retry on 400 bad request`() {
+            assertFalse(client.isRetryableStatus(400))
+        }
+
+        @Test
+        fun `should not retry on 401 unauthorized`() {
+            assertFalse(client.isRetryableStatus(401))
+        }
+
+        @Test
+        fun `should not retry on 403 forbidden`() {
+            assertFalse(client.isRetryableStatus(403))
+        }
+
+        @Test
+        fun `should not retry on 404 not found`() {
+            assertFalse(client.isRetryableStatus(404))
+        }
+
+        @Test
+        fun `should not retry on 422 unprocessable`() {
+            assertFalse(client.isRetryableStatus(422))
+        }
+    }
+
+    @Nested
     @DisplayName("dispose()")
     inner class DisposeTests {
 

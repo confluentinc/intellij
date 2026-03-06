@@ -7,6 +7,7 @@ import io.confluent.intellijplugin.util.KafkaMessagesBundle
 import io.confluent.intellijplugin.ccloud.model.response.ProduceRecordData
 import io.confluent.intellijplugin.ccloud.model.response.ProduceRecordHeader
 import io.confluent.intellijplugin.ccloud.model.response.ProduceRecordRequest
+import io.confluent.intellijplugin.ccloud.model.response.ProduceRecordResponse
 import io.confluent.intellijplugin.common.models.KafkaFieldType
 import io.confluent.intellijplugin.consumer.editor.KafkaRecord
 import io.confluent.intellijplugin.consumer.models.ConsumerProducerFieldConfig
@@ -44,6 +45,7 @@ import java.nio.ByteBuffer
 import java.time.Instant
 import java.util.Base64
 import java.util.concurrent.atomic.AtomicBoolean
+import kotlin.math.min
 
 /**
  * REST-based producer client for Confluent Cloud.
@@ -191,16 +193,7 @@ class CCloudProducerClient(
                 fetcher, recordKey, recordValue, processedHeaders, topic, forcePartition
             )
 
-            val startTime = System.currentTimeMillis()
-            val response = fetcher.produceRecord(topic, request)
-            val duration = System.currentTimeMillis() - startTime
-
-            if (response.errorCode != null && response.errorCode != 200) {
-                throw CCloudApiException(
-                    response.message ?: "Produce failed with error code ${response.errorCode}",
-                    response.errorCode
-                )
-            }
+            val (response, duration) = produceWithRetry(fetcher, topic, request)
 
             records.add(
                 KafkaRecord(
@@ -409,6 +402,54 @@ class CCloudProducerClient(
     }
 
     /**
+     * Produce a single record with retry and exponential backoff for transient errors.
+     * Retries on 429 (rate limit) and 5xx (server errors). Fails immediately on 4xx client errors.
+     */
+    private suspend fun produceWithRetry(
+        fetcher: DataPlaneFetcher,
+        topic: String,
+        request: ProduceRecordRequest
+    ): Pair<ProduceRecordResponse, Long> {
+        var lastException: CCloudApiException? = null
+
+        repeat(MAX_RETRIES) { attempt ->
+            if (!running.get()) throw CancellationException("Producer stopped")
+
+            val startTime = System.currentTimeMillis()
+            val response = fetcher.produceRecord(topic, request)
+            val duration = System.currentTimeMillis() - startTime
+
+            if (response.errorCode == null || response.errorCode == 200) {
+                return Pair(response, duration)
+            }
+
+            val exception = CCloudApiException(
+                response.message ?: "Produce failed with error code ${response.errorCode}",
+                response.errorCode
+            )
+
+            if (!isRetryableStatus(response.errorCode)) {
+                throw exception
+            }
+
+            lastException = exception
+            thisLogger().debug("Retryable produce error (attempt ${attempt + 1}/$MAX_RETRIES): ${response.errorCode}")
+
+            val backoffMs = min(
+                BASE_BACKOFF_MS * (1L shl min(attempt, 5)),
+                MAX_BACKOFF_MS
+            )
+            delay(backoffMs)
+        }
+
+        throw lastException ?: CCloudApiException("Produce failed after $MAX_RETRIES retries", 0)
+    }
+
+    @VisibleForTesting
+    internal fun isRetryableStatus(statusCode: Int): Boolean =
+        statusCode == 429 || statusCode in 500..599
+
+    /**
      * Serialize a primitive value to bytes using the appropriate Kafka serializer.
      */
     @VisibleForTesting
@@ -437,4 +478,9 @@ class CCloudProducerClient(
         stop()
     }
 
+    companion object {
+        private const val BASE_BACKOFF_MS = 1_000L
+        private const val MAX_BACKOFF_MS = 30_000L
+        private const val MAX_RETRIES = 5
+    }
 }
