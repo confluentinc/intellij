@@ -105,8 +105,8 @@ class ListTableModel<T>(
                 } finally {
                     flushScheduled.set(false)
                     // Re-check: items may have been added while we were flushing
-                    synchronized(pendingAdds) { pendingAdds.isNotEmpty() }.let { hasMore ->
-                        if (hasMore) scheduleFlush()
+                   if(synchronized(pendingAdds) { pendingAdds.isNotEmpty() }) {
+                        scheduleFlush()
                     }
                 }
             }
