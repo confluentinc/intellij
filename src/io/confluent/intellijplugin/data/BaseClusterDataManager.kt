@@ -33,6 +33,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.TopicPartition
+import org.jetbrains.concurrency.Promise
 
 abstract class BaseClusterDataManager(
     project: Project?,
@@ -42,6 +43,13 @@ abstract class BaseClusterDataManager(
 
     abstract val connectionId: String
     abstract val registryType: KafkaRegistryType
+
+    /**
+     * Get the RFS path for a schema subject.
+     * Kafka: ["Schema Registry", schemaName]
+     * CCloud: [schemaRegistryId, schemaName]
+     */
+    abstract fun getSchemaPath(schemaName: String): io.confluent.intellijplugin.core.rfs.driver.RfsPath
 
     val topicModel: ObjectDataModel<TopicPresentable> by lazy {
         createTopicsDataModel().also { Disposer.register(this, it) }
@@ -235,6 +243,8 @@ abstract class BaseClusterDataManager(
 
     fun getSchemaByName(name: String) = getCachedSchema(name)
 
+    fun isSchemaExists(name: String) = getCachedSchema(name) != null
+
     open fun initRefreshSchemasIfRequired() {
         val schemaModel = schemaRegistryModel
         if (schemaModel?.isInitedByFirstTime == false) {
@@ -249,8 +259,29 @@ abstract class BaseClusterDataManager(
 
     abstract fun getCachedOrLoadSchema(name: String): KafkaSchemaInfo
 
-    fun updatePinnedSchemas(schemaName: String, isForAdding: Boolean) {
-        val config = KafkaToolWindowSettings.getInstance().getOrCreateConfig(connectionId)
+    abstract fun getSchemaVersionInfo(schemaName: String, version: Long): Promise<SchemaVersionInfo>
+
+    abstract fun parseSchemaForDisplay(versionInfo: SchemaVersionInfo): Result<io.confluent.kafka.schemaregistry.ParsedSchema>
+
+    // Schema write operations - override in subclasses that support writes (KafkaDataManager)
+    open fun updateSchema(versionInfo: SchemaVersionInfo, newSchema: String): Promise<Unit> {
+        throw UnsupportedOperationException("Schema updates not supported for this connection type")
+    }
+
+    open fun deleteRegistrySchemaVersion(versionInfo: SchemaVersionInfo) {
+        throw UnsupportedOperationException("Schema deletion not supported for this connection type")
+    }
+
+    fun getSchemaVersionsModel(schemaName: String) = schemaVersionModels[schemaName]
+
+    /**
+     * Gets the configuration ID used for schema favorites.
+     * By default uses connectionId, but can be overridden (e.g., CCloud uses SR ID).
+     */
+    open fun getSchemaFavoritesConfigId(): String = connectionId
+
+    open fun updatePinnedSchemas(schemaName: String, isForAdding: Boolean) {
+        val config = KafkaToolWindowSettings.getInstance().getOrCreateConfig(getSchemaFavoritesConfigId())
         if (isForAdding) {
             config.schemasPined += schemaName
         } else {
@@ -316,6 +347,17 @@ abstract class BaseClusterDataManager(
             topics.take(limit) to true
         } else {
             topics to false
+        }
+    }
+
+    protected fun applySchemaLimit(
+        schemas: List<KafkaSchemaInfo>,
+        limit: Int?
+    ): Pair<List<KafkaSchemaInfo>, Boolean> {
+        return if (limit != null && schemas.size > limit) {
+            schemas.take(limit) to true
+        } else {
+            schemas to false
         }
     }
 
@@ -463,7 +505,7 @@ abstract class BaseClusterDataManager(
         }
     }
 
-    private fun createSchemaRegistryDataModel(): ObjectDataModel<KafkaSchemaInfo>? {
+    protected open fun createSchemaRegistryDataModel(): ObjectDataModel<KafkaSchemaInfo>? {
         if (registryType == KafkaRegistryType.NONE) return null
 
         return ObjectDataModel(
@@ -483,9 +525,9 @@ abstract class BaseClusterDataManager(
             val toolWindowSettings = KafkaToolWindowSettings.getInstance()
             val config = toolWindowSettings.getOrCreateConfig(connectionId)
 
-            val (rawSchemas, hasMore) = runBlockingMaybeCancellable {
+            val (rawSchemas, _) = runBlockingMaybeCancellable {
                 listSchemasNames(
-                    limit = config.registryLimit,
+                    limit = null, // Don't apply limit here, apply after sorting (same as topics)
                     filter = config.schemaFilterName
                 )
             }
@@ -496,7 +538,7 @@ abstract class BaseClusterDataManager(
                 showFavoriteOnly = toolWindowSettings.showFavoriteSchema
             )
 
-            sortedSchemas to hasMore
+            applySchemaLimit(sortedSchemas, config.registryLimit)
         }
     }
 

@@ -63,6 +63,13 @@ class KafkaDataManager(
     override fun supportsPresets(): Boolean = true
     override fun supportsDetailsPanel(): Boolean = true
 
+    /**
+     * Get the RFS path for a schema subject in Kafka format: ["Schema Registry", schemaName]
+     */
+    override fun getSchemaPath(schemaName: String): io.confluent.intellijplugin.core.rfs.driver.RfsPath {
+        return KafkaDriver.schemasPath.child(schemaName, false)
+    }
+
     private val cacheSchemaType = ConcurrentSkipListMap<String, KafkaRegistryFormat>()
 
     init {
@@ -205,20 +212,28 @@ class KafkaDataManager(
         emptyList()
     }
 
-    fun getSchemaVersionsModel(schemaName: String) = schemaVersionModels[schemaName]
-
-    fun getSchemaVersionInfo(schemaName: String, version: Long): Promise<SchemaVersionInfo> = runAsync {
+    override fun getSchemaVersionInfo(schemaName: String, version: Long): Promise<SchemaVersionInfo> = runAsync {
         client.glueRegistryClient?.getSchemaVersionInfo(schemaName, version)
             ?: client.confluentRegistryClient?.getSchemaVersionInfo(schemaName, version)
             ?: error("Schema Registry provider is not selected")
     }
 
-    fun deleteRegistrySchemaVersion(versionSchema: SchemaVersionInfo) {
+    override fun parseSchemaForDisplay(versionInfo: SchemaVersionInfo): Result<io.confluent.kafka.schemaregistry.ParsedSchema> {
+        // For Confluent registry, pass the client; for Glue, pass null (uses default providers)
+        return io.confluent.intellijplugin.registry.KafkaRegistryUtil.parseSchema(
+            versionInfo.type,
+            versionInfo.schema,
+            client = client.confluentRegistryClient,
+            versionInfo.references
+        )
+    }
+
+    override fun deleteRegistrySchemaVersion(versionInfo: SchemaVersionInfo) {
         driver.coroutineScope.launch {
             try {
-                client.confluentRegistryClient?.deleteSchemaVersion(versionSchema)
-                    ?: client.glueRegistryClient?.deleteSchemaVersion(versionSchema)
-                updater.invokeRefreshModel(schemaVersionModels[versionSchema.schemaName])
+                client.confluentRegistryClient?.deleteSchemaVersion(versionInfo)
+                    ?: client.glueRegistryClient?.deleteSchemaVersion(versionInfo)
+                updater.invokeRefreshModel(schemaVersionModels[versionInfo.schemaName])
                 schemaRegistryModel?.let { updater.invokeRefreshModel(it) }
             } catch (t: Throwable) {
                 RfsNotificationUtils.showExceptionMessage(project, t)
@@ -226,13 +241,13 @@ class KafkaDataManager(
         }
     }
 
-    fun updateSchema(versionInfo: SchemaVersionInfo, newText: String) = SafeExecutor.instance.asyncSuspend(
+    override fun updateSchema(versionInfo: SchemaVersionInfo, newSchema: String) = SafeExecutor.instance.asyncSuspend(
         taskName = null,
         timeout = Duration.INFINITE
     ) {
         runInterruptible(Dispatchers.IO) {
-            client.confluentRegistryClient?.updateSchema(versionInfo, newText)
-                ?: client.glueRegistryClient?.updateSchema(versionInfo, newText)
+            client.confluentRegistryClient?.updateSchema(versionInfo, newSchema)
+                ?: client.glueRegistryClient?.updateSchema(versionInfo, newSchema)
                 ?: error("Schema registry not configured")
             schemaRegistryModel?.let { updater.invokeRefreshModel(it) }
         }
@@ -293,8 +308,6 @@ class KafkaDataManager(
             )
         schemaRegistryModel?.let { updater.invokeRefreshModel(it) }
     }
-
-    fun isSchemaExists(name: String) = getCachedSchema(name) != null
 
     override fun getCachedOrLoadSchema(name: String): KafkaSchemaInfo =
         getCachedSchema(name)?.takeIf { it.type != null } ?: loadSchema(name)
