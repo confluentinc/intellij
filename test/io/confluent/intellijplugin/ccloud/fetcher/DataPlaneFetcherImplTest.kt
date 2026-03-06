@@ -327,33 +327,10 @@ class DataPlaneFetcherImplTest {
     inner class LoadSchemaInfoTests {
 
         @Test
-        fun `loads schema info with compatibility level`() = runBlocking {
+        fun `loads schema info without compatibility for performance`() = runBlocking {
             stubSchemaRegistryGet(
                 "/subjects/user-schema/versions/latest",
                 loadMockResponse("schema-version-latest.json")
-            )
-            stubSchemaRegistryGet("/config/user-schema", loadMockResponse("schema-compatibility.json"))
-
-            val result = fetcher.loadSchemaInfo("user-schema")
-
-            assertEquals("user-schema", result.name)
-            assertEquals(3, result.latestVersion)
-            assertEquals("AVRO", result.schemaType)
-            assertEquals("BACKWARD", result.compatibility)
-        }
-
-        @Test
-        fun `loads schema info without compatibility level when not available`(): Unit = runBlocking {
-            stubSchemaRegistryGet(
-                "/subjects/user-schema/versions/latest",
-                loadMockResponse("schema-version-latest.json")
-            )
-            // Compatibility endpoint returns 404
-            wireMockServer.stubFor(
-                get("/config/user-schema")
-                    .withHeader("Authorization", equalTo("Bearer $TEST_DATA_PLANE_TOKEN"))
-                    .withHeader("target-sr-cluster", equalTo(TEST_SR_ID))
-                    .willReturn(aResponse().withStatus(404))
             )
 
             val result = fetcher.loadSchemaInfo("user-schema")
@@ -361,7 +338,7 @@ class DataPlaneFetcherImplTest {
             assertEquals("user-schema", result.name)
             assertEquals(3, result.latestVersion)
             assertEquals("AVRO", result.schemaType)
-            assertEquals(null, result.compatibility)
+            assertNull(result.compatibility)
         }
 
         @Test
@@ -377,9 +354,9 @@ class DataPlaneFetcherImplTest {
             val result = fetcher.loadSchemaInfo("missing-schema")
 
             assertEquals("missing-schema", result.name)
-            assertEquals(null, result.latestVersion)
-            assertEquals(null, result.schemaType)
-            assertEquals(null, result.compatibility)
+            assertNull(result.latestVersion)
+            assertNull(result.schemaType)
+            assertNull(result.compatibility)
         }
     }
 
