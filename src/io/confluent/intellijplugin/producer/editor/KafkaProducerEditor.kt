@@ -30,7 +30,10 @@ import io.confluent.intellijplugin.core.ui.ExpansionPanel
 import io.confluent.intellijplugin.core.ui.MultiSplitter
 import io.confluent.intellijplugin.core.util.executeNotOnEdt
 import io.confluent.intellijplugin.core.util.invokeLater
+import io.confluent.intellijplugin.data.BaseClusterDataManager
 import io.confluent.intellijplugin.data.KafkaDataManager
+import io.confluent.intellijplugin.producer.client.ProducerClient
+import io.confluent.intellijplugin.producer.client.ProducerClientProvider
 import io.confluent.intellijplugin.producer.models.AcksType
 import io.confluent.intellijplugin.producer.models.Mode
 import io.confluent.intellijplugin.producer.models.ProducerEditorState
@@ -48,21 +51,25 @@ import kotlin.math.max
 
 class KafkaProducerEditor(
     val project: Project,
-    internal val kafkaManager: KafkaDataManager,
+    internal val kafkaManager: BaseClusterDataManager,
     private val file: VirtualFile,
     topic: String?
 ) : FileEditor, UserDataHolderBase() {
     private var isRestoring = false
+
+    private val isNativeConnection = kafkaManager is KafkaDataManager
 
     private val output = KafkaRecordsOutput(project, isProducer = true).also { Disposer.register(this, it) }
 
     private val flowController = KafkaFlowController(project)
     private val progress = KafkaProducerConsumerProgressComponent()
 
-    private val producerClient = kafkaManager.client.createProducerClient().also {
-        Disposer.register(this) {
-            it.isRunning.set(false)
-        }
+    private val producerClient: ProducerClient = ProducerClientProvider.getClient(
+        dataManager = kafkaManager,
+        onStart = ::onStart,
+        onStop = ::onStop
+    ).also {
+        Disposer.register(this, it)
     }
     val topics = kafkaManager.getTopics()
 
@@ -150,20 +157,30 @@ class KafkaProducerEditor(
                 row(KafkaMessagesBundle.message("producer.forcePartition")) {
                     cell(forcePartitionField).align(AlignX.FILL).resizableColumn()
                 }
-                row(KafkaMessagesBundle.message("producer.compression")) {
-                    cell(compressionComboBox).align(AlignX.FILL).resizableColumn()
-                }
-                row {
-                    cell(idempotenceCheckBox).align(AlignX.FILL).resizableColumn().comment(
-                        KafkaMessagesBundle.message("producer.idempotence.comment")
-                    )
-                }
-                row(KafkaMessagesBundle.message("producer.asks")) {
-                    acksComboBox = segmentedButton(AcksType.entries) {
-                        text = StringUtil.wordsToBeginFromUpperCase(it.name.lowercase())
+                if (isNativeConnection) {
+                    row(KafkaMessagesBundle.message("producer.compression")) {
+                        cell(compressionComboBox).align(AlignX.FILL).resizableColumn()
                     }
-                    acksComboBox.selectedItem = AcksType.NONE
-                }.visibleIf(idempotenceCheckBox.selected.not())
+                    row {
+                        cell(idempotenceCheckBox).align(AlignX.FILL).resizableColumn().comment(
+                            KafkaMessagesBundle.message("producer.idempotence.comment")
+                        )
+                    }
+                    row(KafkaMessagesBundle.message("producer.asks")) {
+                        acksComboBox = segmentedButton(AcksType.entries) {
+                            text = StringUtil.wordsToBeginFromUpperCase(it.name.lowercase())
+                        }
+                        acksComboBox.selectedItem = AcksType.NONE
+                    }.visibleIf(idempotenceCheckBox.selected.not())
+                } else {
+                    // Initialize acksComboBox even when hidden (referenced in getConfig/applyConfig)
+                    row {
+                        acksComboBox = segmentedButton(AcksType.entries) {
+                            text = StringUtil.wordsToBeginFromUpperCase(it.name.lowercase())
+                        }
+                        acksComboBox.selectedItem = AcksType.ALL
+                    }.visible(false)
+                }
             }.topGap(TopGap.NONE)
         }
 
@@ -235,9 +252,7 @@ class KafkaProducerEditor(
                 val key = keyFieldComponent.getProducerField()
                 val value = valueFieldComponent.getProducerField()
 
-                onStart()
                 producerClient.start(
-                    kafkaManager,
                     selectedTopicName,
                     key,
                     value,
@@ -255,10 +270,6 @@ class KafkaProducerEditor(
                 }
             } catch (t: Throwable) {
                 RfsNotificationUtils.showExceptionMessage(project, t)
-            } finally {
-                invokeLater {
-                    onStop()
-                }
             }
         }
 
