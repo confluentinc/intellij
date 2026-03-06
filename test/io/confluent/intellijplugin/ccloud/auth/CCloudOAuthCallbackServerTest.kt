@@ -358,9 +358,13 @@ class CCloudOAuthCallbackServerTest {
             )
             errorServer.start()
 
-            httpGet("error=access_denied")
-            assertTrue(latch.await(5, TimeUnit.SECONDS), "onError callback should be invoked")
-            assertEquals("access_denied", capturedError)
+            try {
+                httpGet("error=access_denied")
+                assertTrue(latch.await(5, TimeUnit.SECONDS), "onError callback should be invoked")
+                assertEquals("access_denied", capturedError)
+            } finally {
+                errorServer.stop()
+            }
         }
 
         @Test
@@ -379,9 +383,13 @@ class CCloudOAuthCallbackServerTest {
             )
             successServer.start()
 
-            httpGet("code=valid-code&state=test-state")
-            assertTrue(latch.await(5, TimeUnit.SECONDS), "onSuccess callback should be invoked")
-            assertTrue(successInvoked)
+            try {
+                httpGet("code=valid-code&state=test-state")
+                assertTrue(latch.await(5, TimeUnit.SECONDS), "onSuccess callback should be invoked")
+                assertTrue(successInvoked)
+            } finally {
+                successServer.stop()
+            }
         }
 
         @Test
@@ -394,12 +402,25 @@ class CCloudOAuthCallbackServerTest {
             )
             callbackServer.start()
 
-            httpGet("error=test")
-            assertTrue(latch.await(5, TimeUnit.SECONDS), "callback should complete")
+            try {
+                httpGet("error=test")
+                assertTrue(latch.await(5, TimeUnit.SECONDS), "callback should complete")
 
-            // Give the async stop() a moment to execute
-            Thread.sleep(500)
-            assertThrows<Exception> { httpGet("error=test2") }
+                // Poll until the server stops accepting connections
+                val deadline = System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(5)
+                var stopped = false
+                while (System.currentTimeMillis() < deadline && !stopped) {
+                    try {
+                        httpGet("error=test2")
+                        Thread.sleep(50)
+                    } catch (e: Exception) {
+                        stopped = true
+                    }
+                }
+                assertTrue(stopped, "server should stop after handling a single callback")
+            } finally {
+                callbackServer.stop()
+            }
         }
 
         private fun httpGet(query: String): Pair<Int, String> {

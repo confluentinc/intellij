@@ -194,7 +194,11 @@ class CCloudOAuthCallbackServer(
             CallbackResult(500, errorHtml(message), errorMessage = message)
         }
 
-        sendResponse(exchange, result.statusCode, result.html)
+        try {
+            sendResponse(exchange, result.statusCode, result.html)
+        } catch (e: Exception) {
+            logger.warn("Failed to send OAuth callback response", e)
+        }
 
         CoroutineScope(Dispatchers.IO).launch {
             try {
