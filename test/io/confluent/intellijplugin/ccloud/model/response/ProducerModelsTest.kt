@@ -131,6 +131,25 @@ class ProducerModelsTest {
             assertEquals(200, response.errorCode)
             assertEquals(1, response.offset)
         }
+
+        @Test
+        fun `should roundtrip response through serialization`() {
+            val response = ProduceRecordResponse(
+                errorCode = 200,
+                clusterId = "lkc-123",
+                topicName = "topic-1",
+                partitionId = 2,
+                offset = 99,
+                timestamp = 1709654400000L,
+                key = ProduceRecordResponseData(size = 5, type = "STRING"),
+                value = ProduceRecordResponseData(size = 10, type = "BINARY")
+            )
+
+            val serialized = json.encodeToString(response)
+            val deserialized = json.decodeFromString<ProduceRecordResponse>(serialized)
+
+            assertEquals(response, deserialized)
+        }
     }
 
     private fun loadFixture(path: String): String {
