@@ -14,6 +14,7 @@ import io.confluent.intellijplugin.core.monitoring.toolwindow.MainTreeController
 import io.confluent.intellijplugin.core.monitoring.toolwindow.MainTreeController.Companion.rfsPath
 import io.confluent.intellijplugin.core.rfs.driver.manager.DriverManager
 import io.confluent.intellijplugin.core.settings.actions.CreateConnectionPopup
+import io.confluent.intellijplugin.data.BaseClusterDataManager
 import io.confluent.intellijplugin.data.CCloudClusterDataManager
 import io.confluent.intellijplugin.data.CCloudOrgManager
 import io.confluent.intellijplugin.data.KafkaDataManager
@@ -30,15 +31,15 @@ class KafkaCreateProducerAction : DumbAwareAction(), CustomComponentAction {
 
     override fun actionPerformed(e: AnActionEvent) {
         val project = e.project ?: return
-        val dataManager = e.dataManager as? KafkaDataManager
-        if (dataManager != null) {
+        val dm = e.dataManager
+        if (dm is KafkaDataManager || dm is CCloudClusterDataManager) {
             val rfsPath = e.rfsPath
             val defaultTopic = if (rfsPath?.parent?.isTopicFolder == true)
                 rfsPath.name
             else
                 null
 
-            openProducer(dataManager, project, defaultTopic)
+            openProducer(dm as BaseClusterDataManager, project, defaultTopic)
         } else {
             val actions = DriverManager.getDrivers(project).filterIsInstance<KafkaDriver>().map { driver ->
                 create(driver.connectionData.name) {
@@ -60,17 +61,24 @@ class KafkaCreateProducerAction : DumbAwareAction(), CustomComponentAction {
 
         // Always visible for Kafka or any CCloud context
         e.presentation.isVisible = isKafkaManager || isCCloudClusterManager || isCCloudOrgManager
-        // Only enabled for native Kafka (CCloud producer not yet implemented)
-        e.presentation.isEnabled = isKafkaManager
+        // Enabled for native Kafka and CCloud cluster connections
+        e.presentation.isEnabled = isKafkaManager || isCCloudClusterManager
     }
 
     override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
 
     companion object {
-        fun openProducer(dataManager: KafkaDataManager, project: Project, defaultTopic: String?): Array<FileEditor> {
-            val connectionData = dataManager.connectionData
-            val file = LightVirtualFile("${connectionData.name} Producer", KafkaFileType(), "").apply {
-                putUserData(KafkaEditorProvider.KAFKA_MANAGER_KEY, dataManager)
+        fun openProducer(dataManager: BaseClusterDataManager, project: Project, defaultTopic: String?): Array<FileEditor> {
+            val connectionName = when (dataManager) {
+                is KafkaDataManager -> dataManager.connectionData.name
+                is CCloudClusterDataManager -> dataManager.connectionData.name
+                else -> "Unknown"
+            }
+            val file = LightVirtualFile("$connectionName Producer", KafkaFileType(), "").apply {
+                when (dataManager) {
+                    is KafkaDataManager -> putUserData(KafkaEditorProvider.KAFKA_MANAGER_KEY, dataManager)
+                    is CCloudClusterDataManager -> putUserData(KafkaEditorProvider.CCLOUD_MANAGER_KEY, dataManager)
+                }
                 putUserData(KafkaEditorProvider.KAFKA_EDITOR_TYPE, KafkaEditorType.PRODUCER)
                 putUserData(KafkaEditorProvider.KAFKA_DEFAULT_TOPIC, defaultTopic)
             }
