@@ -10,6 +10,7 @@ import com.intellij.util.concurrency.annotations.RequiresBackgroundThread
 import io.confluent.intellijplugin.ccloud.cache.DataPlaneCache
 import io.confluent.intellijplugin.ccloud.model.Cluster
 import io.confluent.intellijplugin.ccloud.model.response.CreateTopicRequest
+import io.confluent.intellijplugin.ccloud.model.response.TopicData
 import io.confluent.intellijplugin.ccloud.model.response.toPresentable
 import io.confluent.intellijplugin.ccloud.model.response.toSchemaReferences
 import io.confluent.intellijplugin.client.KafkaConstants
@@ -17,14 +18,10 @@ import io.confluent.intellijplugin.common.models.RegistrySchemaInEditor
 import io.confluent.intellijplugin.core.monitoring.data.model.ObjectDataModel
 import io.confluent.intellijplugin.core.monitoring.data.storage.ObjectDataModelStorage
 import io.confluent.intellijplugin.core.monitoring.data.storage.RootDataModelStorage
-import io.confluent.intellijplugin.toolwindow.config.KafkaClusterConfig
-import io.confluent.intellijplugin.core.util.runAsync
 import io.confluent.intellijplugin.core.rfs.driver.SafeExecutor
 import io.confluent.intellijplugin.core.rfs.util.RfsNotificationUtils
 import io.confluent.intellijplugin.core.util.asSilent
-import kotlin.time.Duration
-import kotlinx.coroutines.future.asCompletableFuture
-import org.jetbrains.concurrency.asPromise
+import io.confluent.intellijplugin.core.util.runAsync
 import io.confluent.intellijplugin.model.BdtTopicPartition
 import io.confluent.intellijplugin.model.ConsumerGroupOffsetInfo
 import io.confluent.intellijplugin.model.ConsumerGroupPresentable
@@ -36,18 +33,20 @@ import io.confluent.intellijplugin.registry.KafkaRegistryUtil
 import io.confluent.intellijplugin.registry.SchemaVersionInfo
 import io.confluent.intellijplugin.registry.common.KafkaSchemaInfo
 import io.confluent.intellijplugin.rfs.ConfluentConnectionData
+import io.confluent.intellijplugin.toolwindow.config.KafkaClusterConfig
 import io.confluent.intellijplugin.toolwindow.config.KafkaToolWindowSettings
+import kotlin.time.Duration
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.future.asCompletableFuture
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
-import kotlinx.coroutines.runInterruptible
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.TopicPartition
-import java.util.concurrent.ConcurrentHashMap
 import org.jetbrains.concurrency.Promise
+import org.jetbrains.concurrency.asPromise
+import java.util.concurrent.ConcurrentHashMap
 
 /**
  * Cluster-level data manager for Confluent Cloud using the CCloud REST API.
@@ -73,11 +72,7 @@ class CCloudClusterDataManager(
     private val partitionEnrichmentJobs = ConcurrentHashMap<String, Job>()
     private var topicEnrichmentJob: Job? = null
     private var schemaEnrichmentJob: Job? = null
-
-    // Cache partition data to avoid EDT blocking when updates are triggered by topic model changes
     private val partitionCache = ConcurrentHashMap<String, List<BdtTopicPartition>>()
-
-    // Cache schema version info to avoid repeated API calls
     private val schemaVersionCache = ConcurrentHashMap<Pair<String, Long>, SchemaVersionInfo>()
 
     private fun invalidateSchemaVersionCache(schemaName: String) {
@@ -115,6 +110,13 @@ class CCloudClusterDataManager(
     }
 
     /**
+     * Returns the SR ID for config key, ensuring all clusters sharing an SR see the same config.
+     */
+    override fun getSchemaRegistryConfigId(): String {
+        return getSchemaRegistryId() ?: connectionId
+    }
+
+    /**
      * Gets the configuration for this cluster's Schema Registry.
      * Uses SR ID as the config key so all clusters sharing the same SR share the same schema favorites.
      * Returns null if no schema registry is configured.
@@ -139,15 +141,14 @@ class CCloudClusterDataManager(
 
         return ObjectDataModel(
             idFieldName = KafkaSchemaInfo::name,
-            additionalInfoLoading = null  // Don't block progress bar for enrichment
+            additionalInfoLoading = null
         ) {
             val toolWindowSettings = KafkaToolWindowSettings.getInstance()
-            // Use SR config (not cluster config) for all schema-related settings
             val config = getSchemaRegistryConfig()
 
             val (rawSchemas, _) = runBlockingMaybeCancellable {
                 listSchemasNames(
-                    limit = null, // Don't apply limit here, apply after sorting (same as base class)
+                    limit = null,
                     filter = config?.schemaFilterName
                 )
             }
@@ -158,7 +159,7 @@ class CCloudClusterDataManager(
                 showFavoriteOnly = toolWindowSettings.showFavoriteSchema
             )
 
-            val (finalSchemas, _) = applySchemaLimit(sortedSchemas, config?.registryLimit)
+            val (finalSchemas, hasMore) = applySchemaLimit(sortedSchemas, config?.registryLimit)
 
             // Launch background enrichment for schemas without metadata
             val schemasNeedingEnrichment = finalSchemas.filter { it.version == null }
@@ -167,7 +168,7 @@ class CCloudClusterDataManager(
                 schemaEnrichmentJob = launchSchemaEnrichment(schemasNeedingEnrichment)
             }
 
-            finalSchemas to false
+            finalSchemas to hasMore
         }
     }
 
@@ -239,10 +240,7 @@ class CCloudClusterDataManager(
 
     override suspend fun loadTopics(): List<TopicPresentable> = withContext(Dispatchers.IO) {
         try {
-            val topics = dataPlaneCache.getTopics().ifEmpty {
-                dataPlaneCache.refreshTopics()
-            }
-            topics.map { it.toPresentable() }
+            dataPlaneCache.refreshTopics().map { it.toPresentable() }
         } catch (t: Throwable) {
             thisLogger().warn("Failed to load topics for cluster ${cluster.id}", t)
             emptyList()
@@ -257,16 +255,19 @@ class CCloudClusterDataManager(
         }
 
         try {
-            val topicDataList = dataPlaneCache.getTopics()
-            if (topicDataList.isEmpty()) {
+            val allTopicData = dataPlaneCache.getTopics()
+            if (allTopicData.isEmpty()) {
                 return@withContext topics to null
             }
 
             topicEnrichmentJob?.cancel()
             topicEnrichmentJob = null
 
+            val topicNamesToEnrich = topics.map { it.name }.toSet()
+            val topicsToEnrich = allTopicData.filter { it.topicName in topicNamesToEnrich }
+
             topicEnrichmentJob = driver.coroutineScope.launch(Dispatchers.IO) {
-                dataPlaneCache.enrichTopicsDataProgressively(topicDataList)
+                dataPlaneCache.enrichTopicsDataProgressively(topicsToEnrich)
                     .collect { result ->
                         when (result) {
                             is io.confluent.intellijplugin.ccloud.model.response.TopicEnrichmentResult.Success -> {
@@ -318,10 +319,7 @@ class CCloudClusterDataManager(
         }
 
         try {
-            val schemas = dataPlaneCache.getSchemas().ifEmpty {
-                dataPlaneCache.refreshSchemas()
-            }
-            // Use SR config (not cluster config) so all clusters sharing an SR see the same favorites
+            val schemas = dataPlaneCache.refreshSchemas()
             val config = getSchemaRegistryConfig()
 
             var result = schemas.map { schemaData ->
@@ -366,6 +364,8 @@ class CCloudClusterDataManager(
                     when (result) {
                         is io.confluent.intellijplugin.ccloud.model.response.SchemaEnrichmentResult.Success -> {
                             successCount++
+
+                            dataPlaneCache.updateSchemaInCache(result.schemaName, result.data)
 
                             invokeLaterIfNotDisposed {
                                 val currentSchemas = model.data ?: return@invokeLaterIfNotDisposed
@@ -698,26 +698,18 @@ class CCloudClusterDataManager(
                     schema = parsedSchema.canonicalString(),
                     schemaType = parsedSchema.schemaType()
                 )
-
                 dataPlaneCache.getFetcher()?.registerSchema(schemaName, request)
                     ?: error("Schema Registry fetcher not available")
             }
-            // Add to list immediately (fast, no full refresh)
             updateSingleSchemaInList(schemaName)
         }
 
-    /**
-     * Update a single schema in the list after create/update operation.
-     * Avoids slow full refresh by fetching only the affected schema.
-     */
     private suspend fun updateSingleSchemaInList(schemaName: String) {
         try {
-            // Fetch the updated schema info
             val updatedSchemaData = withContext(Dispatchers.IO) {
                 dataPlaneCache.getFetcher()?.loadSchemaInfo(schemaName)
             } ?: return
 
-            // Use SR config (not cluster config) for favorites
             val config = getSchemaRegistryConfig()
 
             val updatedSchema = KafkaSchemaInfo(
@@ -732,34 +724,28 @@ class CCloudClusterDataManager(
                 val existingIndex = currentSchemas.indexOfFirst { it.name == schemaName }
 
                 val updatedSchemas = if (existingIndex >= 0) {
-                    // Update existing schema
-                    currentSchemas.toMutableList().apply {
-                        set(existingIndex, updatedSchema)
-                    }
+                    currentSchemas.toMutableList().apply { set(existingIndex, updatedSchema) }
                 } else {
-                    // Add new schema
                     currentSchemas + updatedSchema
                 }
 
-                // Re-sort the list to maintain consistency
                 val sortedSchemas = sortSchemasWithFavorites(
                     updatedSchemas,
                     pinnedSchemas = config?.schemasPined ?: emptySet(),
                     showFavoriteOnly = KafkaToolWindowSettings.getInstance().showFavoriteSchema
                 )
 
-                schemaRegistryModel?.setData(sortedSchemas)
+                // Apply limit to respect user's limit setting
+                val (limitedSchemas, _) = applySchemaLimit(sortedSchemas, config?.registryLimit)
+
+                schemaRegistryModel?.setData(limitedSchemas)
             }
         } catch (e: Exception) {
             thisLogger().warn("Failed to update single schema '$schemaName', falling back to full refresh", e)
-            // Fall back to full refresh on error
             schemaRegistryModel?.let { updater.invokeRefreshModel(it) }
         }
     }
 
-    /**
-     * Remove a schema from the list after delete operation.
-     */
     private suspend fun removeSingleSchemaFromList(schemaName: String) {
         try {
             withContext(Dispatchers.Default) {
@@ -769,18 +755,12 @@ class CCloudClusterDataManager(
             }
         } catch (e: Exception) {
             thisLogger().warn("Failed to remove schema '$schemaName' from list", e)
-            // Fall back to full refresh on error
             schemaRegistryModel?.let { updater.invokeRefreshModel(it) }
         }
     }
 
     @RequiresBackgroundThread
-    override fun loadTopicNames(): List<TopicPresentable> = try {
-        dataPlaneCache.getTopics().map { it.toPresentable() }
-    } catch (t: Throwable) {
-        thisLogger().warn("Failed to load topic names for cluster ${cluster.id}", t)
-        emptyList()
-    }
+    override fun loadTopicNames(): List<TopicPresentable> = getTopics()
 
     override suspend fun createTopic(
         name: String,
@@ -789,10 +769,12 @@ class CCloudClusterDataManager(
         configs: Map<String, String>
     ): Result<Unit> {
         return try {
-            withContext(Dispatchers.IO) {
+            val partitionCount = partitions ?: KafkaConstants.DEFAULT_CCLOUD_PARTITION_COUNT
+
+            val createdTopicData = withContext(Dispatchers.IO) {
                 val request = CreateTopicRequest(
                     topicName = name,
-                    partitionsCount = partitions ?: KafkaConstants.DEFAULT_CCLOUD_PARTITION_COUNT,
+                    partitionsCount = partitionCount,
                     replicationFactor = replicationFactor,
                     configs = configs.map { (k, v) ->
                         CreateTopicRequest.ConfigEntry(k, v)
@@ -801,30 +783,7 @@ class CCloudClusterDataManager(
                 dataPlaneCache.createTopic(request)
             }
 
-            val newTopic = withContext(Dispatchers.IO) {
-                dataPlaneCache.getTopics().find { it.topicName == name }?.toPresentable()
-            }
-
-            if (newTopic != null) {
-                withContext(Dispatchers.Default) {
-                    val currentTopics = topicModel.data ?: emptyList()
-                    val config = KafkaToolWindowSettings.getInstance().getOrCreateConfig(connectionId)
-                    val enrichedTopic = newTopic.copy(isFavorite = config.topicsPined.contains(name))
-
-                    val updatedTopics = (currentTopics + enrichedTopic).sortedWith(
-                        compareByDescending<TopicPresentable> { it.isFavorite }
-                            .thenBy { it.name.lowercase() }
-                    )
-
-                    topicModel.setData(updatedTopics)
-                }
-            } else {
-                thisLogger().warn("Created topic '$name' not found in cache, triggering full refresh")
-                invokeLaterIfNotDisposed {
-                    updater.invokeRefreshModel(topicModel)
-                }
-            }
-
+            updateSingleTopicInList(createdTopicData)
             Result.success(Unit)
         } catch (e: Exception) {
             thisLogger().warn("Failed to create topic '$name'", e)
@@ -845,18 +804,7 @@ class CCloudClusterDataManager(
                 }
             }
 
-            // Immediately update local state for instant UI feedback
-            val currentTopics = topicModel.data ?: emptyList()
-            val updatedTopics = currentTopics.filterNot { it.name in topicNames }
-
-            // Clear partition cache for deleted topics
-            topicNames.forEach { partitionCache.remove(it) }
-
-            // Update topic model on EDT for immediate UI update
-            invokeLaterIfNotDisposed {
-                topicModel.setData(updatedTopics)
-            }
-
+            removeSingleTopicFromList(topicNames)
             Result.success(Unit)
         } catch (e: Exception) {
             thisLogger().warn("Failed to delete topics: $topicNames", e)
@@ -864,6 +812,47 @@ class CCloudClusterDataManager(
                 updater.invokeRefreshModel(topicModel)
             }
             Result.failure(e)
+        }
+    }
+
+    private suspend fun updateSingleTopicInList(topicData: TopicData) {
+        try {
+            val newTopic = topicData.toPresentable()
+
+            withContext(Dispatchers.Default) {
+                val currentTopics = topicModel.data ?: emptyList()
+                val config = KafkaToolWindowSettings.getInstance().getOrCreateConfig(connectionId)
+                val enrichedTopic = newTopic.copy(isFavorite = config.topicsPined.contains(topicData.topicName))
+
+                val updatedTopics = (currentTopics + enrichedTopic).sortedWith(
+                    compareByDescending<TopicPresentable> { it.isFavorite }
+                        .thenBy { it.name.lowercase() }
+                )
+
+                topicModel.setData(updatedTopics)
+            }
+        } catch (e: Exception) {
+            thisLogger().warn("Failed to add topic '${topicData.topicName}' to list", e)
+            invokeLaterIfNotDisposed {
+                updater.invokeRefreshModel(topicModel)
+            }
+        }
+    }
+
+    private suspend fun removeSingleTopicFromList(topicNames: List<String>) {
+        try {
+            withContext(Dispatchers.Default) {
+                val currentTopics = topicModel.data ?: emptyList()
+                val updatedTopics = currentTopics.filterNot { it.name in topicNames }
+                topicModel.setData(updatedTopics)
+            }
+
+            topicNames.forEach { partitionCache.remove(it) }
+        } catch (e: Exception) {
+            thisLogger().warn("Failed to remove topics $topicNames from list", e)
+            invokeLaterIfNotDisposed {
+                updater.invokeRefreshModel(topicModel)
+            }
         }
     }
 
