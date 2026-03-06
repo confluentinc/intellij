@@ -8,6 +8,9 @@ import io.confluent.intellijplugin.ccloud.fetcher.DataPlaneFetcherImpl
 import io.confluent.intellijplugin.ccloud.model.Cluster
 import io.confluent.intellijplugin.ccloud.model.SchemaRegistry
 import io.confluent.intellijplugin.ccloud.model.response.CreateTopicRequest
+import io.confluent.intellijplugin.ccloud.model.response.DeleteSubjectResponse
+import io.confluent.intellijplugin.ccloud.model.response.RegisterSchemaRequest
+import io.confluent.intellijplugin.ccloud.model.response.RegisterSchemaResponse
 import io.confluent.intellijplugin.ccloud.model.response.SchemaData
 import io.confluent.intellijplugin.ccloud.model.response.SchemaEnrichmentData
 import io.confluent.intellijplugin.ccloud.model.response.SchemaEnrichmentResult
@@ -277,13 +280,37 @@ class DataPlaneCache(
     }
 
     suspend fun createTopic(request: CreateTopicRequest): TopicData {
-        return fetcher?.createTopic(request)
+        val newTopic = fetcher?.createTopic(request)
             ?: throw IllegalStateException("DataPlaneCache not connected for cluster ${cluster.id}")
+
+        // Update cache to reflect new topic
+        cachedTopics = cachedTopics?.plus(newTopic) ?: listOf(newTopic)
+        return newTopic
     }
 
     suspend fun deleteTopic(topicName: String) {
         fetcher?.deleteTopic(topicName)
             ?: throw IllegalStateException("DataPlaneCache not connected for cluster ${cluster.id}")
+
+        // Update cache to remove deleted topic
+        cachedTopics = cachedTopics?.filterNot { it.topicName == topicName }
+    }
+
+    suspend fun createSchema(schemaName: String, request: RegisterSchemaRequest): RegisterSchemaResponse {
+        val response = fetcher?.createSchema(schemaName, request)
+            ?: throw IllegalStateException("DataPlaneCache not connected for cluster ${cluster.id}")
+
+        val newSchema = SchemaData(name = schemaName)
+        cachedSchemas = cachedSchemas?.plus(newSchema) ?: listOf(newSchema)
+        return response
+    }
+
+    suspend fun deleteSchema(schemaName: String, permanent: Boolean = false): DeleteSubjectResponse {
+        val response = fetcher?.deleteSchema(schemaName, permanent)
+            ?: throw IllegalStateException("DataPlaneCache not connected for cluster ${cluster.id}")
+
+        cachedSchemas = cachedSchemas?.filterNot { it.name == schemaName }
+        return response
     }
 
     /** Get topic partitions without offsets. Use enrichPartitionsProgressively() for offsets. */
