@@ -142,5 +142,9 @@ class ListTableModel<T>(
         fireTableRowsInserted(startIndex, data.size - 1)
     }
 
-    fun elements(): List<T> = data
+    /** Returns all elements including any that are pending flush to the table. */
+    fun elements(): List<T> {
+        val pending = synchronized(pendingAdds) { pendingAdds.toList() }
+        return data + pending
+    }
 }

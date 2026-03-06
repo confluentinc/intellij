@@ -187,6 +187,20 @@ class ListTableModelTest {
         }
 
         @Test
+        fun `elements should include pending unflushed items`() {
+            // Given - some flushed data
+            model.addBatch(listOf("flushed1", "flushed2"))
+            ApplicationManager.getApplication().invokeAndWait { }
+
+            // When - add more without flushing
+            model.addBatch(listOf("pending1", "pending2"))
+
+            // Then - elements() includes both flushed and pending
+            val elements = model.elements()
+            assertEquals(listOf("flushed1", "flushed2", "pending1", "pending2"), elements)
+        }
+
+        @Test
         fun `getValueAt by row index should return correct element`() {
             // Given
             model.addBatch(listOf("first", "second", "third"))
