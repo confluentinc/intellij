@@ -87,17 +87,30 @@ class DataPlaneCache(
 
     fun getSchemas(): List<SchemaData> = cachedSchemas ?: emptyList()
 
-    /** Fetch schema names from API, preserving existing enrichment data. */
-    fun refreshSchemas(): List<SchemaData> {
+    suspend fun refreshSchemas(): List<SchemaData> {
         if (schemaRegistry == null) return emptyList()
 
-        val subjectNames = runBlocking { fetcher?.getAllSubjects() } ?: emptyList()
+        val subjectNames = fetcher?.getAllSubjects() ?: emptyList()
         val existingByName = cachedSchemas?.associateBy { it.name } ?: emptyMap()
         val schemas = subjectNames.map { name ->
             existingByName[name] ?: SchemaData(name = name)
         }
         cachedSchemas = schemas
         return schemas
+    }
+
+    fun updateSchemaInCache(schemaName: String, enrichmentData: SchemaEnrichmentData) {
+        cachedSchemas = cachedSchemas?.map { schema ->
+            if (schema.name == schemaName) {
+                schema.copy(
+                    latestVersion = enrichmentData.latestVersion,
+                    schemaType = enrichmentData.schemaType,
+                    compatibility = enrichmentData.compatibility
+                )
+            } else {
+                schema
+            }
+        }
     }
 
     fun enrichSchemasProgressively(schemas: List<SchemaData>): Flow<SchemaEnrichmentResult> = channelFlow {

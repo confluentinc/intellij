@@ -192,24 +192,20 @@ class BdtMonitoringUpdater(val dataManager: MonitoringDataManager) : Disposable 
                 }
             }
 
+            // Second phase: enrichment (slower, use indeterminate progress)
+            if (modelsForAdditionalUpdate.isNotEmpty()) {
+                notify {
+                    it.setIntermediate(id, true)
+                }
+            }
+
             runBlockingMaybeCancellable {
                 val jobs = modelsForAdditionalUpdate.mapNotNull {
                     val job = it.launchAdditionalUpdate(this)
                     job?.cancelOnDispose(disposable)
                     job
                 }
-                jobs.withIndex().forEach { indexedValue ->
-                    notify {
-                        it.setProgress(id, (indexedValue.index).toDouble() / toUpdate.size)
-                    }
-                    notify {
-                        it.setText(
-                            id,
-                            KafkaMessagesBundle.message("monitoring.progress.update.data", indexedValue.index + 1)
-                        )
-                    }
-                    indexedValue.value.join()
-                }
+                jobs.forEach { it.join() }
             }
         } catch (t: Throwable) {
             models.forEach {
