@@ -35,7 +35,7 @@ class KafkaProducerClient(
     val client = dataManager.client
     val connectionData = client.connectionData
 
-    val isRunning = AtomicBoolean(false)
+    internal val isRunning = AtomicBoolean(false)
 
     override fun isRunning(): Boolean = isRunning.get()
 
@@ -198,7 +198,7 @@ class KafkaProducerClient(
     }
 
     override fun stop() {
-        isRunning.set(false)
+        if (!isRunning.getAndSet(false)) return
         onStop()
     }
 
