@@ -20,7 +20,6 @@ import io.confluent.intellijplugin.core.monitoring.data.storage.RootDataModelSto
 import io.confluent.intellijplugin.toolwindow.config.KafkaClusterConfig
 import io.confluent.intellijplugin.core.util.runAsync
 import io.confluent.intellijplugin.core.rfs.driver.SafeExecutor
-import io.confluent.intellijplugin.core.rfs.util.RfsNotificationUtils
 import io.confluent.intellijplugin.core.util.asSilent
 import kotlin.time.Duration
 import kotlinx.coroutines.future.asCompletableFuture
@@ -39,11 +38,9 @@ import io.confluent.intellijplugin.rfs.ConfluentConnectionData
 import io.confluent.intellijplugin.toolwindow.config.KafkaToolWindowSettings
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
-import kotlinx.coroutines.runInterruptible
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.TopicPartition
 import java.util.concurrent.ConcurrentHashMap
@@ -220,7 +217,10 @@ class CCloudClusterDataManager(
                             }
                     } catch (e: Exception) {
                         if (e !is kotlinx.coroutines.CancellationException) {
-                            thisLogger().warn("Failed to enrich partitions for topic '$topicName' in cluster ${cluster.id}", e)
+                            thisLogger().warn(
+                                "Failed to enrich partitions for topic '$topicName' in cluster ${cluster.id}",
+                                e
+                            )
                         }
                     } finally {
                         partitionEnrichmentJobs.remove(topicName)
@@ -282,6 +282,7 @@ class CCloudClusterDataManager(
                                     topicModel.setData(updated)
                                 }
                             }
+
                             is io.confluent.intellijplugin.ccloud.model.response.TopicEnrichmentResult.Failure -> {
                                 thisLogger().warn("Failed to enrich topic ${result.topicName}: ${result.error.message}")
                             }
@@ -312,38 +313,39 @@ class CCloudClusterDataManager(
         return emptyList()
     }
 
-    override suspend fun listSchemasNames(limit: Int?, filter: String?): Pair<List<KafkaSchemaInfo>, Boolean> = withContext(Dispatchers.IO) {
-        if (!dataPlaneCache.hasSchemaRegistry()) {
-            return@withContext emptyList<KafkaSchemaInfo>() to false
+    override suspend fun listSchemasNames(limit: Int?, filter: String?): Pair<List<KafkaSchemaInfo>, Boolean> =
+        withContext(Dispatchers.IO) {
+            if (!dataPlaneCache.hasSchemaRegistry()) {
+                return@withContext emptyList<KafkaSchemaInfo>() to false
+            }
+
+            try {
+                val schemas = dataPlaneCache.getSchemas().ifEmpty {
+                    dataPlaneCache.refreshSchemas()
+                }
+                // Use SR config (not cluster config) so all clusters sharing an SR see the same favorites
+                val config = getSchemaRegistryConfig()
+
+                var result = schemas.map { schemaData ->
+                    KafkaSchemaInfo(
+                        name = schemaData.name,
+                        type = KafkaRegistryFormat.fromSchemaType(schemaData.schemaType),
+                        version = schemaData.latestVersion?.toLong(),
+                        compatibility = schemaData.compatibility,
+                        isFavorite = config?.schemasPined?.contains(schemaData.name) == true
+                    )
+                }
+
+                if (!filter.isNullOrBlank()) {
+                    result = result.filter { it.name.contains(filter, ignoreCase = true) }
+                }
+
+                result to false
+            } catch (e: Exception) {
+                thisLogger().warn("Failed to list schemas for cluster ${cluster.id}", e)
+                emptyList<KafkaSchemaInfo>() to false
+            }
         }
-
-        try {
-            val schemas = dataPlaneCache.getSchemas().ifEmpty {
-                dataPlaneCache.refreshSchemas()
-            }
-            // Use SR config (not cluster config) so all clusters sharing an SR see the same favorites
-            val config = getSchemaRegistryConfig()
-
-            var result = schemas.map { schemaData ->
-                KafkaSchemaInfo(
-                    name = schemaData.name,
-                    type = KafkaRegistryFormat.fromSchemaType(schemaData.schemaType),
-                    version = schemaData.latestVersion?.toLong(),
-                    compatibility = schemaData.compatibility,
-                    isFavorite = config?.schemasPined?.contains(schemaData.name) == true
-                )
-            }
-
-            if (!filter.isNullOrBlank()) {
-                result = result.filter { it.name.contains(filter, ignoreCase = true) }
-            }
-
-            result to false
-        } catch (e: Exception) {
-            thisLogger().warn("Failed to list schemas for cluster ${cluster.id}", e)
-            emptyList<KafkaSchemaInfo>() to false
-        }
-    }
 
     /** Launch non-blocking schema enrichment job with progressive UI updates. */
     private fun launchSchemaEnrichment(schemas: List<KafkaSchemaInfo>): Job {
@@ -386,9 +388,13 @@ class CCloudClusterDataManager(
                                 model.setData(updatedSchemas)
                             }
                         }
+
                         is io.confluent.intellijplugin.ccloud.model.response.SchemaEnrichmentResult.Failure -> {
                             if (result.error !is kotlinx.coroutines.CancellationException) {
-                                thisLogger().warn("CCloud: Schema enrichment failure (${result.progress.first}/${result.progress.second}): ${result.schemaName} - ${result.error.message}", result.error)
+                                thisLogger().warn(
+                                    "CCloud: Schema enrichment failure (${result.progress.first}/${result.progress.second}): ${result.schemaName} - ${result.error.message}",
+                                    result.error
+                                )
                             }
                         }
                     }
@@ -525,7 +531,10 @@ class CCloudClusterDataManager(
                 schemaVersionInfo
             }
         } catch (e: Exception) {
-            thisLogger().warn("Failed to get schema version info for '$schemaName' version $version in cluster ${cluster.id}", e)
+            thisLogger().warn(
+                "Failed to get schema version info for '$schemaName' version $version in cluster ${cluster.id}",
+                e
+            )
             throw e
         }
     }
