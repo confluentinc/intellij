@@ -81,6 +81,70 @@ class ProducerModelsTest {
     }
 
     @Nested
+    @DisplayName("ProduceRecordData deserialization")
+    inner class RecordDataDeserialization {
+
+        @Test
+        fun `should deserialize from JSON with type and data`() {
+            val input = """{"type": "STRING", "data": "hello-world"}"""
+            val data = json.decodeFromString<ProduceRecordData>(input)
+
+            assertEquals("STRING", data.type)
+            assertEquals("hello-world", data.data)
+        }
+
+        @Test
+        fun `should deserialize with missing data field as null`() {
+            val input = """{"type": "BINARY"}"""
+            val data = json.decodeFromString<ProduceRecordData>(input)
+
+            assertEquals("BINARY", data.type)
+            assertNull(data.data)
+        }
+
+        @Test
+        fun `should deserialize with explicit null data`() {
+            val input = """{"type": "JSON", "data": null}"""
+            val data = json.decodeFromString<ProduceRecordData>(input)
+
+            assertEquals("JSON", data.type)
+            assertNull(data.data)
+        }
+    }
+
+    @Nested
+    @DisplayName("ProduceRecordHeader deserialization")
+    inner class RecordHeaderDeserialization {
+
+        @Test
+        fun `should deserialize from JSON with name and value`() {
+            val input = """{"name": "correlation-id", "value": "dGVzdC12YWx1ZQ=="}"""
+            val header = json.decodeFromString<ProduceRecordHeader>(input)
+
+            assertEquals("correlation-id", header.name)
+            assertEquals("dGVzdC12YWx1ZQ==", header.value)
+        }
+
+        @Test
+        fun `should deserialize with missing value field as null`() {
+            val input = """{"name": "trace-id"}"""
+            val header = json.decodeFromString<ProduceRecordHeader>(input)
+
+            assertEquals("trace-id", header.name)
+            assertNull(header.value)
+        }
+
+        @Test
+        fun `should deserialize with explicit null value`() {
+            val input = """{"name": "empty-header", "value": null}"""
+            val header = json.decodeFromString<ProduceRecordHeader>(input)
+
+            assertEquals("empty-header", header.name)
+            assertNull(header.value)
+        }
+    }
+
+    @Nested
     @DisplayName("ProduceRecordResponse deserialization")
     inner class ResponseDeserialization {
 
