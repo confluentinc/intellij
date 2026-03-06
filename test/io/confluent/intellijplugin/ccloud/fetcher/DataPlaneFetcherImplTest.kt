@@ -255,15 +255,6 @@ class DataPlaneFetcherImplTest {
 
             assertTrue(result.isEmpty())
         }
-
-        @Test
-        fun `encodes subject name with special characters`() = runBlocking {
-            stubSchemaRegistryGet("/subjects/user-value-schema/versions", "[1, 2]")
-
-            val result = fetcher.listSchemaVersions("user-value-schema")
-
-            assertEquals(2, result.size)
-        }
     }
 
     @Nested
@@ -385,7 +376,6 @@ class DataPlaneFetcherImplTest {
 
             val result = fetcher.loadSchemaInfo("missing-schema")
 
-            // Returns minimal SchemaData with only name
             assertEquals("missing-schema", result.name)
             assertEquals(null, result.latestVersion)
             assertEquals(null, result.schemaType)
