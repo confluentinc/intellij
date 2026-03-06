@@ -361,14 +361,14 @@ class DataPlaneFetcherImplTest {
     }
 
     @Nested
-    @DisplayName("getSubjectCompatibility")
-    inner class GetSubjectCompatibilityTests {
+    @DisplayName("getSchemaCompatibility")
+    inner class GetSchemaCompatibilityTests {
 
         @Test
-        fun `fetches subject compatibility successfully`() = runBlocking {
+        fun `fetches schema compatibility successfully`() = runBlocking {
             stubSchemaRegistryGet("/config/user-schema", loadMockResponse("schema-compatibility.json"))
 
-            val result = fetcher.getSubjectCompatibility("user-schema")
+            val result = fetcher.getSchemaCompatibility("user-schema")
 
             assertEquals("BACKWARD", result.compatibilityLevel)
         }

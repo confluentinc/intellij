@@ -19,33 +19,33 @@ interface DataPlaneFetcher {
     /** Get all subject names from Schema Registry. */
     suspend fun getAllSubjects(): List<String>
 
-    /** Load schema info (version, type) for a subject. */
-    suspend fun loadSchemaInfo(subjectName: String): SchemaData
+    /** Load schema info (version, type) for a schema. */
+    suspend fun loadSchemaInfo(schemaName: String): SchemaData
 
-    /** List all versions for a subject. */
-    suspend fun listSchemaVersions(subjectName: String): List<Long>
+    /** List all versions for a schema. */
+    suspend fun listSchemaVersions(schemaName: String): List<Long>
 
     /** Get schema content for a specific version. */
-    suspend fun getSchemaVersionInfo(subjectName: String, version: Long): SchemaVersionResponse
+    suspend fun getSchemaVersionInfo(schemaName: String, version: Long): SchemaVersionResponse
 
     /** Get latest schema version. */
-    suspend fun getLatestVersionInfo(subjectName: String): SchemaVersionResponse
+    suspend fun getLatestVersionInfo(schemaName: String): SchemaVersionResponse
 
     /** Get schema by global ID. */
     suspend fun getSchemaIdInfo(schemaId: Int): SchemaByIdResponse
 
-    /** Register a new schema or new version of existing schema. */
-    suspend fun registerSchema(subjectName: String, request: RegisterSchemaRequest): RegisterSchemaResponse
+    /** Create a new schema or new version of existing schema. */
+    suspend fun createSchema(schemaName: String, request: RegisterSchemaRequest): RegisterSchemaResponse
 
     /** Check if schema already exists. */
-    suspend fun checkSchemaExists(subjectName: String, request: RegisterSchemaRequest): CheckSchemaExistsResponse
+    suspend fun checkSchemaExists(schemaName: String, request: RegisterSchemaRequest): CheckSchemaExistsResponse
 
-    /** Delete a subject (all versions). If permanent=true, hard delete; otherwise soft delete. */
-    suspend fun deleteSubject(subjectName: String, permanent: Boolean = false): DeleteSubjectResponse
+    /** Delete a schema (all versions). If permanent=true, hard delete; otherwise soft delete. */
+    suspend fun deleteSchema(schemaName: String, permanent: Boolean = false): DeleteSubjectResponse
 
     /** Delete a specific schema version. If permanent=true, hard delete; otherwise soft delete. */
-    suspend fun deleteSchemaVersion(subjectName: String, version: Long, permanent: Boolean = false): DeleteSchemaVersionResponse
+    suspend fun deleteSchemaVersion(schemaName: String, version: Long, permanent: Boolean = false): DeleteSchemaVersionResponse
 
-    /** Get compatibility level for a specific subject. Returns null if using global default. */
-    suspend fun getSubjectCompatibility(subjectName: String): CompatibilityResponse
+    /** Get compatibility level for a specific schema. Returns null if using global default. */
+    suspend fun getSchemaCompatibility(schemaName: String): CompatibilityResponse
 }
