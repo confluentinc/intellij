@@ -52,7 +52,7 @@ abstract class BaseClusterDataManager(
     abstract fun getSchemaPath(schemaName: String): io.confluent.intellijplugin.core.rfs.driver.RfsPath
 
     /**
-     * Get the config ID to use for schema registry settings (favorites, filters, limits).
+     * Get the config ID to use for all schema-related settings (favorites, filters, limits).
      * For Kafka: returns connectionId
      * For CCloud: returns schema registry ID (so all clusters sharing an SR see the same config)
      */
@@ -281,14 +281,8 @@ abstract class BaseClusterDataManager(
 
     fun getSchemaVersionsModel(schemaName: String) = schemaVersionModels[schemaName]
 
-    /**
-     * Gets the configuration ID used for schema favorites.
-     * By default uses connectionId, but can be overridden (e.g., CCloud uses SR ID).
-     */
-    open fun getSchemaFavoritesConfigId(): String = connectionId
-
     open fun updatePinnedSchemas(schemaName: String, isForAdding: Boolean) {
-        val config = KafkaToolWindowSettings.getInstance().getOrCreateConfig(getSchemaFavoritesConfigId())
+        val config = KafkaToolWindowSettings.getInstance().getOrCreateConfig(getSchemaRegistryConfigId())
         if (isForAdding) {
             config.schemasPined += schemaName
         } else {
