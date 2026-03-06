@@ -48,4 +48,7 @@ interface DataPlaneFetcher {
 
     /** Get compatibility level for a specific schema. Returns null if using global default. */
     suspend fun getSchemaCompatibility(schemaName: String): CompatibilityResponse
+
+    /** Get schema by GUID (used in V1 wire format with header-based schema references). */
+    suspend fun getSchemaByGuid(guid: String): SchemaByIdResponse
 }

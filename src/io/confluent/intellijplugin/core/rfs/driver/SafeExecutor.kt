@@ -218,13 +218,15 @@ class SafeExecutor(val coroutineScope: CoroutineScope, private val defaultTimeou
                     val waitTime = currentTime.elapsedNow()
                     val application = ApplicationManager.getApplication()
                     if (application.isInternal() || application.isUnitTestMode()) {
-                        thisLogger().warn(
-                            "SafeExecutor had to detach cancelling job $title. Finished after $waitTime. Coroutine dump:\n$dump"
+                        thisLogger().error(
+                            "SafeExecutor had to detach cancelling job $title. Finished after $waitTime. Coroutine dump:\n$dump",
+                            e
                         )
                     } else if (application.isEAP()) {
                         if (waitTime > 30.seconds) {
                             thisLogger().warn(
-                                "SafeExecutor had to detach cancelling job $title. Finished after $waitTime. Coroutine dump:\n$dump"
+                                "SafeExecutor had to detach cancelling job $title. Finished after $waitTime. Coroutine dump:\n$dump",
+                                e
                             )
                         }
                     }
