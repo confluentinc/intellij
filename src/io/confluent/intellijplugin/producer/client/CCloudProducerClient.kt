@@ -16,7 +16,14 @@ import io.confluent.intellijplugin.producer.models.AcksType
 import io.confluent.intellijplugin.producer.models.Mode
 import io.confluent.intellijplugin.producer.models.ProducerFlowParams
 import io.confluent.intellijplugin.producer.models.RecordCompression
+import io.confluent.intellijplugin.registry.KafkaRegistryFormat
+import io.confluent.kafka.schemaregistry.avro.AvroSchema
+import io.confluent.kafka.schemaregistry.avro.AvroSchemaUtils
+import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchema
+import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchemaUtils
+import com.google.protobuf.DynamicMessage
 import io.confluent.intellijplugin.ccloud.fetcher.DataPlaneFetcher
+import io.confluent.kafka.schemaregistry.protobuf.MessageIndexes
 import io.confluent.intellijplugin.util.generator.FieldTemplateGenerator
 import io.confluent.intellijplugin.util.generator.GenerateRandomData
 import io.confluent.intellijplugin.util.csv.KafkaCsvUtils
@@ -29,8 +36,11 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import org.apache.avro.generic.GenericDatumWriter
+import org.apache.avro.io.EncoderFactory
 import org.apache.kafka.common.serialization.*
 import org.jetbrains.annotations.VisibleForTesting
+import java.nio.ByteBuffer
 import java.time.Instant
 import java.util.Base64
 import java.util.concurrent.atomic.AtomicBoolean
@@ -178,7 +188,7 @@ class CCloudProducerClient(
             }
 
             val request = buildProduceRequest(
-                recordKey, recordValue, processedHeaders, topic, forcePartition
+                fetcher, recordKey, recordValue, processedHeaders, topic, forcePartition
             )
 
             val startTime = System.currentTimeMillis()
@@ -239,7 +249,8 @@ class CCloudProducerClient(
     }
 
     @VisibleForTesting
-    internal fun buildProduceRequest(
+    internal suspend fun buildProduceRequest(
+        fetcher: DataPlaneFetcher,
         key: ConsumerProducerFieldConfig,
         value: ConsumerProducerFieldConfig,
         headers: List<Property>,
@@ -256,14 +267,15 @@ class CCloudProducerClient(
                     }
                 )
             },
-            key = buildRecordData(key, topic),
-            value = buildRecordData(value, topic),
+            key = buildRecordData(fetcher, key, topic),
+            value = buildRecordData(fetcher, value, topic),
             timestamp = null
         )
     }
 
     @VisibleForTesting
-    internal fun buildRecordData(
+    internal suspend fun buildRecordData(
+        fetcher: DataPlaneFetcher,
         field: ConsumerProducerFieldConfig,
         topic: String
     ): ProduceRecordData? {
@@ -278,6 +290,9 @@ class CCloudProducerClient(
                 type = "JSON",
                 data = field.valueText
             )
+            KafkaFieldType.SCHEMA_REGISTRY -> buildSchemaRegistryData(fetcher, field)
+            KafkaFieldType.AVRO_CUSTOM -> buildAvroData(field)
+            KafkaFieldType.PROTOBUF_CUSTOM -> buildProtobufData(field)
             else -> {
                 // Primitive types (LONG, INTEGER, DOUBLE, FLOAT, BASE64)
                 val valueObj = field.getValueObj() ?: return null
@@ -288,6 +303,109 @@ class CCloudProducerClient(
                 )
             }
         }
+    }
+
+    /**
+     * Build record data for SCHEMA_REGISTRY types.
+     *
+     * Serialize client-side and prepend the Confluent V0 wire format prefix
+     * The schema ID is resolved by fetching the latest version from Schema Registry.
+     */
+    private suspend fun buildSchemaRegistryData(
+        fetcher: DataPlaneFetcher,
+        field: ConsumerProducerFieldConfig
+    ): ProduceRecordData {
+        val schemaInfo = fetcher.getLatestVersionInfo(field.schemaName)
+        val schemaId = schemaInfo.id
+
+        val payloadBytes = when (field.schemaFormat) {
+            KafkaRegistryFormat.AVRO -> {
+                val avroSchema = field.parsedSchema as AvroSchema
+                val record = AvroSchemaUtils.toObject(field.valueText, avroSchema)
+                serializeAvro(record, avroSchema)
+            }
+            KafkaRegistryFormat.PROTOBUF -> {
+                val protobufSchema = field.parsedSchema as ProtobufSchema
+                val message = ProtobufSchemaUtils.toObject(field.valueText, protobufSchema) as DynamicMessage
+                serializeProtobuf(message)
+            }
+            KafkaRegistryFormat.JSON -> field.valueText.toByteArray(Charsets.UTF_8)
+            KafkaRegistryFormat.UNKNOWN -> error("Schema format unknown")
+        }
+
+        val wireBytes = prependSchemaIdPrefix(schemaId, payloadBytes)
+        return ProduceRecordData(
+            type = "BINARY",
+            data = Base64.getEncoder().encodeToString(wireBytes)
+        )
+    }
+
+    /**
+     * Serialize Avro data to binary bytes client-side (no wire format prefix).
+     * Used for AVRO_CUSTOM where there is no SR subject.
+     */
+    private fun buildAvroData(field: ConsumerProducerFieldConfig): ProduceRecordData {
+        val avroSchema = field.parsedSchema as AvroSchema
+        val record = AvroSchemaUtils.toObject(field.valueText, avroSchema)
+        val bytes = serializeAvro(record, avroSchema)
+        return ProduceRecordData(
+            type = "BINARY",
+            data = Base64.getEncoder().encodeToString(bytes)
+        )
+    }
+
+    /**
+     * Serialize Protobuf data to binary bytes client-side (no wire format prefix).
+     * Used for PROTOBUF_CUSTOM where there is no SR subject.
+     */
+    private fun buildProtobufData(field: ConsumerProducerFieldConfig): ProduceRecordData {
+        val protobufSchema = field.parsedSchema as ProtobufSchema
+        val message = ProtobufSchemaUtils.toObject(field.valueText, protobufSchema) as DynamicMessage
+        return ProduceRecordData(
+            type = "BINARY",
+            data = Base64.getEncoder().encodeToString(message.toByteArray())
+        )
+    }
+
+    /**
+     * Prepend the Confluent V0 wire format prefix to payload bytes.*
+     * Mirror of [CCloudConsumerClient.getSchemaIdFromRawBytes] which strips this prefix.
+     */
+    @VisibleForTesting
+    internal fun prependSchemaIdPrefix(schemaId: Int, payload: ByteArray): ByteArray {
+        val buffer = ByteBuffer.allocate(1 + 4 + payload.size)
+        buffer.put(0x00.toByte()) // magic byte
+        buffer.putInt(schemaId)
+        buffer.put(payload)
+        return buffer.array()
+    }
+
+    /**
+     * Serialize a Protobuf message to bytes with message index varints.
+     * Mirror of [CCloudConsumerClient.deserializeProtobuf] which reads these indexes.
+     */
+    @VisibleForTesting
+    internal fun serializeProtobuf(message: DynamicMessage): ByteArray {
+        val outputStream = java.io.ByteArrayOutputStream()
+        // Write default message indexes (single message at index 0)
+        outputStream.write(MessageIndexes(listOf(0)).toByteArray())
+        message.writeTo(outputStream)
+        return outputStream.toByteArray()
+    }
+
+    /**
+     * Serialize an Avro value to binary bytes.
+     * Mirror of [CCloudConsumerClient.deserializeAvro].
+     */
+    @VisibleForTesting
+    internal fun serializeAvro(value: Any, schema: AvroSchema): ByteArray {
+        val avroSchema = schema.rawSchema()
+        val writer = GenericDatumWriter<Any>(avroSchema)
+        val outputStream = java.io.ByteArrayOutputStream()
+        val encoder = EncoderFactory.get().binaryEncoder(outputStream, null)
+        writer.write(value, encoder)
+        encoder.flush()
+        return outputStream.toByteArray()
     }
 
     /**
