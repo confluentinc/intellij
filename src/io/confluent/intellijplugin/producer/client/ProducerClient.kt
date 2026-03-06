@@ -4,7 +4,6 @@ import com.intellij.openapi.Disposable
 import io.confluent.intellijplugin.consumer.editor.KafkaRecord
 import io.confluent.intellijplugin.consumer.models.ConsumerProducerFieldConfig
 import io.confluent.intellijplugin.core.settings.connections.Property
-import io.confluent.intellijplugin.data.BaseClusterDataManager
 import io.confluent.intellijplugin.producer.models.AcksType
 import io.confluent.intellijplugin.producer.models.ProducerFlowParams
 import io.confluent.intellijplugin.producer.models.RecordCompression
@@ -21,7 +20,6 @@ import io.confluent.intellijplugin.producer.models.RecordCompression
 interface ProducerClient : Disposable {
 
     fun start(
-        dataManager: BaseClusterDataManager,
         topic: String,
         key: ConsumerProducerFieldConfig,
         value: ConsumerProducerFieldConfig,

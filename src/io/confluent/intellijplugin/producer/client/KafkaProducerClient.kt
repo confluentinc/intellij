@@ -1,13 +1,11 @@
 package io.confluent.intellijplugin.producer.client
 
 import com.intellij.charts.dataframe.DataFrame
-import io.confluent.intellijplugin.client.KafkaClient
 import io.confluent.intellijplugin.consumer.editor.KafkaRecord
 import io.confluent.intellijplugin.consumer.models.ConsumerProducerFieldConfig
 import io.confluent.intellijplugin.core.rfs.util.RfsNotificationUtils
 import io.confluent.intellijplugin.core.settings.connections.Property
 import io.confluent.intellijplugin.core.util.withPluginClassLoader
-import io.confluent.intellijplugin.data.BaseClusterDataManager
 import io.confluent.intellijplugin.data.KafkaDataManager
 import io.confluent.intellijplugin.producer.models.AcksType
 import io.confluent.intellijplugin.producer.models.Mode
@@ -29,7 +27,12 @@ import java.util.*
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 
-class KafkaProducerClient(val client: KafkaClient) : ProducerClient {
+class KafkaProducerClient(
+    val dataManager: KafkaDataManager,
+    val onStart: () -> Unit,
+    val onStop: () -> Unit
+) : ProducerClient {
+    val client = dataManager.client
     val connectionData = client.connectionData
 
     val isRunning = AtomicBoolean(false)
@@ -37,7 +40,6 @@ class KafkaProducerClient(val client: KafkaClient) : ProducerClient {
     override fun isRunning(): Boolean = isRunning.get()
 
     override fun start(
-        dataManager: BaseClusterDataManager,
         topic: String,
         key: ConsumerProducerFieldConfig,
         value: ConsumerProducerFieldConfig,
@@ -49,21 +51,21 @@ class KafkaProducerClient(val client: KafkaClient) : ProducerClient {
         flowParams: ProducerFlowParams,
         onUpdate: (Long, List<KafkaRecord>) -> Unit
     ) {
-        val kafkaDataManager = dataManager as KafkaDataManager
         try {
             if (isRunning())
                 error("Producer is already run")
+            isRunning.set(true)
+            onStart()
+
             val props = createProducerProperties(recordCompression, enableIdempotence, acks)
 
             @Suppress("UNCHECKED_CAST")
             val producer = withPluginClassLoader {
-                val keySerializer: Serializer<out Any> = key.type.getSerializer(kafkaDataManager, producerField = key)
-                val valueSerializer = value.type.getSerializer(kafkaDataManager, producerField = value)
+                val keySerializer: Serializer<out Any> = key.type.getSerializer(dataManager, producerField = key)
+                val valueSerializer = value.type.getSerializer(dataManager, producerField = value)
                 KafkaProducer(props, keySerializer, valueSerializer) as KafkaProducer<Any, Any>
             }
             try {
-                isRunning.set(true)
-
                 val csvDataFrame = flowParams.csvFile?.let {
                     KafkaCsvUtils.readDataFrame(it)
                 }
@@ -106,7 +108,6 @@ class KafkaProducerClient(val client: KafkaClient) : ProducerClient {
             } finally {
                 producer.flush()
                 producer.close()
-                isRunning.set(false)
             }
         } catch (t: Throwable) {
             RfsNotificationUtils.showExceptionMessage(
@@ -114,6 +115,8 @@ class KafkaProducerClient(val client: KafkaClient) : ProducerClient {
                 t,
                 KafkaMessagesBundle.message("error.producer.title")
             )
+        } finally {
+            stop()
         }
     }
 
@@ -195,16 +198,11 @@ class KafkaProducerClient(val client: KafkaClient) : ProducerClient {
     }
 
     override fun stop() {
-        if (!isRunning())
-            error("Producer is not run")
         isRunning.set(false)
+        onStop()
     }
 
-    override fun dispose() {
-        if (isRunning()) {
-            isRunning.set(false)
-        }
-    }
+    override fun dispose() = stop()
 
 
     private fun sentMessage(
