@@ -46,7 +46,7 @@ abstract class BaseClusterDataManager(
 
     /**
      * Get the RFS path for a schema subject.
-     * Kafka: ["Schema Registry Group", schemaName]
+     * Kafka: ["Schema Registry", schemaName]
      * CCloud: [schemaRegistryId, schemaName]
      */
     abstract fun getSchemaPath(schemaName: String): io.confluent.intellijplugin.core.rfs.driver.RfsPath

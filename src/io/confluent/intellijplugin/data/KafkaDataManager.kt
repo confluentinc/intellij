@@ -64,7 +64,7 @@ class KafkaDataManager(
     override fun supportsDetailsPanel(): Boolean = true
 
     /**
-     * Get the RFS path for a schema subject in Kafka format: ["Schema Registry Group", schemaName]
+     * Get the RFS path for a schema subject in Kafka format: ["Schema Registry", schemaName]
      */
     override fun getSchemaPath(schemaName: String): io.confluent.intellijplugin.core.rfs.driver.RfsPath {
         return KafkaDriver.schemasPath.child(schemaName, false)
