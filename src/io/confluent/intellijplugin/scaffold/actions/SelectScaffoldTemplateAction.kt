@@ -11,7 +11,8 @@ import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory
 import com.intellij.openapi.progress.currentThreadCoroutineScope
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.project.ProjectManager
+import com.intellij.ide.impl.OpenProjectTask
+import com.intellij.openapi.project.ex.ProjectManagerEx
 import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.platform.ide.progress.withBackgroundProgress
@@ -48,7 +49,9 @@ class SelectScaffoldTemplateAction(
         )
     },
     private val projectOpener: (Path) -> Unit = { path ->
-        ProjectManager.getInstance().loadAndOpenProject(path.toString())
+        ProjectManagerEx.getInstanceEx().openProject(path, OpenProjectTask {
+            forceOpenInNewFrame = true
+        })
     }
 ) : DumbAwareAction() {
 
