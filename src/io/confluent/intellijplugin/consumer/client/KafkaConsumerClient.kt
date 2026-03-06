@@ -28,7 +28,7 @@ class KafkaConsumerClient(
 ) : ConsumerClient {
     val client = dataManager.client
     val connectionData = client.connectionData
-    private val isRunning = AtomicBoolean(false)
+    internal val isRunning = AtomicBoolean(false)
     private var curRunId = AtomicInteger(0)
     private var runConsumer: KafkaConsumer<Any, Any>? = null
 
@@ -272,7 +272,7 @@ class KafkaConsumerClient(
     }
 
     override fun stop() {
-        isRunning.set(false)
+        if (!isRunning.getAndSet(false)) return
         onStop()
     }
 
