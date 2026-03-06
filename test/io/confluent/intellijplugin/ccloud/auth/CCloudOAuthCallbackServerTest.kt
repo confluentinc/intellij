@@ -13,6 +13,8 @@ import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.mock
 import java.net.HttpURLConnection
 import java.net.URI
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 import javax.net.ssl.SSLHandshakeException
 
 @TestApplication
@@ -131,18 +133,21 @@ class CCloudOAuthCallbackServerTest {
             assertTrue(result.html.contains("user@example.com"))
         }
 
-        @Test
-        fun `token exchange failure returns 500`() = runBlocking {
+        private fun serverWithFailingTokenExchange(failure: Throwable): CCloudOAuthCallbackServer {
             val mockContext = mock<CCloudOAuthContext> {
                 on { oauthState } doReturn "test-state"
-                onBlocking { createTokensFromAuthorizationCode("code") } doReturn Result.failure(RuntimeException("Network error"))
+                onBlocking { createTokensFromAuthorizationCode("code") } doReturn Result.failure(failure)
             }
-
-            val testServer = CCloudOAuthCallbackServer(
+            return CCloudOAuthCallbackServer(
                 oauthContext = mockContext,
                 onSuccess = {},
                 onError = {}
             )
+        }
+
+        @Test
+        fun `token exchange failure returns 500`() = runBlocking {
+            val testServer = serverWithFailingTokenExchange(RuntimeException("Network error"))
 
             val result = testServer.processCallback(code = "code", state = "test-state", error = null)
 
@@ -153,16 +158,7 @@ class CCloudOAuthCallbackServerTest {
 
         @Test
         fun `SSLHandshakeException returns TLS-specific error message`() = runBlocking {
-            val mockContext = mock<CCloudOAuthContext> {
-                on { oauthState } doReturn "test-state"
-                onBlocking { createTokensFromAuthorizationCode("code") } doReturn Result.failure(SSLHandshakeException("cert error"))
-            }
-
-            val testServer = CCloudOAuthCallbackServer(
-                oauthContext = mockContext,
-                onSuccess = {},
-                onError = {}
-            )
+            val testServer = serverWithFailingTokenExchange(SSLHandshakeException("cert error"))
 
             val result = testServer.processCallback(code = "code", state = "test-state", error = null)
 
@@ -173,17 +169,8 @@ class CCloudOAuthCallbackServerTest {
 
         @Test
         fun `invalid_grant error returns 400 with user-friendly message`() = runBlocking {
-            val mockContext = mock<CCloudOAuthContext> {
-                on { oauthState } doReturn "test-state"
-                onBlocking { createTokensFromAuthorizationCode("code") } doReturn Result.failure(
-                    OAuthErrorException("invalid_grant", "Authorization code has expired", 400)
-                )
-            }
-
-            val testServer = CCloudOAuthCallbackServer(
-                oauthContext = mockContext,
-                onSuccess = {},
-                onError = {}
+            val testServer = serverWithFailingTokenExchange(
+                OAuthErrorException("invalid_grant", "Authorization code has expired", 400)
             )
 
             val result = testServer.processCallback(code = "code", state = "test-state", error = null)
@@ -195,17 +182,8 @@ class CCloudOAuthCallbackServerTest {
 
         @Test
         fun `access_denied error returns 400`() = runBlocking {
-            val mockContext = mock<CCloudOAuthContext> {
-                on { oauthState } doReturn "test-state"
-                onBlocking { createTokensFromAuthorizationCode("code") } doReturn Result.failure(
-                    OAuthErrorException("access_denied", "User denied access", 400)
-                )
-            }
-
-            val testServer = CCloudOAuthCallbackServer(
-                oauthContext = mockContext,
-                onSuccess = {},
-                onError = {}
+            val testServer = serverWithFailingTokenExchange(
+                OAuthErrorException("access_denied", "User denied access", 400)
             )
 
             val result = testServer.processCallback(code = "code", state = "test-state", error = null)
@@ -217,17 +195,8 @@ class CCloudOAuthCallbackServerTest {
 
         @Test
         fun `invalid_request error returns 400`() = runBlocking {
-            val mockContext = mock<CCloudOAuthContext> {
-                on { oauthState } doReturn "test-state"
-                onBlocking { createTokensFromAuthorizationCode("code") } doReturn Result.failure(
-                    OAuthErrorException("invalid_request", "Missing required parameter", 400)
-                )
-            }
-
-            val testServer = CCloudOAuthCallbackServer(
-                oauthContext = mockContext,
-                onSuccess = {},
-                onError = {}
+            val testServer = serverWithFailingTokenExchange(
+                OAuthErrorException("invalid_request", "Missing required parameter", 400)
             )
 
             val result = testServer.processCallback(code = "code", state = "test-state", error = null)
@@ -239,24 +208,53 @@ class CCloudOAuthCallbackServerTest {
 
         @Test
         fun `unknown error returns 500`() = runBlocking {
-            val mockContext = mock<CCloudOAuthContext> {
-                on { oauthState } doReturn "test-state"
-                onBlocking { createTokensFromAuthorizationCode("code") } doReturn Result.failure(
-                    RuntimeException("Connection refused")
-                )
-            }
-
-            val testServer = CCloudOAuthCallbackServer(
-                oauthContext = mockContext,
-                onSuccess = {},
-                onError = {}
-            )
+            val testServer = serverWithFailingTokenExchange(RuntimeException("Connection refused"))
 
             val result = testServer.processCallback(code = "code", state = "test-state", error = null)
 
             assertEquals(500, result.statusCode)
             assertEquals("Connection refused", result.errorMessage)
             assertNull(result.successContext)
+        }
+    }
+
+    @Nested
+    @DisplayName("error handling")
+    inner class ErrorHandlingTests {
+
+        private val server = CCloudOAuthCallbackServer(
+            oauthContext = CCloudOAuthContext(),
+            onSuccess = {},
+            onError = {}
+        )
+
+        @Test
+        fun `getErrorStatusAndMessage returns OAuthErrorException httpStatusCode`() {
+            val (status, _) = server.getErrorStatusAndMessage(
+                OAuthErrorException("invalid_grant", "Authorization code has expired", 400)
+            )
+            assertEquals(400, status)
+        }
+
+        @Test
+        fun `getErrorStatusAndMessage returns 500 for SSLHandshakeException`() {
+            val (status, message) = server.getErrorStatusAndMessage(SSLHandshakeException("cert error"))
+            assertEquals(500, status)
+            assertTrue(message.contains("SSL/TLS handshake"))
+        }
+
+        @Test
+        fun `getErrorStatusAndMessage returns 500 for generic exceptions`() {
+            val (status, message) = server.getErrorStatusAndMessage(RuntimeException("Connection refused"))
+            assertEquals(500, status)
+            assertEquals("Connection refused", message)
+        }
+
+        @Test
+        fun `getErrorStatusAndMessage uses fallback for exception with null message`() {
+            val (status, message) = server.getErrorStatusAndMessage(RuntimeException())
+            assertEquals(500, status)
+            assertEquals("Token exchange failed", message)
         }
     }
 
@@ -347,6 +345,61 @@ class CCloudOAuthCallbackServerTest {
             server.start()
             server.stop()
             server.stop() // Should not throw
+        }
+
+        @Test
+        fun `onError callback is invoked when error parameter is present`() {
+            var capturedError: String? = null
+            val latch = CountDownLatch(1)
+            val errorServer = CCloudOAuthCallbackServer(
+                oauthContext = CCloudOAuthContext(),
+                onSuccess = {},
+                onError = { msg -> capturedError = msg; latch.countDown() }
+            )
+            errorServer.start()
+
+            httpGet("error=access_denied")
+            assertTrue(latch.await(5, TimeUnit.SECONDS), "onError callback should be invoked")
+            assertEquals("access_denied", capturedError)
+        }
+
+        @Test
+        fun `onSuccess callback is invoked with valid auth flow`() {
+            var successInvoked = false
+            val latch = CountDownLatch(1)
+            val mockContext = mock<CCloudOAuthContext> {
+                on { oauthState } doReturn "test-state"
+                on { getUserEmail() } doReturn "user@test.com"
+                onBlocking { createTokensFromAuthorizationCode("valid-code") } doReturn Result.success(mock)
+            }
+            val successServer = CCloudOAuthCallbackServer(
+                oauthContext = mockContext,
+                onSuccess = { successInvoked = true; latch.countDown() },
+                onError = {}
+            )
+            successServer.start()
+
+            httpGet("code=valid-code&state=test-state")
+            assertTrue(latch.await(5, TimeUnit.SECONDS), "onSuccess callback should be invoked")
+            assertTrue(successInvoked)
+        }
+
+        @Test
+        fun `server stops after handling a callback`() {
+            val latch = CountDownLatch(1)
+            val callbackServer = CCloudOAuthCallbackServer(
+                oauthContext = CCloudOAuthContext(),
+                onSuccess = {},
+                onError = { latch.countDown() }
+            )
+            callbackServer.start()
+
+            httpGet("error=test")
+            assertTrue(latch.await(5, TimeUnit.SECONDS), "callback should complete")
+
+            // Give the async stop() a moment to execute
+            Thread.sleep(500)
+            assertThrows<Exception> { httpGet("error=test2") }
         }
 
         private fun httpGet(query: String): Pair<Int, String> {
