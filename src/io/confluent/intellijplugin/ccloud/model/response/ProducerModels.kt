@@ -66,7 +66,7 @@ data class ProduceRecordResponse(
     val offset: Long? = null,
 
     @SerialName("timestamp")
-    val timestamp: Long? = null,
+    val timestamp: String? = null,
 
     @SerialName("key")
     val key: ProduceRecordResponseData? = null,

@@ -158,7 +158,7 @@ class ProducerModelsTest {
             assertEquals("test-topic", response.topicName)
             assertEquals(0, response.partitionId)
             assertEquals(42, response.offset)
-            assertEquals(1709654400000L, response.timestamp)
+            assertEquals("2024-03-05T16:00:00.000Z", response.timestamp)
             assertEquals(6, response.key?.size)
             assertEquals("STRING", response.key?.type)
             assertEquals(8, response.value?.size)
@@ -186,7 +186,7 @@ class ProducerModelsTest {
                     "topic_name": "t",
                     "partition_id": 0,
                     "offset": 1,
-                    "timestamp": 100,
+                    "timestamp": "2024-01-01T00:00:00.000Z",
                     "unknown_field": "should be ignored"
                 }
             """.trimIndent()
@@ -204,7 +204,7 @@ class ProducerModelsTest {
                 topicName = "topic-1",
                 partitionId = 2,
                 offset = 99,
-                timestamp = 1709654400000L,
+                timestamp = "2024-03-05T16:00:00.000Z",
                 key = ProduceRecordResponseData(size = 5, type = "STRING"),
                 value = ProduceRecordResponseData(size = 10, type = "BINARY")
             )
