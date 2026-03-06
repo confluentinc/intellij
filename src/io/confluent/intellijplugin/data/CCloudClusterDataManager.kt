@@ -884,14 +884,6 @@ class CCloudClusterDataManager(
 
     override fun clearPartitions(partitions: List<BdtTopicPartition>) {}
 
-    /**
-     * Override to use Schema Registry ID (not cluster connection ID) for schema favorites.
-     * This ensures all clusters sharing the same SR see the same schema favorites.
-     */
-    override fun getSchemaFavoritesConfigId(): String {
-        return getSchemaRegistryId() ?: connectionId
-    }
-
     override fun supportsClearPartitions(): Boolean = false
 
     override fun supportsInSyncReplicasData(): Boolean = false

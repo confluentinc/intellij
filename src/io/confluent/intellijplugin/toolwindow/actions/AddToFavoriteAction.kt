@@ -27,7 +27,7 @@ class AddToFavoriteAction : DumbAwareToggleAction() {
                 config.topicsPined.contains(rfsPath.name)
             }
             rfsPath.isSchema() -> {
-                val config = KafkaToolWindowSettings.getInstance().getOrCreateConfig(dataManager.getSchemaFavoritesConfigId())
+                val config = KafkaToolWindowSettings.getInstance().getOrCreateConfig(dataManager.getSchemaRegistryConfigId())
                 config.schemasPined.contains(rfsPath.name)
             }
             rfsPath.isConsumerGroup() -> {
