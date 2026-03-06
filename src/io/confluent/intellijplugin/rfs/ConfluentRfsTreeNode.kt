@@ -3,17 +3,14 @@ package io.confluent.intellijplugin.rfs
 import com.intellij.icons.AllIcons
 import com.intellij.ide.projectView.PresentationData
 import com.intellij.openapi.project.Project
+import io.confluent.intellijplugin.icons.BigdatatoolsKafkaIcons
 import io.confluent.intellijplugin.rfs.ConfluentDriver.Companion.isCluster
 import io.confluent.intellijplugin.rfs.ConfluentDriver.Companion.isSchemaRegistry
 import io.confluent.intellijplugin.rfs.ConfluentDriver.Companion.isTopic
 import io.confluent.intellijplugin.rfs.ConfluentDriver.Companion.isSchema
-import io.confluent.intellijplugin.rfs.ConfluentDriver.Companion.getEnvironmentId
-import io.confluent.intellijplugin.rfs.ConfluentDriver.Companion.getClusterId
-import io.confluent.intellijplugin.rfs.ConfluentDriver.Companion.getSchemaRegistryId
 import io.confluent.intellijplugin.core.monitoring.rfs.MonitoringRfsTreeNode
 import io.confluent.intellijplugin.core.rfs.driver.RfsPath
 import io.confluent.intellijplugin.toolwindow.config.KafkaToolWindowSettings
-import io.confluent.intellijplugin.util.KafkaMessagesBundle.message
 import javax.swing.Icon
 
 /**
@@ -50,10 +47,10 @@ class ConfluentRfsTreeNode(
 
     override fun getIdleIcon(): Icon? {
         return when {
-            rfsPath.isCluster(confluentDriver) -> AllIcons.Nodes.Module
-            rfsPath.isSchemaRegistry(confluentDriver) -> AllIcons.Nodes.DataSchema
-            rfsPath.isTopic -> if (checkIsFavorite()) AllIcons.Nodes.Favorite else AllIcons.Nodes.Tag
-            rfsPath.isSchema -> AllIcons.FileTypes.Json
+            rfsPath.isCluster(confluentDriver) -> BigdatatoolsKafkaIcons.ConfluentKafkaCluster
+            rfsPath.isSchemaRegistry(confluentDriver) -> BigdatatoolsKafkaIcons.ConfluentSrCluster
+            rfsPath.isTopic -> if (checkIsFavorite()) AllIcons.Nodes.Favorite else BigdatatoolsKafkaIcons.ConfluentTopic
+            rfsPath.isSchema -> BigdatatoolsKafkaIcons.ConfluentSchema
             else -> null
         }
     }

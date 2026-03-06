@@ -10,12 +10,13 @@ import kotlinx.serialization.Serializable
  */
 
 
-/** Response from GET /org/v2/environments */
 @Serializable
 data class ListEnvironmentsResponse(
-    val data: List<EnvironmentData> = emptyList(),
+    val data: List<EnvironmentData>? = null,
     val metadata: ListMetadata? = null
-)
+) {
+    fun dataOrEmpty(): List<EnvironmentData> = data ?: emptyList()
+}
 
 @Serializable
 data class EnvironmentData(
@@ -29,12 +30,13 @@ data class StreamGovernanceConfig(
     @SerialName("package") val packageName: String? = null
 )
 
-/** Response from GET /cmk/v2/clusters?environment={envId} */
 @Serializable
 data class ListClustersResponse(
-    val data: List<ClusterData> = emptyList(),
+    val data: List<ClusterData>? = null,
     val metadata: ListMetadata? = null
-)
+) {
+    fun dataOrEmpty(): List<ClusterData> = data ?: emptyList()
+}
 
 @Serializable
 data class ClusterData(
@@ -57,12 +59,13 @@ data class ClusterEnvironment(
     val id: String
 )
 
-/** Response from GET /srcm/v3/clusters?environment={envId} (lists Schema Registry cluster). */
 @Serializable
 data class ListSchemaRegistryResponse(
-    val data: List<SchemaRegistryData> = emptyList(),
+    val data: List<SchemaRegistryData>? = null,
     val metadata: ListMetadata? = null
-)
+) {
+    fun dataOrEmpty(): List<SchemaRegistryData> = data ?: emptyList()
+}
 
 @Serializable
 data class SchemaRegistryData(
