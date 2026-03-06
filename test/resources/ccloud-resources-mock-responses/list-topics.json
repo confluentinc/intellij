@@ -1,0 +1,32 @@
+{
+  "kind": "KafkaTopicList",
+  "metadata": {
+    "next": null
+  },
+  "data": [
+    {
+      "kind": "KafkaTopic",
+      "cluster_id": "lkc-abc123",
+      "topic_name": "orders",
+      "is_internal": false,
+      "replication_factor": 3,
+      "partitions_count": 6
+    },
+    {
+      "kind": "KafkaTopic",
+      "cluster_id": "lkc-abc123",
+      "topic_name": "payments",
+      "is_internal": false,
+      "replication_factor": 3,
+      "partitions_count": 3
+    },
+    {
+      "kind": "KafkaTopic",
+      "cluster_id": "lkc-abc123",
+      "topic_name": "__consumer_offsets",
+      "is_internal": true,
+      "replication_factor": 3,
+      "partitions_count": 50
+    }
+  ]
+}
