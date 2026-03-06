@@ -43,13 +43,13 @@ internal class KafkaRegistryController(
     private val searchTextField: SearchTextField = SearchTextField(false).apply {
         addDocumentListener(object : DocumentAdapter() {
             override fun textChanged(e: DocumentEvent) {
-                val config = KafkaToolWindowSettings.getInstance().getOrCreateConfig(dataManager.connectionId)
+                val config = KafkaToolWindowSettings.getInstance().getOrCreateConfig(dataManager.getSchemaRegistryConfigId())
                 config.schemaFilterName = this@apply.text
                 dataManager.schemaRegistryModel?.let { dataManager.updater.invokeRefreshModel(it) }
             }
         })
 
-        text = KafkaToolWindowSettings.getInstance().getOrCreateConfig(dataManager.connectionId).schemaFilterName ?: ""
+        text = KafkaToolWindowSettings.getInstance().getOrCreateConfig(dataManager.getSchemaRegistryConfigId()).schemaFilterName ?: ""
     }
 
     private val showFavoriteSchemasAction = object : DumbAwareToggleAction(
@@ -80,7 +80,7 @@ internal class KafkaRegistryController(
 
     private fun updateEmptyText() {
         val toolWindowSettings = KafkaToolWindowSettings.getInstance()
-        val clusterConfig = toolWindowSettings.getOrCreateConfig(dataManager.connectionId)
+        val clusterConfig = toolWindowSettings.getOrCreateConfig(dataManager.getSchemaRegistryConfigId())
 
         if (dataTable.parent is javax.swing.JViewport) {
             dataTable.emptyText.attachTo(dataTable, dataTable)
@@ -143,11 +143,11 @@ internal class KafkaRegistryController(
         val countFilter = CountFilterPopupComponent(
             KafkaMessagesBundle.message("label.filter.limit"),
             KafkaToolWindowSettings.getInstance().getOrCreateConfig(
-                dataManager.connectionId
+                dataManager.getSchemaRegistryConfigId()
             ).registryLimit
         )
         FilterAdapter.install(dataTable.tableModel, countFilter, LIMIT_FILTER) { limit ->
-            val config = KafkaToolWindowSettings.getInstance().getOrCreateConfig(dataManager.connectionId)
+            val config = KafkaToolWindowSettings.getInstance().getOrCreateConfig(dataManager.getSchemaRegistryConfigId())
             config.registryLimit = limit
             dataManager.schemaRegistryModel?.let { dataManager.updater.invokeRefreshModel(it) }
         }

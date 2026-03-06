@@ -52,6 +52,13 @@ abstract class BaseClusterDataManager(
      */
     abstract fun getSchemaPath(schemaName: String): RfsPath
 
+    /**
+     * Get the config ID to use for schema registry settings (favorites, filters, limits).
+     * For Kafka: returns connectionId
+     * For CCloud: returns schema registry ID (so all clusters sharing an SR see the same config)
+     */
+    open fun getSchemaRegistryConfigId(): String = connectionId
+
     val topicModel: ObjectDataModel<TopicPresentable> by lazy {
         createTopicsDataModel().also { Disposer.register(this, it) }
     }

@@ -127,7 +127,6 @@ internal class ConfluentMainController(
 
     // Controller caching to avoid recreating on every selection
     private val registryControllers = mutableMapOf<String, KafkaRegistryController>()
-    private val schemaControllers = mutableMapOf<String, KafkaSchemaController>()
 
     // Track currently active detail controllers for refresh support
     private var currentTopicDetailsController: TopicDetailsController? = null
@@ -175,10 +174,6 @@ internal class ConfluentMainController(
     fun refreshControlPlane() {
         val prevSelectedId = selectedEnvironmentId.get()
 
-        invokeLater {
-            dataManager.progressComponent.showManualProgress("Refreshing environments...")
-        }
-
         driver.safeExecutor.coroutineScope.launch(kotlinx.coroutines.Dispatchers.IO) {
             try {
                 dataManager.client.refreshEnvironments()
@@ -207,6 +202,7 @@ internal class ConfluentMainController(
                             driver.selectedEnvironmentId = prevSelectedId
                             dataManager.cancelAllEnrichmentJobs()
                             dataManager.preInitializeCachesForEnvironment(prevSelectedId)
+                            driver.registerListenersForEnvironment(prevSelectedId)
                             driver.fileInfoManager.refreshFiles(driver.root)
 
                             if ((details.layout as? CardLayout)?.let { true } == true) {
@@ -214,14 +210,9 @@ internal class ConfluentMainController(
                             }
                         }
                     }
-
-                    dataManager.progressComponent.hideManualProgress()
                 }
             } catch (e: Exception) {
                 thisLogger().warn("Failed to refresh control plane", e)
-                invokeLater {
-                    dataManager.progressComponent.hideManualProgress()
-                }
             }
         }
     }
@@ -335,7 +326,6 @@ internal class ConfluentMainController(
             border = IdeBorderFactory.createBorder(SideBorder.LEFT)
         }
 
-        // Create environment selector panel with empty model (will be populated after connection)
         val selectorPanel = panel {
             row {
                 label(message("confluent.cloud.environment.selector.label")).gap(com.intellij.ui.dsl.builder.RightGap.SMALL)
@@ -354,13 +344,11 @@ internal class ConfluentMainController(
             border = JBUI.Borders.empty(4, 8)
         }
 
-        // Create content panel with selector and tree
         val contentPanel = JPanel(BorderLayout()).apply {
             add(selectorPanel, BorderLayout.NORTH)
             add(scroll, BorderLayout.CENTER)
         }
 
-        // Wrap in SimpleToolWindowPanel to support toolbar (added after connection)
         treePanel = SimpleToolWindowPanel(true, true)
         treePanel.setContent(contentPanel)
 
@@ -397,6 +385,7 @@ internal class ConfluentMainController(
             environmentComboBoxModel.selectedItem = environmentComboBoxModel.getElementAt(0)
 
             dataManager.preInitializeCachesForEnvironment(firstEnv.id)
+            driver.registerListenersForEnvironment(firstEnv.id)
         }
     }
 
@@ -406,6 +395,9 @@ internal class ConfluentMainController(
 
         dataManager.cancelAllEnrichmentJobs()
         dataManager.preInitializeCachesForEnvironment(envId)
+
+        // Register topic listeners for all clusters to enable auto-refresh on creation
+        driver.registerListenersForEnvironment(envId)
 
         driver.fileInfoManager.refreshFiles(driver.root)
 
@@ -424,7 +416,6 @@ internal class ConfluentMainController(
         val layout = details.layout as CardLayout
         when {
             rfsPath == null -> {
-                // Show environment details if an environment is selected
                 val envId = selectedEnvironmentId.get()
                 if (envId != null) {
                     showEnvironmentDetails(envId)
@@ -500,7 +491,6 @@ internal class ConfluentMainController(
 
             val cluster = dataManager.getKafkaClusters(envId).find { it.id == clusterId }
             if (cluster == null) {
-                // Stale node from previous environment - show message and refresh tree
                 myTree.clearSelection()
                 return@updatePanel createPlaceholderPanel(message("confluent.cloud.details.resource.not.available"))
             }
@@ -537,7 +527,6 @@ internal class ConfluentMainController(
 
         val cluster = dataManager.getKafkaClusters(envId).find { it.id == clusterId }
         if (cluster == null) {
-            // Stale node from previous environment
             myTree.clearSelection()
             topicDetailPanel.add(JLabel(message("confluent.cloud.details.resource.not.available"), javax.swing.SwingConstants.CENTER), BorderLayout.CENTER)
             topicDetailPanel.revalidate()
@@ -568,7 +557,6 @@ internal class ConfluentMainController(
 
             val sr = dataManager.getSchemaRegistry(envId)
             if (sr == null || sr.id != srId) {
-                // Stale SR node from previous environment
                 myTree.clearSelection()
                 return@updatePanel createPlaceholderPanel(message("confluent.cloud.details.resource.not.available"))
             }
@@ -612,7 +600,6 @@ internal class ConfluentMainController(
 
         val sr = dataManager.getSchemaRegistry(envId)
         if (sr == null || sr.id != srId) {
-            // Stale SR node from previous environment
             myTree.clearSelection()
             schemaDetailPanel.add(JLabel(message("confluent.cloud.details.resource.not.available"), javax.swing.SwingConstants.CENTER), BorderLayout.CENTER)
             schemaDetailPanel.revalidate()
@@ -637,7 +624,6 @@ internal class ConfluentMainController(
             return
         }
 
-        // Use full-featured Kafka schema detail controller (version comparison, structure view, etc.)
         val detailsController = ConfluentSchemaDetailController(project, clusterDataManager)
         Disposer.register(this, detailsController)
         detailsController.setDetailsId(subjectName)
@@ -655,19 +641,9 @@ internal class ConfluentMainController(
 
     override fun getComponent(): JComponent = component
 
-    // Get or create cached KafkaRegistryController for a schema registry
     private fun getOrCreateRegistryController(srId: String, clusterDataManager: CCloudClusterDataManager): KafkaRegistryController {
         return registryControllers.getOrPut(srId) {
             KafkaRegistryController(project, clusterDataManager, this).also {
-                Disposer.register(this, it)
-            }
-        }
-    }
-
-    // Get or create cached KafkaSchemaController for a schema registry
-    private fun getOrCreateSchemaController(srId: String, clusterDataManager: CCloudClusterDataManager): KafkaSchemaController {
-        return schemaControllers.getOrPut(srId) {
-            KafkaSchemaController(project, clusterDataManager).also {
                 Disposer.register(this, it)
             }
         }

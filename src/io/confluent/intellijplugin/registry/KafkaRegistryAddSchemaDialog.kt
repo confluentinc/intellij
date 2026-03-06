@@ -71,6 +71,7 @@ class KafkaRegistryAddSchemaDialog(project: Project, val dataManager: BaseCluste
     private val subjectNameLabel = JBLabel("")
 
     private var cachedParsedSchema: ParsedSchema? = null
+    private var previousFormat: KafkaRegistryFormat? = null
 
     private val keyValueVisible = AtomicBooleanProperty(false)
     private val topicFieldVisible = AtomicBooleanProperty(false)
@@ -190,12 +191,25 @@ class KafkaRegistryAddSchemaDialog(project: Project, val dataManager: BaseCluste
     }
 
     private fun onChangeFormat() {
-        val newDefault = KafkaRegistryTemplates.getDefaultIfNotConfigured(textScrollPane.text, getFormat())
+        val currentFormat = getFormat()
+
+        // If format actually changed (not initial setup), load default template for new format
+        val shouldLoadDefault = previousFormat != null && previousFormat != currentFormat
+
+        val newText = if (shouldLoadDefault) {
+            // Force loading default template by passing empty string
+            KafkaRegistryTemplates.getDefaultIfNotConfigured("", currentFormat) ?: textScrollPane.text
+        } else {
+            KafkaRegistryTemplates.getDefaultIfNotConfigured(textScrollPane.text, currentFormat) ?: textScrollPane.text
+        }
+
         textScrollPane.setText(
-            newDefault ?: textScrollPane.text,
-            if (formatCombobox.selectedItem != KafkaRegistryFormat.PROTOBUF) JsonLanguage.INSTANCE
+            newText,
+            if (currentFormat != KafkaRegistryFormat.PROTOBUF) JsonLanguage.INSTANCE
             else KafkaRegistryUtil.protobufLanguage
         )
+
+        previousFormat = currentFormat
         updateRecordFieldText()
     }
 
