@@ -68,9 +68,11 @@ class ConfluentRfsTreeNode(
     }
 
     private fun checkIsSchemaFavorite(): Boolean {
-        // Get SR ID from path: [srId, schemaName]
+        val envId = confluentDriver.selectedEnvironmentId ?: return false
         val srId = rfsPath.elements.getOrNull(0) ?: return false
-        if (srId.isBlank()) return false
+
+        val sr = confluentDriver.dataManager.client.getCachedSchemaRegistry(envId) ?: return false
+        if (sr.id != srId) return false
 
         val config = KafkaToolWindowSettings.getInstance().getOrCreateConfig(srId)
         return config.schemasPined.contains(rfsPath.name)

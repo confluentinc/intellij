@@ -19,7 +19,6 @@ import io.confluent.intellijplugin.core.monitoring.data.model.ObjectDataModel
 import io.confluent.intellijplugin.core.monitoring.data.storage.ObjectDataModelStorage
 import io.confluent.intellijplugin.core.monitoring.data.storage.RootDataModelStorage
 import io.confluent.intellijplugin.core.rfs.driver.SafeExecutor
-import io.confluent.intellijplugin.core.rfs.util.RfsNotificationUtils
 import io.confluent.intellijplugin.core.util.asSilent
 import io.confluent.intellijplugin.core.util.runAsync
 import io.confluent.intellijplugin.model.BdtTopicPartition
@@ -38,6 +37,7 @@ import io.confluent.intellijplugin.toolwindow.config.KafkaToolWindowSettings
 import kotlin.time.Duration
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.future.asCompletableFuture
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -221,7 +221,10 @@ class CCloudClusterDataManager(
                             }
                     } catch (e: Exception) {
                         if (e !is kotlinx.coroutines.CancellationException) {
-                            thisLogger().warn("Failed to enrich partitions for topic '$topicName' in cluster ${cluster.id}", e)
+                            thisLogger().warn(
+                                "Failed to enrich partitions for topic '$topicName' in cluster ${cluster.id}",
+                                e
+                            )
                         }
                     } finally {
                         partitionEnrichmentJobs.remove(topicName)
@@ -283,6 +286,7 @@ class CCloudClusterDataManager(
                                     topicModel.setData(updated)
                                 }
                             }
+
                             is io.confluent.intellijplugin.ccloud.model.response.TopicEnrichmentResult.Failure -> {
                                 thisLogger().warn("Failed to enrich topic ${result.topicName}: ${result.error.message}")
                             }
@@ -313,35 +317,39 @@ class CCloudClusterDataManager(
         return emptyList()
     }
 
-    override suspend fun listSchemasNames(limit: Int?, filter: String?): Pair<List<KafkaSchemaInfo>, Boolean> = withContext(Dispatchers.IO) {
-        if (!dataPlaneCache.hasSchemaRegistry()) {
-            return@withContext emptyList<KafkaSchemaInfo>() to false
-        }
+    override suspend fun listSchemasNames(limit: Int?, filter: String?): Pair<List<KafkaSchemaInfo>, Boolean> =
+        withContext(Dispatchers.IO) {
+            if (!dataPlaneCache.hasSchemaRegistry()) {
+                return@withContext emptyList<KafkaSchemaInfo>() to false
+            }
 
         try {
-            val schemas = dataPlaneCache.refreshSchemas()
+            val schemas = dataPlaneCache.getSchemas().ifEmpty {
+                dataPlaneCache.refreshSchemas()
+            }
+            // Use SR config (not cluster config) so all clusters sharing an SR see the same favorites
             val config = getSchemaRegistryConfig()
 
-            var result = schemas.map { schemaData ->
-                KafkaSchemaInfo(
-                    name = schemaData.name,
-                    type = schemaData.schemaType?.let { KafkaRegistryFormat.parse(it) },
-                    version = schemaData.latestVersion?.toLong(),
-                    compatibility = schemaData.compatibility,
-                    isFavorite = config?.schemasPined?.contains(schemaData.name) == true
-                )
-            }
+                var result = schemas.map { schemaData ->
+                    KafkaSchemaInfo(
+                        name = schemaData.name,
+                        type = KafkaRegistryFormat.fromSchemaType(schemaData.schemaType),
+                        version = schemaData.latestVersion?.toLong(),
+                        compatibility = schemaData.compatibility,
+                        isFavorite = config?.schemasPined?.contains(schemaData.name) == true
+                    )
+                }
 
-            if (!filter.isNullOrBlank()) {
-                result = result.filter { it.name.contains(filter, ignoreCase = true) }
-            }
+                if (!filter.isNullOrBlank()) {
+                    result = result.filter { it.name.contains(filter, ignoreCase = true) }
+                }
 
-            result to false
-        } catch (e: Exception) {
-            thisLogger().warn("Failed to list schemas for cluster ${cluster.id}", e)
-            emptyList<KafkaSchemaInfo>() to false
+                result to false
+            } catch (e: Exception) {
+                thisLogger().warn("Failed to list schemas for cluster ${cluster.id}", e)
+                emptyList<KafkaSchemaInfo>() to false
+            }
         }
-    }
 
     /** Launch non-blocking schema enrichment job with progressive UI updates. */
     private fun launchSchemaEnrichment(schemas: List<KafkaSchemaInfo>): Job {
@@ -376,7 +384,7 @@ class CCloudClusterDataManager(
                                     if (i == index) {
                                         schema.copy(
                                             version = result.data.latestVersion?.toLong(),
-                                            type = result.data.schemaType?.let { KafkaRegistryFormat.parse(it) }
+                                            type = KafkaRegistryFormat.fromSchemaType(result.data.schemaType)
                                         )
                                     } else {
                                         schema
@@ -386,9 +394,13 @@ class CCloudClusterDataManager(
                                 model.setData(updatedSchemas)
                             }
                         }
+
                         is io.confluent.intellijplugin.ccloud.model.response.SchemaEnrichmentResult.Failure -> {
                             if (result.error !is kotlinx.coroutines.CancellationException) {
-                                thisLogger().warn("CCloud: Schema enrichment failure (${result.progress.first}/${result.progress.second}): ${result.schemaName} - ${result.error.message}", result.error)
+                                thisLogger().warn(
+                                    "CCloud: Schema enrichment failure (${result.progress.first}/${result.progress.second}): ${result.schemaName} - ${result.error.message}",
+                                    result.error
+                                )
                             }
                         }
                     }
@@ -489,7 +501,7 @@ class CCloudClusterDataManager(
                     SchemaVersionInfo(
                         schemaName = it.subject,
                         version = it.version.toLong(),
-                        type = KafkaRegistryFormat.parse(it.schemaType),
+                        type = KafkaRegistryFormat.fromSchemaType(it.schemaType),
                         schema = it.schema,
                         references = it.references.toSchemaReferences()
                     )
@@ -517,7 +529,7 @@ class CCloudClusterDataManager(
                 val schemaVersionInfo = SchemaVersionInfo(
                     schemaName = versionResponse.subject,
                     version = versionResponse.version.toLong(),
-                    type = KafkaRegistryFormat.parse(versionResponse.schemaType),
+                    type = KafkaRegistryFormat.fromSchemaType(versionResponse.schemaType),
                     schema = versionResponse.schema,
                     references = versionResponse.references.toSchemaReferences()
                 )
@@ -525,7 +537,10 @@ class CCloudClusterDataManager(
                 schemaVersionInfo
             }
         } catch (e: Exception) {
-            thisLogger().warn("Failed to get schema version info for '$schemaName' version $version in cluster ${cluster.id}", e)
+            thisLogger().warn(
+                "Failed to get schema version info for '$schemaName' version $version in cluster ${cluster.id}",
+                e
+            )
             throw e
         }
     }
@@ -561,7 +576,7 @@ class CCloudClusterDataManager(
                 schemaData?.let {
                     KafkaSchemaInfo(
                         name = it.name,
-                        type = it.schemaType?.let { type -> KafkaRegistryFormat.parse(type) },
+                        type = KafkaRegistryFormat.fromSchemaType(it.schemaType),
                         version = it.latestVersion?.toLong(),
                         isFavorite = config?.schemasPined?.contains(it.name) == true
                     )
@@ -714,7 +729,7 @@ class CCloudClusterDataManager(
 
             val updatedSchema = KafkaSchemaInfo(
                 name = updatedSchemaData.name,
-                type = updatedSchemaData.schemaType?.let { KafkaRegistryFormat.parse(it) },
+                type = KafkaRegistryFormat.fromSchemaType(updatedSchemaData.schemaType),
                 version = updatedSchemaData.latestVersion?.toLong(),
                 isFavorite = config?.schemasPined?.contains(updatedSchemaData.name) == true
             )
