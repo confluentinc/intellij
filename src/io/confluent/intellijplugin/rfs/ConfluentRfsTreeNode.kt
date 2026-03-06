@@ -24,8 +24,7 @@ import javax.swing.Icon
 class ConfluentRfsTreeNode(
     project: Project,
     rfsPath: RfsPath,
-    private val confluentDriver: ConfluentDriver,
-    private val schemaType: String? = null
+    private val confluentDriver: ConfluentDriver
 ) : MonitoringRfsTreeNode(project, rfsPath, confluentDriver) {
 
     override fun isAlwaysLeaf(): Boolean = rfsPath.isTopic || rfsPath.isSchema
@@ -35,10 +34,11 @@ class ConfluentRfsTreeNode(
 
         return when {
             rfsPath.isCluster(confluentDriver) -> {
-                confluentDriver.dataManager.client.getKafkaClusters(envId)
-                    .find { it.id == rfsPath.name }
+                confluentDriver.dataManager.client.getCachedKafkaClusters(envId)
+                    ?.find { it.id == rfsPath.name }
                     ?.displayName ?: rfsPath.name
             }
+
             rfsPath.isSchemaRegistry(confluentDriver) -> "Schema Registry"
             rfsPath.isTopic || rfsPath.isSchema -> rfsPath.name
             else -> rfsPath.name
@@ -49,22 +49,31 @@ class ConfluentRfsTreeNode(
         return when {
             rfsPath.isCluster(confluentDriver) -> BigdatatoolsKafkaIcons.ConfluentKafkaCluster
             rfsPath.isSchemaRegistry(confluentDriver) -> BigdatatoolsKafkaIcons.ConfluentSrCluster
-            rfsPath.isTopic -> if (checkIsFavorite()) AllIcons.Nodes.Favorite else BigdatatoolsKafkaIcons.ConfluentTopic
+            rfsPath.isTopic -> if (checkIsTopicFavorite()) AllIcons.Nodes.Favorite else BigdatatoolsKafkaIcons.ConfluentTopic
             rfsPath.isSchema -> BigdatatoolsKafkaIcons.ConfluentSchema
             else -> null
         }
     }
 
-    private fun checkIsFavorite(): Boolean {
+    private fun checkIsTopicFavorite(): Boolean {
         val envId = confluentDriver.selectedEnvironmentId ?: return false
         val clusterId = rfsPath.elements.getOrNull(0) ?: return false
 
-        val cluster = confluentDriver.dataManager.getKafkaClusters(envId)
-            .find { it.id == clusterId } ?: return false
+        val cluster = confluentDriver.dataManager.client.getCachedKafkaClusters(envId)
+            ?.find { it.id == clusterId } ?: return false
 
         val clusterDataManager = confluentDriver.dataManager.getOrCreateClusterDataManager(cluster)
         val config = KafkaToolWindowSettings.getInstance().getOrCreateConfig(clusterDataManager.connectionId)
         return config.topicsPined.contains(rfsPath.name)
+    }
+
+    private fun checkIsSchemaFavorite(): Boolean {
+        // Get SR ID from path: [srId, schemaName]
+        val srId = rfsPath.elements.getOrNull(0) ?: return false
+        if (srId.isBlank()) return false
+
+        val config = KafkaToolWindowSettings.getInstance().getOrCreateConfig(srId)
+        return config.schemasPined.contains(rfsPath.name)
     }
 
     override fun getGrayText(): String? {
@@ -72,15 +81,22 @@ class ConfluentRfsTreeNode(
 
         return when {
             rfsPath.isCluster(confluentDriver) -> {
-                confluentDriver.dataManager.client.getKafkaClusters(envId)
-                    .find { it.id == rfsPath.name }
+                confluentDriver.dataManager.client.getCachedKafkaClusters(envId)
+                    ?.find { it.id == rfsPath.name }
                     ?.let { "${it.cloudProvider} / ${it.region}" }
             }
+
             rfsPath.isSchemaRegistry(confluentDriver) -> {
-                confluentDriver.dataManager.client.getSchemaRegistry(envId)
+                confluentDriver.dataManager.client.getCachedSchemaRegistry(envId)
                     ?.let { "${it.cloudProvider} / ${it.region}" }
             }
-            rfsPath.isSchema -> schemaType
+
+            rfsPath.isSchema -> {
+                val cluster = confluentDriver.dataManager.client.getCachedKafkaClusters(envId)?.firstOrNull() ?: return null
+                val clusterDataManager = confluentDriver.dataManager.getOrCreateClusterDataManager(cluster)
+                clusterDataManager.getCachedSchema(rfsPath.name)?.type?.presentable
+            }
+
             else -> null
         }
     }
@@ -92,21 +108,24 @@ class ConfluentRfsTreeNode(
 
         presentation.tooltip = when {
             rfsPath.isCluster(confluentDriver) -> {
-                confluentDriver.dataManager.client.getKafkaClusters(envId)
-                    .find { it.id == rfsPath.name }
+                confluentDriver.dataManager.client.getCachedKafkaClusters(envId)
+                    ?.find { it.id == rfsPath.name }
                     ?.let { "ID: ${it.id}" }
             }
+
             rfsPath.isSchemaRegistry(confluentDriver) -> {
-                confluentDriver.dataManager.client.getSchemaRegistry(envId)
+                confluentDriver.dataManager.client.getCachedSchemaRegistry(envId)
                     ?.let { "ID: ${it.id}" }
             }
+
             else -> null
         }
     }
 
-    override fun onDoubleClick(): Boolean = when {
-        rfsPath.isTopic || rfsPath.isSchema -> true
-        else -> false
+    override fun onDoubleClick(): Boolean {
+        // Navigation handled by tree selection listener, not double-click
+        // This matches Kafka tab behavior where single-click selection navigates
+        return false
     }
 }
 
