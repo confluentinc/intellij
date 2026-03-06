@@ -313,12 +313,17 @@ internal class ConfluentMainController(
             driver.selectedEnvironmentId = firstEnv.id
             selectedEnvironmentId.set(firstEnv.id)
             environmentComboBoxModel.selectedItem = environmentComboBoxModel.getElementAt(0)
+
+            dataManager.preInitializeCachesForEnvironment(firstEnv.id)
         }
     }
 
     private fun refreshTreeForEnvironment(envId: String) {
         driver.selectedEnvironmentId = envId
         myTree.clearSelection()
+
+        dataManager.preInitializeCachesForEnvironment(envId)
+
         driver.fileInfoManager.refreshFiles(driver.root)
 
         // Show environment details when switching environments
