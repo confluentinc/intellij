@@ -92,6 +92,16 @@ class DataPlaneFetcherImpl(
         return json.decodeFromString<ConsumeRecordsResponse>(responseBody)
     }
 
+    override suspend fun produceRecord(
+        topicName: String,
+        request: ProduceRecordRequest
+    ): ProduceRecordResponse {
+        val path = String.format(CloudConfig.DataPlane.Kafka.PRODUCE_RECORDS_URI, clusterId, topicName)
+        val requestBody = json.encodeToString(request)
+        val responseBody = kafkaClient.executeRequest(path, "POST", requestBody)
+        return json.decodeFromString<ProduceRecordResponse>(responseBody)
+    }
+
     override suspend fun getAllSubjects(): List<String> {
         requireSchemaRegistry()
         val path = CloudConfig.DataPlane.SchemaRegistry.SUBJECTS_URI
