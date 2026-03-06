@@ -327,7 +327,7 @@ class CCloudClusterDataManager(
             var result = schemas.map { schemaData ->
                 KafkaSchemaInfo(
                     name = schemaData.name,
-                    type = schemaData.schemaType?.let { KafkaRegistryFormat.parse(it) },
+                    type = KafkaRegistryFormat.fromSchemaType(schemaData.schemaType),
                     version = schemaData.latestVersion?.toLong(),
                     compatibility = schemaData.compatibility,
                     isFavorite = config?.schemasPined?.contains(schemaData.name) == true
@@ -376,7 +376,7 @@ class CCloudClusterDataManager(
                                     if (i == index) {
                                         schema.copy(
                                             version = result.data.latestVersion?.toLong(),
-                                            type = result.data.schemaType?.let { KafkaRegistryFormat.parse(it) }
+                                            type = KafkaRegistryFormat.fromSchemaType(result.data.schemaType)
                                         )
                                     } else {
                                         schema
@@ -489,7 +489,7 @@ class CCloudClusterDataManager(
                     SchemaVersionInfo(
                         schemaName = it.subject,
                         version = it.version.toLong(),
-                        type = KafkaRegistryFormat.parse(it.schemaType),
+                        type = KafkaRegistryFormat.fromSchemaType(it.schemaType),
                         schema = it.schema,
                         references = it.references.toSchemaReferences()
                     )
@@ -517,7 +517,7 @@ class CCloudClusterDataManager(
                 val schemaVersionInfo = SchemaVersionInfo(
                     schemaName = versionResponse.subject,
                     version = versionResponse.version.toLong(),
-                    type = KafkaRegistryFormat.parse(versionResponse.schemaType),
+                    type = KafkaRegistryFormat.fromSchemaType(versionResponse.schemaType),
                     schema = versionResponse.schema,
                     references = versionResponse.references.toSchemaReferences()
                 )
@@ -561,7 +561,7 @@ class CCloudClusterDataManager(
                 schemaData?.let {
                     KafkaSchemaInfo(
                         name = it.name,
-                        type = it.schemaType?.let { type -> KafkaRegistryFormat.parse(type) },
+                        type = KafkaRegistryFormat.fromSchemaType(it.schemaType),
                         version = it.latestVersion?.toLong(),
                         isFavorite = config?.schemasPined?.contains(it.name) == true
                     )
@@ -722,7 +722,7 @@ class CCloudClusterDataManager(
 
             val updatedSchema = KafkaSchemaInfo(
                 name = updatedSchemaData.name,
-                type = updatedSchemaData.schemaType?.let { KafkaRegistryFormat.parse(it) },
+                type = KafkaRegistryFormat.fromSchemaType(updatedSchemaData.schemaType),
                 version = updatedSchemaData.latestVersion?.toLong(),
                 isFavorite = config?.schemasPined?.contains(updatedSchemaData.name) == true
             )
