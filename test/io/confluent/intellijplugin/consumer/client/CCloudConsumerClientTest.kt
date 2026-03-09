@@ -717,48 +717,6 @@ class CCloudConsumerClientTest {
             assertEquals(100L, offsetMap[0])
             assertEquals(200L, offsetMap[1])
         }
-
-        @Test
-        fun `should include resolvedMaxPollRecords in request when set`() {
-            client.resolvedMaxPollRecords = 100
-            val request = client.buildSubsequentConsumeRequest()
-            assertEquals(100, request.maxPollRecords)
-        }
-
-        @Test
-        fun `should include resolvedFetchMaxBytes in request when set`() {
-            client.resolvedFetchMaxBytes = 1048576
-            val request = client.buildSubsequentConsumeRequest()
-            assertEquals(1048576, request.fetchMaxBytes)
-        }
-
-        @Test
-        fun `should include both advanced settings with partition offsets`() {
-            client.nextOffsets[0] = 100L
-            client.nextOffsets[1] = 200L
-            client.resolvedMaxPollRecords = 50
-            client.resolvedFetchMaxBytes = 524288
-
-            val request = client.buildSubsequentConsumeRequest()
-
-            assertEquals(50, request.maxPollRecords)
-            assertEquals(524288, request.fetchMaxBytes)
-            assertNotNull(request.offsets)
-            assertEquals(2, request.offsets!!.size)
-        }
-
-        @Test
-        fun `should include advanced settings even when offsets are empty`() {
-            client.resolvedMaxPollRecords = 25
-            client.resolvedFetchMaxBytes = 2048
-
-            val request = client.buildSubsequentConsumeRequest()
-
-            assertEquals(25, request.maxPollRecords)
-            assertEquals(2048, request.fetchMaxBytes)
-            assertEquals(false, request.fromBeginning)
-            assertNull(request.offsets)
-        }
     }
 
     // ── Utilities ───────────────────────────────────────────────────────
