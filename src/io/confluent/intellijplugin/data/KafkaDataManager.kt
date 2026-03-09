@@ -13,6 +13,7 @@ import io.confluent.intellijplugin.common.models.RegistrySchemaInEditor
 import io.confluent.intellijplugin.core.connection.updater.IntervalUpdateSettings
 import io.confluent.intellijplugin.core.monitoring.data.storage.RootDataModelStorage
 import io.confluent.intellijplugin.core.monitoring.rfs.MonitoringDriver
+import io.confluent.intellijplugin.core.rfs.driver.RfsPath
 import io.confluent.intellijplugin.core.rfs.driver.SafeExecutor
 import io.confluent.intellijplugin.core.rfs.driver.manager.DriverManager
 import io.confluent.intellijplugin.core.rfs.util.RfsNotificationUtils
@@ -66,7 +67,7 @@ class KafkaDataManager(
     /**
      * Get the RFS path for a schema subject in Kafka format: ["Schema Registry", schemaName]
      */
-    override fun getSchemaPath(schemaName: String): io.confluent.intellijplugin.core.rfs.driver.RfsPath {
+    override fun getSchemaPath(schemaName: String): RfsPath {
         return KafkaDriver.schemasPath.child(schemaName, false)
     }
 
@@ -215,7 +216,7 @@ class KafkaDataManager(
     override fun getSchemaVersionInfo(schemaName: String, version: Long): Promise<SchemaVersionInfo> = runAsync {
         client.glueRegistryClient?.getSchemaVersionInfo(schemaName, version)
             ?: client.confluentRegistryClient?.getSchemaVersionInfo(schemaName, version)
-            ?: error("Schema Registry provider is not selected")
+            ?: error(KafkaMessagesBundle.message("error.schema.registry.provider.not.selected"))
     }
 
     override fun parseSchemaForDisplay(versionInfo: SchemaVersionInfo): Result<io.confluent.kafka.schemaregistry.ParsedSchema> {
@@ -248,7 +249,7 @@ class KafkaDataManager(
         runInterruptible(Dispatchers.IO) {
             client.confluentRegistryClient?.updateSchema(versionInfo, newSchema)
                 ?: client.glueRegistryClient?.updateSchema(versionInfo, newSchema)
-                ?: error("Schema registry not configured")
+                ?: error(KafkaMessagesBundle.message("error.schema.registry.not.configured"))
             schemaRegistryModel?.let { updater.invokeRefreshModel(it) }
         }
         updater.invokeRefreshModel(schemaVersionModels[versionInfo.schemaName])
@@ -320,7 +321,7 @@ class KafkaDataManager(
     private fun loadSchema(schemaName: String) =
         client.confluentRegistryClient?.loadSchemaInfo(schemaName)
             ?: client.glueRegistryClient?.loadSchemaInfo(schemaName)
-            ?: error("Schema registry not configured")
+            ?: error(KafkaMessagesBundle.message("error.schema.registry.not.configured"))
 
     override fun getLatestVersionInfo(schemaName: String) =
         client.confluentRegistryClient?.getLatestVersionInfo(schemaName)

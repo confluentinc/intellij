@@ -15,6 +15,7 @@ import io.confluent.intellijplugin.core.monitoring.data.model.ObjectDataModel
 import io.confluent.intellijplugin.core.monitoring.data.storage.FieldGroupsDataModelStorage
 import io.confluent.intellijplugin.core.monitoring.data.storage.ObjectDataModelStorage
 import io.confluent.intellijplugin.core.monitoring.rfs.MonitoringDriver
+import io.confluent.intellijplugin.core.rfs.driver.RfsPath
 import io.confluent.intellijplugin.core.rfs.util.RfsNotificationUtils
 import io.confluent.intellijplugin.model.BdtTopicPartition
 import io.confluent.intellijplugin.model.ConsumerGroupOffsetInfo
@@ -49,7 +50,7 @@ abstract class BaseClusterDataManager(
      * Kafka: ["Schema Registry", schemaName]
      * CCloud: [schemaRegistryId, schemaName]
      */
-    abstract fun getSchemaPath(schemaName: String): io.confluent.intellijplugin.core.rfs.driver.RfsPath
+    abstract fun getSchemaPath(schemaName: String): RfsPath
 
     val topicModel: ObjectDataModel<TopicPresentable> by lazy {
         createTopicsDataModel().also { Disposer.register(this, it) }

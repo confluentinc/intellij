@@ -14,6 +14,7 @@ import io.confluent.intellijplugin.core.rfs.driver.RfsPath
 import io.confluent.intellijplugin.core.rfs.tree.DriverRfsTreeModel
 import io.confluent.intellijplugin.core.rfs.tree.node.RfsDriverTreeNodeBuilder
 import io.confluent.intellijplugin.data.CCloudOrgManager
+import io.confluent.intellijplugin.toolwindow.NavigableController
 import io.confluent.intellijplugin.toolwindow.config.KafkaToolWindowSettings
 import io.confluent.intellijplugin.core.util.invokeLater
 import io.confluent.intellijplugin.util.KafkaMessagesBundle.message
@@ -41,7 +42,7 @@ class ConfluentDriver(
     private val registeredSchemaListeners = mutableSetOf<String>()
 
     // Weak reference to the main controller for navigation
-    internal var mainController: io.confluent.intellijplugin.toolwindow.NavigableController? = null
+    internal var mainController: NavigableController? = null
 
     override val dataManager: CCloudOrgManager = CCloudOrgManager(
         project, connectionData, KafkaToolWindowSettings.getInstance(), { this }

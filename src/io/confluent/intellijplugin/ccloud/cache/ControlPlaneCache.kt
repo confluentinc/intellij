@@ -64,24 +64,24 @@ class ControlPlaneCache(
 
     fun getCachedSchemaRegistry(environmentId: String): SchemaRegistry? = cachedSchemaRegistry[environmentId]
 
-    fun refreshEnvironments(): List<Environment> {
+    suspend fun refreshEnvironments(): List<Environment> {
         cachedEnvironments = fetcher?.let { f ->
-            runBlocking { f.getEnvironments() }
+            f.getEnvironments()
         } ?: emptyList()
         return cachedEnvironments ?: emptyList()
     }
 
-    fun refreshKafkaClusters(environmentId: String): List<Cluster> {
+    suspend fun refreshKafkaClusters(environmentId: String): List<Cluster> {
         val clusters = fetcher?.let { f ->
-            runBlocking { f.getKafkaClusters(environmentId) }
+            f.getKafkaClusters(environmentId)
         } ?: emptyList()
         cachedClusters[environmentId] = clusters
         return clusters
     }
 
-    fun refreshSchemaRegistry(environmentId: String): SchemaRegistry? {
+    suspend fun refreshSchemaRegistry(environmentId: String): SchemaRegistry? {
         val registry = fetcher?.let { f ->
-            runBlocking { f.getSchemaRegistry(environmentId) }
+            f.getSchemaRegistry(environmentId)
         }
         cachedSchemaRegistry[environmentId] = registry
         return registry

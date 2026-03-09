@@ -24,6 +24,18 @@ import kotlinx.coroutines.flow.flowOn
 import java.util.concurrent.atomic.AtomicInteger
 
 /**
+ * Concurrency limit for schema/topic enrichment operations.
+ * Matches CCloud API rate limit (5 req/sec) to maximize throughput while staying within limits.
+ */
+private const val ENRICHMENT_CONCURRENCY = 5
+
+/**
+ * Concurrency limit for partition offset enrichment.
+ * Conservative (each partition = 2 API calls) to allow multiple topics loading simultaneously.
+ */
+private const val PARTITION_ENRICHMENT_CONCURRENCY = 2
+
+/**
  * Data plane cache for cluster resources (topics, schemas, consumer groups).
  * One cache per cluster. Call refresh*() to populate/update cache.
  */
@@ -35,14 +47,11 @@ class DataPlaneCache(
     private var fetcher: DataPlaneFetcherImpl? = null
     private var kafkaClient: CCloudRestClient? = null
 
-    // Cached data
     private var cachedTopics: List<TopicData>? = null
     private var cachedSchemas: List<SchemaData>? = null
 
     companion object {
         private const val ENRICHMENT_TIMEOUT_MS = 30_000L
-        // Matches CCloudRestClient.RATE_LIMIT_REQUESTS_PER_SEC (5 req/sec token bucket)
-        private const val CONCURRENT_REQUEST_LIMIT = 5
     }
 
     fun connect() {
@@ -75,26 +84,22 @@ class DataPlaneCache(
 
     fun getTopics(): List<TopicData> = cachedTopics ?: emptyList()
 
-    /** Fetch topics from API, update cache. */
     suspend fun refreshTopics(): List<TopicData> {
         val topics = fetcher?.getTopics() ?: emptyList()
         cachedTopics = topics
         return topics
     }
 
-    /** Check if Schema Registry is configured. */
     fun hasSchemaRegistry(): Boolean = schemaRegistry != null
 
-    /** Get Schema Registry cluster ID (null if unavailable). */
     fun getSchemaRegistryId(): String? = schemaRegistry?.id
 
     fun getSchemas(): List<SchemaData> = cachedSchemas ?: emptyList()
 
-    /** Fetch schema names from API, preserving existing enrichment data. */
-    fun refreshSchemas(): List<SchemaData> {
+    suspend fun refreshSchemas(): List<SchemaData> {
         if (schemaRegistry == null) return emptyList()
 
-        val subjectNames = runBlocking { fetcher?.getAllSubjects() } ?: emptyList()
+        val subjectNames = fetcher?.getAllSubjects() ?: emptyList()
         val existingByName = cachedSchemas?.associateBy { it.name } ?: emptyMap()
         val schemas = subjectNames.map { name ->
             existingByName[name] ?: SchemaData(name = name)
@@ -106,10 +111,9 @@ class DataPlaneCache(
     fun enrichSchemasProgressively(schemas: List<SchemaData>): Flow<SchemaEnrichmentResult> = channelFlow {
         if (fetcher == null) return@channelFlow
 
-        val concurrentLimit = CONCURRENT_REQUEST_LIMIT
-        thisLogger().info("Starting progressive enrichment for ${schemas.size} schemas (max $concurrentLimit concurrent)")
+        thisLogger().info("Starting progressive enrichment for ${schemas.size} schemas (max $ENRICHMENT_CONCURRENCY concurrent)")
         val completed = AtomicInteger(0)
-        val semaphore = kotlinx.coroutines.sync.Semaphore(concurrentLimit)
+        val semaphore = kotlinx.coroutines.sync.Semaphore(ENRICHMENT_CONCURRENCY)
 
         schemas.forEach { schema ->
             launch {
@@ -189,10 +193,9 @@ class DataPlaneCache(
     fun enrichTopicsDataProgressively(topics: List<TopicData>): Flow<TopicEnrichmentResult> = channelFlow {
         if (fetcher == null) return@channelFlow
 
-        val concurrentLimit = CONCURRENT_REQUEST_LIMIT
-        thisLogger().info("Starting progressive enrichment for ${topics.size} topics (max $concurrentLimit concurrent)")
+        thisLogger().info("Starting progressive enrichment for ${topics.size} topics (max $ENRICHMENT_CONCURRENCY concurrent)")
         val completed = AtomicInteger(0)
-        val semaphore = kotlinx.coroutines.sync.Semaphore(concurrentLimit)
+        val semaphore = kotlinx.coroutines.sync.Semaphore(ENRICHMENT_CONCURRENCY)
 
         topics.forEach { topic ->
             launch {
@@ -299,8 +302,7 @@ class DataPlaneCache(
         channelFlow {
             val f = fetcher ?: return@channelFlow
 
-            val concurrentLimit = 2  // 2 partitions × 2 API calls = 4 req/sec
-            val semaphore = kotlinx.coroutines.sync.Semaphore(concurrentLimit)
+            val semaphore = kotlinx.coroutines.sync.Semaphore(PARTITION_ENRICHMENT_CONCURRENCY)
 
             partitions.forEach { partition ->
                 launch {
@@ -317,10 +319,10 @@ class DataPlaneCache(
                                 endOffset = endOffsetResponse.nextOffset
                             )
                         )
+                    } catch (e: CancellationException) {
+                        throw e
                     } catch (e: Exception) {
-                        if (e !is kotlinx.coroutines.CancellationException) {
-                            thisLogger().warn("Failed to fetch offsets for $topicName/${partition.partitionId}: ${e.message}")
-                        }
+                        thisLogger().warn("Failed to fetch offsets for $topicName/${partition.partitionId}: ${e.message}")
                         send(partition)
                     } finally {
                         semaphore.release()

@@ -22,6 +22,12 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 
 /**
+ * Concurrency limit for cluster pre-fetching at startup.
+ * Allows parallel loading of multiple clusters within CCloud API rate limits.
+ */
+private const val CLUSTER_PREFETCH_CONCURRENCY = 5
+
+/**
  * Organization-level manager for Confluent Cloud.
  *
  * Manages two-tier caching architecture:
@@ -84,8 +90,8 @@ class CCloudOrgManager(
 
                 val clusters = clustersDeferred.await()
 
-                val semaphore = kotlinx.coroutines.sync.Semaphore(5)
-                thisLogger().info("Pre-fetching ${clusters.size} clusters in parallel (max 5 concurrent)")
+                val semaphore = kotlinx.coroutines.sync.Semaphore(CLUSTER_PREFETCH_CONCURRENCY)
+                thisLogger().info("Pre-fetching ${clusters.size} clusters in parallel (max $CLUSTER_PREFETCH_CONCURRENCY concurrent)")
 
                 clusters.map { cluster ->
                     async {
