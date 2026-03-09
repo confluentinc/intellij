@@ -106,18 +106,12 @@ class DataPlaneFetcherImpl(
         requireSchemaRegistry()
         return try {
             val latestSchema = getLatestVersionInfo(subjectName)
-            val compatibilityLevel = try {
-                getSubjectCompatibility(subjectName).compatibilityLevel
-            } catch (e: Exception) {
-                thisLogger().debug("No subject-specific compatibility for '$subjectName', will use global default", e)
-                null
-            }
 
             SchemaData(
                 name = subjectName,
                 latestVersion = latestSchema.version,
                 schemaType = latestSchema.schemaType ?: "AVRO",
-                compatibility = compatibilityLevel
+                compatibility = null  // Fetched on-demand to reduce API calls
             )
         } catch (e: Exception) {
             // Cancellations are expected when user clicks refresh - use debug level
