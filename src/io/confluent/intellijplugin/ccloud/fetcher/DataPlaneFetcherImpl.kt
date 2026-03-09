@@ -200,12 +200,12 @@ class DataPlaneFetcherImpl(
 
     // Schema write operations
 
-    override suspend fun registerSchema(
-        subjectName: String,
+    override suspend fun createSchema(
+        schemaName: String,
         request: RegisterSchemaRequest
     ): RegisterSchemaResponse {
         requireSchemaRegistry()
-        val encodedSubject = encodeUrlPathSegment(subjectName)
+        val encodedSubject = encodeUrlPathSegment(schemaName)
         val path = String.format(CloudConfig.DataPlane.SchemaRegistry.REGISTER_SCHEMA_URI, encodedSubject)
         val requestBody = json.encodeToString(RegisterSchemaRequest.serializer(), request)
         val responseBody = schemaRegistryClient!!.executeRequest(path, "POST", requestBody)
@@ -213,20 +213,20 @@ class DataPlaneFetcherImpl(
     }
 
     override suspend fun checkSchemaExists(
-        subjectName: String,
+        schemaName: String,
         request: RegisterSchemaRequest
     ): CheckSchemaExistsResponse {
         requireSchemaRegistry()
-        val encodedSubject = encodeUrlPathSegment(subjectName)
+        val encodedSubject = encodeUrlPathSegment(schemaName)
         val path = String.format(CloudConfig.DataPlane.SchemaRegistry.CHECK_SCHEMA_URI, encodedSubject)
         val requestBody = json.encodeToString(RegisterSchemaRequest.serializer(), request)
         val responseBody = schemaRegistryClient!!.executeRequest(path, "POST", requestBody)
         return json.decodeFromString<CheckSchemaExistsResponse>(responseBody)
     }
 
-    override suspend fun deleteSubject(subjectName: String, permanent: Boolean): DeleteSubjectResponse {
+    override suspend fun deleteSchema(schemaName: String, permanent: Boolean): DeleteSubjectResponse {
         requireSchemaRegistry()
-        val encodedSubject = encodeUrlPathSegment(subjectName)
+        val encodedSubject = encodeUrlPathSegment(schemaName)
         val path = String.format(CloudConfig.DataPlane.SchemaRegistry.DELETE_SUBJECT_URI, encodedSubject)
         val pathWithQuery = if (permanent) "$path?permanent=true" else path
         val responseBody = schemaRegistryClient!!.executeRequest(pathWithQuery, "DELETE")
@@ -234,12 +234,12 @@ class DataPlaneFetcherImpl(
     }
 
     override suspend fun deleteSchemaVersion(
-        subjectName: String,
+        schemaName: String,
         version: Long,
         permanent: Boolean
     ): DeleteSchemaVersionResponse {
         requireSchemaRegistry()
-        val encodedSubject = encodeUrlPathSegment(subjectName)
+        val encodedSubject = encodeUrlPathSegment(schemaName)
         val path = String.format(
             CloudConfig.DataPlane.SchemaRegistry.DELETE_VERSION_URI,
             encodedSubject,
@@ -250,9 +250,9 @@ class DataPlaneFetcherImpl(
         return json.decodeFromString<DeleteSchemaVersionResponse>(responseBody)
     }
 
-    override suspend fun getSubjectCompatibility(subjectName: String): CompatibilityResponse {
+    override suspend fun getSchemaCompatibility(schemaName: String): CompatibilityResponse {
         requireSchemaRegistry()
-        val encodedSubject = encodeUrlPathSegment(subjectName)
+        val encodedSubject = encodeUrlPathSegment(schemaName)
         val path = String.format(CloudConfig.DataPlane.SchemaRegistry.GET_SUBJECT_COMPATIBILITY_URI, encodedSubject)
         val responseBody = schemaRegistryClient!!.executeRequest(path, "GET")
         return json.decodeFromString<CompatibilityResponse>(responseBody)
