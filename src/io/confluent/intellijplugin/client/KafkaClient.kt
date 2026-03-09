@@ -19,7 +19,6 @@ import io.confluent.intellijplugin.core.util.BdIdeRegistryUtil
 import io.confluent.intellijplugin.core.util.BdtUrlUtils
 import io.confluent.intellijplugin.core.util.withPluginClassLoader
 import io.confluent.intellijplugin.model.*
-import io.confluent.intellijplugin.producer.client.KafkaProducerClient
 import io.confluent.intellijplugin.registry.KafkaRegistryType
 import io.confluent.intellijplugin.registry.confluent.ConfluentRegistryClient
 import io.confluent.intellijplugin.registry.glue.BdtGlueRegistryClient
@@ -146,8 +145,6 @@ class KafkaClient(
 
         checkRegistryClient()
     }
-
-    fun createProducerClient() = KafkaProducerClient(client = this)
 
     override fun getRealUri(): String =
         kafkaProps.getProperty(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG) ?: "<NOT_FOUND>"
