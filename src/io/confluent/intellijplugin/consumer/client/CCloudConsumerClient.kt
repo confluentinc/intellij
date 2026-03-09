@@ -79,9 +79,8 @@ class CCloudConsumerClient(
     @VisibleForTesting
     internal val nextOffsets = mutableMapOf<Int, Long>()
 
-    // Cache parsed schemas by schema ID or GUID string to avoid redundant fetches
     @VisibleForTesting
-    internal val schemaCache = ConcurrentHashMap<String, ParsedSchema>()
+    internal val schemaCache = ConcurrentHashMap<SchemaRegistryClusterId, ConcurrentHashMap<SchemaCacheKey, ParsedSchema>>()
 
     @VisibleForTesting
     internal var currentKeyConfig: ConsumerProducerFieldConfig? = null
@@ -554,9 +553,12 @@ class CCloudConsumerClient(
 
         if (schemaGuid == null && schemaId == null) return bytes
 
-        val srClusterId = clusterDataManager.getDataPlaneCache().getSchemaRegistryId() ?: ""
-        val cacheKey = "$srClusterId:${schemaGuid?.toString() ?: schemaId.toString()}"
-        val parsedSchema = fetchAndParseSchema(cacheKey) {
+        val registryId = SchemaRegistryClusterId(
+            clusterDataManager.getDataPlaneCache().getSchemaRegistryId()
+                ?: throw IllegalStateException("Schema Registry ID is required for schema deserialization")
+        )
+        val cacheKey = if (schemaGuid != null) SchemaCacheKey.ByGuid(schemaGuid) else SchemaCacheKey.ById(schemaId!!)
+        val parsedSchema = fetchAndParseSchema(registryId, cacheKey) {
             if (schemaGuid != null) {
                 fetcher.getSchemaByGuid(schemaGuid.toString())
             } else {
@@ -574,15 +576,13 @@ class CCloudConsumerClient(
         }
     }
 
-    /**
-     * Fetch schema from SR, parse it, and cache the result.
-     * Uses [schemaCache] keyed by schema ID or GUID string.
-     */
     private suspend fun fetchAndParseSchema(
-        cacheKey: String,
+        registryId: SchemaRegistryClusterId,
+        key: SchemaCacheKey,
         fetch: suspend () -> io.confluent.intellijplugin.ccloud.model.response.SchemaByIdResponse
     ): ParsedSchema {
-        return schemaCache.getOrPut(cacheKey) {
+        val registryCache = schemaCache.getOrPut(registryId) { ConcurrentHashMap() }
+        return registryCache.getOrPut(key) {
             val response = fetch()
             val schemaType = KafkaRegistryFormat.fromSchemaType(response.schemaType)
             KafkaRegistryUtil.parseSchema(schemaType, response.schema).getOrThrow()
