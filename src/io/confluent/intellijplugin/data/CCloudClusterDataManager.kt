@@ -400,9 +400,10 @@ class CCloudClusterDataManager(
 
     override fun supportsInSyncReplicasData(): Boolean = false
 
+    // Consumer panel feature overrides - CCloud doesn't support these features yet
+
     override fun supportsConsumerGroups(): Boolean = false
-    override fun supportsPresets(): Boolean = false
-    override fun supportsDetailsPanel(): Boolean = false
+    override fun presetConnectionTag() = "ccloud"
     fun getDataPlaneCache(): DataPlaneCache = dataPlaneCache
 
     override fun dispose() {
