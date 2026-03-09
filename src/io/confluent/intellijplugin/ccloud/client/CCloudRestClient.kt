@@ -15,6 +15,12 @@ import org.json.JSONObject
 import java.net.HttpURLConnection
 
 /**
+ * CCloud API rate limit in requests per second.
+ * See: https://docs.confluent.io/cloud/current/quotas/overview.html
+ */
+internal const val CCLOUD_API_RATE_LIMIT = 5.0
+
+/**
  * HTTP client for Confluent Cloud REST APIs (control plane and data plane).
  *
  * @param baseUrl Cluster endpoint (e.g., https://api.confluent.cloud or https://pkc-xxx.region.cloud)
@@ -31,15 +37,12 @@ class CCloudRestClient(
     companion object {
         private const val CONNECT_TIMEOUT_MS = 10_000 // 10 seconds
         private const val READ_TIMEOUT_MS = 60_000    // 1 minute
-
-        // CCloud API limit (https://docs.confluent.io/cloud/current/quotas/overview.html)
-        private const val RATE_LIMIT_REQUESTS_PER_SEC = 5.0
         private const val MAX_RETRY_ATTEMPTS = 4
         private const val INITIAL_BACKOFF_MS = 1000L
         private const val MAX_BACKOFF_MS = 10_000L
 
         // Shared token bucket rate limiter across all client instances
-        private val rateLimiter = TokenBucketRateLimiter(RATE_LIMIT_REQUESTS_PER_SEC)
+        private val rateLimiter = TokenBucketRateLimiter(CCLOUD_API_RATE_LIMIT)
     }
 
     enum class AuthType {
