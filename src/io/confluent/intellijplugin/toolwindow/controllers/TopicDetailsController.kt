@@ -29,10 +29,9 @@ class TopicDetailsController(
         )
 
         val schemas: List<Pair<String, DetailsMonitoringController<String>>> = when (dataManager.registryType) {
-            // TODO: Add schema tabs for Confluent Cloud REST API
             KafkaRegistryType.NONE -> emptyList()
             KafkaRegistryType.CONFLUENT -> {
-                // Schema tabs for KafkaDataManager 
+                // Schema tabs for KafkaDataManager
                 if (dataManager is KafkaDataManager) {
                     listOf(
                         KafkaMessagesBundle.message("topic.tab.schema.key") to KafkaTopicSchemaController(

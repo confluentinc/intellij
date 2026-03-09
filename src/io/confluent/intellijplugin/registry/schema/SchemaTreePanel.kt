@@ -78,7 +78,7 @@ class SchemaTreePanel {
         treeTable.split.dividerPositionStrategy = DividerPositionStrategy.KEEP_FIRST_SIZE
 
         val tree = treeTable.tree
-        treeTable.table.emptyText.text = ""
+        treeTable.table.emptyText.clear()
 
         // We need to set max size explicitly because by default maxSize == preferredSize
         // and this leads to TreeTable first column resize problem.
