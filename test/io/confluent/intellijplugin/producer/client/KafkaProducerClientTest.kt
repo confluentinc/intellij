@@ -69,7 +69,7 @@ class KafkaProducerClientTest {
                 onStart = {},
                 onStop = { onStopCalled = true }
             )
-            client.isRunning.set(true)
+            client.running.set(true)
             client.stop()
             assertFalse(client.isRunning(), "isRunning should be false after stop")
             assertTrue(onStopCalled, "onStop callback should be invoked")
@@ -84,7 +84,7 @@ class KafkaProducerClientTest {
                 onStart = {},
                 onStop = { onStopCallCount++ }
             )
-            client.isRunning.set(true)
+            client.running.set(true)
             client.stop()
             client.stop()
             client.stop()
