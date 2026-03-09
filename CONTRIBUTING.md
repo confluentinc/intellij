@@ -20,7 +20,8 @@ and that’s your main goal, let us know and we may reassign you to a ticket whi
 
 Lastly, we ask that you self-review your PRs. Is there any weirdness, like commented-out blocks, repeated code present?
 Is it introducing new libraries that need not be introduced? Is there any preliminary work that should be broken into a
-new branch? Check that the tests pass locally. Do they increase the coverage? 
+new branch? Check that the tests pass locally. Do they increase the coverage? You can use the [/pr-review](./.claude/skills/pr-review) skill we 
+have written in addition to asking yourself these questions.
 Did you clicktest both happy and sad paths? When you create your PR description, consider including the following:
 
 - PR title that is legible from something like a changelog 
@@ -76,7 +77,7 @@ Static resources like icons and templates are in resources, core logic is in [`s
 We use the Kotlin DSL (preferred) and Swing for UI components. 
 Text copy is kept in [KafkaBundle.properties](/resources/messages/KafkaBundle.properties). All styling is in the component properties.
 
-Auto-generated files are in `src/build/generated`, don’t check them in!
+Auto-generated files are in `build/generated`, don’t check them in!
 
 ## Testing
 We unit-test everything we add to this codebase, and PRs must pass the SonarQube quality gate for test coverage 
