@@ -8,7 +8,6 @@ import io.confluent.intellijplugin.ccloud.model.response.ConsumeRecordsResponse
 import io.confluent.intellijplugin.ccloud.model.response.PartitionConsumeData
 import io.confluent.intellijplugin.ccloud.model.response.PartitionConsumeRecord
 import io.confluent.intellijplugin.ccloud.model.response.PartitionConsumeRecordHeader
-import io.confluent.intellijplugin.ccloud.model.response.PartitionOffset
 import io.confluent.intellijplugin.ccloud.model.response.SchemaByIdResponse
 import io.confluent.intellijplugin.ccloud.model.response.SinglePartitionConsumeResponse
 import io.confluent.intellijplugin.ccloud.model.response.TimestampType as ApiTimestampType
@@ -39,7 +38,6 @@ import org.apache.kafka.common.header.internals.RecordHeader
 import org.apache.kafka.common.header.internals.RecordHeaders
 import org.apache.kafka.common.errors.SerializationException
 import org.apache.kafka.common.record.TimestampType
-import org.apache.kafka.common.serialization.*
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
