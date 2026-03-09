@@ -48,6 +48,7 @@ import io.confluent.intellijplugin.core.rfs.util.RfsUtil
 import io.confluent.intellijplugin.core.rfs.viewer.utils.DriverRfsTreeUtil.lastDriverNode
 import io.confluent.intellijplugin.core.util.invokeLater
 import io.confluent.intellijplugin.data.CCloudClusterDataManager
+import io.confluent.intellijplugin.registry.KafkaRegistryType
 import io.confluent.intellijplugin.registry.confluent.controller.KafkaRegistryController
 import io.confluent.intellijplugin.registry.confluent.controller.KafkaSchemaController
 import io.confluent.intellijplugin.ccloud.model.Environment
@@ -566,7 +567,7 @@ internal class ConfluentMainController(
 
             val clusterDataManager = dataManager.getOrCreateClusterDataManager(cluster)
 
-            if (!clusterDataManager.supportsSchemaRegistry()) {
+            if (clusterDataManager.registryType == KafkaRegistryType.NONE) {
                 return@updatePanel createPlaceholderPanel(message("confluent.cloud.details.no.schema.registry"))
             }
 
@@ -617,7 +618,7 @@ internal class ConfluentMainController(
 
         val clusterDataManager = dataManager.getOrCreateClusterDataManager(cluster)
 
-        if (!clusterDataManager.supportsSchemaRegistry()) {
+        if (clusterDataManager.registryType == KafkaRegistryType.NONE) {
             schemaDetailPanel.add(JLabel(message("confluent.cloud.details.no.schema.registry"), javax.swing.SwingConstants.CENTER), BorderLayout.CENTER)
             schemaDetailPanel.revalidate()
             schemaDetailPanel.repaint()
