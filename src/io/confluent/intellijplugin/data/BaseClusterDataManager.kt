@@ -23,6 +23,7 @@ import io.confluent.intellijplugin.model.TopicConfig
 import io.confluent.intellijplugin.model.TopicPresentable
 import io.confluent.intellijplugin.common.models.RegistrySchemaInEditor
 import io.confluent.intellijplugin.consumer.editor.KafkaConsumerPanelStorage
+import io.confluent.intellijplugin.consumer.editor.KafkaConsumerSettings
 import io.confluent.intellijplugin.registry.common.KafkaSchemaInfo
 import io.confluent.intellijplugin.registry.KafkaRegistryType
 import io.confluent.intellijplugin.registry.SchemaVersionInfo
@@ -163,6 +164,8 @@ abstract class BaseClusterDataManager(
 
     // Flag for filtering saved presets depending on CCloud ("ccloud") vs Native (null) connection type
     open fun presetConnectionTag(): String? = null
+
+    open fun supportedConsumerProperties(): Set<String> = KafkaConsumerSettings.ALL_PROPERTIES
 
     val consumerPanelStorage: KafkaConsumerPanelStorage by lazy {
         KafkaConsumerPanelStorage(this).also { Disposer.register(this, it) }

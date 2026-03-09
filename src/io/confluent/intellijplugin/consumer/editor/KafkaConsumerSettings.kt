@@ -40,13 +40,7 @@ class KafkaConsumerSettings(
     private val settingsFields = LinkedHashMap<String, JTextComponent>()
 
     init {
-        arrayOf(
-            ConsumerConfig.REQUEST_TIMEOUT_MS_CONFIG,
-            ConsumerConfig.MAX_POLL_RECORDS_CONFIG,
-            ConsumerConfig.FETCH_MAX_WAIT_MS_CONFIG,
-            ConsumerConfig.FETCH_MAX_BYTES_CONFIG,
-            ConsumerConfig.MAX_PARTITION_FETCH_BYTES_CONFIG
-        ).filter { it in supportedProperties }.forEach {
+        ALL_PROPERTIES.filter { it in supportedProperties }.forEach {
 
             val textField = JTextField().apply {
                 val defaults = ConsumerConfig.configDef().configKeys()[it]
