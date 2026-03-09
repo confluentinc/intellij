@@ -3,6 +3,7 @@ package io.confluent.intellijplugin.ccloud.client
 import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.util.io.HttpRequests
 import io.confluent.intellijplugin.ccloud.auth.CCloudAuthService
+import io.confluent.intellijplugin.ccloud.config.CloudConfig
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.sync.Mutex
@@ -13,12 +14,6 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import org.json.JSONObject
 import java.net.HttpURLConnection
-
-/**
- * CCloud API rate limit in requests per second.
- * See: https://docs.confluent.io/cloud/current/quotas/overview.html
- */
-internal const val CCLOUD_API_RATE_LIMIT = 5.0
 
 /**
  * HTTP client for Confluent Cloud REST APIs (control plane and data plane).
@@ -42,7 +37,7 @@ class CCloudRestClient(
         private const val MAX_BACKOFF_MS = 10_000L
 
         // Shared token bucket rate limiter across all client instances
-        private val rateLimiter = TokenBucketRateLimiter(CCLOUD_API_RATE_LIMIT)
+        private val rateLimiter = TokenBucketRateLimiter(CloudConfig.API_RATE_LIMIT)
     }
 
     enum class AuthType {
@@ -399,9 +394,10 @@ class CCloudApiException(message: String, val statusCode: Int) : Exception(messa
 /**
  * Token bucket rate limiter. Refills tokens at constant rate, suspends when empty.
  */
-private class TokenBucketRateLimiter(private val tokensPerSecond: Double) {
+private class TokenBucketRateLimiter(tokensPerSecond: Int) {
     private val mutex = Mutex()
-    private var tokens: Double = tokensPerSecond
+    private val tokensPerSecond: Double = tokensPerSecond.toDouble()
+    private var tokens: Double = this.tokensPerSecond
     private var lastRefillTime: Long = System.currentTimeMillis()
 
     suspend fun acquire() {

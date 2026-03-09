@@ -3,6 +3,7 @@ package io.confluent.intellijplugin.ccloud.cache
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.diagnostic.thisLogger
 import io.confluent.intellijplugin.ccloud.client.CCloudRestClient
+import io.confluent.intellijplugin.ccloud.config.CloudConfig
 import io.confluent.intellijplugin.ccloud.fetcher.DataPlaneFetcherImpl
 import io.confluent.intellijplugin.ccloud.model.Cluster
 import io.confluent.intellijplugin.ccloud.model.SchemaRegistry
@@ -21,13 +22,8 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.sync.Semaphore
 import java.util.concurrent.atomic.AtomicInteger
-
-/**
- * Concurrency limit for schema/topic enrichment operations.
- * Matches CCloud API rate limit (5 req/sec) to maximize throughput while staying within limits.
- */
-private const val ENRICHMENT_CONCURRENCY = 5
 
 /**
  * Concurrency limit for partition offset enrichment.
@@ -111,9 +107,9 @@ class DataPlaneCache(
     fun enrichSchemasProgressively(schemas: List<SchemaData>): Flow<SchemaEnrichmentResult> = channelFlow {
         if (fetcher == null) return@channelFlow
 
-        thisLogger().info("Starting progressive enrichment for ${schemas.size} schemas (max $ENRICHMENT_CONCURRENCY concurrent)")
+        thisLogger().info("Starting progressive enrichment for ${schemas.size} schemas (max $CloudConfig.API_RATE_LIMIT concurrent)")
         val completed = AtomicInteger(0)
-        val semaphore = kotlinx.coroutines.sync.Semaphore(ENRICHMENT_CONCURRENCY)
+        val semaphore = Semaphore(CloudConfig.API_RATE_LIMIT)
 
         schemas.forEach { schema ->
             launch {
@@ -193,9 +189,9 @@ class DataPlaneCache(
     fun enrichTopicsDataProgressively(topics: List<TopicData>): Flow<TopicEnrichmentResult> = channelFlow {
         if (fetcher == null) return@channelFlow
 
-        thisLogger().info("Starting progressive enrichment for ${topics.size} topics (max $ENRICHMENT_CONCURRENCY concurrent)")
+        thisLogger().info("Starting progressive enrichment for ${topics.size} topics (max $CloudConfig.API_RATE_LIMIT concurrent)")
         val completed = AtomicInteger(0)
-        val semaphore = kotlinx.coroutines.sync.Semaphore(ENRICHMENT_CONCURRENCY)
+        val semaphore = Semaphore(CloudConfig.API_RATE_LIMIT)
 
         topics.forEach { topic ->
             launch {
@@ -302,7 +298,7 @@ class DataPlaneCache(
         channelFlow {
             val f = fetcher ?: return@channelFlow
 
-            val semaphore = kotlinx.coroutines.sync.Semaphore(PARTITION_ENRICHMENT_CONCURRENCY)
+            val semaphore = Semaphore(PARTITION_ENRICHMENT_CONCURRENCY)
 
             partitions.forEach { partition ->
                 launch {

@@ -5,6 +5,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import io.confluent.intellijplugin.ccloud.cache.ControlPlaneCache
 import io.confluent.intellijplugin.ccloud.cache.DataPlaneCache
+import io.confluent.intellijplugin.ccloud.config.CloudConfig
 import io.confluent.intellijplugin.ccloud.model.Cluster
 import io.confluent.intellijplugin.ccloud.model.Environment
 import io.confluent.intellijplugin.ccloud.model.SchemaRegistry
@@ -20,12 +21,7 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
-
-/**
- * Concurrency limit for cluster pre-fetching at startup.
- * Allows parallel loading of multiple clusters within CCloud API rate limits.
- */
-private const val CLUSTER_PREFETCH_CONCURRENCY = 5
+import kotlinx.coroutines.sync.Semaphore
 
 /**
  * Organization-level manager for Confluent Cloud.
@@ -90,8 +86,8 @@ class CCloudOrgManager(
 
                 val clusters = clustersDeferred.await()
 
-                val semaphore = kotlinx.coroutines.sync.Semaphore(CLUSTER_PREFETCH_CONCURRENCY)
-                thisLogger().info("Pre-fetching ${clusters.size} clusters in parallel (max $CLUSTER_PREFETCH_CONCURRENCY concurrent)")
+                val semaphore = Semaphore(CloudConfig.API_RATE_LIMIT)
+                thisLogger().info("Pre-fetching ${clusters.size} clusters in parallel (max $CloudConfig.API_RATE_LIMIT concurrent)")
 
                 clusters.map { cluster ->
                     async {
