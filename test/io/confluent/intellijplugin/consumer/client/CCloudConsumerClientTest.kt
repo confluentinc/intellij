@@ -3,6 +3,7 @@ package io.confluent.intellijplugin.consumer.client
 import com.intellij.testFramework.junit5.TestApplication
 import io.confluent.intellijplugin.ccloud.cache.DataPlaneCache
 import io.confluent.intellijplugin.ccloud.fetcher.DataPlaneFetcher
+import io.confluent.intellijplugin.ccloud.fetcher.DataPlaneFetcherImpl
 import io.confluent.intellijplugin.ccloud.model.response.ConsumeRecordsRequest
 import io.confluent.intellijplugin.ccloud.model.response.ConsumeRecordsResponse
 import io.confluent.intellijplugin.ccloud.model.response.PartitionConsumeData
@@ -79,13 +80,15 @@ class CCloudConsumerClientTest {
 
     @BeforeEach
     fun setUp() {
+        mockFetcher = mock()
+        val mockFetcherImpl = mock<DataPlaneFetcherImpl>()
         val mockDataPlaneCache = mock<DataPlaneCache> {
             on { getSchemaRegistryId() } doReturn TEST_SR_CLUSTER_ID
+            on { getFetcher() } doReturn mockFetcherImpl
         }
         mockDataManager = mock {
             on { getDataPlaneCache() } doReturn mockDataPlaneCache
         }
-        mockFetcher = mock()
         client = CCloudConsumerClient(
             clusterDataManager = mockDataManager,
             onStart = {},
