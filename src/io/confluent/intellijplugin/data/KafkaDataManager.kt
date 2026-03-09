@@ -59,7 +59,6 @@ class KafkaDataManager(
     // Consumer panel feature overrides
 
     override fun supportsConsumerGroups(): Boolean = true
-    override fun supportsAdvancedSettings(): Boolean = true
 
     private val cacheSchemaType = ConcurrentSkipListMap<String, KafkaRegistryFormat>()
 
