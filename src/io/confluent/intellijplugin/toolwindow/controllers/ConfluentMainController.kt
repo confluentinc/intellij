@@ -24,7 +24,9 @@ import com.intellij.util.ui.tree.TreeModelAdapter
 import com.intellij.openapi.observable.properties.AtomicProperty
 import javax.swing.DefaultComboBoxModel
 import io.confluent.intellijplugin.core.rfs.projectview.actions.RfsActionPlaces
+import io.confluent.intellijplugin.core.util.ToolbarUtils
 import io.confluent.intellijplugin.rfs.ConfluentDriver
+import io.confluent.intellijplugin.util.KafkaControllerUtils
 import io.confluent.intellijplugin.rfs.ConfluentDriver.Companion.isCluster
 import io.confluent.intellijplugin.rfs.ConfluentDriver.Companion.isSchemaRegistry
 import io.confluent.intellijplugin.rfs.ConfluentDriver.Companion.isTopic
@@ -290,9 +292,9 @@ internal class ConfluentMainController(
         toolbarInstalled = true
 
         // Create Producer/Consumer toolbar (same as native Kafka connections)
-        val toolbar = io.confluent.intellijplugin.core.util.ToolbarUtils.createActionToolbar(
+        val toolbar = ToolbarUtils.createActionToolbar(
             "ConfluentMainController",
-            io.confluent.intellijplugin.util.KafkaControllerUtils.createTopicToolbar(),
+            KafkaControllerUtils.createTopicToolbar(),
             true
         )
         toolbar.targetComponent = treePanel
@@ -313,12 +315,17 @@ internal class ConfluentMainController(
             driver.selectedEnvironmentId = firstEnv.id
             selectedEnvironmentId.set(firstEnv.id)
             environmentComboBoxModel.selectedItem = environmentComboBoxModel.getElementAt(0)
+
+            dataManager.preInitializeCachesForEnvironment(firstEnv.id)
         }
     }
 
     private fun refreshTreeForEnvironment(envId: String) {
         driver.selectedEnvironmentId = envId
         myTree.clearSelection()
+
+        dataManager.preInitializeCachesForEnvironment(envId)
+
         driver.fileInfoManager.refreshFiles(driver.root)
 
         // Show environment details when switching environments

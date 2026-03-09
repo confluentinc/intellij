@@ -4,6 +4,7 @@ import com.intellij.openapi.diagnostic.thisLogger
 import io.confluent.intellijplugin.ccloud.client.CCloudRestClient
 import io.confluent.intellijplugin.ccloud.config.CloudConfig
 import io.confluent.intellijplugin.ccloud.model.response.*
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
@@ -121,7 +122,7 @@ class DataPlaneFetcherImpl(
             )
         } catch (e: Exception) {
             // Cancellations are expected when user clicks refresh - use debug level
-            if (e is kotlinx.coroutines.CancellationException) {
+            if (e is CancellationException) {
                 thisLogger().debug("Cancelled fetch schema info for '$subjectName': ${e.message}")
             } else {
                 thisLogger().warn("Failed to fetch schema info for '$subjectName'", e)
