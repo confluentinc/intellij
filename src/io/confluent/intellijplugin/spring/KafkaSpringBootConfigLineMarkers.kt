@@ -17,6 +17,7 @@ import com.intellij.openapi.editor.markup.GutterIconRenderer
 import com.intellij.openapi.module.ModuleUtilCore
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.util.NlsSafe
+import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.psi.ElementManipulators
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiLanguageInjectionHost
@@ -32,11 +33,15 @@ internal class KafkaSpringBootConfigLineMarkers : LineMarkerProviderDescriptor()
     override fun getLineMarkerInfo(element: PsiElement): LineMarkerInfo<*>? = null
 
     override fun collectSlowLineMarkers(elements: List<PsiElement>, result: MutableCollection<in LineMarkerInfo<*>>) {
-        val module = elements.firstOrNull()?.let { ModuleUtilCore.findModuleForPsiElement(it) }
-        if (!SpringLibraryUtil.hasSpringLibrary(module)) return
+        try {
+            val module = elements.firstOrNull()?.let { ModuleUtilCore.findModuleForPsiElement(it) }
+            if (!SpringLibraryUtil.hasSpringLibrary(module)) return
 
-        for (element in elements) {
-            addLineMarker(element, result)
+            for (element in elements) {
+                addLineMarker(element, result)
+            }
+        } catch (e: NoClassDefFoundError) {
+            thisLogger().debug("Spring plugin not available, skipping Kafka Spring Boot line markers")
         }
     }
 
