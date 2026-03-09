@@ -34,7 +34,6 @@ import io.confluent.intellijplugin.core.util.executeOnPooledThread
 import io.confluent.intellijplugin.core.util.invokeLater
 import io.confluent.intellijplugin.core.util.withPluginClassLoader
 import io.confluent.intellijplugin.data.BaseClusterDataManager
-import io.confluent.intellijplugin.data.CCloudClusterDataManager
 import io.confluent.intellijplugin.telemetry.MessageViewerEvent
 import io.confluent.intellijplugin.telemetry.logUsage
 import org.apache.kafka.clients.consumer.ConsumerConfig
@@ -147,12 +146,7 @@ class KafkaConsumerPanel(
     private val value = KafkaConsumerFieldComponent(project, this, isKey = false).also { Disposer.register(this, it) }
 
     private val kafkaConsumerSettingsDelegate = lazy {
-        val supportedProperties = if (kafkaManager is CCloudClusterDataManager) {
-            KafkaConsumerSettings.CCLOUD_PROPERTIES
-        } else {
-            KafkaConsumerSettings.ALL_PROPERTIES
-        }
-        KafkaConsumerSettings(supportedProperties)
+        KafkaConsumerSettings(kafkaManager.supportedConsumerProperties())
     }
     private val kafkaConsumerSettings: KafkaConsumerSettings by kafkaConsumerSettingsDelegate
 
@@ -299,8 +293,10 @@ class KafkaConsumerPanel(
 
     private val settingsPanel: JPanel by settingsPanelDelegate
 
+    private val scopedConsumerConfig = KafkaConfigStorage.getInstance().consumerConfigFor(kafkaManager.presetConnectionTag())
+
     private val presetsDelegate = lazy {
-        val presets = ConsumerPresets()
+        val presets = ConsumerPresets(scopedConsumerConfig)
         Disposer.register(this, presets)
         presets.onApply = { applyConfig(it) }
         presets.component.apply {
@@ -320,33 +316,25 @@ class KafkaConsumerPanel(
 
         presetsSplitter.proportionsKey = "kafka.consumer.multisplitter.proportions"
 
-        if (kafkaManager.supportsPresets()) {
-            presetsSplitter.add(
-                ExpansionPanel(
-                    KafkaMessagesBundle.message("toggle.presets"),
-                    { presets.component },
-                    PRESETS_SHOW_ID,
-                    false
-                )
+        presetsSplitter.add(
+            ExpansionPanel(
+                KafkaMessagesBundle.message("toggle.presets"),
+                { presets.component },
+                PRESETS_SHOW_ID,
+                false
             )
-        }
+        )
 
         presetsSplitter.add(
             ExpansionPanel(
                 KafkaMessagesBundle.message("toggle.configuration"), { settingsPanel },
                 SETTINGS_SHOW_ID, true,
-                if (kafkaManager.supportsPresets()) {
-                    listOf(SavePresetAction(KafkaConfigStorage.getInstance().consumerConfig) { getRunConfig() })
-                } else {
-                    emptyList()
-                }
+                listOf(SavePresetAction(scopedConsumerConfig) { getRunConfig() })
             )
         )
         presetsSplitter.add(output.dataPanel)
 
-        if (kafkaManager.supportsDetailsPanel()) {
-            presetsSplitter.add(output.detailsPanel)
-        }
+        presetsSplitter.add(output.detailsPanel)
 
         presetsSplitter.centralComponent = output.dataPanel
 
@@ -500,7 +488,7 @@ class KafkaConsumerPanel(
 
             customKeySchema = key.getCustomSchemaConfig(),
             customValueSchema = value.getCustomSchemaConfig()
-        )
+        ).copy(connectionType = kafkaManager.presetConnectionTag())
     }
 
     fun getComponent(): JComponent = presetsSplitter

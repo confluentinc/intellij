@@ -12,6 +12,7 @@ import io.confluent.intellijplugin.ccloud.model.response.toPresentable
 import io.confluent.intellijplugin.client.KafkaConstants
 import io.confluent.intellijplugin.common.models.RegistrySchemaInEditor
 import io.confluent.intellijplugin.core.monitoring.data.storage.ObjectDataModelStorage
+import io.confluent.intellijplugin.consumer.editor.KafkaConsumerSettings
 import io.confluent.intellijplugin.core.monitoring.data.storage.RootDataModelStorage
 import io.confluent.intellijplugin.model.BdtTopicPartition
 import io.confluent.intellijplugin.model.ConsumerGroupOffsetInfo
@@ -401,8 +402,8 @@ class CCloudClusterDataManager(
     override fun supportsInSyncReplicasData(): Boolean = false
 
     override fun supportsConsumerGroups(): Boolean = false
-    override fun supportsPresets(): Boolean = false
-    override fun supportsDetailsPanel(): Boolean = false
+    override fun presetConnectionTag(): String = "ccloud"
+    override fun supportedConsumerProperties(): Set<String> = KafkaConsumerSettings.CCLOUD_PROPERTIES
     fun getDataPlaneCache(): DataPlaneCache = dataPlaneCache
 
     override fun dispose() {

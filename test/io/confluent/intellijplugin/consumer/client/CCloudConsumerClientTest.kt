@@ -33,18 +33,21 @@ import org.apache.avro.generic.GenericData
 import org.apache.avro.generic.GenericDatumWriter
 import org.apache.avro.io.EncoderFactory
 import io.confluent.kafka.serializers.schema.id.SchemaId
+import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.common.header.internals.RecordHeader
 import org.apache.kafka.common.header.internals.RecordHeaders
 import org.apache.kafka.common.errors.SerializationException
 import org.apache.kafka.common.record.TimestampType
 import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.*
 import java.io.ByteArrayOutputStream
+import java.util.concurrent.ConcurrentHashMap
 import java.nio.ByteBuffer
 import java.util.Base64
 import java.util.UUID
@@ -460,8 +463,9 @@ class CCloudConsumerClientTest {
             val headers = RecordHeaders()
 
             // Pre-populate cache with a mock ParsedSchema that isn't Avro/Protobuf/Json
-            // Cache key is prefixed with SR cluster ID
-            client.schemaCache["$TEST_SR_CLUSTER_ID:$schemaId"] = mock<ParsedSchema> {
+            val registryId = SchemaRegistryClusterId(TEST_SR_CLUSTER_ID)
+            client.schemaCache
+                .getOrPut(registryId) { ConcurrentHashMap() }[SchemaCacheKey.ById(schemaId)] = mock<ParsedSchema> {
                 on { schemaType() } doReturn "UNKNOWN"
             }
 
@@ -528,6 +532,23 @@ class CCloudConsumerClientTest {
 
             // Fetcher should only be called once due to caching
             verify(mockFetcher, times(1)).getSchemaIdInfo(schemaId)
+        }
+
+        @Test
+        fun `should isolate schemas across different registry cluster IDs`() {
+            val schemaId = 42
+            val registryA = SchemaRegistryClusterId("lsrc-aaa")
+            val registryB = SchemaRegistryClusterId("lsrc-bbb")
+            val key = SchemaCacheKey.ById(schemaId)
+
+            val schemaA = mock<ParsedSchema> { on { schemaType() } doReturn "AVRO" }
+            val schemaB = mock<ParsedSchema> { on { schemaType() } doReturn "PROTOBUF" }
+
+            client.schemaCache.getOrPut(registryA) { ConcurrentHashMap() }[key] = schemaA
+            client.schemaCache.getOrPut(registryB) { ConcurrentHashMap() }[key] = schemaB
+
+            assertSame(schemaA, client.schemaCache[registryA]!![key])
+            assertSame(schemaB, client.schemaCache[registryB]!![key])
         }
     }
 
@@ -716,6 +737,72 @@ class CCloudConsumerClientTest {
             val offsetMap = request.offsets.associate { it.partitionId to it.offset }
             assertEquals(100L, offsetMap[0])
             assertEquals(200L, offsetMap[1])
+        }
+
+    }
+
+    @Nested
+    @DisplayName("start")
+    inner class Start {
+
+        @AfterEach
+        fun tearDown() {
+            client.stop()
+        }
+
+        private fun startWith(properties: Map<String, String> = emptyMap()) {
+            val config = StorageConsumerConfig(properties = properties)
+            client.start(config, fieldConfig(KafkaFieldType.STRING), fieldConfig(KafkaFieldType.STRING, isKey = true),
+                consume = { _, _ -> }, timestampUpdate = {}, consumeError = { _, _, _ -> })
+        }
+
+        @Test
+        fun `should resolve config properties and pass them to ConsumeRecordsRequest`() {
+            startWith(mapOf(
+                ConsumerConfig.MAX_POLL_RECORDS_CONFIG to "10",
+                ConsumerConfig.FETCH_MAX_BYTES_CONFIG to "2048"
+            ))
+
+            val request = client.buildSubsequentConsumeRequest()
+            assertEquals(10, request.maxPollRecords)
+            assertEquals(2048, request.fetchMaxBytes)
+        }
+
+        @Test
+        fun `should use server defaults when properties are absent from config`() {
+            startWith()
+
+            val request = client.buildSubsequentConsumeRequest()
+            assertNull(request.maxPollRecords, "Null lets server use its default (500)")
+            assertNull(request.fetchMaxBytes, "Null lets server use its default (50MB)")
+        }
+
+        @Test
+        fun `should use server defaults when property values are not valid integers`() {
+            startWith(mapOf(
+                ConsumerConfig.MAX_POLL_RECORDS_CONFIG to "not-a-number",
+                ConsumerConfig.FETCH_MAX_BYTES_CONFIG to ""
+            ))
+
+            val request = client.buildSubsequentConsumeRequest()
+            assertNull(request.maxPollRecords)
+            assertNull(request.fetchMaxBytes)
+        }
+    }
+
+    @Nested
+    @DisplayName("stop")
+    inner class Stop {
+
+        @Test
+        fun `should clear resolved advanced settings`() {
+            client.resolvedMaxPollRecords = 10
+            client.resolvedFetchMaxBytes = 2048
+
+            client.stop()
+
+            assertNull(client.resolvedMaxPollRecords)
+            assertNull(client.resolvedFetchMaxBytes)
         }
     }
 
