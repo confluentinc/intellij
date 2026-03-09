@@ -332,7 +332,8 @@ class CCloudConsumerClient(
      *
      * @return the validated partition filter set, or null if no filter was specified.
      */
-    private suspend fun validatePartitionFilter(
+    @VisibleForTesting
+    internal suspend fun validatePartitionFilter(
         partitionsText: String?,
         topicName: String,
         fetcher: DataPlaneFetcher
@@ -360,7 +361,8 @@ class CCloudConsumerClient(
      *
      * Without a partition filter, uses the standard multi-partition POST endpoint directly.
      */
-    private suspend fun fetchInitialRecords(
+    @VisibleForTesting
+    internal suspend fun fetchInitialRecords(
         config: StorageConsumerConfig,
         fetcher: DataPlaneFetcher,
         topicName: String,
@@ -420,7 +422,8 @@ class CCloudConsumerClient(
     /**
      * Build the initial consume request for the multi-partition POST endpoint (unfiltered only).
      */
-    private suspend fun buildInitialConsumeRequest(
+    @VisibleForTesting
+    internal suspend fun buildInitialConsumeRequest(
         config: StorageConsumerConfig,
         fetcher: DataPlaneFetcher
     ): ConsumeRecordsRequest {
@@ -548,7 +551,8 @@ class CCloudConsumerClient(
      * Removes stale partitions that are no longer in the response (handles partition removal).
      * When [partitionFilter] is set, only tracks offsets for partitions in the filter.
      */
-    private fun updateNextOffsets(response: ConsumeRecordsResponse, partitionFilter: Set<Int>?) {
+    @VisibleForTesting
+    internal fun updateNextOffsets(response: ConsumeRecordsResponse, partitionFilter: Set<Int>?) {
         val activePartitions = response.partitionDataList.map { it.partitionId }.toSet()
 
         // Remove partitions that are no longer in the response
@@ -575,7 +579,8 @@ class CCloudConsumerClient(
         return Base64.getDecoder().decode(raw)
     }
 
-    private suspend fun convertToConsumerRecord(
+    @VisibleForTesting
+    internal suspend fun convertToConsumerRecord(
         record: PartitionConsumeRecord,
         topic: String,
         fetcher: DataPlaneFetcher
