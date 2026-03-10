@@ -8,6 +8,9 @@ import io.confluent.intellijplugin.ccloud.fetcher.DataPlaneFetcherImpl
 import io.confluent.intellijplugin.ccloud.model.Cluster
 import io.confluent.intellijplugin.ccloud.model.SchemaRegistry
 import io.confluent.intellijplugin.ccloud.model.response.CreateTopicRequest
+import io.confluent.intellijplugin.ccloud.model.response.DeleteSubjectResponse
+import io.confluent.intellijplugin.ccloud.model.response.RegisterSchemaRequest
+import io.confluent.intellijplugin.ccloud.model.response.RegisterSchemaResponse
 import io.confluent.intellijplugin.ccloud.model.response.SchemaData
 import io.confluent.intellijplugin.ccloud.model.response.SchemaEnrichmentData
 import io.confluent.intellijplugin.ccloud.model.response.SchemaEnrichmentResult
@@ -45,6 +48,7 @@ class DataPlaneCache(
 
     private var cachedTopics: List<TopicData>? = null
     private var cachedSchemas: List<SchemaData>? = null
+    private var cachedTopicEnrichment: MutableMap<String, TopicEnrichmentData> = mutableMapOf()
 
     companion object {
         private const val ENRICHMENT_TIMEOUT_MS = 30_000L
@@ -80,12 +84,29 @@ class DataPlaneCache(
 
     fun getTopics(): List<TopicData> = cachedTopics ?: emptyList()
 
+    /** Fetch topics from API, update cache. Cleans stale enrichment for deleted topics. */
     suspend fun refreshTopics(): List<TopicData> {
         val topics = fetcher?.getTopics() ?: emptyList()
         cachedTopics = topics
+
+        // Remove enrichment for topics that no longer exist
+        val topicNames = topics.map { it.topicName }.toSet()
+        cachedTopicEnrichment.keys.retainAll(topicNames)
+
         return topics
     }
 
+    /** Get enrichment data for a topic from cache. Returns null if not enriched yet. */
+    fun getTopicEnrichment(topicName: String): TopicEnrichmentData? {
+        return cachedTopicEnrichment[topicName]
+    }
+
+    /** Update topic enrichment in cache (e.g., messageCount). */
+    fun updateTopicInCache(topicName: String, enrichmentData: TopicEnrichmentData) {
+        cachedTopicEnrichment[topicName] = enrichmentData
+    }
+
+    /** Check if Schema Registry is configured. */
     fun hasSchemaRegistry(): Boolean = schemaRegistry != null
 
     fun getSchemaRegistryId(): String? = schemaRegistry?.id
@@ -216,10 +237,14 @@ class DataPlaneCache(
                     }
 
                     val count = completed.incrementAndGet()
+                    val enrichmentData = TopicEnrichmentData(messageCount = messageCount)
+
+                    updateTopicInCache(topic.topicName, enrichmentData)
+
                     send(
                         TopicEnrichmentResult.Success(
                             topicName = topic.topicName,
-                            data = TopicEnrichmentData(messageCount = messageCount),
+                            data = enrichmentData,
                             progress = count to topics.size
                         )
                     )
@@ -259,17 +284,20 @@ class DataPlaneCache(
                             fetcher?.getTopicMessageCount(topic.topicName)
                         }
 
-                    thisLogger().debug("Enriched ${topic.topicName}: messageCount=$messageCount")
+                        thisLogger().debug("Enriched ${topic.topicName}: messageCount=$messageCount")
 
-                    topic.topicName to TopicEnrichmentData(
-                        messageCount = messageCount
-                    )
-                } catch (e: Exception) {
-                    thisLogger().warn("Failed to enrich topic ${topic.topicName}: ${e.message}")
-                    topic.topicName to TopicEnrichmentData()
+                        val enrichmentData = TopicEnrichmentData(messageCount = messageCount)
+                        updateTopicInCache(topic.topicName, enrichmentData)
+
+                        topic.topicName to enrichmentData
+                    } catch (e: Exception) {
+                        thisLogger().warn("Failed to enrich topic ${topic.topicName}: ${e.message}")
+                        val emptyEnrichment = TopicEnrichmentData()
+                        updateTopicInCache(topic.topicName, emptyEnrichment)
+                        topic.topicName to emptyEnrichment
+                    }
                 }
-            }
-        }.awaitAll().toMap()
+            }.awaitAll().toMap()
 
             thisLogger().info("Enrichment completed: ${results.size} topics enriched")
             results
@@ -277,13 +305,36 @@ class DataPlaneCache(
     }
 
     suspend fun createTopic(request: CreateTopicRequest): TopicData {
-        return fetcher?.createTopic(request)
+        val newTopic = fetcher?.createTopic(request)
             ?: throw IllegalStateException("DataPlaneCache not connected for cluster ${cluster.id}")
+
+        cachedTopics = cachedTopics?.plus(newTopic) ?: listOf(newTopic)
+        return newTopic
     }
 
     suspend fun deleteTopic(topicName: String) {
         fetcher?.deleteTopic(topicName)
             ?: throw IllegalStateException("DataPlaneCache not connected for cluster ${cluster.id}")
+
+        cachedTopics = cachedTopics?.filterNot { it.topicName == topicName }
+        cachedTopicEnrichment.remove(topicName)
+    }
+
+    suspend fun createSchema(schemaName: String, request: RegisterSchemaRequest): RegisterSchemaResponse {
+        val response = fetcher?.createSchema(schemaName, request)
+            ?: throw IllegalStateException("DataPlaneCache not connected for cluster ${cluster.id}")
+
+        val newSchema = SchemaData(name = schemaName)
+        cachedSchemas = cachedSchemas?.plus(newSchema) ?: listOf(newSchema)
+        return response
+    }
+
+    suspend fun deleteSchema(schemaName: String, permanent: Boolean = false): DeleteSubjectResponse {
+        val response = fetcher?.deleteSchema(schemaName, permanent)
+            ?: throw IllegalStateException("DataPlaneCache not connected for cluster ${cluster.id}")
+
+        cachedSchemas = cachedSchemas?.filterNot { it.name == schemaName }
+        return response
     }
 
     /** Get topic partitions without offsets. Use enrichPartitionsProgressively() for offsets. */
@@ -372,5 +423,6 @@ class DataPlaneCache(
         fetcher = null
         cachedTopics = null
         cachedSchemas = null
+        cachedTopicEnrichment.clear()
     }
 }
