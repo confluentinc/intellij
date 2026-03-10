@@ -2,10 +2,10 @@ package io.confluent.intellijplugin.model
 
 import io.confluent.intellijplugin.core.monitoring.data.model.RemoteInfo
 import io.confluent.intellijplugin.util.KafkaLocalizedField
-import org.apache.kafka.common.ConsumerGroupState
+import org.apache.kafka.common.GroupState
 
 data class ConsumerGroupPresentable(
-    val state: ConsumerGroupState,
+    val state: GroupState,
     val consumerGroup: String,
     val isFavorite: Boolean = false
 ) : RemoteInfo {

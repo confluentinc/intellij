@@ -72,6 +72,23 @@ data class ConsumeRecordsResponse(
 )
 
 /**
+ * Response from the single-partition consume GET endpoint.
+ * Same structure as [ConsumeRecordsResponse] but with a single partition_data object
+ * instead of a partition_data_list array.
+ */
+@Serializable
+data class SinglePartitionConsumeResponse(
+    @SerialName("cluster_id")
+    val clusterId: String,
+
+    @SerialName("topic_name")
+    val topicName: String,
+
+    @SerialName("partition_data")
+    val partitionData: PartitionConsumeData
+)
+
+/**
  * Consumed records for a single partition.
  */
 @Serializable

@@ -19,12 +19,15 @@ import io.confluent.intellijplugin.core.rfs.driver.refreshConnectionLaunch
 import io.confluent.intellijplugin.core.settings.connections.ConnectionData
 import io.confluent.intellijplugin.core.settings.connections.ConnectionFactory
 import io.confluent.intellijplugin.core.settings.manager.RfsConnectionDataManager
+import io.confluent.intellijplugin.icons.BigdatatoolsKafkaIcons
 import io.confluent.intellijplugin.registry.KafkaRegistryUtil
 import io.confluent.intellijplugin.rfs.ConfluentConnectionData
+import io.confluent.intellijplugin.rfs.ConfluentDriver
 import io.confluent.intellijplugin.rfs.KafkaConnectionData
 import io.confluent.intellijplugin.settings.KafkaConnectionGroup
 import io.confluent.intellijplugin.toolwindow.config.KafkaToolWindowSettings
 import io.confluent.intellijplugin.toolwindow.controllers.ConfluentMainController
+import io.confluent.intellijplugin.toolwindow.controllers.ConfluentTabController
 import io.confluent.intellijplugin.toolwindow.controllers.KafkaMainController
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
 
@@ -47,7 +50,7 @@ class KafkaMonitoringToolWindowController(project: Project) : MonitoringToolWind
     override fun createMainController(connectionData: ConnectionData): ComponentController = when (connectionData) {
         is KafkaConnectionData -> KafkaMainController(project, connectionData)
         is ConfluentConnectionData -> {
-            val driver = io.confluent.intellijplugin.rfs.ConfluentDriver(
+            val driver = ConfluentDriver(
                 connectionData,
                 project,
                 testConnection = false
@@ -131,7 +134,7 @@ class KafkaMonitoringToolWindowController(project: Project) : MonitoringToolWind
             .filter { it.getUserData(CONNECTION_ID) == null }
             .forEach { contentManager.removeContent(it, true) }
 
-        val controller = io.confluent.intellijplugin.toolwindow.controllers.ConfluentTabController(project)
+        val controller = ConfluentTabController(project)
 
         val content = contentManager.factory.createContent(
             controller.getComponent(),
@@ -142,7 +145,7 @@ class KafkaMonitoringToolWindowController(project: Project) : MonitoringToolWind
             putUserData(PAGE_CONTROLLER_ID, controller)
             putUserData(PROJECT, project)
             isCloseable = false
-            icon = io.confluent.intellijplugin.icons.BigdatatoolsKafkaIcons.ConfluentTab
+            icon = BigdatatoolsKafkaIcons.ConfluentTab
         }
 
         com.intellij.openapi.util.Disposer.register(content, controller)
@@ -151,7 +154,7 @@ class KafkaMonitoringToolWindowController(project: Project) : MonitoringToolWind
     }
 
     private fun applyConfluentCloudIcon(content: com.intellij.ui.content.Content) {
-        val icon = io.confluent.intellijplugin.icons.BigdatatoolsKafkaIcons.ConfluentTab
+        val icon = BigdatatoolsKafkaIcons.ConfluentTab
         content.icon = icon
         ComponentUtil.getParentOfType(InternalDecorator::class.java, contentManager.component)?.let {
             UIUtil.findComponentsOfType(it, ContentTabLabel::class.java).find { tab -> tab.content == content }?.apply {
@@ -164,9 +167,9 @@ class KafkaMonitoringToolWindowController(project: Project) : MonitoringToolWind
         }
     }
 
-    fun getConfluentCloudTabController(): io.confluent.intellijplugin.toolwindow.controllers.ConfluentTabController? {
+    fun getConfluentCloudTabController(): ConfluentTabController? {
         val content = contentManager.contents.firstOrNull { it.getUserData(CONNECTION_ID) == "ccloud" }
-        return content?.getUserData(PAGE_CONTROLLER_ID) as? io.confluent.intellijplugin.toolwindow.controllers.ConfluentTabController
+        return content?.getUserData(PAGE_CONTROLLER_ID) as? ConfluentTabController
     }
 
     override fun focusOn(connectionId: String) = focusOn(connectionId, null)

@@ -3,10 +3,12 @@ package io.confluent.intellijplugin.toolwindow.controllers
 import com.intellij.openapi.actionSystem.DataSink
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
+import io.confluent.intellijplugin.core.monitoring.data.MonitoringDataManager
 import io.confluent.intellijplugin.core.monitoring.toolwindow.DetailsMonitoringController
 import io.confluent.intellijplugin.core.monitoring.toolwindow.MainTreeController
 import io.confluent.intellijplugin.core.monitoring.toolwindow.TabbedDetailsMonitoringController
 import io.confluent.intellijplugin.data.BaseClusterDataManager
+import io.confluent.intellijplugin.data.KafkaDataManager
 import io.confluent.intellijplugin.registry.KafkaRegistryType
 import io.confluent.intellijplugin.registry.confluent.controller.KafkaTopicSchemaController
 import io.confluent.intellijplugin.registry.confluent.controller.TopicSchemaViewType
@@ -31,7 +33,7 @@ class TopicDetailsController(
             KafkaRegistryType.NONE -> emptyList()
             KafkaRegistryType.CONFLUENT -> {
                 // Schema tabs for KafkaDataManager 
-                if (dataManager is io.confluent.intellijplugin.data.KafkaDataManager) {
+                if (dataManager is KafkaDataManager) {
                     listOf(
                         KafkaMessagesBundle.message("topic.tab.schema.key") to KafkaTopicSchemaController(
                             project,
@@ -50,7 +52,7 @@ class TopicDetailsController(
             }
             KafkaRegistryType.AWS_GLUE -> {
                 // Schema tabs require KafkaDataManager specifically
-                if (dataManager is io.confluent.intellijplugin.data.KafkaDataManager) {
+                if (dataManager is KafkaDataManager) {
                     listOf(
                         KafkaMessagesBundle.message("topic.tab.schema") to KafkaTopicSchemaController(
                             project,
@@ -72,7 +74,7 @@ class TopicDetailsController(
     override fun uiDataSnapshot(sink: DataSink) {
         super.uiDataSnapshot(sink)
         // TopicDetailDataProvider implementations extend MonitoringDataManager
-        if (dataManager is io.confluent.intellijplugin.core.monitoring.data.MonitoringDataManager) {
+        if (dataManager is MonitoringDataManager) {
             sink[MainTreeController.DATA_MANAGER] = dataManager
         }
         sink[MainTreeController.RFS_PATH] = detailsId?.let { KafkaDriver.topicPath.child(it, false) }
