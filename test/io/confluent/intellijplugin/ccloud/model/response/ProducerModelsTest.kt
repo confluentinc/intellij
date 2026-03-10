@@ -145,6 +145,38 @@ class ProducerModelsTest {
     }
 
     @Nested
+    @DisplayName("ProduceRecordResponseData deserialization")
+    inner class ResponseDataDeserialization {
+
+        @Test
+        fun `should deserialize with all fields`() {
+            val input = """{"size": 10, "type": "STRING"}"""
+            val data = json.decodeFromString<ProduceRecordResponseData>(input)
+
+            assertEquals(10, data.size)
+            assertEquals("STRING", data.type)
+        }
+
+        @Test
+        fun `should deserialize with missing fields as null`() {
+            val input = """{}"""
+            val data = json.decodeFromString<ProduceRecordResponseData>(input)
+
+            assertNull(data.size)
+            assertNull(data.type)
+        }
+
+        @Test
+        fun `should deserialize with only size`() {
+            val input = """{"size": 5}"""
+            val data = json.decodeFromString<ProduceRecordResponseData>(input)
+
+            assertEquals(5, data.size)
+            assertNull(data.type)
+        }
+    }
+
+    @Nested
     @DisplayName("ProduceRecordResponse deserialization")
     inner class ResponseDeserialization {
 

@@ -3,10 +3,21 @@ package io.confluent.intellijplugin.consumer.client
 import com.intellij.testFramework.junit5.TestApplication
 import io.confluent.intellijplugin.ccloud.cache.DataPlaneCache
 import io.confluent.intellijplugin.ccloud.fetcher.DataPlaneFetcher
+import io.confluent.intellijplugin.ccloud.fetcher.DataPlaneFetcherImpl
+import io.confluent.intellijplugin.ccloud.model.response.ConsumeRecordsRequest
+import io.confluent.intellijplugin.ccloud.model.response.ConsumeRecordsResponse
+import io.confluent.intellijplugin.ccloud.model.response.PartitionConsumeData
+import io.confluent.intellijplugin.ccloud.model.response.PartitionConsumeRecord
+import io.confluent.intellijplugin.ccloud.model.response.PartitionConsumeRecordHeader
 import io.confluent.intellijplugin.ccloud.model.response.SchemaByIdResponse
+import io.confluent.intellijplugin.ccloud.model.response.SinglePartitionConsumeResponse
+import io.confluent.intellijplugin.ccloud.model.response.TimestampType as ApiTimestampType
 import io.confluent.intellijplugin.common.models.KafkaFieldType
+import io.confluent.intellijplugin.common.settings.StorageConsumerConfig
 import io.confluent.intellijplugin.consumer.models.ConsumerProducerFieldConfig
+import io.confluent.intellijplugin.consumer.models.ConsumerStartType
 import io.confluent.intellijplugin.data.CCloudClusterDataManager
+import io.confluent.intellijplugin.ccloud.model.response.PartitionData
 import io.confluent.intellijplugin.registry.KafkaRegistryFormat
 import io.confluent.intellijplugin.registry.KafkaRegistryType
 import io.confluent.kafka.schemaregistry.ParsedSchema
@@ -14,6 +25,7 @@ import io.confluent.kafka.schemaregistry.protobuf.MessageIndexes
 import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchema
 import com.google.protobuf.DynamicMessage
 import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
@@ -22,19 +34,21 @@ import org.apache.avro.generic.GenericData
 import org.apache.avro.generic.GenericDatumWriter
 import org.apache.avro.io.EncoderFactory
 import io.confluent.kafka.serializers.schema.id.SchemaId
+import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.common.header.internals.RecordHeader
 import org.apache.kafka.common.header.internals.RecordHeaders
 import org.apache.kafka.common.errors.SerializationException
 import org.apache.kafka.common.record.TimestampType
-import org.apache.kafka.common.serialization.*
 import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.*
 import java.io.ByteArrayOutputStream
+import java.util.concurrent.ConcurrentHashMap
 import java.nio.ByteBuffer
 import java.util.Base64
 import java.util.UUID
@@ -66,13 +80,15 @@ class CCloudConsumerClientTest {
 
     @BeforeEach
     fun setUp() {
+        mockFetcher = mock()
+        val mockFetcherImpl = mock<DataPlaneFetcherImpl>()
         val mockDataPlaneCache = mock<DataPlaneCache> {
             on { getSchemaRegistryId() } doReturn TEST_SR_CLUSTER_ID
+            on { getFetcher() } doReturn mockFetcherImpl
         }
         mockDataManager = mock {
             on { getDataPlaneCache() } doReturn mockDataPlaneCache
         }
-        mockFetcher = mock()
         client = CCloudConsumerClient(
             clusterDataManager = mockDataManager,
             onStart = {},
@@ -450,8 +466,9 @@ class CCloudConsumerClientTest {
             val headers = RecordHeaders()
 
             // Pre-populate cache with a mock ParsedSchema that isn't Avro/Protobuf/Json
-            // Cache key is prefixed with SR cluster ID
-            client.schemaCache["$TEST_SR_CLUSTER_ID:$schemaId"] = mock<ParsedSchema> {
+            val registryId = SchemaRegistryClusterId(TEST_SR_CLUSTER_ID)
+            client.schemaCache
+                .getOrPut(registryId) { ConcurrentHashMap() }[SchemaCacheKey.ById(schemaId)] = mock<ParsedSchema> {
                 on { schemaType() } doReturn "UNKNOWN"
             }
 
@@ -518,6 +535,23 @@ class CCloudConsumerClientTest {
 
             // Fetcher should only be called once due to caching
             verify(mockFetcher, times(1)).getSchemaIdInfo(schemaId)
+        }
+
+        @Test
+        fun `should isolate schemas across different registry cluster IDs`() {
+            val schemaId = 42
+            val registryA = SchemaRegistryClusterId("lsrc-aaa")
+            val registryB = SchemaRegistryClusterId("lsrc-bbb")
+            val key = SchemaCacheKey.ById(schemaId)
+
+            val schemaA = mock<ParsedSchema> { on { schemaType() } doReturn "AVRO" }
+            val schemaB = mock<ParsedSchema> { on { schemaType() } doReturn "PROTOBUF" }
+
+            client.schemaCache.getOrPut(registryA) { ConcurrentHashMap() }[key] = schemaA
+            client.schemaCache.getOrPut(registryB) { ConcurrentHashMap() }[key] = schemaB
+
+            assertSame(schemaA, client.schemaCache[registryA]!![key])
+            assertSame(schemaB, client.schemaCache[registryB]!![key])
         }
     }
 
@@ -707,6 +741,72 @@ class CCloudConsumerClientTest {
             assertEquals(100L, offsetMap[0])
             assertEquals(200L, offsetMap[1])
         }
+
+    }
+
+    @Nested
+    @DisplayName("start")
+    inner class Start {
+
+        @AfterEach
+        fun tearDown() {
+            client.stop()
+        }
+
+        private fun startWith(properties: Map<String, String> = emptyMap()) {
+            val config = StorageConsumerConfig(properties = properties)
+            client.start(config, fieldConfig(KafkaFieldType.STRING), fieldConfig(KafkaFieldType.STRING, isKey = true),
+                consume = { _, _ -> }, timestampUpdate = {}, consumeError = { _, _, _ -> })
+        }
+
+        @Test
+        fun `should resolve config properties and pass them to ConsumeRecordsRequest`() {
+            startWith(mapOf(
+                ConsumerConfig.MAX_POLL_RECORDS_CONFIG to "10",
+                ConsumerConfig.FETCH_MAX_BYTES_CONFIG to "2048"
+            ))
+
+            val request = client.buildSubsequentConsumeRequest()
+            assertEquals(10, request.maxPollRecords)
+            assertEquals(2048, request.fetchMaxBytes)
+        }
+
+        @Test
+        fun `should use server defaults when properties are absent from config`() {
+            startWith()
+
+            val request = client.buildSubsequentConsumeRequest()
+            assertNull(request.maxPollRecords, "Null lets server use its default (500)")
+            assertNull(request.fetchMaxBytes, "Null lets server use its default (50MB)")
+        }
+
+        @Test
+        fun `should use server defaults when property values are not valid integers`() {
+            startWith(mapOf(
+                ConsumerConfig.MAX_POLL_RECORDS_CONFIG to "not-a-number",
+                ConsumerConfig.FETCH_MAX_BYTES_CONFIG to ""
+            ))
+
+            val request = client.buildSubsequentConsumeRequest()
+            assertNull(request.maxPollRecords)
+            assertNull(request.fetchMaxBytes)
+        }
+    }
+
+    @Nested
+    @DisplayName("stop")
+    inner class Stop {
+
+        @Test
+        fun `should clear resolved advanced settings`() {
+            client.resolvedMaxPollRecords = 10
+            client.resolvedFetchMaxBytes = 2048
+
+            client.stop()
+
+            assertNull(client.resolvedMaxPollRecords)
+            assertNull(client.resolvedFetchMaxBytes)
+        }
     }
 
     // ── Utilities ───────────────────────────────────────────────────────
@@ -782,6 +882,714 @@ class CCloudConsumerClientTest {
             val record = buildRecord(keySize = 15, valueSize = -1, key = "k", value = "hello")
             // keySize=15 (from serialized), valueSize=5 (estimated from "hello")
             assertEquals(20L, client.getRecordSize(record))
+        }
+    }
+
+    // ── Partition filtering & offset tracking ─────────────────────────────
+
+    private fun buildResponse(
+        vararg partitions: Pair<Int, Long>,
+        records: List<PartitionConsumeRecord> = emptyList()
+    ): ConsumeRecordsResponse {
+        return ConsumeRecordsResponse(
+            clusterId = "lkc-test",
+            topicName = "test-topic",
+            partitionDataList = partitions.map { (pid, nextOffset) ->
+                PartitionConsumeData(
+                    partitionId = pid,
+                    nextOffset = nextOffset,
+                    records = records.filter { it.partitionId == pid }
+                )
+            }
+        )
+    }
+
+    private fun buildConfig(
+        topic: String = "test-topic",
+        startType: ConsumerStartType = ConsumerStartType.NOW,
+        offset: Long? = null,
+        partitions: String? = null,
+        properties: Map<String, String> = emptyMap()
+    ): StorageConsumerConfig {
+        val startWithMap = mutableMapOf("type" to startType.name)
+        offset?.let { startWithMap["offset"] = it.toString() }
+        return StorageConsumerConfig(
+            topic = topic,
+            partitions = partitions,
+            startWith = startWithMap,
+            properties = properties
+        )
+    }
+
+    @Nested
+    @DisplayName("updateNextOffsets")
+    inner class UpdateNextOffsets {
+
+        @Test
+        fun `should track all partition offsets when filter is null`() {
+            val response = buildResponse(0 to 100L, 1 to 200L, 2 to 300L)
+
+            client.updateNextOffsets(response, partitionFilter = null)
+
+            assertEquals(3, client.nextOffsets.size)
+            assertEquals(100L, client.nextOffsets[0])
+            assertEquals(200L, client.nextOffsets[1])
+            assertEquals(300L, client.nextOffsets[2])
+        }
+
+        @Test
+        fun `should only track filtered partitions when filter is set`() {
+            val response = buildResponse(0 to 100L, 1 to 200L, 2 to 300L)
+
+            client.updateNextOffsets(response, partitionFilter = setOf(0, 2))
+
+            assertEquals(2, client.nextOffsets.size)
+            assertEquals(100L, client.nextOffsets[0])
+            assertEquals(300L, client.nextOffsets[2])
+            assertFalse(client.nextOffsets.containsKey(1))
+        }
+
+        @Test
+        fun `should remove stale partitions not in response`() {
+            client.nextOffsets[0] = 50L
+            client.nextOffsets[1] = 60L
+            client.nextOffsets[2] = 70L
+
+            val response = buildResponse(0 to 100L, 2 to 300L)
+            client.updateNextOffsets(response, partitionFilter = null)
+
+            assertEquals(2, client.nextOffsets.size)
+            assertEquals(100L, client.nextOffsets[0])
+            assertEquals(300L, client.nextOffsets[2])
+            assertFalse(client.nextOffsets.containsKey(1))
+        }
+
+        @Test
+        fun `should update existing offset to new value`() {
+            client.nextOffsets[0] = 50L
+
+            val response = buildResponse(0 to 150L)
+            client.updateNextOffsets(response, partitionFilter = null)
+
+            assertEquals(150L, client.nextOffsets[0])
+        }
+
+        @Test
+        fun `should handle empty response partition list`() {
+            client.nextOffsets[0] = 50L
+            client.nextOffsets[1] = 60L
+
+            val response = ConsumeRecordsResponse(
+                clusterId = "lkc-test",
+                topicName = "test-topic",
+                partitionDataList = emptyList()
+            )
+            client.updateNextOffsets(response, partitionFilter = null)
+
+            assertTrue(client.nextOffsets.isEmpty())
+        }
+
+        @Test
+        fun `should not update unfiltered partitions that are in response`() {
+            client.nextOffsets[0] = 50L
+            client.nextOffsets[1] = 60L
+
+            val response = buildResponse(0 to 100L, 1 to 200L, 2 to 300L)
+            client.updateNextOffsets(response, partitionFilter = setOf(0, 2))
+
+            // Partition 1 is retained by retainAll (present in response) but not updated (not in filter)
+            assertTrue(client.nextOffsets.containsKey(1))
+            assertEquals(60L, client.nextOffsets[1])
+            assertEquals(100L, client.nextOffsets[0])
+            assertEquals(300L, client.nextOffsets[2])
+        }
+    }
+
+    @Nested
+    @DisplayName("validatePartitionFilter")
+    inner class ValidatePartitionFilter {
+
+        @Test
+        fun `should return null when partitionsText is null`() = runBlocking {
+            val result = client.validatePartitionFilter(null, "test-topic", mockFetcher)
+            assertNull(result)
+        }
+
+        @Test
+        fun `should return null when partitionsText is empty`() = runBlocking {
+            val result = client.validatePartitionFilter("", "test-topic", mockFetcher)
+            assertNull(result)
+        }
+
+        @Test
+        fun `should return valid partition IDs intersected with actual partitions`() = runBlocking {
+            whenever(mockFetcher.describeTopicPartitions("test-topic")).thenReturn(
+                listOf(
+                    PartitionData(partitionId = 0),
+                    PartitionData(partitionId = 1),
+                    PartitionData(partitionId = 2),
+                    PartitionData(partitionId = 3)
+                )
+            )
+
+            val result = client.validatePartitionFilter("0, 2", "test-topic", mockFetcher)
+            assertEquals(setOf(0, 2), result)
+        }
+
+        @Test
+        fun `should ignore invalid partition IDs not in topic`() = runBlocking {
+            whenever(mockFetcher.describeTopicPartitions("test-topic")).thenReturn(
+                listOf(PartitionData(partitionId = 0), PartitionData(partitionId = 1))
+            )
+
+            val result = client.validatePartitionFilter("0, 1, 999", "test-topic", mockFetcher)
+            assertEquals(setOf(0, 1), result)
+        }
+
+        @Test
+        fun `should throw when no valid partitions match actual partitions`() {
+            runBlocking {
+                whenever(mockFetcher.describeTopicPartitions("test-topic")).thenReturn(
+                    listOf(PartitionData(partitionId = 0), PartitionData(partitionId = 1))
+                )
+            }
+
+            val ex = assertThrows(IllegalStateException::class.java) {
+                runBlocking { client.validatePartitionFilter("999", "test-topic", mockFetcher) }
+            }
+            assertTrue(ex.message!!.contains("test-topic"))
+        }
+
+    }
+
+    @Nested
+    @DisplayName("fetchInitialRecords")
+    inner class FetchInitialRecords {
+
+        private val emptyResponse = ConsumeRecordsResponse(
+            clusterId = "lkc-test",
+            topicName = "test-topic",
+            partitionDataList = emptyList()
+        )
+
+        @Test
+        fun `should resolve per-partition offsets for THE_BEGINNING when filtered`() = runBlocking {
+            val config = buildConfig(startType = ConsumerStartType.THE_BEGINNING)
+            val filter = setOf(0, 2)
+
+            whenever(mockFetcher.getPartitionOffset("test-topic", 0, true)).thenReturn(0L)
+            whenever(mockFetcher.getPartitionOffset("test-topic", 2, true)).thenReturn(0L)
+            whenever(mockFetcher.consumeRecords(eq("test-topic"), any())).thenReturn(emptyResponse)
+
+            client.fetchInitialRecords(config, mockFetcher, "test-topic", partitionFilter = filter)
+
+            verify(mockFetcher).getPartitionOffset("test-topic", 0, true)
+            verify(mockFetcher).getPartitionOffset("test-topic", 2, true)
+            verify(mockFetcher, never()).getTopicBeginningOffsets(any())
+
+            val captor = argumentCaptor<ConsumeRecordsRequest>()
+            verify(mockFetcher).consumeRecords(eq("test-topic"), captor.capture())
+            assertNotNull(captor.firstValue.offsets)
+            val offsetMap = captor.firstValue.offsets!!.associate { it.partitionId to it.offset }
+            assertEquals(0L, offsetMap[0])
+            assertEquals(0L, offsetMap[2])
+        }
+
+        @Test
+        fun `should resolve per-partition end offsets for NOW when filtered`() = runBlocking {
+            val config = buildConfig(startType = ConsumerStartType.NOW)
+            val filter = setOf(1)
+
+            whenever(mockFetcher.getPartitionOffset("test-topic", 1, false)).thenReturn(500L)
+            whenever(mockFetcher.consumeRecords(eq("test-topic"), any())).thenReturn(emptyResponse)
+
+            client.fetchInitialRecords(config, mockFetcher, "test-topic", partitionFilter = filter)
+
+            verify(mockFetcher).getPartitionOffset("test-topic", 1, false)
+            verify(mockFetcher, never()).getTopicEndOffsets(any())
+            Unit
+        }
+
+        @Test
+        fun `should add user offset to beginning offsets for OFFSET when filtered`() = runBlocking {
+            val config = buildConfig(startType = ConsumerStartType.OFFSET, offset = 10L)
+            val filter = setOf(0, 1)
+
+            whenever(mockFetcher.getPartitionOffset("test-topic", 0, true)).thenReturn(5L)
+            whenever(mockFetcher.getPartitionOffset("test-topic", 1, true)).thenReturn(20L)
+            whenever(mockFetcher.consumeRecords(eq("test-topic"), any())).thenReturn(emptyResponse)
+
+            client.fetchInitialRecords(config, mockFetcher, "test-topic", partitionFilter = filter)
+
+            val captor = argumentCaptor<ConsumeRecordsRequest>()
+            verify(mockFetcher).consumeRecords(eq("test-topic"), captor.capture())
+            val offsetMap = captor.firstValue.offsets!!.associate { it.partitionId to it.offset }
+            assertEquals(15L, offsetMap[0])  // 5 + 10
+            assertEquals(30L, offsetMap[1])  // 20 + 10
+        }
+
+        @Test
+        fun `should subtract from end offsets for LATEST_OFFSET_MINUS_X when filtered`() = runBlocking {
+            val config = buildConfig(startType = ConsumerStartType.LATEST_OFFSET_MINUS_X, offset = -50L)
+            val filter = setOf(0)
+
+            whenever(mockFetcher.getPartitionOffset("test-topic", 0, false)).thenReturn(100L)
+            whenever(mockFetcher.consumeRecords(eq("test-topic"), any())).thenReturn(emptyResponse)
+
+            client.fetchInitialRecords(config, mockFetcher, "test-topic", partitionFilter = filter)
+
+            val captor = argumentCaptor<ConsumeRecordsRequest>()
+            verify(mockFetcher).consumeRecords(eq("test-topic"), captor.capture())
+            val offsetMap = captor.firstValue.offsets!!.associate { it.partitionId to it.offset }
+            assertEquals(50L, offsetMap[0])  // max(0, 100 + (-50))
+        }
+
+        @Test
+        fun `should clamp to zero for LATEST_OFFSET_MINUS_X when offset exceeds end`() = runBlocking {
+            val config = buildConfig(startType = ConsumerStartType.LATEST_OFFSET_MINUS_X, offset = -200L)
+            val filter = setOf(0)
+
+            whenever(mockFetcher.getPartitionOffset("test-topic", 0, false)).thenReturn(100L)
+            whenever(mockFetcher.consumeRecords(eq("test-topic"), any())).thenReturn(emptyResponse)
+
+            client.fetchInitialRecords(config, mockFetcher, "test-topic", partitionFilter = filter)
+
+            val captor = argumentCaptor<ConsumeRecordsRequest>()
+            verify(mockFetcher).consumeRecords(eq("test-topic"), captor.capture())
+            val offsetMap = captor.firstValue.offsets!!.associate { it.partitionId to it.offset }
+            assertEquals(0L, offsetMap[0])  // max(0, 100 + (-200))
+        }
+
+        @Test
+        fun `should use single-partition GET for timestamp start types when filtered`() = runBlocking {
+            val config = buildConfig(startType = ConsumerStartType.LAST_HOUR)
+            val filter = setOf(0, 3)
+
+            val partitionData0 = PartitionConsumeData(partitionId = 0, nextOffset = 10L, records = emptyList())
+            val partitionData3 = PartitionConsumeData(partitionId = 3, nextOffset = 20L, records = emptyList())
+
+            whenever(mockFetcher.consumePartitionRecords(
+                topicName = eq("test-topic"), partitionId = eq(0),
+                timestamp = any(), offset = isNull(), maxPollRecords = isNull()
+            )).thenReturn(partitionData0)
+
+            whenever(mockFetcher.consumePartitionRecords(
+                topicName = eq("test-topic"), partitionId = eq(3),
+                timestamp = any(), offset = isNull(), maxPollRecords = isNull()
+            )).thenReturn(partitionData3)
+
+            val result = client.fetchInitialRecords(config, mockFetcher, "test-topic", partitionFilter = filter)
+
+            verify(mockFetcher, never()).consumeRecords(any(), any())
+            verify(mockFetcher).consumePartitionRecords(
+                topicName = eq("test-topic"), partitionId = eq(0),
+                timestamp = any(), offset = isNull(), maxPollRecords = isNull()
+            )
+            verify(mockFetcher).consumePartitionRecords(
+                topicName = eq("test-topic"), partitionId = eq(3),
+                timestamp = any(), offset = isNull(), maxPollRecords = isNull()
+            )
+            assertEquals(2, result.partitionDataList.size)
+        }
+
+        @Test
+        fun `should throw for CONSUMER_GROUP start type`() {
+            val config = buildConfig(startType = ConsumerStartType.CONSUMER_GROUP)
+
+            val ex = assertThrows(IllegalStateException::class.java) {
+                runBlocking {
+                    client.fetchInitialRecords(config, mockFetcher, "test-topic", partitionFilter = null)
+                }
+            }
+            assertTrue(ex.message!!.contains("Consumer group"))
+        }
+
+        @Test
+        fun `should throw for CONSUMER_GROUP start type even with partition filter`() {
+            val config = buildConfig(startType = ConsumerStartType.CONSUMER_GROUP)
+
+            val ex = assertThrows(IllegalStateException::class.java) {
+                runBlocking {
+                    client.fetchInitialRecords(config, mockFetcher, "test-topic", partitionFilter = setOf(0))
+                }
+            }
+            assertTrue(ex.message!!.contains("Consumer group"))
+        }
+
+        @Test
+        fun `should use POST with fromBeginning=false for NOW when unfiltered`() = runBlocking {
+            val config = buildConfig(startType = ConsumerStartType.NOW)
+            whenever(mockFetcher.consumeRecords(eq("test-topic"), any())).thenReturn(emptyResponse)
+
+            client.fetchInitialRecords(config, mockFetcher, "test-topic", partitionFilter = null)
+
+            val captor = argumentCaptor<ConsumeRecordsRequest>()
+            verify(mockFetcher).consumeRecords(eq("test-topic"), captor.capture())
+            assertEquals(false, captor.firstValue.fromBeginning)
+            assertNull(captor.firstValue.offsets)
+        }
+
+        @Test
+        fun `should propagate error when getPartitionOffset fails for filtered consume`() {
+            val config = buildConfig(startType = ConsumerStartType.THE_BEGINNING)
+            val filter = setOf(0)
+
+            runBlocking {
+                whenever(mockFetcher.getPartitionOffset("test-topic", 0, true))
+                    .thenThrow(RuntimeException("Connection refused"))
+            }
+
+            assertThrows(RuntimeException::class.java) {
+                runBlocking {
+                    client.fetchInitialRecords(config, mockFetcher, "test-topic", partitionFilter = filter)
+                }
+            }
+        }
+
+        @Test
+        fun `should propagate error when consumePartitionRecords fails for timestamp filtered consume`() {
+            val config = buildConfig(startType = ConsumerStartType.LAST_HOUR)
+            val filter = setOf(0)
+
+            runBlocking {
+                whenever(mockFetcher.consumePartitionRecords(
+                    topicName = any(), partitionId = any(),
+                    timestamp = any(), offset = isNull(), maxPollRecords = isNull()
+                )).thenThrow(RuntimeException("Server error"))
+            }
+
+            assertThrows(RuntimeException::class.java) {
+                runBlocking {
+                    client.fetchInitialRecords(config, mockFetcher, "test-topic", partitionFilter = filter)
+                }
+            }
+        }
+
+        @Test
+        fun `should throw when calculateStartTime returns null for SPECIFIC_DATE without time`() {
+            // SPECIFIC_DATE with no time set → calculateStartTime returns null → error guard fires
+            val startWithMap = mutableMapOf("type" to ConsumerStartType.SPECIFIC_DATE.name)
+            val config = StorageConsumerConfig(topic = "test-topic", startWith = startWithMap)
+            val filter = setOf(0)
+
+            val ex = assertThrows(IllegalStateException::class.java) {
+                runBlocking {
+                    client.fetchInitialRecords(config, mockFetcher, "test-topic", partitionFilter = filter)
+                }
+            }
+            assertTrue(ex.message!!.contains("Failed to calculate start time"))
+        }
+
+        @Test
+        fun `should pass resolvedMaxPollRecords to single-partition GET`() = runBlocking {
+            val config = buildConfig(startType = ConsumerStartType.LAST_HOUR)
+            val filter = setOf(0)
+            client.resolvedMaxPollRecords = 42
+
+            val partitionData = PartitionConsumeData(partitionId = 0, nextOffset = 10L, records = emptyList())
+            whenever(mockFetcher.consumePartitionRecords(
+                topicName = any(), partitionId = any(),
+                timestamp = any(), offset = isNull(), maxPollRecords = any()
+            )).thenReturn(partitionData)
+
+            client.fetchInitialRecords(config, mockFetcher, "test-topic", partitionFilter = filter)
+
+            verify(mockFetcher).consumePartitionRecords(
+                topicName = eq("test-topic"), partitionId = eq(0),
+                timestamp = any(), offset = isNull(), maxPollRecords = eq(42)
+            )
+            Unit
+        }
+
+        @Test
+        fun `should include advanced settings in POST request for filtered offset-based consume`() = runBlocking {
+            val config = buildConfig(startType = ConsumerStartType.THE_BEGINNING)
+            val filter = setOf(0)
+            client.resolvedMaxPollRecords = 200
+            client.resolvedFetchMaxBytes = 2097152
+
+            whenever(mockFetcher.getPartitionOffset("test-topic", 0, true)).thenReturn(0L)
+            whenever(mockFetcher.consumeRecords(eq("test-topic"), any())).thenReturn(emptyResponse)
+
+            client.fetchInitialRecords(config, mockFetcher, "test-topic", partitionFilter = filter)
+
+            val captor = argumentCaptor<ConsumeRecordsRequest>()
+            verify(mockFetcher).consumeRecords(eq("test-topic"), captor.capture())
+            assertEquals(200, captor.firstValue.maxPollRecords)
+            assertEquals(2097152, captor.firstValue.fetchMaxBytes)
+            assertNotNull(captor.firstValue.offsets)
+        }
+    }
+
+    @Nested
+    @DisplayName("buildInitialConsumeRequest")
+    inner class BuildInitialConsumeRequest {
+
+        @Test
+        fun `should use fromBeginning=true for THE_BEGINNING`() = runBlocking {
+            val config = buildConfig(startType = ConsumerStartType.THE_BEGINNING)
+            val request = client.buildInitialConsumeRequest(config, mockFetcher)
+            assertEquals(true, request.fromBeginning)
+            assertNull(request.offsets)
+            assertNull(request.timestamp)
+        }
+
+        @Test
+        fun `should use fromBeginning=false for NOW`() = runBlocking {
+            val config = buildConfig(startType = ConsumerStartType.NOW)
+            val request = client.buildInitialConsumeRequest(config, mockFetcher)
+            assertEquals(false, request.fromBeginning)
+            assertNull(request.offsets)
+        }
+
+        @Test
+        fun `should add user offset to beginning offsets for OFFSET`() = runBlocking {
+            val config = buildConfig(startType = ConsumerStartType.OFFSET, offset = 5L)
+            whenever(mockFetcher.getTopicBeginningOffsets("test-topic")).thenReturn(mapOf(0 to 0L, 1 to 10L))
+
+            val request = client.buildInitialConsumeRequest(config, mockFetcher)
+
+            val offsetMap = request.offsets!!.associate { it.partitionId to it.offset }
+            assertEquals(5L, offsetMap[0])   // 0 + 5
+            assertEquals(15L, offsetMap[1])  // 10 + 5
+        }
+
+        @Test
+        fun `should subtract from end offsets for LATEST_OFFSET_MINUS_X`() = runBlocking {
+            val config = buildConfig(startType = ConsumerStartType.LATEST_OFFSET_MINUS_X, offset = -10L)
+            whenever(mockFetcher.getTopicEndOffsets("test-topic")).thenReturn(mapOf(0 to 100L, 1 to 50L))
+
+            val request = client.buildInitialConsumeRequest(config, mockFetcher)
+
+            val offsetMap = request.offsets!!.associate { it.partitionId to it.offset }
+            assertEquals(90L, offsetMap[0])   // max(0, 100 + (-10))
+            assertEquals(40L, offsetMap[1])   // max(0, 50 + (-10))
+        }
+
+        @Test
+        fun `should include timestamp for LAST_HOUR`() = runBlocking {
+            val config = buildConfig(startType = ConsumerStartType.LAST_HOUR)
+            val request = client.buildInitialConsumeRequest(config, mockFetcher)
+
+            assertNotNull(request.timestamp)
+            val oneHourAgo = System.currentTimeMillis() - 3_600_000L
+            assertTrue(request.timestamp!! in (oneHourAgo - 5000)..(oneHourAgo + 5000))
+        }
+
+        @Test
+        fun `should include advanced settings in request`() = runBlocking {
+            val config = buildConfig(startType = ConsumerStartType.NOW)
+            client.resolvedMaxPollRecords = 100
+            client.resolvedFetchMaxBytes = 1048576
+
+            val request = client.buildInitialConsumeRequest(config, mockFetcher)
+
+            assertEquals(100, request.maxPollRecords)
+            assertEquals(1048576, request.fetchMaxBytes)
+        }
+    }
+
+    @Nested
+    @DisplayName("convertToConsumerRecord")
+    inner class ConvertToConsumerRecord {
+
+        @BeforeEach
+        fun setUpConfigs() {
+            startWithConfigs()
+        }
+
+        private fun record(
+            partitionId: Int = 0,
+            offset: Long = 100L,
+            timestamp: Long = 1700000000000L,
+            timestampType: ApiTimestampType = ApiTimestampType.CREATE_TIME,
+            headers: List<PartitionConsumeRecordHeader> = emptyList(),
+            key: String? = "test-key",
+            value: String? = "test-value"
+        ): PartitionConsumeRecord {
+            fun encodeRaw(s: String?) = if (s != null) {
+                JsonObject(mapOf("__raw__" to JsonPrimitive(Base64.getEncoder().encodeToString(s.toByteArray()))))
+            } else {
+                JsonNull
+            }
+
+            return PartitionConsumeRecord(
+                partitionId = partitionId,
+                offset = offset,
+                timestamp = timestamp,
+                timestampType = timestampType,
+                headers = headers,
+                key = encodeRaw(key),
+                value = encodeRaw(value)
+            )
+        }
+
+        @Test
+        fun `should decode base64 header values to byte arrays`() = runBlocking {
+            val headerValue = Base64.getEncoder().encodeToString("header-val".toByteArray())
+            val rec = record(headers = listOf(PartitionConsumeRecordHeader("my-header", headerValue)))
+
+            val result = client.convertToConsumerRecord(rec, "test-topic", mockFetcher)
+
+            val header = result.headers().lastHeader("my-header")
+            assertNotNull(header)
+            assertArrayEquals("header-val".toByteArray(), header.value())
+        }
+
+        @Test
+        fun `should handle non-base64 header values as raw bytes`() = runBlocking {
+            val rec = record(headers = listOf(PartitionConsumeRecordHeader("h", "not!valid!base64!@#\$")))
+
+            val result = client.convertToConsumerRecord(rec, "test-topic", mockFetcher)
+
+            val header = result.headers().lastHeader("h")
+            assertNotNull(header)
+            assertArrayEquals("not!valid!base64!@#\$".toByteArray(), header.value())
+        }
+
+        @Test
+        fun `should map CREATE_TIME timestamp type correctly`() = runBlocking {
+            val rec = record(timestampType = ApiTimestampType.CREATE_TIME)
+            val result = client.convertToConsumerRecord(rec, "test-topic", mockFetcher)
+            assertEquals(TimestampType.CREATE_TIME, result.timestampType())
+        }
+
+        @Test
+        fun `should map LOG_APPEND_TIME timestamp type correctly`() = runBlocking {
+            val rec = record(timestampType = ApiTimestampType.LOG_APPEND_TIME)
+            val result = client.convertToConsumerRecord(rec, "test-topic", mockFetcher)
+            assertEquals(TimestampType.LOG_APPEND_TIME, result.timestampType())
+        }
+
+        @Test
+        fun `should map NO_TIMESTAMP_TYPE correctly`() = runBlocking {
+            val rec = record(timestampType = ApiTimestampType.NO_TIMESTAMP_TYPE)
+            val result = client.convertToConsumerRecord(rec, "test-topic", mockFetcher)
+            assertEquals(TimestampType.NO_TIMESTAMP_TYPE, result.timestampType())
+        }
+
+        @Test
+        fun `should set correct partition, offset, and timestamp`() = runBlocking {
+            val rec = record(partitionId = 3, offset = 42L, timestamp = 1700000000000L)
+            val result = client.convertToConsumerRecord(rec, "my-topic", mockFetcher)
+
+            assertEquals("my-topic", result.topic())
+            assertEquals(3, result.partition())
+            assertEquals(42L, result.offset())
+            assertEquals(1700000000000L, result.timestamp())
+        }
+
+        @Test
+        fun `should set correct serialized key and value sizes`() = runBlocking {
+            val rec = record(key = "abc", value = "defgh")
+            val result = client.convertToConsumerRecord(rec, "test-topic", mockFetcher)
+
+            assertEquals(3, result.serializedKeySize())
+            assertEquals(5, result.serializedValueSize())
+        }
+
+        @Test
+        fun `should handle null key and value`() = runBlocking {
+            val rec = record(key = null, value = null)
+            val result = client.convertToConsumerRecord(rec, "test-topic", mockFetcher)
+
+            assertNull(result.key())
+            assertNull(result.value())
+        }
+
+        @Test
+        fun `should deserialize key and value as strings by default`() = runBlocking {
+            val rec = record(key = "my-key", value = "my-value")
+            val result = client.convertToConsumerRecord(rec, "test-topic", mockFetcher)
+
+            assertEquals("my-key", result.key())
+            assertEquals("my-value", result.value())
+        }
+
+        @Test
+        fun `should handle multiple headers`() = runBlocking {
+            val h1Val = Base64.getEncoder().encodeToString("v1".toByteArray())
+            val h2Val = Base64.getEncoder().encodeToString("v2".toByteArray())
+            val rec = record(headers = listOf(
+                PartitionConsumeRecordHeader("h1", h1Val),
+                PartitionConsumeRecordHeader("h2", h2Val)
+            ))
+
+            val result = client.convertToConsumerRecord(rec, "test-topic", mockFetcher)
+
+            assertEquals(2, result.headers().toArray().size)
+            assertArrayEquals("v1".toByteArray(), result.headers().lastHeader("h1").value())
+            assertArrayEquals("v2".toByteArray(), result.headers().lastHeader("h2").value())
+        }
+    }
+
+    @Nested
+    @DisplayName("ConsumeRecordsRequest serialization")
+    inner class ConsumeRecordsRequestSerialization {
+
+        private val json = Json { ignoreUnknownKeys = true; encodeDefaults = false }
+
+        @Test
+        fun `should serialize maxPollRecords as max_poll_records`() {
+            val request = ConsumeRecordsRequest(maxPollRecords = 100)
+            val serialized = json.encodeToString(request)
+            assertTrue(serialized.contains("\"max_poll_records\":100"), "Expected max_poll_records in: $serialized")
+            assertFalse(serialized.contains("maxPollRecords"), "Should not contain Kotlin field name")
+        }
+
+        @Test
+        fun `should serialize fetchMaxBytes as fetch_max_bytes`() {
+            val request = ConsumeRecordsRequest(fetchMaxBytes = 1048576)
+            val serialized = json.encodeToString(request)
+            assertTrue(serialized.contains("\"fetch_max_bytes\":1048576"), "Expected fetch_max_bytes in: $serialized")
+            assertFalse(serialized.contains("fetchMaxBytes"), "Should not contain Kotlin field name")
+        }
+
+        @Test
+        fun `should omit null optional fields`() {
+            val request = ConsumeRecordsRequest(fromBeginning = true)
+            val serialized = json.encodeToString(request)
+            assertFalse(serialized.contains("max_poll_records"), "Null maxPollRecords should be omitted")
+            assertFalse(serialized.contains("fetch_max_bytes"), "Null fetchMaxBytes should be omitted")
+            assertFalse(serialized.contains("timestamp"), "Null timestamp should be omitted")
+            assertTrue(serialized.contains("\"from_beginning\":true"))
+        }
+    }
+
+    @Nested
+    @DisplayName("SinglePartitionConsumeResponse deserialization")
+    inner class SinglePartitionConsumeResponseDeserialization {
+
+        private val json = Json { ignoreUnknownKeys = true; isLenient = true }
+
+        @Test
+        fun `should deserialize single partition response from JSON fixture`() {
+            // Base64 decoded values in fixture:
+            //   Record 0: key="test-key", value="test-value"
+            //   Record 1: key="key-2", value="value-2", header trace-id="abc123"
+            val jsonText = javaClass.getResourceAsStream(
+                "/fixtures/consumer/single-partition-consume-response.json"
+            )!!.readBytes().toString(Charsets.UTF_8)
+
+            val response = json.decodeFromString<SinglePartitionConsumeResponse>(jsonText)
+
+            assertEquals("lkc-test123", response.clusterId)
+            assertEquals("test-topic", response.topicName)
+            assertEquals(0, response.partitionData.partitionId)
+            assertEquals(150L, response.partitionData.nextOffset)
+            assertEquals(2, response.partitionData.records.size)
+
+            val firstRecord = response.partitionData.records[0]
+            assertEquals(0, firstRecord.partitionId)
+            assertEquals(100L, firstRecord.offset)
+            assertEquals(1700000000000L, firstRecord.timestamp)
+            assertEquals(ApiTimestampType.CREATE_TIME, firstRecord.timestampType)
+            assertTrue(firstRecord.headers.isEmpty())
+
+            val secondRecord = response.partitionData.records[1]
+            assertEquals(101L, secondRecord.offset)
+            assertEquals(1, secondRecord.headers.size)
+            assertEquals("trace-id", secondRecord.headers[0].key)
         }
     }
 }

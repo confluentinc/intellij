@@ -11,6 +11,12 @@ object CloudConfig {
 
     const val BASE_PATH = "confluent.cloud"
 
+    /**
+     * Confluent Cloud API rate limit in requests per second.
+     * See: https://docs.confluent.io/cloud/current/quotas/overview.html
+     */
+    const val API_RATE_LIMIT = 5
+
     val CONTROL_PLANE_BASE_URL: String
         get() = System.getProperty("ccloud.control-plane.base-url")
             ?: "https://api.$BASE_PATH"
@@ -64,6 +70,10 @@ object CloudConfig {
             const val CCLOUD_SIMPLE_CONSUME_API_PATH =
                 "/kafka/v3/clusters/%s/internal/topics/%s/partitions/-/records:consume_guarantee_progress?return_raw_base64_records=true"
 
+            /** Consume records from a single partition (GET with query params). */
+            const val CCLOUD_SINGLE_PARTITION_CONSUME_API_PATH =
+                "/kafka/v3/clusters/%s/internal/topics/%s/partitions/%d/records"
+
             /** Produce a record: POST /kafka/v3/clusters/{cluster_id}/topics/{topic_name}/records */
             const val PRODUCE_RECORDS_URI = "/kafka/v3/clusters/%s/topics/%s/records"
         }
@@ -100,6 +110,9 @@ object CloudConfig {
 
             /** Delete schema version: DELETE /subjects/{subject}/versions/{version}?permanent={bool} */
             const val DELETE_VERSION_URI = "/subjects/%s/versions/%s"
+
+            /** Get compatibility level for subject: GET /config/{subject} */
+            const val GET_SUBJECT_COMPATIBILITY_URI = "/config/%s"
         }
     }
 }

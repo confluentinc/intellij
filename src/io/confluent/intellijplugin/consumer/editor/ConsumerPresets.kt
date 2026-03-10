@@ -2,7 +2,7 @@ package io.confluent.intellijplugin.consumer.editor
 
 import com.intellij.ui.dsl.builder.panel
 import io.confluent.intellijplugin.common.editor.Presets
-import io.confluent.intellijplugin.common.settings.KafkaConfigStorage
+import io.confluent.intellijplugin.common.settings.KafkaRunConfig
 import io.confluent.intellijplugin.common.settings.StorageConsumerConfig
 import io.confluent.intellijplugin.consumer.models.ConsumerFilterType
 import io.confluent.intellijplugin.consumer.models.ConsumerLimitType
@@ -110,5 +110,5 @@ class RunConsumerConfigCellRenderer : ListCellRenderer<StorageConsumerConfig> {
     }
 }
 
-class ConsumerPresets :
-    Presets<StorageConsumerConfig>(KafkaConfigStorage.getInstance().consumerConfig, RunConsumerConfigCellRenderer())
+class ConsumerPresets(runConfig: KafkaRunConfig) :
+    Presets<StorageConsumerConfig>(runConfig, RunConsumerConfigCellRenderer())
