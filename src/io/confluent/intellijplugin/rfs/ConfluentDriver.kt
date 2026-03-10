@@ -142,6 +142,7 @@ class ConfluentDriver(
 
                 val clusters = dataManager.client.getCachedKafkaClusters(envId) ?: return emptyList()
 
+                // Check if it's a cluster
                 val cluster = clusters.find { it.id == nodeId }
                 if (cluster != null) {
                     logger.info("ConfluentDriver: Loading topics for cluster $nodeId")
@@ -158,6 +159,8 @@ class ConfluentDriver(
                     }
 
                     return when {
+                        topics.isEmpty() && clusterDataManager.topicModel.isInitedByFirstTime == false ->
+                            listOf(ConfluentFileInfo(this, emptyStatePath(message("confluent.cloud.tree.loading"))))
                         topics.isEmpty() ->
                             listOf(ConfluentFileInfo(this, emptyStatePath(message("confluent.cloud.tree.no.topics"))))
                         else ->
@@ -167,11 +170,11 @@ class ConfluentDriver(
                     }
                 }
 
+                // Check if it's a schema registry
                 val sr = dataManager.client.getCachedSchemaRegistry(envId)
                 if (sr != null && sr.id == nodeId) {
                     logger.info("ConfluentDriver: Loading schemas for schema registry $nodeId")
 
-                    val clusters = dataManager.client.getCachedKafkaClusters(envId) ?: return emptyList()
                     val firstCluster = clusters.firstOrNull()
 
                     if (firstCluster == null) {
@@ -200,6 +203,8 @@ class ConfluentDriver(
                     }
 
                     return when {
+                        schemas.isEmpty() && clusterDataManager.schemaRegistryModel?.isInitedByFirstTime == false ->
+                            listOf(ConfluentFileInfo(this, emptyStatePath(message("confluent.cloud.tree.loading"))))
                         schemas.isEmpty() ->
                             listOf(ConfluentFileInfo(this, emptyStatePath(message("confluent.cloud.tree.no.schemas"))))
                         else ->

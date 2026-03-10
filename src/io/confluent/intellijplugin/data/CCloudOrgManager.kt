@@ -129,17 +129,20 @@ class CCloudOrgManager(
 
     fun getAllClusterDataManagers(): Collection<CCloudClusterDataManager> = clusterDataManagers.values
 
-    /** Finds Schema Registry for the cluster's environment. */
+    /** Finds Schema Registry for the cluster's environment (uses cached data only). */
     private fun findSchemaRegistryForCluster(cluster: Cluster): SchemaRegistry? =
         client.getEnvironments().firstNotNullOfOrNull { env ->
-            if (client.getKafkaClusters(env.id).any { it.id == cluster.id }) {
-                client.getSchemaRegistry(env.id)
+            val clusters = client.getCachedKafkaClusters(env.id) ?: return@firstNotNullOfOrNull null
+            if (clusters.any { it.id == cluster.id }) {
+                client.getCachedSchemaRegistry(env.id)
             } else null
         }
 
     fun getEnvironments(): List<Environment> = client.getEnvironments()
     fun getKafkaClusters(environmentId: String): List<Cluster> = client.getKafkaClusters(environmentId)
+    fun getCachedKafkaClusters(environmentId: String): List<Cluster>? = client.getCachedKafkaClusters(environmentId)
     fun getSchemaRegistry(environmentId: String): SchemaRegistry? = client.getSchemaRegistry(environmentId)
+    fun getCachedSchemaRegistry(environmentId: String): SchemaRegistry? = client.getCachedSchemaRegistry(environmentId)
 
     /** Cancel all ongoing enrichment jobs across all cluster data managers. */
     fun cancelAllEnrichmentJobs() {

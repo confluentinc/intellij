@@ -254,7 +254,7 @@ internal class ConfluentMainController(
                     val clusterId = selectedPath.getClusterId()
                     val envId = selectedPath.getEnvironmentId(driver)
                     if (clusterId != null && envId != null) {
-                        val cluster = dataManager.getKafkaClusters(envId).find { it.id == clusterId }
+                        val cluster = dataManager.getCachedKafkaClusters(envId)?.find { it.id == clusterId }
                         cluster?.let { dataManager.getOrCreateClusterDataManager(it) } ?: dataManager
                     } else {
                         dataManager
@@ -264,7 +264,7 @@ internal class ConfluentMainController(
                     val envId = selectedPath.getEnvironmentId(driver)
                     if (envId != null) {
                         // SR shared across environment, use any cluster's data manager
-                        val cluster = dataManager.getKafkaClusters(envId).firstOrNull()
+                        val cluster = dataManager.getCachedKafkaClusters(envId)?.firstOrNull()
                         cluster?.let { dataManager.getOrCreateClusterDataManager(it) } ?: dataManager
                     } else {
                         dataManager
@@ -494,7 +494,7 @@ internal class ConfluentMainController(
             val clusterId = rfsPath.getClusterId()
                 ?: return@updatePanel createPlaceholderPanel(message("confluent.cloud.details.select.resource"))
 
-            val cluster = dataManager.getKafkaClusters(envId).find { it.id == clusterId }
+            val cluster = dataManager.getCachedKafkaClusters(envId)?.find { it.id == clusterId }
             if (cluster == null) {
                 myTree.clearSelection()
                 return@updatePanel createPlaceholderPanel(message("confluent.cloud.details.resource.not.available"))
@@ -530,7 +530,7 @@ internal class ConfluentMainController(
 
         val topicName = rfsPath.name
 
-        val cluster = dataManager.getKafkaClusters(envId).find { it.id == clusterId }
+        val cluster = dataManager.getCachedKafkaClusters(envId)?.find { it.id == clusterId }
         if (cluster == null) {
             myTree.clearSelection()
             topicDetailPanel.add(JLabel(message("confluent.cloud.details.resource.not.available"), SwingConstants.CENTER), BorderLayout.CENTER)
@@ -560,13 +560,13 @@ internal class ConfluentMainController(
             val srId = rfsPath.getSchemaRegistryId()
                 ?: return@updatePanel createPlaceholderPanel(message("confluent.cloud.details.select.resource"))
 
-            val sr = dataManager.getSchemaRegistry(envId)
+            val sr = dataManager.getCachedSchemaRegistry(envId)
             if (sr == null || sr.id != srId) {
                 myTree.clearSelection()
                 return@updatePanel createPlaceholderPanel(message("confluent.cloud.details.resource.not.available"))
             }
 
-            val cluster = dataManager.getKafkaClusters(envId).firstOrNull()
+            val cluster = dataManager.getCachedKafkaClusters(envId)?.firstOrNull()
                 ?: return@updatePanel createPlaceholderPanel(message("confluent.cloud.details.no.clusters"))
 
             val clusterDataManager = dataManager.getOrCreateClusterDataManager(cluster)
@@ -603,7 +603,7 @@ internal class ConfluentMainController(
 
         val subjectName = rfsPath.name
 
-        val sr = dataManager.getSchemaRegistry(envId)
+        val sr = dataManager.getCachedSchemaRegistry(envId)
         if (sr == null || sr.id != srId) {
             myTree.clearSelection()
             schemaDetailPanel.add(JLabel(message("confluent.cloud.details.resource.not.available"), SwingConstants.CENTER), BorderLayout.CENTER)
@@ -612,7 +612,7 @@ internal class ConfluentMainController(
             return
         }
 
-        val cluster = dataManager.getKafkaClusters(envId).firstOrNull()
+        val cluster = dataManager.getCachedKafkaClusters(envId)?.firstOrNull()
         if (cluster == null) {
             schemaDetailPanel.add(JLabel(message("confluent.cloud.details.no.clusters"), SwingConstants.CENTER), BorderLayout.CENTER)
             schemaDetailPanel.revalidate()
