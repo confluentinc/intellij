@@ -8,6 +8,7 @@ import io.confluent.intellijplugin.util.KafkaMessagesBundle
 import io.confluent.intellijplugin.ccloud.model.response.ProduceRecordData
 import io.confluent.intellijplugin.ccloud.model.response.ProduceRecordHeader
 import io.confluent.intellijplugin.ccloud.model.response.ProduceRecordRequest
+import io.confluent.intellijplugin.ccloud.model.response.ProduceRecordResponse
 import io.confluent.intellijplugin.common.models.KafkaFieldType
 import io.confluent.intellijplugin.consumer.editor.KafkaRecord
 import io.confluent.intellijplugin.consumer.models.ConsumerProducerFieldConfig
@@ -17,7 +18,14 @@ import io.confluent.intellijplugin.producer.models.AcksType
 import io.confluent.intellijplugin.producer.models.Mode
 import io.confluent.intellijplugin.producer.models.ProducerFlowParams
 import io.confluent.intellijplugin.producer.models.RecordCompression
+import io.confluent.intellijplugin.registry.KafkaRegistryFormat
+import io.confluent.kafka.schemaregistry.avro.AvroSchema
+import io.confluent.kafka.schemaregistry.avro.AvroSchemaUtils
+import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchema
+import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchemaUtils
+import com.google.protobuf.DynamicMessage
 import io.confluent.intellijplugin.ccloud.fetcher.DataPlaneFetcher
+import io.confluent.kafka.schemaregistry.protobuf.MessageIndexes
 import io.confluent.intellijplugin.util.generator.FieldTemplateGenerator
 import io.confluent.intellijplugin.util.generator.GenerateRandomData
 import io.confluent.intellijplugin.util.csv.KafkaCsvUtils
@@ -30,11 +38,16 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import org.apache.avro.generic.GenericDatumWriter
+import org.apache.avro.io.EncoderFactory
 import org.apache.kafka.common.serialization.*
 import org.jetbrains.annotations.VisibleForTesting
+import java.nio.ByteBuffer
 import java.time.Instant
 import java.util.Base64
 import java.util.concurrent.atomic.AtomicBoolean
+import kotlin.math.min
+import kotlin.math.pow
 
 /**
  * REST-based producer client for Confluent Cloud.
@@ -46,6 +59,9 @@ class CCloudProducerClient(
     private val clusterDataManager: CCloudClusterDataManager,
     val onStart: () -> Unit,
     val onStop: () -> Unit,
+    @VisibleForTesting internal val baseBackoffMs: Long = BASE_BACKOFF_MS,
+    @VisibleForTesting internal val maxBackoffMs: Long = MAX_BACKOFF_MS,
+    @VisibleForTesting internal val maxRetries: Int = MAX_RETRIES,
 ) : ProducerClient {
 
     private val running = AtomicBoolean(false)
@@ -181,19 +197,10 @@ class CCloudProducerClient(
             }
 
             val request = buildProduceRequest(
-                recordKey, recordValue, processedHeaders, topic, forcePartition
+                fetcher, recordKey, recordValue, processedHeaders, topic, forcePartition
             )
 
-            val startTime = System.currentTimeMillis()
-            val response = fetcher.produceRecord(topic, request)
-            val duration = System.currentTimeMillis() - startTime
-
-            if (response.errorCode != null && response.errorCode != 200) {
-                throw CCloudApiException(
-                    response.message ?: "Produce failed with error code ${response.errorCode}",
-                    response.errorCode
-                )
-            }
+            val (response, duration) = produceWithRetry(fetcher, topic, request)
 
             records.add(
                 KafkaRecord(
@@ -257,7 +264,8 @@ class CCloudProducerClient(
     }
 
     @VisibleForTesting
-    internal fun buildProduceRequest(
+    internal suspend fun buildProduceRequest(
+        fetcher: DataPlaneFetcher,
         key: ConsumerProducerFieldConfig,
         value: ConsumerProducerFieldConfig,
         headers: List<Property>,
@@ -274,14 +282,15 @@ class CCloudProducerClient(
                     }
                 )
             },
-            key = buildRecordData(key, topic),
-            value = buildRecordData(value, topic),
+            key = buildRecordData(fetcher, key, topic),
+            value = buildRecordData(fetcher, value, topic),
             timestamp = null
         )
     }
 
     @VisibleForTesting
-    internal fun buildRecordData(
+    internal suspend fun buildRecordData(
+        fetcher: DataPlaneFetcher,
         field: ConsumerProducerFieldConfig,
         topic: String
     ): ProduceRecordData? {
@@ -296,6 +305,9 @@ class CCloudProducerClient(
                 type = "JSON",
                 data = field.valueText
             )
+            KafkaFieldType.SCHEMA_REGISTRY -> buildSchemaRegistryData(fetcher, field)
+            KafkaFieldType.AVRO_CUSTOM -> buildAvroData(field)
+            KafkaFieldType.PROTOBUF_CUSTOM -> buildProtobufData(field)
             else -> {
                 // Primitive types (LONG, INTEGER, DOUBLE, FLOAT, BASE64)
                 val valueObj = field.getValueObj() ?: return null
@@ -307,6 +319,171 @@ class CCloudProducerClient(
             }
         }
     }
+
+    /**
+     * Build record data for SCHEMA_REGISTRY types.
+     *
+     * Serialize client-side and prepend the Confluent V0 wire format prefix
+     * The schema ID is resolved by fetching the latest version from Schema Registry.
+     */
+    private suspend fun buildSchemaRegistryData(
+        fetcher: DataPlaneFetcher,
+        field: ConsumerProducerFieldConfig
+    ): ProduceRecordData {
+        val schemaInfo = fetcher.getLatestVersionInfo(field.schemaName)
+        val schemaId = schemaInfo.id
+
+        val payloadBytes = when (field.schemaFormat) {
+            KafkaRegistryFormat.AVRO -> {
+                val avroSchema = field.parsedSchema as AvroSchema
+                val record = AvroSchemaUtils.toObject(field.valueText, avroSchema)
+                serializeAvro(record, avroSchema)
+            }
+            KafkaRegistryFormat.PROTOBUF -> {
+                val protobufSchema = field.parsedSchema as ProtobufSchema
+                val message = ProtobufSchemaUtils.toObject(field.valueText, protobufSchema) as DynamicMessage
+                serializeProtobuf(message)
+            }
+            KafkaRegistryFormat.JSON -> field.valueText.toByteArray(Charsets.UTF_8)
+            KafkaRegistryFormat.UNKNOWN -> error("Schema format unknown")
+        }
+
+        val wireBytes = prependSchemaIdPrefix(schemaId, payloadBytes)
+        return ProduceRecordData(
+            type = "BINARY",
+            data = Base64.getEncoder().encodeToString(wireBytes)
+        )
+    }
+
+    /**
+     * Serialize Avro data to binary bytes client-side (no wire format prefix).
+     * Used for AVRO_CUSTOM where there is no SR subject.
+     */
+    private fun buildAvroData(field: ConsumerProducerFieldConfig): ProduceRecordData {
+        val avroSchema = field.parsedSchema as AvroSchema
+        val record = AvroSchemaUtils.toObject(field.valueText, avroSchema)
+        val bytes = serializeAvro(record, avroSchema)
+        return ProduceRecordData(
+            type = "BINARY",
+            data = Base64.getEncoder().encodeToString(bytes)
+        )
+    }
+
+    /**
+     * Serialize Protobuf data to binary bytes client-side (no wire format prefix).
+     * Used for PROTOBUF_CUSTOM where there is no SR subject.
+     */
+    private fun buildProtobufData(field: ConsumerProducerFieldConfig): ProduceRecordData {
+        val protobufSchema = field.parsedSchema as ProtobufSchema
+        val message = ProtobufSchemaUtils.toObject(field.valueText, protobufSchema) as DynamicMessage
+        return ProduceRecordData(
+            type = "BINARY",
+            data = Base64.getEncoder().encodeToString(message.toByteArray())
+        )
+    }
+
+    /**
+     * Prepend the Confluent V0 wire format prefix to payload bytes.*
+     * Mirror of [CCloudConsumerClient.getSchemaIdFromRawBytes] which strips this prefix.
+     */
+    @VisibleForTesting
+    internal fun prependSchemaIdPrefix(schemaId: Int, payload: ByteArray): ByteArray {
+        val buffer = ByteBuffer.allocate(1 + 4 + payload.size)
+        buffer.put(0x00.toByte()) // magic byte
+        buffer.putInt(schemaId)
+        buffer.put(payload)
+        return buffer.array()
+    }
+
+    /**
+     * Serialize a Protobuf message to bytes with message index varints.
+     * Mirror of [CCloudConsumerClient.deserializeProtobuf] which reads these indexes.
+     */
+    @VisibleForTesting
+    internal fun serializeProtobuf(message: DynamicMessage): ByteArray {
+        val outputStream = java.io.ByteArrayOutputStream()
+        // Write default message indexes (single message at index 0)
+        outputStream.write(MessageIndexes(listOf(0)).toByteArray())
+        message.writeTo(outputStream)
+        return outputStream.toByteArray()
+    }
+
+    /**
+     * Serialize an Avro value to binary bytes.
+     * Mirror of [CCloudConsumerClient.deserializeAvro].
+     */
+    @VisibleForTesting
+    internal fun serializeAvro(value: Any, schema: AvroSchema): ByteArray {
+        val avroSchema = schema.rawSchema()
+        val writer = GenericDatumWriter<Any>(avroSchema)
+        val outputStream = java.io.ByteArrayOutputStream()
+        val encoder = EncoderFactory.get().binaryEncoder(outputStream, null)
+        writer.write(value, encoder)
+        encoder.flush()
+        return outputStream.toByteArray()
+    }
+
+    /**
+     * Produce a single record with retry and exponential backoff for transient errors.
+     * Retries on 429 (rate limit) and 5xx (server errors). Fails immediately on 4xx client errors.
+     *
+     * Handles both HTTP-level errors (thrown as [CCloudApiException] by the REST client)
+     * and application-level errors (returned in the response body with an errorCode).
+     */
+    @VisibleForTesting
+    internal suspend fun produceWithRetry(
+        fetcher: DataPlaneFetcher,
+        topic: String,
+        request: ProduceRecordRequest
+    ): Pair<ProduceRecordResponse, Long> {
+        var lastException: CCloudApiException? = null
+
+        repeat(maxRetries) { attempt ->
+            if (!running.get()) throw CancellationException("Producer stopped")
+
+            val startTime = System.currentTimeMillis()
+            try {
+                val response = fetcher.produceRecord(topic, request)
+                val duration = System.currentTimeMillis() - startTime
+
+                if (response.errorCode == null || response.errorCode == 200) {
+                    return Pair(response, duration)
+                }
+
+                // Application-level error in response body
+                val exception = CCloudApiException(
+                    response.message ?: "Produce failed with error code ${response.errorCode}",
+                    response.errorCode
+                )
+
+                if (!isRetryableStatus(response.errorCode)) {
+                    throw exception
+                }
+
+                lastException = exception
+            } catch (e: CCloudApiException) {
+                // HTTP-level errors thrown by the REST client (e.g. 429, 5xx)
+                if (!isRetryableStatus(e.statusCode)) {
+                    throw e
+                }
+                lastException = e
+            }
+
+            thisLogger().debug("Retryable produce error (attempt ${attempt + 1}/$maxRetries): ${lastException?.statusCode}")
+
+            val backoffMs = min(
+                baseBackoffMs * 2.0.pow(attempt).toLong(),
+                maxBackoffMs
+            )
+            delay(backoffMs)
+        }
+
+        throw lastException ?: CCloudApiException("Produce failed after $maxRetries retries", 0)
+    }
+
+    @VisibleForTesting
+    internal fun isRetryableStatus(statusCode: Int): Boolean =
+        statusCode == 429 || statusCode in 500..599
 
     /**
      * Serialize a primitive value to bytes using the appropriate Kafka serializer.
@@ -337,4 +514,9 @@ class CCloudProducerClient(
         stop()
     }
 
+    companion object {
+        private const val BASE_BACKOFF_MS = 1_000L
+        private const val MAX_BACKOFF_MS = 30_000L
+        private const val MAX_RETRIES = 5
+    }
 }
