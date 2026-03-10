@@ -25,10 +25,11 @@ import io.confluent.intellijplugin.consumer.editor.KafkaRecord
 import io.confluent.intellijplugin.consumer.editor.KafkaRecordsOutput
 import io.confluent.intellijplugin.core.rfs.util.RfsNotificationUtils
 import io.confluent.intellijplugin.core.settings.getValidationInfo
+import io.confluent.intellijplugin.core.rfs.driver.SafeExecutor
 import io.confluent.intellijplugin.core.ui.CustomListCellRenderer
 import io.confluent.intellijplugin.core.ui.ExpansionPanel
 import io.confluent.intellijplugin.core.ui.MultiSplitter
-import io.confluent.intellijplugin.core.util.executeNotOnEdt
+import io.confluent.intellijplugin.core.util.executeNotOnEdtSuspend
 import io.confluent.intellijplugin.core.util.invokeLater
 import io.confluent.intellijplugin.data.BaseClusterDataManager
 import io.confluent.intellijplugin.data.KafkaDataManager
@@ -42,6 +43,7 @@ import io.confluent.intellijplugin.producer.models.RecordCompression
 import io.confluent.intellijplugin.telemetry.MessageViewerEvent
 import io.confluent.intellijplugin.telemetry.logUsage
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
+import kotlinx.coroutines.launch
 import java.awt.Dimension
 import java.beans.PropertyChangeListener
 import javax.swing.JButton
@@ -241,31 +243,33 @@ class KafkaProducerEditor(
 
         val selectedTopicName = topic.name
 
-        executeNotOnEdt {
+        SafeExecutor.instance.coroutineScope.launch {
             try {
-                if (!flowController.getParams().generateRandomKeys && !keyFieldComponent.validateSchema())
-                    return@executeNotOnEdt
-                if (!flowController.getParams().generateRandomKeys && !valueFieldComponent.validateSchema())
-                    return@executeNotOnEdt
+                executeNotOnEdtSuspend {
+                    if (!flowController.getParams().generateRandomKeys && !keyFieldComponent.validateSchema())
+                        return@executeNotOnEdtSuspend
+                    if (!flowController.getParams().generateRandomKeys && !valueFieldComponent.validateSchema())
+                        return@executeNotOnEdtSuspend
 
 
-                val key = keyFieldComponent.getProducerField()
-                val value = valueFieldComponent.getProducerField()
+                    val key = keyFieldComponent.getProducerField()
+                    val value = valueFieldComponent.getProducerField()
 
-                producerClient.start(
-                    selectedTopicName,
-                    key,
-                    value,
-                    propertiesComponent.properties,
-                    compressionComboBox.item,
-                    acksComboBox.selectedItem ?: AcksType.NONE,
-                    idempotenceCheckBox.isSelected,
-                    forcePartitionField.value,
-                    flowParams = flowController.getParams()
-                ) { time, records ->
-                    invokeLater {
-                        progress.onUpdate()
-                        output.addBatchRows(time, records)
+                    producerClient.start(
+                        selectedTopicName,
+                        key,
+                        value,
+                        propertiesComponent.properties,
+                        compressionComboBox.item,
+                        acksComboBox.selectedItem ?: AcksType.NONE,
+                        idempotenceCheckBox.isSelected,
+                        forcePartitionField.value,
+                        flowParams = flowController.getParams()
+                    ) { time, records ->
+                        invokeLater {
+                            progress.onUpdate()
+                            output.addBatchRows(time, records)
+                        }
                     }
                 }
             } catch (t: Throwable) {

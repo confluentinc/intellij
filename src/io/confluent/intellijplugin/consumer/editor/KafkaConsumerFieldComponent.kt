@@ -10,6 +10,8 @@ import com.intellij.ui.dsl.builder.Panel
 import com.intellij.ui.dsl.builder.RightGap
 import com.intellij.ui.dsl.builder.actionButton
 import com.intellij.ui.layout.selectedValueMatches
+import io.confluent.intellijplugin.core.rfs.driver.SafeExecutor
+import kotlinx.coroutines.launch
 import io.confluent.intellijplugin.common.editor.KafkaEditorUtils
 import io.confluent.intellijplugin.common.models.KafkaFieldType
 import io.confluent.intellijplugin.common.models.RegistrySchemaInEditor
@@ -18,7 +20,7 @@ import io.confluent.intellijplugin.consumer.models.ConsumerProducerFieldConfig
 import io.confluent.intellijplugin.consumer.models.CustomSchemaData
 import io.confluent.intellijplugin.core.rfs.util.RfsNotificationUtils
 import io.confluent.intellijplugin.core.settings.getValidationInfo
-import io.confluent.intellijplugin.core.util.executeNotOnEdt
+import io.confluent.intellijplugin.core.util.executeNotOnEdtSuspend
 import io.confluent.intellijplugin.producer.editor.CustomSchemaController
 import io.confluent.intellijplugin.registry.KafkaRegistryFormat
 import io.confluent.intellijplugin.registry.KafkaRegistryUtil
@@ -80,15 +82,17 @@ class KafkaConsumerFieldComponent(
                                 KafkaMessagesBundle.message("show.schema.info"),
                                 AllIcons.Actions.ToggleVisibility
                             ) {
-                                executeNotOnEdt {
+                                SafeExecutor.instance.coroutineScope.launch {
                                     try {
-                                        val config = loadFieldConfig()
-                                        val schema = config.parsedSchema ?: return@executeNotOnEdt
-                                        KafkaSchemaInfoDialog.show(
-                                            project = project, schemaType = schema.schemaType(),
-                                            schemaDefinition = schema.canonicalString(),
-                                            schemaName = config.schemaName
-                                        )
+                                        executeNotOnEdtSuspend {
+                                            val config = loadFieldConfig()
+                                            val schema = config.parsedSchema ?: return@executeNotOnEdtSuspend
+                                            KafkaSchemaInfoDialog.show(
+                                                project = project, schemaType = schema.schemaType(),
+                                                schemaDefinition = schema.canonicalString(),
+                                                schemaName = config.schemaName
+                                            )
+                                        }
                                     } catch (t: Throwable) {
                                         RfsNotificationUtils.showExceptionMessage(project, t)
                                     }
@@ -115,7 +119,7 @@ class KafkaConsumerFieldComponent(
         schemaComboBox.isEnabled = isEnabled
     }
 
-    fun loadFieldConfig(): ConsumerProducerFieldConfig {
+    suspend fun loadFieldConfig(): ConsumerProducerFieldConfig {
         val fieldType = fieldTypeComboBox.item
         val registryType = kafkaManager.registryType
         val schemaName = schemaComboBox.item?.schemaName ?: ""
