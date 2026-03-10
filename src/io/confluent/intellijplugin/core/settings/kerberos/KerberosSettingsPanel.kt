@@ -15,9 +15,10 @@ import io.confluent.intellijplugin.core.ui.withTooltip
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
 import javax.swing.JCheckBox
 import javax.swing.JComponent
+import javax.swing.JPanel
 import kotlin.math.max
 
-class KerberosSettingsPanel(project: Project) : javax.swing.JPanel(), ConfigurableUi<BdtKerberosManager>, Disposable {
+class KerberosSettingsPanel(project: Project) : JPanel(), ConfigurableUi<BdtKerberosManager>, Disposable {
     private val krb5Config = BrowsableEditableTextField(project).apply {
         emptyText.text = KafkaMessagesBundle.message("kerberos.settings.krb5.config.empty")
     }

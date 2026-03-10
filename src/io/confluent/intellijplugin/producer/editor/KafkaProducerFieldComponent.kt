@@ -35,8 +35,11 @@ import io.confluent.intellijplugin.core.settings.*
 import io.confluent.intellijplugin.core.ui.chooser.FileChooserUtil
 import io.confluent.intellijplugin.core.ui.revalidateOnLinesChanged
 import io.confluent.intellijplugin.core.util.executeNotOnEdt
+import io.confluent.intellijplugin.core.util.executeNotOnEdtSuspend
 import io.confluent.intellijplugin.core.util.invokeLater
 import io.confluent.intellijplugin.core.util.toPresentableText
+import io.confluent.intellijplugin.core.rfs.driver.SafeExecutor
+import kotlinx.coroutines.launch
 import io.confluent.intellijplugin.registry.KafkaRegistryFormat
 import io.confluent.intellijplugin.registry.KafkaRegistryUtil
 import io.confluent.intellijplugin.registry.ui.KafkaSchemaInfoDialog
@@ -136,7 +139,7 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
         jsonField.revalidateComponent()
     }
 
-    fun validateSchema(): Boolean {
+    suspend fun validateSchema(): Boolean {
         val oldValidationError = schemaValidationError?.toPresentableText()
 
         return try {
@@ -163,7 +166,7 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
     }
 
     @RequiresBackgroundThread
-    fun getProducerField(): ConsumerProducerFieldConfig {
+    suspend fun getProducerField(): ConsumerProducerFieldConfig {
         val fieldType = fieldTypeComboBox.item
         val registryType = kafkaManager.registryType
         val schemaName = schemaComboBox.item?.schemaName ?: ""
@@ -224,16 +227,18 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
                                 KafkaMessagesBundle.message("show.schema.info"),
                                 AllIcons.Actions.ToggleVisibility
                             ) {
-                                executeNotOnEdt {
+                                SafeExecutor.instance.coroutineScope.launch {
                                     try {
-                                        val config = getProducerField()
-                                        val schema = config.parsedSchema ?: return@executeNotOnEdt
-                                        invokeLater {
-                                            KafkaSchemaInfoDialog.show(
-                                                project = project, schemaType = schema.schemaType(),
-                                                schemaDefinition = schema.canonicalString(),
-                                                schemaName = config.schemaName
-                                            )
+                                        executeNotOnEdtSuspend {
+                                            val config = getProducerField()
+                                            val schema = config.parsedSchema ?: return@executeNotOnEdtSuspend
+                                            invokeLater {
+                                                KafkaSchemaInfoDialog.show(
+                                                    project = project, schemaType = schema.schemaType(),
+                                                    schemaDefinition = schema.canonicalString(),
+                                                    schemaName = config.schemaName
+                                                )
+                                            }
                                         }
                                     } catch (t: Throwable) {
                                         RfsNotificationUtils.showExceptionMessage(project, t)
@@ -350,8 +355,10 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
         KafkaFieldType.NULL -> null // Any value match null type
         KafkaFieldType.AVRO_CUSTOM, KafkaFieldType.PROTOBUF_CUSTOM, KafkaFieldType.SCHEMA_REGISTRY -> try {
             JsonParser.parseString(value)
-            executeNotOnEdt {
-                validateSchema()
+            SafeExecutor.instance.coroutineScope.launch {
+                executeNotOnEdtSuspend {
+                    validateSchema()
+                }
             }
             null
         } catch (iae: Exception) {
@@ -419,23 +426,25 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
                 return
             }
 
-            executeNotOnEdt {
-                val config = try {
-                    getProducerField()
-                } catch (t: Throwable) {
-                    invokeLater {
-                        RfsNotificationUtils.showErrorMessage(
-                            project,
-                            t.message ?: t.toPresentableText(),
-                            KafkaMessagesBundle.message("message.title")
-                        )
+            SafeExecutor.instance.coroutineScope.launch {
+                executeNotOnEdtSuspend {
+                    val config = try {
+                        getProducerField()
+                    } catch (t: Throwable) {
+                        invokeLater {
+                            RfsNotificationUtils.showErrorMessage(
+                                project,
+                                t.message ?: t.toPresentableText(),
+                                KafkaMessagesBundle.message("message.title")
+                            )
+                        }
+                        null
                     }
-                    null
-                }
-                config ?: return@executeNotOnEdt
-                invokeLater {
-                    updateFieldsText(config.type, GenerateRandomData.generate(project, config))
-                    revalidateFields()
+                    config ?: return@executeNotOnEdtSuspend
+                    invokeLater {
+                        updateFieldsText(config.type, GenerateRandomData.generate(project, config))
+                        revalidateFields()
+                    }
                 }
             }
         }
