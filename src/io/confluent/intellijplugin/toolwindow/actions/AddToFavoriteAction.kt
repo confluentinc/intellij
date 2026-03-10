@@ -21,11 +21,19 @@ class AddToFavoriteAction : DumbAwareToggleAction() {
         val rfsPath = e.rfsPath ?: return false
         val dataManager = e.dataManager as? BaseClusterDataManager ?: return false
 
-        val config = KafkaToolWindowSettings.getInstance().getOrCreateConfig(dataManager.connectionId)
         return when {
-            rfsPath.isTopic() -> config.topicsPined.contains(rfsPath.name)
-            rfsPath.isSchema() -> config.schemasPined.contains(rfsPath.name)
-            rfsPath.isConsumerGroup() -> config.consumerGroupPined.contains(rfsPath.name)
+            rfsPath.isTopic() -> {
+                val config = KafkaToolWindowSettings.getInstance().getOrCreateConfig(dataManager.connectionId)
+                config.topicsPined.contains(rfsPath.name)
+            }
+            rfsPath.isSchema() -> {
+                val config = KafkaToolWindowSettings.getInstance().getOrCreateConfig(dataManager.getSchemaRegistryConfigId())
+                config.schemasPined.contains(rfsPath.name)
+            }
+            rfsPath.isConsumerGroup() -> {
+                val config = KafkaToolWindowSettings.getInstance().getOrCreateConfig(dataManager.connectionId)
+                config.consumerGroupPined.contains(rfsPath.name)
+            }
             else -> false
         }
     }

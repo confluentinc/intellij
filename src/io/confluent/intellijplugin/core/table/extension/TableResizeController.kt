@@ -8,6 +8,7 @@ import java.awt.event.HierarchyEvent
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
 import javax.swing.JTable
+import javax.swing.SwingUtilities
 import javax.swing.event.*
 import javax.swing.table.AbstractTableModel
 import kotlin.math.min
@@ -103,7 +104,7 @@ class TableResizeController private constructor(private val table: JTable) : Tab
     override fun tableChanged(e: TableModelEvent?) {
         if (table.rowCount > 0 && table.columnCount > 0) {
             MaterialTableUtils.fitColumnsWidth(table)
-            javax.swing.SwingUtilities.invokeLater {
+            SwingUtilities.invokeLater {
                 componentResized()
             }
             table.model.removeTableModelListener(this)

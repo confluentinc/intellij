@@ -90,5 +90,19 @@ class MonitoringProgressComponent(val updater: BdtMonitoringUpdater) : Disposabl
 
         progressField.value = (progress * 100).toInt()
     }
+
+    fun showManualProgress(@NlsContexts.Label text: String, indeterminate: Boolean = true) {
+        textField.text = text
+        progressField.isIndeterminate = indeterminate
+        component.isVisible = true
+        component.revalidate()
+        component.repaint()
+    }
+
+    fun hideManualProgress() {
+        component.isVisible = false
+        component.revalidate()
+        component.repaint()
+    }
 }
 
