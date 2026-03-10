@@ -192,13 +192,6 @@ class BdtMonitoringUpdater(val dataManager: MonitoringDataManager) : Disposable 
                 }
             }
 
-            // Second phase: enrichment (slower, use indeterminate progress)
-            if (modelsForAdditionalUpdate.isNotEmpty()) {
-                notify {
-                    it.setIntermediate(id, true)
-                }
-            }
-
             runBlockingMaybeCancellable {
                 val jobs = modelsForAdditionalUpdate.mapNotNull {
                     val job = it.launchAdditionalUpdate(this)

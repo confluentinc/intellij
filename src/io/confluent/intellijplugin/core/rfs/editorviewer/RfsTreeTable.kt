@@ -93,7 +93,7 @@ open class RfsTreeTable(model: TreeTableModel) : JComponent(), TreePathBackgroun
         table.selectionModel.addListSelectionListener(selection)
         table.rowMargin = 0
         table.addMouseListener(selection)
-        table.putClientProperty(RenderingUtil.PAINT_HOVERED_BACKGROUND, java.lang.Boolean.FALSE)
+        table.putClientProperty(RenderingUtil.PAINT_HOVERED_BACKGROUND, false)
         val tableRenderer = getDefaultRenderer(TreeTableModel::class.java)
         val tableRendererComponent = tableRenderer.getTableCellRendererComponent(table, "jJ", false, false, -1, -1)
 

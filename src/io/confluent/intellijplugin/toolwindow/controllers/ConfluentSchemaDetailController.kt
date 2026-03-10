@@ -162,8 +162,11 @@ internal class ConfluentSchemaDetailController(
 
         dataManager.getSchemaVersionInfo(schemaName, version).onSuccess { versionInfo ->
             if (version1Schema == versionInfo) {
-                isLoading.set(false)
-                hasContent.set(true)
+                invokeLater {
+                    if (Disposer.isDisposed(this@ConfluentSchemaDetailController)) return@invokeLater
+                    isLoading.set(false)
+                    hasContent.set(true)
+                }
                 return@onSuccess
             }
 

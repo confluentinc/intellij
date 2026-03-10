@@ -64,51 +64,60 @@ class CCloudOrgManager(
      * data plane (topic/schema names). Prevents blocking delays on tree expansion.
      * Called asynchronously when environment is selected.
      */
-    fun preInitializeCachesForEnvironment(environmentId: String) {
+    fun preInitializeCachesForEnvironment(environmentId: String, onComplete: (() -> Unit)? = null) {
         driver.coroutineScope.launch(Dispatchers.IO) {
-            coroutineScope {
-                val clustersDeferred = async {
-                    try {
-                        client.refreshKafkaClusters(environmentId)
-                    } catch (e: Exception) {
-                        thisLogger().warn("Failed to fetch clusters for environment $environmentId: ${e.message}")
-                        emptyList()
-                    }
-                }
-
-                val srDeferred = async {
-                    try {
-                        client.refreshSchemaRegistry(environmentId)
-                    } catch (e: Exception) {
-                        thisLogger().warn("Failed to fetch schema registry for environment $environmentId: ${e.message}")
-                        null
-                    }
-                }
-
-                val clusters = clustersDeferred.await()
-
-                val semaphore = Semaphore(CloudConfig.API_RATE_LIMIT)
-                thisLogger().info("Pre-fetching ${clusters.size} clusters in parallel (max $CloudConfig.API_RATE_LIMIT concurrent)")
-
-                clusters.map { cluster ->
-                    async {
-                        semaphore.acquire()
+            try {
+                coroutineScope {
+                    val clustersDeferred = async {
                         try {
-                            val cache = getDataPlaneCache(cluster)
-                            cache.refreshTopics()
-                            if (cache.hasSchemaRegistry()) {
-                                cache.refreshSchemas()
-                            }
-                            thisLogger().info("Pre-fetched cluster ${cluster.id}: ${cache.getTopics().size} topics, ${cache.getSchemas().size} schemas")
+                            client.refreshKafkaClusters(environmentId)
                         } catch (e: Exception) {
-                            thisLogger().warn("Failed to pre-fetch cluster ${cluster.id}: ${e.message}")
-                        } finally {
-                            semaphore.release()
+                            thisLogger().warn("Failed to fetch clusters for environment $environmentId: ${e.message}")
+                            emptyList()
                         }
                     }
-                }.awaitAll()
 
-                srDeferred.await()
+                    val srDeferred = async {
+                        try {
+                            client.refreshSchemaRegistry(environmentId)
+                        } catch (e: Exception) {
+                            thisLogger().warn("Failed to fetch schema registry for environment $environmentId: ${e.message}")
+                            null
+                        }
+                    }
+
+                    val clusters = clustersDeferred.await()
+                    srDeferred.await()
+
+                    onComplete?.let { callback ->
+                        com.intellij.openapi.application.ApplicationManager.getApplication().invokeLater(callback)
+                    }
+
+                    if (clusters.isNotEmpty()) {
+                        val semaphore = Semaphore(CloudConfig.API_RATE_LIMIT)
+                        thisLogger().info("Pre-fetching ${clusters.size} clusters in parallel (max $CloudConfig.API_RATE_LIMIT concurrent)")
+
+                        clusters.map { cluster ->
+                            async {
+                                semaphore.acquire()
+                                try {
+                                    val cache = getDataPlaneCache(cluster)
+                                    cache.refreshTopics()
+                                    if (cache.hasSchemaRegistry()) {
+                                        cache.refreshSchemas()
+                                    }
+                                    thisLogger().info("Pre-fetched cluster ${cluster.id}: ${cache.getTopics().size} topics, ${cache.getSchemas().size} schemas")
+                                } catch (e: Exception) {
+                                    thisLogger().warn("Failed to pre-fetch cluster ${cluster.id}: ${e.message}")
+                                } finally {
+                                    semaphore.release()
+                                }
+                            }
+                        }.awaitAll()
+                    }
+                }
+            } catch (e: Exception) {
+                thisLogger().warn("Failed to initialize caches for environment $environmentId", e)
             }
         }
     }

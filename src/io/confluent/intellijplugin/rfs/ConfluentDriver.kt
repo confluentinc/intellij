@@ -75,12 +75,8 @@ class ConfluentDriver(
         })
     }
 
-    /**
-     * Register topic listeners for all clusters in the environment.
-     * Called when environment is selected to enable auto-refresh on topic creation.
-     */
     fun registerListenersForEnvironment(envId: String) {
-        val clusters = dataManager.getKafkaClusters(envId)
+        val clusters = dataManager.client.getCachedKafkaClusters(envId) ?: return
         clusters.forEach { cluster ->
             registerClusterTopicListener(cluster.id, cluster)
         }
@@ -113,34 +109,40 @@ class ConfluentDriver(
         dataManager.client.connectionError?.let { throw it }
 
         val depth = rfsPath.elements.size
-        logger.info("ConfluentDriver.doLoadChildren: path=${rfsPath.stringRepresentation()}, depth=$depth, selectedEnv=$selectedEnvironmentId")
+        val currentEnvId = selectedEnvironmentId
+        logger.info("ConfluentDriver.doLoadChildren: path=${rfsPath.stringRepresentation()}, depth=$depth, selectedEnv=$currentEnvId")
 
         return when (depth) {
             0 -> {
-                val envId = selectedEnvironmentId ?: run {
+                val envId = currentEnvId ?: run {
                     logger.warn("ConfluentDriver: No environment selected")
                     return emptyList()
                 }
 
                 logger.info("ConfluentDriver: Loading root for environment $envId")
 
-                val clusters = dataManager.client.getKafkaClusters(envId).map { cluster ->
+                val clusters = dataManager.client.getCachedKafkaClusters(envId)?.map { cluster ->
                     ConfluentFileInfo(this, clusterPath(cluster.id))
+                } ?: emptyList()
+
+                val schemaRegistry = dataManager.client.getCachedSchemaRegistry(envId)?.let { sr ->
+                    ConfluentFileInfo(this, schemaRegistryPath(sr.id))
                 }
 
-                val schemaRegistry = dataManager.client.getSchemaRegistry(envId)?.let { sr ->
-                    ConfluentFileInfo(this, schemaRegistryPath(sr.id))
+                if (selectedEnvironmentId != currentEnvId) {
+                    logger.info("ConfluentDriver: Environment changed during load, returning empty")
+                    return emptyList()
                 }
 
                 clusters + listOfNotNull(schemaRegistry)
             }
-            // Cluster/SR level: show topics/schemas directly
             1 -> {
-                val envId = selectedEnvironmentId ?: return emptyList()
+                val envId = currentEnvId ?: return emptyList()
                 val nodeId = rfsPath.name
 
-                // Check if it's a cluster
-                val cluster = dataManager.getKafkaClusters(envId).find { it.id == nodeId }
+                val clusters = dataManager.client.getCachedKafkaClusters(envId) ?: return emptyList()
+
+                val cluster = clusters.find { it.id == nodeId }
                 if (cluster != null) {
                     logger.info("ConfluentDriver: Loading topics for cluster $nodeId")
 
@@ -150,9 +152,12 @@ class ConfluentDriver(
                     val topics = clusterDataManager.getTopics()
                     logger.info("ConfluentDriver: Found ${topics.size} topics")
 
+                    if (selectedEnvironmentId != currentEnvId) {
+                        logger.info("ConfluentDriver: Environment changed during topics load, returning empty")
+                        return emptyList()
+                    }
+
                     return when {
-                        topics.isEmpty() && clusterDataManager.topicModel.isInitedByFirstTime == false ->
-                            listOf(ConfluentFileInfo(this, emptyStatePath(message("confluent.cloud.tree.loading"))))
                         topics.isEmpty() ->
                             listOf(ConfluentFileInfo(this, emptyStatePath(message("confluent.cloud.tree.no.topics"))))
                         else ->
@@ -162,12 +167,11 @@ class ConfluentDriver(
                     }
                 }
 
-                // Check if it's a schema registry
-                val sr = dataManager.client.getSchemaRegistry(envId)
+                val sr = dataManager.client.getCachedSchemaRegistry(envId)
                 if (sr != null && sr.id == nodeId) {
                     logger.info("ConfluentDriver: Loading schemas for schema registry $nodeId")
 
-                    val clusters = dataManager.getKafkaClusters(envId)
+                    val clusters = dataManager.client.getCachedKafkaClusters(envId) ?: return emptyList()
                     val firstCluster = clusters.firstOrNull()
 
                     if (firstCluster == null) {
@@ -190,9 +194,12 @@ class ConfluentDriver(
                     val schemas = clusterDataManager.getSchemas()
                     logger.info("ConfluentDriver: Found ${schemas.size} schemas")
 
+                    if (selectedEnvironmentId != currentEnvId) {
+                        logger.info("ConfluentDriver: Environment changed during schemas load, returning empty")
+                        return emptyList()
+                    }
+
                     return when {
-                        schemas.isEmpty() && clusterDataManager.schemaRegistryModel?.isInitedByFirstTime == false ->
-                            listOf(ConfluentFileInfo(this, emptyStatePath(message("confluent.cloud.tree.loading"))))
                         schemas.isEmpty() ->
                             listOf(ConfluentFileInfo(this, emptyStatePath(message("confluent.cloud.tree.no.schemas"))))
                         else ->
@@ -220,8 +227,8 @@ class ConfluentDriver(
             if (elements.size != 1) return false
             val envId = driver.selectedEnvironmentId ?: return false
             val nodeId = name
-            return driver.dataManager.client.getKafkaClusters(envId).any { it.id == nodeId } ||
-                   driver.dataManager.client.getSchemaRegistry(envId)?.id == nodeId
+            return driver.dataManager.client.getCachedKafkaClusters(envId)?.any { it.id == nodeId } == true ||
+                   driver.dataManager.client.getCachedSchemaRegistry(envId)?.id == nodeId
         }
 
         fun RfsPath.isCluster(driver: ConfluentDriver): Boolean {

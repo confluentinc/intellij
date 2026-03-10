@@ -7,6 +7,7 @@ import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.observable.properties.AtomicBooleanProperty
 import com.intellij.openapi.observable.util.not
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.ui.DialogPanel
 import com.intellij.openapi.ui.SimpleToolWindowPanel
 import com.intellij.openapi.ui.Splitter
 import com.intellij.openapi.util.Disposer
@@ -94,7 +95,7 @@ internal class ConfluentMainController(
     private lateinit var myTree: ProjectViewTree
     private lateinit var treeModel: DriverRfsTreeModel
     private lateinit var normalPanel: OnePixelSplitter
-    private lateinit var panel: com.intellij.openapi.ui.DialogPanel
+    private lateinit var panel: DialogPanel
     private lateinit var component: JComponent
     private lateinit var lastSelectedPath: TreePath
 
@@ -145,17 +146,15 @@ internal class ConfluentMainController(
                 if (status == ConnectedConnectionStatus) {
                     installToolbarIfNeeded()
                     populateEnvironmentSelector()
-                    selectedEnvironmentId.get()?.let { envId ->
-                        driver.fileInfoManager.refreshFiles(driver.root)
 
-                        if (!hasShownInitialEnvironmentDetails) {
+                    if (!hasShownInitialEnvironmentDetails) {
+                        selectedEnvironmentId.get()?.let { envId ->
                             hasShownInitialEnvironmentDetails = true
                             showEnvironmentDetails(envId)
                             (details.layout as CardLayout).show(details, ENVIRONMENT_PANEL)
                         }
                     }
                 } else {
-                    // Reset so environment details show on next connection
                     hasShownInitialEnvironmentDetails = false
                 }
             }
@@ -204,9 +203,10 @@ internal class ConfluentMainController(
 
                             driver.selectedEnvironmentId = prevSelectedId
                             dataManager.cancelAllEnrichmentJobs()
-                            dataManager.preInitializeCachesForEnvironment(prevSelectedId)
-                            driver.registerListenersForEnvironment(prevSelectedId)
-                            driver.fileInfoManager.refreshFiles(driver.root)
+                            dataManager.preInitializeCachesForEnvironment(prevSelectedId) {
+                                driver.registerListenersForEnvironment(prevSelectedId)
+                                driver.fileInfoManager.refreshFiles(driver.root)
+                            }
 
                             if ((details.layout as? CardLayout)?.let { true } == true) {
                                 showEnvironmentDetails(prevSelectedId)
@@ -220,6 +220,7 @@ internal class ConfluentMainController(
         }
     }
 
+    /** Refresh currently visible schema detail panel. */
     fun refreshDetailPanel() {
         currentSchemaDetailsController?.takeIf { !Disposer.isDisposed(it) }?.refresh()
     }
@@ -262,8 +263,7 @@ internal class ConfluentMainController(
                 selectedPath.isSchemaRegistry(driver) || selectedPath.isSchema -> {
                     val envId = selectedPath.getEnvironmentId(driver)
                     if (envId != null) {
-                        // Schema Registry is shared across all clusters in an environment,
-                        // so any cluster's data manager provides access to the same SR
+                        // SR shared across environment, use any cluster's data manager
                         val cluster = dataManager.getKafkaClusters(envId).firstOrNull()
                         cluster?.let { dataManager.getOrCreateClusterDataManager(it) } ?: dataManager
                     } else {
@@ -362,7 +362,6 @@ internal class ConfluentMainController(
         if (toolbarInstalled) return
         toolbarInstalled = true
 
-        // Create Producer/Consumer toolbar (same as native Kafka connections)
         val toolbar = ToolbarUtils.createActionToolbar(
             "ConfluentMainController",
             KafkaControllerUtils.createTopicToolbar(),
@@ -387,8 +386,10 @@ internal class ConfluentMainController(
             selectedEnvironmentId.set(firstEnv.id)
             environmentComboBoxModel.selectedItem = environmentComboBoxModel.getElementAt(0)
 
-            dataManager.preInitializeCachesForEnvironment(firstEnv.id)
-            driver.registerListenersForEnvironment(firstEnv.id)
+            dataManager.preInitializeCachesForEnvironment(firstEnv.id) {
+                driver.registerListenersForEnvironment(firstEnv.id)
+                driver.fileInfoManager.refreshFiles(driver.root)
+            }
         }
     }
 
@@ -397,12 +398,13 @@ internal class ConfluentMainController(
         myTree.clearSelection()
 
         dataManager.cancelAllEnrichmentJobs()
-        dataManager.preInitializeCachesForEnvironment(envId)
 
-        // Register topic listeners for all clusters to enable auto-refresh on creation
-        driver.registerListenersForEnvironment(envId)
-
-        driver.fileInfoManager.refreshFiles(driver.root)
+        dataManager.preInitializeCachesForEnvironment(envId) {
+            if (driver.selectedEnvironmentId == envId) {
+                driver.registerListenersForEnvironment(envId)
+                driver.fileInfoManager.refreshFiles(driver.root)
+            }
+        }
 
         invokeLater {
             com.intellij.util.ui.tree.TreeUtil.collapseAll(myTree, 0)
