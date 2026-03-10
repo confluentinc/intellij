@@ -35,7 +35,7 @@ import java.util.concurrent.atomic.AtomicInteger
 private const val PARTITION_ENRICHMENT_CONCURRENCY = 2
 
 /**
- * Data plane cache for cluster resources (topics, schemas, consumer groups).
+ * Data plane cache for cluster resources (topics, schemas).
  * One cache per cluster. Call refresh*() to populate/update cache.
  */
 class DataPlaneCache(
@@ -186,40 +186,6 @@ class DataPlaneCache(
         }
     }.flowOn(Dispatchers.IO)
 
-    /**
-     * Enrich schemas with metadata, blocking until all complete.
-     */
-    suspend fun enrichSchemas(schemas: List<SchemaData>): Map<String, SchemaEnrichmentData> {
-        if (fetcher == null) return emptyMap()
-
-        return coroutineScope {
-            thisLogger().info("Starting enrichment for ${schemas.size} schemas")
-
-            val results = schemas.map { schema ->
-                async {
-                    try {
-                        val info = withTimeout(ENRICHMENT_TIMEOUT_MS) {
-                            fetcher?.loadSchemaInfo(schema.name)
-                        }
-
-                    thisLogger().debug("Enriched ${schema.name}: version=${info?.latestVersion}, type=${info?.schemaType}, compatibility=${info?.compatibility}")
-
-                    schema.name to SchemaEnrichmentData(
-                        latestVersion = info?.latestVersion,
-                        schemaType = info?.schemaType,
-                        compatibility = info?.compatibility
-                    )
-                } catch (e: Exception) {
-                    thisLogger().warn("Failed to enrich ${schema.name}: ${e.message}")
-                    schema.name to SchemaEnrichmentData()
-                }
-            }
-        }.awaitAll().toMap()
-
-            thisLogger().info("Enrichment completed: ${results.size} schemas enriched")
-            results
-        }
-    }
 
     fun enrichTopicsDataProgressively(topics: List<TopicData>): Flow<TopicEnrichmentResult> = channelFlow {
         if (fetcher == null) return@channelFlow
@@ -268,41 +234,6 @@ class DataPlaneCache(
         }
     }.flowOn(Dispatchers.IO)
 
-    /**
-     * Enrich topics with message count, blocking until all complete.
-     */
-    suspend fun enrichTopicsData(topics: List<TopicData>): Map<String, TopicEnrichmentData> {
-        if (fetcher == null) return emptyMap()
-
-        return coroutineScope {
-            thisLogger().info("Starting enrichment for ${topics.size} topics")
-
-            val results = topics.map { topic ->
-                async {
-                    try {
-                        val messageCount = withTimeout(ENRICHMENT_TIMEOUT_MS) {
-                            fetcher?.getTopicMessageCount(topic.topicName)
-                        }
-
-                        thisLogger().debug("Enriched ${topic.topicName}: messageCount=$messageCount")
-
-                        val enrichmentData = TopicEnrichmentData(messageCount = messageCount)
-                        updateTopicInCache(topic.topicName, enrichmentData)
-
-                        topic.topicName to enrichmentData
-                    } catch (e: Exception) {
-                        thisLogger().warn("Failed to enrich topic ${topic.topicName}: ${e.message}")
-                        val emptyEnrichment = TopicEnrichmentData()
-                        updateTopicInCache(topic.topicName, emptyEnrichment)
-                        topic.topicName to emptyEnrichment
-                    }
-                }
-            }.awaitAll().toMap()
-
-            thisLogger().info("Enrichment completed: ${results.size} topics enriched")
-            results
-        }
-    }
 
     suspend fun createTopic(request: CreateTopicRequest): TopicData {
         val newTopic = fetcher?.createTopic(request)
