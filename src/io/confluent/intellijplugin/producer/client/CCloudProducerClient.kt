@@ -61,6 +61,7 @@ class CCloudProducerClient(
     val onStop: () -> Unit,
     @VisibleForTesting internal val baseBackoffMs: Long = BASE_BACKOFF_MS,
     @VisibleForTesting internal val maxBackoffMs: Long = MAX_BACKOFF_MS,
+    @VisibleForTesting internal val maxRetries: Int = MAX_RETRIES,
 ) : ProducerClient {
 
     private val running = AtomicBoolean(false)
