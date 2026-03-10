@@ -1,5 +1,6 @@
 package io.confluent.intellijplugin.producer.client
 
+import com.intellij.charts.dataframe.DataFrame
 import com.intellij.openapi.diagnostic.thisLogger
 import io.confluent.intellijplugin.ccloud.client.CCloudApiException
 import io.confluent.intellijplugin.core.rfs.util.RfsNotificationUtils
@@ -115,6 +116,8 @@ class CCloudProducerClient(
         val fetcher = clusterDataManager.getDataPlaneCache().getFetcher()
             ?: throw IllegalStateException("DataPlaneFetcher not initialized")
 
+        val validatedPartition = validatePartition(forcePartition, topic, fetcher)
+
         val csvDataFrame = flowParams.csvFile?.let { KafkaCsvUtils.readDataFrame(it) }
         var produced = 0
 
@@ -126,7 +129,7 @@ class CCloudProducerClient(
                     key = key,
                     value = value,
                     headers = headers,
-                    forcePartition = forcePartition,
+                    forcePartition = validatedPartition,
                     flowParams = flowParams,
                     alreadyProducedCount = produced,
                     csvDataFrame = csvDataFrame
@@ -150,7 +153,7 @@ class CCloudProducerClient(
                         key = key,
                         value = value,
                         headers = headers,
-                        forcePartition = forcePartition,
+                        forcePartition = validatedPartition,
                         flowParams = flowParams,
                         alreadyProducedCount = produced,
                         csvDataFrame = csvDataFrame
@@ -174,7 +177,7 @@ class CCloudProducerClient(
         forcePartition: Int,
         flowParams: ProducerFlowParams,
         alreadyProducedCount: Int,
-        csvDataFrame: com.intellij.charts.dataframe.DataFrame?
+        csvDataFrame: DataFrame?
     ): List<KafkaRecord> {
         val records = mutableListOf<KafkaRecord>()
         repeat(flowParams.flowRecordsCountPerRequest) { i ->
@@ -211,8 +214,7 @@ class CCloudProducerClient(
                     valueSize = response.value?.size ?: 0,
                     headers = processedHeaders,
                     keyFormat = recordKey.schemaFormat,
-                    valueFormat = recordValue.schemaFormat,
-                    errror = null
+                    valueFormat = recordValue.schemaFormat
                 )
             )
         }
@@ -222,7 +224,7 @@ class CCloudProducerClient(
     private fun resolveFieldValue(
         field: ConsumerProducerFieldConfig,
         generateRandom: Boolean,
-        csvDataFrame: com.intellij.charts.dataframe.DataFrame?,
+        csvDataFrame: DataFrame?,
         recordIndex: Int,
         isKey: Boolean
     ): ConsumerProducerFieldConfig {
@@ -239,6 +241,22 @@ class CCloudProducerClient(
         return resolved.copy(
             valueText = FieldTemplateGenerator.processTemplate(resolved.valueText)
         )
+    }
+
+    @VisibleForTesting
+    internal suspend fun validatePartition(
+        forcePartition: Int,
+        topic: String,
+        fetcher: DataPlaneFetcher
+    ): Int {
+        if (forcePartition < 0) return forcePartition
+
+        val actualPartitions = fetcher.describeTopicPartitions(topic)
+            .map { it.partitionId }.toSet()
+        if (forcePartition !in actualPartitions) {
+            error(KafkaMessagesBundle.message("producer.wrong.partition", forcePartition, topic))
+        }
+        return forcePartition
     }
 
     @VisibleForTesting

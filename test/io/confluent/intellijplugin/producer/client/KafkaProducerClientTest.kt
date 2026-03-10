@@ -9,6 +9,7 @@ import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.*
+import java.util.concurrent.atomic.AtomicBoolean
 
 @TestApplication
 class KafkaProducerClientTest {
@@ -69,7 +70,7 @@ class KafkaProducerClientTest {
                 onStart = {},
                 onStop = { onStopCalled = true }
             )
-            client.isRunning.set(true)
+            client.running.set(true)
             client.stop()
             assertFalse(client.isRunning(), "isRunning should be false after stop")
             assertTrue(onStopCalled, "onStop callback should be invoked")
@@ -84,7 +85,7 @@ class KafkaProducerClientTest {
                 onStart = {},
                 onStop = { onStopCallCount++ }
             )
-            client.isRunning.set(true)
+            client.running.set(true)
             client.stop()
             client.stop()
             client.stop()
