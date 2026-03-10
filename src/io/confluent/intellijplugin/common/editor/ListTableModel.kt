@@ -99,7 +99,7 @@ class ListTableModel<T>(
                 } finally {
                     flushScheduled.set(false)
                     // Re-check: items may have been added while we were flushing
-                   if(synchronized(pendingAdds) { pendingAdds.isNotEmpty() }) {
+                    if (synchronized(pendingAdds) { pendingAdds.isNotEmpty() }) {
                         scheduleFlush()
                     }
                 }

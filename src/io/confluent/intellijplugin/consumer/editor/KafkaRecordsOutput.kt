@@ -193,7 +193,7 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
     }
 
     fun addBatchRows(pollTime: Long, elements: List<KafkaRecord>) {
-        outputModel.addBatch(elements)  // Use batch method for efficiency
+        outputModel.addBatch(elements)
         statisticPanel.addRecordsBatch(pollTime, elements)
     }
 
