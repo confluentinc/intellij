@@ -1,0 +1,8 @@
+{
+  "subject": "user-schema",
+  "version": 2,
+  "id": 100002,
+  "schemaType": "AVRO",
+  "schema": "{\"type\":\"record\",\"name\":\"User\",\"fields\":[{\"name\":\"id\",\"type\":\"int\"}]}",
+  "references": []
+}

@@ -196,6 +196,7 @@ class BdtMonitoringUpdater(val dataManager: MonitoringDataManager) : Disposable 
             if (modelsForAdditionalUpdate.isNotEmpty()) {
                 notify {
                     it.setIntermediate(id, true)
+                    it.setText(id, KafkaMessagesBundle.message("monitoring.progress.enriching.data"))
                 }
             }
 

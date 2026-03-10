@@ -9,6 +9,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import java.net.InetAddress
 import java.net.InetSocketAddress
+import java.net.URLDecoder
 import javax.net.ssl.SSLHandshakeException
 
 /**
@@ -64,7 +65,7 @@ class CCloudOAuthCallbackServer(
             return query.split("&")
                 .mapNotNull { param ->
                     val parts = param.split("=", limit = 2)
-                    if (parts.size == 2) parts[0] to java.net.URLDecoder.decode(parts[1], "UTF-8")
+                    if (parts.size == 2) parts[0] to URLDecoder.decode(parts[1], "UTF-8")
                     else null
                 }
                 .toMap()
