@@ -1,6 +1,8 @@
 package io.confluent.intellijplugin.common.editor
 
+import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.diagnostic.thisLogger
+import java.util.concurrent.atomic.AtomicBoolean
 import javax.swing.table.AbstractTableModel
 import javax.swing.table.DefaultTableColumnModel
 import javax.swing.table.TableColumn
@@ -27,6 +29,10 @@ class ListTableModel<T>(
     /** If maxElementsCount <= data.size, the first element will be removed when adding a new element. */
     var maxElementsCount = 0
 
+    // Batching support for performance
+    private val pendingAdds = mutableListOf<T>()
+    private val flushScheduled = AtomicBoolean(false)
+
     override fun getRowCount() = data.size
     override fun getColumnCount() = columnNames.size
     // Guard against stale indices from concurrent list modification.
@@ -51,21 +57,88 @@ class ListTableModel<T>(
         }
 
     fun clear() {
-        data.clear()
+        resetAndClearData()
         fireTableDataChanged()
     }
 
-    fun addElement(element: T) {
-        if (maxElementsCount > 0 && data.size >= maxElementsCount) {
-            val elementsToRemove = data.size - maxElementsCount + 1
-            for (i in 0 until elementsToRemove) {
-                data.removeFirst()
-            }
-            fireTableRowsDeleted(0, elementsToRemove - 1)
-        }
-        data += element
-        fireTableRowsInserted(data.size - 1, data.size - 1)
+    /**
+     * Synchronously replace all data. Unlike addBatch(), this does not defer via invokeLater,
+     * so callers can read elements() immediately after this call returns. Used for restoring from prev state.
+     */
+    fun replaceAll(elements: List<T>) {
+        resetAndClearData()
+        data.addAll(elements)
+        fireTableDataChanged()
     }
 
-    fun elements(): List<T> = data
+    private fun resetAndClearData() {
+        synchronized(pendingAdds) {
+            pendingAdds.clear()
+        }
+        flushScheduled.set(false)
+        data.clear()
+    }
+
+    /**
+     * Add elements in a batch. Items are queued and flushed in a single EDT event via invokeLater,
+     * so multiple addBatch calls between flushes are coalesced into one table update.
+     */
+    fun addBatch(elements: List<T>) {
+        if (elements.isEmpty()) return
+        synchronized(pendingAdds) {
+            pendingAdds.addAll(elements)
+        }
+        scheduleFlush()
+    }
+
+    private fun scheduleFlush() {
+        if (flushScheduled.compareAndSet(false, true)) {
+            invokeLater {
+                try {
+                    flushPendingAdds()
+                } finally {
+                    flushScheduled.set(false)
+                    // Re-check: items may have been added while we were flushing
+                   if(synchronized(pendingAdds) { pendingAdds.isNotEmpty() }) {
+                        scheduleFlush()
+                    }
+                }
+            }
+        }
+    }
+
+    private fun flushPendingAdds() {
+        var toAdd = synchronized(pendingAdds) {
+            val batch = pendingAdds.toList()
+            pendingAdds.clear()
+            batch
+        }
+        if (toAdd.isEmpty()) return
+
+        // If batch alone exceeds capacity, keep only the latest items
+        if (maxElementsCount > 0 && toAdd.size > maxElementsCount) {
+            toAdd = toAdd.takeLast(maxElementsCount)
+        }
+
+        // Evict oldest existing elements to make room for the batch
+        if (maxElementsCount > 0) {
+            val totalAfterAdd = data.size + toAdd.size
+            if (totalAfterAdd > maxElementsCount) {
+                val elementsToRemove = totalAfterAdd - maxElementsCount
+                repeat(elementsToRemove) { data.removeFirst() }
+                fireTableRowsDeleted(0, elementsToRemove - 1)
+            }
+        }
+
+        // Add elements after eviction so startIndex is correct
+        val startIndex = data.size
+        data.addAll(toAdd)
+        fireTableRowsInserted(startIndex, data.size - 1)
+    }
+
+    /** Returns all elements including any that are pending flush to the table. */
+    fun elements(): List<T> {
+        val pending = synchronized(pendingAdds) { pendingAdds.toList() }
+        return data + pending
+    }
 }
