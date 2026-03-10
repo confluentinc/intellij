@@ -16,6 +16,7 @@ import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.errors.RecordDeserializationException
 import org.apache.kafka.common.errors.SerializationException
+import org.jetbrains.annotations.VisibleForTesting
 import java.time.Duration
 import java.util.*
 import java.util.concurrent.atomic.AtomicBoolean
@@ -28,7 +29,8 @@ class KafkaConsumerClient(
 ) : ConsumerClient {
     val client = dataManager.client
     val connectionData = client.connectionData
-    private val isRunning = AtomicBoolean(false)
+    @VisibleForTesting
+    internal val isRunning = AtomicBoolean(false)
     private var curRunId = AtomicInteger(0)
     private var runConsumer: KafkaConsumer<Any, Any>? = null
 
@@ -272,7 +274,7 @@ class KafkaConsumerClient(
     }
 
     override fun stop() {
-        isRunning.set(false)
+        if (!isRunning.getAndSet(false)) return
         onStop()
     }
 

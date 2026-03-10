@@ -292,8 +292,10 @@ class KafkaConsumerPanel(
 
     private val settingsPanel: JPanel by settingsPanelDelegate
 
+    private val scopedConsumerConfig = KafkaConfigStorage.getInstance().consumerConfigFor(kafkaManager.presetConnectionTag())
+
     private val presetsDelegate = lazy {
-        val presets = ConsumerPresets()
+        val presets = ConsumerPresets(scopedConsumerConfig)
         Disposer.register(this, presets)
         presets.onApply = { applyConfig(it) }
         presets.component.apply {
@@ -313,33 +315,25 @@ class KafkaConsumerPanel(
 
         presetsSplitter.proportionsKey = "kafka.consumer.multisplitter.proportions"
 
-        if (kafkaManager.supportsPresets()) {
-            presetsSplitter.add(
-                ExpansionPanel(
-                    KafkaMessagesBundle.message("toggle.presets"),
-                    { presets.component },
-                    PRESETS_SHOW_ID,
-                    false
-                )
+        presetsSplitter.add(
+            ExpansionPanel(
+                KafkaMessagesBundle.message("toggle.presets"),
+                { presets.component },
+                PRESETS_SHOW_ID,
+                false
             )
-        }
+        )
 
         presetsSplitter.add(
             ExpansionPanel(
                 KafkaMessagesBundle.message("toggle.configuration"), { settingsPanel },
                 SETTINGS_SHOW_ID, true,
-                if (kafkaManager.supportsPresets()) {
-                    listOf(SavePresetAction(KafkaConfigStorage.getInstance().consumerConfig) { getRunConfig() })
-                } else {
-                    emptyList()
-                }
+                listOf(SavePresetAction(scopedConsumerConfig) { getRunConfig() })
             )
         )
         presetsSplitter.add(output.dataPanel)
 
-        if (kafkaManager.supportsDetailsPanel()) {
-            presetsSplitter.add(output.detailsPanel)
-        }
+        presetsSplitter.add(output.detailsPanel)
 
         presetsSplitter.centralComponent = output.dataPanel
 
@@ -493,7 +487,7 @@ class KafkaConsumerPanel(
 
             customKeySchema = key.getCustomSchemaConfig(),
             customValueSchema = value.getCustomSchemaConfig()
-        )
+        ).copy(connectionType = kafkaManager.presetConnectionTag())
     }
 
     fun getComponent(): JComponent = presetsSplitter

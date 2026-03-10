@@ -72,7 +72,9 @@ open class Presets<T : StorageConfig>(
         runConfig.removeChangeListener(this as ConfigChangeListener<StorageConfig>)
     }
 
-    override fun configAdded(config: T) = model.addElement(config)
+    override fun configAdded(config: T) {
+        if (runConfig.shouldShow(config)) model.addElement(config)
+    }
 
     override fun configRemoved(config: T) {
         model.removeElement(config)
