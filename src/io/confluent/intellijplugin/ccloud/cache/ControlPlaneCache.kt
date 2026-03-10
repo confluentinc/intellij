@@ -1,5 +1,6 @@
 package io.confluent.intellijplugin.ccloud.cache
 
+import com.intellij.openapi.progress.runBlockingMaybeCancellable
 import com.intellij.openapi.project.Project
 import io.confluent.intellijplugin.ccloud.client.CCloudRestClient
 import io.confluent.intellijplugin.ccloud.config.CloudConfig
@@ -8,7 +9,6 @@ import io.confluent.intellijplugin.ccloud.model.Cluster
 import io.confluent.intellijplugin.ccloud.model.Environment
 import io.confluent.intellijplugin.ccloud.model.SchemaRegistry
 import io.confluent.intellijplugin.core.monitoring.connection.MonitoringClient
-import kotlinx.coroutines.runBlocking
 
 /**
  * Control plane cache for organizational resources (environments, clusters, schema registries).
@@ -38,7 +38,7 @@ class ControlPlaneCache(
     override fun checkConnectionInner() {
         val f = fetcher ?: throw IllegalStateException("Cache not initialized")
         // Validate connection by fetching environments
-        cachedEnvironments = runBlocking {
+        cachedEnvironments = runBlockingMaybeCancellable {
             f.getEnvironments()
         }
     }
@@ -49,7 +49,7 @@ class ControlPlaneCache(
     /** Get clusters for an environment (fetches on first access, then cached). */
     fun getKafkaClusters(environmentId: String): List<Cluster> = cachedClusters.getOrPut(environmentId) {
         fetcher?.let { f ->
-            runBlocking { f.getKafkaClusters(environmentId) }
+            runBlockingMaybeCancellable { f.getKafkaClusters(environmentId) }
         } ?: emptyList()
     }
 
@@ -58,7 +58,7 @@ class ControlPlaneCache(
     /** Get schema registry for an environment (fetches on first access, then cached). Returns null if none exists. */
     fun getSchemaRegistry(environmentId: String): SchemaRegistry? = cachedSchemaRegistry.getOrPut(environmentId) {
         fetcher?.let { f ->
-            runBlocking { f.getSchemaRegistry(environmentId) }
+            runBlockingMaybeCancellable { f.getSchemaRegistry(environmentId) }
         }
     }
 

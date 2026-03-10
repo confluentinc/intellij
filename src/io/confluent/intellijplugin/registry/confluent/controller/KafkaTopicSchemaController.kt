@@ -7,7 +7,7 @@ import com.intellij.ui.components.JBPanelWithEmptyText
 import com.intellij.util.ui.StatusText
 import io.confluent.intellijplugin.core.monitoring.data.listener.DataModelListener
 import io.confluent.intellijplugin.core.monitoring.toolwindow.DetailsMonitoringController
-import io.confluent.intellijplugin.data.KafkaDataManager
+import io.confluent.intellijplugin.data.BaseClusterDataManager
 import io.confluent.intellijplugin.registry.KafkaRegistryAddSchemaDialog
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
 import java.awt.BorderLayout
@@ -15,7 +15,7 @@ import javax.swing.JComponent
 
 class KafkaTopicSchemaController(
     private val project: Project,
-    private val dataManager: KafkaDataManager,
+    private val dataManager: BaseClusterDataManager,
     private val viewType: TopicSchemaViewType
 ) : DetailsMonitoringController<String> {
     private var topicName: String? = null
@@ -51,7 +51,7 @@ class KafkaTopicSchemaController(
     override fun setDetailsId(id: String) {
         topicName = id
         val schemaName = id + viewType.suffix
-        if (dataManager.isSchemaExists(schemaName))
+        if (dataManager.schemaExists(schemaName))
             setSchemaForTopic(schemaName)
         else
             setEmptySchemaForTopic()
@@ -61,6 +61,8 @@ class KafkaTopicSchemaController(
     }
 
     private fun setSchemaForTopic(schemaName: String) {
+        curComponent.removeAll()
+        curComponent.emptyText.clear()
         curComponent.add(internalComponent, BorderLayout.CENTER)
         schemaController.setDetailsId(schemaName)
     }
