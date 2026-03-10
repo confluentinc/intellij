@@ -195,6 +195,7 @@ Custom extension point `connectionSettingProvider` defined in `plugin.xml` for p
 ## Code Style
 
 - Handle exceptions gracefully with user-visible error messages
+- Never use inline imports in type annotations
 - Use `thisLogger()` for logging (never use `println` for debug output - use `thisLogger().debug()` instead)
 
 ## Common Mistakes to Avoid
