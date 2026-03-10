@@ -69,13 +69,14 @@ class KafkaConsumerClientTest {
                 onStart = {},
                 onStop = { onStopCalled = true }
             )
+            client.isRunning.set(true)
             client.stop()
             assertFalse(client.isRunning(), "isRunning should be false after stop")
             assertTrue(onStopCalled, "onStop callback should be invoked")
         }
 
         @Test
-        fun `stop should be callable multiple times`() {
+        fun `stop should only invoke onStop once when called multiple times`() {
             val dataManager = createMockDataManager()
             var onStopCallCount = 0
             val client = KafkaConsumerClient(
@@ -83,15 +84,16 @@ class KafkaConsumerClientTest {
                 onStart = {},
                 onStop = { onStopCallCount++ }
             )
+            client.isRunning.set(true)
             client.stop()
             client.stop()
             client.stop()
             assertFalse(client.isRunning(), "isRunning should remain false")
-            assertEquals(3, onStopCallCount, "onStop should be called each time")
+            assertEquals(1, onStopCallCount, "onStop should only be called once")
         }
 
         @Test
-        fun `dispose should delegate to stop`() {
+        fun `stop should not invoke onStop when not running`() {
             val dataManager = createMockDataManager()
             var onStopCalled = false
             val client = KafkaConsumerClient(
@@ -99,9 +101,9 @@ class KafkaConsumerClientTest {
                 onStart = {},
                 onStop = { onStopCalled = true }
             )
-            client.dispose()
-            assertFalse(client.isRunning(), "isRunning should be false after dispose")
-            assertTrue(onStopCalled, "onStop should be invoked via dispose")
+            client.stop()
+            assertFalse(client.isRunning(), "isRunning should be false")
+            assertFalse(onStopCalled, "onStop should not be invoked when not running")
         }
     }
 }

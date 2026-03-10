@@ -23,6 +23,7 @@ import org.apache.kafka.clients.producer.KafkaProducer
 import org.apache.kafka.clients.producer.ProducerConfig
 import org.apache.kafka.clients.producer.ProducerRecord
 import org.apache.kafka.common.serialization.Serializer
+import org.jetbrains.annotations.VisibleForTesting
 import java.util.*
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
@@ -35,6 +36,7 @@ class KafkaProducerClient(
     val client = dataManager.client
     val connectionData = client.connectionData
 
+    @VisibleForTesting
     internal val running = AtomicBoolean(false)
 
     override fun isRunning(): Boolean = running.get()
