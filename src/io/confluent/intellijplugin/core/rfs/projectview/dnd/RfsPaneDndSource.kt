@@ -4,6 +4,7 @@ import com.intellij.ide.dnd.DnDAction
 import com.intellij.ide.dnd.DnDDragStartBean
 import com.intellij.ide.dnd.DnDEvent
 import com.intellij.ide.dnd.DnDSource
+import com.intellij.openapi.util.Pair
 import com.intellij.util.ui.ImageUtil
 import io.confluent.intellijplugin.core.rfs.projectview.actions.RfsPaneOwner
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
@@ -25,7 +26,7 @@ class RfsPaneDndSource(val pane: RfsPaneOwner) : DnDSource {
         action: DnDAction?,
         dragOrigin: Point?,
         bean: DnDDragStartBean
-    ): com.intellij.openapi.util.Pair<Image, Point> {
+    ): Pair<Image, Point> {
         val paths = pane.getSelectionPaths()
 
         val count = paths.size
@@ -43,7 +44,7 @@ class RfsPaneDndSource(val pane: RfsPaneOwner) : DnDSource {
         label.paint(g2)
         g2.dispose()
 
-        return com.intellij.openapi.util.Pair(image, Point(-image.getWidth(null), -image.getHeight(null)))
+        return Pair(image, Point(-image.getWidth(null), -image.getHeight(null)))
     }
 
     override fun canStartDragging(action: DnDAction, dragOrigin: Point): Boolean {

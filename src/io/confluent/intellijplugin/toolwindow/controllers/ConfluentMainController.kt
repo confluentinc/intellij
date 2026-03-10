@@ -7,6 +7,7 @@ import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.observable.properties.AtomicBooleanProperty
 import com.intellij.openapi.observable.util.not
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.ui.DialogPanel
 import com.intellij.openapi.ui.SimpleToolWindowPanel
 import com.intellij.openapi.ui.Splitter
 import com.intellij.openapi.util.Disposer
@@ -94,7 +95,7 @@ internal class ConfluentMainController(
     private lateinit var myTree: ProjectViewTree
     private lateinit var treeModel: DriverRfsTreeModel
     private lateinit var normalPanel: OnePixelSplitter
-    private lateinit var panel: com.intellij.openapi.ui.DialogPanel
+    private lateinit var panel: DialogPanel
     private lateinit var component: JComponent
     private lateinit var lastSelectedPath: TreePath
 
@@ -220,6 +221,7 @@ internal class ConfluentMainController(
         }
     }
 
+    /** Refresh currently visible schema detail panel. */
     fun refreshDetailPanel() {
         currentSchemaDetailsController?.takeIf { !Disposer.isDisposed(it) }?.refresh()
     }
