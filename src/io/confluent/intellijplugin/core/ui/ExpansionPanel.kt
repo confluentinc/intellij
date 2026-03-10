@@ -56,7 +56,7 @@ class ExpansionPanel(
 
     var expanded = expanded
         set(value) {
-            if (field == value) {
+            if (field == value || !isDisplayable) {
                 return
             }
             field = value

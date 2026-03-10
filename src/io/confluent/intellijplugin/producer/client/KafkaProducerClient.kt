@@ -1,7 +1,6 @@
 package io.confluent.intellijplugin.producer.client
 
 import com.intellij.charts.dataframe.DataFrame
-import io.confluent.intellijplugin.client.KafkaClient
 import io.confluent.intellijplugin.consumer.editor.KafkaRecord
 import io.confluent.intellijplugin.consumer.models.ConsumerProducerFieldConfig
 import io.confluent.intellijplugin.core.rfs.util.RfsNotificationUtils
@@ -29,16 +28,20 @@ import java.util.*
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 
-class KafkaProducerClient(val client: KafkaClient) {
+class KafkaProducerClient(
+    val dataManager: KafkaDataManager,
+    val onStart: () -> Unit,
+    val onStop: () -> Unit
+) : ProducerClient {
+    val client = dataManager.client
     val connectionData = client.connectionData
 
     @VisibleForTesting
-    internal val isRunning = AtomicBoolean(false)
+    internal val running = AtomicBoolean(false)
 
-    fun isRunning(): Boolean = isRunning.get()
+    override fun isRunning(): Boolean = running.get()
 
-    fun start(
-        dataManager: KafkaDataManager,
+    override fun start(
         topic: String,
         key: ConsumerProducerFieldConfig,
         value: ConsumerProducerFieldConfig,
@@ -53,6 +56,9 @@ class KafkaProducerClient(val client: KafkaClient) {
         try {
             if (isRunning())
                 error("Producer is already run")
+            running.set(true)
+            onStart()
+
             val props = createProducerProperties(recordCompression, enableIdempotence, acks)
 
             @Suppress("UNCHECKED_CAST")
@@ -62,8 +68,6 @@ class KafkaProducerClient(val client: KafkaClient) {
                 KafkaProducer(props, keySerializer, valueSerializer) as KafkaProducer<Any, Any>
             }
             try {
-                isRunning.set(true)
-
                 val csvDataFrame = flowParams.csvFile?.let {
                     KafkaCsvUtils.readDataFrame(it)
                 }
@@ -106,7 +110,6 @@ class KafkaProducerClient(val client: KafkaClient) {
             } finally {
                 producer.flush()
                 producer.close()
-                isRunning.set(false)
             }
         } catch (t: Throwable) {
             RfsNotificationUtils.showExceptionMessage(
@@ -114,6 +117,8 @@ class KafkaProducerClient(val client: KafkaClient) {
                 t,
                 KafkaMessagesBundle.message("error.producer.title")
             )
+        } finally {
+            stop()
         }
     }
 
@@ -194,9 +199,12 @@ class KafkaProducerClient(val client: KafkaClient) {
         return props
     }
 
-    fun stop() {
-        if (!isRunning.getAndSet(false)) return
+    override fun stop() {
+        if (!running.getAndSet(false)) return
+        onStop()
     }
+
+    override fun dispose() = stop()
 
 
     private fun sentMessage(

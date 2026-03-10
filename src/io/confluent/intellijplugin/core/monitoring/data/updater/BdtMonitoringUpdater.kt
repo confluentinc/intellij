@@ -192,14 +192,6 @@ class BdtMonitoringUpdater(val dataManager: MonitoringDataManager) : Disposable 
                 }
             }
 
-            // Second phase: enrichment (slower, use indeterminate progress)
-            if (modelsForAdditionalUpdate.isNotEmpty()) {
-                notify {
-                    it.setIntermediate(id, true)
-                    it.setText(id, KafkaMessagesBundle.message("monitoring.progress.enriching.data"))
-                }
-            }
-
             runBlockingMaybeCancellable {
                 val jobs = modelsForAdditionalUpdate.mapNotNull {
                     val job = it.launchAdditionalUpdate(this)

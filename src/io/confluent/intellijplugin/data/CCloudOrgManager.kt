@@ -1,6 +1,5 @@
 package io.confluent.intellijplugin.data
 
-import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
@@ -61,8 +60,9 @@ class CCloudOrgManager(
         }
 
     /**
-     * Pre-initializes caches for an environment using progressive loading.
-     * Fetches clusters/SR first, invokes callback to show tree, then fetches topics/schemas in background.
+     * Pre-initializes caches for an environment: control plane (clusters, SR) and
+     * data plane (topic/schema names). Prevents blocking delays on tree expansion.
+     * Called asynchronously when environment is selected.
      */
     fun preInitializeCachesForEnvironment(environmentId: String, onComplete: (() -> Unit)? = null) {
         driver.coroutineScope.launch(Dispatchers.IO) {
@@ -90,11 +90,12 @@ class CCloudOrgManager(
                     srDeferred.await()
 
                     onComplete?.let { callback ->
-                        ApplicationManager.getApplication().invokeLater(callback)
+                        com.intellij.openapi.application.ApplicationManager.getApplication().invokeLater(callback)
                     }
 
                     if (clusters.isNotEmpty()) {
                         val semaphore = Semaphore(CloudConfig.API_RATE_LIMIT)
+                        thisLogger().info("Pre-fetching ${clusters.size} clusters in parallel (max $CloudConfig.API_RATE_LIMIT concurrent)")
 
                         clusters.map { cluster ->
                             async {
@@ -105,6 +106,7 @@ class CCloudOrgManager(
                                     if (cache.hasSchemaRegistry()) {
                                         cache.refreshSchemas()
                                     }
+                                    thisLogger().info("Pre-fetched cluster ${cluster.id}: ${cache.getTopics().size} topics, ${cache.getSchemas().size} schemas")
                                 } catch (e: Exception) {
                                     thisLogger().warn("Failed to pre-fetch cluster ${cluster.id}: ${e.message}")
                                 } finally {
@@ -115,7 +117,7 @@ class CCloudOrgManager(
                     }
                 }
             } catch (e: Exception) {
-                thisLogger().warn("Failed to pre-initialize caches for environment $environmentId", e)
+                thisLogger().warn("Failed to initialize caches for environment $environmentId", e)
             }
         }
     }
@@ -127,13 +129,12 @@ class CCloudOrgManager(
 
     fun getAllClusterDataManagers(): Collection<CCloudClusterDataManager> = clusterDataManagers.values
 
+    /** Finds Schema Registry for the cluster's environment. */
     private fun findSchemaRegistryForCluster(cluster: Cluster): SchemaRegistry? =
         client.getEnvironments().firstNotNullOfOrNull { env ->
-            client.getCachedKafkaClusters(env.id)?.let { clusters ->
-                if (clusters.any { it.id == cluster.id }) {
-                    client.getCachedSchemaRegistry(env.id)
-                } else null
-            }
+            if (client.getKafkaClusters(env.id).any { it.id == cluster.id }) {
+                client.getSchemaRegistry(env.id)
+            } else null
         }
 
     fun getEnvironments(): List<Environment> = client.getEnvironments()

@@ -14,7 +14,25 @@ interface DataPlaneFetcher {
     suspend fun getTopicBeginningOffsets(topicName: String): Map<Int, Long>
     suspend fun getTopicEndOffsets(topicName: String): Map<Int, Long>
 
+    /** Get beginning or end offset for a single partition. */
+    suspend fun getPartitionOffset(topicName: String, partitionId: Int, fromBeginning: Boolean): Long
+
     suspend fun consumeRecords(topicName: String, request: ConsumeRecordsRequest): ConsumeRecordsResponse
+
+    /**
+     * Consume records from a single partition using the GET endpoint.
+     * Supports timestamp-based seeking which the multi-partition POST endpoint does not.
+     */
+    suspend fun consumePartitionRecords(
+        topicName: String,
+        partitionId: Int,
+        timestamp: Long? = null,
+        offset: Long? = null,
+        maxPollRecords: Int? = null
+    ): PartitionConsumeData
+
+    /** Produce a single record to a topic via the REST API v3. */
+    suspend fun produceRecord(topicName: String, request: ProduceRecordRequest): ProduceRecordResponse
 
     /** Get all subject names from Schema Registry. */
     suspend fun getAllSubjects(): List<String>
