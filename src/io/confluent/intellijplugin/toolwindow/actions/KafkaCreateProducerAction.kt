@@ -18,6 +18,7 @@ import io.confluent.intellijplugin.data.BaseClusterDataManager
 import io.confluent.intellijplugin.data.CCloudClusterDataManager
 import io.confluent.intellijplugin.data.CCloudOrgManager
 import io.confluent.intellijplugin.data.KafkaDataManager
+import io.confluent.intellijplugin.rfs.ConfluentDriver.Companion.isTopic
 import io.confluent.intellijplugin.rfs.KafkaDriver
 import io.confluent.intellijplugin.rfs.KafkaDriver.Companion.isTopicFolder
 import io.confluent.intellijplugin.toolwindow.controllers.KafkaFileType
@@ -31,27 +32,38 @@ class KafkaCreateProducerAction : DumbAwareAction(), CustomComponentAction {
 
     override fun actionPerformed(e: AnActionEvent) {
         val project = e.project ?: return
-        val dm = e.dataManager
-        if (dm is KafkaDataManager || dm is CCloudClusterDataManager) {
+
+        // Check for native Kafka data manager first
+        val kafkaDataManager = e.dataManager as? KafkaDataManager
+        if (kafkaDataManager != null) {
             val rfsPath = e.rfsPath
             val defaultTopic = if (rfsPath?.parent?.isTopicFolder == true)
                 rfsPath.name
             else
                 null
-
-            openProducer(dm as BaseClusterDataManager, project, defaultTopic)
-        } else {
-            val actions = DriverManager.getDrivers(project).filterIsInstance<KafkaDriver>().map { driver ->
-                create(driver.connectionData.name) {
-                    openProducer(driver.dataManager, project, null)
-                }
-            }
-
-            val additional =
-                listOf(Separator(), ActionManager.getInstance().getAction("Kafka.GlobalCreateKafkaConnection"))
-            CreateConnectionPopup.createPopup(DefaultActionGroup(actions + additional), e)
-                .showCenteredInCurrentWindow(project)
+            openProducer(kafkaDataManager, project, defaultTopic)
+            return
         }
+
+        // Check for CCloud data manager
+        val ccloudDataManager = e.dataManager as? CCloudClusterDataManager
+        if (ccloudDataManager != null) {
+            val rfsPath = e.rfsPath
+            val defaultTopic = if (rfsPath?.isTopic == true) rfsPath.name else null
+            openProducer(ccloudDataManager, project, defaultTopic)
+            return
+        }
+
+        // Fallback: show popup to select connection
+        val actions = DriverManager.getDrivers(project).filterIsInstance<KafkaDriver>().map { driver ->
+            create(driver.connectionData.name) {
+                openProducer(driver.dataManager, project, null)
+            }
+        }
+        val additional =
+            listOf(Separator(), ActionManager.getInstance().getAction("Kafka.GlobalCreateKafkaConnection"))
+        CreateConnectionPopup.createPopup(DefaultActionGroup(actions + additional), e)
+            .showCenteredInCurrentWindow(project)
     }
 
     override fun update(e: AnActionEvent) {
