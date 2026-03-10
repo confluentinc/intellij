@@ -11,6 +11,12 @@ object CloudConfig {
 
     const val BASE_PATH = "confluent.cloud"
 
+    /**
+     * Confluent Cloud API rate limit in requests per second.
+     * See: https://docs.confluent.io/cloud/current/quotas/overview.html
+     */
+    const val API_RATE_LIMIT = 5
+
     val CONTROL_PLANE_BASE_URL: String
         get() = System.getProperty("ccloud.control-plane.base-url")
             ?: "https://api.$BASE_PATH"
