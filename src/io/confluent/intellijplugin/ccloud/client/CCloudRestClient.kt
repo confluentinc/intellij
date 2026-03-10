@@ -4,6 +4,7 @@ import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.util.io.HttpRequests
 import io.confluent.intellijplugin.ccloud.auth.CCloudAuthService
 import io.confluent.intellijplugin.ccloud.config.CloudConfig
+import io.confluent.intellijplugin.util.KafkaMessagesBundle
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.sync.Mutex
@@ -119,13 +120,15 @@ class CCloudRestClient(
         val service = authService ?: CCloudAuthService.getInstance()
 
         if (!service.isSignedIn()) {
-            throw IllegalStateException("Not signed in to Confluent Cloud")
+            throw IllegalStateException(KafkaMessagesBundle.message("error.ccloud.not.signed.in"))
         }
 
         val token = when (authType) {
             AuthType.CONTROL_PLANE -> service.getControlPlaneToken()
             AuthType.DATA_PLANE -> service.getDataPlaneToken()
-        } ?: throw IllegalStateException("No ${authType.name.lowercase().replace('_', ' ')} token available")
+        } ?: throw IllegalStateException(
+            KafkaMessagesBundle.message("error.ccloud.no.token.available", authType.name.lowercase().replace('_', ' '))
+        )
 
         val baseHeaders = mapOf(
             "Authorization" to "Bearer $token",

@@ -23,6 +23,7 @@ class SchemaVersionDiffController(val project: Project) : Disposable {
 
     val component = JBPanelWithEmptyText(BorderLayout()).also {
         it.preferredSize = Dimension(800, 400)
+        it.emptyText.clear()
     }
 
     fun updateVersion1(schema: SchemaVersionInfo) {
@@ -63,7 +64,6 @@ class SchemaVersionDiffController(val project: Project) : Disposable {
             KafkaMessagesBundle.message("show.edit.schema.diff.version", schema2.version)
         )
 
-        // DiffWindowBase
         val requests = SimpleDiffRequestChain(diffData)
 
         val processor = CacheDiffRequestChainProcessor(project, requests).also {
