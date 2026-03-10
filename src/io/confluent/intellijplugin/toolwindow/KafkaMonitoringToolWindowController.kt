@@ -2,6 +2,7 @@ package io.confluent.intellijplugin.toolwindow
 
 import com.intellij.notification.NotificationGroup
 import com.intellij.notification.NotificationGroupManager
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.wm.ToolWindow
@@ -205,7 +206,7 @@ class KafkaMonitoringToolWindowController(project: Project) : MonitoringToolWind
 
     private fun refreshCCloudToolbar() {
         // Refresh toolbar actions to show progress component after CCloud driver is created
-        com.intellij.openapi.application.ApplicationManager.getApplication().invokeLater {
+        ApplicationManager.getApplication().invokeLater {
             if (contentManager.selectedContent?.getUserData(CONNECTION_ID) == "ccloud") {
                 setupActions("ccloud")
             }

@@ -51,7 +51,7 @@ class KafkaTopicSchemaController(
     override fun setDetailsId(id: String) {
         topicName = id
         val schemaName = id + viewType.suffix
-        if (dataManager.isSchemaExists(schemaName))
+        if (dataManager.schemaExists(schemaName))
             setSchemaForTopic(schemaName)
         else
             setEmptySchemaForTopic()

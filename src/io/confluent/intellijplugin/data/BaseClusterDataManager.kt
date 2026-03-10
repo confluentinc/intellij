@@ -252,7 +252,7 @@ abstract class BaseClusterDataManager(
 
     fun getSchemaByName(name: String) = getCachedSchema(name)
 
-    fun isSchemaExists(name: String) = getCachedSchema(name) != null
+    fun schemaExists(name: String) = getCachedSchema(name) != null
 
     open fun initRefreshSchemasIfRequired() {
         val schemaModel = schemaRegistryModel
