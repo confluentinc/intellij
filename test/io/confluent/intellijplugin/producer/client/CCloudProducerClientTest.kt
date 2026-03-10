@@ -7,12 +7,16 @@ import io.confluent.intellijplugin.core.settings.connections.Property
 import io.confluent.intellijplugin.data.CCloudClusterDataManager
 import io.confluent.intellijplugin.registry.KafkaRegistryFormat
 import io.confluent.intellijplugin.registry.KafkaRegistryType
+import io.confluent.intellijplugin.ccloud.fetcher.DataPlaneFetcher
+import io.confluent.intellijplugin.ccloud.model.response.PartitionData
+import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.mock
+import org.mockito.kotlin.whenever
 import java.util.Base64
 
 @TestApplication
@@ -263,6 +267,45 @@ class CCloudProducerClientTest {
         fun `should serialize FLOAT to 4 bytes`() {
             val bytes = client.serializePrimitive(KafkaFieldType.FLOAT, "test-topic", 2.5f)
             assertEquals(4, bytes.size)
+        }
+    }
+
+    @Nested
+    @DisplayName("validatePartition")
+    inner class ValidatePartition {
+
+        private val fetcher = mock<DataPlaneFetcher>()
+
+        private fun partitions(vararg ids: Int) = ids.map { PartitionData(partitionId = it) }
+
+        @Test
+        fun `should return partition when it exists`() = runBlocking {
+            whenever(fetcher.describeTopicPartitions("test-topic"))
+                .thenReturn(partitions(0, 1, 2))
+
+            val result = client.validatePartition(2, "test-topic", fetcher)
+
+            assertEquals(2, result)
+        }
+
+        @Test
+        fun `should throw when partition does not exist`() {
+            runBlocking {
+                whenever(fetcher.describeTopicPartitions("test-topic"))
+                    .thenReturn(partitions(0, 1, 2))
+            }
+
+            assertThrows(IllegalStateException::class.java) {
+                runBlocking { client.validatePartition(5, "test-topic", fetcher) }
+            }
+        }
+
+        @Test
+        fun `should skip validation when partition is negative`() = runBlocking {
+            // negative partition defaults to null / server side default (all partitions)
+            val result = client.validatePartition(-1, "test-topic", fetcher)
+
+            assertEquals(-1, result)
         }
     }
 

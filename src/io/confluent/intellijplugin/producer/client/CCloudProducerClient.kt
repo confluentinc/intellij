@@ -103,6 +103,8 @@ class CCloudProducerClient(
         val fetcher = clusterDataManager.getDataPlaneCache().getFetcher()
             ?: throw IllegalStateException("DataPlaneFetcher not initialized")
 
+        val validatedPartition = validatePartition(forcePartition, topic, fetcher)
+
         val csvDataFrame = flowParams.csvFile?.let { KafkaCsvUtils.readDataFrame(it) }
         var produced = 0
 
@@ -114,7 +116,7 @@ class CCloudProducerClient(
                     key = key,
                     value = value,
                     headers = headers,
-                    forcePartition = forcePartition,
+                    forcePartition = validatedPartition,
                     flowParams = flowParams,
                     alreadyProducedCount = produced,
                     csvDataFrame = csvDataFrame
@@ -138,7 +140,7 @@ class CCloudProducerClient(
                         key = key,
                         value = value,
                         headers = headers,
-                        forcePartition = forcePartition,
+                        forcePartition = validatedPartition,
                         flowParams = flowParams,
                         alreadyProducedCount = produced,
                         csvDataFrame = csvDataFrame
@@ -235,6 +237,22 @@ class CCloudProducerClient(
         return resolved.copy(
             valueText = FieldTemplateGenerator.processTemplate(resolved.valueText)
         )
+    }
+
+    @VisibleForTesting
+    internal suspend fun validatePartition(
+        forcePartition: Int,
+        topic: String,
+        fetcher: DataPlaneFetcher
+    ): Int {
+        if (forcePartition < 0) return forcePartition
+
+        val actualPartitions = fetcher.describeTopicPartitions(topic)
+            .map { it.partitionId }.toSet()
+        if (forcePartition !in actualPartitions) {
+            error(KafkaMessagesBundle.message("producer.wrong.partition", forcePartition, topic))
+        }
+        return forcePartition
     }
 
     @VisibleForTesting
