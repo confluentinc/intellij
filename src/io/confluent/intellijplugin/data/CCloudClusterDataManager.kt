@@ -440,13 +440,13 @@ class CCloudClusterDataManager(
         }
     }
 
-    override fun getLatestVersionInfo(schemaName: String): SchemaVersionInfo? {
+    override suspend fun getLatestVersionInfo(schemaName: String): SchemaVersionInfo? {
         if (!dataPlaneCache.hasSchemaRegistry()) {
             return null
         }
 
         return try {
-            runBlockingMaybeCancellable {
+            withContext(Dispatchers.IO) {
                 val versionResponse = dataPlaneCache.getFetcher()?.getLatestVersionInfo(schemaName)
                 versionResponse?.let {
                     SchemaVersionInfo(
@@ -506,7 +506,7 @@ class CCloudClusterDataManager(
         )
     }
 
-    override fun getCachedOrLoadSchema(name: String): KafkaSchemaInfo {
+    override suspend fun getCachedOrLoadSchema(name: String): KafkaSchemaInfo {
         if (!dataPlaneCache.hasSchemaRegistry()) {
             throw UnsupportedOperationException("Schema registry not configured for this cluster")
         }
@@ -519,7 +519,7 @@ class CCloudClusterDataManager(
 
         // Load from API if not cached or incomplete
         return try {
-            runBlockingMaybeCancellable {
+            withContext(Dispatchers.IO) {
                 val schemaData = dataPlaneCache.getFetcher()?.loadSchemaInfo(name)
                 // Use SR config (not cluster config) so all clusters sharing an SR see the same favorites
                 val config = KafkaToolWindowSettings.getInstance().getOrCreateConfig(getSchemaRegistryConfigId())
