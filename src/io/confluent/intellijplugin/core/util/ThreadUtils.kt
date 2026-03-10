@@ -12,6 +12,7 @@ import kotlinx.coroutines.withContext
 import org.jetbrains.concurrency.AsyncPromise
 import org.jetbrains.concurrency.Promise
 import org.jetbrains.concurrency.asPromise
+import java.time.Duration as JavaDuration
 import java.util.concurrent.TimeUnit
 import javax.swing.SwingUtilities
 import kotlin.time.Duration
@@ -60,7 +61,7 @@ inline fun <T> runAsync(crossinline runnable: () -> T): Promise<T> {
     }.deferred.asCompletableFuture().asPromise().asSilent()
 }
 
-fun sleepWithCancellation(sleepAmount: java.time.Duration, indicator: ProgressIndicator?) {
+fun sleepWithCancellation(sleepAmount: JavaDuration, indicator: ProgressIndicator?) {
     val semaphore = Semaphore(1)
     val future = AppExecutorUtil.getAppScheduledExecutorService().schedule(
         { semaphore.up() },
