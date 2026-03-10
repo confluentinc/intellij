@@ -1,13 +1,16 @@
 package io.confluent.intellijplugin.producer.client
 
 import com.intellij.testFramework.junit5.TestApplication
+import io.confluent.intellijplugin.ccloud.fetcher.DataPlaneFetcher
+import io.confluent.intellijplugin.ccloud.model.response.SchemaVersionResponse
 import io.confluent.intellijplugin.common.models.KafkaFieldType
 import io.confluent.intellijplugin.consumer.models.ConsumerProducerFieldConfig
 import io.confluent.intellijplugin.core.settings.connections.Property
 import io.confluent.intellijplugin.data.CCloudClusterDataManager
 import io.confluent.intellijplugin.registry.KafkaRegistryFormat
 import io.confluent.intellijplugin.registry.KafkaRegistryType
-import io.confluent.intellijplugin.ccloud.fetcher.DataPlaneFetcher
+import io.confluent.kafka.schemaregistry.avro.AvroSchema
+import io.confluent.kafka.schemaregistry.avro.AvroSchemaUtils
 import io.confluent.intellijplugin.ccloud.model.response.PartitionData
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.*
@@ -15,6 +18,8 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
+import org.mockito.kotlin.any
+import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
 import java.util.Base64
@@ -23,6 +28,7 @@ import java.util.Base64
 class CCloudProducerClientTest {
 
     private lateinit var client: CCloudProducerClient
+    private lateinit var mockFetcher: DataPlaneFetcher
 
     @BeforeEach
     fun setUp() {
@@ -31,6 +37,15 @@ class CCloudProducerClientTest {
             onStart = {},
             onStop = {}
         )
+        mockFetcher = mock<DataPlaneFetcher> {
+            onBlocking { getLatestVersionInfo(any()) } doReturn SchemaVersionResponse(
+                subject = "test-subject",
+                version = 1,
+                id = 100,
+                schema = "{}",
+                schemaType = "AVRO"
+            )
+        }
     }
 
     private fun createFieldConfig(
@@ -56,7 +71,7 @@ class CCloudProducerClientTest {
         @Test
         fun `should build STRING type data`() {
             val field = createFieldConfig(KafkaFieldType.STRING, "hello")
-            val data = client.buildRecordData(field, "test-topic")
+            val data = runBlocking { client.buildRecordData(mockFetcher, field, "test-topic") }
 
             assertNotNull(data)
             assertEquals("STRING", data!!.type)
@@ -66,7 +81,7 @@ class CCloudProducerClientTest {
         @Test
         fun `should build JSON type data`() {
             val field = createFieldConfig(KafkaFieldType.JSON, """{"key": "value"}""")
-            val data = client.buildRecordData(field, "test-topic")
+            val data = runBlocking { client.buildRecordData(mockFetcher, field, "test-topic") }
 
             assertNotNull(data)
             assertEquals("JSON", data!!.type)
@@ -76,7 +91,7 @@ class CCloudProducerClientTest {
         @Test
         fun `should build STRING type with empty value`() {
             val field = createFieldConfig(KafkaFieldType.STRING, "")
-            val data = client.buildRecordData(field, "test-topic")
+            val data = runBlocking { client.buildRecordData(mockFetcher, field, "test-topic") }
 
             assertNotNull(data)
             assertEquals("STRING", data!!.type)
@@ -86,7 +101,7 @@ class CCloudProducerClientTest {
         @Test
         fun `should return null for NULL type`() {
             val field = createFieldConfig(KafkaFieldType.NULL)
-            val data = client.buildRecordData(field, "test-topic")
+            val data = runBlocking { client.buildRecordData(mockFetcher, field, "test-topic") }
 
             assertNull(data)
         }
@@ -94,7 +109,7 @@ class CCloudProducerClientTest {
         @Test
         fun `should build BINARY type for LONG`() {
             val field = createFieldConfig(KafkaFieldType.LONG, "12345")
-            val data = client.buildRecordData(field, "test-topic")
+            val data = runBlocking { client.buildRecordData(mockFetcher, field, "test-topic") }
 
             assertNotNull(data)
             assertEquals("BINARY", data!!.type)
@@ -106,7 +121,7 @@ class CCloudProducerClientTest {
         @Test
         fun `should build BINARY type for INTEGER`() {
             val field = createFieldConfig(KafkaFieldType.INTEGER, "42")
-            val data = client.buildRecordData(field, "test-topic")
+            val data = runBlocking { client.buildRecordData(mockFetcher, field, "test-topic") }
 
             assertNotNull(data)
             assertEquals("BINARY", data!!.type)
@@ -117,7 +132,7 @@ class CCloudProducerClientTest {
         @Test
         fun `should build BINARY type for DOUBLE`() {
             val field = createFieldConfig(KafkaFieldType.DOUBLE, "3.14")
-            val data = client.buildRecordData(field, "test-topic")
+            val data = runBlocking { client.buildRecordData(mockFetcher, field, "test-topic") }
 
             assertNotNull(data)
             assertEquals("BINARY", data!!.type)
@@ -128,7 +143,7 @@ class CCloudProducerClientTest {
         @Test
         fun `should build BINARY type for FLOAT`() {
             val field = createFieldConfig(KafkaFieldType.FLOAT, "2.5")
-            val data = client.buildRecordData(field, "test-topic")
+            val data = runBlocking { client.buildRecordData(mockFetcher, field, "test-topic") }
 
             assertNotNull(data)
             assertEquals("BINARY", data!!.type)
@@ -141,7 +156,7 @@ class CCloudProducerClientTest {
             val inputBytes = byteArrayOf(1, 2, 3, 4)
             val inputBase64 = Base64.getEncoder().encodeToString(inputBytes)
             val field = createFieldConfig(KafkaFieldType.BASE64, inputBase64)
-            val data = client.buildRecordData(field, "test-topic")
+            val data = runBlocking { client.buildRecordData(mockFetcher, field, "test-topic") }
 
             assertNotNull(data)
             assertEquals("BINARY", data!!.type)
@@ -158,7 +173,7 @@ class CCloudProducerClientTest {
         fun `should build request with partition`() {
             val key = createFieldConfig(KafkaFieldType.STRING, "k", isKey = true)
             val value = createFieldConfig(KafkaFieldType.STRING, "v")
-            val request = client.buildProduceRequest(key, value,emptyList(), "test-topic", 5)
+            val request = runBlocking { client.buildProduceRequest(mockFetcher, key, value, emptyList(), "test-topic", 5) }
 
             assertEquals(5, request.partitionId)
         }
@@ -167,7 +182,7 @@ class CCloudProducerClientTest {
         fun `should build request without partition when negative`() {
             val key = createFieldConfig(KafkaFieldType.STRING, "k", isKey = true)
             val value = createFieldConfig(KafkaFieldType.STRING, "v")
-            val request = client.buildProduceRequest(key, value,emptyList(), "test-topic", -1)
+            val request = runBlocking { client.buildProduceRequest(mockFetcher, key, value, emptyList(), "test-topic", -1) }
 
             assertNull(request.partitionId)
         }
@@ -179,7 +194,7 @@ class CCloudProducerClientTest {
             val headers = listOf(
                 Property("header-key", "header-value")
             )
-            val request = client.buildProduceRequest(key, value,headers, "test-topic", -1)
+            val request = runBlocking { client.buildProduceRequest(mockFetcher, key, value, headers, "test-topic", -1) }
 
             assertNotNull(request.headers)
             assertEquals(1, request.headers!!.size)
@@ -193,7 +208,7 @@ class CCloudProducerClientTest {
             val key = createFieldConfig(KafkaFieldType.STRING, "k", isKey = true)
             val value = createFieldConfig(KafkaFieldType.STRING, "v")
             val headers = listOf(Property(null, "header-value"))
-            val request = client.buildProduceRequest(key, value, headers, "test-topic", -1)
+            val request = runBlocking { client.buildProduceRequest(mockFetcher, key, value, headers, "test-topic", -1) }
 
             assertNotNull(request.headers)
             assertEquals("", request.headers!![0].name)
@@ -204,7 +219,7 @@ class CCloudProducerClientTest {
             val key = createFieldConfig(KafkaFieldType.STRING, "k", isKey = true)
             val value = createFieldConfig(KafkaFieldType.STRING, "v")
             val headers = listOf(Property("header-key", null))
-            val request = client.buildProduceRequest(key, value, headers, "test-topic", -1)
+            val request = runBlocking { client.buildProduceRequest(mockFetcher, key, value, headers, "test-topic", -1) }
 
             assertNotNull(request.headers)
             assertEquals("header-key", request.headers!![0].name)
@@ -215,7 +230,7 @@ class CCloudProducerClientTest {
         fun `should omit headers when empty`() {
             val key = createFieldConfig(KafkaFieldType.STRING, "k", isKey = true)
             val value = createFieldConfig(KafkaFieldType.STRING, "v")
-            val request = client.buildProduceRequest(key, value,emptyList(), "test-topic", -1)
+            val request = runBlocking { client.buildProduceRequest(mockFetcher, key, value, emptyList(), "test-topic", -1) }
 
             assertNull(request.headers)
         }
@@ -224,7 +239,7 @@ class CCloudProducerClientTest {
         fun `should set null key for NULL type`() {
             val key = createFieldConfig(KafkaFieldType.NULL, "", isKey = true)
             val value = createFieldConfig(KafkaFieldType.STRING, "v")
-            val request = client.buildProduceRequest(key, value,emptyList(), "test-topic", -1)
+            val request = runBlocking { client.buildProduceRequest(mockFetcher, key, value, emptyList(), "test-topic", -1) }
 
             assertNull(request.key)
             assertNotNull(request.value)
@@ -310,6 +325,87 @@ class CCloudProducerClientTest {
     }
 
     @Nested
+    @DisplayName("buildRecordData - schema types")
+    inner class BuildRecordDataSchema {
+
+        @Test
+        fun `should build BINARY for SCHEMA_REGISTRY Avro`() {
+            val schemaJson = """{"type": "record", "name": "Test", "fields": [{"name": "name", "type": "string"}]}"""
+            val avroSchema = AvroSchema(schemaJson)
+            val field = ConsumerProducerFieldConfig(
+                type = KafkaFieldType.SCHEMA_REGISTRY,
+                valueText = """{"name": "test"}""",
+                isKey = false,
+                topic = "test-topic",
+                registryType = KafkaRegistryType.CONFLUENT,
+                schemaName = "my-subject",
+                schemaFormat = KafkaRegistryFormat.AVRO,
+                parsedSchema = avroSchema
+            )
+            val data = runBlocking { client.buildRecordData(mockFetcher, field, "test-topic") }
+
+            assertNotNull(data)
+            assertEquals("BINARY", data!!.type)
+            // Verify the base64 data decodes to V0 wire format prefix + Avro bytes
+            val decoded = Base64.getDecoder().decode(data.data)
+            assertTrue(decoded.size > 5)
+            // First byte is magic byte 0x00
+            assertEquals(0x00.toByte(), decoded[0])
+            // Next 4 bytes are schema ID (100) in big-endian
+            val schemaId = java.nio.ByteBuffer.wrap(decoded, 1, 4).getInt()
+            assertEquals(100, schemaId)
+        }
+
+        @Test
+        fun `should build BINARY for SCHEMA_REGISTRY JSON Schema`() {
+            val field = ConsumerProducerFieldConfig(
+                type = KafkaFieldType.SCHEMA_REGISTRY,
+                valueText = """{"key": "value"}""",
+                isKey = false,
+                topic = "test-topic",
+                registryType = KafkaRegistryType.CONFLUENT,
+                schemaName = "json-subject",
+                schemaFormat = KafkaRegistryFormat.JSON,
+                parsedSchema = null
+            )
+            val data = runBlocking { client.buildRecordData(mockFetcher, field, "test-topic") }
+
+            assertNotNull(data)
+            assertEquals("BINARY", data!!.type)
+            // Verify base64 decodes to V0 wire format prefix + JSON payload
+            val decoded = Base64.getDecoder().decode(data.data)
+            // First byte is magic byte 0x00
+            assertEquals(0x00.toByte(), decoded[0])
+            // Next 4 bytes are schema ID (100) in big-endian
+            val schemaId = java.nio.ByteBuffer.wrap(decoded, 1, 4).getInt()
+            assertEquals(100, schemaId)
+            // Remaining bytes are the JSON payload
+            val jsonPayload = String(decoded, 5, decoded.size - 5, Charsets.UTF_8)
+            assertEquals("""{"key": "value"}""", jsonPayload)
+        }
+    }
+
+    @Nested
+    @DisplayName("serializeAvro")
+    inner class SerializeAvroTest {
+
+        @Test
+        fun `should serialize and be deserializable`() {
+            val schemaJson = """{"type": "record", "name": "Test", "fields": [{"name": "name", "type": "string"}]}"""
+            val avroSchema = AvroSchema(schemaJson)
+            val record = AvroSchemaUtils.toObject("""{"name": "hello"}""", avroSchema)
+
+            val bytes = client.serializeAvro(record, avroSchema)
+
+            // Verify bytes can be deserialized back (mirror of CCloudConsumerClient.deserializeAvro)
+            val reader = org.apache.avro.generic.GenericDatumReader<Any>(avroSchema.rawSchema())
+            val decoder = org.apache.avro.io.DecoderFactory.get().binaryDecoder(bytes, null)
+            val result = reader.read(null, decoder) as org.apache.avro.generic.GenericRecord
+            assertEquals("hello", result.get("name").toString())
+        }
+    }
+
+    @Nested
     @DisplayName("Initial state")
     inner class InitialStateTests {
 
@@ -334,6 +430,56 @@ class CCloudProducerClientTest {
             client.stop()
             client.stop()
             assertFalse(client.isRunning())
+        }
+    }
+
+    @Nested
+    @DisplayName("isRetryableStatus")
+    inner class IsRetryableStatus {
+
+        @Test
+        fun `should retry on 429 rate limit`() {
+            assertTrue(client.isRetryableStatus(429))
+        }
+
+        @Test
+        fun `should retry on 500 server error`() {
+            assertTrue(client.isRetryableStatus(500))
+        }
+
+        @Test
+        fun `should retry on 502 bad gateway`() {
+            assertTrue(client.isRetryableStatus(502))
+        }
+
+        @Test
+        fun `should retry on 503 service unavailable`() {
+            assertTrue(client.isRetryableStatus(503))
+        }
+
+        @Test
+        fun `should not retry on 400 bad request`() {
+            assertFalse(client.isRetryableStatus(400))
+        }
+
+        @Test
+        fun `should not retry on 401 unauthorized`() {
+            assertFalse(client.isRetryableStatus(401))
+        }
+
+        @Test
+        fun `should not retry on 403 forbidden`() {
+            assertFalse(client.isRetryableStatus(403))
+        }
+
+        @Test
+        fun `should not retry on 404 not found`() {
+            assertFalse(client.isRetryableStatus(404))
+        }
+
+        @Test
+        fun `should not retry on 422 unprocessable`() {
+            assertFalse(client.isRetryableStatus(422))
         }
     }
 
