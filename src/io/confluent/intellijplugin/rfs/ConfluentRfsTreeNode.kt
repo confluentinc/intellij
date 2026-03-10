@@ -34,7 +34,7 @@ class ConfluentRfsTreeNode(
 
         return when {
             rfsPath.isCluster(confluentDriver) -> {
-                confluentDriver.dataManager.client.getKafkaClusters(envId)
+                confluentDriver.dataManager.client.getCachedKafkaClusters(envId)
                     ?.find { it.id == rfsPath.name }
                     ?.displayName ?: rfsPath.name
             }
@@ -59,7 +59,7 @@ class ConfluentRfsTreeNode(
         val envId = confluentDriver.selectedEnvironmentId ?: return false
         val clusterId = rfsPath.elements.getOrNull(0) ?: return false
 
-        val cluster = confluentDriver.dataManager.client.getKafkaClusters(envId)
+        val cluster = confluentDriver.dataManager.client.getCachedKafkaClusters(envId)
             ?.find { it.id == clusterId } ?: return false
 
         val clusterDataManager = confluentDriver.dataManager.getOrCreateClusterDataManager(cluster)
@@ -71,7 +71,7 @@ class ConfluentRfsTreeNode(
         val envId = confluentDriver.selectedEnvironmentId ?: return false
         val srId = rfsPath.elements.getOrNull(0) ?: return false
 
-        val sr = confluentDriver.dataManager.client.getSchemaRegistry(envId) ?: return false
+        val sr = confluentDriver.dataManager.client.getCachedSchemaRegistry(envId) ?: return false
         if (sr.id != srId) return false
 
         val config = KafkaToolWindowSettings.getInstance().getOrCreateConfig(srId)
@@ -83,19 +83,18 @@ class ConfluentRfsTreeNode(
 
         return when {
             rfsPath.isCluster(confluentDriver) -> {
-                confluentDriver.dataManager.client.getKafkaClusters(envId)
-                    .find { it.id == rfsPath.name }
+                confluentDriver.dataManager.client.getCachedKafkaClusters(envId)
+                    ?.find { it.id == rfsPath.name }
                     ?.let { "${it.cloudProvider} / ${it.region}" }
             }
 
-
             rfsPath.isSchemaRegistry(confluentDriver) -> {
-                confluentDriver.dataManager.client.getSchemaRegistry(envId)
+                confluentDriver.dataManager.client.getCachedSchemaRegistry(envId)
                     ?.let { "${it.cloudProvider} / ${it.region}" }
             }
 
             rfsPath.isSchema -> {
-                val cluster = confluentDriver.dataManager.client.getKafkaClusters(envId).firstOrNull() ?: return null
+                val cluster = confluentDriver.dataManager.client.getCachedKafkaClusters(envId)?.firstOrNull() ?: return null
                 val clusterDataManager = confluentDriver.dataManager.getOrCreateClusterDataManager(cluster)
                 clusterDataManager.getCachedSchema(rfsPath.name)?.type?.presentable
             }
@@ -111,17 +110,15 @@ class ConfluentRfsTreeNode(
 
         presentation.tooltip = when {
             rfsPath.isCluster(confluentDriver) -> {
-                confluentDriver.dataManager.client.getKafkaClusters(envId)
-                    .find { it.id == rfsPath.name }
+                confluentDriver.dataManager.client.getCachedKafkaClusters(envId)
+                    ?.find { it.id == rfsPath.name }
                     ?.let { "ID: ${it.id}" }
             }
-
 
             rfsPath.isSchemaRegistry(confluentDriver) -> {
-                confluentDriver.dataManager.client.getSchemaRegistry(envId)
+                confluentDriver.dataManager.client.getCachedSchemaRegistry(envId)
                     ?.let { "ID: ${it.id}" }
             }
-
 
             else -> null
         }
