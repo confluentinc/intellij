@@ -6,7 +6,9 @@ import com.intellij.openapi.progress.util.ProgressIndicatorUtils
 import com.intellij.util.concurrency.AppExecutorUtil
 import com.intellij.util.concurrency.Semaphore
 import io.confluent.intellijplugin.core.rfs.driver.SafeExecutor
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.future.asCompletableFuture
+import kotlinx.coroutines.withContext
 import org.jetbrains.concurrency.AsyncPromise
 import org.jetbrains.concurrency.Promise
 import org.jetbrains.concurrency.asPromise
@@ -35,6 +37,14 @@ fun <T> executeNotOnEdt(body: () -> T) {
     if (ApplicationManager.getApplication().isDispatchThread) {
         executeOnPooledThread(body)
     } else body()
+}
+
+suspend fun <T> executeNotOnEdtSuspend(body: suspend () -> T): T {
+    return if (ApplicationManager.getApplication().isDispatchThread) {
+        withContext(Dispatchers.IO) { body() }
+    } else {
+        body()
+    }
 }
 
 inline fun <T> runAsyncSuspend(crossinline runnable: suspend () -> T): Promise<T> {
