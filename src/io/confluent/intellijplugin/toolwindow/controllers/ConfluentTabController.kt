@@ -114,7 +114,7 @@ class ConfluentTabController(
 
     internal fun getMainController(): ConfluentMainController? = resourceController
 
-    /** Refresh currently visible detail panel (schema or topic details). */
+    /** Refresh currently visible schema detail panel. */
     fun refreshDetailPanel() {
         resourceController?.refreshDetailPanel()
     }

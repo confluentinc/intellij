@@ -221,6 +221,7 @@ internal class ConfluentMainController(
         }
     }
 
+    /** Refresh currently visible schema detail panel. */
     fun refreshDetailPanel() {
         currentSchemaDetailsController?.takeIf { !Disposer.isDisposed(it) }?.refresh()
     }
