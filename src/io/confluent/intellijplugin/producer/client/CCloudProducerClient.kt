@@ -1,5 +1,6 @@
 package io.confluent.intellijplugin.producer.client
 
+import com.intellij.charts.dataframe.DataFrame
 import com.intellij.openapi.diagnostic.thisLogger
 import io.confluent.intellijplugin.ccloud.client.CCloudApiException
 import io.confluent.intellijplugin.core.rfs.util.RfsNotificationUtils
@@ -164,7 +165,7 @@ class CCloudProducerClient(
         forcePartition: Int,
         flowParams: ProducerFlowParams,
         alreadyProducedCount: Int,
-        csvDataFrame: com.intellij.charts.dataframe.DataFrame?
+        csvDataFrame: DataFrame?
     ): List<KafkaRecord> {
         val records = mutableListOf<KafkaRecord>()
         repeat(flowParams.flowRecordsCountPerRequest) { i ->
@@ -220,7 +221,7 @@ class CCloudProducerClient(
     private fun resolveFieldValue(
         field: ConsumerProducerFieldConfig,
         generateRandom: Boolean,
-        csvDataFrame: com.intellij.charts.dataframe.DataFrame?,
+        csvDataFrame: DataFrame?,
         recordIndex: Int,
         isKey: Boolean
     ): ConsumerProducerFieldConfig {
