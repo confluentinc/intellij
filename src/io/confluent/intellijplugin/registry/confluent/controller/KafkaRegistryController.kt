@@ -29,6 +29,7 @@ import io.confluent.intellijplugin.rfs.KafkaDriver
 import io.confluent.intellijplugin.toolwindow.config.KafkaToolWindowSettings
 import io.confluent.intellijplugin.toolwindow.NavigableController
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
+import javax.swing.JViewport
 import javax.swing.ListSelectionModel
 import javax.swing.event.DocumentEvent
 
@@ -82,7 +83,7 @@ internal class KafkaRegistryController(
         val toolWindowSettings = KafkaToolWindowSettings.getInstance()
         val clusterConfig = toolWindowSettings.getOrCreateConfig(dataManager.getSchemaRegistryConfigId())
 
-        if (dataTable.parent is javax.swing.JViewport) {
+        if (dataTable.parent is JViewport) {
             dataTable.emptyText.attachTo(dataTable, dataTable)
         }
 

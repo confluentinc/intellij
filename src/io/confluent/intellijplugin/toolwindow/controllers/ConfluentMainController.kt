@@ -50,18 +50,20 @@ import io.confluent.intellijplugin.core.util.invokeLater
 import io.confluent.intellijplugin.data.CCloudClusterDataManager
 import io.confluent.intellijplugin.registry.KafkaRegistryType
 import io.confluent.intellijplugin.registry.confluent.controller.KafkaRegistryController
-import io.confluent.intellijplugin.registry.confluent.controller.KafkaSchemaController
 import io.confluent.intellijplugin.ccloud.model.Environment
 import io.confluent.intellijplugin.toolwindow.NavigableController
 import io.confluent.intellijplugin.toolwindow.controllers.TopicsController
 import io.confluent.intellijplugin.util.KafkaMessagesBundle.message
 import com.intellij.ui.table.JBTable
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import org.jetbrains.concurrency.Promise
 import java.awt.BorderLayout
 import java.awt.CardLayout
 import javax.swing.JComponent
 import javax.swing.JLabel
 import javax.swing.JPanel
+import javax.swing.SwingConstants
 import javax.swing.event.TreeModelEvent
 import javax.swing.table.DefaultTableModel
 import javax.swing.tree.TreePath
@@ -100,7 +102,7 @@ internal class ConfluentMainController(
     private val errorPanel = JPanel(BorderLayout())
 
     private fun createPlaceholderPanel(message: String) = JPanel(BorderLayout()).apply {
-        add(JLabel(message, javax.swing.SwingConstants.CENTER), BorderLayout.CENTER)
+        add(JLabel(message, SwingConstants.CENTER), BorderLayout.CENTER)
     }
 
     private inline fun updatePanel(panel: JPanel, contentBuilder: () -> JComponent) {
@@ -109,7 +111,7 @@ internal class ConfluentMainController(
             panel.add(contentBuilder(), BorderLayout.CENTER)
         } catch (e: Exception) {
             thisLogger().warn("Error updating panel", e)
-            panel.add(JLabel(message("table.loading.error", e.message ?: message("error.unknown")), javax.swing.SwingConstants.CENTER), BorderLayout.CENTER)
+            panel.add(JLabel(message("table.loading.error", e.message ?: message("error.unknown")), SwingConstants.CENTER), BorderLayout.CENTER)
         }
         panel.revalidate()
         panel.repaint()
@@ -175,7 +177,7 @@ internal class ConfluentMainController(
     fun refreshControlPlane() {
         val prevSelectedId = selectedEnvironmentId.get()
 
-        driver.safeExecutor.coroutineScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+        driver.safeExecutor.coroutineScope.launch(Dispatchers.IO) {
             try {
                 dataManager.client.refreshEnvironments()
 
@@ -511,14 +513,14 @@ internal class ConfluentMainController(
         currentTopicDetailsController = null
 
         val envId = rfsPath.getEnvironmentId(driver) ?: run {
-            topicDetailPanel.add(JLabel(message("confluent.cloud.details.select.resource"), javax.swing.SwingConstants.CENTER), BorderLayout.CENTER)
+            topicDetailPanel.add(JLabel(message("confluent.cloud.details.select.resource"), SwingConstants.CENTER), BorderLayout.CENTER)
             topicDetailPanel.revalidate()
             topicDetailPanel.repaint()
             return
         }
 
         val clusterId = rfsPath.getClusterId() ?: run {
-            topicDetailPanel.add(JLabel(message("confluent.cloud.details.select.resource"), javax.swing.SwingConstants.CENTER), BorderLayout.CENTER)
+            topicDetailPanel.add(JLabel(message("confluent.cloud.details.select.resource"), SwingConstants.CENTER), BorderLayout.CENTER)
             topicDetailPanel.revalidate()
             topicDetailPanel.repaint()
             return
@@ -529,7 +531,7 @@ internal class ConfluentMainController(
         val cluster = dataManager.getKafkaClusters(envId).find { it.id == clusterId }
         if (cluster == null) {
             myTree.clearSelection()
-            topicDetailPanel.add(JLabel(message("confluent.cloud.details.resource.not.available"), javax.swing.SwingConstants.CENTER), BorderLayout.CENTER)
+            topicDetailPanel.add(JLabel(message("confluent.cloud.details.resource.not.available"), SwingConstants.CENTER), BorderLayout.CENTER)
             topicDetailPanel.revalidate()
             topicDetailPanel.repaint()
             return
@@ -584,14 +586,14 @@ internal class ConfluentMainController(
         currentSchemaDetailsController = null
 
         val envId = rfsPath.getEnvironmentId(driver) ?: run {
-            schemaDetailPanel.add(JLabel(message("confluent.cloud.details.select.resource"), javax.swing.SwingConstants.CENTER), BorderLayout.CENTER)
+            schemaDetailPanel.add(JLabel(message("confluent.cloud.details.select.resource"), SwingConstants.CENTER), BorderLayout.CENTER)
             schemaDetailPanel.revalidate()
             schemaDetailPanel.repaint()
             return
         }
 
         val srId = rfsPath.getSchemaRegistryId() ?: run {
-            schemaDetailPanel.add(JLabel(message("confluent.cloud.details.select.resource"), javax.swing.SwingConstants.CENTER), BorderLayout.CENTER)
+            schemaDetailPanel.add(JLabel(message("confluent.cloud.details.select.resource"), SwingConstants.CENTER), BorderLayout.CENTER)
             schemaDetailPanel.revalidate()
             schemaDetailPanel.repaint()
             return
@@ -602,7 +604,7 @@ internal class ConfluentMainController(
         val sr = dataManager.getSchemaRegistry(envId)
         if (sr == null || sr.id != srId) {
             myTree.clearSelection()
-            schemaDetailPanel.add(JLabel(message("confluent.cloud.details.resource.not.available"), javax.swing.SwingConstants.CENTER), BorderLayout.CENTER)
+            schemaDetailPanel.add(JLabel(message("confluent.cloud.details.resource.not.available"), SwingConstants.CENTER), BorderLayout.CENTER)
             schemaDetailPanel.revalidate()
             schemaDetailPanel.repaint()
             return
@@ -610,7 +612,7 @@ internal class ConfluentMainController(
 
         val cluster = dataManager.getKafkaClusters(envId).firstOrNull()
         if (cluster == null) {
-            schemaDetailPanel.add(JLabel(message("confluent.cloud.details.no.clusters"), javax.swing.SwingConstants.CENTER), BorderLayout.CENTER)
+            schemaDetailPanel.add(JLabel(message("confluent.cloud.details.no.clusters"), SwingConstants.CENTER), BorderLayout.CENTER)
             schemaDetailPanel.revalidate()
             schemaDetailPanel.repaint()
             return
@@ -619,7 +621,7 @@ internal class ConfluentMainController(
         val clusterDataManager = dataManager.getOrCreateClusterDataManager(cluster)
 
         if (clusterDataManager.registryType == KafkaRegistryType.NONE) {
-            schemaDetailPanel.add(JLabel(message("confluent.cloud.details.no.schema.registry"), javax.swing.SwingConstants.CENTER), BorderLayout.CENTER)
+            schemaDetailPanel.add(JLabel(message("confluent.cloud.details.no.schema.registry"), SwingConstants.CENTER), BorderLayout.CENTER)
             schemaDetailPanel.revalidate()
             schemaDetailPanel.repaint()
             return
@@ -636,7 +638,7 @@ internal class ConfluentMainController(
         schemaDetailPanel.repaint()
     }
 
-    override fun open(rfsPath: RfsPath): org.jetbrains.concurrency.Promise<javax.swing.tree.TreePath> {
+    override fun open(rfsPath: RfsPath): Promise<TreePath> {
         return RfsUtil.select(driver.getExternalId(), rfsPath, myTree)
     }
 

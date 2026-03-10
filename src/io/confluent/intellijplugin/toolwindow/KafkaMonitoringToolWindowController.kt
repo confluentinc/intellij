@@ -11,11 +11,14 @@ import com.intellij.openapi.wm.impl.InternalDecorator
 import com.intellij.openapi.wm.impl.content.ContentTabLabel
 import com.intellij.ui.ComponentUtil
 import com.intellij.util.ui.UIUtil
+import io.confluent.intellijplugin.core.monitoring.rfs.MonitoringDriver
 import io.confluent.intellijplugin.core.monitoring.toolwindow.ComponentController
 import io.confluent.intellijplugin.core.monitoring.toolwindow.MonitoringToolWindowController
 import io.confluent.intellijplugin.core.rfs.driver.ActivitySource
 import io.confluent.intellijplugin.core.rfs.driver.RfsPath
+import io.confluent.intellijplugin.core.rfs.driver.manager.DriverManager
 import io.confluent.intellijplugin.core.rfs.driver.refreshConnectionLaunch
+import io.confluent.intellijplugin.core.util.invokeLater
 import io.confluent.intellijplugin.core.settings.connections.ConnectionData
 import io.confluent.intellijplugin.core.settings.connections.ConnectionFactory
 import io.confluent.intellijplugin.core.settings.manager.RfsConnectionDataManager
@@ -134,7 +137,7 @@ class KafkaMonitoringToolWindowController(project: Project) : MonitoringToolWind
         }
     }
 
-    override fun getDriverForToolbar(connectionId: String?): io.confluent.intellijplugin.core.monitoring.rfs.MonitoringDriver? {
+    override fun getDriverForToolbar(connectionId: String?): MonitoringDriver? {
         // CCloud driver is not in DriverManager, get it from ConfluentTabController
         if (connectionId == "ccloud") {
             return getConfluentCloudTabController()?.getDriver()
@@ -142,12 +145,12 @@ class KafkaMonitoringToolWindowController(project: Project) : MonitoringToolWind
         return super.getDriverForToolbar(connectionId)
     }
 
-    fun getDriverForConnection(connectionId: String): io.confluent.intellijplugin.core.monitoring.rfs.MonitoringDriver? {
+    fun getDriverForConnection(connectionId: String): MonitoringDriver? {
         if (connectionId == "ccloud") {
             return getConfluentCloudTabController()?.getDriver()
         }
-        return io.confluent.intellijplugin.core.rfs.driver.manager.DriverManager.getDriverById(project, connectionId)
-            as? io.confluent.intellijplugin.core.monitoring.rfs.MonitoringDriver
+        return DriverManager.getDriverById(project, connectionId)
+            as? MonitoringDriver
     }
 
     private fun addConfluentCloudTab() {
@@ -178,7 +181,7 @@ class KafkaMonitoringToolWindowController(project: Project) : MonitoringToolWind
 
         com.intellij.openapi.util.Disposer.register(content, controller)
         contentManager.addContent(content)
-        io.confluent.intellijplugin.core.util.invokeLater { applyConfluentCloudIcon(content) }
+        invokeLater { applyConfluentCloudIcon(content) }
     }
 
     private fun applyConfluentCloudIcon(content: com.intellij.ui.content.Content) {

@@ -20,7 +20,9 @@ import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.NlsSafe
 import com.intellij.ui.IdeBorderFactory
 import com.intellij.ui.SideBorder
+import com.intellij.ui.components.JBList
 import com.intellij.ui.dsl.builder.*
+import com.intellij.ui.table.JBTable
 import com.intellij.ui.dsl.gridLayout.UnscaledGaps
 import com.intellij.ui.layout.migLayout.createLayoutConstraints
 import com.intellij.ui.layout.migLayout.patched.MigLayout
@@ -46,6 +48,8 @@ import io.confluent.intellijplugin.util.KafkaMessagesBundle
 import net.miginfocom.layout.ConstraintParser
 import org.jetbrains.annotations.Nls
 import java.awt.BorderLayout
+import java.awt.Component
+import java.awt.Container
 import java.awt.Dimension
 import java.util.function.BiFunction
 import javax.swing.JCheckBox
@@ -126,15 +130,13 @@ class KafkaSchemaController(
         }
     }
 
-    private fun clearEmptyTextRecursive(comp: java.awt.Component) {
-        try {
-            val method = comp.javaClass.getMethod("getEmptyText")
-            val emptyText = method.invoke(comp) as? com.intellij.util.ui.StatusText
-            emptyText?.clear()
-        } catch (e: Exception) {
+    private fun clearEmptyTextRecursive(comp: Component) {
+        when (comp) {
+            is JBTable -> comp.emptyText.clear()
+            is JBList<*> -> comp.emptyText.clear()
         }
 
-        if (comp is java.awt.Container) {
+        if (comp is Container) {
             comp.components?.forEach { clearEmptyTextRecursive(it) }
         }
     }
@@ -323,7 +325,7 @@ class KafkaSchemaController(
                         KafkaMessagesBundle.message("action.remove.version.confirm.dialog.option"),
                         false, 0, 0,
                         Messages.getQuestionIcon(),
-                        java.util.function.BiFunction { exitCode: Int, _: javax.swing.JCheckBox ->
+                        BiFunction { exitCode: Int, _: JCheckBox ->
                             if (exitCode == Messages.OK) {
                                 dataManager.deleteRegistrySchemaVersion(versionSchema)
                             }

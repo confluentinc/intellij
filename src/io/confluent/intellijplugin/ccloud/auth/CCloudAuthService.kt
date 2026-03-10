@@ -17,6 +17,7 @@ import io.confluent.intellijplugin.util.KafkaMessagesBundle
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import java.time.Instant
 import java.util.concurrent.CopyOnWriteArrayList
 
 /**
@@ -191,7 +192,7 @@ class CCloudAuthService(private val scope: CoroutineScope) : Disposable {
 
     fun getOrganizationName(): String? = context?.getCurrentOrganization()?.name
 
-    fun getSessionEndOfLifetime(): java.time.Instant? = context?.getEndOfLifetime()
+    fun getSessionEndOfLifetime(): Instant? = context?.getEndOfLifetime()
 
     fun isRefreshRunning(): Boolean = refreshBean?.isRunning() == true
 

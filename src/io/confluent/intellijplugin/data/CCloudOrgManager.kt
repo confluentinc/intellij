@@ -16,6 +16,7 @@ import io.confluent.intellijplugin.core.monitoring.data.storage.DataModelStorage
 import io.confluent.intellijplugin.core.monitoring.data.updater.BdtMonitoringUpdater
 import io.confluent.intellijplugin.core.monitoring.rfs.MonitoringDriver
 import io.confluent.intellijplugin.rfs.ConfluentConnectionData
+import io.confluent.intellijplugin.rfs.ConfluentDriver
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -64,7 +65,7 @@ class CCloudOrgManager(
      * Called asynchronously when environment is selected.
      */
     fun preInitializeCachesForEnvironment(environmentId: String) {
-        driver.coroutineScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+        driver.coroutineScope.launch(Dispatchers.IO) {
             coroutineScope {
                 val clustersDeferred = async {
                     try {
@@ -153,7 +154,7 @@ class CCloudOrgManager(
      * Used for both manual refresh and auto-refresh (via CCloudDynamicModelStorage).
      */
     internal fun getClusterModelsForRefresh(): List<DataModel<*>> {
-        val selectedEnvId = (driver as? io.confluent.intellijplugin.rfs.ConfluentDriver)?.selectedEnvironmentId
+        val selectedEnvId = (driver as? ConfluentDriver)?.selectedEnvironmentId
             ?: return emptyList()
 
         return getKafkaClusters(selectedEnvId).flatMap { cluster ->

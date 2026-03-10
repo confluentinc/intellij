@@ -38,14 +38,18 @@ import io.confluent.intellijplugin.registry.SchemaVersionInfo
 import io.confluent.intellijplugin.registry.schema.SchemaTreePanel
 import io.confluent.intellijplugin.registry.ui.KafkaRegistrySchemaEditor
 import io.confluent.intellijplugin.registry.ui.KafkaSchemaInfoDialog
+import io.confluent.intellijplugin.toolwindow.config.KafkaClusterConfig
 import io.confluent.intellijplugin.toolwindow.config.KafkaToolWindowSettings
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
 import io.confluent.intellijplugin.util.KafkaMessagesBundle.message
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import net.miginfocom.layout.ConstraintParser
 import org.jetbrains.annotations.Nls
 import java.awt.BorderLayout
 import java.awt.Dimension
+import java.util.function.BiFunction
+import javax.swing.JCheckBox
 import javax.swing.JComponent
 import javax.swing.JPanel
 
@@ -121,7 +125,7 @@ internal class ConfluentSchemaDetailController(
 
     override fun dispose() {}
 
-    private fun getSchemaRegistryConfig(): io.confluent.intellijplugin.toolwindow.config.KafkaClusterConfig {
+    private fun getSchemaRegistryConfig(): KafkaClusterConfig {
         val srId = dataManager.getSchemaRegistryId()
         return if (srId != null) {
             KafkaToolWindowSettings.getInstance().getOrCreateConfig(srId)
@@ -186,7 +190,7 @@ internal class ConfluentSchemaDetailController(
                 hasContent.set(true)
             }
 
-            dataManager.driver.coroutineScope.launch(kotlinx.coroutines.Dispatchers.Default) {
+            dataManager.driver.coroutineScope.launch(Dispatchers.Default) {
                 val parseResult = dataManager.parseSchemaForDisplay(versionInfo)
                 val parsedSchema = parseResult.getOrNull()
 
@@ -350,7 +354,7 @@ internal class ConfluentSchemaDetailController(
                     KafkaMessagesBundle.message("action.remove.version.confirm.dialog.option"),
                     false, 0, 0,
                     Messages.getQuestionIcon(),
-                    java.util.function.BiFunction { exitCode: Int, _: javax.swing.JCheckBox ->
+                    BiFunction { exitCode: Int, _: JCheckBox ->
                         if (exitCode == Messages.OK) {
                             dataManager.deleteRegistrySchemaVersion(versionInfo)
                         }

@@ -31,26 +31,20 @@ class TopicDetailsController(
         val schemas: List<Pair<String, DetailsMonitoringController<String>>> = when (dataManager.registryType) {
             KafkaRegistryType.NONE -> emptyList()
             KafkaRegistryType.CONFLUENT -> {
-                // Schema tabs for KafkaDataManager
-                if (dataManager is KafkaDataManager) {
-                    listOf(
-                        KafkaMessagesBundle.message("topic.tab.schema.key") to KafkaTopicSchemaController(
-                            project,
-                            dataManager,
-                            TopicSchemaViewType.KEY
-                        ),
-                        KafkaMessagesBundle.message("topic.tab.schema.value") to KafkaTopicSchemaController(
-                            project,
-                            dataManager,
-                            TopicSchemaViewType.VALUE
-                        )
+                listOf(
+                    KafkaMessagesBundle.message("topic.tab.schema.key") to KafkaTopicSchemaController(
+                        project,
+                        dataManager,
+                        TopicSchemaViewType.KEY
+                    ),
+                    KafkaMessagesBundle.message("topic.tab.schema.value") to KafkaTopicSchemaController(
+                        project,
+                        dataManager,
+                        TopicSchemaViewType.VALUE
                     )
-                } else {
-                    emptyList()
-                }
+                )
             }
             KafkaRegistryType.AWS_GLUE -> {
-                // Schema tabs require KafkaDataManager specifically
                 if (dataManager is KafkaDataManager) {
                     listOf(
                         KafkaMessagesBundle.message("topic.tab.schema") to KafkaTopicSchemaController(

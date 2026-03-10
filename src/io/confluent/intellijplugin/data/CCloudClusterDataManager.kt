@@ -12,7 +12,9 @@ import io.confluent.intellijplugin.ccloud.cache.DataPlaneCache
 import io.confluent.intellijplugin.ccloud.model.Cluster
 import io.confluent.intellijplugin.ccloud.model.response.CreateTopicRequest
 import io.confluent.intellijplugin.ccloud.model.response.RegisterSchemaRequest
+import io.confluent.intellijplugin.ccloud.model.response.SchemaData
 import io.confluent.intellijplugin.ccloud.model.response.SchemaEnrichmentResult
+import io.confluent.intellijplugin.ccloud.model.response.SchemaReferenceResponse
 import io.confluent.intellijplugin.ccloud.model.response.TopicData
 import io.confluent.intellijplugin.ccloud.model.response.TopicEnrichmentResult
 import io.confluent.intellijplugin.ccloud.model.response.toPresentable
@@ -24,6 +26,7 @@ import io.confluent.intellijplugin.core.monitoring.data.storage.ObjectDataModelS
 import io.confluent.intellijplugin.core.monitoring.data.storage.RootDataModelStorage
 import io.confluent.intellijplugin.core.rfs.driver.RfsPath
 import io.confluent.intellijplugin.core.rfs.driver.SafeExecutor
+import io.confluent.intellijplugin.core.rfs.util.RfsNotificationUtils
 import io.confluent.intellijplugin.core.util.asSilent
 import io.confluent.intellijplugin.core.util.runAsync
 import io.confluent.intellijplugin.core.util.runAsyncSuspend
@@ -361,7 +364,7 @@ class CCloudClusterDataManager(
     /** Launch non-blocking schema enrichment job with progressive UI updates. */
     private fun launchSchemaEnrichment(schemas: List<KafkaSchemaInfo>): Job {
         val schemaDataList = schemas.map { schema ->
-            io.confluent.intellijplugin.ccloud.model.response.SchemaData(
+            SchemaData(
                 name = schema.name,
                 latestVersion = schema.version?.toInt(),
                 schemaType = schema.type?.name
@@ -403,7 +406,7 @@ class CCloudClusterDataManager(
                         }
 
                         is SchemaEnrichmentResult.Failure -> {
-                            if (result.error !is kotlinx.coroutines.CancellationException) {
+                            if (result.error !is CancellationException) {
                                 thisLogger().warn(
                                     "CCloud: Schema enrichment failure (${result.progress.first}/${result.progress.second}): ${result.schemaName} - ${result.error.message}",
                                     result.error
@@ -617,7 +620,7 @@ class CCloudClusterDataManager(
                 schema = parsedSchema.canonicalString(),
                 schemaType = versionInfo.type.name,
                 references = versionInfo.references.map { ref ->
-                    io.confluent.intellijplugin.ccloud.model.response.SchemaReferenceResponse(
+                    SchemaReferenceResponse(
                         name = ref.name,
                         subject = ref.subject,
                         version = ref.version
@@ -650,7 +653,7 @@ class CCloudClusterDataManager(
                 schemaVersionModels[versionInfo.schemaName]?.let { updater.invokeRefreshModel(it) }
                 updateSingleSchemaInList(versionInfo.schemaName)
             } catch (t: Throwable) {
-                io.confluent.intellijplugin.core.rfs.util.RfsNotificationUtils.showExceptionMessage(project, t)
+                RfsNotificationUtils.showExceptionMessage(project, t)
             }
         }
     }
@@ -695,7 +698,7 @@ class CCloudClusterDataManager(
                 if (!confirmed) return@launch
                 deleteSchemaWithoutConfirmation(registryInfo.name, permanent = registryInfo.isSoftDeleted)
             } catch (t: Throwable) {
-                io.confluent.intellijplugin.core.rfs.util.RfsNotificationUtils.showExceptionMessage(project, t)
+                RfsNotificationUtils.showExceptionMessage(project, t)
             }
         }
     }
@@ -710,7 +713,7 @@ class CCloudClusterDataManager(
     }
 
     fun createSchema(schemaName: String, parsedSchema: io.confluent.kafka.schemaregistry.ParsedSchema) =
-        io.confluent.intellijplugin.core.util.runAsyncSuspend {
+        runAsyncSuspend {
             if (!dataPlaneCache.hasSchemaRegistry()) {
                 error(KafkaMessagesBundle.message("error.schema.registry.not.configured.for.cluster"))
             }

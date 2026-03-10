@@ -5,8 +5,6 @@ import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.project.DumbAwareAction
-import com.intellij.util.ui.StatusText
-import io.confluent.intellijplugin.core.monitoring.table.extension.CustomEmptyTextProvider
 import io.confluent.intellijplugin.core.monitoring.toolwindow.DetailsTableMonitoringController
 import io.confluent.intellijplugin.data.BaseClusterDataManager
 import io.confluent.intellijplugin.model.BdtTopicPartition
