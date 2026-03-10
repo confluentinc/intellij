@@ -116,7 +116,7 @@ class DataPlaneFetcherImpl(
             )
         } catch (e: Exception) {
             // Cancellations are expected when user clicks refresh - use debug level
-            if (e is kotlinx.coroutines.CancellationException) {
+            if (e is CancellationException) {
                 thisLogger().debug("Cancelled fetch schema info for '$schemaName': ${e.message}")
             } else {
                 thisLogger().warn("Failed to fetch schema info for '$schemaName'", e)
