@@ -51,6 +51,10 @@ class SelectScaffoldTemplateAction(
     private val projectOpener: (Path) -> Unit = { path ->
         ProjectManagerEx.getInstanceEx().openProject(path, OpenProjectTask {
             forceOpenInNewFrame = true
+            isNewProject = true
+            isProjectCreatedWithWizard = true
+            useDefaultProjectAsTemplate = true
+            runConfigurators = true
         })
     }
 ) : DumbAwareAction() {
