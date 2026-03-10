@@ -8,6 +8,7 @@ import io.confluent.intellijplugin.util.KafkaMessagesBundle
 import io.confluent.intellijplugin.ccloud.model.response.ProduceRecordData
 import io.confluent.intellijplugin.ccloud.model.response.ProduceRecordHeader
 import io.confluent.intellijplugin.ccloud.model.response.ProduceRecordRequest
+import io.confluent.intellijplugin.ccloud.model.response.SchemaVersionResponse
 import io.confluent.intellijplugin.ccloud.model.response.ProduceRecordResponse
 import io.confluent.intellijplugin.common.models.KafkaFieldType
 import io.confluent.intellijplugin.consumer.editor.KafkaRecord
@@ -122,6 +123,8 @@ class CCloudProducerClient(
 
         val validatedPartition = validatePartition(forcePartition, topic, fetcher)
 
+        val schemaCache = resolveSchemaCache(fetcher, key, value)
+
         val csvDataFrame = flowParams.csvFile?.let { KafkaCsvUtils.readDataFrame(it) }
         var produced = 0
 
@@ -136,7 +139,8 @@ class CCloudProducerClient(
                     forcePartition = validatedPartition,
                     flowParams = flowParams,
                     alreadyProducedCount = produced,
-                    csvDataFrame = csvDataFrame
+                    csvDataFrame = csvDataFrame,
+                    schemaCache = schemaCache
                 )
                 if (records.isNotEmpty()) {
                     onUpdate(records.sumOf { it.duration }, records)
@@ -160,7 +164,8 @@ class CCloudProducerClient(
                         forcePartition = validatedPartition,
                         flowParams = flowParams,
                         alreadyProducedCount = produced,
-                        csvDataFrame = csvDataFrame
+                        csvDataFrame = csvDataFrame,
+                        schemaCache = schemaCache
                     )
                     if (records.isNotEmpty()) {
                         onUpdate(records.sumOf { it.duration }, records)
@@ -172,6 +177,21 @@ class CCloudProducerClient(
         }
     }
 
+    private suspend fun resolveSchemaCache(
+        fetcher: DataPlaneFetcher,
+        vararg fields: ConsumerProducerFieldConfig
+    ): Map<String, SchemaVersionResponse> {
+        val cache = mutableMapOf<String, SchemaVersionResponse>()
+        for (field in fields) {
+            if (field.type == KafkaFieldType.SCHEMA_REGISTRY && field.schemaName.isNotEmpty()) {
+                cache.getOrPut(field.schemaName) {
+                    fetcher.getLatestVersionInfo(field.schemaName)
+                }
+            }
+        }
+        return cache
+    }
+
     private suspend fun produceBatch(
         fetcher: DataPlaneFetcher,
         topic: String,
@@ -181,7 +201,8 @@ class CCloudProducerClient(
         forcePartition: Int,
         flowParams: ProducerFlowParams,
         alreadyProducedCount: Int,
-        csvDataFrame: DataFrame?
+        csvDataFrame: DataFrame?,
+        schemaCache: Map<String, SchemaVersionResponse>
     ): List<KafkaRecord> {
         val records = mutableListOf<KafkaRecord>()
         repeat(flowParams.flowRecordsCountPerRequest) { i ->
@@ -197,7 +218,7 @@ class CCloudProducerClient(
             }
 
             val request = buildProduceRequest(
-                fetcher, recordKey, recordValue, processedHeaders, topic, forcePartition
+                fetcher, recordKey, recordValue, processedHeaders, topic, forcePartition, schemaCache
             )
 
             val (response, duration) = produceWithRetry(fetcher, topic, request)
@@ -270,7 +291,8 @@ class CCloudProducerClient(
         value: ConsumerProducerFieldConfig,
         headers: List<Property>,
         topic: String,
-        forcePartition: Int
+        forcePartition: Int,
+        schemaCache: Map<String, SchemaVersionResponse> = emptyMap()
     ): ProduceRecordRequest {
         return ProduceRecordRequest(
             partitionId = if (forcePartition >= 0) forcePartition else null,
@@ -282,8 +304,8 @@ class CCloudProducerClient(
                     }
                 )
             },
-            key = buildRecordData(fetcher, key, topic),
-            value = buildRecordData(fetcher, value, topic),
+            key = buildRecordData(fetcher, key, topic, schemaCache),
+            value = buildRecordData(fetcher, value, topic, schemaCache),
             timestamp = null
         )
     }
@@ -292,7 +314,8 @@ class CCloudProducerClient(
     internal suspend fun buildRecordData(
         fetcher: DataPlaneFetcher,
         field: ConsumerProducerFieldConfig,
-        topic: String
+        topic: String,
+        schemaCache: Map<String, SchemaVersionResponse> = emptyMap()
     ): ProduceRecordData? {
         if (field.type == KafkaFieldType.NULL) return null
 
@@ -305,7 +328,7 @@ class CCloudProducerClient(
                 type = "JSON",
                 data = field.valueText
             )
-            KafkaFieldType.SCHEMA_REGISTRY -> buildSchemaRegistryData(fetcher, field)
+            KafkaFieldType.SCHEMA_REGISTRY -> buildSchemaRegistryData(fetcher, field, schemaCache)
             KafkaFieldType.AVRO_CUSTOM -> buildAvroData(field)
             KafkaFieldType.PROTOBUF_CUSTOM -> buildProtobufData(field)
             else -> {
@@ -323,14 +346,17 @@ class CCloudProducerClient(
     /**
      * Build record data for SCHEMA_REGISTRY types.
      *
-     * Serialize client-side and prepend the Confluent V0 wire format prefix
-     * The schema ID is resolved by fetching the latest version from Schema Registry.
+     * Serialize client-side and prepend the Confluent V0 wire format prefix.
+     * The schema ID is looked up from the pre-resolved cache, falling back to a
+     * network call only if the subject is not cached.
      */
     private suspend fun buildSchemaRegistryData(
         fetcher: DataPlaneFetcher,
-        field: ConsumerProducerFieldConfig
+        field: ConsumerProducerFieldConfig,
+        schemaCache: Map<String, SchemaVersionResponse> = emptyMap()
     ): ProduceRecordData {
-        val schemaInfo = fetcher.getLatestVersionInfo(field.schemaName)
+        val schemaInfo = schemaCache[field.schemaName]
+            ?: fetcher.getLatestVersionInfo(field.schemaName)
         val schemaId = schemaInfo.id
 
         val payloadBytes = when (field.schemaFormat) {

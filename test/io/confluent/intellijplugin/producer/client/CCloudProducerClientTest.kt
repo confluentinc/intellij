@@ -28,6 +28,7 @@ import org.junit.jupiter.api.Test
 import org.mockito.kotlin.any
 import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.mock
+import org.mockito.kotlin.never
 import org.mockito.kotlin.times
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
@@ -188,8 +189,12 @@ class CCloudProducerClientTest {
         @DisplayName("Schema Registry types")
         inner class SchemaRegistryTypes {
 
+            private val avroCache = mapOf("my-subject" to SchemaVersionResponse(
+                subject = "my-subject", version = 1, id = 100, schema = "{}", schemaType = "AVRO"
+            ))
+
             @Test
-            fun `should build BINARY for SCHEMA_REGISTRY Avro`() {
+            fun `should build BINARY for SCHEMA_REGISTRY Avro using cached schema`() {
                 val avroSchema = AvroSchema(avroSchemaJson)
                 val field = ConsumerProducerFieldConfig(
                     type = KafkaFieldType.SCHEMA_REGISTRY,
@@ -201,7 +206,7 @@ class CCloudProducerClientTest {
                     schemaFormat = KafkaRegistryFormat.AVRO,
                     parsedSchema = avroSchema
                 )
-                val data = runBlocking { client.buildRecordData(mockFetcher, field, "test-topic") }
+                val data = runBlocking { client.buildRecordData(mockFetcher, field, "test-topic", avroCache) }
 
                 assertNotNull(data)
                 assertEquals("BINARY", data!!.type)
@@ -210,10 +215,15 @@ class CCloudProducerClientTest {
                 assertEquals(0x00.toByte(), decoded[0])
                 val schemaId = java.nio.ByteBuffer.wrap(decoded, 1, 4).getInt()
                 assertEquals(100, schemaId)
+
+                runBlocking { verify(mockFetcher, never()).getLatestVersionInfo(any()) }
             }
 
             @Test
-            fun `should build BINARY for SCHEMA_REGISTRY JSON Schema`() {
+            fun `should build BINARY for SCHEMA_REGISTRY JSON Schema using cached schema`() {
+                val jsonCache = mapOf("json-subject" to SchemaVersionResponse(
+                    subject = "json-subject", version = 1, id = 100, schema = "{}", schemaType = "JSON"
+                ))
                 val field = ConsumerProducerFieldConfig(
                     type = KafkaFieldType.SCHEMA_REGISTRY,
                     valueText = """{"key": "value"}""",
@@ -224,7 +234,7 @@ class CCloudProducerClientTest {
                     schemaFormat = KafkaRegistryFormat.JSON,
                     parsedSchema = null
                 )
-                val data = runBlocking { client.buildRecordData(mockFetcher, field, "test-topic") }
+                val data = runBlocking { client.buildRecordData(mockFetcher, field, "test-topic", jsonCache) }
 
                 assertNotNull(data)
                 assertEquals("BINARY", data!!.type)
@@ -234,10 +244,15 @@ class CCloudProducerClientTest {
                 assertEquals(100, schemaId)
                 val jsonPayload = String(decoded, 5, decoded.size - 5, Charsets.UTF_8)
                 assertEquals("""{"key": "value"}""", jsonPayload)
+
+                runBlocking { verify(mockFetcher, never()).getLatestVersionInfo(any()) }
             }
 
             @Test
-            fun `should build BINARY for SCHEMA_REGISTRY Protobuf with wire format prefix`() {
+            fun `should build BINARY for SCHEMA_REGISTRY Protobuf using cached schema`() {
+                val protoCache = mapOf("proto-subject" to SchemaVersionResponse(
+                    subject = "proto-subject", version = 1, id = 100, schema = "{}", schemaType = "PROTOBUF"
+                ))
                 val protobufSchema = ProtobufSchema(protoSchemaText)
                 val field = ConsumerProducerFieldConfig(
                     type = KafkaFieldType.SCHEMA_REGISTRY,
@@ -249,7 +264,7 @@ class CCloudProducerClientTest {
                     schemaFormat = KafkaRegistryFormat.PROTOBUF,
                     parsedSchema = protobufSchema
                 )
-                val data = runBlocking { client.buildRecordData(mockFetcher, field, "test-topic") }
+                val data = runBlocking { client.buildRecordData(mockFetcher, field, "test-topic", protoCache) }
 
                 assertNotNull(data)
                 assertEquals("BINARY", data!!.type)
@@ -264,10 +279,15 @@ class CCloudProducerClientTest {
                 val message = DynamicMessage.parseFrom(descriptor, protoBytes)
                 assertEquals("Bob", message.getField(descriptor.findFieldByName("name")))
                 assertEquals(25, message.getField(descriptor.findFieldByName("age")))
+
+                runBlocking { verify(mockFetcher, never()).getLatestVersionInfo(any()) }
             }
 
             @Test
             fun `should throw on SCHEMA_REGISTRY with UNKNOWN format`() {
+                val unknownCache = mapOf("unknown-subject" to SchemaVersionResponse(
+                    subject = "unknown-subject", version = 1, id = 1, schema = "{}", schemaType = null
+                ))
                 val field = ConsumerProducerFieldConfig(
                     type = KafkaFieldType.SCHEMA_REGISTRY,
                     valueText = "some data",
@@ -280,8 +300,57 @@ class CCloudProducerClientTest {
                 )
 
                 assertThrows(IllegalStateException::class.java) {
-                    runBlocking { client.buildRecordData(mockFetcher, field, "test-topic") }
+                    runBlocking { client.buildRecordData(mockFetcher, field, "test-topic", unknownCache) }
                 }
+            }
+
+            @Test
+            fun `should fall back to fetcher when subject is not in cache`() = runBlocking {
+                val cache = mapOf("other-subject" to SchemaVersionResponse(
+                    subject = "other-subject", version = 1, id = 42, schema = "{}", schemaType = "JSON"
+                ))
+                val field = ConsumerProducerFieldConfig(
+                    type = KafkaFieldType.SCHEMA_REGISTRY,
+                    valueText = """{"key": "value"}""",
+                    isKey = false,
+                    topic = "test-topic",
+                    registryType = KafkaRegistryType.CONFLUENT,
+                    schemaName = "my-subject",
+                    schemaFormat = KafkaRegistryFormat.JSON,
+                    parsedSchema = null
+                )
+
+                val data = client.buildRecordData(mockFetcher, field, "test-topic", cache)
+
+                assertNotNull(data)
+                val decoded = Base64.getDecoder().decode(data!!.data)
+                assertEquals(100, java.nio.ByteBuffer.wrap(decoded, 1, 4).getInt())
+                verify(mockFetcher, times(1)).getLatestVersionInfo("my-subject")
+                Unit
+            }
+
+            @Test
+            fun `should reuse cache across repeated calls without additional fetcher calls`() = runBlocking {
+                val cache = mapOf("my-subject" to SchemaVersionResponse(
+                    subject = "my-subject", version = 1, id = 42, schema = "{}", schemaType = "JSON"
+                ))
+                val field = ConsumerProducerFieldConfig(
+                    type = KafkaFieldType.SCHEMA_REGISTRY,
+                    valueText = """{"key": "value"}""",
+                    isKey = false,
+                    topic = "test-topic",
+                    registryType = KafkaRegistryType.CONFLUENT,
+                    schemaName = "my-subject",
+                    schemaFormat = KafkaRegistryFormat.JSON,
+                    parsedSchema = null
+                )
+
+                repeat(5) {
+                    client.buildRecordData(mockFetcher, field, "test-topic", cache)
+                }
+
+                verify(mockFetcher, never()).getLatestVersionInfo(any())
+                Unit
             }
         }
 
@@ -417,6 +486,50 @@ class CCloudProducerClientTest {
 
             assertNull(request.key)
             assertNotNull(request.value)
+        }
+
+        @Test
+        fun `should pass schema cache through to both key and value`() {
+            val keyCache = SchemaVersionResponse(
+                subject = "key-subject", version = 1, id = 10, schema = "{}", schemaType = "JSON"
+            )
+            val valueCache = SchemaVersionResponse(
+                subject = "value-subject", version = 1, id = 20, schema = "{}", schemaType = "JSON"
+            )
+            val cache = mapOf("key-subject" to keyCache, "value-subject" to valueCache)
+
+            val key = ConsumerProducerFieldConfig(
+                type = KafkaFieldType.SCHEMA_REGISTRY,
+                valueText = """{"k": 1}""",
+                isKey = true,
+                topic = "test-topic",
+                registryType = KafkaRegistryType.CONFLUENT,
+                schemaName = "key-subject",
+                schemaFormat = KafkaRegistryFormat.JSON,
+                parsedSchema = null
+            )
+            val value = ConsumerProducerFieldConfig(
+                type = KafkaFieldType.SCHEMA_REGISTRY,
+                valueText = """{"v": 2}""",
+                isKey = false,
+                topic = "test-topic",
+                registryType = KafkaRegistryType.CONFLUENT,
+                schemaName = "value-subject",
+                schemaFormat = KafkaRegistryFormat.JSON,
+                parsedSchema = null
+            )
+
+            val request = runBlocking {
+                client.buildProduceRequest(mockFetcher, key, value, emptyList(), "test-topic", -1, cache)
+            }
+
+            val keyDecoded = Base64.getDecoder().decode(request.key!!.data)
+            assertEquals(10, java.nio.ByteBuffer.wrap(keyDecoded, 1, 4).getInt())
+
+            val valueDecoded = Base64.getDecoder().decode(request.value!!.data)
+            assertEquals(20, java.nio.ByteBuffer.wrap(valueDecoded, 1, 4).getInt())
+
+            runBlocking { verify(mockFetcher, never()).getLatestVersionInfo(any()) }
         }
     }
 
