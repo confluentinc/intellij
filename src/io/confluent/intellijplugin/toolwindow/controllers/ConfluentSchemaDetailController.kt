@@ -126,12 +126,7 @@ internal class ConfluentSchemaDetailController(
     override fun dispose() {}
 
     private fun getSchemaRegistryConfig(): KafkaClusterConfig {
-        val srId = dataManager.getSchemaRegistryId()
-        return if (srId != null) {
-            KafkaToolWindowSettings.getInstance().getOrCreateConfig(srId)
-        } else {
-            KafkaToolWindowSettings.getInstance().getOrCreateConfig(dataManager.connectionId)
-        }
+        return KafkaToolWindowSettings.getInstance().getOrCreateConfig(dataManager.getSchemaRegistryConfigId())
     }
 
     private fun init() {

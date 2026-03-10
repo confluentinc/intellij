@@ -24,17 +24,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Source Structure
 
-All source code under `src/io/confluent/intellijplugin/`:
-
-| Directory                  | Purpose                                                                      |
-|----------------------------|------------------------------------------------------------------------------|
-| `core/`                    | Plugin infrastructure: settings, RFS (Remote File System), connections, UI  |
-| `client/`                  | Kafka client wrappers (`BdtKafkaAdminClient`, `KafkaClientBuilder`)          |
-| `consumer/`, `producer/`   | Consumer and producer functionality                                          |
-| `registry/`                | Schema Registry integration (Confluent + AWS Glue)                           |
-| `aws/`                     | AWS/MSK integration (IAM auth, SSO, credentials)                             |
-| `ccloud/`                  | Confluent Cloud OAuth authentication                                         |
-| `telemetry/`               | Sentry error reporting + Segment analytics                                   |
+Refer to the map of the codebase in `CONTRIBUTING.md`.
 
 **Key files:**
 

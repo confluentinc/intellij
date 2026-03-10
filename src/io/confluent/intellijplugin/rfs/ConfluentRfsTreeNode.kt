@@ -71,7 +71,7 @@ class ConfluentRfsTreeNode(
         val envId = confluentDriver.selectedEnvironmentId ?: return false
         val srId = rfsPath.elements.getOrNull(0) ?: return false
 
-        val sr = confluentDriver.dataManager.client.getCachedSchemaRegistry(envId) ?: return false
+        val sr = confluentDriver.dataManager.client.getSchemaRegistry(envId) ?: return false
         if (sr.id != srId) return false
 
         val config = KafkaToolWindowSettings.getInstance().getOrCreateConfig(srId)
@@ -84,9 +84,10 @@ class ConfluentRfsTreeNode(
         return when {
             rfsPath.isCluster(confluentDriver) -> {
                 confluentDriver.dataManager.client.getKafkaClusters(envId)
-                    ?.find { it.id == rfsPath.name }
+                    .find { it.id == rfsPath.name }
                     ?.let { "${it.cloudProvider} / ${it.region}" }
             }
+
 
             rfsPath.isSchemaRegistry(confluentDriver) -> {
                 confluentDriver.dataManager.client.getSchemaRegistry(envId)
@@ -94,7 +95,7 @@ class ConfluentRfsTreeNode(
             }
 
             rfsPath.isSchema -> {
-                val cluster = confluentDriver.dataManager.client.getKafkaClusters(envId)?.firstOrNull() ?: return null
+                val cluster = confluentDriver.dataManager.client.getKafkaClusters(envId).firstOrNull() ?: return null
                 val clusterDataManager = confluentDriver.dataManager.getOrCreateClusterDataManager(cluster)
                 clusterDataManager.getCachedSchema(rfsPath.name)?.type?.presentable
             }
@@ -111,14 +112,16 @@ class ConfluentRfsTreeNode(
         presentation.tooltip = when {
             rfsPath.isCluster(confluentDriver) -> {
                 confluentDriver.dataManager.client.getKafkaClusters(envId)
-                    ?.find { it.id == rfsPath.name }
+                    .find { it.id == rfsPath.name }
                     ?.let { "ID: ${it.id}" }
             }
+
 
             rfsPath.isSchemaRegistry(confluentDriver) -> {
                 confluentDriver.dataManager.client.getSchemaRegistry(envId)
                     ?.let { "ID: ${it.id}" }
             }
+
 
             else -> null
         }

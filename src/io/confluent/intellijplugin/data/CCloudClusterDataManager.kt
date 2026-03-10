@@ -50,7 +50,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.future.asCompletableFuture
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.TopicPartition
@@ -98,88 +97,27 @@ class CCloudClusterDataManager(
         get() = orgManager.client
 
     override val registryType: KafkaRegistryType
-        get() = if (dataPlaneCache.hasSchemaRegistry()) KafkaRegistryType.CONFLUENT else KafkaRegistryType.NONE
-
-    /**
-     * Gets the Schema Registry ID for this cluster's environment.
-     * Returns null if no schema registry is configured.
-     */
-    fun getSchemaRegistryId(): String? = orgManager.getEnvironments().firstNotNullOfOrNull { env ->
-        if (orgManager.getKafkaClusters(env.id).any { it.id == cluster.id }) {
-            orgManager.getSchemaRegistry(env.id)?.id
-        } else null
-    }
+        get() = if (dataPlaneCache.hasSchemaRegistry()) KafkaRegistryType.CONFLUENT
+                else KafkaRegistryType.NONE
 
     /**
      * Get the RFS path for a schema subject in CCloud format: [schemaRegistryId, schemaName]
      */
     override fun getSchemaPath(schemaName: String): RfsPath {
-        val srId = getSchemaRegistryId()
+        val srId = dataPlaneCache.getSchemaRegistryId()
             ?: throw IllegalStateException(KafkaMessagesBundle.message("error.schema.registry.id.not.available"))
         return RfsPath(listOf(srId, schemaName), isDirectory = false)
     }
 
     /**
-     * Returns the SR ID for config key, ensuring all clusters sharing an SR see the same config.
+     * Override to use Schema Registry ID for config key, ensuring all clusters sharing an SR see the same config.
      */
     override fun getSchemaRegistryConfigId(): String {
-        return getSchemaRegistryId() ?: connectionId
-    }
-
-    /**
-     * Gets the configuration for this cluster's Schema Registry.
-     * Uses SR ID as the config key so all clusters sharing the same SR share the same schema favorites.
-     * Returns null if no schema registry is configured.
-     */
-    private fun getSchemaRegistryConfig(): KafkaClusterConfig? {
-        val srId = getSchemaRegistryId() ?: return null
-        return KafkaToolWindowSettings.getInstance().getOrCreateConfig(srId)
+        return dataPlaneCache.getSchemaRegistryId() ?: connectionId
     }
 
     init {
-        RootDataModelStorage(updater, listOfNotNull(topicModel, schemaRegistryModel)).also {
-            Disposer.register(this, it)
-        }
-    }
-
-    /**
-     * Override to use Schema Registry config (not cluster config) for schema filtering, sorting, and limits.
-     * This ensures all clusters sharing the same SR see the same schema view configuration.
-     */
-    override fun createSchemaRegistryDataModel(): ObjectDataModel<KafkaSchemaInfo>? {
-        if (registryType == KafkaRegistryType.NONE) return null
-
-        return ObjectDataModel(
-            idFieldName = KafkaSchemaInfo::name,
-            additionalInfoLoading = null
-        ) {
-            val toolWindowSettings = KafkaToolWindowSettings.getInstance()
-            val config = getSchemaRegistryConfig()
-
-            val (rawSchemas, _) = runBlockingMaybeCancellable {
-                listSchemasNames(
-                    limit = null,
-                    filter = config?.schemaFilterName
-                )
-            }
-
-            val sortedSchemas = sortSchemasWithFavorites(
-                rawSchemas,
-                pinnedSchemas = config?.schemasPined ?: emptySet(),
-                showFavoriteOnly = toolWindowSettings.showFavoriteSchema
-            )
-
-            val (finalSchemas, hasMore) = applySchemaLimit(sortedSchemas, config?.registryLimit)
-
-            // Launch background enrichment for schemas without metadata
-            val schemasNeedingEnrichment = finalSchemas.filter { it.version == null }
-            if (schemasNeedingEnrichment.isNotEmpty()) {
-                schemaEnrichmentJob?.cancel()
-                schemaEnrichmentJob = launchSchemaEnrichment(schemasNeedingEnrichment)
-            }
-
-            finalSchemas to hasMore
-        }
+        RootDataModelStorage(updater, listOf(topicModel)).also { Disposer.register(this, it) }
     }
 
     /**
@@ -253,7 +191,10 @@ class CCloudClusterDataManager(
 
     override suspend fun loadTopics(): List<TopicPresentable> = withContext(Dispatchers.IO) {
         try {
-            dataPlaneCache.refreshTopics().map { it.toPresentable() }
+            val topics = dataPlaneCache.getTopics().ifEmpty {
+                dataPlaneCache.refreshTopics()
+            }
+            topics.map { it.toPresentable() }
         } catch (t: Throwable) {
             thisLogger().warn("Failed to load topics for cluster ${cluster.id}", t)
             emptyList()
@@ -338,7 +279,7 @@ class CCloudClusterDataManager(
                     dataPlaneCache.refreshSchemas()
                 }
                 // Use SR config (not cluster config) so all clusters sharing an SR see the same favorites
-                val config = getSchemaRegistryConfig()
+                val config = KafkaToolWindowSettings.getInstance().getOrCreateConfig(getSchemaRegistryConfigId())
 
                 var result = schemas.map { schemaData ->
                     KafkaSchemaInfo(
@@ -505,7 +446,7 @@ class CCloudClusterDataManager(
         }
 
         return try {
-            runBlocking(Dispatchers.IO) {
+            runBlockingMaybeCancellable {
                 val versionResponse = dataPlaneCache.getFetcher()?.getLatestVersionInfo(schemaName)
                 versionResponse?.let {
                     SchemaVersionInfo(
@@ -578,10 +519,10 @@ class CCloudClusterDataManager(
 
         // Load from API if not cached or incomplete
         return try {
-            runBlocking(Dispatchers.IO) {
+            runBlockingMaybeCancellable {
                 val schemaData = dataPlaneCache.getFetcher()?.loadSchemaInfo(name)
                 // Use SR config (not cluster config) so all clusters sharing an SR see the same favorites
-                val config = getSchemaRegistryConfig()
+                val config = KafkaToolWindowSettings.getInstance().getOrCreateConfig(getSchemaRegistryConfigId())
 
                 schemaData?.let {
                     KafkaSchemaInfo(
@@ -735,13 +676,13 @@ class CCloudClusterDataManager(
                 dataPlaneCache.getFetcher()?.loadSchemaInfo(schemaName)
             } ?: return
 
-            val config = getSchemaRegistryConfig()
+            val config = KafkaToolWindowSettings.getInstance().getOrCreateConfig(getSchemaRegistryConfigId())
 
             val updatedSchema = KafkaSchemaInfo(
                 name = updatedSchemaData.name,
                 type = KafkaRegistryFormat.fromSchemaType(updatedSchemaData.schemaType),
                 version = updatedSchemaData.latestVersion?.toLong(),
-                isFavorite = config?.schemasPined?.contains(updatedSchemaData.name) == true
+                isFavorite = config.schemasPined.contains(updatedSchemaData.name)
             )
 
             withContext(Dispatchers.Default) {
@@ -886,7 +827,6 @@ class CCloudClusterDataManager(
     }
 
     override fun clearPartitions(partitions: List<BdtTopicPartition>) {}
-
     override fun supportsClearPartitions(): Boolean = false
 
     override fun supportsInSyncReplicasData(): Boolean = false
