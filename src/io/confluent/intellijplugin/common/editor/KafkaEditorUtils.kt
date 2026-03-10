@@ -28,17 +28,14 @@ import io.confluent.intellijplugin.core.ui.ComponentColoredBorder
 import io.confluent.intellijplugin.core.ui.CustomListCellRenderer
 import io.confluent.intellijplugin.core.ui.DarculaTextAreaBorder
 import io.confluent.intellijplugin.core.util.executeNotOnEdt
-import io.confluent.intellijplugin.core.util.executeNotOnEdtSuspend
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import io.confluent.intellijplugin.core.util.invokeLater
 import io.confluent.intellijplugin.data.BaseClusterDataManager
 import io.confluent.intellijplugin.registry.KafkaRegistryFormat
 import io.confluent.intellijplugin.registry.KafkaRegistryType
-import io.confluent.intellijplugin.registry.KafkaRegistryUtil
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
 import io.confluent.kafka.schemaregistry.avro.AvroSchemaUtils
 import io.confluent.kafka.schemaregistry.json.JsonSchemaUtils
