@@ -264,9 +264,9 @@ abstract class BaseClusterDataManager(
     @RequiresBackgroundThread
     abstract fun getSchemasForEditor(): List<RegistrySchemaInEditor>
 
-    abstract fun getLatestVersionInfo(schemaName: String): SchemaVersionInfo?
+    abstract suspend fun getLatestVersionInfo(schemaName: String): SchemaVersionInfo?
 
-    abstract fun getCachedOrLoadSchema(name: String): KafkaSchemaInfo
+    abstract suspend fun getCachedOrLoadSchema(name: String): KafkaSchemaInfo
 
     abstract fun getSchemaVersionInfo(schemaName: String, version: Long): Promise<SchemaVersionInfo>
 

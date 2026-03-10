@@ -28,6 +28,12 @@ import io.confluent.intellijplugin.core.ui.ComponentColoredBorder
 import io.confluent.intellijplugin.core.ui.CustomListCellRenderer
 import io.confluent.intellijplugin.core.ui.DarculaTextAreaBorder
 import io.confluent.intellijplugin.core.util.executeNotOnEdt
+import io.confluent.intellijplugin.core.util.executeNotOnEdtSuspend
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
 import io.confluent.intellijplugin.core.util.invokeLater
 import io.confluent.intellijplugin.data.BaseClusterDataManager
 import io.confluent.intellijplugin.registry.KafkaRegistryFormat
@@ -165,21 +171,22 @@ object KafkaEditorUtils {
         }
 
         if (dataManager.registryType != KafkaRegistryType.NONE) {
+            val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
+
             topicCombobox.addItemListener {
                 if (it.stateChange != SELECTED)
                     return@addItemListener
 
-                executeNotOnEdt {
-                    val schemaType: Any =
-                        calculateSchemaTypeForTopic(dataManager, topicCombobox, isKey) ?: return@executeNotOnEdt
+                scope.launch {
+                    val schemaType = calculateSchemaTypeForTopic(dataManager, topicCombobox, isKey) ?: return@launch
                     runInEdt {
                         fieldsCombobox.selectedItem = schemaType
                     }
                 }
             }
 
-            executeNotOnEdt {
-                val schemaType = calculateSchemaTypeForTopic(dataManager, topicCombobox, isKey) ?: return@executeNotOnEdt
+            scope.launch {
+                val schemaType = calculateSchemaTypeForTopic(dataManager, topicCombobox, isKey) ?: return@launch
                 runInEdt {
                     fieldsCombobox.selectedItem = schemaType
                 }
@@ -314,7 +321,7 @@ object KafkaEditorUtils {
         return schemaCombobox
     }
 
-    private fun calculateSchemaTypeForTopic(
+    private suspend fun calculateSchemaTypeForTopic(
         kafkaManager: BaseClusterDataManager,
         topicComboBox: ComboBox<TopicInEditor>,
         isKey: Boolean

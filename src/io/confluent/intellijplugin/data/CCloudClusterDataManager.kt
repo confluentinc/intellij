@@ -499,13 +499,13 @@ class CCloudClusterDataManager(
         }
     }
 
-    override fun getLatestVersionInfo(schemaName: String): SchemaVersionInfo? {
+    override suspend fun getLatestVersionInfo(schemaName: String): SchemaVersionInfo? {
         if (!dataPlaneCache.hasSchemaRegistry()) {
             return null
         }
 
         return try {
-            runBlocking(Dispatchers.IO) {
+            withContext(Dispatchers.IO) {
                 val versionResponse = dataPlaneCache.getFetcher()?.getLatestVersionInfo(schemaName)
                 versionResponse?.let {
                     SchemaVersionInfo(
@@ -565,7 +565,7 @@ class CCloudClusterDataManager(
         )
     }
 
-    override fun getCachedOrLoadSchema(name: String): KafkaSchemaInfo {
+    override suspend fun getCachedOrLoadSchema(name: String): KafkaSchemaInfo {
         if (!dataPlaneCache.hasSchemaRegistry()) {
             throw UnsupportedOperationException("Schema registry not configured for this cluster")
         }
@@ -578,7 +578,7 @@ class CCloudClusterDataManager(
 
         // Load from API if not cached or incomplete
         return try {
-            runBlocking(Dispatchers.IO) {
+            withContext(Dispatchers.IO) {
                 val schemaData = dataPlaneCache.getFetcher()?.loadSchemaInfo(name)
                 // Use SR config (not cluster config) so all clusters sharing an SR see the same favorites
                 val config = getSchemaRegistryConfig()
@@ -628,8 +628,7 @@ class CCloudClusterDataManager(
                 }.takeIf { it.isNotEmpty() }
             )
 
-            dataPlaneCache.getFetcher()?.registerSchema(versionInfo.schemaName, request)
-                ?: error(KafkaMessagesBundle.message("error.schema.registry.fetcher.not.available"))
+            dataPlaneCache.createSchema(versionInfo.schemaName, request)
 
             invalidateSchemaVersionCache(versionInfo.schemaName)
             updateSingleSchemaInList(versionInfo.schemaName)
@@ -705,8 +704,7 @@ class CCloudClusterDataManager(
 
     private suspend fun deleteSchemaWithoutConfirmation(schemaName: String, permanent: Boolean) {
         withContext(Dispatchers.IO) {
-            dataPlaneCache.getFetcher()?.deleteSubject(schemaName, permanent)
-                ?: error(KafkaMessagesBundle.message("error.schema.registry.fetcher.not.available"))
+            dataPlaneCache.deleteSchema(schemaName, permanent)
         }
         invalidateSchemaVersionCache(schemaName)
         removeSingleSchemaFromList(schemaName)
@@ -723,8 +721,7 @@ class CCloudClusterDataManager(
                     schema = parsedSchema.canonicalString(),
                     schemaType = parsedSchema.schemaType()
                 )
-                dataPlaneCache.getFetcher()?.registerSchema(schemaName, request)
-                    ?: error(KafkaMessagesBundle.message("error.schema.registry.fetcher.not.available"))
+                dataPlaneCache.createSchema(schemaName, request)
             }
             updateSingleSchemaInList(schemaName)
         }
