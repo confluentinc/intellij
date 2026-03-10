@@ -47,6 +47,7 @@ import java.time.Instant
 import java.util.Base64
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.math.min
+import kotlin.math.pow
 
 /**
  * REST-based producer client for Confluent Cloud.
@@ -58,6 +59,8 @@ class CCloudProducerClient(
     private val clusterDataManager: CCloudClusterDataManager,
     val onStart: () -> Unit,
     val onStop: () -> Unit,
+    @VisibleForTesting internal val baseBackoffMs: Long = BASE_BACKOFF_MS,
+    @VisibleForTesting internal val maxBackoffMs: Long = MAX_BACKOFF_MS,
 ) : ProducerClient {
 
     private val running = AtomicBoolean(false)
@@ -422,45 +425,59 @@ class CCloudProducerClient(
     /**
      * Produce a single record with retry and exponential backoff for transient errors.
      * Retries on 429 (rate limit) and 5xx (server errors). Fails immediately on 4xx client errors.
+     *
+     * Handles both HTTP-level errors (thrown as [CCloudApiException] by the REST client)
+     * and application-level errors (returned in the response body with an errorCode).
      */
-    private suspend fun produceWithRetry(
+    @VisibleForTesting
+    internal suspend fun produceWithRetry(
         fetcher: DataPlaneFetcher,
         topic: String,
         request: ProduceRecordRequest
     ): Pair<ProduceRecordResponse, Long> {
         var lastException: CCloudApiException? = null
 
-        repeat(MAX_RETRIES) { attempt ->
+        repeat(maxRetries) { attempt ->
             if (!running.get()) throw CancellationException("Producer stopped")
 
             val startTime = System.currentTimeMillis()
-            val response = fetcher.produceRecord(topic, request)
-            val duration = System.currentTimeMillis() - startTime
+            try {
+                val response = fetcher.produceRecord(topic, request)
+                val duration = System.currentTimeMillis() - startTime
 
-            if (response.errorCode == null || response.errorCode == 200) {
-                return Pair(response, duration)
+                if (response.errorCode == null || response.errorCode == 200) {
+                    return Pair(response, duration)
+                }
+
+                // Application-level error in response body
+                val exception = CCloudApiException(
+                    response.message ?: "Produce failed with error code ${response.errorCode}",
+                    response.errorCode
+                )
+
+                if (!isRetryableStatus(response.errorCode)) {
+                    throw exception
+                }
+
+                lastException = exception
+            } catch (e: CCloudApiException) {
+                // HTTP-level errors thrown by the REST client (e.g. 429, 5xx)
+                if (!isRetryableStatus(e.statusCode)) {
+                    throw e
+                }
+                lastException = e
             }
 
-            val exception = CCloudApiException(
-                response.message ?: "Produce failed with error code ${response.errorCode}",
-                response.errorCode
-            )
-
-            if (!isRetryableStatus(response.errorCode)) {
-                throw exception
-            }
-
-            lastException = exception
-            thisLogger().debug("Retryable produce error (attempt ${attempt + 1}/$MAX_RETRIES): ${response.errorCode}")
+            thisLogger().debug("Retryable produce error (attempt ${attempt + 1}/$maxRetries): ${lastException?.statusCode}")
 
             val backoffMs = min(
-                BASE_BACKOFF_MS * (1L shl min(attempt, 5)),
-                MAX_BACKOFF_MS
+                baseBackoffMs * 2.0.pow(attempt).toLong(),
+                maxBackoffMs
             )
             delay(backoffMs)
         }
 
-        throw lastException ?: CCloudApiException("Produce failed after $MAX_RETRIES retries", 0)
+        throw lastException ?: CCloudApiException("Produce failed after $maxRetries retries", 0)
     }
 
     @VisibleForTesting
