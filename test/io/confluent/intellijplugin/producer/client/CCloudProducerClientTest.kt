@@ -14,6 +14,10 @@ import io.confluent.intellijplugin.registry.KafkaRegistryFormat
 import io.confluent.intellijplugin.registry.KafkaRegistryType
 import io.confluent.kafka.schemaregistry.avro.AvroSchema
 import io.confluent.kafka.schemaregistry.avro.AvroSchemaUtils
+import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchema
+import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchemaUtils
+import com.google.protobuf.DynamicMessage
+import io.confluent.kafka.schemaregistry.protobuf.MessageIndexes
 import io.confluent.intellijplugin.ccloud.model.response.PartitionData
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.*
@@ -75,100 +79,263 @@ class CCloudProducerClientTest {
     @DisplayName("buildRecordData")
     inner class BuildRecordData {
 
-        @Test
-        fun `should build STRING type data`() {
-            val field = createFieldConfig(KafkaFieldType.STRING, "hello")
-            val data = runBlocking { client.buildRecordData(mockFetcher, field, "test-topic") }
+        private val avroSchemaJson = """{"type": "record", "name": "Test", "fields": [{"name": "name", "type": "string"}]}"""
+        private val protoSchemaText = javaClass.getResourceAsStream(
+            "/fixtures/schemas/user-proto-schema.proto"
+        )!!.readBytes().toString(Charsets.UTF_8)
 
-            assertNotNull(data)
-            assertEquals("STRING", data!!.type)
-            assertEquals("hello", data.data)
+        @Nested
+        @DisplayName("primitive and simple types")
+        inner class PrimitiveTypes {
+
+            @Test
+            fun `should build STRING type data`() {
+                val field = createFieldConfig(KafkaFieldType.STRING, "hello")
+                val data = runBlocking { client.buildRecordData(mockFetcher, field, "test-topic") }
+
+                assertNotNull(data)
+                assertEquals("STRING", data!!.type)
+                assertEquals("hello", data.data)
+            }
+
+            @Test
+            fun `should build JSON type data`() {
+                val field = createFieldConfig(KafkaFieldType.JSON, """{"key": "value"}""")
+                val data = runBlocking { client.buildRecordData(mockFetcher, field, "test-topic") }
+
+                assertNotNull(data)
+                assertEquals("JSON", data!!.type)
+                assertEquals("""{"key": "value"}""", data.data)
+            }
+
+            @Test
+            fun `should build STRING type with empty value`() {
+                val field = createFieldConfig(KafkaFieldType.STRING, "")
+                val data = runBlocking { client.buildRecordData(mockFetcher, field, "test-topic") }
+
+                assertNotNull(data)
+                assertEquals("STRING", data!!.type)
+                assertEquals("", data.data)
+            }
+
+            @Test
+            fun `should return null for NULL type`() {
+                val field = createFieldConfig(KafkaFieldType.NULL)
+                val data = runBlocking { client.buildRecordData(mockFetcher, field, "test-topic") }
+
+                assertNull(data)
+            }
+
+            @Test
+            fun `should build BINARY type for LONG`() {
+                val field = createFieldConfig(KafkaFieldType.LONG, "12345")
+                val data = runBlocking { client.buildRecordData(mockFetcher, field, "test-topic") }
+
+                assertNotNull(data)
+                assertEquals("BINARY", data!!.type)
+                val decoded = Base64.getDecoder().decode(data.data)
+                assertEquals(8, decoded.size)
+            }
+
+            @Test
+            fun `should build BINARY type for INTEGER`() {
+                val field = createFieldConfig(KafkaFieldType.INTEGER, "42")
+                val data = runBlocking { client.buildRecordData(mockFetcher, field, "test-topic") }
+
+                assertNotNull(data)
+                assertEquals("BINARY", data!!.type)
+                val decoded = Base64.getDecoder().decode(data.data)
+                assertEquals(4, decoded.size)
+            }
+
+            @Test
+            fun `should build BINARY type for DOUBLE`() {
+                val field = createFieldConfig(KafkaFieldType.DOUBLE, "3.14")
+                val data = runBlocking { client.buildRecordData(mockFetcher, field, "test-topic") }
+
+                assertNotNull(data)
+                assertEquals("BINARY", data!!.type)
+                val decoded = Base64.getDecoder().decode(data.data)
+                assertEquals(8, decoded.size)
+            }
+
+            @Test
+            fun `should build BINARY type for FLOAT`() {
+                val field = createFieldConfig(KafkaFieldType.FLOAT, "2.5")
+                val data = runBlocking { client.buildRecordData(mockFetcher, field, "test-topic") }
+
+                assertNotNull(data)
+                assertEquals("BINARY", data!!.type)
+                val decoded = Base64.getDecoder().decode(data.data)
+                assertEquals(4, decoded.size)
+            }
+
+            @Test
+            fun `should build BINARY type for BASE64`() {
+                val inputBytes = byteArrayOf(1, 2, 3, 4)
+                val inputBase64 = Base64.getEncoder().encodeToString(inputBytes)
+                val field = createFieldConfig(KafkaFieldType.BASE64, inputBase64)
+                val data = runBlocking { client.buildRecordData(mockFetcher, field, "test-topic") }
+
+                assertNotNull(data)
+                assertEquals("BINARY", data!!.type)
+                val decoded = Base64.getDecoder().decode(data.data)
+                assertArrayEquals(inputBytes, decoded)
+            }
         }
 
-        @Test
-        fun `should build JSON type data`() {
-            val field = createFieldConfig(KafkaFieldType.JSON, """{"key": "value"}""")
-            val data = runBlocking { client.buildRecordData(mockFetcher, field, "test-topic") }
+        @Nested
+        @DisplayName("Schema Registry types")
+        inner class SchemaRegistryTypes {
 
-            assertNotNull(data)
-            assertEquals("JSON", data!!.type)
-            assertEquals("""{"key": "value"}""", data.data)
+            @Test
+            fun `should build BINARY for SCHEMA_REGISTRY Avro`() {
+                val avroSchema = AvroSchema(avroSchemaJson)
+                val field = ConsumerProducerFieldConfig(
+                    type = KafkaFieldType.SCHEMA_REGISTRY,
+                    valueText = """{"name": "test"}""",
+                    isKey = false,
+                    topic = "test-topic",
+                    registryType = KafkaRegistryType.CONFLUENT,
+                    schemaName = "my-subject",
+                    schemaFormat = KafkaRegistryFormat.AVRO,
+                    parsedSchema = avroSchema
+                )
+                val data = runBlocking { client.buildRecordData(mockFetcher, field, "test-topic") }
+
+                assertNotNull(data)
+                assertEquals("BINARY", data!!.type)
+                val decoded = Base64.getDecoder().decode(data.data)
+                assertTrue(decoded.size > 5)
+                assertEquals(0x00.toByte(), decoded[0])
+                val schemaId = java.nio.ByteBuffer.wrap(decoded, 1, 4).getInt()
+                assertEquals(100, schemaId)
+            }
+
+            @Test
+            fun `should build BINARY for SCHEMA_REGISTRY JSON Schema`() {
+                val field = ConsumerProducerFieldConfig(
+                    type = KafkaFieldType.SCHEMA_REGISTRY,
+                    valueText = """{"key": "value"}""",
+                    isKey = false,
+                    topic = "test-topic",
+                    registryType = KafkaRegistryType.CONFLUENT,
+                    schemaName = "json-subject",
+                    schemaFormat = KafkaRegistryFormat.JSON,
+                    parsedSchema = null
+                )
+                val data = runBlocking { client.buildRecordData(mockFetcher, field, "test-topic") }
+
+                assertNotNull(data)
+                assertEquals("BINARY", data!!.type)
+                val decoded = Base64.getDecoder().decode(data.data)
+                assertEquals(0x00.toByte(), decoded[0])
+                val schemaId = java.nio.ByteBuffer.wrap(decoded, 1, 4).getInt()
+                assertEquals(100, schemaId)
+                val jsonPayload = String(decoded, 5, decoded.size - 5, Charsets.UTF_8)
+                assertEquals("""{"key": "value"}""", jsonPayload)
+            }
+
+            @Test
+            fun `should build BINARY for SCHEMA_REGISTRY Protobuf with wire format prefix`() {
+                val protobufSchema = ProtobufSchema(protoSchemaText)
+                val field = ConsumerProducerFieldConfig(
+                    type = KafkaFieldType.SCHEMA_REGISTRY,
+                    valueText = """{"name": "Bob", "age": 25}""",
+                    isKey = false,
+                    topic = "test-topic",
+                    registryType = KafkaRegistryType.CONFLUENT,
+                    schemaName = "proto-subject",
+                    schemaFormat = KafkaRegistryFormat.PROTOBUF,
+                    parsedSchema = protobufSchema
+                )
+                val data = runBlocking { client.buildRecordData(mockFetcher, field, "test-topic") }
+
+                assertNotNull(data)
+                assertEquals("BINARY", data!!.type)
+                val decoded = Base64.getDecoder().decode(data.data)
+                assertEquals(0x00.toByte(), decoded[0])
+                val schemaId = java.nio.ByteBuffer.wrap(decoded, 1, 4).getInt()
+                assertEquals(100, schemaId)
+                val payload = decoded.copyOfRange(5, decoded.size)
+                val indexBytes = MessageIndexes(listOf(0)).toByteArray()
+                val protoBytes = payload.copyOfRange(indexBytes.size, payload.size)
+                val descriptor = protobufSchema.toDescriptor()!!
+                val message = DynamicMessage.parseFrom(descriptor, protoBytes)
+                assertEquals("Bob", message.getField(descriptor.findFieldByName("name")))
+                assertEquals(25, message.getField(descriptor.findFieldByName("age")))
+            }
+
+            @Test
+            fun `should throw on SCHEMA_REGISTRY with UNKNOWN format`() {
+                val field = ConsumerProducerFieldConfig(
+                    type = KafkaFieldType.SCHEMA_REGISTRY,
+                    valueText = "some data",
+                    isKey = false,
+                    topic = "test-topic",
+                    registryType = KafkaRegistryType.CONFLUENT,
+                    schemaName = "unknown-subject",
+                    schemaFormat = KafkaRegistryFormat.UNKNOWN,
+                    parsedSchema = null
+                )
+
+                assertThrows(IllegalStateException::class.java) {
+                    runBlocking { client.buildRecordData(mockFetcher, field, "test-topic") }
+                }
+            }
         }
 
-        @Test
-        fun `should build STRING type with empty value`() {
-            val field = createFieldConfig(KafkaFieldType.STRING, "")
-            val data = runBlocking { client.buildRecordData(mockFetcher, field, "test-topic") }
+        @Nested
+        @DisplayName("custom schema types")
+        inner class CustomSchemaTypes {
 
-            assertNotNull(data)
-            assertEquals("STRING", data!!.type)
-            assertEquals("", data.data)
-        }
+            @Test
+            fun `should build BINARY for AVRO_CUSTOM`() {
+                val avroSchema = AvroSchema(avroSchemaJson)
+                val field = ConsumerProducerFieldConfig(
+                    type = KafkaFieldType.AVRO_CUSTOM,
+                    valueText = """{"name": "test"}""",
+                    isKey = false,
+                    topic = "test-topic",
+                    registryType = KafkaRegistryType.NONE,
+                    schemaName = "",
+                    schemaFormat = KafkaRegistryFormat.AVRO,
+                    parsedSchema = avroSchema
+                )
+                val data = runBlocking { client.buildRecordData(mockFetcher, field, "test-topic") }
 
-        @Test
-        fun `should return null for NULL type`() {
-            val field = createFieldConfig(KafkaFieldType.NULL)
-            val data = runBlocking { client.buildRecordData(mockFetcher, field, "test-topic") }
+                assertNotNull(data)
+                assertEquals("BINARY", data!!.type)
+                val decoded = Base64.getDecoder().decode(data.data)
+                val reader = org.apache.avro.generic.GenericDatumReader<Any>(avroSchema.rawSchema())
+                val decoder = org.apache.avro.io.DecoderFactory.get().binaryDecoder(decoded, null)
+                val result = reader.read(null, decoder) as org.apache.avro.generic.GenericRecord
+                assertEquals("test", result.get("name").toString())
+            }
 
-            assertNull(data)
-        }
+            @Test
+            fun `should build BINARY for PROTOBUF_CUSTOM`() {
+                val protobufSchema = ProtobufSchema(protoSchemaText)
+                val field = ConsumerProducerFieldConfig(
+                    type = KafkaFieldType.PROTOBUF_CUSTOM,
+                    valueText = """{"name": "Alice", "age": 30}""",
+                    isKey = false,
+                    topic = "test-topic",
+                    registryType = KafkaRegistryType.NONE,
+                    schemaName = "",
+                    schemaFormat = KafkaRegistryFormat.PROTOBUF,
+                    parsedSchema = protobufSchema
+                )
+                val data = runBlocking { client.buildRecordData(mockFetcher, field, "test-topic") }
 
-        @Test
-        fun `should build BINARY type for LONG`() {
-            val field = createFieldConfig(KafkaFieldType.LONG, "12345")
-            val data = runBlocking { client.buildRecordData(mockFetcher, field, "test-topic") }
-
-            assertNotNull(data)
-            assertEquals("BINARY", data!!.type)
-            // Verify base64 data decodes to 8-byte long
-            val decoded = Base64.getDecoder().decode(data.data)
-            assertEquals(8, decoded.size)
-        }
-
-        @Test
-        fun `should build BINARY type for INTEGER`() {
-            val field = createFieldConfig(KafkaFieldType.INTEGER, "42")
-            val data = runBlocking { client.buildRecordData(mockFetcher, field, "test-topic") }
-
-            assertNotNull(data)
-            assertEquals("BINARY", data!!.type)
-            val decoded = Base64.getDecoder().decode(data.data)
-            assertEquals(4, decoded.size)
-        }
-
-        @Test
-        fun `should build BINARY type for DOUBLE`() {
-            val field = createFieldConfig(KafkaFieldType.DOUBLE, "3.14")
-            val data = runBlocking { client.buildRecordData(mockFetcher, field, "test-topic") }
-
-            assertNotNull(data)
-            assertEquals("BINARY", data!!.type)
-            val decoded = Base64.getDecoder().decode(data.data)
-            assertEquals(8, decoded.size)
-        }
-
-        @Test
-        fun `should build BINARY type for FLOAT`() {
-            val field = createFieldConfig(KafkaFieldType.FLOAT, "2.5")
-            val data = runBlocking { client.buildRecordData(mockFetcher, field, "test-topic") }
-
-            assertNotNull(data)
-            assertEquals("BINARY", data!!.type)
-            val decoded = Base64.getDecoder().decode(data.data)
-            assertEquals(4, decoded.size)
-        }
-
-        @Test
-        fun `should build BINARY type for BASE64`() {
-            val inputBytes = byteArrayOf(1, 2, 3, 4)
-            val inputBase64 = Base64.getEncoder().encodeToString(inputBytes)
-            val field = createFieldConfig(KafkaFieldType.BASE64, inputBase64)
-            val data = runBlocking { client.buildRecordData(mockFetcher, field, "test-topic") }
-
-            assertNotNull(data)
-            assertEquals("BINARY", data!!.type)
-            val decoded = Base64.getDecoder().decode(data.data)
-            assertArrayEquals(inputBytes, decoded)
+                assertNotNull(data)
+                assertEquals("BINARY", data!!.type)
+                val decoded = Base64.getDecoder().decode(data.data)
+                val descriptor = protobufSchema.toDescriptor()!!
+                val message = DynamicMessage.parseFrom(descriptor, decoded)
+                assertEquals("Alice", message.getField(descriptor.findFieldByName("name")))
+                assertEquals(30, message.getField(descriptor.findFieldByName("age")))
+            }
         }
     }
 
@@ -332,67 +499,6 @@ class CCloudProducerClientTest {
     }
 
     @Nested
-    @DisplayName("buildRecordData - schema types")
-    inner class BuildRecordDataSchema {
-
-        @Test
-        fun `should build BINARY for SCHEMA_REGISTRY Avro`() {
-            val schemaJson = """{"type": "record", "name": "Test", "fields": [{"name": "name", "type": "string"}]}"""
-            val avroSchema = AvroSchema(schemaJson)
-            val field = ConsumerProducerFieldConfig(
-                type = KafkaFieldType.SCHEMA_REGISTRY,
-                valueText = """{"name": "test"}""",
-                isKey = false,
-                topic = "test-topic",
-                registryType = KafkaRegistryType.CONFLUENT,
-                schemaName = "my-subject",
-                schemaFormat = KafkaRegistryFormat.AVRO,
-                parsedSchema = avroSchema
-            )
-            val data = runBlocking { client.buildRecordData(mockFetcher, field, "test-topic") }
-
-            assertNotNull(data)
-            assertEquals("BINARY", data!!.type)
-            // Verify the base64 data decodes to V0 wire format prefix + Avro bytes
-            val decoded = Base64.getDecoder().decode(data.data)
-            assertTrue(decoded.size > 5)
-            // First byte is magic byte 0x00
-            assertEquals(0x00.toByte(), decoded[0])
-            // Next 4 bytes are schema ID (100) in big-endian
-            val schemaId = java.nio.ByteBuffer.wrap(decoded, 1, 4).getInt()
-            assertEquals(100, schemaId)
-        }
-
-        @Test
-        fun `should build BINARY for SCHEMA_REGISTRY JSON Schema`() {
-            val field = ConsumerProducerFieldConfig(
-                type = KafkaFieldType.SCHEMA_REGISTRY,
-                valueText = """{"key": "value"}""",
-                isKey = false,
-                topic = "test-topic",
-                registryType = KafkaRegistryType.CONFLUENT,
-                schemaName = "json-subject",
-                schemaFormat = KafkaRegistryFormat.JSON,
-                parsedSchema = null
-            )
-            val data = runBlocking { client.buildRecordData(mockFetcher, field, "test-topic") }
-
-            assertNotNull(data)
-            assertEquals("BINARY", data!!.type)
-            // Verify base64 decodes to V0 wire format prefix + JSON payload
-            val decoded = Base64.getDecoder().decode(data.data)
-            // First byte is magic byte 0x00
-            assertEquals(0x00.toByte(), decoded[0])
-            // Next 4 bytes are schema ID (100) in big-endian
-            val schemaId = java.nio.ByteBuffer.wrap(decoded, 1, 4).getInt()
-            assertEquals(100, schemaId)
-            // Remaining bytes are the JSON payload
-            val jsonPayload = String(decoded, 5, decoded.size - 5, Charsets.UTF_8)
-            assertEquals("""{"key": "value"}""", jsonPayload)
-        }
-    }
-
-    @Nested
     @DisplayName("serializeAvro")
     inner class SerializeAvroTest {
 
@@ -409,6 +515,34 @@ class CCloudProducerClientTest {
             val decoder = org.apache.avro.io.DecoderFactory.get().binaryDecoder(bytes, null)
             val result = reader.read(null, decoder) as org.apache.avro.generic.GenericRecord
             assertEquals("hello", result.get("name").toString())
+        }
+    }
+
+    @Nested
+    @DisplayName("serializeProtobuf")
+    inner class SerializeProtobufTest {
+
+        private val protoSchemaText = javaClass.getResourceAsStream(
+            "/fixtures/schemas/user-proto-schema.proto"
+        )!!.readBytes().toString(Charsets.UTF_8)
+
+        @Test
+        fun `should serialize with message indexes and be deserializable`() {
+            val schema = ProtobufSchema(protoSchemaText)
+            val descriptor = schema.toDescriptor()!!
+            val original = DynamicMessage.newBuilder(descriptor)
+                .setField(descriptor.findFieldByName("name"), "Alice")
+                .setField(descriptor.findFieldByName("age"), 30)
+                .build()
+
+            val bytes = client.serializeProtobuf(original)
+
+            // Should start with message indexes (same as consumer expects)
+            val indexBytes = MessageIndexes(listOf(0)).toByteArray()
+            val protoBytes = bytes.copyOfRange(indexBytes.size, bytes.size)
+            val result = DynamicMessage.parseFrom(descriptor, protoBytes)
+            assertEquals("Alice", result.getField(descriptor.findFieldByName("name")))
+            assertEquals(30, result.getField(descriptor.findFieldByName("age")))
         }
     }
 
