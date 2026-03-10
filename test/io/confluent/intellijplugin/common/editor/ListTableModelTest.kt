@@ -141,35 +141,6 @@ class ListTableModelTest {
     }
 
     @Nested
-    inner class BackwardCompatibility {
-
-        @Test
-        fun `addElement should still work for single item`() {
-            // When
-            model.addElement("single")
-            ApplicationManager.getApplication().invokeAndWait { }
-
-            // Then
-            assertEquals(1, events.size)
-            assertEquals(1, model.rowCount)
-            assertEquals("single", model.getValueAt(0))
-        }
-
-        @Test
-        fun `addElement should batch when called multiple times`() {
-            // When - call multiple times before EDT flush
-            model.addElement("a")
-            model.addElement("b")
-            model.addElement("c")
-            ApplicationManager.getApplication().invokeAndWait { }
-
-            // Then - should be batched into single event
-            assertEquals(1, events.size)
-            assertEquals(3, model.rowCount)
-        }
-    }
-
-    @Nested
     inner class DataAccess {
 
         @Test
@@ -288,7 +259,6 @@ class ListTableModelTest {
 
             // When - clear and then add new data
             model.clear()
-            events.clear()
             model.addBatch(listOf("new1", "new2"))
             ApplicationManager.getApplication().invokeAndWait { }
 

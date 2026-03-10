@@ -198,7 +198,7 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
     }
 
     fun addError(element: KafkaRecord) {
-        outputModel.addElement(element)
+        outputModel.addBatch(listOf(element))
     }
 
     fun getElapsedTimeMs(): Long = statisticPanel.getElapsedTimeMs()

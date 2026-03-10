@@ -57,31 +57,31 @@ class ListTableModel<T>(
         }
 
     fun clear() {
-        synchronized(pendingAdds) {
-            pendingAdds.clear()
-        }
-        flushScheduled.set(false)
-        data.clear()
+        resetAndClearData()
         fireTableDataChanged()
     }
 
     /**
      * Synchronously replace all data. Unlike addBatch(), this does not defer via invokeLater,
-     * so callers can read elements() immediately after this call returns.
+     * so callers can read elements() immediately after this call returns. Used for restoring from prev state.
      */
     fun replaceAll(elements: List<T>) {
+        resetAndClearData()
+        data.addAll(elements)
+        fireTableDataChanged()
+    }
+
+    private fun resetAndClearData() {
         synchronized(pendingAdds) {
             pendingAdds.clear()
         }
         flushScheduled.set(false)
         data.clear()
-        data.addAll(elements)
-        fireTableDataChanged()
     }
 
     /**
-     * Add multiple elements in a single batch. This is much more efficient than calling
-     * addElement() multiple times as it fires only one table event instead of one per element.
+     * Add elements in a batch. Items are queued and flushed in a single EDT event via invokeLater,
+     * so multiple addBatch calls between flushes are coalesced into one table update.
      */
     fun addBatch(elements: List<T>) {
         if (elements.isEmpty()) return
@@ -90,12 +90,6 @@ class ListTableModel<T>(
         }
         scheduleFlush()
     }
-
-    /**
-     * Add a single element. For backward compatibility.
-     * For better performance when adding multiple elements, use addBatch() instead.
-     */
-    fun addElement(element: T) = addBatch(listOf(element))
 
     private fun scheduleFlush() {
         if (flushScheduled.compareAndSet(false, true)) {
