@@ -52,6 +52,13 @@ abstract class BaseClusterDataManager(
      */
     abstract fun getSchemaPath(schemaName: String): RfsPath
 
+    /**
+     * Get the config ID to use for all schema-related settings (favorites, filters, limits).
+     * For Kafka: returns connectionId
+     * For CCloud: returns schema registry ID (so all clusters sharing an SR see the same config)
+     */
+    open fun getSchemaRegistryConfigId(): String = connectionId
+
     val topicModel: ObjectDataModel<TopicPresentable> by lazy {
         createTopicsDataModel().also { Disposer.register(this, it) }
     }
@@ -170,8 +177,9 @@ abstract class BaseClusterDataManager(
 
     abstract fun supportsConsumerGroups(): Boolean
     abstract fun supportsAdvancedSettings(): Boolean
-    abstract fun supportsPresets(): Boolean
-    abstract fun supportsDetailsPanel(): Boolean
+
+    // Flag for filtering saved presets depending on CCloud ("ccloud") vs Native (null) connection type
+    open fun presetConnectionTag(): String? = null
 
     val consumerPanelStorage: KafkaConsumerPanelStorage by lazy {
         KafkaConsumerPanelStorage(this).also { Disposer.register(this, it) }
@@ -275,14 +283,8 @@ abstract class BaseClusterDataManager(
 
     fun getSchemaVersionsModel(schemaName: String) = schemaVersionModels[schemaName]
 
-    /**
-     * Gets the configuration ID used for schema favorites.
-     * By default uses connectionId, but can be overridden (e.g., CCloud uses SR ID).
-     */
-    open fun getSchemaFavoritesConfigId(): String = connectionId
-
     open fun updatePinnedSchemas(schemaName: String, isForAdding: Boolean) {
-        val config = KafkaToolWindowSettings.getInstance().getOrCreateConfig(getSchemaFavoritesConfigId())
+        val config = KafkaToolWindowSettings.getInstance().getOrCreateConfig(getSchemaRegistryConfigId())
         if (isForAdding) {
             config.schemasPined += schemaName
         } else {
@@ -312,44 +314,18 @@ abstract class BaseClusterDataManager(
         topics: List<TopicPresentable>,
         showInternalTopics: Boolean,
         filterName: String?
-    ): List<TopicPresentable> {
-        return topics.filter { topic ->
-            (showInternalTopics || !topic.internal) &&
-                (filterName == null || topic.name.lowercase().contains(filterName.lowercase()))
-        }
-    }
+    ) = ClusterDataFilters.applyTopicFilters(topics, showInternalTopics, filterName)
 
     protected fun sortTopicsWithFavorites(
         topics: List<TopicPresentable>,
         pinnedTopics: Set<String>,
         showFavoriteOnly: Boolean
-    ): List<TopicPresentable> {
-        val topicsWithFavorites = topics.map { topic ->
-            topic.copy(isFavorite = pinnedTopics.contains(topic.name))
-        }
-
-        val filteredTopics = if (showFavoriteOnly) {
-            topicsWithFavorites.filter { it.isFavorite }
-        } else {
-            topicsWithFavorites
-        }
-
-        return filteredTopics.sortedWith(
-            compareByDescending<TopicPresentable> { it.isFavorite }
-                .thenBy { it.name.lowercase() }
-        )
-    }
+    ) = ClusterDataFilters.sortTopicsWithFavorites(topics, pinnedTopics, showFavoriteOnly)
 
     protected fun applyTopicLimit(
         topics: List<TopicPresentable>,
         limit: Int?
-    ): Pair<List<TopicPresentable>, Boolean> {
-        return if (limit != null && topics.size > limit) {
-            topics.take(limit) to true
-        } else {
-            topics to false
-        }
-    }
+    ) = ClusterDataFilters.applyTopicLimit(topics, limit)
 
     protected fun applySchemaLimit(
         schemas: List<KafkaSchemaInfo>,
@@ -365,52 +341,23 @@ abstract class BaseClusterDataManager(
     protected fun applyConsumerGroupFilters(
         groups: List<ConsumerGroupPresentable>,
         filterName: String?
-    ): List<ConsumerGroupPresentable> {
-        return groups.filter { group ->
-            filterName == null || group.consumerGroup.contains(filterName)
-        }
-    }
+    ) = ClusterDataFilters.applyConsumerGroupFilters(groups, filterName)
 
     protected fun applyConsumerGroupLimit(
         groups: List<ConsumerGroupPresentable>,
         limit: Int?
-    ): Pair<List<ConsumerGroupPresentable>, Boolean> {
-        return if (limit != null && groups.size > limit) {
-            groups.take(limit) to true
-        } else {
-            groups to false
-        }
-    }
+    ) = ClusterDataFilters.applyConsumerGroupLimit(groups, limit)
 
     protected fun applySchemaFilters(
         schemas: List<KafkaSchemaInfo>,
         filterName: String?
-    ): List<KafkaSchemaInfo> {
-        return schemas.filter { schema ->
-            filterName == null || schema.name.lowercase().contains(filterName.lowercase())
-        }
-    }
+    ) = ClusterDataFilters.applySchemaFilters(schemas, filterName)
 
     protected fun sortSchemasWithFavorites(
         schemas: List<KafkaSchemaInfo>,
         pinnedSchemas: Set<String>,
         showFavoriteOnly: Boolean
-    ): List<KafkaSchemaInfo> {
-        val schemasWithFavorites = schemas.map { schema ->
-            schema.copy(isFavorite = pinnedSchemas.contains(schema.name))
-        }
-
-        val filteredSchemas = if (showFavoriteOnly) {
-            schemasWithFavorites.filter { it.isFavorite }
-        } else {
-            schemasWithFavorites
-        }
-
-        return filteredSchemas.sortedWith(
-            compareByDescending<KafkaSchemaInfo> { it.isFavorite }
-                .thenBy { it.name.lowercase() }
-        )
-    }
+    ) = ClusterDataFilters.sortSchemasWithFavorites(schemas, pinnedSchemas, showFavoriteOnly)
 
     private fun createTopicsDataModel() = ObjectDataModel(
         idFieldName = TopicPresentable::name,

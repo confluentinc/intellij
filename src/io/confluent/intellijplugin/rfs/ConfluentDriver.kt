@@ -75,6 +75,17 @@ class ConfluentDriver(
         })
     }
 
+    /**
+     * Register topic listeners for all clusters in the environment.
+     * Called when environment is selected to enable auto-refresh on topic creation.
+     */
+    fun registerListenersForEnvironment(envId: String) {
+        val clusters = dataManager.getKafkaClusters(envId)
+        clusters.forEach { cluster ->
+            registerClusterTopicListener(cluster.id, cluster)
+        }
+    }
+
     private fun registerSchemaRegistryListener(srId: String, cluster: Cluster) {
         if (registeredSchemaListeners.contains(srId)) return
         registeredSchemaListeners.add(srId)

@@ -22,6 +22,7 @@ import io.confluent.intellijplugin.core.util.runAsync
 import io.confluent.intellijplugin.core.util.runAsyncSuspend
 import io.confluent.intellijplugin.model.*
 import io.confluent.intellijplugin.registry.KafkaRegistryFormat
+import io.confluent.intellijplugin.registry.KafkaRegistryUtil
 import io.confluent.intellijplugin.registry.SchemaVersionInfo
 import io.confluent.intellijplugin.registry.common.KafkaSchemaInfo
 import io.confluent.intellijplugin.rfs.KafkaConnectionData
@@ -61,8 +62,6 @@ class KafkaDataManager(
 
     override fun supportsConsumerGroups(): Boolean = true
     override fun supportsAdvancedSettings(): Boolean = true
-    override fun supportsPresets(): Boolean = true
-    override fun supportsDetailsPanel(): Boolean = true
 
     /**
      * Get the RFS path for a schema subject in Kafka format: ["Schema Registry", schemaName]
@@ -221,7 +220,7 @@ class KafkaDataManager(
 
     override fun parseSchemaForDisplay(versionInfo: SchemaVersionInfo): Result<io.confluent.kafka.schemaregistry.ParsedSchema> {
         // For Confluent registry, pass the client; for Glue, pass null (uses default providers)
-        return io.confluent.intellijplugin.registry.KafkaRegistryUtil.parseSchema(
+        return KafkaRegistryUtil.parseSchema(
             versionInfo.type,
             versionInfo.schema,
             client = client.confluentRegistryClient,

@@ -7,12 +7,12 @@ import com.intellij.openapi.ui.putUserData
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.Key
 import com.intellij.ui.SimpleListCellRenderer
-import io.confluent.intellijplugin.data.KafkaDataManager
+import io.confluent.intellijplugin.data.BaseClusterDataManager
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
 
 class SchemaVersionsComboboxController(
     rootDisposable: Disposable,
-    private val kafkaManager: KafkaDataManager,
+    private val kafkaManager: BaseClusterDataManager,
     private val onListUpdate: (List<Long>) -> Unit
 ) : Disposable {
     var schemaName: String = ""

@@ -24,6 +24,7 @@ import org.apache.kafka.clients.producer.KafkaProducer
 import org.apache.kafka.clients.producer.ProducerConfig
 import org.apache.kafka.clients.producer.ProducerRecord
 import org.apache.kafka.common.serialization.Serializer
+import org.jetbrains.annotations.VisibleForTesting
 import java.util.*
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
@@ -31,7 +32,8 @@ import java.util.concurrent.atomic.AtomicBoolean
 class KafkaProducerClient(val client: KafkaClient) {
     val connectionData = client.connectionData
 
-    val isRunning = AtomicBoolean(false)
+    @VisibleForTesting
+    internal val isRunning = AtomicBoolean(false)
 
     fun isRunning(): Boolean = isRunning.get()
 
@@ -193,9 +195,7 @@ class KafkaProducerClient(val client: KafkaClient) {
     }
 
     fun stop() {
-        if (!isRunning())
-            error("Producer is not run")
-        isRunning.set(false)
+        if (!isRunning.getAndSet(false)) return
     }
 
 

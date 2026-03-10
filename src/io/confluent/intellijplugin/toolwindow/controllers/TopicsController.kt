@@ -10,6 +10,7 @@ import com.intellij.ui.SearchTextField
 import com.intellij.ui.SimpleTextAttributes
 import com.intellij.util.ui.StatusText
 import com.intellij.util.ui.UIUtil
+import io.confluent.intellijplugin.core.monitoring.data.MonitoringDataManager
 import io.confluent.intellijplugin.core.monitoring.data.listener.DataModelListener
 import io.confluent.intellijplugin.core.monitoring.data.model.FilterAdapter
 import io.confluent.intellijplugin.core.monitoring.data.model.FilterKey
@@ -33,7 +34,9 @@ import io.confluent.intellijplugin.toolwindow.actions.KafkaCreateConsumerAction
 import io.confluent.intellijplugin.toolwindow.config.KafkaToolWindowSettings
 import io.confluent.intellijplugin.util.KafkaDialogFactory
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
+import java.awt.BorderLayout
 import javax.swing.JLabel
+import javax.swing.JViewport
 import javax.swing.ListSelectionModel
 import javax.swing.event.DocumentEvent
 
@@ -90,7 +93,7 @@ internal class TopicsController(
         dataTable.selectionModel.selectionMode = ListSelectionModel.MULTIPLE_INTERVAL_SELECTION
 
         dataTable.customDataProvider = UiDataProvider { sink ->
-            sink[MainTreeController.DATA_MANAGER] = dataManager as io.confluent.intellijplugin.core.monitoring.data.MonitoringDataManager
+            sink[MainTreeController.DATA_MANAGER] = dataManager as MonitoringDataManager
 
             // Generate the correct RFS path based on selection and data manager type
             val selectedTopicName = getSelectedItem()?.name
@@ -141,8 +144,8 @@ internal class TopicsController(
 
         val shouldShowToolbar = hasTopics || hasFilters
 
-        val layout = decoratedTableComponent.layout as? java.awt.BorderLayout
-        val northComponent = layout?.getLayoutComponent(java.awt.BorderLayout.NORTH)
+        val layout = decoratedTableComponent.layout as? BorderLayout
+        val northComponent = layout?.getLayoutComponent(BorderLayout.NORTH)
         northComponent?.isVisible = shouldShowToolbar
 
         dataTable.tableHeader?.isVisible = shouldShowToolbar
@@ -158,7 +161,7 @@ internal class TopicsController(
         val toolWindowSettings = KafkaToolWindowSettings.getInstance()
         val clusterConfig = toolWindowSettings.getOrCreateConfig(dataManager.connectionId)
 
-        if (dataTable.parent is javax.swing.JViewport) {
+        if (dataTable.parent is JViewport) {
             dataTable.emptyText.attachTo(dataTable, dataTable)
         }
 

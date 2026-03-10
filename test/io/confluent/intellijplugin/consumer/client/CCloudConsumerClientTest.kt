@@ -35,6 +35,7 @@ import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.*
 import java.io.ByteArrayOutputStream
+import java.util.concurrent.ConcurrentHashMap
 import java.nio.ByteBuffer
 import java.util.Base64
 import java.util.UUID
@@ -450,8 +451,9 @@ class CCloudConsumerClientTest {
             val headers = RecordHeaders()
 
             // Pre-populate cache with a mock ParsedSchema that isn't Avro/Protobuf/Json
-            // Cache key is prefixed with SR cluster ID
-            client.schemaCache["$TEST_SR_CLUSTER_ID:$schemaId"] = mock<ParsedSchema> {
+            val registryId = SchemaRegistryClusterId(TEST_SR_CLUSTER_ID)
+            client.schemaCache
+                .getOrPut(registryId) { ConcurrentHashMap() }[SchemaCacheKey.ById(schemaId)] = mock<ParsedSchema> {
                 on { schemaType() } doReturn "UNKNOWN"
             }
 
@@ -518,6 +520,23 @@ class CCloudConsumerClientTest {
 
             // Fetcher should only be called once due to caching
             verify(mockFetcher, times(1)).getSchemaIdInfo(schemaId)
+        }
+
+        @Test
+        fun `should isolate schemas across different registry cluster IDs`() {
+            val schemaId = 42
+            val registryA = SchemaRegistryClusterId("lsrc-aaa")
+            val registryB = SchemaRegistryClusterId("lsrc-bbb")
+            val key = SchemaCacheKey.ById(schemaId)
+
+            val schemaA = mock<ParsedSchema> { on { schemaType() } doReturn "AVRO" }
+            val schemaB = mock<ParsedSchema> { on { schemaType() } doReturn "PROTOBUF" }
+
+            client.schemaCache.getOrPut(registryA) { ConcurrentHashMap() }[key] = schemaA
+            client.schemaCache.getOrPut(registryB) { ConcurrentHashMap() }[key] = schemaB
+
+            assertSame(schemaA, client.schemaCache[registryA]!![key])
+            assertSame(schemaB, client.schemaCache[registryB]!![key])
         }
     }
 

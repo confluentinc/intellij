@@ -11,11 +11,14 @@ import com.intellij.openapi.wm.impl.InternalDecorator
 import com.intellij.openapi.wm.impl.content.ContentTabLabel
 import com.intellij.ui.ComponentUtil
 import com.intellij.util.ui.UIUtil
+import io.confluent.intellijplugin.core.monitoring.rfs.MonitoringDriver
 import io.confluent.intellijplugin.core.monitoring.toolwindow.ComponentController
 import io.confluent.intellijplugin.core.monitoring.toolwindow.MonitoringToolWindowController
 import io.confluent.intellijplugin.core.rfs.driver.ActivitySource
 import io.confluent.intellijplugin.core.rfs.driver.RfsPath
+import io.confluent.intellijplugin.core.rfs.driver.manager.DriverManager
 import io.confluent.intellijplugin.core.rfs.driver.refreshConnectionLaunch
+import io.confluent.intellijplugin.core.util.invokeLater
 import io.confluent.intellijplugin.core.settings.connections.ConnectionData
 import io.confluent.intellijplugin.core.settings.connections.ConnectionFactory
 import io.confluent.intellijplugin.core.settings.manager.RfsConnectionDataManager
@@ -30,6 +33,7 @@ import io.confluent.intellijplugin.toolwindow.controllers.ConfluentMainControlle
 import io.confluent.intellijplugin.toolwindow.controllers.ConfluentTabController
 import io.confluent.intellijplugin.toolwindow.controllers.KafkaMainController
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
+import kotlinx.coroutines.launch
 
 @Service(Service.Level.PROJECT)
 class KafkaMonitoringToolWindowController(project: Project) : MonitoringToolWindowController(project) {
@@ -59,6 +63,8 @@ class KafkaMonitoringToolWindowController(project: Project) : MonitoringToolWind
 
             val controller = ConfluentMainController(project, driver)
             controller.init()
+            // Set controller reference for navigation from tree nodes
+            driver.mainController = controller
 
             com.intellij.openapi.util.Disposer.register(controller, driver)
 
@@ -99,7 +105,21 @@ class KafkaMonitoringToolWindowController(project: Project) : MonitoringToolWind
         val connectionId = contentManager.selectedContent?.getUserData(CONNECTION_ID) ?: return
 
         if (connectionId == "ccloud") {
-            getConfluentCloudTabController()?.getDriver()?.refreshConnectionLaunch(ActivitySource.ACTION)
+            val tabController = getConfluentCloudTabController()
+            val driver = tabController?.getDriver()
+
+            driver?.let {
+                it.dataManager.updater.stopAll()
+                it.dataManager.cancelAllEnrichmentJobs()
+
+                tabController.getMainController()?.refreshControlPlane()
+
+                it.safeExecutor.coroutineScope.launch {
+                    it.dataManager.updater.reloadAll(checkConnection = false)
+                }
+            }
+
+            tabController?.refreshDetailPanel()
             return
         }
 
@@ -117,12 +137,20 @@ class KafkaMonitoringToolWindowController(project: Project) : MonitoringToolWind
         }
     }
 
-    fun getDriverForConnection(connectionId: String): io.confluent.intellijplugin.core.monitoring.rfs.MonitoringDriver? {
+    override fun getDriverForToolbar(connectionId: String?): MonitoringDriver? {
+        // CCloud driver is not in DriverManager, get it from ConfluentTabController
         if (connectionId == "ccloud") {
             return getConfluentCloudTabController()?.getDriver()
         }
-        return io.confluent.intellijplugin.core.rfs.driver.manager.DriverManager.getDriverById(project, connectionId)
-            as? io.confluent.intellijplugin.core.monitoring.rfs.MonitoringDriver
+        return super.getDriverForToolbar(connectionId)
+    }
+
+    fun getDriverForConnection(connectionId: String): MonitoringDriver? {
+        if (connectionId == "ccloud") {
+            return getConfluentCloudTabController()?.getDriver()
+        }
+        return DriverManager.getDriverById(project, connectionId)
+            as? MonitoringDriver
     }
 
     private fun addConfluentCloudTab() {
@@ -134,7 +162,10 @@ class KafkaMonitoringToolWindowController(project: Project) : MonitoringToolWind
             .filter { it.getUserData(CONNECTION_ID) == null }
             .forEach { contentManager.removeContent(it, true) }
 
-        val controller = ConfluentTabController(project)
+        val controller = ConfluentTabController(
+            project,
+            onDriverCreated = { refreshCCloudToolbar() }
+        )
 
         val content = contentManager.factory.createContent(
             controller.getComponent(),
@@ -150,7 +181,7 @@ class KafkaMonitoringToolWindowController(project: Project) : MonitoringToolWind
 
         com.intellij.openapi.util.Disposer.register(content, controller)
         contentManager.addContent(content)
-        io.confluent.intellijplugin.core.util.invokeLater { applyConfluentCloudIcon(content) }
+        invokeLater { applyConfluentCloudIcon(content) }
     }
 
     private fun applyConfluentCloudIcon(content: com.intellij.ui.content.Content) {
@@ -170,6 +201,15 @@ class KafkaMonitoringToolWindowController(project: Project) : MonitoringToolWind
     fun getConfluentCloudTabController(): ConfluentTabController? {
         val content = contentManager.contents.firstOrNull { it.getUserData(CONNECTION_ID) == "ccloud" }
         return content?.getUserData(PAGE_CONTROLLER_ID) as? ConfluentTabController
+    }
+
+    private fun refreshCCloudToolbar() {
+        // Refresh toolbar actions to show progress component after CCloud driver is created
+        com.intellij.openapi.application.ApplicationManager.getApplication().invokeLater {
+            if (contentManager.selectedContent?.getUserData(CONNECTION_ID) == "ccloud") {
+                setupActions("ccloud")
+            }
+        }
     }
 
     override fun focusOn(connectionId: String) = focusOn(connectionId, null)
