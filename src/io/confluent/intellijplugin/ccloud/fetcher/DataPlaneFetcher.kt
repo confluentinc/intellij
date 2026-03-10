@@ -31,6 +31,9 @@ interface DataPlaneFetcher {
         maxPollRecords: Int? = null
     ): PartitionConsumeData
 
+    /** Produce a single record to a topic via the REST API v3. */
+    suspend fun produceRecord(topicName: String, request: ProduceRecordRequest): ProduceRecordResponse
+
     /** Get all subject names from Schema Registry. */
     suspend fun getAllSubjects(): List<String>
 

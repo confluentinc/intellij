@@ -73,6 +73,9 @@ object CloudConfig {
             /** Consume records from a single partition (GET with query params). */
             const val CCLOUD_SINGLE_PARTITION_CONSUME_API_PATH =
                 "/kafka/v3/clusters/%s/internal/topics/%s/partitions/%d/records"
+
+            /** Produce a record: POST /kafka/v3/clusters/{cluster_id}/topics/{topic_name}/records */
+            const val PRODUCE_RECORDS_URI = "/kafka/v3/clusters/%s/topics/%s/records"
         }
 
         /**
