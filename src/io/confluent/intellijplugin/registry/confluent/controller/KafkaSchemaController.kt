@@ -21,8 +21,11 @@ import com.intellij.openapi.util.NlsSafe
 import com.intellij.ui.IdeBorderFactory
 import com.intellij.ui.SideBorder
 import com.intellij.ui.components.JBList
+import com.intellij.ui.components.JBPanelWithEmptyText
+import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.dsl.builder.*
 import com.intellij.ui.table.JBTable
+import com.intellij.ui.treeStructure.Tree
 import com.intellij.ui.dsl.gridLayout.UnscaledGaps
 import com.intellij.ui.layout.migLayout.createLayoutConstraints
 import com.intellij.ui.layout.migLayout.patched.MigLayout
@@ -134,11 +137,14 @@ class KafkaSchemaController(
         when (comp) {
             is JBTable -> comp.emptyText.clear()
             is JBList<*> -> comp.emptyText.clear()
+            is JBPanelWithEmptyText -> comp.emptyText.clear()
+            is Tree -> comp.emptyText.clear()
+            is JBScrollPane -> comp.viewport?.view?.let {
+                (it as? Component)?.let(::clearEmptyTextRecursive)
+            }
         }
 
-        if (comp is Container) {
-            comp.components?.forEach { clearEmptyTextRecursive(it) }
-        }
+        (comp as? Container)?.components?.forEach(::clearEmptyTextRecursive)
     }
 
     override fun getComponent(): JComponent = component
