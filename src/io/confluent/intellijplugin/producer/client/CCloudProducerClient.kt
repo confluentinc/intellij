@@ -208,8 +208,7 @@ class CCloudProducerClient(
                     valueSize = response.value?.size ?: 0,
                     headers = processedHeaders,
                     keyFormat = recordKey.schemaFormat,
-                    valueFormat = recordValue.schemaFormat,
-                    errror = null
+                    valueFormat = recordValue.schemaFormat
                 )
             )
         }
