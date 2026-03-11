@@ -394,6 +394,15 @@ class ConnectionSettingsPanel(val project: Project) : MasterDetailsComponent(),
             }
         }
 
+        // Wire up the "Create Connection" button on the Message Brokers group panel
+        (idToGroup[BrokerConnectionGroup.GROUP_ID] as? BrokerConnectionGroup)?.onCreateConnection = {
+            val kafkaGroup = idToGroup.values.filterIsInstance<ConnectionFactory<*>>()
+                .find { it.parentGroupId == BrokerConnectionGroup.GROUP_ID }
+            if (kafkaGroup != null) {
+                createNewConnectionFor(kafkaGroup)
+            }
+        }
+
         installSearchIndex(keywords)
     }
 
