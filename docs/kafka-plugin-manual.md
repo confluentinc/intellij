@@ -1,24 +1,23 @@
-# Kafka
+# Confluent
 
-The Kafka plugin lets you monitor your [Kafka](https://kafka.apache.org/) event streaming processes,
+The Confluent plugin lets you monitor your [Apache Kafka](https://kafka.apache.org/) event streaming processes,
 create consumers, producers, and topics. It also lets you connect to Schema Registry, as well as create and update
 schemas.
 
-## Install the Kafka plugin
+## Install the Confluent plugin
 
-This functionality relies on the [Kafka](https://plugins.jetbrains.com/plugin/21704-kafka) plugin, which you need to
+This functionality relies on the [Confluent](https://plugins.jetbrains.com/plugin/21704-kafka) plugin, which you need to
 install and enable.
 
 1. Press **⌘ Cmd,** on macOS or **Ctrl Alt S** on Windows/Linux to open settings and then select **Plugins**.
-2. Open the **Marketplace** tab, find the **Kafka** plugin, and click **Install** (restart the IDE if prompted).
+2. Open the **Marketplace** tab, find the **Confluent** plugin, and click **Install** (restart the IDE if prompted).
 
-With the Kafka plugin, you can:
+With the Confluent plugin, you can:
 
 1. Connect to:
-    * [Kafka on a Confluent cluster](#connect-to-confluent-cluster)
-    * [Kafka on an AWS MSK cluster](#connect-to-aws-msk-cluster)
-    * [Custom Kafka cluster](#connect-to-a-custom-kafka-server)
-    * [Kafka cluster using configuration properties](#connect-to-kafka-using-properties)
+    * [Confluent Cloud for Apache Kafka](#confluent-cloud-for-apache-kafka)
+    * [Custom Apache Kafka cluster](#connect-to-a-custom-apache-kafka-server)
+    * [Apache Kafka cluster using configuration properties](#connect-to-apache-kafka-using-properties)
     * Optionally, [connect to Schema Registry](#connect-to-schema-registry)
 
 2. [Produce and consume data](#produce-and-consume-data)
@@ -27,13 +26,13 @@ With the Kafka plugin, you can:
 
 4. [Work with Schema Registry](#work-with-schema-registry)
 
-## Connect to Kafka
+## Connect to Apache Kafka
 
-### Connect to Kafka using cloud providers
+### Connect to Apache Kafka using cloud providers
 
-#### Connect to Confluent cluster
+#### Confluent Cloud for Apache Kafka
 
-1. Open the **Kafka** tool window: **View | Tool Windows | Kafka**.
+1. Open the **Confluent** tool window: **View | Tool Windows | Confluent**.
 2. Click ![Plus icon](icons/app-client.expui.general.add.svg) (**New Connection**).
 3. In the **Name** field, enter the name of the connection to distinguish it between other connections.
 4. In the **Configuration source** list, select **Cloud**, and then, in the **Provider** list, select **Confluent**.
@@ -44,7 +43,7 @@ With the Kafka plugin, you can:
 7. Once you fill in the settings, click **Test connection** to ensure that all configuration parameters are correct.
    Click **OK**.
 
-<img src="images/kafka_confluent.png" alt="Kafka AWS MSK" width="600"/>
+<img src="images/kafka_confluent.png" alt="Confluent Cloud for Apache kafka" width="600"/>
 
 Optionally, you can set up:
 
@@ -54,41 +53,9 @@ Optionally, you can set up:
 * **Per project**: select to enable these connection settings only for the current project. Clear the checkbox if you
   want this connection to be visible in other projects.
 
-#### Connect to AWS MSK cluster
+### Connect to a custom Apache Kafka server
 
-1. Open the **Kafka** tool window: **View | Tool Windows | Kafka**.
-2. Click ![Plus icon](icons/app-client.expui.general.add.svg) (**New Connection**).
-3. In the **Name** field, enter the name of the connection to distinguish it between other connections.
-4. In the **Configuration source** list, select **Cloud**, and then, in the **Provider** list, select **AWS MSK**.
-5. In the **Bootstrap servers** field, enter the URL of the Kafka broker or a comma-separated list of URLs.
-6. In the **AWS Authentication list**, select the authentication method.
-
-    * **Default credential providers chain**: use the credentials from the default provider chain. For more information
-      about the chain, refer
-      to [Using the Default Credential Provider Chain](https://docs.aws.amazon.com/sdk-for-java/v1/developer-guide/credentials.html).
-
-    * **Profile from credentials file**: select a profile from your credentials file.
-
-    * **Explicit access key and secret key**: enter your credentials manually.
-7. Optionally, you can [connect to Schema Registry](#connect-to-schema-registry).
-8. If you want to use an SSH tunnel while connecting to Kafka, select **Enable tunneling** and in the **SSH
-   configuration** list, select an SSH configuration or create a new one.
-9. Once you fill in the settings, click **Test connection** to ensure that all configuration parameters are correct.
-   Click **OK**.
-
-<img src="images/kafka_aws_msk.png" alt="Kafka AWS MSK" width="600"/>
-
-Optionally, you can set up:
-
-* **Enable connection**: clear the checkbox if you want to disable this connection. By default, the newly created
-  connections are enabled.
-
-* **Per project**: select to enable these connection settings only for the current project. Clear the checkbox if you
-  want this connection to be visible in other projects.
-
-### Connect to a custom Kafka server
-
-1. Open the **Kafka** tool window: **View | Tool Windows | Kafka**.
+1. Open the **Confluent** tool window: **View | Tool Windows | Confluent**.
 2. Click ![Plus icon](icons/app-client.expui.general.add.svg) (**New Connection**).
 3. In the **Name** field, enter the name of the connection to distinguish it between other connections.
 4. In the **Configuration source** list, select **Custom**.
@@ -131,9 +98,9 @@ Optionally, you can set up:
 * **Per project**: select to enable these connection settings only for the current project. Clear the checkbox if you
   want this connection to be visible in other projects.
 
-### Connect to Kafka using properties
+### Connect to Apache Kafka using properties
 
-1. Open the **Kafka** tool window: **View | Tool Windows | Kafka**.
+1. Open the **Confluent** tool window: **View | Tool Windows | Confluent**.
 2. Click ![](icons/app-client.expui.general.add.svg) (**New Connection**).
 3. In the **Name** field, enter the name of the connection to distinguish it between other connections.
 4. In the **Configuration source** list, select **Properties**.
@@ -156,9 +123,9 @@ Optionally, you can set up:
 * **Per project**: select to enable these connection settings only for the current project. Clear the checkbox if you
   want this connection to be visible in other projects.
 
-### Connect to Kafka in a Spring project
+### Connect to Apache Kafka in a Spring project
 
-If you use Kafka in a Spring project, you can quickly connect to a Kafka cluster (or open an existing connection) based
+If you use Apache Kafka in a Spring project, you can quickly connect to an Apache Kafka cluster (or open an existing connection) based
 on the configuration properties from your application properties file.
 
 1. Open your `application.properties` or `application.yml` file with at least the `bootstrap-servers` property defined.
@@ -188,7 +155,7 @@ details on it, such as info on partitions, configuration, and schema.
 
 ## Create a topic
 
-1. Open the **Kafka** tool window: **View | Tool Windows | Kafka**.
+1. Open the **Confluent** tool window: **View | Tool Windows | Confluent**.
 2. Click ![](icons/app-client.expui.general.add.svg) (**New Connection**).
 3. Select **Topics** and click ![](icons/app-client.expui.general.add.svg) (alternatively, press **⌘ Cmd N** on macOS or
    **Alt Insert** on Windows/Linux).
@@ -202,7 +169,7 @@ favorite: right-click a topic and select **Add to Favorites**.
 
 ## Delete records from a topic
 
-1. Open the **Kafka** tool window: **View | Tool Windows | Kafka**.
+1. Open the **Confluent** tool window: **View | Tool Windows | Confluent**.
 2. Click ![](icons/app-client.expui.general.add.svg) (**New Connection**).
 3. Under Topics, right-click a topic and select **Clear Topic** (or
    click ![Clear Topic](icons/bigdatatools-core.icons.clearOutputs.svg) to the left of it). Click **OK** to confirm
@@ -212,7 +179,7 @@ favorite: right-click a topic and select **Add to Favorites**.
 
 ### Produce data
 
-1. Open the **Kafka** tool window: **View | Tool Windows | Kafka**.
+1. Open the **Confluent** tool window: **View | Tool Windows | Confluent**.
 2. Click ![](icons/app-client.expui.general.add.svg) (**New Connection**).
 3. Select a Kafka connection and click **Producer**.
    This will open a producer in a new editor tab.
@@ -255,7 +222,7 @@ click ![Show Statistics](icons/app.expui.status.infoOutline.svg) to enable stati
 
 ### Consume data
 
-1. Open the **Kafka** tool window: **View | Tool Windows | Kafka**.
+1. Open the **Confluent** tool window: **View | Tool Windows | Confluent**.
 2. Click ![](icons/app-client.expui.general.add.svg) (**New Connection**).
 3. Select a Kafka connection and click **Consumer**.
    This will open a consumer in a new editor tab.
@@ -299,7 +266,7 @@ You can download produced or consumed data in CSV, TSV, or JSON format.
 If you often produce or consume data with the same keys, values, headers, or other parameters, you can save them as a
 preset. You can then reuse presets to quickly create a producer or a consumer.
 
-1. In the **Kafka** tool window, click **Producer** or **Consumer**.
+1. In the **Confluent** tool window, click **Producer** or **Consumer**.
 2. Specify the needed parameters and, on top of the producer or consumer creation form, click
    the ![Favorite icon](icons/bigdatatools-kafka.icons.bookmark_off.svg) (**Save Preset**).
 
@@ -307,7 +274,7 @@ The parameters are saved as a preset, which is available in the **Presets** tab.
 
 ## Work with Schema Registry
 
-Producers and consumers can use schemas to validate and ensure consistency of their record keys and values. The Kafka
+Producers and consumers can use schemas to validate and ensure consistency of their record keys and values. The Confluent
 plugin integrates with Schema Registry and supports Avro, Protobuf, and JSON schemas. It enables you to:
 
 * Connect to a Schema Registry
@@ -318,10 +285,10 @@ plugin integrates with Schema Registry and supports Avro, Protobuf, and JSON sch
 
 ### Connect to Schema Registry
 
-1. Create connection to a Kafka Broker
-   using [cloud providers](#connect-to-kafka-using-cloud-providers), [custom server](#connect-to-a-custom-kafka-server),
-   or [properties](#connect-to-kafka-using-properties).
-2. If you use [Confluent](#connect-to-confluent-cluster), you can paste both Broker and Schema Registry properties into
+1. Create connection to an Apache Kafka Broker
+   using [cloud providers](#connect-to-apache-kafka-using-cloud-providers), [custom server](#connect-to-a-custom-apache-kafka-server),
+   or [properties](#connect-to-apache-kafka-using-properties).
+2. If you use [Confluent](#confluent-cloud-for-apache-kafka), you can paste both Broker and Schema Registry properties into
    the **Configuration** field.
    Otherwise, expand the **Schema Registry** section and select a provider: **Confluent** or **Glue**.
 
