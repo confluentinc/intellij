@@ -1,4 +1,4 @@
-# Kafka Plugin for IntelliJ - AI Coding Agent Guide
+# Confluent for JetBrains IDEs - AI Coding Agent Guide
 
 ## Project Overview
 

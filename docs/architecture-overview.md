@@ -59,7 +59,7 @@ It opens a custom UI panel in the IntelliJ editor area, depending on the editor 
 
 #### Actions
 
-Several key actions in the Kafka plugin are defined in `plugin.xml` and grouped by context:
+Several key actions in the Confluent plugin are defined in `plugin.xml` and grouped by context:
 
 ```xml
 <actions resource-bundle="messages.KafkaBundle">
@@ -140,7 +140,7 @@ The plugin supports various authentication methods:
 
 ### Spring Boot Integration
 
-When the Spring Boot plugin is installed, the Kafka plugin
+When the Spring Boot plugin is installed, the Confluent plugin
 [can connect](https://www.jetbrains.com/help/idea/big-data-tools-kafka.html#connect_from_spring) to a Kafka cluster (or
 reuse an
 existing connection) using configuration properties from your spring application.
@@ -156,7 +156,7 @@ This integration is possible because the plugin declares an optional dependency 
 <depends config-file="spring-boot.xml" optional="true">com.intellij.spring.boot</depends>
 ```
 
-If the Spring Boot plugin isn’t installed or enabled, the Kafka plugin will still work normally,
+If the Spring Boot plugin isn’t installed or enabled, the Confluent plugin will still work normally,
 but Spring-specific conveniences will be unavailable.
 
 ### Key Packages

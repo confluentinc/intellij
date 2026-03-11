@@ -90,7 +90,7 @@ repositories {
 
 intellijPlatform {
     pluginConfiguration {
-        name = "Kafka"
+        name = "Confluent"
     }
 }
 
