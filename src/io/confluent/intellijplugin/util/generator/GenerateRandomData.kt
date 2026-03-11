@@ -28,7 +28,7 @@ object GenerateRandomData {
             NotificationType.WARNING
         )
             .addAction(DumbAwareAction.create(KafkaMessagesBundle.message("notification.create.issue")) {
-                BrowserUtil.open("https://youtrack.jetbrains.com/newIssue?project=IJPL")
+                BrowserUtil.open("https://github.com/confluentinc/intellij/issues")
             })
         notification.notify(project)
         ""

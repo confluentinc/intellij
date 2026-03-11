@@ -1,18 +1,18 @@
-# Kafka
+# Confluent
 
-The Kafka plugin lets you monitor your [Kafka](https://kafka.apache.org/) event streaming processes,
+The Confluent plugin lets you monitor your [Kafka](https://kafka.apache.org/) event streaming processes,
 create consumers, producers, and topics. It also lets you connect to Schema Registry, as well as create and update
 schemas.
 
-## Install the Kafka plugin
+## Install the Confluent plugin
 
-This functionality relies on the [Kafka](https://plugins.jetbrains.com/plugin/21704-kafka) plugin, which you need to
+This functionality relies on the [Confluent](https://plugins.jetbrains.com/plugin/21704-kafka) plugin, which you need to
 install and enable.
 
 1. Press **⌘ Cmd,** on macOS or **Ctrl Alt S** on Windows/Linux to open settings and then select **Plugins**.
-2. Open the **Marketplace** tab, find the **Kafka** plugin, and click **Install** (restart the IDE if prompted).
+2. Open the **Marketplace** tab, find the **Confluent** plugin, and click **Install** (restart the IDE if prompted).
 
-With the Kafka plugin, you can:
+With the Confluent plugin, you can:
 
 1. Connect to:
     * [Kafka on a Confluent cluster](#connect-to-confluent-cluster)
