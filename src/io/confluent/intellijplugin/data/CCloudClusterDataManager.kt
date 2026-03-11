@@ -21,7 +21,6 @@ import io.confluent.intellijplugin.ccloud.model.response.toPresentable
 import io.confluent.intellijplugin.ccloud.model.response.toSchemaReferences
 import io.confluent.intellijplugin.client.KafkaConstants
 import io.confluent.intellijplugin.common.models.RegistrySchemaInEditor
-import io.confluent.intellijplugin.core.monitoring.data.model.ObjectDataModel
 import io.confluent.intellijplugin.core.monitoring.data.storage.ObjectDataModelStorage
 import io.confluent.intellijplugin.consumer.editor.KafkaConsumerSettings
 import io.confluent.intellijplugin.core.monitoring.data.storage.RootDataModelStorage
@@ -29,7 +28,6 @@ import io.confluent.intellijplugin.core.rfs.driver.RfsPath
 import io.confluent.intellijplugin.core.rfs.driver.SafeExecutor
 import io.confluent.intellijplugin.core.rfs.util.RfsNotificationUtils
 import io.confluent.intellijplugin.core.util.asSilent
-import io.confluent.intellijplugin.core.util.runAsync
 import io.confluent.intellijplugin.core.util.runAsyncSuspend
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
 import io.confluent.intellijplugin.model.BdtTopicPartition
@@ -43,7 +41,6 @@ import io.confluent.intellijplugin.registry.KafkaRegistryUtil
 import io.confluent.intellijplugin.registry.SchemaVersionInfo
 import io.confluent.intellijplugin.registry.common.KafkaSchemaInfo
 import io.confluent.intellijplugin.rfs.ConfluentConnectionData
-import io.confluent.intellijplugin.toolwindow.config.KafkaClusterConfig
 import io.confluent.intellijplugin.toolwindow.config.KafkaToolWindowSettings
 import kotlin.time.Duration
 import kotlinx.coroutines.CancellationException
@@ -99,7 +96,7 @@ class CCloudClusterDataManager(
 
     override val registryType: KafkaRegistryType
         get() = if (dataPlaneCache.hasSchemaRegistry()) KafkaRegistryType.CONFLUENT
-                else KafkaRegistryType.NONE
+        else KafkaRegistryType.NONE
 
     /**
      * Get the RFS path for a schema subject in CCloud format: [schemaRegistryId, schemaName]
@@ -586,7 +583,8 @@ class CCloudClusterDataManager(
                 }
 
                 withContext(Dispatchers.IO) {
-                    val fetcher = dataPlaneCache.getFetcher() ?: error(KafkaMessagesBundle.message("error.schema.registry.fetcher.not.available"))
+                    val fetcher = dataPlaneCache.getFetcher()
+                        ?: error(KafkaMessagesBundle.message("error.schema.registry.fetcher.not.available"))
                     fetcher.deleteSchemaVersion(versionInfo.schemaName, versionInfo.version, permanent = false)
                 }
 

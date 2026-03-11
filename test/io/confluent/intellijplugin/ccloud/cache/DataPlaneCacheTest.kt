@@ -105,8 +105,8 @@ class DataPlaneCacheTest {
 
         @Test
         fun `adds topic to cache and getTopics reflects it`() = runBlocking {
-            val cache = DataPlaneCache(cluster, schemaRegistry)
             val mockFetcher = mock<DataPlaneFetcherImpl>()
+            val cache = DataPlaneCache(cluster, schemaRegistry, mockFetcher)
 
             val newTopic = TopicData(
                 clusterId = "lkc-test",
@@ -119,10 +119,6 @@ class DataPlaneCacheTest {
                 topicName = "new-topic",
                 partitionsCount = 3
             )
-
-            val fetcherField = DataPlaneCache::class.java.getDeclaredField("fetcher")
-            fetcherField.isAccessible = true
-            fetcherField.set(cache, mockFetcher)
 
             whenever(mockFetcher.createTopic(request)).thenReturn(newTopic)
 
@@ -141,19 +137,10 @@ class DataPlaneCacheTest {
 
         @Test
         fun `removes topic from cache and getTopics reflects it`() = runBlocking {
-            val cache = DataPlaneCache(cluster, schemaRegistry)
             val mockFetcher = mock<DataPlaneFetcherImpl>()
-
             val topic1 = TopicData(clusterId = "lkc-test", topicName = "topic-1", partitionsCount = 3, replicationFactor = 3)
             val topic2 = TopicData(clusterId = "lkc-test", topicName = "topic-2", partitionsCount = 6, replicationFactor = 3)
-
-            val cachedTopicsField = DataPlaneCache::class.java.getDeclaredField("cachedTopics")
-            cachedTopicsField.isAccessible = true
-            cachedTopicsField.set(cache, listOf(topic1, topic2))
-
-            val fetcherField = DataPlaneCache::class.java.getDeclaredField("fetcher")
-            fetcherField.isAccessible = true
-            fetcherField.set(cache, mockFetcher)
+            val cache = DataPlaneCache(cluster, schemaRegistry, mockFetcher, initialTopics = listOf(topic1, topic2))
 
             whenever(mockFetcher.deleteTopic("topic-1")).thenReturn(Unit)
 
@@ -171,18 +158,9 @@ class DataPlaneCacheTest {
 
         @Test
         fun `replaces full cache`() = runBlocking {
-            val cache = DataPlaneCache(cluster, schemaRegistry)
             val mockFetcher = mock<DataPlaneFetcherImpl>()
-
             val oldTopic = TopicData(clusterId = "lkc-test", topicName = "old-topic", partitionsCount = 1, replicationFactor = 3)
-
-            val cachedTopicsField = DataPlaneCache::class.java.getDeclaredField("cachedTopics")
-            cachedTopicsField.isAccessible = true
-            cachedTopicsField.set(cache, listOf(oldTopic))
-
-            val fetcherField = DataPlaneCache::class.java.getDeclaredField("fetcher")
-            fetcherField.isAccessible = true
-            fetcherField.set(cache, mockFetcher)
+            val cache = DataPlaneCache(cluster, schemaRegistry, mockFetcher, initialTopics = listOf(oldTopic))
 
             val newTopics = listOf(
                 TopicData(clusterId = "lkc-test", topicName = "topic-1", partitionsCount = 3, replicationFactor = 3),
@@ -206,7 +184,7 @@ class DataPlaneCacheTest {
     inner class TopicEnrichmentTests {
 
         @Test
-        fun `updateTopicInCache stores enrichment data`() {
+        fun `updateTopicInCache stores enrichment data`() = runBlocking {
             val cache = DataPlaneCache(cluster, schemaRegistry)
 
             val enrichmentData = TopicEnrichmentData(messageCount = 1000L)
@@ -217,7 +195,7 @@ class DataPlaneCacheTest {
         }
 
         @Test
-        fun `getTopicEnrichment returns null for unenriched topic`() {
+        fun `getTopicEnrichment returns null for unenriched topic`() = runBlocking {
             val cache = DataPlaneCache(cluster, schemaRegistry)
 
             val result = cache.getTopicEnrichment("nonexistent-topic")
@@ -227,18 +205,9 @@ class DataPlaneCacheTest {
 
         @Test
         fun `deleteTopic removes enrichment from cache`() = runBlocking {
-            val cache = DataPlaneCache(cluster, schemaRegistry)
             val mockFetcher = mock<DataPlaneFetcherImpl>()
-
             val topic = TopicData(clusterId = "lkc-test", topicName = "test-topic", partitionsCount = 3, replicationFactor = 3)
-
-            val cachedTopicsField = DataPlaneCache::class.java.getDeclaredField("cachedTopics")
-            cachedTopicsField.isAccessible = true
-            cachedTopicsField.set(cache, listOf(topic))
-
-            val fetcherField = DataPlaneCache::class.java.getDeclaredField("fetcher")
-            fetcherField.isAccessible = true
-            fetcherField.set(cache, mockFetcher)
+            val cache = DataPlaneCache(cluster, schemaRegistry, mockFetcher, initialTopics = listOf(topic))
 
             cache.updateTopicInCache("test-topic", TopicEnrichmentData(messageCount = 500L))
             assertEquals(500L, cache.getTopicEnrichment("test-topic")?.messageCount)
@@ -252,12 +221,8 @@ class DataPlaneCacheTest {
 
         @Test
         fun `refreshTopics cleans stale enrichment`() = runBlocking {
-            val cache = DataPlaneCache(cluster, schemaRegistry)
             val mockFetcher = mock<DataPlaneFetcherImpl>()
-
-            val fetcherField = DataPlaneCache::class.java.getDeclaredField("fetcher")
-            fetcherField.isAccessible = true
-            fetcherField.set(cache, mockFetcher)
+            val cache = DataPlaneCache(cluster, schemaRegistry, mockFetcher)
 
             cache.updateTopicInCache("topic-1", TopicEnrichmentData(messageCount = 100L))
             cache.updateTopicInCache("topic-2", TopicEnrichmentData(messageCount = 200L))
@@ -280,8 +245,8 @@ class DataPlaneCacheTest {
 
         @Test
         fun `adds schema to cache and getSchemas reflects it`() = runBlocking {
-            val cache = DataPlaneCache(cluster, schemaRegistry)
             val mockFetcher = mock<DataPlaneFetcherImpl>()
+            val cache = DataPlaneCache(cluster, schemaRegistry, mockFetcher)
 
             val request = RegisterSchemaRequest(
                 schema = """{"type":"record","name":"User","fields":[]}""",
@@ -289,10 +254,6 @@ class DataPlaneCacheTest {
             )
 
             val response = RegisterSchemaResponse(id = 1)
-
-            val fetcherField = DataPlaneCache::class.java.getDeclaredField("fetcher")
-            fetcherField.isAccessible = true
-            fetcherField.set(cache, mockFetcher)
 
             whenever(mockFetcher.createSchema("user-schema", request)).thenReturn(response)
 
@@ -310,19 +271,10 @@ class DataPlaneCacheTest {
 
         @Test
         fun `removes schema from cache and getSchemas reflects it`() = runBlocking {
-            val cache = DataPlaneCache(cluster, schemaRegistry)
             val mockFetcher = mock<DataPlaneFetcherImpl>()
-
             val schema1 = SchemaData(name = "user-schema", latestVersion = 1, schemaType = "AVRO")
             val schema2 = SchemaData(name = "order-schema", latestVersion = 2, schemaType = "PROTOBUF")
-
-            val cachedSchemasField = DataPlaneCache::class.java.getDeclaredField("cachedSchemas")
-            cachedSchemasField.isAccessible = true
-            cachedSchemasField.set(cache, listOf(schema1, schema2))
-
-            val fetcherField = DataPlaneCache::class.java.getDeclaredField("fetcher")
-            fetcherField.isAccessible = true
-            fetcherField.set(cache, mockFetcher)
+            val cache = DataPlaneCache(cluster, schemaRegistry, mockFetcher, initialSchemas = listOf(schema1, schema2))
 
             whenever(mockFetcher.deleteSchema("user-schema", false)).thenReturn(listOf(1))
 
@@ -340,23 +292,14 @@ class DataPlaneCacheTest {
 
         @Test
         fun `preserves enrichment for existing schemas`() = runBlocking {
-            val cache = DataPlaneCache(cluster, schemaRegistry)
             val mockFetcher = mock<DataPlaneFetcherImpl>()
-
             val enrichedSchema = SchemaData(
                 name = "user-schema",
                 latestVersion = 5,
                 schemaType = "AVRO",
                 compatibility = "BACKWARD"
             )
-
-            val cachedSchemasField = DataPlaneCache::class.java.getDeclaredField("cachedSchemas")
-            cachedSchemasField.isAccessible = true
-            cachedSchemasField.set(cache, listOf(enrichedSchema))
-
-            val fetcherField = DataPlaneCache::class.java.getDeclaredField("fetcher")
-            fetcherField.isAccessible = true
-            fetcherField.set(cache, mockFetcher)
+            val cache = DataPlaneCache(cluster, schemaRegistry, mockFetcher, initialSchemas = listOf(enrichedSchema))
 
             whenever(mockFetcher.getAllSubjects()).thenReturn(listOf("user-schema", "order-schema"))
 
@@ -376,19 +319,10 @@ class DataPlaneCacheTest {
 
         @Test
         fun `removes deleted schemas from cache`() = runBlocking {
-            val cache = DataPlaneCache(cluster, schemaRegistry)
             val mockFetcher = mock<DataPlaneFetcherImpl>()
-
             val schema1 = SchemaData(name = "old-schema", latestVersion = 1)
             val schema2 = SchemaData(name = "user-schema", latestVersion = 5)
-
-            val cachedSchemasField = DataPlaneCache::class.java.getDeclaredField("cachedSchemas")
-            cachedSchemasField.isAccessible = true
-            cachedSchemasField.set(cache, listOf(schema1, schema2))
-
-            val fetcherField = DataPlaneCache::class.java.getDeclaredField("fetcher")
-            fetcherField.isAccessible = true
-            fetcherField.set(cache, mockFetcher)
+            val cache = DataPlaneCache(cluster, schemaRegistry, mockFetcher, initialSchemas = listOf(schema1, schema2))
 
             whenever(mockFetcher.getAllSubjects()).thenReturn(listOf("user-schema"))
 
@@ -407,13 +341,8 @@ class DataPlaneCacheTest {
 
         @Test
         fun `updateSchemaInCache updates enrichment data`() {
-            val cache = DataPlaneCache(cluster, schemaRegistry)
-
             val schema = SchemaData(name = "user-schema")
-
-            val cachedSchemasField = DataPlaneCache::class.java.getDeclaredField("cachedSchemas")
-            cachedSchemasField.isAccessible = true
-            cachedSchemasField.set(cache, listOf(schema))
+            val cache = DataPlaneCache(cluster, schemaRegistry, initialSchemas = listOf(schema))
 
             val enrichmentData = SchemaEnrichmentData(
                 latestVersion = 5,
@@ -431,14 +360,9 @@ class DataPlaneCacheTest {
 
         @Test
         fun `updateSchemaInCache does not affect other schemas`() {
-            val cache = DataPlaneCache(cluster, schemaRegistry)
-
             val schema1 = SchemaData(name = "user-schema", latestVersion = 1)
             val schema2 = SchemaData(name = "order-schema", latestVersion = 2)
-
-            val cachedSchemasField = DataPlaneCache::class.java.getDeclaredField("cachedSchemas")
-            cachedSchemasField.isAccessible = true
-            cachedSchemasField.set(cache, listOf(schema1, schema2))
+            val cache = DataPlaneCache(cluster, schemaRegistry, initialSchemas = listOf(schema1, schema2))
 
             val enrichmentData = SchemaEnrichmentData(
                 latestVersion = 10,
@@ -466,13 +390,8 @@ class DataPlaneCacheTest {
 
         @Test
         fun `clears cache state`() {
-            val cache = DataPlaneCache(cluster, schemaRegistry)
-
             val topic = TopicData(clusterId = "lkc-test", topicName = "test-topic", partitionsCount = 3, replicationFactor = 3)
-
-            val cachedTopicsField = DataPlaneCache::class.java.getDeclaredField("cachedTopics")
-            cachedTopicsField.isAccessible = true
-            cachedTopicsField.set(cache, listOf(topic))
+            val cache = DataPlaneCache(cluster, schemaRegistry, initialTopics = listOf(topic))
 
             assertEquals(1, cache.getTopics().size)
 
@@ -482,7 +401,7 @@ class DataPlaneCacheTest {
         }
 
         @Test
-        fun `clears enrichment cache`() {
+        fun `clears enrichment cache`() = runBlocking {
             val cache = DataPlaneCache(cluster, schemaRegistry)
 
             cache.updateTopicInCache("test-topic", TopicEnrichmentData(messageCount = 1000L))
@@ -495,13 +414,8 @@ class DataPlaneCacheTest {
 
         @Test
         fun `clears schema cache`() {
-            val cache = DataPlaneCache(cluster, schemaRegistry)
-
             val schema = SchemaData(name = "test-schema", latestVersion = 5)
-
-            val cachedSchemasField = DataPlaneCache::class.java.getDeclaredField("cachedSchemas")
-            cachedSchemasField.isAccessible = true
-            cachedSchemasField.set(cache, listOf(schema))
+            val cache = DataPlaneCache(cluster, schemaRegistry, initialSchemas = listOf(schema))
 
             assertEquals(1, cache.getSchemas().size)
 

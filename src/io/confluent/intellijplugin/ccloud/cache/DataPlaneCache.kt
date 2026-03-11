@@ -25,7 +25,10 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withLock
+import org.jetbrains.annotations.VisibleForTesting
 import java.util.concurrent.atomic.AtomicInteger
 
 /**
@@ -38,17 +41,32 @@ private const val PARTITION_ENRICHMENT_CONCURRENCY = 2
  * Data plane cache for cluster resources (topics, schemas).
  * One cache per cluster. Call refresh*() to populate/update cache.
  */
-class DataPlaneCache(
+class DataPlaneCache @VisibleForTesting internal constructor(
     private val cluster: Cluster,
-    private val schemaRegistry: SchemaRegistry?
+    private val schemaRegistry: SchemaRegistry?,
+    fetcher: DataPlaneFetcherImpl? = null,
+    initialTopics: List<TopicData>? = null,
+    initialSchemas: List<SchemaData>? = null
 ) : Disposable {
 
-    private var fetcher: DataPlaneFetcherImpl? = null
+    /** Primary constructor for production use. */
+    constructor(cluster: Cluster, schemaRegistry: SchemaRegistry?) : this(
+        cluster = cluster,
+        schemaRegistry = schemaRegistry,
+        fetcher = null,
+        initialTopics = null,
+        initialSchemas = null
+    )
+
+    private var fetcher: DataPlaneFetcherImpl? = fetcher
     private var kafkaClient: CCloudRestClient? = null
 
-    private var cachedTopics: List<TopicData>? = null
-    private var cachedSchemas: List<SchemaData>? = null
+    private var cachedTopics: List<TopicData>? = initialTopics
+    private var cachedSchemas: List<SchemaData>? = initialSchemas
+    // Topic enrichment (e.g., message counts) cached separately from base topic data.
+    // Protected by topicEnrichmentMutex for thread-safe concurrent access.
     private var cachedTopicEnrichment: MutableMap<String, TopicEnrichmentData> = mutableMapOf()
+    private val topicEnrichmentMutex = Mutex()
 
     companion object {
         private const val ENRICHMENT_TIMEOUT_MS = 30_000L
@@ -91,19 +109,25 @@ class DataPlaneCache(
 
         // Remove enrichment for topics that no longer exist
         val topicNames = topics.map { it.topicName }.toSet()
-        cachedTopicEnrichment.keys.retainAll(topicNames)
+        topicEnrichmentMutex.withLock {
+            cachedTopicEnrichment.keys.retainAll(topicNames)
+        }
 
         return topics
     }
 
     /** Get enrichment data for a topic from cache. Returns null if not enriched yet. */
-    fun getTopicEnrichment(topicName: String): TopicEnrichmentData? {
-        return cachedTopicEnrichment[topicName]
+    suspend fun getTopicEnrichment(topicName: String): TopicEnrichmentData? {
+        return topicEnrichmentMutex.withLock {
+            cachedTopicEnrichment[topicName]
+        }
     }
 
     /** Update topic enrichment in cache (e.g., messageCount). */
-    fun updateTopicInCache(topicName: String, enrichmentData: TopicEnrichmentData) {
-        cachedTopicEnrichment[topicName] = enrichmentData
+    suspend fun updateTopicInCache(topicName: String, enrichmentData: TopicEnrichmentData) {
+        topicEnrichmentMutex.withLock {
+            cachedTopicEnrichment[topicName] = enrichmentData
+        }
     }
 
     /** Check if Schema Registry is configured. */
@@ -239,7 +263,18 @@ class DataPlaneCache(
         val newTopic = fetcher?.createTopic(request)
             ?: throw IllegalStateException("DataPlaneCache not connected for cluster ${cluster.id}")
 
-        cachedTopics = cachedTopics?.plus(newTopic) ?: listOf(newTopic)
+        if (cachedTopics == null) {
+            try {
+                // Ensure the cache is initialized so we don't end up with an incomplete topic list.
+                refreshTopics()
+            } catch (e: Exception) {
+                thisLogger().warn("Failed to refresh topics after create; falling back to local update only", e)
+            }
+        }
+        val existingTopics = cachedTopics ?: emptyList()
+        cachedTopics = existingTopics
+            .filterNot { it.topicName == newTopic.topicName }
+            .plus(newTopic)
         return newTopic
     }
 
@@ -248,15 +283,28 @@ class DataPlaneCache(
             ?: throw IllegalStateException("DataPlaneCache not connected for cluster ${cluster.id}")
 
         cachedTopics = cachedTopics?.filterNot { it.topicName == topicName }
-        cachedTopicEnrichment.remove(topicName)
+        topicEnrichmentMutex.withLock {
+            cachedTopicEnrichment.remove(topicName)
+        }
     }
 
     suspend fun createSchema(schemaName: String, request: RegisterSchemaRequest): RegisterSchemaResponse {
         val response = fetcher?.createSchema(schemaName, request)
             ?: throw IllegalStateException("DataPlaneCache not connected for cluster ${cluster.id}")
 
+        if (cachedSchemas == null) {
+            try {
+                // Ensure the cache is initialized so we don't end up with an incomplete schema list.
+                refreshSchemas()
+            } catch (e: Exception) {
+                thisLogger().warn("Failed to refresh schemas after create; falling back to local update only", e)
+            }
+        }
         val newSchema = SchemaData(name = schemaName)
-        cachedSchemas = cachedSchemas?.plus(newSchema) ?: listOf(newSchema)
+        val existingSchemas = cachedSchemas ?: emptyList()
+        cachedSchemas = existingSchemas
+            .filterNot { it.name == schemaName }
+            .plus(newSchema)
         return response
     }
 

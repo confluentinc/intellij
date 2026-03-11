@@ -151,6 +151,7 @@ object KafkaEditorUtils {
         topicCombobox: ComboBox<TopicInEditor>,
         dataManager: BaseClusterDataManager,
         isKey: Boolean,
+        rootDisposable: Disposable,
         onChange: (ComboBox<KafkaFieldType>) -> Unit
     ): ComboBox<KafkaFieldType> {
         val fieldTypes = if (dataManager.registryType != KafkaRegistryType.NONE)
@@ -168,7 +169,9 @@ object KafkaEditorUtils {
         }
 
         if (dataManager.registryType != KafkaRegistryType.NONE) {
-            val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
+            val job = SupervisorJob()
+            val scope = CoroutineScope(Dispatchers.Default + job)
+            Disposer.register(rootDisposable) { job.cancel() }
 
             topicCombobox.addItemListener {
                 if (it.stateChange != SELECTED)

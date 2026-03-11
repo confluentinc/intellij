@@ -38,7 +38,7 @@ class KafkaConsumerFieldComponent(
 
 
     val fieldTypeComboBox =
-        KafkaEditorUtils.createFieldTypeComboBox(consumerPanel.topicComboBox, consumerPanel.kafkaManager, isKey) {
+        KafkaEditorUtils.createFieldTypeComboBox(consumerPanel.topicComboBox, consumerPanel.kafkaManager, isKey, this) {
             consumerPanel.updateVisibility()
             consumerPanel.storeToUserData()
             customSchemaController.setLanguage(it.item)

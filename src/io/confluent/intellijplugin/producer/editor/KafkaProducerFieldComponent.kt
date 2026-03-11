@@ -67,7 +67,7 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
         CustomSchemaController(project, isKey).also { Disposer.register(this, it) }
 
     val fieldTypeComboBox =
-        KafkaEditorUtils.createFieldTypeComboBox(producedEditor.topicComboBox, kafkaManager, isKey) {
+        KafkaEditorUtils.createFieldTypeComboBox(producedEditor.topicComboBox, kafkaManager, isKey, this) {
             if (!isInitialized)
                 return@createFieldTypeComboBox
 
