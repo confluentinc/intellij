@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**Confluent Plugin for JetBrains IDEs** - IntelliJ platform plugin enabling developers to work with Apache Kafka directly from JetBrains IDEs. Developed by Confluent.
+**Confluent for JetBrains IDEs** - IntelliJ platform plugin enabling developers to work with Apache Kafka directly from JetBrains IDEs. Developed by Confluent.
 
 - **Plugin ID:** `com.intellij.bigdatatools.kafka`
 - **Target IDE:** IntelliJ IDEA 2025.3+

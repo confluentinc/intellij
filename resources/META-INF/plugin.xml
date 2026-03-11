@@ -5,16 +5,7 @@
     <version>253.25910.0-pre</version>
     <idea-version since-build="253.28294"/>
 
-    <description><![CDATA[
-<p>Monitor your <a href="https://kafka.apache.org/">Kafka</a> event streaming processes:
-<ul>
-   <li>Connect to Kafka clusters</li>
-   <li>Produce and consume messages in different formats including Avro and Protobuf</li>
-   <li>Manage topics and monitor consumer groups</li>
-   <li>Use Confluent Schema Registry and AWS Glue Schema Registry</li>
-</ul>
-</p>
-    ]]></description>
+    <description>Work with Confluent and Apache Kafka® to design, build and run data streaming applications.</description>
 
     <depends config-file="spring-boot.xml" optional="true">com.intellij.spring.boot</depends>
     <depends>com.intellij.modules.json</depends>
