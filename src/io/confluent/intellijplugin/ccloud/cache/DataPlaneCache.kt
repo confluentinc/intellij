@@ -25,10 +25,9 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.flowOn
-import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.Semaphore
-import kotlinx.coroutines.sync.withLock
 import org.jetbrains.annotations.VisibleForTesting
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicInteger
 
 /**
@@ -63,10 +62,7 @@ class DataPlaneCache @VisibleForTesting internal constructor(
 
     private var cachedTopics: List<TopicData>? = initialTopics
     private var cachedSchemas: List<SchemaData>? = initialSchemas
-    // Topic enrichment (e.g., message counts) cached separately from base topic data.
-    // Protected by topicEnrichmentMutex for thread-safe concurrent access.
-    private var cachedTopicEnrichment: MutableMap<String, TopicEnrichmentData> = mutableMapOf()
-    private val topicEnrichmentMutex = Mutex()
+    private val cachedTopicEnrichment = ConcurrentHashMap<String, TopicEnrichmentData>()
 
     companion object {
         private const val ENRICHMENT_TIMEOUT_MS = 30_000L
@@ -109,25 +105,19 @@ class DataPlaneCache @VisibleForTesting internal constructor(
 
         // Remove enrichment for topics that no longer exist
         val topicNames = topics.map { it.topicName }.toSet()
-        topicEnrichmentMutex.withLock {
-            cachedTopicEnrichment.keys.retainAll(topicNames)
-        }
+        cachedTopicEnrichment.keys.removeIf { !topicNames.contains(it) }
 
         return topics
     }
 
     /** Get enrichment data for a topic from cache. Returns null if not enriched yet. */
-    suspend fun getTopicEnrichment(topicName: String): TopicEnrichmentData? {
-        return topicEnrichmentMutex.withLock {
-            cachedTopicEnrichment[topicName]
-        }
+    fun getTopicEnrichment(topicName: String): TopicEnrichmentData? {
+        return cachedTopicEnrichment[topicName]
     }
 
     /** Update topic enrichment in cache (e.g., messageCount). */
-    suspend fun updateTopicInCache(topicName: String, enrichmentData: TopicEnrichmentData) {
-        topicEnrichmentMutex.withLock {
-            cachedTopicEnrichment[topicName] = enrichmentData
-        }
+    fun updateTopicInCache(topicName: String, enrichmentData: TopicEnrichmentData) {
+        cachedTopicEnrichment[topicName] = enrichmentData
     }
 
     /** Check if Schema Registry is configured. */
@@ -283,9 +273,7 @@ class DataPlaneCache @VisibleForTesting internal constructor(
             ?: throw IllegalStateException("DataPlaneCache not connected for cluster ${cluster.id}")
 
         cachedTopics = cachedTopics?.filterNot { it.topicName == topicName }
-        topicEnrichmentMutex.withLock {
-            cachedTopicEnrichment.remove(topicName)
-        }
+        cachedTopicEnrichment.remove(topicName)
     }
 
     suspend fun createSchema(schemaName: String, request: RegisterSchemaRequest): RegisterSchemaResponse {
