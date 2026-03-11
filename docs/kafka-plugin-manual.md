@@ -43,7 +43,7 @@ With the Confluent plugin, you can:
 7. Once you fill in the settings, click **Test connection** to ensure that all configuration parameters are correct.
    Click **OK**.
 
-<img src="images/kafka_confluent.png" alt="Confluent Cloud for Apache kafka" width="600"/>
+<img src="images/kafka_confluent.png" alt="Confluent Cloud for Apache Kafka" width="600"/>
 
 Optionally, you can set up:
 
