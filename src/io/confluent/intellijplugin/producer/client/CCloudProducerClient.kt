@@ -27,6 +27,7 @@ import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchemaUtils
 import com.google.protobuf.DynamicMessage
 import io.confluent.intellijplugin.ccloud.fetcher.DataPlaneFetcher
 import io.confluent.kafka.schemaregistry.protobuf.MessageIndexes
+import io.confluent.kafka.serializers.schema.id.SchemaId
 import io.confluent.intellijplugin.util.generator.FieldTemplateGenerator
 import io.confluent.intellijplugin.util.generator.GenerateRandomData
 import io.confluent.intellijplugin.util.csv.KafkaCsvUtils
@@ -46,6 +47,7 @@ import org.jetbrains.annotations.VisibleForTesting
 import java.nio.ByteBuffer
 import java.time.Instant
 import java.util.Base64
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.math.min
 import kotlin.math.pow
@@ -181,7 +183,7 @@ class CCloudProducerClient(
         fetcher: DataPlaneFetcher,
         vararg fields: ConsumerProducerFieldConfig
     ): Map<String, SchemaVersionResponse> {
-        val cache = mutableMapOf<String, SchemaVersionResponse>()
+        val cache = ConcurrentHashMap<String, SchemaVersionResponse>()
         for (field in fields) {
             if (field.type == KafkaFieldType.SCHEMA_REGISTRY && field.schemaName.isNotEmpty()) {
                 cache.getOrPut(field.schemaName) {
@@ -361,12 +363,14 @@ class CCloudProducerClient(
 
         val payloadBytes = when (field.schemaFormat) {
             KafkaRegistryFormat.AVRO -> {
-                val avroSchema = field.parsedSchema as AvroSchema
+                val avroSchema = field.parsedSchema as? AvroSchema
+                    ?: error("Expected AvroSchema for format ${field.schemaFormat}, got ${field.parsedSchema?.javaClass?.simpleName}")
                 val record = AvroSchemaUtils.toObject(field.valueText, avroSchema)
                 serializeAvro(record, avroSchema)
             }
             KafkaRegistryFormat.PROTOBUF -> {
-                val protobufSchema = field.parsedSchema as ProtobufSchema
+                val protobufSchema = field.parsedSchema as? ProtobufSchema
+                    ?: error("Expected ProtobufSchema for format ${field.schemaFormat}, got ${field.parsedSchema?.javaClass?.simpleName}")
                 val message = ProtobufSchemaUtils.toObject(field.valueText, protobufSchema) as DynamicMessage
                 serializeProtobuf(message)
             }
@@ -409,13 +413,13 @@ class CCloudProducerClient(
     }
 
     /**
-     * Prepend the Confluent V0 wire format prefix to payload bytes.*
+     * Prepend the Confluent V0 wire format prefix to payload bytes.
      * Mirror of [CCloudConsumerClient.getSchemaIdFromRawBytes] which strips this prefix.
      */
     @VisibleForTesting
     internal fun prependSchemaIdPrefix(schemaId: Int, payload: ByteArray): ByteArray {
         val buffer = ByteBuffer.allocate(1 + 4 + payload.size)
-        buffer.put(0x00.toByte()) // magic byte
+        buffer.put(SchemaId.MAGIC_BYTE_V0)
         buffer.putInt(schemaId)
         buffer.put(payload)
         return buffer.array()
@@ -483,6 +487,7 @@ class CCloudProducerClient(
                 )
 
                 if (!isRetryableStatus(response.errorCode)) {
+                    thisLogger().debug("Non-retryable produce error: ${response.errorCode} ${response.message}")
                     throw exception
                 }
 
@@ -490,6 +495,7 @@ class CCloudProducerClient(
             } catch (e: CCloudApiException) {
                 // HTTP-level errors thrown by the REST client (e.g. 429, 5xx)
                 if (!isRetryableStatus(e.statusCode)) {
+                    thisLogger().debug("Non-retryable HTTP error during produce: ${e.statusCode} ${e.message}")
                     throw e
                 }
                 lastException = e
