@@ -30,12 +30,12 @@ class ConnectionGroupTest {
     inner class CreateOptionsPanel {
 
         @Test
-        fun `should return panel with no children by default`() {
+        fun `should return panel with create connection prompt`() {
             val group = BrokerConnectionGroup()
 
             val panel = group.createOptionsPanel() as javax.swing.JPanel
 
-            assertEquals(0, panel.componentCount)
+            assertNotEquals(0, panel.componentCount)
         }
     }
 
