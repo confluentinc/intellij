@@ -31,7 +31,7 @@ object ConnectionSettings {
             ShowSettingsUtilImpl.createDimensionKey(configurable),
             configurable, false, false
         )
-        val connData = configurable.myUi.createNewConnectionFor(group, data)
+        val connData = if (data != null) configurable.myUi.createNewConnectionFor(group, data) else null
         if (applyIfOk) {
             if (dialog.showAndGet()) {
                 configurable.apply()
