@@ -21,7 +21,6 @@ import io.confluent.intellijplugin.ccloud.model.response.toPresentable
 import io.confluent.intellijplugin.ccloud.model.response.toSchemaReferences
 import io.confluent.intellijplugin.client.KafkaConstants
 import io.confluent.intellijplugin.common.models.RegistrySchemaInEditor
-import io.confluent.intellijplugin.core.monitoring.data.model.ObjectDataModel
 import io.confluent.intellijplugin.core.monitoring.data.storage.ObjectDataModelStorage
 import io.confluent.intellijplugin.consumer.editor.KafkaConsumerSettings
 import io.confluent.intellijplugin.core.monitoring.data.storage.RootDataModelStorage
@@ -29,7 +28,6 @@ import io.confluent.intellijplugin.core.rfs.driver.RfsPath
 import io.confluent.intellijplugin.core.rfs.driver.SafeExecutor
 import io.confluent.intellijplugin.core.rfs.util.RfsNotificationUtils
 import io.confluent.intellijplugin.core.util.asSilent
-import io.confluent.intellijplugin.core.util.runAsync
 import io.confluent.intellijplugin.core.util.runAsyncSuspend
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
 import io.confluent.intellijplugin.model.BdtTopicPartition
@@ -43,7 +41,6 @@ import io.confluent.intellijplugin.registry.KafkaRegistryUtil
 import io.confluent.intellijplugin.registry.SchemaVersionInfo
 import io.confluent.intellijplugin.registry.common.KafkaSchemaInfo
 import io.confluent.intellijplugin.rfs.ConfluentConnectionData
-import io.confluent.intellijplugin.toolwindow.config.KafkaClusterConfig
 import io.confluent.intellijplugin.toolwindow.config.KafkaToolWindowSettings
 import kotlin.time.Duration
 import kotlinx.coroutines.CancellationException
@@ -99,7 +96,7 @@ class CCloudClusterDataManager(
 
     override val registryType: KafkaRegistryType
         get() = if (dataPlaneCache.hasSchemaRegistry()) KafkaRegistryType.CONFLUENT
-                else KafkaRegistryType.NONE
+        else KafkaRegistryType.NONE
 
     /**
      * Get the RFS path for a schema subject in CCloud format: [schemaRegistryId, schemaName]
@@ -441,13 +438,13 @@ class CCloudClusterDataManager(
         }
     }
 
-    override fun getLatestVersionInfo(schemaName: String): SchemaVersionInfo? {
+    override suspend fun getLatestVersionInfo(schemaName: String): SchemaVersionInfo? {
         if (!dataPlaneCache.hasSchemaRegistry()) {
             return null
         }
 
         return try {
-            runBlockingMaybeCancellable {
+            withContext(Dispatchers.IO) {
                 val versionResponse = dataPlaneCache.getFetcher()?.getLatestVersionInfo(schemaName)
                 versionResponse?.let {
                     SchemaVersionInfo(
@@ -507,7 +504,7 @@ class CCloudClusterDataManager(
         )
     }
 
-    override fun getCachedOrLoadSchema(name: String): KafkaSchemaInfo {
+    override suspend fun getCachedOrLoadSchema(name: String): KafkaSchemaInfo {
         if (!dataPlaneCache.hasSchemaRegistry()) {
             throw UnsupportedOperationException("Schema registry not configured for this cluster")
         }
@@ -520,7 +517,7 @@ class CCloudClusterDataManager(
 
         // Load from API if not cached or incomplete
         return try {
-            runBlockingMaybeCancellable {
+            withContext(Dispatchers.IO) {
                 val schemaData = dataPlaneCache.getFetcher()?.loadSchemaInfo(name)
                 // Use SR config (not cluster config) so all clusters sharing an SR see the same favorites
                 val config = KafkaToolWindowSettings.getInstance().getOrCreateConfig(getSchemaRegistryConfigId())
@@ -570,8 +567,7 @@ class CCloudClusterDataManager(
                 }.takeIf { it.isNotEmpty() }
             )
 
-            dataPlaneCache.getFetcher()?.registerSchema(versionInfo.schemaName, request)
-                ?: error(KafkaMessagesBundle.message("error.schema.registry.fetcher.not.available"))
+            dataPlaneCache.createSchema(versionInfo.schemaName, request)
 
             invalidateSchemaVersionCache(versionInfo.schemaName)
             updateSingleSchemaInList(versionInfo.schemaName)
@@ -587,7 +583,8 @@ class CCloudClusterDataManager(
                 }
 
                 withContext(Dispatchers.IO) {
-                    val fetcher = dataPlaneCache.getFetcher() ?: error(KafkaMessagesBundle.message("error.schema.registry.fetcher.not.available"))
+                    val fetcher = dataPlaneCache.getFetcher()
+                        ?: error(KafkaMessagesBundle.message("error.schema.registry.fetcher.not.available"))
                     fetcher.deleteSchemaVersion(versionInfo.schemaName, versionInfo.version, permanent = false)
                 }
 
@@ -647,8 +644,7 @@ class CCloudClusterDataManager(
 
     private suspend fun deleteSchemaWithoutConfirmation(schemaName: String, permanent: Boolean) {
         withContext(Dispatchers.IO) {
-            dataPlaneCache.getFetcher()?.deleteSubject(schemaName, permanent)
-                ?: error(KafkaMessagesBundle.message("error.schema.registry.fetcher.not.available"))
+            dataPlaneCache.deleteSchema(schemaName, permanent)
         }
         invalidateSchemaVersionCache(schemaName)
         removeSingleSchemaFromList(schemaName)
@@ -665,8 +661,7 @@ class CCloudClusterDataManager(
                     schema = parsedSchema.canonicalString(),
                     schemaType = parsedSchema.schemaType()
                 )
-                dataPlaneCache.getFetcher()?.registerSchema(schemaName, request)
-                    ?: error(KafkaMessagesBundle.message("error.schema.registry.fetcher.not.available"))
+                dataPlaneCache.createSchema(schemaName, request)
             }
             updateSingleSchemaInList(schemaName)
         }

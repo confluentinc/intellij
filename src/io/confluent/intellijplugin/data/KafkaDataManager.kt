@@ -204,7 +204,7 @@ class KafkaDataManager(
             ?: client.glueRegistryClient?.listSchemas(null, null, connectionId)
             ?: (emptyList<KafkaSchemaInfo>() to false)
         schemas.map {
-            RegistrySchemaInEditor(schemaName = it.name, schemaFormat = getCachedOrLoadSchemaType(it.name))
+            RegistrySchemaInEditor(schemaName = it.name, schemaFormat = cacheSchemaType[it.name] ?: it.type)
         }.sorted()
     } catch (t: Throwable) {
         thisLogger().warn(t)
@@ -308,22 +308,24 @@ class KafkaDataManager(
         schemaRegistryModel?.let { updater.invokeRefreshModel(it) }
     }
 
-    override fun getCachedOrLoadSchema(name: String): KafkaSchemaInfo =
+    override suspend fun getCachedOrLoadSchema(name: String): KafkaSchemaInfo =
         getCachedSchema(name)?.takeIf { it.type != null } ?: loadSchema(name)
 
-    private fun getCachedOrLoadSchemaType(name: String) =
+    private suspend fun getCachedOrLoadSchemaType(name: String) =
         cacheSchemaType[name] ?: getCachedOrLoadSchema(name).type?.also {
             cacheSchemaType[name] = it
         }
 
-    private fun loadSchema(schemaName: String) =
+    private suspend fun loadSchema(schemaName: String): KafkaSchemaInfo = withContext(Dispatchers.IO) {
         client.confluentRegistryClient?.loadSchemaInfo(schemaName)
             ?: client.glueRegistryClient?.loadSchemaInfo(schemaName)
             ?: error(KafkaMessagesBundle.message("error.schema.registry.not.configured"))
+    }
 
-    override fun getLatestVersionInfo(schemaName: String) =
+    override suspend fun getLatestVersionInfo(schemaName: String): SchemaVersionInfo? = withContext(Dispatchers.IO) {
         client.confluentRegistryClient?.getLatestVersionInfo(schemaName)
             ?: client.glueRegistryClient?.getLatestVersionInfo(schemaName)
+    }
 
     fun clearTopicWithConfirmation(topicName: String) {
         driver.coroutineScope.launch {

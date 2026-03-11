@@ -33,13 +33,13 @@ object KafkaRegistryUtil {
         Logger.getLogger("io.confluent.intellijplugin.schemaregistry").level = Level.OFF
     }
 
-    fun getSchemaType(
+    suspend fun getSchemaType(
         schemaName: String,
         dataManager: BaseClusterDataManager
     ): KafkaRegistryFormat? = dataManager.getCachedOrLoadSchema(schemaName).type
 
     @RequiresBackgroundThread
-    fun loadSchema(
+    suspend fun loadSchema(
         schemaName: String,
         fieldType: KafkaFieldType,
         dataManager: BaseClusterDataManager

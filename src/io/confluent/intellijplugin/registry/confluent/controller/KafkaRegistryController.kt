@@ -83,11 +83,12 @@ internal class KafkaRegistryController(
         val toolWindowSettings = KafkaToolWindowSettings.getInstance()
         val clusterConfig = toolWindowSettings.getOrCreateConfig(dataManager.getSchemaRegistryConfigId())
 
+        dataTable.emptyText.clear()
+        dataTable.emptyText.isShowAboveCenter = true
+
         if (dataTable.parent is JViewport) {
             dataTable.emptyText.attachTo(dataTable, dataTable)
         }
-
-        dataTable.emptyText.clear()
 
         if (!clusterConfig.schemaFilterName.isNullOrBlank() || toolWindowSettings.showFavoriteSchema) {
             dataTable.emptyText.appendText(
@@ -112,8 +113,6 @@ internal class KafkaRegistryController(
                 KafkaRegistryAddSchemaDialog(project, dataManager).show()
             }
         }
-
-        dataTable.emptyText.isShowAboveCenter = true
     }
 
     override fun emptyTextProvider() = CustomEmptyTextProvider {

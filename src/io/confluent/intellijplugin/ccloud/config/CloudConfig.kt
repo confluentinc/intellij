@@ -60,6 +60,7 @@ object CloudConfig {
             /** Topic configs: GET /kafka/v3/clusters/{cluster_id}/topics/{topic_name}/configs */
             const val TOPIC_CONFIGS_URI = "/kafka/v3/clusters/%s/topics/%s/configs"
 
+            // Reserved for future consumer group support
             /** List consumer groups: GET /kafka/v3/clusters/{cluster_id}/consumer-groups */
             const val CONSUMER_GROUPS_URI = "/kafka/v3/clusters/%s/consumer-groups"
 

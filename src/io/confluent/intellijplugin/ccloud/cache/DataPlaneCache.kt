@@ -8,6 +8,9 @@ import io.confluent.intellijplugin.ccloud.fetcher.DataPlaneFetcherImpl
 import io.confluent.intellijplugin.ccloud.model.Cluster
 import io.confluent.intellijplugin.ccloud.model.SchemaRegistry
 import io.confluent.intellijplugin.ccloud.model.response.CreateTopicRequest
+import io.confluent.intellijplugin.ccloud.model.response.DeleteSubjectResponse
+import io.confluent.intellijplugin.ccloud.model.response.RegisterSchemaRequest
+import io.confluent.intellijplugin.ccloud.model.response.RegisterSchemaResponse
 import io.confluent.intellijplugin.ccloud.model.response.SchemaData
 import io.confluent.intellijplugin.ccloud.model.response.SchemaEnrichmentData
 import io.confluent.intellijplugin.ccloud.model.response.SchemaEnrichmentResult
@@ -23,6 +26,8 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.sync.Semaphore
+import org.jetbrains.annotations.VisibleForTesting
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicInteger
 
 /**
@@ -32,19 +37,32 @@ import java.util.concurrent.atomic.AtomicInteger
 private const val PARTITION_ENRICHMENT_CONCURRENCY = 2
 
 /**
- * Data plane cache for cluster resources (topics, schemas, consumer groups).
+ * Data plane cache for cluster resources (topics, schemas).
  * One cache per cluster. Call refresh*() to populate/update cache.
  */
-class DataPlaneCache(
+class DataPlaneCache @VisibleForTesting internal constructor(
     private val cluster: Cluster,
-    private val schemaRegistry: SchemaRegistry?
+    private val schemaRegistry: SchemaRegistry?,
+    fetcher: DataPlaneFetcherImpl? = null,
+    initialTopics: List<TopicData>? = null,
+    initialSchemas: List<SchemaData>? = null
 ) : Disposable {
 
-    private var fetcher: DataPlaneFetcherImpl? = null
+    /** Primary constructor for production use. */
+    constructor(cluster: Cluster, schemaRegistry: SchemaRegistry?) : this(
+        cluster = cluster,
+        schemaRegistry = schemaRegistry,
+        fetcher = null,
+        initialTopics = null,
+        initialSchemas = null
+    )
+
+    private var fetcher: DataPlaneFetcherImpl? = fetcher
     private var kafkaClient: CCloudRestClient? = null
 
-    private var cachedTopics: List<TopicData>? = null
-    private var cachedSchemas: List<SchemaData>? = null
+    private var cachedTopics: List<TopicData>? = initialTopics
+    private var cachedSchemas: List<SchemaData>? = initialSchemas
+    private val cachedTopicEnrichment = ConcurrentHashMap<String, TopicEnrichmentData>()
 
     companion object {
         private const val ENRICHMENT_TIMEOUT_MS = 30_000L
@@ -80,12 +98,29 @@ class DataPlaneCache(
 
     fun getTopics(): List<TopicData> = cachedTopics ?: emptyList()
 
+    /** Fetch topics from API, update cache. Cleans stale enrichment for deleted topics. */
     suspend fun refreshTopics(): List<TopicData> {
         val topics = fetcher?.getTopics() ?: emptyList()
         cachedTopics = topics
+
+        // Remove enrichment for topics that no longer exist
+        val topicNames = topics.map { it.topicName }.toSet()
+        cachedTopicEnrichment.keys.removeIf { !topicNames.contains(it) }
+
         return topics
     }
 
+    /** Get enrichment data for a topic from cache. Returns null if not enriched yet. */
+    fun getTopicEnrichment(topicName: String): TopicEnrichmentData? {
+        return cachedTopicEnrichment[topicName]
+    }
+
+    /** Update topic enrichment in cache (e.g., messageCount). */
+    fun updateTopicInCache(topicName: String, enrichmentData: TopicEnrichmentData) {
+        cachedTopicEnrichment[topicName] = enrichmentData
+    }
+
+    /** Check if Schema Registry is configured. */
     fun hasSchemaRegistry(): Boolean = schemaRegistry != null
 
     fun getSchemaRegistryId(): String? = schemaRegistry?.id
@@ -165,40 +200,6 @@ class DataPlaneCache(
         }
     }.flowOn(Dispatchers.IO)
 
-    /**
-     * Enrich schemas with metadata, blocking until all complete.
-     */
-    suspend fun enrichSchemas(schemas: List<SchemaData>): Map<String, SchemaEnrichmentData> {
-        if (fetcher == null) return emptyMap()
-
-        return coroutineScope {
-            thisLogger().info("Starting enrichment for ${schemas.size} schemas")
-
-            val results = schemas.map { schema ->
-                async {
-                    try {
-                        val info = withTimeout(ENRICHMENT_TIMEOUT_MS) {
-                            fetcher?.loadSchemaInfo(schema.name)
-                        }
-
-                    thisLogger().debug("Enriched ${schema.name}: version=${info?.latestVersion}, type=${info?.schemaType}, compatibility=${info?.compatibility}")
-
-                    schema.name to SchemaEnrichmentData(
-                        latestVersion = info?.latestVersion,
-                        schemaType = info?.schemaType,
-                        compatibility = info?.compatibility
-                    )
-                } catch (e: Exception) {
-                    thisLogger().warn("Failed to enrich ${schema.name}: ${e.message}")
-                    schema.name to SchemaEnrichmentData()
-                }
-            }
-        }.awaitAll().toMap()
-
-            thisLogger().info("Enrichment completed: ${results.size} schemas enriched")
-            results
-        }
-    }
 
     fun enrichTopicsDataProgressively(topics: List<TopicData>): Flow<TopicEnrichmentResult> = channelFlow {
         if (fetcher == null) return@channelFlow
@@ -216,10 +217,14 @@ class DataPlaneCache(
                     }
 
                     val count = completed.incrementAndGet()
+                    val enrichmentData = TopicEnrichmentData(messageCount = messageCount)
+
+                    updateTopicInCache(topic.topicName, enrichmentData)
+
                     send(
                         TopicEnrichmentResult.Success(
                             topicName = topic.topicName,
-                            data = TopicEnrichmentData(messageCount = messageCount),
+                            data = enrichmentData,
                             progress = count to topics.size
                         )
                     )
@@ -243,47 +248,60 @@ class DataPlaneCache(
         }
     }.flowOn(Dispatchers.IO)
 
-    /**
-     * Enrich topics with message count, blocking until all complete.
-     */
-    suspend fun enrichTopicsData(topics: List<TopicData>): Map<String, TopicEnrichmentData> {
-        if (fetcher == null) return emptyMap()
-
-        return coroutineScope {
-            thisLogger().info("Starting enrichment for ${topics.size} topics")
-
-            val results = topics.map { topic ->
-                async {
-                    try {
-                        val messageCount = withTimeout(ENRICHMENT_TIMEOUT_MS) {
-                            fetcher?.getTopicMessageCount(topic.topicName)
-                        }
-
-                    thisLogger().debug("Enriched ${topic.topicName}: messageCount=$messageCount")
-
-                    topic.topicName to TopicEnrichmentData(
-                        messageCount = messageCount
-                    )
-                } catch (e: Exception) {
-                    thisLogger().warn("Failed to enrich topic ${topic.topicName}: ${e.message}")
-                    topic.topicName to TopicEnrichmentData()
-                }
-            }
-        }.awaitAll().toMap()
-
-            thisLogger().info("Enrichment completed: ${results.size} topics enriched")
-            results
-        }
-    }
 
     suspend fun createTopic(request: CreateTopicRequest): TopicData {
-        return fetcher?.createTopic(request)
+        val newTopic = fetcher?.createTopic(request)
             ?: throw IllegalStateException("DataPlaneCache not connected for cluster ${cluster.id}")
+
+        if (cachedTopics == null) {
+            try {
+                // Ensure the cache is initialized so we don't end up with an incomplete topic list.
+                refreshTopics()
+            } catch (e: Exception) {
+                thisLogger().warn("Failed to refresh topics after create; falling back to local update only", e)
+            }
+        }
+        val existingTopics = cachedTopics ?: emptyList()
+        cachedTopics = existingTopics
+            .filterNot { it.topicName == newTopic.topicName }
+            .plus(newTopic)
+        return newTopic
     }
 
     suspend fun deleteTopic(topicName: String) {
         fetcher?.deleteTopic(topicName)
             ?: throw IllegalStateException("DataPlaneCache not connected for cluster ${cluster.id}")
+
+        cachedTopics = cachedTopics?.filterNot { it.topicName == topicName }
+        cachedTopicEnrichment.remove(topicName)
+    }
+
+    suspend fun createSchema(schemaName: String, request: RegisterSchemaRequest): RegisterSchemaResponse {
+        val response = fetcher?.createSchema(schemaName, request)
+            ?: throw IllegalStateException("DataPlaneCache not connected for cluster ${cluster.id}")
+
+        if (cachedSchemas == null) {
+            try {
+                // Ensure the cache is initialized so we don't end up with an incomplete schema list.
+                refreshSchemas()
+            } catch (e: Exception) {
+                thisLogger().warn("Failed to refresh schemas after create; falling back to local update only", e)
+            }
+        }
+        val newSchema = SchemaData(name = schemaName)
+        val existingSchemas = cachedSchemas ?: emptyList()
+        cachedSchemas = existingSchemas
+            .filterNot { it.name == schemaName }
+            .plus(newSchema)
+        return response
+    }
+
+    suspend fun deleteSchema(schemaName: String, permanent: Boolean = false): DeleteSubjectResponse {
+        val response = fetcher?.deleteSchema(schemaName, permanent)
+            ?: throw IllegalStateException("DataPlaneCache not connected for cluster ${cluster.id}")
+
+        cachedSchemas = cachedSchemas?.filterNot { it.name == schemaName }
+        return response
     }
 
     /** Get topic partitions without offsets. Use enrichPartitionsProgressively() for offsets. */
@@ -372,5 +390,6 @@ class DataPlaneCache(
         fetcher = null
         cachedTopics = null
         cachedSchemas = null
+        cachedTopicEnrichment.clear()
     }
 }

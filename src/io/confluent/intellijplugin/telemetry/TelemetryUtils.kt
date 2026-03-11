@@ -8,6 +8,7 @@ import com.intellij.openapi.util.SystemInfo
 import org.jetbrains.annotations.VisibleForTesting
 import io.confluent.intellijplugin.core.constants.BdtPlugins
 import io.confluent.intellijplugin.settings.app.KafkaPluginSettings
+import java.net.InetAddress
 import java.security.MessageDigest
 import java.util.UUID
 
@@ -90,7 +91,7 @@ object TelemetryUtils {
      */
     fun getAnonymisedHostname(): String {
         return try {
-            val hostname = java.net.InetAddress.getLocalHost().hostName.substringBefore('.')
+            val hostname = InetAddress.getLocalHost().hostName.substringBefore('.')
             val bytes = MessageDigest.getInstance("SHA-256").digest(hostname.toByteArray())
             bytes.joinToString("") { "%02x".format(it) }.take(16)
         } catch (e: Exception) {
