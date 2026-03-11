@@ -308,6 +308,21 @@ class CCloudRestClientTest {
     }
 
     @Nested
+    @DisplayName("User-Agent Header")
+    inner class UserAgentTests {
+
+        @Test
+        fun `includes User-Agent header in requests`() = runBlocking {
+            stubEnvironmentsPage(listOf("env-abc123"))
+
+            fetchEnvironments()
+
+            wireMockServer.verify(getRequestedFor(urlEqualTo("/org/v2/environments"))
+                .withHeader("User-Agent", matching("confluent-for-intellij/v.+ \\(https://confluent\\.io; support@confluent\\.io\\)")))
+        }
+    }
+
+    @Nested
     @DisplayName("Data Plane Authentication")
     inner class DataPlaneTests {
 

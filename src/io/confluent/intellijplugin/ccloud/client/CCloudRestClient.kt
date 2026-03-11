@@ -132,7 +132,8 @@ class CCloudRestClient(
 
         val baseHeaders = mapOf(
             "Authorization" to "Bearer $token",
-            "Content-Type" to "application/json"
+            "Content-Type" to "application/json",
+            CCloudUserAgent.HEADER_NAME to CCloudUserAgent.headerValue()
         )
 
         return baseHeaders + additionalHeaders
