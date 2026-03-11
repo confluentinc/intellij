@@ -764,16 +764,9 @@ class CCloudProducerClientTest {
             offset = 1
         )
 
-        /** Set the private `running` AtomicBoolean to true so produceWithRetry doesn't short-circuit. */
-        private fun setRunning() {
-            val field = CCloudProducerClient::class.java.getDeclaredField("running")
-            field.isAccessible = true
-            (field.get(client) as java.util.concurrent.atomic.AtomicBoolean).set(true)
-        }
-
         @BeforeEach
         fun setUpRunning() {
-            setRunning()
+            client.running.set(true)
         }
 
         @Test

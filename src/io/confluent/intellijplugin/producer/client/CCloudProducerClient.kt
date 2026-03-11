@@ -67,7 +67,8 @@ class CCloudProducerClient(
     @VisibleForTesting internal val maxRetries: Int = MAX_RETRIES,
 ) : ProducerClient {
 
-    private val running = AtomicBoolean(false)
+    @VisibleForTesting
+    internal val running = AtomicBoolean(false)
     private var produceJob: Job? = null
     private var producerScope: CoroutineScope? = null
 
