@@ -1,20 +1,11 @@
 <idea-plugin>
     <id>com.intellij.bigdatatools.kafka</id>
-    <name>Kafka</name>
+    <name>Confluent</name>
     <vendor>Confluent</vendor>
     <version>253.25910.0-pre</version>
     <idea-version since-build="253.28294"/>
 
-    <description><![CDATA[
-<p>Monitor your <a href="https://kafka.apache.org/">Kafka</a> event streaming processes:
-<ul>
-   <li>Connect to Kafka clusters</li>
-   <li>Produce and consume messages in different formats including Avro and Protobuf</li>
-   <li>Manage topics and monitor consumer groups</li>
-   <li>Use Confluent Schema Registry and AWS Glue Schema Registry</li>
-</ul>
-</p>
-    ]]></description>
+    <description>Work with Confluent and Apache Kafka® to design, build and run data streaming applications.v</description>
 
     <depends config-file="spring-boot.xml" optional="true">com.intellij.spring.boot</depends>
     <depends>com.intellij.modules.json</depends>
@@ -223,7 +214,7 @@
 <h4 style="padding:0;margin:0;line-height:0px">Added</h4>
 <ul>
 <li>Compatibility with IntelliJ IDEA Community Edition — no longer requires an Ultimate subscription</li>
-<li>Segment integration for usage telemetry, which can be disabled by going to <strong>Settings > Tools > Kafka</strong> and unchecking the 'Telemetry Settings' option</li>
+<li>Segment integration for usage telemetry, which can be disabled by going to <strong>Settings > Tools > Confluent</strong> and unchecking the 'Telemetry Settings' option</li>
 <li>Sentry integration for error reports</li>
 </ul>
 

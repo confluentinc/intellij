@@ -90,7 +90,7 @@ internal class KafkaSpringBootConfigLineMarkers : LineMarkerProviderDescriptor()
     }
 
     @NlsSafe
-    private val KAFKA_NAVIGATION_GROUP: String = "Kafka"
+    private val KAFKA_NAVIGATION_GROUP: String = "Confluent"
 
     private fun createContributedActionMarker(
         anchor: PsiElement,

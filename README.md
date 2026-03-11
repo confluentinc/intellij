@@ -1,8 +1,8 @@
-# Kafka Plugin for JetBrains IDEs
+# Confluent for JetBrains IDEs
 
 ### Overview
 
-The [Kafka plugin](https://plugins.jetbrains.com/plugin/21704-kafka/) is designed to help developers work
+The [Confluent plugin](https://plugins.jetbrains.com/plugin/21704-kafka/) is designed to help developers work
 with [Apache Kafka](https://kafka.apache.org/) directly from an IntelliJ-based IDE. It provides a comprehensive set of
 tools for monitoring
 and managing Kafka event streaming processes.
@@ -22,14 +22,13 @@ Kafka-based applications.
 
 ### Installing and Getting Started
 
-To start using the Kafka plugin for IntelliJ IDEA, check out
-the [plugin documentation](https://www.jetbrains.com/help/idea/big-data-tools-kafka.html).
+To start using Confluent for JetBrains IDEs, check out the [plugin documentation](https://docs.confluent.io/cloud/current/client-apps/kafka-plugin-for-jetbrains-ides.html).
 It explains how to install the plugin and begin working with it.
 
 ### Reporting Issues
 
 If you find a bug or something doesn’t work as expected, please report it
-in [bug tracker](https://youtrack.jetbrains.com/issues/IJPL?q=Subsystem:%20%7BTools.%20Kafka%7D&u=1).
+in [bug tracker](https://github.com/confluentinc/intellij/issues).
 
 ## Developing the Plugin
 
