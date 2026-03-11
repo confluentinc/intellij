@@ -25,7 +25,6 @@ import io.confluent.intellijplugin.core.ui.CustomComponentActionImpl
 import io.confluent.intellijplugin.core.ui.filter.CountFilterPopupComponent
 import io.confluent.intellijplugin.data.BaseClusterDataManager
 import io.confluent.intellijplugin.data.CCloudClusterDataManager
-import io.confluent.intellijplugin.data.KafkaDataManager
 import io.confluent.intellijplugin.model.TopicPresentable
 import io.confluent.intellijplugin.model.TopicStatisticInfo
 import io.confluent.intellijplugin.rfs.KafkaDriver
@@ -264,10 +263,7 @@ internal class TopicsController(
         ) {
             override fun actionPerformed(e: AnActionEvent) {
                 val topic = getSelectedItem()?.name
-                when (dataManager) {
-                    is KafkaDataManager -> KafkaCreateConsumerAction.createConsumer(project, dataManager, topic)
-                    is CCloudClusterDataManager -> KafkaCreateConsumerAction.createConsumer(project, dataManager, topic)
-                }
+                KafkaCreateConsumerAction.createConsumer(project, dataManager, topic)
             }
 
             override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
