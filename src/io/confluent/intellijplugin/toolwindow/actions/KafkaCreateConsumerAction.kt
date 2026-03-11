@@ -13,6 +13,7 @@ import io.confluent.intellijplugin.core.monitoring.toolwindow.MainTreeController
 import io.confluent.intellijplugin.core.monitoring.toolwindow.MainTreeController.Companion.rfsPath
 import io.confluent.intellijplugin.core.rfs.driver.manager.DriverManager
 import io.confluent.intellijplugin.core.settings.actions.CreateConnectionPopup
+import io.confluent.intellijplugin.data.BaseClusterDataManager
 import io.confluent.intellijplugin.data.CCloudClusterDataManager
 import io.confluent.intellijplugin.data.CCloudOrgManager
 import io.confluent.intellijplugin.data.KafkaDataManager
@@ -78,26 +79,17 @@ class KafkaCreateConsumerAction : DumbAwareAction(), CustomComponentAction {
     override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
 
     companion object {
-        /**
-         * Creates a consumer for native Kafka connections.
-         */
-        fun createConsumer(project: Project, dataManager: KafkaDataManager, defaultTopic: String?) {
-            val connectionData = dataManager.connectionData
-            val file = LightVirtualFile("${connectionData.name} Consumer", KafkaFileType(), "").apply {
-                putUserData(KafkaEditorProvider.KAFKA_MANAGER_KEY, dataManager)
-                putUserData(KafkaEditorProvider.KAFKA_EDITOR_TYPE, KafkaEditorType.CONSUMER)
-                putUserData(KafkaEditorProvider.KAFKA_DEFAULT_TOPIC, defaultTopic)
+        fun createConsumer(project: Project, dataManager: BaseClusterDataManager, defaultTopic: String?) {
+            val connectionName = when (dataManager) {
+                is KafkaDataManager -> dataManager.connectionData.name
+                is CCloudClusterDataManager -> dataManager.connectionData.name
+                else -> "Unknown"
             }
-            FileEditorManager.getInstance(project).openFile(file, true)
-        }
-
-        /**
-         * Creates a consumer for CCloud connections.
-         */
-        fun createConsumer(project: Project, dataManager: CCloudClusterDataManager, defaultTopic: String?) {
-            val clusterName = dataManager.connectionId
-            val file = LightVirtualFile("$clusterName Consumer", KafkaFileType(), "").apply {
-                putUserData(KafkaEditorProvider.CCLOUD_MANAGER_KEY, dataManager)
+            val file = LightVirtualFile("$connectionName Consumer", KafkaFileType(), "").apply {
+                when (dataManager) {
+                    is KafkaDataManager -> putUserData(KafkaEditorProvider.KAFKA_MANAGER_KEY, dataManager)
+                    is CCloudClusterDataManager -> putUserData(KafkaEditorProvider.CCLOUD_MANAGER_KEY, dataManager)
+                }
                 putUserData(KafkaEditorProvider.KAFKA_EDITOR_TYPE, KafkaEditorType.CONSUMER)
                 putUserData(KafkaEditorProvider.KAFKA_DEFAULT_TOPIC, defaultTopic)
             }

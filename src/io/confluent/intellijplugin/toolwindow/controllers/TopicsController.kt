@@ -25,12 +25,12 @@ import io.confluent.intellijplugin.core.ui.CustomComponentActionImpl
 import io.confluent.intellijplugin.core.ui.filter.CountFilterPopupComponent
 import io.confluent.intellijplugin.data.BaseClusterDataManager
 import io.confluent.intellijplugin.data.CCloudClusterDataManager
-import io.confluent.intellijplugin.data.KafkaDataManager
 import io.confluent.intellijplugin.model.TopicPresentable
 import io.confluent.intellijplugin.model.TopicStatisticInfo
 import io.confluent.intellijplugin.rfs.KafkaDriver
 import io.confluent.intellijplugin.toolwindow.NavigableController
 import io.confluent.intellijplugin.toolwindow.actions.KafkaCreateConsumerAction
+import io.confluent.intellijplugin.toolwindow.actions.KafkaCreateProducerAction
 import io.confluent.intellijplugin.toolwindow.config.KafkaToolWindowSettings
 import io.confluent.intellijplugin.util.KafkaDialogFactory
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
@@ -255,19 +255,30 @@ internal class TopicsController(
     override fun getRenderableColumns() = TopicPresentable.renderableColumns
     override fun getDataModel() = dataManager.topicModel
 
-    /**
-     * Creates a consume action for CCloud connections, or null for native Kafka.
-     */
-    private fun createCCloudConsumeAction(): AnAction? {
-        val ccloudManager = dataManager as? CCloudClusterDataManager ?: return null
+    private fun createConsumeAction(): AnAction {
         return object : DumbAwareAction(
             KafkaMessagesBundle.message("action.kafka.create.consumer.text"),
             KafkaMessagesBundle.message("action.kafka.create.consumer.description"),
             AllIcons.Actions.Execute
         ) {
             override fun actionPerformed(e: AnActionEvent) {
-                val topic = getSelectedItem()
-                KafkaCreateConsumerAction.createConsumer(project, ccloudManager, topic?.name)
+                val topic = getSelectedItem()?.name
+                KafkaCreateConsumerAction.createConsumer(project, dataManager, topic)
+            }
+
+            override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
+        }
+    }
+
+    private fun createProduceAction(): AnAction {
+        return object : DumbAwareAction(
+            KafkaMessagesBundle.message("action.kafka.create.producer.text"),
+            KafkaMessagesBundle.message("action.kafka.create.producer.description"),
+            AllIcons.Actions.Upload
+        ) {
+            override fun actionPerformed(e: AnActionEvent) {
+                val topic = getSelectedItem()?.name
+                KafkaCreateProducerAction.openProducer(dataManager, project, topic)
             }
 
             override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
@@ -279,8 +290,8 @@ internal class TopicsController(
     override fun getAdditionalContextActions(): List<AnAction> {
         val actions = mutableListOf<AnAction>()
 
-        // Add consume action for CCloud connections
-        createCCloudConsumeAction()?.let { actions.add(it) }
+        actions.add(createConsumeAction())
+        actions.add(createProduceAction())
 
         val actionManager = ActionManager.getInstance()
         val group = actionManager.getAction("Kafka.Topic.Actions") as DefaultActionGroup
