@@ -4,11 +4,23 @@ import com.intellij.testFramework.junit5.TestApplication
 import io.confluent.intellijplugin.ccloud.fetcher.DataPlaneFetcherImpl
 import io.confluent.intellijplugin.ccloud.model.Cluster
 import io.confluent.intellijplugin.ccloud.model.SchemaRegistry
-import io.confluent.intellijplugin.ccloud.model.response.*
+import io.confluent.intellijplugin.ccloud.model.response.CreateTopicRequest
+import io.confluent.intellijplugin.ccloud.model.response.RegisterSchemaRequest
+import io.confluent.intellijplugin.ccloud.model.response.RegisterSchemaResponse
+import io.confluent.intellijplugin.ccloud.model.response.SchemaData
+import io.confluent.intellijplugin.ccloud.model.response.SchemaEnrichmentData
+import io.confluent.intellijplugin.ccloud.model.response.TopicData
+import io.confluent.intellijplugin.ccloud.model.response.TopicEnrichmentData
 import kotlinx.coroutines.runBlocking
-import org.junit.jupiter.api.*
-import org.junit.jupiter.api.Assertions.*
-import org.mockito.kotlin.*
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.DisplayName
+import org.junit.jupiter.api.Nested
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertTrue
+import org.mockito.kotlin.mock
+import org.mockito.kotlin.whenever
 
 /**
  * Tests for DataPlaneCache focusing on caching behavior.
