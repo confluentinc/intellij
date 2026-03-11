@@ -30,9 +30,11 @@ import io.confluent.intellijplugin.core.settings.getValidationInfo
 import io.confluent.intellijplugin.core.ui.CustomListCellRenderer
 import io.confluent.intellijplugin.core.ui.ExpansionPanel
 import io.confluent.intellijplugin.core.ui.MultiSplitter
-import io.confluent.intellijplugin.core.util.executeOnPooledThread
+import io.confluent.intellijplugin.core.util.executeNotOnEdtSuspend
 import io.confluent.intellijplugin.core.util.invokeLater
 import io.confluent.intellijplugin.core.util.withPluginClassLoader
+import io.confluent.intellijplugin.core.rfs.driver.SafeExecutor
+import kotlinx.coroutines.launch
 import io.confluent.intellijplugin.data.BaseClusterDataManager
 import io.confluent.intellijplugin.telemetry.MessageViewerEvent
 import io.confluent.intellijplugin.telemetry.logUsage
@@ -159,26 +161,28 @@ class KafkaConsumerPanel(
     private val consumeButton: JButton =
         JButton(KafkaMessagesBundle.message("action.consume.start.title"), AllIcons.Actions.Execute).apply {
             addActionListener {
-                executeOnPooledThread {
+                SafeExecutor.instance.coroutineScope.launch {
                     try {
-                        if (consumerClient.isRunning()) {
-                            consumerClient.stop()
-                            output.stop()
-                        } else {
-                            val validationInfo = topicComboBox.getValidationInfo() ?: key.getValidationInfo()
-                            ?: value.getValidationInfo()
-                            if (validationInfo != null) {
-                                progress.onValidationError()
-                                return@executeOnPooledThread
+                        executeNotOnEdtSuspend {
+                            if (consumerClient.isRunning()) {
+                                consumerClient.stop()
+                                output.stop()
+                            } else {
+                                val validationInfo = topicComboBox.getValidationInfo() ?: key.getValidationInfo()
+                                ?: value.getValidationInfo()
+                                if (validationInfo != null) {
+                                    progress.onValidationError()
+                                    return@executeNotOnEdtSuspend
+                                }
+
+                                startConsume(kafkaManager.project)
                             }
+                            updateVisibility()
+                            storeToUserData()
 
-                            startConsume(kafkaManager.project)
+                            invalidate()
+                            repaint()
                         }
-                        updateVisibility()
-                        storeToUserData()
-
-                        invalidate()
-                        repaint()
                     } catch (t: Throwable) {
                         @Suppress("DialogTitleCapitalization")
                         RfsNotificationUtils.notifyException(t, KafkaMessagesBundle.message("error.start.consumer"))
@@ -350,7 +354,7 @@ class KafkaConsumerPanel(
         storeToUserData()
     }
 
-    private fun startConsume(project: Project?) {
+    private suspend fun startConsume(project: Project?) {
         val runConfig = getRunConfig()
 
         if (runConfig.topic.isNullOrBlank()) {

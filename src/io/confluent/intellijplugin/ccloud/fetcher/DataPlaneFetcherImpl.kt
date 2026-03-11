@@ -136,13 +136,13 @@ class DataPlaneFetcherImpl(
         }
     }
 
-    override suspend fun loadSchemaInfo(subjectName: String): SchemaData {
+    override suspend fun loadSchemaInfo(schemaName: String): SchemaData {
         requireSchemaRegistry()
         return try {
-            val latestSchema = getLatestVersionInfo(subjectName)
+            val latestSchema = getLatestVersionInfo(schemaName)
 
             SchemaData(
-                name = subjectName,
+                name = schemaName,
                 latestVersion = latestSchema.version,
                 schemaType = latestSchema.schemaType ?: "AVRO",
                 compatibility = null  // Fetched on-demand to reduce API calls
@@ -150,26 +150,26 @@ class DataPlaneFetcherImpl(
         } catch (e: Exception) {
             // Cancellations are expected when user clicks refresh - use debug level
             if (e is CancellationException) {
-                thisLogger().debug("Cancelled fetch schema info for '$subjectName': ${e.message}")
+                thisLogger().debug("Cancelled fetch schema info for '$schemaName': ${e.message}")
             } else {
-                thisLogger().warn("Failed to fetch schema info for '$subjectName'", e)
+                thisLogger().warn("Failed to fetch schema info for '$schemaName'", e)
             }
-            SchemaData(name = subjectName)
+            SchemaData(name = schemaName)
         }
     }
 
-    override suspend fun listSchemaVersions(subjectName: String): List<Long> {
+    override suspend fun listSchemaVersions(schemaName: String): List<Long> {
         requireSchemaRegistry()
-        val encodedSubject = encodeUrlPathSegment(subjectName)
+        val encodedSubject = encodeUrlPathSegment(schemaName)
         val path = String.format(CloudConfig.DataPlane.SchemaRegistry.SUBJECT_VERSIONS_URI, encodedSubject)
         return schemaRegistryClient!!.fetch(path) { body ->
             json.decodeFromString(ListSerializer(Int.serializer()), body).map { it.toLong() }
         }
     }
 
-    override suspend fun getSchemaVersionInfo(subjectName: String, version: Long): SchemaVersionResponse {
+    override suspend fun getSchemaVersionInfo(schemaName: String, version: Long): SchemaVersionResponse {
         requireSchemaRegistry()
-        val encodedSubject = encodeUrlPathSegment(subjectName)
+        val encodedSubject = encodeUrlPathSegment(schemaName)
         val path =
             String.format(CloudConfig.DataPlane.SchemaRegistry.SUBJECT_VERSION_URI, encodedSubject, version.toString())
         return schemaRegistryClient!!.fetch(path) { body ->
@@ -177,9 +177,9 @@ class DataPlaneFetcherImpl(
         }
     }
 
-    override suspend fun getLatestVersionInfo(subjectName: String): SchemaVersionResponse {
+    override suspend fun getLatestVersionInfo(schemaName: String): SchemaVersionResponse {
         requireSchemaRegistry()
-        val encodedSubject = encodeUrlPathSegment(subjectName)
+        val encodedSubject = encodeUrlPathSegment(schemaName)
         val path = String.format(CloudConfig.DataPlane.SchemaRegistry.SUBJECT_VERSION_URI, encodedSubject, "latest")
         return schemaRegistryClient!!.fetch(path) { body ->
             json.decodeFromString<SchemaVersionResponse>(body)
@@ -237,12 +237,12 @@ class DataPlaneFetcherImpl(
 
     // Schema write operations
 
-    override suspend fun registerSchema(
-        subjectName: String,
+    override suspend fun createSchema(
+        schemaName: String,
         request: RegisterSchemaRequest
     ): RegisterSchemaResponse {
         requireSchemaRegistry()
-        val encodedSubject = encodeUrlPathSegment(subjectName)
+        val encodedSubject = encodeUrlPathSegment(schemaName)
         val path = String.format(CloudConfig.DataPlane.SchemaRegistry.REGISTER_SCHEMA_URI, encodedSubject)
         val requestBody = json.encodeToString(RegisterSchemaRequest.serializer(), request)
         val responseBody = schemaRegistryClient!!.executeRequest(path, "POST", requestBody)
@@ -250,20 +250,20 @@ class DataPlaneFetcherImpl(
     }
 
     override suspend fun checkSchemaExists(
-        subjectName: String,
+        schemaName: String,
         request: RegisterSchemaRequest
     ): CheckSchemaExistsResponse {
         requireSchemaRegistry()
-        val encodedSubject = encodeUrlPathSegment(subjectName)
+        val encodedSubject = encodeUrlPathSegment(schemaName)
         val path = String.format(CloudConfig.DataPlane.SchemaRegistry.CHECK_SCHEMA_URI, encodedSubject)
         val requestBody = json.encodeToString(RegisterSchemaRequest.serializer(), request)
         val responseBody = schemaRegistryClient!!.executeRequest(path, "POST", requestBody)
         return json.decodeFromString<CheckSchemaExistsResponse>(responseBody)
     }
 
-    override suspend fun deleteSubject(subjectName: String, permanent: Boolean): DeleteSubjectResponse {
+    override suspend fun deleteSchema(schemaName: String, permanent: Boolean): DeleteSubjectResponse {
         requireSchemaRegistry()
-        val encodedSubject = encodeUrlPathSegment(subjectName)
+        val encodedSubject = encodeUrlPathSegment(schemaName)
         val path = String.format(CloudConfig.DataPlane.SchemaRegistry.DELETE_SUBJECT_URI, encodedSubject)
         val pathWithQuery = if (permanent) "$path?permanent=true" else path
         val responseBody = schemaRegistryClient!!.executeRequest(pathWithQuery, "DELETE")
@@ -271,12 +271,12 @@ class DataPlaneFetcherImpl(
     }
 
     override suspend fun deleteSchemaVersion(
-        subjectName: String,
+        schemaName: String,
         version: Long,
         permanent: Boolean
     ): DeleteSchemaVersionResponse {
         requireSchemaRegistry()
-        val encodedSubject = encodeUrlPathSegment(subjectName)
+        val encodedSubject = encodeUrlPathSegment(schemaName)
         val path = String.format(
             CloudConfig.DataPlane.SchemaRegistry.DELETE_VERSION_URI,
             encodedSubject,
@@ -287,9 +287,9 @@ class DataPlaneFetcherImpl(
         return json.decodeFromString<DeleteSchemaVersionResponse>(responseBody)
     }
 
-    override suspend fun getSubjectCompatibility(subjectName: String): CompatibilityResponse {
+    override suspend fun getSchemaCompatibility(schemaName: String): CompatibilityResponse {
         requireSchemaRegistry()
-        val encodedSubject = encodeUrlPathSegment(subjectName)
+        val encodedSubject = encodeUrlPathSegment(schemaName)
         val path = String.format(CloudConfig.DataPlane.SchemaRegistry.GET_SUBJECT_COMPATIBILITY_URI, encodedSubject)
         val responseBody = schemaRegistryClient!!.executeRequest(path, "GET")
         return json.decodeFromString<CompatibilityResponse>(responseBody)

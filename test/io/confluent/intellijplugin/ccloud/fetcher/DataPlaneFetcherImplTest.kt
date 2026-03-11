@@ -6,13 +6,14 @@ import com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig
 import com.intellij.testFramework.junit5.TestApplication
 import io.confluent.intellijplugin.ccloud.auth.CCloudAuthService
 import io.confluent.intellijplugin.ccloud.client.CCloudRestClient
-import io.confluent.intellijplugin.ccloud.model.response.ProduceRecordData
-import io.confluent.intellijplugin.ccloud.model.response.ProduceRecordHeader
-import io.confluent.intellijplugin.ccloud.model.response.ProduceRecordRequest
+import io.confluent.intellijplugin.ccloud.util.ResourceLoader
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
 
@@ -22,7 +23,8 @@ class DataPlaneFetcherImplTest {
     companion object {
         private lateinit var wireMockServer: WireMockServer
         private const val TEST_DATA_PLANE_TOKEN = "test-data-plane-token"
-        private const val TEST_CLUSTER_ID = "lkc-test123"
+        private const val TEST_CLUSTER_ID = "lkc-abc123"
+        private const val TEST_SR_ID = "lsrc-xyz789"
 
         @JvmStatic
         @BeforeAll
@@ -52,11 +54,19 @@ class DataPlaneFetcherImplTest {
             authType = CCloudRestClient.AuthType.DATA_PLANE,
             authService = authService
         )
+
+        val schemaRegistryClient = CCloudRestClient(
+            baseUrl = "http://localhost:${wireMockServer.port()}",
+            authType = CCloudRestClient.AuthType.DATA_PLANE,
+            additionalHeaders = mapOf("target-sr-cluster" to TEST_SR_ID),
+            authService = authService
+        )
+
         fetcher = DataPlaneFetcherImpl(
             kafkaClient = kafkaClient,
-            schemaRegistryClient = null,
+            schemaRegistryClient = schemaRegistryClient,
             clusterId = TEST_CLUSTER_ID,
-            schemaRegistryId = null
+            schemaRegistryId = TEST_SR_ID
         )
     }
 
@@ -65,127 +75,303 @@ class DataPlaneFetcherImplTest {
         wireMockServer.resetAll()
     }
 
-    private fun loadFixture(path: String): String {
-        return javaClass.getResourceAsStream(path)!!.readBytes().toString(Charsets.UTF_8)
+    private fun stubKafkaGet(path: String, responseBody: String) {
+        wireMockServer.stubFor(
+            get(path)
+                .withHeader("Authorization", equalTo("Bearer $TEST_DATA_PLANE_TOKEN"))
+                .willReturn(
+                    aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody(responseBody)
+                )
+        )
+    }
+
+    private fun stubSchemaRegistryGet(path: String, responseBody: String) {
+        wireMockServer.stubFor(
+            get(path)
+                .withHeader("Authorization", equalTo("Bearer $TEST_DATA_PLANE_TOKEN"))
+                .withHeader("target-sr-cluster", equalTo(TEST_SR_ID))
+                .willReturn(
+                    aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody(responseBody)
+                )
+        )
+    }
+
+    private fun loadMockResponse(filename: String): String {
+        return ResourceLoader.loadResource("ccloud-resources-mock-responses/$filename")
     }
 
     @Nested
-    @DisplayName("produceRecord")
-    inner class ProduceRecordTests {
+    @DisplayName("getTopics")
+    inner class GetTopicsTests {
 
         @Test
-        fun `should produce record and return success response`() = runBlocking {
-            val responseJson = loadFixture("/fixtures/producer/produce-record-response.json")
+        fun `fetches topics successfully`() = runBlocking {
+            stubKafkaGet("/kafka/v3/clusters/$TEST_CLUSTER_ID/topics", loadMockResponse("list-topics.json"))
+
+            val result = fetcher.getTopics()
+
+            assertEquals(3, result.size)
+            assertEquals("orders", result[0].topicName)
+            assertEquals(6, result[0].partitionsCount)
+            assertEquals(3, result[0].replicationFactor)
+            assertFalse(result[0].isInternal)
+
+            assertEquals("payments", result[1].topicName)
+            assertEquals("__consumer_offsets", result[2].topicName)
+            assertTrue(result[2].isInternal)
+        }
+
+        @Test
+        fun `handles empty topics list`() = runBlocking {
+            stubKafkaGet(
+                "/kafka/v3/clusters/$TEST_CLUSTER_ID/topics", """
+                {
+                  "kind": "KafkaTopicList",
+                  "metadata": {"next": null},
+                  "data": []
+                }
+            """.trimIndent()
+            )
+
+            val result = fetcher.getTopics()
+
+            assertTrue(result.isEmpty())
+        }
+    }
+
+    @Nested
+    @DisplayName("describeTopicPartitions")
+    inner class DescribeTopicPartitionsTests {
+
+        @Test
+        fun `fetches topic partitions successfully`() = runBlocking {
+            stubKafkaGet(
+                "/kafka/v3/clusters/$TEST_CLUSTER_ID/topics/orders/partitions",
+                loadMockResponse("describe-topic-partitions.json")
+            )
+
+            val result = fetcher.describeTopicPartitions("orders")
+
+            assertEquals(3, result.size)
+            assertEquals(0, result[0].partitionId)
+            assertEquals(1, result[1].partitionId)
+            assertEquals(2, result[2].partitionId)
+        }
+
+        @Test
+        fun `handles empty partitions list`() = runBlocking {
+            stubKafkaGet(
+                "/kafka/v3/clusters/$TEST_CLUSTER_ID/topics/empty-topic/partitions",
+                """{"kind": "KafkaPartitionList", "metadata": {"next": null}, "data": []}"""
+            )
+
+            val result = fetcher.describeTopicPartitions("empty-topic")
+
+            assertTrue(result.isEmpty())
+        }
+    }
+
+    @Nested
+    @DisplayName("getTopicMessageCount")
+    inner class GetTopicMessageCountTests {
+
+        @Test
+        fun `fetches topic message count successfully`() = runBlocking {
+            stubKafkaGet(
+                "/kafka/v3/clusters/$TEST_CLUSTER_ID/internal/topics/orders/partitions/-/records:offsets",
+                loadMockResponse("topic-message-count.json")
+            )
+
+            val result = fetcher.getTopicMessageCount("orders")
+
+            assertEquals(12345L, result)
+        }
+
+        @Test
+        fun `handles zero message count`() = runBlocking {
+            stubKafkaGet(
+                "/kafka/v3/clusters/$TEST_CLUSTER_ID/internal/topics/empty-topic/partitions/-/records:offsets",
+                """{"total_records": 0}"""
+            )
+
+            val result = fetcher.getTopicMessageCount("empty-topic")
+
+            assertEquals(0L, result)
+        }
+    }
+
+    @Nested
+    @DisplayName("getAllSubjects")
+    inner class GetAllSubjectsTests {
+
+        @Test
+        fun `fetches all subjects successfully`() = runBlocking {
+            stubSchemaRegistryGet("/subjects", loadMockResponse("list-all-subjects.json"))
+
+            val result = fetcher.getAllSubjects()
+
+            assertEquals(3, result.size)
+            assertEquals("user-schema", result[0])
+            assertEquals("order-schema", result[1])
+            assertEquals("payment-schema", result[2])
+        }
+
+        @Test
+        fun `handles empty subject list`() = runBlocking {
+            stubSchemaRegistryGet("/subjects", "[]")
+
+            val result = fetcher.getAllSubjects()
+
+            assertTrue(result.isEmpty())
+        }
+    }
+
+    @Nested
+    @DisplayName("listSchemaVersions")
+    inner class ListSchemaVersionsTests {
+
+        @Test
+        fun `fetches schema versions successfully`() = runBlocking {
+            stubSchemaRegistryGet("/subjects/user-schema/versions", loadMockResponse("schema-versions-list.json"))
+
+            val result = fetcher.listSchemaVersions("user-schema")
+
+            assertEquals(3, result.size)
+            assertEquals(1L, result[0])
+            assertEquals(2L, result[1])
+            assertEquals(3L, result[2])
+        }
+
+        @Test
+        fun `handles empty version list`() = runBlocking {
+            stubSchemaRegistryGet("/subjects/empty-schema/versions", "[]")
+
+            val result = fetcher.listSchemaVersions("empty-schema")
+
+            assertTrue(result.isEmpty())
+        }
+    }
+
+    @Nested
+    @DisplayName("getSchemaVersionInfo")
+    inner class GetSchemaVersionInfoTests {
+
+        @Test
+        fun `fetches specific schema version successfully`(): Unit = runBlocking {
+            stubSchemaRegistryGet("/subjects/user-schema/versions/2", loadMockResponse("schema-version-specific.json"))
+
+            val result = fetcher.getSchemaVersionInfo("user-schema", 2)
+
+            assertEquals("user-schema", result.subject)
+            assertEquals(2, result.version)
+            assertEquals(100002, result.id)
+            assertEquals("AVRO", result.schemaType)
+            assertNotNull(result.schema)
+        }
+
+        @Test
+        fun `handles schema with references`() = runBlocking {
+            stubSchemaRegistryGet("/subjects/user-schema/versions/2", loadMockResponse("schema-version-specific.json"))
+
+            val result = fetcher.getSchemaVersionInfo("user-schema", 2)
+
+            assertNotNull(result.references)
+            assertTrue(result.references!!.isEmpty())
+        }
+    }
+
+    @Nested
+    @DisplayName("getLatestVersionInfo")
+    inner class GetLatestVersionInfoTests {
+
+        @Test
+        fun `fetches latest schema version successfully`(): Unit = runBlocking {
+            stubSchemaRegistryGet(
+                "/subjects/user-schema/versions/latest",
+                loadMockResponse("schema-version-latest.json")
+            )
+
+            val result = fetcher.getLatestVersionInfo("user-schema")
+
+            assertEquals("user-schema", result.subject)
+            assertEquals(3, result.version)
+            assertEquals(100001, result.id)
+            assertEquals("AVRO", result.schemaType)
+            assertNotNull(result.schema)
+        }
+    }
+
+    @Nested
+    @DisplayName("getSchemaIdInfo")
+    inner class GetSchemaIdInfoTests {
+
+        @Test
+        fun `fetches schema by ID successfully`() = runBlocking {
+            stubSchemaRegistryGet("/schemas/ids/100001", loadMockResponse("schema-by-id.json"))
+
+            val result = fetcher.getSchemaIdInfo(100001)
+
+            assertEquals("AVRO", result.schemaType)
+            assertNotNull(result.schema)
+            assertTrue(result.schema.contains("User"))
+        }
+    }
+
+    @Nested
+    @DisplayName("loadSchemaInfo")
+    inner class LoadSchemaInfoTests {
+
+        @Test
+        fun `loads schema info without compatibility for performance`() = runBlocking {
+            stubSchemaRegistryGet(
+                "/subjects/user-schema/versions/latest",
+                loadMockResponse("schema-version-latest.json")
+            )
+
+            val result = fetcher.loadSchemaInfo("user-schema")
+
+            assertEquals("user-schema", result.name)
+            assertEquals(3, result.latestVersion)
+            assertEquals("AVRO", result.schemaType)
+            assertNull(result.compatibility)
+        }
+
+        @Test
+        fun `handles errors gracefully and returns minimal schema data`() = runBlocking {
+            // Latest version endpoint returns error
             wireMockServer.stubFor(
-                post("/kafka/v3/clusters/$TEST_CLUSTER_ID/topics/test-topic/records")
+                get("/subjects/missing-schema/versions/latest")
                     .withHeader("Authorization", equalTo("Bearer $TEST_DATA_PLANE_TOKEN"))
-                    .willReturn(
-                        aResponse()
-                            .withStatus(200)
-                            .withHeader("Content-Type", "application/json")
-                            .withBody(responseJson)
-                    )
+                    .withHeader("target-sr-cluster", equalTo(TEST_SR_ID))
+                    .willReturn(aResponse().withStatus(404))
             )
 
-            val request = ProduceRecordRequest(
-                partitionId = 0,
-                key = ProduceRecordData(type = "STRING", data = "my-key"),
-                value = ProduceRecordData(type = "STRING", data = "my-value")
-            )
+            val result = fetcher.loadSchemaInfo("missing-schema")
 
-            val response = fetcher.produceRecord("test-topic", request)
-
-            assertEquals(200, response.errorCode)
-            assertEquals("lkc-test123", response.clusterId)
-            assertEquals("test-topic", response.topicName)
-            assertEquals(0, response.partitionId)
-            assertEquals(42, response.offset)
-            assertEquals("STRING", response.key?.type)
-            assertEquals("STRING", response.value?.type)
+            assertEquals("missing-schema", result.name)
+            assertNull(result.latestVersion)
+            assertNull(result.schemaType)
+            assertNull(result.compatibility)
         }
+    }
+
+    @Nested
+    @DisplayName("getSchemaCompatibility")
+    inner class GetSchemaCompatibilityTests {
 
         @Test
-        fun `should send correct request body`() = runBlocking {
-            val responseJson = loadFixture("/fixtures/producer/produce-record-response.json")
-            wireMockServer.stubFor(
-                post("/kafka/v3/clusters/$TEST_CLUSTER_ID/topics/test-topic/records")
-                    .willReturn(
-                        aResponse()
-                            .withStatus(200)
-                            .withHeader("Content-Type", "application/json")
-                            .withBody(responseJson)
-                    )
-            )
+        fun `fetches schema compatibility successfully`() = runBlocking {
+            stubSchemaRegistryGet("/config/user-schema", loadMockResponse("schema-compatibility.json"))
 
-            val request = ProduceRecordRequest(
-                partitionId = 0,
-                headers = listOf(ProduceRecordHeader("correlation-id", "dGVzdC12YWx1ZQ==")),
-                key = ProduceRecordData(type = "STRING", data = "my-key"),
-                value = ProduceRecordData(type = "BINARY", data = "SGVsbG8=")
-            )
+            val result = fetcher.getSchemaCompatibility("user-schema")
 
-            fetcher.produceRecord("test-topic", request)
-
-            wireMockServer.verify(
-                postRequestedFor(urlEqualTo("/kafka/v3/clusters/$TEST_CLUSTER_ID/topics/test-topic/records"))
-                    .withRequestBody(matchingJsonPath("$.partition_id", equalTo("0")))
-                    .withRequestBody(matchingJsonPath("$.key.type", equalTo("STRING")))
-                    .withRequestBody(matchingJsonPath("$.key.data", equalTo("my-key")))
-                    .withRequestBody(matchingJsonPath("$.value.type", equalTo("BINARY")))
-                    .withRequestBody(matchingJsonPath("$.value.data", equalTo("SGVsbG8=")))
-                    .withRequestBody(matchingJsonPath("$.headers[0].name", equalTo("correlation-id")))
-                    .withRequestBody(matchingJsonPath("$.headers[0].value", equalTo("dGVzdC12YWx1ZQ==")))
-            )
-        }
-
-        @Test
-        fun `should format URL path with topic name`() = runBlocking {
-            val topicName = "my-special-topic"
-            val responseJson = loadFixture("/fixtures/producer/produce-record-response.json")
-            wireMockServer.stubFor(
-                post("/kafka/v3/clusters/$TEST_CLUSTER_ID/topics/$topicName/records")
-                    .willReturn(
-                        aResponse()
-                            .withStatus(200)
-                            .withHeader("Content-Type", "application/json")
-                            .withBody(responseJson)
-                    )
-            )
-
-            val request = ProduceRecordRequest(
-                value = ProduceRecordData(type = "STRING", data = "test")
-            )
-
-            fetcher.produceRecord(topicName, request)
-
-            wireMockServer.verify(
-                postRequestedFor(urlEqualTo("/kafka/v3/clusters/$TEST_CLUSTER_ID/topics/$topicName/records"))
-            )
-        }
-
-        @Test
-        fun `should parse error response`() = runBlocking {
-            val responseJson = loadFixture("/fixtures/producer/produce-record-response-error.json")
-            wireMockServer.stubFor(
-                post("/kafka/v3/clusters/$TEST_CLUSTER_ID/topics/test-topic/records")
-                    .willReturn(
-                        aResponse()
-                            .withStatus(200)
-                            .withHeader("Content-Type", "application/json")
-                            .withBody(responseJson)
-                    )
-            )
-
-            val request = ProduceRecordRequest(
-                value = ProduceRecordData(type = "STRING", data = "test")
-            )
-
-            val response = fetcher.produceRecord("test-topic", request)
-
-            assertEquals(404, response.errorCode)
-            assertEquals("This server does not host this topic-partition.", response.message)
-            assertNull(response.clusterId)
-            assertNull(response.offset)
+            assertEquals("BACKWARD", result.compatibilityLevel)
         }
     }
 }
