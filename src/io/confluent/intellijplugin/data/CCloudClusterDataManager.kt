@@ -81,9 +81,11 @@ class CCloudClusterDataManager(
     private var schemaEnrichmentJob: Job? = null
     private val partitionCache = ConcurrentHashMap<String, List<BdtTopicPartition>>()
     private val schemaVersionCache = ConcurrentHashMap<Pair<String, Long>, SchemaVersionInfo>()
+    private val schemaTypeCache = ConcurrentHashMap<String, KafkaRegistryFormat>()
 
     private fun invalidateSchemaVersionCache(schemaName: String) {
         schemaVersionCache.keys.removeIf { it.first == schemaName }
+        schemaTypeCache.remove(schemaName)
     }
 
     override val connectionId: String = cluster.id
@@ -324,6 +326,9 @@ class CCloudClusterDataManager(
 
                             dataPlaneCache.updateSchemaInCache(result.schemaName, result.data)
 
+                            val schemaType = KafkaRegistryFormat.fromSchemaType(result.data.schemaType)
+                            schemaTypeCache[result.schemaName] = schemaType
+
                             invokeLaterIfNotDisposed {
                                 val currentSchemas = model.data ?: return@invokeLaterIfNotDisposed
                                 val index = currentSchemas.indexOfFirst { it.name == result.schemaName }
@@ -333,7 +338,7 @@ class CCloudClusterDataManager(
                                     if (i == index) {
                                         schema.copy(
                                             version = result.data.latestVersion?.toLong(),
-                                            type = KafkaRegistryFormat.fromSchemaType(result.data.schemaType)
+                                            type = schemaType
                                         )
                                     } else {
                                         schema
@@ -429,7 +434,8 @@ class CCloudClusterDataManager(
             schemas.map { schema ->
                 RegistrySchemaInEditor(
                     schemaName = schema.name,
-                    schemaFormat = schema.type ?: KafkaRegistryFormat.UNKNOWN
+                    schemaFormat = runBlockingMaybeCancellable { getCachedOrLoadSchemaType(schema.name) }
+                        ?: KafkaRegistryFormat.UNKNOWN
                 )
             }.sorted()
         } catch (e: Exception) {
@@ -437,6 +443,11 @@ class CCloudClusterDataManager(
             emptyList()
         }
     }
+
+    private suspend fun getCachedOrLoadSchemaType(name: String): KafkaRegistryFormat? =
+        schemaTypeCache[name] ?: getCachedOrLoadSchema(name).type?.also {
+            schemaTypeCache[name] = it
+        }
 
     override suspend fun getLatestVersionInfo(schemaName: String): SchemaVersionInfo? {
         if (!dataPlaneCache.hasSchemaRegistry()) {
@@ -844,5 +855,6 @@ class CCloudClusterDataManager(
         partitionEnrichmentJobs.clear()
         partitionCache.clear()
         schemaVersionCache.clear()
+        schemaTypeCache.clear()
     }
 }
