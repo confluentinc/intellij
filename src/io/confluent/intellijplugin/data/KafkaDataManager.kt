@@ -32,6 +32,7 @@ import io.confluent.intellijplugin.rfs.KafkaDriver
 import io.confluent.intellijplugin.toolwindow.config.KafkaToolWindowSettings
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
 import io.confluent.kafka.schemaregistry.ParsedSchema
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.future.asCompletableFuture
 import kotlinx.coroutines.launch
@@ -216,8 +217,10 @@ class KafkaDataManager(
         }.sorted()
     } catch (e: ProcessCanceledException) {
         throw e  // Re-throw cancellation to preserve IDE cancellation semantics
-    } catch (t: Throwable) {
-        thisLogger().warn(t)
+    } catch (e: CancellationException) {
+        throw e  // Re-throw coroutine cancellation
+    } catch (e: Exception) {
+        thisLogger().warn(e)
         emptyList()
     }
 
