@@ -1,6 +1,7 @@
 package io.confluent.intellijplugin.data
 
 import com.intellij.openapi.diagnostic.thisLogger
+import com.intellij.openapi.progress.ProcessCanceledException
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.util.Disposer
@@ -432,12 +433,18 @@ class CCloudClusterDataManager(
         return try {
             val schemas = getSchemas()
             schemas.map { schema ->
+                val schemaFormat = schema.type
+                    ?: runBlockingMaybeCancellable { getCachedOrLoadSchemaType(schema.name) }
+                    ?: KafkaRegistryFormat.UNKNOWN
                 RegistrySchemaInEditor(
                     schemaName = schema.name,
-                    schemaFormat = runBlockingMaybeCancellable { getCachedOrLoadSchemaType(schema.name) }
-                        ?: KafkaRegistryFormat.UNKNOWN
+                    schemaFormat = schemaFormat
                 )
             }.sorted()
+        } catch (e: ProcessCanceledException) {
+            throw e  // Re-throw cancellation to preserve IDE cancellation semantics
+        } catch (e: CancellationException) {
+            throw e  // Re-throw coroutine cancellation
         } catch (e: Exception) {
             thisLogger().warn("Failed to get schemas for editor in cluster ${cluster.id}", e)
             emptyList()
