@@ -192,6 +192,20 @@
     </actions>
 
     <change-notes><![CDATA[
+<h2 style="padding:0;margin:0;line-height:0px">Changes in 253.25910.0</h2>
+<h4 style="padding:0;margin:0;line-height:0px">Changed</h4>
+<ul>
+<li>Rebrand plugin from "Kafka" to "Confluent"</li>
+</ul>
+<h4 style="padding:0;margin:0;line-height:0px">Added</h4>
+<ul>
+<li>OAuth support for logging in to Confluent Cloud directly, with the ability to view & interact with environments and resources.</li>
+</ul>
+<h4 style="padding:0;margin:0;line-height:0px">Fixed</h4>
+<ul>
+<li>Consumer performance improvements: batch table updates and optimized storage</li>
+</ul>
+
 <h2 style="padding:0;margin:0;line-height:0px">Changes in 253.25909.3</h2>
 <h4 style="padding:0;margin:0;line-height:0px">Fixed</h4>
 <ul>
