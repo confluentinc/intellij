@@ -121,42 +121,30 @@ class CCloudAuthenticationEventTest {
 
         @Test
         fun `should have correct event name and status`() {
-            val event = CCloudAuthenticationEvent.TokenRefreshFailed(
-                attemptNumber = 1,
-                maxAttempts = 3,
-            )
+            val event = CCloudAuthenticationEvent.TokenRefreshFailed()
 
             assertEquals("CCloud Authentication", event.eventName)
             assertEquals("token refresh failed", event.status)
         }
 
         @Test
-        fun `should include all properties when provided`() {
+        fun `should include errorType when provided`() {
             val event = CCloudAuthenticationEvent.TokenRefreshFailed(
                 errorType = "401 Unauthorized",
-                attemptNumber = 2,
-                maxAttempts = 3,
             )
 
             assertEquals(mapOf(
                 "status" to "token refresh failed",
-                "attemptNumber" to 2,
-                "maxAttempts" to 3,
                 "errorType" to "401 Unauthorized",
             ), event.properties())
         }
 
         @Test
         fun `should omit errorType when null`() {
-            val event = CCloudAuthenticationEvent.TokenRefreshFailed(
-                attemptNumber = 1,
-                maxAttempts = 3,
-            )
+            val event = CCloudAuthenticationEvent.TokenRefreshFailed()
 
             assertEquals(mapOf(
                 "status" to "token refresh failed",
-                "attemptNumber" to 1,
-                "maxAttempts" to 3,
             ), event.properties())
         }
     }

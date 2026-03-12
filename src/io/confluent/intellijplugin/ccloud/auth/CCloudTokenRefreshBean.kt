@@ -19,7 +19,8 @@ import kotlinx.coroutines.launch
  */
 class CCloudTokenRefreshBean(
     private val context: CCloudOAuthContext,
-    parentDisposable: Disposable
+    parentDisposable: Disposable,
+    private val onTerminal: ((reason: String) -> Unit)? = null,
 ) : Disposable {
     private val logger = thisLogger()
     private val coroutineScope = CoroutineScope(Dispatchers.IO)
@@ -52,10 +53,12 @@ class CCloudTokenRefreshBean(
     private fun shouldContinueRefreshing(): Boolean {
         if (context.hasNonTransientError()) {
             logger.warn("Stopping refresh: non-transient error after ${context.getFailedTokenRefreshAttempts()} failed attempts")
+            onTerminal?.invoke("refresh_failed")
             return false
         }
         if (context.hasReachedEndOfLifetime()) {
             logger.warn("Stopping refresh: session reached end of lifetime")
+            onTerminal?.invoke("session_expired")
             return false
         }
         return true
@@ -97,13 +100,10 @@ class CCloudTokenRefreshBean(
                 val attempts = context.getFailedTokenRefreshAttempts()
                 logger.warn("Token refresh failed ($attempts/${CCloudOAuthConfig.MAX_TOKEN_REFRESH_ATTEMPTS}): ${error.message}")
 
-                // Only fire telemetry on the final attempt to avoid bursts of events
-                if (attempts >= CCloudOAuthConfig.MAX_TOKEN_REFRESH_ATTEMPTS) {
-                    logUsage(CCloudAuthenticationEvent.TokenRefreshFailed(
-                        errorType = error.message,
-                        attemptNumber = attempts,
-                        maxAttempts = CCloudOAuthConfig.MAX_TOKEN_REFRESH_ATTEMPTS,
-                    ))
+                // Fire telemetry on the first failure only — if the issue is terminal,
+                // a SignedOut(reason="refresh_failed") event will follow
+                if (attempts == 1) {
+                    logUsage(CCloudAuthenticationEvent.TokenRefreshFailed(errorType = error.message))
                 }
             }
         )

@@ -115,7 +115,11 @@ class CCloudAuthService(private val scope: CoroutineScope) : Disposable {
 
         context = authenticatedContext
         CCloudTokenStorage.saveSession(authenticatedContext)
-        refreshBean = CCloudTokenRefreshBean(authenticatedContext, this).also { it.start() }
+        refreshBean = CCloudTokenRefreshBean(
+            context = authenticatedContext,
+            parentDisposable = this,
+            onTerminal = { reason -> signOut(reason = reason, invokedPlace = null, notifyListeners = true) },
+        ).also { it.start() }
 
         logger.info("Signed in as ${authenticatedContext.getUserEmail()}")
     }

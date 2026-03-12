@@ -148,23 +148,18 @@ sealed class CCloudAuthenticationEvent : TelemetryEvent {
 
 
     /**
-     * Tracks a failed background token refresh attempt.
+     * Tracks when background token refresh exhausts all retry attempts.
+     * Fired once when the refresh loop gives up (after MAX_TOKEN_REFRESH_ATTEMPTS consecutive failures).
      *
-     * @param errorType The error type or message
-     * @param attemptNumber Current consecutive failed attempt number
-     * @param maxAttempts Maximum allowed attempts before the refresh loop gives up
+     * @param errorType The error type or message from the last failed attempt
      */
     data class TokenRefreshFailed(
         val errorType: String? = null,
-        val attemptNumber: Int,
-        val maxAttempts: Int,
     ) : CCloudAuthenticationEvent() {
         override val status = "token refresh failed"
 
         override fun properties() = buildMap<String, Any> {
             put("status", status)
-            put("attemptNumber", attemptNumber)
-            put("maxAttempts", maxAttempts)
             errorType?.let { put("errorType", it) }
         }
     }
