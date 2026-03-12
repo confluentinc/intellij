@@ -30,7 +30,7 @@ class KafkaDriver(override val connectionData: KafkaConnectionData, project: Pro
         { this }
     )
     override val presentableName: String = connectionData.name
-    override val icon: Icon = BigdatatoolsKafkaIcons.Kafka
+    override val icon: Icon = BigdatatoolsKafkaIcons.ConfluentTab
 
     override val treeNodeBuilder: RfsDriverTreeNodeBuilder = object : RfsDriverTreeNodeBuilder() {
         override fun createNode(project: Project, path: RfsPath, driver: Driver) =
