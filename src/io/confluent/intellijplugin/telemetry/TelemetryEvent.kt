@@ -81,22 +81,92 @@ data class ConnectionEvent(
 
 /**
  * Tracks Confluent Cloud authentication events.
+ * All subclasses share the same event name with a "status" discriminator.
  *
- * @param status Authentication status ("signed in", "signed out", "authentication failed")
- * @param ccloudId The CCloud user ID (resource ID)
- * @param errorType Error type if authentication failed
+ * @property status The authentication status discriminator (e.g., "signed in", "signed out")
  */
-data class CCloudAuthenticationEvent(
-    val status: String,
-    val ccloudId: String? = null,
-    val errorType: String? = null,
-) : TelemetryEvent {
+sealed class CCloudAuthenticationEvent : TelemetryEvent {
     override val eventName = "CCloud Authentication"
+    abstract val status: String
 
-    override fun properties() = buildMap<String, Any> {
-        put("status", status)
-        ccloudId?.let { put("ccloudId", it) }
-        errorType?.let { put("errorType", it) }
+    /**
+     * Tracks a successful sign-in.
+     *
+     * @param ccloudId The CCloud user ID (resource ID)
+     * @param invokedPlace Where the sign-in was initiated from (e.g., "welcome_panel", "settings_panel", "tool_window_action")
+     */
+    data class SignedIn(
+        val ccloudId: String? = null,
+        val invokedPlace: String? = null,
+    ) : CCloudAuthenticationEvent() {
+        override val status = "signed in"
+
+        override fun properties() = buildMap<String, Any> {
+            put("status", status)
+            ccloudId?.let { put("ccloudId", it) }
+            invokedPlace?.let { put("invokedPlace", it) }
+        }
+    }
+
+    /**
+     * Tracks a sign-out.
+     *
+     * @param reason Why the user was signed out ("user_initiated", "session_expired", "refresh_failed")
+     * @param invokedPlace Where the sign-out was initiated from, if user-initiated
+     */
+    data class SignedOut(
+        val reason: String,
+        val invokedPlace: String? = null,
+    ) : CCloudAuthenticationEvent() {
+        override val status = "signed out"
+
+        override fun properties() = buildMap<String, Any> {
+            put("status", status)
+            put("reason", reason)
+            invokedPlace?.let { put("invokedPlace", it) }
+        }
+    }
+
+    /**
+     * Tracks a failed authentication attempt.
+     *
+     * @param errorType The error type or message
+     * @param invokedPlace Where the sign-in was initiated from
+     */
+    data class AuthenticationFailed(
+        val errorType: String,
+        val invokedPlace: String? = null,
+    ) : CCloudAuthenticationEvent() {
+        override val status = "authentication failed"
+
+        override fun properties() = buildMap<String, Any> {
+            put("status", status)
+            put("errorType", errorType)
+            invokedPlace?.let { put("invokedPlace", it) }
+        }
+    }
+
+
+    /**
+     * Tracks a failed background token refresh attempt.
+     *
+     * @param errorType The error type or message
+     * @param attemptNumber Current consecutive failed attempt number
+     * @param maxAttempts Maximum allowed attempts before the refresh loop gives up
+     */
+    data class TokenRefreshFailed(
+        val errorType: String? = null,
+        val attemptNumber: Int,
+        val maxAttempts: Int,
+    ) : CCloudAuthenticationEvent() {
+        override val status = "token refresh failed"
+
+        override fun properties() = buildMap<String, Any> {
+            put("status", status)
+            put("attemptNumber", attemptNumber)
+            put("maxAttempts", maxAttempts)
+            errorType?.let { put("errorType", it) }
+        }
     }
 }
 

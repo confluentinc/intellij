@@ -3,6 +3,8 @@ package io.confluent.intellijplugin.ccloud.auth
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.util.Disposer
+import io.confluent.intellijplugin.telemetry.CCloudAuthenticationEvent
+import io.confluent.intellijplugin.telemetry.logUsage
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -94,6 +96,15 @@ class CCloudTokenRefreshBean(
             onFailure = { error ->
                 val attempts = context.getFailedTokenRefreshAttempts()
                 logger.warn("Token refresh failed ($attempts/${CCloudOAuthConfig.MAX_TOKEN_REFRESH_ATTEMPTS}): ${error.message}")
+
+                // Only fire telemetry on the final attempt to avoid bursts of events
+                if (attempts >= CCloudOAuthConfig.MAX_TOKEN_REFRESH_ATTEMPTS) {
+                    logUsage(CCloudAuthenticationEvent.TokenRefreshFailed(
+                        errorType = error.message,
+                        attemptNumber = attempts,
+                        maxAttempts = CCloudOAuthConfig.MAX_TOKEN_REFRESH_ATTEMPTS,
+                    ))
+                }
             }
         )
     }

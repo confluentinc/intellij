@@ -26,7 +26,7 @@ import java.util.concurrent.CopyOnWriteArrayList
  *
  * Usage:
  *  ```
- *  CCloudAuthService.getInstance().signIn()  // Opens browser, notifies listeners on completion
+ *  CCloudAuthService.getInstance().signIn("welcome_panel")  // Opens browser, notifies listeners on completion
  *  CCloudAuthService.getInstance().signOut()  // Clears session, notifies listeners
  *  ```
  *
@@ -63,7 +63,7 @@ class CCloudAuthService(private val scope: CoroutineScope) : Disposable {
      * Start the OAuth sign-in flow.
      * Opens browser for authentication, shows notifications, and notifies listeners on completion.
      */
-    fun signIn() {
+    fun signIn(invokedPlace: String? = null) {
         logger.info("Starting OAuth sign-in flow")
 
         val oauthContext = CCloudOAuthContext()
@@ -87,13 +87,13 @@ class CCloudAuthService(private val scope: CoroutineScope) : Disposable {
                         it.resourceId?.let { put("ccloudUserId", it) }
                     })
                 }
-                logUsage(CCloudAuthenticationEvent(status = "signed in", ccloudId = user?.resourceId))
+                logUsage(CCloudAuthenticationEvent.SignedIn(ccloudId = user?.resourceId, invokedPlace = invokedPlace))
 
                 notifySignedIn(authenticatedContext.getUserEmail())
             },
             onError = { error ->
                 logger.error("Sign-in failed: $error")
-                logUsage(CCloudAuthenticationEvent(status = "authentication failed", errorType = error))
+                logUsage(CCloudAuthenticationEvent.AuthenticationFailed(errorType = error, invokedPlace = invokedPlace))
 
                 ApplicationManager.getApplication().invokeLater({
                     showSignInFailureNotification(error)
@@ -111,7 +111,7 @@ class CCloudAuthService(private val scope: CoroutineScope) : Disposable {
      * @param authenticatedContext The authenticated context to sign in with
      */
     private fun completeSignIn(authenticatedContext: CCloudOAuthContext) {
-        signOut(notifyListeners = false)
+        signOut(reason = "user_initiated", invokedPlace = null, notifyListeners = false)
 
         context = authenticatedContext
         CCloudTokenStorage.saveSession(authenticatedContext)
@@ -124,13 +124,14 @@ class CCloudAuthService(private val scope: CoroutineScope) : Disposable {
      * Sign out, clear current session and stop refresh.
      * PasswordSafe I/O runs on a background thread; listeners are notified on EDT.
      */
-    fun signOut() = signOut(notifyListeners = true)
+    fun signOut(reason: String = "user_initiated", invokedPlace: String? = null) =
+        signOut(reason = reason, invokedPlace = invokedPlace, notifyListeners = true)
 
-    private fun signOut(notifyListeners: Boolean) {
+    private fun signOut(reason: String, invokedPlace: String?, notifyListeners: Boolean) {
         val wasSignedIn = isSignedIn()
 
         if (wasSignedIn) {
-            logUsage(CCloudAuthenticationEvent(status = "signed out"))
+            logUsage(CCloudAuthenticationEvent.SignedOut(reason = reason, invokedPlace = invokedPlace))
         }
 
         refreshBean?.stop()

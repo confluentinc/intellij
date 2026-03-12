@@ -37,7 +37,7 @@ class ConfluentTabController(
     }
 
     init {
-        cardPanel.add(CCloudSignInPanel.create {
+        cardPanel.add(CCloudSignInPanel.create("welcome_panel") {
             val group = KafkaConnectionGroup()
             val connectionData = group.createBlankData().apply {
                 brokerConfigurationSource = KafkaConfigurationSource.CLOUD
