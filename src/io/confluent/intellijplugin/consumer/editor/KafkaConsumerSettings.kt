@@ -39,14 +39,18 @@ class KafkaConsumerSettings(
     // Our settings like "Display only last 100 records"
     private val settingsFields = LinkedHashMap<String, JTextComponent>()
 
+    // Properties that are not supported by the current connection type (shown as disabled)
+    private val unsupportedProperties: Set<String> = ALL_PROPERTIES - supportedProperties
+
     init {
-        ALL_PROPERTIES.filter { it in supportedProperties }.forEach {
+        ALL_PROPERTIES.forEach {
 
             val textField = JTextField().apply {
                 val defaults = ConsumerConfig.configDef().configKeys()[it]
                 text = defaults?.defaultValue?.toString()
                 @Suppress("HardCodedStringLiteral")
                 toolTipText = defaults?.documentation
+                isEnabled = it !in unsupportedProperties
             }
 
             propertiesFields[it] = textField
@@ -75,7 +79,8 @@ class KafkaConsumerSettings(
     fun getProperties(): Map<String, String> {
         val defaults = ConsumerConfig.configDef().configKeys()
         return propertiesFields.filter {
-            it.value.text != defaults[it.key]?.defaultValue?.toString() &&
+            it.key !in unsupportedProperties &&
+                    it.value.text != defaults[it.key]?.defaultValue?.toString() &&
                     it.value.text.isNotBlank() &&
                     it.value.text.toIntOrNull() != null
         }.mapValues { it.value.text }
