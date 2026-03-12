@@ -81,7 +81,7 @@ class KafkaConnectionData(var version: Int? = null) : RemoteFsDriverProvider(
 
     fun getGlueRegistryOrDefault() = glueRegistryName ?: AWSSchemaRegistryConstants.DEFAULT_REGISTRY_NAME
 
-    override fun getIcon(): Icon = BigdatatoolsKafkaIcons.Kafka
+    override fun getIcon(): Icon = BigdatatoolsKafkaIcons.ConfluentTab
     override fun createDriverImpl(project: Project?, isTest: Boolean): Driver =
         KafkaDriver(this, project, testConnection = isTest)
 
