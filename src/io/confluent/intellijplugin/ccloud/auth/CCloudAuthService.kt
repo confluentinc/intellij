@@ -74,18 +74,20 @@ class CCloudAuthService(private val scope: CoroutineScope) : Disposable {
                 completeSignIn(authenticatedContext)
 
                 // Telemetry: identify user and track sign-in
-                authenticatedContext.getUser()?.let { user ->
+                val user = authenticatedContext.getUser()
+                user?.let {
                     val emailRegex = Regex("@[a-zA-Z0-9-]+\\.[a-zA-Z0-9-]+")
-                    val domain = if (emailRegex.containsMatchIn(user.email)) {
-                        user.email.substringAfter("@")
+                    val domain = if (emailRegex.containsMatchIn(it.email)) {
+                        it.email.substringAfter("@")
                     } else null
 
                     logUser(buildMap {
                         domain?.let { put("ccloudDomain", it) }
-                        user.socialConnection?.let { put("ccloudSocialConnection", it) }
+                        it.socialConnection?.let { put("ccloudSocialConnection", it) }
+                        it.resourceId?.let { put("ccloudUserId", it) }
                     })
                 }
-                logUsage(CCloudAuthenticationEvent(status = "signed in"))
+                logUsage(CCloudAuthenticationEvent(status = "signed in", ccloudId = user?.resourceId))
 
                 notifySignedIn(authenticatedContext.getUserEmail())
             },
