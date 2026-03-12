@@ -3,6 +3,8 @@ package io.confluent.intellijplugin.data
 import com.intellij.CommonBundle
 import com.intellij.openapi.application.EDT
 import com.intellij.openapi.diagnostic.thisLogger
+import com.intellij.openapi.progress.ProcessCanceledException
+import com.intellij.openapi.progress.runBlockingMaybeCancellable
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.util.Disposer
@@ -204,8 +206,16 @@ class KafkaDataManager(
             ?: client.glueRegistryClient?.listSchemas(null, null, connectionId)
             ?: (emptyList<KafkaSchemaInfo>() to false)
         schemas.map {
-            RegistrySchemaInEditor(schemaName = it.name, schemaFormat = cacheSchemaType[it.name] ?: it.type)
+            val schemaFormat = it.type
+                ?: runBlockingMaybeCancellable { getCachedOrLoadSchemaType(it.name) }
+                ?: KafkaRegistryFormat.UNKNOWN
+            RegistrySchemaInEditor(
+                schemaName = it.name,
+                schemaFormat = schemaFormat
+            )
         }.sorted()
+    } catch (e: ProcessCanceledException) {
+        throw e  // Re-throw cancellation to preserve IDE cancellation semantics
     } catch (t: Throwable) {
         thisLogger().warn(t)
         emptyList()
