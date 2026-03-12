@@ -26,7 +26,7 @@ import java.util.concurrent.CopyOnWriteArrayList
  *
  * Usage:
  *  ```
- *  CCloudAuthService.getInstance().signIn()  // Opens browser, notifies listeners on completion
+ *  CCloudAuthService.getInstance().signIn("welcome_panel")  // Opens browser, notifies listeners on completion
  *  CCloudAuthService.getInstance().signOut()  // Clears session, notifies listeners
  *  ```
  *
@@ -63,7 +63,7 @@ class CCloudAuthService(private val scope: CoroutineScope) : Disposable {
      * Start the OAuth sign-in flow.
      * Opens browser for authentication, shows notifications, and notifies listeners on completion.
      */
-    fun signIn() {
+    fun signIn(invokedPlace: String? = null) {
         logger.info("Starting OAuth sign-in flow")
 
         val oauthContext = CCloudOAuthContext()
@@ -74,24 +74,26 @@ class CCloudAuthService(private val scope: CoroutineScope) : Disposable {
                 completeSignIn(authenticatedContext)
 
                 // Telemetry: identify user and track sign-in
-                authenticatedContext.getUser()?.let { user ->
+                val user = authenticatedContext.getUser()
+                user?.let {
                     val emailRegex = Regex("@[a-zA-Z0-9-]+\\.[a-zA-Z0-9-]+")
-                    val domain = if (emailRegex.containsMatchIn(user.email)) {
-                        user.email.substringAfter("@")
+                    val domain = if (emailRegex.containsMatchIn(it.email)) {
+                        it.email.substringAfter("@")
                     } else null
 
                     logUser(buildMap {
                         domain?.let { put("ccloudDomain", it) }
-                        user.socialConnection?.let { put("ccloudSocialConnection", it) }
+                        it.socialConnection?.let { put("ccloudSocialConnection", it) }
+                        it.resourceId?.let { put("ccloudUserId", it) }
                     })
                 }
-                logUsage(CCloudAuthenticationEvent(status = "signed in"))
+                logUsage(CCloudAuthenticationEvent.SignedIn(ccloudId = user?.resourceId, invokedPlace = invokedPlace))
 
                 notifySignedIn(authenticatedContext.getUserEmail())
             },
             onError = { error ->
                 logger.error("Sign-in failed: $error")
-                logUsage(CCloudAuthenticationEvent(status = "authentication failed", errorType = error))
+                logUsage(CCloudAuthenticationEvent.AuthenticationFailed(errorType = error, invokedPlace = invokedPlace))
 
                 ApplicationManager.getApplication().invokeLater({
                     showSignInFailureNotification(error)
@@ -109,11 +111,15 @@ class CCloudAuthService(private val scope: CoroutineScope) : Disposable {
      * @param authenticatedContext The authenticated context to sign in with
      */
     private fun completeSignIn(authenticatedContext: CCloudOAuthContext) {
-        signOut(notifyListeners = false)
+        signOut(reason = "user_initiated", invokedPlace = null, notifyListeners = false)
 
         context = authenticatedContext
         CCloudTokenStorage.saveSession(authenticatedContext)
-        refreshBean = CCloudTokenRefreshBean(authenticatedContext, this).also { it.start() }
+        refreshBean = CCloudTokenRefreshBean(
+            context = authenticatedContext,
+            parentDisposable = this,
+            onTerminal = { reason -> signOut(reason = reason, invokedPlace = null, notifyListeners = true) },
+        ).also { it.start() }
 
         logger.info("Signed in as ${authenticatedContext.getUserEmail()}")
     }
@@ -122,13 +128,14 @@ class CCloudAuthService(private val scope: CoroutineScope) : Disposable {
      * Sign out, clear current session and stop refresh.
      * PasswordSafe I/O runs on a background thread; listeners are notified on EDT.
      */
-    fun signOut() = signOut(notifyListeners = true)
+    fun signOut(reason: String = "user_initiated", invokedPlace: String? = null) =
+        signOut(reason = reason, invokedPlace = invokedPlace, notifyListeners = true)
 
-    private fun signOut(notifyListeners: Boolean) {
+    private fun signOut(reason: String, invokedPlace: String?, notifyListeners: Boolean) {
         val wasSignedIn = isSignedIn()
 
         if (wasSignedIn) {
-            logUsage(CCloudAuthenticationEvent(status = "signed out"))
+            logUsage(CCloudAuthenticationEvent.SignedOut(reason = reason, invokedPlace = invokedPlace))
         }
 
         refreshBean?.stop()
