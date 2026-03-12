@@ -72,7 +72,7 @@ class KafkaDataManager(
         return KafkaDriver.schemasPath.child(schemaName, false)
     }
 
-    private val cacheSchemaType = ConcurrentSkipListMap<String, KafkaRegistryFormat>()
+    private val schemaTypeCache = ConcurrentSkipListMap<String, KafkaRegistryFormat>()
 
     init {
         init()
@@ -161,7 +161,7 @@ class KafkaDataManager(
         schemas: List<KafkaSchemaInfo>
     ): Pair<List<KafkaSchemaInfo>, Throwable?> = withContext(Dispatchers.IO) {
         try {
-            cacheSchemaType.clear()
+            schemaTypeCache.clear()
             val loadedInfo = schemas.map {
                 runAsyncSuspend {
                     try {
@@ -324,9 +324,9 @@ class KafkaDataManager(
     override suspend fun getCachedOrLoadSchema(name: String): KafkaSchemaInfo =
         getCachedSchema(name)?.takeIf { it.type != null } ?: loadSchema(name)
 
-    private suspend fun getCachedOrLoadSchemaType(name: String) =
-        cacheSchemaType[name] ?: getCachedOrLoadSchema(name).type?.also {
-            cacheSchemaType[name] = it
+    private suspend fun getCachedOrLoadSchemaType(name: String): KafkaRegistryFormat? =
+        schemaTypeCache[name] ?: getCachedOrLoadSchema(name).type?.also {
+            schemaTypeCache[name] = it
         }
 
     private suspend fun loadSchema(schemaName: String): KafkaSchemaInfo = withContext(Dispatchers.IO) {
@@ -515,6 +515,10 @@ class KafkaDataManager(
             thisLogger().warn("Failed to clear topic '$topicName'", e)
             Result.failure(e)
         }
+    }
+
+    override fun dispose() {
+        schemaTypeCache.clear()
     }
 
     companion object {
