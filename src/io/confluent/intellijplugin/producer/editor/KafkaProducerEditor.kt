@@ -159,31 +159,25 @@ class KafkaProducerEditor(
                 row(KafkaMessagesBundle.message("producer.forcePartition")) {
                     cell(forcePartitionField).align(AlignX.FILL).resizableColumn()
                 }
-                if (isNativeConnection) {
-                    row(KafkaMessagesBundle.message("producer.compression")) {
-                        cell(compressionComboBox).align(AlignX.FILL).resizableColumn()
+                row(KafkaMessagesBundle.message("producer.compression")) {
+                    cell(compressionComboBox).align(AlignX.FILL).resizableColumn()
+                }.enabled(isNativeConnection)
+                row {
+                    cell(idempotenceCheckBox).align(AlignX.FILL).resizableColumn().comment(
+                        KafkaMessagesBundle.message("producer.idempotence.comment")
+                    )
+                }.enabled(isNativeConnection)
+                row(KafkaMessagesBundle.message("producer.asks")) {
+                    acksComboBox = segmentedButton(AcksType.entries) {
+                        text = StringUtil.wordsToBeginFromUpperCase(it.name.lowercase())
                     }
-                    row {
-                        cell(idempotenceCheckBox).align(AlignX.FILL).resizableColumn().comment(
-                            KafkaMessagesBundle.message("producer.idempotence.comment")
-                        )
-                    }
-                    row(KafkaMessagesBundle.message("producer.asks")) {
-                        acksComboBox = segmentedButton(AcksType.entries) {
-                            text = StringUtil.wordsToBeginFromUpperCase(it.name.lowercase())
-                        }
-                        acksComboBox.selectedItem = AcksType.NONE
-                    }.visibleIf(idempotenceCheckBox.selected.not())
-                } else {
-                    // Initialize acksComboBox even when hidden (referenced in getConfig/applyConfig)
-                    row {
-                        acksComboBox = segmentedButton(AcksType.entries) {
-                            text = StringUtil.wordsToBeginFromUpperCase(it.name.lowercase())
-                        }
-                        acksComboBox.selectedItem = AcksType.ALL
-                    }.visible(false)
-                }
+                    acksComboBox.selectedItem = if (isNativeConnection) AcksType.NONE else AcksType.ALL
+                }.visibleIf(idempotenceCheckBox.selected.not()).enabled(isNativeConnection)
             }.topGap(TopGap.NONE)
+        }
+
+        if (!isNativeConnection) {
+            acksComboBox.component?.isEnabled = false
         }
 
         KafkaProducerConsumerPanel.createPanel(panel, produceButton, progress)
