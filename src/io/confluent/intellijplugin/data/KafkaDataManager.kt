@@ -3,6 +3,8 @@ package io.confluent.intellijplugin.data
 import com.intellij.CommonBundle
 import com.intellij.openapi.application.EDT
 import com.intellij.openapi.diagnostic.thisLogger
+import com.intellij.openapi.progress.ProcessCanceledException
+import com.intellij.openapi.progress.runBlockingMaybeCancellable
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.util.Disposer
@@ -30,6 +32,7 @@ import io.confluent.intellijplugin.rfs.KafkaDriver
 import io.confluent.intellijplugin.toolwindow.config.KafkaToolWindowSettings
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
 import io.confluent.kafka.schemaregistry.ParsedSchema
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.future.asCompletableFuture
 import kotlinx.coroutines.launch
@@ -69,7 +72,7 @@ class KafkaDataManager(
         return KafkaDriver.schemasPath.child(schemaName, false)
     }
 
-    private val cacheSchemaType = ConcurrentSkipListMap<String, KafkaRegistryFormat>()
+    private val schemaTypeCache = ConcurrentSkipListMap<String, KafkaRegistryFormat>()
 
     init {
         init()
@@ -158,7 +161,7 @@ class KafkaDataManager(
         schemas: List<KafkaSchemaInfo>
     ): Pair<List<KafkaSchemaInfo>, Throwable?> = withContext(Dispatchers.IO) {
         try {
-            cacheSchemaType.clear()
+            schemaTypeCache.clear()
             val loadedInfo = schemas.map {
                 runAsyncSuspend {
                     try {
@@ -204,10 +207,20 @@ class KafkaDataManager(
             ?: client.glueRegistryClient?.listSchemas(null, null, connectionId)
             ?: (emptyList<KafkaSchemaInfo>() to false)
         schemas.map {
-            RegistrySchemaInEditor(schemaName = it.name, schemaFormat = cacheSchemaType[it.name] ?: it.type)
+            val schemaFormat = it.type
+                ?: runBlockingMaybeCancellable { getCachedOrLoadSchemaType(it.name) }
+                ?: KafkaRegistryFormat.UNKNOWN
+            RegistrySchemaInEditor(
+                schemaName = it.name,
+                schemaFormat = schemaFormat
+            )
         }.sorted()
-    } catch (t: Throwable) {
-        thisLogger().warn(t)
+    } catch (e: ProcessCanceledException) {
+        throw e  // Re-throw cancellation to preserve IDE cancellation semantics
+    } catch (e: CancellationException) {
+        throw e  // Re-throw coroutine cancellation
+    } catch (e: Exception) {
+        thisLogger().warn(e)
         emptyList()
     }
 
@@ -311,9 +324,9 @@ class KafkaDataManager(
     override suspend fun getCachedOrLoadSchema(name: String): KafkaSchemaInfo =
         getCachedSchema(name)?.takeIf { it.type != null } ?: loadSchema(name)
 
-    private suspend fun getCachedOrLoadSchemaType(name: String) =
-        cacheSchemaType[name] ?: getCachedOrLoadSchema(name).type?.also {
-            cacheSchemaType[name] = it
+    private suspend fun getCachedOrLoadSchemaType(name: String): KafkaRegistryFormat? =
+        schemaTypeCache[name] ?: getCachedOrLoadSchema(name).type?.also {
+            schemaTypeCache[name] = it
         }
 
     private suspend fun loadSchema(schemaName: String): KafkaSchemaInfo = withContext(Dispatchers.IO) {
@@ -502,6 +515,10 @@ class KafkaDataManager(
             thisLogger().warn("Failed to clear topic '$topicName'", e)
             Result.failure(e)
         }
+    }
+
+    override fun dispose() {
+        schemaTypeCache.clear()
     }
 
     companion object {
