@@ -21,6 +21,7 @@ import io.confluent.intellijplugin.ccloud.model.response.PartitionData
 import io.confluent.intellijplugin.registry.KafkaRegistryFormat
 import io.confluent.intellijplugin.registry.KafkaRegistryType
 import io.confluent.kafka.schemaregistry.ParsedSchema
+import io.confluent.kafka.schemaregistry.avro.AvroSchema
 import io.confluent.kafka.schemaregistry.protobuf.MessageIndexes
 import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchema
 import com.google.protobuf.DynamicMessage
@@ -641,15 +642,93 @@ class CCloudConsumerClientTest {
         }
 
         @Test
-        fun `should throw for unsupported schema field types`() {
-            for (type in listOf(KafkaFieldType.PROTOBUF_CUSTOM, KafkaFieldType.AVRO_CUSTOM)) {
-                startWithConfigs(valueType = type)
-                assertThrows(IllegalArgumentException::class.java) {
-                    runBlocking {
-                        client.extractValue("data".toByteArray(), "t", mockFetcher, RecordHeaders(), isKey = false)
-                    }
-                }
+        fun `should deserialize custom protobuf schema types`() {
+            val protoSchema = ProtobufSchema(
+                "syntax = \"proto3\"; message TestMessage { string name = 1; }"
+            )
+            val message = DynamicMessage.newBuilder(protoSchema.toDescriptor())
+                .setField(protoSchema.toDescriptor().findFieldByName("name"), "hello")
+                .build()
+            val bytes = message.toByteArray()
+
+            client.currentValueConfig = ConsumerProducerFieldConfig(
+                type = KafkaFieldType.PROTOBUF_CUSTOM,
+                valueText = "",
+                isKey = false,
+                topic = "test-topic",
+                registryType = KafkaRegistryType.NONE,
+                schemaName = "",
+                schemaFormat = KafkaRegistryFormat.PROTOBUF,
+                parsedSchema = protoSchema
+            )
+
+            val result = runBlocking {
+                client.extractValue(bytes, "test-topic", mockFetcher, RecordHeaders(), isKey = false)
             }
+            assertNotNull(result)
+            assertTrue(result is DynamicMessage)
+            assertEquals("hello", (result as DynamicMessage).getField(protoSchema.toDescriptor().findFieldByName("name")))
+        }
+
+        @Test
+        fun `should deserialize custom avro schema types`() {
+            val avroSchema = Schema.Parser().parse(
+                """{"type":"record","name":"Test","fields":[{"name":"name","type":"string"}]}"""
+            )
+            val record = GenericData.Record(avroSchema).apply { put("name", "hello") }
+            val baos = ByteArrayOutputStream()
+            val writer = GenericDatumWriter<GenericData.Record>(avroSchema)
+            val encoder = EncoderFactory.get().binaryEncoder(baos, null)
+            writer.write(record, encoder)
+            encoder.flush()
+            val bytes = baos.toByteArray()
+
+            client.currentValueConfig = ConsumerProducerFieldConfig(
+                type = KafkaFieldType.AVRO_CUSTOM,
+                valueText = "",
+                isKey = false,
+                topic = "test-topic",
+                registryType = KafkaRegistryType.NONE,
+                schemaName = "",
+                schemaFormat = KafkaRegistryFormat.AVRO,
+                parsedSchema = AvroSchema(avroSchema)
+            )
+
+            val result = runBlocking {
+                client.extractValue(bytes, "test-topic", mockFetcher, RecordHeaders(), isKey = false)
+            }
+            assertNotNull(result)
+            assertTrue(result is GenericData.Record)
+            assertEquals("hello", (result as GenericData.Record).get("name").toString())
+        }
+
+        @Test
+        fun `should deserialize custom protobuf schema types for key`() {
+            val protoSchema = ProtobufSchema(
+                "syntax = \"proto3\"; message TestKey { string id = 1; }"
+            )
+            val message = DynamicMessage.newBuilder(protoSchema.toDescriptor())
+                .setField(protoSchema.toDescriptor().findFieldByName("id"), "key-123")
+                .build()
+            val bytes = message.toByteArray()
+
+            client.currentKeyConfig = ConsumerProducerFieldConfig(
+                type = KafkaFieldType.PROTOBUF_CUSTOM,
+                valueText = "",
+                isKey = true,
+                topic = "test-topic",
+                registryType = KafkaRegistryType.NONE,
+                schemaName = "",
+                schemaFormat = KafkaRegistryFormat.PROTOBUF,
+                parsedSchema = protoSchema
+            )
+
+            val result = runBlocking {
+                client.extractValue(bytes, "test-topic", mockFetcher, RecordHeaders(), isKey = true)
+            }
+            assertNotNull(result)
+            assertTrue(result is DynamicMessage)
+            assertEquals("key-123", (result as DynamicMessage).getField(protoSchema.toDescriptor().findFieldByName("id")))
         }
     }
 
@@ -658,10 +737,32 @@ class CCloudConsumerClientTest {
     inner class CreateDeserializerOrNull {
 
         @Test
-        fun `should return null for schema types`() {
-            for (type in listOf(KafkaFieldType.SCHEMA_REGISTRY, KafkaFieldType.PROTOBUF_CUSTOM, KafkaFieldType.AVRO_CUSTOM)) {
-                assertNull(client.createDeserializerOrNull(type), "Expected null for $type")
+        fun `should return null for schema registry type`() {
+            assertNull(client.createDeserializerOrNull(KafkaFieldType.SCHEMA_REGISTRY), "Expected null for SCHEMA_REGISTRY")
+        }
+
+        @Test
+        fun `should return null for custom types without config`() {
+            for (type in listOf(KafkaFieldType.PROTOBUF_CUSTOM, KafkaFieldType.AVRO_CUSTOM)) {
+                assertNull(client.createDeserializerOrNull(type), "Expected null for $type without config")
             }
+        }
+
+        @Test
+        fun `should return deserializer for custom types with config`() {
+            val protoConfig = ConsumerProducerFieldConfig(
+                type = KafkaFieldType.PROTOBUF_CUSTOM, valueText = "", isKey = false, topic = "t",
+                registryType = KafkaRegistryType.NONE, schemaName = "", schemaFormat = KafkaRegistryFormat.PROTOBUF,
+                parsedSchema = ProtobufSchema("syntax = \"proto3\"; message T { string f = 1; }")
+            )
+            assertNotNull(client.createDeserializerOrNull(KafkaFieldType.PROTOBUF_CUSTOM, protoConfig))
+
+            val avroConfig = ConsumerProducerFieldConfig(
+                type = KafkaFieldType.AVRO_CUSTOM, valueText = "", isKey = false, topic = "t",
+                registryType = KafkaRegistryType.NONE, schemaName = "", schemaFormat = KafkaRegistryFormat.AVRO,
+                parsedSchema = AvroSchema(Schema.Parser().parse("""{"type":"record","name":"T","fields":[{"name":"f","type":"string"}]}"""))
+            )
+            assertNotNull(client.createDeserializerOrNull(KafkaFieldType.AVRO_CUSTOM, avroConfig))
         }
 
         @Test
