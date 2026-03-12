@@ -18,6 +18,9 @@ class KafkaPluginSettings : PersistentStateComponent<KafkaPluginSettings> {
     // Persistent anonymous machine ID for telemetry. Auto-generated on first access.
     var machineId: String? = null
 
+    // Whether the rebrand notification has been shown to the user
+    var rebrandNotificationShown: Boolean = false
+
     override fun getState(): KafkaPluginSettings = this
 
     override fun loadState(state: KafkaPluginSettings) {
