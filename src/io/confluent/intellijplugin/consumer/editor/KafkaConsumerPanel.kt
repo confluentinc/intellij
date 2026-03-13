@@ -275,6 +275,9 @@ class KafkaConsumerPanel(
                     row(KafkaMessagesBundle.message("settings.consumer.group.label")) {
                         cell(consumerGroup).align(AlignX.FILL).resizableColumn()
                     }.topGap(TopGap.SMALL)
+                    if (!kafkaManager.supportsConsumerGroups()) {
+                        row { comment(KafkaMessagesBundle.message("ccloud.option.not.supported.yet.comment")) }.topGap(TopGap.NONE)
+                    }
                     row {
                         checkBox(KafkaMessagesBundle.message("settings.consumer.enable.auto.commit.label")).bindSelected(
                             isEnabledAutoCommit
