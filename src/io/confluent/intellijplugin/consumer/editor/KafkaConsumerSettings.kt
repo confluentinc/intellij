@@ -49,7 +49,11 @@ class KafkaConsumerSettings(
                 val defaults = ConsumerConfig.configDef().configKeys()[it]
                 text = defaults?.defaultValue?.toString()
                 @Suppress("HardCodedStringLiteral")
-                toolTipText = defaults?.documentation
+                toolTipText = if (it in unsupportedProperties) {
+                    KafkaMessagesBundle.message("ccloud.option.not.supported.comment")
+                } else {
+                    defaults?.documentation
+                }
                 isEnabled = it !in unsupportedProperties
             }
 

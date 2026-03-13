@@ -162,9 +162,13 @@ class KafkaProducerEditor(
                 row(KafkaMessagesBundle.message("producer.compression")) {
                     cell(compressionComboBox).align(AlignX.FILL).resizableColumn()
                 }.enabled(isNativeConnection)
+                if (!isNativeConnection) {
+                    row { comment(KafkaMessagesBundle.message("ccloud.option.not.supported.comment")) }.topGap(TopGap.NONE)
+                }
                 row {
                     cell(idempotenceCheckBox).align(AlignX.FILL).resizableColumn().comment(
-                        KafkaMessagesBundle.message("producer.idempotence.comment")
+                        if (isNativeConnection) KafkaMessagesBundle.message("producer.idempotence.comment")
+                        else KafkaMessagesBundle.message("ccloud.option.not.supported.comment")
                     )
                 }.enabled(isNativeConnection)
                 row(KafkaMessagesBundle.message("producer.asks")) {
@@ -173,6 +177,9 @@ class KafkaProducerEditor(
                     }
                     acksComboBox.selectedItem = if (isNativeConnection) AcksType.NONE else AcksType.ALL
                 }.visibleIf(idempotenceCheckBox.selected.not()).enabled(isNativeConnection)
+                if (!isNativeConnection) {
+                    row { comment(KafkaMessagesBundle.message("ccloud.option.not.supported.comment")) }.topGap(TopGap.NONE)
+                }
             }.topGap(TopGap.NONE)
         }
 
