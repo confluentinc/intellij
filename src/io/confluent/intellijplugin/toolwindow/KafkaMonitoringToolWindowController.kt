@@ -11,6 +11,7 @@ import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ToolWindowManager
 import com.intellij.openapi.wm.ex.ToolWindowManagerListener
 import com.intellij.openapi.wm.impl.InternalDecorator
+import com.intellij.openapi.wm.impl.content.BaseLabel
 import com.intellij.openapi.wm.impl.content.ContentTabLabel
 import com.intellij.ui.ComponentUtil
 import com.intellij.ui.content.Content
@@ -194,7 +195,12 @@ class KafkaMonitoringToolWindowController(project: Project) : MonitoringToolWind
         val icon = BigdatatoolsKafkaIcons.ConfluentTab
         content.icon = icon
         ComponentUtil.getParentOfType(InternalDecorator::class.java, contentManager.component)?.let {
-            UIUtil.findComponentsOfType(it, ContentTabLabel::class.java).find { tab -> tab.content == content }?.apply {
+            val label = UIUtil.findComponentsOfType(it, ContentTabLabel::class.java)
+                .find { tab -> tab.content == content }
+                ?: UIUtil.findComponentsOfType(it, BaseLabel::class.java)
+                    .find { label -> label.content == content }
+
+            label?.apply {
                 this.icon = icon
                 this.disabledIcon = icon
                 iconTextGap = 4

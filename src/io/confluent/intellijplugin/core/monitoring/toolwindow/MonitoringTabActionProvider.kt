@@ -10,6 +10,7 @@ import com.intellij.openapi.ui.popup.ActiveIcon
 import com.intellij.openapi.ui.popup.JBPopupFactory
 import com.intellij.openapi.ui.popup.JBPopupFactory.ActionSelectionAid
 import com.intellij.openapi.wm.impl.InternalDecorator
+import com.intellij.openapi.wm.impl.content.BaseLabel
 import com.intellij.openapi.wm.impl.content.ContentTabLabel
 import com.intellij.openapi.wm.impl.content.tabActions.ContentTabAction
 import com.intellij.openapi.wm.impl.content.tabActions.ContentTabActionProvider
@@ -42,8 +43,15 @@ class MonitoringTabActionProvider : ContentTabActionProvider {
 
             val internalDecorator =
                 ComponentUtil.getParentOfType(InternalDecorator::class.java, contentManager.component)
-            val tabs = UIUtil.findComponentsOfType(internalDecorator, ContentTabLabel::class.java)
-            val tab = tabs.find { it.content == content } ?: return
+
+            // in normal tab mode, ContentTabLabel instances exist for each tab.
+            // in "Group Tabs" mode, a single ContentComboLabel (package-private, extends BaseLabel)
+            // replaces them. fall back to BaseLabel to find the anchor in either mode.
+            val anchor = UIUtil.findComponentsOfType(internalDecorator, ContentTabLabel::class.java)
+                .find { it.content == content }
+                ?: UIUtil.findComponentsOfType(internalDecorator, BaseLabel::class.java)
+                    .find { it.content == content }
+                ?: return
 
             val actions = ActionManager.getInstance().getAction("Kafka.MonitoringTabsActions") as ActionGroup
 
@@ -59,7 +67,7 @@ class MonitoringTabActionProvider : ContentTabActionProvider {
                 null, actions, dataContext,
                 ActionSelectionAid.SPEEDSEARCH, false
             )
-            popupMenu.showUnderneathOf(tab)
+            popupMenu.showUnderneathOf(anchor)
         }
 
         override val afterText: Boolean
