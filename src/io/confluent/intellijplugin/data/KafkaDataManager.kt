@@ -209,7 +209,8 @@ class KafkaDataManager(
             ?: client.glueRegistryClient?.listSchemas(null, null, connectionId)
             ?: (emptyList<KafkaSchemaInfo>() to false)
         schemas.map {
-            RegistrySchemaInEditor(schemaName = it.name, schemaFormat = cacheSchemaType[it.name] ?: it.type)
+            val type = runBlocking { getCachedOrLoadSchemaType(it.name) }
+            RegistrySchemaInEditor(schemaName = it.name, schemaFormat = type)
         }.sorted()
     } catch (e: ProcessCanceledException) {
         throw e  // Re-throw cancellation to preserve IDE cancellation semantics
