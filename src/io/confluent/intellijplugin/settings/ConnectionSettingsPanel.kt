@@ -2,9 +2,11 @@ package io.confluent.intellijplugin.core.settings
 
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.actionSystem.ActionGroup
+import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonShortcuts
+import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.options.ConfigurableUi
 import com.intellij.openapi.project.DumbAware
@@ -69,6 +71,7 @@ class ConnectionSettingsPanel(val project: Project) : MasterDetailsComponent(),
 
     init {
         initTree()
+        installConditionalPopupHandler()
         myRoot.userObject = null
         tree.selectionModel.selectionMode = TreeSelectionModel.SINGLE_TREE_SELECTION
         tree.cellRenderer = BDTTreeCellRenderer()
@@ -145,22 +148,21 @@ class ConnectionSettingsPanel(val project: Project) : MasterDetailsComponent(),
     override fun getDisplayName() = KafkaMessagesBundle.message("connections.settings.display.name")
 
     override fun createActions(fromPopup: Boolean): List<AnAction> {
-        val duplicateAction = DuplicateConnectionAction(fromPopup).apply {
+        val duplicateAction = DuplicateConnectionAction().apply {
             if (!fromPopup) registerCustomShortcutSet(CommonShortcuts.getDuplicate(), tree)
         }
 
         val addAction = RootAddActionGroup(
             KafkaMessagesBundle.message("settings.addConnection.text"),
             IconUtil.addIcon,
-            KafkaMessagesBundle.message("settings.addConnection.hint"),
-            fromPopup
+            KafkaMessagesBundle.message("settings.addConnection.hint")
         ).apply {
             if (!fromPopup) registerCustomShortcutSet(CommonActionsPanel.getCommonShortcut(CommonActionsPanel.Buttons.ADD), tree)
         }
 
         return listOf(
             addAction,
-            RemoveConnectionAction(fromPopup),
+            RemoveConnectionAction(),
             duplicateAction
         )
     }
@@ -318,7 +320,6 @@ class ConnectionSettingsPanel(val project: Project) : MasterDetailsComponent(),
     fun setFirstSelectedNodeConnId(connId: String) {
         savedSelectedId = connId
     }
-
 
     private fun createTreeNode(
         group: ConnectionGroup,
@@ -487,24 +488,33 @@ class ConnectionSettingsPanel(val project: Project) : MasterDetailsComponent(),
         }
     }
 
-    private fun isCCloudGroupSelected(): Boolean {
-        val selectedNode = myTree.selectionPath?.lastPathComponent as? MyNode
-        return (selectedNode?.configurable as? GroupEmptyConfigurable)?.group is CCloudDisplayGroup
+    private fun installConditionalPopupHandler() {
+        tree.mouseListeners
+            .filterIsInstance<PopupHandler>()
+            .forEach { tree.removeMouseListener(it) }
+
+        val popupActions = DefaultActionGroup().apply {
+            createActions(true).forEach { add(it) }
+        }
+
+        tree.addMouseListener(object : PopupHandler() {
+            override fun invokePopup(comp: Component, x: Int, y: Int) {
+                val node = tree.getPathForLocation(x, y)?.lastPathComponent as? MyNode
+                if ((node?.configurable as? GroupEmptyConfigurable)?.group is CCloudDisplayGroup) return
+
+                ActionManager.getInstance()
+                    .createActionPopupMenu("MasterDetailsTreePopup", popupActions)
+                    .component.show(comp, x, y)
+            }
+        })
     }
 
     private inner class RootAddActionGroup(
         @Nls(capitalization = Nls.Capitalization.Title) text: String? = null,
         icon: Icon? = null,
-        @Nls(capitalization = Nls.Capitalization.Sentence) description: String? = null,
-        private val fromPopup: Boolean = false
+        @Nls(capitalization = Nls.Capitalization.Sentence) description: String? = null
     ) : AbstractAddActionGroup(text, icon, description) {
         override fun getChildrenNodes(): Collection<ActionNode> = topLevelGroups
-
-        override fun update(e: AnActionEvent) {
-            if (fromPopup && isCCloudGroupSelected()) {
-                e.presentation.isVisible = false
-            }
-        }
     }
 
     private inner class NodeAddActionGroup(
@@ -525,18 +535,9 @@ class ConnectionSettingsPanel(val project: Project) : MasterDetailsComponent(),
         }
     }
 
-    private inner class RemoveConnectionAction(
-        private val fromPopup: Boolean = false
-    ) : MyDeleteAction(Predicate<Array<Any>> { nodes ->
+    private inner class RemoveConnectionAction : MyDeleteAction(Predicate<Array<Any>> { nodes ->
         !nodes.any { (it as? MyNode)?.configurable is GroupEmptyConfigurable } && nodes.any { (it as? MyNode)?.userObject != null }
     }), DumbAware {
-        override fun update(e: AnActionEvent) {
-            super.update(e)
-            if (fromPopup && isCCloudGroupSelected()) {
-                e.presentation.isVisible = false
-            }
-        }
-
         override fun actionPerformed(e: AnActionEvent) {
             val myNode = myTree.selectionPath?.lastPathComponent as? MyNode ?: return
             removeNode(myNode)
@@ -544,18 +545,13 @@ class ConnectionSettingsPanel(val project: Project) : MasterDetailsComponent(),
         }
     }
 
-    private inner class DuplicateConnectionAction(
-        private val fromPopup: Boolean = false
-    ) : DumbAwareAction(
+    private inner class DuplicateConnectionAction : DumbAwareAction(
         KafkaMessagesBundle.message("settings.duplicateConnection"), null,
         AllIcons.Actions.Copy
     ) {
         override fun update(e: AnActionEvent) {
-            if (fromPopup && isCCloudGroupSelected()) {
-                e.presentation.isVisible = false
-                return
-            }
             val myNode = myTree.selectionPath?.lastPathComponent as? MyNode
+            // disable for group-level ("Message Broker" groups) or empty tree nodes
             val isValidConnection = myNode?.configurable !is GroupEmptyConfigurable && myNode?.userObject != null
             e.presentation.isEnabled = isValidConnection
         }

@@ -14,6 +14,7 @@ import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ToolWindowManager
 import com.intellij.openapi.wm.ex.ToolWindowEx
 import com.intellij.openapi.wm.impl.InternalDecorator
+import com.intellij.openapi.wm.impl.content.BaseLabel
 import com.intellij.openapi.wm.impl.content.ContentTabLabel
 import com.intellij.ui.ComponentUtil
 import com.intellij.ui.SimpleTextAttributes
@@ -274,10 +275,11 @@ abstract class MonitoringToolWindowController(protected val project: Project) : 
                     val internalDecorator =
                         ComponentUtil.getParentOfType(InternalDecorator::class.java, contentManager.component)
                             ?: return@invokeLater
-                    val tabs = UIUtil.findComponentsOfType(internalDecorator, ContentTabLabel::class.java)
-                    tabs.find { it.content == content }?.apply {
-                        isEnabled = false
-                    }
+                    val label = UIUtil.findComponentsOfType(internalDecorator, ContentTabLabel::class.java)
+                        .find { it.content == content }
+                        ?: UIUtil.findComponentsOfType(internalDecorator, BaseLabel::class.java)
+                            .find { it.content == content }
+                    label?.isEnabled = false
                 }
             }
         }
