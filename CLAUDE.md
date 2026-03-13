@@ -33,14 +33,14 @@ Refer to the map of the codebase in `CONTRIBUTING.md`.
 
 **Persisted settings** (stored in IDE config via `@State`/`@Storage`):
 
-| Storage File                              | Purpose                              | Service Class                     |
-|-------------------------------------------|--------------------------------------|-----------------------------------|
-| `confluent_kafka_settings.xml`            | Kafka connection configs             | `Global/LocalConnectionSettings`  |
-| `kafka_plugin_settings.xml`               | Plugin preferences (telemetry, etc.) | `KafkaPluginSettings`             |
-| `confluent-kafka-config-template.xml`     | Consumer/producer run configs        | `KafkaConfigStorage`              |
-| `confluent_kafka_toolwindow.xml`          | Tool window UI state                 | `KafkaToolWindowSettings`         |
-| `confluent_kafka_statistics_settings.xml` | Usage statistics prefs               | `StatisticsSettings`              |
-| `confluent_kafka_kerberos_settings.xml`   | Kerberos auth settings               | `KerberosSettings`                |
+| Storage File                              | Purpose                              | Service Class                    |
+| ----------------------------------------- | ------------------------------------ | -------------------------------- |
+| `confluent_kafka_settings.xml`            | Kafka connection configs             | `Global/LocalConnectionSettings` |
+| `kafka_plugin_settings.xml`               | Plugin preferences (telemetry, etc.) | `KafkaPluginSettings`            |
+| `confluent-kafka-config-template.xml`     | Consumer/producer run configs        | `KafkaConfigStorage`             |
+| `confluent_kafka_toolwindow.xml`          | Tool window UI state                 | `KafkaToolWindowSettings`        |
+| `confluent_kafka_statistics_settings.xml` | Usage statistics prefs               | `StatisticsSettings`             |
+| `confluent_kafka_kerberos_settings.xml`   | Kerberos auth settings               | `KerberosSettings`               |
 
 ## IntelliJ Platform Patterns
 
@@ -191,6 +191,29 @@ Uses [Kotlin UI DSL v2](https://plugins.jetbrains.com/docs/intellij/kotlin-ui-ds
 ## Extension Points
 
 Custom extension point `connectionSettingProvider` defined in `plugin.xml` for pluggable connection settings.
+
+## IntelliJ Platform Source Lookup
+
+When you need to look up IntelliJ Platform API source code (classes like `MasterDetailsComponent`,
+`AnAction`, `ActionGroup`, `PopupHandler`, `ToolWindow`, etc.):
+
+- **Use GitHub source** on the branch matching this project's target platform. Derive the branch
+  from the `since-build` value in `resources/META-INF/plugin.xml` — take the first 3 digits (e.g.,
+  `253.28294` → branch `253`). Currently: **branch `253`** (IntelliJ 2025.3).
+  - Direct URL: `https://github.com/JetBrains/intellij-community/blob/253/platform/{module}/src/com/intellij/{path}/{ClassName}.java`
+  - WebSearch fallback: `site:github.com/JetBrains/intellij-community {ClassName}`
+    (then navigate to the correct branch)
+- **Never search Gradle caches** (`~/.gradle/caches/`) for platform source. Never `unzip`, `jar tf`,
+  or `javap` platform JARs — this wastes time and context on compiled bytecode when the readable
+  source is on GitHub.
+
+Common class locations (append `com/intellij/{package path}/` to find the file):
+
+- `openapi/ui/` classes (MasterDetailsComponent, etc.) → `platform/platform-api/src/`
+- `openapi/actionSystem/` → `platform/platform-api/src/`
+- `openapi/wm/` (ToolWindow, etc.) → `platform/platform-api/src/`
+- `openapi/project/` → `platform/core-api/src/`
+- `openapi/vfs/` → `platform/core-api/src/`
 
 ## Code Style
 

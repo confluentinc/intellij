@@ -91,6 +91,13 @@ For threading rules, PSI safety, Kotlin pitfalls, and other rules that must neve
 [critical-rules.md](critical-rules.md). **Always consult this file when generating code that involves
 threading, PSI access, VFS listeners, or service definitions.**
 
+### 5. Platform Source Lookup (Supporting File)
+
+For finding IntelliJ Platform source code on GitHub (class → module mappings, version-pinned URLs,
+worked examples), see [platform-source-lookup.md](platform-source-lookup.md). **Consult this file
+when you need to look up platform API source code.** A summary of this guidance also lives in
+`CLAUDE.md` so that Explore agents see it too.
+
 ## Process
 
 ### 1. Determine the Project's Target Platform Version
@@ -120,6 +127,8 @@ which APIs are available.
 - Checking if a class/method exists in the target platform version
 - Understanding the API contract (Javadoc on interfaces)
 - Finding all implementors of an interface
+- See [platform-source-lookup.md](platform-source-lookup.md) for class → module mappings and
+  version-pinned URL patterns
 
 **Use Platform Explorer when:**
 
