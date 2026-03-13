@@ -7,6 +7,8 @@ import io.confluent.intellijplugin.ccloud.model.response.ConsumeRecordsResponse
 import io.confluent.intellijplugin.ccloud.model.response.PartitionConsumeRecord
 import io.confluent.intellijplugin.ccloud.model.response.PartitionOffset
 import io.confluent.intellijplugin.ccloud.model.response.TimestampType as ApiTimestampType
+import io.confluent.intellijplugin.common.models.BdtKafkaCustomAvroDeserializer
+import io.confluent.intellijplugin.common.models.BdtKafkaCustomProtobufDeserializer
 import io.confluent.intellijplugin.common.models.KafkaFieldType
 import io.confluent.intellijplugin.common.settings.StorageConsumerConfig
 import io.confluent.intellijplugin.consumer.editor.ConsumerEditorUtils
@@ -128,8 +130,8 @@ class CCloudConsumerClient(
         schemaCache.clear()
         currentKeyConfig = keyConfig
         currentValueConfig = valueConfig
-        keyDeserializer = createDeserializerOrNull(keyConfig.type)
-        valueDeserializer = createDeserializerOrNull(valueConfig.type)
+        keyDeserializer = createDeserializerOrNull(keyConfig.type, keyConfig)
+        valueDeserializer = createDeserializerOrNull(valueConfig.type, valueConfig)
 
         // Resolve advanced settings from config
         resolvedMaxPollRecords = config.properties[ConsumerConfig.MAX_POLL_RECORDS_CONFIG]?.toIntOrNull()
@@ -669,12 +671,14 @@ class CCloudConsumerClient(
     }
 
     /**
-     * Create a deserializer if the type is a primitive type, null for schema types.
-     * Used in [start] to cache deserializers, schema types use [deserializeSchemaEncoded] instead.
+     * Create a deserializer if the type is a primitive or custom schema type, null for Schema Registry types.
+     * Used in [start] to cache deserializers, Schema Registry types use [deserializeSchemaEncoded] instead.
      */
     @VisibleForTesting
-    internal fun createDeserializerOrNull(type: KafkaFieldType): Deserializer<*>? = when (type) {
-        KafkaFieldType.SCHEMA_REGISTRY, KafkaFieldType.PROTOBUF_CUSTOM, KafkaFieldType.AVRO_CUSTOM -> null
+    internal fun createDeserializerOrNull(type: KafkaFieldType, config: ConsumerProducerFieldConfig? = null): Deserializer<*>? = when (type) {
+        KafkaFieldType.SCHEMA_REGISTRY -> null
+        KafkaFieldType.PROTOBUF_CUSTOM -> config?.let { BdtKafkaCustomProtobufDeserializer(it) }
+        KafkaFieldType.AVRO_CUSTOM -> config?.let { BdtKafkaCustomAvroDeserializer(it) }
         else -> createDeserializer(type)
     }
 
@@ -685,8 +689,8 @@ class CCloudConsumerClient(
     @VisibleForTesting
     internal fun convertBytesToType(bytes: ByteArray, topic: String, type: KafkaFieldType): Any? {
         val deserializer = when (type) {
-            currentKeyConfig?.type -> keyDeserializer
-            currentValueConfig?.type -> valueDeserializer
+            currentKeyConfig?.type -> keyDeserializer ?: createDeserializerOrNull(type, currentKeyConfig)
+            currentValueConfig?.type -> valueDeserializer ?: createDeserializerOrNull(type, currentValueConfig)
             else -> null
         } ?: createDeserializer(type)
 

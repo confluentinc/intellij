@@ -286,7 +286,7 @@ class KafkaConsumerPanel(
                             KafkaConsumerGroupChangeOffsetProcess(project, kafkaManager, consumerGroup.item).showAndUpdate()
                         }
                     }.topGap(TopGap.NONE).visibleIf(isConsumerSetup)
-                }.visibleIf(supportsConsumerGroups)
+                }.enabledIf(supportsConsumerGroups)
             }
 
             row { cell(advancedSettings) }
@@ -511,7 +511,7 @@ class KafkaConsumerPanel(
         topicComboBox.isEnabled = isEnabled
 
         partitionField.isEnabled = isEnabled && consumerGroup.item.isEmpty()
-        consumerGroup.isEnabled = isEnabled
+        consumerGroup.isEnabled = isEnabled && kafkaManager.supportsConsumerGroups()
 
         key.updateIsEnabled(isEnabled)
         value.updateIsEnabled(isEnabled)
