@@ -398,12 +398,17 @@ object KafkaEditorUtils {
             }
 
 
+            val previousSelection = comboBox.selectedItem
             comboBox.removeAllItems()
             newElements?.forEach {
                 comboBox.addItem(it)
             }
 
-            updateSelectedIndex(comboBox, selectedItemIndex)
+            if (previousSelection != null && newElements?.contains(previousSelection) == true) {
+                comboBox.selectedItem = previousSelection
+            } else {
+                updateSelectedIndex(comboBox, selectedItemIndex)
+            }
 
             comboBox.invalidate()
             comboBox.repaint()
