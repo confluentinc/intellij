@@ -2,6 +2,7 @@ package io.confluent.intellijplugin.ccloud.auth
 
 import com.intellij.ide.BrowserUtil
 import com.intellij.notification.Notification
+import com.intellij.notification.NotificationAction
 import com.intellij.notification.NotificationType
 import com.intellij.notification.Notifications
 import com.intellij.openapi.Disposable
@@ -148,10 +149,15 @@ class CCloudAuthService(private val scope: CoroutineScope) : Disposable {
         }
 
         if (wasSignedIn && notifyListeners) {
+            val isSessionExpiry = reason == "session_expired" || reason == "refresh_failed"
             // Dispatch to EDT so UI updates work even when triggered from a modal dialog (from Settings)
             ApplicationManager.getApplication().invokeLater({
                 authStateListeners.toList().forEach { it.onSignedOut() }
-                showSignOutNotification()
+                if (isSessionExpiry) {
+                    showSessionExpiredNotification()
+                } else {
+                    showSignOutNotification()
+                }
             }, ModalityState.any())
         }
     }
@@ -189,6 +195,24 @@ class CCloudAuthService(private val scope: CoroutineScope) : Disposable {
             "",
             NotificationType.INFORMATION
         ))
+    }
+
+    internal fun showSessionExpiredNotification() {
+        val notification = Notification(
+            "Kafka Notification",
+            KafkaMessagesBundle.message("confluent.cloud.notification.session.expired"),
+            KafkaMessagesBundle.message("confluent.cloud.notification.session.expired.text"),
+            NotificationType.WARNING
+        )
+        notification.addAction(
+            NotificationAction.create(
+                KafkaMessagesBundle.message("confluent.cloud.notification.session.expired.action")
+            ) { _, n ->
+                n.expire() // Explicitly auto-close notifciation after sign-in is clicked
+                signIn("session_expired_notification")
+            }
+        )
+        Notifications.Bus.notify(notification)
     }
 
     // State accessors
