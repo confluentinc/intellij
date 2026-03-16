@@ -158,11 +158,12 @@ class ConnectionSettingsPanel(val project: Project) : MasterDetailsComponent(),
             if (!fromPopup) registerCustomShortcutSet(CommonActionsPanel.getCommonShortcut(CommonActionsPanel.Buttons.ADD), tree)
         }
 
-        return listOf(
-            addAction,
-            RemoveConnectionAction(fromPopup),
-            duplicateAction
-        )
+        return buildList {
+            add(addAction)
+            add(RemoveConnectionAction(fromPopup))
+            add(duplicateAction)
+            if (fromPopup) add(CCloudSignInOutAction(::isCCloudGroupSelected))
+        }
     }
 
     override fun reset(settings: RfsConnectionDataManager) {
