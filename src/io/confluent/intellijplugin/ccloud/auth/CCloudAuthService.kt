@@ -2,6 +2,7 @@ package io.confluent.intellijplugin.ccloud.auth
 
 import com.intellij.ide.BrowserUtil
 import com.intellij.notification.Notification
+import com.intellij.notification.NotificationAction
 import com.intellij.notification.NotificationType
 import com.intellij.notification.Notifications
 import com.intellij.openapi.Disposable
@@ -48,7 +49,11 @@ class CCloudAuthService(private val scope: CoroutineScope) : Disposable {
      */
     interface AuthStateListener {
         fun onSignedIn(email: String) {}
-        fun onSignedOut() {}
+
+        /**
+         * @param reason why the session ended: `"user_initiated"`, `"session_expired"`, or `"refresh_failed"`
+         */
+        fun onSignedOut(reason: String) {}
     }
 
     fun addAuthStateListener(listener: AuthStateListener) {
@@ -62,6 +67,9 @@ class CCloudAuthService(private val scope: CoroutineScope) : Disposable {
     /**
      * Start the OAuth sign-in flow.
      * Opens browser for authentication, shows notifications, and notifies listeners on completion.
+     *
+     * @param invokedPlace telemetry identifier for where sign-in was triggered from
+     *   (e.g. `"welcome_panel"`, `"settings_panel"`, `"tool_window_action"`, `"session_expired_notification"`)
      */
     fun signIn(invokedPlace: String? = null) {
         logger.info("Starting OAuth sign-in flow")
@@ -127,6 +135,11 @@ class CCloudAuthService(private val scope: CoroutineScope) : Disposable {
     /**
      * Sign out, clear current session and stop refresh.
      * PasswordSafe I/O runs on a background thread; listeners are notified on EDT.
+     *
+     * @param reason why the session ended — determines which notification is shown:
+     *   `"session_expired"` or `"refresh_failed"` show the session-expired notification,
+     *   any other value (default `"user_initiated"`) shows the standard sign-out notification
+     * @param invokedPlace telemetry identifier for where sign-out was triggered from
      */
     fun signOut(reason: String = "user_initiated", invokedPlace: String? = null) =
         signOut(reason = reason, invokedPlace = invokedPlace, notifyListeners = true)
@@ -148,10 +161,15 @@ class CCloudAuthService(private val scope: CoroutineScope) : Disposable {
         }
 
         if (wasSignedIn && notifyListeners) {
+            val isSessionExpiry = reason == "session_expired" || reason == "refresh_failed"
             // Dispatch to EDT so UI updates work even when triggered from a modal dialog (from Settings)
             ApplicationManager.getApplication().invokeLater({
-                authStateListeners.toList().forEach { it.onSignedOut() }
-                showSignOutNotification()
+                authStateListeners.toList().forEach { it.onSignedOut(reason) }
+                if (isSessionExpiry) {
+                    showSessionExpiredNotification()
+                } else {
+                    showSignOutNotification()
+                }
             }, ModalityState.any())
         }
     }
@@ -189,6 +207,24 @@ class CCloudAuthService(private val scope: CoroutineScope) : Disposable {
             "",
             NotificationType.INFORMATION
         ))
+    }
+
+    internal fun showSessionExpiredNotification() {
+        val notification = Notification(
+            "Kafka Notification",
+            KafkaMessagesBundle.message("confluent.cloud.notification.session.expired"),
+            KafkaMessagesBundle.message("confluent.cloud.notification.session.expired.text"),
+            NotificationType.WARNING
+        )
+        notification.addAction(
+            NotificationAction.create(
+                KafkaMessagesBundle.message("confluent.cloud.notification.session.expired.action")
+            ) { _, n ->
+                n.expire() // Explicitly auto-close notifciation after sign-in is clicked
+                signIn("session_expired_notification")
+            }
+        )
+        Notifications.Bus.notify(notification)
     }
 
     // State accessors

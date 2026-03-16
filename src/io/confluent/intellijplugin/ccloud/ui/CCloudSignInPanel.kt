@@ -24,10 +24,15 @@ object CCloudSignInPanel {
     /**
      * Creates a centered sign-in panel with Confluent logo, title, description, and sign-in button.
      * @param invokedPlace identifier for telemetry tracking where sign-in was initiated from
+     * @param message optional message shown above the sign-in button (e.g. session expired notice)
      * @param onCreateConnection optional callback; when provided, a "Create a Kafka connection" link
      *                           is shown below the sign-in button (used in the tool window only).
      */
-    fun create(invokedPlace: String? = null, onCreateConnection: (() -> Unit)? = null): JComponent {
+    fun create(
+        invokedPlace: String? = null,
+        message: String? = null,
+        onCreateConnection: (() -> Unit)? = null,
+    ): JComponent {
         val signInButton = JButton(KafkaMessagesBundle.message("confluent.cloud.welcome.panel.cta")).apply {
             putClientProperty(DarculaButtonUI.DEFAULT_STYLE_KEY, true)
             addActionListener { CCloudAuthService.getInstance().signIn(invokedPlace) }
@@ -47,6 +52,11 @@ object CCloudSignInPanel {
                 comment(KafkaMessagesBundle.message("confluent.cloud.welcome.panel.label"))
                     .align(AlignX.CENTER)
             }.bottomGap(BottomGap.SMALL)
+            if (message != null) {
+                row {
+                    comment(message).align(AlignX.CENTER)
+                }.bottomGap(BottomGap.SMALL)
+            }
             row {
                 cell(signInButton).align(AlignX.CENTER)
             }

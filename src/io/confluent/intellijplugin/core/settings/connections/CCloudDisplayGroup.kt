@@ -47,12 +47,13 @@ class CCloudDisplayGroup : ConnectionGroup(
             val localTime = endOfLifetime.atZone(ZoneId.systemDefault())
             val absolute = dateTimeFormatter.format(localTime)
 
-            return when {
+            val relative = when {
                 hours > 0 && minutes > 0 -> KafkaMessagesBundle.message("confluent.cloud.settings.session.expiry.hours.minutes", hours, minutes, absolute)
                 hours > 0 -> KafkaMessagesBundle.message("confluent.cloud.settings.session.expiry.hours", hours, absolute)
                 minutes > 0 -> KafkaMessagesBundle.message("confluent.cloud.settings.session.expiry.minutes", minutes, absolute)
                 else -> KafkaMessagesBundle.message("confluent.cloud.settings.session.expiry.less.than.minute", absolute)
             }
+            return KafkaMessagesBundle.message("confluent.cloud.settings.session.expires.label", relative)
         }
     }
 
@@ -63,6 +64,7 @@ class CCloudDisplayGroup : ConnectionGroup(
         val cardLayout = CardLayout()
         val cardPanel = JPanel(cardLayout)
         var signedInPanel: JComponent? = null
+        var signInPanel: JComponent? = null
 
         fun replaceSignedInPanel() {
             signedInPanel?.let { cardPanel.remove(it) }
@@ -72,7 +74,15 @@ class CCloudDisplayGroup : ConnectionGroup(
             cardPanel.repaint()
         }
 
-        cardPanel.add(CCloudSignInPanel.create("settings_panel"), SIGN_IN_CARD)
+        fun replaceSignInPanel(message: String? = null) {
+            signInPanel?.let { cardPanel.remove(it) }
+            signInPanel = CCloudSignInPanel.create("settings_panel", message = message)
+            cardPanel.add(signInPanel, SIGN_IN_CARD)
+            cardPanel.revalidate()
+            cardPanel.repaint()
+        }
+
+        replaceSignInPanel()
         replaceSignedInPanel()
 
         val activeCard = if (CCloudAuthService.getInstance().isSignedIn()) SIGNED_IN_CARD else SIGN_IN_CARD
@@ -89,11 +99,16 @@ class CCloudDisplayGroup : ConnectionGroup(
         // Listen for auth state changes from other UI surfaces
         val listener = object : CCloudAuthService.AuthStateListener {
             override fun onSignedIn(email: String) {
+                replaceSignInPanel()
                 replaceSignedInPanel()
                 cardLayout.show(cardPanel, SIGNED_IN_CARD)
             }
 
-            override fun onSignedOut() {
+            override fun onSignedOut(reason: String) {
+                val isSessionExpiry = reason == "session_expired" || reason == "refresh_failed"
+                if (isSessionExpiry) {
+                    replaceSignInPanel(KafkaMessagesBundle.message("confluent.cloud.settings.session.expired"))
+                }
                 cardLayout.show(cardPanel, SIGN_IN_CARD)
             }
         }
@@ -134,7 +149,7 @@ class CCloudDisplayGroup : ConnectionGroup(
             }
             if (sessionExpiry.isNotEmpty()) {
                 row {
-                    comment(KafkaMessagesBundle.message("confluent.cloud.settings.session.expires.label", sessionExpiry))
+                    comment(sessionExpiry)
                         .align(AlignX.CENTER)
                 }.topGap(TopGap.NONE)
             }
