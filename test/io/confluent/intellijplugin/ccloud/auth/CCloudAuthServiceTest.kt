@@ -423,7 +423,7 @@ class CCloudAuthServiceTest {
             spyService.signOut()
             SwingUtilities.invokeAndWait {}
 
-            verify(listener).onSignedOut()
+            verify(listener).onSignedOut(any())
             verify(spyService).showSignOutNotification()
         }
 
@@ -435,7 +435,7 @@ class CCloudAuthServiceTest {
             spyService.signOut()
             SwingUtilities.invokeAndWait {}
 
-            verify(listener, never()).onSignedOut()
+            verify(listener, never()).onSignedOut(any())
             verify(spyService, never()).showSignOutNotification()
         }
 
@@ -450,8 +450,8 @@ class CCloudAuthServiceTest {
             spyService.signOut()
             SwingUtilities.invokeAndWait {}
 
-            verify(listener1).onSignedOut()
-            verify(listener2).onSignedOut()
+            verify(listener1).onSignedOut(any())
+            verify(listener2).onSignedOut(any())
         }
 
         @Test
@@ -464,7 +464,7 @@ class CCloudAuthServiceTest {
             spyService.signOut()
             SwingUtilities.invokeAndWait {}
 
-            verify(listener, never()).onSignedOut()
+            verify(listener, never()).onSignedOut(any())
         }
 
         @Test
@@ -489,7 +489,7 @@ class CCloudAuthServiceTest {
             spyService.signOut()
             SwingUtilities.invokeAndWait {}
 
-            verify(listener, times(1)).onSignedOut()
+            verify(listener, times(1)).onSignedOut(any())
             verify(spyService, times(1)).showSignOutNotification()
         }
 

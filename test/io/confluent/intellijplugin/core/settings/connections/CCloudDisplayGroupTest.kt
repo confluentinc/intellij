@@ -147,7 +147,7 @@ class CCloudDisplayGroupTest {
             val panel = group.createOptionsPanel() as JPanel
             val listener = mockAuthService.authStateListeners.last()
 
-            listener.onSignedOut()
+            listener.onSignedOut("user_initiated")
 
             // Panel should still have cards
             assertTrue(panel.componentCount > 0, "Panel should have cards after sign-out")

@@ -60,7 +60,7 @@ class ConfluentTabController(
         showResourcesView()
     }
 
-    override fun onSignedOut() {
+    override fun onSignedOut(reason: String) {
         signOut()
     }
 

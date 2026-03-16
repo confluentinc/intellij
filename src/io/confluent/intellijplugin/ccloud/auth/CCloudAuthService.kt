@@ -49,7 +49,11 @@ class CCloudAuthService(private val scope: CoroutineScope) : Disposable {
      */
     interface AuthStateListener {
         fun onSignedIn(email: String) {}
-        fun onSignedOut() {}
+
+        /**
+         * @param reason why the session ended: `"user_initiated"`, `"session_expired"`, or `"refresh_failed"`
+         */
+        fun onSignedOut(reason: String) {}
     }
 
     fun addAuthStateListener(listener: AuthStateListener) {
@@ -63,6 +67,9 @@ class CCloudAuthService(private val scope: CoroutineScope) : Disposable {
     /**
      * Start the OAuth sign-in flow.
      * Opens browser for authentication, shows notifications, and notifies listeners on completion.
+     *
+     * @param invokedPlace telemetry identifier for where sign-in was triggered from
+     *   (e.g. `"welcome_panel"`, `"settings_panel"`, `"tool_window_action"`, `"session_expired_notification"`)
      */
     fun signIn(invokedPlace: String? = null) {
         logger.info("Starting OAuth sign-in flow")
@@ -128,6 +135,11 @@ class CCloudAuthService(private val scope: CoroutineScope) : Disposable {
     /**
      * Sign out, clear current session and stop refresh.
      * PasswordSafe I/O runs on a background thread; listeners are notified on EDT.
+     *
+     * @param reason why the session ended — determines which notification is shown:
+     *   `"session_expired"` or `"refresh_failed"` show the session-expired notification,
+     *   any other value (default `"user_initiated"`) shows the standard sign-out notification
+     * @param invokedPlace telemetry identifier for where sign-out was triggered from
      */
     fun signOut(reason: String = "user_initiated", invokedPlace: String? = null) =
         signOut(reason = reason, invokedPlace = invokedPlace, notifyListeners = true)
@@ -152,7 +164,7 @@ class CCloudAuthService(private val scope: CoroutineScope) : Disposable {
             val isSessionExpiry = reason == "session_expired" || reason == "refresh_failed"
             // Dispatch to EDT so UI updates work even when triggered from a modal dialog (from Settings)
             ApplicationManager.getApplication().invokeLater({
-                authStateListeners.toList().forEach { it.onSignedOut() }
+                authStateListeners.toList().forEach { it.onSignedOut(reason) }
                 if (isSessionExpiry) {
                     showSessionExpiredNotification()
                 } else {
