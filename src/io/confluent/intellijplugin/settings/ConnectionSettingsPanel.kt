@@ -22,6 +22,7 @@ import com.intellij.util.IconUtil
 import com.intellij.util.containers.MultiMap
 import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.tree.TreeUtil
+import io.confluent.intellijplugin.ccloud.auth.CCloudAuthService
 import io.confluent.intellijplugin.core.settings.actions.CreateConnectionPopup
 import io.confluent.intellijplugin.core.settings.actions.showForToolbarOrInBestPositionFor
 import io.confluent.intellijplugin.core.settings.connections.*
@@ -497,13 +498,21 @@ class ConnectionSettingsPanel(val project: Project) : MasterDetailsComponent(),
             createActions(true).forEach { add(it) }
         }
 
+        val ccloudPopupActions = DefaultActionGroup().apply {
+            add(CCloudSignInOutAction())
+        }
+
         tree.addMouseListener(object : PopupHandler() {
             override fun invokePopup(comp: Component, x: Int, y: Int) {
                 val node = tree.getPathForLocation(x, y)?.lastPathComponent as? MyNode
-                if ((node?.configurable as? GroupEmptyConfigurable)?.group is CCloudDisplayGroup) return
+                val actions = if ((node?.configurable as? GroupEmptyConfigurable)?.group is CCloudDisplayGroup) {
+                    ccloudPopupActions
+                } else {
+                    popupActions
+                }
 
                 ActionManager.getInstance()
-                    .createActionPopupMenu("MasterDetailsTreePopup", popupActions)
+                    .createActionPopupMenu("MasterDetailsTreePopup", actions)
                     .component.show(comp, x, y)
             }
         })
@@ -581,6 +590,27 @@ class ConnectionSettingsPanel(val project: Project) : MasterDetailsComponent(),
                 }
 
                 createNewConnectionFor(connectionGroup, newData, true)
+            }
+        }
+    }
+
+    private inner class CCloudSignInOutAction : DumbAwareAction() {
+        override fun update(e: AnActionEvent) {
+            if (CCloudAuthService.getInstance().isSignedIn()) {
+                e.presentation.text = KafkaMessagesBundle.message("confluent.cloud.settings.sign.out")
+                e.presentation.icon = AllIcons.Actions.Exit
+            } else {
+                e.presentation.text = KafkaMessagesBundle.message("confluent.cloud.welcome.panel.cta")
+                e.presentation.icon = AllIcons.General.User
+            }
+        }
+
+        override fun actionPerformed(e: AnActionEvent) {
+            val authService = CCloudAuthService.getInstance()
+            if (authService.isSignedIn()) {
+                authService.signOut()
+            } else {
+                authService.signIn()
             }
         }
     }
