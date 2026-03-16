@@ -7,7 +7,6 @@ import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
-import javax.swing.SwingUtilities
 
 @TestApplication
 class KafkaEditorUtilsTest {
@@ -18,22 +17,13 @@ class KafkaEditorUtilsTest {
         return comboBox
     }
 
-    private fun flushEdt() {
-        val latch = CountDownLatch(1)
-        SwingUtilities.invokeLater { latch.countDown() }
-        latch.await(5, TimeUnit.SECONDS)
-    }
-
     private fun <T> callUpdateComboBoxAndWait(
         comboBox: ComboBox<T>,
-        onListUpdate: (List<T>) -> Unit = {},
         dataSupplier: () -> Pair<List<T>?, Int?>
     ) {
-        KafkaEditorUtils.updateComboBox(comboBox, onListUpdate, dataSupplier)
-        // updateComboBox uses executeNotOnEdt (may run inline or on pooled thread)
-        // then invokeLater to update UI. We need to flush both.
-        Thread.sleep(200)
-        flushEdt()
+        val latch = CountDownLatch(1)
+        KafkaEditorUtils.updateComboBox(comboBox, { latch.countDown() }, dataSupplier)
+        latch.await(5, TimeUnit.SECONDS)
     }
 
     @Nested
