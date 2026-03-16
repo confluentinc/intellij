@@ -47,12 +47,13 @@ class CCloudDisplayGroup : ConnectionGroup(
             val localTime = endOfLifetime.atZone(ZoneId.systemDefault())
             val absolute = dateTimeFormatter.format(localTime)
 
-            return when {
+            val relative = when {
                 hours > 0 && minutes > 0 -> KafkaMessagesBundle.message("confluent.cloud.settings.session.expiry.hours.minutes", hours, minutes, absolute)
                 hours > 0 -> KafkaMessagesBundle.message("confluent.cloud.settings.session.expiry.hours", hours, absolute)
                 minutes > 0 -> KafkaMessagesBundle.message("confluent.cloud.settings.session.expiry.minutes", minutes, absolute)
                 else -> KafkaMessagesBundle.message("confluent.cloud.settings.session.expiry.less.than.minute", absolute)
             }
+            return KafkaMessagesBundle.message("confluent.cloud.settings.session.expires.label", relative)
         }
     }
 
@@ -134,7 +135,7 @@ class CCloudDisplayGroup : ConnectionGroup(
             }
             if (sessionExpiry.isNotEmpty()) {
                 row {
-                    comment(KafkaMessagesBundle.message("confluent.cloud.settings.session.expires.label", sessionExpiry))
+                    comment(sessionExpiry)
                         .align(AlignX.CENTER)
                 }.topGap(TopGap.NONE)
             }
