@@ -198,6 +198,10 @@ Custom extension point `connectionSettingProvider` defined in `plugin.xml` for p
 - Prefer regular Kotlin imports and avoid using fully qualified package names in type annotations
 - Use `thisLogger()` for logging (never use `println` for debug output - use `thisLogger().debug()` instead)
 
+## Workflow
+
+- When creating PRs for CLAUDE.md settings changes (`/remember`), only include CLAUDE.md changes — no other files
+
 ## Common Mistakes to Avoid
 
 - Blocking EDT with network calls or long computations
