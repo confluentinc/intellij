@@ -76,10 +76,7 @@ class CCloudAuthService(private val scope: CoroutineScope) : Disposable {
                 // Telemetry: identify user and track sign-in
                 val user = authenticatedContext.getUser()
                 user?.let {
-                    val emailRegex = Regex("@[a-zA-Z0-9-]+\\.[a-zA-Z0-9-]+")
-                    val domain = if (emailRegex.containsMatchIn(it.email)) {
-                        it.email.substringAfter("@")
-                    } else null
+                    val domain = it.email.substringAfter("@", "").ifEmpty { null }
 
                     logUser(buildMap {
                         domain?.let { put("ccloudDomain", it) }
