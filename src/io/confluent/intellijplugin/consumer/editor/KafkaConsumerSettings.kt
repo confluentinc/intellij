@@ -48,9 +48,8 @@ class KafkaConsumerSettings(
             val textField = JTextField().apply {
                 val defaults = ConsumerConfig.configDef().configKeys()[it]
                 text = defaults?.defaultValue?.toString()
-                @Suppress("HardCodedStringLiteral")
                 toolTipText = if (it in unsupportedProperties) {
-                    KafkaMessagesBundle.message("ccloud.option.not.supported.comment")
+                    KafkaMessagesBundle.message("ccloud.option.not.supported.tooltip")
                 } else {
                     defaults?.documentation
                 }

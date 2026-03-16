@@ -162,14 +162,10 @@ class KafkaProducerEditor(
                 row(KafkaMessagesBundle.message("producer.compression")) {
                     cell(compressionComboBox).align(AlignX.FILL).resizableColumn()
                 }.enabled(isNativeConnection)
-                if (!isNativeConnection) {
-                    row { comment(KafkaMessagesBundle.message("ccloud.option.not.supported.comment")) }.topGap(TopGap.NONE)
-                }
                 row {
-                    cell(idempotenceCheckBox).align(AlignX.FILL).resizableColumn().comment(
-                        if (isNativeConnection) KafkaMessagesBundle.message("producer.idempotence.comment")
-                        else KafkaMessagesBundle.message("ccloud.option.not.supported.comment")
-                    )
+                    cell(idempotenceCheckBox).align(AlignX.FILL).resizableColumn().apply {
+                        if (isNativeConnection) comment(KafkaMessagesBundle.message("producer.idempotence.comment"))
+                    }
                 }.enabled(isNativeConnection)
                 row(KafkaMessagesBundle.message("producer.asks")) {
                     acksComboBox = segmentedButton(AcksType.entries) {
@@ -177,14 +173,18 @@ class KafkaProducerEditor(
                     }
                     acksComboBox.selectedItem = if (isNativeConnection) AcksType.NONE else AcksType.ALL
                 }.visibleIf(idempotenceCheckBox.selected.not()).enabled(isNativeConnection)
-                if (!isNativeConnection) {
-                    row { comment(KafkaMessagesBundle.message("ccloud.option.not.supported.comment")) }.topGap(TopGap.NONE)
-                }
             }.topGap(TopGap.NONE)
         }
 
         if (!isNativeConnection) {
+            val tooltip = KafkaMessagesBundle.message("ccloud.option.not.supported.tooltip")
             acksComboBox.component?.isEnabled = false
+            compressionComboBox.toolTipText = tooltip
+            idempotenceCheckBox.toolTipText = tooltip
+            acksComboBox.component?.let { container ->
+                container.toolTipText = tooltip
+                container.components.filterIsInstance<JComponent>().forEach { it.toolTipText = tooltip }
+            }
         }
 
         KafkaProducerConsumerPanel.createPanel(panel, produceButton, progress)
