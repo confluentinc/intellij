@@ -145,21 +145,22 @@ class ConnectionSettingsPanel(val project: Project) : MasterDetailsComponent(),
     override fun getDisplayName() = KafkaMessagesBundle.message("connections.settings.display.name")
 
     override fun createActions(fromPopup: Boolean): List<AnAction> {
-        val duplicateAction = DuplicateConnectionAction().apply {
-            registerCustomShortcutSet(CommonShortcuts.getDuplicate(), tree)
+        val duplicateAction = DuplicateConnectionAction(fromPopup).apply {
+            if (!fromPopup) registerCustomShortcutSet(CommonShortcuts.getDuplicate(), tree)
         }
 
         val addAction = RootAddActionGroup(
             KafkaMessagesBundle.message("settings.addConnection.text"),
             IconUtil.addIcon,
-            KafkaMessagesBundle.message("settings.addConnection.hint")
+            KafkaMessagesBundle.message("settings.addConnection.hint"),
+            fromPopup
         ).apply {
-            registerCustomShortcutSet(CommonActionsPanel.getCommonShortcut(CommonActionsPanel.Buttons.ADD), tree)
+            if (!fromPopup) registerCustomShortcutSet(CommonActionsPanel.getCommonShortcut(CommonActionsPanel.Buttons.ADD), tree)
         }
 
         return listOf(
             addAction,
-            RemoveConnectionAction(),
+            RemoveConnectionAction(fromPopup),
             duplicateAction
         )
     }
@@ -318,6 +319,7 @@ class ConnectionSettingsPanel(val project: Project) : MasterDetailsComponent(),
         savedSelectedId = connId
     }
 
+
     private fun createTreeNode(
         group: ConnectionGroup,
         data: ConnectionData,
@@ -419,7 +421,13 @@ class ConnectionSettingsPanel(val project: Project) : MasterDetailsComponent(),
             current = parent
         }
 
-        current?.let { removeNodes(listOf(it)) }
+        current?.let {
+            if (it.configurable is GroupEmptyConfigurable && it.parent == myRoot) {
+                (myTree.model as DefaultTreeModel).nodeStructureChanged(it)
+            } else {
+                removeNodes(listOf(it))
+            }
+        }
     }
 
     private fun installSearchIndex(keywords: Collection<String>) {
@@ -479,12 +487,24 @@ class ConnectionSettingsPanel(val project: Project) : MasterDetailsComponent(),
         }
     }
 
+    private fun isCCloudGroupSelected(): Boolean {
+        val selectedNode = myTree.selectionPath?.lastPathComponent as? MyNode
+        return (selectedNode?.configurable as? GroupEmptyConfigurable)?.group is CCloudDisplayGroup
+    }
+
     private inner class RootAddActionGroup(
         @Nls(capitalization = Nls.Capitalization.Title) text: String? = null,
         icon: Icon? = null,
-        @Nls(capitalization = Nls.Capitalization.Sentence) description: String? = null
+        @Nls(capitalization = Nls.Capitalization.Sentence) description: String? = null,
+        private val fromPopup: Boolean = false
     ) : AbstractAddActionGroup(text, icon, description) {
         override fun getChildrenNodes(): Collection<ActionNode> = topLevelGroups
+
+        override fun update(e: AnActionEvent) {
+            if (fromPopup && isCCloudGroupSelected()) {
+                e.presentation.isVisible = false
+            }
+        }
     }
 
     private inner class NodeAddActionGroup(
@@ -505,9 +525,18 @@ class ConnectionSettingsPanel(val project: Project) : MasterDetailsComponent(),
         }
     }
 
-    private inner class RemoveConnectionAction : MyDeleteAction(Predicate<Array<Any>> { nodes ->
+    private inner class RemoveConnectionAction(
+        private val fromPopup: Boolean = false
+    ) : MyDeleteAction(Predicate<Array<Any>> { nodes ->
         !nodes.any { (it as? MyNode)?.configurable is GroupEmptyConfigurable } && nodes.any { (it as? MyNode)?.userObject != null }
     }), DumbAware {
+        override fun update(e: AnActionEvent) {
+            super.update(e)
+            if (fromPopup && isCCloudGroupSelected()) {
+                e.presentation.isVisible = false
+            }
+        }
+
         override fun actionPerformed(e: AnActionEvent) {
             val myNode = myTree.selectionPath?.lastPathComponent as? MyNode ?: return
             removeNode(myNode)
@@ -515,13 +544,18 @@ class ConnectionSettingsPanel(val project: Project) : MasterDetailsComponent(),
         }
     }
 
-    private inner class DuplicateConnectionAction : DumbAwareAction(
+    private inner class DuplicateConnectionAction(
+        private val fromPopup: Boolean = false
+    ) : DumbAwareAction(
         KafkaMessagesBundle.message("settings.duplicateConnection"), null,
         AllIcons.Actions.Copy
     ) {
         override fun update(e: AnActionEvent) {
+            if (fromPopup && isCCloudGroupSelected()) {
+                e.presentation.isVisible = false
+                return
+            }
             val myNode = myTree.selectionPath?.lastPathComponent as? MyNode
-            // disable for group-level ("Message Broker" groups) or empty tree nodes
             val isValidConnection = myNode?.configurable !is GroupEmptyConfigurable && myNode?.userObject != null
             e.presentation.isEnabled = isValidConnection
         }
