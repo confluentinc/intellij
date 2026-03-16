@@ -197,6 +197,7 @@ Custom extension point `connectionSettingProvider` defined in `plugin.xml` for p
 - Handle exceptions gracefully with user-visible error messages
 - Prefer regular Kotlin imports and avoid using fully qualified package names in type annotations
 - Use `thisLogger()` for logging (never use `println` for debug output - use `thisLogger().debug()` instead)
+- Don't use `@Suppress` annotations to work around type issues — find a properly typed solution instead
 
 ## Common Mistakes to Avoid
 
