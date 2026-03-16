@@ -5,7 +5,7 @@ import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.actionSystem.Separator
 import com.intellij.openapi.project.Project
 import com.intellij.testFramework.junit5.TestApplication
-import io.confluent.intellijplugin.core.settings.connections.BrokerConnectionGroup
+import io.confluent.intellijplugin.core.constants.BdtConnectionType
 import io.confluent.intellijplugin.core.settings.connections.CCloudDisplayGroup
 import io.confluent.intellijplugin.core.settings.connections.ConnectionFactory
 import io.confluent.intellijplugin.core.settings.connections.ConnectionGroup
@@ -25,11 +25,11 @@ class StandaloneCreateConnectionUtilTest {
     inner class GroupsPriority {
 
         @Test
-        fun `should assign CCloud higher priority than Broker`() {
+        fun `should assign CCloud higher priority than Kafka`() {
             val ccloudPriority = StandaloneCreateConnectionUtil.groupsPriority[CCloudDisplayGroup.GROUP_ID]!!
-            val brokerPriority = StandaloneCreateConnectionUtil.groupsPriority[BrokerConnectionGroup.GROUP_ID]!!
+            val kafkaPriority = StandaloneCreateConnectionUtil.groupsPriority[BdtConnectionType.KAFKA.id]!!
 
-            assertTrue(ccloudPriority < brokerPriority, "CCloud (${ccloudPriority}) should have lower number (higher priority) than Broker (${brokerPriority})")
+            assertTrue(ccloudPriority < kafkaPriority, "CCloud (${ccloudPriority}) should have lower number (higher priority) than Kafka (${kafkaPriority})")
         }
     }
 
