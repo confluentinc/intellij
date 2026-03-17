@@ -1,6 +1,7 @@
 package io.confluent.intellijplugin.data
 
 import com.intellij.openapi.diagnostic.thisLogger
+import com.intellij.openapi.progress.ProcessCanceledException
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.util.Disposer
@@ -81,9 +82,11 @@ class CCloudClusterDataManager(
     private var schemaEnrichmentJob: Job? = null
     private val partitionCache = ConcurrentHashMap<String, List<BdtTopicPartition>>()
     private val schemaVersionCache = ConcurrentHashMap<Pair<String, Long>, SchemaVersionInfo>()
+    private val schemaTypeCache = ConcurrentHashMap<String, KafkaRegistryFormat>()
 
     private fun invalidateSchemaVersionCache(schemaName: String) {
         schemaVersionCache.keys.removeIf { it.first == schemaName }
+        schemaTypeCache.remove(schemaName)
     }
 
     override val connectionId: String = cluster.id
@@ -324,6 +327,9 @@ class CCloudClusterDataManager(
 
                             dataPlaneCache.updateSchemaInCache(result.schemaName, result.data)
 
+                            val schemaType = KafkaRegistryFormat.fromSchemaType(result.data.schemaType)
+                            schemaTypeCache[result.schemaName] = schemaType
+
                             invokeLaterIfNotDisposed {
                                 val currentSchemas = model.data ?: return@invokeLaterIfNotDisposed
                                 val index = currentSchemas.indexOfFirst { it.name == result.schemaName }
@@ -333,7 +339,7 @@ class CCloudClusterDataManager(
                                     if (i == index) {
                                         schema.copy(
                                             version = result.data.latestVersion?.toLong(),
-                                            type = KafkaRegistryFormat.fromSchemaType(result.data.schemaType)
+                                            type = schemaType
                                         )
                                     } else {
                                         schema
@@ -427,16 +433,28 @@ class CCloudClusterDataManager(
         return try {
             val schemas = getSchemas()
             schemas.map { schema ->
+                val schemaFormat = schema.type
+                    ?: runBlockingMaybeCancellable { getCachedOrLoadSchemaType(schema.name) }
+                    ?: KafkaRegistryFormat.UNKNOWN
                 RegistrySchemaInEditor(
                     schemaName = schema.name,
-                    schemaFormat = schema.type ?: KafkaRegistryFormat.UNKNOWN
+                    schemaFormat = schemaFormat
                 )
             }.sorted()
+        } catch (e: ProcessCanceledException) {
+            throw e  // Re-throw cancellation to preserve IDE cancellation semantics
+        } catch (e: CancellationException) {
+            throw e  // Re-throw coroutine cancellation
         } catch (e: Exception) {
             thisLogger().warn("Failed to get schemas for editor in cluster ${cluster.id}", e)
             emptyList()
         }
     }
+
+    private suspend fun getCachedOrLoadSchemaType(name: String): KafkaRegistryFormat? =
+        schemaTypeCache[name] ?: getCachedOrLoadSchema(name).type?.also {
+            schemaTypeCache[name] = it
+        }
 
     override suspend fun getLatestVersionInfo(schemaName: String): SchemaVersionInfo? {
         if (!dataPlaneCache.hasSchemaRegistry()) {
@@ -844,5 +862,6 @@ class CCloudClusterDataManager(
         partitionEnrichmentJobs.clear()
         partitionCache.clear()
         schemaVersionCache.clear()
+        schemaTypeCache.clear()
     }
 }
