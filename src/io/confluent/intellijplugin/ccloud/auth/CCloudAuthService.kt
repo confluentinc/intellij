@@ -98,16 +98,16 @@ class CCloudAuthService(private val scope: CoroutineScope) : Disposable {
 
                 // Telemetry: identify user and track sign-in
                 val user = authenticatedContext.getUser()
-                user?.let {
-                    val domain = it.email.substringAfter("@", "").ifEmpty { null }
+                val domain = user?.email?.substringAfter("@", "")?.ifEmpty { null }
 
+                user?.let {
                     logUser(buildMap {
                         domain?.let { put("ccloudDomain", it) }
                         it.socialConnection?.let { put("ccloudSocialConnection", it) }
                         it.resourceId?.let { put("ccloudUserId", it) }
                     })
                 }
-                logUsage(CCloudAuthenticationEvent.SignedIn(ccloudId = user?.resourceId, invokedPlace = invokedPlace?.value))
+                logUsage(CCloudAuthenticationEvent.SignedIn(ccloudUserId = user?.resourceId , ccloudDomain = domain, invokedPlace = invokedPlace?.value))
 
                 notifySignedIn(authenticatedContext.getUserEmail())
             },
