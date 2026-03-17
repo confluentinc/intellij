@@ -149,8 +149,8 @@ class ConnectionSettingsPanel(val project: Project) : MasterDetailsComponent(),
 
         // both branches create a Kafka connection directly via performAddConnectionAction()
         val addAction: AnAction = if (fromPopup) {
-            // right-click menu: hides when a CCloud group is selected (CCloud uses
-            // sign-in, not manual add)
+            // right-click menu: directly adds a Kafka connection.
+            // hidden when a CCloud group is selected (CCloud uses sign-in, not manual add)
             ContextMenuAddAction()
         } else {
             // toolbar +button: no visibility gating needed, just wire up the shortcut
