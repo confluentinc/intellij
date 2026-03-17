@@ -139,18 +139,20 @@ class KafkaProducerClient(
     ) {
         val startTime = System.currentTimeMillis()
         val produced = mutableListOf<KafkaRecord>()
-        repeat(flowParams.flowRecordsCountPerRequest) {
-            if (!isRunning())
-                return
-            val result = sentMessage(
-                flowParams, partition, producer, topic, key, value, headers.map { it.copy() },
-                alreadyProducedCount = alreadyProducedCount + it,
-                csvDf = csvDf
-            ) ?: return
-            produced.add(result)
+        for (i in 0 until flowParams.flowRecordsCountPerRequest) {
+            if (!isRunning()) break
+            produced.add(
+                sentMessage(
+                    flowParams, partition, producer, topic, key, value, headers.map { it.copy() },
+                    alreadyProducedCount = alreadyProducedCount + i,
+                    csvDf = csvDf
+                ) ?: break
+            )
         }
-        val endTime = System.currentTimeMillis()
-        onUpdate(endTime - startTime, produced)
+        if (produced.isNotEmpty()) {
+            val endTime = System.currentTimeMillis()
+            onUpdate(endTime - startTime, produced)
+        }
     }
 
     private fun setupPartitions(
@@ -257,25 +259,33 @@ class KafkaProducerClient(
 
         @Suppress("UNCHECKED_CAST")
         val metadataFuture = producer.send(record as ProducerRecord<Any, Any>)
-        val sendTimeout = 15000
-        while (System.currentTimeMillis() - start < sendTimeout) {
+        val sendTimeout = 15000L
+        while (!metadataFuture.isDone && System.currentTimeMillis() - start < sendTimeout && isRunning()) {
             Thread.sleep(100)
-            if (metadataFuture.isDone)
-                break
-            if (!isRunning()) {
-                metadataFuture.cancel(true)
-                break
-            }
         }
 
-        if (!isRunning())
-            return null
-        val metaInfo = metadataFuture.get(2, TimeUnit.SECONDS)
-        val end = System.currentTimeMillis()
+        if (metadataFuture.isDone) {
+            val metaInfo = metadataFuture.get(2, TimeUnit.SECONDS)
+            val end = System.currentTimeMillis()
+            return KafkaRecord.createFor(
+                keyConfig = correctKey, valueConfig = correctValue,
+                metadata = metaInfo, duration = (end - start),
+                headers = formedHeaders
+            )
+        }
 
+        // Stopped before send completed — return null so the batch loop
+        // reports partial results. Timeout (an actual error) throws via get().
+        if (!isRunning()) {
+            metadataFuture.cancel(true)
+            return null
+        }
+
+        // Send timed out — let get() throw TimeoutException
         return KafkaRecord.createFor(
             keyConfig = correctKey, valueConfig = correctValue,
-            metadata = metaInfo, duration = (end - start),
+            metadata = metadataFuture.get(2, TimeUnit.SECONDS),
+            duration = (System.currentTimeMillis() - start),
             headers = formedHeaders
         )
     }

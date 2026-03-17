@@ -36,9 +36,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import org.apache.avro.generic.GenericDatumWriter
 import org.apache.avro.io.EncoderFactory
@@ -70,7 +68,6 @@ class CCloudProducerClient(
     @VisibleForTesting
     internal val running = AtomicBoolean(false)
     private var produceJob: Job? = null
-    private var producerScope: CoroutineScope? = null
 
     override fun isRunning(): Boolean = running.get()
 
@@ -91,9 +88,9 @@ class CCloudProducerClient(
         }
         onStart()
 
-        producerScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
-        produceJob = producerScope!!.launch {
+        produceJob = scope.launch {
             try {
                 produceLoop(topic, key, value, headers, forcePartition, flowParams, onUpdate)
             } catch (e: CancellationException) {
@@ -107,6 +104,7 @@ class CCloudProducerClient(
                 )
             } finally {
                 running.set(false)
+                produceJob = null
                 onStop()
             }
         }
@@ -152,7 +150,7 @@ class CCloudProducerClient(
 
             Mode.AUTO -> {
                 val startTime = System.currentTimeMillis()
-                while (running.get() && (producerScope?.isActive == true)) {
+                while (running.get()) {
                     if (flowParams.totalRequests != 0 && produced >= flowParams.totalRequests) break
                     if (flowParams.totalElapsedTime != 0 &&
                         (System.currentTimeMillis() - startTime) >= flowParams.totalElapsedTime
@@ -174,7 +172,7 @@ class CCloudProducerClient(
                         onUpdate(records.sumOf { it.duration }, records)
                     }
                     produced += flowParams.flowRecordsCountPerRequest
-                    delay(flowParams.requestInterval.toLong())
+                    delayWhileRunning(flowParams.requestInterval.toLong())
                 }
             }
         }
@@ -208,8 +206,8 @@ class CCloudProducerClient(
         schemaCache: Map<String, SchemaVersionResponse>
     ): List<KafkaRecord> {
         val records = mutableListOf<KafkaRecord>()
-        repeat(flowParams.flowRecordsCountPerRequest) { i ->
-            if (!running.get()) return records
+        for (i in 0 until flowParams.flowRecordsCountPerRequest) {
+            if (!running.get()) break
 
             val recordKey = resolveFieldValue(key, flowParams.generateRandomKeys, csvDataFrame, alreadyProducedCount + i, isKey = true)
             val recordValue = resolveFieldValue(value, flowParams.generateRandomValues, csvDataFrame, alreadyProducedCount + i, isKey = false)
@@ -224,7 +222,7 @@ class CCloudProducerClient(
                 fetcher, recordKey, recordValue, processedHeaders, topic, forcePartition, schemaCache
             )
 
-            val (response, duration) = produceWithRetry(fetcher, topic, request)
+            val (response, duration) = produceWithRetry(fetcher, topic, request) ?: break
 
             records.add(
                 KafkaRecord(
@@ -456,7 +454,8 @@ class CCloudProducerClient(
 
     /**
      * Produce a single record with retry and exponential backoff for transient errors.
-     * Retries on 429 (rate limit) and 5xx (server errors). Fails immediately on 4xx client errors.
+     * Returns null if the producer is stopped, allowing the caller to report partial results.
+     * Retries on 429 (rate limit) and 5xx (server errors). Throws immediately on 4xx client errors.
      *
      * Handles both HTTP-level errors (thrown as [CCloudApiException] by the REST client)
      * and application-level errors (returned in the response body with an errorCode).
@@ -466,11 +465,12 @@ class CCloudProducerClient(
         fetcher: DataPlaneFetcher,
         topic: String,
         request: ProduceRecordRequest
-    ): Pair<ProduceRecordResponse, Long> {
+    ): Pair<ProduceRecordResponse, Long>? {
         var lastException: CCloudApiException? = null
 
         repeat(maxRetries) { attempt ->
-            if (!running.get()) throw CancellationException("Producer stopped")
+            // Stopped — return null so the batch loop reports partial results
+            if (!running.get()) return null
 
             val startTime = System.currentTimeMillis()
             try {
@@ -508,7 +508,7 @@ class CCloudProducerClient(
                 baseBackoffMs * 2.0.pow(attempt).toLong(),
                 maxBackoffMs
             )
-            delay(backoffMs)
+            delayWhileRunning(backoffMs)
         }
 
         throw lastException ?: CCloudApiException("Produce failed after $maxRetries retries", 0)
@@ -537,14 +537,18 @@ class CCloudProducerClient(
 
     override fun stop() {
         running.set(false)
-        produceJob?.cancel()
-        producerScope?.cancel()
-        producerScope = null
-        produceJob = null
     }
 
     override fun dispose() {
         stop()
+        produceJob?.cancel()
+    }
+
+    private suspend fun delayWhileRunning(ms: Long) {
+        val end = System.currentTimeMillis() + ms
+        while (running.get() && System.currentTimeMillis() < end) {
+            delay(100)
+        }
     }
 
     companion object {
