@@ -22,10 +22,12 @@ You can enable or disable telemetry at any time:
 - Managing connections (create, test, enable, disable)
 - Exporting data (CSV, JSON, TSV)
 - Using monitoring and settings
+- Confluent Cloud authentication (sign-in, sign-out, token refresh success/failure)
 
 **Captured Information:**
 - Which action was used
 - Where it was invoked (menu, toolbar, etc)
+- Authentication status and context (sign-in source, sign-out reason, token refresh attempts)
 
 **Context Information (Sent with All Events):**
 
