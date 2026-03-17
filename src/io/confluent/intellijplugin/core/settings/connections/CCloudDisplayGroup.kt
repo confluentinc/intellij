@@ -6,6 +6,8 @@ import com.intellij.ui.dsl.builder.TopGap
 import com.intellij.ui.dsl.builder.panel
 import com.intellij.util.IconUtil
 import io.confluent.intellijplugin.ccloud.auth.CCloudAuthService
+import io.confluent.intellijplugin.ccloud.auth.InvokedPlace
+import io.confluent.intellijplugin.ccloud.auth.SignOutReason
 import io.confluent.intellijplugin.ccloud.ui.CCloudSignInPanel
 import io.confluent.intellijplugin.icons.BigdatatoolsKafkaIcons
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
@@ -76,7 +78,7 @@ class CCloudDisplayGroup : ConnectionGroup(
 
         fun replaceSignInPanel(message: String? = null) {
             signInPanel?.let { cardPanel.remove(it) }
-            signInPanel = CCloudSignInPanel.create("settings_panel", message = message)
+            signInPanel = CCloudSignInPanel.create(InvokedPlace.SETTINGS_PANEL, message = message)
             cardPanel.add(signInPanel, SIGN_IN_CARD)
             cardPanel.revalidate()
             cardPanel.repaint()
@@ -104,9 +106,8 @@ class CCloudDisplayGroup : ConnectionGroup(
                 cardLayout.show(cardPanel, SIGNED_IN_CARD)
             }
 
-            override fun onSignedOut(reason: String) {
-                val isSessionExpiry = reason == "session_expired" || reason == "refresh_failed"
-                if (isSessionExpiry) {
+            override fun onSignedOut(reason: SignOutReason) {
+                if (reason.isSessionExpiry) {
                     replaceSignInPanel(KafkaMessagesBundle.message("confluent.cloud.settings.session.expired"))
                 }
                 cardLayout.show(cardPanel, SIGN_IN_CARD)
@@ -155,7 +156,7 @@ class CCloudDisplayGroup : ConnectionGroup(
             }
             row {
                 link(KafkaMessagesBundle.message("confluent.cloud.settings.sign.out")) {
-                    CCloudAuthService.getInstance().signOut(invokedPlace = "settings_panel")
+                    CCloudAuthService.getInstance().signOut(invokedPlace = InvokedPlace.SETTINGS_PANEL)
                 }.align(AlignX.CENTER)
             }
         }

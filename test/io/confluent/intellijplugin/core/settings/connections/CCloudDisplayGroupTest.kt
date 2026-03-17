@@ -7,6 +7,7 @@ import com.intellij.testFramework.replaceService
 import com.intellij.ui.components.ActionLink
 import com.intellij.util.ui.UIUtil
 import io.confluent.intellijplugin.ccloud.auth.CCloudAuthService
+import io.confluent.intellijplugin.ccloud.auth.SignOutReason
 import io.confluent.intellijplugin.ccloud.auth.CCloudOAuthContext
 import io.confluent.intellijplugin.ccloud.auth.OrganizationDetails
 import io.confluent.intellijplugin.ccloud.auth.SsoDetails
@@ -147,7 +148,7 @@ class CCloudDisplayGroupTest {
             val panel = group.createOptionsPanel() as JPanel
             val listener = mockAuthService.authStateListeners.last()
 
-            listener.onSignedOut("user_initiated")
+            listener.onSignedOut(SignOutReason.USER_INITIATED)
 
             // Panel should still have cards
             assertTrue(panel.componentCount > 0, "Panel should have cards after sign-out")

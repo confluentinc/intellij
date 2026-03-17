@@ -6,6 +6,7 @@ import com.intellij.ui.dsl.builder.BottomGap
 import com.intellij.ui.dsl.builder.panel
 import com.intellij.util.IconUtil
 import io.confluent.intellijplugin.ccloud.auth.CCloudAuthService
+import io.confluent.intellijplugin.ccloud.auth.InvokedPlace
 import io.confluent.intellijplugin.icons.BigdatatoolsKafkaIcons
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
 import java.awt.GridBagLayout
@@ -29,7 +30,7 @@ object CCloudSignInPanel {
      *                           is shown below the sign-in button (used in the tool window only).
      */
     fun create(
-        invokedPlace: String? = null,
+        invokedPlace: InvokedPlace? = null,
         message: String? = null,
         onCreateConnection: (() -> Unit)? = null,
     ): JComponent {

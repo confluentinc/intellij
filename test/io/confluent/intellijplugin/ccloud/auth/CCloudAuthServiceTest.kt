@@ -497,7 +497,7 @@ class CCloudAuthServiceTest {
         fun `should show session expired notification when reason is session_expired`() {
             spyService.context = createMockAuthenticatedContext()
 
-            spyService.signOut(reason = "session_expired")
+            spyService.signOut(reason = SignOutReason.SESSION_EXPIRED)
             SwingUtilities.invokeAndWait {}
 
             verify(spyService).showSessionExpiredNotification()
@@ -508,7 +508,7 @@ class CCloudAuthServiceTest {
         fun `should show session expired notification when reason is refresh_failed`() {
             spyService.context = createMockAuthenticatedContext()
 
-            spyService.signOut(reason = "refresh_failed")
+            spyService.signOut(reason = SignOutReason.REFRESH_FAILED)
             SwingUtilities.invokeAndWait {}
 
             verify(spyService).showSessionExpiredNotification()
@@ -519,7 +519,7 @@ class CCloudAuthServiceTest {
         fun `should show regular sign out notification for user initiated sign out`() {
             spyService.context = createMockAuthenticatedContext()
 
-            spyService.signOut(reason = "user_initiated")
+            spyService.signOut(reason = SignOutReason.USER_INITIATED)
             SwingUtilities.invokeAndWait {}
 
             verify(spyService).showSignOutNotification()
