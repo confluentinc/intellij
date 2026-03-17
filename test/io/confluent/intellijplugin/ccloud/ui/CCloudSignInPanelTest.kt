@@ -76,7 +76,7 @@ class CCloudSignInPanelTest {
 
         @Test
         fun `should show create connection link`() {
-            val panel = CCloudSignInPanel.create { }
+            val panel = CCloudSignInPanel.create() { }
 
             val links = UIUtil.findComponentsOfType(panel, ActionLink::class.java)
 
@@ -85,7 +85,7 @@ class CCloudSignInPanelTest {
 
         @Test
         fun `should show create connection link with correct text`() {
-            val panel = CCloudSignInPanel.create { }
+            val panel = CCloudSignInPanel.create() { }
 
             val link = UIUtil.findComponentOfType(panel, ActionLink::class.java)
 
@@ -95,7 +95,7 @@ class CCloudSignInPanelTest {
         @Test
         fun `should invoke callback when link is clicked`() {
             var invoked = false
-            val panel = CCloudSignInPanel.create { invoked = true }
+            val panel = CCloudSignInPanel.create() { invoked = true }
 
             UIUtil.findComponentOfType(panel, ActionLink::class.java)?.doClick()
 
@@ -104,7 +104,7 @@ class CCloudSignInPanelTest {
 
         @Test
         fun `should still contain a sign-in button`() {
-            val panel = CCloudSignInPanel.create { }
+            val panel = CCloudSignInPanel.create() { }
 
             assertNotNull(findSignInButton(panel))
         }
@@ -120,7 +120,7 @@ class CCloudSignInPanelTest {
 
             findSignInButton(panel)?.doClick()
 
-            verify(mockAuthService).signIn()
+            verify(mockAuthService).signIn(null)
         }
     }
 
