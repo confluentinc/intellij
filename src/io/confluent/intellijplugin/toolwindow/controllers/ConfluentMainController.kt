@@ -92,7 +92,7 @@ internal class ConfluentMainController(
     private lateinit var normalPanel: OnePixelSplitter
     private lateinit var panel: DialogPanel
     private lateinit var component: JComponent
-    private lateinit var lastSelectedPath: TreePath
+    private var lastSelectedPath: TreePath? = null
 
     private var prevError: Throwable? = null
     private val errorPanel = JPanel(BorderLayout())
@@ -205,7 +205,8 @@ internal class ConfluentMainController(
                             dataManager.cancelAllEnrichmentJobs()
                             dataManager.preInitializeCachesForEnvironment(prevSelectedId) {
                                 driver.registerListenersForEnvironment(prevSelectedId)
-                                driver.fileInfoManager.refreshFiles(driver.root)
+                                val currentPath = lastSelectedPath?.lastDriverNode?.rfsPath ?: driver.root
+                                driver.fileInfoManager.refreshFiles(currentPath)
                             }
 
                             if ((details.layout as? CardLayout)?.let { true } == true) {
@@ -307,8 +308,7 @@ internal class ConfluentMainController(
 
         myTree.addTreeSelectionListener {
             val treePath = it.newLeadSelectionPath
-            if (treePath != null)
-                lastSelectedPath = treePath
+            lastSelectedPath = treePath
 
             val rfsPath = treePath?.lastDriverNode?.rfsPath
             showDetailsComponent(rfsPath)
