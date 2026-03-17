@@ -6,7 +6,6 @@ class GeneralConnectionSettingsProvider : ConnectionSettingProvider {
     override val pluginType: BdtPluginType = BdtPluginType.KAFKA
 
     override fun createConnectionGroups(): List<ConnectionGroup> = listOf(
-        BrokerConnectionGroup(),
         CCloudDisplayGroup()
     )
 }
