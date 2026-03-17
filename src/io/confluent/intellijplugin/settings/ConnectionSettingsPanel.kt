@@ -22,10 +22,12 @@ import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.tree.TreeUtil
 import io.confluent.intellijplugin.core.settings.actions.CreateConnectionPopup
 import io.confluent.intellijplugin.core.settings.actions.showForToolbarOrInBestPositionFor
+import io.confluent.intellijplugin.core.constants.BdtConnectionType
 import io.confluent.intellijplugin.core.settings.connections.*
 import io.confluent.intellijplugin.core.settings.manager.RfsConnectionDataManager
 import io.confluent.intellijplugin.core.settings.paneadd.StandaloneCreateConnectionUtil
 import io.confluent.intellijplugin.core.util.BdIdeRegistryUtil
+import io.confluent.intellijplugin.settings.KafkaConnectionGroup
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
 import org.jetbrains.annotations.Nls
 import java.awt.Component
@@ -149,13 +151,18 @@ class ConnectionSettingsPanel(val project: Project) : MasterDetailsComponent(),
             if (!fromPopup) registerCustomShortcutSet(CommonShortcuts.getDuplicate(), tree)
         }
 
-        val addAction = RootAddActionGroup(
-            KafkaMessagesBundle.message("settings.addConnection.text"),
-            IconUtil.addIcon,
-            KafkaMessagesBundle.message("settings.addConnection.hint"),
-            fromPopup
-        ).apply {
-            if (!fromPopup) registerCustomShortcutSet(CommonActionsPanel.getCommonShortcut(CommonActionsPanel.Buttons.ADD), tree)
+        val addAction: AnAction = if (fromPopup) {
+            ContextMenuAddAction()
+        } else {
+            object : DumbAwareAction(
+                KafkaMessagesBundle.message("settings.addConnection.text"),
+                KafkaMessagesBundle.message("settings.addConnection.hint"),
+                IconUtil.addIcon
+            ) {
+                override fun actionPerformed(e: AnActionEvent) = performAddConnectionAction(e)
+            }.apply {
+                registerCustomShortcutSet(CommonActionsPanel.getCommonShortcut(CommonActionsPanel.Buttons.ADD), tree)
+            }
         }
 
         return buildList {
@@ -379,6 +386,7 @@ class ConnectionSettingsPanel(val project: Project) : MasterDetailsComponent(),
 
         parentToGroups.get(null).forEach { topLevelGroups.add(ActionNode(it)) }
         topLevelGroups.sortBy { StandaloneCreateConnectionUtil.groupsPriority.getOrDefault(it.group.id, 4) }
+        topLevelGroups.forEach { groupToActionNode[it.group.id] = it }
 
         fun getTopLevelGroupFor(group: ConnectionGroup): ConnectionGroup {
             val res = groupToParent[group]
@@ -397,13 +405,9 @@ class ConnectionSettingsPanel(val project: Project) : MasterDetailsComponent(),
             }
         }
 
-        // Wire up the "Create Connection" button on the Message Brokers group panel
-        (idToGroup[BrokerConnectionGroup.GROUP_ID] as? BrokerConnectionGroup)?.onCreateConnection = {
-            val kafkaGroup = idToGroup.values.filterIsInstance<ConnectionFactory<*>>()
-                .find { it.parentGroupId == BrokerConnectionGroup.GROUP_ID }
-            if (kafkaGroup != null) {
-                createNewConnectionFor(kafkaGroup)
-            }
+        // wire up the "Create Connection" button on the Connections group panel
+        (idToGroup[BdtConnectionType.KAFKA.id] as? KafkaConnectionGroup)?.let { group ->
+            group.onCreateConnection = { createNewConnectionFor(group) }
         }
 
         installSearchIndex(keywords)
@@ -483,8 +487,17 @@ class ConnectionSettingsPanel(val project: Project) : MasterDetailsComponent(),
             return result.toTypedArray()
         }
 
-        override fun actionPerformed(e: AnActionEvent) {
-            CreateConnectionPopup.createPopup(RootAddActionGroup(), e).showForToolbarOrInBestPositionFor(e)
+        override fun actionPerformed(e: AnActionEvent) = performAddConnectionAction(e)
+    }
+
+    /** If only one connection type exists, invoke it directly; otherwise show a popup chooser. */
+    private fun performAddConnectionAction(e: AnActionEvent) {
+        val group = RootAddActionGroup()
+        val actions = group.getChildren(e).filterNot { it is com.intellij.openapi.actionSystem.Separator }
+        if (actions.size == 1) {
+            actions[0].actionPerformed(e)
+        } else {
+            CreateConnectionPopup.createPopup(group, e).showForToolbarOrInBestPositionFor(e)
         }
     }
 
@@ -523,6 +536,21 @@ class ConnectionSettingsPanel(val project: Project) : MasterDetailsComponent(),
         override fun actionPerformed(e: AnActionEvent) {
             createNewConnectionFor(group)
             addNotify()
+        }
+    }
+
+    /** Context menu "Add Connection" — a flat action that bypasses the submenu popup. */
+    private inner class ContextMenuAddAction : DumbAwareAction(
+        KafkaMessagesBundle.message("settings.addConnection.text"),
+        KafkaMessagesBundle.message("settings.addConnection.hint"),
+        IconUtil.addIcon
+    ) {
+        override fun actionPerformed(e: AnActionEvent) = performAddConnectionAction(e)
+
+        override fun update(e: AnActionEvent) {
+            if (isCCloudGroupSelected()) {
+                e.presentation.isVisible = false
+            }
         }
     }
 
