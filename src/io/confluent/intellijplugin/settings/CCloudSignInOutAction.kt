@@ -35,9 +35,9 @@ class CCloudSignInOutAction(
 
         val authService = CCloudAuthService.getInstance()
         if (authService.isSignedIn()) {
-            authService.signOut()
+            authService.signOut(invokedPlace = "settings_panel")
         } else {
-            authService.signIn()
+            authService.signIn(invokedPlace = "settings_panel")
         }
     }
 }
