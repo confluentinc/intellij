@@ -163,9 +163,9 @@ class KafkaProducerEditor(
                     cell(compressionComboBox).align(AlignX.FILL).resizableColumn()
                 }.enabled(isNativeConnection)
                 row {
-                    cell(idempotenceCheckBox).align(AlignX.FILL).resizableColumn().comment(
-                        KafkaMessagesBundle.message("producer.idempotence.comment")
-                    )
+                    cell(idempotenceCheckBox).align(AlignX.FILL).resizableColumn().apply {
+                        if (isNativeConnection) comment(KafkaMessagesBundle.message("producer.idempotence.comment"))
+                    }
                 }.enabled(isNativeConnection)
                 row(KafkaMessagesBundle.message("producer.asks")) {
                     acksComboBox = segmentedButton(AcksType.entries) {
@@ -177,7 +177,14 @@ class KafkaProducerEditor(
         }
 
         if (!isNativeConnection) {
+            val tooltip = KafkaMessagesBundle.message("ccloud.option.not.supported.tooltip")
             acksComboBox.component?.isEnabled = false
+            compressionComboBox.toolTipText = tooltip
+            idempotenceCheckBox.toolTipText = tooltip
+            acksComboBox.component?.let { container ->
+                container.toolTipText = tooltip
+                container.components.filterIsInstance<JComponent>().forEach { it.toolTipText = tooltip }
+            }
         }
 
         KafkaProducerConsumerPanel.createPanel(panel, produceButton, progress)
