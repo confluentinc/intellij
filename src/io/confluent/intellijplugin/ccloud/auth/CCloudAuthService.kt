@@ -227,7 +227,7 @@ class CCloudAuthService(private val scope: CoroutineScope) : Disposable {
             NotificationAction.create(
                 KafkaMessagesBundle.message("confluent.cloud.notification.session.expired.action")
             ) { _, n ->
-                n.expire() // Explicitly auto-close notifciation after sign-in is clicked
+                n.expire() // Explicitly auto-close notification after sign-in is clicked
                 signIn(InvokedPlace.SESSION_EXPIRED_NOTIFICATION)
             }
         )
