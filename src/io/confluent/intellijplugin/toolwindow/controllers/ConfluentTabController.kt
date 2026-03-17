@@ -4,6 +4,8 @@ import com.intellij.openapi.Disposable
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import io.confluent.intellijplugin.ccloud.auth.CCloudAuthService
+import io.confluent.intellijplugin.ccloud.auth.InvokedPlace
+import io.confluent.intellijplugin.ccloud.auth.SignOutReason
 import io.confluent.intellijplugin.ccloud.ui.CCloudSignInPanel
 import io.confluent.intellijplugin.core.monitoring.toolwindow.ComponentController
 import io.confluent.intellijplugin.core.settings.ConnectionSettings
@@ -37,7 +39,7 @@ class ConfluentTabController(
     }
 
     init {
-        cardPanel.add(CCloudSignInPanel.create("welcome_panel") {
+        cardPanel.add(CCloudSignInPanel.create(InvokedPlace.WELCOME_PANEL) {
             val group = KafkaConnectionGroup()
             val connectionData = group.createBlankData().apply {
                 brokerConfigurationSource = KafkaConfigurationSource.CLOUD
@@ -60,7 +62,7 @@ class ConfluentTabController(
         showResourcesView()
     }
 
-    override fun onSignedOut() {
+    override fun onSignedOut(reason: SignOutReason) {
         signOut()
     }
 
