@@ -15,6 +15,7 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
+import org.mockito.kotlin.any
 import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.never
@@ -104,8 +105,8 @@ class ConfluentCloudTabActionTest {
 
             action.actionPerformed(event)
 
-            verify(mockAuthService, never()).signIn()
-            verify(mockAuthService, never()).signOut()
+            verify(mockAuthService, never()).signIn(any())
+            verify(mockAuthService, never()).signOut(any(), any())
         }
 
         @Test
@@ -115,8 +116,8 @@ class ConfluentCloudTabActionTest {
 
             action.actionPerformed(event)
 
-            verify(mockAuthService).signIn()
-            verify(mockAuthService, never()).signOut()
+            verify(mockAuthService).signIn("tool_window_action")
+            verify(mockAuthService, never()).signOut(any(), any())
         }
 
         @Test
@@ -126,8 +127,8 @@ class ConfluentCloudTabActionTest {
 
             action.actionPerformed(event)
 
-            verify(mockAuthService).signOut()
-            verify(mockAuthService, never()).signIn()
+            verify(mockAuthService).signOut(invokedPlace = "tool_window_action")
+            verify(mockAuthService, never()).signIn(any())
         }
     }
 }
