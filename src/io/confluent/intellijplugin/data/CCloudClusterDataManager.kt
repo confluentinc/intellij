@@ -590,7 +590,8 @@ class CCloudClusterDataManager(
 
             dataPlaneCache.createSchema(versionInfo.schemaName, request)
 
-            schemaRegistryModel?.let { updater.invokeRefreshModel(it) }
+            invalidateSchemaVersionCache(versionInfo.schemaName)
+            updateSingleSchemaInList(versionInfo.schemaName)
             updater.invokeRefreshModel(schemaVersionModels[versionInfo.schemaName])
             Unit
         }.deferred.asCompletableFuture().asPromise().asSilent()
@@ -608,8 +609,9 @@ class CCloudClusterDataManager(
                     fetcher.deleteSchemaVersion(versionInfo.schemaName, versionInfo.version, permanent = false)
                 }
 
+                invalidateSchemaVersionCache(versionInfo.schemaName)
+                updateSingleSchemaInList(versionInfo.schemaName)
                 updater.invokeRefreshModel(schemaVersionModels[versionInfo.schemaName])
-                schemaRegistryModel?.let { updater.invokeRefreshModel(it) }
             } catch (t: Throwable) {
                 RfsNotificationUtils.showExceptionMessage(project, t)
             }
@@ -669,7 +671,7 @@ class CCloudClusterDataManager(
             dataPlaneCache.deleteSchema(schemaName, permanent)
         }
         invalidateSchemaVersionCache(schemaName)
-        schemaVersionModels[schemaName].setData(FieldGroupsData(emptyList(), emptyList()))
+        updater.invokeRefreshModel(schemaVersionModels[schemaName])
         schemaRegistryModel?.let { updater.invokeRefreshModel(it) }
     }
 
@@ -686,9 +688,41 @@ class CCloudClusterDataManager(
                 )
                 dataPlaneCache.createSchema(schemaName, request)
             }
-            schemaRegistryModel?.let { updater.invokeRefreshModel(it) }
+            invalidateSchemaVersionCache(schemaName)
+            updateSingleSchemaInList(schemaName)
             updater.invokeRefreshModel(schemaVersionModels[schemaName])
         }
+
+    private suspend fun updateSingleSchemaInList(schemaName: String) {
+        try {
+            val updatedSchemaData = withContext(Dispatchers.IO) {
+                dataPlaneCache.getFetcher()?.loadSchemaInfo(schemaName)
+            } ?: return
+
+            val config = KafkaToolWindowSettings.getInstance().getOrCreateConfig(getSchemaRegistryConfigId())
+
+            val updatedSchema = KafkaSchemaInfo(
+                name = updatedSchemaData.name,
+                type = KafkaRegistryFormat.fromSchemaType(updatedSchemaData.schemaType),
+                version = updatedSchemaData.latestVersion?.toLong(),
+                isFavorite = config.schemasPined.contains(updatedSchemaData.name)
+            )
+
+            withContext(Dispatchers.Default) {
+                val currentSchemas = schemaRegistryModel?.data ?: emptyList()
+                val updatedSchemas = currentSchemas.filterNot { it.name == schemaName } + updatedSchema
+
+                val sortedSchemas = updatedSchemas.sortedWith(
+                    compareByDescending<KafkaSchemaInfo> { it.isFavorite }.thenBy { it.name.lowercase() }
+                )
+
+                schemaRegistryModel?.setData(sortedSchemas)
+            }
+        } catch (e: Exception) {
+            thisLogger().warn("Failed to update single schema '$schemaName', falling back to full refresh", e)
+            schemaRegistryModel?.let { updater.invokeRefreshModel(it) }
+        }
+    }
 
     @RequiresBackgroundThread
     override fun loadTopicNames(): List<TopicPresentable> = getTopics()
