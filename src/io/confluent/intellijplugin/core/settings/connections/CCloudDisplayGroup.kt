@@ -72,7 +72,7 @@ class CCloudDisplayGroup : ConnectionGroup(
             cardPanel.repaint()
         }
 
-        cardPanel.add(CCloudSignInPanel.create(), SIGN_IN_CARD)
+        cardPanel.add(CCloudSignInPanel.create("settings_panel"), SIGN_IN_CARD)
         replaceSignedInPanel()
 
         val activeCard = if (CCloudAuthService.getInstance().isSignedIn()) SIGNED_IN_CARD else SIGN_IN_CARD
@@ -140,7 +140,7 @@ class CCloudDisplayGroup : ConnectionGroup(
             }
             row {
                 link(KafkaMessagesBundle.message("confluent.cloud.settings.sign.out")) {
-                    CCloudAuthService.getInstance().signOut()
+                    CCloudAuthService.getInstance().signOut(invokedPlace = "settings_panel")
                 }.align(AlignX.CENTER)
             }
         }
