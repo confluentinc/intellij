@@ -18,7 +18,7 @@ class CCloudSignInOutAction(
 
     override fun update(e: AnActionEvent) {
         if (!isCCloudSelected()) {
-            e.presentation.isVisible = false
+            e.presentation.isEnabledAndVisible = false
             return
         }
         if (CCloudAuthService.getInstance().isSignedIn()) {

@@ -56,7 +56,7 @@ class CCloudSignInOutActionTest {
 
             action.update(event)
 
-            assertFalse(event.presentation.isVisible)
+            assertFalse(event.presentation.isEnabledAndVisible)
         }
 
         @Test
