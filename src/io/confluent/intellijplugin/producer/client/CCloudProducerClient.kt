@@ -35,9 +35,11 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.apache.avro.generic.GenericDatumWriter
 import org.apache.avro.io.EncoderFactory
 import org.apache.kafka.common.serialization.*
@@ -131,7 +133,7 @@ class CCloudProducerClient(
 
         when (flowParams.mode) {
             Mode.MANUAL -> {
-                val records = produceBatch(
+                produceBatch(
                     fetcher = fetcher,
                     topic = topic,
                     key = key,
@@ -141,11 +143,9 @@ class CCloudProducerClient(
                     flowParams = flowParams,
                     alreadyProducedCount = produced,
                     csvDataFrame = csvDataFrame,
-                    schemaCache = schemaCache
+                    schemaCache = schemaCache,
+                    onUpdate = onUpdate
                 )
-                if (records.isNotEmpty()) {
-                    onUpdate(records.sumOf { it.duration }, records)
-                }
             }
 
             Mode.AUTO -> {
@@ -156,7 +156,7 @@ class CCloudProducerClient(
                         (System.currentTimeMillis() - startTime) >= flowParams.totalElapsedTime
                     ) break
 
-                    val records = produceBatch(
+                    produceBatch(
                         fetcher = fetcher,
                         topic = topic,
                         key = key,
@@ -166,13 +166,11 @@ class CCloudProducerClient(
                         flowParams = flowParams,
                         alreadyProducedCount = produced,
                         csvDataFrame = csvDataFrame,
-                        schemaCache = schemaCache
+                        schemaCache = schemaCache,
+                        onUpdate = onUpdate
                     )
-                    if (records.isNotEmpty()) {
-                        onUpdate(records.sumOf { it.duration }, records)
-                    }
                     produced += flowParams.flowRecordsCountPerRequest
-                    delayWhileRunning(flowParams.requestInterval.toLong())
+                    delay(flowParams.requestInterval.toLong())
                 }
             }
         }
@@ -203,9 +201,9 @@ class CCloudProducerClient(
         flowParams: ProducerFlowParams,
         alreadyProducedCount: Int,
         csvDataFrame: DataFrame?,
-        schemaCache: Map<String, SchemaVersionResponse>
-    ): List<KafkaRecord> {
-        val records = mutableListOf<KafkaRecord>()
+        schemaCache: Map<String, SchemaVersionResponse>,
+        onUpdate: (Long, List<KafkaRecord>) -> Unit
+    ) {
         for (i in 0 until flowParams.flowRecordsCountPerRequest) {
             if (!running.get()) break
 
@@ -222,29 +220,32 @@ class CCloudProducerClient(
                 fetcher, recordKey, recordValue, processedHeaders, topic, forcePartition, schemaCache
             )
 
-            val (response, duration) = produceWithRetry(fetcher, topic, request) ?: break
+            val (response, duration) = try {
+                produceWithRetry(fetcher, topic, request) ?: break
+            } catch (_: CancellationException) {
+                // Job cancelled during retry backoff; no record sent, safe to stop
+                break
+            }
 
-            records.add(
-                KafkaRecord(
-                    keyType = recordKey.type,
-                    valueType = recordValue.type,
-                    error = null,
-                    key = recordKey.getValueObj(),
-                    value = recordValue.getValueObj(),
-                    topic = response.topicName ?: topic,
-                    partition = response.partitionId ?: -1,
-                    offset = response.offset ?: -1,
-                    duration = duration,
-                    timestamp = response.timestamp?.let { Instant.parse(it).toEpochMilli() } ?: System.currentTimeMillis(),
-                    keySize = response.key?.size ?: 0,
-                    valueSize = response.value?.size ?: 0,
-                    headers = processedHeaders,
-                    keyFormat = recordKey.schemaFormat,
-                    valueFormat = recordValue.schemaFormat
-                )
+            val record = KafkaRecord(
+                keyType = recordKey.type,
+                valueType = recordValue.type,
+                error = null,
+                key = recordKey.getValueObj(),
+                value = recordValue.getValueObj(),
+                topic = response.topicName ?: topic,
+                partition = response.partitionId ?: -1,
+                offset = response.offset ?: -1,
+                duration = duration,
+                timestamp = response.timestamp?.let { Instant.parse(it).toEpochMilli() } ?: System.currentTimeMillis(),
+                keySize = response.key?.size ?: 0,
+                valueSize = response.value?.size ?: 0,
+                headers = processedHeaders,
+                keyFormat = recordKey.schemaFormat,
+                valueFormat = recordValue.schemaFormat
             )
+            onUpdate(record.duration, listOf(record))
         }
-        return records
     }
 
     private fun resolveFieldValue(
@@ -474,7 +475,11 @@ class CCloudProducerClient(
 
             val startTime = System.currentTimeMillis()
             try {
-                val response = fetcher.produceRecord(topic, request)
+                // NonCancellable ensures the REST call completes even if the job is cancelled,
+                // so we can report the record and avoid ghost records
+                val response = withContext(NonCancellable) {
+                    fetcher.produceRecord(topic, request)
+                }
                 val duration = System.currentTimeMillis() - startTime
 
                 if (response.errorCode == null || response.errorCode == 200) {
@@ -508,7 +513,7 @@ class CCloudProducerClient(
                 baseBackoffMs * 2.0.pow(attempt).toLong(),
                 maxBackoffMs
             )
-            delayWhileRunning(backoffMs)
+            delay(backoffMs)
         }
 
         throw lastException ?: CCloudApiException("Produce failed after $maxRetries retries", 0)
@@ -537,18 +542,11 @@ class CCloudProducerClient(
 
     override fun stop() {
         running.set(false)
+        produceJob?.cancel()
     }
 
     override fun dispose() {
         stop()
-        produceJob?.cancel()
-    }
-
-    private suspend fun delayWhileRunning(ms: Long) {
-        val end = System.currentTimeMillis() + ms
-        while (running.get() && System.currentTimeMillis() < end) {
-            delay(100)
-        }
     }
 
     companion object {

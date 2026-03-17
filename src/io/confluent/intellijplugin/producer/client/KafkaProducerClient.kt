@@ -121,7 +121,8 @@ class KafkaProducerClient(
                 KafkaMessagesBundle.message("error.producer.title")
             )
         } finally {
-            stop()
+            running.set(false)
+            onStop()
         }
     }
 
@@ -137,21 +138,14 @@ class KafkaProducerClient(
         csvDf: DataFrame?,
         onUpdate: (Long, List<KafkaRecord>) -> Unit
     ) {
-        val startTime = System.currentTimeMillis()
-        val produced = mutableListOf<KafkaRecord>()
         for (i in 0 until flowParams.flowRecordsCountPerRequest) {
             if (!isRunning()) break
-            produced.add(
-                sentMessage(
-                    flowParams, partition, producer, topic, key, value, headers.map { it.copy() },
-                    alreadyProducedCount = alreadyProducedCount + i,
-                    csvDf = csvDf
-                ) ?: break
-            )
-        }
-        if (produced.isNotEmpty()) {
-            val endTime = System.currentTimeMillis()
-            onUpdate(endTime - startTime, produced)
+            val record = sentMessage(
+                flowParams, partition, producer, topic, key, value, headers.map { it.copy() },
+                alreadyProducedCount = alreadyProducedCount + i,
+                csvDf = csvDf
+            ) ?: break
+            onUpdate(record.duration, listOf(record))
         }
     }
 
@@ -205,8 +199,7 @@ class KafkaProducerClient(
     }
 
     override fun stop() {
-        if (!running.getAndSet(false)) return
-        onStop()
+        running.set(false)
     }
 
     override fun dispose() = stop()
@@ -274,11 +267,20 @@ class KafkaProducerClient(
             )
         }
 
-        // Stopped before send completed — return null so the batch loop
-        // reports partial results. Timeout (an actual error) throws via get().
+        // Stopped — wait briefly for the in-flight send to complete to avoid ghost records
         if (!isRunning()) {
-            metadataFuture.cancel(true)
-            return null
+            return try {
+                val metaInfo = metadataFuture.get(2, TimeUnit.SECONDS)
+                val end = System.currentTimeMillis()
+                KafkaRecord.createFor(
+                    keyConfig = correctKey, valueConfig = correctValue,
+                    metadata = metaInfo, duration = (end - start),
+                    headers = formedHeaders
+                )
+            } catch (_: Exception) {
+                metadataFuture.cancel(true)
+                null
+            }
         }
 
         // Send timed out — let get() throw TimeoutException
