@@ -92,18 +92,21 @@ sealed class CCloudAuthenticationEvent : TelemetryEvent {
     /**
      * Tracks a successful sign-in.
      *
-     * @param ccloudId The CCloud user ID (resource ID)
+     * @param ccloudUserId The CCloud user ID (resource ID)
+     * @param ccloudDomain The CCloud user account email domain
      * @param invokedPlace Where the sign-in was initiated from (e.g., "welcome_panel", "settings_panel", "tool_window_action")
      */
     data class SignedIn(
-        val ccloudId: String? = null,
+        val ccloudUserId: String? = null,
+        val ccloudDomain: String? = null,
         val invokedPlace: String? = null,
     ) : CCloudAuthenticationEvent() {
         override val status = "signed in"
 
         override fun properties() = buildMap<String, Any> {
             put("status", status)
-            ccloudId?.let { put("ccloudId", it) }
+            ccloudUserId?.let { put("ccloudUserId", it) }
+            ccloudDomain?.let { put("ccloudDomain", it) }
             invokedPlace?.let { put("invokedPlace", it) }
         }
     }
