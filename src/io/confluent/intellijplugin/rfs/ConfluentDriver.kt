@@ -188,7 +188,7 @@ class ConfluentDriver(
 
                     if (!cache.hasSchemaRegistry()) {
                         logger.warn("ConfluentDriver: No Schema Registry available")
-                        return emptyList()
+                        return listOf(ConfluentFileInfo(this, emptyStatePath(message("confluent.cloud.details.no.schema.registry"))))
                     }
 
                     val clusterDataManager = dataManager.getOrCreateClusterDataManager(firstCluster)
