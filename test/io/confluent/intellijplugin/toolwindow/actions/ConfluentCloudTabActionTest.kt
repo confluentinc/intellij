@@ -7,6 +7,7 @@ import com.intellij.testFramework.TestActionEvent
 import com.intellij.testFramework.junit5.TestApplication
 import com.intellij.testFramework.replaceService
 import io.confluent.intellijplugin.ccloud.auth.CCloudAuthService
+import io.confluent.intellijplugin.ccloud.auth.InvokedPlace
 import io.confluent.intellijplugin.core.util.ConnectionUtil
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -15,6 +16,7 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
+import org.mockito.kotlin.any
 import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.never
@@ -104,8 +106,8 @@ class ConfluentCloudTabActionTest {
 
             action.actionPerformed(event)
 
-            verify(mockAuthService, never()).signIn()
-            verify(mockAuthService, never()).signOut()
+            verify(mockAuthService, never()).signIn(any())
+            verify(mockAuthService, never()).signOut(any(), any())
         }
 
         @Test
@@ -115,8 +117,8 @@ class ConfluentCloudTabActionTest {
 
             action.actionPerformed(event)
 
-            verify(mockAuthService).signIn()
-            verify(mockAuthService, never()).signOut()
+            verify(mockAuthService).signIn(InvokedPlace.TOOL_WINDOW_ACTION)
+            verify(mockAuthService, never()).signOut(any(), any())
         }
 
         @Test
@@ -126,8 +128,8 @@ class ConfluentCloudTabActionTest {
 
             action.actionPerformed(event)
 
-            verify(mockAuthService).signOut()
-            verify(mockAuthService, never()).signIn()
+            verify(mockAuthService).signOut(invokedPlace = InvokedPlace.TOOL_WINDOW_ACTION)
+            verify(mockAuthService, never()).signIn(any())
         }
     }
 }
