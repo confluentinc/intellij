@@ -149,8 +149,7 @@ class ConnectionSettingsPanel(val project: Project) : MasterDetailsComponent(),
 
         // both branches create a Kafka connection directly via performAddConnectionAction()
         val addAction: AnAction = if (fromPopup) {
-            // right-click menu: directly adds a Kafka connection.
-            // hidden when a CCloud group is selected (CCloud uses sign-in, not manual add)
+            // right-click menu: only visible on the Kafka connection group node
             ContextMenuAddAction()
         } else {
             // toolbar +button: no visibility gating needed, just wire up the shortcut
@@ -432,19 +431,26 @@ class ConnectionSettingsPanel(val project: Project) : MasterDetailsComponent(),
         }
     }
 
-    /** Creates a Kafka connection — the only manually-created type (CCloud uses sign-in). */
+    /** Wrapper for creating a Kafka connection. */
     private fun performAddConnectionAction(e: AnActionEvent) {
         val factory = idToGroup[BdtConnectionType.KAFKA.id] as? ConnectionFactory<*> ?: return
         createNewConnectionFor(factory)
         addNotify()
     }
 
-    private fun isCCloudGroupSelected(): Boolean {
+    /** Returns the ConnectionGroup for the selected node, or null if a connection (leaf) is selected. */
+    private fun selectedConnectionGroup(): ConnectionGroup? {
         val selectedNode = myTree.selectionPath?.lastPathComponent as? MyNode
-        return (selectedNode?.configurable as? GroupEmptyConfigurable)?.group is CCloudDisplayGroup
+        return (selectedNode?.configurable as? GroupEmptyConfigurable)?.group
     }
 
-    /** Hides when a CCloud group is selected (CCloud uses sign-in, not manual add). */
+    /** True when any group node is selected (Confluent Cloud or Connections). */
+    private fun isConnectionGroupSelected(): Boolean = selectedConnectionGroup() != null
+
+    /** True when the Confluent Cloud group node is selected. */
+    private fun isCCloudGroupSelected(): Boolean = selectedConnectionGroup() is CCloudDisplayGroup
+
+    /** Only visible on the Kafka connections group node (hidden on CCloud groups and individual connections). */
     private inner class ContextMenuAddAction : DumbAwareAction(
         KafkaMessagesBundle.message("settings.addConnection.text"),
         KafkaMessagesBundle.message("settings.addConnection.hint"),
@@ -453,9 +459,8 @@ class ConnectionSettingsPanel(val project: Project) : MasterDetailsComponent(),
         override fun actionPerformed(e: AnActionEvent) = performAddConnectionAction(e)
 
         override fun update(e: AnActionEvent) {
-            if (isCCloudGroupSelected()) {
-                e.presentation.isVisible = false
-            }
+            // show only on Kafka connections group node, not on the CCloud group or individual connections
+            e.presentation.isVisible = isConnectionGroupSelected() && !isCCloudGroupSelected()
         }
     }
 
@@ -466,7 +471,8 @@ class ConnectionSettingsPanel(val project: Project) : MasterDetailsComponent(),
     }), DumbAware {
         override fun update(e: AnActionEvent) {
             super.update(e)
-            if (fromPopup && isCCloudGroupSelected()) {
+            // hide on group nodes in the context menu (only applies to individual connections)
+            if (fromPopup && isConnectionGroupSelected()) {
                 e.presentation.isVisible = false
             }
         }
@@ -485,7 +491,8 @@ class ConnectionSettingsPanel(val project: Project) : MasterDetailsComponent(),
         AllIcons.Actions.Copy
     ) {
         override fun update(e: AnActionEvent) {
-            if (fromPopup && isCCloudGroupSelected()) {
+            // hide on group nodes in the context menu (only applies to individual connections)
+            if (fromPopup && isConnectionGroupSelected()) {
                 e.presentation.isVisible = false
                 return
             }
