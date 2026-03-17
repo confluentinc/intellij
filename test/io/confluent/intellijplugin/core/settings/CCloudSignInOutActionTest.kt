@@ -1,12 +1,14 @@
 package io.confluent.intellijplugin.core.settings
 
 import com.intellij.icons.AllIcons
+import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.util.Disposer
 import com.intellij.testFramework.TestActionEvent
 import com.intellij.testFramework.junit5.TestApplication
 import com.intellij.testFramework.replaceService
 import io.confluent.intellijplugin.ccloud.auth.CCloudAuthService
+import io.confluent.intellijplugin.util.KafkaMessagesBundle
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -17,18 +19,19 @@ import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.mock
-import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
+import org.mockito.kotlin.verifyNoInteractions
 import org.mockito.kotlin.whenever
 
 @TestApplication
 class CCloudSignInOutActionTest {
 
-    private val disposable = Disposer.newDisposable("CCloudSignInOutActionTest")
+    private lateinit var disposable: Disposable
     private lateinit var mockAuthService: CCloudAuthService
 
     @BeforeEach
     fun setUp() {
+        disposable = Disposer.newDisposable("CCloudSignInOutActionTest")
         mockAuthService = mock()
         ApplicationManager.getApplication()
             .replaceService(CCloudAuthService::class.java, mockAuthService, disposable)
@@ -77,7 +80,10 @@ class CCloudSignInOutActionTest {
 
             action.update(event)
 
-            assertEquals("Sign in", event.presentation.text)
+            assertEquals(
+                KafkaMessagesBundle.message("confluent.cloud.welcome.panel.cta"),
+                event.presentation.text,
+            )
             assertEquals(AllIcons.General.User, event.presentation.icon)
         }
 
@@ -89,7 +95,10 @@ class CCloudSignInOutActionTest {
 
             action.update(event)
 
-            assertEquals("Sign out", event.presentation.text)
+            assertEquals(
+                KafkaMessagesBundle.message("confluent.cloud.settings.sign.out"),
+                event.presentation.text,
+            )
             assertEquals(AllIcons.Actions.Exit, event.presentation.icon)
         }
     }
@@ -106,8 +115,7 @@ class CCloudSignInOutActionTest {
 
             action.actionPerformed(event)
 
-            verify(mockAuthService).signIn()
-            verify(mockAuthService, never()).signOut()
+            verify(mockAuthService).signIn(invokedPlace = "settings_panel")
         }
 
         @Test
@@ -118,8 +126,7 @@ class CCloudSignInOutActionTest {
 
             action.actionPerformed(event)
 
-            verify(mockAuthService).signOut()
-            verify(mockAuthService, never()).signIn()
+            verify(mockAuthService).signOut(invokedPlace = "settings_panel")
         }
 
         @Test
@@ -129,8 +136,7 @@ class CCloudSignInOutActionTest {
 
             action.actionPerformed(event)
 
-            verify(mockAuthService, never()).signIn()
-            verify(mockAuthService, never()).signOut()
+            verifyNoInteractions(mockAuthService)
         }
     }
 }
