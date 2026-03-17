@@ -220,6 +220,9 @@ tasks {
     }
 
     runIde {
+        // trust all projects opened in the sandbox IDE, bypassing the "Trust and Open Project" dialog
+        systemProperty("idea.trust.all.projects", "true")
+
         // Pass system properties from gradle.properties or use system property flag with -D flag @see CCloudOAuthConfig
         System.getProperty("ccloud.callback-port")?.let { systemProperty("ccloud.callback-port", it) }
         System.getProperty("ccloud.env")?.let { systemProperty("ccloud.env", it) }
