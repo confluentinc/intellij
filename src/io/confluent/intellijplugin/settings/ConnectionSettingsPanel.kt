@@ -154,12 +154,13 @@ class ConnectionSettingsPanel(val project: Project) : MasterDetailsComponent(),
         val addAction: AnAction = if (fromPopup) {
             ContextMenuAddAction()
         } else {
-            RootAddActionGroup(
+            object : DumbAwareAction(
                 KafkaMessagesBundle.message("settings.addConnection.text"),
-                IconUtil.addIcon,
                 KafkaMessagesBundle.message("settings.addConnection.hint"),
-                false
-            ).apply {
+                IconUtil.addIcon
+            ) {
+                override fun actionPerformed(e: AnActionEvent) = performAddConnectionAction(e)
+            }.apply {
                 registerCustomShortcutSet(CommonActionsPanel.getCommonShortcut(CommonActionsPanel.Buttons.ADD), tree)
             }
         }
