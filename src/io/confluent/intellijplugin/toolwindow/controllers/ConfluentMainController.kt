@@ -15,6 +15,9 @@ import com.intellij.ui.OnePixelSplitter
 import com.intellij.ui.PopupHandler
 import com.intellij.ui.SideBorder
 import com.intellij.ui.components.JBScrollPane
+import com.intellij.ui.components.JBPanelWithEmptyText
+import com.intellij.ui.SimpleTextAttributes
+import com.intellij.util.ui.StatusText
 import com.intellij.util.ui.JBUI
 import com.intellij.ui.dsl.builder.Align
 import com.intellij.ui.dsl.builder.panel
@@ -47,6 +50,7 @@ import io.confluent.intellijplugin.core.rfs.viewer.utils.DriverRfsTreeUtil.lastD
 import io.confluent.intellijplugin.core.util.invokeLater
 import io.confluent.intellijplugin.data.CCloudClusterDataManager
 import io.confluent.intellijplugin.registry.KafkaRegistryType
+import io.confluent.intellijplugin.registry.KafkaRegistryAddSchemaDialog
 import io.confluent.intellijplugin.registry.confluent.controller.KafkaRegistryController
 import io.confluent.intellijplugin.ccloud.model.Environment
 import io.confluent.intellijplugin.toolwindow.NavigableController
@@ -590,6 +594,21 @@ internal class ConfluentMainController(
             }
 
             clusterDataManager.initRefreshSchemasIfRequired()
+
+            // Show clean empty panel when no schemas exist
+            val schemas = clusterDataManager.getSchemas()
+            if (schemas.isEmpty()) {
+                return@updatePanel JBPanelWithEmptyText(BorderLayout()).apply {
+                    emptyText.clear()
+                    emptyText.appendText(message("schemas.empty.text"), StatusText.DEFAULT_ATTRIBUTES)
+                    emptyText.appendLine(
+                        message("schemas.empty.text.create.link"),
+                        SimpleTextAttributes.LINK_ATTRIBUTES
+                    ) {
+                        KafkaRegistryAddSchemaDialog(project, clusterDataManager).show()
+                    }
+                }
+            }
 
             val registryController = getOrCreateRegistryController(srId, clusterDataManager)
             registryController.getComponent()
