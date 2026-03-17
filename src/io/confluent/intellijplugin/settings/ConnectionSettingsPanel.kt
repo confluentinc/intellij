@@ -1,7 +1,6 @@
 package io.confluent.intellijplugin.core.settings
 
 import com.intellij.icons.AllIcons
-import com.intellij.openapi.actionSystem.ActionGroup
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonShortcuts
@@ -17,17 +16,15 @@ import com.intellij.openapi.util.text.StringUtil
 import com.intellij.platform.ide.progress.runWithModalProgressBlocking
 import com.intellij.ui.*
 import com.intellij.util.IconUtil
-import com.intellij.util.containers.MultiMap
 import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.tree.TreeUtil
-import io.confluent.intellijplugin.core.settings.actions.CreateConnectionPopup
-import io.confluent.intellijplugin.core.settings.actions.showForToolbarOrInBestPositionFor
+import io.confluent.intellijplugin.core.constants.BdtConnectionType
 import io.confluent.intellijplugin.core.settings.connections.*
 import io.confluent.intellijplugin.core.settings.manager.RfsConnectionDataManager
 import io.confluent.intellijplugin.core.settings.paneadd.StandaloneCreateConnectionUtil
 import io.confluent.intellijplugin.core.util.BdIdeRegistryUtil
+import io.confluent.intellijplugin.settings.KafkaConnectionGroup
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
-import org.jetbrains.annotations.Nls
 import java.awt.Component
 import java.awt.Dimension
 import java.awt.Graphics
@@ -37,7 +34,6 @@ import java.util.function.Predicate
 import javax.swing.BorderFactory
 import javax.swing.Icon
 import javax.swing.JComponent
-import javax.swing.JPanel
 import javax.swing.border.TitledBorder
 import javax.swing.event.TreeExpansionEvent
 import javax.swing.event.TreeExpansionListener
@@ -144,18 +140,28 @@ class ConnectionSettingsPanel(val project: Project) : MasterDetailsComponent(),
 
     override fun getDisplayName() = KafkaMessagesBundle.message("connections.settings.display.name")
 
+    // called twice by MasterDetailsComponent: once for the toolbar (fromPopup=false)
+    // and once for the right-click context menu (fromPopup=true).
     override fun createActions(fromPopup: Boolean): List<AnAction> {
         val duplicateAction = DuplicateConnectionAction(fromPopup).apply {
             if (!fromPopup) registerCustomShortcutSet(CommonShortcuts.getDuplicate(), tree)
         }
 
-        val addAction = RootAddActionGroup(
-            KafkaMessagesBundle.message("settings.addConnection.text"),
-            IconUtil.addIcon,
-            KafkaMessagesBundle.message("settings.addConnection.hint"),
-            fromPopup
-        ).apply {
-            if (!fromPopup) registerCustomShortcutSet(CommonActionsPanel.getCommonShortcut(CommonActionsPanel.Buttons.ADD), tree)
+        // both branches create a Kafka connection directly via performAddConnectionAction()
+        val addAction: AnAction = if (fromPopup) {
+            // right-click menu: only visible on the Kafka connection group node
+            ContextMenuAddAction()
+        } else {
+            // toolbar +button: no visibility gating needed, just wire up the shortcut
+            object : DumbAwareAction(
+                KafkaMessagesBundle.message("settings.addConnection.text"),
+                KafkaMessagesBundle.message("settings.addConnection.hint"),
+                IconUtil.addIcon
+            ) {
+                override fun actionPerformed(e: AnActionEvent) = performAddConnectionAction(e)
+            }.apply {
+                registerCustomShortcutSet(CommonActionsPanel.getCommonShortcut(CommonActionsPanel.Buttons.ADD), tree)
+            }
         }
 
         return buildList {
@@ -356,54 +362,25 @@ class ConnectionSettingsPanel(val project: Project) : MasterDetailsComponent(),
     private fun fetchProviders() {
         val keywords = mutableSetOf<String>()
 
-        val groupToParent = mutableMapOf<ConnectionGroup, ConnectionGroup?>()
-        val parentToGroups = MultiMap<String?, ConnectionGroup>()
-        for (provider in ConnectionSettingProviderEP.getAll()) {
-
-            provider.retrieveSearchKeywords().forEach { keywords.add(it.first) }
-
-            for (group in provider.createConnectionGroups()) {
-                parentToGroups.putValue(group.parentGroupId, group)
-                idToGroup[group.id] = group
-            }
-        }
-
-        parentToGroups.keySet().forEach { parentId ->
-            parentToGroups[parentId].forEach {
-                groupToParent[it] = idToGroup[parentId]
-            }
-        }
-
         topLevelGroups.clear()
         groupToActionNode.clear()
 
-        parentToGroups.get(null).forEach { topLevelGroups.add(ActionNode(it)) }
+        for (provider in ConnectionSettingProviderEP.getAll()) {
+            provider.retrieveSearchKeywords().forEach { keywords.add(it.first) }
+
+            for (group in provider.createConnectionGroups()) {
+                idToGroup[group.id] = group
+                // all current groups are top-level (parentGroupId == null)
+                topLevelGroups.add(ActionNode(group))
+            }
+        }
+
         topLevelGroups.sortBy { StandaloneCreateConnectionUtil.groupsPriority.getOrDefault(it.group.id, 4) }
+        topLevelGroups.forEach { groupToActionNode[it.group.id] = it }
 
-        fun getTopLevelGroupFor(group: ConnectionGroup): ConnectionGroup {
-            val res = groupToParent[group]
-            return if (res == null) group else getTopLevelGroupFor(res)
-        }
-
-        parentToGroups.keySet().forEach { parentId ->
-            if (parentId != null) {
-                parentToGroups.get(parentId).forEach {
-                    val tlg = getTopLevelGroupFor(it)
-                    val tlgActionNode =
-                        topLevelGroups.find { topLevelActionNode -> topLevelActionNode.group.id == tlg.id }!!
-                    groupToActionNode[it.id] = tlgActionNode
-                    tlgActionNode.children.add(ActionNode(it))
-                }
-            }
-        }
-
-        // Wire up the "Create Connection" button on the Message Brokers group panel
-        (idToGroup[BrokerConnectionGroup.GROUP_ID] as? BrokerConnectionGroup)?.onCreateConnection = {
-            val kafkaGroup = idToGroup.values.filterIsInstance<ConnectionFactory<*>>()
-                .find { it.parentGroupId == BrokerConnectionGroup.GROUP_ID }
-            if (kafkaGroup != null) {
-                createNewConnectionFor(kafkaGroup)
-            }
+        // wire up the "Create Connection" button on the Connections group panel
+        (idToGroup[BdtConnectionType.KAFKA.id] as? KafkaConnectionGroup)?.let { group ->
+            group.onCreateConnection = { createNewConnectionFor(group) }
         }
 
         installSearchIndex(keywords)
@@ -454,75 +431,36 @@ class ConnectionSettingsPanel(val project: Project) : MasterDetailsComponent(),
         }
     }
 
-    private abstract inner class AbstractAddActionGroup(
-        @Nls(capitalization = Nls.Capitalization.Title) text: String?,
-        icon: Icon?,
-        @Nls(capitalization = Nls.Capitalization.Sentence) description: String?
-    ) : ActionGroup(text, true) {
-
-        init {
-            templatePresentation.text = text
-            templatePresentation.icon = icon
-            templatePresentation.description = description
-        }
-
-        abstract fun getChildrenNodes(): Collection<ActionNode>
-
-        override fun getChildren(e: AnActionEvent?): Array<AnAction> {
-            val result = mutableListOf<AnAction>()
-
-            getChildrenNodes().map { node ->
-                node.group.let {
-                    if (it is ConnectionFactory<*>) result.add(AddConnectionAction(it))
-                    if (node.children.isNotEmpty()) result.add(
-                        NodeAddActionGroup(node.children, text = it.name, icon = it.icon)
-                    )
-                }
-            }
-
-            return result.toTypedArray()
-        }
-
-        override fun actionPerformed(e: AnActionEvent) {
-            CreateConnectionPopup.createPopup(RootAddActionGroup(), e).showForToolbarOrInBestPositionFor(e)
-        }
+    /** Wrapper for creating a Kafka connection. */
+    private fun performAddConnectionAction(e: AnActionEvent) {
+        val factory = idToGroup[BdtConnectionType.KAFKA.id] as? ConnectionFactory<*> ?: return
+        createNewConnectionFor(factory)
+        addNotify()
     }
 
-    private fun isCCloudGroupSelected(): Boolean {
+    /** Returns the ConnectionGroup for the selected node, or null if a connection (leaf) is selected. */
+    private fun selectedConnectionGroup(): ConnectionGroup? {
         val selectedNode = myTree.selectionPath?.lastPathComponent as? MyNode
-        return (selectedNode?.configurable as? GroupEmptyConfigurable)?.group is CCloudDisplayGroup
+        return (selectedNode?.configurable as? GroupEmptyConfigurable)?.group
     }
 
-    private inner class RootAddActionGroup(
-        @Nls(capitalization = Nls.Capitalization.Title) text: String? = null,
-        icon: Icon? = null,
-        @Nls(capitalization = Nls.Capitalization.Sentence) description: String? = null,
-        private val fromPopup: Boolean = false
-    ) : AbstractAddActionGroup(text, icon, description) {
-        override fun getChildrenNodes(): Collection<ActionNode> = topLevelGroups
+    /** True when any group node is selected (Confluent Cloud or Connections). */
+    private fun isConnectionGroupSelected(): Boolean = selectedConnectionGroup() != null
+
+    /** True when the Confluent Cloud group node is selected. */
+    private fun isCCloudGroupSelected(): Boolean = selectedConnectionGroup() is CCloudDisplayGroup
+
+    /** Only visible on the Kafka connections group node (hidden on CCloud groups and individual connections). */
+    private inner class ContextMenuAddAction : DumbAwareAction(
+        KafkaMessagesBundle.message("settings.addConnection.text"),
+        KafkaMessagesBundle.message("settings.addConnection.hint"),
+        IconUtil.addIcon
+    ) {
+        override fun actionPerformed(e: AnActionEvent) = performAddConnectionAction(e)
 
         override fun update(e: AnActionEvent) {
-            if (fromPopup && isCCloudGroupSelected()) {
-                e.presentation.isVisible = false
-            }
-        }
-    }
-
-    private inner class NodeAddActionGroup(
-        val children: Collection<ActionNode>,
-        @Nls(capitalization = Nls.Capitalization.Title) text: String? = null,
-        icon: Icon? = null,
-        @Nls(capitalization = Nls.Capitalization.Sentence) description: String? = null
-    ) : AbstractAddActionGroup(text, icon, description) {
-        override fun getChildrenNodes(): Collection<ActionNode> = children
-    }
-
-    private inner class AddConnectionAction(private val group: ConnectionFactory<*>) :
-        AnAction(group.name, null, group.icon), DumbAware {
-
-        override fun actionPerformed(e: AnActionEvent) {
-            createNewConnectionFor(group)
-            addNotify()
+            // show only on Kafka connections group node, not on the CCloud group or individual connections
+            e.presentation.isVisible = isConnectionGroupSelected() && !isCCloudGroupSelected()
         }
     }
 
@@ -533,7 +471,8 @@ class ConnectionSettingsPanel(val project: Project) : MasterDetailsComponent(),
     }), DumbAware {
         override fun update(e: AnActionEvent) {
             super.update(e)
-            if (fromPopup && isCCloudGroupSelected()) {
+            // hide on group nodes in the context menu (only applies to individual connections)
+            if (fromPopup && isConnectionGroupSelected()) {
                 e.presentation.isVisible = false
             }
         }
@@ -552,7 +491,8 @@ class ConnectionSettingsPanel(val project: Project) : MasterDetailsComponent(),
         AllIcons.Actions.Copy
     ) {
         override fun update(e: AnActionEvent) {
-            if (fromPopup && isCCloudGroupSelected()) {
+            // hide on group nodes in the context menu (only applies to individual connections)
+            if (fromPopup && isConnectionGroupSelected()) {
                 e.presentation.isVisible = false
                 return
             }
@@ -614,39 +554,23 @@ class ConnectionSettingsPanel(val project: Project) : MasterDetailsComponent(),
     }
 
     private inner class ActionNode(var group: ConnectionGroup) {
-        var children = mutableListOf<ActionNode>()
-        var parent: ActionNode? = null
-
         private var node: MyNode? = null
-        private var retrieving = false
 
         fun removeFromTree() {
             node = null
         }
 
         fun retrieveNode(): MyNode {
-            if (retrieving) throw IllegalStateException("Cyclic dependency")
-
-            try {
-                retrieving = true
-                if (!group.visible) return parent!!.retrieveNode()
-
-                if (node == null) node = MyNode(GroupEmptyConfigurable(group))
-                if (node!!.parent == null) addToParent()
-
-                return node!!
-            } finally {
-                retrieving = false
-            }
+            if (node == null) node = MyNode(GroupEmptyConfigurable(group))
+            if (node!!.parent == null) addToParent()
+            return node!!
         }
 
-        fun addToParent() {
+        private fun addToParent() {
             if (node == null || node!!.parent != null) return
 
-            val parentNode = parent?.retrieveNode() ?: myRoot
-            parentNode.add(node)
-
-            (myTree.model as DefaultTreeModel).nodesWereInserted(parentNode, intArrayOf(parentNode.childCount - 1))
+            myRoot.add(node)
+            (myTree.model as DefaultTreeModel).nodesWereInserted(myRoot, intArrayOf(myRoot.childCount - 1))
         }
     }
 
