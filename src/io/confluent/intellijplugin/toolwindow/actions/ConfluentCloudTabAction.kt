@@ -33,9 +33,9 @@ class ConfluentCloudTabAction : MonitoringTabConnectionAction() {
 
         val authService = CCloudAuthService.getInstance()
         if (authService.isSignedIn()) {
-            authService.signOut()
+            authService.signOut(invokedPlace = "tool_window_action")
         } else {
-            authService.signIn()
+            authService.signIn("tool_window_action")
         }
     }
 }
