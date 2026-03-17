@@ -3,6 +3,8 @@ package io.confluent.intellijplugin.ccloud.auth
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.util.Disposer
+import io.confluent.intellijplugin.telemetry.CCloudAuthenticationEvent
+import io.confluent.intellijplugin.telemetry.logUsage
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -17,7 +19,8 @@ import kotlinx.coroutines.launch
  */
 class CCloudTokenRefreshBean(
     private val context: CCloudOAuthContext,
-    parentDisposable: Disposable
+    parentDisposable: Disposable,
+    private val onTerminal: ((reason: String) -> Unit)? = null,
 ) : Disposable {
     private val logger = thisLogger()
     private val coroutineScope = CoroutineScope(Dispatchers.IO)
@@ -50,10 +53,12 @@ class CCloudTokenRefreshBean(
     private fun shouldContinueRefreshing(): Boolean {
         if (context.hasNonTransientError()) {
             logger.warn("Stopping refresh: non-transient error after ${context.getFailedTokenRefreshAttempts()} failed attempts")
+            onTerminal?.invoke("refresh_failed")
             return false
         }
         if (context.hasReachedEndOfLifetime()) {
             logger.warn("Stopping refresh: session reached end of lifetime")
+            onTerminal?.invoke("session_expired")
             return false
         }
         return true
@@ -94,6 +99,12 @@ class CCloudTokenRefreshBean(
             onFailure = { error ->
                 val attempts = context.getFailedTokenRefreshAttempts()
                 logger.warn("Token refresh failed ($attempts/${CCloudOAuthConfig.MAX_TOKEN_REFRESH_ATTEMPTS}): ${error.message}")
+
+                // Fire telemetry on the first failure only — if the issue is terminal,
+                // a SignedOut(reason="refresh_failed") event will follow
+                if (attempts == 1) {
+                    logUsage(CCloudAuthenticationEvent.TokenRefreshFailed(errorType = error.message))
+                }
             }
         )
     }

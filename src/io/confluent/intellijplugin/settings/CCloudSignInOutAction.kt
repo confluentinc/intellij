@@ -1,23 +1,26 @@
-package io.confluent.intellijplugin.toolwindow.actions
+package io.confluent.intellijplugin.core.settings
 
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.actionSystem.AnActionEvent
+import com.intellij.openapi.project.DumbAwareAction
 import io.confluent.intellijplugin.ccloud.auth.CCloudAuthService
-import io.confluent.intellijplugin.core.monitoring.actions.tabs.MonitoringTabConnectionAction
-import io.confluent.intellijplugin.core.util.ConnectionUtil
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
 
 /**
- * Sign-in / sign-out toggle for the Confluent Cloud tab's 3-dot menu.
+ * Sign-in / sign-out toggle for the Confluent Cloud node's context menu in connection settings.
  * Shows "Sign in" when not authenticated, "Sign out" when authenticated.
+ *
+ * @param isCCloudSelected returns true when the selected tree node is the CCloud group
  */
-class ConfluentCloudTabAction : MonitoringTabConnectionAction() {
+class CCloudSignInOutAction(
+    private val isCCloudSelected: () -> Boolean
+) : DumbAwareAction() {
+
     override fun update(e: AnActionEvent) {
-        val connectionId = e.dataContext.getData(ConnectionUtil.CONNECTION_ID)
-
-        e.presentation.isVisible = connectionId == "ccloud"
-        e.presentation.isEnabled = e.presentation.isVisible
-
+        if (!isCCloudSelected()) {
+            e.presentation.isEnabledAndVisible = false
+            return
+        }
         if (CCloudAuthService.getInstance().isSignedIn()) {
             e.presentation.text = KafkaMessagesBundle.message("confluent.cloud.settings.sign.out")
             e.presentation.icon = AllIcons.Actions.Exit
@@ -28,14 +31,13 @@ class ConfluentCloudTabAction : MonitoringTabConnectionAction() {
     }
 
     override fun actionPerformed(e: AnActionEvent) {
-        val connectionId = e.dataContext.getData(ConnectionUtil.CONNECTION_ID)
-        if (connectionId != "ccloud") return
+        if (!isCCloudSelected()) return
 
         val authService = CCloudAuthService.getInstance()
         if (authService.isSignedIn()) {
-            authService.signOut(invokedPlace = "tool_window_action")
+            authService.signOut()
         } else {
-            authService.signIn("tool_window_action")
+            authService.signIn()
         }
     }
 }
