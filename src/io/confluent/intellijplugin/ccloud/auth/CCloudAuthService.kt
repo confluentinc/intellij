@@ -2,6 +2,7 @@ package io.confluent.intellijplugin.ccloud.auth
 
 import com.intellij.ide.BrowserUtil
 import com.intellij.notification.Notification
+import com.intellij.notification.NotificationAction
 import com.intellij.notification.NotificationType
 import com.intellij.notification.Notifications
 import com.intellij.openapi.Disposable
@@ -20,14 +21,34 @@ import kotlinx.coroutines.launch
 import java.time.Instant
 import java.util.concurrent.CopyOnWriteArrayList
 
+/** Why the session ended, used for notification routing and telemetry. */
+enum class SignOutReason(val value: String) {
+    /** User clicked sign-out. */
+    USER_INITIATED("user_initiated"),
+    /** Session reached its end-of-lifetime. */
+    SESSION_EXPIRED("session_expired"),
+    /** Token refresh exhausted all retry attempts. */
+    REFRESH_FAILED("refresh_failed");
+
+    val isSessionExpiry get() = this == SESSION_EXPIRED || this == REFRESH_FAILED
+}
+
+/** Where a sign-in or sign-out was triggered from, recorded in telemetry events. */
+enum class InvokedPlace(val value: String) {
+    WELCOME_PANEL("welcome_panel"),
+    SETTINGS_PANEL("settings_panel"),
+    TOOL_WINDOW_ACTION("tool_window_action"),
+    SESSION_EXPIRED_NOTIFICATION("session_expired_notification"),
+}
+
 /**
  * Application-level service for Confluent Cloud authentication.
  * Manages the complete OAuth flow, token management, and background refresh.
  *
  * Usage:
  *  ```
- *  CCloudAuthService.getInstance().signIn("welcome_panel")  // Opens browser, notifies listeners on completion
- *  CCloudAuthService.getInstance().signOut()  // Clears session, notifies listeners
+ *  CCloudAuthService.getInstance().signIn(InvokedPlace.WELCOME_PANEL)
+ *  CCloudAuthService.getInstance().signOut()
  *  ```
  *
  * @see CCloudOAuthContext
@@ -48,7 +69,7 @@ class CCloudAuthService(private val scope: CoroutineScope) : Disposable {
      */
     interface AuthStateListener {
         fun onSignedIn(email: String) {}
-        fun onSignedOut() {}
+        fun onSignedOut(reason: SignOutReason) {}
     }
 
     fun addAuthStateListener(listener: AuthStateListener) {
@@ -62,8 +83,10 @@ class CCloudAuthService(private val scope: CoroutineScope) : Disposable {
     /**
      * Start the OAuth sign-in flow.
      * Opens browser for authentication, shows notifications, and notifies listeners on completion.
+     *
+     * @param invokedPlace telemetry identifier for where sign-in was triggered from
      */
-    fun signIn(invokedPlace: String? = null) {
+    fun signIn(invokedPlace: InvokedPlace? = null) {
         logger.info("Starting OAuth sign-in flow")
 
         val oauthContext = CCloudOAuthContext()
@@ -84,13 +107,13 @@ class CCloudAuthService(private val scope: CoroutineScope) : Disposable {
                         it.resourceId?.let { put("ccloudUserId", it) }
                     })
                 }
-                logUsage(CCloudAuthenticationEvent.SignedIn(ccloudId = user?.resourceId, invokedPlace = invokedPlace))
+                logUsage(CCloudAuthenticationEvent.SignedIn(ccloudId = user?.resourceId, invokedPlace = invokedPlace?.value))
 
                 notifySignedIn(authenticatedContext.getUserEmail())
             },
             onError = { error ->
                 logger.error("Sign-in failed: $error")
-                logUsage(CCloudAuthenticationEvent.AuthenticationFailed(errorType = error, invokedPlace = invokedPlace))
+                logUsage(CCloudAuthenticationEvent.AuthenticationFailed(errorType = error, invokedPlace = invokedPlace?.value))
 
                 ApplicationManager.getApplication().invokeLater({
                     showSignInFailureNotification(error)
@@ -108,14 +131,12 @@ class CCloudAuthService(private val scope: CoroutineScope) : Disposable {
      * @param authenticatedContext The authenticated context to sign in with
      */
     private fun completeSignIn(authenticatedContext: CCloudOAuthContext) {
-        signOut(reason = "user_initiated", invokedPlace = null, notifyListeners = false)
-
         context = authenticatedContext
         CCloudTokenStorage.saveSession(authenticatedContext)
         refreshBean = CCloudTokenRefreshBean(
             context = authenticatedContext,
             parentDisposable = this,
-            onTerminal = { reason -> signOut(reason = reason, invokedPlace = null, notifyListeners = true) },
+            onTerminal = { reason -> signOut(reason = reason) }
         ).also { it.start() }
 
         logger.info("Signed in as ${authenticatedContext.getUserEmail()}")
@@ -124,15 +145,18 @@ class CCloudAuthService(private val scope: CoroutineScope) : Disposable {
     /**
      * Sign out, clear current session and stop refresh.
      * PasswordSafe I/O runs on a background thread; listeners are notified on EDT.
+     *
+     * @param reason why the session ended — determines which notification is shown:
+     *   [SignOutReason.SESSION_EXPIRED] or [SignOutReason.REFRESH_FAILED] show the session-expired notification,
+     *   [SignOutReason.USER_INITIATED] (default) shows the standard sign-out notification
+     * @param invokedPlace where the user triggered sign-out from; only meaningful for [SignOutReason.USER_INITIATED]
      */
-    fun signOut(reason: String = "user_initiated", invokedPlace: String? = null) =
-        signOut(reason = reason, invokedPlace = invokedPlace, notifyListeners = true)
-
-    private fun signOut(reason: String, invokedPlace: String?, notifyListeners: Boolean) {
+    fun signOut(reason: SignOutReason = SignOutReason.USER_INITIATED, invokedPlace: InvokedPlace? = null) {
         val wasSignedIn = isSignedIn()
+        logger.info("Signing out (reason=$reason, wasSignedIn=$wasSignedIn)")
 
         if (wasSignedIn) {
-            logUsage(CCloudAuthenticationEvent.SignedOut(reason = reason, invokedPlace = invokedPlace))
+            logUsage(CCloudAuthenticationEvent.SignedOut(reason = reason.value, invokedPlace = invokedPlace?.value))
         }
 
         refreshBean?.stop()
@@ -144,11 +168,15 @@ class CCloudAuthService(private val scope: CoroutineScope) : Disposable {
             CCloudTokenStorage.clearSession()
         }
 
-        if (wasSignedIn && notifyListeners) {
+        if (wasSignedIn) {
             // Dispatch to EDT so UI updates work even when triggered from a modal dialog (from Settings)
             ApplicationManager.getApplication().invokeLater({
-                authStateListeners.toList().forEach { it.onSignedOut() }
-                showSignOutNotification()
+                authStateListeners.toList().forEach { it.onSignedOut(reason) }
+                if (reason.isSessionExpiry) {
+                    showSessionExpiredNotification()
+                } else {
+                    showSignOutNotification()
+                }
             }, ModalityState.any())
         }
     }
@@ -186,6 +214,24 @@ class CCloudAuthService(private val scope: CoroutineScope) : Disposable {
             "",
             NotificationType.INFORMATION
         ))
+    }
+
+    internal fun showSessionExpiredNotification() {
+        val notification = Notification(
+            "Kafka Notification",
+            KafkaMessagesBundle.message("confluent.cloud.notification.session.expired"),
+            KafkaMessagesBundle.message("confluent.cloud.notification.session.expired.text"),
+            NotificationType.WARNING
+        )
+        notification.addAction(
+            NotificationAction.create(
+                KafkaMessagesBundle.message("confluent.cloud.notification.session.expired.action")
+            ) { _, n ->
+                n.expire() // Explicitly auto-close notifciation after sign-in is clicked
+                signIn(InvokedPlace.SESSION_EXPIRED_NOTIFICATION)
+            }
+        )
+        Notifications.Bus.notify(notification)
     }
 
     // State accessors
