@@ -31,6 +31,8 @@ class CCloudSignInOutAction(
     }
 
     override fun actionPerformed(e: AnActionEvent) {
+        if (!isCCloudSelected()) return
+
         val authService = CCloudAuthService.getInstance()
         if (authService.isSignedIn()) {
             authService.signOut()

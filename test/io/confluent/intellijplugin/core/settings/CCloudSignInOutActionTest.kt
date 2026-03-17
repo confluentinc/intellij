@@ -121,5 +121,16 @@ class CCloudSignInOutActionTest {
             verify(mockAuthService).signOut()
             verify(mockAuthService, never()).signIn()
         }
+
+        @Test
+        fun `should not toggle auth when CCloud node is not selected`() {
+            val action = actionWithCCloudSelected(false)
+            val event = createEvent(action)
+
+            action.actionPerformed(event)
+
+            verify(mockAuthService, never()).signIn()
+            verify(mockAuthService, never()).signOut()
+        }
     }
 }
