@@ -9,7 +9,6 @@ import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.*
-import java.util.concurrent.atomic.AtomicBoolean
 
 @TestApplication
 class KafkaProducerClientTest {
@@ -23,6 +22,12 @@ class KafkaProducerClientTest {
             on { client } doReturn mockClient
         }
     }
+
+    private fun createClient(
+        dataManager: KafkaDataManager = createMockDataManager(),
+        onStart: () -> Unit = {},
+        onStop: () -> Unit = {}
+    ) = KafkaProducerClient(dataManager, onStart, onStop)
 
     @Nested
     @DisplayName("Constructor and initial state")
@@ -47,29 +52,19 @@ class KafkaProducerClientTest {
 
         @Test
         fun `should initialize with isRunning set to false`() {
-            val dataManager = createMockDataManager()
-            val client = KafkaProducerClient(
-                dataManager = dataManager,
-                onStart = {},
-                onStop = {}
-            )
+            val client = createClient()
             assertFalse(client.isRunning(), "isRunning should be false initially")
         }
     }
 
     @Nested
-    @DisplayName("Lifecycle management")
-    inner class LifecycleTests {
+    @DisplayName("stop()")
+    inner class StopTests {
 
         @Test
-        fun `stop should set isRunning to false and invoke onStop callback`() {
-            val dataManager = createMockDataManager()
+        fun `should set isRunning to false and invoke onStop callback`() {
             var onStopCalled = false
-            val client = KafkaProducerClient(
-                dataManager = dataManager,
-                onStart = {},
-                onStop = { onStopCalled = true }
-            )
+            val client = createClient(onStop = { onStopCalled = true })
             client.running.set(true)
             client.stop()
             assertFalse(client.isRunning(), "isRunning should be false after stop")
@@ -77,14 +72,9 @@ class KafkaProducerClientTest {
         }
 
         @Test
-        fun `stop should only invoke onStop once when called multiple times`() {
-            val dataManager = createMockDataManager()
+        fun `should only invoke onStop once when called multiple times`() {
             var onStopCallCount = 0
-            val client = KafkaProducerClient(
-                dataManager = dataManager,
-                onStart = {},
-                onStop = { onStopCallCount++ }
-            )
+            val client = createClient(onStop = { onStopCallCount++ })
             client.running.set(true)
             client.stop()
             client.stop()
@@ -94,17 +84,27 @@ class KafkaProducerClientTest {
         }
 
         @Test
-        fun `stop should not invoke onStop when not running`() {
-            val dataManager = createMockDataManager()
+        fun `should not invoke onStop when not running`() {
             var onStopCalled = false
-            val client = KafkaProducerClient(
-                dataManager = dataManager,
-                onStart = {},
-                onStop = { onStopCalled = true }
-            )
+            val client = createClient(onStop = { onStopCalled = true })
             client.stop()
             assertFalse(client.isRunning(), "isRunning should be false")
             assertFalse(onStopCalled, "onStop should not be invoked when not running")
+        }
+    }
+
+    @Nested
+    @DisplayName("dispose()")
+    inner class DisposeTests {
+
+        @Test
+        fun `should stop the client`() {
+            var onStopCalled = false
+            val client = createClient(onStop = { onStopCalled = true })
+            client.running.set(true)
+            client.dispose()
+            assertFalse(client.isRunning())
+            assertTrue(onStopCalled)
         }
     }
 }
