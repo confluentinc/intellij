@@ -62,34 +62,20 @@ class KafkaProducerClientTest {
     inner class StopTests {
 
         @Test
-        fun `should set isRunning to false and invoke onStop callback`() {
-            var onStopCalled = false
-            val client = createClient(onStop = { onStopCalled = true })
+        fun `should set isRunning to false`() {
+            val client = createClient()
             client.running.set(true)
             client.stop()
             assertFalse(client.isRunning(), "isRunning should be false after stop")
-            assertTrue(onStopCalled, "onStop callback should be invoked")
         }
 
         @Test
-        fun `should only invoke onStop once when called multiple times`() {
-            var onStopCallCount = 0
-            val client = createClient(onStop = { onStopCallCount++ })
-            client.running.set(true)
-            client.stop()
-            client.stop()
-            client.stop()
-            assertFalse(client.isRunning(), "isRunning should remain false")
-            assertEquals(1, onStopCallCount, "onStop should only be called once")
-        }
-
-        @Test
-        fun `should not invoke onStop when not running`() {
+        fun `should not call onStop directly`() {
             var onStopCalled = false
             val client = createClient(onStop = { onStopCalled = true })
+            client.running.set(true)
             client.stop()
-            assertFalse(client.isRunning(), "isRunning should be false")
-            assertFalse(onStopCalled, "onStop should not be invoked when not running")
+            assertFalse(onStopCalled, "onStop should not be called by stop() — it is called from start() finally block")
         }
     }
 
@@ -98,13 +84,11 @@ class KafkaProducerClientTest {
     inner class DisposeTests {
 
         @Test
-        fun `should stop the client`() {
-            var onStopCalled = false
-            val client = createClient(onStop = { onStopCalled = true })
+        fun `should set isRunning to false`() {
+            val client = createClient()
             client.running.set(true)
             client.dispose()
             assertFalse(client.isRunning())
-            assertTrue(onStopCalled)
         }
     }
 }
