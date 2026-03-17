@@ -288,6 +288,13 @@ class KafkaSchemaController(
                     project,
                     versionInfo
                 ) { newText ->
+                    val versionModel = dataManager.getSchemaVersionsModel(versionInfo.schemaName)
+                    versionModel.addListener(object : io.confluent.intellijplugin.core.monitoring.data.listener.DataModelListener {
+                        override fun onChanged() {
+                            invokeLater { version1.component.item = versionModel.originObject?.firstOrNull() }
+                            versionModel.removeListener(this)
+                        }
+                    })
                     dataManager.updateSchema(versionInfo, newText)
                 }
             }
