@@ -72,6 +72,8 @@ class KafkaSchemaController(
     private val isEditMode = AtomicBooleanProperty(false)
     private val isNotEditMode = AtomicBooleanProperty(true)
     private val isEditModeAvailable = AtomicBooleanProperty(false)
+    private val isLoading = AtomicBooleanProperty(false)
+    private val hasContent = AtomicBooleanProperty(false)
 
     @NlsSafe
     private var schemaName: String? = null
@@ -104,12 +106,16 @@ class KafkaSchemaController(
 
     private val internalComponent = panel {
         row {
+            label(KafkaMessagesBundle.message("confluent.cloud.details.schema.loading")).align(Align.CENTER)
+        }.resizableRow().visibleIf(isLoading)
+
+        row {
             cell(structureView.getComponent()).align(Align.FILL)
-        }.resizableRow().visibleIf(isStructure)
+        }.resizableRow().visibleIf(isStructure.and(hasContent))
 
         row {
             cell(schemaView.component).align(Align.FILL)
-        }.resizableRow().visibleIf(isNotEditMode)
+        }.resizableRow().visibleIf(isSchema.and(hasContent).and(isNotEditMode))
 
         row {
             cell(diffViewController.component).align(Align.FILL)
@@ -150,6 +156,9 @@ class KafkaSchemaController(
     override fun getComponent(): JComponent = component
 
     override fun setDetailsId(@NlsSafe id: String) {
+        isLoading.set(true)
+        hasContent.set(false)
+
         version1Controller.setSchema(id)
         version2Controller.setSchema(id)
         schemaName = id
@@ -162,9 +171,16 @@ class KafkaSchemaController(
         if (schemaName == null)
             return
         val version = version1.component.item ?: return
+
         dataManager.getSchemaVersionInfo(schemaName, version).onSuccess {
-            if (version1Schema == it)
+            if (version1Schema == it) {
+                invokeLater {
+                    if (Disposer.isDisposed(this@KafkaSchemaController)) return@invokeLater
+                    isLoading.set(false)
+                    hasContent.set(true)
+                }
                 return@onSuccess
+            }
 
             version1Schema = it
             val prettySchema = KafkaRegistryUtil.getPrettySchema(schemaType = it.type.name, schema = it.schema)
@@ -181,6 +197,9 @@ class KafkaSchemaController(
                 )
                 structureView.update(parsedSchema)
                 diffViewController.updateVersion1(it)
+
+                isLoading.set(false)
+                hasContent.set(true)
             }
         }
     }
