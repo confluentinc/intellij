@@ -3,6 +3,7 @@ package io.confluent.intellijplugin.toolwindow.actions
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.actionSystem.AnActionEvent
 import io.confluent.intellijplugin.ccloud.auth.CCloudAuthService
+import io.confluent.intellijplugin.ccloud.auth.InvokedPlace
 import io.confluent.intellijplugin.core.monitoring.actions.tabs.MonitoringTabConnectionAction
 import io.confluent.intellijplugin.core.util.ConnectionUtil
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
@@ -33,9 +34,9 @@ class ConfluentCloudTabAction : MonitoringTabConnectionAction() {
 
         val authService = CCloudAuthService.getInstance()
         if (authService.isSignedIn()) {
-            authService.signOut(invokedPlace = "tool_window_action")
+            authService.signOut(invokedPlace = InvokedPlace.TOOL_WINDOW_ACTION)
         } else {
-            authService.signIn("tool_window_action")
+            authService.signIn(InvokedPlace.TOOL_WINDOW_ACTION)
         }
     }
 }
