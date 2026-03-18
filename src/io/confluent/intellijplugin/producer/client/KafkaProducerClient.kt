@@ -26,7 +26,6 @@ import org.apache.kafka.common.serialization.Serializer
 import org.jetbrains.annotations.VisibleForTesting
 import java.time.Duration
 import java.util.*
-import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 
 class KafkaProducerClient(
@@ -252,42 +251,22 @@ class KafkaProducerClient(
 
         @Suppress("UNCHECKED_CAST")
         val metadataFuture = producer.send(record as ProducerRecord<Any, Any>)
+        // Always wait for the in-flight send to complete — stop only prevents new sends
         val sendTimeout = 15000L
-        while (!metadataFuture.isDone && System.currentTimeMillis() - start < sendTimeout && isRunning()) {
+        while (!metadataFuture.isDone && System.currentTimeMillis() - start < sendTimeout) {
             Thread.sleep(100)
         }
 
-        if (metadataFuture.isDone) {
-            val metaInfo = metadataFuture.get(2, TimeUnit.SECONDS)
-            val end = System.currentTimeMillis()
-            return KafkaRecord.createFor(
-                keyConfig = correctKey, valueConfig = correctValue,
-                metadata = metaInfo, duration = (end - start),
-                headers = formedHeaders
-            )
+        if (!metadataFuture.isDone) {
+            metadataFuture.cancel(true)
+            return null
         }
 
-        // Stopped — wait briefly for the in-flight send to complete to avoid ghost records
-        if (!isRunning()) {
-            return try {
-                val metaInfo = metadataFuture.get(2, TimeUnit.SECONDS)
-                val end = System.currentTimeMillis()
-                KafkaRecord.createFor(
-                    keyConfig = correctKey, valueConfig = correctValue,
-                    metadata = metaInfo, duration = (end - start),
-                    headers = formedHeaders
-                )
-            } catch (_: Exception) {
-                metadataFuture.cancel(true)
-                null
-            }
-        }
-
-        // Send timed out — let get() throw TimeoutException
+        val metaInfo = metadataFuture.get()
+        val end = System.currentTimeMillis()
         return KafkaRecord.createFor(
             keyConfig = correctKey, valueConfig = correctValue,
-            metadata = metadataFuture.get(2, TimeUnit.SECONDS),
-            duration = (System.currentTimeMillis() - start),
+            metadata = metaInfo, duration = (end - start),
             headers = formedHeaders
         )
     }
