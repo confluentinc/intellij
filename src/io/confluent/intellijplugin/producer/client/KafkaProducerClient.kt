@@ -26,6 +26,8 @@ import org.apache.kafka.common.serialization.Serializer
 import org.jetbrains.annotations.VisibleForTesting
 import java.time.Duration
 import java.util.*
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.TimeoutException
 import java.util.concurrent.atomic.AtomicBoolean
 
 class KafkaProducerClient(
@@ -252,17 +254,12 @@ class KafkaProducerClient(
         @Suppress("UNCHECKED_CAST")
         val metadataFuture = producer.send(record as ProducerRecord<Any, Any>)
         // Always wait for the in-flight send to complete — stop only prevents new sends
-        val sendTimeout = 15000L
-        while (!metadataFuture.isDone && System.currentTimeMillis() - start < sendTimeout) {
-            Thread.sleep(100)
-        }
-
-        if (!metadataFuture.isDone) {
+        val metaInfo = try {
+            metadataFuture.get(15, TimeUnit.SECONDS)
+        } catch (_: TimeoutException) {
             metadataFuture.cancel(true)
             return null
         }
-
-        val metaInfo = metadataFuture.get()
         val end = System.currentTimeMillis()
         return KafkaRecord.createFor(
             keyConfig = correctKey, valueConfig = correctValue,

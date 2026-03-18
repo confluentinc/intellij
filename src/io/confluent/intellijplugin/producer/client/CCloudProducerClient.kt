@@ -36,7 +36,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -90,9 +89,7 @@ class CCloudProducerClient(
         }
         onStart()
 
-        val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-
-        produceJob = scope.launch {
+        produceJob = CoroutineScope(Dispatchers.IO).launch {
             try {
                 produceLoop(topic, key, value, headers, forcePartition, flowParams, onUpdate)
             } catch (e: CancellationException) {
