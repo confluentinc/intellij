@@ -8,6 +8,7 @@ import com.intellij.testFramework.TestActionEvent
 import com.intellij.testFramework.junit5.TestApplication
 import com.intellij.testFramework.replaceService
 import io.confluent.intellijplugin.ccloud.auth.CCloudAuthService
+import io.confluent.intellijplugin.ccloud.auth.InvokedPlace
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -115,7 +116,7 @@ class CCloudSignInOutActionTest {
 
             action.actionPerformed(event)
 
-            verify(mockAuthService).signIn(invokedPlace = "settings_panel")
+            verify(mockAuthService).signIn(invokedPlace = InvokedPlace.SETTINGS_PANEL)
         }
 
         @Test
@@ -126,7 +127,7 @@ class CCloudSignInOutActionTest {
 
             action.actionPerformed(event)
 
-            verify(mockAuthService).signOut(invokedPlace = "settings_panel")
+            verify(mockAuthService).signOut(invokedPlace = InvokedPlace.SETTINGS_PANEL)
         }
 
         @Test
