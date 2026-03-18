@@ -143,31 +143,20 @@ class ConnectionSettingsPanel(val project: Project) : MasterDetailsComponent(),
     // called twice by MasterDetailsComponent: once for the toolbar (fromPopup=false)
     // and once for the right-click context menu (fromPopup=true).
     override fun createActions(fromPopup: Boolean): List<AnAction> {
+        val addAction = AddConnectionAction(fromPopup).apply {
+            if (!fromPopup) registerCustomShortcutSet(CommonActionsPanel.getCommonShortcut(CommonActionsPanel.Buttons.ADD), tree)
+        }
+
         val duplicateAction = DuplicateConnectionAction(fromPopup).apply {
             if (!fromPopup) registerCustomShortcutSet(CommonShortcuts.getDuplicate(), tree)
         }
 
-        // both branches create a Kafka connection directly via performAddConnectionAction()
-        val addAction: AnAction = if (fromPopup) {
-            // right-click menu: only visible on the Kafka connection group node
-            ContextMenuAddAction()
-        } else {
-            // toolbar +button: no visibility gating needed, just wire up the shortcut
-            object : DumbAwareAction(
-                KafkaMessagesBundle.message("settings.addConnection.text"),
-                KafkaMessagesBundle.message("settings.addConnection.hint"),
-                IconUtil.addIcon
-            ) {
-                override fun actionPerformed(e: AnActionEvent) = performAddConnectionAction(e)
-            }.apply {
-                registerCustomShortcutSet(CommonActionsPanel.getCommonShortcut(CommonActionsPanel.Buttons.ADD), tree)
-            }
-        }
+        val deleteAction = RemoveConnectionAction(fromPopup)
 
         return buildList {
             add(addAction)
-            add(RemoveConnectionAction(fromPopup))
             add(duplicateAction)
+            add(deleteAction)
             if (fromPopup) add(CCloudSignInOutAction(::isCCloudGroupSelected))
         }
     }
@@ -326,7 +315,6 @@ class ConnectionSettingsPanel(val project: Project) : MasterDetailsComponent(),
         savedSelectedId = connId
     }
 
-
     private fun createTreeNode(
         group: ConnectionGroup,
         data: ConnectionData,
@@ -378,7 +366,7 @@ class ConnectionSettingsPanel(val project: Project) : MasterDetailsComponent(),
         topLevelGroups.sortBy { StandaloneCreateConnectionUtil.groupsPriority.getOrDefault(it.group.id, 4) }
         topLevelGroups.forEach { groupToActionNode[it.group.id] = it }
 
-        // wire up the "Create Connection" button on the Connections group panel
+        // wire up the "Add Connection" button on the Connections group node
         (idToGroup[BdtConnectionType.KAFKA.id] as? KafkaConnectionGroup)?.let { group ->
             group.onCreateConnection = { createNewConnectionFor(group) }
         }
@@ -450,8 +438,10 @@ class ConnectionSettingsPanel(val project: Project) : MasterDetailsComponent(),
     /** True when the Confluent Cloud group node is selected. */
     private fun isCCloudGroupSelected(): Boolean = selectedConnectionGroup() is CCloudDisplayGroup
 
-    /** Only visible on the Kafka connections group node (hidden on CCloud groups and individual connections). */
-    private inner class ContextMenuAddAction : DumbAwareAction(
+    /** Creates a Kafka connection. In the context menu, only visible on the Kafka connections group node. */
+    private inner class AddConnectionAction(
+        private val fromPopup: Boolean = false
+    ) : DumbAwareAction(
         KafkaMessagesBundle.message("settings.addConnection.text"),
         KafkaMessagesBundle.message("settings.addConnection.hint"),
         IconUtil.addIcon
@@ -459,8 +449,10 @@ class ConnectionSettingsPanel(val project: Project) : MasterDetailsComponent(),
         override fun actionPerformed(e: AnActionEvent) = performAddConnectionAction(e)
 
         override fun update(e: AnActionEvent) {
-            // show only on Kafka connections group node, not on the CCloud group or individual connections
-            e.presentation.isVisible = isConnectionGroupSelected() && !isCCloudGroupSelected()
+            // only visible on the Connections group node context menu
+            if (fromPopup) {
+                e.presentation.isVisible = isConnectionGroupSelected() && !isCCloudGroupSelected()
+            }
         }
     }
 
@@ -553,7 +545,7 @@ class ConnectionSettingsPanel(val project: Project) : MasterDetailsComponent(),
         }
     }
 
-    private inner class ActionNode(var group: ConnectionGroup) {
+    private inner class ActionNode(val group: ConnectionGroup) {
         private var node: MyNode? = null
 
         fun removeFromTree() {
@@ -585,17 +577,8 @@ class ConnectionSettingsPanel(val project: Project) : MasterDetailsComponent(),
 
         fun collapse(node: MyNode) {
             if (node == root) return
-
-            val queue = ArrayDeque<MyNode>()
-            queue.add(node)
-
-            while (queue.isNotEmpty()) {
-                val el = queue.pop()
-
-                if (expandedNodes.remove(el)) for (c in el.children()) (c as? MyNode)?.let {
-                    if (it.configurable is GroupEmptyConfigurable) queue.push(it)
-                }
-            }
+            // no nested groups, so only the collapsed node needs removal
+            expandedNodes.remove(node)
         }
     }
 
