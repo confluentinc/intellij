@@ -674,14 +674,21 @@ class CCloudProducerClientTest {
     inner class StopTests {
 
         @Test
-        fun `stop should be safe when no job is running`() {
+        fun `should be safe when no job is running`() {
             client.stop()
             assertFalse(client.isRunning())
         }
 
         @Test
-        fun `stop can be called multiple times safely`() {
+        fun `should be idempotent`() {
             client.stop()
+            client.stop()
+            assertFalse(client.isRunning())
+        }
+
+        @Test
+        fun `should set running to false`() {
+            client.running.set(true)
             client.stop()
             assertFalse(client.isRunning())
         }
@@ -773,7 +780,7 @@ class CCloudProducerClientTest {
         fun `should return response on first successful attempt`() = runBlocking {
             whenever(mockFetcher.produceRecord(any(), any())).thenReturn(successResponse())
 
-            val (response, _) = client.produceWithRetry(mockFetcher, "test-topic", request)
+            val (response, _) = client.produceWithRetry(mockFetcher, "test-topic", request)!!
 
             assertEquals(200, response.errorCode)
             verify(mockFetcher, times(1)).produceRecord(any(), any())
@@ -785,7 +792,7 @@ class CCloudProducerClientTest {
             whenever(mockFetcher.produceRecord(any(), any()))
                 .thenReturn(ProduceRecordResponse(errorCode = null, topicName = "test-topic"))
 
-            val (response, _) = client.produceWithRetry(mockFetcher, "test-topic", request)
+            val (response, _) = client.produceWithRetry(mockFetcher, "test-topic", request)!!
 
             assertNull(response.errorCode)
             verify(mockFetcher, times(1)).produceRecord(any(), any())
@@ -798,7 +805,7 @@ class CCloudProducerClientTest {
                 .thenReturn(ProduceRecordResponse(errorCode = 503, message = "Service Unavailable"))
                 .thenReturn(successResponse())
 
-            val (response, _) = client.produceWithRetry(mockFetcher, "test-topic", request)
+            val (response, _) = client.produceWithRetry(mockFetcher, "test-topic", request)!!
 
             assertEquals(200, response.errorCode)
             verify(mockFetcher, times(2)).produceRecord(any(), any())
@@ -814,7 +821,7 @@ class CCloudProducerClientTest {
                 successResponse()
             }
 
-            val (response, _) = client.produceWithRetry(mockFetcher, "test-topic", request)
+            val (response, _) = client.produceWithRetry(mockFetcher, "test-topic", request)!!
 
             assertEquals(200, response.errorCode)
             verify(mockFetcher, times(2)).produceRecord(any(), any())
@@ -881,5 +888,57 @@ class CCloudProducerClientTest {
             assertEquals(400, exception.statusCode)
             runBlocking { verify(mockFetcher, times(2)).produceRecord(any(), any()) }
         }
+
+        @Test
+        fun `should return null when stopped before first attempt`() = runBlocking {
+            client.running.set(false)
+
+            val result = client.produceWithRetry(mockFetcher, "test-topic", request)
+
+            assertNull(result, "Should return null when stopped")
+            verify(mockFetcher, never()).produceRecord(any(), any())
+            Unit
+        }
+
+        @Test
+        fun `should return null when stopped between retries`() = runBlocking {
+            var callCount = 0
+            whenever(mockFetcher.produceRecord(any(), any())).thenAnswer {
+                callCount++
+                if (callCount == 1) {
+                    client.running.set(false)
+                    throw CCloudApiException("Server Error", 500)
+                }
+                successResponse()
+            }
+
+            val result = client.produceWithRetry(mockFetcher, "test-topic", request)
+
+            assertNull(result, "Should return null after stop between retries")
+            verify(mockFetcher, times(1)).produceRecord(any(), any())
+            Unit
+        }
+
+        @Test
+        fun `should return result when stop happens during successful REST call`() = runBlocking {
+            whenever(mockFetcher.produceRecord(any(), any())).thenAnswer {
+                client.running.set(false)
+                ProduceRecordResponse(
+                    errorCode = 200,
+                    topicName = "test-topic",
+                    partitionId = 0,
+                    offset = 42
+                )
+            }
+
+            val result = client.produceWithRetry(mockFetcher, "test-topic", request)
+
+            assertNotNull(result, "Completed REST call should return result even after stop")
+            val (response, _) = result!!
+            assertEquals(200, response.errorCode)
+            assertEquals(42, response.offset)
+            Unit
+        }
     }
+
 }

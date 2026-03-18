@@ -27,6 +27,7 @@ import org.jetbrains.annotations.VisibleForTesting
 import java.time.Duration
 import java.util.*
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.TimeoutException
 import java.util.concurrent.atomic.AtomicBoolean
 
 class KafkaProducerClient(
@@ -121,7 +122,8 @@ class KafkaProducerClient(
                 KafkaMessagesBundle.message("error.producer.title")
             )
         } finally {
-            stop()
+            running.set(false)
+            onStop()
         }
     }
 
@@ -137,20 +139,15 @@ class KafkaProducerClient(
         csvDf: DataFrame?,
         onUpdate: (Long, List<KafkaRecord>) -> Unit
     ) {
-        val startTime = System.currentTimeMillis()
-        val produced = mutableListOf<KafkaRecord>()
-        repeat(flowParams.flowRecordsCountPerRequest) {
-            if (!isRunning())
-                return
-            val result = sentMessage(
+        for (i in 0 until flowParams.flowRecordsCountPerRequest) {
+            if (!isRunning()) break
+            val record = sentMessage(
                 flowParams, partition, producer, topic, key, value, headers.map { it.copy() },
-                alreadyProducedCount = alreadyProducedCount + it,
+                alreadyProducedCount = alreadyProducedCount + i,
                 csvDf = csvDf
-            ) ?: return
-            produced.add(result)
+            ) ?: break
+            onUpdate(record.duration, listOf(record))
         }
-        val endTime = System.currentTimeMillis()
-        onUpdate(endTime - startTime, produced)
     }
 
     private fun setupPartitions(
@@ -203,8 +200,7 @@ class KafkaProducerClient(
     }
 
     override fun stop() {
-        if (!running.getAndSet(false)) return
-        onStop()
+        running.set(false)
     }
 
     override fun dispose() = stop()
@@ -257,22 +253,14 @@ class KafkaProducerClient(
 
         @Suppress("UNCHECKED_CAST")
         val metadataFuture = producer.send(record as ProducerRecord<Any, Any>)
-        val sendTimeout = 15000
-        while (System.currentTimeMillis() - start < sendTimeout) {
-            Thread.sleep(100)
-            if (metadataFuture.isDone)
-                break
-            if (!isRunning()) {
-                metadataFuture.cancel(true)
-                break
-            }
-        }
-
-        if (!isRunning())
+        // Always wait for the in-flight send to complete — stop only prevents new sends
+        val metaInfo = try {
+            metadataFuture.get(15, TimeUnit.SECONDS)
+        } catch (_: TimeoutException) {
+            metadataFuture.cancel(true)
             return null
-        val metaInfo = metadataFuture.get(2, TimeUnit.SECONDS)
+        }
         val end = System.currentTimeMillis()
-
         return KafkaRecord.createFor(
             keyConfig = correctKey, valueConfig = correctValue,
             metadata = metaInfo, duration = (end - start),
