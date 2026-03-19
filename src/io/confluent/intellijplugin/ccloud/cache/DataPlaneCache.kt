@@ -98,6 +98,10 @@ class DataPlaneCache @VisibleForTesting internal constructor(
 
     fun getTopics(): List<TopicData> = cachedTopics ?: emptyList()
 
+    fun clearTopicCache() {
+        cachedTopics = null
+    }
+
     /** Fetch topics from API, update cache. Cleans stale enrichment for deleted topics. */
     suspend fun refreshTopics(): List<TopicData> {
         val topics = fetcher?.getTopics() ?: emptyList()

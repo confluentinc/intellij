@@ -105,7 +105,9 @@ class KafkaMonitoringToolWindowController(project: Project) : MonitoringToolWind
                     // Cluster selected → refresh only topics
                     val clusterId = selectedPath.getClusterId() ?: return
                     val cluster = driver.dataManager.getCachedKafkaClusters(selectedEnvId)?.find { it.id == clusterId } ?: return
-                    val clusterDataManager = driver.dataManager.getOrCreateClusterDataManager(cluster)
+                    val clusterDataManager = driver.dataManager.getOrCreateClusterDataManager(cluster) as CCloudClusterDataManager
+                    // Clear cache to force real refresh (not cached data)
+                    clusterDataManager.getDataPlaneCache().clearTopicCache()
                     clusterDataManager.updater.invokeRefreshModel(clusterDataManager.topicModel)
                 }
                 selectedPath?.isSchemaRegistry(driver) == true -> {
