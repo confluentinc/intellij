@@ -93,8 +93,8 @@
 
         <action id="Kafka.Dev.JcefPerformanceBenchmark"
                 class="io.confluent.intellijplugin.actions.dev.JcefPerformanceBenchmarkAction"
-                text="JCEF Performance Benchmark"
-                description="Run DOM manipulation performance tests on JCEF browser">
+                text="Table Performance Benchmark"
+                description="Compare JTable vs JCEF table rendering performance">
             <add-to-group group-id="ToolsMenu" anchor="last"/>
         </action>
 

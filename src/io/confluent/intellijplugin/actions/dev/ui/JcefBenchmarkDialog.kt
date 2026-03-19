@@ -20,12 +20,11 @@ class JcefBenchmarkDialog(project: Project) : DialogWrapper(project) {
 
     private var opInsert = true
     private var opReplace = true
-    private var opMemory = true
 
     private var iterations = 3
 
     init {
-        title = "Configure JCEF Performance Benchmark"
+        title = "Configure Table Performance Benchmark"
         init()
     }
 
@@ -53,9 +52,6 @@ class JcefBenchmarkDialog(project: Project) : DialogWrapper(project) {
             row {
                 checkBox("Clear & Replace").bindSelected(::opReplace)
             }
-            row {
-                checkBox("Memory Stress Test").bindSelected(::opMemory)
-            }
         }
 
         group("Options") {
@@ -79,7 +75,6 @@ class JcefBenchmarkDialog(project: Project) : DialogWrapper(project) {
         val operations = mutableListOf<String>()
         if (opInsert) operations.add("insert")
         if (opReplace) operations.add("replace")
-        if (opMemory) operations.add("memory")
 
         val config = BenchmarkConfig(
             testSizes = testSizes.sorted(),

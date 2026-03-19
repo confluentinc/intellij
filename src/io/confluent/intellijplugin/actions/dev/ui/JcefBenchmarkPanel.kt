@@ -1,11 +1,11 @@
 package io.confluent.intellijplugin.actions.dev.ui
 
 import com.intellij.openapi.Disposable
-import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.util.Disposer
 import com.intellij.ui.components.JBScrollPane
+import com.intellij.ui.jcef.JBCefApp
 import com.intellij.ui.table.JBTable
 import io.confluent.intellijplugin.consumer.editor.performance.BenchmarkConfig
 import io.confluent.intellijplugin.consumer.editor.performance.PerformanceMetrics
@@ -26,6 +26,7 @@ class JcefBenchmarkPanel(
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private lateinit var runner: PerformanceBenchmarkRunner
+    private var allMetrics: List<PerformanceMetrics> = emptyList()
 
     val component: JPanel
     private val progressBar: JProgressBar
@@ -40,10 +41,11 @@ class JcefBenchmarkPanel(
             string = "Ready to start"
         }
 
-        statusLabel = JLabel("Configure and run benchmark")
+        statusLabel = JLabel("Initializing benchmark...")
 
+        // Comparison table: Operation | Rows | JTable (ms) | JCEF (ms) | Faster | Ratio
         resultsTableModel = object : DefaultTableModel(
-            arrayOf("Operation", "Rows", "Duration (ms)", "Rows/sec", "Memory Δ (MB)"),
+            arrayOf("Operation", "Rows", "JTable (ms)", "JTable rows/s", "JCEF (ms)", "JCEF rows/s", "Faster", "Ratio"),
             0
         ) {
             override fun isCellEditable(row: Int, column: Int) = false
@@ -56,69 +58,76 @@ class JcefBenchmarkPanel(
 
         exportButton = JButton("Export to CSV").apply {
             isEnabled = false
-            addActionListener {
-                exportResults()
-            }
+            addActionListener { exportResults() }
         }
 
-        val closeButton = JButton("Close").apply {
-            addActionListener {
-                Disposer.dispose(this@JcefBenchmarkPanel)
-            }
-        }
-
-        // Progress panel
         val progressPanel = JPanel(BorderLayout(5, 5)).apply {
             add(statusLabel, BorderLayout.NORTH)
             add(progressBar, BorderLayout.CENTER)
         }
 
-        // Results panel
         val resultsScrollPane = JBScrollPane(resultsTable)
 
-        // Button panel
         val buttonPanel = JPanel().apply {
             add(exportButton)
-            add(closeButton)
         }
 
-        // Main panel layout - NOTE: We'll add JCEF preview after runner is created
         component = JPanel(BorderLayout(10, 10)).apply {
             add(progressPanel, BorderLayout.NORTH)
             add(resultsScrollPane, BorderLayout.CENTER)
             add(buttonPanel, BorderLayout.SOUTH)
-            preferredSize = Dimension(800, 600)
+            preferredSize = Dimension(900, 600)
             border = BorderFactory.createEmptyBorder(10, 10, 10, 10)
         }
     }
 
     fun runBenchmark() {
         try {
-            statusLabel.text = "Initializing benchmark..."
-            progressBar.value = 0
-            progressBar.string = "Starting..."
-
-            runner = PerformanceBenchmarkRunner(config, scope, this)
-
-            // Add JCEF browser preview to UI (important for browser initialization)
-            val previewPanel = JPanel(BorderLayout()).apply {
-                add(JLabel("JCEF Preview:"), BorderLayout.NORTH)
-                add(runner.getBrowserComponent(), BorderLayout.CENTER)
-                preferredSize = Dimension(300, 200)
+            val jtable = JTableBenchmark(this)
+            val jcef = if (JBCefApp.isSupported()) {
+                JcefTableBenchmark(this)
+            } else {
+                null
             }
 
-            // Create split pane with results on left, preview on right
-            val currentCenter = component.getComponent(1)
-            component.remove(1)
-            val splitPane = javax.swing.JSplitPane(
-                javax.swing.JSplitPane.HORIZONTAL_SPLIT,
-                currentCenter,
-                previewPanel
-            ).apply {
-                resizeWeight = 0.7
-                dividerLocation = 550
+            runner = PerformanceBenchmarkRunner(
+                config, jtable,
+                jcef ?: run {
+                    SwingUtilities.invokeLater {
+                        statusLabel.text = "JCEF not supported - running JTable only"
+                    }
+                    jtable // fallback: compare JTable against itself (not useful, but won't crash)
+                },
+                scope
+            )
+
+            // Add preview panels so the components are visible (required for accurate rendering)
+            val previewPanel = JPanel().apply {
+                layout = BoxLayout(this, BoxLayout.X_AXIS)
+                add(JPanel(BorderLayout()).apply {
+                    add(JLabel("JTable Preview:"), BorderLayout.NORTH)
+                    add(jtable.component, BorderLayout.CENTER)
+                    preferredSize = Dimension(350, 180)
+                })
+                if (jcef != null) {
+                    add(Box.createHorizontalStrut(5))
+                    add(JPanel(BorderLayout()).apply {
+                        add(JLabel("JCEF Preview:"), BorderLayout.NORTH)
+                        add(jcef.component, BorderLayout.CENTER)
+                        preferredSize = Dimension(350, 180)
+                    })
+                }
+                maximumSize = Dimension(Int.MAX_VALUE, 200)
             }
-            component.add(splitPane, BorderLayout.CENTER)
+
+            // Insert preview between results and buttons
+            val currentSouth = component.getComponent(2) // button panel
+            component.remove(currentSouth)
+            val bottomPanel = JPanel(BorderLayout(5, 5)).apply {
+                add(previewPanel, BorderLayout.CENTER)
+                add(currentSouth, BorderLayout.SOUTH)
+            }
+            component.add(bottomPanel, BorderLayout.SOUTH)
             component.revalidate()
             component.repaint()
 
@@ -132,8 +141,9 @@ class JcefBenchmarkPanel(
 
             runner.onComplete = { metrics ->
                 SwingUtilities.invokeLater {
-                    updateResults(metrics)
-                    statusLabel.text = "Benchmark completed - ${metrics.size} results"
+                    allMetrics = metrics
+                    updateComparisonTable(metrics)
+                    statusLabel.text = "Benchmark completed"
                     progressBar.value = 100
                     progressBar.string = "Complete"
                     exportButton.isEnabled = true
@@ -146,80 +156,68 @@ class JcefBenchmarkPanel(
                 statusLabel.text = "Error: ${e.message}"
                 Messages.showErrorDialog(
                     project,
-                    "Failed to start benchmark: ${e.message}\n\n${e.stackTraceToString().take(500)}",
+                    "Failed to start benchmark: ${e.message}",
                     "Benchmark Error"
                 )
             }
         }
     }
 
-    private fun updateResults(metrics: List<PerformanceMetrics>) {
+    private fun updateComparisonTable(metrics: List<PerformanceMetrics>) {
         resultsTableModel.rowCount = 0
 
-        metrics.forEach { m ->
-            resultsTableModel.addRow(
-                arrayOf(
-                    m.operationName,
-                    m.rowCount,
-                    if (m.failed) "FAILED" else m.durationMs.toString(),
-                    if (m.failed) m.errorMessage else String.format("%.0f", m.rowsPerSecond),
-                    if (m.failed) "-" else String.format("%+.1f", m.memoryDeltaMB)
-                )
-            )
+        // Group by (operation, rowCount), pair JTable vs JCEF
+        val grouped = metrics.groupBy { it.operationName to it.rowCount }
+
+        for ((key, group) in grouped.toSortedMap(compareBy<Pair<String, Int>> { it.first }.thenBy { it.second })) {
+            val jtableResult = group.find { it.tableType == "JTable" }
+            val jcefResult = group.find { it.tableType == "JCEF" }
+
+            val jtableMs = jtableResult?.let { if (it.failed) "FAILED" else it.durationMs.toString() } ?: "-"
+            val jtableRps = jtableResult?.let { if (it.failed) "-" else String.format("%.0f", it.rowsPerSecond) } ?: "-"
+            val jcefMs = jcefResult?.let { if (it.failed) "FAILED" else it.durationMs.toString() } ?: "-"
+            val jcefRps = jcefResult?.let { if (it.failed) "-" else String.format("%.0f", it.rowsPerSecond) } ?: "-"
+
+            val faster: String
+            val ratio: String
+            if (jtableResult != null && jcefResult != null && !jtableResult.failed && !jcefResult.failed) {
+                if (jtableResult.durationMs <= jcefResult.durationMs) {
+                    faster = "JTable"
+                    ratio = if (jtableResult.durationMs > 0) {
+                        String.format("%.1fx", jcefResult.durationMs.toDouble() / jtableResult.durationMs)
+                    } else "N/A"
+                } else {
+                    faster = "JCEF"
+                    ratio = if (jcefResult.durationMs > 0) {
+                        String.format("%.1fx", jtableResult.durationMs.toDouble() / jcefResult.durationMs)
+                    } else "N/A"
+                }
+            } else {
+                faster = "-"
+                ratio = "-"
+            }
+
+            resultsTableModel.addRow(arrayOf<Any>(key.first, key.second, jtableMs, jtableRps, jcefMs, jcefRps, faster, ratio))
         }
     }
 
     private fun exportResults() {
         val fileChooser = JFileChooser().apply {
             dialogTitle = "Export Benchmark Results"
-            selectedFile = File("jcef-benchmark-results.csv")
+            selectedFile = File("table-benchmark-results.csv")
         }
 
         if (fileChooser.showSaveDialog(component) == JFileChooser.APPROVE_OPTION) {
-            val file = fileChooser.selectedFile
             try {
-                val metrics = mutableListOf<PerformanceMetrics>()
-                for (i in 0 until resultsTableModel.rowCount) {
-                    val operation = resultsTableModel.getValueAt(i, 0) as String
-                    val rows = resultsTableModel.getValueAt(i, 1) as Int
-                    val durationStr = resultsTableModel.getValueAt(i, 2) as String
-                    val rowsPerSecStr = resultsTableModel.getValueAt(i, 3) as String
-                    val memDeltaStr = resultsTableModel.getValueAt(i, 4) as String
-
-                    if (durationStr == "FAILED") {
-                        metrics.add(PerformanceMetrics.failed(rowsPerSecStr, rows))
-                    } else {
-                        metrics.add(
-                            PerformanceMetrics(
-                                operationName = operation,
-                                rowCount = rows,
-                                durationMs = durationStr.toLong(),
-                                rowsPerSecond = rowsPerSecStr.toDouble(),
-                                memoryBeforeMB = 0.0,
-                                memoryAfterMB = 0.0,
-                                memoryDeltaMB = memDeltaStr.replace("+", "").replace(" MB", "").toDouble()
-                            )
-                        )
-                    }
-                }
-
-                PerformanceReporter.exportToCsv(metrics, file)
-                Messages.showInfoMessage(
-                    project,
-                    "Results exported successfully to ${file.absolutePath}",
-                    "Export Successful"
-                )
+                PerformanceReporter.exportToCsv(allMetrics, fileChooser.selectedFile)
+                Messages.showInfoMessage(project, "Results exported to ${fileChooser.selectedFile.absolutePath}", "Export Successful")
             } catch (e: Exception) {
-                Messages.showErrorDialog(
-                    project,
-                    "Failed to export results: ${e.message}",
-                    "Export Failed"
-                )
+                Messages.showErrorDialog(project, "Failed to export: ${e.message}", "Export Failed")
             }
         }
     }
 
     override fun dispose() {
-        // Scope will be cancelled automatically
+        // Scope cancelled via SupervisorJob
     }
 }

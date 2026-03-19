@@ -5,7 +5,6 @@ import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.openapi.ui.Messages
-import com.intellij.ui.jcef.JBCefApp
 import io.confluent.intellijplugin.actions.dev.ui.JcefBenchmarkDialog
 import io.confluent.intellijplugin.actions.dev.ui.JcefBenchmarkPanel
 import java.awt.Dimension
@@ -14,16 +13,6 @@ import javax.swing.JComponent
 class JcefPerformanceBenchmarkAction : DumbAwareAction() {
     override fun actionPerformed(e: AnActionEvent) {
         val project = e.project ?: return
-
-        // Check JCEF support
-        if (!JBCefApp.isSupported()) {
-            Messages.showErrorDialog(
-                project,
-                "JCEF is not supported on this platform",
-                "JCEF Not Available"
-            )
-            return
-        }
 
         val configDialog = JcefBenchmarkDialog(project)
         if (configDialog.showAndGet()) {
@@ -41,27 +30,18 @@ class JcefPerformanceBenchmarkAction : DumbAwareAction() {
 
             val panel = JcefBenchmarkPanel(project, config)
 
-            // Show in NON-MODAL dialog to avoid EDT deadlock
             val resultsDialog = object : DialogWrapper(project, false) {
                 init {
-                    title = "JCEF Performance Benchmark Results"
+                    title = "Table Performance Benchmark: JTable vs JCEF"
                     init()
                 }
 
-                override fun createCenterPanel(): JComponent {
-                    return panel.component
-                }
+                override fun createCenterPanel(): JComponent = panel.component
 
-                override fun getPreferredSize(): Dimension {
-                    return Dimension(1000, 700)
-                }
+                override fun getPreferredSize() = Dimension(1000, 700)
             }
 
-            // Start benchmark asynchronously BEFORE showing dialog
-            // (runBenchmark launches a coroutine and returns immediately)
             panel.runBenchmark()
-
-            // Show NON-MODAL dialog (doesn't block EDT)
             resultsDialog.show()
         }
     }
