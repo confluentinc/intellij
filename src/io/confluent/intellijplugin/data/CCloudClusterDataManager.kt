@@ -22,6 +22,7 @@ import io.confluent.intellijplugin.ccloud.model.response.toPresentable
 import io.confluent.intellijplugin.ccloud.model.response.toSchemaReferences
 import io.confluent.intellijplugin.client.KafkaConstants
 import io.confluent.intellijplugin.common.models.RegistrySchemaInEditor
+import io.confluent.intellijplugin.core.monitoring.data.model.FieldGroupsData
 import io.confluent.intellijplugin.core.monitoring.data.storage.ObjectDataModelStorage
 import io.confluent.intellijplugin.consumer.editor.KafkaConsumerSettings
 import io.confluent.intellijplugin.core.monitoring.data.storage.RootDataModelStorage
@@ -118,7 +119,10 @@ class CCloudClusterDataManager(
     }
 
     init {
-        RootDataModelStorage(updater, listOf(topicModel)).also { Disposer.register(this, it) }
+        RootDataModelStorage(
+            updater,
+            listOfNotNull(topicModel, schemaRegistryModel)
+        ).also { Disposer.register(this, it) }
     }
 
     /**
@@ -527,9 +531,8 @@ class CCloudClusterDataManager(
             throw UnsupportedOperationException("Schema registry not configured for this cluster")
         }
 
-        // Check if already cached with full metadata
         val cached = getCachedSchema(name)
-        if (cached != null && cached.type != null) {
+        if (cached != null && !cached.isSoftDeleted) {
             return cached
         }
 
@@ -589,7 +592,7 @@ class CCloudClusterDataManager(
 
             invalidateSchemaVersionCache(versionInfo.schemaName)
             updateSingleSchemaInList(versionInfo.schemaName)
-            schemaVersionModels[versionInfo.schemaName]?.let { updater.invokeRefreshModel(it) }
+            updater.invokeRefreshModel(schemaVersionModels[versionInfo.schemaName])
             Unit
         }.deferred.asCompletableFuture().asPromise().asSilent()
 
@@ -607,8 +610,8 @@ class CCloudClusterDataManager(
                 }
 
                 invalidateSchemaVersionCache(versionInfo.schemaName)
-                schemaVersionModels[versionInfo.schemaName]?.let { updater.invokeRefreshModel(it) }
                 updateSingleSchemaInList(versionInfo.schemaName)
+                updater.invokeRefreshModel(schemaVersionModels[versionInfo.schemaName])
             } catch (t: Throwable) {
                 RfsNotificationUtils.showExceptionMessage(project, t)
             }
@@ -661,10 +664,14 @@ class CCloudClusterDataManager(
     }
 
     private suspend fun deleteSchemaWithoutConfirmation(schemaName: String, permanent: Boolean) {
+        schemaEnrichmentJob?.cancel()
+        schemaEnrichmentJob = null
+
         withContext(Dispatchers.IO) {
             dataPlaneCache.deleteSchema(schemaName, permanent)
         }
         invalidateSchemaVersionCache(schemaName)
+        schemaVersionModels[schemaName].setData(FieldGroupsData(emptyList(), emptyList()))
         removeSingleSchemaFromList(schemaName)
     }
 
@@ -681,7 +688,9 @@ class CCloudClusterDataManager(
                 )
                 dataPlaneCache.createSchema(schemaName, request)
             }
+            invalidateSchemaVersionCache(schemaName)
             updateSingleSchemaInList(schemaName)
+            updater.invokeRefreshModel(schemaVersionModels[schemaName])
         }
 
     private suspend fun updateSingleSchemaInList(schemaName: String) {
@@ -701,22 +710,14 @@ class CCloudClusterDataManager(
 
             withContext(Dispatchers.Default) {
                 val currentSchemas = schemaRegistryModel?.data ?: emptyList()
-                val existingIndex = currentSchemas.indexOfFirst { it.name == schemaName }
+                val updatedSchemas = currentSchemas.filterNot { it.name == schemaName } + updatedSchema
 
-                val updatedSchemas = if (existingIndex >= 0) {
-                    currentSchemas.toMutableList().apply { set(existingIndex, updatedSchema) }
-                } else {
-                    currentSchemas + updatedSchema
-                }
-
-                val sortedSchemas = sortSchemasWithFavorites(
-                    updatedSchemas,
-                    pinnedSchemas = config?.schemasPined ?: emptySet(),
-                    showFavoriteOnly = KafkaToolWindowSettings.getInstance().showFavoriteSchema
+                val sortedSchemas = updatedSchemas.sortedWith(
+                    compareByDescending<KafkaSchemaInfo> { it.isFavorite }.thenBy { it.name.lowercase() }
                 )
 
                 // Apply limit to respect user's limit setting
-                val (limitedSchemas, _) = applySchemaLimit(sortedSchemas, config?.registryLimit)
+                val (limitedSchemas, _) = applySchemaLimit(sortedSchemas, config.registryLimit)
 
                 schemaRegistryModel?.setData(limitedSchemas)
             }
@@ -728,6 +729,9 @@ class CCloudClusterDataManager(
 
     private suspend fun removeSingleSchemaFromList(schemaName: String) {
         try {
+            schemaEnrichmentJob?.cancel()
+            schemaEnrichmentJob = null
+
             withContext(Dispatchers.Default) {
                 val currentSchemas = schemaRegistryModel?.data ?: emptyList()
                 val updatedSchemas = currentSchemas.filterNot { it.name == schemaName }
@@ -821,6 +825,13 @@ class CCloudClusterDataManager(
 
     private suspend fun removeSingleTopicFromList(topicNames: List<String>) {
         try {
+            topicEnrichmentJob?.cancel()
+            topicEnrichmentJob = null
+            topicNames.forEach { topicName ->
+                partitionEnrichmentJobs[topicName]?.cancel()
+                partitionEnrichmentJobs.remove(topicName)
+            }
+
             withContext(Dispatchers.Default) {
                 val currentTopics = topicModel.data ?: emptyList()
                 val updatedTopics = currentTopics.filterNot { it.name in topicNames }

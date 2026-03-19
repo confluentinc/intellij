@@ -78,6 +78,13 @@ internal class ConfluentSchemaDetailController(
 
     private val version1Controller = SchemaVersionsComboboxController(this, dataManager) { versions ->
         isEditModeAvailable.set(versions.size > 1)
+        if (versions.isNotEmpty()) {
+            version1.component.item = versions.first()
+            updateVersion1Info()
+        } else {
+            isLoading.set(false)
+            hasContent.set(false)
+        }
     }.also {
         Disposer.register(this, it)
     }
@@ -142,8 +149,6 @@ internal class ConfluentSchemaDetailController(
         version1Controller.setSchema(id)
         version2Controller.setSchema(id)
         schemaName = id
-        updateVersion1Info()
-        updateVersion2Info()
     }
 
     /** Refresh current schema detail view (reload version info). */
