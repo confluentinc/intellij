@@ -7,6 +7,7 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
+import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ToolWindowManager
 import io.confluent.intellijplugin.core.monitoring.rfs.MonitoringDriver
@@ -23,11 +24,7 @@ import io.confluent.intellijplugin.icons.BigdatatoolsKafkaIcons
 import io.confluent.intellijplugin.registry.KafkaRegistryUtil
 import io.confluent.intellijplugin.rfs.ConfluentConnectionData
 import io.confluent.intellijplugin.rfs.ConfluentDriver
-import io.confluent.intellijplugin.rfs.ConfluentDriver.Companion.isCluster
-import io.confluent.intellijplugin.rfs.ConfluentDriver.Companion.isSchemaRegistry
-import io.confluent.intellijplugin.rfs.ConfluentDriver.Companion.getClusterId
 import io.confluent.intellijplugin.rfs.KafkaConnectionData
-import io.confluent.intellijplugin.data.CCloudClusterDataManager
 import io.confluent.intellijplugin.settings.KafkaConnectionGroup
 import io.confluent.intellijplugin.toolwindow.config.KafkaToolWindowSettings
 import io.confluent.intellijplugin.toolwindow.controllers.ConfluentMainController
@@ -90,36 +87,34 @@ class KafkaMonitoringToolWindowController(project: Project) : MonitoringToolWind
         val connectionId = contentManager.selectedContent?.getUserData(CONNECTION_ID) ?: return
 
         if (connectionId == "ccloud") {
-            val tabController = getConfluentCloudTabController() ?: return
-            val driver = tabController.getDriver() ?: return
-            val selectedEnvId = driver.selectedEnvironmentId ?: return
-            val selectedPath = tabController.getMainController()?.getCurrentSelectedPath()
+            val driver = getConfluentCloudTabController()?.getDriver()
 
-            // Cancel ongoing jobs immediately
-            driver.dataManager.updater.stopAll()
-            driver.dataManager.cancelAllEnrichmentJobs()
+            driver?.let {
+                it.dataManager.updater.stopAll()
+                it.dataManager.cancelAllEnrichmentJobs()
 
-            // Only refresh the currently visible data model
-            when {
-                selectedPath?.isCluster(driver) == true -> {
-                    // Cluster selected → refresh only topics
-                    val clusterId = selectedPath.getClusterId() ?: return
-                    val cluster = driver.dataManager.getCachedKafkaClusters(selectedEnvId)?.find { it.id == clusterId } ?: return
-                    val clusterDataManager = driver.dataManager.getOrCreateClusterDataManager(cluster) as CCloudClusterDataManager
-                    // Clear cache to force real refresh (not cached data)
+                it.dataManager.getAllClusterDataManagers().forEach { clusterDataManager ->
                     clusterDataManager.getDataPlaneCache().clearTopicCache()
-                    clusterDataManager.updater.invokeRefreshModel(clusterDataManager.topicModel)
-                }
-                selectedPath?.isSchemaRegistry(driver) == true -> {
-                    // Schema Registry selected → refresh only schemas
-                    val cluster = driver.dataManager.getCachedKafkaClusters(selectedEnvId)?.firstOrNull() ?: return
-                    val clusterDataManager = driver.dataManager.getOrCreateClusterDataManager(cluster) as CCloudClusterDataManager
-                    // Clear cache to force real refresh (not cached data)
                     clusterDataManager.getDataPlaneCache().clearSchemaCache()
-                    clusterDataManager.updater.invokeRefreshModel(clusterDataManager.schemaRegistryModel!!)
+                    clusterDataManager.clearAllVersionCaches()
+
+                    clusterDataManager.topicModel?.let { model ->
+                        clusterDataManager.updater.invokeRefreshModel(model)
+                    }
+                    clusterDataManager.schemaRegistryModel?.let { model ->
+                        clusterDataManager.updater.invokeRefreshModel(model)
+                    }
+
+                    val versionModels = clusterDataManager.schemaVersionModels.getModelsForRefresh()
+                    versionModels.forEach { model ->
+                        clusterDataManager.updater.invokeRefreshModel(model)
+                    }
+                }
+
+                it.safeExecutor.coroutineScope.launch {
+                    it.dataManager.updater.reloadAll(checkConnection = false)
                 }
             }
-
             return
         }
 

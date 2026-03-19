@@ -98,13 +98,6 @@ internal class ConfluentMainController(
     private lateinit var component: JComponent
     private lateinit var lastSelectedPath: TreePath
 
-    /** Get currently selected path for refresh operations */
-    fun getCurrentSelectedPath(): RfsPath? {
-        return if (::lastSelectedPath.isInitialized) {
-            lastSelectedPath.lastDriverNode?.rfsPath
-        } else null
-    }
-
     private var prevError: Throwable? = null
     private val errorPanel = JPanel(BorderLayout())
 

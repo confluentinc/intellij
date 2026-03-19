@@ -90,6 +90,12 @@ class CCloudClusterDataManager(
         schemaTypeCache.remove(schemaName)
     }
 
+    /** Clear all cached schema versions (called during refresh). */
+    fun clearAllVersionCaches() {
+        schemaVersionCache.clear()
+        schemaTypeCache.clear()
+    }
+
     override val connectionId: String = cluster.id
 
     override val connectionData: ConfluentConnectionData
@@ -119,6 +125,11 @@ class CCloudClusterDataManager(
     }
 
     init {
+        // Force initialization of lazy storages so they register with updater before first refresh
+        schemaVersionModels
+        topicPartitionsModels
+        topicConfigsModels
+
         RootDataModelStorage(
             updater,
             listOfNotNull(topicModel, schemaRegistryModel)
@@ -490,8 +501,9 @@ class CCloudClusterDataManager(
         }
 
         val cacheKey = schemaName to version
-        schemaVersionCache[cacheKey]?.let { return@runAsyncSuspend it }
-
+        schemaVersionCache[cacheKey]?.let {
+            return@runAsyncSuspend it
+        }
         try {
             withContext(Dispatchers.IO) {
                 val versionResponse = dataPlaneCache.getFetcher()?.getSchemaVersionInfo(schemaName, version)
