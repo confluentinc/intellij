@@ -591,7 +591,6 @@ class CCloudClusterDataManager(
             dataPlaneCache.createSchema(versionInfo.schemaName, request)
 
             invalidateSchemaVersionCache(versionInfo.schemaName)
-            updateSingleSchemaInList(versionInfo.schemaName)
             updater.invokeRefreshModel(schemaVersionModels[versionInfo.schemaName])
             Unit
         }.deferred.asCompletableFuture().asPromise().asSilent()
@@ -610,7 +609,6 @@ class CCloudClusterDataManager(
                 }
 
                 invalidateSchemaVersionCache(versionInfo.schemaName)
-                updateSingleSchemaInList(versionInfo.schemaName)
                 updater.invokeRefreshModel(schemaVersionModels[versionInfo.schemaName])
             } catch (t: Throwable) {
                 RfsNotificationUtils.showExceptionMessage(project, t)
@@ -813,7 +811,10 @@ class CCloudClusterDataManager(
                         .thenBy { it.name.lowercase() }
                 )
 
-                topicModel.setData(updatedTopics)
+                // Apply limit to respect user's limit setting
+                val (limitedTopics, _) = applyTopicLimit(updatedTopics, config.topicLimit)
+
+                topicModel.setData(limitedTopics)
             }
         } catch (e: Exception) {
             thisLogger().warn("Failed to add topic '${topicData.topicName}' to list", e)
