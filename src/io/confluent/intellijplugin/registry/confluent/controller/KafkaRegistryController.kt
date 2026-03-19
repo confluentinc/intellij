@@ -8,11 +8,11 @@ import com.intellij.ui.DocumentAdapter
 import com.intellij.ui.SearchTextField
 import com.intellij.ui.SimpleTextAttributes
 import com.intellij.util.ui.StatusText
+import io.confluent.intellijplugin.core.monitoring.data.listener.DataModelListener
 import io.confluent.intellijplugin.core.monitoring.data.model.FilterAdapter
 import io.confluent.intellijplugin.core.monitoring.data.model.FilterKey
 import io.confluent.intellijplugin.core.monitoring.data.model.ObjectDataModel
 import io.confluent.intellijplugin.core.monitoring.table.DataTable
-import io.confluent.intellijplugin.core.monitoring.table.extension.CustomEmptyTextProvider
 import io.confluent.intellijplugin.core.monitoring.toolwindow.AbstractTableController
 import io.confluent.intellijplugin.core.monitoring.toolwindow.MainTreeController
 import io.confluent.intellijplugin.core.settings.ColumnVisibilitySettings
@@ -21,7 +21,6 @@ import io.confluent.intellijplugin.core.table.renderers.LinkRenderer
 import io.confluent.intellijplugin.core.ui.CustomComponentActionImpl
 import io.confluent.intellijplugin.core.ui.filter.CountFilterPopupComponent
 import io.confluent.intellijplugin.data.BaseClusterDataManager
-import io.confluent.intellijplugin.data.KafkaDataManager
 import io.confluent.intellijplugin.registry.KafkaRegistryAddSchemaDialog
 import io.confluent.intellijplugin.registry.KafkaRegistryType
 import io.confluent.intellijplugin.registry.common.KafkaSchemaInfo
@@ -29,7 +28,10 @@ import io.confluent.intellijplugin.rfs.KafkaDriver
 import io.confluent.intellijplugin.toolwindow.config.KafkaToolWindowSettings
 import io.confluent.intellijplugin.toolwindow.NavigableController
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
-import javax.swing.JViewport
+import com.intellij.ui.components.JBPanelWithEmptyText
+import java.awt.BorderLayout
+import java.awt.CardLayout
+import javax.swing.JPanel
 import javax.swing.ListSelectionModel
 import javax.swing.event.DocumentEvent
 
@@ -40,6 +42,10 @@ internal class KafkaRegistryController(
 ) : AbstractTableController<KafkaSchemaInfo>() {
     val registryType = dataManager.registryType
     private val model: ObjectDataModel<KafkaSchemaInfo> = dataManager.schemaRegistryModel!!
+
+    private val cardLayout = CardLayout()
+    private val wrapperPanel = JPanel(cardLayout)
+    private val emptyPanel = JBPanelWithEmptyText(BorderLayout())
 
     private val searchTextField: SearchTextField = SearchTextField(false).apply {
         addDocumentListener(object : DocumentAdapter() {
@@ -76,47 +82,69 @@ internal class KafkaRegistryController(
                 getSelectedItem()?.name?.let { KafkaDriver.schemasPath.child(it, false) }
         }
 
-        updateEmptyText()
+        wrapperPanel.add(emptyPanel, "EMPTY")
+        wrapperPanel.add(super.getComponent(), "TABLE")
+
+        model.addListener(object : DataModelListener {
+            override fun onChanged() {
+                updateUIForEmptyState()
+            }
+
+            override fun onError(msg: String, e: Throwable?) {
+                updateUIForEmptyState()
+            }
+        })
+
+        updateUIForEmptyState()
+    }
+
+    override fun getComponent() = wrapperPanel
+
+    private fun updateUIForEmptyState() {
+        val settings = KafkaToolWindowSettings.getInstance()
+        val config = settings.getOrCreateConfig(dataManager.getSchemaRegistryConfigId())
+        val hasFilters = !config.schemaFilterName.isNullOrBlank() || settings.showFavoriteSchema
+        val hasSchemas = dataManager.getSchemas().isNotEmpty()
+
+        if (!hasSchemas && !hasFilters) {
+            updateEmptyPanel()
+            cardLayout.show(wrapperPanel, "EMPTY")
+        } else {
+            cardLayout.show(wrapperPanel, "TABLE")
+            (decoratedTableComponent.layout as? BorderLayout)
+                ?.getLayoutComponent(BorderLayout.NORTH)?.isVisible = hasSchemas || hasFilters
+            dataTable.tableHeader?.isVisible = hasSchemas || hasFilters
+            if (!hasSchemas) updateEmptyText()
+        }
+    }
+
+    private fun updateEmptyPanel() {
+        emptyPanel.emptyText.clear()
+        emptyPanel.emptyText.appendText(KafkaMessagesBundle.message("schemas.empty.text"))
+        emptyPanel.emptyText.appendLine(
+            KafkaMessagesBundle.message("schemas.empty.text.create.link"),
+            SimpleTextAttributes.LINK_ATTRIBUTES
+        ) {
+            KafkaRegistryAddSchemaDialog(project, dataManager).show()
+        }
     }
 
     private fun updateEmptyText() {
-        val toolWindowSettings = KafkaToolWindowSettings.getInstance()
-        val clusterConfig = toolWindowSettings.getOrCreateConfig(dataManager.getSchemaRegistryConfigId())
-
+        val clusterConfig = KafkaToolWindowSettings.getInstance().getOrCreateConfig(dataManager.getSchemaRegistryConfigId())
         dataTable.emptyText.clear()
-        dataTable.emptyText.isShowAboveCenter = true
-
-        if (dataTable.parent is JViewport) {
-            dataTable.emptyText.attachTo(dataTable, dataTable)
+        dataTable.emptyText.appendText(
+            KafkaMessagesBundle.message("schemas.empty.text.filter"),
+            StatusText.DEFAULT_ATTRIBUTES
+        )
+        dataTable.emptyText.appendSecondaryText(
+            KafkaMessagesBundle.message("topics.empty.text.filter.additional"),
+            SimpleTextAttributes.LINK_PLAIN_ATTRIBUTES
+        ) {
+            clusterConfig.schemaFilterName = null
+            KafkaToolWindowSettings.getInstance().showFavoriteSchema = false
+            searchTextField.text = ""
+            dataManager.schemaRegistryModel?.let { dataManager.updater.invokeRefreshModel(it) }
         }
-
-        if (!clusterConfig.schemaFilterName.isNullOrBlank() || toolWindowSettings.showFavoriteSchema) {
-            dataTable.emptyText.appendText(
-                KafkaMessagesBundle.message("schemas.empty.text.filter"),
-                StatusText.DEFAULT_ATTRIBUTES
-            )
-            dataTable.emptyText.appendSecondaryText(
-                KafkaMessagesBundle.message("topics.empty.text.filter.additional"),
-                SimpleTextAttributes.LINK_PLAIN_ATTRIBUTES
-            ) {
-                clusterConfig.schemaFilterName = null
-                toolWindowSettings.showFavoriteSchema = false
-                searchTextField.text = ""
-                dataManager.schemaRegistryModel?.let { dataModel -> dataManager.updater.invokeRefreshModel(dataModel) }
-            }
-        } else {
-            dataTable.emptyText.appendText(KafkaMessagesBundle.message("schemas.empty.text"))
-            dataTable.emptyText.appendLine(
-                KafkaMessagesBundle.message("schemas.empty.text.create.link"),
-                SimpleTextAttributes.LINK_ATTRIBUTES
-            ) {
-                KafkaRegistryAddSchemaDialog(project, dataManager).show()
-            }
-        }
-    }
-
-    override fun emptyTextProvider() = CustomEmptyTextProvider {
-        updateEmptyText()
     }
 
     override fun customTableInit(table: DataTable<KafkaSchemaInfo>) {
