@@ -80,6 +80,12 @@ class ConfluentDriver(
         clusters.forEach { cluster ->
             registerClusterTopicListener(cluster.id, cluster)
         }
+
+        // Also register schema registry listener
+        val sr = dataManager.client.getCachedSchemaRegistry(envId)
+        if (sr != null && clusters.isNotEmpty()) {
+            registerSchemaRegistryListener(sr.id, clusters.first())
+        }
     }
 
     private fun registerSchemaRegistryListener(srId: String, cluster: Cluster) {

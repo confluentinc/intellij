@@ -12,6 +12,7 @@ import java.util.*
 data class KafkaSchemaInfo(
     val name: String,
     @field:CustomRendering(RegistryFormatRenderer::class)
+    @field:LoadingRendering
     val type: KafkaRegistryFormat? = null,
     @field:LoadingRendering
     val version: Long? = null,

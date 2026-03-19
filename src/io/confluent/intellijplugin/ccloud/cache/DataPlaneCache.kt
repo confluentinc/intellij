@@ -127,6 +127,10 @@ class DataPlaneCache @VisibleForTesting internal constructor(
 
     fun getSchemas(): List<SchemaData> = cachedSchemas ?: emptyList()
 
+    fun clearSchemaCache() {
+        cachedSchemas = null
+    }
+
     suspend fun refreshSchemas(): List<SchemaData> {
         if (schemaRegistry == null) return emptyList()
 
