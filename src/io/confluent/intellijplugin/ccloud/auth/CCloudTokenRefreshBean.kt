@@ -20,7 +20,7 @@ import kotlinx.coroutines.launch
 class CCloudTokenRefreshBean(
     private val context: CCloudOAuthContext,
     parentDisposable: Disposable,
-    private val onTerminal: ((reason: String) -> Unit)? = null,
+    private val onTerminal: ((reason: SignOutReason) -> Unit)? = null,
 ) : Disposable {
     private val logger = thisLogger()
     private val coroutineScope = CoroutineScope(Dispatchers.IO)
@@ -53,12 +53,12 @@ class CCloudTokenRefreshBean(
     private fun shouldContinueRefreshing(): Boolean {
         if (context.hasNonTransientError()) {
             logger.warn("Stopping refresh: non-transient error after ${context.getFailedTokenRefreshAttempts()} failed attempts")
-            onTerminal?.invoke("refresh_failed")
+            onTerminal?.invoke(SignOutReason.REFRESH_FAILED)
             return false
         }
         if (context.hasReachedEndOfLifetime()) {
             logger.warn("Stopping refresh: session reached end of lifetime")
-            onTerminal?.invoke("session_expired")
+            onTerminal?.invoke(SignOutReason.SESSION_EXPIRED)
             return false
         }
         return true
