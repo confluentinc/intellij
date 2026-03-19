@@ -9,14 +9,6 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ToolWindowManager
-import com.intellij.openapi.wm.ex.ToolWindowManagerListener
-import com.intellij.openapi.wm.impl.InternalDecorator
-import com.intellij.openapi.wm.impl.content.ContentTabLabel
-import com.intellij.ui.ComponentUtil
-import com.intellij.ui.content.Content
-import com.intellij.ui.content.ContentManagerEvent
-import com.intellij.ui.content.ContentManagerListener
-import com.intellij.util.ui.UIUtil
 import io.confluent.intellijplugin.core.monitoring.rfs.MonitoringDriver
 import io.confluent.intellijplugin.core.monitoring.toolwindow.ComponentController
 import io.confluent.intellijplugin.core.monitoring.toolwindow.MonitoringToolWindowController
@@ -24,7 +16,6 @@ import io.confluent.intellijplugin.core.rfs.driver.ActivitySource
 import io.confluent.intellijplugin.core.rfs.driver.RfsPath
 import io.confluent.intellijplugin.core.rfs.driver.manager.DriverManager
 import io.confluent.intellijplugin.core.rfs.driver.refreshConnectionLaunch
-import io.confluent.intellijplugin.core.util.invokeLater
 import io.confluent.intellijplugin.core.settings.connections.ConnectionData
 import io.confluent.intellijplugin.core.settings.connections.ConnectionFactory
 import io.confluent.intellijplugin.core.settings.manager.RfsConnectionDataManager
@@ -92,22 +83,6 @@ class KafkaMonitoringToolWindowController(project: Project) : MonitoringToolWind
         super.setUp(toolWindow)
         RfsConnectionDataManager.instance?.addListener(settingsListener)
         KafkaRegistryUtil.disableLoggers()
-
-        fun reapplyIcon() = contentManager.contents.find { it.getUserData(CONNECTION_ID) == "ccloud" }?.let(::applyConfluentCloudIcon)
-
-        contentManager.addContentManagerListener(object : ContentManagerListener {
-            override fun contentAdded(event: ContentManagerEvent) {
-                if (event.content.getUserData(CONNECTION_ID) == "ccloud") applyConfluentCloudIcon(event.content)
-            }
-            override fun selectionChanged(event: ContentManagerEvent) { reapplyIcon() }
-        })
-
-        project.messageBus.connect(this).subscribe(ToolWindowManagerListener.TOPIC, object : ToolWindowManagerListener {
-            override fun stateChanged(toolWindowManager: ToolWindowManager) {
-                if (toolWindowManager.getToolWindow(TOOL_WINDOW_ID)?.isVisible == true) reapplyIcon()
-            }
-        })
-
         addConfluentCloudTab()
     }
 
@@ -198,27 +173,13 @@ class KafkaMonitoringToolWindowController(project: Project) : MonitoringToolWind
             putUserData(CONNECTION_ID, "ccloud")
             putUserData(PAGE_CONTROLLER_ID, controller)
             putUserData(PROJECT, project)
+            putUserData(ToolWindow.SHOW_CONTENT_ICON, true)
             isCloseable = false
             icon = BigdatatoolsKafkaIcons.ConfluentTab
         }
 
         Disposer.register(content, controller)
         contentManager.addContent(content)
-        invokeLater { applyConfluentCloudIcon(content) }
-    }
-
-    private fun applyConfluentCloudIcon(content: Content) {
-        val icon = BigdatatoolsKafkaIcons.ConfluentTab
-        content.icon = icon
-        ComponentUtil.getParentOfType(InternalDecorator::class.java, contentManager.component)?.let {
-            UIUtil.findComponentsOfType(it, ContentTabLabel::class.java).find { tab -> tab.content == content }?.apply {
-                this.icon = icon
-                this.disabledIcon = icon
-                iconTextGap = 4
-                revalidate()
-                repaint()
-            }
-        }
     }
 
     fun getConfluentCloudTabController(): ConfluentTabController? {

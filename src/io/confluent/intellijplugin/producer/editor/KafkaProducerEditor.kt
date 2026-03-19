@@ -75,7 +75,7 @@ class KafkaProducerEditor(
     }
     val topics = kafkaManager.getTopics()
 
-    private val propertiesComponent = PropertiesTable("app.name=IntellijKafkaPlugin")
+    private val propertiesComponent = PropertiesTable("app.name=ConfluentJetBrainsPlugin")
 
     val topicComboBox = KafkaEditorUtils.createTopicComboBox(this, kafkaManager).apply {
         addActionListener {
@@ -229,6 +229,8 @@ class KafkaProducerEditor(
     }
 
     private fun startProduce(): Boolean {
+        produceButton.isEnabled = false
+
         val topic = topicComboBox.item
 
         val validationInfo = topicComboBox.getValidationInfo()
@@ -238,6 +240,7 @@ class KafkaProducerEditor(
             ?: valueFieldComponent.getSchemaValidationInfo()
 
         if (validationInfo != null) {
+            produceButton.isEnabled = true
             progress.onValidationError()
             return true
         }
@@ -247,11 +250,14 @@ class KafkaProducerEditor(
         SafeExecutor.instance.coroutineScope.launch {
             try {
                 executeNotOnEdtSuspend {
-                    if (!flowController.getParams().generateRandomKeys && !keyFieldComponent.validateSchema())
+                    if (!flowController.getParams().generateRandomKeys && !keyFieldComponent.validateSchema()) {
+                        invokeLater { produceButton.isEnabled = true }
                         return@executeNotOnEdtSuspend
-                    if (!flowController.getParams().generateRandomKeys && !valueFieldComponent.validateSchema())
+                    }
+                    if (!flowController.getParams().generateRandomKeys && !valueFieldComponent.validateSchema()) {
+                        invokeLater { produceButton.isEnabled = true }
                         return@executeNotOnEdtSuspend
-
+                    }
 
                     val key = keyFieldComponent.getProducerField()
                     val value = valueFieldComponent.getProducerField()
@@ -274,6 +280,7 @@ class KafkaProducerEditor(
                     }
                 }
             } catch (t: Throwable) {
+                invokeLater { produceButton.isEnabled = true }
                 RfsNotificationUtils.showExceptionMessage(project, t)
             }
         }
@@ -298,6 +305,7 @@ class KafkaProducerEditor(
             )
         )
 
+        produceButton.isEnabled = true
         produceButton.text = KafkaMessagesBundle.message("action.produce.stop")
         produceButton.icon = AllIcons.Actions.Suspend
         progress.onStart()
@@ -312,6 +320,7 @@ class KafkaProducerEditor(
             )
         )
 
+        produceButton.isEnabled = true
         produceButton.text = KafkaMessagesBundle.message("kafka.producer.action.produce.title")
         produceButton.icon = AllIcons.Actions.Execute
         progress.onStop()

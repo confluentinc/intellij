@@ -178,7 +178,8 @@ object KafkaEditorUtils {
                     return@addItemListener
 
                 scope.launch {
-                    val schemaType = calculateSchemaTypeForTopic(dataManager, topicCombobox, isKey) ?: return@launch
+                    val schemaType = calculateSchemaTypeForTopic(dataManager, topicCombobox, isKey)
+                        ?: KafkaFieldType.STRING
                     runInEdt {
                         fieldsCombobox.selectedItem = schemaType
                     }

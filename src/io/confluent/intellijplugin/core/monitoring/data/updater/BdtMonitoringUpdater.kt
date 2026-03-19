@@ -58,7 +58,9 @@ class BdtMonitoringUpdater(val dataManager: MonitoringDataManager) : Disposable 
     }
 
 
-    fun invokeRefreshModel(dataModel: DataModel<*>) = invokeRefreshModels(listOf(dataModel))
+    fun invokeRefreshModel(dataModel: DataModel<*>?) {
+        dataModel?.let { invokeRefreshModels(listOf(it)) }
+    }
 
     fun invokeRefreshModels(dataModels: List<DataModel<*>>) = executeOnPooledThread {
         executeTask(UpdateTask { innerRefresh(dataModels, it, withConnectionCheck = false) })
