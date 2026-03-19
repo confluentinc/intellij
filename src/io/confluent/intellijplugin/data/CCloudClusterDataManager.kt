@@ -671,8 +671,8 @@ class CCloudClusterDataManager(
             dataPlaneCache.deleteSchema(schemaName, permanent)
         }
         invalidateSchemaVersionCache(schemaName)
-        updater.invokeRefreshModel(schemaVersionModels[schemaName])
-        schemaRegistryModel?.let { updater.invokeRefreshModel(it) }
+        schemaVersionModels[schemaName].setData(FieldGroupsData(emptyList(), emptyList()))
+        removeSingleSchemaFromList(schemaName)
     }
 
     fun createSchema(schemaName: String, parsedSchema: io.confluent.kafka.schemaregistry.ParsedSchema) =
@@ -716,10 +716,29 @@ class CCloudClusterDataManager(
                     compareByDescending<KafkaSchemaInfo> { it.isFavorite }.thenBy { it.name.lowercase() }
                 )
 
-                schemaRegistryModel?.setData(sortedSchemas)
+                // Apply limit to respect user's limit setting
+                val (limitedSchemas, _) = applySchemaLimit(sortedSchemas, config.registryLimit)
+
+                schemaRegistryModel?.setData(limitedSchemas)
             }
         } catch (e: Exception) {
             thisLogger().warn("Failed to update single schema '$schemaName', falling back to full refresh", e)
+            schemaRegistryModel?.let { updater.invokeRefreshModel(it) }
+        }
+    }
+
+    private suspend fun removeSingleSchemaFromList(schemaName: String) {
+        try {
+            schemaEnrichmentJob?.cancel()
+            schemaEnrichmentJob = null
+
+            withContext(Dispatchers.Default) {
+                val currentSchemas = schemaRegistryModel?.data ?: emptyList()
+                val updatedSchemas = currentSchemas.filterNot { it.name == schemaName }
+                schemaRegistryModel?.setData(updatedSchemas)
+            }
+        } catch (e: Exception) {
+            thisLogger().warn("Failed to remove schema '$schemaName' from list", e)
             schemaRegistryModel?.let { updater.invokeRefreshModel(it) }
         }
     }
