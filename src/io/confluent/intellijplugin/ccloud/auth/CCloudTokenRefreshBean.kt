@@ -43,7 +43,7 @@ class CCloudTokenRefreshBean(
                 delay(CCloudOAuthConfig.CHECK_TOKEN_EXPIRATION_INTERVAL)
                 refreshIfNeeded()
             }
-            logger.info("Token refresh loop exited")
+            logger.debug("Token refresh loop exited")
         }
     }
 
@@ -81,13 +81,13 @@ class CCloudTokenRefreshBean(
         val expiresAt = context.expiresAt()
         val failedAttempts = context.getFailedTokenRefreshAttempts()
 
-        logger.info("Scheduler check: shouldRefresh=$shouldRefresh, expiresAt=$expiresAt, failedAttempts=$failedAttempts/${CCloudOAuthConfig.MAX_TOKEN_REFRESH_ATTEMPTS}")
+        logger.debug("Scheduler check: shouldRefresh=$shouldRefresh, expiresAt=$expiresAt, failedAttempts=$failedAttempts/${CCloudOAuthConfig.MAX_TOKEN_REFRESH_ATTEMPTS}")
 
         if (!shouldRefresh) {
             return
         }
 
-        logger.info("Refreshing tokens...")
+        logger.debug("Refreshing tokens...")
 
         // Use refresh() to track failures - after MAX_TOKEN_REFRESH_ATTEMPTS consecutive
         // failures, hasNonTransientError() becomes true and refresh stops
