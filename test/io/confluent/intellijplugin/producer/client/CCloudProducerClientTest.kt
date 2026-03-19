@@ -100,12 +100,12 @@ class CCloudProducerClientTest {
             }
 
             @Test
-            fun `should build JSON type data`() {
+            fun `should build STRING type for JSON data`() {
                 val field = createFieldConfig(KafkaFieldType.JSON, """{"key": "value"}""")
                 val data = runBlocking { client.buildRecordData(mockFetcher, field, "test-topic") }
 
                 assertNotNull(data)
-                assertEquals("JSON", data!!.type)
+                assertEquals("STRING", data!!.type)
                 assertEquals("""{"key": "value"}""", data.data)
             }
 
