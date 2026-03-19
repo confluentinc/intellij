@@ -323,8 +323,9 @@ class CCloudProducerClient(
                 type = "STRING",
                 data = field.valueText
             )
+            // STRING avoids double-encoding; mirrors KafkaProducerClient which uses StringSerializer for JSON
             KafkaFieldType.JSON -> ProduceRecordData(
-                type = "JSON",
+                type = "STRING",
                 data = field.valueText
             )
             KafkaFieldType.SCHEMA_REGISTRY -> buildSchemaRegistryData(fetcher, field, schemaCache)
