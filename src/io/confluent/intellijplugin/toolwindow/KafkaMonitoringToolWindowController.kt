@@ -7,16 +7,13 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
-import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ToolWindowManager
 import io.confluent.intellijplugin.core.monitoring.rfs.MonitoringDriver
 import io.confluent.intellijplugin.core.monitoring.toolwindow.ComponentController
 import io.confluent.intellijplugin.core.monitoring.toolwindow.MonitoringToolWindowController
-import io.confluent.intellijplugin.core.rfs.driver.ActivitySource
 import io.confluent.intellijplugin.core.rfs.driver.RfsPath
 import io.confluent.intellijplugin.core.rfs.driver.manager.DriverManager
-import io.confluent.intellijplugin.core.rfs.driver.refreshConnectionLaunch
 import io.confluent.intellijplugin.core.settings.connections.ConnectionData
 import io.confluent.intellijplugin.core.settings.connections.ConnectionFactory
 import io.confluent.intellijplugin.core.settings.manager.RfsConnectionDataManager
@@ -68,6 +65,7 @@ class KafkaMonitoringToolWindowController(project: Project) : MonitoringToolWind
 
             controller
         }
+
         else -> error("Unsupported connection type: ${connectionData::class.simpleName}")
     }
 
@@ -145,7 +143,7 @@ class KafkaMonitoringToolWindowController(project: Project) : MonitoringToolWind
             return getConfluentCloudTabController()?.getDriver()
         }
         return DriverManager.getDriverById(project, connectionId)
-            as? MonitoringDriver
+                as? MonitoringDriver
     }
 
     private fun addConfluentCloudTab() {
