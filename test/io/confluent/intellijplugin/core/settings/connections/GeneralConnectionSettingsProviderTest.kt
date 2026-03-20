@@ -28,18 +28,17 @@ class GeneralConnectionSettingsProviderTest {
     inner class CreateConnectionGroups {
 
         @Test
-        fun `should return two groups`() {
+        fun `should return one group`() {
             val groups = provider.createConnectionGroups()
 
-            assertEquals(2, groups.size)
+            assertEquals(1, groups.size)
         }
 
         @Test
-        fun `should have correct group IDs`() {
+        fun `should have CCloud group ID`() {
             val groups = provider.createConnectionGroups()
             val ids = groups.map { it.id }.toSet()
 
-            assertTrue(ids.contains(BrokerConnectionGroup.GROUP_ID))
             assertTrue(ids.contains(CCloudDisplayGroup.GROUP_ID))
         }
     }

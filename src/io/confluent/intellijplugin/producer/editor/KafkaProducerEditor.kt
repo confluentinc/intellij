@@ -75,7 +75,7 @@ class KafkaProducerEditor(
     }
     val topics = kafkaManager.getTopics()
 
-    private val propertiesComponent = PropertiesTable("app.name=IntellijKafkaPlugin")
+    private val propertiesComponent = PropertiesTable("app.name=ConfluentJetBrainsPlugin")
 
     val topicComboBox = KafkaEditorUtils.createTopicComboBox(this, kafkaManager).apply {
         addActionListener {
