@@ -161,10 +161,10 @@ object ConnectionUtil {
         }
     }
 
-    fun refreshConnectionsByIds(project: Project, connectionIds: List<String>) {
+    fun refreshConnectionsByIds(project: Project, connectionIds: List<String>, currentPath: RfsPath? = null) {
         val toRefresh = connectionIds.mapNotNull {
             DriverManager.getDriverById(project, it) as? MonitoringDriver
-        }.map { it to null as RfsPath? }
+        }.map { it to currentPath }
         refreshConnections(toRefresh)
     }
 

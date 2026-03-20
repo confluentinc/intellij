@@ -145,14 +145,6 @@ internal class ConfluentSchemaDetailController(
         updateVersion2Info()
     }
 
-    /** Refresh current schema detail view (reload version info). */
-    fun refresh() {
-        updateVersion1Info()
-        if (isEditMode.get()) {
-            updateVersion2Info()
-        }
-    }
-
     private fun updateVersion1Info() {
         val schemaName = schemaName ?: return
         val version = version1.component.item ?: return

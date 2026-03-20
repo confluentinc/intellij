@@ -31,7 +31,7 @@ class ConnectionGroupTest {
 
         @Test
         fun `should return panel with create connection prompt`() {
-            val group = BrokerConnectionGroup()
+            val group = KafkaConnectionGroup()
 
             val panel = group.createOptionsPanel() as javax.swing.JPanel
 
@@ -45,7 +45,7 @@ class ConnectionGroupTest {
 
         @Test
         fun `should not throw when called after createOptionsPanel`() {
-            val group = BrokerConnectionGroup()
+            val group = KafkaConnectionGroup()
             group.createOptionsPanel()
             group.disposeOptionsPanel()
         }
