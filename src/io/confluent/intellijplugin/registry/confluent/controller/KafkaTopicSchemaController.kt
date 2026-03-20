@@ -4,6 +4,8 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.intellij.ui.SimpleTextAttributes
 import com.intellij.ui.components.JBPanelWithEmptyText
+import com.intellij.ui.dsl.builder.Align
+import com.intellij.ui.dsl.builder.panel
 import com.intellij.util.ui.StatusText
 import io.confluent.intellijplugin.core.monitoring.data.listener.DataModelListener
 import io.confluent.intellijplugin.core.monitoring.toolwindow.DetailsMonitoringController
@@ -25,6 +27,11 @@ class KafkaTopicSchemaController(
     }
     private val curComponent = JBPanelWithEmptyText(BorderLayout())
     private val internalComponent = schemaController.getComponent()
+    private val loadingComponent = panel {
+        row {
+            label(KafkaMessagesBundle.message("confluent.cloud.details.schema.loading")).align(Align.CENTER)
+        }.resizableRow()
+    }
 
     private val listener = object : DataModelListener {
         override fun onChanged() {
@@ -51,13 +58,29 @@ class KafkaTopicSchemaController(
     override fun setDetailsId(id: String) {
         topicName = id
         val schemaName = id + viewType.suffix
-        if (dataManager.schemaExists(schemaName))
-            setSchemaForTopic(schemaName)
-        else
-            setEmptySchemaForTopic()
 
+        // Always show loading first, then determine final state via listener
+        setLoadingState()
+
+        val schemaModel = dataManager.schemaRegistryModel
+        val isInitialized = schemaModel?.isInitedByFirstTime ?: false
+
+        if (isInitialized) {
+            // Schemas already loaded, update immediately
+            if (dataManager.schemaExists(schemaName))
+                setSchemaForTopic(schemaName)
+            else
+                setEmptySchemaForTopic()
+        }
+        // Otherwise stay in loading state until listener fires
         curComponent.revalidate()
         curComponent.repaint()
+    }
+
+    private fun setLoadingState() {
+        curComponent.removeAll()
+        curComponent.emptyText.clear()
+        curComponent.add(loadingComponent, BorderLayout.CENTER)
     }
 
     private fun setSchemaForTopic(schemaName: String) {
