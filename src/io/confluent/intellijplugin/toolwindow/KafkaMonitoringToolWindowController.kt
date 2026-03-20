@@ -105,6 +105,11 @@ class KafkaMonitoringToolWindowController(project: Project) : MonitoringToolWind
                         versionModels.forEach { model ->
                             clusterDataManager.updater.invokeRefreshModel(model)
                         }
+
+                        val partitionModels = clusterDataManager.topicPartitionsModels.getModelsForRefresh()
+                        partitionModels.forEach { model ->
+                            clusterDataManager.updater.invokeRefreshModel(model)
+                        }
                     }
                 }
             }

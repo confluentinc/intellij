@@ -865,11 +865,13 @@ class CCloudClusterDataManager(
     override fun supportedConsumerProperties(): Set<String> = KafkaConsumerSettings.CCLOUD_PROPERTIES
     fun getDataPlaneCache(): DataPlaneCache = dataPlaneCache
 
-    /** Cancel all ongoing enrichment jobs (topics, schemas, partitions). Called when refresh is cancelled. */
+    /** Cancel all ongoing enrichment jobs and clear partition cache. Called during refresh. */
     fun cancelAllEnrichmentJobs() {
         topicEnrichmentJob?.cancel()
         schemaEnrichmentJob?.cancel()
         partitionEnrichmentJobs.values.forEach { it.cancel() }
+        partitionEnrichmentJobs.clear()
+        partitionCache.clear()
     }
 
     override fun dispose() {
