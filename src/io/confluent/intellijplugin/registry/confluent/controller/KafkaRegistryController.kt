@@ -43,6 +43,16 @@ internal class KafkaRegistryController(
     val registryType = dataManager.registryType
     private val model: ObjectDataModel<KafkaSchemaInfo> = dataManager.schemaRegistryModel!!
 
+    private val modelListener = object : DataModelListener {
+        override fun onChanged() {
+            updateUIForEmptyState()
+        }
+
+        override fun onError(msg: String, e: Throwable?) {
+            updateUIForEmptyState()
+        }
+    }
+
     private val cardLayout = CardLayout()
     private val wrapperPanel = JPanel(cardLayout)
     private val emptyPanel = JBPanelWithEmptyText(BorderLayout())
@@ -85,17 +95,14 @@ internal class KafkaRegistryController(
         wrapperPanel.add(emptyPanel, "EMPTY")
         wrapperPanel.add(super.getComponent(), "TABLE")
 
-        model.addListener(object : DataModelListener {
-            override fun onChanged() {
-                updateUIForEmptyState()
-            }
-
-            override fun onError(msg: String, e: Throwable?) {
-                updateUIForEmptyState()
-            }
-        })
+        model.addListener(modelListener)
 
         updateUIForEmptyState()
+    }
+
+    override fun dispose() {
+        model.removeListener(modelListener)
+        super.dispose()
     }
 
     override fun getComponent() = wrapperPanel
@@ -112,8 +119,8 @@ internal class KafkaRegistryController(
         } else {
             cardLayout.show(wrapperPanel, "TABLE")
             (decoratedTableComponent.layout as? BorderLayout)
-                ?.getLayoutComponent(BorderLayout.NORTH)?.isVisible = hasSchemas || hasFilters
-            dataTable.tableHeader?.isVisible = hasSchemas || hasFilters
+                ?.getLayoutComponent(BorderLayout.NORTH)?.isVisible = true
+            dataTable.tableHeader?.isVisible = true
             if (!hasSchemas) updateEmptyText()
         }
     }
