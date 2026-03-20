@@ -347,6 +347,7 @@ internal class ConfluentMainController(
         driver.selectedEnvironmentId = envId
         myTree.clearSelection()
 
+        dataManager.updater.stopAll()
         dataManager.cancelAllEnrichmentJobs()
 
         dataManager.preInitializeCachesForEnvironment(envId) {
