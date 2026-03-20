@@ -51,6 +51,7 @@ class KafkaTopicSchemaController(
     fun init() {
         setEmptyText()
         dataManager.schemaRegistryModel?.addListener(listener)
+        dataManager.initRefreshSchemasIfRequired()
     }
 
     override fun getComponent(): JComponent = curComponent
