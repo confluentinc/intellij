@@ -7,6 +7,7 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
+import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ToolWindowManager
 import io.confluent.intellijplugin.core.monitoring.rfs.MonitoringDriver
@@ -86,21 +87,34 @@ class KafkaMonitoringToolWindowController(project: Project) : MonitoringToolWind
         val connectionId = contentManager.selectedContent?.getUserData(CONNECTION_ID) ?: return
 
         if (connectionId == "ccloud") {
-            val tabController = getConfluentCloudTabController()
-            val driver = tabController?.getDriver()
+            val driver = getConfluentCloudTabController()?.getDriver()
 
             driver?.let {
                 it.dataManager.updater.stopAll()
                 it.dataManager.cancelAllEnrichmentJobs()
 
-                tabController.getMainController()?.refreshControlPlane()
+                it.dataManager.getAllClusterDataManagers().forEach { clusterDataManager ->
+                    clusterDataManager.getDataPlaneCache().clearTopicCache()
+                    clusterDataManager.getDataPlaneCache().clearSchemaCache()
+                    clusterDataManager.clearAllVersionCaches()
+
+                    clusterDataManager.topicModel?.let { model ->
+                        clusterDataManager.updater.invokeRefreshModel(model)
+                    }
+                    clusterDataManager.schemaRegistryModel?.let { model ->
+                        clusterDataManager.updater.invokeRefreshModel(model)
+                    }
+
+                    val versionModels = clusterDataManager.schemaVersionModels.getModelsForRefresh()
+                    versionModels.forEach { model ->
+                        clusterDataManager.updater.invokeRefreshModel(model)
+                    }
+                }
 
                 it.safeExecutor.coroutineScope.launch {
                     it.dataManager.updater.reloadAll(checkConnection = false)
                 }
             }
-
-            tabController?.refreshDetailPanel()
             return
         }
 
