@@ -6,6 +6,7 @@ import io.confluent.intellijplugin.ccloud.model.response.ConsumeRecordsRequest
 import io.confluent.intellijplugin.ccloud.model.response.ConsumeRecordsResponse
 import io.confluent.intellijplugin.ccloud.model.response.PartitionConsumeRecord
 import io.confluent.intellijplugin.ccloud.model.response.PartitionOffset
+import io.confluent.intellijplugin.ccloud.model.response.SchemaByIdResponse
 import io.confluent.intellijplugin.ccloud.model.response.TimestampType as ApiTimestampType
 import io.confluent.intellijplugin.common.models.BdtKafkaCustomAvroDeserializer
 import io.confluent.intellijplugin.common.models.BdtKafkaCustomProtobufDeserializer
@@ -748,7 +749,7 @@ class CCloudConsumerClient(
     private suspend fun fetchAndParseSchema(
         registryId: SchemaRegistryClusterId,
         key: SchemaCacheKey,
-        fetch: suspend () -> io.confluent.intellijplugin.ccloud.model.response.SchemaByIdResponse
+        fetch: suspend () -> SchemaByIdResponse
     ): ParsedSchema {
         val registryCache = schemaCache.getOrPut(registryId) { ConcurrentHashMap() }
         return registryCache.getOrPut(key) {

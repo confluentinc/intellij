@@ -15,9 +15,6 @@ import com.intellij.ui.OnePixelSplitter
 import com.intellij.ui.PopupHandler
 import com.intellij.ui.SideBorder
 import com.intellij.ui.components.JBScrollPane
-import com.intellij.ui.components.JBPanelWithEmptyText
-import com.intellij.ui.SimpleTextAttributes
-import com.intellij.util.ui.StatusText
 import com.intellij.util.ui.JBUI
 import com.intellij.ui.dsl.builder.Align
 import com.intellij.ui.dsl.builder.panel
@@ -50,14 +47,11 @@ import io.confluent.intellijplugin.core.rfs.viewer.utils.DriverRfsTreeUtil.lastD
 import io.confluent.intellijplugin.core.util.invokeLater
 import io.confluent.intellijplugin.data.CCloudClusterDataManager
 import io.confluent.intellijplugin.registry.KafkaRegistryType
-import io.confluent.intellijplugin.registry.KafkaRegistryAddSchemaDialog
 import io.confluent.intellijplugin.registry.confluent.controller.KafkaRegistryController
 import io.confluent.intellijplugin.ccloud.model.Environment
 import io.confluent.intellijplugin.toolwindow.NavigableController
 import io.confluent.intellijplugin.util.KafkaMessagesBundle.message
 import com.intellij.ui.table.JBTable
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import org.jetbrains.concurrency.Promise
 import java.awt.BorderLayout
 import java.awt.CardLayout
@@ -155,7 +149,7 @@ internal class ConfluentMainController(
                         selectedEnvironmentId.get()?.let { envId ->
                             hasShownInitialEnvironmentDetails = true
                             showEnvironmentDetails(envId)
-                            (details.layout as CardLayout).show(details, ENVIRONMENT_PANEL)
+                            detailsLayout.show(details, ENVIRONMENT_PANEL)
                         }
                     }
                 } else {
@@ -177,57 +171,6 @@ internal class ConfluentMainController(
 
     override fun dispose() {}
 
-    fun refreshControlPlane() {
-        val prevSelectedId = selectedEnvironmentId.get()
-
-        driver.safeExecutor.coroutineScope.launch(Dispatchers.IO) {
-            try {
-                dataManager.client.refreshEnvironments()
-
-                if (prevSelectedId != null) {
-                    dataManager.client.refreshKafkaClusters(prevSelectedId)
-                    dataManager.client.refreshSchemaRegistry(prevSelectedId)
-                }
-
-                invokeLater {
-                    populateEnvironmentSelector()
-
-                    if (prevSelectedId != null) {
-                        val envStillExists = environmentComboBoxModel.getSize() > 0 &&
-                                (0 until environmentComboBoxModel.size).any {
-                                    (environmentComboBoxModel.getElementAt(it) as? EnvironmentItem)?.id == prevSelectedId
-                                }
-
-                        if (envStillExists) {
-                            selectedEnvironmentId.set(prevSelectedId)
-                            environmentComboBoxModel.selectedItem = environmentComboBoxModel.run {
-                                (0 until size).map { getElementAt(it) as EnvironmentItem }
-                                    .find { it.id == prevSelectedId }
-                            }
-
-                            driver.selectedEnvironmentId = prevSelectedId
-                            dataManager.cancelAllEnrichmentJobs()
-                            dataManager.preInitializeCachesForEnvironment(prevSelectedId) {
-                                driver.registerListenersForEnvironment(prevSelectedId)
-                                driver.fileInfoManager.refreshFiles(driver.root)
-                            }
-
-                            if ((details.layout as? CardLayout)?.let { true } == true) {
-                                showEnvironmentDetails(prevSelectedId)
-                            }
-                        }
-                    }
-                }
-            } catch (e: Exception) {
-                thisLogger().warn("Failed to refresh control plane", e)
-            }
-        }
-    }
-
-    /** Refresh currently visible schema detail panel. */
-    fun refreshDetailPanel() {
-        currentSchemaDetailsController?.takeIf { !Disposer.isDisposed(it) }?.refresh()
-    }
 
     fun init() {
         details.add(emptyDetailsPanel, EMPTY_PANEL)
@@ -311,11 +254,11 @@ internal class ConfluentMainController(
 
         myTree.addTreeSelectionListener {
             val treePath = it.newLeadSelectionPath
-            if (treePath != null)
+            if (treePath != null) {
                 lastSelectedPath = treePath
-
-            val rfsPath = treePath?.lastDriverNode?.rfsPath
-            showDetailsComponent(rfsPath)
+                val rfsPath = treePath.lastDriverNode?.rfsPath
+                showDetailsComponent(rfsPath)
+            }
         }
 
         return OnePixelSplitter().apply {
@@ -404,6 +347,7 @@ internal class ConfluentMainController(
         driver.selectedEnvironmentId = envId
         myTree.clearSelection()
 
+        dataManager.updater.stopAll()
         dataManager.cancelAllEnrichmentJobs()
 
         dataManager.preInitializeCachesForEnvironment(envId) {
@@ -416,7 +360,7 @@ internal class ConfluentMainController(
         invokeLater {
             com.intellij.util.ui.tree.TreeUtil.collapseAll(myTree, 0)
             showEnvironmentDetails(envId)
-            (details.layout as CardLayout).show(details, ENVIRONMENT_PANEL)
+            detailsLayout.show(details, ENVIRONMENT_PANEL)
         }
     }
 
@@ -425,39 +369,38 @@ internal class ConfluentMainController(
     }
 
     private fun showDetailsComponent(rfsPath: RfsPath?) {
-        val layout = details.layout as CardLayout
         when {
             rfsPath == null -> {
                 val envId = selectedEnvironmentId.get()
                 if (envId != null) {
                     showEnvironmentDetails(envId)
-                    layout.show(details, ENVIRONMENT_PANEL)
+                    detailsLayout.show(details, ENVIRONMENT_PANEL)
                 } else {
-                    layout.show(details, EMPTY_PANEL)
+                    detailsLayout.show(details, EMPTY_PANEL)
                 }
             }
 
             rfsPath.isCluster(driver) -> {
                 showTopicsDetails(rfsPath)
-                layout.show(details, TOPICS_PANEL)
+                detailsLayout.show(details, TOPICS_PANEL)
             }
 
             rfsPath.isTopic -> {
                 showTopicDetail(rfsPath)
-                layout.show(details, TOPIC_DETAIL_PANEL)
+                detailsLayout.show(details, TOPIC_DETAIL_PANEL)
             }
 
             rfsPath.isSchemaRegistry(driver) -> {
                 showSchemasDetails(rfsPath)
-                layout.show(details, SCHEMAS_PANEL)
+                detailsLayout.show(details, SCHEMAS_PANEL)
             }
 
             rfsPath.isSchema -> {
                 showSchemaDetail(rfsPath)
-                layout.show(details, SCHEMA_DETAIL_PANEL)
+                detailsLayout.show(details, SCHEMA_DETAIL_PANEL)
             }
 
-            else -> layout.show(details, EMPTY_PANEL)
+            else -> detailsLayout.show(details, EMPTY_PANEL)
         }
     }
 
@@ -503,7 +446,6 @@ internal class ConfluentMainController(
 
             val cluster = dataManager.getCachedKafkaClusters(envId)?.find { it.id == clusterId }
             if (cluster == null) {
-                myTree.clearSelection()
                 return@updatePanel createPlaceholderPanel(message("confluent.cloud.details.resource.not.available"))
             }
 
@@ -545,7 +487,6 @@ internal class ConfluentMainController(
 
         val cluster = dataManager.getCachedKafkaClusters(envId)?.find { it.id == clusterId }
         if (cluster == null) {
-            myTree.clearSelection()
             topicDetailPanel.add(
                 JLabel(
                     message("confluent.cloud.details.resource.not.available"),
@@ -580,7 +521,6 @@ internal class ConfluentMainController(
 
             val sr = dataManager.getCachedSchemaRegistry(envId)
             if (sr == null || sr.id != srId) {
-                myTree.clearSelection()
                 return@updatePanel createPlaceholderPanel(message("confluent.cloud.details.resource.not.available"))
             }
 
@@ -594,21 +534,6 @@ internal class ConfluentMainController(
             }
 
             clusterDataManager.initRefreshSchemasIfRequired()
-
-            // Show clean empty panel when no schemas exist
-            val schemas = clusterDataManager.getSchemas()
-            if (schemas.isEmpty()) {
-                return@updatePanel JBPanelWithEmptyText(BorderLayout()).apply {
-                    emptyText.clear()
-                    emptyText.appendText(message("schemas.empty.text"), StatusText.DEFAULT_ATTRIBUTES)
-                    emptyText.appendLine(
-                        message("schemas.empty.text.create.link"),
-                        SimpleTextAttributes.LINK_ATTRIBUTES
-                    ) {
-                        KafkaRegistryAddSchemaDialog(project, clusterDataManager).show()
-                    }
-                }
-            }
 
             val registryController = getOrCreateRegistryController(srId, clusterDataManager)
             registryController.getComponent()
@@ -644,7 +569,6 @@ internal class ConfluentMainController(
 
         val sr = dataManager.getCachedSchemaRegistry(envId)
         if (sr == null || sr.id != srId) {
-            myTree.clearSelection()
             schemaDetailPanel.add(
                 JLabel(
                     message("confluent.cloud.details.resource.not.available"),
