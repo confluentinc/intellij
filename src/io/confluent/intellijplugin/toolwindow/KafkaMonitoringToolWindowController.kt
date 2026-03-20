@@ -96,7 +96,11 @@ class KafkaMonitoringToolWindowController(project: Project) : MonitoringToolWind
                         clusterDataManager.getDataPlaneCache().clearTopicCache()
                         clusterDataManager.getDataPlaneCache().clearSchemaCache()
                         clusterDataManager.clearAllVersionCaches()
+                    }
 
+                    it.dataManager.updater.reloadAll(checkConnection = false)
+
+                    it.dataManager.getAllClusterDataManagers().forEach { clusterDataManager ->
                         clusterDataManager.topicModel?.let { model ->
                             clusterDataManager.updater.invokeRefreshModel(model)
                         }
@@ -109,8 +113,6 @@ class KafkaMonitoringToolWindowController(project: Project) : MonitoringToolWind
                             clusterDataManager.updater.invokeRefreshModel(model)
                         }
                     }
-
-                    it.dataManager.updater.reloadAll(checkConnection = false)
                 }
             }
             return
