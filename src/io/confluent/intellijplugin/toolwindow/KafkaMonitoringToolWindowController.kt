@@ -101,13 +101,6 @@ class KafkaMonitoringToolWindowController(project: Project) : MonitoringToolWind
                     it.dataManager.updater.reloadAll(checkConnection = false)
 
                     it.dataManager.getAllClusterDataManagers().forEach { clusterDataManager ->
-                        clusterDataManager.topicModel?.let { model ->
-                            clusterDataManager.updater.invokeRefreshModel(model)
-                        }
-                        clusterDataManager.schemaRegistryModel?.let { model ->
-                            clusterDataManager.updater.invokeRefreshModel(model)
-                        }
-
                         val versionModels = clusterDataManager.schemaVersionModels.getModelsForRefresh()
                         versionModels.forEach { model ->
                             clusterDataManager.updater.invokeRefreshModel(model)
