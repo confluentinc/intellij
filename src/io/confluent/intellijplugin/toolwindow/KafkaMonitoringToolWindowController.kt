@@ -91,25 +91,25 @@ class KafkaMonitoringToolWindowController(project: Project) : MonitoringToolWind
                 it.dataManager.updater.stopAll()
                 it.dataManager.cancelAllEnrichmentJobs()
 
-                it.dataManager.getAllClusterDataManagers().forEach { clusterDataManager ->
-                    clusterDataManager.getDataPlaneCache().clearTopicCache()
-                    clusterDataManager.getDataPlaneCache().clearSchemaCache()
-                    clusterDataManager.clearAllVersionCaches()
-
-                    clusterDataManager.topicModel?.let { model ->
-                        clusterDataManager.updater.invokeRefreshModel(model)
-                    }
-                    clusterDataManager.schemaRegistryModel?.let { model ->
-                        clusterDataManager.updater.invokeRefreshModel(model)
-                    }
-
-                    val versionModels = clusterDataManager.schemaVersionModels.getModelsForRefresh()
-                    versionModels.forEach { model ->
-                        clusterDataManager.updater.invokeRefreshModel(model)
-                    }
-                }
-
                 it.safeExecutor.coroutineScope.launch {
+                    it.dataManager.getAllClusterDataManagers().forEach { clusterDataManager ->
+                        clusterDataManager.getDataPlaneCache().clearTopicCache()
+                        clusterDataManager.getDataPlaneCache().clearSchemaCache()
+                        clusterDataManager.clearAllVersionCaches()
+
+                        clusterDataManager.topicModel?.let { model ->
+                            clusterDataManager.updater.invokeRefreshModel(model)
+                        }
+                        clusterDataManager.schemaRegistryModel?.let { model ->
+                            clusterDataManager.updater.invokeRefreshModel(model)
+                        }
+
+                        val versionModels = clusterDataManager.schemaVersionModels.getModelsForRefresh()
+                        versionModels.forEach { model ->
+                            clusterDataManager.updater.invokeRefreshModel(model)
+                        }
+                    }
+
                     it.dataManager.updater.reloadAll(checkConnection = false)
                 }
             }
