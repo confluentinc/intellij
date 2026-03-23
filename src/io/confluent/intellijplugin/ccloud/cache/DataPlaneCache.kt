@@ -100,6 +100,7 @@ class DataPlaneCache @VisibleForTesting internal constructor(
 
     fun clearTopicCache() {
         cachedTopics = null
+        cachedTopicEnrichment.clear()
     }
 
     /** Fetch topics from API, update cache. Cleans stale enrichment for deleted topics. */
