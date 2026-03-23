@@ -604,7 +604,7 @@ class CCloudClusterDataManager(
 
             invalidateSchemaVersionCache(versionInfo.schemaName)
             updateSingleSchemaInList(versionInfo.schemaName)
-            schemaVersionModels[versionInfo.schemaName]?.let { updater.invokeRefreshModel(it) }
+            updater.invokeRefreshModel(schemaVersionModels[versionInfo.schemaName])
             Unit
         }.deferred.asCompletableFuture().asPromise().asSilent()
 
