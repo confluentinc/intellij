@@ -321,6 +321,7 @@ internal class ConfluentMainController(
 
     private fun populateEnvironmentSelector() {
         val environments = dataManager.client.getEnvironments()
+            .sortedBy { it.displayName.lowercase() }
 
         environmentComboBoxModel.removeAllElements()
 
