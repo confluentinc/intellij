@@ -26,6 +26,7 @@ import com.intellij.ui.layout.migLayout.createLayoutConstraints
 import com.intellij.ui.layout.migLayout.patched.MigLayout
 import io.confluent.intellijplugin.common.editor.SchemaVersionDiffController
 import io.confluent.intellijplugin.common.editor.SchemaVersionsComboboxController
+import io.confluent.intellijplugin.core.monitoring.data.listener.DataModelListener
 import io.confluent.intellijplugin.core.monitoring.toolwindow.ComponentController
 import io.confluent.intellijplugin.core.monitoring.toolwindow.DetailsMonitoringController
 import io.confluent.intellijplugin.core.ui.CustomComponentActionImpl
@@ -77,6 +78,13 @@ internal class ConfluentSchemaDetailController(
 
     private val version1Controller = SchemaVersionsComboboxController(this, dataManager) { versions ->
         isEditModeAvailable.set(versions.size > 1)
+        if (versions.isNotEmpty()) {
+            version1.component.item = versions.first()
+            updateVersion1Info()
+        } else {
+            isLoading.set(false)
+            hasContent.set(false)
+        }
     }.also {
         Disposer.register(this, it)
     }
@@ -141,8 +149,6 @@ internal class ConfluentSchemaDetailController(
         version1Controller.setSchema(id)
         version2Controller.setSchema(id)
         schemaName = id
-        updateVersion1Info()
-        updateVersion2Info()
     }
 
     private fun updateVersion1Info() {
@@ -317,6 +323,13 @@ internal class ConfluentSchemaDetailController(
                     project,
                     versionInfo
                 ) { newText ->
+                    val versionModel = dataManager.getSchemaVersionsModel(versionInfo.schemaName)
+                    versionModel.addListener(object : DataModelListener {
+                        override fun onChanged() {
+                            invokeLater { version1.component.item = versionModel.originObject?.firstOrNull() }
+                            versionModel.removeListener(this)
+                        }
+                    })
                     dataManager.updateSchema(versionInfo, newText)
                 }
             }
