@@ -603,6 +603,7 @@ class CCloudClusterDataManager(
             dataPlaneCache.createSchema(versionInfo.schemaName, request)
 
             invalidateSchemaVersionCache(versionInfo.schemaName)
+            updateSingleSchemaInList(versionInfo.schemaName)
             updater.invokeRefreshModel(schemaVersionModels[versionInfo.schemaName])
             Unit
         }.deferred.asCompletableFuture().asPromise().asSilent()
