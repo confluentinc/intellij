@@ -78,7 +78,13 @@ class JTableBenchmark(parentDisposable: Disposable) : TableBenchmark {
     }
 
     override suspend fun waitUntilReady() {
-        // JTable is ready immediately
+        // Wait until the component is actually displayed so paintImmediately works
+        withContext(Dispatchers.IO) {
+            val deadline = System.currentTimeMillis() + 10_000
+            while (!table.isShowing && System.currentTimeMillis() < deadline) {
+                delay(50)
+            }
+        }
     }
 
     override suspend fun benchmarkAddRows(records: List<KafkaRecord>): BenchmarkResult {
@@ -90,9 +96,7 @@ class JTableBenchmark(parentDisposable: Disposable) : TableBenchmark {
             data.addAll(records)
             model.fireTableRowsInserted(startIndex, data.size - 1)
             table.doLayout()
-            if (table.isShowing) {
-                table.paintImmediately(table.visibleRect)
-            }
+            table.paintImmediately(table.visibleRect)
 
             val durationMs = (System.nanoTime() - t0) / 1_000_000.0
             result = BenchmarkResult(durationMs, records.size)
@@ -109,9 +113,7 @@ class JTableBenchmark(parentDisposable: Disposable) : TableBenchmark {
             data.addAll(records)
             model.fireTableDataChanged()
             table.doLayout()
-            if (table.isShowing) {
-                table.paintImmediately(table.visibleRect)
-            }
+            table.paintImmediately(table.visibleRect)
 
             val durationMs = (System.nanoTime() - t0) / 1_000_000.0
             result = BenchmarkResult(durationMs, records.size)
