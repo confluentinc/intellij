@@ -1,6 +1,5 @@
 package io.confluent.intellijplugin.actions.dev.ui
 
-import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.ui.dsl.builder.bindIntText
@@ -76,13 +75,10 @@ class JcefBenchmarkDialog(project: Project) : DialogWrapper(project) {
         if (opInsert) operations.add("insert")
         if (opReplace) operations.add("replace")
 
-        val config = BenchmarkConfig(
+        return BenchmarkConfig(
             testSizes = testSizes.sorted(),
             operations = operations,
             iterations = iterations
         )
-
-        thisLogger().info("Config: $config")
-        return config
     }
 }

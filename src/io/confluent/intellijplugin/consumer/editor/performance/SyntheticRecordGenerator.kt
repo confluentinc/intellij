@@ -30,8 +30,7 @@ object SyntheticRecordGenerator {
                 valueSize = options.averageValueSize,
                 headers = emptyList(),
                 keyFormat = KafkaRegistryFormat.UNKNOWN,
-                valueFormat = KafkaRegistryFormat.UNKNOWN,
-                errror = null
+                valueFormat = KafkaRegistryFormat.UNKNOWN
             )
         }
     }

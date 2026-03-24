@@ -3,7 +3,6 @@ package io.confluent.intellijplugin.actions.dev.ui
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.Messages
-import com.intellij.openapi.util.Disposer
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.jcef.JBCefApp
 import com.intellij.ui.table.JBTable
@@ -24,7 +23,8 @@ class JcefBenchmarkPanel(
     private val config: BenchmarkConfig
 ) : Disposable {
 
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    private val job = SupervisorJob()
+    private val scope = CoroutineScope(job + Dispatchers.Default)
     private lateinit var runner: PerformanceBenchmarkRunner
     private var allMetrics: List<PerformanceMetrics> = emptyList()
 
@@ -218,6 +218,6 @@ class JcefBenchmarkPanel(
     }
 
     override fun dispose() {
-        // Scope cancelled via SupervisorJob
+        job.cancel()
     }
 }
