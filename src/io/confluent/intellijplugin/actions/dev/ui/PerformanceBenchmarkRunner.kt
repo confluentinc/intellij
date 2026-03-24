@@ -24,6 +24,16 @@ class PerformanceBenchmarkRunner(
             jcef.waitUntilReady()
             delay(1000) // settling time for JCEF browser
 
+            // Warmup pass: run a small insert+clear on both implementations
+            // to pay JIT compilation and class loading costs before measuring
+            val warmupRecords = SyntheticRecordGenerator.generateRecords(100)
+            for (benchmark in listOf(jtable, jcef)) {
+                onProgress?.invoke("Warming up ${benchmark.name}...", 0, 100)
+                benchmark.benchmarkAddRows(warmupRecords)
+                benchmark.cleanup()
+                delay(200)
+            }
+
             val benchmarks = listOf(jtable, jcef)
             val totalTests = config.testSizes.size * config.operations.size * config.iterations * benchmarks.size
             var currentTest = 0

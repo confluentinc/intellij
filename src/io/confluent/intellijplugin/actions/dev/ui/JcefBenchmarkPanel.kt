@@ -14,6 +14,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import java.awt.BorderLayout
 import java.awt.Dimension
+import java.awt.GraphicsEnvironment
 import java.io.File
 import javax.swing.*
 import javax.swing.table.DefaultTableModel
@@ -81,6 +82,8 @@ class JcefBenchmarkPanel(
         }
     }
 
+    private val previewFrames = mutableListOf<JFrame>()
+
     fun runBenchmark() {
         try {
             val jtable = JTableBenchmark(this)
@@ -94,42 +97,31 @@ class JcefBenchmarkPanel(
                 config, jtable,
                 jcef ?: run {
                     SwingUtilities.invokeLater {
-                        statusLabel.text = "JCEF not supported - running JTable only"
+                        statusLabel.text = "JCEF not supported - running JBTable only"
                     }
-                    jtable // fallback: compare JTable against itself (not useful, but won't crash)
+                    jtable
                 },
                 scope
             )
 
-            // Add preview panels so the components are visible (required for accurate rendering)
-            val previewPanel = JPanel().apply {
-                layout = BoxLayout(this, BoxLayout.X_AXIS)
-                add(JPanel(BorderLayout()).apply {
-                    add(JLabel("JTable Preview:"), BorderLayout.NORTH)
-                    add(jtable.component, BorderLayout.CENTER)
-                    preferredSize = Dimension(350, 180)
-                })
-                if (jcef != null) {
-                    add(Box.createHorizontalStrut(5))
-                    add(JPanel(BorderLayout()).apply {
-                        add(JLabel("JCEF Preview:"), BorderLayout.NORTH)
-                        add(jcef.component, BorderLayout.CENTER)
-                        preferredSize = Dimension(350, 180)
-                    })
-                }
-                maximumSize = Dimension(Int.MAX_VALUE, 200)
-            }
+            // Open each table in its own window so the viewport is large enough
+            // for realistic rendering (more visible rows = more DOM/paint work)
+            val screenBounds = GraphicsEnvironment.getLocalGraphicsEnvironment()
+                .defaultScreenDevice.defaultConfiguration.bounds
+            val frameWidth = screenBounds.width / 2
+            val frameHeight = (screenBounds.height * 0.85).toInt()
 
-            // Insert preview between results and buttons
-            val currentSouth = component.getComponent(2) // button panel
-            component.remove(currentSouth)
-            val bottomPanel = JPanel(BorderLayout(5, 5)).apply {
-                add(previewPanel, BorderLayout.CENTER)
-                add(currentSouth, BorderLayout.SOUTH)
+            val jtableFrame = createPreviewFrame(
+                "JBTable Preview", jtable.component, 0, 0, frameWidth, frameHeight
+            )
+            previewFrames.add(jtableFrame)
+
+            if (jcef != null) {
+                val jcefFrame = createPreviewFrame(
+                    "JCEF Preview", jcef.component, frameWidth, 0, frameWidth, frameHeight
+                )
+                previewFrames.add(jcefFrame)
             }
-            component.add(bottomPanel, BorderLayout.SOUTH)
-            component.revalidate()
-            component.repaint()
 
             runner.onProgress = { status, current, total ->
                 SwingUtilities.invokeLater {
@@ -160,6 +152,21 @@ class JcefBenchmarkPanel(
                     "Benchmark Error"
                 )
             }
+        }
+    }
+
+    private fun createPreviewFrame(
+        title: String,
+        content: JComponent,
+        x: Int, y: Int,
+        width: Int, height: Int
+    ): JFrame {
+        return JFrame(title).apply {
+            defaultCloseOperation = JFrame.DISPOSE_ON_CLOSE
+            contentPane.layout = BorderLayout()
+            contentPane.add(content, BorderLayout.CENTER)
+            setBounds(x, y, width, height)
+            isVisible = true
         }
     }
 
@@ -219,5 +226,6 @@ class JcefBenchmarkPanel(
 
     override fun dispose() {
         job.cancel()
+        previewFrames.forEach { it.dispose() }
     }
 }
