@@ -9,7 +9,7 @@ All noteworthy changes to this plugin will be documented in this file.
 
 ## 253.25910.0
 ### Changed
-- Rebrand plugin from "Kafka" to "Confluent" (#471)
+- Rebrand plugin from "Kafka" to "Confluent" and publish under Apache 2 license
 
 ### Added
 - OAuth support for logging in to Confluent Cloud directly, with the ability to view & interact with environments and resources.
@@ -17,4 +17,4 @@ All noteworthy changes to this plugin will be documented in this file.
 ### Removed
 
 ### Fixed
-- Consumer performance improvements: batch table updates and optimized storage (#431)
+- Consumer performance improvements: batch table updates and optimized storage
