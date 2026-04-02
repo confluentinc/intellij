@@ -9,8 +9,7 @@ import com.intellij.openapi.startup.ProjectActivity
 import io.confluent.intellijplugin.settings.app.KafkaPluginSettings
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
 
-private const val DOCS_URL =
-    "https://docs.confluent.io/cloud/current/client-apps/kafka-plugin-for-jetbrains-ides.html"
+private const val GITHUB_URL = "https://github.com/confluentinc/intellij"
 
 internal class RebrandNotificationActivity : ProjectActivity {
     override suspend fun execute(project: Project) {
@@ -32,7 +31,7 @@ internal class RebrandNotificationActivity : ProjectActivity {
             NotificationAction.createSimpleExpiring(
                 KafkaMessagesBundle.message("rebrand.notification.action.docs")
             ) {
-                BrowserUtil.browse(DOCS_URL)
+                BrowserUtil.browse(GITHUB_URL)
             }
         )
 
