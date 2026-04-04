@@ -305,6 +305,8 @@ class KafkaDataManager(
         withContext(Dispatchers.IO) {
             client.confluentRegistryClient?.deleteSchema(schemaName, permanent)
                 ?: client.glueRegistryClient?.deleteSchema(schemaName)
+            schemaTypeCache.remove(schemaName)
+            updater.invokeRefreshModel(schemaVersionModels[schemaName])
             schemaRegistryModel?.let { updater.invokeRefreshModel(it) }
         }
 
@@ -318,11 +320,13 @@ class KafkaDataManager(
                 "",
                 emptyMap()
             )
+        schemaTypeCache[schemaName] = KafkaRegistryFormat.parse(parsedSchema.schemaType())
         schemaRegistryModel?.let { updater.invokeRefreshModel(it) }
+        updater.invokeRefreshModel(schemaVersionModels[schemaName])
     }
 
     override suspend fun getCachedOrLoadSchema(name: String): KafkaSchemaInfo =
-        getCachedSchema(name)?.takeIf { it.type != null } ?: loadSchema(name)
+        getCachedSchema(name)?.takeIf { !it.isSoftDeleted } ?: loadSchema(name)
 
     private suspend fun getCachedOrLoadSchemaType(name: String): KafkaRegistryFormat? =
         schemaTypeCache[name] ?: getCachedOrLoadSchema(name).type?.also {
