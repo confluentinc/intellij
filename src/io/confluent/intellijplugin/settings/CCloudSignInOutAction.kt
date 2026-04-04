@@ -4,6 +4,7 @@ import com.intellij.icons.AllIcons
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.project.DumbAwareAction
 import io.confluent.intellijplugin.ccloud.auth.CCloudAuthService
+import io.confluent.intellijplugin.ccloud.auth.InvokedPlace
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
 
 /**
@@ -35,9 +36,9 @@ class CCloudSignInOutAction(
 
         val authService = CCloudAuthService.getInstance()
         if (authService.isSignedIn()) {
-            authService.signOut()
+            authService.signOut(invokedPlace = InvokedPlace.SETTINGS_PANEL)
         } else {
-            authService.signIn()
+            authService.signIn(invokedPlace = InvokedPlace.SETTINGS_PANEL)
         }
     }
 }
