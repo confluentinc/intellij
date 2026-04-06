@@ -7,6 +7,7 @@ import com.intellij.testFramework.TestActionEvent
 import com.intellij.testFramework.junit5.TestApplication
 import com.intellij.testFramework.replaceService
 import io.confluent.intellijplugin.ccloud.auth.CCloudAuthService
+import io.confluent.intellijplugin.ccloud.auth.InvokedPlace
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -106,7 +107,7 @@ class CCloudSignInOutActionTest {
 
             action.actionPerformed(event)
 
-            verify(mockAuthService).signIn()
+            verify(mockAuthService).signIn(invokedPlace = InvokedPlace.SETTINGS_PANEL)
             verify(mockAuthService, never()).signOut()
         }
 
@@ -118,7 +119,7 @@ class CCloudSignInOutActionTest {
 
             action.actionPerformed(event)
 
-            verify(mockAuthService).signOut()
+            verify(mockAuthService).signOut(invokedPlace = InvokedPlace.SETTINGS_PANEL)
             verify(mockAuthService, never()).signIn()
         }
 
