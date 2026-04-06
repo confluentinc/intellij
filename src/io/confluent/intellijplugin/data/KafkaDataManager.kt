@@ -13,7 +13,6 @@ import io.confluent.intellijplugin.client.BdtKafkaMapper
 import io.confluent.intellijplugin.client.KafkaClient
 import io.confluent.intellijplugin.common.models.RegistrySchemaInEditor
 import io.confluent.intellijplugin.core.connection.updater.IntervalUpdateSettings
-import io.confluent.intellijplugin.core.monitoring.data.model.FieldGroupsData
 import io.confluent.intellijplugin.core.monitoring.data.storage.RootDataModelStorage
 import io.confluent.intellijplugin.core.monitoring.rfs.MonitoringDriver
 import io.confluent.intellijplugin.core.rfs.driver.RfsPath
@@ -37,7 +36,6 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.future.asCompletableFuture
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.runInterruptible
 import kotlinx.coroutines.withContext
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
