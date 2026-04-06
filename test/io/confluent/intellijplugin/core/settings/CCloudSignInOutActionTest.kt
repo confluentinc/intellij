@@ -20,8 +20,8 @@ import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.mock
+import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
-import org.mockito.kotlin.verifyNoInteractions
 import org.mockito.kotlin.whenever
 
 @TestApplication
@@ -117,6 +117,7 @@ class CCloudSignInOutActionTest {
             action.actionPerformed(event)
 
             verify(mockAuthService).signIn(invokedPlace = InvokedPlace.SETTINGS_PANEL)
+            verify(mockAuthService, never()).signOut()
         }
 
         @Test
@@ -128,6 +129,7 @@ class CCloudSignInOutActionTest {
             action.actionPerformed(event)
 
             verify(mockAuthService).signOut(invokedPlace = InvokedPlace.SETTINGS_PANEL)
+            verify(mockAuthService, never()).signIn()
         }
 
         @Test
@@ -137,7 +139,8 @@ class CCloudSignInOutActionTest {
 
             action.actionPerformed(event)
 
-            verifyNoInteractions(mockAuthService)
+            verify(mockAuthService, never()).signIn()
+            verify(mockAuthService, never()).signOut()
         }
     }
 }
