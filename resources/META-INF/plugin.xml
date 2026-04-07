@@ -5,7 +5,7 @@
     <version>253.25910.0-pre</version>
     <idea-version since-build="253.28294"/>
 
-    <description>Work with Confluent and Apache Kafka® to design, build and run data streaming applications.</description>
+    <description>Work with Confluent and Apache Kafka to design, build and run data streaming applications.</description>
 
     <depends config-file="spring-boot.xml" optional="true">com.intellij.spring.boot</depends>
     <depends>com.intellij.modules.json</depends>
