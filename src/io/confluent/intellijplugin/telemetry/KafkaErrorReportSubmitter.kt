@@ -20,10 +20,6 @@ import java.awt.Component
  */
 class KafkaErrorReportSubmitter : ErrorReportSubmitter() {
 
-    companion object {
-        private const val PLUGIN_PACKAGE = "io.confluent.intellijplugin"
-    }
-
     private val logger = Logger.getInstance(KafkaErrorReportSubmitter::class.java)
 
     override fun getReportActionText(): String =
@@ -110,7 +106,7 @@ class KafkaErrorReportSubmitter : ErrorReportSubmitter() {
      * Checks if error originated from plugin code (io.confluent.intellijplugin).
      */
     internal fun isPluginRelatedError(event: IdeaLoggingEvent): Boolean {
-        return event.throwableText.contains(PLUGIN_PACKAGE)
+        return event.throwableText.contains(TelemetryUtils.PLUGIN_PACKAGE)
     }
 
 }
