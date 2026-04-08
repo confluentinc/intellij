@@ -91,6 +91,9 @@
         <action id="Kafka.GlobalCreateKafkaConnection"
                 class="io.confluent.intellijplugin.actions.CreateKafkaConnectionAction"/>
 
+        <action id="Kafka.SelectScaffoldTemplate"
+                class="io.confluent.intellijplugin.scaffold.actions.SelectScaffoldTemplateAction"/>
+
         <group id="Kafka.ExportRecords.Actions" popup="true" icon="AllIcons.Actions.Download">
             <action id="Kafka.Export.ToCsv" class="io.confluent.intellijplugin.actions.CsvExportAction"/>
             <action id="Kafka.Export.ToTsv" class="io.confluent.intellijplugin.actions.TsvExportAction"/>
