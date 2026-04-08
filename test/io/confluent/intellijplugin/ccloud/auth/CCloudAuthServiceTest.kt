@@ -393,6 +393,7 @@ class CCloudAuthServiceTest {
         fun setUpSpy() {
             spyService = spy(CCloudAuthService(CoroutineScope(SupervisorJob())))
             doNothing().whenever(spyService).showSignOutNotification()
+            doNothing().whenever(spyService).showSessionExpiredNotification()
             doNothing().whenever(spyService).showSignInSuccessNotification(any())
         }
 
@@ -422,7 +423,7 @@ class CCloudAuthServiceTest {
             spyService.signOut()
             SwingUtilities.invokeAndWait {}
 
-            verify(listener).onSignedOut()
+            verify(listener).onSignedOut(any())
             verify(spyService).showSignOutNotification()
         }
 
@@ -434,7 +435,7 @@ class CCloudAuthServiceTest {
             spyService.signOut()
             SwingUtilities.invokeAndWait {}
 
-            verify(listener, never()).onSignedOut()
+            verify(listener, never()).onSignedOut(any())
             verify(spyService, never()).showSignOutNotification()
         }
 
@@ -449,8 +450,8 @@ class CCloudAuthServiceTest {
             spyService.signOut()
             SwingUtilities.invokeAndWait {}
 
-            verify(listener1).onSignedOut()
-            verify(listener2).onSignedOut()
+            verify(listener1).onSignedOut(any())
+            verify(listener2).onSignedOut(any())
         }
 
         @Test
@@ -463,7 +464,7 @@ class CCloudAuthServiceTest {
             spyService.signOut()
             SwingUtilities.invokeAndWait {}
 
-            verify(listener, never()).onSignedOut()
+            verify(listener, never()).onSignedOut(any())
         }
 
         @Test
@@ -488,8 +489,41 @@ class CCloudAuthServiceTest {
             spyService.signOut()
             SwingUtilities.invokeAndWait {}
 
-            verify(listener, times(1)).onSignedOut()
+            verify(listener, times(1)).onSignedOut(any())
             verify(spyService, times(1)).showSignOutNotification()
+        }
+
+        @Test
+        fun `should show session expired notification when reason is session_expired`() {
+            spyService.context = createMockAuthenticatedContext()
+
+            spyService.signOut(reason = SignOutReason.SESSION_EXPIRED)
+            SwingUtilities.invokeAndWait {}
+
+            verify(spyService).showSessionExpiredNotification()
+            verify(spyService, never()).showSignOutNotification()
+        }
+
+        @Test
+        fun `should show session expired notification when reason is refresh_failed`() {
+            spyService.context = createMockAuthenticatedContext()
+
+            spyService.signOut(reason = SignOutReason.REFRESH_FAILED)
+            SwingUtilities.invokeAndWait {}
+
+            verify(spyService).showSessionExpiredNotification()
+            verify(spyService, never()).showSignOutNotification()
+        }
+
+        @Test
+        fun `should show regular sign out notification for user initiated sign out`() {
+            spyService.context = createMockAuthenticatedContext()
+
+            spyService.signOut(reason = SignOutReason.USER_INITIATED)
+            SwingUtilities.invokeAndWait {}
+
+            verify(spyService).showSignOutNotification()
+            verify(spyService, never()).showSessionExpiredNotification()
         }
     }
 

@@ -1,0 +1,16 @@
+{
+  "error_code": 200,
+  "cluster_id": "lkc-test123",
+  "topic_name": "test-topic",
+  "partition_id": 0,
+  "offset": 42,
+  "timestamp": "2024-03-05T16:00:00.000Z",
+  "key": {
+    "size": 6,
+    "type": "STRING"
+  },
+  "value": {
+    "size": 8,
+    "type": "STRING"
+  }
+}

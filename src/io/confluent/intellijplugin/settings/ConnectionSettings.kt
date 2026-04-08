@@ -12,9 +12,11 @@ import io.confluent.intellijplugin.core.settings.connections.ConnectionFactory
 object ConnectionSettings {
 
     /**
-     * Shows Connection settings dialog with newly created data.
-     * If data is null, new data will be created as group.createBlankData().
-     * If applyIfOk is true, newly created data will be immediately saved.
+     * Shows Connection settings dialog.
+     * If data is provided, a new connection is pre-created in the dialog.
+     * If data is null, the dialog opens without pre-creating a connection — the user can add one via the "+" button.
+     * If applyIfOk is true and the user clicks OK, changes are saved and the pre-created connection data is returned.
+     * Returns null if no data was provided or the user cancelled.
      */
     fun create(
         project: Project,
@@ -31,7 +33,7 @@ object ConnectionSettings {
             ShowSettingsUtilImpl.createDimensionKey(configurable),
             configurable, false, false
         )
-        val connData = configurable.myUi.createNewConnectionFor(group, data)
+        val connData = if (data != null) configurable.myUi.createNewConnectionFor(group, data) else null
         if (applyIfOk) {
             if (dialog.showAndGet()) {
                 configurable.apply()

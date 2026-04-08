@@ -1,0 +1,4 @@
+{
+  "error_code": 404,
+  "message": "This server does not host this topic-partition."
+}

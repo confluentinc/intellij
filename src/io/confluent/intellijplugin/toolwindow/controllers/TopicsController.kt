@@ -10,6 +10,7 @@ import com.intellij.ui.SearchTextField
 import com.intellij.ui.SimpleTextAttributes
 import com.intellij.util.ui.StatusText
 import com.intellij.util.ui.UIUtil
+import io.confluent.intellijplugin.core.monitoring.data.MonitoringDataManager
 import io.confluent.intellijplugin.core.monitoring.data.listener.DataModelListener
 import io.confluent.intellijplugin.core.monitoring.data.model.FilterAdapter
 import io.confluent.intellijplugin.core.monitoring.data.model.FilterKey
@@ -24,16 +25,18 @@ import io.confluent.intellijplugin.core.ui.CustomComponentActionImpl
 import io.confluent.intellijplugin.core.ui.filter.CountFilterPopupComponent
 import io.confluent.intellijplugin.data.BaseClusterDataManager
 import io.confluent.intellijplugin.data.CCloudClusterDataManager
-import io.confluent.intellijplugin.data.KafkaDataManager
 import io.confluent.intellijplugin.model.TopicPresentable
 import io.confluent.intellijplugin.model.TopicStatisticInfo
 import io.confluent.intellijplugin.rfs.KafkaDriver
 import io.confluent.intellijplugin.toolwindow.NavigableController
 import io.confluent.intellijplugin.toolwindow.actions.KafkaCreateConsumerAction
+import io.confluent.intellijplugin.toolwindow.actions.KafkaCreateProducerAction
 import io.confluent.intellijplugin.toolwindow.config.KafkaToolWindowSettings
 import io.confluent.intellijplugin.util.KafkaDialogFactory
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
+import java.awt.BorderLayout
 import javax.swing.JLabel
+import javax.swing.JViewport
 import javax.swing.ListSelectionModel
 import javax.swing.event.DocumentEvent
 
@@ -90,7 +93,7 @@ internal class TopicsController(
         dataTable.selectionModel.selectionMode = ListSelectionModel.MULTIPLE_INTERVAL_SELECTION
 
         dataTable.customDataProvider = UiDataProvider { sink ->
-            sink[MainTreeController.DATA_MANAGER] = dataManager as io.confluent.intellijplugin.core.monitoring.data.MonitoringDataManager
+            sink[MainTreeController.DATA_MANAGER] = dataManager as MonitoringDataManager
 
             // Generate the correct RFS path based on selection and data manager type
             val selectedTopicName = getSelectedItem()?.name
@@ -141,8 +144,8 @@ internal class TopicsController(
 
         val shouldShowToolbar = hasTopics || hasFilters
 
-        val layout = decoratedTableComponent.layout as? java.awt.BorderLayout
-        val northComponent = layout?.getLayoutComponent(java.awt.BorderLayout.NORTH)
+        val layout = decoratedTableComponent.layout as? BorderLayout
+        val northComponent = layout?.getLayoutComponent(BorderLayout.NORTH)
         northComponent?.isVisible = shouldShowToolbar
 
         dataTable.tableHeader?.isVisible = shouldShowToolbar
@@ -158,7 +161,7 @@ internal class TopicsController(
         val toolWindowSettings = KafkaToolWindowSettings.getInstance()
         val clusterConfig = toolWindowSettings.getOrCreateConfig(dataManager.connectionId)
 
-        if (dataTable.parent is javax.swing.JViewport) {
+        if (dataTable.parent is JViewport) {
             dataTable.emptyText.attachTo(dataTable, dataTable)
         }
 
@@ -252,19 +255,30 @@ internal class TopicsController(
     override fun getRenderableColumns() = TopicPresentable.renderableColumns
     override fun getDataModel() = dataManager.topicModel
 
-    /**
-     * Creates a consume action for CCloud connections, or null for native Kafka.
-     */
-    private fun createCCloudConsumeAction(): AnAction? {
-        val ccloudManager = dataManager as? CCloudClusterDataManager ?: return null
+    private fun createConsumeAction(): AnAction {
         return object : DumbAwareAction(
             KafkaMessagesBundle.message("action.kafka.create.consumer.text"),
             KafkaMessagesBundle.message("action.kafka.create.consumer.description"),
             AllIcons.Actions.Execute
         ) {
             override fun actionPerformed(e: AnActionEvent) {
-                val topic = getSelectedItem()
-                KafkaCreateConsumerAction.createConsumer(project, ccloudManager, topic?.name)
+                val topic = getSelectedItem()?.name
+                KafkaCreateConsumerAction.createConsumer(project, dataManager, topic)
+            }
+
+            override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
+        }
+    }
+
+    private fun createProduceAction(): AnAction {
+        return object : DumbAwareAction(
+            KafkaMessagesBundle.message("action.kafka.create.producer.text"),
+            KafkaMessagesBundle.message("action.kafka.create.producer.description"),
+            AllIcons.Actions.Upload
+        ) {
+            override fun actionPerformed(e: AnActionEvent) {
+                val topic = getSelectedItem()?.name
+                KafkaCreateProducerAction.openProducer(dataManager, project, topic)
             }
 
             override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
@@ -276,8 +290,8 @@ internal class TopicsController(
     override fun getAdditionalContextActions(): List<AnAction> {
         val actions = mutableListOf<AnAction>()
 
-        // Add consume action for CCloud connections
-        createCCloudConsumeAction()?.let { actions.add(it) }
+        actions.add(createConsumeAction())
+        actions.add(createProduceAction())
 
         val actionManager = ActionManager.getInstance()
         val group = actionManager.getAction("Kafka.Topic.Actions") as DefaultActionGroup

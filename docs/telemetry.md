@@ -2,13 +2,13 @@
 
 *Last updated: November 2025*
 
-The Kafka plugin collects anonymous usage data to help us understand how the plugin is used and improve the user experience.
+The Confluent plugin collects anonymous usage data to help us understand how the plugin is used and improve the user experience.
 
 ## How to Control Telemetry
 
 You can enable or disable telemetry at any time:
 
-1. Go to **Settings → Tools → Kafka**
+1. Go to **Settings → Tools → Confluent**
 2. Toggle the **"Send anonymous usage statistics"** option
 3. Changes take effect immediately
 
@@ -22,10 +22,12 @@ You can enable or disable telemetry at any time:
 - Managing connections (create, test, enable, disable)
 - Exporting data (CSV, JSON, TSV)
 - Using monitoring and settings
+- Confluent Cloud authentication (sign-in, sign-out, token refresh success/failure)
 
 **Captured Information:**
 - Which action was used
 - Where it was invoked (menu, toolbar, etc)
+- Authentication status and context (sign-in source, sign-out reason, token refresh attempts)
 
 **Context Information (Sent with All Events):**
 

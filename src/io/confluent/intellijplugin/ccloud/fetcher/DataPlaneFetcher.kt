@@ -14,23 +14,59 @@ interface DataPlaneFetcher {
     suspend fun getTopicBeginningOffsets(topicName: String): Map<Int, Long>
     suspend fun getTopicEndOffsets(topicName: String): Map<Int, Long>
 
+    /** Get beginning or end offset for a single partition. */
+    suspend fun getPartitionOffset(topicName: String, partitionId: Int, fromBeginning: Boolean): Long
+
     suspend fun consumeRecords(topicName: String, request: ConsumeRecordsRequest): ConsumeRecordsResponse
+
+    /**
+     * Consume records from a single partition using the GET endpoint.
+     * Supports timestamp-based seeking which the multi-partition POST endpoint does not.
+     */
+    suspend fun consumePartitionRecords(
+        topicName: String,
+        partitionId: Int,
+        timestamp: Long? = null,
+        offset: Long? = null,
+        maxPollRecords: Int? = null
+    ): PartitionConsumeData
+
+    /** Produce a single record to a topic via the REST API v3. */
+    suspend fun produceRecord(topicName: String, request: ProduceRecordRequest): ProduceRecordResponse
 
     /** Get all subject names from Schema Registry. */
     suspend fun getAllSubjects(): List<String>
 
     /** Load schema info (version, type) for a subject. */
-    suspend fun loadSchemaInfo(subjectName: String): SchemaData
+    suspend fun loadSchemaInfo(schemaName: String): SchemaData
 
     /** List all versions for a subject. */
-    suspend fun listSchemaVersions(subjectName: String): List<Long>
+    suspend fun listSchemaVersions(schemaName: String): List<Long>
 
     /** Get schema content for a specific version. */
-    suspend fun getSchemaVersionInfo(subjectName: String, version: Long): SchemaVersionResponse
+    suspend fun getSchemaVersionInfo(schemaName: String, version: Long): SchemaVersionResponse
 
     /** Get latest schema version. */
-    suspend fun getLatestVersionInfo(subjectName: String): SchemaVersionResponse
+    suspend fun getLatestVersionInfo(schemaName: String): SchemaVersionResponse
 
     /** Get schema by global ID. */
     suspend fun getSchemaIdInfo(schemaId: Int): SchemaByIdResponse
+
+    /** Register a new schema or new version of existing schema. */
+    suspend fun createSchema(schemaName: String, request: RegisterSchemaRequest): RegisterSchemaResponse
+
+    /** Check if schema already exists. */
+    suspend fun checkSchemaExists(schemaName: String, request: RegisterSchemaRequest): CheckSchemaExistsResponse
+
+    /** Delete a subject (all versions). If permanent=true, hard delete; otherwise soft delete. */
+    suspend fun deleteSchema(schemaName: String, permanent: Boolean = false): DeleteSubjectResponse
+
+    /** Delete a specific schema version. If permanent=true, hard delete; otherwise soft delete. */
+    suspend fun deleteSchemaVersion(schemaName: String, version: Long, permanent: Boolean = false): DeleteSchemaVersionResponse
+
+    /** Get compatibility level for a specific subject. Returns null if using global default. */
+    suspend fun getSchemaCompatibility(schemaName: String): CompatibilityResponse
+
+    /** Get schema by GUID (used in V1 wire format with header-based schema references). */
+    suspend fun getSchemaByGuid(guid: String): SchemaByIdResponse
 }

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**Kafka Plugin for JetBrains IDEs** - IntelliJ platform plugin enabling developers to work with Apache Kafka directly from JetBrains IDEs. Developed by Confluent.
+**Confluent for JetBrains IDEs** - IntelliJ platform plugin enabling developers to work with Apache Kafka directly from JetBrains IDEs. Developed by Confluent.
 
 - **Plugin ID:** `com.intellij.bigdatatools.kafka`
 - **Target IDE:** IntelliJ IDEA 2025.3+
@@ -24,17 +24,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Source Structure
 
-All source code under `src/io/confluent/intellijplugin/`:
-
-| Directory                  | Purpose                                                                      |
-|----------------------------|------------------------------------------------------------------------------|
-| `core/`                    | Plugin infrastructure: settings, RFS (Remote File System), connections, UI  |
-| `client/`                  | Kafka client wrappers (`BdtKafkaAdminClient`, `KafkaClientBuilder`)          |
-| `consumer/`, `producer/`   | Consumer and producer functionality                                          |
-| `registry/`                | Schema Registry integration (Confluent + AWS Glue)                           |
-| `aws/`                     | AWS/MSK integration (IAM auth, SSO, credentials)                             |
-| `ccloud/`                  | Confluent Cloud OAuth authentication                                         |
-| `telemetry/`               | Sentry error reporting + Segment analytics                                   |
+Refer to the map of the codebase in `CONTRIBUTING.md`.
 
 **Key files:**
 
@@ -205,6 +195,7 @@ Custom extension point `connectionSettingProvider` defined in `plugin.xml` for p
 ## Code Style
 
 - Handle exceptions gracefully with user-visible error messages
+- Prefer regular Kotlin imports and avoid using fully qualified package names in type annotations
 - Use `thisLogger()` for logging (never use `println` for debug output - use `thisLogger().debug()` instead)
 
 ## Common Mistakes to Avoid

@@ -15,6 +15,7 @@ import io.confluent.intellijplugin.toolwindow.KafkaMonitoringToolWindowControlle
 import io.confluent.intellijplugin.toolwindow.config.KafkaToolWindowSettings
 import io.confluent.intellijplugin.toolwindow.controllers.KafkaGroupType
 import io.confluent.intellijplugin.core.util.invokeLater
+import io.confluent.intellijplugin.util.KafkaMessagesBundle.message
 import javax.swing.Icon
 
 class KafkaDriver(override val connectionData: KafkaConnectionData, project: Project?, testConnection: Boolean) :
@@ -29,7 +30,7 @@ class KafkaDriver(override val connectionData: KafkaConnectionData, project: Pro
         { this }
     )
     override val presentableName: String = connectionData.name
-    override val icon: Icon = BigdatatoolsKafkaIcons.Kafka
+    override val icon: Icon = BigdatatoolsKafkaIcons.ConfluentTab
 
     override val treeNodeBuilder: RfsDriverTreeNodeBuilder = object : RfsDriverTreeNodeBuilder() {
         override fun createNode(project: Project, path: RfsPath, driver: Driver) =
@@ -120,24 +121,42 @@ class KafkaDriver(override val connectionData: KafkaConnectionData, project: Pro
             )
 
             rfsPath.isTopicFolder -> {
-                dataManager.topicModel.error?.let { throw it }
-                dataManager.topicModel.data?.map { topicPath.child(it.name, false) } ?: emptyList()
+                val model = dataManager.topicModel
+                model.error?.let { throw it }
+                when (val data = model.data) {
+                    null -> if (model.isInitedByFirstTime) emptyList() else listOf(emptyStatePath(message("confluent.cloud.tree.loading")))
+                    else -> data.map { topicPath.child(it.name, false) }
+                }
             }
 
             rfsPath.isConsumers -> {
-                dataManager.consumerGroupsModel.error?.let { throw it }
-                dataManager.consumerGroupsModel.data?.map { consumerPath.child(it.consumerGroup, false) } ?: emptyList()
+                val model = dataManager.consumerGroupsModel
+                model.error?.let { throw it }
+                when (val data = model.data) {
+                    null -> if (model.isInitedByFirstTime) emptyList() else listOf(emptyStatePath(message("confluent.cloud.tree.loading")))
+                    else -> data.map { consumerPath.child(it.consumerGroup, false) }
+                }
             }
 
             rfsPath.isSchemas -> {
-                dataManager.schemaRegistryModel?.error?.let { throw it }
-                dataManager.schemaRegistryModel?.data?.map { schemasPath.child(it.name, false) } ?: emptyList()
+                val model = dataManager.schemaRegistryModel
+                if (model == null) {
+                    emptyList()
+                } else {
+                    model.error?.let { throw it }
+                    when (val data = model.data) {
+                        null -> if (model.isInitedByFirstTime) emptyList() else listOf(emptyStatePath(message("confluent.cloud.tree.loading")))
+                        else -> data.map { schemasPath.child(it.name, false) }
+                    }
+                }
             }
 
             else -> null
         }
         return children?.map { KafkaFileInfo(this, it) }
     }
+
+    private fun emptyStatePath(message: String) = RfsPath(listOf(message), false)
 
     override fun getController(project: Project) = KafkaMonitoringToolWindowController.getInstance(project)
 

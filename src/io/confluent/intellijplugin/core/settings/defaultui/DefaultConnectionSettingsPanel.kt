@@ -38,6 +38,7 @@ class DefaultConnectionSettingsPanel<D : ConnectionData>(
     private var wrappedComponents = mutableListOf<WrappedComponent<in D>>()
 
     private val enabledCheckbox = JCheckBox(KafkaMessagesBundle.message("connection.enable"), conn.isEnabled).also {
+        it.toolTipText = KafkaMessagesBundle.message("connection.enable.tooltip")
         it.addItemListener { _ ->
         }
     }

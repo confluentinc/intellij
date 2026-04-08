@@ -58,7 +58,9 @@ class BdtMonitoringUpdater(val dataManager: MonitoringDataManager) : Disposable 
     }
 
 
-    fun invokeRefreshModel(dataModel: DataModel<*>) = invokeRefreshModels(listOf(dataModel))
+    fun invokeRefreshModel(dataModel: DataModel<*>?) {
+        dataModel?.let { invokeRefreshModels(listOf(it)) }
+    }
 
     fun invokeRefreshModels(dataModels: List<DataModel<*>>) = executeOnPooledThread {
         executeTask(UpdateTask { innerRefresh(dataModels, it, withConnectionCheck = false) })
@@ -198,18 +200,7 @@ class BdtMonitoringUpdater(val dataManager: MonitoringDataManager) : Disposable 
                     job?.cancelOnDispose(disposable)
                     job
                 }
-                jobs.withIndex().forEach { indexedValue ->
-                    notify {
-                        it.setProgress(id, (indexedValue.index).toDouble() / toUpdate.size)
-                    }
-                    notify {
-                        it.setText(
-                            id,
-                            KafkaMessagesBundle.message("monitoring.progress.update.data", indexedValue.index + 1)
-                        )
-                    }
-                    indexedValue.value.join()
-                }
+                jobs.forEach { it.join() }
             }
         } catch (t: Throwable) {
             models.forEach {

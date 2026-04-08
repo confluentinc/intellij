@@ -20,6 +20,8 @@ import io.confluent.intellijplugin.core.settings.withNonEmptyValidator
 import io.confluent.intellijplugin.core.ui.CustomListCellRenderer
 import io.confluent.intellijplugin.core.util.toPresentableText
 import io.confluent.intellijplugin.data.KafkaDataManager
+import io.confluent.intellijplugin.data.CCloudClusterDataManager
+import io.confluent.intellijplugin.data.BaseClusterDataManager
 import io.confluent.intellijplugin.registry.confluent.controller.TopicSchemaViewType
 import io.confluent.intellijplugin.registry.ui.KafkaRegistrySchemaEditor
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
@@ -28,9 +30,9 @@ import javax.swing.JComponent
 import javax.swing.JEditorPane
 import javax.swing.JTextField
 
-class KafkaRegistryAddSchemaDialog(project: Project, val dataManager: KafkaDataManager) :
+class KafkaRegistryAddSchemaDialog(project: Project, val dataManager: BaseClusterDataManager) :
     DialogWrapper(project, false, IdeModalityType.MODELESS) {
-    private val isConfluentSchema = dataManager.connectionData.registryType == KafkaRegistryType.CONFLUENT
+    private val isConfluentSchema = dataManager.registryType == KafkaRegistryType.CONFLUENT
 
     private val formatCombobox =
         ComboBox((KafkaRegistryFormat.entries - KafkaRegistryFormat.UNKNOWN).toTypedArray()).apply {
@@ -69,6 +71,7 @@ class KafkaRegistryAddSchemaDialog(project: Project, val dataManager: KafkaDataM
     private val subjectNameLabel = JBLabel("")
 
     private var cachedParsedSchema: ParsedSchema? = null
+    private var previousFormat: KafkaRegistryFormat? = null
 
     private val keyValueVisible = AtomicBooleanProperty(false)
     private val topicFieldVisible = AtomicBooleanProperty(false)
@@ -188,12 +191,25 @@ class KafkaRegistryAddSchemaDialog(project: Project, val dataManager: KafkaDataM
     }
 
     private fun onChangeFormat() {
-        val newDefault = KafkaRegistryTemplates.getDefaultIfNotConfigured(textScrollPane.text, getFormat())
+        val currentFormat = getFormat()
+
+        // If format actually changed (not initial setup), load default template for new format
+        val shouldLoadDefault = previousFormat != null && previousFormat != currentFormat
+
+        val newText = if (shouldLoadDefault) {
+            // Force loading default template by passing empty string
+            KafkaRegistryTemplates.getDefaultIfNotConfigured("", currentFormat) ?: textScrollPane.text
+        } else {
+            KafkaRegistryTemplates.getDefaultIfNotConfigured(textScrollPane.text, currentFormat) ?: textScrollPane.text
+        }
+
         textScrollPane.setText(
-            newDefault ?: textScrollPane.text,
-            if (formatCombobox.selectedItem != KafkaRegistryFormat.PROTOBUF) JsonLanguage.INSTANCE
+            newText,
+            if (currentFormat != KafkaRegistryFormat.PROTOBUF) JsonLanguage.INSTANCE
             else KafkaRegistryUtil.protobufLanguage
         )
+
+        previousFormat = currentFormat
         updateRecordFieldText()
     }
 
@@ -274,8 +290,14 @@ class KafkaRegistryAddSchemaDialog(project: Project, val dataManager: KafkaDataM
     private fun getStrategy(): ConfluentRegistryStrategy = strategyCombobox.item
 
     private fun updateParsedSchema() {
+        // For Kafka use the registry client, for CCloud use null (standalone parsing)
+        val registryClient = when (dataManager) {
+            is KafkaDataManager -> dataManager.client.confluentRegistryClient
+            else -> null
+        }
+
         val parsedSchemaResult =
-            KafkaRegistryUtil.parseSchema(getFormat(), textScrollPane.text, dataManager.client.confluentRegistryClient, emptyList())
+            KafkaRegistryUtil.parseSchema(getFormat(), textScrollPane.text, registryClient, emptyList())
 
         if (parsedSchemaResult.isSuccess) {
             cachedParsedSchema = parsedSchemaResult.getOrNull()
@@ -303,7 +325,11 @@ class KafkaRegistryAddSchemaDialog(project: Project, val dataManager: KafkaDataM
             val schemaName = getSchemaName()
             val parsedSchema = cachedParsedSchema ?: return
 
-            val createAsync = dataManager.createSchema(schemaName, parsedSchema)
+            val createAsync = when (dataManager) {
+                is KafkaDataManager -> dataManager.createSchema(schemaName, parsedSchema)
+                is CCloudClusterDataManager -> dataManager.createSchema(schemaName, parsedSchema)
+                else -> error("Unsupported data manager type")
+            }
             createAsync.onError {
                 runInEdt {
                     errorLabel.text = it.message

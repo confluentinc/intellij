@@ -19,7 +19,6 @@ import io.confluent.intellijplugin.core.util.BdIdeRegistryUtil
 import io.confluent.intellijplugin.core.util.BdtUrlUtils
 import io.confluent.intellijplugin.core.util.withPluginClassLoader
 import io.confluent.intellijplugin.model.*
-import io.confluent.intellijplugin.producer.client.KafkaProducerClient
 import io.confluent.intellijplugin.registry.KafkaRegistryType
 import io.confluent.intellijplugin.registry.confluent.ConfluentRegistryClient
 import io.confluent.intellijplugin.registry.glue.BdtGlueRegistryClient
@@ -33,7 +32,7 @@ import kotlinx.coroutines.TimeoutCancellationException
 import org.apache.kafka.clients.CommonClientConfigs
 import org.apache.kafka.clients.admin.*
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
-import org.apache.kafka.common.ConsumerGroupState
+import org.apache.kafka.common.GroupState
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.config.ConfigResource
 import org.apache.kafka.common.config.SaslConfigs
@@ -147,8 +146,6 @@ class KafkaClient(
         checkRegistryClient()
     }
 
-    fun createProducerClient() = KafkaProducerClient(client = this)
-
     override fun getRealUri(): String =
         kafkaProps.getProperty(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG) ?: "<NOT_FOUND>"
 
@@ -166,7 +163,7 @@ class KafkaClient(
         val config = KafkaToolWindowSettings.getInstance().getOrCreateConfig(connectionData.innerId)
         return result.map {
             ConsumerGroupPresentable(
-                state = it.state().getOrNull() ?: ConsumerGroupState.UNKNOWN, consumerGroup = it.groupId(),
+                state = it.groupState().getOrNull() ?: GroupState.UNKNOWN, consumerGroup = it.groupId(),
                 isFavorite = config.consumerGroupPined.contains(it.groupId())
             )
         }

@@ -8,6 +8,7 @@ data class StorageConsumerConfig(
     var topic: String? = "",
     var keyType: String? = "",
     var valueType: String? = "",
+    var connectionType: String? = null,
     var filter: Map<String, String> = emptyMap(),
     var limit: Map<String, String> = emptyMap(),
     var partitions: String? = "",

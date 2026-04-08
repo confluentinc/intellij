@@ -6,12 +6,12 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
     set -euo pipefail
 fi
 
-export VAULT_ADDR="${VAULT_ADDR:-https://vault.cireops.gcp.internal.confluent.cloud}"
-VAULT_PATH="${VAULT_PATH:-v1/ci/kv/intellij/telemetry}"
+export VAULT_ADDR="${VAULT_ADDR:-https://non-prod.vault.internal.confluent.cloud}"
+VAULT_PATH="${VAULT_PATH:-stag/kv/semaphore/intellij/telemetry}"
 
 # Check authentication (skip in CI, vault-setup already authenticated)
 if [ "${CI:-false}" != "true" ]; then
-    if ! VAULT_ADDR="$VAULT_ADDR" vault kv list "v1/ci/kv/intellij" &>/dev/null; then
+    if ! VAULT_ADDR="$VAULT_ADDR" vault kv list "stag/kv/semaphore/intellij" &>/dev/null; then
         echo "Error: Not authenticated with Vault" >&2
         echo "Run: vault_login" >&2
         return 1 2>/dev/null || exit 1

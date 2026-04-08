@@ -1,20 +1,11 @@
 <idea-plugin>
     <id>com.intellij.bigdatatools.kafka</id>
-    <name>Kafka</name>
+    <name>Confluent</name>
     <vendor>Confluent</vendor>
-    <version>253.25910.0-pre</version>
+    <version>253.25911.0-pre</version>
     <idea-version since-build="253.28294"/>
 
-    <description><![CDATA[
-<p>Monitor your <a href="https://kafka.apache.org/">Kafka</a> event streaming processes:
-<ul>
-   <li>Connect to Kafka clusters</li>
-   <li>Produce and consume messages in different formats including Avro and Protobuf</li>
-   <li>Manage topics and monitor consumer groups</li>
-   <li>Use Confluent Schema Registry and AWS Glue Schema Registry</li>
-</ul>
-</p>
-    ]]></description>
+    <description>Work with Confluent and Apache Kafka to design, build and run data streaming applications.</description>
 
     <depends config-file="spring-boot.xml" optional="true">com.intellij.spring.boot</depends>
     <depends>com.intellij.modules.json</depends>
@@ -34,6 +25,8 @@
     </applicationListeners>
 
     <extensions defaultExtensionNs="com.intellij">
+        <backgroundPostStartupActivity
+                implementation="io.confluent.intellijplugin.updater.RebrandNotificationActivity"/>
         <errorHandler implementation="io.confluent.intellijplugin.telemetry.KafkaErrorReportSubmitter"/>
         <notificationGroup id="kafka" displayType="STICKY_BALLOON"
                            bundle="messages.KafkaBundle"
@@ -204,36 +197,18 @@
     </actions>
 
     <change-notes><![CDATA[
-<h2 style="padding:0;margin:0;line-height:0px">Changes in 253.25909.3</h2>
-<h4 style="padding:0;margin:0;line-height:0px">Fixed</h4>
+<h2 style="padding:0;margin:0;line-height:0px">Changes in 253.25910.0</h2>
+<h4 style="padding:0;margin:0;line-height:0px">Changed</h4>
 <ul>
-<li>Authenticate with MSK clusters using explicit access keys and secrets</li>
+<li>Rebrand plugin from "Kafka" to "Confluent" and publish under Apache 2 license</li>
 </ul>
-
-<h2 style="padding:0;margin:0;line-height:0px">Changes in 253.25909.2</h2>
-<h4 style="padding:0;margin:0;line-height:0px">Fixed</h4>
-<ul>
-<li>Refine telemetry events</li>
-</ul>
-
-<h2 style="padding:0;margin:0;line-height:0px">Changes in 253.25909.1</h2>
-<h4 style="padding:0;margin:0;line-height:0px">Fixed</h4>
-<ul>
-<li>Fixed missing previous connection settings after updating to the latest plugin and IDE version (2025.3)</li>
-</ul>
-
-<h2 style="padding:0;margin:0;line-height:0px">Changes in 253.25909.0</h2>
 <h4 style="padding:0;margin:0;line-height:0px">Added</h4>
 <ul>
-<li>Compatibility with IntelliJ IDEA Community Edition — no longer requires an Ultimate subscription</li>
-<li>Segment integration for usage telemetry, which can be disabled by going to <strong>Settings > Tools > Kafka</strong> and unchecking the 'Telemetry Settings' option</li>
-<li>Sentry integration for error reports</li>
+<li>OAuth support for logging in to Confluent Cloud directly, with the ability to view & interact with environments and resources.</li>
 </ul>
-
 <h4 style="padding:0;margin:0;line-height:0px">Fixed</h4>
 <ul>
-<li>Fixed the tooltip instructions for setting up a Confluent Cloud connection</li>
-<li>Fixed bug when consuming records using a Protobuf schema stored on AWS Glue Schema Registry</li>
+<li>Consumer performance improvements: batch table updates and optimized storage</li>
 </ul>
 ]]></change-notes>
 </idea-plugin>

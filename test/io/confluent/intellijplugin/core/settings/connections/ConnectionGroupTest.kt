@@ -30,12 +30,12 @@ class ConnectionGroupTest {
     inner class CreateOptionsPanel {
 
         @Test
-        fun `should return panel with no children by default`() {
-            val group = BrokerConnectionGroup()
+        fun `should return panel with create connection prompt`() {
+            val group = KafkaConnectionGroup()
 
             val panel = group.createOptionsPanel() as javax.swing.JPanel
 
-            assertEquals(0, panel.componentCount)
+            assertNotEquals(0, panel.componentCount)
         }
     }
 
@@ -45,7 +45,7 @@ class ConnectionGroupTest {
 
         @Test
         fun `should not throw when called after createOptionsPanel`() {
-            val group = BrokerConnectionGroup()
+            val group = KafkaConnectionGroup()
             group.createOptionsPanel()
             group.disposeOptionsPanel()
         }

@@ -97,6 +97,57 @@ class CCloudOAuthHttpClientTest {
     }
 
     @Nested
+    @DisplayName("User-Agent Header")
+    inner class UserAgentTests {
+
+        @Test
+        fun `includes User-Agent header in postForm requests`() {
+            wireMockServer.stubFor(
+                WireMock.post("/oauth/token")
+                    .willReturn(
+                        WireMock.aResponse()
+                            .withStatus(200)
+                            .withHeader("Content-Type", "application/json")
+                            .withBody("""{"access_token": "token"}""")
+                    )
+            )
+
+            runBlocking {
+                CCloudOAuthHttpClient.postForm<IdTokenExchangeResponse>(
+                    url = "${baseUrl()}/oauth/token",
+                    formData = mapOf("grant_type" to "authorization_code")
+                )
+            }
+
+            wireMockServer.verify(WireMock.postRequestedFor(WireMock.urlEqualTo("/oauth/token"))
+                .withHeader("User-Agent", WireMock.matching("confluent-for-intellij/v.+ \\(https://confluent\\.io; support@confluent\\.io\\)")))
+        }
+
+        @Test
+        fun `includes User-Agent header in get requests`() {
+            wireMockServer.stubFor(
+                WireMock.get("/api/check_jwt")
+                    .willReturn(
+                        WireMock.aResponse()
+                            .withStatus(200)
+                            .withHeader("Content-Type", "application/json")
+                            .withBody("""{"claims": {"prop": "user-123"}}""")
+                    )
+            )
+
+            runBlocking {
+                CCloudOAuthHttpClient.get<CheckJwtResponse>(
+                    url = "${baseUrl()}/api/check_jwt",
+                    bearerToken = "token"
+                )
+            }
+
+            wireMockServer.verify(WireMock.getRequestedFor(WireMock.urlEqualTo("/api/check_jwt"))
+                .withHeader("User-Agent", WireMock.matching("confluent-for-intellij/v.+ \\(https://confluent\\.io; support@confluent\\.io\\)")))
+        }
+    }
+
+    @Nested
     @DisplayName("postForm")
     inner class PostForm {
 

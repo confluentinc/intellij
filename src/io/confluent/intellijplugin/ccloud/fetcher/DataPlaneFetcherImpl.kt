@@ -4,12 +4,15 @@ import com.intellij.openapi.diagnostic.thisLogger
 import io.confluent.intellijplugin.ccloud.client.CCloudRestClient
 import io.confluent.intellijplugin.ccloud.config.CloudConfig
 import io.confluent.intellijplugin.ccloud.model.response.*
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.Json
+import java.net.URLEncoder
+import java.nio.charset.StandardCharsets
 
 /**
  * Data plane fetcher implementation for Confluent Cloud.
@@ -92,6 +95,39 @@ class DataPlaneFetcherImpl(
         return json.decodeFromString<ConsumeRecordsResponse>(responseBody)
     }
 
+    override suspend fun consumePartitionRecords(
+        topicName: String,
+        partitionId: Int,
+        timestamp: Long?,
+        offset: Long?,
+        maxPollRecords: Int?
+    ): PartitionConsumeData {
+        val basePath = String.format(
+            CloudConfig.DataPlane.Kafka.CCLOUD_SINGLE_PARTITION_CONSUME_API_PATH,
+            clusterId, topicName, partitionId
+        )
+        val params = buildList {
+            add("return_raw_base64_records=true")
+            timestamp?.let { add("timestamp=$it") }
+            offset?.let { add("offset=$it") }
+            maxPollRecords?.let { add("max_poll_records=$it") }
+        }
+        val path = "$basePath?${params.joinToString("&")}"
+        return kafkaClient.fetch(path) { body ->
+            json.decodeFromString<SinglePartitionConsumeResponse>(body).partitionData
+        }
+    }
+
+    override suspend fun produceRecord(
+        topicName: String,
+        request: ProduceRecordRequest
+    ): ProduceRecordResponse {
+        val path = String.format(CloudConfig.DataPlane.Kafka.PRODUCE_RECORDS_URI, clusterId, topicName)
+        val requestBody = json.encodeToString(request)
+        val responseBody = kafkaClient.executeRequest(path, "POST", requestBody)
+        return json.decodeFromString<ProduceRecordResponse>(responseBody)
+    }
+
     override suspend fun getAllSubjects(): List<String> {
         requireSchemaRegistry()
         val path = CloudConfig.DataPlane.SchemaRegistry.SUBJECTS_URI
@@ -100,41 +136,51 @@ class DataPlaneFetcherImpl(
         }
     }
 
-    override suspend fun loadSchemaInfo(subjectName: String): SchemaData {
+    override suspend fun loadSchemaInfo(schemaName: String): SchemaData {
         requireSchemaRegistry()
         return try {
-            val latestSchema = getLatestVersionInfo(subjectName)
+            val latestSchema = getLatestVersionInfo(schemaName)
+
             SchemaData(
-                name = subjectName,
+                name = schemaName,
                 latestVersion = latestSchema.version,
-                schemaType = latestSchema.schemaType ?: "AVRO"
+                schemaType = latestSchema.schemaType ?: "AVRO",
+                compatibility = null  // Fetched on-demand to reduce API calls
             )
         } catch (e: Exception) {
-            thisLogger().warn("Failed to fetch schema info for '$subjectName': ${e.message}")
-            SchemaData(name = subjectName)
+            // Cancellations are expected when user clicks refresh - use debug level
+            if (e is CancellationException) {
+                thisLogger().debug("Cancelled fetch schema info for '$schemaName': ${e.message}")
+            } else {
+                thisLogger().warn("Failed to fetch schema info for '$schemaName'", e)
+            }
+            SchemaData(name = schemaName)
         }
     }
 
-    override suspend fun listSchemaVersions(subjectName: String): List<Long> {
+    override suspend fun listSchemaVersions(schemaName: String): List<Long> {
         requireSchemaRegistry()
-        val path = String.format(CloudConfig.DataPlane.SchemaRegistry.SUBJECT_VERSIONS_URI, subjectName)
+        val encodedSubject = encodeUrlPathSegment(schemaName)
+        val path = String.format(CloudConfig.DataPlane.SchemaRegistry.SUBJECT_VERSIONS_URI, encodedSubject)
         return schemaRegistryClient!!.fetch(path) { body ->
             json.decodeFromString(ListSerializer(Int.serializer()), body).map { it.toLong() }
         }
     }
 
-    override suspend fun getSchemaVersionInfo(subjectName: String, version: Long): SchemaVersionResponse {
+    override suspend fun getSchemaVersionInfo(schemaName: String, version: Long): SchemaVersionResponse {
         requireSchemaRegistry()
+        val encodedSubject = encodeUrlPathSegment(schemaName)
         val path =
-            String.format(CloudConfig.DataPlane.SchemaRegistry.SUBJECT_VERSION_URI, subjectName, version.toString())
+            String.format(CloudConfig.DataPlane.SchemaRegistry.SUBJECT_VERSION_URI, encodedSubject, version.toString())
         return schemaRegistryClient!!.fetch(path) { body ->
             json.decodeFromString<SchemaVersionResponse>(body)
         }
     }
 
-    override suspend fun getLatestVersionInfo(subjectName: String): SchemaVersionResponse {
+    override suspend fun getLatestVersionInfo(schemaName: String): SchemaVersionResponse {
         requireSchemaRegistry()
-        val path = String.format(CloudConfig.DataPlane.SchemaRegistry.SUBJECT_VERSION_URI, subjectName, "latest")
+        val encodedSubject = encodeUrlPathSegment(schemaName)
+        val path = String.format(CloudConfig.DataPlane.SchemaRegistry.SUBJECT_VERSION_URI, encodedSubject, "latest")
         return schemaRegistryClient!!.fetch(path) { body ->
             json.decodeFromString<SchemaVersionResponse>(body)
         }
@@ -148,6 +194,14 @@ class DataPlaneFetcherImpl(
         }
     }
 
+    override suspend fun getSchemaByGuid(guid: String): SchemaByIdResponse {
+        requireSchemaRegistry()
+        val path = String.format(CloudConfig.DataPlane.SchemaRegistry.SCHEMA_BY_GUID_URI, guid)
+        return schemaRegistryClient!!.fetch(path) { body ->
+            json.decodeFromString<SchemaByIdResponse>(body)
+        }
+    }
+
     override suspend fun getTopicMessageCount(topicName: String): Long {
         val path = "/kafka/v3/clusters/$clusterId/internal/topics/$topicName/partitions/-/records:offsets"
         return kafkaClient.fetch(path) { body ->
@@ -155,6 +209,9 @@ class DataPlaneFetcherImpl(
             response.totalRecords
         }
     }
+
+    override suspend fun getPartitionOffset(topicName: String, partitionId: Int, fromBeginning: Boolean): Long =
+        getPartitionOffsets(topicName, partitionId, fromBeginning).nextOffset
 
     override suspend fun getTopicBeginningOffsets(topicName: String): Map<Int, Long> =
         fetchOffsetsForAllPartitions(topicName, fromBeginning = true)
@@ -178,9 +235,79 @@ class DataPlaneFetcherImpl(
         }
     }
 
+    // Schema write operations
+
+    override suspend fun createSchema(
+        schemaName: String,
+        request: RegisterSchemaRequest
+    ): RegisterSchemaResponse {
+        requireSchemaRegistry()
+        val encodedSubject = encodeUrlPathSegment(schemaName)
+        val path = String.format(CloudConfig.DataPlane.SchemaRegistry.REGISTER_SCHEMA_URI, encodedSubject)
+        val requestBody = json.encodeToString(RegisterSchemaRequest.serializer(), request)
+        val responseBody = schemaRegistryClient!!.executeRequest(path, "POST", requestBody)
+        return json.decodeFromString<RegisterSchemaResponse>(responseBody)
+    }
+
+    override suspend fun checkSchemaExists(
+        schemaName: String,
+        request: RegisterSchemaRequest
+    ): CheckSchemaExistsResponse {
+        requireSchemaRegistry()
+        val encodedSubject = encodeUrlPathSegment(schemaName)
+        val path = String.format(CloudConfig.DataPlane.SchemaRegistry.CHECK_SCHEMA_URI, encodedSubject)
+        val requestBody = json.encodeToString(RegisterSchemaRequest.serializer(), request)
+        val responseBody = schemaRegistryClient!!.executeRequest(path, "POST", requestBody)
+        return json.decodeFromString<CheckSchemaExistsResponse>(responseBody)
+    }
+
+    override suspend fun deleteSchema(schemaName: String, permanent: Boolean): DeleteSubjectResponse {
+        requireSchemaRegistry()
+        val encodedSubject = encodeUrlPathSegment(schemaName)
+        val path = String.format(CloudConfig.DataPlane.SchemaRegistry.DELETE_SUBJECT_URI, encodedSubject)
+        val pathWithQuery = if (permanent) "$path?permanent=true" else path
+        val responseBody = schemaRegistryClient!!.executeRequest(pathWithQuery, "DELETE")
+        return json.decodeFromString<DeleteSubjectResponse>(responseBody)
+    }
+
+    override suspend fun deleteSchemaVersion(
+        schemaName: String,
+        version: Long,
+        permanent: Boolean
+    ): DeleteSchemaVersionResponse {
+        requireSchemaRegistry()
+        val encodedSubject = encodeUrlPathSegment(schemaName)
+        val path = String.format(
+            CloudConfig.DataPlane.SchemaRegistry.DELETE_VERSION_URI,
+            encodedSubject,
+            version.toString()
+        )
+        val pathWithQuery = if (permanent) "$path?permanent=true" else path
+        val responseBody = schemaRegistryClient!!.executeRequest(pathWithQuery, "DELETE")
+        return json.decodeFromString<DeleteSchemaVersionResponse>(responseBody)
+    }
+
+    override suspend fun getSchemaCompatibility(schemaName: String): CompatibilityResponse {
+        requireSchemaRegistry()
+        val encodedSubject = encodeUrlPathSegment(schemaName)
+        val path = String.format(CloudConfig.DataPlane.SchemaRegistry.GET_SUBJECT_COMPATIBILITY_URI, encodedSubject)
+        val responseBody = schemaRegistryClient!!.executeRequest(path, "GET")
+        return json.decodeFromString<CompatibilityResponse>(responseBody)
+    }
+
+
     private fun requireSchemaRegistry() {
         if (schemaRegistryClient == null || schemaRegistryId == null) {
             throw IllegalStateException("Schema Registry unavailable for cluster $clusterId")
         }
+    }
+
+    /**
+     * Encode subject name for URL path (not query params).
+     * URLEncoder.encode() is for form data (spaces → +), but URL paths need spaces → %20.
+     */
+    private fun encodeUrlPathSegment(segment: String): String {
+        return URLEncoder.encode(segment, StandardCharsets.UTF_8.toString())
+            .replace("+", "%20")  // Fix form encoding to path encoding
     }
 }
