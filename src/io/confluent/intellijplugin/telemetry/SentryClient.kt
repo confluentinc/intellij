@@ -1,7 +1,6 @@
 package io.confluent.intellijplugin.telemetry
 
 import com.intellij.openapi.application.ApplicationInfo
-import com.intellij.openapi.application.PermanentInstallationID
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.util.SystemInfo
 import io.sentry.Sentry
