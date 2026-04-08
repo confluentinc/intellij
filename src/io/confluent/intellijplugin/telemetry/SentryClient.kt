@@ -5,6 +5,7 @@ import com.intellij.openapi.application.PermanentInstallationID
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.util.SystemInfo
 import io.sentry.Sentry
+import io.sentry.SentryEvent
 
 object SentryClient {
     private val logger = Logger.getInstance(SentryClient::class.java)
@@ -17,9 +18,16 @@ object SentryClient {
                 options.isDebug = false
                 options.release = TelemetryUtils.getPluginVersion()
                 options.serverName = TelemetryUtils.getAnonymisedHostname()
+
                 options.setBeforeSend { event, _ ->
-                    addDefaultTags(event)
-                    event
+                    // Filter out non-plugin errors before sending to Sentry
+                    if (SentryErrorFilter.isPluginRelatedError(event)) {
+                        addDefaultTags(event)
+                        event
+                    } else {
+                        logger.debug("Dropping non-plugin error from Sentry: ${event.throwable?.javaClass?.name}")
+                        null  // Return null to prevent sending this event
+                    }
                 }
             }
             logger.info("Sentry initialized successfully")
@@ -28,7 +36,7 @@ object SentryClient {
         }
     }
 
-    private fun addDefaultTags(event: io.sentry.SentryEvent) {
+    private fun addDefaultTags(event: SentryEvent) {
         val appInfo = ApplicationInfo.getInstance()
 
         event.setTag("productName", appInfo.fullApplicationName)
