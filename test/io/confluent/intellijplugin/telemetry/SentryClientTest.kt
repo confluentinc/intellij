@@ -9,7 +9,7 @@ import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 
 /**
- * Tests for SentryClient error filtering.
+ * Tests for SentryErrorFilter.
  * Verifies that only plugin-related exceptions are sent to Sentry.
  */
 @TestApplication
@@ -39,7 +39,7 @@ class SentryClientTest {
             }
 
             val event = SentryEvent(pluginException)
-            val isPluginError = SentryClient.isPluginRelatedError(event)
+            val isPluginError = SentryErrorFilter.isPluginRelatedError(event)
 
             assertTrue(isPluginError, "Should identify errors with plugin package in stack trace")
         }
@@ -64,7 +64,7 @@ class SentryClientTest {
             }
 
             val event = SentryEvent(platformException)
-            val isPluginError = SentryClient.isPluginRelatedError(event)
+            val isPluginError = SentryErrorFilter.isPluginRelatedError(event)
 
             assertFalse(isPluginError, "Should reject platform-only errors")
         }
@@ -89,7 +89,7 @@ class SentryClientTest {
             }
 
             val event = SentryEvent(otherPluginException)
-            val isPluginError = SentryClient.isPluginRelatedError(event)
+            val isPluginError = SentryErrorFilter.isPluginRelatedError(event)
 
             assertFalse(isPluginError, "Should reject errors from other plugins")
         }
@@ -120,7 +120,7 @@ class SentryClientTest {
             }
 
             val event = SentryEvent(deepPluginException)
-            val isPluginError = SentryClient.isPluginRelatedError(event)
+            val isPluginError = SentryErrorFilter.isPluginRelatedError(event)
 
             assertTrue(isPluginError, "Should find plugin code anywhere in stack trace")
         }
@@ -129,7 +129,7 @@ class SentryClientTest {
         fun `should handle events without throwable`() {
             val event = SentryEvent()  // No throwable attached
 
-            val isPluginError = SentryClient.isPluginRelatedError(event)
+            val isPluginError = SentryErrorFilter.isPluginRelatedError(event)
 
             assertFalse(isPluginError, "Should reject events without throwable")
         }
@@ -141,7 +141,7 @@ class SentryClientTest {
             }
 
             val event = SentryEvent(emptyStackException)
-            val isPluginError = SentryClient.isPluginRelatedError(event)
+            val isPluginError = SentryErrorFilter.isPluginRelatedError(event)
 
             assertFalse(isPluginError, "Should reject exceptions with empty stack trace")
         }
@@ -160,7 +160,7 @@ class SentryClientTest {
             }
 
             val event = SentryEvent(similarPackageException)
-            val isPluginError = SentryClient.isPluginRelatedError(event)
+            val isPluginError = SentryErrorFilter.isPluginRelatedError(event)
 
             assertFalse(
                 isPluginError,
@@ -182,7 +182,7 @@ class SentryClientTest {
             }
 
             val event = SentryEvent(prefixMatchException)
-            val isPluginError = SentryClient.isPluginRelatedError(event)
+            val isPluginError = SentryErrorFilter.isPluginRelatedError(event)
 
             assertFalse(
                 isPluginError,
@@ -215,7 +215,7 @@ class SentryClientTest {
             }
 
             val event = SentryEvent(wrappingException)
-            val isPluginError = SentryClient.isPluginRelatedError(event)
+            val isPluginError = SentryErrorFilter.isPluginRelatedError(event)
 
             assertTrue(isPluginError, "Should detect plugin error in cause chain")
         }
@@ -246,7 +246,7 @@ class SentryClientTest {
             }
 
             val event = SentryEvent(mainException)
-            val isPluginError = SentryClient.isPluginRelatedError(event)
+            val isPluginError = SentryErrorFilter.isPluginRelatedError(event)
 
             assertTrue(isPluginError, "Should detect plugin error in suppressed exceptions")
         }
@@ -272,7 +272,7 @@ class SentryClientTest {
             }
 
             val event = SentryEvent(outerException)
-            val isPluginError = SentryClient.isPluginRelatedError(event)
+            val isPluginError = SentryErrorFilter.isPluginRelatedError(event)
 
             assertFalse(isPluginError, "Should reject deep cause chain without plugin code")
         }
