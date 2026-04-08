@@ -5,9 +5,11 @@ import com.intellij.openapi.application.PermanentInstallationID
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.util.SystemInfo
 import io.sentry.Sentry
+import io.sentry.SentryEvent
 
 object SentryClient {
     private val logger = Logger.getInstance(SentryClient::class.java)
+    private const val PLUGIN_PACKAGE = "io.confluent.intellijplugin"
 
     init {
         try {
@@ -18,8 +20,14 @@ object SentryClient {
                 options.release = TelemetryUtils.getPluginVersion()
                 options.serverName = TelemetryUtils.getAnonymisedHostname()
                 options.setBeforeSend { event, _ ->
-                    addDefaultTags(event)
-                    event
+                    // Filter out non-plugin errors before sending to Sentry
+                    if (isPluginRelatedError(event)) {
+                        addDefaultTags(event)
+                        event
+                    } else {
+                        logger.info("Dropping non-plugin error from Sentry: ${event.throwable?.javaClass?.name}")
+                        null  // Return null to prevent sending this event
+                    }
                 }
             }
             logger.info("Sentry initialized successfully")
@@ -28,7 +36,7 @@ object SentryClient {
         }
     }
 
-    private fun addDefaultTags(event: io.sentry.SentryEvent) {
+    private fun addDefaultTags(event: SentryEvent) {
         val appInfo = ApplicationInfo.getInstance()
 
         event.setTag("productName", appInfo.fullApplicationName)
@@ -46,6 +54,21 @@ object SentryClient {
             logger.debug("Exception captured and sent to Sentry")
         } catch (e: Exception) {
             logger.error("Failed to capture exception to Sentry", e)
+        }
+    }
+
+    /**
+     * Checks if a Sentry event originated from plugin code.
+     *
+     * @param event The Sentry event to check
+     * @return true if the error is plugin-related, false otherwise
+     */
+    internal fun isPluginRelatedError(event: SentryEvent): Boolean {
+        val throwable = event.throwable ?: return false
+
+        // Check if any stack trace element contains the plugin package
+        return throwable.stackTrace.any { frame ->
+            frame.className.startsWith(PLUGIN_PACKAGE)
         }
     }
 }
