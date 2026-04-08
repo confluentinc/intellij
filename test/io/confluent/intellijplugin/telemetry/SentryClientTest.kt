@@ -147,25 +147,6 @@ class SentryClientTest {
         }
 
         @Test
-        fun `should identify plugin subpackages`() {
-            val subpackageException = RuntimeException("Subpackage error").apply {
-                stackTrace = arrayOf(
-                    StackTraceElement(
-                        "io.confluent.intellijplugin.core.settings.LocalConnectionSettings",
-                        "save",
-                        "LocalConnectionSettings.kt",
-                        120
-                    )
-                )
-            }
-
-            val event = SentryEvent(subpackageException)
-            val isPluginError = SentryClient.isPluginRelatedError(event)
-
-            assertTrue(isPluginError, "Should identify errors from plugin subpackages")
-        }
-
-        @Test
         fun `should reject similar package names`() {
             val similarPackageException = RuntimeException("Similar package").apply {
                 stackTrace = arrayOf(
@@ -185,6 +166,115 @@ class SentryClientTest {
                 isPluginError,
                 "Should reject packages that start with io.confluent but aren't the plugin"
             )
+        }
+
+        @Test
+        fun `should reject package names with plugin prefix but no dot boundary`() {
+            val prefixMatchException = RuntimeException("Prefix without dot").apply {
+                stackTrace = arrayOf(
+                    StackTraceElement(
+                        "io.confluent.intellijpluginFooBar",
+                        "method",
+                        "FooBar.java",
+                        10
+                    )
+                )
+            }
+
+            val event = SentryEvent(prefixMatchException)
+            val isPluginError = SentryClient.isPluginRelatedError(event)
+
+            assertFalse(
+                isPluginError,
+                "Should reject package names that match prefix without dot boundary"
+            )
+        }
+
+        @Test
+        fun `should identify plugin error in cause chain`() {
+            val pluginException = RuntimeException("Plugin error").apply {
+                stackTrace = arrayOf(
+                    StackTraceElement(
+                        "io.confluent.intellijplugin.consumer.ConsumerService",
+                        "consume",
+                        "ConsumerService.kt",
+                        42
+                    )
+                )
+            }
+
+            val wrappingException = RuntimeException("Wrapped by platform", pluginException).apply {
+                stackTrace = arrayOf(
+                    StackTraceElement(
+                        "com.intellij.openapi.application.ApplicationManager",
+                        "run",
+                        "ApplicationManager.java",
+                        100
+                    )
+                )
+            }
+
+            val event = SentryEvent(wrappingException)
+            val isPluginError = SentryClient.isPluginRelatedError(event)
+
+            assertTrue(isPluginError, "Should detect plugin error in cause chain")
+        }
+
+        @Test
+        fun `should identify plugin error in suppressed exceptions`() {
+            val pluginException = RuntimeException("Plugin error").apply {
+                stackTrace = arrayOf(
+                    StackTraceElement(
+                        "io.confluent.intellijplugin.registry.SchemaRegistryClient",
+                        "fetch",
+                        "SchemaRegistryClient.kt",
+                        50
+                    )
+                )
+            }
+
+            val mainException = RuntimeException("Main exception").apply {
+                stackTrace = arrayOf(
+                    StackTraceElement(
+                        "com.intellij.util.net.HttpRequests",
+                        "request",
+                        "HttpRequests.java",
+                        200
+                    )
+                )
+                addSuppressed(pluginException)
+            }
+
+            val event = SentryEvent(mainException)
+            val isPluginError = SentryClient.isPluginRelatedError(event)
+
+            assertTrue(isPluginError, "Should detect plugin error in suppressed exceptions")
+        }
+
+        @Test
+        fun `should handle deep cause chain without plugin code`() {
+            val innerException = RuntimeException("Inner").apply {
+                stackTrace = arrayOf(
+                    StackTraceElement("java.lang.Thread", "run", "Thread.java", 100)
+                )
+            }
+
+            val middleException = RuntimeException("Middle", innerException).apply {
+                stackTrace = arrayOf(
+                    StackTraceElement("com.intellij.openapi.util.Computable", "compute", "Computable.java", 50)
+                )
+            }
+
+            val outerException = RuntimeException("Outer", middleException).apply {
+                stackTrace = arrayOf(
+                    StackTraceElement("com.intellij.openapi.application.Application", "run", "Application.java", 200)
+                )
+            }
+
+            val event = SentryEvent(outerException)
+            val isPluginError = SentryClient.isPluginRelatedError(event)
+
+            assertFalse(isPluginError, "Should reject deep cause chain without plugin code")
         }
     }
 }
