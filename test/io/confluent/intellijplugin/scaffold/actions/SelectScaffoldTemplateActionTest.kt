@@ -290,6 +290,51 @@ class SelectScaffoldTemplateActionTest {
         }
 
         @Test
+        fun `logs selected template when user confirms selection`() {
+            val template = createTemplate(name = "java-producer", displayName = "Java Producer")
+            val templates = setOf(template)
+            val mockClient = createMockClientReturning(templates)
+
+            val mockDialog = mock<ScaffoldTemplateSelectionDialog> {
+                on { showAndGet() } doReturn true
+                on { selectedTemplate } doReturn template
+            }
+            val dialogFactory = createMockDialogFactory(mockDialog)
+
+            val action = SelectScaffoldTemplateAction(
+                clientFactory = { mockClient },
+                dialogFactory = dialogFactory
+            )
+
+            runBlocking { action.fetchAndShowTemplates(project) }
+
+            verify(mockDialog).showAndGet()
+            verify(mockDialog).selectedTemplate
+        }
+
+        @Test
+        fun `handles null selected template when user confirms dialog`() {
+            val templates = setOf(createTemplate())
+            val mockClient = createMockClientReturning(templates)
+
+            val mockDialog = mock<ScaffoldTemplateSelectionDialog> {
+                on { showAndGet() } doReturn true
+                on { selectedTemplate } doReturn null
+            }
+            val dialogFactory = createMockDialogFactory(mockDialog)
+
+            val action = SelectScaffoldTemplateAction(
+                clientFactory = { mockClient },
+                dialogFactory = dialogFactory
+            )
+
+            runBlocking { action.fetchAndShowTemplates(project) }
+
+            verify(mockDialog).showAndGet()
+            verify(mockDialog).selectedTemplate
+        }
+
+        @Test
         fun `does not show dialog when project is disposed`() {
             val templates = setOf(createTemplate())
             val mockClient = createMockClientReturning(templates)
