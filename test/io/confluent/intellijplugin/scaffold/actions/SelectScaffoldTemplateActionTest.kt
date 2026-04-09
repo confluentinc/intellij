@@ -246,8 +246,8 @@ class SelectScaffoldTemplateActionTest {
         @Test
         fun `applies template sorter before showing dialog`() {
             val templates = setOf(
-                createTemplate(name = "template-1", displayName = "Template 1"),
-                createTemplate(name = "template-2", displayName = "Template 2")
+                createTemplate(name = "template-a", displayName = "Template A"),
+                createTemplate(name = "template-b", displayName = "Template B")
             )
             val mockClient = createMockClientReturning(templates)
 
@@ -256,11 +256,8 @@ class SelectScaffoldTemplateActionTest {
             }
             val dialogFactory = createMockDialogFactory(mockDialog)
 
-            val sortedList = listOf(
-                createTemplate(name = "sorted-1", displayName = "Sorted 1"),
-                createTemplate(name = "sorted-2", displayName = "Sorted 2")
-            )
-            val sorter: (List<ScaffoldV1TemplateListDataInner>) -> List<ScaffoldV1TemplateListDataInner> = { sortedList }
+            val sorter: (List<ScaffoldV1TemplateListDataInner>) -> List<ScaffoldV1TemplateListDataInner> =
+                { it.sortedByDescending { t -> t.spec.name } }
 
             val action = SelectScaffoldTemplateAction(
                 clientFactory = { mockClient },
@@ -273,8 +270,9 @@ class SelectScaffoldTemplateActionTest {
             runBlocking { action.fetchAndShowTemplates(project) }
 
             verify(dialogFactory).invoke(eq(project), templatesCaptor.capture())
-            assertEquals("sorted-1", templatesCaptor.firstValue[0].spec.name)
-            assertEquals("sorted-2", templatesCaptor.firstValue[1].spec.name)
+            val sortedTemplates = templatesCaptor.firstValue
+            assertEquals("template-b", sortedTemplates[0].spec.name)
+            assertEquals("template-a", sortedTemplates[1].spec.name)
         }
 
         @Test
