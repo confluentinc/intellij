@@ -14,6 +14,7 @@ import com.intellij.platform.ide.progress.withBackgroundProgress
 import io.confluent.intellijplugin.scaffold.client.ScaffoldHttpClient
 import io.confluent.intellijplugin.scaffold.model.ScaffoldV1TemplateListDataInner
 import io.confluent.intellijplugin.scaffold.ui.ScaffoldTemplateSelectionDialog
+import io.confluent.intellijplugin.scaffold.util.IdeLanguageMapper
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -23,7 +24,9 @@ import kotlinx.coroutines.withContext
 class SelectScaffoldTemplateAction(
     private val clientFactory: () -> ScaffoldHttpClient = { ScaffoldHttpClient() },
     private val dialogFactory: (Project, List<ScaffoldV1TemplateListDataInner>) -> ScaffoldTemplateSelectionDialog =
-        ::ScaffoldTemplateSelectionDialog
+        ::ScaffoldTemplateSelectionDialog,
+    private val templateSorter: (List<ScaffoldV1TemplateListDataInner>) -> List<ScaffoldV1TemplateListDataInner> =
+        { templates -> IdeLanguageMapper.sortByPreferredLanguage(templates) }
 ) : DumbAwareAction() {
 
     override fun actionPerformed(e: AnActionEvent) {
@@ -52,7 +55,8 @@ class SelectScaffoldTemplateAction(
             withContext(Dispatchers.EDT + ModalityState.defaultModalityState().asContextElement()) {
                 if (project.isDisposed) return@withContext
 
-                val dialog = dialogFactory(project, templates)
+                val sortedTemplates = templateSorter(templates)
+                val dialog = dialogFactory(project, sortedTemplates)
                 if (dialog.showAndGet()) {
                     val selected = dialog.selectedTemplate
                     if (selected != null) {
