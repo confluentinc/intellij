@@ -42,40 +42,50 @@ class ConsumerTableStatsTest {
         fun `should accumulate multiple rapid batch additions without errors`() = runBlocking {
             val record = createTestRecord()
 
-            repeat(5) {
-                stats.addRecordsBatch(100, listOf(record))
+            ApplicationManager.getApplication().invokeAndWait {
+                repeat(5) {
+                    stats.addRecordsBatch(100, listOf(record))
+                }
             }
 
-            delay(150)
+            delay(300)
             ApplicationManager.getApplication().invokeAndWait { }
 
-            assertTrue(stats.getElapsedTimeMs() < 500)
+            assertEquals(5L, stats.totalMessageCount, "Should have accumulated all 5 records")
         }
 
         @Test
         fun `should cancel previous update when new batch arrives quickly`() = runBlocking {
             val record = createTestRecord()
 
-            stats.addRecordsBatch(100, listOf(record))
+            ApplicationManager.getApplication().invokeAndWait {
+                stats.addRecordsBatch(100, listOf(record))
+            }
             delay(80)
-            stats.addRecordsBatch(100, listOf(record))
+            ApplicationManager.getApplication().invokeAndWait {
+                stats.addRecordsBatch(100, listOf(record))
+            }
             delay(80)
-            stats.addRecordsBatch(100, listOf(record))
-            delay(150)
+            ApplicationManager.getApplication().invokeAndWait {
+                stats.addRecordsBatch(100, listOf(record))
+            }
+            delay(300)
 
             ApplicationManager.getApplication().invokeAndWait { }
-            assertTrue(true, "Debouncing should handle rapid updates without errors")
+            assertEquals(3L, stats.totalMessageCount, "Should have accumulated all 3 records across debounced batches")
         }
 
         @Test
         fun `should not throw when disposed during debounce`() = runBlocking {
             val record = createTestRecord()
 
-            stats.addRecordsBatch(100, listOf(record))
+            ApplicationManager.getApplication().invokeAndWait {
+                stats.addRecordsBatch(100, listOf(record))
+            }
             delay(50)
             stats.dispose()
 
-            delay(100)
+            delay(300)
             assertTrue(true, "Disposal during debounce should not throw")
         }
     }
@@ -86,8 +96,10 @@ class ConsumerTableStatsTest {
 
         @Test
         fun `should reset elapsed time on start`() = runBlocking {
-            stats.addRecordsBatch(100, listOf(createTestRecord()))
-            delay(150)
+            ApplicationManager.getApplication().invokeAndWait {
+                stats.addRecordsBatch(100, listOf(createTestRecord()))
+            }
+            delay(300)
             ApplicationManager.getApplication().invokeAndWait { }
 
             stats.start()

@@ -2,6 +2,7 @@ package io.confluent.intellijplugin.consumer.editor
 
 import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.application.EDT
+import com.intellij.util.concurrency.annotations.RequiresEdt
 import io.confluent.intellijplugin.core.ui.CustomComponentActionImpl
 import io.confluent.intellijplugin.core.ui.ToolbarGreyLabelActionImpl
 import io.confluent.intellijplugin.core.util.SizeUtils
@@ -9,11 +10,14 @@ import io.confluent.intellijplugin.core.util.TimeUtils
 import io.confluent.intellijplugin.core.util.ToolbarUtils
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
 import kotlinx.coroutines.*
+import org.jetbrains.annotations.VisibleForTesting
 import javax.swing.JLabel
 import kotlin.time.Duration.Companion.milliseconds
 
 class ConsumerTableStats(private val scope: CoroutineScope) {
-    private var totalMessageCount: Long = 0
+    @VisibleForTesting
+    internal var totalMessageCount: Long = 0
+        private set
     private var totalMessageSize: Long = 0
     private var totalPollCount: Long = 0
     private var totalPollTime: Long = 0
@@ -58,6 +62,7 @@ class ConsumerTableStats(private val scope: CoroutineScope) {
 
     fun getElapsedTimeMs(): Long = System.currentTimeMillis() - startTime
 
+    @RequiresEdt
     fun addRecordsBatch(pollTime: Long, elements: List<KafkaRecord>) {
         totalPollTime += pollTime
         totalPollCount += 1
@@ -70,7 +75,7 @@ class ConsumerTableStats(private val scope: CoroutineScope) {
 
         updateJob?.cancel()
         updateJob = scope.launch {
-            delay(100.milliseconds)
+            delay(DEBOUNCE_DELAY)
             withContext(Dispatchers.EDT) {
                 updateUi()
             }
@@ -79,7 +84,10 @@ class ConsumerTableStats(private val scope: CoroutineScope) {
 
     fun dispose() {
         updateJob?.cancel()
-        scope.cancel()
+    }
+
+    companion object {
+        private val DEBOUNCE_DELAY = 250.milliseconds
     }
 
     private fun updateUi() {
