@@ -29,11 +29,7 @@ class KafkaEditorProvider : WeighedFileEditorProvider(), DumbAware {
 
         return when (type) {
             KafkaEditorType.CONSUMER -> KafkaConsumerEditor(project, dataManager, file, topic)
-            KafkaEditorType.PRODUCER -> {
-                val kafkaManager = dataManager as? KafkaDataManager
-                    ?: error("Producer only supported for native Kafka connections")
-                KafkaProducerEditor(project, kafkaManager, file, topic)
-            }
+            KafkaEditorType.PRODUCER -> KafkaProducerEditor(project, dataManager, file, topic)
         }
     }
 

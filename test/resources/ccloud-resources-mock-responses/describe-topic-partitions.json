@@ -1,0 +1,44 @@
+{
+  "kind": "KafkaPartitionList",
+  "metadata": {
+    "next": null
+  },
+  "data": [
+    {
+      "partition_id": 0,
+      "leader": {
+        "related": "https://api.confluent.cloud/kafka/v3/clusters/lkc-abc123/brokers/1"
+      },
+      "replicas": {
+        "related": "https://api.confluent.cloud/kafka/v3/clusters/lkc-abc123/topics/orders/partitions/0/replicas"
+      },
+      "isr": {
+        "related": "https://api.confluent.cloud/kafka/v3/clusters/lkc-abc123/topics/orders/partitions/0/reassignment"
+      }
+    },
+    {
+      "partition_id": 1,
+      "leader": {
+        "related": "https://api.confluent.cloud/kafka/v3/clusters/lkc-abc123/brokers/2"
+      },
+      "replicas": {
+        "related": "https://api.confluent.cloud/kafka/v3/clusters/lkc-abc123/topics/orders/partitions/1/replicas"
+      },
+      "isr": {
+        "related": "https://api.confluent.cloud/kafka/v3/clusters/lkc-abc123/topics/orders/partitions/1/reassignment"
+      }
+    },
+    {
+      "partition_id": 2,
+      "leader": {
+        "related": "https://api.confluent.cloud/kafka/v3/clusters/lkc-abc123/brokers/3"
+      },
+      "replicas": {
+        "related": "https://api.confluent.cloud/kafka/v3/clusters/lkc-abc123/topics/orders/partitions/2/replicas"
+      },
+      "isr": {
+        "related": "https://api.confluent.cloud/kafka/v3/clusters/lkc-abc123/topics/orders/partitions/2/reassignment"
+      }
+    }
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "cluster_id": "lkc-test123",
+  "topic_name": "test-topic",
+  "partition_data": {
+    "partition_id": 0,
+    "next_offset": 150,
+    "records": [
+      {
+        "partition_id": 0,
+        "offset": 100,
+        "timestamp": 1700000000000,
+        "timestamp_type": "CREATE_TIME",
+        "headers": [],
+        "key": {"__raw__": "dGVzdC1rZXk="},
+        "value": {"__raw__": "dGVzdC12YWx1ZQ=="}
+      },
+      {
+        "partition_id": 0,
+        "offset": 101,
+        "timestamp": 1700000001000,
+        "timestamp_type": "CREATE_TIME",
+        "headers": [
+          {"key": "trace-id", "value": "YWJjMTIz"}
+        ],
+        "key": {"__raw__": "a2V5LTI="},
+        "value": {"__raw__": "dmFsdWUtMg=="}
+      }
+    ]
+  }
+}

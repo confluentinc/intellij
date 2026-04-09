@@ -20,17 +20,24 @@ import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.NlsSafe
 import com.intellij.ui.IdeBorderFactory
 import com.intellij.ui.SideBorder
+import com.intellij.ui.components.JBList
+import com.intellij.ui.components.JBPanelWithEmptyText
+import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.dsl.builder.*
+import com.intellij.ui.table.JBTable
+import com.intellij.ui.treeStructure.Tree
 import com.intellij.ui.dsl.gridLayout.UnscaledGaps
 import com.intellij.ui.layout.migLayout.createLayoutConstraints
 import com.intellij.ui.layout.migLayout.patched.MigLayout
 import io.confluent.intellijplugin.common.editor.SchemaVersionDiffController
 import io.confluent.intellijplugin.common.editor.SchemaVersionsComboboxController
+import io.confluent.intellijplugin.core.monitoring.data.listener.DataModelListener
 import io.confluent.intellijplugin.core.monitoring.toolwindow.ComponentController
 import io.confluent.intellijplugin.core.monitoring.toolwindow.DetailsMonitoringController
 import io.confluent.intellijplugin.core.ui.CustomComponentActionImpl
 import io.confluent.intellijplugin.core.util.ToolbarUtils
 import io.confluent.intellijplugin.core.util.invokeLater
+import io.confluent.intellijplugin.data.BaseClusterDataManager
 import io.confluent.intellijplugin.data.KafkaDataManager
 import io.confluent.intellijplugin.registry.KafkaRegistryFormat
 import io.confluent.intellijplugin.registry.KafkaRegistryType
@@ -45,6 +52,8 @@ import io.confluent.intellijplugin.util.KafkaMessagesBundle
 import net.miginfocom.layout.ConstraintParser
 import org.jetbrains.annotations.Nls
 import java.awt.BorderLayout
+import java.awt.Component
+import java.awt.Container
 import java.awt.Dimension
 import java.util.function.BiFunction
 import javax.swing.JCheckBox
@@ -53,22 +62,28 @@ import javax.swing.JPanel
 
 class KafkaSchemaController(
     private val project: Project,
-    private val dataManager: KafkaDataManager
+    private val dataManager: BaseClusterDataManager
 ) : ComponentController,
     DetailsMonitoringController<String> {
     private val config: KafkaClusterConfig
         get() = KafkaToolWindowSettings.getInstance().getOrCreateConfig(dataManager.connectionId)
 
     private val isStructure = AtomicBooleanProperty(false)
-    private val isSchema = AtomicBooleanProperty(false)
+    private val isSchema = AtomicBooleanProperty(true)
     private val isEditMode = AtomicBooleanProperty(false)
-    private val isNotEditMode = AtomicBooleanProperty(false)
+    private val isNotEditMode = AtomicBooleanProperty(true)
     private val isEditModeAvailable = AtomicBooleanProperty(false)
+    private val isLoading = AtomicBooleanProperty(false)
+    private val hasContent = AtomicBooleanProperty(false)
 
     @NlsSafe
     private var schemaName: String? = null
-    private val version1Controller = SchemaVersionsComboboxController(this, dataManager) {
-        isEditModeAvailable.set(it.size > 1)
+    private val version1Controller = SchemaVersionsComboboxController(this, dataManager) { versions ->
+        isEditModeAvailable.set(versions.size > 1)
+        if (versions.isNotEmpty()) {
+            version1.component.item = versions.first()
+            updateVersion1Info()
+        }
     }.also {
         Disposer.register(this, it)
     }
@@ -96,12 +111,16 @@ class KafkaSchemaController(
 
     private val internalComponent = panel {
         row {
+            label(KafkaMessagesBundle.message("confluent.cloud.details.schema.loading")).align(Align.CENTER)
+        }.resizableRow().visibleIf(isLoading)
+
+        row {
             cell(structureView.getComponent()).align(Align.FILL)
-        }.resizableRow().visibleIf(isStructure)
+        }.resizableRow().visibleIf(isStructure.and(hasContent))
 
         row {
             cell(schemaView.component).align(Align.FILL)
-        }.resizableRow().visibleIf(isNotEditMode)
+        }.resizableRow().visibleIf(isSchema.and(hasContent).and(isNotEditMode))
 
         row {
             cell(diffViewController.component).align(Align.FILL)
@@ -118,11 +137,33 @@ class KafkaSchemaController(
         component.add(createToolbar(internalComponent), BorderLayout.NORTH)
         component.add(internalComponent, BorderLayout.CENTER)
         onViewTypeUpdate()
+
+        // Clear "Nothing to show" text on all components after EDT layout completes
+        invokeLater {
+            clearEmptyTextRecursive(internalComponent)
+        }
+    }
+
+    private fun clearEmptyTextRecursive(comp: Component) {
+        when (comp) {
+            is JBTable -> comp.emptyText.clear()
+            is JBList<*> -> comp.emptyText.clear()
+            is JBPanelWithEmptyText -> comp.emptyText.clear()
+            is Tree -> comp.emptyText.clear()
+            is JBScrollPane -> comp.viewport?.view?.let {
+                (it as? Component)?.let(::clearEmptyTextRecursive)
+            }
+        }
+
+        (comp as? Container)?.components?.forEach(::clearEmptyTextRecursive)
     }
 
     override fun getComponent(): JComponent = component
 
     override fun setDetailsId(@NlsSafe id: String) {
+        isLoading.set(true)
+        hasContent.set(false)
+
         version1Controller.setSchema(id)
         version2Controller.setSchema(id)
         schemaName = id
@@ -135,24 +176,35 @@ class KafkaSchemaController(
         if (schemaName == null)
             return
         val version = version1.component.item ?: return
+
         dataManager.getSchemaVersionInfo(schemaName, version).onSuccess {
-            if (version1Schema == it)
+            if (version1Schema == it) {
+                invokeLater {
+                    if (Disposer.isDisposed(this@KafkaSchemaController)) return@invokeLater
+                    isLoading.set(false)
+                    hasContent.set(true)
+                }
                 return@onSuccess
+            }
 
             version1Schema = it
             val prettySchema = KafkaRegistryUtil.getPrettySchema(schemaType = it.type.name, schema = it.schema)
-            val parsedSchema = KafkaRegistryUtil.parseSchema(
-                schemaType = it.type, newText = it.schema,
-                client = dataManager.client.confluentRegistryClient, references = it.references
-            ).getOrNull()
+            val parsedSchema = dataManager.parseSchemaForDisplay(it).getOrNull()
                 ?: return@onSuccess
             invokeLater {
+                // Guard against disposed controller
+                if (Disposer.isDisposed(diffViewController)) {
+                    return@invokeLater
+                }
                 schemaView.setText(
                     prettySchema, if (it.type != KafkaRegistryFormat.PROTOBUF) JsonLanguage.INSTANCE
                     else KafkaRegistryUtil.protobufLanguage
                 )
                 structureView.update(parsedSchema)
                 diffViewController.updateVersion1(it)
+
+                isLoading.set(false)
+                hasContent.set(true)
             }
         }
     }
@@ -168,7 +220,10 @@ class KafkaSchemaController(
 
             version2Schema = it
             invokeLater {
-                diffViewController.updateVersion2(it)
+                // Guard against disposed controller
+                if (!Disposer.isDisposed(diffViewController)) {
+                    diffViewController.updateVersion2(it)
+                }
             }
         }
     }
@@ -257,9 +312,22 @@ class KafkaSchemaController(
                     project,
                     versionInfo
                 ) { newText ->
+                    val versionModel = dataManager.getSchemaVersionsModel(versionInfo.schemaName)
+                    versionModel.addListener(object : DataModelListener {
+                        override fun onChanged() {
+                            invokeLater { version1.component.item = versionModel.originObject?.firstOrNull() }
+                            versionModel.removeListener(this)
+                        }
+                    })
                     dataManager.updateSchema(versionInfo, newText)
                 }
             }
+
+            override fun update(e: AnActionEvent) {
+                e.presentation.isEnabledAndVisible = version1Schema != null
+            }
+
+            override fun getActionUpdateThread() = ActionUpdateThread.BGT
         }
 
         val moreAction = MoreActionGroup()
@@ -267,6 +335,7 @@ class KafkaSchemaController(
             override fun actionPerformed(e: AnActionEvent) {
                 val versionSchema = version1Schema ?: return
                 if (dataManager.registryType == KafkaRegistryType.AWS_GLUE) {
+                    // AWS Glue: simple dialog, soft delete only
                     val askRes = Messages.showOkCancelDialog(
                         project,
                         KafkaMessagesBundle.message(
@@ -275,12 +344,14 @@ class KafkaSchemaController(
                         ),
                         KafkaMessagesBundle.message("action.delete.version.text"),
                         Messages.getOkButton(),
-                        Messages.getCancelButton(), Messages.getQuestionIcon()
+                        Messages.getCancelButton(),
+                        Messages.getQuestionIcon()
                     )
                     if (askRes == Messages.OK) {
                         dataManager.deleteRegistrySchemaVersion(versionSchema)
                     }
                 } else {
+                    // Confluent: checkbox for permanent deletion (displayed but ignored)
                     Messages.showCheckboxMessageDialog(
                         KafkaMessagesBundle.message(
                             "action.remove.version.confirm.dialog.msg", versionSchema.version,
@@ -303,7 +374,7 @@ class KafkaSchemaController(
             override fun update(e: AnActionEvent) {
                 e.presentation.description = ""
                 e.presentation.isEnabledAndVisible = version1Schema != null && version1.component.itemCount > 1
-                if (e.presentation.isEnabledAndVisible && dataManager.connectionData.registryType == KafkaRegistryType.AWS_GLUE) {
+                if (e.presentation.isEnabledAndVisible && dataManager.registryType == KafkaRegistryType.AWS_GLUE) {
                     val versions = version1.component.getUserData(SchemaVersionsComboboxController.VERSIONS_LIST_KEY)
                     val selectedItem = version1.component.item
                     e.presentation.isEnabledAndVisible = selectedItem != versions?.lastOrNull()
@@ -316,7 +387,7 @@ class KafkaSchemaController(
     }
 
     private fun onViewTypeUpdate() {
-        val selectedViewType = viewType.selectedItem
+        val selectedViewType = viewType.selectedItem ?: ViewType.SCHEMA
         config.isStructure = selectedViewType == ViewType.STRUCTURE
 
         isStructure.set(selectedViewType == ViewType.STRUCTURE)

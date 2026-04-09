@@ -1,7 +1,6 @@
 package io.confluent.intellijplugin.producer.client
 
 import com.intellij.charts.dataframe.DataFrame
-import io.confluent.intellijplugin.client.KafkaClient
 import io.confluent.intellijplugin.consumer.editor.KafkaRecord
 import io.confluent.intellijplugin.consumer.models.ConsumerProducerFieldConfig
 import io.confluent.intellijplugin.core.rfs.util.RfsNotificationUtils
@@ -24,19 +23,27 @@ import org.apache.kafka.clients.producer.KafkaProducer
 import org.apache.kafka.clients.producer.ProducerConfig
 import org.apache.kafka.clients.producer.ProducerRecord
 import org.apache.kafka.common.serialization.Serializer
+import org.jetbrains.annotations.VisibleForTesting
+import java.time.Duration
 import java.util.*
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.TimeoutException
 import java.util.concurrent.atomic.AtomicBoolean
 
-class KafkaProducerClient(val client: KafkaClient) {
+class KafkaProducerClient(
+    val dataManager: KafkaDataManager,
+    val onStart: () -> Unit,
+    val onStop: () -> Unit
+) : ProducerClient {
+    val client = dataManager.client
     val connectionData = client.connectionData
 
-    val isRunning = AtomicBoolean(false)
+    @VisibleForTesting
+    internal val running = AtomicBoolean(false)
 
-    fun isRunning(): Boolean = isRunning.get()
+    override fun isRunning(): Boolean = running.get()
 
-    fun start(
-        dataManager: KafkaDataManager,
+    override fun start(
         topic: String,
         key: ConsumerProducerFieldConfig,
         value: ConsumerProducerFieldConfig,
@@ -51,6 +58,9 @@ class KafkaProducerClient(val client: KafkaClient) {
         try {
             if (isRunning())
                 error("Producer is already run")
+            running.set(true)
+            onStart()
+
             val props = createProducerProperties(recordCompression, enableIdempotence, acks)
 
             @Suppress("UNCHECKED_CAST")
@@ -60,8 +70,6 @@ class KafkaProducerClient(val client: KafkaClient) {
                 KafkaProducer(props, keySerializer, valueSerializer) as KafkaProducer<Any, Any>
             }
             try {
-                isRunning.set(true)
-
                 val csvDataFrame = flowParams.csvFile?.let {
                     KafkaCsvUtils.readDataFrame(it)
                 }
@@ -102,9 +110,10 @@ class KafkaProducerClient(val client: KafkaClient) {
                     }
                 }
             } finally {
-                producer.flush()
-                producer.close()
-                isRunning.set(false)
+                if (isRunning()) {
+                    producer.flush()
+                }
+                producer.close(Duration.ZERO)
             }
         } catch (t: Throwable) {
             RfsNotificationUtils.showExceptionMessage(
@@ -112,6 +121,9 @@ class KafkaProducerClient(val client: KafkaClient) {
                 t,
                 KafkaMessagesBundle.message("error.producer.title")
             )
+        } finally {
+            running.set(false)
+            onStop()
         }
     }
 
@@ -127,20 +139,15 @@ class KafkaProducerClient(val client: KafkaClient) {
         csvDf: DataFrame?,
         onUpdate: (Long, List<KafkaRecord>) -> Unit
     ) {
-        val startTime = System.currentTimeMillis()
-        val produced = mutableListOf<KafkaRecord>()
-        repeat(flowParams.flowRecordsCountPerRequest) {
-            if (!isRunning())
-                return
-            val result = sentMessage(
+        for (i in 0 until flowParams.flowRecordsCountPerRequest) {
+            if (!isRunning()) break
+            val record = sentMessage(
                 flowParams, partition, producer, topic, key, value, headers.map { it.copy() },
-                alreadyProducedCount = alreadyProducedCount + it,
+                alreadyProducedCount = alreadyProducedCount + i,
                 csvDf = csvDf
-            ) ?: return
-            produced.add(result)
+            ) ?: break
+            onUpdate(record.duration, listOf(record))
         }
-        val endTime = System.currentTimeMillis()
-        onUpdate(endTime - startTime, produced)
     }
 
     private fun setupPartitions(
@@ -192,11 +199,11 @@ class KafkaProducerClient(val client: KafkaClient) {
         return props
     }
 
-    fun stop() {
-        if (!isRunning())
-            error("Producer is not run")
-        isRunning.set(false)
+    override fun stop() {
+        running.set(false)
     }
+
+    override fun dispose() = stop()
 
 
     private fun sentMessage(
@@ -246,22 +253,14 @@ class KafkaProducerClient(val client: KafkaClient) {
 
         @Suppress("UNCHECKED_CAST")
         val metadataFuture = producer.send(record as ProducerRecord<Any, Any>)
-        val sendTimeout = 15000
-        while (System.currentTimeMillis() - start < sendTimeout) {
-            Thread.sleep(100)
-            if (metadataFuture.isDone)
-                break
-            if (!isRunning()) {
-                metadataFuture.cancel(true)
-                break
-            }
-        }
-
-        if (!isRunning())
+        // Always wait for the in-flight send to complete — stop only prevents new sends
+        val metaInfo = try {
+            metadataFuture.get(15, TimeUnit.SECONDS)
+        } catch (_: TimeoutException) {
+            metadataFuture.cancel(true)
             return null
-        val metaInfo = metadataFuture.get(2, TimeUnit.SECONDS)
+        }
         val end = System.currentTimeMillis()
-
         return KafkaRecord.createFor(
             keyConfig = correctKey, valueConfig = correctValue,
             metadata = metaInfo, duration = (end - start),

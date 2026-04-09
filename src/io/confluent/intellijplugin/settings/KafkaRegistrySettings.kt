@@ -337,7 +337,7 @@ class KafkaRegistrySettings(
         val proxyPort = properties[SchemaRegistryClientConfig.PROXY_PORT]
         val isProxySetup = proxyHost != null && proxyPort != null
         confluentUseProxy.selected(isProxySetup)
-        if (isProxySetup)
+        if (isProxySetup && proxyHost.isNotBlank() && proxyPort.isNotBlank())
             confluentProxyUrl.text("$proxyHost:$proxyPort")
     }
 

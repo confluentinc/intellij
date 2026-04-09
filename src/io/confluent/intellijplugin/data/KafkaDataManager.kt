@@ -3,6 +3,8 @@ package io.confluent.intellijplugin.data
 import com.intellij.CommonBundle
 import com.intellij.openapi.application.EDT
 import com.intellij.openapi.diagnostic.thisLogger
+import com.intellij.openapi.progress.ProcessCanceledException
+import com.intellij.openapi.progress.runBlockingMaybeCancellable
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.util.Disposer
@@ -13,6 +15,7 @@ import io.confluent.intellijplugin.common.models.RegistrySchemaInEditor
 import io.confluent.intellijplugin.core.connection.updater.IntervalUpdateSettings
 import io.confluent.intellijplugin.core.monitoring.data.storage.RootDataModelStorage
 import io.confluent.intellijplugin.core.monitoring.rfs.MonitoringDriver
+import io.confluent.intellijplugin.core.rfs.driver.RfsPath
 import io.confluent.intellijplugin.core.rfs.driver.SafeExecutor
 import io.confluent.intellijplugin.core.rfs.driver.manager.DriverManager
 import io.confluent.intellijplugin.core.rfs.util.RfsNotificationUtils
@@ -21,6 +24,7 @@ import io.confluent.intellijplugin.core.util.runAsync
 import io.confluent.intellijplugin.core.util.runAsyncSuspend
 import io.confluent.intellijplugin.model.*
 import io.confluent.intellijplugin.registry.KafkaRegistryFormat
+import io.confluent.intellijplugin.registry.KafkaRegistryUtil
 import io.confluent.intellijplugin.registry.SchemaVersionInfo
 import io.confluent.intellijplugin.registry.common.KafkaSchemaInfo
 import io.confluent.intellijplugin.rfs.KafkaConnectionData
@@ -28,6 +32,7 @@ import io.confluent.intellijplugin.rfs.KafkaDriver
 import io.confluent.intellijplugin.toolwindow.config.KafkaToolWindowSettings
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
 import io.confluent.kafka.schemaregistry.ParsedSchema
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.future.asCompletableFuture
 import kotlinx.coroutines.launch
@@ -59,11 +64,15 @@ class KafkaDataManager(
     // Consumer panel feature overrides
 
     override fun supportsConsumerGroups(): Boolean = true
-    override fun supportsAdvancedSettings(): Boolean = true
-    override fun supportsPresets(): Boolean = true
-    override fun supportsDetailsPanel(): Boolean = true
 
-    private val cacheSchemaType = ConcurrentSkipListMap<String, KafkaRegistryFormat>()
+    /**
+     * Get the RFS path for a schema subject in Kafka format: ["Schema Registry", schemaName]
+     */
+    override fun getSchemaPath(schemaName: String): RfsPath {
+        return KafkaDriver.schemasPath.child(schemaName, false)
+    }
+
+    private val schemaTypeCache = ConcurrentSkipListMap<String, KafkaRegistryFormat>()
 
     init {
         init()
@@ -152,7 +161,7 @@ class KafkaDataManager(
         schemas: List<KafkaSchemaInfo>
     ): Pair<List<KafkaSchemaInfo>, Throwable?> = withContext(Dispatchers.IO) {
         try {
-            cacheSchemaType.clear()
+            schemaTypeCache.clear()
             val loadedInfo = schemas.map {
                 runAsyncSuspend {
                     try {
@@ -198,27 +207,45 @@ class KafkaDataManager(
             ?: client.glueRegistryClient?.listSchemas(null, null, connectionId)
             ?: (emptyList<KafkaSchemaInfo>() to false)
         schemas.map {
-            RegistrySchemaInEditor(schemaName = it.name, schemaFormat = getCachedOrLoadSchemaType(it.name))
+            val schemaFormat = it.type
+                ?: runBlockingMaybeCancellable { getCachedOrLoadSchemaType(it.name) }
+                ?: KafkaRegistryFormat.UNKNOWN
+            RegistrySchemaInEditor(
+                schemaName = it.name,
+                schemaFormat = schemaFormat
+            )
         }.sorted()
-    } catch (t: Throwable) {
-        thisLogger().warn(t)
+    } catch (e: ProcessCanceledException) {
+        throw e  // Re-throw cancellation to preserve IDE cancellation semantics
+    } catch (e: CancellationException) {
+        throw e  // Re-throw coroutine cancellation
+    } catch (e: Exception) {
+        thisLogger().warn(e)
         emptyList()
     }
 
-    fun getSchemaVersionsModel(schemaName: String) = schemaVersionModels[schemaName]
-
-    fun getSchemaVersionInfo(schemaName: String, version: Long): Promise<SchemaVersionInfo> = runAsync {
+    override fun getSchemaVersionInfo(schemaName: String, version: Long): Promise<SchemaVersionInfo> = runAsync {
         client.glueRegistryClient?.getSchemaVersionInfo(schemaName, version)
             ?: client.confluentRegistryClient?.getSchemaVersionInfo(schemaName, version)
-            ?: error("Schema Registry provider is not selected")
+            ?: error(KafkaMessagesBundle.message("error.schema.registry.provider.not.selected"))
     }
 
-    fun deleteRegistrySchemaVersion(versionSchema: SchemaVersionInfo) {
+    override fun parseSchemaForDisplay(versionInfo: SchemaVersionInfo): Result<io.confluent.kafka.schemaregistry.ParsedSchema> {
+        // For Confluent registry, pass the client; for Glue, pass null (uses default providers)
+        return KafkaRegistryUtil.parseSchema(
+            versionInfo.type,
+            versionInfo.schema,
+            client = client.confluentRegistryClient,
+            versionInfo.references
+        )
+    }
+
+    override fun deleteRegistrySchemaVersion(versionInfo: SchemaVersionInfo) {
         driver.coroutineScope.launch {
             try {
-                client.confluentRegistryClient?.deleteSchemaVersion(versionSchema)
-                    ?: client.glueRegistryClient?.deleteSchemaVersion(versionSchema)
-                updater.invokeRefreshModel(schemaVersionModels[versionSchema.schemaName])
+                client.confluentRegistryClient?.deleteSchemaVersion(versionInfo)
+                    ?: client.glueRegistryClient?.deleteSchemaVersion(versionInfo)
+                updater.invokeRefreshModel(schemaVersionModels[versionInfo.schemaName])
                 schemaRegistryModel?.let { updater.invokeRefreshModel(it) }
             } catch (t: Throwable) {
                 RfsNotificationUtils.showExceptionMessage(project, t)
@@ -226,14 +253,14 @@ class KafkaDataManager(
         }
     }
 
-    fun updateSchema(versionInfo: SchemaVersionInfo, newText: String) = SafeExecutor.instance.asyncSuspend(
+    override fun updateSchema(versionInfo: SchemaVersionInfo, newSchema: String) = SafeExecutor.instance.asyncSuspend(
         taskName = null,
         timeout = Duration.INFINITE
     ) {
         runInterruptible(Dispatchers.IO) {
-            client.confluentRegistryClient?.updateSchema(versionInfo, newText)
-                ?: client.glueRegistryClient?.updateSchema(versionInfo, newText)
-                ?: error("Schema registry not configured")
+            client.confluentRegistryClient?.updateSchema(versionInfo, newSchema)
+                ?: client.glueRegistryClient?.updateSchema(versionInfo, newSchema)
+                ?: error(KafkaMessagesBundle.message("error.schema.registry.not.configured"))
             schemaRegistryModel?.let { updater.invokeRefreshModel(it) }
         }
         updater.invokeRefreshModel(schemaVersionModels[versionInfo.schemaName])
@@ -278,6 +305,8 @@ class KafkaDataManager(
         withContext(Dispatchers.IO) {
             client.confluentRegistryClient?.deleteSchema(schemaName, permanent)
                 ?: client.glueRegistryClient?.deleteSchema(schemaName)
+            schemaTypeCache.remove(schemaName)
+            updater.invokeRefreshModel(schemaVersionModels[schemaName])
             schemaRegistryModel?.let { updater.invokeRefreshModel(it) }
         }
 
@@ -291,27 +320,29 @@ class KafkaDataManager(
                 "",
                 emptyMap()
             )
+        schemaTypeCache[schemaName] = KafkaRegistryFormat.parse(parsedSchema.schemaType())
         schemaRegistryModel?.let { updater.invokeRefreshModel(it) }
+        updater.invokeRefreshModel(schemaVersionModels[schemaName])
     }
 
-    fun isSchemaExists(name: String) = getCachedSchema(name) != null
+    override suspend fun getCachedOrLoadSchema(name: String): KafkaSchemaInfo =
+        getCachedSchema(name)?.takeIf { !it.isSoftDeleted } ?: loadSchema(name)
 
-    override fun getCachedOrLoadSchema(name: String): KafkaSchemaInfo =
-        getCachedSchema(name)?.takeIf { it.type != null } ?: loadSchema(name)
-
-    private fun getCachedOrLoadSchemaType(name: String) =
-        cacheSchemaType[name] ?: getCachedOrLoadSchema(name).type?.also {
-            cacheSchemaType[name] = it
+    private suspend fun getCachedOrLoadSchemaType(name: String): KafkaRegistryFormat? =
+        schemaTypeCache[name] ?: getCachedOrLoadSchema(name).type?.also {
+            schemaTypeCache[name] = it
         }
 
-    private fun loadSchema(schemaName: String) =
+    private suspend fun loadSchema(schemaName: String): KafkaSchemaInfo = withContext(Dispatchers.IO) {
         client.confluentRegistryClient?.loadSchemaInfo(schemaName)
             ?: client.glueRegistryClient?.loadSchemaInfo(schemaName)
-            ?: error("Schema registry not configured")
+            ?: error(KafkaMessagesBundle.message("error.schema.registry.not.configured"))
+    }
 
-    override fun getLatestVersionInfo(schemaName: String) =
+    override suspend fun getLatestVersionInfo(schemaName: String): SchemaVersionInfo? = withContext(Dispatchers.IO) {
         client.confluentRegistryClient?.getLatestVersionInfo(schemaName)
             ?: client.glueRegistryClient?.getLatestVersionInfo(schemaName)
+    }
 
     fun clearTopicWithConfirmation(topicName: String) {
         driver.coroutineScope.launch {
@@ -488,6 +519,10 @@ class KafkaDataManager(
             thisLogger().warn("Failed to clear topic '$topicName'", e)
             Result.failure(e)
         }
+    }
+
+    override fun dispose() {
+        schemaTypeCache.clear()
     }
 
     companion object {

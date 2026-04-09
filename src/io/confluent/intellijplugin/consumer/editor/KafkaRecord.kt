@@ -24,8 +24,7 @@ data class KafkaRecord(
     val valueSize: Int,
     val headers: List<Property>,
     val keyFormat: KafkaRegistryFormat,
-    val valueFormat: KafkaRegistryFormat,
-    val errror: Throwable?
+    val valueFormat: KafkaRegistryFormat
 ) {
     val keyText = if (error == null) KafkaEditorUtils.getValueAsString(keyType, key, keyFormat) else null
     val valueText = if (error == null) KafkaEditorUtils.getValueAsString(valueType, value, valueFormat) else null
@@ -61,11 +60,9 @@ data class KafkaRecord(
                         )
                     } ?: emptyList(),
                     keyFormat = keyFormat ?: KafkaRegistryFormat.UNKNOWN,
-                    valueFormat = valueFormat ?: KafkaRegistryFormat.UNKNOWN,
-                    errror = record.exceptionOrNull())
+                    valueFormat = valueFormat ?: KafkaRegistryFormat.UNKNOWN)
             } else {
                 KafkaRecord(
-                    errror = record.exceptionOrNull(),
                     keyType = keyType ?: KafkaFieldType.STRING,
                     valueType = valueType ?: KafkaFieldType.STRING,
                     error = record.exceptionOrNull(),
@@ -105,8 +102,7 @@ data class KafkaRecord(
             valueSize = metadata?.serializedValueSize() ?: 0,
             headers = headers.toList(),
             keyFormat = keyConfig.schemaFormat,
-            valueFormat = valueConfig.schemaFormat,
-            errror = null
+            valueFormat = valueConfig.schemaFormat
         )
     }
 }

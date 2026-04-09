@@ -7,9 +7,9 @@
 
 The following 3rd-party software packages may be used by or distributed with git@github.com:confluentinc/intellij.git. Any information relevant to third-party vendors listed below are collected using common, reasonable means.
 
-Date generated: 2026-3-2
+Date generated: 2026-3-26
 
-Revision ID: 25fb41b5c7f97bd01da9f8a4fa07566d34ec53c5
+Revision ID: 11fd2896b6ede689e21e0ecba118199b4e81ed79
 
 ================================================================================
 ================================================================================
@@ -199,7 +199,7 @@ No licenses found
 - JetBrains Java Annotations (13.0) [Apache-2.0]
 - JetBrains Java Annotations (26.0.2) [Apache-2.0]
 - JetBrains Marketplace ZIP Signer (0.1.43) [Apache-2.0]
-- JetBrains Plugin Verifier CLI (1.400) [Apache-2.0]
+- JetBrains Plugin Verifier CLI (1.401) [Apache-2.0]
 - JGoodies Forms (1.1-preview) [BSD-2-Clause]
 - Jimfs (1.1) [Apache-2.0]
 - jmail (2.0.1) [MIT]
@@ -1858,7 +1858,7 @@ Apache-2.0
 
 --------------------------------------------------------------------------------
 File matches:
-org/apache/commons/collections4/ArrayStack.java
+META-INF/LICENSE.txt
 --------------------------------------------------------------------------------
 
 
@@ -18008,7 +18008,7 @@ Apache-2.0
 
 --------------------------------------------------------------------------------
 File matches:
-META-INF/LICENSE.txt
+software/amazon/awssdk/http/apache/internal/RepeatableInputStreamRequestEntity.java
 --------------------------------------------------------------------------------
 
 
@@ -26388,9 +26388,6 @@ Apache-2.0
 File matches:
 META-INF/LICENSE.txt
 META-INF/maven/software.amazon.awssdk/sso/pom.xml
-parent-poms/mvn+software.amazon.awssdk:aws-sdk-java-pom$2.20.158/pom.xml
-parent-poms/mvn+software.amazon.awssdk:services$2.20.158/pom.xml
-pom.xml
 software/amazon/awssdk/services/sso/auth/ExpiredTokenException.java
 software/amazon/awssdk/services/sso/auth/SsoCredentialsProvider.java
 software/amazon/awssdk/services/sso/auth/SsoProfileCredentialsProviderFactory.java
@@ -29972,10 +29969,6 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and limitations under the License.
 
 * BouncyCastle *
---------------------------------------------------------------------------------
-File matches:
-pom.xml
---------------------------------------------------------------------------------
 
 Copyright (c) 2000 - 2020 The Legion of the Bouncy Castle Inc. (https://www.bouncycastle.org)
 
@@ -37024,9 +37017,9 @@ See the License for the specific language governing permissions and limitations 
 
 
 --------------------------------------------------------------------------------
-Package Title: JetBrains Plugin Verifier CLI (1.400)
+Package Title: JetBrains Plugin Verifier CLI (1.401)
 
-Package Locator: mvn+org.jetbrains.intellij.plugins:verifier-cli$1.400
+Package Locator: mvn+org.jetbrains.intellij.plugins:verifier-cli$1.401
 
 Package Depth: Direct
 --------------------------------------------------------------------------------
@@ -38089,7 +38082,7 @@ EPL-2.0
 
 --------------------------------------------------------------------------------
 File matches:
-org/junit/jupiter/api/AssertEquals.java
+module-info.java
 --------------------------------------------------------------------------------
 
 Eclipse Public License - v 2.0
@@ -39541,7 +39534,7 @@ proprietary-license
 
 --------------------------------------------------------------------------------
 File matches:
-io/confluent/kafka/schemaregistry/json/diff/Difference.java
+io/confluent/kafka/schemaregistry/json/jackson/JsonSkemaObjectSerializer.java
 --------------------------------------------------------------------------------
 
 
@@ -43556,7 +43549,6 @@ kotlin/script/extensions/samWithReceiver.kt
 kotlin/script/templates/annotations_deprecated.kt
 kotlin/script/templates/annotations.kt
 kotlin/script/templates/standard/templates.kt
-pom.xml
 --------------------------------------------------------------------------------
 
 Copyright 2010-2017 JetBrains s.r.o.
@@ -43687,7 +43679,6 @@ kotlin/script/experimental/impl/runSuspend.kt
 kotlin/script/experimental/util/filterByAnnotationType.kt
 kotlin/script/experimental/util/linkedSnippet.kt
 kotlin/script/experimental/util/propertiesCollection.kt
-pom.xml
 --------------------------------------------------------------------------------
 
 Copyright 2000-2018 JetBrains s.r.o. and Kotlin Programming Language contributors.
@@ -44159,7 +44150,6 @@ kotlin/script/experimental/jvm/util/jvmClasspathUtil.kt
 kotlin/script/experimental/jvm/util/runtimeExceptionReporting.kt
 kotlin/script/experimental/jvm/util/SnippetsHistory.kt
 kotlin/script/experimental/jvm/util/sourceCodeUtils.kt
-pom.xml
 --------------------------------------------------------------------------------
 
 Copyright 2010-2020 JetBrains s.r.o. and Kotlin Programming Language contributors.
@@ -46127,7 +46117,7 @@ MIT
 
 --------------------------------------------------------------------------------
 File matches:
-org/mockito/kotlin/BDDMockito.kt
+org/mockito/kotlin/internal/KAnswer.kt
 --------------------------------------------------------------------------------
 
 Copyright (c) 2024 Mockito contributors
@@ -59568,6 +59558,8 @@ Copyright (c) 2006-2022 the original author or authors.
 
 Copyright (c) Amazon.com, Inc. or its affiliates. All Rights Reserved.
 
+Copyright (c)  Amazon.com, Inc. or its affiliates. All Rights Reserved.
+
 Copyright (c) 2013 The Apache Software Foundation.
 
 Copyright (c) 2001-2005 Stephen Colebourne
@@ -60356,19 +60348,19 @@ GNU General Public License v2.0 w/Classpath exception
 
 Copyright (c) 1989, 1991 Free Software Foundation, Inc.
 
-Copyright (c) 2009, 2020 Oracle and/or its affiliates. All rights reserved.
-
 Copyright (c) 2005, 2020 Oracle and/or its affiliates. All rights reserved.
-
-Copyright (c) 2020 Oracle and/or its affiliates. All rights reserved.
-
-Copyright (c) 2021 Oracle and/or its affiliates. All rights reserved.
-
-Copyright (c) 2009, 2022 Oracle and/or its affiliates. All rights reserved.
 
 Copyright (c) 2018, 2020 Oracle and/or its affiliates. All rights reserved.
 
 Copyright (c)  the software, and
+
+Copyright (c) 2021 Oracle and/or its affiliates. All rights reserved.
+
+Copyright (c) 2009, 2020 Oracle and/or its affiliates. All rights reserved.
+
+Copyright (c) 2009, 2022 Oracle and/or its affiliates. All rights reserved.
+
+Copyright (c) 2020 Oracle and/or its affiliates. All rights reserved.
 
 Copyright (c) 2012, 2022 Oracle and/or its affiliates. All rights reserved.
 
@@ -61075,4 +61067,4 @@ This is a catch-all license used when we find many different proprietary license
 --------------------------------------------------------------------------------
 --------------------------------------------------------------------------------
 
-Report Generated by FOSSA on 2026-3-2
+Report Generated by FOSSA on 2026-3-26

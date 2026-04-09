@@ -24,6 +24,10 @@ public final class BigdatatoolsKafkaIcons {
   /** 16x16 */ public static final @NotNull Icon CollapseallVertical = load("icons/collapseallVertical.svg", -991521341, 2);
   /** 13x13 */ public static final @NotNull Icon ConfluentTab = load("icons/expui/confluent.svg", "icons/confluentTab.svg", -1317889510, 2);
   /** 16x16 */ public static final @NotNull Icon ExpandallVertical = load("icons/expandallVertical.svg", -149901262, 2);
+  /** 16x16 */ public static final @NotNull Icon ConfluentKafkaCluster = load("icons/confluent-kafka-cluster.svg", -652366396, 2);
+  /** 16x16 */ public static final @NotNull Icon ConfluentSchema = load("icons/confluent-schema.svg", 1559208185, 2);
+  /** 16x16 */ public static final @NotNull Icon ConfluentSrCluster = load("icons/confluent-sr-cluster.svg", 756869637, 2);
+  /** 16x16 */ public static final @NotNull Icon ConfluentTopic = load("icons/confluent-topic.svg", -1569688030, 2);
   /** 16x16 */ public static final @NotNull Icon Kafka = load("icons/kafka.svg", -1738989288, 0);
   /** 13x13 */ public static final @NotNull Icon KafkaToolWindow = load("icons/expui/kafka.svg", "icons/kafkaToolWindow.svg", -1317889509, 2);
   /** 16x16 */ public static final @NotNull Icon More = load("icons/more.svg", 539481636, 2);

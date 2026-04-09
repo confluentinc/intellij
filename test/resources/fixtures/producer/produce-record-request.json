@@ -1,0 +1,17 @@
+{
+  "partition_id": 0,
+  "headers": [
+    {
+      "name": "correlation-id",
+      "value": "dGVzdC12YWx1ZQ=="
+    }
+  ],
+  "key": {
+    "type": "STRING",
+    "data": "my-key"
+  },
+  "value": {
+    "type": "STRING",
+    "data": "my-value"
+  }
+}

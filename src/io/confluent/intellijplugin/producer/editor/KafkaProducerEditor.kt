@@ -25,12 +25,16 @@ import io.confluent.intellijplugin.consumer.editor.KafkaRecord
 import io.confluent.intellijplugin.consumer.editor.KafkaRecordsOutput
 import io.confluent.intellijplugin.core.rfs.util.RfsNotificationUtils
 import io.confluent.intellijplugin.core.settings.getValidationInfo
+import io.confluent.intellijplugin.core.rfs.driver.SafeExecutor
 import io.confluent.intellijplugin.core.ui.CustomListCellRenderer
 import io.confluent.intellijplugin.core.ui.ExpansionPanel
 import io.confluent.intellijplugin.core.ui.MultiSplitter
-import io.confluent.intellijplugin.core.util.executeNotOnEdt
+import io.confluent.intellijplugin.core.util.executeNotOnEdtSuspend
 import io.confluent.intellijplugin.core.util.invokeLater
+import io.confluent.intellijplugin.data.BaseClusterDataManager
 import io.confluent.intellijplugin.data.KafkaDataManager
+import io.confluent.intellijplugin.producer.client.ProducerClient
+import io.confluent.intellijplugin.producer.client.ProducerClientProvider
 import io.confluent.intellijplugin.producer.models.AcksType
 import io.confluent.intellijplugin.producer.models.Mode
 import io.confluent.intellijplugin.producer.models.ProducerEditorState
@@ -39,6 +43,7 @@ import io.confluent.intellijplugin.producer.models.RecordCompression
 import io.confluent.intellijplugin.telemetry.MessageViewerEvent
 import io.confluent.intellijplugin.telemetry.logUsage
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
+import kotlinx.coroutines.launch
 import java.awt.Dimension
 import java.beans.PropertyChangeListener
 import javax.swing.JButton
@@ -48,25 +53,29 @@ import kotlin.math.max
 
 class KafkaProducerEditor(
     val project: Project,
-    internal val kafkaManager: KafkaDataManager,
+    internal val kafkaManager: BaseClusterDataManager,
     private val file: VirtualFile,
     topic: String?
 ) : FileEditor, UserDataHolderBase() {
     private var isRestoring = false
+
+    private val isNativeConnection = kafkaManager is KafkaDataManager
 
     private val output = KafkaRecordsOutput(project, isProducer = true).also { Disposer.register(this, it) }
 
     private val flowController = KafkaFlowController(project)
     private val progress = KafkaProducerConsumerProgressComponent()
 
-    private val producerClient = kafkaManager.client.createProducerClient().also {
-        Disposer.register(this) {
-            it.isRunning.set(false)
-        }
+    private val producerClient: ProducerClient = ProducerClientProvider.getClient(
+        dataManager = kafkaManager,
+        onStart = ::onStart,
+        onStop = ::onStop
+    ).also {
+        Disposer.register(this, it)
     }
     val topics = kafkaManager.getTopics()
 
-    private val propertiesComponent = PropertiesTable("app.name=IntellijKafkaPlugin")
+    private val propertiesComponent = PropertiesTable("app.name=ConfluentJetBrainsPlugin")
 
     val topicComboBox = KafkaEditorUtils.createTopicComboBox(this, kafkaManager).apply {
         addActionListener {
@@ -152,19 +161,30 @@ class KafkaProducerEditor(
                 }
                 row(KafkaMessagesBundle.message("producer.compression")) {
                     cell(compressionComboBox).align(AlignX.FILL).resizableColumn()
-                }
+                }.enabled(isNativeConnection)
                 row {
-                    cell(idempotenceCheckBox).align(AlignX.FILL).resizableColumn().comment(
-                        KafkaMessagesBundle.message("producer.idempotence.comment")
-                    )
-                }
+                    cell(idempotenceCheckBox).align(AlignX.FILL).resizableColumn().apply {
+                        if (isNativeConnection) comment(KafkaMessagesBundle.message("producer.idempotence.comment"))
+                    }
+                }.enabled(isNativeConnection)
                 row(KafkaMessagesBundle.message("producer.asks")) {
                     acksComboBox = segmentedButton(AcksType.entries) {
                         text = StringUtil.wordsToBeginFromUpperCase(it.name.lowercase())
                     }
-                    acksComboBox.selectedItem = AcksType.NONE
-                }.visibleIf(idempotenceCheckBox.selected.not())
+                    acksComboBox.selectedItem = if (isNativeConnection) AcksType.NONE else AcksType.ALL
+                }.visibleIf(idempotenceCheckBox.selected.not()).enabled(isNativeConnection)
             }.topGap(TopGap.NONE)
+        }
+
+        if (!isNativeConnection) {
+            val tooltip = KafkaMessagesBundle.message("ccloud.option.not.supported.tooltip")
+            acksComboBox.component?.isEnabled = false
+            compressionComboBox.toolTipText = tooltip
+            idempotenceCheckBox.toolTipText = tooltip
+            acksComboBox.component?.let { container ->
+                container.toolTipText = tooltip
+                container.components.filterIsInstance<JComponent>().forEach { it.toolTipText = tooltip }
+            }
         }
 
         KafkaProducerConsumerPanel.createPanel(panel, produceButton, progress)
@@ -209,6 +229,8 @@ class KafkaProducerEditor(
     }
 
     private fun startProduce(): Boolean {
+        produceButton.isEnabled = false
+
         val topic = topicComboBox.item
 
         val validationInfo = topicComboBox.getValidationInfo()
@@ -218,47 +240,48 @@ class KafkaProducerEditor(
             ?: valueFieldComponent.getSchemaValidationInfo()
 
         if (validationInfo != null) {
+            produceButton.isEnabled = true
             progress.onValidationError()
             return true
         }
 
         val selectedTopicName = topic.name
 
-        executeNotOnEdt {
+        SafeExecutor.instance.coroutineScope.launch {
             try {
-                if (!flowController.getParams().generateRandomKeys && !keyFieldComponent.validateSchema())
-                    return@executeNotOnEdt
-                if (!flowController.getParams().generateRandomKeys && !valueFieldComponent.validateSchema())
-                    return@executeNotOnEdt
+                executeNotOnEdtSuspend {
+                    if (!flowController.getParams().generateRandomKeys && !keyFieldComponent.validateSchema()) {
+                        invokeLater { produceButton.isEnabled = true }
+                        return@executeNotOnEdtSuspend
+                    }
+                    if (!flowController.getParams().generateRandomKeys && !valueFieldComponent.validateSchema()) {
+                        invokeLater { produceButton.isEnabled = true }
+                        return@executeNotOnEdtSuspend
+                    }
 
+                    val key = keyFieldComponent.getProducerField()
+                    val value = valueFieldComponent.getProducerField()
 
-                val key = keyFieldComponent.getProducerField()
-                val value = valueFieldComponent.getProducerField()
-
-                onStart()
-                producerClient.start(
-                    kafkaManager,
-                    selectedTopicName,
-                    key,
-                    value,
-                    propertiesComponent.properties,
-                    compressionComboBox.item,
-                    acksComboBox.selectedItem ?: AcksType.NONE,
-                    idempotenceCheckBox.isSelected,
-                    forcePartitionField.value,
-                    flowParams = flowController.getParams()
-                ) { time, records ->
-                    invokeLater {
-                        progress.onUpdate()
-                        output.addBatchRows(time, records)
+                    producerClient.start(
+                        selectedTopicName,
+                        key,
+                        value,
+                        propertiesComponent.properties,
+                        compressionComboBox.item,
+                        acksComboBox.selectedItem ?: AcksType.NONE,
+                        idempotenceCheckBox.isSelected,
+                        forcePartitionField.value,
+                        flowParams = flowController.getParams()
+                    ) { time, records ->
+                        invokeLater {
+                            progress.onUpdate()
+                            output.addBatchRows(time, records)
+                        }
                     }
                 }
             } catch (t: Throwable) {
+                invokeLater { produceButton.isEnabled = true }
                 RfsNotificationUtils.showExceptionMessage(project, t)
-            } finally {
-                invokeLater {
-                    onStop()
-                }
             }
         }
 
@@ -282,6 +305,7 @@ class KafkaProducerEditor(
             )
         )
 
+        produceButton.isEnabled = true
         produceButton.text = KafkaMessagesBundle.message("action.produce.stop")
         produceButton.icon = AllIcons.Actions.Suspend
         progress.onStart()
@@ -296,6 +320,7 @@ class KafkaProducerEditor(
             )
         )
 
+        produceButton.isEnabled = true
         produceButton.text = KafkaMessagesBundle.message("kafka.producer.action.produce.title")
         produceButton.icon = AllIcons.Actions.Execute
         progress.onStop()
