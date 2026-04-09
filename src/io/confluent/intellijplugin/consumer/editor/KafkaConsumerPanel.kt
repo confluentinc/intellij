@@ -39,6 +39,7 @@ import io.confluent.intellijplugin.data.BaseClusterDataManager
 import io.confluent.intellijplugin.telemetry.MessageViewerEvent
 import io.confluent.intellijplugin.telemetry.logUsage
 import org.apache.kafka.clients.consumer.ConsumerConfig
+import org.apache.kafka.clients.consumer.ConsumerRecord
 import io.confluent.intellijplugin.registry.KafkaRegistryFormat
 import io.confluent.intellijplugin.util.KafkaConsumerGroupChangeOffsetProcess
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
@@ -407,14 +408,7 @@ class KafkaConsumerPanel(
                     keyConfig = key.loadFieldConfig(),
                     valueConfig = value.loadFieldConfig(),
                     consume = { pollTime, records ->
-                        val convertedRecords = records.map {
-                            KafkaRecord.createFor(
-                                key.fieldTypeComboBox.item, value.fieldTypeComboBox.item,
-                                key.schemaComboBox.item?.schemaFormat,
-                                value.schemaComboBox.item?.schemaFormat,
-                                Result.success(it)
-                            )
-                        }
+                        val convertedRecords = records.map { createRecord(Result.success(it)) }
                         if (convertedRecords.isEmpty())
                             return@start
                         invokeLater {
@@ -427,14 +421,7 @@ class KafkaConsumerPanel(
                         }
                     },
                     consumeError = { error, partition, offset ->
-                        val element = KafkaRecord.createFor(
-                            key.fieldTypeComboBox.item, value.fieldTypeComboBox.item,
-                            key.schemaComboBox.item?.schemaFormat,
-                            value.schemaComboBox.item?.schemaFormat,
-                            Result.failure(error),
-                            errorPartition = partition,
-                            errorOffset = offset
-                        )
+                        val element = createRecord(Result.failure(error), errorPartition = partition, errorOffset = offset)
                         invokeLater {
                             progress.onError()
                             output.addError(element)
@@ -453,6 +440,19 @@ class KafkaConsumerPanel(
             return
         }
     }
+
+    private fun createRecord(
+        result: Result<ConsumerRecord<Any, Any>>,
+        errorPartition: Int? = null,
+        errorOffset: Long? = null
+    ) = KafkaRecord.createFor(
+        key.fieldTypeComboBox.item, value.fieldTypeComboBox.item,
+        key.schemaComboBox.item?.schemaFormat,
+        value.schemaComboBox.item?.schemaFormat,
+        result,
+        errorPartition = errorPartition,
+        errorOffset = errorOffset
+    )
 
     private fun getRunConfig(): StorageConsumerConfig {
         val topicName = topicComboBox.item?.name ?: ""
@@ -513,29 +513,20 @@ class KafkaConsumerPanel(
         val isEnabled = !consumerClient.isRunning()
 
         topicComboBox.isEnabled = isEnabled
-
         partitionField.isEnabled = isEnabled && consumerGroup.item.isEmpty()
         consumerGroup.isEnabled = isEnabled && kafkaManager.supportsConsumerGroups()
+        startFromComboBox.isEnabled = isEnabled && consumerGroup.item.isEmpty()
 
         key.updateIsEnabled(isEnabled)
         value.updateIsEnabled(isEnabled)
 
-        startFromComboBox.isEnabled = isEnabled && consumerGroup.item.isEmpty()
-        startSpecificDate.isEnabled = isEnabled
-        startConsumerGroup.isEnabled = isEnabled
-        startOffset.isEnabled = isEnabled
-
-        limitComboBox.isEnabled = isEnabled
-        limitOffset.isEnabled = isEnabled
-        limitSpecificDate.isEnabled = isEnabled
-
-        filterComboBox.isEnabled = isEnabled
-        filterKeyField.isEnabled = isEnabled
-        filterValueField.isEnabled = isEnabled
-        filterHeadKeyField.isEnabled = isEnabled
-        filterHeadValueField.isEnabled = isEnabled
-
-        advancedSettings.isEnabled = isEnabled
+        listOf(
+            startSpecificDate, startConsumerGroup, startOffset,
+            limitComboBox, limitOffset, limitSpecificDate,
+            filterComboBox, filterKeyField, filterValueField,
+            filterHeadKeyField, filterHeadValueField,
+            advancedSettings
+        ).forEach { it.isEnabled = isEnabled }
     }
 
     private fun updateStartWith() {
@@ -630,7 +621,7 @@ class KafkaConsumerPanel(
         val limit = config.getLimit()
         limitComboBox.item = limit.type
         limitOffset.text = limit.value
-        startSpecificDate.setDateTime(limit.time)
+        limitSpecificDate.setDateTime(limit.time)
 
         val filter = config.getFilter()
         filterComboBox.item = filter.type
