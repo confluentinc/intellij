@@ -101,7 +101,12 @@ class KafkaConsumerPanel(
         renderer = CustomListCellRenderer<ConsumerStartType> { it.title }
         item = ConsumerStartType.NOW
         addActionListener {
-            updateStartWith()
+            startSpecificDateBlock.set(startFromComboBox.selectedItem == ConsumerStartType.SPECIFIC_DATE)
+            startOffsetBlock.set(
+                startFromComboBox.selectedItem == ConsumerStartType.OFFSET ||
+                        startFromComboBox.selectedItem == ConsumerStartType.LATEST_OFFSET_MINUS_X
+            )
+            startConsumerGroupBlock.set(startFromComboBox.selectedItem == ConsumerStartType.CONSUMER_GROUP)
             storeToUserData()
             getComponent().revalidate()
         }
@@ -121,7 +126,7 @@ class KafkaConsumerPanel(
         renderer = CustomListCellRenderer<ConsumerFilterType> { it.title }
         item = ConsumerFilterType.NONE
         addActionListener {
-            updateFilter()
+            filterPanelBlock.set(filterComboBox.selectedItem != ConsumerFilterType.NONE)
             storeToUserData()
             getComponent().revalidate()
         }
@@ -349,8 +354,13 @@ class KafkaConsumerPanel(
 
         updateVisibility()
         updateLimit()
-        updateStartWith()
-        updateFilter()
+        startSpecificDateBlock.set(startFromComboBox.selectedItem == ConsumerStartType.SPECIFIC_DATE)
+        startOffsetBlock.set(
+            startFromComboBox.selectedItem == ConsumerStartType.OFFSET ||
+                    startFromComboBox.selectedItem == ConsumerStartType.LATEST_OFFSET_MINUS_X
+        )
+        startConsumerGroupBlock.set(startFromComboBox.selectedItem == ConsumerStartType.CONSUMER_GROUP)
+        filterPanelBlock.set(filterComboBox.selectedItem != ConsumerFilterType.NONE)
 
         storeToUserData()
     }
@@ -527,19 +537,6 @@ class KafkaConsumerPanel(
             filterHeadKeyField, filterHeadValueField,
             advancedSettings
         ).forEach { it.isEnabled = isEnabled }
-    }
-
-    private fun updateStartWith() {
-        startSpecificDateBlock.set(startFromComboBox.selectedItem == ConsumerStartType.SPECIFIC_DATE)
-        startOffsetBlock.set(
-            startFromComboBox.selectedItem == ConsumerStartType.OFFSET ||
-                    startFromComboBox.selectedItem == ConsumerStartType.LATEST_OFFSET_MINUS_X
-        )
-        startConsumerGroupBlock.set(startFromComboBox.selectedItem == ConsumerStartType.CONSUMER_GROUP)
-    }
-
-    private fun updateFilter() {
-        filterPanelBlock.set(filterComboBox.selectedItem != ConsumerFilterType.NONE)
     }
 
     private fun updateLimit() {
