@@ -30,68 +30,48 @@ class IdeLanguageMapperTest {
     inner class GetPreferredLanguages {
 
         @Test
-        fun `returns Java and Kotlin for IntelliJ IDEA Community`() {
-            val languages = IdeLanguageMapper.getPreferredLanguages { "IC" }
-            assertEquals(listOf("Java", "Kotlin"), languages)
+        fun `returns registered languages directly`() {
+            val languages = IdeLanguageMapper.getPreferredLanguages {
+                listOf("Java", "Kotlin", "TEXT", "RegExp")
+            }
+            assertEquals(listOf("Java", "Kotlin", "TEXT", "RegExp"), languages)
         }
 
         @Test
-        fun `returns Java and Kotlin for IntelliJ IDEA Ultimate`() {
-            val languages = IdeLanguageMapper.getPreferredLanguages { "IU" }
-            assertEquals(listOf("Java", "Kotlin"), languages)
-        }
-
-        @Test
-        fun `returns Python for PyCharm`() {
-            val languages = IdeLanguageMapper.getPreferredLanguages { "PC" }
-            assertEquals(listOf("Python"), languages)
-        }
-
-        @Test
-        fun `returns Go for GoLand`() {
-            val languages = IdeLanguageMapper.getPreferredLanguages { "GO" }
-            assertEquals(listOf("Go"), languages)
-        }
-
-        @Test
-        fun `returns JavaScript and TypeScript for WebStorm`() {
-            val languages = IdeLanguageMapper.getPreferredLanguages { "WS" }
-            assertEquals(listOf("JavaScript", "TypeScript"), languages)
-        }
-
-        @Test
-        fun `returns Python for PyCharm Professional`() {
-            val languages = IdeLanguageMapper.getPreferredLanguages { "PY" }
-            assertEquals(listOf("Python"), languages)
-        }
-
-        @Test
-        fun `returns C and C++ for CLion`() {
-            val languages = IdeLanguageMapper.getPreferredLanguages { "CL" }
-            assertEquals(listOf("C/C++"), languages)
-        }
-
-        @Test
-        fun `returns C# and dotNET for Rider`() {
-            val languages = IdeLanguageMapper.getPreferredLanguages { "RD" }
+        fun `maps C# to C# and dotNET`() {
+            val languages = IdeLanguageMapper.getPreferredLanguages {
+                listOf("C#")
+            }
             assertEquals(listOf("C#", ".NET"), languages)
         }
 
         @Test
-        fun `returns Ruby for RubyMine`() {
-            val languages = IdeLanguageMapper.getPreferredLanguages { "RM" }
-            assertEquals(listOf("Ruby"), languages)
+        fun `maps ObjectiveC to C and C++`() {
+            val languages = IdeLanguageMapper.getPreferredLanguages {
+                listOf("ObjectiveC")
+            }
+            assertEquals(listOf("C/C++"), languages)
         }
 
         @Test
-        fun `returns PHP for PhpStorm`() {
-            val languages = IdeLanguageMapper.getPreferredLanguages { "PS" }
-            assertEquals(listOf("PHP"), languages)
+        fun `maps C and C++ display name to C and C++`() {
+            val languages = IdeLanguageMapper.getPreferredLanguages {
+                listOf("C/C++")
+            }
+            assertEquals(listOf("C/C++"), languages)
         }
 
         @Test
-        fun `returns empty list for unknown IDE`() {
-            val languages = IdeLanguageMapper.getPreferredLanguages { "XX" }
+        fun `deduplicates aliased languages`() {
+            val languages = IdeLanguageMapper.getPreferredLanguages {
+                listOf("C/C++", "ObjectiveC")
+            }
+            assertEquals(listOf("C/C++"), languages)
+        }
+
+        @Test
+        fun `returns empty list when no languages registered`() {
+            val languages = IdeLanguageMapper.getPreferredLanguages { emptyList() }
             assertTrue(languages.isEmpty())
         }
     }

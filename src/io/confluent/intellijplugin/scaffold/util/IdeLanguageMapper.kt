@@ -1,30 +1,28 @@
 package io.confluent.intellijplugin.scaffold.util
 
-import com.intellij.openapi.application.ApplicationInfo
+import com.intellij.lang.Language
 import com.intellij.openapi.diagnostic.thisLogger
 import io.confluent.intellijplugin.scaffold.model.ScaffoldV1TemplateListDataInner
 
 object IdeLanguageMapper {
 
-    private val IDE_LANGUAGE_MAP: Map<String, List<String>> = mapOf(
-        "IC" to listOf("Java", "Kotlin"),
-        "IU" to listOf("Java", "Kotlin"),
-        "PC" to listOf("Python"),
-        "PY" to listOf("Python"),
-        "GO" to listOf("Go"),
-        "WS" to listOf("JavaScript", "TypeScript"),
-        "CL" to listOf("C/C++"),
-        "RD" to listOf("C#", ".NET"),
-        "RM" to listOf("Ruby"),
-        "PS" to listOf("PHP"),
+    // Maps Language.displayName to template language values where they differ
+    private val LANGUAGE_ALIAS_MAP: Map<String, List<String>> = mapOf(
+        "C/C++" to listOf("C/C++"),
+        "ObjectiveC" to listOf("C/C++"),
+        "C#" to listOf("C#", ".NET"),
     )
 
     fun getPreferredLanguages(
-        productCodeProvider: () -> String = { ApplicationInfo.getInstance().build.productCode }
+        registeredLanguageProvider: () -> List<String> = {
+            Language.getRegisteredLanguages().map { it.displayName }
+        }
     ): List<String> {
-        val productCode = productCodeProvider()
-        val languages = IDE_LANGUAGE_MAP[productCode] ?: emptyList()
-        thisLogger().debug("IDE product code: $productCode, preferred languages: $languages")
+        val registeredNames = registeredLanguageProvider()
+        val languages = registeredNames.flatMap { displayName ->
+            LANGUAGE_ALIAS_MAP[displayName] ?: listOf(displayName)
+        }.distinct()
+        thisLogger().debug("Registered IDE languages: $registeredNames, preferred languages: $languages")
         return languages
     }
 
