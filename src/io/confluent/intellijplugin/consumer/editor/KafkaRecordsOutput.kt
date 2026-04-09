@@ -27,6 +27,10 @@ import io.confluent.intellijplugin.core.ui.setSouthComponent
 import io.confluent.intellijplugin.telemetry.MessageViewerEvent
 import io.confluent.intellijplugin.telemetry.logUsage
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import java.awt.BorderLayout
 import java.awt.Dimension
 import java.util.Date
@@ -37,6 +41,7 @@ import kotlin.math.max
 
 class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Disposable {
     private var tableLoadingDecorator: TableLoadingDecorator? = null
+    private val statsScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     internal val outputModel = ListTableModel(
         ArrayDeque<KafkaRecord>(1000),
@@ -114,7 +119,7 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
     }
     private val outputTablePanel: JPanel by outputTablePanelDelegate
 
-    private val statisticPanel = ConsumerTableStats()
+    private val statisticPanel = ConsumerTableStats(statsScope)
 
     private val detailsDelegate: Lazy<KafkaRecordDetails> = lazy {
         KafkaRecordDetails(project, this)
@@ -165,7 +170,10 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
         }
     }
 
-    override fun dispose() {}
+    override fun dispose() {
+        statisticPanel.dispose()
+        statsScope.cancel()
+    }
 
     fun replace(output: List<KafkaRecord>) {
         outputModel.replaceAll(output)

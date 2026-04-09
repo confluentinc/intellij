@@ -1,20 +1,25 @@
 package io.confluent.intellijplugin.consumer.editor
 
 import com.intellij.openapi.actionSystem.DefaultActionGroup
+import com.intellij.openapi.application.EDT
 import io.confluent.intellijplugin.core.ui.CustomComponentActionImpl
 import io.confluent.intellijplugin.core.ui.ToolbarGreyLabelActionImpl
 import io.confluent.intellijplugin.core.util.SizeUtils
 import io.confluent.intellijplugin.core.util.TimeUtils
 import io.confluent.intellijplugin.core.util.ToolbarUtils
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
+import kotlinx.coroutines.*
 import javax.swing.JLabel
+import kotlin.time.Duration.Companion.milliseconds
 
-class ConsumerTableStats {
+class ConsumerTableStats(private val scope: CoroutineScope) {
     private var totalMessageCount: Long = 0
     private var totalMessageSize: Long = 0
     private var totalPollCount: Long = 0
     private var totalPollTime: Long = 0
     private var startTime: Long = System.currentTimeMillis()
+
+    private var updateJob: Job? = null
 
     private val totalTimeLabel = JLabel("?")
 
@@ -62,7 +67,19 @@ class ConsumerTableStats {
                 (it.name?.length ?: 0) * 4 + (it.value?.length ?: 0) * 4
             }
         }
-        updateUi()
+
+        updateJob?.cancel()
+        updateJob = scope.launch {
+            delay(100.milliseconds)
+            withContext(Dispatchers.EDT) {
+                updateUi()
+            }
+        }
+    }
+
+    fun dispose() {
+        updateJob?.cancel()
+        scope.cancel()
     }
 
     private fun updateUi() {
