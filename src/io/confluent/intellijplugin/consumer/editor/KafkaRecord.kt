@@ -26,16 +26,16 @@ data class KafkaRecord(
     val keyFormat: KafkaRegistryFormat,
     val valueFormat: KafkaRegistryFormat
 ) {
-    val keyText: String? by lazy {
+    val keyText: String? by lazy(LazyThreadSafetyMode.PUBLICATION) {
         if (error == null) KafkaEditorUtils.getValueAsString(keyType, key, keyFormat) else null
     }
-    val valueText: String? by lazy {
+    val valueText: String? by lazy(LazyThreadSafetyMode.PUBLICATION) {
         if (error == null) KafkaEditorUtils.getValueAsString(valueType, value, valueFormat) else null
     }
-    val keyTextTruncated: String by lazy {
+    val keyTextTruncated: String by lazy(LazyThreadSafetyMode.PUBLICATION) {
         keyText?.take(MAX_CELL_LENGTH) ?: ""
     }
-    val valueTextTruncated: String by lazy {
+    val valueTextTruncated: String by lazy(LazyThreadSafetyMode.PUBLICATION) {
         valueText?.take(MAX_CELL_LENGTH) ?: ""
     }
     val errorText = error?.message ?: error?.let { it::class.java.simpleName } ?: "<Unknown>"

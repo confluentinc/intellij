@@ -349,6 +349,22 @@ class KafkaRecordTest {
         }
 
         @Test
+        fun `should not truncate string of exactly MAX_CELL_LENGTH`() {
+            val exactLengthKey = "a".repeat(KafkaRecord.MAX_CELL_LENGTH)
+            val exactLengthValue = "b".repeat(KafkaRecord.MAX_CELL_LENGTH)
+            val rec = consumerRecord(key = exactLengthKey, value = exactLengthValue)
+            val kafkaRecord = KafkaRecord.createFor(
+                KafkaFieldType.STRING, KafkaFieldType.STRING,
+                KafkaRegistryFormat.UNKNOWN, KafkaRegistryFormat.UNKNOWN,
+                Result.success(rec)
+            )
+            assertEquals(exactLengthKey, kafkaRecord.keyTextTruncated)
+            assertEquals(exactLengthValue, kafkaRecord.valueTextTruncated)
+            assertEquals(KafkaRecord.MAX_CELL_LENGTH, kafkaRecord.keyTextTruncated.length)
+            assertEquals(KafkaRecord.MAX_CELL_LENGTH, kafkaRecord.valueTextTruncated.length)
+        }
+
+        @Test
         fun `should preserve full text in keyText and valueText`() {
             val longKey = "k".repeat(500)
             val longValue = "v".repeat(500)

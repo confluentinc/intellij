@@ -10,6 +10,8 @@ import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.components.fields.ExpandableSupport
 import com.intellij.ui.components.fields.ExtendableTextComponent
 import com.intellij.util.ui.JBUI
+import io.confluent.intellijplugin.common.editor.ListTableModel
+import io.confluent.intellijplugin.consumer.editor.KafkaRecord
 import io.confluent.intellijplugin.core.table.MaterialTable
 import io.confluent.intellijplugin.core.ui.TextSizeUtils
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
@@ -60,7 +62,7 @@ object TableCellPreview {
         val tableRect = table.visibleRect
         val cellRect = table.getCellRect(row, col, false).intersection(tableRect)
 
-        val value = table.getValueAt(row, col)?.toString() ?: ""
+        val value = resolveFullText(table, row, col)
 
         val cellRenderer = table.getCellRenderer(row, col)
         table.prepareRenderer(cellRenderer, row, col)
@@ -79,6 +81,29 @@ object TableCellPreview {
         val preferredWidth = max(minWidth, cellRect.width)
 
         showPopup(value, table.font, point, preferredWidth)
+    }
+
+    /**
+     * Resolves the full (non-truncated) text for a cell. When the table model is
+     * backed by [KafkaRecord] items, the key/value columns return truncated text
+     * via [javax.swing.JTable.getValueAt]. This method retrieves the underlying
+     * [KafkaRecord] and returns the full [KafkaRecord.keyText] or [KafkaRecord.valueText].
+     */
+    private fun resolveFullText(table: MaterialTable, row: Int, col: Int): String {
+        val model = table.model
+        if (model is ListTableModel<*>) {
+            val modelRow = table.convertRowIndexToModel(row)
+            val record = model.getValueAt(modelRow)
+            if (record is KafkaRecord) {
+                val modelCol = table.convertColumnIndexToModel(col)
+                return when (modelCol) {
+                    2 -> record.keyText ?: ""
+                    3 -> record.valueText ?: record.errorText
+                    else -> table.getValueAt(row, col)?.toString() ?: ""
+                }
+            }
+        }
+        return table.getValueAt(row, col)?.toString() ?: ""
     }
 
     private fun createCollapseExtension(runnable: Runnable): ExtendableTextComponent.Extension {
