@@ -18,6 +18,7 @@ import io.confluent.intellijplugin.scaffold.model.ScaffoldV1TemplateMetadata
 import io.confluent.intellijplugin.scaffold.model.Scaffoldv1TemplateList
 import io.confluent.intellijplugin.scaffold.model.Scaffoldv1TemplateSpec
 import io.confluent.intellijplugin.scaffold.ui.ScaffoldTemplateSelectionDialog
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
@@ -240,6 +241,95 @@ class SelectScaffoldTemplateActionTest {
             verify(dialogFactory).invoke(eq(project), templatesCaptor.capture())
             assertEquals(2, templatesCaptor.firstValue.size)
             verify(mockDialog).showAndGet()
+        }
+
+        @Test
+        fun `applies template sorter before showing dialog`() {
+            val templates = setOf(
+                createTemplate(name = "template-a", displayName = "Template A"),
+                createTemplate(name = "template-b", displayName = "Template B")
+            )
+            val mockClient = createMockClientReturning(templates)
+
+            val mockDialog = mock<ScaffoldTemplateSelectionDialog> {
+                on { showAndGet() } doReturn false
+            }
+            val dialogFactory = createMockDialogFactory(mockDialog)
+
+            val sorter: (List<ScaffoldV1TemplateListDataInner>) -> List<ScaffoldV1TemplateListDataInner> =
+                { it.sortedByDescending { t -> t.spec.name } }
+
+            val action = SelectScaffoldTemplateAction(
+                clientFactory = { mockClient },
+                dialogFactory = dialogFactory,
+                templateSorter = sorter
+            )
+
+            val templatesCaptor = argumentCaptor<List<ScaffoldV1TemplateListDataInner>>()
+
+            runBlocking { action.fetchAndShowTemplates(project) }
+
+            verify(dialogFactory).invoke(eq(project), templatesCaptor.capture())
+            val sortedTemplates = templatesCaptor.firstValue
+            assertEquals("template-b", sortedTemplates[0].spec.name)
+            assertEquals("template-a", sortedTemplates[1].spec.name)
+        }
+
+        @Test
+        fun `rethrows CancellationException for structured concurrency`() {
+            val mockClient = mock<ScaffoldHttpClient> {
+                onBlocking { fetchTemplates() } doThrow CancellationException("cancelled")
+            }
+            val action = SelectScaffoldTemplateAction(clientFactory = { mockClient })
+
+            assertThrows(CancellationException::class.java) {
+                runBlocking { action.fetchAndShowTemplates(project) }
+            }
+        }
+
+        @Test
+        fun `logs selected template when user confirms selection`() {
+            val template = createTemplate(name = "java-producer", displayName = "Java Producer")
+            val templates = setOf(template)
+            val mockClient = createMockClientReturning(templates)
+
+            val mockDialog = mock<ScaffoldTemplateSelectionDialog> {
+                on { showAndGet() } doReturn true
+                on { selectedTemplate } doReturn template
+            }
+            val dialogFactory = createMockDialogFactory(mockDialog)
+
+            val action = SelectScaffoldTemplateAction(
+                clientFactory = { mockClient },
+                dialogFactory = dialogFactory
+            )
+
+            runBlocking { action.fetchAndShowTemplates(project) }
+
+            verify(mockDialog).showAndGet()
+            verify(mockDialog).selectedTemplate
+        }
+
+        @Test
+        fun `handles null selected template when user confirms dialog`() {
+            val templates = setOf(createTemplate())
+            val mockClient = createMockClientReturning(templates)
+
+            val mockDialog = mock<ScaffoldTemplateSelectionDialog> {
+                on { showAndGet() } doReturn true
+                on { selectedTemplate } doReturn null
+            }
+            val dialogFactory = createMockDialogFactory(mockDialog)
+
+            val action = SelectScaffoldTemplateAction(
+                clientFactory = { mockClient },
+                dialogFactory = dialogFactory
+            )
+
+            runBlocking { action.fetchAndShowTemplates(project) }
+
+            verify(mockDialog).showAndGet()
+            verify(mockDialog).selectedTemplate
         }
 
         @Test
