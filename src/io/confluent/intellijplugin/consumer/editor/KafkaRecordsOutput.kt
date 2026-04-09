@@ -46,8 +46,8 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
         when (index) {
             0 -> data.topic
             1 -> Date(data.timestamp)
-            2 -> data.keyText ?: KafkaMessagesBundle.message("error.output.row.key")
-            3 -> data.valueText ?: data.errorText
+            2 -> if (data.error == null) data.keyTextTruncated else KafkaMessagesBundle.message("error.output.row.key")
+            3 -> if (data.error == null) data.valueTextTruncated else data.errorText
             4 -> data.partition
             5 -> if (isProducer) data.duration else data.offset
             else -> ""

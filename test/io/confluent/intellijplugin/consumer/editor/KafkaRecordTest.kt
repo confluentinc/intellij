@@ -294,4 +294,72 @@ class KafkaRecordTest {
             assertEquals("", kafkaRecord.keyText)
         }
     }
+
+    @Nested
+    @DisplayName("Lazy text rendering with truncation")
+    inner class LazyTextRendering {
+
+        @Test
+        fun `should truncate keyTextTruncated to MAX_CELL_LENGTH`() {
+            val longKey = "x".repeat(500)
+            val rec = consumerRecord(key = longKey)
+            val kafkaRecord = KafkaRecord.createFor(
+                KafkaFieldType.STRING, KafkaFieldType.STRING,
+                KafkaRegistryFormat.UNKNOWN, KafkaRegistryFormat.UNKNOWN,
+                Result.success(rec)
+            )
+            assertEquals(KafkaRecord.MAX_CELL_LENGTH, kafkaRecord.keyTextTruncated.length)
+            assertEquals("x".repeat(KafkaRecord.MAX_CELL_LENGTH), kafkaRecord.keyTextTruncated)
+        }
+
+        @Test
+        fun `should truncate valueTextTruncated to MAX_CELL_LENGTH`() {
+            val longValue = "y".repeat(500)
+            val rec = consumerRecord(value = longValue)
+            val kafkaRecord = KafkaRecord.createFor(
+                KafkaFieldType.STRING, KafkaFieldType.STRING,
+                KafkaRegistryFormat.UNKNOWN, KafkaRegistryFormat.UNKNOWN,
+                Result.success(rec)
+            )
+            assertEquals(KafkaRecord.MAX_CELL_LENGTH, kafkaRecord.valueTextTruncated.length)
+            assertEquals("y".repeat(KafkaRecord.MAX_CELL_LENGTH), kafkaRecord.valueTextTruncated)
+        }
+
+        @Test
+        fun `should not pad short text`() {
+            val rec = consumerRecord(key = "short", value = "tiny")
+            val kafkaRecord = KafkaRecord.createFor(
+                KafkaFieldType.STRING, KafkaFieldType.STRING,
+                KafkaRegistryFormat.UNKNOWN, KafkaRegistryFormat.UNKNOWN,
+                Result.success(rec)
+            )
+            assertEquals("short", kafkaRecord.keyTextTruncated)
+            assertEquals("tiny", kafkaRecord.valueTextTruncated)
+        }
+
+        @Test
+        fun `should return empty string for truncated text when error present`() {
+            val kafkaRecord = KafkaRecord.createFor(
+                KafkaFieldType.STRING, KafkaFieldType.STRING,
+                KafkaRegistryFormat.UNKNOWN, KafkaRegistryFormat.UNKNOWN,
+                Result.failure(RuntimeException("fail"))
+            )
+            assertEquals("", kafkaRecord.keyTextTruncated)
+            assertEquals("", kafkaRecord.valueTextTruncated)
+        }
+
+        @Test
+        fun `should preserve full text in keyText and valueText`() {
+            val longKey = "k".repeat(500)
+            val longValue = "v".repeat(500)
+            val rec = consumerRecord(key = longKey, value = longValue)
+            val kafkaRecord = KafkaRecord.createFor(
+                KafkaFieldType.STRING, KafkaFieldType.STRING,
+                KafkaRegistryFormat.UNKNOWN, KafkaRegistryFormat.UNKNOWN,
+                Result.success(rec)
+            )
+            assertEquals(500, kafkaRecord.keyText?.length)
+            assertEquals(500, kafkaRecord.valueText?.length)
+        }
+    }
 }
