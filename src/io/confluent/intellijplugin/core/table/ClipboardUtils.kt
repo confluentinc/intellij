@@ -42,28 +42,9 @@ object ClipboardUtils {
     }
 
     fun appendData(builder: StringBuilder, table: JTable, selectedRows: IntArray, selectedColumns: IntArray) {
-        val dataframe = (table.model as? DataFrameTableModel)?.dataFrame
-
         for (row in selectedRows.withIndex()) {
             for (column in selectedColumns.withIndex()) {
-
-                if (dataframe != null) {
-                    val modelRow = table.convertRowIndexToModel(row.value)
-                    val modelColumn = table.convertColumnIndexToModel(column.value)
-
-                    if (!dataframe[modelColumn].isNull(modelRow)) {
-                        dataframe[modelColumn][modelRow]?.let { builder.append(escape(it)) }
-                    }
-                } else {
-                    val listModel = table.model as? ListTableModel<*>
-                    if (listModel != null) {
-                        val modelRow = table.convertRowIndexToModel(row.value)
-                        val modelCol = table.convertColumnIndexToModel(column.value)
-                        listModel.getFullValueAt(modelRow, modelCol)?.let { builder.append(escape(it)) }
-                    } else {
-                        table.getValueAt(row.value, column.value)?.let { builder.append(escape(it)) }
-                    }
-                }
+                resolveCellValue(table, row.value, column.value)?.let { builder.append(escape(it)) }
 
                 if (column.index < selectedColumns.size - 1) {
                     builder.append(CELL_BREAK)
@@ -74,6 +55,23 @@ object ClipboardUtils {
                 builder.append(LINE_SEPARATOR)
             }
         }
+    }
+
+    private fun resolveCellValue(table: JTable, row: Int, column: Int): Any? {
+        val modelRow = table.convertRowIndexToModel(row)
+        val modelCol = table.convertColumnIndexToModel(column)
+
+        val dataframe = (table.model as? DataFrameTableModel)?.dataFrame
+        if (dataframe != null) {
+            return if (!dataframe[modelCol].isNull(modelRow)) dataframe[modelCol][modelRow] else null
+        }
+
+        val listModel = table.model as? ListTableModel<*>
+        if (listModel != null) {
+            return listModel.getFullValueAt(modelRow, modelCol)
+        }
+
+        return table.getValueAt(row, column)
     }
 
     private fun getSelectedAsString(table: JTable, selectedRows: IntArray, selectedColumns: IntArray): String {
