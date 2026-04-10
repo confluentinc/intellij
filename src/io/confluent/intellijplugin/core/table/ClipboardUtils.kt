@@ -3,6 +3,7 @@ package io.confluent.intellijplugin.core.table
 import com.intellij.notification.NotificationGroupManager
 import com.intellij.notification.NotificationType
 import com.intellij.openapi.ide.CopyPasteManager
+import io.confluent.intellijplugin.common.editor.ListTableModel
 import io.confluent.intellijplugin.core.table.model.DataFrameTableModel
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
 import java.awt.datatransfer.StringSelection
@@ -54,7 +55,14 @@ object ClipboardUtils {
                         dataframe[modelColumn][modelRow]?.let { builder.append(escape(it)) }
                     }
                 } else {
-                    table.getValueAt(row.value, column.value)?.let { builder.append(escape(it)) }
+                    val listModel = table.model as? ListTableModel<*>
+                    if (listModel != null) {
+                        val modelRow = table.convertRowIndexToModel(row.value)
+                        val modelCol = table.convertColumnIndexToModel(column.value)
+                        listModel.getFullValueAt(modelRow, modelCol)?.let { builder.append(escape(it)) }
+                    } else {
+                        table.getValueAt(row.value, column.value)?.let { builder.append(escape(it)) }
+                    }
                 }
 
                 if (column.index < selectedColumns.size - 1) {

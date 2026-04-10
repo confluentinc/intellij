@@ -26,6 +26,13 @@ class ListTableModel<T>(
 
     var columnClasses: List<Class<*>>? = null
 
+    /**
+     * Optional mapper that returns the full (non-truncated) value for a cell.
+     * Used by export and clipboard operations. When null, [getFullValueAt] falls
+     * back to the display [columnMapper].
+     */
+    var fullValueMapper: ((T, Int) -> Any?)? = null
+
     /** If maxElementsCount <= data.size, the first element will be removed when adding a new element. */
     var maxElementsCount = 0
 
@@ -51,6 +58,18 @@ class ListTableModel<T>(
     fun getValueAt(rowIndex: Int): T? =
         try {
             data[rowIndex]
+        } catch (e: Exception) {
+            logger.warn(e)
+            null
+        }
+
+    /**
+     * Returns the full (non-truncated) value for a cell, using [fullValueMapper]
+     * when available, otherwise falling back to the display [columnMapper].
+     */
+    fun getFullValueAt(rowIndex: Int, columnIndex: Int): Any? =
+        try {
+            (fullValueMapper ?: columnMapper)(data[rowIndex], columnIndex)
         } catch (e: Exception) {
             logger.warn(e)
             null
