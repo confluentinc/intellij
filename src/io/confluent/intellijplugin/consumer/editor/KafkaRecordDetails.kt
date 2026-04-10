@@ -129,8 +129,8 @@ internal class KafkaRecordDetails(project: Project, parentDisposable: Disposable
             }
         }
 
-        rowsRange {
-            row(KafkaMessagesBundle.message("consumer.record.key")) {
+        val keyGroup = collapsibleGroup(title = KafkaMessagesBundle.message("consumer.record.key"), indent = false) {
+            row {
                 cell(keyViewerType).align(AlignX.RIGHT)
             }
             keyLoadFileLinkRow = row {
@@ -142,12 +142,16 @@ internal class KafkaRecordDetails(project: Project, parentDisposable: Disposable
                     }
                 }
             }
-
             row {
                 cell(keyEditorPanel).resizableColumn().align(AlignX.FILL)
-            }.bottomGap(BottomGap.SMALL)
+            }
+        }
+        keyGroup.expanded = true
+        keyGroup.visibleIf(error.isNull())
+        keyGroup.topGap(TopGap.NONE).bottomGap(BottomGap.NONE)
 
-            row(KafkaMessagesBundle.message("consumer.record.value")) {
+        val valueGroup = collapsibleGroup(title = KafkaMessagesBundle.message("consumer.record.value"), indent = false) {
+            row {
                 cell(valueViewerType).align(AlignX.RIGHT)
             }
             valueLoadFileLinkRow = row {
@@ -157,8 +161,11 @@ internal class KafkaRecordDetails(project: Project, parentDisposable: Disposable
             }
             row {
                 cell(valueEditorPanel).resizableColumn().align(AlignX.FILL)
-            }.bottomGap(BottomGap.SMALL)
-        }.visibleIf(error.isNull())
+            }
+        }
+        valueGroup.expanded = true
+        valueGroup.visibleIf(error.isNull())
+        valueGroup.topGap(TopGap.NONE).bottomGap(BottomGap.NONE)
 
         val headerGroup = collapsibleGroup(title = KafkaMessagesBundle.message("record.info.headers"), indent = false) {
             row {
