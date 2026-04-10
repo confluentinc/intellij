@@ -97,7 +97,7 @@ intellijPlatform {
 dependencies {
     intellijPlatform {
         jetbrainsRuntime()
-        intellijIdea("2025.3") { useInstaller.set(true) }
+        intellijIdea("2026.1") { useInstaller.set(true) }
 
         bundledPlugin("com.intellij.modules.json")
         bundledPlugin("com.intellij.microservices.jvm")
@@ -142,7 +142,6 @@ dependencies {
     testRuntimeOnly(libs.junit.platform.launcher)
     testImplementation(libs.junit.jupiter.params)
     testImplementation(libs.mockito.kotlin)
-    testImplementation(libs.mockito.inline)
     testImplementation(libs.wiremock)
     // JUnit 4 runtime required due to IJPL-159134: JUnit5 Test Framework refers to JUnit4 classes
     // See: https://youtrack.jetbrains.com/issue/IJPL-159134
