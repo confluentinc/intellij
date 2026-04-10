@@ -63,7 +63,7 @@ internal object ConsumerEditorUtils {
             val jsonObject = JsonObject()
 
             for (column in 0 until tableModel.columnCount) {
-                val cellValue = tableModel.getValueAt(row, column)?.toString()
+                val cellValue = tableModel.getFullValueAt(row, column)?.toString()
                 if (cellValue == null) {
                     jsonObject.add(columnNames[column], JsonNull.INSTANCE)
                 } else {
@@ -97,7 +97,7 @@ internal object ConsumerEditorUtils {
     }
 
     private fun <T> exportEntryAsCsv(tableModel: ListTableModel<T>, row: Int, column: Int): String {
-        val cellValue = tableModel.getValueAt(row, column)?.toString()
+        val cellValue = tableModel.getFullValueAt(row, column)?.toString()
             ?.replace(LINE_SEPARATOR, " ")
             ?.replace(TAB_CHAR, " ")
             ?.replace(REPLACE_SPACES_PATTERN, " ")
