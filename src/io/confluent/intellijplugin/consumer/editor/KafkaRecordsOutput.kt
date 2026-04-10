@@ -267,7 +267,7 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
         filterHeader.columnsController?.forEach { editor ->
             var wasEmpty = true
             editor?.addListener {
-                val isEmpty = editor.text.isNullOrBlank()
+                val isEmpty = editor?.text.isNullOrBlank()
                 if (wasEmpty && !isEmpty) {
                     logUsage(MessageViewerEvent.Search(source))
                 }
