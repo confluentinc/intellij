@@ -46,8 +46,11 @@ import io.confluent.intellijplugin.registry.ui.KafkaSchemaInfoDialog
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
 import io.confluent.intellijplugin.util.generator.FieldTemplateGenerator
 import io.confluent.intellijplugin.util.generator.GenerateRandomData
+import java.awt.BorderLayout
+import java.awt.Dimension
 import java.util.*
 import javax.swing.JComponent
+import javax.swing.JPanel
 
 class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEditor, val isKey: Boolean) : Disposable {
     private var isInitialized: Boolean = false
@@ -128,6 +131,9 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
         }
     }
 
+    private val textEditorPanel by lazy { createContentSizingPanel(textField) }
+    private val jsonEditorPanel by lazy { createContentSizingPanel(jsonField) }
+
     init {
         customSchemaController.setLanguage(fieldTypeComboBox.item)
     }
@@ -196,7 +202,7 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
     private lateinit var textRow: Row
     private lateinit var jsonRow: Row
     private lateinit var loadFileLinkRow: Row
-    private lateinit var jsonCell: Cell<EditorTextField>
+    private lateinit var jsonCell: Cell<JPanel>
 
     private lateinit var generateDataAction: Cell<ActionButton>
 
@@ -250,10 +256,10 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
                 customSchemaController.initComponent(this).visibleIf(customSchemaPredicate)
                 row(KafkaMessagesBundle.message("settings.payload.row.label")) {}.visibleIf(customSchemaPredicate)
                 jsonRow = row {
-                    jsonCell = cell(jsonField).align(AlignX.FILL).resizableColumn().comment("")
+                    jsonCell = cell(jsonEditorPanel).align(AlignX.FILL).resizableColumn().comment("")
                 }
                 textRow = row {
-                    cell(textField).align(AlignX.FILL).resizableColumn()
+                    cell(textEditorPanel).align(AlignX.FILL).resizableColumn()
                 }
                 row {
                     comment(KafkaMessagesBundle.message("producer.config.random.generation.enabled"))
@@ -473,7 +479,26 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
         }
     }
 
+    private fun createContentSizingPanel(child: JComponent): JPanel {
+        return object : JPanel(BorderLayout()) {
+            init {
+                add(child, BorderLayout.CENTER)
+            }
+
+            override fun getPreferredSize(): Dimension {
+                val childPref = child.preferredSize
+                return Dimension(
+                    childPref.width,
+                    childPref.height.coerceIn(MIN_EDITOR_HEIGHT, MAX_EDITOR_HEIGHT)
+                )
+            }
+        }
+    }
+
     companion object {
+        private const val MIN_EDITOR_HEIGHT = 50
+        private const val MAX_EDITOR_HEIGHT = 350
+
         private val jsonFieldTypes = setOf(
             KafkaFieldType.JSON, KafkaFieldType.AVRO_CUSTOM,
             KafkaFieldType.PROTOBUF_CUSTOM
