@@ -294,4 +294,90 @@ class KafkaRecordTest {
             assertEquals("", kafkaRecord.keyText)
         }
     }
+
+    @Nested
+    @DisplayName("Lazy text rendering with truncation")
+    inner class LazyTextRendering {
+
+        @Test
+        fun `should truncate keyTextTruncated to MAX_CELL_LENGTH with ellipsis`() {
+            val longKey = "x".repeat(500)
+            val rec = consumerRecord(key = longKey)
+            val kafkaRecord = KafkaRecord.createFor(
+                KafkaFieldType.STRING, KafkaFieldType.STRING,
+                KafkaRegistryFormat.UNKNOWN, KafkaRegistryFormat.UNKNOWN,
+                Result.success(rec)
+            )
+            assertEquals(KafkaRecord.MAX_CELL_LENGTH + 1, kafkaRecord.keyTextTruncated.length)
+            assertTrue(kafkaRecord.keyTextTruncated.startsWith("x".repeat(KafkaRecord.MAX_CELL_LENGTH)))
+            assertTrue(kafkaRecord.keyTextTruncated.endsWith("\u2026"))
+        }
+
+        @Test
+        fun `should truncate valueTextTruncated to MAX_CELL_LENGTH with ellipsis`() {
+            val longValue = "y".repeat(500)
+            val rec = consumerRecord(value = longValue)
+            val kafkaRecord = KafkaRecord.createFor(
+                KafkaFieldType.STRING, KafkaFieldType.STRING,
+                KafkaRegistryFormat.UNKNOWN, KafkaRegistryFormat.UNKNOWN,
+                Result.success(rec)
+            )
+            assertEquals(KafkaRecord.MAX_CELL_LENGTH + 1, kafkaRecord.valueTextTruncated.length)
+            assertTrue(kafkaRecord.valueTextTruncated.startsWith("y".repeat(KafkaRecord.MAX_CELL_LENGTH)))
+            assertTrue(kafkaRecord.valueTextTruncated.endsWith("\u2026"))
+        }
+
+        @Test
+        fun `should not pad short text`() {
+            val rec = consumerRecord(key = "short", value = "tiny")
+            val kafkaRecord = KafkaRecord.createFor(
+                KafkaFieldType.STRING, KafkaFieldType.STRING,
+                KafkaRegistryFormat.UNKNOWN, KafkaRegistryFormat.UNKNOWN,
+                Result.success(rec)
+            )
+            assertEquals("short", kafkaRecord.keyTextTruncated)
+            assertEquals("tiny", kafkaRecord.valueTextTruncated)
+        }
+
+        @Test
+        fun `should return empty string for truncated text when error present`() {
+            val kafkaRecord = KafkaRecord.createFor(
+                KafkaFieldType.STRING, KafkaFieldType.STRING,
+                KafkaRegistryFormat.UNKNOWN, KafkaRegistryFormat.UNKNOWN,
+                Result.failure(RuntimeException("fail"))
+            )
+            assertEquals("", kafkaRecord.keyTextTruncated)
+            assertEquals("", kafkaRecord.valueTextTruncated)
+        }
+
+        @Test
+        fun `should not truncate string of exactly MAX_CELL_LENGTH`() {
+            val exactLengthKey = "a".repeat(KafkaRecord.MAX_CELL_LENGTH)
+            val exactLengthValue = "b".repeat(KafkaRecord.MAX_CELL_LENGTH)
+            val rec = consumerRecord(key = exactLengthKey, value = exactLengthValue)
+            val kafkaRecord = KafkaRecord.createFor(
+                KafkaFieldType.STRING, KafkaFieldType.STRING,
+                KafkaRegistryFormat.UNKNOWN, KafkaRegistryFormat.UNKNOWN,
+                Result.success(rec)
+            )
+            assertEquals(exactLengthKey, kafkaRecord.keyTextTruncated)
+            assertEquals(exactLengthValue, kafkaRecord.valueTextTruncated)
+            assertEquals(KafkaRecord.MAX_CELL_LENGTH, kafkaRecord.keyTextTruncated.length)
+            assertEquals(KafkaRecord.MAX_CELL_LENGTH, kafkaRecord.valueTextTruncated.length)
+        }
+
+        @Test
+        fun `should preserve full text in keyText and valueText`() {
+            val longKey = "k".repeat(500)
+            val longValue = "v".repeat(500)
+            val rec = consumerRecord(key = longKey, value = longValue)
+            val kafkaRecord = KafkaRecord.createFor(
+                KafkaFieldType.STRING, KafkaFieldType.STRING,
+                KafkaRegistryFormat.UNKNOWN, KafkaRegistryFormat.UNKNOWN,
+                Result.success(rec)
+            )
+            assertEquals(500, kafkaRecord.keyText?.length)
+            assertEquals(500, kafkaRecord.valueText?.length)
+        }
+    }
 }

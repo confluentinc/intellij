@@ -38,18 +38,27 @@ import kotlin.math.max
 class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Disposable {
     private var tableLoadingDecorator: TableLoadingDecorator? = null
 
+    private val columnNames = listOf(TOPIC_FIELD, TIMESTAMP_FIELD, KEY_COLUMN, VALUE_COLUMN, PARTITION_COLUMN) +
+        if (isProducer) listOf(DURATION_COLUMN) else listOf(OFFSET_COLUMN)
+
+    private val topicColumnIndex = columnNames.indexOf(TOPIC_FIELD)
+    private val timestampColumnIndex = columnNames.indexOf(TIMESTAMP_FIELD)
+    private val keyColumnIndex = columnNames.indexOf(KEY_COLUMN)
+    private val valueColumnIndex = columnNames.indexOf(VALUE_COLUMN)
+    private val partitionColumnIndex = columnNames.indexOf(PARTITION_COLUMN)
+    private val offsetOrDurationColumnIndex = columnNames.indexOf(if (isProducer) DURATION_COLUMN else OFFSET_COLUMN)
+
     internal val outputModel = ListTableModel(
         ArrayDeque<KafkaRecord>(1000),
-        listOf(TOPIC_FIELD, TIMESTAMP_FIELD, KEY_COLUMN, VALUE_COLUMN, PARTITION_COLUMN) +
-                if (isProducer) listOf(DURATION_COLUMN) else listOf(OFFSET_COLUMN)
+        columnNames
     ) { data, index ->
         when (index) {
-            0 -> data.topic
-            1 -> Date(data.timestamp)
-            2 -> data.keyText ?: KafkaMessagesBundle.message("error.output.row.key")
-            3 -> data.valueText ?: data.errorText
-            4 -> data.partition
-            5 -> if (isProducer) data.duration else data.offset
+            topicColumnIndex -> data.topic
+            timestampColumnIndex -> Date(data.timestamp)
+            keyColumnIndex -> if (data.error == null) data.keyTextTruncated else KafkaMessagesBundle.message("error.output.row.key")
+            valueColumnIndex -> if (data.error == null) data.valueTextTruncated else data.errorText
+            partitionColumnIndex -> data.partition
+            offsetOrDurationColumnIndex -> if (isProducer) data.duration else data.offset
             else -> ""
         }
     }.apply {
@@ -61,6 +70,17 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
             Int::class.java,
             Long::class.java
         )
+        fullValueMapper = { data, index ->
+            when (index) {
+                topicColumnIndex -> data.topic
+                timestampColumnIndex -> Date(data.timestamp)
+                keyColumnIndex -> if (data.error == null) (data.keyText ?: "") else KafkaMessagesBundle.message("error.output.row.key")
+                valueColumnIndex -> if (data.error == null) (data.valueText ?: "") else data.errorText
+                partitionColumnIndex -> data.partition
+                offsetOrDurationColumnIndex -> if (isProducer) data.duration else data.offset
+                else -> ""
+            }
+        }
     }
 
     private val outputTableDelegate = lazy {
