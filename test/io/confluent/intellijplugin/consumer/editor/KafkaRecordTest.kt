@@ -300,7 +300,7 @@ class KafkaRecordTest {
     inner class LazyTextRendering {
 
         @Test
-        fun `should truncate keyTextTruncated to MAX_CELL_LENGTH`() {
+        fun `should truncate keyTextTruncated to MAX_CELL_LENGTH with ellipsis`() {
             val longKey = "x".repeat(500)
             val rec = consumerRecord(key = longKey)
             val kafkaRecord = KafkaRecord.createFor(
@@ -308,12 +308,13 @@ class KafkaRecordTest {
                 KafkaRegistryFormat.UNKNOWN, KafkaRegistryFormat.UNKNOWN,
                 Result.success(rec)
             )
-            assertEquals(KafkaRecord.MAX_CELL_LENGTH, kafkaRecord.keyTextTruncated.length)
-            assertEquals("x".repeat(KafkaRecord.MAX_CELL_LENGTH), kafkaRecord.keyTextTruncated)
+            assertEquals(KafkaRecord.MAX_CELL_LENGTH + 1, kafkaRecord.keyTextTruncated.length)
+            assertTrue(kafkaRecord.keyTextTruncated.startsWith("x".repeat(KafkaRecord.MAX_CELL_LENGTH)))
+            assertTrue(kafkaRecord.keyTextTruncated.endsWith("\u2026"))
         }
 
         @Test
-        fun `should truncate valueTextTruncated to MAX_CELL_LENGTH`() {
+        fun `should truncate valueTextTruncated to MAX_CELL_LENGTH with ellipsis`() {
             val longValue = "y".repeat(500)
             val rec = consumerRecord(value = longValue)
             val kafkaRecord = KafkaRecord.createFor(
@@ -321,8 +322,9 @@ class KafkaRecordTest {
                 KafkaRegistryFormat.UNKNOWN, KafkaRegistryFormat.UNKNOWN,
                 Result.success(rec)
             )
-            assertEquals(KafkaRecord.MAX_CELL_LENGTH, kafkaRecord.valueTextTruncated.length)
-            assertEquals("y".repeat(KafkaRecord.MAX_CELL_LENGTH), kafkaRecord.valueTextTruncated)
+            assertEquals(KafkaRecord.MAX_CELL_LENGTH + 1, kafkaRecord.valueTextTruncated.length)
+            assertTrue(kafkaRecord.valueTextTruncated.startsWith("y".repeat(KafkaRecord.MAX_CELL_LENGTH)))
+            assertTrue(kafkaRecord.valueTextTruncated.endsWith("\u2026"))
         }
 
         @Test

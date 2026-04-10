@@ -33,15 +33,19 @@ data class KafkaRecord(
         if (error == null) KafkaEditorUtils.getValueAsString(valueType, value, valueFormat) else null
     }
     val keyTextTruncated: String by lazy(LazyThreadSafetyMode.PUBLICATION) {
-        keyText?.take(MAX_CELL_LENGTH) ?: ""
+        keyText?.truncateWithEllipsis() ?: ""
     }
     val valueTextTruncated: String by lazy(LazyThreadSafetyMode.PUBLICATION) {
-        valueText?.take(MAX_CELL_LENGTH) ?: ""
+        valueText?.truncateWithEllipsis() ?: ""
     }
     val errorText = error?.message ?: error?.let { it::class.java.simpleName } ?: "<Unknown>"
 
     companion object {
         const val MAX_CELL_LENGTH = 256
+        private const val ELLIPSIS = "\u2026"
+
+        private fun String.truncateWithEllipsis(): String =
+            if (length > MAX_CELL_LENGTH) take(MAX_CELL_LENGTH) + ELLIPSIS else this
 
         fun createFor(
             keyType: KafkaFieldType?, valueType: KafkaFieldType?,
