@@ -18,7 +18,7 @@ import java.util.UUID
 object TelemetryUtils {
     private val logger = thisLogger()
     internal const val MACHINE_ID_KEY = "io.confluent.intellijplugin.commonMachineId"
-    internal const val PLUGIN_PACKAGE = "io.confluent.intellijplugin"
+    internal const val CONFLUENT_PACKAGE_PREFIX = "io.confluent"
 
     @VisibleForTesting
     internal var cachedMachineId: Lazy<String> = lazy { loadOrCreateMachineId() }

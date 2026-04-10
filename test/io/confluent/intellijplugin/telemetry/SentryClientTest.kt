@@ -10,13 +10,13 @@ import org.junit.jupiter.api.Test
 
 /**
  * Tests for SentryErrorFilter.
- * Verifies that only plugin-related exceptions are sent to Sentry.
+ * Verifies that only Confluent-related exceptions are sent to Sentry.
  */
 @TestApplication
 class SentryClientTest {
 
     @Nested
-    @DisplayName("Plugin error filtering")
+    @DisplayName("Confluent error filtering")
     inner class ErrorFilteringTests {
 
         @Test
@@ -147,8 +147,8 @@ class SentryClientTest {
         }
 
         @Test
-        fun `should reject similar package names`() {
-            val similarPackageException = RuntimeException("Similar package").apply {
+        fun `should accept Confluent library errors`() {
+            val confluentLibraryException = RuntimeException("Confluent library error").apply {
                 stackTrace = arrayOf(
                     StackTraceElement(
                         "io.confluent.kafka.serializers.KafkaAvroSerializer",
@@ -159,34 +159,12 @@ class SentryClientTest {
                 )
             }
 
-            val event = SentryEvent(similarPackageException)
+            val event = SentryEvent(confluentLibraryException)
             val isPluginError = SentryErrorFilter.isPluginRelatedError(event)
 
-            assertFalse(
+            assertTrue(
                 isPluginError,
-                "Should reject packages that start with io.confluent but aren't the plugin"
-            )
-        }
-
-        @Test
-        fun `should reject package names with plugin prefix but no dot boundary`() {
-            val prefixMatchException = RuntimeException("Prefix without dot").apply {
-                stackTrace = arrayOf(
-                    StackTraceElement(
-                        "io.confluent.intellijpluginFooBar",
-                        "method",
-                        "FooBar.java",
-                        10
-                    )
-                )
-            }
-
-            val event = SentryEvent(prefixMatchException)
-            val isPluginError = SentryErrorFilter.isPluginRelatedError(event)
-
-            assertFalse(
-                isPluginError,
-                "Should reject package names that match prefix without dot boundary"
+                "Should accept errors from any io.confluent package"
             )
         }
 
@@ -252,7 +230,7 @@ class SentryClientTest {
         }
 
         @Test
-        fun `should handle deep cause chain without plugin code`() {
+        fun `should handle deep cause chain without Confluent code`() {
             val innerException = RuntimeException("Inner").apply {
                 stackTrace = arrayOf(
                     StackTraceElement("java.lang.Thread", "run", "Thread.java", 100)
@@ -274,7 +252,37 @@ class SentryClientTest {
             val event = SentryEvent(outerException)
             val isPluginError = SentryErrorFilter.isPluginRelatedError(event)
 
-            assertFalse(isPluginError, "Should reject deep cause chain without plugin code")
+            assertFalse(isPluginError, "Should reject deep cause chain without Confluent code")
+        }
+
+        @Test
+        fun `should identify Confluent error from exception message`() {
+            val platformException = RuntimeException(
+                "Cannot check provider io.confluent.intellijplugin.common.editor.KafkaEditorProvider"
+            ).apply {
+                stackTrace = arrayOf(
+                    StackTraceElement(
+                        "com.intellij.openapi.fileEditor.impl.FileEditorProviderManagerImpl",
+                        "getProviders",
+                        "FileEditorProviderManagerImpl.kt",
+                        156
+                    ),
+                    StackTraceElement(
+                        "kotlinx.coroutines.internal.ScopeCoroutine",
+                        "afterResume",
+                        "Scopes.kt",
+                        36
+                    )
+                )
+            }
+
+            val event = SentryEvent(platformException)
+            val isPluginError = SentryErrorFilter.isPluginRelatedError(event)
+
+            assertTrue(
+                isPluginError,
+                "Should identify Confluent errors when message references Confluent package"
+            )
         }
     }
 }

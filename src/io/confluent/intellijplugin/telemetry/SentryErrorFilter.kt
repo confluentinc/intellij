@@ -9,18 +9,18 @@ import io.sentry.SentryEvent
 internal object SentryErrorFilter {
 
     /**
-     * Checks if a Sentry event originated from plugin code.
-     * Walks the entire cause chain and suppressed exceptions to detect plugin frames.
+     * Checks if a Sentry event originated from Confluent code.
+     * Walks the entire cause chain and suppressed exceptions to detect Confluent frames.
      *
      * @param event The Sentry event to check
-     * @return true if the error is plugin-related, false otherwise
+     * @return true if the error is Confluent-related, false otherwise
      */
     fun isPluginRelatedError(event: SentryEvent): Boolean {
         val throwable = event.throwable ?: return false
-        return containsPluginFrame(throwable)
+        return containsConfluentFrame(throwable)
     }
 
-    private fun containsPluginFrame(throwable: Throwable): Boolean {
+    private fun containsConfluentFrame(throwable: Throwable): Boolean {
         val visited = mutableSetOf<Throwable>()
         val toVisit = ArrayDeque<Throwable>()
         toVisit.add(throwable)
@@ -33,11 +33,15 @@ internal object SentryErrorFilter {
                 continue
             }
 
-            // Check if any stack frame belongs to plugin package
+            // Check if any stack frame belongs to Confluent package
             if (current.stackTrace.any { frame ->
-                frame.className == TelemetryUtils.PLUGIN_PACKAGE ||
-                frame.className.startsWith("${TelemetryUtils.PLUGIN_PACKAGE}.")
+                frame.className.startsWith(TelemetryUtils.CONFLUENT_PACKAGE_PREFIX)
             }) {
+                return true
+            }
+
+            // Check if exception message mentions Confluent package
+            if (current.message?.contains(TelemetryUtils.CONFLUENT_PACKAGE_PREFIX) == true) {
                 return true
             }
 

@@ -15,8 +15,8 @@ import io.confluent.intellijplugin.util.KafkaMessagesBundle
 import java.awt.Component
 
 /**
- * Filters and reports plugin exceptions to Sentry.
- * Non-plugin errors are rejected and fall back to JetBrains error reporter.
+ * Filters and reports Confluent-related exceptions to Sentry.
+ * Non-Confluent errors are rejected and fall back to JetBrains error reporter.
  */
 class KafkaErrorReportSubmitter : ErrorReportSubmitter() {
 
@@ -32,9 +32,9 @@ class KafkaErrorReportSubmitter : ErrorReportSubmitter() {
      * Handles error submission to Sentry.
      *
      * Flow:
-     * 1. Filters events to keep only plugin-related errors
-     * 2. If no plugin errors found → returns false → IntelliJ uses JetBrains reporter
-     * 3. If plugin errors found → sends to Sentry in background → shows success/failure dialog
+     * 1. Filters events to keep only Confluent-related errors
+     * 2. If no Confluent errors found → returns false → IntelliJ uses JetBrains reporter
+     * 3. If Confluent errors found → sends to Sentry in background → shows success/failure dialog
      *
      * @return true if we handle the error (shows Confluent dialog), false to use JetBrains reporter
      */
@@ -47,21 +47,21 @@ class KafkaErrorReportSubmitter : ErrorReportSubmitter() {
         val context = DataManager.getInstance().getDataContext(parentComponent)
         val project = CommonDataKeys.PROJECT.getData(context)
 
-        val pluginErrors = events.filter { event ->
+        val confluentErrors = events.filter { event ->
             isPluginRelatedError(event)
         }
 
-        if (pluginErrors.isEmpty()) {
-            logger.debug("No plugin-related errors to report, delegating to JetBrains reporter")
+        if (confluentErrors.isEmpty()) {
+            logger.debug("No Confluent-related errors to report, delegating to JetBrains reporter")
             return false
         }
 
         object : Task.Backgroundable(project, KafkaMessagesBundle.message("error.report.sending.title")) {
             override fun run(indicator: ProgressIndicator) {
                 try {
-                    logger.info("Sending ${pluginErrors.size} plugin error(s) to Sentry")
+                    logger.info("Sending ${confluentErrors.size} Confluent error(s) to Sentry")
 
-                    for (ideaEvent in pluginErrors) {
+                    for (ideaEvent in confluentErrors) {
                         val throwable = ideaEvent.throwable
                         if (throwable != null) {
                             SentryClient.captureException(throwable)
@@ -103,10 +103,10 @@ class KafkaErrorReportSubmitter : ErrorReportSubmitter() {
     }
 
     /**
-     * Checks if error originated from plugin code (io.confluent.intellijplugin).
+     * Checks if error originated from Confluent code (io.confluent.*).
      */
     internal fun isPluginRelatedError(event: IdeaLoggingEvent): Boolean {
-        return event.throwableText.contains(TelemetryUtils.PLUGIN_PACKAGE)
+        return event.throwableText.contains(TelemetryUtils.CONFLUENT_PACKAGE_PREFIX)
     }
 
 }
