@@ -3,7 +3,7 @@ package io.confluent.intellijplugin.telemetry
 import io.sentry.SentryEvent
 
 /**
- * Filters Sentry events to only include plugin-related errors.
+ * Filters Sentry events to only include Confluent-related errors.
  * Separated from SentryClient to allow testing without triggering Sentry initialization.
  */
 internal object SentryErrorFilter {
@@ -35,13 +35,13 @@ internal object SentryErrorFilter {
 
             // Check if any stack frame belongs to Confluent package
             if (current.stackTrace.any { frame ->
-                frame.className.startsWith(TelemetryUtils.CONFLUENT_PACKAGE_PREFIX)
+                frame.className.startsWith(TelemetryUtils.CONFLUENT_PACKAGE)
             }) {
                 return true
             }
 
             // Check if exception message mentions Confluent package
-            if (current.message?.contains(TelemetryUtils.CONFLUENT_PACKAGE_PREFIX) == true) {
+            if (current.message?.contains(TelemetryUtils.CONFLUENT_PACKAGE) == true) {
                 return true
             }
 

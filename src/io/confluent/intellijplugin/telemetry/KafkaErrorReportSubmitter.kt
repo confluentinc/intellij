@@ -106,7 +106,7 @@ class KafkaErrorReportSubmitter : ErrorReportSubmitter() {
      * Checks if error originated from Confluent code (io.confluent.*).
      */
     internal fun isPluginRelatedError(event: IdeaLoggingEvent): Boolean {
-        return event.throwableText.contains(TelemetryUtils.CONFLUENT_PACKAGE_PREFIX)
+        return event.throwableText.contains(TelemetryUtils.CONFLUENT_PACKAGE)
     }
 
 }
