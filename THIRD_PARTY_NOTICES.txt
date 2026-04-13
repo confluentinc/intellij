@@ -7,9 +7,9 @@
 
 The following 3rd-party software packages may be used by or distributed with git@github.com:confluentinc/intellij.git. Any information relevant to third-party vendors listed below are collected using common, reasonable means.
 
-Date generated: 2026-3-26
+Date generated: 2026-4-13
 
-Revision ID: 11fd2896b6ede689e21e0ecba118199b4e81ed79
+Revision ID: 43812ff7c058c150b27cd2182f68b2483a6bdc44
 
 ================================================================================
 ================================================================================
@@ -70,6 +70,7 @@ No licenses found
 - Apache HttpCore (4.4.16) [Apache-2.0]
 - Apache Kafka (4.0.0) [Apache-2.0]
 - asm (9.8) [BSD-3-Clause, Apache-2.0]
+- asm-analysis (9.8) [BSD-3-Clause, Apache-2.0]
 - asm-commons (9.8) [Apache-2.0, BSD-3-Clause]
 - asm-tree (9.8) [BSD-3-Clause, Apache-2.0]
 - AssertJ Core (4.0.0-M1) [Apache-2.0]
@@ -152,8 +153,8 @@ No licenses found
 - Bouncy Castle OpenPGP APIs (1.80) [Apache-2.0, BouncyCastle]
 - Bouncy Castle PKIX, CMS, EAC, TSP, PKCS, OCSP, CMP, and CRMF APIs (1.80) [BouncyCastle]
 - Bouncy Castle Provider (1.80) [BouncyCastle]
-- Byte Buddy (without dependencies) (1.14.15) [Apache-2.0, BSD-3-Clause]
-- Byte Buddy agent (1.14.15) [Apache-2.0]
+- Byte Buddy (without dependencies) (1.17.7) [Apache-2.0, BSD-3-Clause]
+- Byte Buddy agent (1.17.7) [Apache-2.0]
 - Caffeine cache (2.9.3) [Apache-2.0, Multi-license: Apache-2.0 OR CC0-1.0]
 - Checker Qual (3.33.0) [MIT]
 - Checker Qual (3.43.0) [MIT]
@@ -199,7 +200,7 @@ No licenses found
 - JetBrains Java Annotations (13.0) [Apache-2.0]
 - JetBrains Java Annotations (26.0.2) [Apache-2.0]
 - JetBrains Marketplace ZIP Signer (0.1.43) [Apache-2.0]
-- JetBrains Plugin Verifier CLI (1.401) [Apache-2.0]
+- JetBrains Plugin Verifier CLI (1.402) [Apache-2.0]
 - JGoodies Forms (1.1-preview) [BSD-2-Clause]
 - Jimfs (1.1) [Apache-2.0]
 - jmail (2.0.1) [MIT]
@@ -215,6 +216,7 @@ No licenses found
 - JUnit Platform Commons (1.13.4) [EPL-2.0]
 - JUnit Platform Engine API (1.13.4) [EPL-2.0]
 - JUnit Platform Launcher (1.13.4) [EPL-2.0]
+- JUnit Vintage Engine (5.13.4) [EPL-2.0]
 - kafka-avro-serializer (8.1.0) [Apache-2.0, Confluent]
 - kafka-json-schema-provider (8.1.0) [Apache-2.0, Confluent, proprietary-license]
 - kafka-json-schema-serializer (8.1.0) [Confluent, Apache-2.0]
@@ -235,6 +237,7 @@ No licenses found
 - Kotlin Reflect (1.6.10) [Apache-2.0]
 - Kotlin Reflect (1.9.25) [Apache-2.0]
 - Kotlin Reflect (2.0.10) [Apache-2.0]
+- Kotlin Reflect (2.1.20) [Apache-2.0]
 - Kotlin Script Runtime (1.9.10) [Apache-2.0]
 - Kotlin Script Runtime (1.9.25) [Apache-2.0]
 - Kotlin Script Runtime (2.2.21) [Apache-2.0]
@@ -256,6 +259,7 @@ No licenses found
 - KotlinPoet (2.0.0) [Apache-2.0]
 - Kotlinx Serialization Compiler Plugin.embeddable (2.2.21) [Apache-2.0]
 - kotlinx-collections-immutable (0.4.0) [Apache-2.0]
+- kotlinx-coroutines-core (1.10.2-intellij-1) [Apache-2.0]
 - kotlinx-coroutines-core (1.8.0) [Apache-2.0]
 - kotlinx-datetime (0.3.2) [Apache-2.0]
 - kotlinx-datetime (0.6.1) [Apache-2.0]
@@ -277,9 +281,8 @@ No licenses found
 - mbknor-jackson-jsonSchema (1.0.39) [MIT]
 - mbknor-jackson-jsonSchema (1.0.39.3) [MIT]
 - minimal-json (0.9.5) [MIT]
-- mockito-core (5.12.0) [MIT, Apache-2.0]
-- mockito-inline (5.2.0) [MIT]
-- Mockito-Kotlin (5.4.0) [MIT]
+- mockito-core (5.23.0) [MIT, Apache-2.0]
+- Mockito-Kotlin (6.3.0) [MIT]
 - moshi (1.15.0) [Apache-2.0]
 - moshi-kotlin (1.15.0) [Apache-2.0]
 - Netty/Buffer (4.1.126.Final) [Apache-2.0]
@@ -316,6 +319,7 @@ No licenses found
 - Sentry SDK (8.23.0) [MIT]
 - SnakeYAML (2.4) [Apache-2.0, EPL-1.0, BSD]
 - snappy-java (1.1.10.5) [Apache-2.0]
+- StreamEx (0.8.4) [Apache-2.0]
 - swagger-annotations (2.2.29) [Apache-2.0]
 - Swift Export Embeddable (2.2.21) [Apache-2.0]
 - Swift Poet (1.6.5) [Apache-2.0]
@@ -8791,6 +8795,80 @@ See the License for the specific language governing permissions and limitations 
 
 
 --------------------------------------------------------------------------------
+Package Title: asm-analysis (9.8)
+
+Package Locator: mvn+org.ow2.asm:asm-analysis$9.8
+
+Package Depth: Transitive
+--------------------------------------------------------------------------------
+
+* Declared Licenses *
+BSD-3-Clause, Apache-2.0
+
+* BSD-3-Clause *
+--------------------------------------------------------------------------------
+File matches:
+org/objectweb/asm/tree/analysis/Analyzer.java
+org/objectweb/asm/tree/analysis/AnalyzerException.java
+org/objectweb/asm/tree/analysis/BasicInterpreter.java
+org/objectweb/asm/tree/analysis/BasicValue.java
+org/objectweb/asm/tree/analysis/BasicVerifier.java
+org/objectweb/asm/tree/analysis/Frame.java
+org/objectweb/asm/tree/analysis/Interpreter.java
+org/objectweb/asm/tree/analysis/package.html
+org/objectweb/asm/tree/analysis/SimpleVerifier.java
+org/objectweb/asm/tree/analysis/SmallSet.java
+org/objectweb/asm/tree/analysis/SourceInterpreter.java
+org/objectweb/asm/tree/analysis/SourceValue.java
+org/objectweb/asm/tree/analysis/Subroutine.java
+org/objectweb/asm/tree/analysis/Value.java
+--------------------------------------------------------------------------------
+
+Copyright (c) 2000-2011 INRIA, France Telecom . All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+   1. Redistributions of source code must retain the above copyright notice,
+      this list of conditions and the following disclaimer.
+
+   2. Redistributions in binary form must reproduce the above copyright notice,
+      this list of conditions and the following disclaimer in the documentation
+      and/or other materials provided with the distribution.
+
+   3. Neither the name of the copyright holder nor the names of its
+      contributors may be used to endorse or promote products derived from
+      this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+* Apache-2.0 *
+
+Copyright [yyyy] [name of copyright owner]
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+
+See the License for the specific language governing permissions and limitations under the License.
+
+
+--------------------------------------------------------------------------------
 Package Title: asm-commons (9.8)
 
 Package Locator: mvn+org.ow2.asm:asm-commons$9.8
@@ -9909,9 +9987,6 @@ Apache-2.0
 File matches:
 META-INF/LICENSE.txt
 META-INF/maven/software.amazon.awssdk/annotations/pom.xml
-parent-poms/mvn+software.amazon.awssdk:aws-sdk-java-pom$2.32.25/pom.xml
-parent-poms/mvn+software.amazon.awssdk:core$2.32.25/pom.xml
-pom.xml
 software/amazon/awssdk/annotations/Generated.java
 software/amazon/awssdk/annotations/Immutable.java
 software/amazon/awssdk/annotations/Mutable.java
@@ -10389,9 +10464,6 @@ Apache-2.0
 File matches:
 META-INF/LICENSE.txt
 META-INF/maven/software.amazon.awssdk/arns/pom.xml
-parent-poms/mvn+software.amazon.awssdk:aws-sdk-java-pom$2.32.25/pom.xml
-parent-poms/mvn+software.amazon.awssdk:core$2.32.25/pom.xml
-pom.xml
 software/amazon/awssdk/arns/Arn.java
 software/amazon/awssdk/arns/ArnResource.java
 --------------------------------------------------------------------------------
@@ -11452,9 +11524,6 @@ Apache-2.0
 File matches:
 META-INF/LICENSE.txt
 META-INF/maven/software.amazon.awssdk/aws-core/pom.xml
-parent-poms/mvn+software.amazon.awssdk:aws-sdk-java-pom$2.32.25/pom.xml
-parent-poms/mvn+software.amazon.awssdk:core$2.32.25/pom.xml
-pom.xml
 software/amazon/awssdk/awscore/auth/AuthSchemePreferenceResolver.java
 software/amazon/awssdk/awscore/AwsClient.java
 software/amazon/awssdk/awscore/AwsExecutionAttribute.java
@@ -12559,9 +12628,6 @@ Apache-2.0
 File matches:
 META-INF/LICENSE.txt
 META-INF/maven/software.amazon.awssdk/checksums-spi/pom.xml
-parent-poms/mvn+software.amazon.awssdk:aws-sdk-java-pom$2.32.25/pom.xml
-parent-poms/mvn+software.amazon.awssdk:core$2.32.25/pom.xml
-pom.xml
 software/amazon/awssdk/checksums/spi/ChecksumAlgorithm.java
 --------------------------------------------------------------------------------
 
@@ -13014,10 +13080,6 @@ Apache-2.0
 File matches:
 META-INF/LICENSE.txt
 META-INF/maven/software.amazon.awssdk/aws-json-protocol/pom.xml
-parent-poms/mvn+software.amazon.awssdk:aws-sdk-java-pom$2.32.25/pom.xml
-parent-poms/mvn+software.amazon.awssdk:core$2.32.25/pom.xml
-parent-poms/mvn+software.amazon.awssdk:protocols$2.32.25/pom.xml
-pom.xml
 software/amazon/awssdk/protocols/json/AwsJsonProtocol.java
 software/amazon/awssdk/protocols/json/AwsJsonProtocolFactory.java
 software/amazon/awssdk/protocols/json/AwsJsonProtocolMetadata.java
@@ -13560,10 +13622,6 @@ Apache-2.0
 File matches:
 META-INF/LICENSE.txt
 META-INF/maven/software.amazon.awssdk/aws-query-protocol/pom.xml
-parent-poms/mvn+software.amazon.awssdk:aws-sdk-java-pom$2.32.25/pom.xml
-parent-poms/mvn+software.amazon.awssdk:core$2.32.25/pom.xml
-parent-poms/mvn+software.amazon.awssdk:protocols$2.32.25/pom.xml
-pom.xml
 software/amazon/awssdk/protocols/query/AwsEc2ProtocolFactory.java
 software/amazon/awssdk/protocols/query/AwsQueryProtocolFactory.java
 software/amazon/awssdk/protocols/query/internal/marshall/ListQueryMarshaller.java
@@ -14058,9 +14116,6 @@ Apache-2.0
 File matches:
 META-INF/LICENSE.txt
 META-INF/maven/software.amazon.awssdk/json-utils/pom.xml
-parent-poms/mvn+software.amazon.awssdk:aws-sdk-java-pom$2.32.25/pom.xml
-parent-poms/mvn+software.amazon.awssdk:core$2.32.25/pom.xml
-pom.xml
 software/amazon/awssdk/protocols/jsoncore/internal/ArrayJsonNode.java
 software/amazon/awssdk/protocols/jsoncore/internal/BooleanJsonNode.java
 software/amazon/awssdk/protocols/jsoncore/internal/EmbeddedObjectJsonNode.java
@@ -14535,10 +14590,6 @@ Apache-2.0
 File matches:
 META-INF/LICENSE.txt
 META-INF/maven/software.amazon.awssdk/protocol-core/pom.xml
-parent-poms/mvn+software.amazon.awssdk:aws-sdk-java-pom$2.32.25/pom.xml
-parent-poms/mvn+software.amazon.awssdk:core$2.32.25/pom.xml
-parent-poms/mvn+software.amazon.awssdk:protocols$2.32.25/pom.xml
-pom.xml
 software/amazon/awssdk/protocols/core/AbstractMarshallingRegistry.java
 software/amazon/awssdk/protocols/core/ExceptionMetadata.java
 software/amazon/awssdk/protocols/core/InstantToString.java
@@ -15015,9 +15066,6 @@ Apache-2.0
 File matches:
 META-INF/LICENSE.txt
 META-INF/maven/software.amazon.awssdk/endpoints-spi/pom.xml
-parent-poms/mvn+software.amazon.awssdk:aws-sdk-java-pom$2.32.25/pom.xml
-parent-poms/mvn+software.amazon.awssdk:core$2.32.25/pom.xml
-pom.xml
 software/amazon/awssdk/endpoints/Endpoint.java
 software/amazon/awssdk/endpoints/EndpointAttributeKey.java
 software/amazon/awssdk/endpoints/EndpointProvider.java
@@ -15474,9 +15522,6 @@ Apache-2.0
 File matches:
 META-INF/LICENSE.txt
 META-INF/maven/software.amazon.awssdk/http-auth/pom.xml
-parent-poms/mvn+software.amazon.awssdk:aws-sdk-java-pom$2.32.25/pom.xml
-parent-poms/mvn+software.amazon.awssdk:core$2.32.25/pom.xml
-pom.xml
 software/amazon/awssdk/http/auth/internal/scheme/DefaultBearerAuthScheme.java
 software/amazon/awssdk/http/auth/internal/scheme/DefaultNoAuthAuthScheme.java
 software/amazon/awssdk/http/auth/internal/signer/DefaultBearerHttpSigner.java
@@ -15939,9 +15984,6 @@ Apache-2.0
 File matches:
 META-INF/LICENSE.txt
 META-INF/maven/software.amazon.awssdk/http-auth-aws/pom.xml
-parent-poms/mvn+software.amazon.awssdk:aws-sdk-java-pom$2.32.25/pom.xml
-parent-poms/mvn+software.amazon.awssdk:core$2.32.25/pom.xml
-pom.xml
 software/amazon/awssdk/http/auth/aws/crt/internal/io/CrtInputStream.java
 software/amazon/awssdk/http/auth/aws/crt/internal/signer/AwsChunkedV4aPayloadSigner.java
 software/amazon/awssdk/http/auth/aws/crt/internal/signer/DefaultAwsCrtV4aHttpSigner.java
@@ -16523,9 +16565,6 @@ Apache-2.0
 File matches:
 META-INF/LICENSE.txt
 META-INF/maven/software.amazon.awssdk/http-auth-aws-eventstream/pom.xml
-parent-poms/mvn+software.amazon.awssdk:aws-sdk-java-pom$2.32.25/pom.xml
-parent-poms/mvn+software.amazon.awssdk:core$2.32.25/pom.xml
-pom.xml
 software/amazon/awssdk/http/auth/aws/eventstream/HttpAuthAwsEventStream.java
 --------------------------------------------------------------------------------
 
@@ -16978,9 +17017,6 @@ Apache-2.0
 File matches:
 META-INF/LICENSE.txt
 META-INF/maven/software.amazon.awssdk/http-auth-spi/pom.xml
-parent-poms/mvn+software.amazon.awssdk:aws-sdk-java-pom$2.32.25/pom.xml
-parent-poms/mvn+software.amazon.awssdk:core$2.32.25/pom.xml
-pom.xml
 software/amazon/awssdk/http/auth/spi/internal/scheme/DefaultAuthSchemeOption.java
 software/amazon/awssdk/http/auth/spi/internal/signer/DefaultAsyncSignedRequest.java
 software/amazon/awssdk/http/auth/spi/internal/signer/DefaultAsyncSignRequest.java
@@ -17472,8 +17508,6 @@ Apache-2.0
 File matches:
 META-INF/LICENSE.txt
 META-INF/maven/software.amazon.awssdk/http-client-spi/pom.xml
-parent-poms/mvn+software.amazon.awssdk:aws-sdk-java-pom$2.32.25/pom.xml
-pom.xml
 software/amazon/awssdk/http/Abortable.java
 software/amazon/awssdk/http/AbortableInputStream.java
 software/amazon/awssdk/http/async/AbortableInputStreamSubscriber.java
@@ -18800,9 +18834,6 @@ File matches:
 META-INF/LICENSE.txt
 META-INF/maven/software.amazon.awssdk/url-connection-client/pom.xml
 META-INF/services/software.amazon.awssdk.http.SdkHttpService
-parent-poms/mvn+software.amazon.awssdk:aws-sdk-java-pom$2.32.25/pom.xml
-parent-poms/mvn+software.amazon.awssdk:http-clients$2.32.25/pom.xml
-pom.xml
 software/amazon/awssdk/http/urlconnection/ProxyConfiguration.java
 software/amazon/awssdk/http/urlconnection/UrlConnectionFactory.java
 software/amazon/awssdk/http/urlconnection/UrlConnectionHttpClient.java
@@ -19262,9 +19293,6 @@ Apache-2.0
 File matches:
 META-INF/LICENSE.txt
 META-INF/maven/software.amazon.awssdk/identity-spi/pom.xml
-parent-poms/mvn+software.amazon.awssdk:aws-sdk-java-pom$2.32.25/pom.xml
-parent-poms/mvn+software.amazon.awssdk:core$2.32.25/pom.xml
-pom.xml
 software/amazon/awssdk/identity/spi/AwsCredentialsIdentity.java
 software/amazon/awssdk/identity/spi/AwsSessionCredentialsIdentity.java
 software/amazon/awssdk/identity/spi/Identity.java
@@ -19738,8 +19766,6 @@ Apache-2.0
 --------------------------------------------------------------------------------
 File matches:
 META-INF/LICENSE.txt
-parent-poms/mvn+software.amazon.awssdk:aws-sdk-java-pom$2.32.25/pom.xml
-parent-poms/mvn+software.amazon.awssdk:core$2.32.25/pom.xml
 software/amazon/awssdk/metrics/internal/DefaultMetricCollection.java
 software/amazon/awssdk/metrics/internal/DefaultMetricCollector.java
 software/amazon/awssdk/metrics/internal/DefaultMetricRecord.java
@@ -20217,9 +20243,6 @@ Apache-2.0
 File matches:
 META-INF/LICENSE.txt
 META-INF/maven/software.amazon.awssdk/profiles/pom.xml
-parent-poms/mvn+software.amazon.awssdk:aws-sdk-java-pom$2.32.25/pom.xml
-parent-poms/mvn+software.amazon.awssdk:core$2.32.25/pom.xml
-pom.xml
 software/amazon/awssdk/profiles/internal/ProfileFileReader.java
 software/amazon/awssdk/profiles/internal/ProfileFileRefresher.java
 software/amazon/awssdk/profiles/internal/ProfileSection.java
@@ -20690,9 +20713,6 @@ Apache-2.0
 File matches:
 META-INF/LICENSE.txt
 META-INF/maven/software.amazon.awssdk/regions/pom.xml
-parent-poms/mvn+software.amazon.awssdk:aws-sdk-java-pom$2.32.25/pom.xml
-parent-poms/mvn+software.amazon.awssdk:core$2.32.25/pom.xml
-pom.xml
 software/amazon/awssdk/regions/DefaultServiceMetadata.java
 software/amazon/awssdk/regions/EndpointTag.java
 software/amazon/awssdk/regions/GeneratedPartitionMetadataProvider.java
@@ -21978,9 +21998,6 @@ Apache-2.0
 File matches:
 META-INF/LICENSE.txt
 META-INF/maven/software.amazon.awssdk/retries/pom.xml
-parent-poms/mvn+software.amazon.awssdk:aws-sdk-java-pom$2.32.25/pom.xml
-parent-poms/mvn+software.amazon.awssdk:core$2.32.25/pom.xml
-pom.xml
 software/amazon/awssdk/retries/AdaptiveRetryStrategy.java
 software/amazon/awssdk/retries/DefaultRetryStrategy.java
 software/amazon/awssdk/retries/internal/BaseRetryStrategy.java
@@ -22473,9 +22490,6 @@ Apache-2.0
 File matches:
 META-INF/LICENSE.txt
 META-INF/maven/software.amazon.awssdk/retries-spi/pom.xml
-parent-poms/mvn+software.amazon.awssdk:aws-sdk-java-pom$2.32.25/pom.xml
-parent-poms/mvn+software.amazon.awssdk:core$2.32.25/pom.xml
-pom.xml
 software/amazon/awssdk/retries/api/AcquireInitialTokenRequest.java
 software/amazon/awssdk/retries/api/AcquireInitialTokenResponse.java
 software/amazon/awssdk/retries/api/BackoffStrategy.java
@@ -22973,9 +22987,6 @@ File matches:
 META-INF/LICENSE.txt
 META-INF/maven/software.amazon.awssdk/sdk-core/pom.xml
 META-INF/native-image/software.amazon.awssdk/sdk-core/native-image.properties
-parent-poms/mvn+software.amazon.awssdk:aws-sdk-java-pom$2.32.25/pom.xml
-parent-poms/mvn+software.amazon.awssdk:core$2.32.25/pom.xml
-pom.xml
 software/amazon/awssdk/core/adapter/StandardMemberCopier.java
 software/amazon/awssdk/core/adapter/TypeAdapter.java
 software/amazon/awssdk/core/ApiName.java
@@ -24179,9 +24190,6 @@ Apache-2.0
 File matches:
 META-INF/LICENSE.txt
 META-INF/maven/software.amazon.awssdk/glue/pom.xml
-parent-poms/mvn+software.amazon.awssdk:aws-sdk-java-pom$2.32.25/pom.xml
-parent-poms/mvn+software.amazon.awssdk:services$2.32.25/pom.xml
-pom.xml
 software/amazon/awssdk/services/glue/auth/scheme/GlueAuthSchemeParams.java
 software/amazon/awssdk/services/glue/auth/scheme/GlueAuthSchemeProvider.java
 software/amazon/awssdk/services/glue/auth/scheme/internal/DefaultGlueAuthSchemeParams.java
@@ -24670,6 +24678,9 @@ software/amazon/awssdk/services/glue/model/DeleteGlueIdentityCenterConfiguration
 software/amazon/awssdk/services/glue/model/DeleteGlueIdentityCenterConfigurationResponse.java
 software/amazon/awssdk/services/glue/model/DeleteIntegrationRequest.java
 software/amazon/awssdk/services/glue/model/DeleteIntegrationResponse.java
+software/amazon/awssdk/services/glue/model/DeleteIntegrationTablePropertiesRequest.java
+software/amazon/awssdk/services/glue/model/DeleteIntegrationTablePropertiesResponse.java
+software/amazon/awssdk/services/glue/model/DeleteJobRequest.java
 software/amazon/awssdk/services/glue/model/DQAdditionalOptionsCopier.java
 software/amazon/awssdk/services/glue/model/DQCompositeRuleEvaluationMethod.java
 software/amazon/awssdk/services/glue/model/DQDLAliasesCopier.java
@@ -25625,9 +25636,6 @@ Apache-2.0
 File matches:
 META-INF/LICENSE.txt
 META-INF/maven/software.amazon.awssdk/sts/pom.xml
-parent-poms/mvn+software.amazon.awssdk:aws-sdk-java-pom$2.32.25/pom.xml
-parent-poms/mvn+software.amazon.awssdk:services$2.32.25/pom.xml
-pom.xml
 software/amazon/awssdk/services/sts/auth/scheme/internal/DefaultStsAuthSchemeParams.java
 software/amazon/awssdk/services/sts/auth/scheme/internal/DefaultStsAuthSchemeProvider.java
 software/amazon/awssdk/services/sts/auth/scheme/internal/PreferredStsAuthSchemeProvider.java
@@ -27774,8 +27782,6 @@ Apache-2.0
 File matches:
 META-INF/LICENSE.txt
 META-INF/maven/software.amazon.awssdk/third-party-jackson-core/pom.xml
-parent-poms/mvn+software.amazon.awssdk:aws-sdk-java-pom$2.32.25/pom.xml
-parent-poms/mvn+software.amazon.awssdk:third-party$2.32.25/pom.xml
 --------------------------------------------------------------------------------
 
 
@@ -29969,6 +29975,10 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and limitations under the License.
 
 * BouncyCastle *
+--------------------------------------------------------------------------------
+File matches:
+pom.xml
+--------------------------------------------------------------------------------
 
 Copyright (c) 2000 - 2020 The Legion of the Bouncy Castle Inc. (https://www.bouncycastle.org)
 
@@ -30031,9 +30041,9 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 
 --------------------------------------------------------------------------------
-Package Title: Byte Buddy (without dependencies) (1.14.15)
+Package Title: Byte Buddy (without dependencies) (1.17.7)
 
-Package Locator: mvn+net.bytebuddy:byte-buddy$1.14.15
+Package Locator: mvn+net.bytebuddy:byte-buddy$1.17.7
 
 Package Depth: Transitive
 --------------------------------------------------------------------------------
@@ -30045,11 +30055,345 @@ Apache-2.0
 File matches:
 META-INF/LICENSE
 META-INF/NOTICE
+META-INF/versions/9/net/bytebuddy/agent/builder/AgentBuilder.java
+META-INF/versions/9/net/bytebuddy/agent/builder/LambdaFactory.java
+META-INF/versions/9/net/bytebuddy/agent/builder/package-info.java
+META-INF/versions/9/net/bytebuddy/agent/builder/ResettableClassFileTransformer.java
+META-INF/versions/9/net/bytebuddy/asm/Advice.java
+META-INF/versions/9/net/bytebuddy/asm/AnnotationRemoval.java
+META-INF/versions/9/net/bytebuddy/asm/AsmVisitorWrapper.java
+META-INF/versions/9/net/bytebuddy/asm/ClassVisitorFactory.java
+META-INF/versions/9/net/bytebuddy/asm/MemberAttributeExtension.java
+META-INF/versions/9/net/bytebuddy/asm/MemberRemoval.java
+META-INF/versions/9/net/bytebuddy/asm/MemberSubstitution.java
+META-INF/versions/9/net/bytebuddy/asm/ModifierAdjustment.java
+META-INF/versions/9/net/bytebuddy/asm/package-info.java
+META-INF/versions/9/net/bytebuddy/asm/TypeConstantAdjustment.java
+META-INF/versions/9/net/bytebuddy/asm/TypeReferenceAdjustment.java
+META-INF/versions/9/net/bytebuddy/build/AccessControllerPlugin.java
+META-INF/versions/9/net/bytebuddy/build/AndroidDescriptor.java
+META-INF/versions/9/net/bytebuddy/build/BuildLogger.java
+META-INF/versions/9/net/bytebuddy/build/CachedReturnPlugin.java
+META-INF/versions/9/net/bytebuddy/build/DispatcherAnnotationPlugin.java
+META-INF/versions/9/net/bytebuddy/build/EntryPoint.java
+META-INF/versions/9/net/bytebuddy/build/HashCodeAndEqualsPlugin.java
+META-INF/versions/9/net/bytebuddy/build/package-info.java
+META-INF/versions/9/net/bytebuddy/build/Plugin.java
+META-INF/versions/9/net/bytebuddy/build/RenamingPlugin.java
+META-INF/versions/9/net/bytebuddy/build/RepeatedAnnotationPlugin.java
+META-INF/versions/9/net/bytebuddy/build/SafeVarargsPlugin.java
+META-INF/versions/9/net/bytebuddy/build/ToStringPlugin.java
+META-INF/versions/9/net/bytebuddy/ByteBuddy.java
+META-INF/versions/9/net/bytebuddy/ClassFileVersion.java
+META-INF/versions/9/net/bytebuddy/description/annotation/AnnotationDescription.java
+META-INF/versions/9/net/bytebuddy/description/annotation/AnnotationList.java
+META-INF/versions/9/net/bytebuddy/description/annotation/AnnotationSource.java
+META-INF/versions/9/net/bytebuddy/description/annotation/AnnotationValue.java
+META-INF/versions/9/net/bytebuddy/description/annotation/package-info.java
+META-INF/versions/9/net/bytebuddy/description/ByteCodeElement.java
+META-INF/versions/9/net/bytebuddy/description/DeclaredByType.java
+META-INF/versions/9/net/bytebuddy/description/enumeration/EnumerationDescription.java
+META-INF/versions/9/net/bytebuddy/description/enumeration/package-info.java
+META-INF/versions/9/net/bytebuddy/description/field/FieldDescription.java
+META-INF/versions/9/net/bytebuddy/description/field/FieldList.java
+META-INF/versions/9/net/bytebuddy/description/field/package-info.java
+META-INF/versions/9/net/bytebuddy/description/method/MethodDescription.java
+META-INF/versions/9/net/bytebuddy/description/method/MethodList.java
+META-INF/versions/9/net/bytebuddy/description/method/package-info.java
+META-INF/versions/9/net/bytebuddy/description/method/ParameterDescription.java
+META-INF/versions/9/net/bytebuddy/description/method/ParameterList.java
+META-INF/versions/9/net/bytebuddy/description/modifier/EnumerationState.java
+META-INF/versions/9/net/bytebuddy/description/modifier/FieldManifestation.java
+META-INF/versions/9/net/bytebuddy/description/modifier/FieldPersistence.java
+META-INF/versions/9/net/bytebuddy/description/modifier/Mandate.java
+META-INF/versions/9/net/bytebuddy/description/modifier/MethodArguments.java
+META-INF/versions/9/net/bytebuddy/description/modifier/MethodManifestation.java
+META-INF/versions/9/net/bytebuddy/description/modifier/MethodStrictness.java
+META-INF/versions/9/net/bytebuddy/description/modifier/ModifierContributor.java
+META-INF/versions/9/net/bytebuddy/description/modifier/Ownership.java
+META-INF/versions/9/net/bytebuddy/description/modifier/package-info.java
+META-INF/versions/9/net/bytebuddy/description/modifier/ParameterManifestation.java
+META-INF/versions/9/net/bytebuddy/description/modifier/ProvisioningState.java
+META-INF/versions/9/net/bytebuddy/description/modifier/SynchronizationState.java
+META-INF/versions/9/net/bytebuddy/description/modifier/SyntheticState.java
+META-INF/versions/9/net/bytebuddy/description/modifier/TypeManifestation.java
+META-INF/versions/9/net/bytebuddy/description/modifier/Visibility.java
+META-INF/versions/9/net/bytebuddy/description/ModifierReviewable.java
+META-INF/versions/9/net/bytebuddy/description/NamedElement.java
+META-INF/versions/9/net/bytebuddy/description/package-info.java
+META-INF/versions/9/net/bytebuddy/description/type/package-info.java
+META-INF/versions/9/net/bytebuddy/description/type/PackageDescription.java
+META-INF/versions/9/net/bytebuddy/description/type/RecordComponentDescription.java
+META-INF/versions/9/net/bytebuddy/description/type/RecordComponentList.java
+META-INF/versions/9/net/bytebuddy/description/type/TypeDefinition.java
+META-INF/versions/9/net/bytebuddy/description/type/TypeDescription.java
+META-INF/versions/9/net/bytebuddy/description/type/TypeList.java
+META-INF/versions/9/net/bytebuddy/description/type/TypeVariableToken.java
+META-INF/versions/9/net/bytebuddy/description/TypeVariableSource.java
+META-INF/versions/9/net/bytebuddy/dynamic/ClassFileLocator.java
+META-INF/versions/9/net/bytebuddy/dynamic/DynamicType.java
+META-INF/versions/9/net/bytebuddy/dynamic/loading/ByteArrayClassLoader.java
+META-INF/versions/9/net/bytebuddy/dynamic/loading/ClassFilePostProcessor.java
+META-INF/versions/9/net/bytebuddy/dynamic/loading/ClassInjector.java
+META-INF/versions/9/net/bytebuddy/dynamic/loading/ClassLoadingStrategy.java
+META-INF/versions/9/net/bytebuddy/dynamic/loading/ClassReloadingStrategy.java
+META-INF/versions/9/net/bytebuddy/dynamic/loading/InjectionClassLoader.java
+META-INF/versions/9/net/bytebuddy/dynamic/loading/MultipleParentClassLoader.java
+META-INF/versions/9/net/bytebuddy/dynamic/loading/package-info.java
+META-INF/versions/9/net/bytebuddy/dynamic/loading/PackageDefinitionStrategy.java
+META-INF/versions/9/net/bytebuddy/dynamic/Nexus.java
+META-INF/versions/9/net/bytebuddy/dynamic/NexusAccessor.java
+META-INF/versions/9/net/bytebuddy/dynamic/package-info.java
+META-INF/versions/9/net/bytebuddy/dynamic/scaffold/ClassWriterStrategy.java
+META-INF/versions/9/net/bytebuddy/dynamic/scaffold/FieldLocator.java
+META-INF/versions/9/net/bytebuddy/dynamic/scaffold/FieldRegistry.java
+META-INF/versions/9/net/bytebuddy/dynamic/scaffold/inline/AbstractInliningDynamicTypeBuilder.java
+META-INF/versions/9/net/bytebuddy/dynamic/scaffold/inline/DecoratingDynamicTypeBuilder.java
+META-INF/versions/9/net/bytebuddy/dynamic/scaffold/inline/InliningImplementationMatcher.java
+META-INF/versions/9/net/bytebuddy/dynamic/scaffold/inline/MethodNameTransformer.java
+META-INF/versions/9/net/bytebuddy/dynamic/scaffold/inline/MethodRebaseResolver.java
+META-INF/versions/9/net/bytebuddy/dynamic/scaffold/inline/package-info.java
+META-INF/versions/9/net/bytebuddy/dynamic/scaffold/inline/RebaseDynamicTypeBuilder.java
+META-INF/versions/9/net/bytebuddy/dynamic/scaffold/inline/RebaseImplementationTarget.java
+META-INF/versions/9/net/bytebuddy/dynamic/scaffold/inline/RedefinitionDynamicTypeBuilder.java
+META-INF/versions/9/net/bytebuddy/dynamic/scaffold/InstrumentedType.java
+META-INF/versions/9/net/bytebuddy/dynamic/scaffold/MethodGraph.java
+META-INF/versions/9/net/bytebuddy/dynamic/scaffold/MethodRegistry.java
+META-INF/versions/9/net/bytebuddy/dynamic/scaffold/package-info.java
+META-INF/versions/9/net/bytebuddy/dynamic/scaffold/RecordComponentRegistry.java
+META-INF/versions/9/net/bytebuddy/dynamic/scaffold/subclass/ConstructorStrategy.java
+META-INF/versions/9/net/bytebuddy/dynamic/scaffold/subclass/package-info.java
+META-INF/versions/9/net/bytebuddy/dynamic/scaffold/subclass/SubclassDynamicTypeBuilder.java
+META-INF/versions/9/net/bytebuddy/dynamic/scaffold/subclass/SubclassImplementationTarget.java
+META-INF/versions/9/net/bytebuddy/dynamic/scaffold/TypeInitializer.java
+META-INF/versions/9/net/bytebuddy/dynamic/scaffold/TypeValidation.java
+META-INF/versions/9/net/bytebuddy/dynamic/scaffold/TypeWriter.java
+META-INF/versions/9/net/bytebuddy/dynamic/TargetType.java
+META-INF/versions/9/net/bytebuddy/dynamic/Transformer.java
+META-INF/versions/9/net/bytebuddy/dynamic/TypeResolutionStrategy.java
+META-INF/versions/9/net/bytebuddy/dynamic/VisibilityBridgeStrategy.java
+META-INF/versions/9/net/bytebuddy/implementation/attribute/AnnotationAppender.java
+META-INF/versions/9/net/bytebuddy/implementation/attribute/AnnotationRetention.java
+META-INF/versions/9/net/bytebuddy/implementation/attribute/AnnotationValueFilter.java
+META-INF/versions/9/net/bytebuddy/implementation/attribute/FieldAttributeAppender.java
+META-INF/versions/9/net/bytebuddy/implementation/attribute/MethodAttributeAppender.java
+META-INF/versions/9/net/bytebuddy/implementation/attribute/package-info.java
+META-INF/versions/9/net/bytebuddy/implementation/attribute/RecordComponentAttributeAppender.java
+META-INF/versions/9/net/bytebuddy/implementation/attribute/TypeAttributeAppender.java
+META-INF/versions/9/net/bytebuddy/implementation/auxiliary/AuxiliaryType.java
+META-INF/versions/9/net/bytebuddy/implementation/auxiliary/MethodCallProxy.java
+META-INF/versions/9/net/bytebuddy/implementation/auxiliary/package-info.java
+META-INF/versions/9/net/bytebuddy/implementation/auxiliary/PrivilegedMemberLookupAction.java
+META-INF/versions/9/net/bytebuddy/implementation/auxiliary/TrivialType.java
+META-INF/versions/9/net/bytebuddy/implementation/auxiliary/TypeProxy.java
+META-INF/versions/9/net/bytebuddy/implementation/bind/annotation/AllArguments.java
+META-INF/versions/9/net/bytebuddy/implementation/bind/annotation/Argument.java
+META-INF/versions/9/net/bytebuddy/implementation/bind/annotation/BindingPriority.java
+META-INF/versions/9/net/bytebuddy/implementation/bind/annotation/Default.java
+META-INF/versions/9/net/bytebuddy/implementation/bind/annotation/DefaultCall.java
+META-INF/versions/9/net/bytebuddy/implementation/bind/annotation/DefaultCallHandle.java
+META-INF/versions/9/net/bytebuddy/implementation/bind/annotation/DefaultMethod.java
+META-INF/versions/9/net/bytebuddy/implementation/bind/annotation/DefaultMethodHandle.java
+META-INF/versions/9/net/bytebuddy/implementation/bind/annotation/DynamicConstant.java
+META-INF/versions/9/net/bytebuddy/implementation/bind/annotation/Empty.java
+META-INF/versions/9/net/bytebuddy/implementation/bind/annotation/FieldGetterHandle.java
+META-INF/versions/9/net/bytebuddy/implementation/bind/annotation/FieldProxy.java
+META-INF/versions/9/net/bytebuddy/implementation/bind/annotation/FieldSetterHandle.java
+META-INF/versions/9/net/bytebuddy/implementation/bind/annotation/FieldValue.java
+META-INF/versions/9/net/bytebuddy/implementation/bind/annotation/Handle.java
+META-INF/versions/9/net/bytebuddy/implementation/bind/annotation/IgnoreForBinding.java
+META-INF/versions/9/net/bytebuddy/implementation/bind/annotation/Morph.java
+META-INF/versions/9/net/bytebuddy/implementation/bind/annotation/Origin.java
+META-INF/versions/9/net/bytebuddy/implementation/bind/annotation/package-info.java
+META-INF/versions/9/net/bytebuddy/implementation/bind/annotation/Pipe.java
+META-INF/versions/9/net/bytebuddy/implementation/bind/annotation/RuntimeType.java
+META-INF/versions/9/net/bytebuddy/implementation/bind/annotation/StubValue.java
+META-INF/versions/9/net/bytebuddy/implementation/bind/annotation/Super.java
+META-INF/versions/9/net/bytebuddy/implementation/bind/annotation/SuperCall.java
+META-INF/versions/9/net/bytebuddy/implementation/bind/annotation/SuperCallHandle.java
+META-INF/versions/9/net/bytebuddy/implementation/bind/annotation/SuperMethod.java
+META-INF/versions/9/net/bytebuddy/implementation/bind/annotation/SuperMethodHandle.java
+META-INF/versions/9/net/bytebuddy/implementation/bind/annotation/TargetMethodAnnotationDrivenBinder.java
+META-INF/versions/9/net/bytebuddy/implementation/bind/annotation/This.java
+META-INF/versions/9/net/bytebuddy/implementation/bind/ArgumentTypeResolver.java
+META-INF/versions/9/net/bytebuddy/implementation/bind/DeclaringTypeResolver.java
+META-INF/versions/9/net/bytebuddy/implementation/bind/MethodDelegationBinder.java
+META-INF/versions/9/net/bytebuddy/implementation/bind/MethodNameEqualityResolver.java
+META-INF/versions/9/net/bytebuddy/implementation/bind/package-info.java
+META-INF/versions/9/net/bytebuddy/implementation/bind/ParameterLengthResolver.java
+META-INF/versions/9/net/bytebuddy/implementation/bytecode/Addition.java
+META-INF/versions/9/net/bytebuddy/implementation/bytecode/assign/Assigner.java
+META-INF/versions/9/net/bytebuddy/implementation/bytecode/assign/InstanceCheck.java
+META-INF/versions/9/net/bytebuddy/implementation/bytecode/assign/package-info.java
+META-INF/versions/9/net/bytebuddy/implementation/bytecode/assign/primitive/package-info.java
+META-INF/versions/9/net/bytebuddy/implementation/bytecode/assign/primitive/PrimitiveBoxingDelegate.java
+META-INF/versions/9/net/bytebuddy/implementation/bytecode/assign/primitive/PrimitiveNarrowingDelegate.java
+META-INF/versions/9/net/bytebuddy/implementation/bytecode/assign/primitive/PrimitiveTypeAwareAssigner.java
+META-INF/versions/9/net/bytebuddy/implementation/bytecode/assign/primitive/PrimitiveUnboxingDelegate.java
+META-INF/versions/9/net/bytebuddy/implementation/bytecode/assign/primitive/PrimitiveWideningDelegate.java
+META-INF/versions/9/net/bytebuddy/implementation/bytecode/assign/primitive/VoidAwareAssigner.java
+META-INF/versions/9/net/bytebuddy/implementation/bytecode/assign/reference/GenericTypeAwareAssigner.java
+META-INF/versions/9/net/bytebuddy/implementation/bytecode/assign/reference/package-info.java
+META-INF/versions/9/net/bytebuddy/implementation/bytecode/assign/reference/ReferenceTypeAwareAssigner.java
+META-INF/versions/9/net/bytebuddy/implementation/bytecode/assign/TypeCasting.java
+META-INF/versions/9/net/bytebuddy/implementation/bytecode/ByteCodeAppender.java
+META-INF/versions/9/net/bytebuddy/implementation/bytecode/collection/ArrayAccess.java
+META-INF/versions/9/net/bytebuddy/implementation/bytecode/collection/ArrayFactory.java
+META-INF/versions/9/net/bytebuddy/implementation/bytecode/collection/ArrayLength.java
+META-INF/versions/9/net/bytebuddy/implementation/bytecode/collection/CollectionFactory.java
+META-INF/versions/9/net/bytebuddy/implementation/bytecode/collection/package-info.java
+META-INF/versions/9/net/bytebuddy/implementation/bytecode/constant/ClassConstant.java
+META-INF/versions/9/net/bytebuddy/implementation/bytecode/constant/DefaultValue.java
+META-INF/versions/9/net/bytebuddy/implementation/bytecode/constant/DoubleConstant.java
+META-INF/versions/9/net/bytebuddy/implementation/bytecode/constant/FieldConstant.java
+META-INF/versions/9/net/bytebuddy/implementation/bytecode/constant/FloatConstant.java
+META-INF/versions/9/net/bytebuddy/implementation/bytecode/constant/IntegerConstant.java
+META-INF/versions/9/net/bytebuddy/implementation/bytecode/constant/JavaConstantValue.java
+META-INF/versions/9/net/bytebuddy/implementation/bytecode/constant/LongConstant.java
+META-INF/versions/9/net/bytebuddy/implementation/bytecode/constant/MethodConstant.java
+META-INF/versions/9/net/bytebuddy/implementation/bytecode/constant/NullConstant.java
+META-INF/versions/9/net/bytebuddy/implementation/bytecode/constant/package-info.java
+META-INF/versions/9/net/bytebuddy/implementation/bytecode/constant/SerializedConstant.java
+META-INF/versions/9/net/bytebuddy/implementation/bytecode/constant/TextConstant.java
+META-INF/versions/9/net/bytebuddy/implementation/bytecode/Division.java
+META-INF/versions/9/net/bytebuddy/implementation/bytecode/Duplication.java
+META-INF/versions/9/net/bytebuddy/implementation/bytecode/member/FieldAccess.java
+META-INF/versions/9/net/bytebuddy/implementation/bytecode/member/HandleInvocation.java
+META-INF/versions/9/net/bytebuddy/implementation/bytecode/member/Invokedynamic.java
+META-INF/versions/9/net/bytebuddy/implementation/bytecode/member/MethodInvocation.java
+META-INF/versions/9/net/bytebuddy/implementation/bytecode/member/MethodReturn.java
+META-INF/versions/9/net/bytebuddy/implementation/bytecode/member/MethodVariableAccess.java
+META-INF/versions/9/net/bytebuddy/implementation/bytecode/member/package-info.java
+META-INF/versions/9/net/bytebuddy/implementation/bytecode/Multiplication.java
+META-INF/versions/9/net/bytebuddy/implementation/bytecode/Negation.java
+META-INF/versions/9/net/bytebuddy/implementation/bytecode/package-info.java
+META-INF/versions/9/net/bytebuddy/implementation/bytecode/Remainder.java
+META-INF/versions/9/net/bytebuddy/implementation/bytecode/Removal.java
+META-INF/versions/9/net/bytebuddy/implementation/bytecode/ShiftLeft.java
+META-INF/versions/9/net/bytebuddy/implementation/bytecode/ShiftRight.java
+META-INF/versions/9/net/bytebuddy/implementation/bytecode/StackManipulation.java
+META-INF/versions/9/net/bytebuddy/implementation/bytecode/StackSize.java
+META-INF/versions/9/net/bytebuddy/implementation/bytecode/Subtraction.java
+META-INF/versions/9/net/bytebuddy/implementation/bytecode/Throw.java
+META-INF/versions/9/net/bytebuddy/implementation/bytecode/TypeCreation.java
+META-INF/versions/9/net/bytebuddy/implementation/DefaultMethodCall.java
+META-INF/versions/9/net/bytebuddy/implementation/EqualsMethod.java
+META-INF/versions/9/net/bytebuddy/implementation/ExceptionMethod.java
+META-INF/versions/9/net/bytebuddy/implementation/FieldAccessor.java
+META-INF/versions/9/net/bytebuddy/implementation/FixedValue.java
+META-INF/versions/9/net/bytebuddy/implementation/HashCodeMethod.java
+META-INF/versions/9/net/bytebuddy/implementation/Implementation.java
+META-INF/versions/9/net/bytebuddy/implementation/InvocationHandlerAdapter.java
+META-INF/versions/9/net/bytebuddy/implementation/InvokeDynamic.java
+META-INF/versions/9/net/bytebuddy/implementation/LoadedTypeInitializer.java
+META-INF/versions/9/net/bytebuddy/implementation/MethodAccessorFactory.java
+META-INF/versions/9/net/bytebuddy/implementation/MethodCall.java
+META-INF/versions/9/net/bytebuddy/implementation/MethodDelegation.java
+META-INF/versions/9/net/bytebuddy/implementation/package-info.java
+META-INF/versions/9/net/bytebuddy/implementation/StubMethod.java
+META-INF/versions/9/net/bytebuddy/implementation/SuperMethodCall.java
+META-INF/versions/9/net/bytebuddy/implementation/ToStringMethod.java
+META-INF/versions/9/net/bytebuddy/matcher/AccessibilityMatcher.java
+META-INF/versions/9/net/bytebuddy/matcher/AnnotationTargetMatcher.java
+META-INF/versions/9/net/bytebuddy/matcher/AnnotationTypeMatcher.java
+META-INF/versions/9/net/bytebuddy/matcher/ArrayTypeMatcher.java
+META-INF/versions/9/net/bytebuddy/matcher/BooleanMatcher.java
+META-INF/versions/9/net/bytebuddy/matcher/CachingMatcher.java
+META-INF/versions/9/net/bytebuddy/matcher/ClassFileVersionMatcher.java
+META-INF/versions/9/net/bytebuddy/matcher/ClassLoaderHierarchyMatcher.java
+META-INF/versions/9/net/bytebuddy/matcher/ClassLoaderParentMatcher.java
+META-INF/versions/9/net/bytebuddy/matcher/CollectionElementMatcher.java
+META-INF/versions/9/net/bytebuddy/matcher/CollectionErasureMatcher.java
+META-INF/versions/9/net/bytebuddy/matcher/CollectionItemMatcher.java
+META-INF/versions/9/net/bytebuddy/matcher/CollectionOneToOneMatcher.java
+META-INF/versions/9/net/bytebuddy/matcher/CollectionSizeMatcher.java
+META-INF/versions/9/net/bytebuddy/matcher/DeclaringAnnotationMatcher.java
+META-INF/versions/9/net/bytebuddy/matcher/DeclaringFieldMatcher.java
+META-INF/versions/9/net/bytebuddy/matcher/DeclaringMethodMatcher.java
+META-INF/versions/9/net/bytebuddy/matcher/DeclaringTypeMatcher.java
+META-INF/versions/9/net/bytebuddy/matcher/DefinedShapeMatcher.java
+META-INF/versions/9/net/bytebuddy/matcher/DescriptorMatcher.java
+META-INF/versions/9/net/bytebuddy/matcher/ElementMatcher.java
+META-INF/versions/9/net/bytebuddy/matcher/ElementMatchers.java
+META-INF/versions/9/net/bytebuddy/matcher/EqualityMatcher.java
+META-INF/versions/9/net/bytebuddy/matcher/ErasureMatcher.java
+META-INF/versions/9/net/bytebuddy/matcher/FailSafeMatcher.java
+META-INF/versions/9/net/bytebuddy/matcher/FieldTypeMatcher.java
+META-INF/versions/9/net/bytebuddy/matcher/FilterableList.java
+META-INF/versions/9/net/bytebuddy/matcher/HasSuperClassMatcher.java
+META-INF/versions/9/net/bytebuddy/matcher/HasSuperTypeMatcher.java
+META-INF/versions/9/net/bytebuddy/matcher/InheritedAnnotationMatcher.java
+META-INF/versions/9/net/bytebuddy/matcher/InstanceTypeMatcher.java
+META-INF/versions/9/net/bytebuddy/matcher/IsNamedMatcher.java
+META-INF/versions/9/net/bytebuddy/matcher/LatentMatcher.java
+META-INF/versions/9/net/bytebuddy/matcher/MethodExceptionTypeMatcher.java
+META-INF/versions/9/net/bytebuddy/matcher/MethodOverrideMatcher.java
+META-INF/versions/9/net/bytebuddy/matcher/MethodParametersMatcher.java
+META-INF/versions/9/net/bytebuddy/matcher/MethodParameterTypeMatcher.java
+META-INF/versions/9/net/bytebuddy/matcher/MethodParameterTypesMatcher.java
+META-INF/versions/9/net/bytebuddy/matcher/MethodReturnTypeMatcher.java
+META-INF/versions/9/net/bytebuddy/matcher/MethodSortMatcher.java
+META-INF/versions/9/net/bytebuddy/matcher/ModifierMatcher.java
+META-INF/versions/9/net/bytebuddy/matcher/NameMatcher.java
+META-INF/versions/9/net/bytebuddy/matcher/NegatingMatcher.java
+META-INF/versions/9/net/bytebuddy/matcher/NullMatcher.java
+META-INF/versions/9/net/bytebuddy/matcher/package-info.java
+META-INF/versions/9/net/bytebuddy/matcher/PrimitiveTypeMatcher.java
+META-INF/versions/9/net/bytebuddy/matcher/RecordMatcher.java
+META-INF/versions/9/net/bytebuddy/matcher/SignatureTokenMatcher.java
+META-INF/versions/9/net/bytebuddy/matcher/StringMatcher.java
+META-INF/versions/9/net/bytebuddy/matcher/StringSetMatcher.java
+META-INF/versions/9/net/bytebuddy/matcher/SubTypeMatcher.java
+META-INF/versions/9/net/bytebuddy/matcher/SuperTypeMatcher.java
+META-INF/versions/9/net/bytebuddy/matcher/TypeSortMatcher.java
+META-INF/versions/9/net/bytebuddy/matcher/VisibilityMatcher.java
+META-INF/versions/9/net/bytebuddy/NamingStrategy.java
+META-INF/versions/9/net/bytebuddy/package-info.java
+META-INF/versions/9/net/bytebuddy/pool/package-info.java
+META-INF/versions/9/net/bytebuddy/pool/TypePool.java
+META-INF/versions/9/net/bytebuddy/TypeCache.java
+META-INF/versions/9/net/bytebuddy/utility/AsmClassReader.java
+META-INF/versions/9/net/bytebuddy/utility/AsmClassWriter.java
+META-INF/versions/9/net/bytebuddy/utility/CompoundList.java
+META-INF/versions/9/net/bytebuddy/utility/ConstantValue.java
+META-INF/versions/9/net/bytebuddy/utility/ConstructorComparator.java
+META-INF/versions/9/net/bytebuddy/utility/dispatcher/JavaDispatcher.java
+META-INF/versions/9/net/bytebuddy/utility/dispatcher/package-info.java
+META-INF/versions/9/net/bytebuddy/utility/FieldComparator.java
+META-INF/versions/9/net/bytebuddy/utility/FileSystem.java
+META-INF/versions/9/net/bytebuddy/utility/GraalImageCode.java
+META-INF/versions/9/net/bytebuddy/utility/Invoker.java
+META-INF/versions/9/net/bytebuddy/utility/JavaConstant.java
+META-INF/versions/9/net/bytebuddy/utility/JavaModule.java
+META-INF/versions/9/net/bytebuddy/utility/JavaType.java
+META-INF/versions/9/net/bytebuddy/utility/MethodComparator.java
+META-INF/versions/9/net/bytebuddy/utility/nullability/AlwaysNull.java
+META-INF/versions/9/net/bytebuddy/utility/nullability/MaybeNull.java
+META-INF/versions/9/net/bytebuddy/utility/nullability/NeverNull.java
+META-INF/versions/9/net/bytebuddy/utility/nullability/package-info.java
+META-INF/versions/9/net/bytebuddy/utility/nullability/UnknownNull.java
+META-INF/versions/9/net/bytebuddy/utility/OpenedClassReader.java
+META-INF/versions/9/net/bytebuddy/utility/package-info.java
+META-INF/versions/9/net/bytebuddy/utility/privilege/GetMethodAction.java
+META-INF/versions/9/net/bytebuddy/utility/privilege/GetSystemPropertyAction.java
+META-INF/versions/9/net/bytebuddy/utility/privilege/package-info.java
+META-INF/versions/9/net/bytebuddy/utility/privilege/SetAccessibleAction.java
+META-INF/versions/9/net/bytebuddy/utility/QueueFactory.java
+META-INF/versions/9/net/bytebuddy/utility/RandomString.java
+META-INF/versions/9/net/bytebuddy/utility/StreamDrainer.java
+META-INF/versions/9/net/bytebuddy/utility/visitor/ContextClassVisitor.java
+META-INF/versions/9/net/bytebuddy/utility/visitor/ExceptionTableSensitiveMethodVisitor.java
+META-INF/versions/9/net/bytebuddy/utility/visitor/LineNumberPrependingMethodVisitor.java
+META-INF/versions/9/net/bytebuddy/utility/visitor/LocalVariableAwareMethodVisitor.java
+META-INF/versions/9/net/bytebuddy/utility/visitor/MetadataAwareClassVisitor.java
+META-INF/versions/9/net/bytebuddy/utility/visitor/package-info.java
+META-INF/versions/9/net/bytebuddy/utility/visitor/StackAwareMethodVisitor.java
 net/bytebuddy/agent/builder/AgentBuilder.java
 net/bytebuddy/agent/builder/LambdaFactory.java
 net/bytebuddy/agent/builder/package-info.java
 net/bytebuddy/agent/builder/ResettableClassFileTransformer.java
 net/bytebuddy/asm/Advice.java
+net/bytebuddy/asm/AnnotationRemoval.java
 net/bytebuddy/asm/AsmVisitorWrapper.java
 net/bytebuddy/asm/ClassVisitorFactory.java
 net/bytebuddy/asm/MemberAttributeExtension.java
@@ -30070,6 +30414,7 @@ net/bytebuddy/build/package-info.java
 net/bytebuddy/build/Plugin.java
 net/bytebuddy/build/RenamingPlugin.java
 net/bytebuddy/build/RepeatedAnnotationPlugin.java
+net/bytebuddy/build/SafeVarargsPlugin.java
 net/bytebuddy/build/ToStringPlugin.java
 net/bytebuddy/ByteBuddy.java
 net/bytebuddy/ClassFileVersion.java
@@ -30182,83 +30527,14 @@ net/bytebuddy/implementation/bind/annotation/DefaultCall.java
 net/bytebuddy/implementation/bind/annotation/DefaultCallHandle.java
 net/bytebuddy/implementation/bind/annotation/DefaultMethod.java
 net/bytebuddy/implementation/bind/annotation/DefaultMethodHandle.java
+net/bytebuddy/implementation/bind/annotation/DynamicConstant.java
 net/bytebuddy/implementation/bind/annotation/Empty.java
 net/bytebuddy/implementation/bind/annotation/FieldGetterHandle.java
-net/bytebuddy/implementation/bind/annotation/FieldProxy.java
-net/bytebuddy/implementation/bind/annotation/FieldSetterHandle.java
-net/bytebuddy/implementation/bind/annotation/FieldValue.java
-net/bytebuddy/implementation/bind/annotation/IgnoreForBinding.java
-net/bytebuddy/implementation/bind/annotation/Morph.java
-net/bytebuddy/implementation/bind/annotation/Origin.java
-net/bytebuddy/implementation/bind/annotation/package-info.java
-net/bytebuddy/implementation/bind/annotation/Pipe.java
-net/bytebuddy/implementation/bind/annotation/RuntimeType.java
-net/bytebuddy/implementation/bind/annotation/StubValue.java
-net/bytebuddy/implementation/bind/annotation/Super.java
-net/bytebuddy/implementation/bind/annotation/SuperCall.java
-net/bytebuddy/implementation/bind/annotation/SuperCallHandle.java
-net/bytebuddy/implementation/bind/annotation/SuperMethod.java
-net/bytebuddy/implementation/bind/annotation/SuperMethodHandle.java
-net/bytebuddy/implementation/bind/annotation/TargetMethodAnnotationDrivenBinder.java
-net/bytebuddy/implementation/bind/annotation/This.java
 net/bytebuddy/implementation/bind/ArgumentTypeResolver.java
 net/bytebuddy/implementation/bind/DeclaringTypeResolver.java
 net/bytebuddy/implementation/bind/MethodDelegationBinder.java
 net/bytebuddy/implementation/bind/MethodNameEqualityResolver.java
-net/bytebuddy/implementation/bind/package-info.java
 net/bytebuddy/implementation/bind/ParameterLengthResolver.java
-net/bytebuddy/implementation/bytecode/Addition.java
-net/bytebuddy/implementation/bytecode/assign/Assigner.java
-net/bytebuddy/implementation/bytecode/assign/InstanceCheck.java
-net/bytebuddy/implementation/bytecode/assign/package-info.java
-net/bytebuddy/implementation/bytecode/assign/primitive/package-info.java
-net/bytebuddy/implementation/bytecode/assign/primitive/PrimitiveBoxingDelegate.java
-net/bytebuddy/implementation/bytecode/assign/primitive/PrimitiveTypeAwareAssigner.java
-net/bytebuddy/implementation/bytecode/assign/primitive/PrimitiveUnboxingDelegate.java
-net/bytebuddy/implementation/bytecode/assign/primitive/PrimitiveWideningDelegate.java
-net/bytebuddy/implementation/bytecode/assign/primitive/VoidAwareAssigner.java
-net/bytebuddy/implementation/bytecode/assign/reference/GenericTypeAwareAssigner.java
-net/bytebuddy/implementation/bytecode/assign/reference/package-info.java
-net/bytebuddy/implementation/bytecode/assign/reference/ReferenceTypeAwareAssigner.java
-net/bytebuddy/implementation/bytecode/assign/TypeCasting.java
-net/bytebuddy/implementation/bytecode/ByteCodeAppender.java
-net/bytebuddy/implementation/bytecode/collection/ArrayAccess.java
-net/bytebuddy/implementation/bytecode/collection/ArrayFactory.java
-net/bytebuddy/implementation/bytecode/collection/ArrayLength.java
-net/bytebuddy/implementation/bytecode/collection/CollectionFactory.java
-net/bytebuddy/implementation/bytecode/collection/package-info.java
-net/bytebuddy/implementation/bytecode/constant/ClassConstant.java
-net/bytebuddy/implementation/bytecode/constant/DefaultValue.java
-net/bytebuddy/implementation/bytecode/constant/DoubleConstant.java
-net/bytebuddy/implementation/bytecode/constant/FieldConstant.java
-net/bytebuddy/implementation/bytecode/constant/FloatConstant.java
-net/bytebuddy/implementation/bytecode/constant/IntegerConstant.java
-net/bytebuddy/implementation/bytecode/constant/JavaConstantValue.java
-net/bytebuddy/implementation/bytecode/constant/LongConstant.java
-net/bytebuddy/implementation/bytecode/constant/MethodConstant.java
-net/bytebuddy/implementation/bytecode/constant/NullConstant.java
-net/bytebuddy/implementation/bytecode/constant/package-info.java
-net/bytebuddy/implementation/bytecode/constant/SerializedConstant.java
-net/bytebuddy/implementation/bytecode/constant/TextConstant.java
-net/bytebuddy/implementation/bytecode/Division.java
-net/bytebuddy/implementation/bytecode/Duplication.java
-net/bytebuddy/implementation/bytecode/member/FieldAccess.java
-net/bytebuddy/implementation/bytecode/member/HandleInvocation.java
-net/bytebuddy/implementation/bytecode/member/MethodInvocation.java
-net/bytebuddy/implementation/bytecode/member/MethodReturn.java
-net/bytebuddy/implementation/bytecode/member/MethodVariableAccess.java
-net/bytebuddy/implementation/bytecode/member/package-info.java
-net/bytebuddy/implementation/bytecode/Multiplication.java
-net/bytebuddy/implementation/bytecode/package-info.java
-net/bytebuddy/implementation/bytecode/Remainder.java
-net/bytebuddy/implementation/bytecode/Removal.java
-net/bytebuddy/implementation/bytecode/ShiftLeft.java
-net/bytebuddy/implementation/bytecode/ShiftRight.java
-net/bytebuddy/implementation/bytecode/StackManipulation.java
-net/bytebuddy/implementation/bytecode/StackSize.java
-net/bytebuddy/implementation/bytecode/Subtraction.java
-net/bytebuddy/implementation/bytecode/Throw.java
-net/bytebuddy/implementation/bytecode/TypeCreation.java
 net/bytebuddy/implementation/DefaultMethodCall.java
 net/bytebuddy/implementation/EqualsMethod.java
 net/bytebuddy/implementation/ExceptionMethod.java
@@ -30272,103 +30548,11 @@ net/bytebuddy/implementation/LoadedTypeInitializer.java
 net/bytebuddy/implementation/MethodAccessorFactory.java
 net/bytebuddy/implementation/MethodCall.java
 net/bytebuddy/implementation/MethodDelegation.java
-net/bytebuddy/implementation/package-info.java
 net/bytebuddy/implementation/StubMethod.java
 net/bytebuddy/implementation/SuperMethodCall.java
 net/bytebuddy/implementation/ToStringMethod.java
-net/bytebuddy/matcher/AccessibilityMatcher.java
-net/bytebuddy/matcher/AnnotationTargetMatcher.java
-net/bytebuddy/matcher/AnnotationTypeMatcher.java
-net/bytebuddy/matcher/ArrayTypeMatcher.java
-net/bytebuddy/matcher/BooleanMatcher.java
-net/bytebuddy/matcher/CachingMatcher.java
-net/bytebuddy/matcher/ClassFileVersionMatcher.java
-net/bytebuddy/matcher/ClassLoaderHierarchyMatcher.java
-net/bytebuddy/matcher/ClassLoaderParentMatcher.java
-net/bytebuddy/matcher/CollectionElementMatcher.java
-net/bytebuddy/matcher/CollectionErasureMatcher.java
-net/bytebuddy/matcher/CollectionItemMatcher.java
-net/bytebuddy/matcher/CollectionOneToOneMatcher.java
-net/bytebuddy/matcher/CollectionSizeMatcher.java
-net/bytebuddy/matcher/DeclaringAnnotationMatcher.java
-net/bytebuddy/matcher/DeclaringFieldMatcher.java
-net/bytebuddy/matcher/DeclaringMethodMatcher.java
-net/bytebuddy/matcher/DeclaringTypeMatcher.java
-net/bytebuddy/matcher/DefinedShapeMatcher.java
-net/bytebuddy/matcher/DescriptorMatcher.java
-net/bytebuddy/matcher/ElementMatcher.java
-net/bytebuddy/matcher/ElementMatchers.java
-net/bytebuddy/matcher/EqualityMatcher.java
-net/bytebuddy/matcher/ErasureMatcher.java
-net/bytebuddy/matcher/FailSafeMatcher.java
-net/bytebuddy/matcher/FieldTypeMatcher.java
-net/bytebuddy/matcher/FilterableList.java
-net/bytebuddy/matcher/HasSuperClassMatcher.java
-net/bytebuddy/matcher/HasSuperTypeMatcher.java
-net/bytebuddy/matcher/InheritedAnnotationMatcher.java
-net/bytebuddy/matcher/InstanceTypeMatcher.java
-net/bytebuddy/matcher/IsNamedMatcher.java
-net/bytebuddy/matcher/LatentMatcher.java
-net/bytebuddy/matcher/MethodExceptionTypeMatcher.java
-net/bytebuddy/matcher/MethodOverrideMatcher.java
-net/bytebuddy/matcher/MethodParametersMatcher.java
-net/bytebuddy/matcher/MethodParameterTypeMatcher.java
-net/bytebuddy/matcher/MethodParameterTypesMatcher.java
-net/bytebuddy/matcher/MethodReturnTypeMatcher.java
-net/bytebuddy/matcher/MethodSortMatcher.java
-net/bytebuddy/matcher/ModifierMatcher.java
-net/bytebuddy/matcher/NameMatcher.java
-net/bytebuddy/matcher/NegatingMatcher.java
-net/bytebuddy/matcher/NullMatcher.java
-net/bytebuddy/matcher/package-info.java
-net/bytebuddy/matcher/PrimitiveTypeMatcher.java
-net/bytebuddy/matcher/RecordMatcher.java
-net/bytebuddy/matcher/SignatureTokenMatcher.java
-net/bytebuddy/matcher/StringMatcher.java
-net/bytebuddy/matcher/StringSetMatcher.java
-net/bytebuddy/matcher/SubTypeMatcher.java
-net/bytebuddy/matcher/SuperTypeMatcher.java
-net/bytebuddy/matcher/TypeSortMatcher.java
-net/bytebuddy/matcher/VisibilityMatcher.java
 net/bytebuddy/NamingStrategy.java
-net/bytebuddy/package-info.java
-net/bytebuddy/pool/package-info.java
-net/bytebuddy/pool/TypePool.java
 net/bytebuddy/TypeCache.java
-net/bytebuddy/utility/CompoundList.java
-net/bytebuddy/utility/ConstantValue.java
-net/bytebuddy/utility/ConstructorComparator.java
-net/bytebuddy/utility/dispatcher/JavaDispatcher.java
-net/bytebuddy/utility/dispatcher/package-info.java
-net/bytebuddy/utility/FieldComparator.java
-net/bytebuddy/utility/FileSystem.java
-net/bytebuddy/utility/GraalImageCode.java
-net/bytebuddy/utility/Invoker.java
-net/bytebuddy/utility/JavaConstant.java
-net/bytebuddy/utility/JavaModule.java
-net/bytebuddy/utility/JavaType.java
-net/bytebuddy/utility/MethodComparator.java
-net/bytebuddy/utility/nullability/AlwaysNull.java
-net/bytebuddy/utility/nullability/MaybeNull.java
-net/bytebuddy/utility/nullability/NeverNull.java
-net/bytebuddy/utility/nullability/package-info.java
-net/bytebuddy/utility/nullability/UnknownNull.java
-net/bytebuddy/utility/OpenedClassReader.java
-net/bytebuddy/utility/package-info.java
-net/bytebuddy/utility/privilege/GetMethodAction.java
-net/bytebuddy/utility/privilege/GetSystemPropertyAction.java
-net/bytebuddy/utility/privilege/package-info.java
-net/bytebuddy/utility/privilege/SetAccessibleAction.java
-net/bytebuddy/utility/QueueFactory.java
-net/bytebuddy/utility/RandomString.java
-net/bytebuddy/utility/StreamDrainer.java
-net/bytebuddy/utility/visitor/ContextClassVisitor.java
-net/bytebuddy/utility/visitor/ExceptionTableSensitiveMethodVisitor.java
-net/bytebuddy/utility/visitor/LineNumberPrependingMethodVisitor.java
-net/bytebuddy/utility/visitor/LocalVariableAwareMethodVisitor.java
-net/bytebuddy/utility/visitor/MetadataAwareClassVisitor.java
-net/bytebuddy/utility/visitor/package-info.java
-net/bytebuddy/utility/visitor/StackAwareMethodVisitor.java
 --------------------------------------------------------------------------------
 
 Apache License
@@ -30597,7 +30781,6 @@ net/bytebuddy/jar/asm/signature/package.html
 net/bytebuddy/jar/asm/signature/SignatureReader.java
 net/bytebuddy/jar/asm/signature/SignatureVisitor.java
 net/bytebuddy/jar/asm/signature/SignatureWriter.java
-net/bytebuddy/jar/asm/Symbol.java
 net/bytebuddy/jar/asm/SymbolTable.java
 net/bytebuddy/jar/asm/Type.java
 net/bytebuddy/jar/asm/TypePath.java
@@ -30634,9 +30817,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 --------------------------------------------------------------------------------
-Package Title: Byte Buddy agent (1.14.15)
+Package Title: Byte Buddy agent (1.17.7)
 
-Package Locator: mvn+net.bytebuddy:byte-buddy-agent$1.14.15
+Package Locator: mvn+net.bytebuddy:byte-buddy-agent$1.17.7
 
 Package Depth: Transitive
 --------------------------------------------------------------------------------
@@ -30648,6 +30831,16 @@ Apache-2.0
 File matches:
 META-INF/LICENSE
 META-INF/NOTICE
+META-INF/versions/9/net/bytebuddy/agent/Attacher.java
+META-INF/versions/9/net/bytebuddy/agent/ByteBuddyAgent.java
+META-INF/versions/9/net/bytebuddy/agent/Installer.java
+META-INF/versions/9/net/bytebuddy/agent/package-info.java
+META-INF/versions/9/net/bytebuddy/agent/utility/nullability/AlwaysNull.java
+META-INF/versions/9/net/bytebuddy/agent/utility/nullability/MaybeNull.java
+META-INF/versions/9/net/bytebuddy/agent/utility/nullability/NeverNull.java
+META-INF/versions/9/net/bytebuddy/agent/utility/nullability/package-info.java
+META-INF/versions/9/net/bytebuddy/agent/utility/nullability/UnknownNull.java
+META-INF/versions/9/net/bytebuddy/agent/VirtualMachine.java
 net/bytebuddy/agent/Attacher.java
 net/bytebuddy/agent/ByteBuddyAgent.java
 net/bytebuddy/agent/Installer.java
@@ -30658,7 +30851,6 @@ net/bytebuddy/agent/utility/nullability/NeverNull.java
 net/bytebuddy/agent/utility/nullability/package-info.java
 net/bytebuddy/agent/utility/nullability/UnknownNull.java
 net/bytebuddy/agent/VirtualMachine.java
-parent-poms/mvn+net.bytebuddy:byte-buddy-parent$1.14.15/pom.xml
 --------------------------------------------------------------------------------
 
 Apache License
@@ -31404,10 +31596,6 @@ Package Depth: Transitive
 * Declared Licenses *
 MIT
 
---------------------------------------------------------------------------------
-File matches:
-META-INF/LICENSE.txt
---------------------------------------------------------------------------------
 
 Checker Framework qualifiers
 Copyright 2004-present by the Checker Framework developers
@@ -32738,7 +32926,6 @@ Apache-2.0
 --------------------------------------------------------------------------------
 File matches:
 META-INF/maven/com.github.erosb/everit-json-schema/pom.xml
-pom.xml
 --------------------------------------------------------------------------------
 
 Copyright 2011 Everit Kft. (http://www.everit.org)
@@ -35158,7 +35345,7 @@ EPL-2.0
 
 --------------------------------------------------------------------------------
 File matches:
-META-INF/maven/org.jacoco/org.jacoco.agent/pom.xml
+parent-poms/mvn+org.jacoco:org.jacoco.build$0.8.13/pom.xml
 --------------------------------------------------------------------------------
 
 THE ACCOMPANYING PROGRAM IS PROVIDED UNDER THE TERMS OF THIS ECLIPSE PUBLIC LICENSE ("AGREEMENT"). ANY USE, REPRODUCTION OR DISTRIBUTION OF THE PROGRAM CONSTITUTES RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT.
@@ -37017,9 +37204,9 @@ See the License for the specific language governing permissions and limitations 
 
 
 --------------------------------------------------------------------------------
-Package Title: JetBrains Plugin Verifier CLI (1.401)
+Package Title: JetBrains Plugin Verifier CLI (1.402)
 
-Package Locator: mvn+org.jetbrains.intellij.plugins:verifier-cli$1.401
+Package Locator: mvn+org.jetbrains.intellij.plugins:verifier-cli$1.402
 
 Package Depth: Direct
 --------------------------------------------------------------------------------
@@ -37027,57 +37214,8 @@ Package Depth: Direct
 * Declared Licenses *
 Apache-2.0
 
---------------------------------------------------------------------------------
-File matches:
-com/jetbrains/pluginverifier/options/CmdOpts.kt
-com/jetbrains/pluginverifier/options/filter/DeprecatedPluginFilter.kt
-com/jetbrains/pluginverifier/options/filter/PluginFilter.kt
-com/jetbrains/pluginverifier/options/OptionsParser.kt
-com/jetbrains/pluginverifier/options/PluginsParsing.kt
-com/jetbrains/pluginverifier/options/PluginsSet.kt
-com/jetbrains/pluginverifier/options/repository/LocalPluginRepositoryProvider.kt
-com/jetbrains/pluginverifier/output/html/HtmlResultPrinter.kt
-com/jetbrains/pluginverifier/output/OutputOptions.kt
-com/jetbrains/pluginverifier/output/ResultPrinter.kt
-com/jetbrains/pluginverifier/output/stream/WriterResultPrinter.kt
-com/jetbrains/pluginverifier/output/teamcity/TeamCityHistory.kt
-com/jetbrains/pluginverifier/output/teamcity/TeamCityLog.kt
-com/jetbrains/pluginverifier/output/teamcity/TeamCityResultPrinter.kt
-com/jetbrains/pluginverifier/PluginVerifierMain.kt
-com/jetbrains/pluginverifier/tasks/checkIde/CheckIdeParams.kt
-com/jetbrains/pluginverifier/tasks/checkIde/CheckIdeParamsBuilder.kt
-com/jetbrains/pluginverifier/tasks/checkIde/CheckIdeResult.kt
-com/jetbrains/pluginverifier/tasks/checkIde/CheckIdeResultPrinter.kt
-com/jetbrains/pluginverifier/tasks/checkIde/CheckIdeRunner.kt
-com/jetbrains/pluginverifier/tasks/checkIde/CheckIdeTask.kt
-com/jetbrains/pluginverifier/tasks/checkIde/MissingCompatibleVersionProblem.kt
-com/jetbrains/pluginverifier/tasks/checkPlugin/CheckPluginParams.kt
-com/jetbrains/pluginverifier/tasks/checkPlugin/CheckPluginParamsBuilder.kt
-com/jetbrains/pluginverifier/tasks/checkPlugin/CheckPluginResult.kt
-com/jetbrains/pluginverifier/tasks/checkPlugin/CheckPluginResultPrinter.kt
-com/jetbrains/pluginverifier/tasks/checkPlugin/CheckPluginRunner.kt
-com/jetbrains/pluginverifier/tasks/checkPlugin/CheckPluginTask.kt
-com/jetbrains/pluginverifier/tasks/checkPluginApi/CheckPluginApiParams.kt
-com/jetbrains/pluginverifier/tasks/checkPluginApi/CheckPluginApiParamsBuilder.kt
-com/jetbrains/pluginverifier/tasks/checkPluginApi/CheckPluginApiRunner.kt
-com/jetbrains/pluginverifier/tasks/checkPluginApi/CheckPluginApiTask.kt
-com/jetbrains/pluginverifier/tasks/checkTrunkApi/CheckTrunkApiParams.kt
-com/jetbrains/pluginverifier/tasks/checkTrunkApi/CheckTrunkApiParamsBuilder.kt
-com/jetbrains/pluginverifier/tasks/checkTrunkApi/CheckTrunkApiRunner.kt
-com/jetbrains/pluginverifier/tasks/checkTrunkApi/CheckTrunkApiTask.kt
-com/jetbrains/pluginverifier/tasks/CommandRunner.kt
-com/jetbrains/pluginverifier/tasks/InvalidPluginFile.kt
-com/jetbrains/pluginverifier/tasks/Sorting.kt
-com/jetbrains/pluginverifier/tasks/Task.kt
-com/jetbrains/pluginverifier/tasks/TaskParameters.kt
-com/jetbrains/pluginverifier/tasks/TaskParametersBuilder.kt
-com/jetbrains/pluginverifier/tasks/TaskResult.kt
-com/jetbrains/pluginverifier/tasks/TaskResultPrinter.kt
-com/jetbrains/pluginverifier/tasks/twoTargets/TwoTargetsResultPrinter.kt
-com/jetbrains/pluginverifier/tasks/twoTargets/TwoTargetsVerificationResults.kt
---------------------------------------------------------------------------------
 
-Copyright 2000-2020 JetBrains s.r.o. and other contributors. Use of this source code is governed by the Apache 2.0 license that can be found in the LICENSE file.
+Copyright [yyyy] [name of copyright owner]
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -38082,7 +38220,7 @@ EPL-2.0
 
 --------------------------------------------------------------------------------
 File matches:
-module-info.java
+org/junit/jupiter/api/extension/ExtendWith.java
 --------------------------------------------------------------------------------
 
 Eclipse Public License - v 2.0
@@ -39211,6 +39349,152 @@ You may add additional accurate notices of copyright ownership.
 
 
 --------------------------------------------------------------------------------
+Package Title: JUnit Vintage Engine (5.13.4)
+
+Package Locator: mvn+org.junit.vintage:junit-vintage-engine$5.13.4
+
+Package Depth: Transitive
+--------------------------------------------------------------------------------
+
+* Declared Licenses *
+EPL-2.0
+
+--------------------------------------------------------------------------------
+File matches:
+META-INF/LICENSE.md
+module-info.java
+org/junit/vintage/engine/Constants.java
+org/junit/vintage/engine/descriptor/DescriptionUtils.java
+org/junit/vintage/engine/descriptor/OrFilter.java
+org/junit/vintage/engine/descriptor/RunnerDecorator.java
+org/junit/vintage/engine/descriptor/RunnerRequest.java
+org/junit/vintage/engine/descriptor/RunnerTestDescriptor.java
+org/junit/vintage/engine/descriptor/TestSourceProvider.java
+org/junit/vintage/engine/descriptor/VintageEngineDescriptor.java
+org/junit/vintage/engine/descriptor/VintageTestDescriptor.java
+org/junit/vintage/engine/discovery/ClassSelectorResolver.java
+org/junit/vintage/engine/discovery/DefensiveAllDefaultPossibilitiesBuilder.java
+org/junit/vintage/engine/discovery/FilterableIgnoringRunnerDecorator.java
+org/junit/vintage/engine/discovery/IgnoringRunnerDecorator.java
+org/junit/vintage/engine/discovery/IsPotentialJUnit4TestClass.java
+org/junit/vintage/engine/discovery/IsPotentialJUnit4TestMethod.java
+org/junit/vintage/engine/discovery/MethodSelectorResolver.java
+org/junit/vintage/engine/discovery/RunnerTestDescriptorPostProcessor.java
+org/junit/vintage/engine/discovery/UniqueIdFilter.java
+org/junit/vintage/engine/discovery/VintageDiscoverer.java
+org/junit/vintage/engine/execution/EventType.java
+org/junit/vintage/engine/execution/RunListenerAdapter.java
+org/junit/vintage/engine/execution/RunnerExecutor.java
+org/junit/vintage/engine/execution/TestRun.java
+org/junit/vintage/engine/execution/VintageExecutor.java
+org/junit/vintage/engine/JUnit4VersionCheck.java
+org/junit/vintage/engine/support/UniqueIdReader.java
+org/junit/vintage/engine/support/UniqueIdStringifier.java
+org/junit/vintage/engine/VintageTestEngine.java
+--------------------------------------------------------------------------------
+
+Eclipse Public License - v 2.0
+==============================
+
+THE ACCOMPANYING PROGRAM IS PROVIDED UNDER THE TERMS OF THIS ECLIPSE PUBLIC LICENSE (“AGREEMENT”). ANY USE, REPRODUCTION OR DISTRIBUTION OF THE PROGRAM CONSTITUTES RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT.
+
+### 1. Definitions
+
+“Contribution” means:
+* **a)** in the case of the initial Contributor, the initial content Distributed under this Agreement, and
+* **b)** in the case of each subsequent Contributor:
+	* **i)** changes to the Program, and
+	* **ii)** additions to the Program;
+where such changes and/or additions to the Program originate from and are Distributed by that particular Contributor. A Contribution “originates” from a Contributor if it was added to the Program by such Contributor itself or anyone acting on such Contributor's behalf. Contributions do not include changes or additions to the Program that are not Modified Works.
+
+“Contributor” means any person or entity that Distributes the Program.
+
+“Licensed Patents” mean patent claims licensable by a Contributor which are necessarily infringed by the use or sale of its Contribution alone or when combined with the Program.
+
+“Program” means the Contributions Distributed in accordance with this Agreement.
+
+“Recipient” means anyone who receives the Program under this Agreement or any Secondary License (as applicable), including Contributors.
+
+“Derivative Works” shall mean any work, whether in Source Code or other form, that is based on (or derived from) the Program and for which the editorial revisions, annotations, elaborations, or other modifications represent, as a whole, an original work of authorship.
+
+“Modified Works” shall mean any work in Source Code or other form that results from an addition to, deletion from, or modification of the contents of the Program, including, for purposes of clarity any new file in Source Code form that contains any contents of the Program. Modified Works shall not include works that contain only declarations, interfaces, types, classes, structures, or files of the Program solely in each case in order to link to, bind by name, or subclass the Program or Modified Works thereof.
+
+“Distribute” means the acts of **a)** distributing or **b)** making available in any manner that enables the transfer of a copy.
+
+“Source Code” means the form of a Program preferred for making modifications, including but not limited to software source code, documentation source, and configuration files.
+
+“Secondary License” means either the GNU General Public License, Version 2.0, or any later versions of that license, including any exceptions or additional permissions as identified by the initial Contributor.
+
+### 2. Grant of Rights
+
+**a)** Subject to the terms of this Agreement, each Contributor hereby grants Recipient a non-exclusive, worldwide, royalty-free copyright license to reproduce, prepare Derivative Works of, publicly display, publicly perform, Distribute and sublicense the Contribution of such Contributor, if any, and such Derivative Works.
+
+**b)** Subject to the terms of this Agreement, each Contributor hereby grants Recipient a non-exclusive, worldwide, royalty-free patent license under Licensed Patents to make, use, sell, offer to sell, import and otherwise transfer the Contribution of such Contributor, if any, in Source Code or other form. This patent license shall apply to the combination of the Contribution and the Program if, at the time the Contribution is added by the Contributor, such addition of the Contribution causes such combination to be covered by the Licensed Patents. The patent license shall not apply to any other combinations which include the Contribution. No hardware per se is licensed hereunder.
+
+**c)** Recipient understands that although each Contributor grants the licenses to its Contributions set forth herein, no assurances are provided by any Contributor that the Program does not infringe the patent or other intellectual property rights of any other entity. Each Contributor disclaims any liability to Recipient for claims brought by any other entity based on infringement of intellectual property rights or otherwise. As a condition to exercising the rights and licenses granted hereunder, each Recipient hereby assumes sole responsibility to secure any other intellectual property rights needed, if any. For example, if a third party patent license is required to allow Recipient to Distribute the Program, it is Recipient's responsibility to acquire that license before distributing the Program.
+
+**d)** Each Contributor represents that to its knowledge it has sufficient copyright rights in its Contribution, if any, to grant the copyright license set forth in this Agreement.
+
+**e)** Notwithstanding the terms of any Secondary License, no Contributor makes additional grants to any Recipient (other than those set forth in this Agreement) as a result of such Recipient's receipt of the Program under the terms of a Secondary License (if permitted under the terms of Section 3).
+
+### 3. Requirements
+
+**3.1** If a Contributor Distributes the Program in any form, then:
+
+* **a)** the Program must also be made available as Source Code, in accordance with section 3.2, and the Contributor must accompany the Program with a statement that the Source Code for the Program is available under this Agreement, and informs Recipients how to obtain it in a reasonable manner on or through a medium customarily used for software exchange; and
+
+* **b)** the Contributor may Distribute the Program under a license different than this Agreement, provided that such license:
+	* **i)** effectively disclaims on behalf of all other Contributors all warranties and conditions, express and implied, including warranties or conditions of title and non-infringement, and implied warranties or conditions of merchantability and fitness for a particular purpose;
+	* **ii)** effectively excludes on behalf of all other Contributors all liability for damages, including direct, indirect, special, incidental and consequential damages, such as lost profits;
+	* **iii)** does not attempt to limit or alter the recipients' rights in the Source Code under section 3.2; and
+	* **iv)** requires any subsequent distribution of the Program by any party to be under a license that satisfies the requirements of this section 3.
+
+**3.2** When the Program is Distributed as Source Code:
+
+* **a)** it must be made available under this Agreement, or if the Program **(i)** is combined with other material in a separate file or files made available under a Secondary License, and **(ii)** the initial Contributor attached to the Source Code the notice described in Exhibit A of this Agreement, then the Program may be made available under the terms of such Secondary Licenses, and
+* **b)** a copy of this Agreement must be included with each copy of the Program.
+
+**3.3** Contributors may not remove or alter any copyright, patent, trademark, attribution notices, disclaimers of warranty, or limitations of liability (“notices”) contained within the Program from any copy of the Program which they Distribute, provided that Contributors may add their own appropriate notices.
+
+### 4. Commercial Distribution
+
+Commercial distributors of software may accept certain responsibilities with respect to end users, business partners and the like. While this license is intended to facilitate the commercial use of the Program, the Contributor who includes the Program in a commercial product offering should do so in a manner which does not create potential liability for other Contributors. Therefore, if a Contributor includes the Program in a commercial product offering, such Contributor (“Commercial Contributor”) hereby agrees to defend and indemnify every other Contributor (“Indemnified Contributor”) against any losses, damages and costs (collectively “Losses”) arising from claims, lawsuits and other legal actions brought by a third party against the Indemnified Contributor to the extent caused by the acts or omissions of such Commercial Contributor in connection with its distribution of the Program in a commercial product offering. The obligations in this section do not apply to any claims or Losses relating to any actual or alleged intellectual property infringement. In order to qualify, an Indemnified Contributor must: **a)** promptly notify the Commercial Contributor in writing of such claim, and **b)** allow the Commercial Contributor to control, and cooperate with the Commercial Contributor in, the defense and any related settlement negotiations. The Indemnified Contributor may participate in any such claim at its own expense.
+
+For example, a Contributor might include the Program in a commercial product offering, Product X. That Contributor is then a Commercial Contributor. If that Commercial Contributor then makes performance claims, or offers warranties related to Product X, those performance claims and warranties are such Commercial Contributor's responsibility alone. Under this section, the Commercial Contributor would have to defend claims against the other Contributors related to those performance claims and warranties, and if a court requires any other Contributor to pay any damages as a result, the Commercial Contributor must pay those damages.
+
+### 5. No Warranty
+
+EXCEPT AS EXPRESSLY SET FORTH IN THIS AGREEMENT, AND TO THE EXTENT PERMITTED BY APPLICABLE LAW, THE PROGRAM IS PROVIDED ON AN “AS IS” BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED INCLUDING, WITHOUT LIMITATION, ANY WARRANTIES OR CONDITIONS OF TITLE, NON-INFRINGEMENT, MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE. Each Recipient is solely responsible for determining the appropriateness of using and distributing the Program and assumes all risks associated with its exercise of rights under this Agreement, including but not limited to the risks and costs of program errors, compliance with applicable laws, damage to or loss of data, programs or equipment, and unavailability or interruption of operations.
+
+### 6. Disclaimer of Liability
+
+EXCEPT AS EXPRESSLY SET FORTH IN THIS AGREEMENT, AND TO THE EXTENT PERMITTED BY APPLICABLE LAW, NEITHER RECIPIENT NOR ANY CONTRIBUTORS SHALL HAVE ANY LIABILITY FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING WITHOUT LIMITATION LOST PROFITS), HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OR DISTRIBUTION OF THE PROGRAM OR THE EXERCISE OF ANY RIGHTS GRANTED HEREUNDER, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
+
+### 7. General
+
+If any provision of this Agreement is invalid or unenforceable under applicable law, it shall not affect the validity or enforceability of the remainder of the terms of this Agreement, and without further action by the parties hereto, such provision shall be reformed to the minimum extent necessary to make such provision valid and enforceable.
+
+If Recipient institutes patent litigation against any entity (including a cross-claim or counterclaim in a lawsuit) alleging that the Program itself (excluding combinations of the Program with other software or hardware) infringes such Recipient's patent(s), then such Recipient's rights granted under Section 2(b) shall terminate as of the date such litigation is filed.
+
+All Recipient's rights under this Agreement shall terminate if it fails to comply with any of the material terms or conditions of this Agreement and does not cure such failure in a reasonable period of time after becoming aware of such noncompliance. If all Recipient's rights under this Agreement terminate, Recipient agrees to cease use and distribution of the Program as soon as reasonably practicable. However, Recipient's obligations under this Agreement and any licenses granted by Recipient relating to the Program shall continue and survive.
+
+Everyone is permitted to copy and distribute copies of this Agreement, but in order to avoid inconsistency the Agreement is copyrighted and may only be modified in the following manner. The Agreement Steward reserves the right to publish new versions (including revisions) of this Agreement from time to time. No one other than the Agreement Steward has the right to modify this Agreement. The Eclipse Foundation is the initial Agreement Steward. The Eclipse Foundation may assign the responsibility to serve as the Agreement Steward to a suitable separate entity. Each new version of the Agreement will be given a distinguishing version number. The Program (including Contributions) may always be Distributed subject to the version of the Agreement under which it was received. In addition, after a new version of the Agreement is published, Contributor may elect to Distribute the Program (including its Contributions) under the new version.
+
+Except as expressly stated in Sections 2(a) and 2(b) above, Recipient receives no rights or licenses to the intellectual property of any Contributor under this Agreement, whether expressly, by implication, estoppel or otherwise. All rights in the Program not expressly granted under this Agreement are reserved. Nothing in this Agreement is intended to be enforceable by any entity that is not a Contributor or Recipient. No third-party beneficiary rights are created under this Agreement.
+
+#### Exhibit A - Form of Secondary Licenses Notice
+
+> “This Source Code may also be made available under the following Secondary Licenses when the conditions for such availability set forth in the Eclipse Public License, v. 2.0 are satisfied: {name license(s), version(s), and exceptions or additional permissions here}.”
+
+Simply including a copy of this Agreement, including this Exhibit A is not sufficient to license the Source Code under Secondary Licenses.
+
+If it is not possible or desirable to put the notice in a particular file, then You may include the notice in a location (such as a LICENSE file in a relevant directory) where a recipient would be likely to look for such a notice.
+
+You may add additional accurate notices of copyright ownership.
+
+
+
+--------------------------------------------------------------------------------
 Package Title: kafka-avro-serializer (8.1.0)
 
 Package Locator: mvn+io.confluent:kafka-avro-serializer$8.1.0
@@ -39534,7 +39818,7 @@ proprietary-license
 
 --------------------------------------------------------------------------------
 File matches:
-io/confluent/kafka/schemaregistry/json/jackson/JsonSkemaObjectSerializer.java
+io/confluent/kafka/schemaregistry/json/jackson/JSONArraySerializer.java
 --------------------------------------------------------------------------------
 
 
@@ -41430,7 +41714,7 @@ BSD-3-Clause, NPL-1.1, MPL-1.1, GPL-1.0-or-later, LGPL-2.1-or-later, GPL-2.0-or-
 * BSD-3-Clause *
 --------------------------------------------------------------------------------
 File matches:
-org/jetbrains/kotlin/codegen/optimization/fixStack/FastStackAnalyzer.kt
+org/jetbrains/kotlin/js/backend/JsRequiresSemiVisitor.java
 --------------------------------------------------------------------------------
 
 
@@ -43527,6 +43811,509 @@ See the License for the specific language governing permissions and limitations 
 
 
 --------------------------------------------------------------------------------
+Package Title: Kotlin Reflect (2.1.20)
+
+Package Locator: mvn+org.jetbrains.kotlin:kotlin-reflect$2.1.20
+
+Package Depth: Transitive
+--------------------------------------------------------------------------------
+
+* Declared Licenses *
+Apache-2.0
+
+--------------------------------------------------------------------------------
+File matches:
+kotlin/reflect/full/exceptions.kt
+kotlin/reflect/full/KAnnotatedElements.kt
+kotlin/reflect/full/KCallables.kt
+kotlin/reflect/full/KClasses.kt
+kotlin/reflect/full/KClassifiers.kt
+kotlin/reflect/full/KProperties.kt
+kotlin/reflect/full/KTypes.kt
+kotlin/reflect/jvm/internal/CacheByClass.kt
+kotlin/reflect/jvm/internal/caches.kt
+kotlin/reflect/jvm/internal/calls/AnnotationConstructorCaller.kt
+kotlin/reflect/jvm/internal/calls/Caller.kt
+kotlin/reflect/jvm/internal/calls/CallerImpl.kt
+kotlin/reflect/jvm/internal/calls/InternalUnderlyingValOfInlineClass.kt
+kotlin/reflect/jvm/internal/calls/ThrowingCaller.kt
+kotlin/reflect/jvm/internal/calls/ValueClassAwareCaller.kt
+kotlin/reflect/jvm/internal/EmptyContainerForLocal.kt
+kotlin/reflect/jvm/internal/FunctionWithAllInvokes.kt
+kotlin/reflect/jvm/internal/impl/builtins/BuiltInsLoader.kt
+kotlin/reflect/jvm/internal/impl/builtins/BuiltInsPackageFragment.kt
+kotlin/reflect/jvm/internal/impl/builtins/CompanionObjectMappingUtils.kt
+kotlin/reflect/jvm/internal/impl/builtins/DefaultBuiltIns.kt
+kotlin/reflect/jvm/internal/impl/builtins/FunctionInterfacePackageFragment.kt
+kotlin/reflect/jvm/internal/impl/builtins/functions/BuiltInFictitiousFunctionClassFactory.kt
+kotlin/reflect/jvm/internal/impl/builtins/functions/FunctionClassDescriptor.kt
+kotlin/reflect/jvm/internal/impl/builtins/functions/FunctionClassKind.kt
+kotlin/reflect/jvm/internal/impl/builtins/functions/FunctionClassScope.kt
+kotlin/reflect/jvm/internal/impl/builtins/functions/FunctionInterfaceFactory.kt
+kotlin/reflect/jvm/internal/impl/builtins/functions/FunctionInvokeDescriptor.kt
+kotlin/reflect/jvm/internal/impl/builtins/functionTypes.kt
+kotlin/reflect/jvm/internal/impl/builtins/jvm/CloneableClassScope.kt
+kotlin/reflect/jvm/internal/impl/builtins/jvm/JavaToKotlinClassMapper.kt
+kotlin/reflect/jvm/internal/impl/builtins/jvm/JvmBuiltInClassDescriptorFactory.kt
+kotlin/reflect/jvm/internal/impl/builtins/jvm/JvmBuiltIns.kt
+kotlin/reflect/jvm/internal/impl/builtins/jvm/JvmBuiltInsCustomizer.kt
+kotlin/reflect/jvm/internal/impl/builtins/jvm/JvmBuiltInsPackageFragmentProvider.kt
+kotlin/reflect/jvm/internal/impl/builtins/jvm/mappingUtil.kt
+kotlin/reflect/jvm/internal/impl/builtins/KotlinBuiltIns.java
+kotlin/reflect/jvm/internal/impl/builtins/PlatformSpecificCastChecker.kt
+kotlin/reflect/jvm/internal/impl/builtins/PlatformToKotlinClassMapper.java
+kotlin/reflect/jvm/internal/impl/builtins/ReflectionTypes.kt
+kotlin/reflect/jvm/internal/impl/builtins/suspendFunctionTypes.kt
+kotlin/reflect/jvm/internal/impl/builtins/UnsignedType.kt
+kotlin/reflect/jvm/internal/impl/container/DefaultImplementation.kt
+kotlin/reflect/jvm/internal/impl/container/PlatformSpecificExtension.kt
+kotlin/reflect/jvm/internal/impl/descriptors/annotations/AnnotatedImpl.java
+kotlin/reflect/jvm/internal/impl/descriptors/annotations/AnnotationArgumentVisitor.java
+kotlin/reflect/jvm/internal/impl/descriptors/annotations/AnnotationDescriptor.kt
+kotlin/reflect/jvm/internal/impl/descriptors/annotations/AnnotationDescriptorImpl.java
+kotlin/reflect/jvm/internal/impl/descriptors/annotations/Annotations.kt
+kotlin/reflect/jvm/internal/impl/descriptors/annotations/AnnotationsImpl.kt
+kotlin/reflect/jvm/internal/impl/descriptors/annotations/annotationUtil.kt
+kotlin/reflect/jvm/internal/impl/descriptors/annotations/AnnotationWithTarget.kt
+kotlin/reflect/jvm/internal/impl/descriptors/annotations/BuiltInAnnotationDescriptor.kt
+kotlin/reflect/jvm/internal/impl/descriptors/annotations/KotlinRetention.kt
+kotlin/reflect/jvm/internal/impl/descriptors/CallableDescriptor.java
+kotlin/reflect/jvm/internal/impl/descriptors/CallableMemberDescriptor.java
+kotlin/reflect/jvm/internal/impl/descriptors/ClassConstructorDescriptor.kt
+kotlin/reflect/jvm/internal/impl/descriptors/ClassDescriptor.java
+kotlin/reflect/jvm/internal/impl/descriptors/ClassifierDescriptor.java
+kotlin/reflect/jvm/internal/impl/descriptors/ClassifierDescriptorWithTypeParameters.java
+kotlin/reflect/jvm/internal/impl/descriptors/ClassOrPackageFragmentDescriptor.java
+kotlin/reflect/jvm/internal/impl/descriptors/ConstructorDescriptor.java
+kotlin/reflect/jvm/internal/impl/descriptors/ConstUtil.kt
+kotlin/reflect/jvm/internal/impl/descriptors/ContractProvider.kt
+kotlin/reflect/jvm/internal/impl/descriptors/DeclarationDescriptor.java
+kotlin/reflect/jvm/internal/impl/descriptors/DeclarationDescriptorNonRoot.java
+kotlin/reflect/jvm/internal/impl/descriptors/DeclarationDescriptorVisitor.java
+kotlin/reflect/jvm/internal/impl/descriptors/DeclarationDescriptorWithNavigationSubstitute.kt
+kotlin/reflect/jvm/internal/impl/descriptors/DeclarationDescriptorWithSource.java
+kotlin/reflect/jvm/internal/impl/descriptors/DeclarationDescriptorWithVisibility.java
+kotlin/reflect/jvm/internal/impl/descriptors/descriptorUtil.kt
+kotlin/reflect/jvm/internal/impl/descriptors/DescriptorVisibilities.java
+kotlin/reflect/jvm/internal/impl/descriptors/DescriptorVisibility.kt
+kotlin/reflect/jvm/internal/impl/descriptors/DescriptorWithDeprecation.kt
+kotlin/reflect/jvm/internal/impl/descriptors/deserialization/AdditionalClassPartsProvider.kt
+kotlin/reflect/jvm/internal/impl/descriptors/deserialization/ClassDescriptorFactory.kt
+kotlin/reflect/jvm/internal/impl/descriptors/deserialization/PlatformDependentDeclarationFilter.kt
+kotlin/reflect/jvm/internal/impl/descriptors/DeserializedDescriptor.kt
+kotlin/reflect/jvm/internal/impl/descriptors/EffectiveVisibilityUtils.kt
+kotlin/reflect/jvm/internal/impl/descriptors/FieldDescriptor.kt
+kotlin/reflect/jvm/internal/impl/descriptors/findClassInModule.kt
+kotlin/reflect/jvm/internal/impl/descriptors/FunctionDescriptor.java
+kotlin/reflect/jvm/internal/impl/descriptors/impl/AbstractClassDescriptor.java
+kotlin/reflect/jvm/internal/impl/descriptors/impl/AbstractLazyTypeParameterDescriptor.java
+kotlin/reflect/jvm/internal/impl/descriptors/impl/AbstractReceiverParameterDescriptor.java
+kotlin/reflect/jvm/internal/impl/descriptors/impl/AbstractTypeAliasDescriptor.kt
+kotlin/reflect/jvm/internal/impl/descriptors/impl/AbstractTypeParameterDescriptor.java
+kotlin/reflect/jvm/internal/impl/descriptors/impl/ClassConstructorDescriptorImpl.java
+kotlin/reflect/jvm/internal/impl/descriptors/impl/ClassDescriptorBase.java
+kotlin/reflect/jvm/internal/impl/descriptors/impl/ClassDescriptorImpl.java
+kotlin/reflect/jvm/internal/impl/descriptors/impl/CompositePackageFragmentProvider.kt
+kotlin/reflect/jvm/internal/impl/descriptors/impl/DeclarationDescriptorImpl.java
+kotlin/reflect/jvm/internal/impl/descriptors/impl/DeclarationDescriptorNonRootImpl.java
+kotlin/reflect/jvm/internal/impl/descriptors/impl/DeclarationDescriptorVisitorEmptyBodies.java
+kotlin/reflect/jvm/internal/impl/descriptors/impl/DescriptorDerivedFromTypeAlias.kt
+kotlin/reflect/jvm/internal/impl/descriptors/impl/EmptyPackageFragmentDesciptor.kt
+kotlin/reflect/jvm/internal/impl/descriptors/impl/EnumEntrySyntheticClassDescriptor.java
+kotlin/reflect/jvm/internal/impl/descriptors/impl/FieldDescriptorImpl.kt
+kotlin/reflect/jvm/internal/impl/descriptors/impl/FunctionDescriptorImpl.java
+kotlin/reflect/jvm/internal/impl/descriptors/impl/LazyClassReceiverParameterDescriptor.java
+kotlin/reflect/jvm/internal/impl/descriptors/impl/LazyPackageViewDescriptorImpl.kt
+kotlin/reflect/jvm/internal/impl/descriptors/impl/LazySubstitutingClassDescriptor.java
+kotlin/reflect/jvm/internal/impl/descriptors/impl/ModuleAwareClassDescriptor.kt
+kotlin/reflect/jvm/internal/impl/descriptors/impl/ModuleDescriptorImpl.kt
+kotlin/reflect/jvm/internal/impl/descriptors/impl/MutableClassDescriptor.java
+kotlin/reflect/jvm/internal/impl/descriptors/impl/PackageFragmentDescriptorImpl.kt
+kotlin/reflect/jvm/internal/impl/descriptors/impl/PackageViewDescriptorFactory.kt
+kotlin/reflect/jvm/internal/impl/descriptors/impl/PropertyAccessorDescriptorImpl.java
+kotlin/reflect/jvm/internal/impl/descriptors/impl/PropertyDescriptorImpl.java
+kotlin/reflect/jvm/internal/impl/descriptors/impl/PropertyGetterDescriptorImpl.java
+kotlin/reflect/jvm/internal/impl/descriptors/impl/PropertySetterDescriptorImpl.java
+kotlin/reflect/jvm/internal/impl/descriptors/impl/ReceiverParameterDescriptorImpl.java
+kotlin/reflect/jvm/internal/impl/descriptors/impl/SimpleFunctionDescriptorImpl.java
+kotlin/reflect/jvm/internal/impl/descriptors/impl/SubpackagesScope.kt
+kotlin/reflect/jvm/internal/impl/descriptors/impl/TypeAliasConstructorDescriptor.kt
+kotlin/reflect/jvm/internal/impl/descriptors/impl/TypeParameterDescriptorImpl.java
+kotlin/reflect/jvm/internal/impl/descriptors/impl/ValueParameterDescriptorImpl.kt
+kotlin/reflect/jvm/internal/impl/descriptors/impl/VariableDescriptorImpl.java
+kotlin/reflect/jvm/internal/impl/descriptors/impl/VariableDescriptorWithInitializerImpl.java
+kotlin/reflect/jvm/internal/impl/descriptors/InvalidModuleException.kt
+kotlin/reflect/jvm/internal/impl/descriptors/MemberDescriptor.java
+kotlin/reflect/jvm/internal/impl/descriptors/ModalityUtils.kt
+kotlin/reflect/jvm/internal/impl/descriptors/ModuleDescriptor.kt
+kotlin/reflect/jvm/internal/impl/descriptors/Named.java
+kotlin/reflect/jvm/internal/impl/descriptors/NotFoundClasses.kt
+kotlin/reflect/jvm/internal/impl/descriptors/PackageFragmentDescriptor.kt
+kotlin/reflect/jvm/internal/impl/descriptors/PackageFragmentProvider.kt
+kotlin/reflect/jvm/internal/impl/descriptors/PackageFragmentProviderImpl.kt
+kotlin/reflect/jvm/internal/impl/descriptors/PackageViewDescriptor.kt
+kotlin/reflect/jvm/internal/impl/descriptors/ParameterDescriptor.java
+kotlin/reflect/jvm/internal/impl/descriptors/PropertyAccessorDescriptor.java
+kotlin/reflect/jvm/internal/impl/descriptors/PropertyDescriptor.java
+kotlin/reflect/jvm/internal/impl/descriptors/PropertyGetterDescriptor.java
+kotlin/reflect/jvm/internal/impl/descriptors/PropertySetterDescriptor.java
+kotlin/reflect/jvm/internal/impl/descriptors/ReceiverParameterDescriptor.java
+kotlin/reflect/jvm/internal/impl/descriptors/runtime/components/PackagePartScopeCache.kt
+kotlin/reflect/jvm/internal/impl/descriptors/runtime/components/ReflectAnnotationSource.kt
+kotlin/reflect/jvm/internal/impl/descriptors/runtime/components/ReflectJavaClassFinder.kt
+kotlin/reflect/jvm/internal/impl/descriptors/runtime/components/ReflectKotlinClass.kt
+kotlin/reflect/jvm/internal/impl/descriptors/runtime/components/ReflectKotlinClassFinder.kt
+kotlin/reflect/jvm/internal/impl/descriptors/runtime/components/RuntimeErrorReporter.kt
+kotlin/reflect/jvm/internal/impl/descriptors/runtime/components/RuntimeModuleData.kt
+kotlin/reflect/jvm/internal/impl/descriptors/runtime/components/RuntimeSourceElementFactory.kt
+kotlin/reflect/jvm/internal/impl/descriptors/runtime/structure/reflectClassUtil.kt
+kotlin/reflect/jvm/internal/impl/descriptors/runtime/structure/ReflectJavaAnnotation.kt
+kotlin/reflect/jvm/internal/impl/descriptors/runtime/structure/ReflectJavaAnnotationArguments.kt
+kotlin/reflect/jvm/internal/impl/descriptors/runtime/structure/ReflectJavaAnnotationOwner.kt
+kotlin/reflect/jvm/internal/impl/descriptors/runtime/structure/ReflectJavaArrayType.kt
+kotlin/reflect/jvm/internal/impl/descriptors/runtime/structure/ReflectJavaClass.kt
+kotlin/reflect/jvm/internal/impl/descriptors/runtime/structure/ReflectJavaClassifierType.kt
+kotlin/reflect/jvm/internal/impl/descriptors/runtime/structure/ReflectJavaConstructor.kt
+kotlin/reflect/jvm/internal/impl/descriptors/runtime/structure/ReflectJavaElement.kt
+kotlin/reflect/jvm/internal/impl/descriptors/runtime/structure/ReflectJavaField.kt
+kotlin/reflect/jvm/internal/impl/descriptors/runtime/structure/ReflectJavaMember.kt
+kotlin/reflect/jvm/internal/impl/descriptors/runtime/structure/ReflectJavaMethod.kt
+kotlin/reflect/jvm/internal/impl/descriptors/runtime/structure/ReflectJavaModifierListOwner.kt
+kotlin/reflect/jvm/internal/impl/descriptors/runtime/structure/ReflectJavaPackage.kt
+kotlin/reflect/jvm/internal/impl/descriptors/runtime/structure/ReflectJavaPrimitiveType.kt
+kotlin/reflect/jvm/internal/impl/descriptors/runtime/structure/ReflectJavaRecordComponent.kt
+kotlin/reflect/jvm/internal/impl/descriptors/runtime/structure/ReflectJavaType.kt
+kotlin/reflect/jvm/internal/impl/descriptors/runtime/structure/ReflectJavaTypeParameter.kt
+kotlin/reflect/jvm/internal/impl/descriptors/runtime/structure/ReflectJavaValueParameter.kt
+kotlin/reflect/jvm/internal/impl/descriptors/runtime/structure/ReflectJavaWildcardType.kt
+kotlin/reflect/jvm/internal/impl/descriptors/ScopesHolderForClass.kt
+kotlin/reflect/jvm/internal/impl/descriptors/ScriptDescriptor.java
+kotlin/reflect/jvm/internal/impl/descriptors/SimpleFunctionDescriptor.java
+kotlin/reflect/jvm/internal/impl/descriptors/Substitutable.kt
+kotlin/reflect/jvm/internal/impl/descriptors/SupertypeLoopChecker.kt
+kotlin/reflect/jvm/internal/impl/descriptors/synthetic/SyntheticMemberDescriptor.kt
+kotlin/reflect/jvm/internal/impl/descriptors/SyntheticPropertyDescriptor.kt
+kotlin/reflect/jvm/internal/impl/descriptors/TypeAliasDescriptor.kt
+kotlin/reflect/jvm/internal/impl/descriptors/TypeParameterDescriptor.java
+kotlin/reflect/jvm/internal/impl/descriptors/typeParameterUtils.kt
+kotlin/reflect/jvm/internal/impl/descriptors/ValidateableDescriptor.java
+kotlin/reflect/jvm/internal/impl/descriptors/ValueDescriptor.java
+kotlin/reflect/jvm/internal/impl/descriptors/ValueParameterDescriptor.kt
+kotlin/reflect/jvm/internal/impl/descriptors/VariableAccessorDescriptor.kt
+kotlin/reflect/jvm/internal/impl/descriptors/VariableDescriptor.java
+kotlin/reflect/jvm/internal/impl/descriptors/VariableDescriptorWithAccessors.kt
+kotlin/reflect/jvm/internal/impl/incremental/utils.kt
+kotlin/reflect/jvm/internal/impl/load/java/AnnotationTypeQualifierResolver.kt
+kotlin/reflect/jvm/internal/impl/load/java/ClassicBuiltinSpecialProperties.kt
+kotlin/reflect/jvm/internal/impl/load/java/components/DescriptorResolverUtils.java
+kotlin/reflect/jvm/internal/impl/load/java/components/JavaAnnotationMapper.kt
+kotlin/reflect/jvm/internal/impl/load/java/components/JavaPropertyInitializerEvaluator.kt
+kotlin/reflect/jvm/internal/impl/load/java/components/JavaResolverCache.java
+kotlin/reflect/jvm/internal/impl/load/java/components/SignaturePropagator.java
+kotlin/reflect/jvm/internal/impl/load/java/components/TypeUsage.kt
+kotlin/reflect/jvm/internal/impl/load/java/descriptors/JavaCallableMemberDescriptor.java
+kotlin/reflect/jvm/internal/impl/load/java/descriptors/JavaClassConstructorDescriptor.java
+kotlin/reflect/jvm/internal/impl/load/java/descriptors/JavaClassDescriptor.java
+kotlin/reflect/jvm/internal/impl/load/java/descriptors/JavaForKotlinOverridePropertyDescriptor.kt
+kotlin/reflect/jvm/internal/impl/load/java/descriptors/JavaMethodDescriptor.java
+kotlin/reflect/jvm/internal/impl/load/java/descriptors/JavaPropertyDescriptor.java
+kotlin/reflect/jvm/internal/impl/load/java/descriptors/PossiblyExternalAnnotationDescriptor.kt
+kotlin/reflect/jvm/internal/impl/load/java/descriptors/util.kt
+kotlin/reflect/jvm/internal/impl/load/java/DescriptorsJvmAbiUtil.java
+kotlin/reflect/jvm/internal/impl/load/java/ErasedOverridabilityCondition.kt
+kotlin/reflect/jvm/internal/impl/load/java/FieldOverridabilityCondition.kt
+kotlin/reflect/jvm/internal/impl/load/java/JavaClassesTracker.kt
+kotlin/reflect/jvm/internal/impl/load/java/JavaDescriptorVisibilities.java
+kotlin/reflect/jvm/internal/impl/load/java/JavaIncompatibilityRulesOverridabilityCondition.kt
+kotlin/reflect/jvm/internal/impl/load/java/lazy/context.kt
+kotlin/reflect/jvm/internal/impl/load/java/lazy/descriptors/DeclaredMemberIndex.kt
+kotlin/reflect/jvm/internal/impl/load/java/lazy/descriptors/JavaDescriptorUtil.kt
+kotlin/reflect/jvm/internal/impl/load/java/lazy/descriptors/JvmPackageScope.kt
+kotlin/reflect/jvm/internal/impl/load/java/lazy/descriptors/LazyJavaAnnotationDescriptor.kt
+kotlin/reflect/jvm/internal/impl/load/java/lazy/descriptors/LazyJavaClassDescriptor.kt
+kotlin/reflect/jvm/internal/impl/load/java/lazy/descriptors/LazyJavaClassMemberScope.kt
+kotlin/reflect/jvm/internal/impl/load/java/lazy/descriptors/LazyJavaPackageFragment.kt
+kotlin/reflect/jvm/internal/impl/load/java/lazy/descriptors/LazyJavaPackageScope.kt
+kotlin/reflect/jvm/internal/impl/load/java/lazy/descriptors/LazyJavaScope.kt
+kotlin/reflect/jvm/internal/impl/load/java/lazy/descriptors/LazyJavaStaticClassScope.kt
+kotlin/reflect/jvm/internal/impl/load/java/lazy/descriptors/LazyJavaStaticScope.kt
+kotlin/reflect/jvm/internal/impl/load/java/lazy/descriptors/LazyJavaTypeParameterDescriptor.kt
+kotlin/reflect/jvm/internal/impl/load/java/lazy/descriptors/SyntheticJavaClassDescriptor.kt
+kotlin/reflect/jvm/internal/impl/load/java/lazy/LazyJavaAnnotations.kt
+kotlin/reflect/jvm/internal/impl/load/java/lazy/LazyJavaPackageFragmentProvider.kt
+kotlin/reflect/jvm/internal/impl/load/java/lazy/ModuleClassResolver.kt
+kotlin/reflect/jvm/internal/impl/load/java/lazy/resolvers.kt
+kotlin/reflect/jvm/internal/impl/load/java/lazy/types/JavaTypeAttributes.kt
+kotlin/reflect/jvm/internal/impl/load/java/lazy/types/JavaTypeFlexibility.kt
+kotlin/reflect/jvm/internal/impl/load/java/lazy/types/JavaTypeResolver.kt
+kotlin/reflect/jvm/internal/impl/load/java/lazy/types/RawProjectionComputer.kt
+kotlin/reflect/jvm/internal/impl/load/java/lazy/types/RawSubstitution.kt
+kotlin/reflect/jvm/internal/impl/load/java/lazy/types/RawType.kt
+kotlin/reflect/jvm/internal/impl/load/java/sources/JavaSourceElementFactory.kt
+kotlin/reflect/jvm/internal/impl/load/java/specialBuiltinMembers.kt
+kotlin/reflect/jvm/internal/impl/load/java/typeEnhancement/signatureEnhancement.kt
+kotlin/reflect/jvm/internal/impl/load/java/typeEnhancement/typeEnhancement.kt
+kotlin/reflect/jvm/internal/impl/load/java/utils.kt
+kotlin/reflect/jvm/internal/impl/load/kotlin/AbstractBinaryClassAnnotationAndConstantLoader.kt
+kotlin/reflect/jvm/internal/impl/load/kotlin/BinaryClassAnnotationAndConstantLoaderImpl.kt
+kotlin/reflect/jvm/internal/impl/load/kotlin/descriptorBasedTypeSignatureMapping.kt
+kotlin/reflect/jvm/internal/impl/load/kotlin/DeserializationComponentsForJava.kt
+kotlin/reflect/jvm/internal/impl/load/kotlin/DeserializedDescriptorResolver.kt
+kotlin/reflect/jvm/internal/impl/load/kotlin/header/ReadKotlinClassHeaderAnnotationVisitor.java
+kotlin/reflect/jvm/internal/impl/load/kotlin/JavaClassDataFinder.kt
+kotlin/reflect/jvm/internal/impl/load/kotlin/JavaFlexibleTypeDeserializer.kt
+kotlin/reflect/jvm/internal/impl/load/kotlin/JvmPackagePartProviderBase.kt
+kotlin/reflect/jvm/internal/impl/load/kotlin/KotlinJvmBinaryPackageSourceElement.kt
+kotlin/reflect/jvm/internal/impl/load/kotlin/methodSignatureBuildingUtils.kt
+kotlin/reflect/jvm/internal/impl/load/kotlin/methodSignatureMapping.kt
+kotlin/reflect/jvm/internal/impl/load/kotlin/ModuleMappingUtil.kt
+kotlin/reflect/jvm/internal/impl/mpp/MppJavaImplicitActualizatorMarker.kt
+kotlin/reflect/jvm/internal/impl/platform/PlatformSpecificDiagnosticComponents.kt
+kotlin/reflect/jvm/internal/impl/renderer/ClassifierNamePolicy.kt
+kotlin/reflect/jvm/internal/impl/renderer/DescriptorRenderer.kt
+kotlin/reflect/jvm/internal/impl/renderer/DescriptorRendererImpl.kt
+kotlin/reflect/jvm/internal/impl/renderer/DescriptorRendererOptionsImpl.kt
+kotlin/reflect/jvm/internal/impl/resolve/AdditionalClassPartsProvider.kt
+kotlin/reflect/jvm/internal/impl/resolve/annotations/Utils.kt
+kotlin/reflect/jvm/internal/impl/resolve/annotationsForResolveUtils.kt
+kotlin/reflect/jvm/internal/impl/resolve/calls/inference/CapturedTypeConstructor.kt
+kotlin/reflect/jvm/internal/impl/resolve/constants/CompileTimeConstant.kt
+kotlin/reflect/jvm/internal/impl/resolve/constants/ConstantValueFactory.kt
+kotlin/reflect/jvm/internal/impl/resolve/constants/constantValues.kt
+kotlin/reflect/jvm/internal/impl/resolve/constants/IntegerLiteralTypeConstructor.kt
+kotlin/reflect/jvm/internal/impl/resolve/constants/IntegerValueTypeConstructor.kt
+kotlin/reflect/jvm/internal/impl/resolve/constants/PrimitiveTypeUtil.kt
+kotlin/reflect/jvm/internal/impl/resolve/deprecation/DescriptorBasedDeprecationInfo.kt
+kotlin/reflect/jvm/internal/impl/resolve/DescriptorEquivalenceForOverrides.kt
+kotlin/reflect/jvm/internal/impl/resolve/DescriptorFactory.java
+kotlin/reflect/jvm/internal/impl/resolve/DescriptorUtils.java
+kotlin/reflect/jvm/internal/impl/resolve/DescriptorUtils.kt
+kotlin/reflect/jvm/internal/impl/resolve/ExternalOverridabilityCondition.java
+kotlin/reflect/jvm/internal/impl/resolve/inlineClassesUtils.kt
+kotlin/reflect/jvm/internal/impl/resolve/jvm/inlineClassManglingRules.kt
+kotlin/reflect/jvm/internal/impl/resolve/jvm/JavaDescriptorResolver.kt
+kotlin/reflect/jvm/internal/impl/resolve/jvm/SyntheticJavaPartsProvider.kt
+kotlin/reflect/jvm/internal/impl/resolve/MemberComparator.java
+kotlin/reflect/jvm/internal/impl/resolve/OverridingStrategy.kt
+kotlin/reflect/jvm/internal/impl/resolve/OverridingUtil.java
+kotlin/reflect/jvm/internal/impl/resolve/overridingUtils.kt
+kotlin/reflect/jvm/internal/impl/resolve/OverridingUtilTypeSystemContext.kt
+kotlin/reflect/jvm/internal/impl/resolve/ResolutionAnchorProvider.kt
+kotlin/reflect/jvm/internal/impl/resolve/sam/SamConstructorDescriptor.kt
+kotlin/reflect/jvm/internal/impl/resolve/sam/samConstructorUtils.kt
+kotlin/reflect/jvm/internal/impl/resolve/sam/SamConversionOracle.kt
+kotlin/reflect/jvm/internal/impl/resolve/sam/SamConversionResolver.kt
+kotlin/reflect/jvm/internal/impl/resolve/sam/SamConversionResolverImpl.kt
+kotlin/reflect/jvm/internal/impl/resolve/sam/SamTypeAliasConstructorDescriptor.kt
+kotlin/reflect/jvm/internal/impl/resolve/sam/SamWithReceiverResolver.kt
+kotlin/reflect/jvm/internal/impl/resolve/scopes/AbstractScopeAdapter.kt
+kotlin/reflect/jvm/internal/impl/resolve/scopes/ChainedMemberScope.kt
+kotlin/reflect/jvm/internal/impl/resolve/scopes/GivenFunctionsMemberScope.kt
+kotlin/reflect/jvm/internal/impl/resolve/scopes/InnerClassesScopeWrapper.kt
+kotlin/reflect/jvm/internal/impl/resolve/scopes/LazyScopeAdapter.kt
+kotlin/reflect/jvm/internal/impl/resolve/scopes/MemberScope.kt
+kotlin/reflect/jvm/internal/impl/resolve/scopes/MemberScopeImpl.kt
+kotlin/reflect/jvm/internal/impl/resolve/scopes/receivers/AbstractReceiverValue.java
+kotlin/reflect/jvm/internal/impl/resolve/scopes/receivers/CastImplicitClassReceiver.kt
+kotlin/reflect/jvm/internal/impl/resolve/scopes/receivers/ContextClassReceiver.kt
+kotlin/reflect/jvm/internal/impl/resolve/scopes/receivers/ContextReceiver.kt
+kotlin/reflect/jvm/internal/impl/resolve/scopes/receivers/ExtensionReceiver.java
+kotlin/reflect/jvm/internal/impl/resolve/scopes/receivers/ImplicitClassReceiver.kt
+kotlin/reflect/jvm/internal/impl/resolve/scopes/receivers/ImplicitReceiver.kt
+kotlin/reflect/jvm/internal/impl/resolve/scopes/receivers/Receiver.java
+kotlin/reflect/jvm/internal/impl/resolve/scopes/receivers/ReceiverValue.java
+kotlin/reflect/jvm/internal/impl/resolve/scopes/receivers/SuperCallReceiverValue.kt
+kotlin/reflect/jvm/internal/impl/resolve/scopes/receivers/TransientReceiver.java
+kotlin/reflect/jvm/internal/impl/resolve/scopes/ResolutionScope.kt
+kotlin/reflect/jvm/internal/impl/resolve/scopes/StaticScopeForKotlinEnum.kt
+kotlin/reflect/jvm/internal/impl/resolve/scopes/SubstitutingScope.kt
+kotlin/reflect/jvm/internal/impl/resolve/scopes/synthetic/FunInterfaceConstructorsSyntheticScope.kt
+kotlin/reflect/jvm/internal/impl/resolve/scopes/SyntheticScopes.kt
+kotlin/reflect/jvm/internal/impl/resolve/scopes/TypeIntersectionScope.kt
+kotlin/reflect/jvm/internal/impl/resolve/SealedClassInheritorsProvider.kt
+kotlin/reflect/jvm/internal/impl/resolve/StdlibClassFinder.kt
+kotlin/reflect/jvm/internal/impl/resolve/VisibilityUtil.kt
+kotlin/reflect/jvm/internal/impl/serialization/deserialization/AbstractAnnotationLoader.kt
+kotlin/reflect/jvm/internal/impl/serialization/deserialization/AbstractDeserializedPackageFragmentProvider.kt
+kotlin/reflect/jvm/internal/impl/serialization/deserialization/AnnotationAndConstantLoader.kt
+kotlin/reflect/jvm/internal/impl/serialization/deserialization/AnnotationAndConstantLoaderImpl.kt
+kotlin/reflect/jvm/internal/impl/serialization/deserialization/AnnotationDeserializer.kt
+kotlin/reflect/jvm/internal/impl/serialization/deserialization/builtins/BuiltInsLoaderImpl.kt
+kotlin/reflect/jvm/internal/impl/serialization/deserialization/builtins/BuiltInsPackageFragmentImpl.kt
+kotlin/reflect/jvm/internal/impl/serialization/deserialization/builtins/BuiltInsResourceLoader.kt
+kotlin/reflect/jvm/internal/impl/serialization/deserialization/ClassDeserializer.kt
+kotlin/reflect/jvm/internal/impl/serialization/deserialization/context.kt
+kotlin/reflect/jvm/internal/impl/serialization/deserialization/ContractDeserializer.kt
+kotlin/reflect/jvm/internal/impl/serialization/deserialization/descriptors/DeserializedAnnotations.kt
+kotlin/reflect/jvm/internal/impl/serialization/deserialization/descriptors/DeserializedClassDescriptor.kt
+kotlin/reflect/jvm/internal/impl/serialization/deserialization/descriptors/DeserializedMemberDescriptor.kt
+kotlin/reflect/jvm/internal/impl/serialization/deserialization/descriptors/DeserializedMemberScope.kt
+kotlin/reflect/jvm/internal/impl/serialization/deserialization/descriptors/DeserializedPackageMemberScope.kt
+kotlin/reflect/jvm/internal/impl/serialization/deserialization/descriptors/DeserializedTypeParameterDescriptor.kt
+kotlin/reflect/jvm/internal/impl/serialization/deserialization/DeserializationConfiguration.kt
+kotlin/reflect/jvm/internal/impl/serialization/deserialization/DeserializedClassDataFinder.kt
+kotlin/reflect/jvm/internal/impl/serialization/deserialization/DeserializedPackageFragment.kt
+kotlin/reflect/jvm/internal/impl/serialization/deserialization/DeserializedPackageFragmentImpl.kt
+kotlin/reflect/jvm/internal/impl/serialization/deserialization/DynamicTypeDeserializerId.kt
+kotlin/reflect/jvm/internal/impl/serialization/deserialization/EnumEntriesDeserializationSupport.kt
+kotlin/reflect/jvm/internal/impl/serialization/deserialization/ErrorReporter.java
+kotlin/reflect/jvm/internal/impl/serialization/deserialization/FlexibleTypeDeserializer.kt
+kotlin/reflect/jvm/internal/impl/serialization/deserialization/LocalClassifierTypeSettings.kt
+kotlin/reflect/jvm/internal/impl/serialization/deserialization/MemberDeserializer.kt
+kotlin/reflect/jvm/internal/impl/serialization/deserialization/MetadataPackageFragmentProvider.kt
+kotlin/reflect/jvm/internal/impl/serialization/deserialization/ProtoEnumFlagsUtils.kt
+kotlin/reflect/jvm/internal/impl/serialization/deserialization/suspendFunctionTypeUtil.kt
+kotlin/reflect/jvm/internal/impl/serialization/deserialization/TypeDeserializer.kt
+kotlin/reflect/jvm/internal/impl/storage/LockBasedStorageManager.java
+kotlin/reflect/jvm/internal/impl/storage/locks.kt
+kotlin/reflect/jvm/internal/impl/storage/NoLock.java
+kotlin/reflect/jvm/internal/impl/storage/ObservableStorageManager.kt
+kotlin/reflect/jvm/internal/impl/storage/SingleThreadValue.java
+kotlin/reflect/jvm/internal/impl/storage/storage.kt
+kotlin/reflect/jvm/internal/impl/storage/StorageManager.kt
+kotlin/reflect/jvm/internal/impl/SuppressJdk6SignatureCheck.kt
+kotlin/reflect/jvm/internal/impl/types/AbstractClassTypeConstructor.java
+kotlin/reflect/jvm/internal/impl/types/AbstractTypeConstructor.kt
+kotlin/reflect/jvm/internal/impl/types/AnnotationsTypeAttribute.kt
+kotlin/reflect/jvm/internal/impl/types/CapturedTypeApproximation.kt
+kotlin/reflect/jvm/internal/impl/types/checker/ClassicTypeCheckerState.kt
+kotlin/reflect/jvm/internal/impl/types/checker/ClassicTypeSystemContext.kt
+kotlin/reflect/jvm/internal/impl/types/checker/IntersectionType.kt
+kotlin/reflect/jvm/internal/impl/types/checker/KotlinTypeChecker.java
+kotlin/reflect/jvm/internal/impl/types/checker/KotlinTypeCheckerImpl.java
+kotlin/reflect/jvm/internal/impl/types/checker/KotlinTypePreparator.kt
+kotlin/reflect/jvm/internal/impl/types/checker/KotlinTypeRefiner.kt
+kotlin/reflect/jvm/internal/impl/types/checker/NewCapturedType.kt
+kotlin/reflect/jvm/internal/impl/types/checker/NewKotlinTypeChecker.kt
+kotlin/reflect/jvm/internal/impl/types/checker/TypeCheckerProcedureCallbacksImpl.java
+kotlin/reflect/jvm/internal/impl/types/checker/TypeCheckingProcedure.java
+kotlin/reflect/jvm/internal/impl/types/checker/TypeCheckingProcedureCallbacks.java
+kotlin/reflect/jvm/internal/impl/types/checker/utils.kt
+kotlin/reflect/jvm/internal/impl/types/ClassifierBasedTypeConstructor.kt
+kotlin/reflect/jvm/internal/impl/types/ClassTypeConstructorImpl.java
+kotlin/reflect/jvm/internal/impl/types/CompositionTypeSubstitution.kt
+kotlin/reflect/jvm/internal/impl/types/DescriptorSubstitutor.java
+kotlin/reflect/jvm/internal/impl/types/DisjointKeysUnionTypeSubstitution.kt
+kotlin/reflect/jvm/internal/impl/types/dynamicTypes.kt
+kotlin/reflect/jvm/internal/impl/types/ErasureProjectionComputer.kt
+kotlin/reflect/jvm/internal/impl/types/ErasureTypeAttributes.kt
+kotlin/reflect/jvm/internal/impl/types/error/ErrorClassDescriptor.kt
+kotlin/reflect/jvm/internal/impl/types/error/ErrorEntity.kt
+kotlin/reflect/jvm/internal/impl/types/error/ErrorFunctionDescriptor.kt
+kotlin/reflect/jvm/internal/impl/types/error/ErrorModuleDescriptor.kt
+kotlin/reflect/jvm/internal/impl/types/error/ErrorPropertyDescriptor.kt
+kotlin/reflect/jvm/internal/impl/types/error/ErrorScope.kt
+kotlin/reflect/jvm/internal/impl/types/error/ErrorScopeKind.kt
+kotlin/reflect/jvm/internal/impl/types/error/ErrorType.kt
+kotlin/reflect/jvm/internal/impl/types/error/ErrorTypeConstructor.kt
+kotlin/reflect/jvm/internal/impl/types/error/ErrorTypeKind.kt
+kotlin/reflect/jvm/internal/impl/types/error/ErrorUtils.kt
+kotlin/reflect/jvm/internal/impl/types/error/LazyWrappedTypeComputationException.kt
+kotlin/reflect/jvm/internal/impl/types/error/ThrowingScope.kt
+kotlin/reflect/jvm/internal/impl/types/ErrorUtils.kt
+kotlin/reflect/jvm/internal/impl/types/extensions/TypeAttributeTranslators.kt
+kotlin/reflect/jvm/internal/impl/types/flexibleTypes.kt
+kotlin/reflect/jvm/internal/impl/types/FunctionPlaceholders.kt
+kotlin/reflect/jvm/internal/impl/types/IntersectionTypeConstructor.kt
+kotlin/reflect/jvm/internal/impl/types/KotlinType.kt
+kotlin/reflect/jvm/internal/impl/types/KotlinTypeFactory.kt
+kotlin/reflect/jvm/internal/impl/types/KotlinTypeRefinerImpl.kt
+kotlin/reflect/jvm/internal/impl/types/RawType.kt
+kotlin/reflect/jvm/internal/impl/types/SpecialTypes.kt
+kotlin/reflect/jvm/internal/impl/types/StarProjectionImpl.kt
+kotlin/reflect/jvm/internal/impl/types/StubTypes.kt
+kotlin/reflect/jvm/internal/impl/types/TypeAliasExpander.kt
+kotlin/reflect/jvm/internal/impl/types/TypeAliasExpansion.kt
+kotlin/reflect/jvm/internal/impl/types/TypeAliasExpansionReportStrategy.kt
+kotlin/reflect/jvm/internal/impl/types/TypeAttributes.kt
+kotlin/reflect/jvm/internal/impl/types/TypeAttributeTranslator.kt
+kotlin/reflect/jvm/internal/impl/types/TypeCapabilities.kt
+kotlin/reflect/jvm/internal/impl/types/TypeConstructor.java
+kotlin/reflect/jvm/internal/impl/types/TypeParameterErasureOptions.kt
+kotlin/reflect/jvm/internal/impl/types/TypeParameterUpperBoundEraser.kt
+kotlin/reflect/jvm/internal/impl/types/TypeProjection.java
+kotlin/reflect/jvm/internal/impl/types/TypeProjectionBase.java
+kotlin/reflect/jvm/internal/impl/types/TypeProjectionImpl.java
+kotlin/reflect/jvm/internal/impl/types/TypeSubstitution.kt
+kotlin/reflect/jvm/internal/impl/types/TypeSubstitutor.java
+kotlin/reflect/jvm/internal/impl/types/TypeUsage.kt
+kotlin/reflect/jvm/internal/impl/types/TypeUtils.java
+kotlin/reflect/jvm/internal/impl/types/TypeUtils.kt
+kotlin/reflect/jvm/internal/impl/types/TypeWithEnhancement.kt
+kotlin/reflect/jvm/internal/impl/util/CancellationChecker.kt
+kotlin/reflect/jvm/internal/impl/util/modifierChecks.kt
+kotlin/reflect/jvm/internal/impl/util/ModuleVisibilityHelper.kt
+kotlin/reflect/jvm/internal/impl/util/scopeUtils.kt
+kotlin/reflect/jvm/internal/impl/utils/addToStdlib.kt
+kotlin/reflect/jvm/internal/impl/utils/CallOnceFunction.kt
+kotlin/reflect/jvm/internal/impl/utils/capitalizeDecapitalize.kt
+kotlin/reflect/jvm/internal/impl/utils/collections.kt
+kotlin/reflect/jvm/internal/impl/utils/CollectionUtil.kt
+kotlin/reflect/jvm/internal/impl/utils/coreLib.kt
+kotlin/reflect/jvm/internal/impl/utils/DFS.java
+kotlin/reflect/jvm/internal/impl/utils/exceptionUtils.kt
+kotlin/reflect/jvm/internal/impl/utils/formattingHelpers.kt
+kotlin/reflect/jvm/internal/impl/utils/functions.kt
+kotlin/reflect/jvm/internal/impl/utils/IDEAPluginsCompatibilityAPI.kt
+kotlin/reflect/jvm/internal/impl/utils/IndentingPrinter.kt
+kotlin/reflect/jvm/internal/impl/utils/MemoryOptimizedCollectionUtil.kt
+kotlin/reflect/jvm/internal/impl/utils/numbers.kt
+kotlin/reflect/jvm/internal/impl/utils/PerformanceCounter.kt
+kotlin/reflect/jvm/internal/impl/utils/Printer.kt
+kotlin/reflect/jvm/internal/impl/utils/SmartList.java
+kotlin/reflect/jvm/internal/impl/utils/SmartPrinter.kt
+kotlin/reflect/jvm/internal/impl/utils/SmartSet.kt
+kotlin/reflect/jvm/internal/impl/utils/strings.kt
+kotlin/reflect/jvm/internal/impl/utils/WrappedValues.java
+kotlin/reflect/jvm/internal/KCallableImpl.kt
+kotlin/reflect/jvm/internal/KClassifierImpl.kt
+kotlin/reflect/jvm/internal/KClassImpl.kt
+kotlin/reflect/jvm/internal/KDeclarationContainerImpl.kt
+kotlin/reflect/jvm/internal/KFunctionImpl.kt
+kotlin/reflect/jvm/internal/KotlinReflectionInternalError.kt
+kotlin/reflect/jvm/internal/KPackageImpl.kt
+kotlin/reflect/jvm/internal/KParameterImpl.kt
+kotlin/reflect/jvm/internal/KProperty0Impl.kt
+kotlin/reflect/jvm/internal/KProperty1Impl.kt
+kotlin/reflect/jvm/internal/KProperty2Impl.kt
+kotlin/reflect/jvm/internal/KPropertyImpl.kt
+kotlin/reflect/jvm/internal/KTypeImpl.kt
+kotlin/reflect/jvm/internal/KTypeParameterImpl.kt
+kotlin/reflect/jvm/internal/KTypeParameterOwnerImpl.kt
+kotlin/reflect/jvm/internal/moduleByClassLoader.kt
+kotlin/reflect/jvm/internal/ReflectionFactoryImpl.java
+kotlin/reflect/jvm/internal/ReflectionObjectRenderer.kt
+kotlin/reflect/jvm/internal/ReflectProperties.java
+kotlin/reflect/jvm/internal/RuntimeTypeMapper.kt
+kotlin/reflect/jvm/internal/SuppressJdk6SignatureCheck.kt
+kotlin/reflect/jvm/internal/typeOfImpl.kt
+kotlin/reflect/jvm/internal/Util.java
+kotlin/reflect/jvm/internal/util.kt
+kotlin/reflect/jvm/KCallablesJvm.kt
+kotlin/reflect/jvm/KClassesJvm.kt
+kotlin/reflect/jvm/KTypesJvm.kt
+kotlin/reflect/jvm/ReflectJvmMapping.kt
+kotlin/reflect/jvm/reflectLambda.kt
+org/jetbrains/annotations/Nls.java
+pom.xml
+--------------------------------------------------------------------------------
+
+Copyright 2010-2019 JetBrains s.r.o. and Kotlin Programming Language contributors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+
+See the License for the specific language governing permissions and limitations under the License.
+
+
+--------------------------------------------------------------------------------
 Package Title: Kotlin Script Runtime (1.9.10)
 
 Package Locator: mvn+org.jetbrains.kotlin:kotlin-script-runtime$1.9.10
@@ -45055,6 +45842,33 @@ See the License for the specific language governing permissions and limitations 
 
 
 --------------------------------------------------------------------------------
+Package Title: kotlinx-coroutines-core (1.10.2-intellij-1)
+
+Package Locator: mvn+org.jetbrains.intellij.deps.kotlinx:kotlinx-coroutines-core-jvm$1.10.2-intellij-1
+
+Package Depth: Transitive
+--------------------------------------------------------------------------------
+
+* Declared Licenses *
+Apache-2.0
+
+
+Copyright [yyyy] [name of copyright owner]
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+
+See the License for the specific language governing permissions and limitations under the License.
+
+
+--------------------------------------------------------------------------------
 Package Title: kotlinx-coroutines-core (1.8.0)
 
 Package Locator: mvn+org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm$1.8.0
@@ -45510,10 +46324,6 @@ Package Depth: Transitive
 * Declared Licenses *
 Apache-2.0
 
---------------------------------------------------------------------------------
-File matches:
-pom.xml
---------------------------------------------------------------------------------
 
 Copyright [yyyy] [name of copyright owner]
 
@@ -45599,10 +46409,6 @@ Package Depth: Transitive
 * Declared Licenses *
 Apache-2.0
 
---------------------------------------------------------------------------------
-File matches:
-pom.xml
---------------------------------------------------------------------------------
 
 Copyright [yyyy] [name of copyright owner]
 
@@ -46005,9 +46811,9 @@ SOFTWARE.
 
 
 --------------------------------------------------------------------------------
-Package Title: mockito-core (5.12.0)
+Package Title: mockito-core (5.23.0)
 
-Package Locator: mvn+org.mockito:mockito-core$5.12.0
+Package Locator: mvn+org.mockito:mockito-core$5.23.0
 
 Package Depth: Transitive
 --------------------------------------------------------------------------------
@@ -46018,7 +46824,6 @@ MIT
 --------------------------------------------------------------------------------
 File matches:
 LICENSE
-pom.xml
 --------------------------------------------------------------------------------
 
 The MIT License
@@ -46070,44 +46875,9 @@ See the License for the specific language governing permissions and limitations 
 
 
 --------------------------------------------------------------------------------
-Package Title: mockito-inline (5.2.0)
+Package Title: Mockito-Kotlin (6.3.0)
 
-Package Locator: mvn+org.mockito:mockito-inline$5.2.0
-
-Package Depth: Direct
---------------------------------------------------------------------------------
-
-* Declared Licenses *
-MIT
-
-
-The MIT License
-
-Copyright (c) 2007 Mockito contributors
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in
-all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-THE SOFTWARE.
-
-
---------------------------------------------------------------------------------
-Package Title: Mockito-Kotlin (5.4.0)
-
-Package Locator: mvn+org.mockito.kotlin:mockito-kotlin$5.4.0
+Package Locator: mvn+org.mockito.kotlin:mockito-kotlin$6.3.0
 
 Package Depth: Direct
 --------------------------------------------------------------------------------
@@ -46115,10 +46885,6 @@ Package Depth: Direct
 * Declared Licenses *
 MIT
 
---------------------------------------------------------------------------------
-File matches:
-org/mockito/kotlin/internal/KAnswer.kt
---------------------------------------------------------------------------------
 
 Copyright (c) 2024 Mockito contributors
 Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -48613,7 +49379,6 @@ nonJvmMain/okio/RealBufferedSource.kt
 nonJvmMain/okio/SegmentPool.kt
 nonJvmMain/okio/Sink.kt
 nonJvmMain/okio/Timeout.kt
-pom.xml
 unixMain/okio/UnixFileHandle.kt
 unixMain/okio/UnixPosixVariant.kt
 zlibMain/okio/Deflater.kt
@@ -48840,7 +49605,6 @@ jvmMain/okio/SegmentPool.kt
 jvmMain/okio/Sink.kt
 jvmMain/okio/Throttler.kt
 jvmMain/okio/Timeout.kt
-pom.xml
 zlibMain/okio/Deflater.kt
 zlibMain/okio/DeflaterSink.kt
 zlibMain/okio/GzipSink.kt
@@ -50690,6 +51454,83 @@ See the License for the specific language governing permissions and limitations 
 
 
 --------------------------------------------------------------------------------
+Package Title: StreamEx (0.8.4)
+
+Package Locator: mvn+one.util:streamex$0.8.4
+
+Package Depth: Transitive
+--------------------------------------------------------------------------------
+
+* Declared Licenses *
+Apache-2.0
+
+--------------------------------------------------------------------------------
+File matches:
+META-INF/maven/one.util/streamex/pom.xml
+module-info.java
+one/util/streamex/AbstractStreamEx.java
+one/util/streamex/BaseStreamEx.java
+one/util/streamex/CancellableCollector.java
+one/util/streamex/CharSpliterator.java
+one/util/streamex/CollapseSpliterator.java
+one/util/streamex/CombinationSpliterator.java
+one/util/streamex/ConstSpliterator.java
+one/util/streamex/CrossSpliterator.java
+one/util/streamex/DistinctSpliterator.java
+one/util/streamex/DoubleCollector.java
+one/util/streamex/DoubleStreamEx.java
+one/util/streamex/EmitterSpliterator.java
+one/util/streamex/EntryStream.java
+one/util/streamex/HeadTailSpliterator.java
+one/util/streamex/IfEmptySpliterator.java
+one/util/streamex/IntCollector.java
+one/util/streamex/Internals.java
+one/util/streamex/IntStreamEx.java
+one/util/streamex/Java16Specific.java
+one/util/streamex/Java9Specific.java
+one/util/streamex/Joining.java
+one/util/streamex/Limiter.java
+one/util/streamex/LongCollector.java
+one/util/streamex/LongStreamEx.java
+one/util/streamex/MergingCollector.java
+one/util/streamex/MoreCollectors.java
+one/util/streamex/OrderedCancellableSpliterator.java
+one/util/streamex/package-info.java
+one/util/streamex/PairPermutationSpliterator.java
+one/util/streamex/PairSpliterator.java
+one/util/streamex/PermutationSpliterator.java
+one/util/streamex/PrefixOps.java
+one/util/streamex/PrependSpliterator.java
+one/util/streamex/RangeBasedSpliterator.java
+one/util/streamex/StreamContext.java
+one/util/streamex/StreamEx.java
+one/util/streamex/TailConcatSpliterator.java
+one/util/streamex/TakeDrop.java
+one/util/streamex/TreeSpliterator.java
+one/util/streamex/UnknownSizeSpliterator.java
+one/util/streamex/UnorderedCancellableSpliterator.java
+one/util/streamex/VersionSpecific.java
+one/util/streamex/VerSpec.java
+one/util/streamex/WithFirstSpliterator.java
+one/util/streamex/ZipSpliterator.java
+--------------------------------------------------------------------------------
+
+Copyright 2015, 2024 StreamEx contributors
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+
+See the License for the specific language governing permissions and limitations under the License.
+
+
+--------------------------------------------------------------------------------
 Package Title: swagger-annotations (2.2.29)
 
 Package Locator: mvn+io.swagger.core.v3:swagger-annotations$2.2.29
@@ -52208,10 +53049,6 @@ Package Depth: Transitive
 * Declared Licenses *
 BSD-2-Clause
 
---------------------------------------------------------------------------------
-File matches:
-pom.xml
---------------------------------------------------------------------------------
 
 Copyright (c) <year> <owner>
 
@@ -59576,8 +60413,6 @@ Copyright (c) 2020 Amazon.com, Inc. or its affiliates.
 
 Copyright (c) 2014 y.mifrah
 
-Copyright (c) 2000-2020 JetBrains s.r.o. and other contributors. Use of this source code is governed by the Apache 2.0 license that can be found in the LICENSE file.
-
 Copyright (c) 2018 Confluent Inc.
 
 Copyright (c) 2020 Confluent Inc.
@@ -59694,6 +60529,8 @@ Copyright (c) 2013 Square, Inc.
 
 Copyright (c) 2011 Taro L. Saito
 
+Copyright (c) 2015, 2024 StreamEx contributors
+
 Copyright (c) 2018 Outfox, Inc.
 
 Copyright (c) 2024 Square, Inc.
@@ -59793,7 +60630,7 @@ Copyright (c) 2020 The Go Authors. All rights reserved.
 
 Copyright (c) 2013 Google Inc.  All rights reserved.
 
-Copyright (c) 2010-2021 JetBrains s.r.o. and Kotlin Programming Language contributors.
+Copyright (c) 2011 the Dart project authors.  Please see the AUTHORS file
 Copyright (c) <year> <owner>
 All rights reserved.
 
@@ -60120,9 +60957,17 @@ Eclipse Public License 2.0
 
 Copyright (c) 1989, 1991 Free Software Foundation, Inc.
 
-Copyright (c) 2009, 2022 Oracle and/or its affiliates. All rights reserved.
+Copyright (c) 2018, 2020 Oracle and/or its affiliates. All rights reserved.
+
+Copyright (c) 2021 Oracle and/or its affiliates. All rights reserved.
+
+Copyright (c) 2009, 2020 Oracle and/or its affiliates. All rights reserved.
 
 Copyright (c) 2005, 2020 Oracle and/or its affiliates. All rights reserved.
+
+Copyright (c)  the software, and
+
+Copyright (c) 2020 Oracle and/or its affiliates. All rights reserved.
 
 Copyright (c) 2012, 2022 Oracle and/or its affiliates. All rights reserved.
 
@@ -60150,17 +60995,17 @@ Copyright (c)  ignoreyear}</ignoreYear>
 
 Copyright (c) 2019, 2021 Eclipse Foundation. All rights reserved.<br>
 
-Copyright (c) 2020 Oracle and/or its affiliates. All rights reserved.
-
-Copyright (c) 2021 Oracle and/or its affiliates. All rights reserved.
-
-Copyright (c) 2009, 2020 Oracle and/or its affiliates. All rights reserved.
-
-Copyright (c)  the software, and
-
-Copyright (c) 2018, 2020 Oracle and/or its affiliates. All rights reserved.
+Copyright (c) 2009, 2022 Oracle and/or its affiliates. All rights reserved.
 
 Copyright (c) 2009, 2025 Mountainminds GmbH & Co. KG and Contributors
+
+Copyright (c)  years>${project.inceptionYear}, 2025</copyright.years>
+
+Copyright (c)  years>
+
+Copyright (c)  copyright.years} Mountainminds GmbH &amp; Co. KG and Contributors"/>
+
+Copyright (c)  years} Mountainminds GmbH &amp; Co. KG and Contributors"/>
 
 Copyright (c) 2015-2025 the original author or authors.
 Eclipse Public License - v 2.0
@@ -60348,19 +61193,15 @@ GNU General Public License v2.0 w/Classpath exception
 
 Copyright (c) 1989, 1991 Free Software Foundation, Inc.
 
-Copyright (c) 2005, 2020 Oracle and/or its affiliates. All rights reserved.
+Copyright (c) 2009, 2022 Oracle and/or its affiliates. All rights reserved.
 
-Copyright (c) 2018, 2020 Oracle and/or its affiliates. All rights reserved.
+Copyright (c) 2005, 2020 Oracle and/or its affiliates. All rights reserved.
 
 Copyright (c)  the software, and
 
-Copyright (c) 2021 Oracle and/or its affiliates. All rights reserved.
+Copyright (c) 2018, 2020 Oracle and/or its affiliates. All rights reserved.
 
 Copyright (c) 2009, 2020 Oracle and/or its affiliates. All rights reserved.
-
-Copyright (c) 2009, 2022 Oracle and/or its affiliates. All rights reserved.
-
-Copyright (c) 2020 Oracle and/or its affiliates. All rights reserved.
 
 Copyright (c) 2012, 2022 Oracle and/or its affiliates. All rights reserved.
 
@@ -60387,6 +61228,10 @@ Copyright (c)  update}</update>
 Copyright (c)  ignoreyear}</ignoreYear>
 
 Copyright (c) 2019, 2021 Eclipse Foundation. All rights reserved.<br>
+
+Copyright (c) 2021 Oracle and/or its affiliates. All rights reserved.
+
+Copyright (c) 2020 Oracle and/or its affiliates. All rights reserved.
 <<beginOptional>> GNU GENERAL PUBLIC LICENSE
 Version 2, June 1991<<endOptional>>
 Copyright (C) 1989, 1991 Free Software Foundation, Inc.
@@ -60592,8 +61437,6 @@ Copyright (c) 2015, 2016 EclipseSource.
 Copyright (c) 2019 The Netty Project
 
 Copyright (c) 2012 The Netty Project
-
-Copyright (c) 2018 Niek Haarman
 
 Copyright (c) 2007 Mockito contributors
 MIT License
@@ -60988,6 +61831,8 @@ Copyright (c) 2017-2024 JetBrains s.r.o. Use of this source code is governed by 
 
 Copyright (c) 2025-2025 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
 
+Copyright (c) 2025 Mockito contributors
+
 Copyright (c) 2007 Mockito contributors
 
 Copyright (c) 2016 Mockito contributors
@@ -60995,6 +61840,8 @@ Copyright (c) 2016 Mockito contributors
 Copyright (c) 2017 Mockito contributors
 
 Copyright (c) 2019 Mockito contributors
+
+Copyright (c) 2024 Mockito contributors
 
 Copyright (c) 2018 Mockito contributors
 
@@ -61006,9 +61853,9 @@ Copyright (c) 2022 Mockito contributors
 
 Copyright (c) 2021 Mockito contributors
 
-Copyright (c) 2015 Mockito contributors
+Copyright (c) 2026 Mockito contributors
 
-Copyright (c) 2024 Mockito contributors
+Copyright (c) 2015 Mockito contributors
 
 Copyright (c) 2006-2022 Joe Walnes, Henri Tremblay, Leonardo Mesquita
 
@@ -61067,4 +61914,4 @@ This is a catch-all license used when we find many different proprietary license
 --------------------------------------------------------------------------------
 --------------------------------------------------------------------------------
 
-Report Generated by FOSSA on 2026-3-26
+Report Generated by FOSSA on 2026-4-13
