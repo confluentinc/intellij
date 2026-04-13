@@ -230,7 +230,7 @@ class KafkaDataManager(
             ?: error(KafkaMessagesBundle.message("error.schema.registry.provider.not.selected"))
     }
 
-    override fun parseSchemaForDisplay(versionInfo: SchemaVersionInfo): Result<io.confluent.kafka.schemaregistry.ParsedSchema> {
+    override fun parseSchemaForDisplay(versionInfo: SchemaVersionInfo): Result<ParsedSchema> {
         // For Confluent registry, pass the client; for Glue, pass null (uses default providers)
         return KafkaRegistryUtil.parseSchema(
             versionInfo.type,

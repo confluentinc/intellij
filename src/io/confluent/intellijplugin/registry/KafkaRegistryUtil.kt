@@ -48,7 +48,7 @@ object KafkaRegistryUtil {
             return null
 
         val versionInfo = dataManager.getLatestVersionInfo(schemaName) ?: return null
-        return parseSchema(versionInfo.type, versionInfo.schema, versionInfo.references).getOrThrow()
+        return dataManager.parseSchemaForDisplay(versionInfo).getOrThrow()
     }
 
     /**
