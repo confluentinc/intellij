@@ -194,18 +194,11 @@
     </actions>
 
     <change-notes><![CDATA[
-<h2 style="padding:0;margin:0;line-height:0px">Changes in 253.25910.0</h2>
-<h4 style="padding:0;margin:0;line-height:0px">Changed</h4>
-<ul>
-<li>Rebrand plugin from "Kafka" to "Confluent" and publish under Apache 2 license</li>
-</ul>
-<h4 style="padding:0;margin:0;line-height:0px">Added</h4>
-<ul>
-<li>OAuth support for logging in to Confluent Cloud directly, with the ability to view & interact with environments and resources.</li>
-</ul>
+<h2 style="padding:0;margin:0;line-height:0px">Changes in 253.25910.1</h2>
 <h4 style="padding:0;margin:0;line-height:0px">Fixed</h4>
 <ul>
-<li>Consumer performance improvements: batch table updates and optimized storage</li>
+<li>Value & Key fields in Consumer details panel too small to read (<a href="https://github.com/confluentinc/intellij/issues/601">#601</a>)</li>
+<li>Viewing schemas that reference other schemas throws an error (<a href="https://github.com/confluentinc/intellij/issues/591">#591</a>)</li>
 </ul>
 ]]></change-notes>
 </idea-plugin>
