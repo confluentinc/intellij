@@ -2,7 +2,7 @@
     <id>com.intellij.bigdatatools.kafka</id>
     <name>Confluent</name>
     <vendor>Confluent</vendor>
-    <version>253.25910.0-pre</version>
+    <version>253.25910.1-pre</version>
     <idea-version since-build="253.28294"/>
 
     <description>Work with Confluent and Apache Kafka to design, build and run data streaming applications.</description>
