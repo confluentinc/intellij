@@ -43,8 +43,6 @@ import io.confluent.intellijplugin.toolwindow.config.KafkaClusterConfig
 import io.confluent.intellijplugin.toolwindow.config.KafkaToolWindowSettings
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
 import io.confluent.intellijplugin.util.KafkaMessagesBundle.message
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import net.miginfocom.layout.ConstraintParser
 import org.jetbrains.annotations.Nls
 import java.awt.BorderLayout
@@ -54,9 +52,6 @@ import javax.swing.JCheckBox
 import javax.swing.JComponent
 import javax.swing.JPanel
 
-/**
- * CCloud schema detail view with tree/raw toggle, version selector, and compare mode.
- */
 internal class ConfluentSchemaDetailController(
     private val project: Project,
     private val dataManager: CCloudClusterDataManager
@@ -68,6 +63,7 @@ internal class ConfluentSchemaDetailController(
     private val isNotEditMode = AtomicBooleanProperty(true)
     private val isLoading = AtomicBooleanProperty(true)
     private val hasContent = AtomicBooleanProperty(false)
+    private val hasError = AtomicBooleanProperty(false)
     private val isEditModeAvailable = AtomicBooleanProperty(false)
 
     @NlsSafe
@@ -79,10 +75,12 @@ internal class ConfluentSchemaDetailController(
     private val version1Controller = SchemaVersionsComboboxController(this, dataManager) { versions ->
         isEditModeAvailable.set(versions.size > 1)
         if (versions.isNotEmpty()) {
+            // Do not call updateVersion1Info() directly — updateComboBox's first addItem fires
+            // onChanged which already triggers it. Calling again races the fast-path against
+            // the slow ref-resolving parse and flashes the empty panel.
             version1.component.item = versions.first()
-            updateVersion1Info()
         } else {
-            isLoading.set(false)
+            isLoading.set(true)
             hasContent.set(false)
         }
     }.also {
@@ -99,7 +97,6 @@ internal class ConfluentSchemaDetailController(
 
     private val component = JPanel(BorderLayout())
 
-    // UI components reused from Kafka tab
     private val schemaView = KafkaRegistrySchemaEditor(project, parentDisposable = this, isEditable = false).apply {
         component.preferredSize = Dimension(20, 20)
     }
@@ -113,6 +110,10 @@ internal class ConfluentSchemaDetailController(
         row {
             label(message("confluent.cloud.details.schema.loading")).align(Align.CENTER)
         }.resizableRow().visibleIf(isLoading)
+
+        row {
+            label(message("confluent.cloud.details.schema.load.failed")).align(Align.CENTER)
+        }.resizableRow().visibleIf(hasError)
 
         row {
             cell(structureView.getComponent()).align(Align.FILL)
@@ -146,6 +147,9 @@ internal class ConfluentSchemaDetailController(
     override fun getComponent(): JComponent = component
 
     override fun setDetailsId(@Nls id: String) {
+        isLoading.set(true)
+        hasContent.set(false)
+        hasError.set(false)
         version1Controller.setSchema(id)
         version2Controller.setSchema(id)
         schemaName = id
@@ -157,6 +161,7 @@ internal class ConfluentSchemaDetailController(
 
         isLoading.set(true)
         hasContent.set(false)
+        hasError.set(false)
 
         dataManager.getSchemaVersionInfo(schemaName, version).onSuccess { versionInfo ->
             if (version1Schema == versionInfo) {
@@ -164,12 +169,14 @@ internal class ConfluentSchemaDetailController(
                     if (Disposer.isDisposed(this@ConfluentSchemaDetailController)) return@invokeLater
                     isLoading.set(false)
                     hasContent.set(true)
+                    hasError.set(false)
                 }
                 return@onSuccess
             }
 
             version1Schema = versionInfo
             val prettySchema = KafkaRegistryUtil.getPrettySchema(schemaType = versionInfo.type.name, schema = versionInfo.schema)
+            val parsedSchema = dataManager.parseSchemaForDisplay(versionInfo).getOrNull()
 
             invokeLater {
                 if (Disposer.isDisposed(this@ConfluentSchemaDetailController)) return@invokeLater
@@ -180,32 +187,19 @@ internal class ConfluentSchemaDetailController(
                     else KafkaRegistryUtil.protobufLanguage
                 )
 
+                if (parsedSchema != null) {
+                    try {
+                        structureView.update(parsedSchema)
+                    } catch (e: IllegalArgumentException) {
+                        // schema has no type definitions — tree view stays empty
+                    }
+                }
+
                 diffViewController.updateVersion1(versionInfo)
 
                 isLoading.set(false)
                 hasContent.set(true)
-            }
-
-            dataManager.driver.coroutineScope.launch(Dispatchers.Default) {
-                val parseResult = dataManager.parseSchemaForDisplay(versionInfo)
-                val parsedSchema = parseResult.getOrNull()
-
-                if (parsedSchema == null) {
-                    val error = parseResult.exceptionOrNull()
-                    thisLogger().warn("Failed to parse schema for '$schemaName' version $version: ${error?.message}", error)
-                    return@launch
-                }
-
-                invokeLater {
-                    if (Disposer.isDisposed(this@ConfluentSchemaDetailController)) return@invokeLater
-                    if (version1Schema != versionInfo) return@invokeLater
-
-                    try {
-                        structureView.update(parsedSchema)
-                    } catch (e: IllegalArgumentException) {
-                        // Empty schema with no type definitions, skip tree view
-                    }
-                }
+                hasError.set(false)
             }
         }.onError { error ->
             thisLogger().warn("Failed to load schema version info for '$schemaName' version $version", error)
@@ -214,6 +208,7 @@ internal class ConfluentSchemaDetailController(
 
                 isLoading.set(false)
                 hasContent.set(false)
+                hasError.set(true)
             }
         }
     }
