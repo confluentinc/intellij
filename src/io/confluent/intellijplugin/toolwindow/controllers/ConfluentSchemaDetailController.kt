@@ -75,9 +75,6 @@ internal class ConfluentSchemaDetailController(
     private val version1Controller = SchemaVersionsComboboxController(this, dataManager) { versions ->
         isEditModeAvailable.set(versions.size > 1)
         if (versions.isNotEmpty()) {
-            // Do not call updateVersion1Info() directly — updateComboBox's first addItem fires
-            // onChanged which already triggers it. Calling again races the fast-path against
-            // the slow ref-resolving parse and flashes the empty panel.
             version1.component.item = versions.first()
         } else {
             isLoading.set(true)
@@ -147,9 +144,6 @@ internal class ConfluentSchemaDetailController(
     override fun getComponent(): JComponent = component
 
     override fun setDetailsId(@Nls id: String) {
-        isLoading.set(true)
-        hasContent.set(false)
-        hasError.set(false)
         version1Controller.setSchema(id)
         version2Controller.setSchema(id)
         schemaName = id
