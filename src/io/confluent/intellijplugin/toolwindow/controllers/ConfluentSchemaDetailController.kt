@@ -164,7 +164,6 @@ internal class ConfluentSchemaDetailController(
                     if (schemaName != this@ConfluentSchemaDetailController.schemaName) return@invokeLater
                     isLoading.set(false)
                     hasContent.set(true)
-                    hasError.set(false)
                 }
                 return@onSuccess
             }
@@ -199,7 +198,6 @@ internal class ConfluentSchemaDetailController(
 
                 isLoading.set(false)
                 hasContent.set(true)
-                hasError.set(false)
             }
         }.onError { error ->
             thisLogger().warn("Failed to load schema version info for '$schemaName' version $version", error)

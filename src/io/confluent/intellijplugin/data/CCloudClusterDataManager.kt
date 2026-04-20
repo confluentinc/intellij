@@ -615,13 +615,11 @@ class CCloudClusterDataManager(
                 error(KafkaMessagesBundle.message("error.schema.registry.not.configured.for.cluster"))
             }
 
-            val resolvedRefs = if (versionInfo.references.isEmpty()) emptyMap()
-            else fetchResolvedReferences(versionInfo.references)
             val parsedSchema = KafkaRegistryUtil.parseSchema(
                 versionInfo.type,
                 newSchema,
                 versionInfo.references,
-                resolvedRefs
+                fetchResolvedReferences(versionInfo.references)
             ).getOrThrow()
 
             val request = RegisterSchemaRequest(

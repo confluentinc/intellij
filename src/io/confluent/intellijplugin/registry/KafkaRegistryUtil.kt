@@ -75,11 +75,7 @@ object KafkaRegistryUtil {
         return parseSchemaWithProviders(schemaType, newText, references, providers)
     }
 
-    /**
-     * Parse schema text with pre-fetched resolved references used by CCloud path.
-     *
-     * @param resolvedReferences map of reference name → schema string (may be empty for schemas with no references)
-     */
+    /** Parse schema text with pre-fetched resolved references used by CCloud path. */
     fun parseSchema(
         schemaType: KafkaRegistryFormat,
         newText: @NlsSafe String,
