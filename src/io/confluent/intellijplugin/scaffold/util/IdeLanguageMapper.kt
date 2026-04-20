@@ -8,7 +8,6 @@ object IdeLanguageMapper {
 
     // Maps Language.displayName to template language values where they differ
     private val LANGUAGE_ALIAS_MAP: Map<String, List<String>> = mapOf(
-        "C/C++" to listOf("C/C++"),
         "ObjectiveC" to listOf("C/C++"),
         "C#" to listOf("C#", ".NET"),
     )
@@ -30,18 +29,21 @@ object IdeLanguageMapper {
         templates: List<ScaffoldV1TemplateListDataInner>,
         preferredLanguages: List<String> = getPreferredLanguages()
     ): List<ScaffoldV1TemplateListDataInner> {
-        if (preferredLanguages.isEmpty()) return templates
-
         val preferredLower = preferredLanguages.map { it.lowercase() }.toSet()
 
         return templates.sortedWith(
-            compareByDescending { template ->
+            compareByDescending<ScaffoldV1TemplateListDataInner> { template ->
                 template.spec.language?.lowercase() in preferredLower
+            }.thenBy { template ->
+                template.spec.language?.lowercase() ?: ""
             }
         ).also { sorted ->
-            thisLogger().debug(
-                "Sorted templates: ${sorted.map { "${it.spec.displayName ?: it.spec.name} (${it.spec.language})" }}"
-            )
+            val logger = thisLogger()
+            if (logger.isDebugEnabled) {
+                logger.debug(
+                    "Sorted templates: ${sorted.map { "${it.spec.displayName ?: it.spec.name} (${it.spec.language})" }}"
+                )
+            }
         }
     }
 }

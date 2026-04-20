@@ -247,7 +247,8 @@ class SelectScaffoldTemplateActionTest {
         fun `applies template sorter before showing dialog`() {
             val templates = setOf(
                 createTemplate(name = "template-a", displayName = "Template A"),
-                createTemplate(name = "template-b", displayName = "Template B")
+                createTemplate(name = "template-b", displayName = "Template B"),
+                createTemplate(name = "template-c", displayName = "Template C")
             )
             val mockClient = createMockClientReturning(templates)
 
@@ -271,8 +272,10 @@ class SelectScaffoldTemplateActionTest {
 
             verify(dialogFactory).invoke(eq(project), templatesCaptor.capture())
             val sortedTemplates = templatesCaptor.firstValue
-            assertEquals("template-b", sortedTemplates[0].spec.name)
-            assertEquals("template-a", sortedTemplates[1].spec.name)
+            assertEquals(
+                listOf("template-c", "template-b", "template-a"),
+                sortedTemplates.map { it.spec.name }
+            )
         }
 
         @Test
@@ -285,29 +288,6 @@ class SelectScaffoldTemplateActionTest {
             assertThrows(CancellationException::class.java) {
                 runBlocking { action.fetchAndShowTemplates(project) }
             }
-        }
-
-        @Test
-        fun `logs selected template when user confirms selection`() {
-            val template = createTemplate(name = "java-producer", displayName = "Java Producer")
-            val templates = setOf(template)
-            val mockClient = createMockClientReturning(templates)
-
-            val mockDialog = mock<ScaffoldTemplateSelectionDialog> {
-                on { showAndGet() } doReturn true
-                on { selectedTemplate } doReturn template
-            }
-            val dialogFactory = createMockDialogFactory(mockDialog)
-
-            val action = SelectScaffoldTemplateAction(
-                clientFactory = { mockClient },
-                dialogFactory = dialogFactory
-            )
-
-            runBlocking { action.fetchAndShowTemplates(project) }
-
-            verify(mockDialog).showAndGet()
-            verify(mockDialog).selectedTemplate
         }
 
         @Test

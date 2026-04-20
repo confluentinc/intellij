@@ -94,10 +94,10 @@ class IdeLanguageMapperTest {
         }
 
         @Test
-        fun `preserves original order for non-preferred templates`() {
+        fun `groups non-preferred templates by language`() {
             val templates = listOf(
-                createTemplate(name = "go-client", language = "Go"),
                 createTemplate(name = "python-client", language = "Python"),
+                createTemplate(name = "go-client", language = "Go"),
                 createTemplate(name = "java-client", language = "Java")
             )
 
@@ -106,6 +106,21 @@ class IdeLanguageMapperTest {
             assertEquals("java-client", sorted[0].spec.name)
             assertEquals("go-client", sorted[1].spec.name)
             assertEquals("python-client", sorted[2].spec.name)
+        }
+
+        @Test
+        fun `groups same-language templates contiguously within each bucket`() {
+            val templates = listOf(
+                createTemplate(name = "go-1", language = "Go"),
+                createTemplate(name = "python-1", language = "Python"),
+                createTemplate(name = "go-2", language = "Go"),
+                createTemplate(name = "python-2", language = "Python"),
+                createTemplate(name = "java-1", language = "Java")
+            )
+
+            val sorted = IdeLanguageMapper.sortByPreferredLanguage(templates, listOf("Python"))
+
+            assertEquals(listOf("python-1", "python-2", "go-1", "go-2", "java-1"), sorted.map { it.spec.name })
         }
 
         @Test
@@ -134,10 +149,10 @@ class IdeLanguageMapperTest {
         }
 
         @Test
-        fun `empty preferred list returns original order`() {
+        fun `empty preferred list groups templates by language alphabetically`() {
             val templates = listOf(
-                createTemplate(name = "go-client", language = "Go"),
-                createTemplate(name = "java-client", language = "Java")
+                createTemplate(name = "java-client", language = "Java"),
+                createTemplate(name = "go-client", language = "Go")
             )
 
             val sorted = IdeLanguageMapper.sortByPreferredLanguage(templates, emptyList())
