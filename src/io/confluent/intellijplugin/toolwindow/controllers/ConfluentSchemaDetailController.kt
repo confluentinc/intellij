@@ -161,6 +161,7 @@ internal class ConfluentSchemaDetailController(
             if (version1Schema == versionInfo) {
                 invokeLater {
                     if (Disposer.isDisposed(this@ConfluentSchemaDetailController)) return@invokeLater
+                    if (schemaName != this@ConfluentSchemaDetailController.schemaName) return@invokeLater
                     isLoading.set(false)
                     hasContent.set(true)
                     hasError.set(false)
@@ -170,10 +171,15 @@ internal class ConfluentSchemaDetailController(
 
             version1Schema = versionInfo
             val prettySchema = KafkaRegistryUtil.getPrettySchema(schemaType = versionInfo.type.name, schema = versionInfo.schema)
-            val parsedSchema = dataManager.parseSchemaForDisplay(versionInfo).getOrNull()
+            val parsedSchemaResult = dataManager.parseSchemaForDisplay(versionInfo)
+            parsedSchemaResult.onFailure { e ->
+                thisLogger().warn("Failed to parse schema for '$schemaName' version $version", e)
+            }
+            val parsedSchema = parsedSchemaResult.getOrNull()
 
             invokeLater {
                 if (Disposer.isDisposed(this@ConfluentSchemaDetailController)) return@invokeLater
+                if (schemaName != this@ConfluentSchemaDetailController.schemaName) return@invokeLater
 
                 schemaView.setText(
                     prettySchema,
@@ -199,6 +205,7 @@ internal class ConfluentSchemaDetailController(
             thisLogger().warn("Failed to load schema version info for '$schemaName' version $version", error)
             invokeLater {
                 if (Disposer.isDisposed(this@ConfluentSchemaDetailController)) return@invokeLater
+                if (schemaName != this@ConfluentSchemaDetailController.schemaName) return@invokeLater
 
                 isLoading.set(false)
                 hasContent.set(false)
