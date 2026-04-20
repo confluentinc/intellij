@@ -188,6 +188,36 @@ class KafkaRegistryUtilTest {
                     "Expected NullPointerException but got: ${result.exceptionOrNull()}"
                 )
             }
+
+            @Test
+            fun `should parse with pre-resolved references and no registry client`() {
+                val references = listOf(SchemaReference("com.example.Address", "Address", 1))
+                val resolvedReferences = mapOf("com.example.Address" to addressSchemaJson)
+
+                val result = KafkaRegistryUtil.parseSchema(
+                    KafkaRegistryFormat.AVRO,
+                    userSchemaWithRefJson,
+                    references,
+                    resolvedReferences
+                )
+
+                assertTrue(result.isSuccess, "Expected success but got: ${result.exceptionOrNull()}")
+                assertEquals("com.example.User", result.getOrNull()?.name())
+            }
+
+            @Test
+            fun `should fail with pre-resolved references when map is missing required ref`() {
+                val references = listOf(SchemaReference("com.example.Address", "Address", 1))
+
+                val result = KafkaRegistryUtil.parseSchema(
+                    KafkaRegistryFormat.AVRO,
+                    userSchemaWithRefJson,
+                    references,
+                    resolvedReferences = emptyMap()
+                )
+
+                assertTrue(result.isFailure, "Expected failure when a referenced type is not in the map")
+            }
         }
     }
 
