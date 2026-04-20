@@ -43,8 +43,6 @@ import io.confluent.intellijplugin.toolwindow.config.KafkaClusterConfig
 import io.confluent.intellijplugin.toolwindow.config.KafkaToolWindowSettings
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
 import io.confluent.intellijplugin.util.KafkaMessagesBundle.message
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import net.miginfocom.layout.ConstraintParser
 import org.jetbrains.annotations.Nls
 import java.awt.BorderLayout
@@ -54,9 +52,6 @@ import javax.swing.JCheckBox
 import javax.swing.JComponent
 import javax.swing.JPanel
 
-/**
- * CCloud schema detail view with tree/raw toggle, version selector, and compare mode.
- */
 internal class ConfluentSchemaDetailController(
     private val project: Project,
     private val dataManager: CCloudClusterDataManager
@@ -68,6 +63,7 @@ internal class ConfluentSchemaDetailController(
     private val isNotEditMode = AtomicBooleanProperty(true)
     private val isLoading = AtomicBooleanProperty(true)
     private val hasContent = AtomicBooleanProperty(false)
+    private val hasError = AtomicBooleanProperty(false)
     private val isEditModeAvailable = AtomicBooleanProperty(false)
 
     @NlsSafe
@@ -80,9 +76,8 @@ internal class ConfluentSchemaDetailController(
         isEditModeAvailable.set(versions.size > 1)
         if (versions.isNotEmpty()) {
             version1.component.item = versions.first()
-            updateVersion1Info()
         } else {
-            isLoading.set(false)
+            isLoading.set(true)
             hasContent.set(false)
         }
     }.also {
@@ -99,7 +94,6 @@ internal class ConfluentSchemaDetailController(
 
     private val component = JPanel(BorderLayout())
 
-    // UI components reused from Kafka tab
     private val schemaView = KafkaRegistrySchemaEditor(project, parentDisposable = this, isEditable = false).apply {
         component.preferredSize = Dimension(20, 20)
     }
@@ -113,6 +107,10 @@ internal class ConfluentSchemaDetailController(
         row {
             label(message("confluent.cloud.details.schema.loading")).align(Align.CENTER)
         }.resizableRow().visibleIf(isLoading)
+
+        row {
+            label(message("confluent.cloud.details.schema.load.failed")).align(Align.CENTER)
+        }.resizableRow().visibleIf(hasError)
 
         row {
             cell(structureView.getComponent()).align(Align.FILL)
@@ -157,11 +155,13 @@ internal class ConfluentSchemaDetailController(
 
         isLoading.set(true)
         hasContent.set(false)
+        hasError.set(false)
 
         dataManager.getSchemaVersionInfo(schemaName, version).onSuccess { versionInfo ->
             if (version1Schema == versionInfo) {
                 invokeLater {
                     if (Disposer.isDisposed(this@ConfluentSchemaDetailController)) return@invokeLater
+                    if (schemaName != this@ConfluentSchemaDetailController.schemaName) return@invokeLater
                     isLoading.set(false)
                     hasContent.set(true)
                 }
@@ -170,9 +170,15 @@ internal class ConfluentSchemaDetailController(
 
             version1Schema = versionInfo
             val prettySchema = KafkaRegistryUtil.getPrettySchema(schemaType = versionInfo.type.name, schema = versionInfo.schema)
+            val parsedSchemaResult = dataManager.parseSchemaForDisplay(versionInfo)
+            parsedSchemaResult.onFailure { e ->
+                thisLogger().warn("Failed to parse schema for '$schemaName' version $version", e)
+            }
+            val parsedSchema = parsedSchemaResult.getOrNull()
 
             invokeLater {
                 if (Disposer.isDisposed(this@ConfluentSchemaDetailController)) return@invokeLater
+                if (schemaName != this@ConfluentSchemaDetailController.schemaName) return@invokeLater
 
                 schemaView.setText(
                     prettySchema,
@@ -180,40 +186,28 @@ internal class ConfluentSchemaDetailController(
                     else KafkaRegistryUtil.protobufLanguage
                 )
 
+                if (parsedSchema != null) {
+                    try {
+                        structureView.update(parsedSchema)
+                    } catch (e: IllegalArgumentException) {
+                        // schema has no type definitions — tree view stays empty
+                    }
+                }
+
                 diffViewController.updateVersion1(versionInfo)
 
                 isLoading.set(false)
                 hasContent.set(true)
             }
-
-            dataManager.driver.coroutineScope.launch(Dispatchers.Default) {
-                val parseResult = dataManager.parseSchemaForDisplay(versionInfo)
-                val parsedSchema = parseResult.getOrNull()
-
-                if (parsedSchema == null) {
-                    val error = parseResult.exceptionOrNull()
-                    thisLogger().warn("Failed to parse schema for '$schemaName' version $version: ${error?.message}", error)
-                    return@launch
-                }
-
-                invokeLater {
-                    if (Disposer.isDisposed(this@ConfluentSchemaDetailController)) return@invokeLater
-                    if (version1Schema != versionInfo) return@invokeLater
-
-                    try {
-                        structureView.update(parsedSchema)
-                    } catch (e: IllegalArgumentException) {
-                        // Empty schema with no type definitions, skip tree view
-                    }
-                }
-            }
         }.onError { error ->
             thisLogger().warn("Failed to load schema version info for '$schemaName' version $version", error)
             invokeLater {
                 if (Disposer.isDisposed(this@ConfluentSchemaDetailController)) return@invokeLater
+                if (schemaName != this@ConfluentSchemaDetailController.schemaName) return@invokeLater
 
                 isLoading.set(false)
                 hasContent.set(false)
+                hasError.set(true)
             }
         }
     }
