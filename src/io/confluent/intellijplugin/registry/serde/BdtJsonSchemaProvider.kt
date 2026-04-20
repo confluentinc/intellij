@@ -5,7 +5,9 @@ import io.confluent.kafka.schemaregistry.client.rest.entities.Schema
 import io.confluent.kafka.schemaregistry.json.JsonSchema
 import io.confluent.kafka.schemaregistry.json.JsonSchemaProvider
 
-class BdtJsonSchemaProvider : JsonSchemaProvider() {
+class BdtJsonSchemaProvider(
+    private val preResolvedRefs: Map<String, String>? = null
+) : JsonSchemaProvider() {
     override fun parseSchemaOrElseThrow(
         schema: Schema,
         isNew: Boolean,
@@ -15,7 +17,7 @@ class BdtJsonSchemaProvider : JsonSchemaProvider() {
             JsonSchema(
                 schema.schema,
                 schema.references,
-                resolveReferences(schema),
+                preResolvedRefs ?: resolveReferences(schema),
                 null
             )
         } catch (e: Exception) {

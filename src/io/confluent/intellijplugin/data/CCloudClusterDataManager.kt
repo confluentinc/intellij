@@ -41,6 +41,8 @@ import io.confluent.intellijplugin.registry.KafkaRegistryFormat
 import io.confluent.intellijplugin.registry.KafkaRegistryType
 import io.confluent.intellijplugin.registry.KafkaRegistryUtil
 import io.confluent.intellijplugin.registry.SchemaVersionInfo
+import io.confluent.kafka.schemaregistry.ParsedSchema
+import io.confluent.kafka.schemaregistry.client.rest.entities.SchemaReference
 import io.confluent.intellijplugin.registry.common.KafkaSchemaInfo
 import io.confluent.intellijplugin.rfs.ConfluentConnectionData
 import io.confluent.intellijplugin.toolwindow.config.KafkaToolWindowSettings
@@ -528,14 +530,46 @@ class CCloudClusterDataManager(
         }
     }
 
-    override fun parseSchemaForDisplay(versionInfo: SchemaVersionInfo): Result<io.confluent.kafka.schemaregistry.ParsedSchema> {
-        // CCloud doesn't need the registry client for parsing - parse schemas standalone
+    override fun parseSchemaForDisplay(versionInfo: SchemaVersionInfo): Result<ParsedSchema> {
+        val resolvedRefs = runBlockingMaybeCancellable { fetchResolvedReferences(versionInfo.references) }
         return KafkaRegistryUtil.parseSchema(
             versionInfo.type,
             versionInfo.schema,
-            client = null,
-            versionInfo.references
+            versionInfo.references,
+            resolvedRefs
         )
+    }
+
+    /**
+     * For each reference pointer, fetch the actual schema text via the CCloud SR REST API.
+     * Recurses into transitive refs and returns a flat `refName → schemaText` map.
+     */
+    private suspend fun fetchResolvedReferences(
+        references: List<SchemaReference>,
+        visited: MutableSet<String> = mutableSetOf()
+    ): Map<String, String> {
+        if (references.isEmpty()) return emptyMap()
+        val fetcher = dataPlaneCache.getFetcher() ?: return emptyMap()
+        val result = mutableMapOf<String, String>()
+
+        for (ref in references) {
+            if (!visited.add(ref.name)) continue
+            try {
+                val refResponse = withContext(Dispatchers.IO) {
+                    fetcher.getSchemaVersionInfo(ref.subject, ref.version.toLong())
+                }
+                result[ref.name] = refResponse.schema
+                result.putAll(fetchResolvedReferences(refResponse.references.toSchemaReferences(), visited))
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                thisLogger().warn(
+                    "Failed to resolve schema reference '${ref.name}' (${ref.subject}:${ref.version})",
+                    e
+                )
+            }
+        }
+        return result
     }
 
     override suspend fun getCachedOrLoadSchema(name: String): KafkaSchemaInfo {
@@ -581,11 +615,13 @@ class CCloudClusterDataManager(
                 error(KafkaMessagesBundle.message("error.schema.registry.not.configured.for.cluster"))
             }
 
+            val resolvedRefs = if (versionInfo.references.isEmpty()) emptyMap()
+            else fetchResolvedReferences(versionInfo.references)
             val parsedSchema = KafkaRegistryUtil.parseSchema(
                 versionInfo.type,
                 newSchema,
-                client = null,
-                versionInfo.references
+                versionInfo.references,
+                resolvedRefs
             ).getOrThrow()
 
             val request = RegisterSchemaRequest(
