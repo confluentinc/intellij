@@ -531,13 +531,7 @@ class CCloudClusterDataManager(
     }
 
     override fun parseSchemaForDisplay(versionInfo: SchemaVersionInfo): Result<ParsedSchema> {
-        val resolvedRefs = if (versionInfo.references.isEmpty()) {
-            emptyMap()
-        } else {
-            runBlockingMaybeCancellable {
-                fetchResolvedReferences(versionInfo.references)
-            }
-        }
+        val resolvedRefs = runBlockingMaybeCancellable { fetchResolvedReferences(versionInfo.references) }
         return KafkaRegistryUtil.parseSchema(
             versionInfo.type,
             versionInfo.schema,
@@ -549,14 +543,12 @@ class CCloudClusterDataManager(
     /**
      * For each reference pointer, fetch the actual schema text via the CCloud SR REST API.
      * Recurses into transitive refs and returns a flat `refName → schemaText` map.
-     *
-     * Replaces the providers' built-in `resolveReferences`, which NPEs on CCloud (no local
-     * SchemaRegistryClient).
      */
     private suspend fun fetchResolvedReferences(
         references: List<SchemaReference>,
         visited: MutableSet<String> = mutableSetOf()
     ): Map<String, String> {
+        if (references.isEmpty()) return emptyMap()
         val fetcher = dataPlaneCache.getFetcher() ?: return emptyMap()
         val result = mutableMapOf<String, String>()
 
