@@ -3,9 +3,12 @@ package io.confluent.intellijplugin.consumer.editor
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.ActionManager
+import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnAction
+import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.actionSystem.Presentation
+import com.intellij.openapi.actionSystem.ex.CustomComponentAction
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
@@ -25,7 +28,6 @@ import io.confluent.intellijplugin.core.table.filters.SearchQueryParser
 import io.confluent.intellijplugin.core.table.filters.TableFilterHeader
 import io.confluent.intellijplugin.core.table.renderers.DateRenderer
 import io.confluent.intellijplugin.core.table.renderers.DurationRenderer
-import io.confluent.intellijplugin.core.ui.CustomComponentActionImpl
 import io.confluent.intellijplugin.core.ui.ExpansionPanel
 import io.confluent.intellijplugin.core.ui.onDoubleClick
 import io.confluent.intellijplugin.core.ui.setSouthComponent
@@ -141,14 +143,23 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
 
     private var searchExpanded = false
 
-    private val searchExpandAction = DumbAwareAction.create(AllIcons.Actions.Expandall) {
-        searchExpanded = !searchExpanded
-        it.presentation.icon = if (searchExpanded) AllIcons.Actions.Collapseall else AllIcons.Actions.Expandall
-        searchField.parent?.revalidate()
-        searchField.parent?.repaint()
+    private val searchExpandAction = object : DumbAwareAction() {
+        override fun actionPerformed(e: AnActionEvent) {
+            searchExpanded = !searchExpanded
+            searchField.parent?.revalidate()
+            searchField.parent?.repaint()
+        }
+
+        override fun update(e: AnActionEvent) {
+            e.presentation.icon = if (searchExpanded) AllIcons.Actions.Collapseall else AllIcons.Actions.Expandall
+        }
+
+        override fun getActionUpdateThread() = ActionUpdateThread.EDT
     }
 
-    private val searchAction = object : CustomComponentActionImpl(searchField) {
+    private val searchAction = object : DumbAwareAction(), CustomComponentAction {
+        override fun actionPerformed(e: AnActionEvent) {}
+
         override fun createCustomComponent(presentation: Presentation, place: String): JComponent {
             return object : JPanel(BorderLayout()) {
                 init {
@@ -169,8 +180,7 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
                         .filter { it !== this }
                         .sumOf { it.preferredSize.width }
                     val available = titlePanel.width - titleLabelWidth - otherToolbarItemsWidth - titlePanel.insets.let { it.left + it.right }
-                    base.width = max(base.width, available)
-                    return base
+                    return Dimension(max(base.width, available), base.height)
                 }
             }
         }
