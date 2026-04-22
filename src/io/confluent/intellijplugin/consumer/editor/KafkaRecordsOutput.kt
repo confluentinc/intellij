@@ -5,6 +5,7 @@ import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.DefaultActionGroup
+import com.intellij.openapi.actionSystem.Presentation
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
@@ -35,6 +36,7 @@ import java.awt.BorderLayout
 import java.awt.Dimension
 import java.util.Date
 import javax.swing.BorderFactory
+import javax.swing.JComponent
 import javax.swing.JPanel
 import javax.swing.JTable
 import javax.swing.RowFilter
@@ -137,7 +139,42 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
         })
     }
 
-    private val searchAction = CustomComponentActionImpl(searchField)
+    private var searchExpanded = false
+
+    private val searchExpandAction = DumbAwareAction.create(AllIcons.Actions.Expandall) {
+        searchExpanded = !searchExpanded
+        it.presentation.icon = if (searchExpanded) AllIcons.Actions.Collapseall else AllIcons.Actions.Expandall
+        searchField.parent?.revalidate()
+        searchField.parent?.repaint()
+    }
+
+    private val searchAction = object : CustomComponentActionImpl(searchField) {
+        override fun createCustomComponent(presentation: Presentation, place: String): JComponent {
+            return object : JPanel(BorderLayout()) {
+                init {
+                    isOpaque = false
+                    add(searchField, BorderLayout.CENTER)
+                }
+
+                override fun getPreferredSize(): Dimension {
+                    val base = searchField.preferredSize
+                    if (!searchExpanded) return base
+                    val toolbarComponent = parent ?: return base
+                    val titlePanel = toolbarComponent.parent ?: return base
+                    if (titlePanel.width <= 0) return base
+                    val titleLabelWidth = titlePanel.components
+                        .filter { it !== toolbarComponent }
+                        .sumOf { it.preferredSize.width }
+                    val otherToolbarItemsWidth = toolbarComponent.components
+                        .filter { it !== this }
+                        .sumOf { it.preferredSize.width }
+                    val available = titlePanel.width - titleLabelWidth - otherToolbarItemsWidth - titlePanel.insets.let { it.left + it.right }
+                    base.width = max(base.width, available)
+                    return base
+                }
+            }
+        }
+    }
 
     private val outputTablePanelDelegate = lazy {
         JPanel(BorderLayout()).apply {
@@ -174,7 +211,7 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
         dataPanel = ExpansionPanel(
             KafkaMessagesBundle.message("toggle.data"), { outputTablePanel },
             DATA_SHOW_ID, true,
-            listOf(searchAction, ActionManager.getInstance().getAction("Kafka.ExportRecords.Actions"), clearButton)
+            listOf(searchExpandAction, searchAction, ActionManager.getInstance().getAction("Kafka.ExportRecords.Actions"), clearButton)
         )
 
         detailsPanel = ExpansionPanel(KafkaMessagesBundle.message("toggle.details"), {
