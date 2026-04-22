@@ -25,6 +25,9 @@ class TableFilterHeader(table: JTable) : JPanel(BorderLayout()), PropertyChangeL
 
     var columnsController: FilterColumnsControllerPanel? = null
 
+    /** When true, column editor changes do not apply row filters directly. External code owns filtering. */
+    var externalFilterMode = false
+
     private var caseInsensitive = false
         set(value) {
             field = value
@@ -130,7 +133,7 @@ class TableFilterHeader(table: JTable) : JPanel(BorderLayout()), PropertyChangeL
     }
 
     inner class FilterColumnsControllerPanel(private val table: JTable, font: Font?, foreground: Color?) :
-        JPanel(null), TableColumnModelListener, Runnable, Iterable<FilterEditor?> {
+        JPanel(null), TableColumnModelListener, Runnable, Iterable<FilterEditor> {
 
         private val columns: LinkedList<FilterColumnPanel>
         private val preferredSize: Dimension
@@ -181,14 +184,15 @@ class TableFilterHeader(table: JTable) : JPanel(BorderLayout()), PropertyChangeL
             val editor = FilterEditor(columnModel)
             updateColumnBorder(editor)
             editor.addListener {
-                val rowFiler = rowFilter
-                rowFiler.setConditions(columns.mapNotNull {
-                    val text = it.editor.text
-                    if (text.isNullOrBlank()) null else it.tableColumn.modelIndex to text
-                })
-                (table.rowSorter as TableRowSorter).rowFilter = rowFiler
-                //ToDo Hack. To proper repaint "Nothing to show" empty state which is drawn on scrollpane view.
-                table.parent?.repaint()
+                if (!externalFilterMode) {
+                    rowFilter.setConditions(columns.mapNotNull {
+                        val text = it.editor.text
+                        if (text.isNullOrBlank()) null else it.tableColumn.modelIndex to text
+                    })
+                    (table.rowSorter as TableRowSorter).rowFilter = rowFilter
+                    //ToDo Hack. To proper repaint "Nothing to show" empty state which is drawn on scrollpane view.
+                    table.parent?.repaint()
+                }
             }
             val column = FilterColumnPanel(tableColumnModel.getColumn(columnView), editor)
             column.updateHeight()

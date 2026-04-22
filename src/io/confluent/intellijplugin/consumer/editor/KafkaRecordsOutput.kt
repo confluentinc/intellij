@@ -3,14 +3,20 @@ package io.confluent.intellijplugin.consumer.editor
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.ActionManager
+import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnAction
+import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.DefaultActionGroup
+import com.intellij.openapi.actionSystem.Presentation
+import com.intellij.openapi.actionSystem.ex.CustomComponentAction
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
+import com.intellij.ui.DocumentAdapter
 import com.intellij.ui.JBColor
 import com.intellij.ui.PopupHandler
 import com.intellij.ui.ScrollPaneFactory
+import com.intellij.ui.SearchTextField
 import io.confluent.intellijplugin.common.editor.ListTableModel
 import io.confluent.intellijplugin.core.table.MaterialTable
 import io.confluent.intellijplugin.core.table.MaterialTableUtils
@@ -18,6 +24,7 @@ import io.confluent.intellijplugin.core.table.extension.TableCellPreview
 import io.confluent.intellijplugin.core.table.extension.TableFirstRowAdded
 import io.confluent.intellijplugin.core.table.extension.TableLoadingDecorator
 import io.confluent.intellijplugin.core.table.extension.TableResizeController
+import io.confluent.intellijplugin.core.table.filters.SearchQueryParser
 import io.confluent.intellijplugin.core.table.filters.TableFilterHeader
 import io.confluent.intellijplugin.core.table.renderers.DateRenderer
 import io.confluent.intellijplugin.core.table.renderers.DurationRenderer
@@ -31,12 +38,28 @@ import java.awt.BorderLayout
 import java.awt.Dimension
 import java.util.Date
 import javax.swing.BorderFactory
+import javax.swing.JComponent
 import javax.swing.JPanel
 import javax.swing.JTable
+import javax.swing.RowFilter
+import javax.swing.event.DocumentEvent
+import javax.swing.table.TableModel
+import javax.swing.table.TableRowSorter
 import kotlin.math.max
 
 class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Disposable {
     private var tableLoadingDecorator: TableLoadingDecorator? = null
+    private var filterHeader: TableFilterHeader? = null
+    private var syncing = false
+
+    private val columnNameToIndex: Map<String, Int> by lazy {
+        val model = outputModel.columnModel
+        (0 until model.columnCount).associate {
+            model.getColumn(it).headerValue.toString().lowercase() to model.getColumn(it).modelIndex
+        }
+    }
+
+    private val searchQueryParser by lazy { SearchQueryParser(columnNameToIndex) }
 
     internal val outputModel = ListTableModel(
         ArrayDeque<KafkaRecord>(1000),
@@ -81,8 +104,12 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
             }
 
             MaterialTableUtils.setupSorters(this)
-            val filterHeader = TableFilterHeader(this)
-            setupFilterTelemetry(filterHeader)
+            TableFilterHeader(this).apply {
+                externalFilterMode = true
+                filterHeader = this
+                setupFilterTelemetry(this)
+                setupColumnFilterSync(this)
+            }
 
             val resizeController = TableResizeController.installOn(this).apply {
                 setResizePriorityList(VALUE_COLUMN)
@@ -104,6 +131,60 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
     }
 
     private val outputTable: MaterialTable by outputTableDelegate
+
+    private val searchField = SearchTextField(false).apply {
+        textEditor.emptyText.text = KafkaMessagesBundle.message("consumer.search.bar.placeholder")
+        addDocumentListener(object : DocumentAdapter() {
+            override fun textChanged(e: DocumentEvent) {
+                onGlobalSearchChanged(text.trim())
+            }
+        })
+    }
+
+    private var searchExpanded = false
+
+    private val searchExpandAction = object : DumbAwareAction() {
+        override fun actionPerformed(e: AnActionEvent) {
+            searchExpanded = !searchExpanded
+            searchField.parent?.revalidate()
+            searchField.parent?.repaint()
+        }
+
+        override fun update(e: AnActionEvent) {
+            e.presentation.icon = if (searchExpanded) AllIcons.Actions.Collapseall else AllIcons.Actions.Expandall
+        }
+
+        override fun getActionUpdateThread() = ActionUpdateThread.EDT
+    }
+
+    private val searchAction = object : DumbAwareAction(), CustomComponentAction {
+        override fun actionPerformed(e: AnActionEvent) {}
+
+        override fun createCustomComponent(presentation: Presentation, place: String): JComponent {
+            return object : JPanel(BorderLayout()) {
+                init {
+                    isOpaque = false
+                    add(searchField, BorderLayout.CENTER)
+                }
+
+                override fun getPreferredSize(): Dimension {
+                    val base = searchField.preferredSize
+                    if (!searchExpanded) return base
+                    val toolbarComponent = parent ?: return base
+                    val titlePanel = toolbarComponent.parent ?: return base
+                    if (titlePanel.width <= 0) return base
+                    val titleLabelWidth = titlePanel.components
+                        .filter { it !== toolbarComponent }
+                        .sumOf { it.preferredSize.width }
+                    val otherToolbarItemsWidth = toolbarComponent.components
+                        .filter { it !== this }
+                        .sumOf { it.preferredSize.width }
+                    val available = titlePanel.width - titleLabelWidth - otherToolbarItemsWidth - titlePanel.insets.let { it.left + it.right }
+                    return Dimension(max(base.width, available), base.height)
+                }
+            }
+        }
+    }
 
     private val outputTablePanelDelegate = lazy {
         JPanel(BorderLayout()).apply {
@@ -140,7 +221,7 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
         dataPanel = ExpansionPanel(
             KafkaMessagesBundle.message("toggle.data"), { outputTablePanel },
             DATA_SHOW_ID, true,
-            listOf(ActionManager.getInstance().getAction("Kafka.ExportRecords.Actions"), clearButton)
+            listOf(searchExpandAction, searchAction, ActionManager.getInstance().getAction("Kafka.ExportRecords.Actions"), clearButton)
         )
 
         detailsPanel = ExpansionPanel(KafkaMessagesBundle.message("toggle.details"), {
@@ -242,12 +323,81 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
         }
     }
 
+    private fun onGlobalSearchChanged(text: String) {
+        if (syncing) return
+        syncing = true
+        try {
+            val parsed = searchQueryParser.parse(text)
+
+            filterHeader?.columnsController?.forEach { editor ->
+                editor.text = parsed.columnFilters[editor.modelIndex] ?: ""
+            }
+
+            applyUnifiedFilter(parsed)
+        } finally {
+            syncing = false
+        }
+    }
+
+    private fun onColumnFilterChanged() {
+        if (syncing) return
+        syncing = true
+        try {
+            val current = searchQueryParser.parse(searchField.text.trim())
+
+            val columnFilters = mutableMapOf<Int, String>()
+            filterHeader?.columnsController?.forEach { editor ->
+                val text = editor.text
+                if (!text.isNullOrBlank()) {
+                    columnFilters[editor.modelIndex] = text
+                }
+            }
+
+            searchField.text = searchQueryParser.buildSearchText(columnFilters, current.freeText)
+
+            applyUnifiedFilter(SearchQueryParser.ParsedSearch(columnFilters, current.freeText))
+        } finally {
+            syncing = false
+        }
+    }
+
+    private fun setupColumnFilterSync(filterHeader: TableFilterHeader) {
+        filterHeader.columnsController?.forEach { editor ->
+            editor.addListener { onColumnFilterChanged() }
+        }
+    }
+
+    private fun applyUnifiedFilter(parsed: SearchQueryParser.ParsedSearch) {
+        @Suppress("UNCHECKED_CAST")
+        val sorter = outputTable.rowSorter as? TableRowSorter<TableModel> ?: return
+
+        val filters = mutableListOf<RowFilter<TableModel, Int>>()
+
+        for ((modelIndex, value) in parsed.columnFilters) {
+            if (value.isNotEmpty()) {
+                filters.add(RowFilter.regexFilter("(?i)${Regex.escape(value)}", modelIndex))
+            }
+        }
+
+        if (parsed.freeText.isNotEmpty()) {
+            filters.add(RowFilter.regexFilter("(?i)${Regex.escape(parsed.freeText)}"))
+        }
+
+        sorter.rowFilter = when {
+            filters.isEmpty() -> null
+            filters.size == 1 -> filters[0]
+            else -> RowFilter.andFilter(filters)
+        }
+
+        outputTable.parent?.repaint()
+    }
+
     private fun setupFilterTelemetry(filterHeader: TableFilterHeader) {
         val source = if (isProducer) MessageViewerEvent.Source.PRODUCER else MessageViewerEvent.Source.CONSUMER
         filterHeader.columnsController?.forEach { editor ->
             var wasEmpty = true
-            editor?.addListener {
-                val isEmpty = editor?.text.isNullOrBlank()
+            editor.addListener {
+                val isEmpty = editor.text.isNullOrBlank()
                 if (wasEmpty && !isEmpty) {
                     logUsage(MessageViewerEvent.Search(source))
                 }
