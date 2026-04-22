@@ -95,8 +95,8 @@ class ExpansionPanel(
                 ConstraintParser.parseColumnConstraints(columnConstraints)
             )
         ).apply {
-            border = IdeBorderFactory.createBorder(SideBorder.BOTTOM)
             if (showTitle) {
+                border = IdeBorderFactory.createBorder(SideBorder.BOTTOM)
                 add(JLabel(title), BorderLayout.LINE_START)
             }
             val expandAction =
