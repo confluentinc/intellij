@@ -1,9 +1,7 @@
 package io.confluent.intellijplugin.consumer.search
 
-import com.intellij.openapi.Disposable
 import com.intellij.ui.DocumentAdapter
 import com.intellij.ui.SearchTextField
-import com.intellij.util.Alarm
 import io.confluent.intellijplugin.core.table.filters.SearchQueryParser
 import io.confluent.intellijplugin.core.table.filters.TableFilterHeader
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
@@ -16,10 +14,10 @@ import javax.swing.table.TableRowSorter
 /**
  * Owns the global search bar and unifies its filter with the per-column filter editors.
  *
- * Debounces input via [Alarm] (200ms) and applies a composed [RowFilter] to the
- * table's [TableRowSorter]. Filters use [RowFilter.regexFilter] with [Regex.escape] so
- * user input is treated as a literal substring match — this uses [java.util.regex.Matcher.find],
- * which correctly matches within multi-line values (e.g. pretty-printed JSON).
+ * Applies a composed [RowFilter] to the table's [TableRowSorter]. Filters use
+ * [RowFilter.regexFilter] with [Regex.escape] so user input is treated as a literal
+ * substring match — this uses [java.util.regex.Matcher.find], which correctly matches
+ * within multi-line values (e.g. pretty-printed JSON).
  *
  * Sync is bidirectional:
  *  - typing `key:foo` in the search bar populates the Key column editor
@@ -27,7 +25,6 @@ import javax.swing.table.TableRowSorter
  * A [syncing] flag prevents the two from triggering each other in a loop.
  */
 class SearchBarController(
-    parentDisposable: Disposable,
     private val table: JTable,
     private val filterHeader: TableFilterHeader,
     isProducer: Boolean,
@@ -38,25 +35,19 @@ class SearchBarController(
     }
 
     private val parser = SearchQueryParser(searchKeyMap(isProducer))
-    private val alarm = Alarm(Alarm.ThreadToUse.SWING_THREAD, parentDisposable)
     private var syncing = false
 
     init {
         searchField.addDocumentListener(object : DocumentAdapter() {
             override fun textChanged(e: DocumentEvent) {
-                if (!syncing) schedule(::onSearchBarChanged)
+                if (!syncing) onSearchBarChanged()
             }
         })
         filterHeader.columnsController?.forEach { editor ->
             editor?.addListener {
-                if (!syncing) schedule(::onColumnEditorChanged)
+                if (!syncing) onColumnEditorChanged()
             }
         }
-    }
-
-    private fun schedule(action: () -> Unit) {
-        alarm.cancelAllRequests()
-        alarm.addRequest(action, DEBOUNCE_MS)
     }
 
     private fun onSearchBarChanged() {
@@ -112,8 +103,6 @@ class SearchBarController(
     }
 
     companion object {
-        private const val DEBOUNCE_MS = 200
-
         internal fun searchKeyMap(isProducer: Boolean): Map<String, Int> = buildMap {
             put("topic", 0)
             put("timestamp", 1)
