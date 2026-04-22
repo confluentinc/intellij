@@ -5,6 +5,7 @@ import com.intellij.openapi.actionSystem.DataSink
 import com.intellij.openapi.actionSystem.UiDataProvider
 import com.intellij.ui.components.fields.ExtendableTextField
 import io.confluent.intellijplugin.core.ui.SearchExtension
+import org.jetbrains.annotations.TestOnly
 import java.awt.BorderLayout
 import java.awt.event.FocusEvent
 import java.awt.event.FocusListener
@@ -59,6 +60,9 @@ class FilterEditor(var modelIndex: Int) : JComponent(), UiDataProvider {
 
         add(editor, BorderLayout.CENTER)
     }
+
+    internal val isSearchIconVisibleInTest: Boolean
+        @TestOnly get() = leftExtensionShown
 
     private fun showLeftExtension() {
         if (!leftExtensionShown) {
