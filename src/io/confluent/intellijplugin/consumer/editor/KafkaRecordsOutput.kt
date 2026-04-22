@@ -134,7 +134,7 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
 
         override fun update(e: AnActionEvent) {
             e.presentation.icon = if (searchExpanded) AllIcons.Actions.Collapseall else AllIcons.Actions.Expandall
-            e.presentation.description = KafkaMessagesBundle.message(
+            e.presentation.text = KafkaMessagesBundle.message(
                 if (searchExpanded) "consumer.search.bar.collapse" else "consumer.search.bar.expand"
             )
         }
