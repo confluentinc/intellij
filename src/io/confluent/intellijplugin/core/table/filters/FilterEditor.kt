@@ -56,8 +56,13 @@ class FilterEditor(var modelIndex: Int) : JComponent(), UiDataProvider {
         add(editor, BorderLayout.CENTER)
     }
 
-    val text: String?
+    var text: String?
         get() = editor.text
+        set(value) {
+            if (editor.text != value) {
+                editor.text = value ?: ""
+            }
+        }
 
     fun addListener(listener: FilerEditorChangeListener) {
         listeners += listener
