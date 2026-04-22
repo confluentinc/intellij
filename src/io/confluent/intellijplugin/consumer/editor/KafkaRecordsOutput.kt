@@ -20,6 +20,7 @@ import io.confluent.intellijplugin.core.table.extension.TableCellPreview
 import io.confluent.intellijplugin.core.table.extension.TableFirstRowAdded
 import io.confluent.intellijplugin.core.table.extension.TableLoadingDecorator
 import io.confluent.intellijplugin.core.table.extension.TableResizeController
+import io.confluent.intellijplugin.core.table.filters.SearchQueryParser
 import io.confluent.intellijplugin.core.table.filters.TableFilterHeader
 import io.confluent.intellijplugin.core.table.renderers.DateRenderer
 import io.confluent.intellijplugin.core.table.renderers.DurationRenderer
@@ -53,6 +54,8 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
             model.getColumn(it).headerValue.toString().lowercase() to model.getColumn(it).modelIndex
         }
     }
+
+    private val searchQueryParser by lazy { SearchQueryParser(columnNameToIndex) }
 
     internal val outputModel = ListTableModel(
         ArrayDeque<KafkaRecord>(1000),
@@ -97,9 +100,12 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
             }
 
             MaterialTableUtils.setupSorters(this)
-            filterHeader = TableFilterHeader(this).apply { externalFilterMode = true }
-            setupFilterTelemetry(filterHeader!!)
-            setupColumnFilterSync(filterHeader!!)
+            TableFilterHeader(this).apply {
+                externalFilterMode = true
+                filterHeader = this
+                setupFilterTelemetry(this)
+                setupColumnFilterSync(this)
+            }
 
             val resizeController = TableResizeController.installOn(this).apply {
                 setResizePriorityList(VALUE_COLUMN)
@@ -274,9 +280,8 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
         if (syncing) return
         syncing = true
         try {
-            val parsed = parseSearchText(text)
+            val parsed = searchQueryParser.parse(text)
 
-            // Sync column editors to match parsed column-specific terms
             filterHeader?.columnsController?.forEach { editor ->
                 editor?.text = parsed.columnFilters[editor.modelIndex] ?: ""
             }
@@ -291,10 +296,8 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
         if (syncing) return
         syncing = true
         try {
-            // Preserve any free text already in the global search bar
-            val current = parseSearchText(searchField.text.trim())
+            val current = searchQueryParser.parse(searchField.text.trim())
 
-            // Collect column filter values from editors
             val columnFilters = mutableMapOf<Int, String>()
             filterHeader?.columnsController?.forEach { editor ->
                 val text = editor?.text
@@ -303,10 +306,9 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
                 }
             }
 
-            // Rebuild and sync back to global search bar
-            searchField.text = buildSearchText(columnFilters, current.freeText)
+            searchField.text = searchQueryParser.buildSearchText(columnFilters, current.freeText)
 
-            applyUnifiedFilter(ParsedSearch(columnFilters, current.freeText))
+            applyUnifiedFilter(SearchQueryParser.ParsedSearch(columnFilters, current.freeText))
         } finally {
             syncing = false
         }
@@ -318,7 +320,7 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
         }
     }
 
-    private fun applyUnifiedFilter(parsed: ParsedSearch) {
+    private fun applyUnifiedFilter(parsed: SearchQueryParser.ParsedSearch) {
         @Suppress("UNCHECKED_CAST")
         val sorter = outputTable.rowSorter as? TableRowSorter<TableModel> ?: return
 
@@ -342,81 +344,6 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
 
         outputTable.parent?.repaint()
     }
-
-    /**
-     * Parses global search text into column-specific filters and free text.
-     * Syntax: `columnName:query` or `columnName:"query with spaces"` for column-specific,
-     * anything else is free text that matches across all columns.
-     */
-    private fun parseSearchText(text: String): ParsedSearch {
-        val columnFilters = mutableMapOf<Int, String>()
-        val freeTextParts = mutableListOf<String>()
-        var pos = 0
-
-        while (pos < text.length) {
-            // Skip leading spaces
-            if (text[pos] == ' ') { pos++; continue }
-
-            // Try to match columnName: at current position
-            val colonIndex = text.indexOf(':', pos)
-            if (colonIndex > pos && !text.substring(pos, colonIndex).contains(' ')) {
-                val colName = text.substring(pos, colonIndex).lowercase()
-                val modelIndex = columnNameToIndex[colName]
-                if (modelIndex != null) {
-                    pos = colonIndex + 1
-                    val (value, nextPos) = extractValue(text, pos)
-                    columnFilters[modelIndex] = value
-                    pos = nextPos
-                    continue
-                }
-            }
-
-            // Not a column filter — consume as free text token
-            val nextSpace = text.indexOf(' ', pos)
-            val end = if (nextSpace == -1) text.length else nextSpace
-            freeTextParts.add(text.substring(pos, end))
-            pos = end
-        }
-
-        return ParsedSearch(columnFilters, freeTextParts.joinToString(" "))
-    }
-
-    /** Extracts a value starting at [pos]: quoted `"..."` or unquoted until space/end. */
-    private fun extractValue(text: String, pos: Int): Pair<String, Int> {
-        if (pos < text.length && text[pos] == '"') {
-            val closeQuote = text.indexOf('"', pos + 1)
-            return if (closeQuote == -1) {
-                text.substring(pos + 1) to text.length
-            } else {
-                text.substring(pos + 1, closeQuote) to closeQuote + 1
-            }
-        }
-        val nextSpace = text.indexOf(' ', pos)
-        val end = if (nextSpace == -1) text.length else nextSpace
-        return text.substring(pos, end) to end
-    }
-
-    private fun buildSearchText(columnFilters: Map<Int, String>, freeText: String): String {
-        val indexToName = columnNameToIndex.entries.associate { (name, index) -> index to name }
-        val parts = columnFilters.entries
-            .sortedBy { it.key }
-            .map { (modelIndex, value) ->
-                val colName = indexToName[modelIndex] ?: return@map null
-                if (value.contains(' ')) "$colName:\"$value\"" else "$colName:$value"
-            }
-            .filterNotNull()
-            .toMutableList()
-
-        if (freeText.isNotBlank()) {
-            parts.add(freeText)
-        }
-        return parts.joinToString(" ")
-    }
-
-    private data class ParsedSearch(
-        val columnFilters: Map<Int, String>,
-        val freeText: String
-    )
 
     private fun setupFilterTelemetry(filterHeader: TableFilterHeader) {
         val source = if (isProducer) MessageViewerEvent.Source.PRODUCER else MessageViewerEvent.Source.CONSUMER
