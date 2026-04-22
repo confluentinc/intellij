@@ -305,16 +305,20 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
 
     private fun setupFilterTelemetry(filterHeader: TableFilterHeader) {
         val source = if (isProducer) MessageViewerEvent.Source.PRODUCER else MessageViewerEvent.Source.CONSUMER
-        filterHeader.columnsController?.forEach { editor ->
-            var wasEmpty = true
-            editor.addListener {
-                val isEmpty = editor.text.isNullOrBlank()
-                if (wasEmpty && !isEmpty) {
-                    logUsage(MessageViewerEvent.Search(source))
+        val attach = { controller: TableFilterHeader.FilterColumnsControllerPanel ->
+            controller.forEach { editor ->
+                var wasEmpty = true
+                editor.addListener {
+                    val isEmpty = editor.text.isNullOrBlank()
+                    if (wasEmpty && !isEmpty) {
+                        logUsage(MessageViewerEvent.Search(source))
+                    }
+                    wasEmpty = isEmpty
                 }
-                wasEmpty = isEmpty
             }
         }
+        filterHeader.columnsController?.let(attach)
+        filterHeader.addControllerRecreatedListener(attach)
     }
 
     companion object {

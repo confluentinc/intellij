@@ -56,11 +56,17 @@ class SearchBarController(
             if (!syncing) schedule(::onSearchBarChanged)
         }
     }
-    private val editorListeners: List<Pair<FilterEditor, FilerEditorChangeListener>>
+    private var editorListeners: List<Pair<FilterEditor, FilerEditorChangeListener>> = emptyList()
 
     init {
         Disposer.register(parentDisposable, this)
         searchField.addDocumentListener(searchFieldListener)
+        attachEditorListeners()
+        filterHeader.addControllerRecreatedListener { attachEditorListeners() }
+    }
+
+    private fun attachEditorListeners() {
+        detachEditorListeners()
         editorListeners = columnEditors().map { editor ->
             val listener = FilerEditorChangeListener {
                 if (!syncing) schedule(::onColumnEditorChanged)
@@ -70,9 +76,14 @@ class SearchBarController(
         }
     }
 
+    private fun detachEditorListeners() {
+        editorListeners.forEach { (editor, listener) -> editor.removeListener(listener) }
+        editorListeners = emptyList()
+    }
+
     override fun dispose() {
         searchField.removeDocumentListener(searchFieldListener)
-        editorListeners.forEach { (editor, listener) -> editor.removeListener(listener) }
+        detachEditorListeners()
     }
 
     @TestOnly
