@@ -17,6 +17,7 @@ import com.intellij.openapi.editor.markup.GutterIconRenderer
 import com.intellij.openapi.module.ModuleUtilCore
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.util.NlsSafe
+import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.psi.ElementManipulators
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiLanguageInjectionHost
@@ -33,10 +34,21 @@ internal class KafkaSpringBootConfigLineMarkers : LineMarkerProviderDescriptor()
 
     override fun collectSlowLineMarkers(elements: List<PsiElement>, result: MutableCollection<in LineMarkerInfo<*>>) {
         val module = elements.firstOrNull()?.let { ModuleUtilCore.findModuleForPsiElement(it) }
-        if (!SpringLibraryUtil.hasSpringLibrary(module)) return
 
-        for (element in elements) {
-            addLineMarker(element, result)
+        try {
+            if (!SpringLibraryUtil.hasSpringLibrary(module)) return
+
+            for (element in elements) {
+                addLineMarker(element, result)
+            }
+        } catch (e: NoClassDefFoundError) {
+            // Handle missing Spring plugin (optional dependency)
+            if (e.message?.contains("com/intellij/spring/SpringLibraryUtil") == true) {
+                thisLogger().debug("Spring plugin not available, skipping Kafka Spring Boot line markers", e)
+            } else {
+                // Unexpected error - rethrow for proper diagnosis
+                throw e
+            }
         }
     }
 
@@ -78,7 +90,7 @@ internal class KafkaSpringBootConfigLineMarkers : LineMarkerProviderDescriptor()
     }
 
     @NlsSafe
-    private val KAFKA_NAVIGATION_GROUP: String = "Kafka"
+    private val KAFKA_NAVIGATION_GROUP: String = "Confluent"
 
     private fun createContributedActionMarker(
         anchor: PsiElement,

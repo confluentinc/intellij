@@ -30,9 +30,11 @@ import io.confluent.intellijplugin.core.settings.getValidationInfo
 import io.confluent.intellijplugin.core.ui.CustomListCellRenderer
 import io.confluent.intellijplugin.core.ui.ExpansionPanel
 import io.confluent.intellijplugin.core.ui.MultiSplitter
-import io.confluent.intellijplugin.core.util.executeOnPooledThread
+import io.confluent.intellijplugin.core.util.executeNotOnEdtSuspend
 import io.confluent.intellijplugin.core.util.invokeLater
 import io.confluent.intellijplugin.core.util.withPluginClassLoader
+import io.confluent.intellijplugin.core.rfs.driver.SafeExecutor
+import kotlinx.coroutines.launch
 import io.confluent.intellijplugin.data.BaseClusterDataManager
 import io.confluent.intellijplugin.telemetry.MessageViewerEvent
 import io.confluent.intellijplugin.telemetry.logUsage
@@ -132,7 +134,11 @@ class KafkaConsumerPanel(
     private val filterHeadValueField = JBTextField()
 
     private val partitionField = JBTextField()
-    private val consumerGroup = KafkaEditorUtils.createConsumerGroups(this, kafkaManager, withEmpty = true)
+    private val consumerGroup = KafkaEditorUtils.createConsumerGroups(this, kafkaManager, withEmpty = true).apply {
+        if (!kafkaManager.supportsConsumerGroups()) {
+            toolTipText = KafkaMessagesBundle.message("ccloud.consumer.group.not.supported.tooltip")
+        }
+    }
 
     val topicComboBox = KafkaEditorUtils.createTopicComboBox(this, kafkaManager).apply {
         prototypeDisplayValue = TopicInEditor("AverageName")
@@ -145,7 +151,9 @@ class KafkaConsumerPanel(
     private val key = KafkaConsumerFieldComponent(project, this, isKey = true).also { Disposer.register(this, it) }
     private val value = KafkaConsumerFieldComponent(project, this, isKey = false).also { Disposer.register(this, it) }
 
-    private val kafkaConsumerSettingsDelegate = lazy { KafkaConsumerSettings() }
+    private val kafkaConsumerSettingsDelegate = lazy {
+        KafkaConsumerSettings(kafkaManager.supportedConsumerProperties())
+    }
     private val kafkaConsumerSettings: KafkaConsumerSettings by kafkaConsumerSettingsDelegate
 
     private var hasLoggedStopEvent = false
@@ -157,26 +165,28 @@ class KafkaConsumerPanel(
     private val consumeButton: JButton =
         JButton(KafkaMessagesBundle.message("action.consume.start.title"), AllIcons.Actions.Execute).apply {
             addActionListener {
-                executeOnPooledThread {
+                SafeExecutor.instance.coroutineScope.launch {
                     try {
-                        if (consumerClient.isRunning()) {
-                            consumerClient.stop()
-                            output.stop()
-                        } else {
-                            val validationInfo = topicComboBox.getValidationInfo() ?: key.getValidationInfo()
-                            ?: value.getValidationInfo()
-                            if (validationInfo != null) {
-                                progress.onValidationError()
-                                return@executeOnPooledThread
+                        executeNotOnEdtSuspend {
+                            if (consumerClient.isRunning()) {
+                                consumerClient.stop()
+                                output.stop()
+                            } else {
+                                val validationInfo = topicComboBox.getValidationInfo() ?: key.getValidationInfo()
+                                ?: value.getValidationInfo()
+                                if (validationInfo != null) {
+                                    progress.onValidationError()
+                                    return@executeNotOnEdtSuspend
+                                }
+
+                                startConsume(kafkaManager.project)
                             }
+                            updateVisibility()
+                            storeToUserData()
 
-                            startConsume(kafkaManager.project)
+                            invalidate()
+                            repaint()
                         }
-                        updateVisibility()
-                        storeToUserData()
-
-                        invalidate()
-                        repaint()
                     } catch (t: Throwable) {
                         @Suppress("DialogTitleCapitalization")
                         RfsNotificationUtils.notifyException(t, KafkaMessagesBundle.message("error.start.consumer"))
@@ -212,7 +222,6 @@ class KafkaConsumerPanel(
 
     // Capability flags from data manager
     private val supportsConsumerGroups = AtomicBooleanProperty(kafkaManager.supportsConsumerGroups())
-    private val supportsAdvancedSettings = AtomicBooleanProperty(kafkaManager.supportsAdvancedSettings())
 
     private val settingsPanelDelegate = lazy {
         val isConsumerSetup =
@@ -281,10 +290,10 @@ class KafkaConsumerPanel(
                             KafkaConsumerGroupChangeOffsetProcess(project, kafkaManager, consumerGroup.item).showAndUpdate()
                         }
                     }.topGap(TopGap.NONE).visibleIf(isConsumerSetup)
-                }.visibleIf(supportsConsumerGroups)
+                }.enabledIf(supportsConsumerGroups)
             }
 
-            row { cell(advancedSettings) }.visibleIf(supportsAdvancedSettings)
+            row { cell(advancedSettings) }
         }
 
         KafkaProducerConsumerPanel.createPanel(panel, consumeButton, progress)
@@ -292,8 +301,10 @@ class KafkaConsumerPanel(
 
     private val settingsPanel: JPanel by settingsPanelDelegate
 
+    private val scopedConsumerConfig = KafkaConfigStorage.getInstance().consumerConfigFor(kafkaManager.presetConnectionTag())
+
     private val presetsDelegate = lazy {
-        val presets = ConsumerPresets()
+        val presets = ConsumerPresets(scopedConsumerConfig)
         Disposer.register(this, presets)
         presets.onApply = { applyConfig(it) }
         presets.component.apply {
@@ -313,33 +324,25 @@ class KafkaConsumerPanel(
 
         presetsSplitter.proportionsKey = "kafka.consumer.multisplitter.proportions"
 
-        if (kafkaManager.supportsPresets()) {
-            presetsSplitter.add(
-                ExpansionPanel(
-                    KafkaMessagesBundle.message("toggle.presets"),
-                    { presets.component },
-                    PRESETS_SHOW_ID,
-                    false
-                )
+        presetsSplitter.add(
+            ExpansionPanel(
+                KafkaMessagesBundle.message("toggle.presets"),
+                { presets.component },
+                PRESETS_SHOW_ID,
+                false
             )
-        }
+        )
 
         presetsSplitter.add(
             ExpansionPanel(
                 KafkaMessagesBundle.message("toggle.configuration"), { settingsPanel },
                 SETTINGS_SHOW_ID, true,
-                if (kafkaManager.supportsPresets()) {
-                    listOf(SavePresetAction(KafkaConfigStorage.getInstance().consumerConfig) { getRunConfig() })
-                } else {
-                    emptyList()
-                }
+                listOf(SavePresetAction(scopedConsumerConfig) { getRunConfig() })
             )
         )
         presetsSplitter.add(output.dataPanel)
 
-        if (kafkaManager.supportsDetailsPanel()) {
-            presetsSplitter.add(output.detailsPanel)
-        }
+        presetsSplitter.add(output.detailsPanel)
 
         presetsSplitter.centralComponent = output.dataPanel
 
@@ -355,7 +358,7 @@ class KafkaConsumerPanel(
         storeToUserData()
     }
 
-    private fun startConsume(project: Project?) {
+    private suspend fun startConsume(project: Project?) {
         val runConfig = getRunConfig()
 
         if (runConfig.topic.isNullOrBlank()) {
@@ -493,7 +496,7 @@ class KafkaConsumerPanel(
 
             customKeySchema = key.getCustomSchemaConfig(),
             customValueSchema = value.getCustomSchemaConfig()
-        )
+        ).copy(connectionType = kafkaManager.presetConnectionTag())
     }
 
     fun getComponent(): JComponent = presetsSplitter
@@ -512,7 +515,7 @@ class KafkaConsumerPanel(
         topicComboBox.isEnabled = isEnabled
 
         partitionField.isEnabled = isEnabled && consumerGroup.item.isEmpty()
-        consumerGroup.isEnabled = isEnabled
+        consumerGroup.isEnabled = isEnabled && kafkaManager.supportsConsumerGroups()
 
         key.updateIsEnabled(isEnabled)
         value.updateIsEnabled(isEnabled)

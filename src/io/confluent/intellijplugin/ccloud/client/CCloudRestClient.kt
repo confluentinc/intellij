@@ -3,6 +3,8 @@ package io.confluent.intellijplugin.ccloud.client
 import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.util.io.HttpRequests
 import io.confluent.intellijplugin.ccloud.auth.CCloudAuthService
+import io.confluent.intellijplugin.ccloud.config.CloudConfig
+import io.confluent.intellijplugin.util.KafkaMessagesBundle
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.sync.Mutex
@@ -31,15 +33,12 @@ class CCloudRestClient(
     companion object {
         private const val CONNECT_TIMEOUT_MS = 10_000 // 10 seconds
         private const val READ_TIMEOUT_MS = 60_000    // 1 minute
-
-        // CCloud API limit (https://docs.confluent.io/cloud/current/quotas/overview.html)
-        private const val RATE_LIMIT_REQUESTS_PER_SEC = 5.0
         private const val MAX_RETRY_ATTEMPTS = 4
         private const val INITIAL_BACKOFF_MS = 1000L
         private const val MAX_BACKOFF_MS = 10_000L
 
         // Shared token bucket rate limiter across all client instances
-        private val rateLimiter = TokenBucketRateLimiter(RATE_LIMIT_REQUESTS_PER_SEC)
+        private val rateLimiter = TokenBucketRateLimiter(CloudConfig.API_RATE_LIMIT)
     }
 
     enum class AuthType {
@@ -121,17 +120,20 @@ class CCloudRestClient(
         val service = authService ?: CCloudAuthService.getInstance()
 
         if (!service.isSignedIn()) {
-            throw IllegalStateException("Not signed in to Confluent Cloud")
+            throw IllegalStateException(KafkaMessagesBundle.message("error.ccloud.not.signed.in"))
         }
 
         val token = when (authType) {
             AuthType.CONTROL_PLANE -> service.getControlPlaneToken()
             AuthType.DATA_PLANE -> service.getDataPlaneToken()
-        } ?: throw IllegalStateException("No ${authType.name.lowercase().replace('_', ' ')} token available")
+        } ?: throw IllegalStateException(
+            KafkaMessagesBundle.message("error.ccloud.no.token.available", authType.name.lowercase().replace('_', ' '))
+        )
 
         val baseHeaders = mapOf(
             "Authorization" to "Bearer $token",
-            "Content-Type" to "application/json"
+            "Content-Type" to "application/json",
+            CCloudUserAgent.HEADER_NAME to CCloudUserAgent.headerValue()
         )
 
         return baseHeaders + additionalHeaders
@@ -396,9 +398,10 @@ class CCloudApiException(message: String, val statusCode: Int) : Exception(messa
 /**
  * Token bucket rate limiter. Refills tokens at constant rate, suspends when empty.
  */
-private class TokenBucketRateLimiter(private val tokensPerSecond: Double) {
+private class TokenBucketRateLimiter(tokensPerSecond: Int) {
     private val mutex = Mutex()
-    private var tokens: Double = tokensPerSecond
+    private val tokensPerSecond: Double = tokensPerSecond.toDouble()
+    private var tokens: Double = this.tokensPerSecond
     private var lastRefillTime: Long = System.currentTimeMillis()
 
     suspend fun acquire() {

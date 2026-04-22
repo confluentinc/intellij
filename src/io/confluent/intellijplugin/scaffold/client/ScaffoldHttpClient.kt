@@ -11,6 +11,8 @@ import io.confluent.intellijplugin.scaffold.model.ApplyScaffoldV1TemplateRequest
 import io.confluent.intellijplugin.scaffold.model.Scaffoldv1TemplateList
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.net.HttpURLConnection
+import java.net.URI
 import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
 
@@ -74,16 +76,16 @@ class ScaffoldHttpClient(
         }
 
         // Custom adapter for URI
-        private object UriAdapter : JsonAdapter<java.net.URI>() {
-            override fun fromJson(reader: JsonReader): java.net.URI? {
+        private object UriAdapter : JsonAdapter<URI>() {
+            override fun fromJson(reader: JsonReader): URI? {
                 return if (reader.peek() == JsonReader.Token.NULL) {
                     reader.nextNull()
                 } else {
-                    java.net.URI(reader.nextString())
+                    URI(reader.nextString())
                 }
             }
 
-            override fun toJson(writer: JsonWriter, value: java.net.URI?) {
+            override fun toJson(writer: JsonWriter, value: URI?) {
                 if (value == null) {
                     writer.nullValue()
                 } else {
@@ -95,7 +97,7 @@ class ScaffoldHttpClient(
         // Moshi JSON adapter for generated models
         val moshi = Moshi.Builder()
             .add(OffsetDateTime::class.java, OffsetDateTimeAdapter)
-            .add(java.net.URI::class.java, UriAdapter)
+            .add(URI::class.java, UriAdapter)
             .add(KotlinJsonAdapterFactory())
             .build()
     }
@@ -117,8 +119,7 @@ class ScaffoldHttpClient(
                 .readTimeout(readTimeoutMs)
                 .throwStatusCodeException(false)
                 .connect { request ->
-                    checkResponseStatus(request)
-                    request.inputStream.reader().readText()
+                    readResponseBody(request)
                 }
 
             thisLogger().debug("Received response (${responseBody.length} chars)")
@@ -156,16 +157,23 @@ class ScaffoldHttpClient(
             .throwStatusCodeException(false)
             .connect { request ->
                 request.write(requestBody)
-                checkResponseStatus(request)
+                checkResponseStatus(request.connection as HttpURLConnection)
                 request.inputStream.readBytes()
             }
     }
 
     /**
-     * Check HTTP response status and throw appropriate exceptions for error codes.
+     * Read response body from the appropriate stream based on status code.
+     * @param request The request to read the response body from
+     * @return The response body as a string
      */
-    private fun checkResponseStatus(request: HttpRequests.Request) {
-        val conn = request.connection as java.net.HttpURLConnection
+    private fun readResponseBody(request: HttpRequests.Request): String {
+        val conn = request.connection as HttpURLConnection
+        checkResponseStatus(conn)
+        return request.inputStream.reader().readText()
+    }
+
+    private fun checkResponseStatus(conn: HttpURLConnection) {
         val statusCode = conn.responseCode
 
         if (statusCode >= 500) {

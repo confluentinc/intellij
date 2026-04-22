@@ -9,6 +9,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import java.net.InetAddress
 import java.net.InetSocketAddress
+import java.net.URLDecoder
 import javax.net.ssl.SSLHandshakeException
 
 /**
@@ -64,7 +65,7 @@ class CCloudOAuthCallbackServer(
             return query.split("&")
                 .mapNotNull { param ->
                     val parts = param.split("=", limit = 2)
-                    if (parts.size == 2) parts[0] to java.net.URLDecoder.decode(parts[1], "UTF-8")
+                    if (parts.size == 2) parts[0] to URLDecoder.decode(parts[1], "UTF-8")
                     else null
                 }
                 .toMap()
@@ -126,7 +127,7 @@ class CCloudOAuthCallbackServer(
             is SSLHandshakeException -> 500 to TLS_HANDSHAKE_ERROR_MESSAGE
 
             is OAuthErrorException -> {
-                exception.httpStatusCode to "Retrieving ID token failed: ${exception.errorCode} ${exception.errorCode} - ${exception.errorDescription}."
+                exception.httpStatusCode to "Retrieving ID token failed: ${exception.errorCode} - ${exception.errorDescription}."
             }
 
             // Assume network/server errors
@@ -184,16 +185,30 @@ class CCloudOAuthCallbackServer(
 
         // Process callback synchronously so we can show the correct result page to the user.
         // The browser is waiting for the HTTP response, so we must block until token exchange completes.
-        val result = runBlocking {
-            processCallback(params["code"], params["state"], params["error"])
+        val result = try {
+            runBlocking {
+                processCallback(params["code"], params["state"], params["error"])
+            }
+        } catch (e: Exception) {
+            logger.error("Unexpected error processing OAuth callback", e)
+            val message = e.message ?: "Unexpected error during sign-in"
+            CallbackResult(500, errorHtml(message), errorMessage = message)
         }
 
-        sendResponse(exchange, result.statusCode, result.html)
+        try {
+            sendResponse(exchange, result.statusCode, result.html)
+        } catch (e: Exception) {
+            logger.warn("Failed to send OAuth callback response", e)
+        }
 
         CoroutineScope(Dispatchers.IO).launch {
-            when {
-                result.successContext != null -> onSuccess(result.successContext)
-                result.errorMessage != null -> onError(result.errorMessage)
+            try {
+                when {
+                    result.successContext != null -> onSuccess(result.successContext)
+                    result.errorMessage != null -> onError(result.errorMessage)
+                }
+            } catch (e: Exception) {
+                logger.error("Error in OAuth callback handler", e)
             }
             stop()
         }

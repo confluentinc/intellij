@@ -7,6 +7,7 @@ import com.intellij.testFramework.replaceService
 import com.intellij.ui.components.ActionLink
 import com.intellij.util.ui.UIUtil
 import io.confluent.intellijplugin.ccloud.auth.CCloudAuthService
+import io.confluent.intellijplugin.ccloud.auth.SignOutReason
 import io.confluent.intellijplugin.ccloud.auth.CCloudOAuthContext
 import io.confluent.intellijplugin.ccloud.auth.OrganizationDetails
 import io.confluent.intellijplugin.ccloud.auth.SsoDetails
@@ -147,7 +148,7 @@ class CCloudDisplayGroupTest {
             val panel = group.createOptionsPanel() as JPanel
             val listener = mockAuthService.authStateListeners.last()
 
-            listener.onSignedOut()
+            listener.onSignedOut(SignOutReason.USER_INITIATED)
 
             // Panel should still have cards
             assertTrue(panel.componentCount > 0, "Panel should have cards after sign-out")
@@ -220,7 +221,7 @@ class CCloudDisplayGroupTest {
 
             val result = formatSessionExpiry(futureInstant)
 
-            assertTrue(result.startsWith("in 2h 30m"), "Expected relative time 'in 2h 30m' but got: $result")
+            assertTrue(result.contains("in 2h 30m"), "Expected relative time 'in 2h 30m' but got: $result")
             assertTrue(result.contains("("), "Expected absolute time in parentheses but got: $result")
         }
 
@@ -230,8 +231,8 @@ class CCloudDisplayGroupTest {
 
             val result = formatSessionExpiry(futureInstant)
 
-            assertTrue(result.startsWith("in 3h"), "Expected relative time 'in 3h' but got: $result")
-            assertTrue(!result.startsWith("in 3h 0m"), "Should not show '0m' but got: $result")
+            assertTrue(result.contains("in 3h"), "Expected relative time 'in 3h' but got: $result")
+            assertFalse(result.contains("in 3h 0m"), "Should not show '0m' but got: $result")
         }
 
         @Test
@@ -240,7 +241,7 @@ class CCloudDisplayGroupTest {
 
             val result = formatSessionExpiry(futureInstant)
 
-            assertTrue(result.startsWith("in 45m"), "Expected relative time 'in 45m' but got: $result")
+            assertTrue(result.contains("in 45m"), "Expected relative time 'in 45m' but got: $result")
         }
 
         @Test
@@ -249,7 +250,7 @@ class CCloudDisplayGroupTest {
 
             val result = formatSessionExpiry(futureInstant)
 
-            assertTrue(result.startsWith("in <1m"), "Expected 'in <1m' but got: $result")
+            assertTrue(result.contains("in <1m"), "Expected 'in <1m' but got: $result")
         }
 
         @Test
@@ -258,7 +259,7 @@ class CCloudDisplayGroupTest {
 
             val result = formatSessionExpiry(futureInstant)
 
-            assertTrue(result.matches(Regex("in .+ \\(.+\\)")), "Expected format 'in Xh (absolute)' but got: $result")
+            assertTrue(result.matches(Regex(".*in .+ \\(.+\\)")), "Expected format 'Session expires in Xh (absolute)' but got: $result")
         }
     }
 

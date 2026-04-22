@@ -40,6 +40,11 @@ import javax.swing.*
 import kotlin.math.max
 
 internal class KafkaRecordDetails(project: Project, parentDisposable: Disposable) {
+
+    companion object {
+        private const val MIN_EDITOR_HEIGHT = 50
+        private const val MAX_EDITOR_HEIGHT = 350
+    }
     private val topicField = SelectableLabel("")
 
     private lateinit var keyLoadFileLinkRow: Row
@@ -51,8 +56,8 @@ internal class KafkaRecordDetails(project: Project, parentDisposable: Disposable
     private val keyFieldJson = KafkaRegistrySchemaEditor(project, parentDisposable, isEditable = false).apply {
         component.border =
             BorderFactory.createCompoundBorder(DarculaTextAreaBorder(), ComponentColoredBorder(3, 5, 3, 5))
-        component.preferredSize = Dimension(400, 50)
     }
+    private val keyEditorPanel = createContentSizingPanel(keyFieldJson.component)
 
     private val valueViewerType = ComboBox(FieldViewerType.entries.toTypedArray()).apply {
         renderer = CustomListCellRenderer<FieldViewerType> { it.title }
@@ -60,8 +65,8 @@ internal class KafkaRecordDetails(project: Project, parentDisposable: Disposable
     private val valueFieldJson = KafkaRegistrySchemaEditor(project, parentDisposable, isEditable = false).apply {
         component.border =
             BorderFactory.createCompoundBorder(DarculaTextAreaBorder(), ComponentColoredBorder(3, 5, 3, 5))
-        component.preferredSize = Dimension(400, 50)
     }
+    private val valueEditorPanel = createContentSizingPanel(valueFieldJson.component)
 
     private val headers = PropertiesTable(emptyList(), isEditable = false)
     private val partition = SelectableLabel("")
@@ -124,8 +129,8 @@ internal class KafkaRecordDetails(project: Project, parentDisposable: Disposable
             }
         }
 
-        rowsRange {
-            row(KafkaMessagesBundle.message("consumer.record.key")) {
+        val keyGroup = collapsibleGroup(title = KafkaMessagesBundle.message("consumer.record.key"), indent = false) {
+            row {
                 cell(keyViewerType).align(AlignX.RIGHT)
             }
             keyLoadFileLinkRow = row {
@@ -137,12 +142,16 @@ internal class KafkaRecordDetails(project: Project, parentDisposable: Disposable
                     }
                 }
             }
-
             row {
-                cell(keyFieldJson.component).resizableColumn().align(AlignX.FILL)
-            }.bottomGap(BottomGap.SMALL)
+                cell(keyEditorPanel).resizableColumn().align(AlignX.FILL)
+            }
+        }
+        keyGroup.expanded = true
+        keyGroup.visibleIf(error.isNull())
+        keyGroup.topGap(TopGap.NONE).bottomGap(BottomGap.NONE)
 
-            row(KafkaMessagesBundle.message("consumer.record.value")) {
+        val valueGroup = collapsibleGroup(title = KafkaMessagesBundle.message("consumer.record.value"), indent = false) {
+            row {
                 cell(valueViewerType).align(AlignX.RIGHT)
             }
             valueLoadFileLinkRow = row {
@@ -151,9 +160,12 @@ internal class KafkaRecordDetails(project: Project, parentDisposable: Disposable
                 }
             }
             row {
-                cell(valueFieldJson.component).resizableColumn().align(AlignX.FILL)
-            }.bottomGap(BottomGap.SMALL)
-        }.visibleIf(error.isNull())
+                cell(valueEditorPanel).resizableColumn().align(AlignX.FILL)
+            }
+        }
+        valueGroup.expanded = true
+        valueGroup.visibleIf(error.isNull())
+        valueGroup.topGap(TopGap.NONE).bottomGap(BottomGap.NONE)
 
         val headerGroup = collapsibleGroup(title = KafkaMessagesBundle.message("record.info.headers"), indent = false) {
             row {
@@ -309,6 +321,22 @@ internal class KafkaRecordDetails(project: Project, parentDisposable: Disposable
         KafkaFieldType.SCHEMA_REGISTRY -> FieldViewerType.JSON
         KafkaFieldType.PROTOBUF_CUSTOM -> FieldViewerType.JSON
         KafkaFieldType.AVRO_CUSTOM -> FieldViewerType.JSON
+    }
+
+    private fun createContentSizingPanel(child: JComponent): JPanel {
+        return object : JPanel(BorderLayout()) {
+            init {
+                add(child, BorderLayout.CENTER)
+            }
+
+            override fun getPreferredSize(): Dimension {
+                val childPref = child.preferredSize
+                return Dimension(
+                    childPref.width,
+                    childPref.height.coerceIn(MIN_EDITOR_HEIGHT, MAX_EDITOR_HEIGHT)
+                )
+            }
+        }
     }
 
     private fun loadBinaryFile(project: Project, defaultFileName: String, fieldText: KafkaRegistrySchemaEditor) {

@@ -4,6 +4,8 @@ import com.intellij.openapi.Disposable
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import io.confluent.intellijplugin.ccloud.auth.CCloudAuthService
+import io.confluent.intellijplugin.ccloud.auth.InvokedPlace
+import io.confluent.intellijplugin.ccloud.auth.SignOutReason
 import io.confluent.intellijplugin.ccloud.ui.CCloudSignInPanel
 import io.confluent.intellijplugin.core.monitoring.toolwindow.ComponentController
 import io.confluent.intellijplugin.core.settings.ConnectionSettings
@@ -21,7 +23,8 @@ import javax.swing.JPanel
  * Shows sign-in UI when not authenticated, resource tree when authenticated.
  */
 class ConfluentTabController(
-    private val project: Project
+    private val project: Project,
+    private val onDriverCreated: (() -> Unit)? = null  // Callback to refresh toolbar after driver created
 ) : ComponentController, Disposable, CCloudAuthService.AuthStateListener {
 
     private val cardLayout = CardLayout()
@@ -36,7 +39,7 @@ class ConfluentTabController(
     }
 
     init {
-        cardPanel.add(CCloudSignInPanel.create {
+        cardPanel.add(CCloudSignInPanel.create(InvokedPlace.WELCOME_PANEL) {
             val group = KafkaConnectionGroup()
             val connectionData = group.createBlankData().apply {
                 brokerConfigurationSource = KafkaConfigurationSource.CLOUD
@@ -59,7 +62,7 @@ class ConfluentTabController(
         showResourcesView()
     }
 
-    override fun onSignedOut() {
+    override fun onSignedOut(reason: SignOutReason) {
         signOut()
     }
 
@@ -68,7 +71,7 @@ class ConfluentTabController(
     }
 
     private fun showResourcesView() {
-        // Create driver and controller if not already created
+        val wasDriverNull = driver == null
         if (driver == null) {
             val connectionData = ConfluentConnectionData("Confluent Cloud")
 
@@ -80,13 +83,16 @@ class ConfluentTabController(
             resourceController = ConfluentMainController(project, driver!!).also {
                 it.init()
                 Disposer.register(driver!!, it)
-
-                // Add to card panel
+                driver!!.mainController = it
                 cardPanel.add(it.getComponent(), RESOURCES_CARD)
             }
         }
 
         cardLayout.show(cardPanel, RESOURCES_CARD)
+
+        if (wasDriverNull) {
+            onDriverCreated?.invoke()
+        }
     }
 
     fun signOut() {
@@ -101,13 +107,14 @@ class ConfluentTabController(
             cardPanel.remove(resourceComponent)
         }
 
-        // Show sign-in view
         showSignInView()
     }
 
     override fun getComponent(): JComponent = cardPanel
 
     fun getDriver(): ConfluentDriver? = driver
+
+    internal fun getMainController(): ConfluentMainController? = resourceController
 
     override fun dispose() {
         CCloudAuthService.getInstance().removeAuthStateListener(this)

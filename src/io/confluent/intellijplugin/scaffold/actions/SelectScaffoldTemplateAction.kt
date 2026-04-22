@@ -74,18 +74,17 @@ class SelectScaffoldTemplateAction(
 
     internal suspend fun fetchAndShowTemplates(project: Project) {
         try {
-            val templates = withBackgroundProgress(
+            val sortedTemplates = withBackgroundProgress(
                 project,
                 KafkaMessagesBundle.message("scaffold.action.fetch.templates.progress"),
                 cancellable = true
             ) {
-                fetchTemplates()
+                templateSorter(fetchTemplates())
             }
 
             withContext(Dispatchers.EDT + ModalityState.defaultModalityState().asContextElement()) {
                 if (project.isDisposed) return@withContext
 
-                val sortedTemplates = templateSorter(templates)
                 val dialog = dialogFactory(project, sortedTemplates)
                 if (!dialog.showAndGet()) return@withContext
 

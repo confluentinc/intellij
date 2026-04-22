@@ -4,6 +4,7 @@ import com.intellij.util.io.HttpRequests
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
+import io.confluent.intellijplugin.ccloud.client.CCloudUserAgent
 import java.net.HttpURLConnection
 import java.net.URLEncoder
 
@@ -44,6 +45,9 @@ object CCloudOAuthHttpClient {
             .connectTimeout(CONNECT_TIMEOUT_MS)
             .readTimeout(READ_TIMEOUT_MS)
             .throwStatusCodeException(false)
+            .tuner { conn ->
+                conn.setRequestProperty(CCloudUserAgent.HEADER_NAME, CCloudUserAgent.headerValue())
+            }
             .connect { request ->
                 request.write(body)
                 readResponseBody(request)
@@ -71,6 +75,9 @@ object CCloudOAuthHttpClient {
             .connectTimeout(CONNECT_TIMEOUT_MS)
             .readTimeout(READ_TIMEOUT_MS)
             .throwStatusCodeException(false)
+            .tuner { conn ->
+                conn.setRequestProperty(CCloudUserAgent.HEADER_NAME, CCloudUserAgent.headerValue())
+            }
             .connect { request ->
                 request.write(body)
                 val conn = request.connection as HttpURLConnection
@@ -97,6 +104,7 @@ object CCloudOAuthHttpClient {
             .readTimeout(READ_TIMEOUT_MS)
             .throwStatusCodeException(false)
             .tuner { conn ->
+                conn.setRequestProperty(CCloudUserAgent.HEADER_NAME, CCloudUserAgent.headerValue())
                 bearerToken?.let { conn.setRequestProperty("Authorization", "Bearer $it") }
             }
             .connect { request ->
@@ -129,6 +137,7 @@ object CCloudOAuthHttpClient {
             .readTimeout(READ_TIMEOUT_MS)
             .throwStatusCodeException(false)
             .tuner { conn ->
+                conn.setRequestProperty(CCloudUserAgent.HEADER_NAME, CCloudUserAgent.headerValue())
                 bearerToken?.let { conn.setRequestProperty("Authorization", "Bearer $it") }
             }
             .connect { request ->
@@ -154,6 +163,7 @@ object CCloudOAuthHttpClient {
             .readTimeout(READ_TIMEOUT_MS)
             .throwStatusCodeException(false)
             .tuner { conn ->
+                conn.setRequestProperty(CCloudUserAgent.HEADER_NAME, CCloudUserAgent.headerValue())
                 bearerToken?.let { conn.setRequestProperty("Authorization", "Bearer $it") }
             }
             .connect { readResponseBody(it) }

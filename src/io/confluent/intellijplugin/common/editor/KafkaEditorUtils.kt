@@ -28,11 +28,14 @@ import io.confluent.intellijplugin.core.ui.ComponentColoredBorder
 import io.confluent.intellijplugin.core.ui.CustomListCellRenderer
 import io.confluent.intellijplugin.core.ui.DarculaTextAreaBorder
 import io.confluent.intellijplugin.core.util.executeNotOnEdt
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import io.confluent.intellijplugin.core.util.invokeLater
 import io.confluent.intellijplugin.data.BaseClusterDataManager
 import io.confluent.intellijplugin.registry.KafkaRegistryFormat
 import io.confluent.intellijplugin.registry.KafkaRegistryType
-import io.confluent.intellijplugin.registry.KafkaRegistryUtil
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
 import io.confluent.kafka.schemaregistry.avro.AvroSchemaUtils
 import io.confluent.kafka.schemaregistry.json.JsonSchemaUtils
@@ -148,6 +151,7 @@ object KafkaEditorUtils {
         topicCombobox: ComboBox<TopicInEditor>,
         dataManager: BaseClusterDataManager,
         isKey: Boolean,
+        rootDisposable: Disposable,
         onChange: (ComboBox<KafkaFieldType>) -> Unit
     ): ComboBox<KafkaFieldType> {
         val fieldTypes = if (dataManager.registryType != KafkaRegistryType.NONE)
@@ -165,21 +169,25 @@ object KafkaEditorUtils {
         }
 
         if (dataManager.registryType != KafkaRegistryType.NONE) {
+            val job = SupervisorJob()
+            val scope = CoroutineScope(Dispatchers.Default + job)
+            Disposer.register(rootDisposable) { job.cancel() }
+
             topicCombobox.addItemListener {
                 if (it.stateChange != SELECTED)
                     return@addItemListener
 
-                executeNotOnEdt {
-                    val schemaType: Any =
-                        calculateSchemaTypeForTopic(dataManager, topicCombobox, isKey) ?: return@executeNotOnEdt
+                scope.launch {
+                    val schemaType = calculateSchemaTypeForTopic(dataManager, topicCombobox, isKey)
+                        ?: KafkaFieldType.STRING
                     runInEdt {
                         fieldsCombobox.selectedItem = schemaType
                     }
                 }
             }
 
-            executeNotOnEdt {
-                val schemaType = calculateSchemaTypeForTopic(dataManager, topicCombobox, isKey) ?: return@executeNotOnEdt
+            scope.launch {
+                val schemaType = calculateSchemaTypeForTopic(dataManager, topicCombobox, isKey) ?: return@launch
                 runInEdt {
                     fieldsCombobox.selectedItem = schemaType
                 }
@@ -314,7 +322,7 @@ object KafkaEditorUtils {
         return schemaCombobox
     }
 
-    private fun calculateSchemaTypeForTopic(
+    private suspend fun calculateSchemaTypeForTopic(
         kafkaManager: BaseClusterDataManager,
         topicComboBox: ComboBox<TopicInEditor>,
         isKey: Boolean
@@ -391,12 +399,24 @@ object KafkaEditorUtils {
             }
 
 
+            val previouslySelectedIndex = comboBox.selectedIndex
+            val previouslySelected = if (previouslySelectedIndex >= 0 && previouslySelectedIndex < comboBox.model.size) {
+                comboBox.model.getElementAt(previouslySelectedIndex)
+            } else null
+
             comboBox.removeAllItems()
             newElements?.forEach {
                 comboBox.addItem(it)
             }
 
-            updateSelectedIndex(comboBox, selectedItemIndex)
+            if (selectedItemIndex != null) {
+                updateSelectedIndex(comboBox, selectedItemIndex)
+            } else if (previouslySelected != null && newElements != null) {
+                val restoredIndex = newElements.indexOf(previouslySelected)
+                if (restoredIndex >= 0) {
+                    comboBox.selectedIndex = restoredIndex
+                }
+            }
 
             comboBox.invalidate()
             comboBox.repaint()

@@ -2,31 +2,33 @@ package io.confluent.intellijplugin.toolwindow
 
 import com.intellij.notification.NotificationGroup
 import com.intellij.notification.NotificationGroupManager
+import com.intellij.openapi.actionSystem.AnActionEvent
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ToolWindowManager
-import com.intellij.openapi.wm.ex.ToolWindowManagerListener
-import com.intellij.openapi.wm.impl.InternalDecorator
-import com.intellij.openapi.wm.impl.content.ContentTabLabel
-import com.intellij.ui.ComponentUtil
-import com.intellij.util.ui.UIUtil
+import io.confluent.intellijplugin.core.monitoring.rfs.MonitoringDriver
 import io.confluent.intellijplugin.core.monitoring.toolwindow.ComponentController
 import io.confluent.intellijplugin.core.monitoring.toolwindow.MonitoringToolWindowController
-import io.confluent.intellijplugin.core.rfs.driver.ActivitySource
 import io.confluent.intellijplugin.core.rfs.driver.RfsPath
-import io.confluent.intellijplugin.core.rfs.driver.refreshConnectionLaunch
+import io.confluent.intellijplugin.core.rfs.driver.manager.DriverManager
 import io.confluent.intellijplugin.core.settings.connections.ConnectionData
 import io.confluent.intellijplugin.core.settings.connections.ConnectionFactory
 import io.confluent.intellijplugin.core.settings.manager.RfsConnectionDataManager
+import io.confluent.intellijplugin.icons.BigdatatoolsKafkaIcons
 import io.confluent.intellijplugin.registry.KafkaRegistryUtil
 import io.confluent.intellijplugin.rfs.ConfluentConnectionData
+import io.confluent.intellijplugin.rfs.ConfluentDriver
 import io.confluent.intellijplugin.rfs.KafkaConnectionData
 import io.confluent.intellijplugin.settings.KafkaConnectionGroup
 import io.confluent.intellijplugin.toolwindow.config.KafkaToolWindowSettings
 import io.confluent.intellijplugin.toolwindow.controllers.ConfluentMainController
+import io.confluent.intellijplugin.toolwindow.controllers.ConfluentTabController
 import io.confluent.intellijplugin.toolwindow.controllers.KafkaMainController
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
+import kotlinx.coroutines.launch
 
 @Service(Service.Level.PROJECT)
 class KafkaMonitoringToolWindowController(project: Project) : MonitoringToolWindowController(project) {
@@ -47,7 +49,7 @@ class KafkaMonitoringToolWindowController(project: Project) : MonitoringToolWind
     override fun createMainController(connectionData: ConnectionData): ComponentController = when (connectionData) {
         is KafkaConnectionData -> KafkaMainController(project, connectionData)
         is ConfluentConnectionData -> {
-            val driver = io.confluent.intellijplugin.rfs.ConfluentDriver(
+            val driver = ConfluentDriver(
                 connectionData,
                 project,
                 testConnection = false
@@ -56,11 +58,14 @@ class KafkaMonitoringToolWindowController(project: Project) : MonitoringToolWind
 
             val controller = ConfluentMainController(project, driver)
             controller.init()
+            // Set controller reference for navigation from tree nodes
+            driver.mainController = controller
 
-            com.intellij.openapi.util.Disposer.register(controller, driver)
+            Disposer.register(controller, driver)
 
             controller
         }
+
         else -> error("Unsupported connection type: ${connectionData::class.simpleName}")
     }
 
@@ -73,30 +78,41 @@ class KafkaMonitoringToolWindowController(project: Project) : MonitoringToolWind
         super.setUp(toolWindow)
         RfsConnectionDataManager.instance?.addListener(settingsListener)
         KafkaRegistryUtil.disableLoggers()
-
-        fun reapplyIcon() = contentManager.contents.find { it.getUserData(CONNECTION_ID) == "ccloud" }?.let(::applyConfluentCloudIcon)
-
-        contentManager.addContentManagerListener(object : com.intellij.ui.content.ContentManagerListener {
-            override fun contentAdded(event: com.intellij.ui.content.ContentManagerEvent) {
-                if (event.content.getUserData(CONNECTION_ID) == "ccloud") applyConfluentCloudIcon(event.content)
-            }
-            override fun selectionChanged(event: com.intellij.ui.content.ContentManagerEvent) { reapplyIcon() }
-        })
-
-        project.messageBus.connect(this).subscribe(ToolWindowManagerListener.TOPIC, object : ToolWindowManagerListener {
-            override fun stateChanged(toolWindowManager: ToolWindowManager) {
-                if (toolWindowManager.getToolWindow(TOOL_WINDOW_ID)?.isVisible == true) reapplyIcon()
-            }
-        })
-
         addConfluentCloudTab()
     }
 
-    override fun onRefreshAction(e: com.intellij.openapi.actionSystem.AnActionEvent) {
+    override fun onRefreshAction(e: AnActionEvent) {
         val connectionId = contentManager.selectedContent?.getUserData(CONNECTION_ID) ?: return
 
         if (connectionId == "ccloud") {
-            getConfluentCloudTabController()?.getDriver()?.refreshConnectionLaunch(ActivitySource.ACTION)
+            val driver = getConfluentCloudTabController()?.getDriver()
+
+            driver?.let {
+                it.dataManager.updater.stopAll()
+                it.dataManager.cancelAllEnrichmentJobs()
+
+                it.safeExecutor.coroutineScope.launch {
+                    it.dataManager.getAllClusterDataManagers().forEach { clusterDataManager ->
+                        clusterDataManager.getDataPlaneCache().clearTopicCache()
+                        clusterDataManager.getDataPlaneCache().clearSchemaCache()
+                        clusterDataManager.clearAllVersionCaches()
+                    }
+
+                    it.dataManager.updater.reloadAll(checkConnection = false)
+
+                    it.dataManager.getAllClusterDataManagers().forEach { clusterDataManager ->
+                        val versionModels = clusterDataManager.schemaVersionModels.getModelsForRefresh()
+                        versionModels.forEach { model ->
+                            clusterDataManager.updater.invokeRefreshModel(model)
+                        }
+
+                        val partitionModels = clusterDataManager.topicPartitionsModels.getModelsForRefresh()
+                        partitionModels.forEach { model ->
+                            clusterDataManager.updater.invokeRefreshModel(model)
+                        }
+                    }
+                }
+            }
             return
         }
 
@@ -114,12 +130,20 @@ class KafkaMonitoringToolWindowController(project: Project) : MonitoringToolWind
         }
     }
 
-    fun getDriverForConnection(connectionId: String): io.confluent.intellijplugin.core.monitoring.rfs.MonitoringDriver? {
+    override fun getDriverForToolbar(connectionId: String?): MonitoringDriver? {
+        // CCloud driver is not in DriverManager, get it from ConfluentTabController
         if (connectionId == "ccloud") {
             return getConfluentCloudTabController()?.getDriver()
         }
-        return io.confluent.intellijplugin.core.rfs.driver.manager.DriverManager.getDriverById(project, connectionId)
-            as? io.confluent.intellijplugin.core.monitoring.rfs.MonitoringDriver
+        return super.getDriverForToolbar(connectionId)
+    }
+
+    fun getDriverForConnection(connectionId: String): MonitoringDriver? {
+        if (connectionId == "ccloud") {
+            return getConfluentCloudTabController()?.getDriver()
+        }
+        return DriverManager.getDriverById(project, connectionId)
+                as? MonitoringDriver
     }
 
     private fun addConfluentCloudTab() {
@@ -131,7 +155,10 @@ class KafkaMonitoringToolWindowController(project: Project) : MonitoringToolWind
             .filter { it.getUserData(CONNECTION_ID) == null }
             .forEach { contentManager.removeContent(it, true) }
 
-        val controller = io.confluent.intellijplugin.toolwindow.controllers.ConfluentTabController(project)
+        val controller = ConfluentTabController(
+            project,
+            onDriverCreated = { refreshCCloudToolbar() }
+        )
 
         val content = contentManager.factory.createContent(
             controller.getComponent(),
@@ -141,32 +168,27 @@ class KafkaMonitoringToolWindowController(project: Project) : MonitoringToolWind
             putUserData(CONNECTION_ID, "ccloud")
             putUserData(PAGE_CONTROLLER_ID, controller)
             putUserData(PROJECT, project)
+            putUserData(ToolWindow.SHOW_CONTENT_ICON, true)
             isCloseable = false
-            icon = io.confluent.intellijplugin.icons.BigdatatoolsKafkaIcons.ConfluentTab
+            icon = BigdatatoolsKafkaIcons.ConfluentTab
         }
 
-        com.intellij.openapi.util.Disposer.register(content, controller)
+        Disposer.register(content, controller)
         contentManager.addContent(content)
-        io.confluent.intellijplugin.core.util.invokeLater { applyConfluentCloudIcon(content) }
     }
 
-    private fun applyConfluentCloudIcon(content: com.intellij.ui.content.Content) {
-        val icon = io.confluent.intellijplugin.icons.BigdatatoolsKafkaIcons.ConfluentTab
-        content.icon = icon
-        ComponentUtil.getParentOfType(InternalDecorator::class.java, contentManager.component)?.let {
-            UIUtil.findComponentsOfType(it, ContentTabLabel::class.java).find { tab -> tab.content == content }?.apply {
-                this.icon = icon
-                this.disabledIcon = icon
-                iconTextGap = 4
-                revalidate()
-                repaint()
+    fun getConfluentCloudTabController(): ConfluentTabController? {
+        val content = contentManager.contents.firstOrNull { it.getUserData(CONNECTION_ID) == "ccloud" }
+        return content?.getUserData(PAGE_CONTROLLER_ID) as? ConfluentTabController
+    }
+
+    private fun refreshCCloudToolbar() {
+        // Refresh toolbar actions to show progress component after CCloud driver is created
+        ApplicationManager.getApplication().invokeLater {
+            if (contentManager.selectedContent?.getUserData(CONNECTION_ID) == "ccloud") {
+                setupActions("ccloud")
             }
         }
-    }
-
-    fun getConfluentCloudTabController(): io.confluent.intellijplugin.toolwindow.controllers.ConfluentTabController? {
-        val content = contentManager.contents.firstOrNull { it.getUserData(CONNECTION_ID) == "ccloud" }
-        return content?.getUserData(PAGE_CONTROLLER_ID) as? io.confluent.intellijplugin.toolwindow.controllers.ConfluentTabController
     }
 
     override fun focusOn(connectionId: String) = focusOn(connectionId, null)

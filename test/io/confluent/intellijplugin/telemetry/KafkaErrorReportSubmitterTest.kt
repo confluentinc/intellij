@@ -100,7 +100,7 @@ class KafkaErrorReportSubmitterTest {
             val text = submitter.getPrivacyNoticeText()
 
             assertEquals(
-                "Error reports help improve the Kafka plugin. No personal data is collected.",
+                "Error reports help improve the Confluent plugin. No personal data is collected.",
                 text
             )
         }

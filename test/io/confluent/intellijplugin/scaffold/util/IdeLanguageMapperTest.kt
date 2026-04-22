@@ -30,68 +30,48 @@ class IdeLanguageMapperTest {
     inner class GetPreferredLanguages {
 
         @Test
-        fun `returns Java and Kotlin for IntelliJ IDEA Community`() {
-            val languages = IdeLanguageMapper.getPreferredLanguages { "IC" }
-            assertEquals(listOf("Java", "Kotlin"), languages)
+        fun `returns registered languages directly`() {
+            val languages = IdeLanguageMapper.getPreferredLanguages {
+                listOf("Java", "Kotlin", "TEXT", "RegExp")
+            }
+            assertEquals(listOf("Java", "Kotlin", "TEXT", "RegExp"), languages)
         }
 
         @Test
-        fun `returns Java and Kotlin for IntelliJ IDEA Ultimate`() {
-            val languages = IdeLanguageMapper.getPreferredLanguages { "IU" }
-            assertEquals(listOf("Java", "Kotlin"), languages)
-        }
-
-        @Test
-        fun `returns Python for PyCharm`() {
-            val languages = IdeLanguageMapper.getPreferredLanguages { "PC" }
-            assertEquals(listOf("Python"), languages)
-        }
-
-        @Test
-        fun `returns Go for GoLand`() {
-            val languages = IdeLanguageMapper.getPreferredLanguages { "GO" }
-            assertEquals(listOf("Go"), languages)
-        }
-
-        @Test
-        fun `returns JavaScript and TypeScript for WebStorm`() {
-            val languages = IdeLanguageMapper.getPreferredLanguages { "WS" }
-            assertEquals(listOf("JavaScript", "TypeScript"), languages)
-        }
-
-        @Test
-        fun `returns Python for PyCharm Professional`() {
-            val languages = IdeLanguageMapper.getPreferredLanguages { "PY" }
-            assertEquals(listOf("Python"), languages)
-        }
-
-        @Test
-        fun `returns C and C++ for CLion`() {
-            val languages = IdeLanguageMapper.getPreferredLanguages { "CL" }
-            assertEquals(listOf("C/C++"), languages)
-        }
-
-        @Test
-        fun `returns C# and dotNET for Rider`() {
-            val languages = IdeLanguageMapper.getPreferredLanguages { "RD" }
+        fun `maps C# to C# and dotNET`() {
+            val languages = IdeLanguageMapper.getPreferredLanguages {
+                listOf("C#")
+            }
             assertEquals(listOf("C#", ".NET"), languages)
         }
 
         @Test
-        fun `returns Ruby for RubyMine`() {
-            val languages = IdeLanguageMapper.getPreferredLanguages { "RM" }
-            assertEquals(listOf("Ruby"), languages)
+        fun `maps ObjectiveC to C and C++`() {
+            val languages = IdeLanguageMapper.getPreferredLanguages {
+                listOf("ObjectiveC")
+            }
+            assertEquals(listOf("C/C++"), languages)
         }
 
         @Test
-        fun `returns PHP for PhpStorm`() {
-            val languages = IdeLanguageMapper.getPreferredLanguages { "PS" }
-            assertEquals(listOf("PHP"), languages)
+        fun `maps C and C++ display name to C and C++`() {
+            val languages = IdeLanguageMapper.getPreferredLanguages {
+                listOf("C/C++")
+            }
+            assertEquals(listOf("C/C++"), languages)
         }
 
         @Test
-        fun `returns empty list for unknown IDE`() {
-            val languages = IdeLanguageMapper.getPreferredLanguages { "XX" }
+        fun `deduplicates aliased languages`() {
+            val languages = IdeLanguageMapper.getPreferredLanguages {
+                listOf("C/C++", "ObjectiveC")
+            }
+            assertEquals(listOf("C/C++"), languages)
+        }
+
+        @Test
+        fun `returns empty list when no languages registered`() {
+            val languages = IdeLanguageMapper.getPreferredLanguages { emptyList() }
             assertTrue(languages.isEmpty())
         }
     }
@@ -114,10 +94,10 @@ class IdeLanguageMapperTest {
         }
 
         @Test
-        fun `preserves original order for non-preferred templates`() {
+        fun `groups non-preferred templates by language`() {
             val templates = listOf(
-                createTemplate(name = "go-client", language = "Go"),
                 createTemplate(name = "python-client", language = "Python"),
+                createTemplate(name = "go-client", language = "Go"),
                 createTemplate(name = "java-client", language = "Java")
             )
 
@@ -126,6 +106,21 @@ class IdeLanguageMapperTest {
             assertEquals("java-client", sorted[0].spec.name)
             assertEquals("go-client", sorted[1].spec.name)
             assertEquals("python-client", sorted[2].spec.name)
+        }
+
+        @Test
+        fun `groups same-language templates contiguously within each bucket`() {
+            val templates = listOf(
+                createTemplate(name = "go-1", language = "Go"),
+                createTemplate(name = "python-1", language = "Python"),
+                createTemplate(name = "go-2", language = "Go"),
+                createTemplate(name = "python-2", language = "Python"),
+                createTemplate(name = "java-1", language = "Java")
+            )
+
+            val sorted = IdeLanguageMapper.sortByPreferredLanguage(templates, listOf("Python"))
+
+            assertEquals(listOf("python-1", "python-2", "go-1", "go-2", "java-1"), sorted.map { it.spec.name })
         }
 
         @Test
@@ -154,10 +149,10 @@ class IdeLanguageMapperTest {
         }
 
         @Test
-        fun `empty preferred list returns original order`() {
+        fun `empty preferred list groups templates by language alphabetically`() {
             val templates = listOf(
-                createTemplate(name = "go-client", language = "Go"),
-                createTemplate(name = "java-client", language = "Java")
+                createTemplate(name = "java-client", language = "Java"),
+                createTemplate(name = "go-client", language = "Go")
             )
 
             val sorted = IdeLanguageMapper.sortByPreferredLanguage(templates, emptyList())

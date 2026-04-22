@@ -90,14 +90,14 @@ repositories {
 
 intellijPlatform {
     pluginConfiguration {
-        name = "Kafka"
+        name = "Confluent"
     }
 }
 
 dependencies {
     intellijPlatform {
         jetbrainsRuntime()
-        intellijIdea("2025.3") { useInstaller.set(true) }
+        intellijIdea("2026.1") { useInstaller.set(true) }
 
         bundledPlugin("com.intellij.modules.json")
         bundledPlugin("com.intellij.microservices.jvm")
@@ -142,7 +142,6 @@ dependencies {
     testRuntimeOnly(libs.junit.platform.launcher)
     testImplementation(libs.junit.jupiter.params)
     testImplementation(libs.mockito.kotlin)
-    testImplementation(libs.mockito.inline)
     testImplementation(libs.wiremock)
     // JUnit 4 runtime required due to IJPL-159134: JUnit5 Test Framework refers to JUnit4 classes
     // See: https://youtrack.jetbrains.com/issue/IJPL-159134
@@ -220,6 +219,9 @@ tasks {
     }
 
     runIde {
+        // trust all projects opened in the sandbox IDE, bypassing the "Trust and Open Project" dialog
+        systemProperty("idea.trust.all.projects", "true")
+
         // Pass system properties from gradle.properties or use system property flag with -D flag @see CCloudOAuthConfig
         System.getProperty("ccloud.callback-port")?.let { systemProperty("ccloud.callback-port", it) }
         System.getProperty("ccloud.env")?.let { systemProperty("ccloud.env", it) }
