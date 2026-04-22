@@ -159,7 +159,8 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
                     val otherToolbarItemsWidth = toolbarComponent.components
                         .filter { it !== this }
                         .sumOf { it.preferredSize.width }
-                    val available = titlePanel.width - titleLabelWidth - otherToolbarItemsWidth - titlePanel.insets.let { it.left + it.right }
+                    val insets = titlePanel.insets.let { it.left + it.right }
+                    val available = titlePanel.width - titleLabelWidth - otherToolbarItemsWidth - insets - EXPANDED_SEARCH_MARGIN
                     return Dimension(max(base.width, available), base.height)
                 }
             }
@@ -330,6 +331,8 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
         private val PARTITION_COLUMN = KafkaMessagesBundle.message("output.column.partition")
         private val OFFSET_COLUMN = KafkaMessagesBundle.message("output.column.offset")
         private val DURATION_COLUMN = KafkaMessagesBundle.message("output.column.duration")
+
+        private const val EXPANDED_SEARCH_MARGIN = 40
 
         internal const val DATA_SHOW_ID = "io.confluent.intellijplugin.consumer.data.show"
         internal const val DETAILS_SHOW_ID = "io.confluent.intellijplugin.consumer.details.show"
