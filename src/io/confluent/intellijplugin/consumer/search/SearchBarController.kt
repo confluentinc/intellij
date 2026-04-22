@@ -2,6 +2,7 @@ package io.confluent.intellijplugin.consumer.search
 
 import com.intellij.ui.DocumentAdapter
 import com.intellij.ui.SearchTextField
+import io.confluent.intellijplugin.core.table.filters.FilterEditor
 import io.confluent.intellijplugin.core.table.filters.SearchQueryParser
 import io.confluent.intellijplugin.core.table.filters.TableFilterHeader
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
@@ -43,22 +44,31 @@ class SearchBarController(
                 if (!syncing) onSearchBarChanged()
             }
         })
-        filterHeader.columnsController?.forEach { editor ->
-            editor?.addListener {
+        columnEditors().forEach { editor ->
+            editor.addListener {
                 if (!syncing) onColumnEditorChanged()
             }
         }
     }
 
-    private fun onSearchBarChanged() {
-        val parsed = parser.parse(searchField.text.trim())
+    private fun columnEditors(): List<FilterEditor> =
+        filterHeader.columnsController?.filterNotNull().orEmpty()
+
+    private inline fun withSyncing(block: () -> Unit) {
         syncing = true
         try {
-            filterHeader.columnsController?.forEach { editor ->
-                editor?.text = parsed.columnFilters[editor?.modelIndex] ?: ""
-            }
+            block()
         } finally {
             syncing = false
+        }
+    }
+
+    private fun onSearchBarChanged() {
+        val parsed = parser.parse(searchField.text.trim())
+        withSyncing {
+            columnEditors().forEach { editor ->
+                editor.text = parsed.columnFilters[editor.modelIndex] ?: ""
+            }
         }
         applyUnifiedFilter(parsed)
     }
@@ -66,17 +76,14 @@ class SearchBarController(
     private fun onColumnEditorChanged() {
         val currentFreeText = parser.parse(searchField.text.trim()).freeText
         val columnFilters = mutableMapOf<Int, String>()
-        filterHeader.columnsController?.forEach { editor ->
-            val text = editor?.text
+        columnEditors().forEach { editor ->
+            val text = editor.text
             if (!text.isNullOrBlank()) {
                 columnFilters[editor.modelIndex] = text
             }
         }
-        syncing = true
-        try {
+        withSyncing {
             searchField.text = parser.buildSearchText(columnFilters, currentFreeText)
-        } finally {
-            syncing = false
         }
         applyUnifiedFilter(SearchQueryParser.ParsedSearch(columnFilters, currentFreeText))
     }
