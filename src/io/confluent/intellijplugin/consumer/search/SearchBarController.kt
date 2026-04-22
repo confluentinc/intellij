@@ -6,7 +6,6 @@ import com.intellij.ui.SearchTextField
 import com.intellij.util.Alarm
 import io.confluent.intellijplugin.core.table.filters.SearchQueryParser
 import io.confluent.intellijplugin.core.table.filters.TableFilterHeader
-import io.confluent.intellijplugin.core.table.filters.TableRowFilter
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
 import javax.swing.JTable
 import javax.swing.RowFilter
@@ -17,14 +16,15 @@ import javax.swing.table.TableRowSorter
 /**
  * Owns the global search bar and unifies its filter with the per-column filter editors.
  *
- * Debounces input via [Alarm] (200ms) and applies a single composed [RowFilter] to the
- * table's [TableRowSorter]. Column-specific filters route through [TableRowFilter] so
- * numeric operators (`>`, `<`, `=`) remain available. Free-text terms compose via
- * [RowFilter.andFilter] as a case-insensitive match across all columns.
+ * Debounces input via [Alarm] (200ms) and applies a composed [RowFilter] to the
+ * table's [TableRowSorter]. Filters use [RowFilter.regexFilter] with [Regex.escape] so
+ * user input is treated as a literal substring match — this uses [java.util.regex.Matcher.find],
+ * which correctly matches within multi-line values (e.g. pretty-printed JSON).
  *
- * Sync is one-directional: typing `key:foo` in the search bar populates the Key column
- * editor. Typing directly in a column editor does NOT write back to the search bar —
- * both inputs contribute to the unified filter independently.
+ * Sync is bidirectional:
+ *  - typing `key:foo` in the search bar populates the Key column editor
+ *  - typing in a column editor rebuilds the search bar text to reflect current state
+ * A [syncing] flag prevents the two from triggering each other in a loop.
  */
 class SearchBarController(
     parentDisposable: Disposable,
@@ -39,67 +39,74 @@ class SearchBarController(
 
     private val parser = SearchQueryParser(searchKeyMap(isProducer))
     private val alarm = Alarm(Alarm.ThreadToUse.SWING_THREAD, parentDisposable)
-    private var syncingFromSearch = false
+    private var syncing = false
 
     init {
         searchField.addDocumentListener(object : DocumentAdapter() {
-            override fun textChanged(e: DocumentEvent) = schedule(syncFromSearchBar = true)
+            override fun textChanged(e: DocumentEvent) {
+                if (!syncing) schedule(::onSearchBarChanged)
+            }
         })
         filterHeader.columnsController?.forEach { editor ->
             editor?.addListener {
-                if (!syncingFromSearch) schedule(syncFromSearchBar = false)
+                if (!syncing) schedule(::onColumnEditorChanged)
             }
         }
     }
 
-    private fun schedule(syncFromSearchBar: Boolean) {
+    private fun schedule(action: () -> Unit) {
         alarm.cancelAllRequests()
-        alarm.addRequest({ applyFilter(syncFromSearchBar) }, DEBOUNCE_MS)
+        alarm.addRequest(action, DEBOUNCE_MS)
     }
 
-    private fun applyFilter(syncFromSearchBar: Boolean) {
+    private fun onSearchBarChanged() {
         val parsed = parser.parse(searchField.text.trim())
-        if (syncFromSearchBar) {
-            syncingFromSearch = true
-            try {
-                filterHeader.columnsController?.forEach { editor ->
-                    editor?.text = parsed.columnFilters[editor?.modelIndex] ?: ""
-                }
-            } finally {
-                syncingFromSearch = false
+        syncing = true
+        try {
+            filterHeader.columnsController?.forEach { editor ->
+                editor?.text = parsed.columnFilters[editor?.modelIndex] ?: ""
             }
+        } finally {
+            syncing = false
         }
-        applyUnifiedFilter(parsed.freeText)
+        applyUnifiedFilter(parsed)
     }
 
-    private fun applyUnifiedFilter(freeText: String) {
-        @Suppress("UNCHECKED_CAST")
-        val sorter = table.rowSorter as? TableRowSorter<TableModel> ?: return
-
-        val columnConditions = mutableListOf<Pair<Int, String>>()
+    private fun onColumnEditorChanged() {
+        val currentFreeText = parser.parse(searchField.text.trim()).freeText
+        val columnFilters = mutableMapOf<Int, String>()
         filterHeader.columnsController?.forEach { editor ->
             val text = editor?.text
             if (!text.isNullOrBlank()) {
-                columnConditions.add(editor.modelIndex to text)
+                columnFilters[editor.modelIndex] = text
             }
         }
+        syncing = true
+        try {
+            searchField.text = parser.buildSearchText(columnFilters, currentFreeText)
+        } finally {
+            syncing = false
+        }
+        applyUnifiedFilter(SearchQueryParser.ParsedSearch(columnFilters, currentFreeText))
+    }
 
-        val columnFilter: RowFilter<TableModel, Int>? = if (columnConditions.isNotEmpty()) {
-            TableRowFilter(table).apply {
-                compareCaseInsensitive = true
-                setConditions(columnConditions)
+    private fun applyUnifiedFilter(parsed: SearchQueryParser.ParsedSearch) {
+        @Suppress("UNCHECKED_CAST")
+        val sorter = table.rowSorter as? TableRowSorter<TableModel> ?: return
+
+        val filters = mutableListOf<RowFilter<TableModel, Int>>()
+        for ((modelIndex, value) in parsed.columnFilters) {
+            if (value.isNotEmpty()) {
+                filters.add(RowFilter.regexFilter("(?i)${Regex.escape(value)}", modelIndex))
             }
-        } else null
-
-        val freeTextFilter: RowFilter<TableModel, Int>? = freeText.takeIf { it.isNotEmpty() }
-            ?.let { RowFilter.regexFilter<TableModel, Int>("(?i)${Regex.escape(it)}") }
-
+        }
+        if (parsed.freeText.isNotEmpty()) {
+            filters.add(RowFilter.regexFilter("(?i)${Regex.escape(parsed.freeText)}"))
+        }
         sorter.rowFilter = when {
-            columnFilter != null && freeTextFilter != null ->
-                RowFilter.andFilter(listOf(columnFilter, freeTextFilter))
-            columnFilter != null -> columnFilter
-            freeTextFilter != null -> freeTextFilter
-            else -> null
+            filters.isEmpty() -> null
+            filters.size == 1 -> filters[0]
+            else -> RowFilter.andFilter(filters)
         }
         table.parent?.repaint()
     }
