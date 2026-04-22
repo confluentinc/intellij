@@ -23,6 +23,7 @@ import io.confluent.intellijplugin.rfs.ConfluentConnectionData
 import io.confluent.intellijplugin.rfs.ConfluentDriver
 import io.confluent.intellijplugin.rfs.KafkaConnectionData
 import io.confluent.intellijplugin.settings.KafkaConnectionGroup
+import io.confluent.intellijplugin.settings.app.KafkaPluginSettings
 import io.confluent.intellijplugin.toolwindow.config.KafkaToolWindowSettings
 import io.confluent.intellijplugin.toolwindow.controllers.ConfluentMainController
 import io.confluent.intellijplugin.toolwindow.controllers.ConfluentTabController
@@ -146,7 +147,12 @@ class KafkaMonitoringToolWindowController(project: Project) : MonitoringToolWind
                 as? MonitoringDriver
     }
 
-    private fun addConfluentCloudTab() {
+    internal fun addConfluentCloudTab() {
+        if (!isContentManagerInitialized()) return
+        if (KafkaPluginSettings.getInstance().hideConfluentCloudTab) {
+            return
+        }
+
         if (contentManager.contents.any { it.getUserData(CONNECTION_ID) == "ccloud" }) {
             return
         }
@@ -175,6 +181,15 @@ class KafkaMonitoringToolWindowController(project: Project) : MonitoringToolWind
 
         Disposer.register(content, controller)
         contentManager.addContent(content)
+    }
+
+    internal fun removeConfluentCloudTab() {
+        if (!isContentManagerInitialized()) return
+        val content = contentManager.contents.firstOrNull { it.getUserData(CONNECTION_ID) == "ccloud" } ?: return
+        if (contentManager.contents.size == 1) {
+            contentManager.addContent(createEmptyContent(project))
+        }
+        contentManager.removeContent(content, true)
     }
 
     fun getConfluentCloudTabController(): ConfluentTabController? {
