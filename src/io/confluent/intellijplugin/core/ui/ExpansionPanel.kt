@@ -31,7 +31,8 @@ class ExpansionPanel(
     @NlsContexts.BorderTitle private val title: String,
     private val supplier: () -> JComponent,
     expanded: Boolean = true,
-    private val actions: List<AnAction>? = null
+    private val actions: List<AnAction>? = null,
+    private val showTitle: Boolean = true
 ) : JPanel(BorderLayout()) {
 
     constructor(
@@ -39,13 +40,15 @@ class ExpansionPanel(
         supplier: () -> JComponent,
         expandedKey: String,
         expandedDefault: Boolean,
-        actions: List<AnAction>? = null
+        actions: List<AnAction>? = null,
+        showTitle: Boolean = true
     )
             : this(
         title,
         supplier,
         PropertiesComponent.getInstance().getBoolean(expandedKey, expandedDefault),
-        actions
+        actions,
+        showTitle
     ) {
         this.expandedServiceKey = expandedKey
     }
@@ -93,14 +96,17 @@ class ExpansionPanel(
         val right = createUnitValue(0, isHorizontal = true)
         val topBottom = createUnitValue(0, isHorizontal = false)
         val panelInsets = arrayOf(topBottom, left, topBottom, right)
+        val columnConstraints = if (showTitle) "[grow][pref!]" else "[grow, align right]"
         val titlePanel = JPanel(
             MigLayout(
                 createLayoutConstraints(0, 0).noVisualPadding().fill().apply { insets = panelInsets },
-                ConstraintParser.parseColumnConstraints("[grow][pref!]")
+                ConstraintParser.parseColumnConstraints(columnConstraints)
             )
         ).apply {
             border = IdeBorderFactory.createBorder(SideBorder.BOTTOM)
-            add(JLabel(title), BorderLayout.LINE_START)
+            if (showTitle) {
+                add(JLabel(title), BorderLayout.LINE_START)
+            }
             val expandAction =
                 DumbAwareAction.create(KafkaMessagesBundle.message("expansionpanel.collapse"), RfsIcons.COLLAPSE) {
                     expanded = false
@@ -112,8 +118,8 @@ class ExpansionPanel(
             }
             actionGroup.add(expandAction)
             add(ToolbarUtils.createActionToolbar(this@ExpansionPanel, "BDTExpansionPanel", actionGroup, true).apply {
-                layoutStrategy = ToolbarLayoutStrategy.NOWRAP_STRATEGY // For removing empty space on the right.
-            }.component, BorderLayout.LINE_END)
+                layoutStrategy = ToolbarLayoutStrategy.NOWRAP_STRATEGY
+            }.component, if (showTitle) BorderLayout.LINE_END else "align right")
         }
 
         removeLineStartComponent()
