@@ -63,7 +63,7 @@ class ExpansionPanel(
                 return
             }
             field = value
-            update()
+            if (value) setExpanded() else setCollapsed()
             changeListeners.forEach { it.stateChanged(ChangeEvent(this)) }
 
             expandedServiceKey?.let {
@@ -72,19 +72,11 @@ class ExpansionPanel(
         }
 
     init {
-        update()
+        if (expanded) setExpanded() else setCollapsed()
     }
 
     override fun getMaximumSize(): Dimension {
-        return if (expanded) super.getMaximumSize() else Dimension(preferredSize.width, preferredSize.height)
-    }
-
-    private fun update() {
-        if (expanded) {
-            setExpanded()
-        } else {
-            setCollapsed()
-        }
+        return if (expanded) super.getMaximumSize() else preferredSize
     }
 
     fun addChangeListener(listener: ChangeListener) = changeListeners.add(listener)
