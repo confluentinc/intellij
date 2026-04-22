@@ -2,6 +2,7 @@ package io.confluent.intellijplugin.core.monitoring.actions.tabs
 
 import com.intellij.CommonBundle
 import com.intellij.openapi.actionSystem.AnActionEvent
+import com.intellij.openapi.project.ProjectManager
 import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.util.IconLoader
 import io.confluent.intellijplugin.core.util.ConnectionUtil
@@ -21,6 +22,8 @@ class MonitoringTabDeleteConnection : MonitoringTabConnectionAction() {
         if (connectionId == "ccloud") {
             e.presentation.text = KafkaMessagesBundle.message("action.hideConfluentCloudTab.text")
             e.presentation.icon = HideCCloudTab
+            e.presentation.isEnabled = true
+            e.presentation.isVisible = true
             return
         }
 
@@ -46,7 +49,9 @@ class MonitoringTabDeleteConnection : MonitoringTabConnectionAction() {
             if (confirmed != Messages.OK) return
 
             KafkaPluginSettings.getInstance().hideConfluentCloudTab = true
-            project.getService(KafkaMonitoringToolWindowController::class.java)?.removeConfluentCloudTab()
+            for (p in ProjectManager.getInstance().openProjects) {
+                p.getService(KafkaMonitoringToolWindowController::class.java)?.removeConfluentCloudTab()
+            }
             return
         }
 

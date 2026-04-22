@@ -148,6 +148,7 @@ class KafkaMonitoringToolWindowController(project: Project) : MonitoringToolWind
     }
 
     internal fun addConfluentCloudTab() {
+        if (!isContentManagerInitialized()) return
         if (KafkaPluginSettings.getInstance().hideConfluentCloudTab) {
             return
         }
@@ -183,7 +184,11 @@ class KafkaMonitoringToolWindowController(project: Project) : MonitoringToolWind
     }
 
     internal fun removeConfluentCloudTab() {
+        if (!isContentManagerInitialized()) return
         val content = contentManager.contents.firstOrNull { it.getUserData(CONNECTION_ID) == "ccloud" } ?: return
+        if (contentManager.contents.size == 1) {
+            contentManager.addContent(createEmptyContent(project))
+        }
         contentManager.removeContent(content, true)
     }
 
