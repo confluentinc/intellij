@@ -18,26 +18,25 @@ class FilterEditor(var modelIndex: Int) : JComponent(), UiDataProvider {
 
     private val editor = ExtendableTextField()
 
+    private val leftExtension = SearchExtension()
+    private var leftExtensionShown = false
+
     init {
         isOpaque = false
-
-        val leftExtension = SearchExtension()
 
         editor.apply {
             isOpaque = false
             border = null
-            editor.addExtension(leftExtension)
         }
+        showLeftExtension()
 
         editor.addFocusListener(object : FocusListener {
             override fun focusGained(e: FocusEvent?) {
-                editor.removeExtension(leftExtension)
+                hideLeftExtension()
             }
 
             override fun focusLost(e: FocusEvent?) {
-                if (editor.text.isNullOrBlank()) {
-                    editor.addExtension(leftExtension)
-                }
+                if (editor.text.isNullOrBlank()) showLeftExtension()
             }
         })
 
@@ -47,6 +46,11 @@ class FilterEditor(var modelIndex: Int) : JComponent(), UiDataProvider {
             override fun changedUpdate(e: DocumentEvent?) = changed()
 
             private fun changed() {
+                if (!editor.text.isNullOrBlank()) {
+                    hideLeftExtension()
+                } else if (!editor.hasFocus()) {
+                    showLeftExtension()
+                }
                 listeners.forEach { it.onChange() }
             }
         })
@@ -54,6 +58,20 @@ class FilterEditor(var modelIndex: Int) : JComponent(), UiDataProvider {
         layout = BorderLayout()
 
         add(editor, BorderLayout.CENTER)
+    }
+
+    private fun showLeftExtension() {
+        if (!leftExtensionShown) {
+            editor.addExtension(leftExtension)
+            leftExtensionShown = true
+        }
+    }
+
+    private fun hideLeftExtension() {
+        if (leftExtensionShown) {
+            editor.removeExtension(leftExtension)
+            leftExtensionShown = false
+        }
     }
 
     var text: String?

@@ -330,7 +330,7 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
             val parsed = searchQueryParser.parse(text)
 
             filterHeader?.columnsController?.forEach { editor ->
-                editor?.text = parsed.columnFilters[editor.modelIndex] ?: ""
+                editor.text = parsed.columnFilters[editor.modelIndex] ?: ""
             }
 
             applyUnifiedFilter(parsed)
@@ -347,7 +347,7 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
 
             val columnFilters = mutableMapOf<Int, String>()
             filterHeader?.columnsController?.forEach { editor ->
-                val text = editor?.text
+                val text = editor.text
                 if (!text.isNullOrBlank()) {
                     columnFilters[editor.modelIndex] = text
                 }
@@ -363,7 +363,7 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
 
     private fun setupColumnFilterSync(filterHeader: TableFilterHeader) {
         filterHeader.columnsController?.forEach { editor ->
-            editor?.addListener { onColumnFilterChanged() }
+            editor.addListener { onColumnFilterChanged() }
         }
     }
 
@@ -396,8 +396,8 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
         val source = if (isProducer) MessageViewerEvent.Source.PRODUCER else MessageViewerEvent.Source.CONSUMER
         filterHeader.columnsController?.forEach { editor ->
             var wasEmpty = true
-            editor?.addListener {
-                val isEmpty = editor?.text.isNullOrBlank()
+            editor.addListener {
+                val isEmpty = editor.text.isNullOrBlank()
                 if (wasEmpty && !isEmpty) {
                     logUsage(MessageViewerEvent.Search(source))
                 }
