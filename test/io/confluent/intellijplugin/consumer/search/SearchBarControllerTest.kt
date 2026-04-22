@@ -155,5 +155,28 @@ class SearchBarControllerTest {
             controller.waitForPendingInTest()
             assertEquals("topic:topicB", controller.searchField.text)
         }
+
+        @Test
+        fun `editor listeners are re-attached after columnsController is recreated`() {
+            // Force columnsController recreation by swapping the table model.
+            SwingUtilities.invokeAndWait {
+                val model = object : DefaultTableModel(
+                    arrayOf(arrayOf<Any?>("freshTopic", Date(0), "nk", "nv", 9, 900L)),
+                    arrayOf("Topic", "Timestamp", "Key", "Value", "Partition", "Offset"),
+                ) {
+                    override fun getColumnClass(columnIndex: Int): Class<*> = when (columnIndex) {
+                        1 -> Date::class.java
+                        4 -> Int::class.java
+                        5 -> Long::class.java
+                        else -> String::class.java
+                    }
+                }
+                table.model = model
+                table.rowSorter = TableRowSorter(model)
+            }
+            // Type into the *new* topic editor — must still push through to the search bar.
+            setEditorAndFlush(modelIndex = 0, text = "freshTopic")
+            assertEquals("topic:freshTopic", controller.searchField.text)
+        }
     }
 }
