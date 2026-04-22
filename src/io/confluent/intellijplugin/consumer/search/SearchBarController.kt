@@ -16,6 +16,8 @@ import javax.swing.event.DocumentEvent
 import javax.swing.event.DocumentListener
 import javax.swing.table.TableModel
 import javax.swing.table.TableRowSorter
+import java.util.concurrent.TimeUnit
+import org.jetbrains.annotations.TestOnly
 
 /**
  * Owns the global search bar and unifies its filter with the per-column filter editors.
@@ -71,6 +73,11 @@ class SearchBarController(
     override fun dispose() {
         searchField.removeDocumentListener(searchFieldListener)
         editorListeners.forEach { (editor, listener) -> editor.removeListener(listener) }
+    }
+
+    @TestOnly
+    internal fun waitForPendingInTest() {
+        alarm.waitForAllExecuted(1, TimeUnit.SECONDS)
     }
 
     private fun columnEditors(): List<FilterEditor> =
