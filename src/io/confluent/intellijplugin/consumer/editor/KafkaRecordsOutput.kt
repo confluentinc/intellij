@@ -15,6 +15,7 @@ import com.intellij.openapi.util.Disposer
 import com.intellij.ui.JBColor
 import com.intellij.ui.PopupHandler
 import com.intellij.ui.ScrollPaneFactory
+import com.intellij.util.ui.JBUI
 import io.confluent.intellijplugin.common.editor.ListTableModel
 import io.confluent.intellijplugin.consumer.search.SearchBarController
 import io.confluent.intellijplugin.core.table.MaterialTable
@@ -161,7 +162,7 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
                         .filter { it !== this }
                         .sumOf { it.preferredSize.width }
                     val insets = titlePanel.insets.let { it.left + it.right }
-                    val available = titlePanel.width - titleLabelWidth - otherToolbarItemsWidth - insets - EXPANDED_SEARCH_MARGIN
+                    val available = titlePanel.width - titleLabelWidth - otherToolbarItemsWidth - insets - JBUI.scale(EXPANDED_SEARCH_MARGIN)
                     return Dimension(max(base.width, available), base.height)
                 }
             }
