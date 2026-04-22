@@ -116,7 +116,7 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
     private val outputTable: MaterialTable by outputTableDelegate
 
     private val searchController: SearchBarController by lazy {
-        SearchBarController(this, outputTable, filterHeader!!, isProducer)
+        SearchBarController(outputTable, filterHeader!!, isProducer)
     }
 
     private val searchField get() = searchController.searchField
