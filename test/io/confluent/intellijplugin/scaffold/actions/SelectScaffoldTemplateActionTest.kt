@@ -10,17 +10,21 @@ import com.intellij.openapi.project.ProjectManager
 import com.intellij.openapi.ui.TestDialog
 import com.intellij.openapi.ui.TestDialogManager
 import com.intellij.openapi.util.Condition
+import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.testFramework.junit5.TestApplication
 import io.confluent.intellijplugin.scaffold.client.ScaffoldHttpClient
 import io.confluent.intellijplugin.scaffold.model.ScaffoldV1TemplateListDataInner
 import io.confluent.intellijplugin.scaffold.model.ScaffoldV1TemplateListMetadata
 import io.confluent.intellijplugin.scaffold.model.ScaffoldV1TemplateMetadata
 import io.confluent.intellijplugin.scaffold.model.Scaffoldv1TemplateList
+import io.confluent.intellijplugin.scaffold.model.Scaffoldv1TemplateOption
 import io.confluent.intellijplugin.scaffold.model.Scaffoldv1TemplateSpec
+import io.confluent.intellijplugin.scaffold.ui.ScaffoldTemplateOptionsDialog
 import io.confluent.intellijplugin.scaffold.ui.ScaffoldTemplateSelectionDialog
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -35,6 +39,8 @@ import org.mockito.kotlin.eq
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
+import java.nio.file.Files
+import java.nio.file.Path
 
 @TestApplication
 class SelectScaffoldTemplateActionTest {
@@ -78,6 +84,30 @@ class SelectScaffoldTemplateActionTest {
         mockDialog: ScaffoldTemplateSelectionDialog
     ): (Project, List<ScaffoldV1TemplateListDataInner>) -> ScaffoldTemplateSelectionDialog = mock {
         on { invoke(any(), any()) } doReturn mockDialog
+    }
+
+    private fun createMockOptionsDialogFactory(
+        mockDialog: ScaffoldTemplateOptionsDialog
+    ): (Project, ScaffoldV1TemplateListDataInner) -> ScaffoldTemplateOptionsDialog = mock {
+        on { invoke(any(), any()) } doReturn mockDialog
+    }
+
+    private fun createTemplateWithOptions(
+        name: String = "test-template",
+        options: Map<String, Scaffoldv1TemplateOption>? = null
+    ): ScaffoldV1TemplateListDataInner {
+        return ScaffoldV1TemplateListDataInner(
+            metadata = ScaffoldV1TemplateMetadata(self = null),
+            spec = Scaffoldv1TemplateSpec(
+                name = name,
+                displayName = "Test Template",
+                description = "A test template",
+                version = "1.0.0",
+                language = "Java",
+                tags = listOf("kafka"),
+                options = options
+            )
+        )
     }
 
     @Nested
@@ -336,5 +366,375 @@ class SelectScaffoldTemplateActionTest {
             verify(mockDialog, never()).showAndGet()
         }
 
+        @Test
+        fun `shows options dialog after template selection when template has options`() {
+            val templateWithOptions = createTemplateWithOptions(
+                options = mapOf(
+                    "name" to Scaffoldv1TemplateOption(
+                        displayName = "Name",
+                        description = "Project name"
+                    )
+                )
+            )
+            val mockClient = createMockClientReturning(setOf(templateWithOptions))
+
+            val mockDialog = mock<ScaffoldTemplateSelectionDialog> {
+                on { showAndGet() } doReturn true
+                on { selectedTemplate } doReturn templateWithOptions
+            }
+            val dialogFactory = createMockDialogFactory(mockDialog)
+
+            val mockOptionsDialog = mock<ScaffoldTemplateOptionsDialog> {
+                on { showAndGet() } doReturn false
+            }
+            val optionsDialogFactory = createMockOptionsDialogFactory(mockOptionsDialog)
+
+            val action = SelectScaffoldTemplateAction(
+                clientFactory = { mockClient },
+                dialogFactory = dialogFactory,
+                optionsDialogFactory = optionsDialogFactory
+            )
+
+            runBlocking { action.fetchAndShowTemplates(project) }
+
+            verify(mockOptionsDialog).showAndGet()
+        }
+
+        @Test
+        fun `skips options dialog when template has no options`() {
+            val templateNoOptions = createTemplateWithOptions(options = null)
+            val mockClient = createMockClientReturning(setOf(templateNoOptions))
+
+            val mockDialog = mock<ScaffoldTemplateSelectionDialog> {
+                on { showAndGet() } doReturn true
+                on { selectedTemplate } doReturn templateNoOptions
+            }
+            val dialogFactory = createMockDialogFactory(mockDialog)
+
+            val mockOptionsDialog = mock<ScaffoldTemplateOptionsDialog>()
+            val optionsDialogFactory = createMockOptionsDialogFactory(mockOptionsDialog)
+
+            val action = SelectScaffoldTemplateAction(
+                clientFactory = { mockClient },
+                dialogFactory = dialogFactory,
+                optionsDialogFactory = optionsDialogFactory,
+                fileChooser = { null }
+            )
+
+            runBlocking { action.fetchAndShowTemplates(project) }
+
+            verify(mockOptionsDialog, never()).showAndGet()
+        }
+
+        @Test
+        fun `does not proceed when user cancels options dialog`() {
+            val templateWithOptions = createTemplateWithOptions(
+                options = mapOf(
+                    "name" to Scaffoldv1TemplateOption(
+                        displayName = "Name",
+                        description = "Project name"
+                    )
+                )
+            )
+            val mockClient = mock<ScaffoldHttpClient> {
+                onBlocking { fetchTemplates() } doReturn createTemplateList(setOf(templateWithOptions))
+            }
+
+            val mockDialog = mock<ScaffoldTemplateSelectionDialog> {
+                on { showAndGet() } doReturn true
+                on { selectedTemplate } doReturn templateWithOptions
+            }
+            val dialogFactory = createMockDialogFactory(mockDialog)
+
+            val mockOptionsDialog = mock<ScaffoldTemplateOptionsDialog> {
+                on { showAndGet() } doReturn false
+            }
+            val optionsDialogFactory = createMockOptionsDialogFactory(mockOptionsDialog)
+
+            var projectOpened = false
+            val action = SelectScaffoldTemplateAction(
+                clientFactory = { mockClient },
+                dialogFactory = dialogFactory,
+                optionsDialogFactory = optionsDialogFactory,
+                projectOpener = { projectOpened = true }
+            )
+
+            runBlocking { action.fetchAndShowTemplates(project) }
+
+            assertFalse(projectOpened, "Project should not be opened when options dialog is cancelled")
+        }
+
+        @Test
+        fun `calls applyTemplate with collected options and opens project`() {
+            val templateWithOptions = createTemplateWithOptions(
+                name = "my-template",
+                options = mapOf(
+                    "name" to Scaffoldv1TemplateOption(
+                        displayName = "Name",
+                        description = "Project name"
+                    )
+                )
+            )
+
+            val zipBytes = createTestZipBytes()
+            val mockClient = mock<ScaffoldHttpClient> {
+                onBlocking { fetchTemplates() } doReturn createTemplateList(setOf(templateWithOptions))
+                onBlocking { applyTemplate(any(), any(), any()) } doReturn zipBytes
+            }
+
+            val mockDialog = mock<ScaffoldTemplateSelectionDialog> {
+                on { showAndGet() } doReturn true
+                on { selectedTemplate } doReturn templateWithOptions
+            }
+            val dialogFactory = createMockDialogFactory(mockDialog)
+
+            val optionValues = mapOf("name" to "my-project")
+            val mockOptionsDialog = mock<ScaffoldTemplateOptionsDialog> {
+                on { showAndGet() } doReturn true
+                on { this.optionValues } doReturn optionValues
+            }
+            val optionsDialogFactory = createMockOptionsDialogFactory(mockOptionsDialog)
+
+            val tempDir = java.nio.file.Files.createTempDirectory("scaffold-test")
+            val mockVirtualFile = mock<VirtualFile> {
+                on { path } doReturn tempDir.toString()
+            }
+
+            var openedPath: Path? = null
+            val action = SelectScaffoldTemplateAction(
+                clientFactory = { mockClient },
+                dialogFactory = dialogFactory,
+                optionsDialogFactory = optionsDialogFactory,
+                fileChooser = { mockVirtualFile },
+                projectOpener = { path -> openedPath = path }
+            )
+
+            runBlocking { action.fetchAndShowTemplates(project) }
+
+            runBlocking { verify(mockClient).applyTemplate(eq("my-template"), eq("intellij"), eq(optionValues)) }
+            assertNotNull(openedPath, "Project should be opened")
+            assertTrue(openedPath!!.startsWith(tempDir), "Project should be under chosen directory")
+            assertTrue(openedPath!!.fileName.toString().startsWith("my-template-"), "Project folder should start with template name and hash")
+            assertTrue(openedPath!!.fileName.toString().length == "my-template-".length + 8, "Project folder should have 8-char hash suffix")
+            // Verify the zip contents were extracted into the project dir
+            assertTrue(Files.exists(openedPath!!.resolve("my-project/test.txt")), "Zip contents should be extracted into project dir")
+
+            // Clean up
+            tempDir.toFile().deleteRecursively()
+        }
+
+        @Test
+        fun `shows error when apply fails`() {
+            val templateNoOptions = createTemplateWithOptions(name = "fail-template", options = null)
+            val mockClient = mock<ScaffoldHttpClient> {
+                onBlocking { fetchTemplates() } doReturn createTemplateList(setOf(templateNoOptions))
+                onBlocking { applyTemplate(any(), any(), any()) } doThrow RuntimeException("Apply failed")
+            }
+
+            val mockDialog = mock<ScaffoldTemplateSelectionDialog> {
+                on { showAndGet() } doReturn true
+                on { selectedTemplate } doReturn templateNoOptions
+            }
+            val dialogFactory = createMockDialogFactory(mockDialog)
+
+            val tempDir = java.nio.file.Files.createTempDirectory("scaffold-test")
+            val mockVirtualFile = mock<VirtualFile> {
+                on { path } doReturn tempDir.toString()
+            }
+
+            var dialogMessage: String? = null
+            TestDialogManager.setTestDialog { message ->
+                dialogMessage = message
+                0
+            }
+
+            val action = SelectScaffoldTemplateAction(
+                clientFactory = { mockClient },
+                dialogFactory = dialogFactory,
+                fileChooser = { mockVirtualFile },
+                projectOpener = { }
+            )
+
+            try {
+                runBlocking { action.fetchAndShowTemplates(project) }
+            } finally {
+                TestDialogManager.setTestDialog(TestDialog.DEFAULT)
+                tempDir.toFile().deleteRecursively()
+            }
+
+            assertNotNull(dialogMessage, "Error dialog should have been shown")
+            assertTrue(dialogMessage!!.contains("Apply failed"))
+        }
+
+        @Test
+        fun `does not proceed when user cancels file chooser`() {
+            val templateNoOptions = createTemplateWithOptions(options = null)
+            val mockClient = mock<ScaffoldHttpClient> {
+                onBlocking { fetchTemplates() } doReturn createTemplateList(setOf(templateNoOptions))
+            }
+
+            val mockDialog = mock<ScaffoldTemplateSelectionDialog> {
+                on { showAndGet() } doReturn true
+                on { selectedTemplate } doReturn templateNoOptions
+            }
+            val dialogFactory = createMockDialogFactory(mockDialog)
+
+            var projectOpened = false
+            val action = SelectScaffoldTemplateAction(
+                clientFactory = { mockClient },
+                dialogFactory = dialogFactory,
+                fileChooser = { null },
+                projectOpener = { projectOpened = true }
+            )
+
+            runBlocking { action.fetchAndShowTemplates(project) }
+
+            assertFalse(projectOpened, "Project should not be opened when file chooser is cancelled")
+            runBlocking { verify(mockClient, never()).applyTemplate(any(), any(), any()) }
+        }
+
+        @Test
+        fun `shows error dialog when projectOpener fails`() {
+            val templateNoOptions = createTemplateWithOptions(name = "my-template", options = null)
+            val zipBytes = createTestZipBytes()
+            val mockClient = mock<ScaffoldHttpClient> {
+                onBlocking { fetchTemplates() } doReturn createTemplateList(setOf(templateNoOptions))
+                onBlocking { applyTemplate(any(), any(), any()) } doReturn zipBytes
+            }
+
+            val mockDialog = mock<ScaffoldTemplateSelectionDialog> {
+                on { showAndGet() } doReturn true
+                on { selectedTemplate } doReturn templateNoOptions
+            }
+            val dialogFactory = createMockDialogFactory(mockDialog)
+
+            val tempDir = java.nio.file.Files.createTempDirectory("scaffold-test")
+            val mockVirtualFile = mock<VirtualFile> {
+                on { path } doReturn tempDir.toString()
+            }
+
+            var dialogMessage: String? = null
+            TestDialogManager.setTestDialog { message ->
+                dialogMessage = message
+                0
+            }
+
+            val action = SelectScaffoldTemplateAction(
+                clientFactory = { mockClient },
+                dialogFactory = dialogFactory,
+                fileChooser = { mockVirtualFile },
+                projectOpener = { throw RuntimeException("Open failed") }
+            )
+
+            try {
+                runBlocking { action.fetchAndShowTemplates(project) }
+            } finally {
+                TestDialogManager.setTestDialog(TestDialog.DEFAULT)
+                tempDir.toFile().deleteRecursively()
+            }
+
+            assertNotNull(dialogMessage, "Error dialog should have been shown")
+            assertTrue(dialogMessage!!.contains("Open failed"))
+        }
+
+        private fun createTestZipBytes(): ByteArray {
+            val baos = java.io.ByteArrayOutputStream()
+            val zos = java.util.zip.ZipOutputStream(baos)
+            zos.putNextEntry(java.util.zip.ZipEntry("my-project/"))
+            zos.closeEntry()
+            zos.putNextEntry(java.util.zip.ZipEntry("my-project/test.txt"))
+            zos.write("hello".toByteArray())
+            zos.closeEntry()
+            zos.close()
+            return baos.toByteArray()
+        }
+    }
+
+    @Nested
+    @DisplayName("extractZip")
+    inner class ExtractZip {
+
+        @Test
+        fun `extracts nested directories and files`() {
+            val baos = java.io.ByteArrayOutputStream()
+            java.util.zip.ZipOutputStream(baos).use { zos ->
+                zos.putNextEntry(java.util.zip.ZipEntry("src/"))
+                zos.closeEntry()
+                zos.putNextEntry(java.util.zip.ZipEntry("src/main.txt"))
+                zos.write("contents".toByteArray())
+                zos.closeEntry()
+            }
+
+            val targetDir = Files.createTempDirectory("extract-test")
+            try {
+                val action = SelectScaffoldTemplateAction()
+                action.extractZip(baos.toByteArray(), targetDir)
+
+                assertTrue(Files.exists(targetDir.resolve("src")))
+                assertTrue(Files.isDirectory(targetDir.resolve("src")))
+                assertTrue(Files.exists(targetDir.resolve("src/main.txt")))
+                assertEquals("contents", Files.readString(targetDir.resolve("src/main.txt")))
+            } finally {
+                targetDir.toFile().deleteRecursively()
+            }
+        }
+
+        @Test
+        fun `creates parent directories implicitly for nested files`() {
+            val baos = java.io.ByteArrayOutputStream()
+            java.util.zip.ZipOutputStream(baos).use { zos ->
+                zos.putNextEntry(java.util.zip.ZipEntry("a/b/c/deep.txt"))
+                zos.write("deep".toByteArray())
+                zos.closeEntry()
+            }
+
+            val targetDir = Files.createTempDirectory("extract-test")
+            try {
+                val action = SelectScaffoldTemplateAction()
+                action.extractZip(baos.toByteArray(), targetDir)
+
+                assertTrue(Files.exists(targetDir.resolve("a/b/c/deep.txt")))
+                assertEquals("deep", Files.readString(targetDir.resolve("a/b/c/deep.txt")))
+            } finally {
+                targetDir.toFile().deleteRecursively()
+            }
+        }
+
+        @Test
+        fun `rejects entries that escape target directory`() {
+            val baos = java.io.ByteArrayOutputStream()
+            java.util.zip.ZipOutputStream(baos).use { zos ->
+                zos.putNextEntry(java.util.zip.ZipEntry("../evil.txt"))
+                zos.write("evil".toByteArray())
+                zos.closeEntry()
+            }
+
+            val targetDir = Files.createTempDirectory("extract-test")
+            try {
+                val action = SelectScaffoldTemplateAction()
+                val ex = assertThrows(IllegalArgumentException::class.java) {
+                    action.extractZip(baos.toByteArray(), targetDir)
+                }
+                assertTrue(ex.message!!.contains("traversal"))
+            } finally {
+                targetDir.toFile().deleteRecursively()
+            }
+        }
+
+        @Test
+        fun `handles empty zip`() {
+            val baos = java.io.ByteArrayOutputStream()
+            java.util.zip.ZipOutputStream(baos).use { /* no entries */ }
+
+            val targetDir = Files.createTempDirectory("extract-test")
+            try {
+                val action = SelectScaffoldTemplateAction()
+                action.extractZip(baos.toByteArray(), targetDir)
+                // No exception, empty dir
+                assertTrue(Files.list(targetDir).use { it.count() } == 0L)
+            } finally {
+                targetDir.toFile().deleteRecursively()
+            }
+        }
     }
 }
