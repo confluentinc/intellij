@@ -60,7 +60,13 @@ class SearchBarController(
         Disposer.register(parentDisposable, this)
         searchField.addDocumentListener(searchFieldListener)
         attachEditorListeners()
-        filterHeader.addControllerRecreatedListener { attachEditorListeners() }
+        filterHeader.addControllerRecreatedListener {
+            attachEditorListeners()
+            // New editors start blank; repopulate from the current search text so they
+            // reflect active `col:value` tokens instead of appearing empty until the user
+            // types again.
+            if (searchField.text.isNotEmpty()) onSearchBarChanged()
+        }
     }
 
     private fun attachEditorListeners() {
@@ -90,7 +96,7 @@ class SearchBarController(
     }
 
     private fun columnEditors(): List<FilterEditor> =
-        filterHeader.columnsController?.filterNotNull().orEmpty()
+        filterHeader.columnsController?.toList().orEmpty()
 
     private inline fun withSyncing(block: () -> Unit) {
         syncing = true

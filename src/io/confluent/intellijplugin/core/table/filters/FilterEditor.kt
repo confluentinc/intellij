@@ -81,8 +81,9 @@ class FilterEditor(var modelIndex: Int) : JComponent(), UiDataProvider {
     var text: String?
         get() = editor.text
         set(value) {
-            if (editor.text != value) {
-                editor.text = value ?: ""
+            val normalized = value ?: ""
+            if (editor.text != normalized) {
+                editor.text = normalized
             }
         }
 
