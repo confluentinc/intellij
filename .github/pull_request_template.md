@@ -4,7 +4,7 @@
 
 -
 
-### Optional: Click-testing instructions
+### Click-testing instructions
 
 <!-- Include any special instructions to help reviewers test your changes, if applicable -->
 
