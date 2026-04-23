@@ -24,6 +24,18 @@ import kotlin.math.max
 class TableFilterHeader(table: JTable) : JPanel(BorderLayout()), PropertyChangeListener {
 
     var columnsController: FilterColumnsControllerPanel? = null
+        private set
+
+    private val controllerRecreatedListeners = mutableListOf<(FilterColumnsControllerPanel) -> Unit>()
+
+    /**
+     * Register a callback that fires whenever [columnsController] is recreated (e.g. on table model
+     * change, UI update, or component orientation change). Callers that attach listeners to the
+     * per-column [FilterEditor]s must re-attach them here, since the old editors are discarded.
+     */
+    fun addControllerRecreatedListener(listener: (FilterColumnsControllerPanel) -> Unit) {
+        controllerRecreatedListeners += listener
+    }
 
     /** When true, column editor changes do not apply row filters directly. External code owns filtering. */
     var externalFilterMode = false
@@ -126,6 +138,7 @@ class TableFilterHeader(table: JTable) : JPanel(BorderLayout()), PropertyChangeL
         this.columnsController = columnsController
         add(columnsController, BorderLayout.WEST)
         revalidate()
+        controllerRecreatedListeners.forEach { it(columnsController) }
     }
 
     enum class Position {
