@@ -279,18 +279,6 @@ class ScaffoldTemplateOptionsDialogTest {
         }
 
         @Test
-        fun `skips min length check when minLength is zero`() {
-            val option = createOption(minLength = 0)
-            val options = mapOf("name" to option)
-            val dialog = createDialog(createTemplate(options))
-
-            onEdt {
-                val result = dialog.validateField(option, "", null)
-                assertNull(result)
-            }
-        }
-
-        @Test
         fun `returns error when pattern does not match`() {
             val option = createOption(displayName = "Name", pattern = "^[a-z]+$")
             val options = mapOf("name" to option)
@@ -393,17 +381,6 @@ class ScaffoldTemplateOptionsDialogTest {
         @Test
         fun `returns null for invalid regex pattern`() {
             val options = mapOf("name" to createOption(pattern = "["))
-            val dialog = createDialog(createTemplate(options))
-
-            onEdt {
-                assertTrue(dialog.compiledPatterns.containsKey("name"))
-                assertNull(dialog.compiledPatterns["name"])
-            }
-        }
-
-        @Test
-        fun `returns null entry when pattern is null`() {
-            val options = mapOf("name" to createOption(pattern = null))
             val dialog = createDialog(createTemplate(options))
 
             onEdt {

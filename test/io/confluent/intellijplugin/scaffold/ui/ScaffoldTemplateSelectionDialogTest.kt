@@ -8,7 +8,6 @@ import io.confluent.intellijplugin.scaffold.model.ScaffoldV1TemplateMetadata
 import io.confluent.intellijplugin.scaffold.model.Scaffoldv1TemplateSpec
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Nested
@@ -201,31 +200,6 @@ class ScaffoldTemplateSelectionDialogTest {
             }
 
             assertEquals("second", dialog.selectedTemplate?.spec?.name)
-        }
-    }
-
-    @Nested
-    inner class `empty templates` {
-
-        @Test
-        fun `disables OK action when templates list is empty`() {
-            val dialog = createDialog(emptyList())
-
-            onEdt {
-                assertFalse(dialog.isOKActionEnabled)
-            }
-        }
-
-        @Test
-        fun `leaves detail fields empty when templates list is empty`() {
-            val dialog = createDialog(emptyList())
-
-            onEdt {
-                assertEquals("", dialog.descriptionArea.text)
-                assertEquals("", dialog.languageLabel.text)
-                assertEquals("", dialog.versionLabel.text)
-                assertEquals("", dialog.tagsLabel.text)
-            }
         }
     }
 

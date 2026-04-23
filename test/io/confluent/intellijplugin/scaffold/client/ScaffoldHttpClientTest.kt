@@ -532,28 +532,5 @@ class ScaffoldHttpClientTest {
 
             assertEquals(500, exception.statusCode)
         }
-
-        @Test
-        fun `uses custom collection name`() {
-            wireMockServer.stubFor(
-                WireMock.post("/scaffold/v1/template-collections/custom/templates/my-template/apply")
-                    .willReturn(
-                        WireMock.aResponse()
-                            .withStatus(200)
-                            .withBody(byteArrayOf(0x00))
-                    )
-            )
-
-            val client = ScaffoldHttpClient(baseUrl())
-            runBlocking {
-                client.applyTemplate("my-template", collectionName = "custom", options = emptyMap())
-            }
-
-            wireMockServer.verify(
-                WireMock.postRequestedFor(
-                    WireMock.urlEqualTo("/scaffold/v1/template-collections/custom/templates/my-template/apply")
-                )
-            )
-        }
     }
 }

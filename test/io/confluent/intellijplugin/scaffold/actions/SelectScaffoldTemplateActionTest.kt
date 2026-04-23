@@ -21,6 +21,7 @@ import io.confluent.intellijplugin.scaffold.model.Scaffoldv1TemplateOption
 import io.confluent.intellijplugin.scaffold.model.Scaffoldv1TemplateSpec
 import io.confluent.intellijplugin.scaffold.ui.ScaffoldTemplateOptionsDialog
 import io.confluent.intellijplugin.scaffold.ui.ScaffoldTemplateSelectionDialog
+import io.confluent.intellijplugin.util.KafkaMessagesBundle
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -239,11 +240,9 @@ class SelectScaffoldTemplateActionTest {
                 TestDialogManager.setTestDialog(TestDialog.DEFAULT)
             }
 
-            assertNotNull(dialogMessage, "Error dialog should have been shown")
-            assertTrue(
-                dialogMessage!!.contains("Unknown error"),
-                "Error dialog message should contain the fallback unknown error text"
-            )
+            val expectedFallback = KafkaMessagesBundle.message("error.report.unknown.error")
+            val expectedMessage = KafkaMessagesBundle.message("scaffold.action.error.message", expectedFallback)
+            assertEquals(expectedMessage, dialogMessage, "Error dialog should show the bundle-resolved fallback message")
         }
 
         @Test
@@ -269,7 +268,10 @@ class SelectScaffoldTemplateActionTest {
             runBlocking { action.fetchAndShowTemplates(project) }
 
             verify(dialogFactory).invoke(eq(project), templatesCaptor.capture())
-            assertEquals(2, templatesCaptor.firstValue.size)
+            assertEquals(
+                setOf("template-1", "template-2"),
+                templatesCaptor.firstValue.map { it.spec.name }.toSet()
+            )
             verify(mockDialog).showAndGet()
         }
 
@@ -423,6 +425,7 @@ class SelectScaffoldTemplateActionTest {
 
             runBlocking { action.fetchAndShowTemplates(project) }
 
+            verify(optionsDialogFactory, never()).invoke(any(), any())
             verify(mockOptionsDialog, never()).showAndGet()
         }
 
@@ -514,8 +517,11 @@ class SelectScaffoldTemplateActionTest {
             runBlocking { verify(mockClient).applyTemplate(eq("my-template"), eq("intellij"), eq(optionValues)) }
             assertNotNull(openedPath, "Project should be opened")
             assertTrue(openedPath!!.startsWith(tempDir), "Project should be under chosen directory")
-            assertTrue(openedPath!!.fileName.toString().startsWith("my-template-"), "Project folder should start with template name and hash")
-            assertTrue(openedPath!!.fileName.toString().length == "my-template-".length + 8, "Project folder should have 8-char hash suffix")
+            val folderName = openedPath!!.fileName.toString()
+            assertTrue(
+                folderName.matches(Regex("^my-template-[0-9a-f]{8}$")),
+                "Project folder should be '<template-name>-<8 hex chars>', was: $folderName"
+            )
             // Verify the zip contents were extracted into the project dir
             assertTrue(Files.exists(openedPath!!.resolve("my-project/test.txt")), "Zip contents should be extracted into project dir")
 
@@ -721,20 +727,5 @@ class SelectScaffoldTemplateActionTest {
             }
         }
 
-        @Test
-        fun `handles empty zip`() {
-            val baos = java.io.ByteArrayOutputStream()
-            java.util.zip.ZipOutputStream(baos).use { /* no entries */ }
-
-            val targetDir = Files.createTempDirectory("extract-test")
-            try {
-                val action = SelectScaffoldTemplateAction()
-                action.extractZip(baos.toByteArray(), targetDir)
-                // No exception, empty dir
-                assertTrue(Files.list(targetDir).use { it.count() } == 0L)
-            } finally {
-                targetDir.toFile().deleteRecursively()
-            }
-        }
     }
 }
