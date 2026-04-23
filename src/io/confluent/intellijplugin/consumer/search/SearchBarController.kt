@@ -24,9 +24,7 @@ import org.jetbrains.annotations.TestOnly
  *
  * Debounces input via [Alarm] on the Swing thread (300ms) and applies a composed
  * [RowFilter] to the table's [TableRowSorter]. Filters use case-insensitive
- * [String.contains] on each cell's string value — avoids the per-row [java.util.regex.Pattern]
- * / [java.util.regex.Matcher] allocation that [RowFilter.regexFilter] incurs. `contains`
- * works correctly on multi-line values (pretty-printed JSON). Debounce matters for large
+ * [String.contains] on each cell's string value. Debounce matters for large
  * tables (thousands of rows), where re-running the sort+filter on every keystroke causes
  * EDT jank.
  *
@@ -34,8 +32,6 @@ import org.jetbrains.annotations.TestOnly
  *  - typing `key:foo` in the search bar populates the Key column editor
  *  - typing in a column editor rebuilds the search bar text to reflect current state
  * A [syncing] flag prevents the two from triggering each other in a loop.
- *
- * Registered with the parent [Disposable] so the alarm and all listeners are cleaned up.
  */
 class SearchBarController(
     parentDisposable: Disposable,
@@ -163,10 +159,8 @@ class SearchBarController(
     }
 
     /**
-     * Literal case-insensitive substring filter. Avoids the per-row `Pattern`/`Matcher`
-     * allocation that [RowFilter.regexFilter] incurs — significant for large multi-KB
-     * JSON values over thousands of rows. Passing `null` for [modelIndex] matches across
-     * every column.
+     * Literal case-insensitive substring filter.
+     * Passing `null` for [modelIndex] matches across every column.
      */
     private fun containsFilter(needle: String, modelIndex: Int?): RowFilter<TableModel, Int> =
         object : RowFilter<TableModel, Int>() {
