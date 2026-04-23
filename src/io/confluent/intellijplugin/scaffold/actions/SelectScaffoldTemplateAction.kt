@@ -2,6 +2,7 @@ package io.confluent.intellijplugin.scaffold.actions
 
 import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnActionEvent
+import com.intellij.ide.impl.OpenProjectTask
 import com.intellij.openapi.application.EDT
 import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.application.asContextElement
@@ -11,9 +12,9 @@ import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory
 import com.intellij.openapi.progress.currentThreadCoroutineScope
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
-import com.intellij.ide.impl.OpenProjectTask
 import com.intellij.openapi.project.ex.ProjectManagerEx
 import com.intellij.openapi.ui.Messages
+import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.platform.ide.progress.withBackgroundProgress
 import io.confluent.intellijplugin.scaffold.client.ScaffoldHttpClient
@@ -107,7 +108,6 @@ class SelectScaffoldTemplateAction(
                 val hash = UUID.randomUUID().toString().substring(0, 8)
                 val projectDirName = "${templateName}-${hash}"
                 val projectDir = targetDir.resolve(projectDirName)
-                Files.createDirectories(projectDir)
 
                 val zipBytes = withBackgroundProgress(
                     project,
@@ -118,7 +118,16 @@ class SelectScaffoldTemplateAction(
                     client.applyTemplate(templateName, options = options)
                 }
 
-                extractZip(zipBytes, projectDir)
+                withContext(Dispatchers.IO) {
+                    Files.createDirectories(projectDir)
+                    try {
+                        extractZip(zipBytes, projectDir)
+                    } catch (ex: Exception) {
+                        projectDir.toFile().deleteRecursively()
+                        throw ex
+                    }
+                    LocalFileSystem.getInstance().refreshAndFindFileByNioFile(projectDir)
+                }
 
                 try {
                     projectOpener(projectDir)

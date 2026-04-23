@@ -56,7 +56,7 @@ class ScaffoldTemplateOptionsDialog(
                                 if (option.initialValue != null) {
                                     text = option.initialValue
                                 }
-                            }).align(AlignX.FILL).resizableColumn().applyToComponent {}.component
+                            }).align(AlignX.FILL).resizableColumn().component
                         }
                         else -> {
                             textField().align(AlignX.FILL).resizableColumn().applyToComponent {

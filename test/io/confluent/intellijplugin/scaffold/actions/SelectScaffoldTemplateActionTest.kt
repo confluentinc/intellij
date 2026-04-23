@@ -24,6 +24,7 @@ import io.confluent.intellijplugin.scaffold.ui.ScaffoldTemplateSelectionDialog
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -460,7 +461,7 @@ class SelectScaffoldTemplateActionTest {
 
             runBlocking { action.fetchAndShowTemplates(project) }
 
-            assertTrue(!projectOpened, "Project should not be opened when options dialog is cancelled")
+            assertFalse(projectOpened, "Project should not be opened when options dialog is cancelled")
         }
 
         @Test
