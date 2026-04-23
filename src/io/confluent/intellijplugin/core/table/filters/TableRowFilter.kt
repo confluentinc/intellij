@@ -21,13 +21,8 @@ class TableRowFilter(var table: JTable) : RowFilter<TableModel, Int>() {
         return Pair(text.first().toString(), value)
     }
 
-    private fun stringCondition(search: String): (Any?) -> Boolean {
-        if (compareCaseInsensitive) {
-            val lower = search.lowercase()
-            return { value: Any? -> value?.toString()?.lowercase()?.contains(lower) == true }
-        }
-        return { value: Any? -> value?.toString()?.contains(search) == true }
-    }
+    private fun stringCondition(search: String): (Any?) -> Boolean =
+        { value: Any? -> value?.toString()?.contains(search, ignoreCase = compareCaseInsensitive) == true }
 
     fun setConditions(conditions: List<Pair<Int, String>>) {
         this.conditions.clear()
