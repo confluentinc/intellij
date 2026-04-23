@@ -77,10 +77,6 @@ Categorize the changes:
 
 ### 3. Review Checkpoints
 
-**IMPORTANT: Only review lines that were actually changed in the PR diff.** Do not flag issues in
-surrounding unchanged code. The review must be scoped strictly to the lines added or modified by
-the PR. Context lines from the diff are for understanding only — they are not subject to review.
-
 For each changed file, verify compliance with project standards:
 
 #### Threading Model

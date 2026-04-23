@@ -371,6 +371,33 @@ class ScaffoldHttpClientTest {
         }
 
         @Test
+        fun `handles templates with options`() {
+            wireMockServer.stubFor(
+                WireMock.get("/scaffold/v1/template-collections/intellij/templates")
+                    .willReturn(
+                        WireMock.aResponse()
+                            .withStatus(200)
+                            .withHeader("Content-Type", "application/json")
+                            .withBody(loadFixture("template-list-with-options.json"))
+                    )
+            )
+
+            val client = ScaffoldHttpClient(baseUrl())
+            val result = runBlocking {
+                client.fetchTemplates("intellij")
+            }
+
+            assertEquals(1, result.data.size)
+            val template = result.data.first()
+            assertNotNull(template.spec.options)
+            assertEquals(2, template.spec.options!!.size)
+            val nameOption = template.spec.options!!["project_name"]
+            assertNotNull(nameOption)
+            assertEquals("Project Name", nameOption!!.displayName)
+            assertEquals("my-project", nameOption.initialValue)
+        }
+
+        @Test
         fun `parses datetime and URI fields correctly`() {
             wireMockServer.stubFor(
                 WireMock.get("/scaffold/v1/template-collections/intellij/templates")
@@ -411,6 +438,122 @@ class ScaffoldHttpClientTest {
             // Verify list metadata URIs
             assertNotNull(result.metadata.first)
             assertNull(result.metadata.prev)
+        }
+    }
+
+    @Nested
+    @DisplayName("applyTemplate")
+    inner class ApplyTemplate {
+
+        @Test
+        fun `successfully applies template and returns ZIP bytes`() {
+            val zipContent = byteArrayOf(0x50, 0x4B, 0x03, 0x04, 0x01, 0x02, 0x03)
+            wireMockServer.stubFor(
+                WireMock.post("/scaffold/v1/template-collections/intellij/templates/my-template/apply")
+                    .willReturn(
+                        WireMock.aResponse()
+                            .withStatus(200)
+                            .withHeader("Content-Type", "application/zip")
+                            .withBody(zipContent)
+                    )
+            )
+
+            val client = ScaffoldHttpClient(baseUrl())
+            val result = runBlocking {
+                client.applyTemplate("my-template", options = mapOf("name" to "test"))
+            }
+
+            assertTrue(result.isNotEmpty())
+            assertTrue(result.contentEquals(zipContent))
+        }
+
+        @Test
+        fun `sends correct JSON request body`() {
+            wireMockServer.stubFor(
+                WireMock.post("/scaffold/v1/template-collections/intellij/templates/test-template/apply")
+                    .willReturn(
+                        WireMock.aResponse()
+                            .withStatus(200)
+                            .withBody(byteArrayOf(0x00))
+                    )
+            )
+
+            val client = ScaffoldHttpClient(baseUrl())
+            runBlocking {
+                client.applyTemplate("test-template", options = mapOf("name" to "my-project", "lang" to "Java"))
+            }
+
+            wireMockServer.verify(
+                WireMock.postRequestedFor(
+                    WireMock.urlEqualTo("/scaffold/v1/template-collections/intellij/templates/test-template/apply")
+                ).withRequestBody(WireMock.matchingJsonPath("$.options.name", WireMock.equalTo("my-project")))
+                    .withRequestBody(WireMock.matchingJsonPath("$.options.lang", WireMock.equalTo("Java")))
+            )
+        }
+
+        @Test
+        fun `handles 400 bad request`() {
+            wireMockServer.stubFor(
+                WireMock.post("/scaffold/v1/template-collections/intellij/templates/bad-template/apply")
+                    .willReturn(
+                        WireMock.aResponse()
+                            .withStatus(400)
+                            .withBody("Invalid options")
+                    )
+            )
+
+            val client = ScaffoldHttpClient(baseUrl())
+            val exception = assertThrows(HttpRequests.HttpStatusException::class.java) {
+                runBlocking {
+                    client.applyTemplate("bad-template", options = mapOf("name" to "test"))
+                }
+            }
+
+            assertEquals(400, exception.statusCode)
+        }
+
+        @Test
+        fun `handles 500 server error`() {
+            wireMockServer.stubFor(
+                WireMock.post("/scaffold/v1/template-collections/intellij/templates/error-template/apply")
+                    .willReturn(
+                        WireMock.aResponse()
+                            .withStatus(500)
+                            .withBody("Internal error")
+                    )
+            )
+
+            val client = ScaffoldHttpClient(baseUrl())
+            val exception = assertThrows(HttpRequests.HttpStatusException::class.java) {
+                runBlocking {
+                    client.applyTemplate("error-template", options = emptyMap())
+                }
+            }
+
+            assertEquals(500, exception.statusCode)
+        }
+
+        @Test
+        fun `uses custom collection name`() {
+            wireMockServer.stubFor(
+                WireMock.post("/scaffold/v1/template-collections/custom/templates/my-template/apply")
+                    .willReturn(
+                        WireMock.aResponse()
+                            .withStatus(200)
+                            .withBody(byteArrayOf(0x00))
+                    )
+            )
+
+            val client = ScaffoldHttpClient(baseUrl())
+            runBlocking {
+                client.applyTemplate("my-template", collectionName = "custom", options = emptyMap())
+            }
+
+            wireMockServer.verify(
+                WireMock.postRequestedFor(
+                    WireMock.urlEqualTo("/scaffold/v1/template-collections/custom/templates/my-template/apply")
+                )
+            )
         }
     }
 }
