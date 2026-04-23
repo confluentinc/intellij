@@ -22,19 +22,16 @@ import org.jetbrains.annotations.TestOnly
 /**
  * Owns the global search bar and unifies its filter with the per-column filter editors.
  *
- * Debounces input via [Alarm] on the Swing thread (200ms) and applies a composed
- * [RowFilter] to the table's [TableRowSorter]. Filters use [RowFilter.regexFilter] with
- * [Regex.escape] so user input is treated as a literal substring match — this uses
- * [java.util.regex.Matcher.find], which correctly matches within multi-line values
- * (e.g. pretty-printed JSON). Debounce matters for large tables (thousands of rows),
- * where re-running the sort+filter on every keystroke causes EDT jank.
+ * Debounces input via [Alarm] on the Swing thread (300ms) and applies a composed
+ * [RowFilter] to the table's [TableRowSorter]. Filters use case-insensitive
+ * [String.contains] on each cell's string value. Debounce matters for large
+ * tables (thousands of rows), where re-running the sort+filter on every keystroke causes
+ * EDT jank.
  *
  * Sync is bidirectional:
  *  - typing `key:foo` in the search bar populates the Key column editor
  *  - typing in a column editor rebuilds the search bar text to reflect current state
  * A [syncing] flag prevents the two from triggering each other in a loop.
- *
- * Registered with the parent [Disposable] so the alarm and all listeners are cleaned up.
  */
 class SearchBarController(
     parentDisposable: Disposable,
@@ -50,6 +47,7 @@ class SearchBarController(
     private val parser = SearchQueryParser(searchKeyMap(isProducer))
     private val alarm = Alarm(Alarm.ThreadToUse.SWING_THREAD, this)
     private var syncing = false
+    private var lastApplied: SearchQueryParser.ParsedSearch? = null
 
     private val searchFieldListener: DocumentListener = object : DocumentAdapter() {
         override fun textChanged(e: DocumentEvent) {
@@ -112,7 +110,10 @@ class SearchBarController(
         val parsed = parser.parse(searchField.text.trim())
         withSyncing {
             columnEditors().forEach { editor ->
-                editor.text = parsed.columnFilters[editor.modelIndex] ?: ""
+                val target = parsed.columnFilters[editor.modelIndex] ?: ""
+                if ((editor.text ?: "") != target) {
+                    editor.text = target
+                }
             }
         }
         applyUnifiedFilter(parsed)
@@ -137,14 +138,17 @@ class SearchBarController(
         @Suppress("UNCHECKED_CAST")
         val sorter = table.rowSorter as? TableRowSorter<TableModel> ?: return
 
+        if (parsed == lastApplied) return
+        lastApplied = parsed
+
         val filters = mutableListOf<RowFilter<TableModel, Int>>()
         for ((modelIndex, value) in parsed.columnFilters) {
             if (value.isNotEmpty()) {
-                filters.add(RowFilter.regexFilter("(?i)${Regex.escape(value)}", modelIndex))
+                filters.add(containsFilter(value, modelIndex))
             }
         }
         if (parsed.freeText.isNotEmpty()) {
-            filters.add(RowFilter.regexFilter("(?i)${Regex.escape(parsed.freeText)}"))
+            filters.add(containsFilter(parsed.freeText, null))
         }
         sorter.rowFilter = when {
             filters.isEmpty() -> null
@@ -154,8 +158,25 @@ class SearchBarController(
         table.parent?.repaint()
     }
 
+    /**
+     * Literal case-insensitive substring filter.
+     * Passing `null` for [modelIndex] matches across every column.
+     */
+    private fun containsFilter(needle: String, modelIndex: Int?): RowFilter<TableModel, Int> =
+        object : RowFilter<TableModel, Int>() {
+            override fun include(entry: Entry<out TableModel, out Int>): Boolean {
+                if (modelIndex != null) {
+                    return entry.getStringValue(modelIndex).contains(needle, ignoreCase = true)
+                }
+                for (i in 0 until entry.valueCount) {
+                    if (entry.getStringValue(i).contains(needle, ignoreCase = true)) return true
+                }
+                return false
+            }
+        }
+
     companion object {
-        private const val DEBOUNCE_MS = 200
+        private const val DEBOUNCE_MS = 300
 
         internal fun searchKeyMap(isProducer: Boolean): Map<String, Int> = buildMap {
             put("topic", 0)
