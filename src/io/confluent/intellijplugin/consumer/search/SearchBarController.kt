@@ -176,7 +176,7 @@ class SearchBarController(
         }
 
     companion object {
-        private const val DEBOUNCE_MS = 300
+        private const val DEBOUNCE_MS = 200
 
         internal fun searchKeyMap(isProducer: Boolean): Map<String, Int> = buildMap {
             put("topic", 0)
