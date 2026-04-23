@@ -14,7 +14,7 @@ import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.ex.ProjectManagerEx
 import com.intellij.openapi.ui.Messages
-import com.intellij.openapi.vfs.LocalFileSystem
+import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.platform.ide.progress.withBackgroundProgress
 import io.confluent.intellijplugin.scaffold.client.ScaffoldHttpClient
@@ -49,8 +49,8 @@ class SelectScaffoldTemplateAction(
             null
         )
     },
-    private val projectOpener: (Path) -> Unit = { path ->
-        ProjectManagerEx.getInstanceEx().openProject(path, OpenProjectTask {
+    private val projectOpener: suspend (Path) -> Unit = { path ->
+        ProjectManagerEx.getInstanceEx().openProjectAsync(path, OpenProjectTask {
             forceOpenInNewFrame = true
             isNewProject = true
             isProjectCreatedWithWizard = true
@@ -83,56 +83,60 @@ class SelectScaffoldTemplateAction(
                 templateSorter(fetchTemplates())
             }
 
-            withContext(Dispatchers.EDT + ModalityState.defaultModalityState().asContextElement()) {
-                if (project.isDisposed) return@withContext
+            val userInput = withContext(Dispatchers.EDT + ModalityState.defaultModalityState().asContextElement()) {
+                if (project.isDisposed) return@withContext null
 
                 val dialog = dialogFactory(project, sortedTemplates)
-                if (!dialog.showAndGet()) return@withContext
+                if (!dialog.showAndGet()) return@withContext null
 
-                val selected = dialog.selectedTemplate ?: return@withContext
+                val selected = dialog.selectedTemplate ?: return@withContext null
                 thisLogger().debug("Selected template: ${selected.spec.displayName ?: selected.spec.name}")
 
                 val options = if (!selected.spec.options.isNullOrEmpty()) {
                     val optionsDialog = optionsDialogFactory(project, selected)
-                    if (!optionsDialog.showAndGet()) return@withContext
+                    if (!optionsDialog.showAndGet()) return@withContext null
                     optionsDialog.optionValues
                 } else {
                     emptyMap()
                 }
 
-                val chosenDir = fileChooser(project) ?: return@withContext
-                val targetDir = Path.of(chosenDir.path)
+                val chosenDir = fileChooser(project) ?: return@withContext null
+                val templateName = selected.spec.name ?: return@withContext null
 
-                val templateName = selected.spec.name ?: return@withContext
+                Triple(templateName, options, Path.of(chosenDir.path))
+            } ?: return
 
-                val hash = UUID.randomUUID().toString().substring(0, 8)
-                val projectDirName = "${templateName}-${hash}"
-                val projectDir = targetDir.resolve(projectDirName)
+            val (templateName, options, targetDir) = userInput
 
-                val zipBytes = withBackgroundProgress(
-                    project,
-                    KafkaMessagesBundle.message("scaffold.action.apply.template.progress"),
-                    cancellable = true
-                ) {
-                    val client = clientFactory()
-                    client.applyTemplate(templateName, options = options)
-                }
+            val hash = UUID.randomUUID().toString().substring(0, 8)
+            val projectDir = targetDir.resolve("${templateName}-${hash}")
 
-                withContext(Dispatchers.IO) {
-                    Files.createDirectories(projectDir)
-                    try {
-                        extractZip(zipBytes, projectDir)
-                    } catch (ex: Exception) {
-                        projectDir.toFile().deleteRecursively()
-                        throw ex
-                    }
-                    LocalFileSystem.getInstance().refreshAndFindFileByNioFile(projectDir)
-                }
+            val zipBytes = withBackgroundProgress(
+                project,
+                KafkaMessagesBundle.message("scaffold.action.apply.template.progress"),
+                cancellable = true
+            ) {
+                clientFactory().applyTemplate(templateName, options = options)
+            }
 
+            withContext(Dispatchers.IO) {
+                Files.createDirectories(projectDir)
                 try {
-                    projectOpener(projectDir)
+                    extractZip(zipBytes, projectDir)
                 } catch (ex: Exception) {
-                    thisLogger().warn("Failed to open project", ex)
+                    projectDir.toFile().deleteRecursively()
+                    throw ex
+                }
+            }
+
+            VfsUtil.markDirtyAndRefresh(true, true, true, projectDir.toFile())
+
+            try {
+                projectOpener(projectDir)
+            } catch (ex: Exception) {
+                thisLogger().warn("Failed to open project", ex)
+                withContext(Dispatchers.EDT + ModalityState.defaultModalityState().asContextElement()) {
+                    if (project.isDisposed) return@withContext
                     Messages.showErrorDialog(
                         project,
                         KafkaMessagesBundle.message("scaffold.action.open.project.error", ex.message ?: ""),
