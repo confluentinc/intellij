@@ -566,6 +566,77 @@ class SelectScaffoldTemplateActionTest {
             assertTrue(dialogMessage!!.contains("Apply failed"))
         }
 
+        @Test
+        fun `does not proceed when user cancels file chooser`() {
+            val templateNoOptions = createTemplateWithOptions(options = null)
+            val mockClient = mock<ScaffoldHttpClient> {
+                onBlocking { fetchTemplates() } doReturn createTemplateList(setOf(templateNoOptions))
+            }
+
+            val mockDialog = mock<ScaffoldTemplateSelectionDialog> {
+                on { showAndGet() } doReturn true
+                on { selectedTemplate } doReturn templateNoOptions
+            }
+            val dialogFactory = createMockDialogFactory(mockDialog)
+
+            var projectOpened = false
+            val action = SelectScaffoldTemplateAction(
+                clientFactory = { mockClient },
+                dialogFactory = dialogFactory,
+                fileChooser = { null },
+                projectOpener = { projectOpened = true }
+            )
+
+            runBlocking { action.fetchAndShowTemplates(project) }
+
+            assertFalse(projectOpened, "Project should not be opened when file chooser is cancelled")
+            runBlocking { verify(mockClient, never()).applyTemplate(any(), any(), any()) }
+        }
+
+        @Test
+        fun `shows error dialog when projectOpener fails`() {
+            val templateNoOptions = createTemplateWithOptions(name = "my-template", options = null)
+            val zipBytes = createTestZipBytes()
+            val mockClient = mock<ScaffoldHttpClient> {
+                onBlocking { fetchTemplates() } doReturn createTemplateList(setOf(templateNoOptions))
+                onBlocking { applyTemplate(any(), any(), any()) } doReturn zipBytes
+            }
+
+            val mockDialog = mock<ScaffoldTemplateSelectionDialog> {
+                on { showAndGet() } doReturn true
+                on { selectedTemplate } doReturn templateNoOptions
+            }
+            val dialogFactory = createMockDialogFactory(mockDialog)
+
+            val tempDir = java.nio.file.Files.createTempDirectory("scaffold-test")
+            val mockVirtualFile = mock<VirtualFile> {
+                on { path } doReturn tempDir.toString()
+            }
+
+            var dialogMessage: String? = null
+            TestDialogManager.setTestDialog { message ->
+                dialogMessage = message
+                0
+            }
+
+            val action = SelectScaffoldTemplateAction(
+                clientFactory = { mockClient },
+                dialogFactory = dialogFactory,
+                fileChooser = { mockVirtualFile },
+                projectOpener = { throw RuntimeException("Open failed") }
+            )
+
+            try {
+                runBlocking { action.fetchAndShowTemplates(project) }
+            } finally {
+                TestDialogManager.setTestDialog(TestDialog.DEFAULT)
+                tempDir.toFile().deleteRecursively()
+            }
+
+            assertNotNull(dialogMessage, "Error dialog should have been shown")
+            assertTrue(dialogMessage!!.contains("Open failed"))
+        }
+
         private fun createTestZipBytes(): ByteArray {
             val baos = java.io.ByteArrayOutputStream()
             val zos = java.util.zip.ZipOutputStream(baos)
@@ -576,6 +647,94 @@ class SelectScaffoldTemplateActionTest {
             zos.closeEntry()
             zos.close()
             return baos.toByteArray()
+        }
+    }
+
+    @Nested
+    @DisplayName("extractZip")
+    inner class ExtractZip {
+
+        @Test
+        fun `extracts nested directories and files`() {
+            val baos = java.io.ByteArrayOutputStream()
+            java.util.zip.ZipOutputStream(baos).use { zos ->
+                zos.putNextEntry(java.util.zip.ZipEntry("src/"))
+                zos.closeEntry()
+                zos.putNextEntry(java.util.zip.ZipEntry("src/main.txt"))
+                zos.write("contents".toByteArray())
+                zos.closeEntry()
+            }
+
+            val targetDir = Files.createTempDirectory("extract-test")
+            try {
+                val action = SelectScaffoldTemplateAction()
+                action.extractZip(baos.toByteArray(), targetDir)
+
+                assertTrue(Files.exists(targetDir.resolve("src")))
+                assertTrue(Files.isDirectory(targetDir.resolve("src")))
+                assertTrue(Files.exists(targetDir.resolve("src/main.txt")))
+                assertEquals("contents", Files.readString(targetDir.resolve("src/main.txt")))
+            } finally {
+                targetDir.toFile().deleteRecursively()
+            }
+        }
+
+        @Test
+        fun `creates parent directories implicitly for nested files`() {
+            val baos = java.io.ByteArrayOutputStream()
+            java.util.zip.ZipOutputStream(baos).use { zos ->
+                zos.putNextEntry(java.util.zip.ZipEntry("a/b/c/deep.txt"))
+                zos.write("deep".toByteArray())
+                zos.closeEntry()
+            }
+
+            val targetDir = Files.createTempDirectory("extract-test")
+            try {
+                val action = SelectScaffoldTemplateAction()
+                action.extractZip(baos.toByteArray(), targetDir)
+
+                assertTrue(Files.exists(targetDir.resolve("a/b/c/deep.txt")))
+                assertEquals("deep", Files.readString(targetDir.resolve("a/b/c/deep.txt")))
+            } finally {
+                targetDir.toFile().deleteRecursively()
+            }
+        }
+
+        @Test
+        fun `rejects entries that escape target directory`() {
+            val baos = java.io.ByteArrayOutputStream()
+            java.util.zip.ZipOutputStream(baos).use { zos ->
+                zos.putNextEntry(java.util.zip.ZipEntry("../evil.txt"))
+                zos.write("evil".toByteArray())
+                zos.closeEntry()
+            }
+
+            val targetDir = Files.createTempDirectory("extract-test")
+            try {
+                val action = SelectScaffoldTemplateAction()
+                val ex = assertThrows(IllegalArgumentException::class.java) {
+                    action.extractZip(baos.toByteArray(), targetDir)
+                }
+                assertTrue(ex.message!!.contains("traversal"))
+            } finally {
+                targetDir.toFile().deleteRecursively()
+            }
+        }
+
+        @Test
+        fun `handles empty zip`() {
+            val baos = java.io.ByteArrayOutputStream()
+            java.util.zip.ZipOutputStream(baos).use { /* no entries */ }
+
+            val targetDir = Files.createTempDirectory("extract-test")
+            try {
+                val action = SelectScaffoldTemplateAction()
+                action.extractZip(baos.toByteArray(), targetDir)
+                // No exception, empty dir
+                assertTrue(Files.list(targetDir).use { it.count() } == 0L)
+            } finally {
+                targetDir.toFile().deleteRecursively()
+            }
         }
     }
 }

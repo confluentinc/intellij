@@ -4,12 +4,16 @@ import com.intellij.openapi.project.ProjectManager
 import com.intellij.openapi.util.Disposer
 import com.intellij.testFramework.junit5.TestApplication
 import com.intellij.ui.components.JBPasswordField
+import com.intellij.ui.components.fields.ExtendableTextField
 import io.confluent.intellijplugin.scaffold.model.ScaffoldV1TemplateListDataInner
 import io.confluent.intellijplugin.scaffold.model.ScaffoldV1TemplateMetadata
 import io.confluent.intellijplugin.scaffold.model.Scaffoldv1TemplateOption
 import io.confluent.intellijplugin.scaffold.model.Scaffoldv1TemplateSpec
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Nested
@@ -229,6 +233,211 @@ class ScaffoldTemplateOptionsDialogTest {
             onEdt {
                 val field = dialog.fieldComponents["secret"] as JBPasswordField
                 assertEquals("s3cret", String(field.password))
+            }
+        }
+    }
+
+    @Nested
+    inner class `validateField` {
+
+        @Test
+        fun `returns null when value meets min length`() {
+            val option = createOption(minLength = 3)
+            val options = mapOf("name" to option)
+            val dialog = createDialog(createTemplate(options))
+
+            onEdt {
+                val result = dialog.validateField(option, "abc", null)
+                assertNull(result)
+            }
+        }
+
+        @Test
+        fun `returns error when value shorter than min length`() {
+            val option = createOption(displayName = "Name", minLength = 5)
+            val options = mapOf("name" to option)
+            val dialog = createDialog(createTemplate(options))
+
+            onEdt {
+                val result = dialog.validateField(option, "ab", null)
+                assertNotNull(result)
+                assertTrue(result!!.message.contains("at least 5"))
+                assertTrue(result.message.contains("Name"))
+            }
+        }
+
+        @Test
+        fun `skips min length check when minLength is null`() {
+            val option = createOption(minLength = null)
+            val options = mapOf("name" to option)
+            val dialog = createDialog(createTemplate(options))
+
+            onEdt {
+                val result = dialog.validateField(option, "", null)
+                assertNull(result)
+            }
+        }
+
+        @Test
+        fun `skips min length check when minLength is zero`() {
+            val option = createOption(minLength = 0)
+            val options = mapOf("name" to option)
+            val dialog = createDialog(createTemplate(options))
+
+            onEdt {
+                val result = dialog.validateField(option, "", null)
+                assertNull(result)
+            }
+        }
+
+        @Test
+        fun `returns error when pattern does not match`() {
+            val option = createOption(displayName = "Name", pattern = "^[a-z]+$")
+            val options = mapOf("name" to option)
+            val dialog = createDialog(createTemplate(options))
+            val regex = dialog.compiledPatterns["name"]
+
+            onEdt {
+                val result = dialog.validateField(option, "ABC123", regex)
+                assertNotNull(result)
+                assertTrue(result!!.message.contains("Name"))
+            }
+        }
+
+        @Test
+        fun `uses pattern description when pattern does not match`() {
+            val option = createOption(
+                displayName = "Name",
+                pattern = "^[a-z]+$",
+                patternDescription = "Must be lowercase letters only"
+            )
+            val options = mapOf("name" to option)
+            val dialog = createDialog(createTemplate(options))
+            val regex = dialog.compiledPatterns["name"]
+
+            onEdt {
+                val result = dialog.validateField(option, "ABC", regex)
+                assertNotNull(result)
+                assertEquals("Must be lowercase letters only", result!!.message)
+            }
+        }
+
+        @Test
+        fun `returns null when pattern matches`() {
+            val option = createOption(pattern = "^[a-z]+$")
+            val options = mapOf("name" to option)
+            val dialog = createDialog(createTemplate(options))
+            val regex = dialog.compiledPatterns["name"]
+
+            onEdt {
+                val result = dialog.validateField(option, "abc", regex)
+                assertNull(result)
+            }
+        }
+
+        @Test
+        fun `skips pattern check when text is empty`() {
+            val option = createOption(pattern = "^[a-z]+$")
+            val options = mapOf("name" to option)
+            val dialog = createDialog(createTemplate(options))
+            val regex = dialog.compiledPatterns["name"]
+
+            onEdt {
+                val result = dialog.validateField(option, "", regex)
+                assertNull(result)
+            }
+        }
+
+        @Test
+        fun `skips pattern check when compiled pattern is null`() {
+            val option = createOption(pattern = "^[a-z]+$")
+            val options = mapOf("name" to option)
+            val dialog = createDialog(createTemplate(options))
+
+            onEdt {
+                val result = dialog.validateField(option, "ABC", null)
+                assertNull(result)
+            }
+        }
+
+        @Test
+        fun `min length error takes precedence over pattern`() {
+            val option = createOption(displayName = "Name", minLength = 5, pattern = "^[a-z]+$")
+            val options = mapOf("name" to option)
+            val dialog = createDialog(createTemplate(options))
+            val regex = dialog.compiledPatterns["name"]
+
+            onEdt {
+                val result = dialog.validateField(option, "ab", regex)
+                assertNotNull(result)
+                assertTrue(result!!.message.contains("at least 5"))
+            }
+        }
+    }
+
+    @Nested
+    inner class `compiled patterns` {
+
+        @Test
+        fun `compiles valid pattern for option`() {
+            val options = mapOf("name" to createOption(pattern = "^[a-z]+$"))
+            val dialog = createDialog(createTemplate(options))
+
+            onEdt {
+                assertNotNull(dialog.compiledPatterns["name"])
+                assertTrue(dialog.compiledPatterns["name"]!!.matches("abc"))
+                assertFalse(dialog.compiledPatterns["name"]!!.matches("ABC"))
+            }
+        }
+
+        @Test
+        fun `returns null for invalid regex pattern`() {
+            val options = mapOf("name" to createOption(pattern = "["))
+            val dialog = createDialog(createTemplate(options))
+
+            onEdt {
+                assertTrue(dialog.compiledPatterns.containsKey("name"))
+                assertNull(dialog.compiledPatterns["name"])
+            }
+        }
+
+        @Test
+        fun `returns null entry when pattern is null`() {
+            val options = mapOf("name" to createOption(pattern = null))
+            val dialog = createDialog(createTemplate(options))
+
+            onEdt {
+                assertTrue(dialog.compiledPatterns.containsKey("name"))
+                assertNull(dialog.compiledPatterns["name"])
+            }
+        }
+    }
+
+    @Nested
+    inner class `text field hint` {
+
+        @Test
+        fun `sets tooltip and empty text from hint`() {
+            val options = mapOf("name" to createOption(displayName = "Name", hint = "my-project"))
+            val dialog = createDialog(createTemplate(options))
+
+            onEdt {
+                val field = dialog.fieldComponents["name"] as JTextField
+                assertEquals("my-project", field.toolTipText)
+                if (field is ExtendableTextField) {
+                    assertEquals("my-project", field.emptyText.text)
+                }
+            }
+        }
+
+        @Test
+        fun `does not set tooltip when hint is null`() {
+            val options = mapOf("name" to createOption(displayName = "Name", hint = null))
+            val dialog = createDialog(createTemplate(options))
+
+            onEdt {
+                val field = dialog.fieldComponents["name"] as JTextField
+                assertNull(field.toolTipText)
             }
         }
     }

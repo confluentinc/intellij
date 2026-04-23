@@ -28,7 +28,7 @@ class ScaffoldTemplateOptionsDialog(
             .sortedWith(compareBy<Map.Entry<String, Scaffoldv1TemplateOption>> { it.value.order ?: 0 }.thenBy { it.key })
             .map { it.key to it.value }
 
-    private val compiledPatterns: Map<String, Regex?> =
+    internal val compiledPatterns: Map<String, Regex?> =
         sortedOptions.associate { (key, option) ->
             key to option.pattern?.let { runCatching { Regex(it) }.getOrNull() }
         }
@@ -85,7 +85,7 @@ class ScaffoldTemplateOptionsDialog(
         }
     }
 
-    private fun validateField(option: Scaffoldv1TemplateOption, text: String, compiledPattern: Regex?): ValidationInfo? {
+    internal fun validateField(option: Scaffoldv1TemplateOption, text: String, compiledPattern: Regex?): ValidationInfo? {
         val minLength = option.minLength
         if (minLength != null && minLength > 0 && text.length < minLength) {
             return ValidationInfo(
