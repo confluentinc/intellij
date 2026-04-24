@@ -6,7 +6,13 @@ description: |
   services, actions, UI panels, or data models in isolation. Also triggers on
   "how do I test", "mock service", "test action", or "test UI panel".
 user-invocable: false
-allowed-tools: Read, Grep, Glob, WebFetch, WebSearch, Bash
+allowed-tools:
+  - Read
+  - Grep
+  - Glob
+  - WebFetch
+  - WebSearch
+  - Bash
 ---
 
 # Unit Test Guide
