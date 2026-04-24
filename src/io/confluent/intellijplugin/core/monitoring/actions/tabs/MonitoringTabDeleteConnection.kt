@@ -23,7 +23,6 @@ class MonitoringTabDeleteConnection : MonitoringTabConnectionAction() {
             e.presentation.text = KafkaMessagesBundle.message("action.hideConfluentCloudTab.text")
             e.presentation.icon = HideCCloudTab
             e.presentation.isEnabled = true
-            e.presentation.isVisible = true
             return
         }
 

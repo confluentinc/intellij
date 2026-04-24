@@ -9,6 +9,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ToolWindowManager
+import io.confluent.intellijplugin.ccloud.auth.CCloudAuthService
 import io.confluent.intellijplugin.core.monitoring.rfs.MonitoringDriver
 import io.confluent.intellijplugin.core.monitoring.toolwindow.ComponentController
 import io.confluent.intellijplugin.core.monitoring.toolwindow.MonitoringToolWindowController
@@ -42,6 +43,14 @@ class KafkaMonitoringToolWindowController(project: Project) : MonitoringToolWind
 
     private val settingsListener = KafkaConnectionSettingsListener()
 
+    // Treat a fresh sign-in like a new ccloud connection: unhide and re-add the tab.
+    private val authListener = object : CCloudAuthService.AuthStateListener {
+        override fun onSignedIn(email: String) {
+            KafkaPluginSettings.getInstance().hideConfluentCloudTab = false
+            addConfluentCloudTab()
+        }
+    }
+
     override fun createConnectionGroup(): ConnectionFactory<*> = KafkaConnectionGroup()
 
     override fun isSupportedData(connectionData: ConnectionData): Boolean =
@@ -73,11 +82,13 @@ class KafkaMonitoringToolWindowController(project: Project) : MonitoringToolWind
     override fun dispose() {
         super.dispose()
         RfsConnectionDataManager.instance?.removeListener(settingsListener)
+        CCloudAuthService.getInstance().removeAuthStateListener(authListener)
     }
 
     override fun setUp(toolWindow: ToolWindow) {
         super.setUp(toolWindow)
         RfsConnectionDataManager.instance?.addListener(settingsListener)
+        CCloudAuthService.getInstance().addAuthStateListener(authListener)
         KafkaRegistryUtil.disableLoggers()
         addConfluentCloudTab()
     }
@@ -149,9 +160,7 @@ class KafkaMonitoringToolWindowController(project: Project) : MonitoringToolWind
 
     internal fun addConfluentCloudTab() {
         if (!isContentManagerInitialized()) return
-        if (KafkaPluginSettings.getInstance().hideConfluentCloudTab) {
-            return
-        }
+        if (KafkaPluginSettings.getInstance().hideConfluentCloudTab) return
 
         if (contentManager.contents.any { it.getUserData(CONNECTION_ID) == "ccloud" }) {
             return
