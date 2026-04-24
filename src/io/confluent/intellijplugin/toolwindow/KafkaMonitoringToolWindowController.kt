@@ -9,6 +9,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ToolWindowManager
+import io.confluent.intellijplugin.ccloud.auth.CCloudAuthService
 import io.confluent.intellijplugin.core.monitoring.rfs.MonitoringDriver
 import io.confluent.intellijplugin.core.monitoring.toolwindow.ComponentController
 import io.confluent.intellijplugin.core.monitoring.toolwindow.MonitoringToolWindowController
@@ -23,6 +24,7 @@ import io.confluent.intellijplugin.rfs.ConfluentConnectionData
 import io.confluent.intellijplugin.rfs.ConfluentDriver
 import io.confluent.intellijplugin.rfs.KafkaConnectionData
 import io.confluent.intellijplugin.settings.KafkaConnectionGroup
+import io.confluent.intellijplugin.settings.app.KafkaPluginSettings
 import io.confluent.intellijplugin.toolwindow.config.KafkaToolWindowSettings
 import io.confluent.intellijplugin.toolwindow.controllers.ConfluentMainController
 import io.confluent.intellijplugin.toolwindow.controllers.ConfluentTabController
@@ -40,6 +42,14 @@ class KafkaMonitoringToolWindowController(project: Project) : MonitoringToolWind
     override val toolWindowId: String = TOOL_WINDOW_ID
 
     private val settingsListener = KafkaConnectionSettingsListener()
+
+    // Treat a fresh sign-in like a new ccloud connection: unhide and re-add the tab.
+    private val authListener = object : CCloudAuthService.AuthStateListener {
+        override fun onSignedIn(email: String) {
+            KafkaPluginSettings.getInstance().hideConfluentCloudTab = false
+            addConfluentCloudTab()
+        }
+    }
 
     override fun createConnectionGroup(): ConnectionFactory<*> = KafkaConnectionGroup()
 
@@ -72,11 +82,13 @@ class KafkaMonitoringToolWindowController(project: Project) : MonitoringToolWind
     override fun dispose() {
         super.dispose()
         RfsConnectionDataManager.instance?.removeListener(settingsListener)
+        CCloudAuthService.getInstance().removeAuthStateListener(authListener)
     }
 
     override fun setUp(toolWindow: ToolWindow) {
         super.setUp(toolWindow)
         RfsConnectionDataManager.instance?.addListener(settingsListener)
+        CCloudAuthService.getInstance().addAuthStateListener(authListener)
         KafkaRegistryUtil.disableLoggers()
         addConfluentCloudTab()
     }
@@ -146,7 +158,10 @@ class KafkaMonitoringToolWindowController(project: Project) : MonitoringToolWind
                 as? MonitoringDriver
     }
 
-    private fun addConfluentCloudTab() {
+    internal fun addConfluentCloudTab() {
+        if (!isContentManagerInitialized()) return
+        if (KafkaPluginSettings.getInstance().hideConfluentCloudTab) return
+
         if (contentManager.contents.any { it.getUserData(CONNECTION_ID) == "ccloud" }) {
             return
         }
@@ -175,6 +190,15 @@ class KafkaMonitoringToolWindowController(project: Project) : MonitoringToolWind
 
         Disposer.register(content, controller)
         contentManager.addContent(content)
+    }
+
+    internal fun removeConfluentCloudTab() {
+        if (!isContentManagerInitialized()) return
+        val content = contentManager.contents.firstOrNull { it.getUserData(CONNECTION_ID) == "ccloud" } ?: return
+        if (contentManager.contents.size == 1) {
+            contentManager.addContent(createEmptyContent(project))
+        }
+        contentManager.removeContent(content, true)
     }
 
     fun getConfluentCloudTabController(): ConfluentTabController? {
