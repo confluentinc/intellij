@@ -43,8 +43,6 @@ import io.confluent.intellijplugin.toolwindow.config.KafkaClusterConfig
 import io.confluent.intellijplugin.toolwindow.config.KafkaToolWindowSettings
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
 import io.confluent.intellijplugin.util.KafkaMessagesBundle.message
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import net.miginfocom.layout.ConstraintParser
 import org.jetbrains.annotations.Nls
 import java.awt.BorderLayout
@@ -54,9 +52,6 @@ import javax.swing.JCheckBox
 import javax.swing.JComponent
 import javax.swing.JPanel
 
-/**
- * CCloud schema detail view with tree/raw toggle, version selector, and compare mode.
- */
 internal class ConfluentSchemaDetailController(
     private val project: Project,
     private val dataManager: CCloudClusterDataManager
@@ -68,38 +63,37 @@ internal class ConfluentSchemaDetailController(
     private val isNotEditMode = AtomicBooleanProperty(true)
     private val isLoading = AtomicBooleanProperty(true)
     private val hasContent = AtomicBooleanProperty(false)
+    private val hasError = AtomicBooleanProperty(false)
     private val isEditModeAvailable = AtomicBooleanProperty(false)
 
     @NlsSafe
     private var schemaName: String? = null
 
-    private var version1Schema: SchemaVersionInfo? = null
-    private var version2Schema: SchemaVersionInfo? = null
+    private var selectedVersionSchema: SchemaVersionInfo? = null
+    private var comparedVersionSchema: SchemaVersionInfo? = null
 
-    private val version1Controller = SchemaVersionsComboboxController(this, dataManager) { versions ->
+    private val selectedVersionController = SchemaVersionsComboboxController(this, dataManager) { versions ->
         isEditModeAvailable.set(versions.size > 1)
         if (versions.isNotEmpty()) {
-            version1.component.item = versions.first()
-            updateVersion1Info()
+            selectedVersion.component.item = versions.first()
         } else {
-            isLoading.set(false)
+            isLoading.set(true)
             hasContent.set(false)
         }
     }.also {
         Disposer.register(this, it)
     }
 
-    private val version2Controller = SchemaVersionsComboboxController(this, dataManager) {}.also {
+    private val comparedVersionController = SchemaVersionsComboboxController(this, dataManager) {}.also {
         Disposer.register(this, it)
     }
 
-    private lateinit var version1: Cell<ComboBox<Long>>
-    private lateinit var version2: Cell<ComboBox<Long>>
+    private lateinit var selectedVersion: Cell<ComboBox<Long>>
+    private lateinit var comparedVersion: Cell<ComboBox<Long>>
     private lateinit var viewType: SegmentedButton<ViewType>
 
     private val component = JPanel(BorderLayout())
 
-    // UI components reused from Kafka tab
     private val schemaView = KafkaRegistrySchemaEditor(project, parentDisposable = this, isEditable = false).apply {
         component.preferredSize = Dimension(20, 20)
     }
@@ -113,6 +107,10 @@ internal class ConfluentSchemaDetailController(
         row {
             label(message("confluent.cloud.details.schema.loading")).align(Align.CENTER)
         }.resizableRow().visibleIf(isLoading)
+
+        row {
+            label(message("confluent.cloud.details.schema.load.failed")).align(Align.CENTER)
+        }.resizableRow().visibleIf(hasError)
 
         row {
             cell(structureView.getComponent()).align(Align.FILL)
@@ -146,95 +144,90 @@ internal class ConfluentSchemaDetailController(
     override fun getComponent(): JComponent = component
 
     override fun setDetailsId(@Nls id: String) {
-        version1Controller.setSchema(id)
-        version2Controller.setSchema(id)
+        selectedVersionController.setSchema(id)
+        comparedVersionController.setSchema(id)
         schemaName = id
     }
 
-    private fun updateVersion1Info() {
+    private fun updateSelectedVersion() {
         val schemaName = schemaName ?: return
-        val version = version1.component.item ?: return
+        val version = selectedVersion.component.item ?: return
 
         isLoading.set(true)
         hasContent.set(false)
+        hasError.set(false)
 
-        dataManager.getSchemaVersionInfo(schemaName, version).onSuccess { versionInfo ->
-            if (version1Schema == versionInfo) {
-                invokeLater {
-                    if (Disposer.isDisposed(this@ConfluentSchemaDetailController)) return@invokeLater
-                    isLoading.set(false)
-                    hasContent.set(true)
-                }
-                return@onSuccess
-            }
+        dataManager.getSchemaVersionInfo(schemaName, version)
+            .onSuccess { applySelectedVersion(schemaName, it) }
+            .onError { onSelectedVersionFailed(schemaName, version, it) }
+    }
 
-            version1Schema = versionInfo
-            val prettySchema = KafkaRegistryUtil.getPrettySchema(schemaType = versionInfo.type.name, schema = versionInfo.schema)
-
-            invokeLater {
-                if (Disposer.isDisposed(this@ConfluentSchemaDetailController)) return@invokeLater
-
-                schemaView.setText(
-                    prettySchema,
-                    if (versionInfo.type != KafkaRegistryFormat.PROTOBUF) JsonLanguage.INSTANCE
-                    else KafkaRegistryUtil.protobufLanguage
-                )
-
-                diffViewController.updateVersion1(versionInfo)
-
+    private fun applySelectedVersion(schemaName: String, versionInfo: SchemaVersionInfo) {
+        if (selectedVersionSchema == versionInfo) {
+            onEdtIfCurrent(schemaName) {
                 isLoading.set(false)
                 hasContent.set(true)
             }
+            return
+        }
 
-            dataManager.driver.coroutineScope.launch(Dispatchers.Default) {
-                val parseResult = dataManager.parseSchemaForDisplay(versionInfo)
-                val parsedSchema = parseResult.getOrNull()
+        selectedVersionSchema = versionInfo
+        val prettySchema = KafkaRegistryUtil.getPrettySchema(schemaType = versionInfo.type.name, schema = versionInfo.schema)
+        val parsedSchema = dataManager.parseSchemaForDisplay(versionInfo)
+            .onFailure { thisLogger().warn("Failed to parse schema for '$schemaName' version ${versionInfo.version}", it) }
+            .getOrNull()
 
-                if (parsedSchema == null) {
-                    val error = parseResult.exceptionOrNull()
-                    thisLogger().warn("Failed to parse schema for '$schemaName' version $version: ${error?.message}", error)
-                    return@launch
-                }
-
-                invokeLater {
-                    if (Disposer.isDisposed(this@ConfluentSchemaDetailController)) return@invokeLater
-                    if (version1Schema != versionInfo) return@invokeLater
-
-                    try {
-                        structureView.update(parsedSchema)
-                    } catch (e: IllegalArgumentException) {
-                        // Empty schema with no type definitions, skip tree view
-                    }
+        onEdtIfCurrent(schemaName) {
+            schemaView.setText(
+                prettySchema,
+                if (versionInfo.type != KafkaRegistryFormat.PROTOBUF) JsonLanguage.INSTANCE
+                else KafkaRegistryUtil.protobufLanguage
+            )
+            parsedSchema?.let {
+                try {
+                    structureView.update(it)
+                } catch (e: IllegalArgumentException) {
+                    // schema has no type definitions — tree view stays empty
                 }
             }
-        }.onError { error ->
-            thisLogger().warn("Failed to load schema version info for '$schemaName' version $version", error)
-            invokeLater {
-                if (Disposer.isDisposed(this@ConfluentSchemaDetailController)) return@invokeLater
-
-                isLoading.set(false)
-                hasContent.set(false)
-            }
+            diffViewController.updatePrevious(versionInfo)
+            isLoading.set(false)
+            hasContent.set(true)
         }
     }
 
-    private fun updateVersion2Info() {
+    private fun onSelectedVersionFailed(schemaName: String, version: Long, error: Throwable) {
+        thisLogger().warn("Failed to load schema version info for '$schemaName' version $version", error)
+        onEdtIfCurrent(schemaName) {
+            isLoading.set(false)
+            hasContent.set(false)
+            hasError.set(true)
+        }
+    }
+
+    private fun onEdtIfCurrent(expectedSchemaName: String, block: () -> Unit) = invokeLater {
+        if (Disposer.isDisposed(this)) return@invokeLater
+        if (expectedSchemaName != schemaName) return@invokeLater
+        block()
+    }
+
+    private fun updateComparedVersion() {
         val schemaName = schemaName ?: return
-        val version = version2.component.item ?: return
+        val version = comparedVersion.component.item ?: return
 
         dataManager.getSchemaVersionInfo(schemaName, version).onSuccess {
-            if (version2Schema == it) {
+            if (comparedVersionSchema == it) {
                 return@onSuccess
             }
 
-            version2Schema = it
+            comparedVersionSchema = it
             invokeLater {
                 if (!Disposer.isDisposed(this@ConfluentSchemaDetailController)) {
-                    diffViewController.updateVersion2(it)
+                    diffViewController.updateNew(it)
                 }
             }
         }.onError { error ->
-            thisLogger().warn("Failed to load version 2 info for '$schemaName' version $version", error)
+            thisLogger().warn("Failed to load compared version info for '$schemaName' version $version", error)
         }
     }
 
@@ -276,10 +269,10 @@ internal class ConfluentSchemaDetailController(
                     onViewTypeUpdate()
                 }
 
-                version1 = cell(version1Controller.getComponent()).onChanged {
-                    updateVersion1Info()
+                selectedVersion = cell(selectedVersionController.getComponent()).onChanged {
+                    updateSelectedVersion()
                 }.customize(UnscaledGaps(top = 0, left = 0, bottom = 0, right = 0))
-                    .visibleIf(version1Controller.isVisible)
+                    .visibleIf(selectedVersionController.isVisible)
 
                 link(KafkaMessagesBundle.message("link.label.compare")) {
                     isNotEditMode.set(false)
@@ -290,8 +283,8 @@ internal class ConfluentSchemaDetailController(
                 icon(AllIcons.General.ArrowRight).visibleIf(isEditMode).gap(RightGap.SMALL)
                     .customize(UnscaledGaps(top = 0, left = 0, bottom = 0, right = 0))
 
-                version2 = cell(version2Controller.getComponent()).visibleIf(isEditMode).onChanged {
-                    updateVersion2Info()
+                comparedVersion = cell(comparedVersionController.getComponent()).visibleIf(isEditMode).onChanged {
+                    updateComparedVersion()
                 }.customize(UnscaledGaps(top = 0, left = 0, bottom = 0, right = 0))
 
                 actionButton(DumbAwareAction.create(AllIcons.Windows.CloseInactive) {
@@ -316,7 +309,7 @@ internal class ConfluentSchemaDetailController(
             }
 
             override fun actionPerformed(e: AnActionEvent) {
-                val versionInfo = version1Schema ?: return
+                val versionInfo = selectedVersionSchema ?: return
 
                 KafkaSchemaInfoDialog.showDiff(
                     KafkaMessagesBundle.message("update.dialog.title"),
@@ -326,7 +319,7 @@ internal class ConfluentSchemaDetailController(
                     val versionModel = dataManager.getSchemaVersionsModel(versionInfo.schemaName)
                     versionModel.addListener(object : DataModelListener {
                         override fun onChanged() {
-                            invokeLater { version1.component.item = versionModel.originObject?.firstOrNull() }
+                            invokeLater { selectedVersion.component.item = versionModel.originObject?.firstOrNull() }
                             versionModel.removeListener(this)
                         }
                     })
@@ -335,7 +328,7 @@ internal class ConfluentSchemaDetailController(
             }
 
             override fun update(e: AnActionEvent) {
-                e.presentation.isEnabledAndVisible = version1Schema != null
+                e.presentation.isEnabledAndVisible = selectedVersionSchema != null
             }
 
             override fun getActionUpdateThread() = ActionUpdateThread.BGT
@@ -344,7 +337,7 @@ internal class ConfluentSchemaDetailController(
         val moreAction = MoreActionGroup()
         moreAction.add(object : DumbAwareAction(KafkaMessagesBundle.message("action.delete.version.text")) {
             override fun actionPerformed(e: AnActionEvent) {
-                val versionInfo = version1Schema ?: return
+                val versionInfo = selectedVersionSchema ?: return
 
                 Messages.showCheckboxMessageDialog(
                     KafkaMessagesBundle.message(
@@ -367,7 +360,7 @@ internal class ConfluentSchemaDetailController(
 
             override fun update(e: AnActionEvent) {
                 e.presentation.isEnabledAndVisible =
-                    version1Schema != null && version1.component.itemCount > 1
+                    selectedVersionSchema != null && selectedVersion.component.itemCount > 1
             }
 
             override fun getActionUpdateThread() = ActionUpdateThread.BGT
