@@ -78,25 +78,25 @@ class KafkaSchemaController(
 
     @NlsSafe
     private var schemaName: String? = null
-    private val version1Controller = SchemaVersionsComboboxController(this, dataManager) { versions ->
+    private val selectedVersionController = SchemaVersionsComboboxController(this, dataManager) { versions ->
         isEditModeAvailable.set(versions.size > 1)
         if (versions.isNotEmpty()) {
-            version1.component.item = versions.first()
-            updateVersion1Info()
+            selectedVersion.component.item = versions.first()
+            updateSelectedVersion()
         }
     }.also {
         Disposer.register(this, it)
     }
 
-    private val version2Controller = SchemaVersionsComboboxController(this, dataManager) {}.also {
+    private val comparedVersionController = SchemaVersionsComboboxController(this, dataManager) {}.also {
         Disposer.register(this, it)
     }
-    private lateinit var version1: Cell<ComboBox<Long>>
-    private lateinit var version2: Cell<ComboBox<Long>>
+    private lateinit var selectedVersion: Cell<ComboBox<Long>>
+    private lateinit var comparedVersion: Cell<ComboBox<Long>>
     private lateinit var viewType: SegmentedButton<ViewType>
 
-    private var version1Schema: SchemaVersionInfo? = null
-    private var version2Schema: SchemaVersionInfo? = null
+    private var selectedVersionSchema: SchemaVersionInfo? = null
+    private var comparedVersionSchema: SchemaVersionInfo? = null
 
     private val component = JPanel(BorderLayout())
 
@@ -164,21 +164,21 @@ class KafkaSchemaController(
         isLoading.set(true)
         hasContent.set(false)
 
-        version1Controller.setSchema(id)
-        version2Controller.setSchema(id)
+        selectedVersionController.setSchema(id)
+        comparedVersionController.setSchema(id)
         schemaName = id
-        updateVersion1Info()
-        updateVersion2Info()
+        updateSelectedVersion()
+        updateComparedVersion()
     }
 
-    private fun updateVersion1Info() {
+    private fun updateSelectedVersion() {
         val schemaName = schemaName
         if (schemaName == null)
             return
-        val version = version1.component.item ?: return
+        val version = selectedVersion.component.item ?: return
 
         dataManager.getSchemaVersionInfo(schemaName, version).onSuccess {
-            if (version1Schema == it) {
+            if (selectedVersionSchema == it) {
                 invokeLater {
                     if (Disposer.isDisposed(this@KafkaSchemaController)) return@invokeLater
                     isLoading.set(false)
@@ -187,7 +187,7 @@ class KafkaSchemaController(
                 return@onSuccess
             }
 
-            version1Schema = it
+            selectedVersionSchema = it
             val prettySchema = KafkaRegistryUtil.getPrettySchema(schemaType = it.type.name, schema = it.schema)
             val parsedSchema = dataManager.parseSchemaForDisplay(it).getOrNull()
                 ?: return@onSuccess
@@ -201,7 +201,7 @@ class KafkaSchemaController(
                     else KafkaRegistryUtil.protobufLanguage
                 )
                 structureView.update(parsedSchema)
-                diffViewController.updateVersion1(it)
+                diffViewController.updatePrevious(it)
 
                 isLoading.set(false)
                 hasContent.set(true)
@@ -209,20 +209,20 @@ class KafkaSchemaController(
         }
     }
 
-    private fun updateVersion2Info() {
+    private fun updateComparedVersion() {
         val schemaName = schemaName
         if (schemaName == null)
             return
-        val version = version2.component.item ?: return
+        val version = comparedVersion.component.item ?: return
         dataManager.getSchemaVersionInfo(schemaName, version).onSuccess {
-            if (version2Schema == it)
+            if (comparedVersionSchema == it)
                 return@onSuccess
 
-            version2Schema = it
+            comparedVersionSchema = it
             invokeLater {
                 // Guard against disposed controller
                 if (!Disposer.isDisposed(diffViewController)) {
-                    diffViewController.updateVersion2(it)
+                    diffViewController.updateNew(it)
                 }
             }
         }
@@ -265,10 +265,10 @@ class KafkaSchemaController(
                     onViewTypeUpdate()
                 }
 
-                version1 = cell(version1Controller.getComponent()).onChanged {
-                    updateVersion1Info()
+                selectedVersion = cell(selectedVersionController.getComponent()).onChanged {
+                    updateSelectedVersion()
                 }.customize(UnscaledGaps(top = 0, left = 0, bottom = 0, right = 0))
-                    .visibleIf(version1Controller.isVisible)
+                    .visibleIf(selectedVersionController.isVisible)
 
                 link(KafkaMessagesBundle.message("link.label.compare")) {
                     isNotEditMode.set(false)
@@ -279,8 +279,8 @@ class KafkaSchemaController(
                 icon(AllIcons.General.ArrowRight).visibleIf(isEditMode).gap(RightGap.SMALL)
                     .customize(UnscaledGaps(top = 0, left = 0, bottom = 0, right = 0))
 
-                version2 = cell(version2Controller.getComponent()).visibleIf(isEditMode).onChanged {
-                    updateVersion2Info()
+                comparedVersion = cell(comparedVersionController.getComponent()).visibleIf(isEditMode).onChanged {
+                    updateComparedVersion()
                 }.customize(UnscaledGaps(top = 0, left = 0, bottom = 0, right = 0))
 
                 actionButton(DumbAwareAction.create(AllIcons.Windows.CloseInactive) {
@@ -305,7 +305,7 @@ class KafkaSchemaController(
             }
 
             override fun actionPerformed(e: AnActionEvent) {
-                val versionInfo = version1Schema ?: return
+                val versionInfo = selectedVersionSchema ?: return
 
                 KafkaSchemaInfoDialog.showDiff(
                     KafkaMessagesBundle.message("update.dialog.title"),
@@ -315,7 +315,7 @@ class KafkaSchemaController(
                     val versionModel = dataManager.getSchemaVersionsModel(versionInfo.schemaName)
                     versionModel.addListener(object : DataModelListener {
                         override fun onChanged() {
-                            invokeLater { version1.component.item = versionModel.originObject?.firstOrNull() }
+                            invokeLater { selectedVersion.component.item = versionModel.originObject?.firstOrNull() }
                             versionModel.removeListener(this)
                         }
                     })
@@ -324,7 +324,7 @@ class KafkaSchemaController(
             }
 
             override fun update(e: AnActionEvent) {
-                e.presentation.isEnabledAndVisible = version1Schema != null
+                e.presentation.isEnabledAndVisible = selectedVersionSchema != null
             }
 
             override fun getActionUpdateThread() = ActionUpdateThread.BGT
@@ -333,7 +333,7 @@ class KafkaSchemaController(
         val moreAction = MoreActionGroup()
         moreAction.add(object : DumbAwareAction(KafkaMessagesBundle.message("action.delete.version.text")) {
             override fun actionPerformed(e: AnActionEvent) {
-                val versionSchema = version1Schema ?: return
+                val versionSchema = selectedVersionSchema ?: return
                 if (dataManager.registryType == KafkaRegistryType.AWS_GLUE) {
                     // AWS Glue: simple dialog, soft delete only
                     val askRes = Messages.showOkCancelDialog(
@@ -373,10 +373,10 @@ class KafkaSchemaController(
 
             override fun update(e: AnActionEvent) {
                 e.presentation.description = ""
-                e.presentation.isEnabledAndVisible = version1Schema != null && version1.component.itemCount > 1
+                e.presentation.isEnabledAndVisible = selectedVersionSchema != null && selectedVersion.component.itemCount > 1
                 if (e.presentation.isEnabledAndVisible && dataManager.registryType == KafkaRegistryType.AWS_GLUE) {
-                    val versions = version1.component.getUserData(SchemaVersionsComboboxController.VERSIONS_LIST_KEY)
-                    val selectedItem = version1.component.item
+                    val versions = selectedVersion.component.getUserData(SchemaVersionsComboboxController.VERSIONS_LIST_KEY)
+                    val selectedItem = selectedVersion.component.item
                     e.presentation.isEnabledAndVisible = selectedItem != versions?.lastOrNull()
                 }
             }
