@@ -43,6 +43,7 @@ import kotlin.math.max
 
 class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Disposable {
     private var tableLoadingDecorator: TableLoadingDecorator? = null
+    private var filterTelemetryUnsubscribe: (() -> Unit)? = null
 
     internal val outputModel = ListTableModel(
         ArrayDeque<KafkaRecord>(1000),
@@ -227,7 +228,9 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
         }
     }
 
-    override fun dispose() {}
+    override fun dispose() {
+        filterTelemetryUnsubscribe?.invoke()
+    }
 
     fun replace(output: List<KafkaRecord>) {
         outputModel.replaceAll(output)
@@ -319,7 +322,7 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
             }
         }
         filterHeader.columnsController?.let(attach)
-        filterHeader.addControllerRecreatedListener(attach)
+        filterTelemetryUnsubscribe = filterHeader.addControllerRecreatedListener(attach)
     }
 
     companion object {
