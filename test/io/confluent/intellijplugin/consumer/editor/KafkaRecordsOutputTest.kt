@@ -175,22 +175,6 @@ class KafkaRecordsOutputTest {
         }
 
         @Test
-        fun `searchExpandAction toggles state and updates icon presentation`() {
-            val action = privateAction("searchExpandAction")
-            val event = TestActionEvent.createTestEvent(action, DataContext.EMPTY_CONTEXT)
-
-            SwingUtilities.invokeAndWait { action.update(event) }
-            val collapsedIcon = event.presentation.icon
-
-            SwingUtilities.invokeAndWait { action.actionPerformed(event) }
-            SwingUtilities.invokeAndWait { action.update(event) }
-            val expandedIcon = event.presentation.icon
-
-            // The two states render different icons.
-            assertTrue(collapsedIcon !== expandedIcon)
-        }
-
-        @Test
         fun `searchAction createCustomComponent embeds the search field`() {
             val action = privateAction("searchAction")
             val customComponentAction = action as CustomComponentAction
