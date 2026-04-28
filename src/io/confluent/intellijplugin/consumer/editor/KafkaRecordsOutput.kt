@@ -43,7 +43,6 @@ import kotlin.math.max
 
 class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Disposable {
     private var tableLoadingDecorator: TableLoadingDecorator? = null
-    private var filterHeader: TableFilterHeader? = null
 
     internal val outputModel = ListTableModel(
         ArrayDeque<KafkaRecord>(1000),
@@ -70,8 +69,8 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
         )
     }
 
-    private val outputTableDelegate = lazy {
-        MaterialTable(outputModel, outputModel.columnModel).apply {
+    private val outputTableDelegate: Lazy<Pair<MaterialTable, TableFilterHeader>> = lazy {
+        val table = MaterialTable(outputModel, outputModel.columnModel).apply {
             background = JBColor.WHITE
             tableHeader.background = JBColor.WHITE
 
@@ -88,35 +87,37 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
             }
 
             MaterialTableUtils.setupSorters(this)
-            TableFilterHeader(this).apply {
-                externalFilterMode = true
-                filterHeader = this
-                setupFilterTelemetry(this)
-            }
-
-            val resizeController = TableResizeController.installOn(this).apply {
-                setResizePriorityList(VALUE_COLUMN)
-                mode = TableResizeController.Mode.PRIOR_COLUMNS_LIST
-            }
-
-            MaterialTableUtils.fitColumnsWidth(this)
-            resizeController.componentResized()
-
-            TableFirstRowAdded(this) {
-                MaterialTableUtils.fitColumnsWidth(this)
-                resizeController.componentResized()
-            }
-
-            setupTablePopupMenu(this)
-
-            TableCellPreview.installOn(this, listOf(KEY_COLUMN, VALUE_COLUMN))
         }
+
+        val header = TableFilterHeader(table).apply {
+            externalFilterMode = true
+            setupFilterTelemetry(this)
+        }
+
+        val resizeController = TableResizeController.installOn(table).apply {
+            setResizePriorityList(VALUE_COLUMN)
+            mode = TableResizeController.Mode.PRIOR_COLUMNS_LIST
+        }
+
+        MaterialTableUtils.fitColumnsWidth(table)
+        resizeController.componentResized()
+
+        TableFirstRowAdded(table) {
+            MaterialTableUtils.fitColumnsWidth(table)
+            resizeController.componentResized()
+        }
+
+        setupTablePopupMenu(table)
+        TableCellPreview.installOn(table, listOf(KEY_COLUMN, VALUE_COLUMN))
+
+        table to header
     }
 
-    private val outputTable: MaterialTable by outputTableDelegate
+    private val outputTable: MaterialTable get() = outputTableDelegate.value.first
+    private val filterHeader: TableFilterHeader get() = outputTableDelegate.value.second
 
     private val searchController: SearchBarController by lazy {
-        SearchBarController(this, outputTable, filterHeader!!, isProducer)
+        SearchBarController(this, outputTable, filterHeader, isProducer)
     }
 
     private val searchField get() = searchController.searchField
