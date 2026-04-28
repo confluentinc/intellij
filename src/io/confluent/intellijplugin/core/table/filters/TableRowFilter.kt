@@ -21,11 +21,8 @@ class TableRowFilter(var table: JTable) : RowFilter<TableModel, Int>() {
         return Pair(text.first().toString(), value)
     }
 
-    private fun stringCondition(search: String) = if (compareCaseInsensitive) {
-        { value: Any? -> value?.toString()?.matches(Regex("(?i).*$search.*")) == true }
-    } else {
-        { value: Any? -> value?.toString()?.contains(search) == true }
-    }
+    private fun stringCondition(search: String): (Any?) -> Boolean =
+        { value: Any? -> value?.toString()?.contains(search, ignoreCase = compareCaseInsensitive) == true }
 
     fun setConditions(conditions: List<Pair<Int, String>>) {
         this.conditions.clear()
