@@ -135,6 +135,8 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
 
                 override fun getPreferredSize(): Dimension {
                     val base = searchField.preferredSize
+                    // Assumes hierarchy: this -> ActionToolbar -> ExpansionPanel titlePanel.
+                    // If ExpansionPanel ever wraps the toolbar in another container, this width math breaks.
                     val toolbarComponent = parent ?: return base
                     val titlePanel = toolbarComponent.parent ?: return base
                     if (titlePanel.width <= 0) return base
