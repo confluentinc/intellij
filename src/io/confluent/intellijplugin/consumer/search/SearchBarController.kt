@@ -55,12 +55,13 @@ class SearchBarController(
         }
     }
     private var editorListeners: List<Pair<FilterEditor, FilerEditorChangeListener>> = emptyList()
+    private val unsubscribeRecreated: () -> Unit
 
     init {
         Disposer.register(parentDisposable, this)
         searchField.addDocumentListener(searchFieldListener)
         attachEditorListeners()
-        filterHeader.addControllerRecreatedListener {
+        unsubscribeRecreated = filterHeader.addControllerRecreatedListener {
             attachEditorListeners()
             // New editors start blank; repopulate from the current search text so they
             // reflect active `col:value` tokens instead of appearing empty until the user
@@ -88,6 +89,7 @@ class SearchBarController(
     override fun dispose() {
         searchField.removeDocumentListener(searchFieldListener)
         detachEditorListeners()
+        unsubscribeRecreated()
     }
 
     @TestOnly

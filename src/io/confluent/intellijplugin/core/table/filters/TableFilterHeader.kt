@@ -32,9 +32,13 @@ class TableFilterHeader(table: JTable) : JPanel(BorderLayout()), PropertyChangeL
      * Register a callback that fires whenever [columnsController] is recreated (e.g. on table model
      * change, UI update, or component orientation change). Callers that attach listeners to the
      * per-column [FilterEditor]s must re-attach them here, since the old editors are discarded.
+     *
+     * Returns an unsubscribe handle. Callers with their own lifecycle (e.g. a [com.intellij.openapi.Disposable])
+     * should invoke it on disposal so the lambda — and anything it captures — does not outlive them.
      */
-    fun addControllerRecreatedListener(listener: (FilterColumnsControllerPanel) -> Unit) {
+    fun addControllerRecreatedListener(listener: (FilterColumnsControllerPanel) -> Unit): () -> Unit {
         controllerRecreatedListeners += listener
+        return { controllerRecreatedListeners -= listener }
     }
 
     /** When true, column editor changes do not apply row filters directly. External code owns filtering. */
