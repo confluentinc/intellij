@@ -183,11 +183,11 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
                     }
                 }
             }
-
+        val exportAction = ActionManager.getInstance().getAction("Kafka.ExportRecords.Actions")
         dataPanel = ExpansionPanel(
             KafkaMessagesBundle.message("toggle.data"), { outputTablePanel },
             DATA_SHOW_ID, true,
-            listOf(searchAction, ActionManager.getInstance().getAction("Kafka.ExportRecords.Actions"), clearButton)
+            listOf(searchAction, exportAction, clearButton)
         )
 
         detailsPanel = ExpansionPanel(KafkaMessagesBundle.message("toggle.details"), {
