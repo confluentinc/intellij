@@ -79,8 +79,8 @@ class KafkaSchemaController(
     @NlsSafe
     private var schemaName: String? = null
     private val selectedVersionController = SchemaVersionsComboboxController(this, dataManager) { versions ->
-        isEditModeAvailable.set(versions.size > 1)
-        if (versions.isNotEmpty()) {
+        isEditModeAvailable.set((versions?.size ?: 0) > 1)
+        if (!versions.isNullOrEmpty()) {
             selectedVersion.component.item = versions.first()
             updateSelectedVersion()
         }

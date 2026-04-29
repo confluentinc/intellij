@@ -52,6 +52,9 @@ import javax.swing.JCheckBox
 import javax.swing.JComponent
 import javax.swing.JPanel
 
+/**
+ * CCloud schema detail view with tree/raw toggle, version selector, and compare mode.
+ */
 internal class ConfluentSchemaDetailController(
     private val project: Project,
     private val dataManager: CCloudClusterDataManager
@@ -73,12 +76,21 @@ internal class ConfluentSchemaDetailController(
     private var comparedVersionSchema: SchemaVersionInfo? = null
 
     private val selectedVersionController = SchemaVersionsComboboxController(this, dataManager) { versions ->
-        isEditModeAvailable.set(versions.size > 1)
-        if (versions.isNotEmpty()) {
-            selectedVersion.component.item = versions.first()
-        } else {
-            isLoading.set(true)
-            hasContent.set(false)
+        isEditModeAvailable.set((versions?.size ?: 0) > 1)
+        when {
+            versions == null -> {
+                // versions not loaded yet — keep "Loading…"
+                isLoading.set(true)
+                hasContent.set(false)
+                hasError.set(false)
+            }
+            versions.isEmpty() -> {
+                // load completed with no versions — show error/empty state
+                isLoading.set(false)
+                hasContent.set(false)
+                hasError.set(true)
+            }
+            else -> selectedVersion.component.item = versions.first()
         }
     }.also {
         Disposer.register(this, it)
