@@ -31,14 +31,12 @@ class KafkaPluginSettingsConfigurableTest {
 
     @BeforeEach
     fun setUp() {
-        // Fresh settings per test so state doesn't leak across the suite.
         ApplicationManager.getApplication()
             .replaceService(KafkaPluginSettings::class.java, KafkaPluginSettings(), disposable)
 
         mockController = mock()
         project.replaceService(KafkaMonitoringToolWindowController::class.java, mockController, disposable)
 
-        // Force apply()'s propagation loop to hit exactly our one test project.
         val mockProjectManager = mock<ProjectManager> {
             on { openProjects } doReturn arrayOf(project)
         }
