@@ -22,13 +22,13 @@ class PrimitivesGeneratorTest {
         @RepeatedTest(20)
         fun `should produce length within range with default bounds`() {
             val s = PrimitivesGenerator.generateString()
-            assertTrue(s.length in 1..20, "length=${s.length}")
+            assertTrue(s.length in 3..20, "length=${s.length}")
         }
 
         @RepeatedTest(20)
         fun `should respect explicit min and max`() {
             val s = PrimitivesGenerator.generateString(minLength = 5, maxLength = 10)
-            assertTrue(s.length in 4..10, "length=${s.length}")
+            assertTrue(s.length in 5..10, "length=${s.length}")
         }
 
         @RepeatedTest(20)
