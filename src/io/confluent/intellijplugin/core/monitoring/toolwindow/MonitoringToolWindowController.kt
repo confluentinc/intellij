@@ -49,6 +49,7 @@ abstract class MonitoringToolWindowController(protected val project: Project) : 
     // Used to prevent auto-refresh button spam.
     private var lastAutoRefreshTimestamp = 0L
     protected lateinit var contentManager: ContentManager
+    protected fun isContentManagerInitialized(): Boolean = ::contentManager.isInitialized
     private val settingsListener = MonitoringConnectionListener()
     protected abstract val settings: IntervalUpdateSettings
     protected abstract val helpTopicId: String
@@ -296,7 +297,7 @@ abstract class MonitoringToolWindowController(protected val project: Project) : 
     private fun getDataManager(connectionData: ConnectionData) =
         (DriverManager.getDriverById(project, connectionData.innerId) as? MonitoringDriver)?.dataManager
 
-    private fun createEmptyContent(project: Project): Content {
+    protected fun createEmptyContent(project: Project): Content {
         val settingsOpener: (ActionEvent) -> Unit = {
             ConnectionSettings.create(project, createConnectionGroup())
         }
