@@ -4,7 +4,10 @@ import com.intellij.icons.AllIcons
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.AnAction
+import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.DefaultActionGroup
+import com.intellij.openapi.actionSystem.Presentation
+import com.intellij.openapi.actionSystem.ex.CustomComponentAction
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
@@ -12,6 +15,7 @@ import com.intellij.ui.JBColor
 import com.intellij.ui.PopupHandler
 import com.intellij.ui.ScrollPaneFactory
 import io.confluent.intellijplugin.common.editor.ListTableModel
+import io.confluent.intellijplugin.consumer.search.SearchBarController
 import io.confluent.intellijplugin.core.table.MaterialTable
 import io.confluent.intellijplugin.core.table.MaterialTableUtils
 import io.confluent.intellijplugin.core.table.extension.TableCellPreview
@@ -31,12 +35,14 @@ import java.awt.BorderLayout
 import java.awt.Dimension
 import java.util.Date
 import javax.swing.BorderFactory
+import javax.swing.JComponent
 import javax.swing.JPanel
 import javax.swing.JTable
 import kotlin.math.max
 
 class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Disposable {
     private var tableLoadingDecorator: TableLoadingDecorator? = null
+    private var filterTelemetryUnsubscribe: (() -> Unit)? = null
 
     internal val outputModel = ListTableModel(
         ArrayDeque<KafkaRecord>(1000),
@@ -63,8 +69,8 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
         )
     }
 
-    private val outputTableDelegate = lazy {
-        MaterialTable(outputModel, outputModel.columnModel).apply {
+    private val outputTableDelegate: Lazy<Pair<MaterialTable, TableFilterHeader>> = lazy {
+        val table = MaterialTable(outputModel, outputModel.columnModel).apply {
             background = JBColor.WHITE
             tableHeader.background = JBColor.WHITE
 
@@ -81,29 +87,70 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
             }
 
             MaterialTableUtils.setupSorters(this)
-            val filterHeader = TableFilterHeader(this)
-            setupFilterTelemetry(filterHeader)
-
-            val resizeController = TableResizeController.installOn(this).apply {
-                setResizePriorityList(VALUE_COLUMN)
-                mode = TableResizeController.Mode.PRIOR_COLUMNS_LIST
-            }
-
-            MaterialTableUtils.fitColumnsWidth(this)
-            resizeController.componentResized()
-
-            TableFirstRowAdded(this) {
-                MaterialTableUtils.fitColumnsWidth(this)
-                resizeController.componentResized()
-            }
-
-            setupTablePopupMenu(this)
-
-            TableCellPreview.installOn(this, listOf(KEY_COLUMN, VALUE_COLUMN))
         }
+
+        val header = TableFilterHeader(table).apply {
+            externalFilterMode = true
+            setupFilterTelemetry(this)
+        }
+
+        val resizeController = TableResizeController.installOn(table).apply {
+            setResizePriorityList(VALUE_COLUMN)
+            mode = TableResizeController.Mode.PRIOR_COLUMNS_LIST
+        }
+
+        MaterialTableUtils.fitColumnsWidth(table)
+        resizeController.componentResized()
+
+        TableFirstRowAdded(table) {
+            MaterialTableUtils.fitColumnsWidth(table)
+            resizeController.componentResized()
+        }
+
+        setupTablePopupMenu(table)
+        TableCellPreview.installOn(table, listOf(KEY_COLUMN, VALUE_COLUMN))
+
+        table to header
     }
 
-    private val outputTable: MaterialTable by outputTableDelegate
+    private val outputTable: MaterialTable get() = outputTableDelegate.value.first
+    private val filterHeader: TableFilterHeader get() = outputTableDelegate.value.second
+
+    private val searchController: SearchBarController by lazy {
+        SearchBarController(this, outputTable, filterHeader, isProducer)
+    }
+
+    private val searchField get() = searchController.searchField
+
+    private val searchAction = object : DumbAwareAction(), CustomComponentAction {
+        override fun actionPerformed(e: AnActionEvent) {
+            /* No-op: this action only exists to host a custom component (the search field) in the toolbar. */
+        }
+
+        override fun createCustomComponent(presentation: Presentation, place: String): JComponent {
+            return object : JPanel(BorderLayout()) {
+                init {
+                    isOpaque = false
+                    add(searchField, BorderLayout.CENTER)
+                }
+
+                override fun getPreferredSize(): Dimension {
+                    val base = searchField.preferredSize
+                    val toolbarComponent = parent ?: return base
+                    val titlePanel = toolbarComponent.parent ?: return base
+                    if (titlePanel.width <= 0) return base
+                    val titleLabelWidth = titlePanel.components
+                        .filter { it !== toolbarComponent }
+                        .sumOf { it.preferredSize.width }
+                    val otherToolbarItemsWidth = toolbarComponent.components
+                        .filter { it !== this }
+                        .sumOf { it.preferredSize.width }
+                    val available = titlePanel.width - titleLabelWidth - otherToolbarItemsWidth - titlePanel.insets.let { it.left + it.right }
+                    return Dimension(max(base.width, available), base.height)
+                }
+            }
+        }
+    }
 
     private val outputTablePanelDelegate = lazy {
         JPanel(BorderLayout()).apply {
@@ -136,11 +183,11 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
                     }
                 }
             }
-
+        val exportAction = ActionManager.getInstance().getAction("Kafka.ExportRecords.Actions")
         dataPanel = ExpansionPanel(
             KafkaMessagesBundle.message("toggle.data"), { outputTablePanel },
             DATA_SHOW_ID, true,
-            listOf(ActionManager.getInstance().getAction("Kafka.ExportRecords.Actions"), clearButton)
+            listOf(searchAction, exportAction, clearButton)
         )
 
         detailsPanel = ExpansionPanel(KafkaMessagesBundle.message("toggle.details"), {
@@ -165,7 +212,9 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
         }
     }
 
-    override fun dispose() {}
+    override fun dispose() {
+        filterTelemetryUnsubscribe?.invoke()
+    }
 
     fun replace(output: List<KafkaRecord>) {
         outputModel.replaceAll(output)
@@ -244,16 +293,20 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
 
     private fun setupFilterTelemetry(filterHeader: TableFilterHeader) {
         val source = if (isProducer) MessageViewerEvent.Source.PRODUCER else MessageViewerEvent.Source.CONSUMER
-        filterHeader.columnsController?.forEach { editor ->
-            var wasEmpty = true
-            editor?.addListener {
-                val isEmpty = editor?.text.isNullOrBlank()
-                if (wasEmpty && !isEmpty) {
-                    logUsage(MessageViewerEvent.Search(source))
+        val attach = { controller: TableFilterHeader.FilterColumnsControllerPanel ->
+            controller.forEach { editor ->
+                var wasEmpty = true
+                editor.addListener {
+                    val isEmpty = editor.text.isNullOrBlank()
+                    if (wasEmpty && !isEmpty) {
+                        logUsage(MessageViewerEvent.Search(source))
+                    }
+                    wasEmpty = isEmpty
                 }
-                wasEmpty = isEmpty
             }
         }
+        filterHeader.columnsController?.let(attach)
+        filterTelemetryUnsubscribe = filterHeader.addControllerRecreatedListener(attach)
     }
 
     companion object {
