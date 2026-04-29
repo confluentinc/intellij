@@ -14,6 +14,7 @@ import com.intellij.openapi.util.Disposer
 import com.intellij.ui.JBColor
 import com.intellij.ui.PopupHandler
 import com.intellij.ui.ScrollPaneFactory
+import com.intellij.util.ui.JBUI
 import io.confluent.intellijplugin.common.editor.ListTableModel
 import io.confluent.intellijplugin.consumer.search.SearchBarController
 import io.confluent.intellijplugin.core.table.MaterialTable
@@ -136,6 +137,8 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
 
                 override fun getPreferredSize(): Dimension {
                     val base = searchField.preferredSize
+                    // Assumes hierarchy: this -> ActionToolbar -> ExpansionPanel titlePanel.
+                    // If ExpansionPanel ever wraps the toolbar in another container, this width math breaks.
                     val toolbarComponent = parent ?: return base
                     val titlePanel = toolbarComponent.parent ?: return base
                     if (titlePanel.width <= 0) return base
@@ -145,7 +148,8 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
                     val otherToolbarItemsWidth = toolbarComponent.components
                         .filter { it !== this }
                         .sumOf { it.preferredSize.width }
-                    val available = titlePanel.width - titleLabelWidth - otherToolbarItemsWidth - titlePanel.insets.let { it.left + it.right }
+                    val insets = titlePanel.insets.let { it.left + it.right }
+                    val available = titlePanel.width - titleLabelWidth - otherToolbarItemsWidth - insets - JBUI.scale(EXPANDED_SEARCH_MARGIN)
                     return Dimension(max(base.width, available), base.height)
                 }
             }
@@ -187,7 +191,8 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
         dataPanel = ExpansionPanel(
             KafkaMessagesBundle.message("toggle.data"), { outputTablePanel },
             DATA_SHOW_ID, true,
-            listOf(searchAction, exportAction, clearButton)
+            listOf(searchAction, exportAction, clearButton),
+            showTitle = false
         )
 
         detailsPanel = ExpansionPanel(KafkaMessagesBundle.message("toggle.details"), {
@@ -317,6 +322,8 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
         private val PARTITION_COLUMN = KafkaMessagesBundle.message("output.column.partition")
         private val OFFSET_COLUMN = KafkaMessagesBundle.message("output.column.offset")
         private val DURATION_COLUMN = KafkaMessagesBundle.message("output.column.duration")
+
+        private const val EXPANDED_SEARCH_MARGIN = 40
 
         internal const val DATA_SHOW_ID = "io.confluent.intellijplugin.consumer.data.show"
         internal const val DETAILS_SHOW_ID = "io.confluent.intellijplugin.consumer.details.show"
