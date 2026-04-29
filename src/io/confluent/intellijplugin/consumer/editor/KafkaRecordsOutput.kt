@@ -140,8 +140,9 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
     }
 
     private val searchAction = object : DumbAwareAction(), CustomComponentAction {
-        // No-op: this action only exists to host a custom component (the search field) in the toolbar.
-        override fun actionPerformed(e: AnActionEvent) {}
+        override fun actionPerformed(e: AnActionEvent) {
+            /* No-op: this action only exists to host a custom component (the search field) in the toolbar. */
+        }
 
         override fun createCustomComponent(presentation: Presentation, place: String): JComponent {
             return object : JPanel(BorderLayout()) {
