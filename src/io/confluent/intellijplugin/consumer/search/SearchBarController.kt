@@ -41,7 +41,7 @@ class SearchBarController(
 ) : Disposable {
 
     val searchField: SearchTextField = SearchTextField(false).apply {
-        textEditor.emptyText.text = KafkaMessagesBundle.message("consumer.search.bar.placeholder")
+        textEditor.emptyText.text = KafkaMessagesBundle.message("consumer.search.placeholder")
     }
 
     private val parser = SearchQueryParser(searchKeyMap(isProducer))
