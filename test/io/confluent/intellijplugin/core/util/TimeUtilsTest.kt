@@ -7,7 +7,6 @@ import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import java.time.Instant
-import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.TimeZone
 
@@ -28,10 +27,10 @@ class TimeUtilsTest {
         }
 
         @Test
-        fun `should format epoch zero in UTC consistently`() {
+        fun `should format epoch zero in default timezone consistently`() {
             // Build expectation in the JVM's default zone — independent of the test machine
             val expected = Instant.ofEpochMilli(0L)
-                .atZone(ZoneId.systemDefault())
+                .atZone(TimeZone.getDefault().toZoneId())
                 .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
             assertEquals(expected, TimeUtils.unixTimeToString(0L))
         }
