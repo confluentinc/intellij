@@ -409,6 +409,6 @@ internal fun applyVersionsState(
     }
 }
 
-/** Pure guard for queued EDT callbacks: skip if disposed or the user has switched to a different schema. */
+/** Skip queued EDT work if disposed or the user switched schemas. */
 internal fun shouldRunForSchema(expected: String, current: String?, isDisposed: Boolean): Boolean =
     !isDisposed && expected == current
