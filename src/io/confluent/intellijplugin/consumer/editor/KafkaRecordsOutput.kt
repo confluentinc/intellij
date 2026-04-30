@@ -45,10 +45,10 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
     private var tableLoadingDecorator: TableLoadingDecorator? = null
     private var filterTelemetryUnsubscribe: (() -> Unit)? = null
 
-    internal val outputModel = ListTableModel(
-        ArrayDeque<KafkaRecord>(1000),
-        listOf(TOPIC_FIELD, TIMESTAMP_FIELD, KEY_COLUMN, VALUE_COLUMN, PARTITION_COLUMN) +
-                if (isProducer) listOf(DURATION_COLUMN) else listOf(OFFSET_COLUMN)
+    internal val outputModel = ListTableModel<KafkaRecord>(
+        capacity = 1000,
+        columnNames = listOf(TOPIC_FIELD, TIMESTAMP_FIELD, KEY_COLUMN, VALUE_COLUMN, PARTITION_COLUMN) +
+                if (isProducer) listOf(DURATION_COLUMN) else listOf(OFFSET_COLUMN),
     ) { data, index ->
         when (index) {
             0 -> data.topic
