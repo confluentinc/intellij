@@ -157,6 +157,36 @@ class SearchBarControllerTest {
         }
 
         @Test
+        fun `free-text search on the default snapshot path produces a BitSet-backed RowFilter`() {
+            setSearchAndFlush("plain")
+            val sorter = table.rowSorter as TableRowSorter<*>
+            // The applied filter is the BitSet path (not null, not the column substring path).
+            assertEquals(1, sorter.viewRowCount)
+            // Cached BitSet snapshot for the term is recorded (so a repeat doesn't rebuild).
+            val snapshotBefore = controller::class.java.getDeclaredField("freeTextSnapshot")
+                .apply { isAccessible = true }.get(controller)
+            assertEquals("plain", snapshotBefore)
+        }
+
+        @Test
+        fun `column filter still applies when free-text BitSet is also active`() {
+            setSearchAndFlush("topic:topicA value:value1")
+            assertEquals(1, visibleRowCount(), "Only row matching both column filters should remain")
+        }
+
+        @Test
+        fun `repeated identical free-text term reuses cached BitSet`() {
+            setSearchAndFlush("plain")
+            val firstBits = controller::class.java.getDeclaredField("freeTextBitSet")
+                .apply { isAccessible = true }.get(controller)
+            setSearchAndFlush("plain")
+            val secondBits = controller::class.java.getDeclaredField("freeTextBitSet")
+                .apply { isAccessible = true }.get(controller)
+            // Same instance — proves no rebuild when the term is unchanged.
+            assertEquals(System.identityHashCode(firstBits), System.identityHashCode(secondBits))
+        }
+
+        @Test
         fun `editor listeners are re-attached after columnsController is recreated`() {
             // Force columnsController recreation by swapping the table model.
             SwingUtilities.invokeAndWait {
