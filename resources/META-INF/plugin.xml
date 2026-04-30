@@ -166,6 +166,9 @@
         </group>
 
         <group id="Kafka.MonitoringTabsActions" popup="true">
+            <action id="Kafka.MonitoringTabsActions.ConfluentCloudAuth"
+                    class="io.confluent.intellijplugin.toolwindow.actions.ConfluentCloudTabAction"/>
+            <separator/>
             <action id="Kafka.MonitoringTabsActions.RenameAction"
                     class="io.confluent.intellijplugin.core.monitoring.actions.tabs.MonitoringTabRenameConnection"
                     use-shortcut-of="RenameElement"/>
@@ -174,9 +177,6 @@
                     class="io.confluent.intellijplugin.core.monitoring.actions.tabs.MonitoringTabEnableConnection"/>
             <action id="Kafka.MonitoringTabsActions.DisableAction"
                     class="io.confluent.intellijplugin.core.monitoring.actions.tabs.MonitoringTabDisableConnection"/>
-            <action id="Kafka.MonitoringTabsActions.DeleteAction"
-                    class="io.confluent.intellijplugin.core.monitoring.actions.tabs.MonitoringTabDeleteConnection"
-                    use-shortcut-of="$Delete"/>
             <action id="Kafka.MonitoringTabsActions.RefreshAction"
                     class="io.confluent.intellijplugin.core.monitoring.actions.tabs.MonitoringTabRefreshConnection"/>
             <action id="Kafka.MonitoringTabsActions.OpenSettingsAction"
@@ -184,8 +184,9 @@
                     class="io.confluent.intellijplugin.core.monitoring.actions.tabs.MonitoringTabOpenConnectionSetting"
                     use-shortcut-of="EditSource"/>
             <separator/>
-            <action id="Kafka.MonitoringTabsActions.ConfluentCloudAuth"
-                    class="io.confluent.intellijplugin.toolwindow.actions.ConfluentCloudTabAction"/>
+            <action id="Kafka.MonitoringTabsActions.DeleteAction"
+                    class="io.confluent.intellijplugin.core.monitoring.actions.tabs.MonitoringTabDeleteConnection"
+                    use-shortcut-of="$Delete"/>
         </group>
 
         <action id="Kafka.BdiTableCopyRowAction"
