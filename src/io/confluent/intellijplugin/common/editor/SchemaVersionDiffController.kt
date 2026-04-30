@@ -17,8 +17,8 @@ import java.awt.BorderLayout
 import java.awt.Dimension
 
 class SchemaVersionDiffController(val project: Project) : Disposable {
-    private var schema1: SchemaVersionInfo? = null
-    private var schema2: SchemaVersionInfo? = null
+    private var previousSchema: SchemaVersionInfo? = null
+    private var newSchema: SchemaVersionInfo? = null
     private var disposable = Disposer.newDisposable(this)
 
     val component = JBPanelWithEmptyText(BorderLayout()).also {
@@ -26,33 +26,33 @@ class SchemaVersionDiffController(val project: Project) : Disposable {
         it.emptyText.clear()
     }
 
-    fun updateVersion1(schema: SchemaVersionInfo) {
-        schema1 = schema
+    fun updatePrevious(schema: SchemaVersionInfo) {
+        previousSchema = schema
         update()
     }
 
-    fun updateVersion2(schema: SchemaVersionInfo) {
-        schema2 = schema
+    fun updateNew(schema: SchemaVersionInfo) {
+        newSchema = schema
         update()
     }
 
 
     private fun update() {
-        val schema1 = schema1 ?: return
-        val schema2 = schema2 ?: return
+        val previousSchema = previousSchema ?: return
+        val newSchema = newSchema ?: return
 
         Disposer.dispose(disposable)
 
         disposable = Disposer.newDisposable(this)
-        val isJson = schema1.type != KafkaRegistryFormat.PROTOBUF
+        val isJson = previousSchema.type != KafkaRegistryFormat.PROTOBUF
         val fileType = if (isJson) JsonFileType.INSTANCE
         else
             FileTypeManager.getInstance().findFileTypeByName("protobuf")
 
 
-        val prev = DiffContentFactory.getInstance().create(schema1.getPretty(), fileType)
+        val prev = DiffContentFactory.getInstance().create(previousSchema.getPretty(), fileType)
         prev.document.setReadOnly(true)
-        val new = DiffContentFactory.getInstance().create(schema2.getPretty(), fileType)
+        val new = DiffContentFactory.getInstance().create(newSchema.getPretty(), fileType)
         new.document.setReadOnly(true)
 
 
@@ -60,8 +60,8 @@ class SchemaVersionDiffController(val project: Project) : Disposable {
             "",
             prev,
             new,
-            KafkaMessagesBundle.message("show.edit.schema.diff.version", schema1.version),
-            KafkaMessagesBundle.message("show.edit.schema.diff.version", schema2.version)
+            KafkaMessagesBundle.message("show.edit.schema.diff.version", previousSchema.version),
+            KafkaMessagesBundle.message("show.edit.schema.diff.version", newSchema.version)
         )
 
         val requests = SimpleDiffRequestChain(diffData)

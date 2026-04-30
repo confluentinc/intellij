@@ -13,7 +13,7 @@ import io.confluent.intellijplugin.util.KafkaMessagesBundle
 class SchemaVersionsComboboxController(
     rootDisposable: Disposable,
     private val kafkaManager: BaseClusterDataManager,
-    private val onListUpdate: (List<Long>) -> Unit
+    private val onListUpdate: (List<Long>?) -> Unit
 ) : Disposable {
     var schemaName: String = ""
 
