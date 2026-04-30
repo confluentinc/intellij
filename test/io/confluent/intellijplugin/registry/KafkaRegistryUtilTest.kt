@@ -48,14 +48,16 @@ class KafkaRegistryUtilTest {
         }
     }
 
-    private val addressSchemaJson =
-        """{"type":"record","name":"Address","namespace":"com.example","fields":[{"name":"street","type":"string"}]}"""
+    private fun loadFixture(name: String): String =
+        javaClass.getResourceAsStream("/fixtures/schemas/$name")!!.bufferedReader().use { it.readText() }.trim()
 
-    private val userSchemaWithRefJson =
-        """{"type":"record","name":"User","namespace":"com.example","fields":[{"name":"name","type":"string"},{"name":"address","type":"com.example.Address"}]}"""
-
-    private val simpleSchemaJson =
-        """{"type":"record","name":"User","namespace":"com.example","fields":[{"name":"name","type":"string"},{"name":"age","type":"int"}]}"""
+    private val addressSchemaJson = loadFixture("address-avro.json")
+    private val userSchemaWithRefJson = loadFixture("user-avro-with-ref.json")
+    private val simpleSchemaJson = loadFixture("user-avro-simple.json")
+    private val addressProto = loadFixture("address-proto.proto")
+    private val userProtoWithRef = loadFixture("user-proto-with-ref.proto")
+    private val addressJsonSchema = loadFixture("address-json-schema.json")
+    private val userJsonSchemaWithRef = loadFixture("user-json-schema-with-ref.json")
 
     @AfterEach
     fun cleanUp() {
@@ -187,6 +189,66 @@ class KafkaRegistryUtilTest {
                     result.exceptionOrNull() is NullPointerException,
                     "Expected NullPointerException but got: ${result.exceptionOrNull()}"
                 )
+            }
+
+            @Test
+            fun `should parse with pre-resolved references and no registry client`() {
+                val references = listOf(SchemaReference("com.example.Address", "Address", 1))
+                val resolvedReferences = mapOf("com.example.Address" to addressSchemaJson)
+
+                val result = KafkaRegistryUtil.parseSchema(
+                    KafkaRegistryFormat.AVRO,
+                    userSchemaWithRefJson,
+                    references,
+                    resolvedReferences
+                )
+
+                assertTrue(result.isSuccess, "Expected success but got: ${result.exceptionOrNull()}")
+                assertEquals("com.example.User", result.getOrNull()?.name())
+            }
+
+            @Test
+            fun `should fail with pre-resolved references when map is missing required ref`() {
+                val references = listOf(SchemaReference("com.example.Address", "Address", 1))
+
+                val result = KafkaRegistryUtil.parseSchema(
+                    KafkaRegistryFormat.AVRO,
+                    userSchemaWithRefJson,
+                    references,
+                    resolvedReferences = emptyMap()
+                )
+
+                assertTrue(result.isFailure, "Expected failure when a referenced type is not in the map")
+            }
+
+            @Test
+            fun `should parse protobuf schema with pre-resolved references`() {
+                val references = listOf(SchemaReference("Address.proto", "Address", 1))
+                val resolvedReferences = mapOf("Address.proto" to addressProto)
+
+                val result = KafkaRegistryUtil.parseSchema(
+                    KafkaRegistryFormat.PROTOBUF,
+                    userProtoWithRef,
+                    references,
+                    resolvedReferences
+                )
+
+                assertTrue(result.isSuccess, "Expected success but got: ${result.exceptionOrNull()}")
+            }
+
+            @Test
+            fun `should parse json schema with pre-resolved references`() {
+                val references = listOf(SchemaReference("Address", "Address", 1))
+                val resolvedReferences = mapOf("Address" to addressJsonSchema)
+
+                val result = KafkaRegistryUtil.parseSchema(
+                    KafkaRegistryFormat.JSON,
+                    userJsonSchemaWithRef,
+                    references,
+                    resolvedReferences
+                )
+
+                assertTrue(result.isSuccess, "Expected success but got: ${result.exceptionOrNull()}")
             }
         }
     }
