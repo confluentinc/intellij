@@ -7,7 +7,10 @@ package io.confluent.intellijplugin.consumer.data
  * Slot indices are stable for the lifetime of an entry — slot N is always slot N until the
  * buffer wraps and overwrites it. Iteration yields entries in insertion order (oldest → newest).
  *
- * Not thread-safe. Designed for single-writer use from the EDT.
+ * Not thread-safe. Designed for single-writer use from the EDT: all `append` / `removeHead` /
+ * `clear` calls must run on the EDT, and reads (`get`, iteration) are only safe on the EDT or
+ * against an EDT-built snapshot. Off-EDT consumers (e.g. background search workers) must copy
+ * the values they need on the EDT first rather than holding a reference to the buffer.
  */
 class CircularBuffer<T : Any>(val capacity: Int) : Iterable<T> {
 
@@ -76,9 +79,12 @@ class CircularBuffer<T : Any>(val capacity: Int) : Iterable<T> {
     }
 
     /**
-     * Yields live entries in insertion order, oldest first. Snapshots head and size at iterator
-     * creation so concurrent mutation (`append` / `removeHead` / `clear` mid-iteration) does not
-     * silently return stale or wrong-slot elements.
+     * Yields live entries in insertion order, oldest first. Snapshots `head` and `size` at
+     * iterator creation so a mid-iteration `removeHead` or `clear` doesn't shift slot positions
+     * under the iterator. Values themselves are NOT snapshotted: if a writer `append`s while the
+     * buffer is full, the slot at `snapshotHead` is overwritten in place and the iterator will
+     * yield the new value rather than the evicted one. Given the single-writer EDT contract this
+     * is fine for in-EDT iteration; off-EDT consumers should copy into their own snapshot.
      */
     override fun iterator(): Iterator<T> = object : Iterator<T> {
         private val snapshotHead = headSlot
