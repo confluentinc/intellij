@@ -166,6 +166,57 @@ class KafkaRecordsOutputTest {
     }
 
     @Nested
+    inner class RecordIndexWiring {
+
+        @Test
+        fun `addBatchRows updates the record index`() {
+            val records = listOf(
+                successRecord(offset = 1L, partition = 0, timestamp = 100L),
+                successRecord(offset = 2L, partition = 1, timestamp = 200L),
+            )
+            SwingUtilities.invokeAndWait { output.addBatchRows(0L, records) }
+            SwingUtilities.invokeAndWait { /* flush */ }
+
+            assertEquals(2, output.recordIndex.size)
+            // Both records should be visible to a wide range query.
+            assertEquals(2, output.recordIndex.timestampRangeBitSet(0L, 1_000L).cardinality())
+            // Partition 0 should match exactly one slot.
+            assertEquals(1, output.recordIndex.partitionBitSet(setOf(0)).cardinality())
+        }
+
+        @Test
+        fun `setMaxRows soft-cap eviction removes the slot from the index`() {
+            SwingUtilities.invokeAndWait {
+                output.setMaxRows(2)
+                output.addBatchRows(0L, listOf(
+                    successRecord(offset = 1L, timestamp = 100L),
+                    successRecord(offset = 2L, timestamp = 200L),
+                    successRecord(offset = 3L, timestamp = 300L),
+                ))
+            }
+            SwingUtilities.invokeAndWait { /* flush */ }
+
+            // Only 2 records survive; the index reflects that.
+            assertEquals(2, output.recordIndex.size)
+            assertEquals(0, output.recordIndex.timestampRangeBitSet(50L, 150L).cardinality())
+            assertEquals(2, output.recordIndex.timestampRangeBitSet(150L, 350L).cardinality())
+        }
+
+        @Test
+        fun `clear empties the record index`() {
+            SwingUtilities.invokeAndWait {
+                output.addBatchRows(0L, listOf(successRecord(offset = 1L, timestamp = 100L)))
+            }
+            SwingUtilities.invokeAndWait { /* flush */ }
+            assertEquals(1, output.recordIndex.size)
+
+            SwingUtilities.invokeAndWait { output.replace(emptyList()) }
+
+            assertEquals(0, output.recordIndex.size)
+        }
+    }
+
+    @Nested
     inner class ToolbarActions {
 
         private fun privateAction(name: String): AnAction {
