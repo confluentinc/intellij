@@ -11,6 +11,7 @@ import com.intellij.openapi.actionSystem.impl.MoreActionGroup
 import com.intellij.openapi.actionSystem.toolbarLayout.ToolbarLayoutStrategy
 import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.observable.properties.AtomicBooleanProperty
+import com.intellij.openapi.observable.properties.BooleanProperty
 import com.intellij.openapi.observable.util.and
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
@@ -76,21 +77,8 @@ internal class ConfluentSchemaDetailController(
     private var comparedVersionSchema: SchemaVersionInfo? = null
 
     private val selectedVersionController = SchemaVersionsComboboxController(this, dataManager) { versions ->
-        isEditModeAvailable.set((versions?.size ?: 0) > 1)
-        when {
-            versions == null -> {
-                // versions not loaded yet — keep "Loading…"
-                isLoading.set(true)
-                hasContent.set(false)
-                hasError.set(false)
-            }
-            versions.isEmpty() -> {
-                // load completed with no versions — show error/empty state
-                isLoading.set(false)
-                hasContent.set(false)
-                hasError.set(true)
-            }
-            else -> selectedVersion.component.item = versions.first()
+        applyVersionsState(versions, isLoading, hasContent, hasError, isEditModeAvailable) {
+            selectedVersion.component.item = it
         }
     }.also {
         Disposer.register(this, it)
@@ -218,9 +206,9 @@ internal class ConfluentSchemaDetailController(
     }
 
     private fun onEdtIfCurrent(expectedSchemaName: String, block: () -> Unit) = invokeLater {
-        if (Disposer.isDisposed(this)) return@invokeLater
-        if (expectedSchemaName != schemaName) return@invokeLater
-        block()
+        if (shouldRunForSchema(expectedSchemaName, schemaName, Disposer.isDisposed(this))) {
+            block()
+        }
     }
 
     private fun updateComparedVersion() {
@@ -399,3 +387,28 @@ internal class ConfluentSchemaDetailController(
         }
     }
 }
+
+/** null = still loading, empty = no versions found, otherwise selects the first version. */
+internal fun applyVersionsState(
+    versions: List<Long>?,
+    isLoading: BooleanProperty,
+    hasContent: BooleanProperty,
+    hasError: BooleanProperty,
+    isEditModeAvailable: BooleanProperty,
+    onSelectFirstVersion: (Long) -> Unit
+) {
+    isEditModeAvailable.set((versions?.size ?: 0) > 1)
+    when {
+        versions == null -> {
+            isLoading.set(true); hasContent.set(false); hasError.set(false)
+        }
+        versions.isEmpty() -> {
+            isLoading.set(false); hasContent.set(false); hasError.set(true)
+        }
+        else -> onSelectFirstVersion(versions.first())
+    }
+}
+
+/** Pure guard for queued EDT callbacks: skip if disposed or the user has switched to a different schema. */
+internal fun shouldRunForSchema(expected: String, current: String?, isDisposed: Boolean): Boolean =
+    !isDisposed && expected == current
