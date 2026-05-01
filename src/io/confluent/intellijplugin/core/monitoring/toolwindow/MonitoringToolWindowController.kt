@@ -173,7 +173,7 @@ abstract class MonitoringToolWindowController(protected val project: Project) : 
         }
     }
 
-    protected open fun extraTabActions(): List<AnAction> = emptyList()
+    protected open fun extraTitleActions(): List<AnAction> = emptyList()
 
     protected fun setupActions(connectionId: String?) {
         val dataManager = getDriverForToolbar(connectionId)?.dataManager
@@ -181,8 +181,7 @@ abstract class MonitoringToolWindowController(protected val project: Project) : 
 
 
         // Plus action after the last tab and grayed title of a currently selected component.
-        val tabActions = listOf<AnAction>(CreateNewConnectionAction()) + extraTabActions()
-        (toolWindow as? ToolWindowEx)?.setTabActions(DefaultActionGroup(tabActions))
+        (toolWindow as? ToolWindowEx)?.setTabActions(DefaultActionGroup(CreateNewConnectionAction()))
 
         (toolWindow as? ToolWindowEx)?.setTitleActions(
             listOfNotNull(
@@ -190,7 +189,7 @@ abstract class MonitoringToolWindowController(protected val project: Project) : 
                 refreshAction,
                 Separator.create(),
                 openSettingAction
-            )
+            ) + extraTitleActions()
         )
     }
 

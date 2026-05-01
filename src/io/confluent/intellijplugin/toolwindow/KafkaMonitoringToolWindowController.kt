@@ -45,7 +45,7 @@ class KafkaMonitoringToolWindowController(project: Project) : MonitoringToolWind
 
     override fun createConnectionGroup(): ConnectionFactory<*> = KafkaConnectionGroup()
 
-    override fun extraTabActions(): List<AnAction> {
+    override fun extraTitleActions(): List<AnAction> {
         val scaffoldAction = ActionManager.getInstance().getAction(SCAFFOLD_ACTION_ID)
             ?: error("Action '$SCAFFOLD_ACTION_ID' is not registered")
         return listOf(scaffoldAction)
