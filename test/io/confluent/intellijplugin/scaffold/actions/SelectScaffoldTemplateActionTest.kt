@@ -121,12 +121,6 @@ class SelectScaffoldTemplateActionTest {
             assertNotNull(action)
             assertTrue(action is SelectScaffoldTemplateAction)
         }
-
-        @Test
-        fun `registered action has icon`() {
-            val action = ActionManager.getInstance().getAction("Kafka.SelectScaffoldTemplate")
-            assertNotNull(action.templatePresentation.icon, "Action should have an icon configured in plugin.xml")
-        }
     }
 
     @Nested

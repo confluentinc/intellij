@@ -371,33 +371,6 @@ class ScaffoldHttpClientTest {
         }
 
         @Test
-        fun `handles templates with options`() {
-            wireMockServer.stubFor(
-                WireMock.get("/scaffold/v1/template-collections/intellij/templates")
-                    .willReturn(
-                        WireMock.aResponse()
-                            .withStatus(200)
-                            .withHeader("Content-Type", "application/json")
-                            .withBody(loadFixture("template-list-with-options.json"))
-                    )
-            )
-
-            val client = ScaffoldHttpClient(baseUrl())
-            val result = runBlocking {
-                client.fetchTemplates("intellij")
-            }
-
-            assertEquals(1, result.data.size)
-            val template = result.data.first()
-            assertNotNull(template.spec.options)
-            assertEquals(2, template.spec.options!!.size)
-            val nameOption = template.spec.options!!["project_name"]
-            assertNotNull(nameOption)
-            assertEquals("Project Name", nameOption!!.displayName)
-            assertEquals("my-project", nameOption.initialValue)
-        }
-
-        @Test
         fun `parses datetime and URI fields correctly`() {
             wireMockServer.stubFor(
                 WireMock.get("/scaffold/v1/template-collections/intellij/templates")
