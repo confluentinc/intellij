@@ -7,6 +7,7 @@ import com.squareup.moshi.JsonReader
 import com.squareup.moshi.JsonWriter
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
+import io.confluent.intellijplugin.scaffold.model.ApplyScaffoldV1TemplateRequest
 import io.confluent.intellijplugin.scaffold.model.Scaffoldv1TemplateList
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -131,12 +132,48 @@ class ScaffoldHttpClient(
         }
 
     /**
+     * Applies a template to generate a project ZIP.
+     *
+     * @param templateName The name of the template to apply
+     * @param collectionName The name of the template collection (default: "intellij")
+     * @param options Key-value options for the template
+     * @return ZIP file bytes
+     * @throws HttpRequests.HttpStatusException if the server returns 4xx or 5xx status
+     */
+    suspend fun applyTemplate(
+        templateName: String,
+        collectionName: String = "intellij",
+        options: Map<String, String>
+    ): ByteArray = withContext(Dispatchers.IO) {
+        val url = "$baseUrl/scaffold/v1/template-collections/$collectionName/templates/$templateName/apply"
+        thisLogger().debug("Applying template at URL: $url")
+
+        val requestBody = moshi.adapter(ApplyScaffoldV1TemplateRequest::class.java)
+            .toJson(ApplyScaffoldV1TemplateRequest(options = options))
+
+        HttpRequests.post(url, "application/json")
+            .connectTimeout(connectTimeoutMs)
+            .readTimeout(readTimeoutMs)
+            .throwStatusCodeException(false)
+            .connect { request ->
+                request.write(requestBody)
+                checkResponseStatus(request.connection as HttpURLConnection)
+                request.inputStream.readBytes()
+            }
+    }
+
+    /**
      * Read response body from the appropriate stream based on status code.
      * @param request The request to read the response body from
      * @return The response body as a string
      */
     private fun readResponseBody(request: HttpRequests.Request): String {
         val conn = request.connection as HttpURLConnection
+        checkResponseStatus(conn)
+        return request.inputStream.reader().readText()
+    }
+
+    private fun checkResponseStatus(conn: HttpURLConnection) {
         val statusCode = conn.responseCode
 
         if (statusCode >= 500) {
@@ -149,8 +186,6 @@ class ScaffoldHttpClient(
             val errorBody = conn.errorStream?.reader()?.readText() ?: ""
             throw HttpRequests.HttpStatusException(errorBody, statusCode, conn.url.toString())
         }
-
-        return request.inputStream.reader().readText()
     }
 
 }
