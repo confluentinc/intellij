@@ -124,6 +124,22 @@ class SelectScaffoldTemplateActionTest {
     }
 
     @Nested
+    @DisplayName("presentation")
+    inner class PresentationProperties {
+
+        @Test
+        fun `template presentation has SHOW_TEXT_IN_TOOLBAR set to true`() {
+            val action = SelectScaffoldTemplateAction()
+            assertEquals(
+                true,
+                action.templatePresentation.getClientProperty(
+                    com.intellij.openapi.actionSystem.ex.ActionUtil.SHOW_TEXT_IN_TOOLBAR
+                )
+            )
+        }
+    }
+
+    @Nested
     @DisplayName("actionPerformed")
     inner class ActionPerformed {
 

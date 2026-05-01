@@ -2,6 +2,7 @@ package io.confluent.intellijplugin.scaffold.actions
 
 import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnActionEvent
+import com.intellij.openapi.actionSystem.ex.ActionUtil
 import com.intellij.ide.impl.OpenProjectTask
 import com.intellij.openapi.application.EDT
 import com.intellij.openapi.application.ModalityState
@@ -59,6 +60,10 @@ class SelectScaffoldTemplateAction(
         })
     }
 ) : DumbAwareAction() {
+
+    init {
+        templatePresentation.putClientProperty(ActionUtil.SHOW_TEXT_IN_TOOLBAR, true)
+    }
 
     override fun actionPerformed(e: AnActionEvent) {
         val project = e.project ?: return
