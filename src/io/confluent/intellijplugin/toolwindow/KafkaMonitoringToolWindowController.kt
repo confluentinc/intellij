@@ -2,6 +2,8 @@ package io.confluent.intellijplugin.toolwindow
 
 import com.intellij.notification.NotificationGroup
 import com.intellij.notification.NotificationGroupManager
+import com.intellij.openapi.actionSystem.ActionManager
+import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.Service
@@ -42,6 +44,12 @@ class KafkaMonitoringToolWindowController(project: Project) : MonitoringToolWind
     private val settingsListener = KafkaConnectionSettingsListener()
 
     override fun createConnectionGroup(): ConnectionFactory<*> = KafkaConnectionGroup()
+
+    override fun extraTabActions(): List<AnAction> {
+        val scaffoldAction = ActionManager.getInstance().getAction(SCAFFOLD_ACTION_ID)
+            ?: error("Action '$SCAFFOLD_ACTION_ID' is not registered")
+        return listOf(scaffoldAction)
+    }
 
     override fun isSupportedData(connectionData: ConnectionData): Boolean =
         connectionData is KafkaConnectionData || connectionData is ConfluentConnectionData
@@ -220,5 +228,6 @@ class KafkaMonitoringToolWindowController(project: Project) : MonitoringToolWind
         )
 
         const val TOOL_WINDOW_ID = "KafkaToolWindow"
+        const val SCAFFOLD_ACTION_ID = "Kafka.SelectScaffoldTemplate"
     }
 }
