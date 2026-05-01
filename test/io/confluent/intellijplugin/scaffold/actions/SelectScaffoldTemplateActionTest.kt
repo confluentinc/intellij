@@ -121,6 +121,28 @@ class SelectScaffoldTemplateActionTest {
             assertNotNull(action)
             assertTrue(action is SelectScaffoldTemplateAction)
         }
+
+        @Test
+        fun `registered action has icon`() {
+            val action = ActionManager.getInstance().getAction("Kafka.SelectScaffoldTemplate")
+            assertNotNull(action.templatePresentation.icon, "Action should have an icon configured in plugin.xml")
+        }
+    }
+
+    @Nested
+    @DisplayName("presentation")
+    inner class PresentationProperties {
+
+        @Test
+        fun `template presentation has SHOW_TEXT_IN_TOOLBAR set to true`() {
+            val action = SelectScaffoldTemplateAction()
+            assertEquals(
+                true,
+                action.templatePresentation.getClientProperty(
+                    com.intellij.openapi.actionSystem.ex.ActionUtil.SHOW_TEXT_IN_TOOLBAR
+                )
+            )
+        }
     }
 
     @Nested
