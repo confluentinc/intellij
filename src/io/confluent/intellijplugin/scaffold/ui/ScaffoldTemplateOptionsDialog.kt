@@ -56,7 +56,9 @@ class ScaffoldTemplateOptionsDialog(
                                 if (option.initialValue != null) {
                                     text = option.initialValue
                                 }
-                            }).align(AlignX.FILL).resizableColumn().component
+                            }).align(AlignX.FILL).resizableColumn().validationOnInput { field ->
+                                validateField(option, String(field.password), compiledPatterns[key])
+                            }.component
                         }
                         else -> {
                             textField().align(AlignX.FILL).resizableColumn().applyToComponent {
