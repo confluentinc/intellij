@@ -1,11 +1,9 @@
 package io.confluent.intellijplugin.core.util
 
-import com.intellij.testFramework.junit5.TestApplication
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
 
-@TestApplication
 @DisplayName("StringUtils")
 class StringUtilsTest {
 

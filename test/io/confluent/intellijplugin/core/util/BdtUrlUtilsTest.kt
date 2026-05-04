@@ -1,6 +1,5 @@
 package io.confluent.intellijplugin.core.util
 
-import com.intellij.testFramework.junit5.TestApplication
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
@@ -8,7 +7,6 @@ import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 
-@TestApplication
 @DisplayName("BdtUrlUtils")
 class BdtUrlUtilsTest {
 
