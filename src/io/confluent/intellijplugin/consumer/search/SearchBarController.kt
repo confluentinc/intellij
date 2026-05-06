@@ -24,7 +24,7 @@ import org.jetbrains.annotations.TestOnly
 /**
  * Owns the global search bar and unifies its filter with the per-column filter editors.
  *
- * Debounces input via [Alarm] on the Swing thread (300ms) and applies a composed
+ * Debounces input via [Alarm] on the Swing thread (200ms) and applies a composed
  * [RowFilter] to the table's [TableRowSorter]. Filters use case-insensitive
  * [String.contains] on each cell's string value. Debounce matters for large
  * tables (thousands of rows), where re-running the sort+filter on every keystroke causes
