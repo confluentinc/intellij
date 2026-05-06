@@ -24,6 +24,25 @@ import kotlin.math.max
 class TableFilterHeader(table: JTable) : JPanel(BorderLayout()), PropertyChangeListener {
 
     var columnsController: FilterColumnsControllerPanel? = null
+        private set
+
+    private val controllerRecreatedListeners = mutableListOf<(FilterColumnsControllerPanel) -> Unit>()
+
+    /**
+     * Register a callback that fires whenever [columnsController] is recreated (e.g. on table model
+     * change, UI update, or component orientation change). Callers that attach listeners to the
+     * per-column [FilterEditor]s must re-attach them here, since the old editors are discarded.
+     *
+     * Returns an unsubscribe handle. Callers with their own lifecycle (e.g. a [com.intellij.openapi.Disposable])
+     * should invoke it on disposal so the lambda — and anything it captures — does not outlive them.
+     */
+    fun addControllerRecreatedListener(listener: (FilterColumnsControllerPanel) -> Unit): () -> Unit {
+        controllerRecreatedListeners += listener
+        return { controllerRecreatedListeners -= listener }
+    }
+
+    /** When true, column editor changes do not apply row filters directly. External code owns filtering. */
+    var externalFilterMode = false
 
     private var caseInsensitive = false
         set(value) {
@@ -123,6 +142,7 @@ class TableFilterHeader(table: JTable) : JPanel(BorderLayout()), PropertyChangeL
         this.columnsController = columnsController
         add(columnsController, BorderLayout.WEST)
         revalidate()
+        controllerRecreatedListeners.forEach { it(columnsController) }
     }
 
     enum class Position {
@@ -130,7 +150,7 @@ class TableFilterHeader(table: JTable) : JPanel(BorderLayout()), PropertyChangeL
     }
 
     inner class FilterColumnsControllerPanel(private val table: JTable, font: Font?, foreground: Color?) :
-        JPanel(null), TableColumnModelListener, Runnable, Iterable<FilterEditor?> {
+        JPanel(null), TableColumnModelListener, Runnable, Iterable<FilterEditor> {
 
         private val columns: LinkedList<FilterColumnPanel>
         private val preferredSize: Dimension
@@ -181,14 +201,15 @@ class TableFilterHeader(table: JTable) : JPanel(BorderLayout()), PropertyChangeL
             val editor = FilterEditor(columnModel)
             updateColumnBorder(editor)
             editor.addListener {
-                val rowFiler = rowFilter
-                rowFiler.setConditions(columns.mapNotNull {
-                    val text = it.editor.text
-                    if (text.isNullOrBlank()) null else it.tableColumn.modelIndex to text
-                })
-                (table.rowSorter as TableRowSorter).rowFilter = rowFiler
-                //ToDo Hack. To proper repaint "Nothing to show" empty state which is drawn on scrollpane view.
-                table.parent?.repaint()
+                if (!externalFilterMode) {
+                    rowFilter.setConditions(columns.mapNotNull {
+                        val text = it.editor.text
+                        if (text.isNullOrBlank()) null else it.tableColumn.modelIndex to text
+                    })
+                    (table.rowSorter as TableRowSorter).rowFilter = rowFilter
+                    //ToDo Hack. To proper repaint "Nothing to show" empty state which is drawn on scrollpane view.
+                    table.parent?.repaint()
+                }
             }
             val column = FilterColumnPanel(tableColumnModel.getColumn(columnView), editor)
             column.updateHeight()
