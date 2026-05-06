@@ -9,7 +9,9 @@ import io.confluent.intellijplugin.core.table.filters.FilerEditorChangeListener
 import io.confluent.intellijplugin.core.table.filters.FilterEditor
 import io.confluent.intellijplugin.core.table.filters.SearchQueryParser
 import io.confluent.intellijplugin.core.table.filters.TableFilterHeader
+import io.confluent.intellijplugin.core.table.renderers.DateRenderer
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
+import java.util.Date
 import javax.swing.JTable
 import javax.swing.RowFilter
 import javax.swing.event.DocumentEvent
@@ -174,14 +176,27 @@ class SearchBarController(
         object : RowFilter<TableModel, Int>() {
             override fun include(entry: Entry<out TableModel, out Int>): Boolean {
                 if (modelIndex != null) {
-                    return entry.getStringValue(modelIndex).contains(needle, ignoreCase = true)
+                    return cellAsDisplayedString(entry, modelIndex).contains(needle, ignoreCase = true)
                 }
                 for (i in 0 until entry.valueCount) {
-                    if (entry.getStringValue(i).contains(needle, ignoreCase = true)) return true
+                    if (cellAsDisplayedString(entry, i).contains(needle, ignoreCase = true)) return true
                 }
                 return false
             }
         }
+
+    // Match against what the user sees in the cell, not Object.toString(). The Timestamp column
+    // is the load-bearing case: Date.toString() is "Fri May 01 ... 2026" but the renderer shows
+    // "2026-05-01 14:23:45", so without this typing "-" or "05" against the visible date drops
+    // every row.
+    private fun cellAsDisplayedString(entry: RowFilter.Entry<out TableModel, out Int>, columnIndex: Int): String {
+        val value = entry.getValue(columnIndex) ?: return ""
+        return if (entry.model.getColumnClass(columnIndex) == Date::class.java && value is Date) {
+            DateRenderer.df.format(value)
+        } else {
+            value.toString()
+        }
+    }
 
     companion object {
         private const val DEBOUNCE_MS = 200
