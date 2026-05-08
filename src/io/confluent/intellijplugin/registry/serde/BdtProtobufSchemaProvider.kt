@@ -5,7 +5,9 @@ import io.confluent.kafka.schemaregistry.client.rest.entities.Schema
 import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchema
 import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchemaProvider
 
-class BdtProtobufSchemaProvider : ProtobufSchemaProvider() {
+class BdtProtobufSchemaProvider(
+    private val preResolvedRefs: Map<String, String>? = null
+) : ProtobufSchemaProvider() {
     override fun parseSchemaOrElseThrow(
         schema: Schema,
         isNew: Boolean,
@@ -15,7 +17,7 @@ class BdtProtobufSchemaProvider : ProtobufSchemaProvider() {
             ProtobufSchema(
                 schema.schema,
                 schema.references,
-                resolveReferences(schema),
+                preResolvedRefs ?: resolveReferences(schema),
                 null,
                 null
             )

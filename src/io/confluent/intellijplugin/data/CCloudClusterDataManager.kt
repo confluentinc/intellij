@@ -1,5 +1,6 @@
 package io.confluent.intellijplugin.data
 
+import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.progress.ProcessCanceledException
 import com.intellij.openapi.project.Project
@@ -10,6 +11,7 @@ import com.intellij.openapi.application.EDT
 import com.intellij.openapi.progress.runBlockingMaybeCancellable
 import com.intellij.util.concurrency.annotations.RequiresBackgroundThread
 import io.confluent.intellijplugin.ccloud.cache.DataPlaneCache
+import io.confluent.intellijplugin.ccloud.fetcher.DataPlaneFetcher
 import io.confluent.intellijplugin.ccloud.model.Cluster
 import io.confluent.intellijplugin.ccloud.model.response.CreateTopicRequest
 import io.confluent.intellijplugin.ccloud.model.response.RegisterSchemaRequest
@@ -41,6 +43,8 @@ import io.confluent.intellijplugin.registry.KafkaRegistryFormat
 import io.confluent.intellijplugin.registry.KafkaRegistryType
 import io.confluent.intellijplugin.registry.KafkaRegistryUtil
 import io.confluent.intellijplugin.registry.SchemaVersionInfo
+import io.confluent.kafka.schemaregistry.ParsedSchema
+import io.confluent.kafka.schemaregistry.client.rest.entities.SchemaReference
 import io.confluent.intellijplugin.registry.common.KafkaSchemaInfo
 import io.confluent.intellijplugin.rfs.ConfluentConnectionData
 import io.confluent.intellijplugin.toolwindow.config.KafkaToolWindowSettings
@@ -528,13 +532,15 @@ class CCloudClusterDataManager(
         }
     }
 
-    override fun parseSchemaForDisplay(versionInfo: SchemaVersionInfo): Result<io.confluent.kafka.schemaregistry.ParsedSchema> {
-        // CCloud doesn't need the registry client for parsing - parse schemas standalone
+    override fun parseSchemaForDisplay(versionInfo: SchemaVersionInfo): Result<ParsedSchema> {
+        val resolvedRefs = dataPlaneCache.getFetcher()?.let { fetcher ->
+            runBlockingMaybeCancellable { fetchResolvedReferences(fetcher, versionInfo.references) }
+        } ?: emptyMap()
         return KafkaRegistryUtil.parseSchema(
             versionInfo.type,
             versionInfo.schema,
-            client = null,
-            versionInfo.references
+            versionInfo.references,
+            resolvedRefs
         )
     }
 
@@ -581,11 +587,14 @@ class CCloudClusterDataManager(
                 error(KafkaMessagesBundle.message("error.schema.registry.not.configured.for.cluster"))
             }
 
+            val resolvedRefs = dataPlaneCache.getFetcher()?.let { fetcher ->
+                fetchResolvedReferences(fetcher, versionInfo.references)
+            } ?: emptyMap()
             val parsedSchema = KafkaRegistryUtil.parseSchema(
                 versionInfo.type,
                 newSchema,
-                client = null,
-                versionInfo.references
+                versionInfo.references,
+                resolvedRefs
             ).getOrThrow()
 
             val request = RegisterSchemaRequest(
@@ -891,4 +900,37 @@ class CCloudClusterDataManager(
         schemaVersionCache.clear()
         schemaTypeCache.clear()
     }
+}
+
+private val FETCH_REFS_LOG = Logger.getInstance(CCloudClusterDataManager::class.java)
+
+/**
+ * Fetch each reference (and transitive refs) via the SR REST API.
+ * Cycle-guarded by `subject:version`. Returns `refName → schemaText` for the SR parser.
+ */
+internal suspend fun fetchResolvedReferences(
+    fetcher: DataPlaneFetcher,
+    references: List<SchemaReference>,
+    visited: MutableSet<String> = mutableSetOf()
+): Map<String, String> {
+    if (references.isEmpty()) return emptyMap()
+    val result = mutableMapOf<String, String>()
+    for (ref in references) {
+        if (!visited.add("${ref.subject}:${ref.version}")) continue
+        try {
+            val refResponse = withContext(Dispatchers.IO) {
+                fetcher.getSchemaVersionInfo(ref.subject, ref.version.toLong())
+            }
+            result[ref.name] = refResponse.schema
+            result.putAll(fetchResolvedReferences(fetcher, refResponse.references.toSchemaReferences(), visited))
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            FETCH_REFS_LOG.warn(
+                "Failed to resolve schema reference '${ref.name}' (${ref.subject}:${ref.version})",
+                e
+            )
+        }
+    }
+    return result
 }

@@ -135,7 +135,7 @@ object KafkaEditorUtils {
 
     internal class KafkaDataModelListener<T>(
         private val comboBox: ComboBox<T>,
-        private val onListUpdate: (List<T>) -> Unit = {},
+        private val onListUpdate: (List<T>?) -> Unit = {},
         private val dataSupplier: () -> Pair<List<T>?, Int?>
     ) : DataModelListener {
         override fun onChangedNonEdt() {
@@ -385,7 +385,7 @@ object KafkaEditorUtils {
 
     fun <T> updateComboBox(
         comboBox: ComboBox<T>,
-        onListUpdate: (List<T>) -> Unit = {},
+        onListUpdate: (List<T>?) -> Unit = {},
         dataSupplier: () -> Pair<List<T>?, Int?>
     ) = executeNotOnEdt {
         val oldElements = (0 until comboBox.model.size).map {
@@ -420,7 +420,7 @@ object KafkaEditorUtils {
 
             comboBox.invalidate()
             comboBox.repaint()
-            onListUpdate(newElements ?: emptyList())
+            onListUpdate(newElements)
         }
     }
 

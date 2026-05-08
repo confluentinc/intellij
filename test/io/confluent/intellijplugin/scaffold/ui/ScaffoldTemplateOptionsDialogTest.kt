@@ -1,5 +1,6 @@
 package io.confluent.intellijplugin.scaffold.ui
 
+import com.intellij.openapi.Disposable
 import com.intellij.openapi.project.ProjectManager
 import com.intellij.openapi.util.Disposer
 import com.intellij.testFramework.junit5.TestApplication
@@ -26,7 +27,7 @@ import javax.swing.SwingUtilities
 class ScaffoldTemplateOptionsDialogTest {
 
     private val project = ProjectManager.getInstance().defaultProject
-    private lateinit var testDisposable: com.intellij.openapi.Disposable
+    private lateinit var testDisposable: Disposable
 
     @BeforeEach
     fun setUp() {

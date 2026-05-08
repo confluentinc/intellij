@@ -5,7 +5,11 @@ description:
   threading safety, proper service usage, localization, and project-specific patterns. Use when reviewing PRs,
   doing self-review before sharing with the team, or when user mentions "review PR", "help with PR", "review changes",
   "self-review", "review local changes", or "check my PR".
-allowed-tools: Bash, Read, Grep, Glob
+allowed-tools:
+  - Bash
+  - Read
+  - Grep
+  - Glob
 ---
 
 # Pull Request Review
