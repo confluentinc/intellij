@@ -1,0 +1,18 @@
+{
+  "type": "object",
+  "required": ["id"],
+  "properties": {
+    "id": {"type": "integer", "description": "id field"},
+    "active": {"type": "boolean", "default": true},
+    "tags": {"type": "array", "items": {"type": "string"}},
+    "tuple": {"type": "array", "items": [{"type": "string"}, {"type": "integer"}]},
+    "color": {"type": "string", "enum": ["red", "green"]},
+    "either": {"oneOf": [{"type": "string"}, {"type": "integer"}]},
+    "address": {
+      "type": "object",
+      "properties": {
+        "street": {"type": "string"}
+      }
+    }
+  }
+}
