@@ -10,7 +10,6 @@ import io.confluent.intellijplugin.core.ui.CustomListCellRenderer
 import io.confluent.intellijplugin.scaffold.model.ScaffoldV1TemplateListDataInner
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
 import javax.swing.DefaultComboBoxModel
-import javax.swing.JComboBox
 import javax.swing.JComponent
 
 class ScaffoldTemplateSelectionDialog(
@@ -32,15 +31,17 @@ class ScaffoldTemplateSelectionDialog(
     internal val versionLabel = JBLabel()
     internal val tagsLabel = JBLabel()
 
-    private var templateComboBox: JComboBox<ScaffoldV1TemplateListDataInner>? = null
-
     var selectedTemplate: ScaffoldV1TemplateListDataInner? = null
         private set
 
     init {
         title = KafkaMessagesBundle.message("scaffold.dialog.title")
         init()
-        updateDetails(templates.first())
+        if (templates.isNotEmpty()) {
+            updateDetails(templates.first())
+        } else {
+            setOKActionEnabled(false)
+        }
     }
 
     override fun createCenterPanel(): JComponent {
@@ -49,7 +50,6 @@ class ScaffoldTemplateSelectionDialog(
                 comboBox(comboModel, CustomListCellRenderer<ScaffoldV1TemplateListDataInner> {
                     it.spec.displayName ?: it.spec.name ?: KafkaMessagesBundle.message("scaffold.dialog.template.unknown")
                 }).align(AlignX.FILL).resizableColumn().applyToComponent {
-                    templateComboBox = this
                     addActionListener {
                         val selected = comboModel.selectedItem as? ScaffoldV1TemplateListDataInner
                         if (selected != null) {

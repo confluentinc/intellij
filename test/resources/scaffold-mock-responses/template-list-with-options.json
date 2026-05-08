@@ -1,0 +1,41 @@
+{
+  "api_version": "scaffold/v1",
+  "kind": "TemplateList",
+  "metadata": {
+    "first": "string",
+    "last": "string",
+    "total_size": 1
+  },
+  "data": [
+    {
+      "metadata": {
+        "self": "https://api.confluent.cloud/scaffold/v1/template-collections/intellij/templates/template-with-options"
+      },
+      "spec": {
+        "name": "template-with-options",
+        "display_name": "Template With Options",
+        "description": "A template with options",
+        "version": "1.0.0",
+        "language": "Java",
+        "tags": ["kafka"],
+        "options": {
+          "project_name": {
+            "display_name": "Project Name",
+            "description": "The name of the project",
+            "hint": "e.g. my-kafka-app",
+            "initial_value": "my-project",
+            "min_length": 1,
+            "order": 1
+          },
+          "language": {
+            "display_name": "Language",
+            "description": "Programming language",
+            "enum": ["Java", "Python", "Go"],
+            "initial_value": "Java",
+            "order": 2
+          }
+        }
+      }
+    }
+  ]
+}
