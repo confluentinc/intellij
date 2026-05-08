@@ -115,7 +115,7 @@ class CircularBufferTest {
             buffer.append("a")
             val iter = buffer.iterator()
             iter.next()
-            assertThrows<IllegalStateException> { iter.next() }
+            assertThrows<NoSuchElementException> { iter.next() }
         }
 
         @Test

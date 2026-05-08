@@ -80,11 +80,10 @@ class CircularBuffer<T : Any>(val capacity: Int) : Iterable<T> {
 
     /**
      * Yields live entries in insertion order, oldest first. Snapshots `head` and `size` at
-     * iterator creation so a mid-iteration `removeHead` or `clear` doesn't shift slot positions
-     * under the iterator. Values themselves are NOT snapshotted: if a writer `append`s while the
-     * buffer is full, the slot at `snapshotHead` is overwritten in place and the iterator will
-     * yield the new value rather than the evicted one. Given the single-writer EDT contract this
-     * is fine for in-EDT iteration; off-EDT consumers should copy into their own snapshot.
+     * iterator creation, but not the values: an `append` that overwrites a snapshotted slot will
+     * cause the iterator to yield the new value rather than the evicted one. Mutating the buffer
+     * via `removeHead` or `clear` during iteration is not supported and may cause the iterator
+     * to throw on `next`. Off-EDT consumers should copy into their own snapshot.
      */
     override fun iterator(): Iterator<T> = object : Iterator<T> {
         private val snapshotHead = headSlot
@@ -93,7 +92,7 @@ class CircularBuffer<T : Any>(val capacity: Int) : Iterable<T> {
         override fun hasNext(): Boolean = visited < snapshotSize
         @Suppress("UNCHECKED_CAST")
         override fun next(): T {
-            check(hasNext()) { "no more elements" }
+            if (!hasNext()) throw NoSuchElementException()
             val slot = (snapshotHead + visited) % capacity
             visited++
             return slots[slot] as T
