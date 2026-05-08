@@ -7,10 +7,10 @@ package io.confluent.intellijplugin.consumer.data
  * Slot indices are stable for the lifetime of an entry — slot N is always slot N until the
  * buffer wraps and overwrites it. Iteration yields entries in insertion order (oldest → newest).
  *
- * Not thread-safe. Designed for single-writer use from the EDT: all `append` / `removeHead` /
- * `clear` calls must run on the EDT, and reads (`get`, iteration) are only safe on the EDT or
- * against an EDT-built snapshot. Off-EDT consumers (e.g. background search workers) must copy
- * the values they need on the EDT first rather than holding a reference to the buffer.
+ * Not thread-safe — single-writer only. Callers are responsible for choosing and enforcing a
+ * threading model; this class deliberately does not lock or assert so it stays a plain
+ * primitive. The owning component should document where mutations happen and how readers see
+ * a consistent view.
  */
 class CircularBuffer<T : Any>(val capacity: Int) : Iterable<T> {
 
