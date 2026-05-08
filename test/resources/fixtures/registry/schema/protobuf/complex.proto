@@ -1,0 +1,23 @@
+syntax = "proto3";
+package com.example;
+
+message Order {
+  enum Status {
+    NEW = 0;
+    PAID = 1;
+  }
+
+  string id = 1;
+  Status status = 2;
+  Customer customer = 3;
+  map<string, string> metadata = 4;
+
+  oneof payment {
+    string card = 5;
+    string voucher = 6;
+  }
+}
+
+message Customer {
+  string name = 1;
+}
