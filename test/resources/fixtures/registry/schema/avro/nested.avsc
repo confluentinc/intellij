@@ -1,0 +1,20 @@
+{
+  "type": "record",
+  "name": "Order",
+  "namespace": "com.example",
+  "fields": [
+    {"name": "id", "type": "long", "doc": "Order id"},
+    {"name": "tags", "type": {"type": "array", "items": "string"}},
+    {"name": "metadata", "type": {"type": "map", "values": "string"}},
+    {"name": "status", "type": {"type": "enum", "name": "Status", "symbols": ["NEW", "PAID"]}},
+    {"name": "checksum", "type": {"type": "fixed", "name": "Checksum", "size": 16}},
+    {"name": "discount", "type": ["null", "double"], "default": null},
+    {"name": "customer", "type": {
+      "type": "record",
+      "name": "Customer",
+      "fields": [
+        {"name": "name", "type": "string"}
+      ]
+    }}
+  ]
+}
