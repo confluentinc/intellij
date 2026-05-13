@@ -18,9 +18,16 @@ class CircularBuffer<T : Any>(val capacity: Int) : Iterable<T> {
         require(capacity > 0) { "capacity must be positive, got $capacity" }
     }
 
+    // Storage is Array<Any?> rather than Array<T?> because `arrayOfNulls<T>` requires a reified
+    // type parameter. Every read goes through [slotAt] so the unchecked cast is justified in one
+    // place: only values of type [T] (or null) are ever written, enforced by [T : Any] and the
+    // private-write surface.
     private val slots: Array<Any?> = arrayOfNulls(capacity)
     private var headSlot: Int = 0
     private var fillCount: Int = 0
+
+    @Suppress("UNCHECKED_CAST")
+    private fun slotAt(i: Int): T? = slots[i] as T?
 
     /** Slot of the oldest live element. Meaningful only when [size] > 0. */
     val head: Int get() = headSlot
@@ -41,8 +48,7 @@ class CircularBuffer<T : Any>(val capacity: Int) : Iterable<T> {
             fillCount++
         } else {
             slot = headSlot
-            @Suppress("UNCHECKED_CAST")
-            evicted = slots[slot] as T?
+            evicted = slotAt(slot)
             headSlot = (headSlot + 1) % capacity
         }
         slots[slot] = value
@@ -50,10 +56,9 @@ class CircularBuffer<T : Any>(val capacity: Int) : Iterable<T> {
     }
 
     /** Returns the value stored at [slot], or `null` if the slot is empty or out of range. */
-    @Suppress("UNCHECKED_CAST")
     fun get(slot: Int): T? {
         if (slot < 0 || slot >= capacity) return null
-        return slots[slot] as T?
+        return slotAt(slot)
     }
 
     /**
@@ -63,8 +68,7 @@ class CircularBuffer<T : Any>(val capacity: Int) : Iterable<T> {
      */
     fun removeHead(): T? {
         if (fillCount == 0) return null
-        @Suppress("UNCHECKED_CAST")
-        val removed = slots[headSlot] as T?
+        val removed = slotAt(headSlot)
         slots[headSlot] = null
         headSlot = (headSlot + 1) % capacity
         fillCount--
@@ -90,12 +94,11 @@ class CircularBuffer<T : Any>(val capacity: Int) : Iterable<T> {
         private val snapshotSize = fillCount
         private var visited = 0
         override fun hasNext(): Boolean = visited < snapshotSize
-        @Suppress("UNCHECKED_CAST")
         override fun next(): T {
             if (!hasNext()) throw NoSuchElementException()
             val slot = (snapshotHead + visited) % capacity
             visited++
-            return slots[slot] as T
+            return slotAt(slot)!!
         }
     }
 
