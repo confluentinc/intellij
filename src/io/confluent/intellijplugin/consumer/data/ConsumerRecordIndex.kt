@@ -86,7 +86,7 @@ class ConsumerRecordIndex(private val capacity: Int) {
     fun partitionBitSet(partitions: Collection<Int>): BitSet {
         val result = BitSet(capacity)
         for (partition in partitions) {
-            val slots = partitionIndex[partition] ?: continue
+            val slots: List<Int> = partitionIndex[partition] ?: continue
             for (slot in slots) result.set(slot)
         }
         return result
@@ -104,15 +104,13 @@ class ConsumerRecordIndex(private val capacity: Int) {
         val collected = IntArray(limit)
         var collectedCount = 0
         var skipped = 0
-        outer@ for ((_, slots) in timestampDescendingView) {
-            for (slot in slots) {
-                if (includes != null && !includes.get(slot)) continue
-                if (skipped < offset) {
-                    skipped++
-                    continue
-                }
+        walkTimestampDescending(includes) { slot, _ ->
+            if (skipped < offset) {
+                skipped++
+                true
+            } else {
                 collected[collectedCount++] = slot
-                if (collectedCount == limit) break@outer
+                collectedCount < limit
             }
         }
         return if (collectedCount == limit) collected else collected.copyOf(collectedCount)
@@ -128,7 +126,7 @@ class ConsumerRecordIndex(private val capacity: Int) {
     ) {
         for ((timestamp, slots) in timestampDescendingView) {
             for (slot in slots) {
-                if (includes != null && !includes.get(slot)) continue
+                if (includes != null && !includes[slot]) continue
                 if (!action(slot, timestamp)) return
             }
         }
