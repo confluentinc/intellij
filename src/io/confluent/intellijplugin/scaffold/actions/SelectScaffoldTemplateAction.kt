@@ -71,10 +71,17 @@ class SelectScaffoldTemplateAction(
     override fun actionPerformed(e: AnActionEvent) {
         val project = e.project ?: return
         val topicName = e.rfsPath?.takeIf { it.isUnderTopicFolder() }?.name
-        val bootstrapServer = (e.dataManager as? CCloudClusterDataManager)?.bootstrapServer
+        val clusterDataManager = e.dataManager as? CCloudClusterDataManager
+        val bootstrapServer = clusterDataManager?.bootstrapServer
+        val schemaRegistryUrl = clusterDataManager?.schemaRegistryUrl
 
         currentThreadCoroutineScope().launch {
-            fetchAndShowTemplates(project, topicPrefills(topicName) + bootstrapPrefills(bootstrapServer))
+            fetchAndShowTemplates(
+                project,
+                topicPrefills(topicName) +
+                    bootstrapPrefills(bootstrapServer) +
+                    schemaRegistryPrefills(schemaRegistryUrl)
+            )
         }
     }
 
@@ -209,6 +216,11 @@ class SelectScaffoldTemplateAction(
         return BOOTSTRAP_OPTION_KEYS.associateWith { bootstrapServer }
     }
 
+    internal fun schemaRegistryPrefills(schemaRegistryUrl: String?): Map<String, String> {
+        if (schemaRegistryUrl.isNullOrBlank()) return emptyMap()
+        return SCHEMA_REGISTRY_OPTION_KEYS.associateWith { schemaRegistryUrl }
+    }
+
     private fun RfsPath.isUnderTopicFolder(): Boolean {
         val parentPath = this.parent ?: return false
         return parentPath.name == "Topics" ||
@@ -216,23 +228,10 @@ class SelectScaffoldTemplateAction(
     }
 
     companion object {
-        internal val TOPIC_OPTION_KEYS = listOf(
-            "topic",
-            "topic_name",
-            "topicname",
-            "kafka_topic",
-            "cc_topic",
-            "input_topic",
-            "output_topic",
-            "source_topic",
-            "sink_topic"
-        )
+        internal val TOPIC_OPTION_KEYS = listOf("cc_topic")
 
-        internal val BOOTSTRAP_OPTION_KEYS = listOf(
-            "cc_bootstrap_server",
-            "bootstrap_server",
-            "bootstrap_servers",
-            "kafka_bootstrap_servers"
-        )
+        internal val BOOTSTRAP_OPTION_KEYS = listOf("cc_bootstrap_server")
+
+        internal val SCHEMA_REGISTRY_OPTION_KEYS = listOf("cc_schema_registry_url")
     }
 }

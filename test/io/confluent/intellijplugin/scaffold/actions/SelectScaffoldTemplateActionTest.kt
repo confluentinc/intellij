@@ -199,6 +199,43 @@ class SelectScaffoldTemplateActionTest {
     }
 
     @Nested
+    @DisplayName("schemaRegistryPrefills")
+    inner class SchemaRegistryPrefills {
+
+        @Test
+        fun `returns empty map when schema registry url is null`() {
+            val action = SelectScaffoldTemplateAction()
+            assertTrue(action.schemaRegistryPrefills(null).isEmpty())
+        }
+
+        @Test
+        fun `returns empty map when schema registry url is blank`() {
+            val action = SelectScaffoldTemplateAction()
+            assertTrue(action.schemaRegistryPrefills("  ").isEmpty())
+        }
+
+        @Test
+        fun `maps every known schema registry option key to the url`() {
+            val action = SelectScaffoldTemplateAction()
+            val url = "https://psrc-abc.us-west-2.aws.confluent.cloud"
+            val prefills = action.schemaRegistryPrefills(url)
+            assertEquals(
+                SelectScaffoldTemplateAction.SCHEMA_REGISTRY_OPTION_KEYS.toSet(),
+                prefills.keys
+            )
+            assertTrue(prefills.values.all { it == url })
+        }
+
+        @Test
+        fun `includes cc_schema_registry_url to cover Confluent Cloud client templates`() {
+            assertTrue(
+                SelectScaffoldTemplateAction.SCHEMA_REGISTRY_OPTION_KEYS.contains("cc_schema_registry_url"),
+                "cc_schema_registry_url must be a recognized SR prefill key since CCloud client templates use it"
+            )
+        }
+    }
+
+    @Nested
     @DisplayName("update")
     inner class Update {
 

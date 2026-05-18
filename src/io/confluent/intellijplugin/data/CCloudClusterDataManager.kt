@@ -112,10 +112,13 @@ class CCloudClusterDataManager(
         get() {
             val host = cluster.httpEndpoint
                 .removePrefix("https://")
-                .removePrefix("http://")
                 .substringBefore(':')
             return if (host.isBlank()) null else "$host:9092"
         }
+
+    /** Schema Registry HTTP endpoint URL for this cluster's environment, or null if SR not configured. */
+    val schemaRegistryUrl: String?
+        get() = dataPlaneCache.getSchemaRegistryUrl()
 
     override val connectionData: ConfluentConnectionData
         get() = orgManager.connectionData
