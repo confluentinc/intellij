@@ -15,7 +15,8 @@ import javax.swing.JTextField
 
 class ScaffoldTemplateOptionsDialog(
     project: Project,
-    private val template: ScaffoldV1TemplateListDataInner
+    private val template: ScaffoldV1TemplateListDataInner,
+    prefills: Map<String, String> = emptyMap()
 ) : DialogWrapper(project) {
 
     internal val fieldComponents = mutableMapOf<String, JComponent>()
@@ -23,10 +24,16 @@ class ScaffoldTemplateOptionsDialog(
     var optionValues: Map<String, String> = emptyMap()
         private set
 
+    private val normalizedPrefills: Map<String, String> =
+        prefills.mapKeys { (key, _) -> key.lowercase() }
+
     private val sortedOptions: List<Pair<String, Scaffoldv1TemplateOption>> =
         (template.spec.options ?: emptyMap()).entries
             .sortedWith(compareBy<Map.Entry<String, Scaffoldv1TemplateOption>> { it.value.order ?: 0 }.thenBy { it.key })
             .map { it.key to it.value }
+
+    private fun prefillFor(key: String, option: Scaffoldv1TemplateOption): String? =
+        normalizedPrefills[key.lowercase()] ?: option.initialValue
 
     internal val compiledPatterns: Map<String, Regex?> =
         sortedOptions.associate { (key, option) ->
@@ -41,20 +48,21 @@ class ScaffoldTemplateOptionsDialog(
     override fun createCenterPanel(): JComponent {
         return panel {
             for ((key, option) in sortedOptions) {
+                val prefilled = prefillFor(key, option)
                 row(option.displayName) {
                     val component = when {
                         !option.enum.isNullOrEmpty() -> {
                             comboBox(option.enum).applyToComponent {
-                                if (option.initialValue != null) {
-                                    selectedItem = option.initialValue
+                                if (prefilled != null && option.enum.contains(prefilled)) {
+                                    selectedItem = prefilled
                                 }
                             }.component
                         }
                         option.format == "password" -> {
                             cell(JBPasswordField().apply {
                                 columns = 20
-                                if (option.initialValue != null) {
-                                    text = option.initialValue
+                                if (prefilled != null) {
+                                    text = prefilled
                                 }
                             }).align(AlignX.FILL).resizableColumn().validationOnInput { field ->
                                 validateField(option, String(field.password), compiledPatterns[key])
@@ -62,8 +70,8 @@ class ScaffoldTemplateOptionsDialog(
                         }
                         else -> {
                             textField().align(AlignX.FILL).resizableColumn().applyToComponent {
-                                if (option.initialValue != null) {
-                                    text = option.initialValue
+                                if (prefilled != null) {
+                                    text = prefilled
                                 }
                                 if (option.hint != null) {
                                     putClientProperty("StatusVisibleFunction", null)
