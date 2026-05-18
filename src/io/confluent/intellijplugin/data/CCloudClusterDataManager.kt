@@ -102,6 +102,21 @@ class CCloudClusterDataManager(
 
     override val connectionId: String = cluster.id
 
+    /**
+     * Kafka bootstrap server (host:9092) derived from the cluster's HTTP endpoint.
+     * Why: CCloud doesn't expose a dedicated kafka_bootstrap_endpoint field on the cluster
+     * resource — the broker shares the host with the data-plane REST endpoint and listens
+     * on port 9092.
+     */
+    val bootstrapServer: String?
+        get() {
+            val host = cluster.httpEndpoint
+                .removePrefix("https://")
+                .removePrefix("http://")
+                .substringBefore(':')
+            return if (host.isBlank()) null else "$host:9092"
+        }
+
     override val connectionData: ConfluentConnectionData
         get() = orgManager.connectionData
 
