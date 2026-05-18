@@ -11,7 +11,10 @@ import com.intellij.openapi.ui.TestDialog
 import com.intellij.openapi.ui.TestDialogManager
 import com.intellij.openapi.util.Condition
 import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.testFramework.TestActionEvent
 import com.intellij.testFramework.junit5.TestApplication
+import io.confluent.intellijplugin.core.monitoring.toolwindow.MainTreeController
+import io.confluent.intellijplugin.core.rfs.driver.RfsPath
 import io.confluent.intellijplugin.scaffold.client.ScaffoldHttpClient
 import io.confluent.intellijplugin.scaffold.model.ScaffoldV1TemplateListDataInner
 import io.confluent.intellijplugin.scaffold.model.ScaffoldV1TemplateListMetadata
@@ -58,7 +61,7 @@ class SelectScaffoldTemplateActionTest {
     }
 
     private fun createTemplate(
-        name: String = "test-template",
+        name: String = "test-client-template",
         displayName: String = "Test Template",
         description: String = "A test template"
     ): ScaffoldV1TemplateListDataInner {
@@ -89,12 +92,12 @@ class SelectScaffoldTemplateActionTest {
 
     private fun createMockOptionsDialogFactory(
         mockDialog: ScaffoldTemplateOptionsDialog
-    ): (Project, ScaffoldV1TemplateListDataInner) -> ScaffoldTemplateOptionsDialog = mock {
-        on { invoke(any(), any()) } doReturn mockDialog
+    ): (Project, ScaffoldV1TemplateListDataInner, Map<String, String>) -> ScaffoldTemplateOptionsDialog = mock {
+        on { invoke(any(), any(), any()) } doReturn mockDialog
     }
 
     private fun createTemplateWithOptions(
-        name: String = "test-template",
+        name: String = "test-client-template",
         options: Map<String, Scaffoldv1TemplateOption>? = null
     ): ScaffoldV1TemplateListDataInner {
         return ScaffoldV1TemplateListDataInner(
@@ -120,6 +123,169 @@ class SelectScaffoldTemplateActionTest {
             val action = ActionManager.getInstance().getAction("Kafka.SelectScaffoldTemplate")
             assertNotNull(action)
             assertTrue(action is SelectScaffoldTemplateAction)
+        }
+    }
+
+    @Nested
+    @DisplayName("topicPrefills")
+    inner class TopicPrefills {
+
+        @Test
+        fun `returns empty map when topic name is null`() {
+            val action = SelectScaffoldTemplateAction()
+            assertTrue(action.topicPrefills(null).isEmpty())
+        }
+
+        @Test
+        fun `returns empty map when topic name is blank`() {
+            val action = SelectScaffoldTemplateAction()
+            assertTrue(action.topicPrefills("   ").isEmpty())
+        }
+
+        @Test
+        fun `maps every known topic option key to the topic name`() {
+            val action = SelectScaffoldTemplateAction()
+            val prefills = action.topicPrefills("orders")
+            assertEquals(
+                SelectScaffoldTemplateAction.TOPIC_OPTION_KEYS.toSet(),
+                prefills.keys
+            )
+            assertTrue(prefills.values.all { it == "orders" })
+        }
+
+        @Test
+        fun `includes cc_topic to cover Confluent Cloud client templates`() {
+            assertTrue(
+                SelectScaffoldTemplateAction.TOPIC_OPTION_KEYS.contains("cc_topic"),
+                "cc_topic must be a recognized topic prefill key since CCloud client templates use it"
+            )
+        }
+    }
+
+    @Nested
+    @DisplayName("bootstrapPrefills")
+    inner class BootstrapPrefills {
+
+        @Test
+        fun `returns empty map when bootstrap server is null`() {
+            val action = SelectScaffoldTemplateAction()
+            assertTrue(action.bootstrapPrefills(null).isEmpty())
+        }
+
+        @Test
+        fun `returns empty map when bootstrap server is blank`() {
+            val action = SelectScaffoldTemplateAction()
+            assertTrue(action.bootstrapPrefills("  ").isEmpty())
+        }
+
+        @Test
+        fun `maps every known bootstrap option key to the bootstrap server`() {
+            val action = SelectScaffoldTemplateAction()
+            val prefills = action.bootstrapPrefills("pkc-abc.us-west-2.aws.confluent.cloud:9092")
+            assertEquals(
+                SelectScaffoldTemplateAction.BOOTSTRAP_OPTION_KEYS.toSet(),
+                prefills.keys
+            )
+            assertTrue(prefills.values.all { it == "pkc-abc.us-west-2.aws.confluent.cloud:9092" })
+        }
+
+        @Test
+        fun `includes cc_bootstrap_server to cover Confluent Cloud client templates`() {
+            assertTrue(
+                SelectScaffoldTemplateAction.BOOTSTRAP_OPTION_KEYS.contains("cc_bootstrap_server"),
+                "cc_bootstrap_server must be a recognized bootstrap prefill key since CCloud client templates use it"
+            )
+        }
+    }
+
+    @Nested
+    @DisplayName("schemaRegistryPrefills")
+    inner class SchemaRegistryPrefills {
+
+        @Test
+        fun `returns empty map when schema registry url is null`() {
+            val action = SelectScaffoldTemplateAction()
+            assertTrue(action.schemaRegistryPrefills(null).isEmpty())
+        }
+
+        @Test
+        fun `returns empty map when schema registry url is blank`() {
+            val action = SelectScaffoldTemplateAction()
+            assertTrue(action.schemaRegistryPrefills("  ").isEmpty())
+        }
+
+        @Test
+        fun `maps every known schema registry option key to the url`() {
+            val action = SelectScaffoldTemplateAction()
+            val url = "https://psrc-abc.us-west-2.aws.confluent.cloud"
+            val prefills = action.schemaRegistryPrefills(url)
+            assertEquals(
+                SelectScaffoldTemplateAction.SCHEMA_REGISTRY_OPTION_KEYS.toSet(),
+                prefills.keys
+            )
+            assertTrue(prefills.values.all { it == url })
+        }
+
+        @Test
+        fun `includes cc_schema_registry_url to cover Confluent Cloud client templates`() {
+            assertTrue(
+                SelectScaffoldTemplateAction.SCHEMA_REGISTRY_OPTION_KEYS.contains("cc_schema_registry_url"),
+                "cc_schema_registry_url must be a recognized SR prefill key since CCloud client templates use it"
+            )
+        }
+    }
+
+    @Nested
+    @DisplayName("update")
+    inner class Update {
+
+        private val action = SelectScaffoldTemplateAction()
+
+        private fun eventForPath(path: RfsPath?) = TestActionEvent.createTestEvent(action) { key ->
+            when (key) {
+                MainTreeController.RFS_PATH.name -> path
+                else -> null
+            }
+        }
+
+        @Test
+        fun `hides action when rfsPath is null`() {
+            val event = eventForPath(null)
+
+            action.update(event)
+
+            assertFalse(event.presentation.isEnabled)
+            assertFalse(event.presentation.isVisible)
+        }
+
+        @Test
+        fun `shows action when rfsPath parent is Topics folder`() {
+            val event = eventForPath(RfsPath(listOf("Topics", "orders"), false))
+
+            action.update(event)
+
+            assertTrue(event.presentation.isEnabled)
+            assertTrue(event.presentation.isVisible)
+        }
+
+        @Test
+        fun `shows action when rfsPath parent is ccloud lkc cluster id`() {
+            val event = eventForPath(RfsPath(listOf("lkc-abc123", "orders"), false))
+
+            action.update(event)
+
+            assertTrue(event.presentation.isEnabled)
+            assertTrue(event.presentation.isVisible)
+        }
+
+        @Test
+        fun `hides action when rfsPath is the Topics folder itself`() {
+            val event = eventForPath(RfsPath(listOf("Topics"), true))
+
+            action.update(event)
+
+            assertFalse(event.presentation.isEnabled)
+            assertFalse(event.presentation.isVisible)
         }
     }
 
@@ -248,8 +414,8 @@ class SelectScaffoldTemplateActionTest {
         @Test
         fun `shows dialog with templates on successful fetch`() {
             val templates = setOf(
-                createTemplate(name = "template-1", displayName = "Template 1"),
-                createTemplate(name = "template-2", displayName = "Template 2")
+                createTemplate(name = "template-1-client", displayName = "Template 1"),
+                createTemplate(name = "template-2-client", displayName = "Template 2")
             )
             val mockClient = createMockClientReturning(templates)
 
@@ -269,7 +435,7 @@ class SelectScaffoldTemplateActionTest {
 
             verify(dialogFactory).invoke(eq(project), templatesCaptor.capture())
             assertEquals(
-                setOf("template-1", "template-2"),
+                setOf("template-1-client", "template-2-client"),
                 templatesCaptor.firstValue.map { it.spec.name }.toSet()
             )
             verify(mockDialog).showAndGet()
@@ -278,9 +444,9 @@ class SelectScaffoldTemplateActionTest {
         @Test
         fun `applies template sorter before showing dialog`() {
             val templates = setOf(
-                createTemplate(name = "template-a", displayName = "Template A"),
-                createTemplate(name = "template-b", displayName = "Template B"),
-                createTemplate(name = "template-c", displayName = "Template C")
+                createTemplate(name = "template-a-client", displayName = "Template A"),
+                createTemplate(name = "template-b-client", displayName = "Template B"),
+                createTemplate(name = "template-c-client", displayName = "Template C")
             )
             val mockClient = createMockClientReturning(templates)
 
@@ -305,8 +471,38 @@ class SelectScaffoldTemplateActionTest {
             verify(dialogFactory).invoke(eq(project), templatesCaptor.capture())
             val sortedTemplates = templatesCaptor.firstValue
             assertEquals(
-                listOf("template-c", "template-b", "template-a"),
+                listOf("template-c-client", "template-b-client", "template-a-client"),
                 sortedTemplates.map { it.spec.name }
+            )
+        }
+
+        @Test
+        fun `filters out templates whose name does not contain client`() {
+            val templates = setOf(
+                createTemplate(name = "java-client", displayName = "Java Client"),
+                createTemplate(name = "kafka-streams-example", displayName = "Streams Example"),
+                createTemplate(name = "python-client", displayName = "Python Client")
+            )
+            val mockClient = createMockClientReturning(templates)
+
+            val mockDialog = mock<ScaffoldTemplateSelectionDialog> {
+                on { showAndGet() } doReturn false
+            }
+            val dialogFactory = createMockDialogFactory(mockDialog)
+
+            val action = SelectScaffoldTemplateAction(
+                clientFactory = { mockClient },
+                dialogFactory = dialogFactory
+            )
+
+            val templatesCaptor = argumentCaptor<List<ScaffoldV1TemplateListDataInner>>()
+
+            runBlocking { action.fetchAndShowTemplates(project) }
+
+            verify(dialogFactory).invoke(eq(project), templatesCaptor.capture())
+            assertEquals(
+                setOf("java-client", "python-client"),
+                templatesCaptor.firstValue.map { it.spec.name }.toSet()
             )
         }
 
@@ -425,7 +621,7 @@ class SelectScaffoldTemplateActionTest {
 
             runBlocking { action.fetchAndShowTemplates(project) }
 
-            verify(optionsDialogFactory, never()).invoke(any(), any())
+            verify(optionsDialogFactory, never()).invoke(any(), any(), any())
             verify(mockOptionsDialog, never()).showAndGet()
         }
 
@@ -470,7 +666,7 @@ class SelectScaffoldTemplateActionTest {
         @Test
         fun `calls applyTemplate with collected options and opens project`() {
             val templateWithOptions = createTemplateWithOptions(
-                name = "my-template",
+                name = "my-client-template",
                 options = mapOf(
                     "name" to Scaffoldv1TemplateOption(
                         displayName = "Name",
@@ -514,12 +710,12 @@ class SelectScaffoldTemplateActionTest {
 
             runBlocking { action.fetchAndShowTemplates(project) }
 
-            runBlocking { verify(mockClient).applyTemplate(eq("my-template"), eq("intellij"), eq(optionValues)) }
+            runBlocking { verify(mockClient).applyTemplate(eq("my-client-template"), eq("intellij"), eq(optionValues)) }
             assertNotNull(openedPath, "Project should be opened")
             assertTrue(openedPath!!.startsWith(tempDir), "Project should be under chosen directory")
             val folderName = openedPath!!.fileName.toString()
             assertTrue(
-                folderName.matches(Regex("^my-template-[0-9a-f]{8}$")),
+                folderName.matches(Regex("^my-client-template-[0-9a-f]{8}$")),
                 "Project folder should be '<template-name>-<8 hex chars>', was: $folderName"
             )
             // Verify the zip contents were extracted into the project dir
@@ -531,7 +727,7 @@ class SelectScaffoldTemplateActionTest {
 
         @Test
         fun `shows error when apply fails`() {
-            val templateNoOptions = createTemplateWithOptions(name = "fail-template", options = null)
+            val templateNoOptions = createTemplateWithOptions(name = "fail-client-template", options = null)
             val mockClient = mock<ScaffoldHttpClient> {
                 onBlocking { fetchTemplates() } doReturn createTemplateList(setOf(templateNoOptions))
                 onBlocking { applyTemplate(any(), any(), any()) } doThrow RuntimeException("Apply failed")
@@ -601,7 +797,7 @@ class SelectScaffoldTemplateActionTest {
 
         @Test
         fun `shows error dialog when projectOpener fails`() {
-            val templateNoOptions = createTemplateWithOptions(name = "my-template", options = null)
+            val templateNoOptions = createTemplateWithOptions(name = "my-client-template", options = null)
             val zipBytes = createTestZipBytes()
             val mockClient = mock<ScaffoldHttpClient> {
                 onBlocking { fetchTemplates() } doReturn createTemplateList(setOf(templateNoOptions))
