@@ -174,8 +174,6 @@ abstract class MonitoringToolWindowController(protected val project: Project) : 
         }
     }
 
-    protected open fun extraTitleActions(): List<AnAction> = emptyList()
-
     protected fun setupActions(connectionId: String?) {
         val dataManager = getDriverForToolbar(connectionId)?.dataManager
         val progressComponent = dataManager?.progressComponent?.component
@@ -191,7 +189,7 @@ abstract class MonitoringToolWindowController(protected val project: Project) : 
                 refreshAction,
                 Separator.create(),
                 openSettingAction
-            ) + extraTitleActions()
+            )
         )
     }
 

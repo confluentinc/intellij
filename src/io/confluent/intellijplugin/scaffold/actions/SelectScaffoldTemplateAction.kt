@@ -2,7 +2,6 @@ package io.confluent.intellijplugin.scaffold.actions
 
 import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnActionEvent
-import com.intellij.openapi.actionSystem.ex.ActionUtil
 import com.intellij.ide.impl.OpenProjectTask
 import com.intellij.openapi.application.EDT
 import com.intellij.openapi.application.ModalityState
@@ -18,6 +17,10 @@ import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.platform.ide.progress.withBackgroundProgress
+import io.confluent.intellijplugin.core.monitoring.toolwindow.MainTreeController.Companion.dataManager
+import io.confluent.intellijplugin.core.monitoring.toolwindow.MainTreeController.Companion.rfsPath
+import io.confluent.intellijplugin.core.rfs.driver.RfsPath
+import io.confluent.intellijplugin.data.CCloudClusterDataManager
 import io.confluent.intellijplugin.scaffold.client.ScaffoldHttpClient
 import io.confluent.intellijplugin.scaffold.model.ScaffoldV1TemplateListDataInner
 import io.confluent.intellijplugin.scaffold.ui.ScaffoldTemplateOptionsDialog
@@ -38,8 +41,8 @@ class SelectScaffoldTemplateAction(
     private val clientFactory: () -> ScaffoldHttpClient = { ScaffoldHttpClient() },
     private val dialogFactory: (Project, List<ScaffoldV1TemplateListDataInner>) -> ScaffoldTemplateSelectionDialog =
         ::ScaffoldTemplateSelectionDialog,
-    private val optionsDialogFactory: (Project, ScaffoldV1TemplateListDataInner) -> ScaffoldTemplateOptionsDialog =
-        ::ScaffoldTemplateOptionsDialog,
+    private val optionsDialogFactory: (Project, ScaffoldV1TemplateListDataInner, Map<String, String>) -> ScaffoldTemplateOptionsDialog =
+        { project, template, prefills -> ScaffoldTemplateOptionsDialog(project, template, prefills) },
     private val templateSorter: (List<ScaffoldV1TemplateListDataInner>) -> List<ScaffoldV1TemplateListDataInner> =
         { templates -> IdeLanguageMapper.sortByPreferredLanguage(templates) },
     private val fileChooser: (Project) -> VirtualFile? = { project ->
@@ -61,15 +64,17 @@ class SelectScaffoldTemplateAction(
     }
 ) : DumbAwareAction() {
 
-    init {
-        templatePresentation.putClientProperty(ActionUtil.SHOW_TEXT_IN_TOOLBAR, true)
+    override fun update(e: AnActionEvent) {
+        e.presentation.isEnabledAndVisible = e.rfsPath?.isUnderTopicFolder() == true
     }
 
     override fun actionPerformed(e: AnActionEvent) {
         val project = e.project ?: return
+        val topicName = e.rfsPath?.takeIf { it.isUnderTopicFolder() }?.name
+        val bootstrapServer = (e.dataManager as? CCloudClusterDataManager)?.bootstrapServer
 
         currentThreadCoroutineScope().launch {
-            fetchAndShowTemplates(project)
+            fetchAndShowTemplates(project, topicPrefills(topicName) + bootstrapPrefills(bootstrapServer))
         }
     }
 
@@ -78,14 +83,17 @@ class SelectScaffoldTemplateAction(
         return client.fetchTemplates().data.toList()
     }
 
-    internal suspend fun fetchAndShowTemplates(project: Project) {
+    internal fun isClientTemplate(template: ScaffoldV1TemplateListDataInner): Boolean =
+        template.spec.name?.contains("client", ignoreCase = true) == true
+
+    internal suspend fun fetchAndShowTemplates(project: Project, prefills: Map<String, String> = emptyMap()) {
         try {
             val sortedTemplates = withBackgroundProgress(
                 project,
                 KafkaMessagesBundle.message("scaffold.action.fetch.templates.progress"),
                 cancellable = true
             ) {
-                templateSorter(fetchTemplates())
+                templateSorter(fetchTemplates().filter { isClientTemplate(it) })
             }
 
             val userInput = withContext(Dispatchers.EDT + ModalityState.defaultModalityState().asContextElement()) {
@@ -98,7 +106,7 @@ class SelectScaffoldTemplateAction(
                 thisLogger().debug("Selected template: ${selected.spec.displayName ?: selected.spec.name}")
 
                 val options = if (!selected.spec.options.isNullOrEmpty()) {
-                    val optionsDialog = optionsDialogFactory(project, selected)
+                    val optionsDialog = optionsDialogFactory(project, selected, prefills)
                     if (!optionsDialog.showAndGet()) return@withContext null
                     optionsDialog.optionValues
                 } else {
@@ -190,4 +198,41 @@ class SelectScaffoldTemplateAction(
     }
 
     override fun getActionUpdateThread() = ActionUpdateThread.BGT
+
+    internal fun topicPrefills(topicName: String?): Map<String, String> {
+        if (topicName.isNullOrBlank()) return emptyMap()
+        return TOPIC_OPTION_KEYS.associateWith { topicName }
+    }
+
+    internal fun bootstrapPrefills(bootstrapServer: String?): Map<String, String> {
+        if (bootstrapServer.isNullOrBlank()) return emptyMap()
+        return BOOTSTRAP_OPTION_KEYS.associateWith { bootstrapServer }
+    }
+
+    private fun RfsPath.isUnderTopicFolder(): Boolean {
+        val parentPath = this.parent ?: return false
+        return parentPath.name == "Topics" ||
+            (parentPath.elements.size == 1 && parentPath.name.startsWith("lkc-") && parentPath.isDirectory)
+    }
+
+    companion object {
+        internal val TOPIC_OPTION_KEYS = listOf(
+            "topic",
+            "topic_name",
+            "topicname",
+            "kafka_topic",
+            "cc_topic",
+            "input_topic",
+            "output_topic",
+            "source_topic",
+            "sink_topic"
+        )
+
+        internal val BOOTSTRAP_OPTION_KEYS = listOf(
+            "cc_bootstrap_server",
+            "bootstrap_server",
+            "bootstrap_servers",
+            "kafka_bootstrap_servers"
+        )
+    }
 }
