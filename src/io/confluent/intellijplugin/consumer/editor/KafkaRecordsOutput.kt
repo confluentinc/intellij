@@ -18,7 +18,6 @@ import com.intellij.ui.ScrollPaneFactory
 import com.intellij.util.ui.JBUI
 import io.confluent.intellijplugin.common.editor.ListTableModel
 import io.confluent.intellijplugin.consumer.data.ConsumerRecordIndex
-import io.confluent.intellijplugin.consumer.data.PrevKeys
 import io.confluent.intellijplugin.consumer.search.SearchBarController
 import io.confluent.intellijplugin.core.table.MaterialTable
 import io.confluent.intellijplugin.core.table.MaterialTableUtils
@@ -79,17 +78,8 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
 
     private fun onSlotChange(slot: Int, prev: KafkaRecord?, next: KafkaRecord?) {
         when {
-            next != null -> recordIndex.onAppend(
-                slot = slot,
-                timestamp = next.timestamp,
-                partition = next.partition,
-                evicted = prev?.let { PrevKeys(it.timestamp, it.partition) },
-            )
-            prev != null -> recordIndex.onEvict(
-                slot = slot,
-                timestamp = prev.timestamp,
-                partition = prev.partition,
-            )
+            next != null -> recordIndex.onAppend(slot, next.timestamp, next.partition)
+            prev != null -> recordIndex.onEvict(slot)
         }
     }
 
