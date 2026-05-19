@@ -130,6 +130,8 @@ class DataPlaneCache @VisibleForTesting internal constructor(
 
     fun getSchemaRegistryId(): String? = schemaRegistry?.id
 
+    fun getSchemaRegistryUrl(): String? = schemaRegistry?.httpEndpoint?.takeIf { it.isNotBlank() }
+
     fun getSchemas(): List<SchemaData> = cachedSchemas ?: emptyList()
 
     fun clearSchemaCache() {

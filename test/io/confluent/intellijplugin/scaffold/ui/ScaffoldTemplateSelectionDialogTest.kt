@@ -104,7 +104,7 @@ class ScaffoldTemplateSelectionDialogTest {
             val dialog = createDialog(listOf(createTemplate()))
 
             onEdt {
-                assertEquals("Select Project Template", dialog.title)
+                assertEquals("Use Project Template", dialog.title)
             }
         }
 
