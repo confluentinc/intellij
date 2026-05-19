@@ -287,6 +287,64 @@ class SelectScaffoldTemplateActionTest {
             assertFalse(event.presentation.isEnabled)
             assertFalse(event.presentation.isVisible)
         }
+
+        @Test
+        fun `hides action when parent has lkc- prefix but is not a single-element root`() {
+            val event = eventForPath(RfsPath(listOf("root", "lkc-abc123", "orders"), false))
+
+            action.update(event)
+
+            assertFalse(event.presentation.isEnabled)
+            assertFalse(event.presentation.isVisible)
+        }
+
+        @Test
+        fun `hides action when parent is neither Topics nor an lkc cluster id`() {
+            val event = eventForPath(RfsPath(listOf("Connectors", "my-connector"), false))
+
+            action.update(event)
+
+            assertFalse(event.presentation.isEnabled)
+            assertFalse(event.presentation.isVisible)
+        }
+    }
+
+    @Nested
+    @DisplayName("isClientTemplate")
+    inner class IsClientTemplate {
+
+        private val action = SelectScaffoldTemplateAction()
+
+        @Test
+        fun `returns true when name contains client lowercase`() {
+            assertTrue(action.isClientTemplate(createTemplate(name = "java-client")))
+        }
+
+        @Test
+        fun `returns true when name contains Client mixed case`() {
+            assertTrue(action.isClientTemplate(createTemplate(name = "Python-Client-Demo")))
+        }
+
+        @Test
+        fun `returns false when name does not contain client`() {
+            assertFalse(action.isClientTemplate(createTemplate(name = "kafka-streams-example")))
+        }
+
+        @Test
+        fun `returns false when template name is null`() {
+            val template = ScaffoldV1TemplateListDataInner(
+                metadata = ScaffoldV1TemplateMetadata(self = null),
+                spec = Scaffoldv1TemplateSpec(
+                    name = null,
+                    displayName = "no-name",
+                    description = "",
+                    version = "1.0.0",
+                    language = "Java",
+                    tags = emptyList()
+                )
+            )
+            assertFalse(action.isClientTemplate(template))
+        }
     }
 
     @Nested
@@ -793,6 +851,65 @@ class SelectScaffoldTemplateActionTest {
 
             assertFalse(projectOpened, "Project should not be opened when file chooser is cancelled")
             runBlocking { verify(mockClient, never()).applyTemplate(any(), any(), any()) }
+        }
+
+        @Test
+        fun `deletes project dir and surfaces error when zip extraction fails`() {
+            val templateNoOptions = createTemplateWithOptions(name = "my-client-template", options = null)
+
+            // Build a malicious zip whose entry escapes the target dir, forcing extractZip to throw.
+            val baos = java.io.ByteArrayOutputStream()
+            java.util.zip.ZipOutputStream(baos).use { zos ->
+                zos.putNextEntry(java.util.zip.ZipEntry("../escape.txt"))
+                zos.write("nope".toByteArray())
+                zos.closeEntry()
+            }
+            val maliciousZip = baos.toByteArray()
+
+            val mockClient = mock<ScaffoldHttpClient> {
+                onBlocking { fetchTemplates() } doReturn createTemplateList(setOf(templateNoOptions))
+                onBlocking { applyTemplate(any(), any(), any()) } doReturn maliciousZip
+            }
+
+            val mockDialog = mock<ScaffoldTemplateSelectionDialog> {
+                on { showAndGet() } doReturn true
+                on { selectedTemplate } doReturn templateNoOptions
+            }
+            val dialogFactory = createMockDialogFactory(mockDialog)
+
+            val tempDir = Files.createTempDirectory("scaffold-test")
+            val mockVirtualFile = mock<VirtualFile> {
+                on { path } doReturn tempDir.toString()
+            }
+
+            var dialogMessage: String? = null
+            TestDialogManager.setTestDialog { message ->
+                dialogMessage = message
+                0
+            }
+
+            var projectOpened = false
+            val action = SelectScaffoldTemplateAction(
+                clientFactory = { mockClient },
+                dialogFactory = dialogFactory,
+                fileChooser = { mockVirtualFile },
+                projectOpener = { projectOpened = true }
+            )
+
+            try {
+                runBlocking { action.fetchAndShowTemplates(project) }
+            } finally {
+                TestDialogManager.setTestDialog(TestDialog.DEFAULT)
+            }
+
+            assertNotNull(dialogMessage, "Error dialog should have been shown on extraction failure")
+            assertTrue(dialogMessage!!.contains("traversal"))
+            assertFalse(projectOpened, "Project should not be opened when extraction fails")
+            // Verify that no partially-extracted '<template>-<hash>' folder remains under tempDir.
+            val leftover = tempDir.toFile().listFiles()?.any { it.name.startsWith("my-client-template-") } == true
+            assertFalse(leftover, "Project directory should be cleaned up after extraction failure")
+
+            tempDir.toFile().deleteRecursively()
         }
 
         @Test
