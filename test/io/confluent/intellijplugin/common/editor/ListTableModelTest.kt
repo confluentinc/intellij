@@ -357,13 +357,13 @@ class ListTableModelTest {
     inner class SlotChangeCallback {
 
         @Test
-        fun `should fire on each insert with prev null on first writes and prev set on wrap`() {
-            data class Event(val slot: Int, val prev: String?, val next: String?)
+        fun `should fire append event for each insert including wrap`() {
+            data class Event(val slot: Int, val next: String?)
             val events = mutableListOf<Event>()
             val small = ListTableModel<String>(
                 capacity = 3,
                 columnNames = listOf("c"),
-                onSlotChange = { slot, prev, next -> events.add(Event(slot, prev, next)) },
+                onSlotChange = { slot, next -> events.add(Event(slot, next)) },
             ) { v, _ -> v }
 
             small.addBatch(listOf("a", "b", "c"))
@@ -371,25 +371,22 @@ class ListTableModelTest {
             small.addBatch(listOf("d"))
             ApplicationManager.getApplication().invokeAndWait { }
 
+            // Wrap reuses slot 0 for "d"; consumers discover the prior occupant from their own
+            // slot→keys mapping (see ConsumerRecordIndex).
             assertEquals(
-                listOf(
-                    Event(0, null, "a"),
-                    Event(1, null, "b"),
-                    Event(2, null, "c"),
-                    Event(0, "a", "d"), // wrap evicts "a" at slot 0 and reinserts "d"
-                ),
+                listOf(Event(0, "a"), Event(1, "b"), Event(2, "c"), Event(0, "d")),
                 events,
             )
         }
 
         @Test
         fun `should fire pure-eviction event when soft cap is below buffer capacity`() {
-            data class Event(val slot: Int, val prev: String?, val next: String?)
+            data class Event(val slot: Int, val next: String?)
             val events = mutableListOf<Event>()
             val model = ListTableModel<String>(
                 capacity = 100,
                 columnNames = listOf("c"),
-                onSlotChange = { slot, prev, next -> events.add(Event(slot, prev, next)) },
+                onSlotChange = { slot, next -> events.add(Event(slot, next)) },
             ) { v, _ -> v }
             model.maxElementsCount = 3
 
@@ -400,11 +397,11 @@ class ListTableModelTest {
             model.addBatch(listOf("d"))
             ApplicationManager.getApplication().invokeAndWait { }
 
-            // Soft cap evicts "a" without reusing slot 0 — buffer cap (100) is well above 4.
+            // Soft cap evicts slot 0 without reusing it — buffer cap (100) is well above 4.
             assertEquals(
                 listOf(
-                    Event(0, "a", null), // pure eviction, slot becomes empty
-                    Event(3, null, "d"), // append at next slot
+                    Event(0, null), // pure eviction, slot becomes empty
+                    Event(3, "d"),  // append at next slot
                 ),
                 events,
             )
