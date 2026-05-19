@@ -75,11 +75,9 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
         addClearListener { recordIndex.onClear() }
     }
 
-    private fun onSlotChange(slot: Int, prev: KafkaRecord?, next: KafkaRecord?) {
-        when {
-            next != null -> recordIndex.onAppend(slot, next.timestamp, next.partition)
-            prev != null -> recordIndex.onEvict(slot)
-        }
+    private fun onSlotChange(slot: Int, next: KafkaRecord?) {
+        if (next != null) recordIndex.onAppend(slot, next.timestamp, next.partition)
+        else recordIndex.onEvict(slot)
     }
 
     private val outputTableDelegate: Lazy<Pair<MaterialTable, TableFilterHeader>> = lazy {
