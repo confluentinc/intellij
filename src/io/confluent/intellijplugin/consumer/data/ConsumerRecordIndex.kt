@@ -51,7 +51,7 @@ class ConsumerRecordIndex(private val capacity: Int) {
      * need to track or report them.
      */
     fun onAppend(slot: Int, timestamp: Long, partition: Int) {
-        if (occupied.get(slot)) {
+        if (occupied[slot]) {
             removeFromTimestamp(slot, slotTimestamps[slot])
             removeFromPartition(slot, slotPartitions[slot])
             entryCount--
@@ -69,7 +69,7 @@ class ConsumerRecordIndex(private val capacity: Int) {
      * without a replacement append. No-op when the slot is already empty.
      */
     fun onEvict(slot: Int) {
-        if (!occupied.get(slot)) return
+        if (!occupied[slot]) return
         removeFromTimestamp(slot, slotTimestamps[slot])
         removeFromPartition(slot, slotPartitions[slot])
         occupied.clear(slot)
