@@ -14,11 +14,16 @@ import javax.swing.table.TableColumnModel
  * contiguous row indices `0..rowCount-1`; the buffer's slot indices are not contiguous after wrap.
  * The translation `slot = (head + row) % capacity` is performed inside this class — callers see
  * row indices, the index layer (introduced in a later PR) sees slot indices, and they meet here.
+ *
+ * [onSlotChange] is invoked for every slot mutation: `next != null` is an append (fresh or wrap),
+ * `next == null` is a pure eviction (slot freed without replacement). Consumers that need to react
+ * to the prior occupant must track it themselves keyed by slot — see `ConsumerRecordIndex`'s
+ * inverse mapping for the canonical pattern.
  */
 class ListTableModel<T : Any>(
     capacity: Int,
     private val columnNames: List<String>,
-    private val onSlotChange: (slot: Int, prev: T?, next: T?) -> Unit = { _, _, _ -> },
+    private val onSlotChange: (slot: Int, next: T?) -> Unit = { _, _ -> },
     private val columnMapper: (T, Int) -> Any?,
 ) : AbstractTableModel() {
 
@@ -146,8 +151,8 @@ class ListTableModel<T : Any>(
         if (evictionCount > 0 && effectiveCap < buffer.capacity) {
             repeat(evictionCount) {
                 val evictedSlot = buffer.head
-                val evicted = buffer.removeHead() ?: return@repeat
-                onSlotChange(evictedSlot, evicted, null)
+                if (buffer.removeHead() == null) return@repeat
+                onSlotChange(evictedSlot, null)
             }
         }
 
@@ -170,8 +175,8 @@ class ListTableModel<T : Any>(
      * table model events — callers are responsible for choosing the right event semantics.
      */
     private fun applyAppend(element: T) {
-        val (slot, evicted) = buffer.append(element)
-        onSlotChange(slot, evicted, element)
+        val (slot, _) = buffer.append(element)
+        onSlotChange(slot, element)
     }
 
     private fun effectiveMax(): Int =
