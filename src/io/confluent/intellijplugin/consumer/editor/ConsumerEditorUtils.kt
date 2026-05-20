@@ -49,13 +49,13 @@ internal object ConsumerEditorUtils {
         return ConsumerStartWith(startWithType, time = startTime?.time, offset = startOffset, consumerGroup)
     }
 
-    fun <T> getTableContent(tableModel: ListTableModel<T>, fileExtension: String): String = when (fileExtension) {
+    fun <T : Any> getTableContent(tableModel: ListTableModel<T>, fileExtension: String): String = when (fileExtension) {
         "json" -> getJTableAsJson(tableModel)
         "tsv" -> getJTableAsCsv(tableModel, "\t")
         else -> getJTableAsCsv(tableModel, ",")
     }
 
-    private fun <T> getJTableAsJson(tableModel: ListTableModel<T>): String {
+    private fun <T : Any> getJTableAsJson(tableModel: ListTableModel<T>): String {
         val columnNames = tableModel.columnModel.columns.toList().map { it.headerValue.toString() }
 
         val jsonArray = JsonArray()
@@ -76,7 +76,7 @@ internal object ConsumerEditorUtils {
         return GsonBuilder().setPrettyPrinting().serializeNulls().create().toJson(jsonArray)
     }
 
-    private fun <T> getJTableAsCsv(tableModel: ListTableModel<T>, separator: String): String {
+    private fun <T : Any> getJTableAsCsv(tableModel: ListTableModel<T>, separator: String): String {
         val columnNames = tableModel.columnModel.columns.toList().map { it.headerValue.toString() }
 
         val builder = StringBuilder()
@@ -96,7 +96,7 @@ internal object ConsumerEditorUtils {
         return builder.toString()
     }
 
-    private fun <T> exportEntryAsCsv(tableModel: ListTableModel<T>, row: Int, column: Int): String {
+    private fun <T : Any> exportEntryAsCsv(tableModel: ListTableModel<T>, row: Int, column: Int): String {
         val cellValue = tableModel.getValueAt(row, column)?.toString()
             ?.replace(LINE_SEPARATOR, " ")
             ?.replace(TAB_CHAR, " ")

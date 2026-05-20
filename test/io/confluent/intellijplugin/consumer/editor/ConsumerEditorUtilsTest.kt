@@ -16,10 +16,10 @@ class ConsumerEditorUtilsTest {
     private fun createTableModel(
         columns: List<String>,
         rows: List<List<Any?>>
-    ): ListTableModel<List<Any?>> = ListTableModel(
-        rows.toMutableList(),
-        columns
-    ) { row, col -> row[col] }
+    ): ListTableModel<List<Any?>> = ListTableModel<List<Any?>>(
+        capacity = rows.size.coerceAtLeast(1),
+        columnNames = columns,
+    ) { row, col -> row[col] }.apply { replaceAll(rows) }
 
     @Nested
     @DisplayName("parsePartitionsText")
