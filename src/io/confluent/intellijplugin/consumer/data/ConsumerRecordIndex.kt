@@ -10,19 +10,16 @@ import java.util.TreeMap
  *
  * **Backing structures:**
  *  - **Timestamp:** [TreeMap] from `timestamp` → list of slots holding records with that timestamp.
- *    Natural sort order powers `subMap` range queries and newest-first traversal via
- *    `descendingMap`.
- *  - **Partition:** plain [HashMap] from partition id → list of slots.
+ *  - **Partition:** plain [HashMap] from partition id → [BitSet] of slots.
  *  - **Inverse mapping:** `slotTimestamps: LongArray` + `slotPartitions: IntArray` keyed by slot,
- *    with `occupied: BitSet` tracking which slots are live. Lets [onAppend] / [onEvict] discover
- *    the previous keys for a slot internally, so callers only report the slot.
+ *    with `occupied: BitSet` tracking which slots are live.
  *
  * **Filter composition is external.** Callers build BitSets via the helper methods and AND them
  * together themselves. The index never owns search state. This mirrors Confluent Extension for VS Code's `Stream` design
  * and lets future histogram (4.2) and pagination (5.1) consumers compose filters without coupling
  * to specific filter types.
  *
- * **Threading: not thread-safe.** All access must be serialized on a single thread (the EDT, in
+ * **Threading: ** All access must be serialized on a single thread (the EDT, in
  * the current message-viewer wiring). Off-EDT consumers — debounced search rebuilds, future
  * histogram aggregation — must take an EDT-side snapshot before handing data to a worker thread,
  * the way [io.confluent.intellijplugin.consumer.editor.KafkaRecordsOutput] does for search.
@@ -35,7 +32,7 @@ class ConsumerRecordIndex(private val capacity: Int) {
 
     private val timestampIndex: TreeMap<Long, IntArrayList> = TreeMap()
     private val timestampDescendingView: NavigableMapView = timestampIndex.descendingMap()
-    private val partitionIndex: MutableMap<Int, IntArrayList> = HashMap()
+    private val partitionIndex: MutableMap<Int, BitSet> = HashMap()
 
     private val slotTimestamps = LongArray(capacity)
     private val slotPartitions = IntArray(capacity)
@@ -98,7 +95,7 @@ class ConsumerRecordIndex(private val capacity: Int) {
         val result = BitSet(capacity)
         for (partition in partitions) {
             val slots = partitionIndex[partition] ?: continue
-            forEachSlot(slots) { slot -> result.set(slot) }
+            result.or(slots)
         }
         return result
     }
@@ -158,9 +155,9 @@ class ConsumerRecordIndex(private val capacity: Int) {
     private fun addToPartition(slot: Int, partition: Int) {
         val bucket = partitionIndex[partition]
         if (bucket != null) {
-            bucket.add(slot)
+            bucket.set(slot)
         } else {
-            partitionIndex[partition] = IntArrayList(2).also { it.add(slot) }
+            partitionIndex[partition] = BitSet(capacity).also { it.set(slot) }
         }
     }
 
@@ -172,7 +169,7 @@ class ConsumerRecordIndex(private val capacity: Int) {
 
     private fun removeFromPartition(slot: Int, partition: Int) {
         val slots = partitionIndex[partition] ?: return
-        removeSlot(slots, slot)
+        slots.clear(slot)
         if (slots.isEmpty) partitionIndex.remove(partition)
     }
 
