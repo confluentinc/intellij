@@ -316,7 +316,9 @@ class ListTableModelTest {
         fun `getValueAt(0) should return oldest live element after wrap`() {
             // Given a small-capacity model
             val small = ListTableModel<String>(capacity = 3, columnNames = listOf("c")) { v, _ -> v }
-            small.addBatch(listOf("a", "b", "c", "d", "e")) // wraps twice
+            // A single oversized batch is trimmed to the last `effectiveCap` elements before
+            // appending; wrap is exercised by the multi-batch test below.
+            small.addBatch(listOf("a", "b", "c", "d", "e"))
             ApplicationManager.getApplication().invokeAndWait { }
 
             // Then
@@ -405,6 +407,62 @@ class ListTableModelTest {
                 ),
                 events,
             )
+        }
+    }
+
+    @Nested
+    inner class TableEventSemantics {
+
+        @Test
+        fun `wrap fires single fireTableDataChanged and preserves rowCount`() {
+            val small = ListTableModel<String>(capacity = 3, columnNames = listOf("c")) { v, _ -> v }
+            val collected = mutableListOf<TableModelEvent>()
+            small.addTableModelListener { collected.add(it) }
+
+            small.addBatch(listOf("a", "b", "c"))
+            ApplicationManager.getApplication().invokeAndWait { }
+            // Initial insert: rowCount 0 → 3.
+            assertEquals(1, collected.size)
+            assertEquals(TableModelEvent.INSERT, collected[0].type)
+            collected.clear()
+
+            small.addBatch(listOf("d"))
+            ApplicationManager.getApplication().invokeAndWait { }
+
+            // Wrap: every row index shifts, so a single fireTableDataChanged is fired —
+            // emitting a delete event without an offsetting insert would leave listeners
+            // inconsistent with rowCount (which stays at capacity).
+            assertEquals(1, collected.size, "wrap should emit one event, got $collected")
+            val event = collected[0]
+            assertEquals(0, event.firstRow)
+            assertEquals(Int.MAX_VALUE, event.lastRow)
+            assertEquals(TableModelEvent.UPDATE, event.type)
+            assertEquals(3, small.rowCount)
+        }
+
+        @Test
+        fun `soft cap below buffer capacity fires delete then insert`() {
+            val model = ListTableModel<String>(capacity = 100, columnNames = listOf("c")) { v, _ -> v }
+            model.maxElementsCount = 3
+            val collected = mutableListOf<TableModelEvent>()
+
+            model.addBatch(listOf("a", "b", "c"))
+            ApplicationManager.getApplication().invokeAndWait { }
+            model.addTableModelListener { collected.add(it) }
+
+            model.addBatch(listOf("d"))
+            ApplicationManager.getApplication().invokeAndWait { }
+
+            // One DELETE (row 0) and one INSERT (new last row), each fired against a
+            // consistent rowCount: delete while size==3, insert after size==2 then →3.
+            assertEquals(2, collected.size, "soft-cap eviction should emit delete + insert, got $collected")
+            assertEquals(TableModelEvent.DELETE, collected[0].type)
+            assertEquals(0, collected[0].firstRow)
+            assertEquals(0, collected[0].lastRow)
+            assertEquals(TableModelEvent.INSERT, collected[1].type)
+            assertEquals(2, collected[1].firstRow)
+            assertEquals(2, collected[1].lastRow)
+            assertEquals(3, model.rowCount)
         }
     }
 }
