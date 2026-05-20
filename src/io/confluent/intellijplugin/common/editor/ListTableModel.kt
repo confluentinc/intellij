@@ -145,18 +145,19 @@ class ListTableModel<T : Any>(
         val sizeBefore = buffer.size
         val totalAfterAdd = sizeBefore + toAdd.size
         val evictionCount = (totalAfterAdd - effectiveCap).coerceAtLeast(0)
+        val willWrap = evictionCount > 0 && effectiveCap == buffer.capacity
 
-        // Soft cap below buffer capacity: the buffer won't wrap on its own, so evict explicitly.
-        // When effectiveCap == buffer.capacity, evictions surface inside applyAppend via wrap.
-        if (evictionCount > 0 && effectiveCap < buffer.capacity) {
+        // Soft cap below buffer capacity: the buffer won't wrap on its own, so evict explicitly
+        // and fire the delete event while rowCount still reflects the pre-eviction size.
+        // In the wrap case, evictions surface inside applyAppend; a separate delete event would
+        // be inconsistent (rowCount stays at capacity), so we issue a single fireTableDataChanged
+        // after the appends instead.
+        if (evictionCount > 0 && !willWrap) {
             repeat(evictionCount) {
                 val evictedSlot = buffer.head
                 if (buffer.removeHead() == null) return@repeat
                 onSlotChange(evictedSlot, null)
             }
-        }
-
-        if (evictionCount > 0) {
             fireTableRowsDeleted(0, evictionCount - 1)
         }
 
@@ -164,9 +165,11 @@ class ListTableModel<T : Any>(
         for (element in toAdd) {
             applyAppend(element)
         }
-        val insertEnd = buffer.size - 1
-        if (insertEnd >= insertStart) {
-            fireTableRowsInserted(insertStart, insertEnd)
+
+        if (willWrap) {
+            fireTableDataChanged()
+        } else if (buffer.size - 1 >= insertStart) {
+            fireTableRowsInserted(insertStart, buffer.size - 1)
         }
     }
 
