@@ -18,7 +18,7 @@ import java.util.TreeMap
  *    the previous keys for a slot internally, so callers only report the slot.
  *
  * **Filter composition is external.** Callers build BitSets via the helper methods and AND them
- * together themselves. The index never owns search state. This mirrors VS Code's `Stream` design
+ * together themselves. The index never owns search state. This mirrors Confluent Extension for VS Code's `Stream` design
  * and lets future histogram (4.2) and pagination (5.1) consumers compose filters without coupling
  * to specific filter types.
  *
