@@ -46,7 +46,7 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
     private var filterTelemetryUnsubscribe: (() -> Unit)? = null
 
     internal val outputModel = ListTableModel<KafkaRecord>(
-        capacity = 1000,
+        capacity = 10_000,
         columnNames = listOf(TOPIC_FIELD, TIMESTAMP_FIELD, KEY_COLUMN, VALUE_COLUMN, PARTITION_COLUMN) +
                 if (isProducer) listOf(DURATION_COLUMN) else listOf(OFFSET_COLUMN),
     ) { data, index ->
