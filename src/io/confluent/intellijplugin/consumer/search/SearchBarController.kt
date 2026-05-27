@@ -112,6 +112,12 @@ class SearchBarController(
     }
 
     @TestOnly
+    internal fun freeTextBitSetForTest(): BitSet? = freeTextBitSet
+
+    @TestOnly
+    internal fun freeTextSnapshotForTest(): String = freeTextSnapshot
+
+    @TestOnly
     internal fun waitForPendingInTest() {
         alarm.waitForAllExecuted(1, TimeUnit.SECONDS)
         // The alarm callback may have dispatched a pooled-thread BitSet build that finishes by
