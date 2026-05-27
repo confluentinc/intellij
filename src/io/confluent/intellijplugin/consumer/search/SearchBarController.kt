@@ -1,34 +1,38 @@
 package io.confluent.intellijplugin.consumer.search
 
 import com.intellij.openapi.Disposable
+import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.util.Disposer
 import com.intellij.ui.DocumentAdapter
 import com.intellij.ui.SearchTextField
 import com.intellij.util.Alarm
+import io.confluent.intellijplugin.common.editor.ListTableModel
 import io.confluent.intellijplugin.core.table.filters.FilerEditorChangeListener
 import io.confluent.intellijplugin.core.table.filters.FilterEditor
 import io.confluent.intellijplugin.core.table.filters.SearchQueryParser
 import io.confluent.intellijplugin.core.table.filters.TableFilterHeader
 import io.confluent.intellijplugin.core.table.renderers.DateRenderer
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
+import java.util.BitSet
 import java.util.Date
+import java.util.concurrent.TimeUnit
 import javax.swing.JTable
 import javax.swing.RowFilter
 import javax.swing.event.DocumentEvent
 import javax.swing.event.DocumentListener
 import javax.swing.table.TableModel
 import javax.swing.table.TableRowSorter
-import java.util.concurrent.TimeUnit
 import org.jetbrains.annotations.TestOnly
 
 /**
  * Owns the global search bar and unifies its filter with the per-column filter editors.
  *
- * Debounces input via [Alarm] on the Swing thread (200ms) and applies a composed
- * [RowFilter] to the table's [TableRowSorter]. Filters use case-insensitive
- * [String.contains] on each cell's string value. Debounce matters for large
- * tables (thousands of rows), where re-running the sort+filter on every keystroke causes
- * EDT jank.
+ * Debounces input via [Alarm] on the Swing thread (200ms) and applies a composed [RowFilter]
+ * to the table's [TableRowSorter]. Free-text matches are computed off the EDT into a
+ * slot-keyed [BitSet] (so per-row visibility is O(1) at repaint time); per-column filters use
+ * case-insensitive [String.contains] on the cell's string value (matched against the rendered
+ * form via [cellAsDisplayedString], so e.g. typing `timestamp:2026-05` hits the formatted date).
  *
  * Sync is bidirectional:
  *  - typing `key:foo` in the search bar populates the Key column editor
@@ -42,6 +46,8 @@ class SearchBarController(
     isProducer: Boolean,
 ) : Disposable {
 
+    private data class SearchableSlot(val slot: Int, val text: String)
+
     val searchField: SearchTextField = SearchTextField(false).apply {
         textEditor.emptyText.text = KafkaMessagesBundle.message("consumer.search.placeholder")
     }
@@ -50,6 +56,24 @@ class SearchBarController(
     private val alarm = Alarm(Alarm.ThreadToUse.SWING_THREAD, this)
     private var syncing = false
     private var lastApplied: SearchQueryParser.ParsedSearch? = null
+
+    /**
+     * Cached BitSet for the most recent free-text term (slot-keyed). `null` means "no free text".
+     * Written on the EDT inside the pool job's invokeLater callback; read on the EDT during
+     * `applyUnifiedFilter` and during the RowSorter's filter evaluation. Tests read it via
+     * [freeTextBitSetForTest] only after `waitForPendingInTest` synchronizes through invokeAndWait.
+     */
+    private var freeTextBitSet: BitSet? = null
+
+    /** The free-text term that produced [freeTextBitSet]; used to skip rebuilds when unchanged. */
+    private var freeTextSnapshot: String = ""
+
+    /**
+     * Tracks the most recent off-EDT BitSet build so tests can deterministically wait for it.
+     * Read by [waitForPendingInTest] from the test thread, so the volatile publication matters.
+     */
+    @Volatile
+    private var pendingFreeTextBuild: java.util.concurrent.Future<*>? = null
 
     private val searchFieldListener: DocumentListener = object : DocumentAdapter() {
         override fun textChanged(e: DocumentEvent) {
@@ -95,8 +119,18 @@ class SearchBarController(
     }
 
     @TestOnly
+    internal fun freeTextBitSetForTest(): BitSet? = freeTextBitSet
+
+    @TestOnly
+    internal fun freeTextSnapshotForTest(): String = freeTextSnapshot
+
+    @TestOnly
     internal fun waitForPendingInTest() {
         alarm.waitForAllExecuted(1, TimeUnit.SECONDS)
+        // The alarm callback may have dispatched a pooled-thread BitSet build that finishes by
+        // posting back to the EDT. Wait for the pool job and then drain the EDT once to apply it.
+        pendingFreeTextBuild?.get(1, TimeUnit.SECONDS)
+        ApplicationManager.getApplication().invokeAndWait { /* drain pending invokeLater */ }
     }
 
     private fun columnEditors(): List<FilterEditor> =
@@ -151,14 +185,45 @@ class SearchBarController(
         if (parsed == lastApplied) return
         lastApplied = parsed
 
+        val freeText = parsed.freeText
+        if (freeText.isEmpty()) {
+            freeTextBitSet = null
+            freeTextSnapshot = ""
+            assembleAndApply(sorter, parsed)
+        } else if (freeText == freeTextSnapshot && freeTextBitSet != null) {
+            // Same term as last build — reuse the cached BitSet immediately.
+            assembleAndApply(sorter, parsed)
+        } else {
+            // Build off-EDT, then flip the row filter on EDT. Cancellation is best-effort: the
+            // tight String.contains loop ignores interrupts, so a build that has already started
+            // will run to completion. The real stale-result guard is the lastApplied check inside
+            // the invokeLater callback below — cancel() only saves work for futures still queued.
+            pendingFreeTextBuild?.cancel(true)
+            val snapshot = snapshotRows(table)
+            val term = freeText
+            pendingFreeTextBuild = ApplicationManager.getApplication().executeOnPooledThread {
+                val bits = buildFreeTextBitSet(snapshot, term)
+                invokeLater {
+                    // Stale-result guard: another keystroke might have advanced lastApplied.
+                    if (lastApplied?.freeText != term) return@invokeLater
+                    freeTextSnapshot = term
+                    freeTextBitSet = bits
+                    assembleAndApply(sorter, parsed)
+                }
+            }
+        }
+    }
+
+    private fun assembleAndApply(sorter: TableRowSorter<TableModel>, parsed: SearchQueryParser.ParsedSearch) {
         val filters = mutableListOf<RowFilter<TableModel, Int>>()
         for ((modelIndex, value) in parsed.columnFilters) {
             if (value.isNotEmpty()) {
-                filters.add(containsFilter(value, modelIndex))
+                filters.add(columnContainsFilter(value, modelIndex))
             }
         }
-        if (parsed.freeText.isNotEmpty()) {
-            filters.add(containsFilter(parsed.freeText, null))
+        val bits = freeTextBitSet
+        if (bits != null) {
+            filters.add(slotBitSetFilter(bits))
         }
         sorter.rowFilter = when {
             filters.isEmpty() -> null
@@ -168,21 +233,33 @@ class SearchBarController(
         table.parent?.repaint()
     }
 
+    private fun buildFreeTextBitSet(slots: List<SearchableSlot>, term: String): BitSet {
+        val bits = BitSet()
+        for ((slot, text) in slots) {
+            if (text.contains(term, ignoreCase = true)) bits.set(slot)
+        }
+        return bits
+    }
+
     /**
-     * Literal case-insensitive substring filter.
-     * Passing `null` for [modelIndex] matches across every column.
+     * Slot-keyed RowFilter: translates the row-typed entry identifier to its current buffer slot
+     * and consults the cached BitSet. The translation comes from the table model — when the
+     * model is a `ListTableModel`, it surfaces `slotForRow`; otherwise we fall back to the row
+     * index (correct for non-circular models like `DefaultTableModel`).
      */
-    private fun containsFilter(needle: String, modelIndex: Int?): RowFilter<TableModel, Int> =
+    private fun slotBitSetFilter(bits: BitSet): RowFilter<TableModel, Int> =
         object : RowFilter<TableModel, Int>() {
             override fun include(entry: Entry<out TableModel, out Int>): Boolean {
-                if (modelIndex != null) {
-                    return cellAsDisplayedString(entry, modelIndex).contains(needle, ignoreCase = true)
-                }
-                for (i in 0 until entry.valueCount) {
-                    if (cellAsDisplayedString(entry, i).contains(needle, ignoreCase = true)) return true
-                }
-                return false
+                val row = entry.identifier as? Int ?: return true
+                val slot = slotForRow(table.model, row)
+                return bits.get(slot)
             }
+        }
+
+    private fun columnContainsFilter(needle: String, modelIndex: Int): RowFilter<TableModel, Int> =
+        object : RowFilter<TableModel, Int>() {
+            override fun include(entry: Entry<out TableModel, out Int>): Boolean =
+                cellAsDisplayedString(entry, modelIndex).contains(needle, ignoreCase = true)
         }
 
     // Match against what the user sees in the cell, not Object.toString(). The Timestamp column
@@ -208,6 +285,40 @@ class SearchBarController(
             put("value", 3)
             put("partition", 4)
             put(if (isProducer) "duration" else "offset", 5)
+        }
+
+        private fun slotForRow(model: TableModel, row: Int): Int =
+            (model as? ListTableModel<*>)?.slotForRow(row) ?: row
+
+        // NUL separator between column strings so the haystack can't accidentally span a column
+        // boundary (e.g. key="foo" + value="bar" must not match free-text "oo b"). Safe to use
+        // as a separator because the search field cannot produce a literal NUL in the needle.
+        private const val COLUMN_SEPARATOR: String = "\u0000"
+
+        private fun snapshotRows(table: JTable): List<SearchableSlot> {
+            val model = table.model
+            val rowCount = model.rowCount
+            val out = ArrayList<SearchableSlot>(rowCount)
+            for (row in 0 until rowCount) {
+                val builder = StringBuilder()
+                for (col in 0 until model.columnCount) {
+                    builder.append(cellAsDisplayedString(model, row, col))
+                    builder.append(COLUMN_SEPARATOR)
+                }
+                out.add(SearchableSlot(slotForRow(model, row), builder.toString()))
+            }
+            return out
+        }
+
+        // Mirrors the per-column filter's matching surface: render Date columns via DateRenderer
+        // so free-text "-" / "05" / "2026-06-15" hit the same string the user sees.
+        private fun cellAsDisplayedString(model: TableModel, row: Int, col: Int): String {
+            val value = model.getValueAt(row, col) ?: return ""
+            return if (model.getColumnClass(col) == Date::class.java && value is Date) {
+                DateRenderer.df.format(value)
+            } else {
+                value.toString()
+            }
         }
     }
 }
