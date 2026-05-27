@@ -3,6 +3,7 @@ All noteworthy changes to this plugin will be documented in this file.
 
 ## Unreleased
 ### Changed
+- Consumer and producer record tables now retain up to 10,000 records per session. Previously, leaving the "Consumer records limit" field empty (or set to 0) allowed unbounded growth.
 ### Added
 ### Removed
 ### Fixed
