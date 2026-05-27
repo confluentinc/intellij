@@ -44,17 +44,9 @@ class SearchBarController(
     private val table: JTable,
     private val filterHeader: TableFilterHeader,
     isProducer: Boolean,
-    /**
-     * Returns a snapshot of `(slot, searchableText)` pairs for free-text BitSet builds.
-     * Called on the EDT, then handed off to a background thread. Defaults to a row-walking
-     * implementation that concatenates each row's column strings — works for arbitrary table
-     * models in tests. Production wiring overrides this to surface KafkaRecord key/value text.
-     */
-    private val liveSearchableText: () -> List<SearchableSlot> = { defaultRowSnapshot(table) },
 ) : Disposable {
 
-    /** A live buffer slot paired with the text the free-text matcher should run against. */
-    data class SearchableSlot(val slot: Int, val text: String)
+    private data class SearchableSlot(val slot: Int, val text: String)
 
     val searchField: SearchTextField = SearchTextField(false).apply {
         textEditor.emptyText.text = KafkaMessagesBundle.message("consumer.search.placeholder")
@@ -192,7 +184,7 @@ class SearchBarController(
             // Build off-EDT, then flip the row filter on EDT. Cancel any in-flight build first
             // so a fast typist doesn't end up with N pool threads scanning the buffer in parallel.
             pendingFreeTextBuild?.cancel(true)
-            val snapshot = liveSearchableText()
+            val snapshot = snapshotRows(table)
             val term = freeText
             pendingFreeTextBuild = ApplicationManager.getApplication().executeOnPooledThread {
                 val bits = buildFreeTextBitSet(snapshot, term)
@@ -283,7 +275,12 @@ class SearchBarController(
         private fun slotForRow(model: TableModel, row: Int): Int =
             (model as? ListTableModel<*>)?.slotForRow(row) ?: row
 
-        private fun defaultRowSnapshot(table: JTable): List<SearchableSlot> {
+        // NUL separator between column strings so the haystack can't accidentally span a column
+        // boundary (e.g. key="foo" + value="bar" must not match free-text "oo b"). Safe to use
+        // as a separator because the search field cannot produce a literal NUL in the needle.
+        private const val COLUMN_SEPARATOR: String = "\u0000"
+
+        private fun snapshotRows(table: JTable): List<SearchableSlot> {
             val model = table.model
             val rowCount = model.rowCount
             val out = ArrayList<SearchableSlot>(rowCount)
@@ -291,7 +288,7 @@ class SearchBarController(
                 val builder = StringBuilder()
                 for (col in 0 until model.columnCount) {
                     builder.append(cellAsDisplayedString(model, row, col))
-                    builder.append(' ')
+                    builder.append(COLUMN_SEPARATOR)
                 }
                 out.add(SearchableSlot(slotForRow(model, row), builder.toString()))
             }
