@@ -132,24 +132,7 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
     private val filterHeader: TableFilterHeader get() = outputTableDelegate.value.second
 
     private val searchController: SearchBarController by lazy {
-        SearchBarController(
-            parentDisposable = this,
-            table = outputTable,
-            filterHeader = filterHeader,
-            isProducer = isProducer,
-            liveSearchableText = ::snapshotLiveSearchableText,
-        )
-    }
-
-    private fun snapshotLiveSearchableText(): List<SearchBarController.SearchableSlot> {
-        val rowCount = outputModel.rowCount
-        val out = ArrayList<SearchBarController.SearchableSlot>(rowCount)
-        for (row in 0 until rowCount) {
-            val record = outputModel.getValueAt(row) ?: continue
-            val text = (record.keyText ?: "") + " " + (record.valueText ?: "")
-            out.add(SearchBarController.SearchableSlot(outputModel.slotForRow(row), text))
-        }
-        return out
+        SearchBarController(this, outputTable, filterHeader, isProducer)
     }
 
     private val searchField get() = searchController.searchField
