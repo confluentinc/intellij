@@ -57,14 +57,21 @@ class SearchBarController(
     private var syncing = false
     private var lastApplied: SearchQueryParser.ParsedSearch? = null
 
-    /** Cached BitSet for the most recent free-text term (slot-keyed). `null` means "no free text". */
-    @Volatile
+    /**
+     * Cached BitSet for the most recent free-text term (slot-keyed). `null` means "no free text".
+     * Written on the EDT inside the pool job's invokeLater callback; read on the EDT during
+     * `applyUnifiedFilter` and during the RowSorter's filter evaluation. Tests read it via
+     * [freeTextBitSetForTest] only after `waitForPendingInTest` synchronizes through invokeAndWait.
+     */
     private var freeTextBitSet: BitSet? = null
 
     /** The free-text term that produced [freeTextBitSet]; used to skip rebuilds when unchanged. */
     private var freeTextSnapshot: String = ""
 
-    /** Tracks the most recent off-EDT BitSet build so tests can deterministically wait for it. */
+    /**
+     * Tracks the most recent off-EDT BitSet build so tests can deterministically wait for it.
+     * Read by [waitForPendingInTest] from the test thread, so the volatile publication matters.
+     */
     @Volatile
     private var pendingFreeTextBuild: java.util.concurrent.Future<*>? = null
 
@@ -187,8 +194,10 @@ class SearchBarController(
             // Same term as last build — reuse the cached BitSet immediately.
             assembleAndApply(sorter, parsed)
         } else {
-            // Build off-EDT, then flip the row filter on EDT. Cancel any in-flight build first
-            // so a fast typist doesn't end up with N pool threads scanning the buffer in parallel.
+            // Build off-EDT, then flip the row filter on EDT. Cancellation is best-effort: the
+            // tight String.contains loop ignores interrupts, so a build that has already started
+            // will run to completion. The real stale-result guard is the lastApplied check inside
+            // the invokeLater callback below — cancel() only saves work for futures still queued.
             pendingFreeTextBuild?.cancel(true)
             val snapshot = snapshotRows(table)
             val term = freeText
