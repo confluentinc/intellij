@@ -414,7 +414,7 @@ class ListTableModelTest {
     inner class TableEventSemantics {
 
         @Test
-        fun `wrap fires single fireTableDataChanged and preserves rowCount`() {
+        fun `wrap fires delete then insert preserving rowCount`() {
             val small = ListTableModel<String>(capacity = 3, columnNames = listOf("c")) { v, _ -> v }
             val collected = mutableListOf<TableModelEvent>()
             small.addTableModelListener { collected.add(it) }
@@ -429,15 +429,45 @@ class ListTableModelTest {
             small.addBatch(listOf("d"))
             ApplicationManager.getApplication().invokeAndWait { }
 
-            // Wrap: every row index shifts, so a single fireTableDataChanged is fired —
-            // emitting a delete event without an offsetting insert would leave listeners
-            // inconsistent with rowCount (which stays at capacity).
-            assertEquals(1, collected.size, "wrap should emit one event, got $collected")
-            val event = collected[0]
-            assertEquals(0, event.firstRow)
-            assertEquals(Int.MAX_VALUE, event.lastRow)
-            assertEquals(TableModelEvent.UPDATE, event.type)
+            // Wrap is now a true sliding window: the oldest row leaves the top (DELETE 0)
+            // and the new row arrives at the bottom (INSERT 2), each fired against a
+            // consistent rowCount (delete while size 3→2, insert while size 2→3). This lets
+            // the RowSorter do incremental maintenance instead of the full-view rebuild a
+            // blanket fireTableDataChanged forces — which is what made the table "jumpy".
+            assertEquals(2, collected.size, "wrap should emit delete + insert, got $collected")
+            assertEquals(TableModelEvent.DELETE, collected[0].type)
+            assertEquals(0, collected[0].firstRow)
+            assertEquals(0, collected[0].lastRow)
+            assertEquals(TableModelEvent.INSERT, collected[1].type)
+            assertEquals(2, collected[1].firstRow)
+            assertEquals(2, collected[1].lastRow)
             assertEquals(3, small.rowCount)
+            // Sliding window kept the newest 3 in oldest→newest order.
+            assertEquals(listOf("b", "c", "d"), small.elements())
+        }
+
+        @Test
+        fun `wrap evicting multiple rows fires one delete range and one insert range`() {
+            val small = ListTableModel<String>(capacity = 3, columnNames = listOf("c")) { v, _ -> v }
+            val collected = mutableListOf<TableModelEvent>()
+
+            small.addBatch(listOf("a", "b", "c"))
+            ApplicationManager.getApplication().invokeAndWait { }
+            small.addTableModelListener { collected.add(it) }
+
+            // Two new records into a full capacity-3 buffer evict the two oldest.
+            small.addBatch(listOf("d", "e"))
+            ApplicationManager.getApplication().invokeAndWait { }
+
+            assertEquals(2, collected.size, "expected one delete range + one insert range, got $collected")
+            assertEquals(TableModelEvent.DELETE, collected[0].type)
+            assertEquals(0, collected[0].firstRow)
+            assertEquals(1, collected[0].lastRow)   // rows 0..1 (a, b) evicted
+            assertEquals(TableModelEvent.INSERT, collected[1].type)
+            assertEquals(1, collected[1].firstRow)  // inserted at rows 1..2
+            assertEquals(2, collected[1].lastRow)
+            assertEquals(3, small.rowCount)
+            assertEquals(listOf("c", "d", "e"), small.elements())
         }
 
         @Test
