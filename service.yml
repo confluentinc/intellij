@@ -6,7 +6,7 @@ git:
 codeowners:
   enable: true
 make:
-  enable: true
+  enable: false
 renovatebot:
   enable: true
   automerge:
