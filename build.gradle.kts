@@ -212,6 +212,13 @@ tasks {
         System.getProperty("ccloud.env")?.let { systemProperty("ccloud.env", it) }
         System.getProperty("scaffold.api.env")?.let { systemProperty("scaffold.api.env", it) }
         System.getProperty("scaffold.api.base-url")?.let { systemProperty("scaffold.api.base-url", it) }
+        // TEMP (ncothren/perf-list-table-model-benchmark branch only — DO NOT MERGE):
+        // forward the gate property so the throwaway ListTableModelBenchmark runs, and give the
+        // forked test JVM enough heap for the 50k x 16KB cell (~800MB live + churn).
+        System.getProperty("benchmark.listTableModel")?.let {
+            systemProperty("benchmark.listTableModel", it)
+            maxHeapSize = "3g"
+        }
         configure<JacocoTaskExtension> {
             isIncludeNoLocationClasses = true
             excludes = listOf("jdk.internal.*")
