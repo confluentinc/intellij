@@ -137,6 +137,7 @@
                         class="io.confluent.intellijplugin.toolwindow.actions.ClearTopicAction"
                         icon="io.confluent.intellijplugin.icons.BigdatatoolsKafkaIcons.ClearOutputs">
                 </action>
+                <reference ref="Kafka.SelectScaffoldTemplate"/>
             </group>
 
             <group id="Kafka.Consumer.Group.Actions">
