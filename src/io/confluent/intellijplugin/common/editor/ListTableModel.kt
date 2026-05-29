@@ -159,12 +159,16 @@ class ListTableModel<T : Any>(
         // blanket fireTableDataChanged forces — the latter is what made the table visibly "jump"
         // on every flush once the buffer was full under high-throughput consumption.
         if (evictionCount > 0) {
+            var removed = 0
             repeat(evictionCount) {
                 val evictedSlot = buffer.head
                 if (buffer.removeHead() == null) return@repeat
                 if (!slotsReused) onSlotChange(evictedSlot, null)
+                removed++
             }
-            fireTableRowsDeleted(0, evictionCount - 1)
+            // Single ranged delete fired once after the loop (batched), against the
+            // post-eviction size so it stays consistent with getRowCount().
+            if (removed > 0) fireTableRowsDeleted(0, removed - 1)
         }
 
         val insertStart = buffer.size
