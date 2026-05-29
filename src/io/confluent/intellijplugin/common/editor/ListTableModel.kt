@@ -145,18 +145,24 @@ class ListTableModel<T : Any>(
         val sizeBefore = buffer.size
         val totalAfterAdd = sizeBefore + toAdd.size
         val evictionCount = (totalAfterAdd - effectiveCap).coerceAtLeast(0)
-        val willWrap = evictionCount > 0 && effectiveCap == buffer.capacity
 
-        // Soft cap below buffer capacity: the buffer won't wrap on its own, so evict explicitly
-        // and fire the delete event while rowCount still reflects the pre-eviction size.
-        // In the wrap case, evictions surface inside applyAppend; a separate delete event would
-        // be inconsistent (rowCount stays at capacity), so we issue a single fireTableDataChanged
-        // after the appends instead.
-        if (evictionCount > 0 && !willWrap) {
+        // When the soft cap equals the buffer capacity (the default), the head slots freed here
+        // are immediately reused by the appends below, so the slot-change listener learns about
+        // them via the append (next != null) and we must NOT also fire a pure-eviction event.
+        // When the soft cap is below capacity the slots are freed for good, so we do report them.
+        val slotsReused = evictionCount > 0 && effectiveCap == buffer.capacity
+
+        // Evict explicitly from the head before appending, so rowCount drops and the delete event
+        // is consistent with getRowCount(). This is a true sliding window: oldest rows leave the
+        // top, new rows arrive at the bottom, and the rows in between keep their identity. The
+        // RowSorter/JTable can do incremental maintenance instead of the full-view rebuild a
+        // blanket fireTableDataChanged forces — the latter is what made the table visibly "jump"
+        // on every flush once the buffer was full under high-throughput consumption.
+        if (evictionCount > 0) {
             repeat(evictionCount) {
                 val evictedSlot = buffer.head
                 if (buffer.removeHead() == null) return@repeat
-                onSlotChange(evictedSlot, null)
+                if (!slotsReused) onSlotChange(evictedSlot, null)
             }
             fireTableRowsDeleted(0, evictionCount - 1)
         }
@@ -165,10 +171,7 @@ class ListTableModel<T : Any>(
         for (element in toAdd) {
             applyAppend(element)
         }
-
-        if (willWrap) {
-            fireTableDataChanged()
-        } else if (buffer.size - 1 >= insertStart) {
+        if (buffer.size - 1 >= insertStart) {
             fireTableRowsInserted(insertStart, buffer.size - 1)
         }
     }
