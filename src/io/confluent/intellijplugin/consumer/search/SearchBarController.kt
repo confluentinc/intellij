@@ -44,6 +44,9 @@ class SearchBarController(
     private val table: JTable,
     private val filterHeader: TableFilterHeader,
     isProducer: Boolean,
+    // Star-projected: the controller only reads the live bitset and sets the term, never feeds
+    // elements in (the owning KafkaRecordsOutput drives onAppend/onEvict), so the element type T
+    // is irrelevant here.
     private val freeTextIndex: FreeTextSlotIndex<*>,
 ) : Disposable {
 
