@@ -4,7 +4,7 @@ All noteworthy changes to this plugin will be documented in this file.
 ## Unreleased
 ### Changed
 - Consumer and producer record tables now retain up to 50,000 records per session. Previously, leaving the "Consumer records limit" field empty (or set to 0) allowed unbounded growth.
-- Free-text search in the consumer/producer record table is computed on a background thread; per-row visibility during repaint is now a constant-time bitset lookup instead of a per-cell scan, eliminating typing lag on large tables.
+- Free-text search in the consumer/producer record table is maintained incrementally as records stream in; per-row visibility during repaint is now a constant-time bitset lookup instead of a per-cell scan, eliminating typing lag on large tables.
 ### Added
 ### Removed
 ### Fixed
