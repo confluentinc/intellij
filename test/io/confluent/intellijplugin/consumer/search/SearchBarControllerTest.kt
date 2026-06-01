@@ -12,7 +12,9 @@ import io.confluent.intellijplugin.core.table.renderers.DateRenderer
 import io.confluent.intellijplugin.registry.KafkaRegistryFormat
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Assertions.assertSame
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
@@ -252,6 +254,55 @@ class SearchBarControllerTest {
 
             setSearchAndFlush("timestamp:2026-05")
             assertEquals(1, visibleRowCount())
+        }
+
+        @Test
+        fun `free-text search produces a BitSet-backed RowFilter`() {
+            loadRows(
+                listOf(
+                    record("topicA", "k1", "value1", 0, 100L),
+                    record("topicB", "k2", "{\"nested\":\"value\"}", 1, 200L),
+                    record("topicA", "k3", "plain text", 0, 300L),
+                )
+            )
+            setSearchAndFlush("plain")
+            assertEquals(1, visibleRowCount())
+            // Cache snapshot for the term is recorded so a repeat doesn't rebuild.
+            assertEquals("plain", controller.freeTextSnapshotForTest())
+        }
+
+        @Test
+        fun `column filter still applies when free-text BitSet is also active`() {
+            loadRows(
+                listOf(
+                    record("topicA", "k1", "value1", 0, 100L),
+                    record("topicA", "k2", "value2", 0, 200L),
+                    record("topicB", "k3", "value1", 0, 300L),
+                )
+            )
+            setSearchAndFlush("topic:topicA value:value1")
+            assertEquals(1, visibleRowCount(), "Only row matching both column filters should remain")
+        }
+
+        @Test
+        fun `cached BitSet is reused when only column filters change`() {
+            loadRows(
+                listOf(
+                    record("topicA", "k1", "plain text", 0, 100L),
+                    record("topicB", "k2", "plain", 0, 200L),
+                )
+            )
+            // First search builds the BitSet for "plain".
+            setSearchAndFlush("plain")
+            val firstBits = controller.freeTextBitSetForTest()
+            assertNotNull(firstBits)
+
+            // Same free-text plus a new column filter — parsed != lastApplied so applyUnifiedFilter
+            // runs to completion, but the free-text branch must take the cache path (no rebuild).
+            setSearchAndFlush("topic:topicA plain")
+            val secondBits = controller.freeTextBitSetForTest()
+
+            assertSame(firstBits, secondBits, "Cache path must reuse the BitSet instance")
         }
 
         @Test
