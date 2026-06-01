@@ -87,7 +87,8 @@ class SearchBarControllerTest {
                     rowSorter = TableRowSorter(model)
                 }
                 filterHeader = TableFilterHeader(table).apply { externalFilterMode = true }
-                controller = SearchBarController(disposable, table, filterHeader, isProducer = false)
+                controller =
+                    SearchBarController(disposable, table, filterHeader, isProducer = false, output.freeTextIndex)
             }
         }
 
@@ -124,6 +125,14 @@ class SearchBarControllerTest {
         private fun loadRows(records: List<KafkaRecord>) {
             // replace() is synchronous, so the model reflects these rows by the time it returns.
             SwingUtilities.invokeAndWait { output.replace(records) }
+        }
+
+        /** Stream a record through the live append path and drain the model's scheduled flush. */
+        private fun appendAndFlush(record: KafkaRecord) {
+            SwingUtilities.invokeAndWait { output.outputModel.addBatch(listOf(record)) }
+            // addBatch schedules the flush via invokeLater; drain the EDT so it runs and the
+            // RowSorter re-evaluates the inserted row against the active filter.
+            SwingUtilities.invokeAndWait { }
         }
 
         private fun setSearchAndFlush(text: String) {
@@ -267,8 +276,40 @@ class SearchBarControllerTest {
             )
             setSearchAndFlush("plain")
             assertEquals(1, visibleRowCount())
-            // Cache snapshot for the term is recorded so a repeat doesn't rebuild.
-            assertEquals("plain", controller.freeTextSnapshotForTest())
+            // An active term produces a (non-null) slot-keyed BitSet backing the row filter.
+            assertNotNull(output.freeTextIndex.bitSet())
+        }
+
+        @Test
+        fun `free-text filter stays live as a new matching row streams in`() {
+            loadRows(
+                listOf(
+                    record("topicA", "k1", "value1", 0, 100L),
+                    record("topicA", "k2", "other", 0, 200L),
+                )
+            )
+            setSearchAndFlush("plain")
+            assertEquals(0, visibleRowCount(), "Nothing matches the term yet")
+
+            // A record matching the active term arrives during consumption (not a term change).
+            appendAndFlush(record("topicB", "k3", "plain text", 1, 300L))
+
+            assertEquals(
+                1,
+                visibleRowCount(),
+                "Newly streamed matching row must appear under the active search without retyping",
+            )
+        }
+
+        @Test
+        fun `free-text does not match across a column boundary`() {
+            // key="foo", value="bar": a needle spanning the two columns ("oo b") must not match,
+            // because free-text is tested per rendered column, never against a concatenation.
+            loadRows(listOf(record("topicA", "foo", "bar", 0, 100L)))
+            setSearchAndFlush("oo b")
+            assertEquals(0, visibleRowCount(), "Needle spanning two columns must not match")
+            setSearchAndFlush("foo")
+            assertEquals(1, visibleRowCount(), "Needle within a single column matches")
         }
 
         @Test
@@ -294,15 +335,15 @@ class SearchBarControllerTest {
             )
             // First search builds the BitSet for "plain".
             setSearchAndFlush("plain")
-            val firstBits = controller.freeTextBitSetForTest()
+            val firstBits = output.freeTextIndex.bitSet()
             assertNotNull(firstBits)
 
             // Same free-text plus a new column filter — parsed != lastApplied so applyUnifiedFilter
-            // runs to completion, but the free-text branch must take the cache path (no rebuild).
+            // runs again, but the unchanged term must not trigger a rescan (same BitSet instance).
             setSearchAndFlush("topic:topicA plain")
-            val secondBits = controller.freeTextBitSetForTest()
+            val secondBits = output.freeTextIndex.bitSet()
 
-            assertSame(firstBits, secondBits, "Cache path must reuse the BitSet instance")
+            assertSame(firstBits, secondBits, "Unchanged term must reuse the live BitSet instance")
         }
 
         @Test
