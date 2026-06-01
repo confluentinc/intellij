@@ -7,7 +7,7 @@ All noteworthy changes to this plugin will be documented in this file.
 - Schema updates now time out after 3 minutes instead of waiting indefinitely; Cancel stops waiting for a pending update (the registry may still apply it), and the limit can be changed with the Registry key `bdide.kafka.schema.registry.call.timeout.ms`.
 - Confluent Cloud requests are now retried with exponential backoff and jitter, honoring `Retry-After`: on rate limiting (429) for any request, and on temporary server errors (502/503/504) and connection failures for read requests. If the server asks to wait more than a minute, the request fails right away instead of retrying sooner than asked.
 - Tool window auto-refresh now varies each interval by up to ±20%. While a connection is unreachable, auto-refresh keeps re-checking it, waiting progressively longer (up to about 5 minutes), and resumes the normal interval once the connection recovers. Connections that use an SSH tunnel are not re-checked automatically; use Refresh to reconnect them.
-- Free-text search in the consumer/producer record table is computed on a background thread; per-row visibility during repaint is now a constant-time bitset lookup instead of a per-cell scan, eliminating typing lag on large tables.
+- Free-text search in the consumer/producer record table is maintained incrementally as records stream in; per-row visibility during repaint is now a constant-time bitset lookup instead of a per-cell scan, eliminating typing lag on large tables.
 ### Added
 - MessagePack serialization support for consumer and producer records
 ### Removed
