@@ -88,7 +88,11 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
                 detailsPanel.expanded = !detailsPanel.expanded
             }
 
-            MaterialTableUtils.setupSorters(this)
+            // String columns (Topic/Key/Value) sort via a locale-aware Collator that scans the full
+            // cell on every compare — unusably slow for a large, live-updating message table. Topic is
+            // also single-valued per consumer session, so sorting it is meaningless. Keep only the
+            // cheap numeric/Date sorts (Timestamp/Partition/Offset).
+            MaterialTableUtils.setupSorters(this, sortStringColumns = false)
         }
 
         val header = TableFilterHeader(table).apply {

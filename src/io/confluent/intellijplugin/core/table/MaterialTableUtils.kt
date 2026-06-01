@@ -116,7 +116,17 @@ object MaterialTableUtils {
         override fun compare(o1: T, o2: T) = compareValues(o1, o2)
     }
 
-    fun setupSorters(table: JTable) {
+    /**
+     * Installs a [TableRowSorter] with numeric comparators for Int/Long/Double columns.
+     *
+     * String columns have no registered comparator, so [javax.swing.DefaultRowSorter] sorts them with
+     * a locale-aware [java.text.Collator] that scans the whole cell value on every comparison. For a
+     * large, continuously-updating table (e.g. the consumer message viewer) that is pathologically
+     * expensive — benchmarked at tens of ms per flush for small values up to multi-second EDT freezes
+     * for large payloads. Pass [sortStringColumns] = false there to leave String columns unsortable;
+     * the cheap numeric/Date sorts stay enabled.
+     */
+    fun setupSorters(table: JTable, sortStringColumns: Boolean = true) {
         val tableRowSorter = TableRowSorter(table.model)
         tableRowSorter.sortsOnUpdates = true
 
@@ -125,6 +135,7 @@ object MaterialTableUtils {
                 Int::class.java -> tableRowSorter.setComparator(i, NumberComparator<Int>())
                 Long::class.java -> tableRowSorter.setComparator(i, NumberComparator<Long>())
                 Double::class.java -> tableRowSorter.setComparator(i, NumberComparator<Double>())
+                String::class.java -> if (!sortStringColumns) tableRowSorter.setSortable(i, false)
                 else -> Unit
             }
         }
