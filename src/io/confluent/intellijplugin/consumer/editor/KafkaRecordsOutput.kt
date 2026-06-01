@@ -17,6 +17,7 @@ import com.intellij.ui.PopupHandler
 import com.intellij.ui.ScrollPaneFactory
 import com.intellij.util.ui.JBUI
 import io.confluent.intellijplugin.common.editor.ListTableModel
+import io.confluent.intellijplugin.consumer.data.ConsumerRecordIndex
 import io.confluent.intellijplugin.consumer.search.SearchBarController
 import io.confluent.intellijplugin.core.table.MaterialTable
 import io.confluent.intellijplugin.core.table.MaterialTableUtils
@@ -46,10 +47,13 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
     private var tableLoadingDecorator: TableLoadingDecorator? = null
     private var filterTelemetryUnsubscribe: (() -> Unit)? = null
 
+    internal val recordIndex: ConsumerRecordIndex = ConsumerRecordIndex(capacity = BUFFER_CAPACITY)
+
     internal val outputModel = ListTableModel<KafkaRecord>(
-        capacity = 50_000,
+        capacity = BUFFER_CAPACITY,
         columnNames = listOf(TOPIC_FIELD, TIMESTAMP_FIELD, KEY_COLUMN, VALUE_COLUMN, PARTITION_COLUMN) +
                 if (isProducer) listOf(DURATION_COLUMN) else listOf(OFFSET_COLUMN),
+        onSlotChange = ::onSlotChange,
     ) { data, index ->
         when (index) {
             0 -> data.topic
@@ -69,6 +73,15 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
             Int::class.java,
             Long::class.java
         )
+        addClearListener { recordIndex.onClear() }
+    }
+
+    private fun onSlotChange(slot: Int, next: KafkaRecord?) {
+        if (next != null) {
+            recordIndex.onAppend(slot, next.timestamp, next.partition)
+        } else {
+            recordIndex.onEvict(slot)
+        }
     }
 
     private val outputTableDelegate: Lazy<Pair<MaterialTable, TableFilterHeader>> = lazy {
@@ -336,6 +349,10 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
         private val DURATION_COLUMN = KafkaMessagesBundle.message("output.column.duration")
 
         private const val EXPANDED_SEARCH_MARGIN = 40
+
+        // Slot count for the underlying CircularBuffer. Soft cap is set at runtime via
+        // setMaxRows(limit) and is honored separately; this is the upper bound the buffer can hold.
+        private const val BUFFER_CAPACITY = 50_000
 
         internal const val DATA_SHOW_ID = "io.confluent.intellijplugin.consumer.data.show"
         internal const val DETAILS_SHOW_ID = "io.confluent.intellijplugin.consumer.details.show"
