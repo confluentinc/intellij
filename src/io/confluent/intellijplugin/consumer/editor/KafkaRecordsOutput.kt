@@ -8,6 +8,7 @@ import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.actionSystem.Presentation
 import com.intellij.openapi.actionSystem.ex.CustomComponentAction
+import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
@@ -45,10 +46,10 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
     private var tableLoadingDecorator: TableLoadingDecorator? = null
     private var filterTelemetryUnsubscribe: (() -> Unit)? = null
 
-    internal val outputModel = ListTableModel(
-        ArrayDeque<KafkaRecord>(1000),
-        listOf(TOPIC_FIELD, TIMESTAMP_FIELD, KEY_COLUMN, VALUE_COLUMN, PARTITION_COLUMN) +
-                if (isProducer) listOf(DURATION_COLUMN) else listOf(OFFSET_COLUMN)
+    internal val outputModel = ListTableModel<KafkaRecord>(
+        capacity = 50_000,
+        columnNames = listOf(TOPIC_FIELD, TIMESTAMP_FIELD, KEY_COLUMN, VALUE_COLUMN, PARTITION_COLUMN) +
+                if (isProducer) listOf(DURATION_COLUMN) else listOf(OFFSET_COLUMN),
     ) { data, index ->
         when (index) {
             0 -> data.topic
@@ -87,7 +88,11 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
                 detailsPanel.expanded = !detailsPanel.expanded
             }
 
-            MaterialTableUtils.setupSorters(this)
+            // String columns (Topic/Key/Value) sort via a locale-aware Collator that scans the full
+            // cell on every compare — unusably slow for a large, live-updating message table. Topic is
+            // also single-valued per consumer session, so sorting it is meaningless. Keep only the
+            // cheap numeric/Date sorts (Timestamp/Partition/Offset).
+            MaterialTableUtils.setupSorters(this, sortStringColumns = false)
         }
 
         val header = TableFilterHeader(table).apply {
@@ -243,6 +248,13 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
     }
 
     fun setMaxRows(limit: Int) {
+        val cap = outputModel.capacity
+        if (limit > cap) {
+            thisLogger().warn(
+                "Requested max rows ($limit) exceeds buffer capacity ($cap); " +
+                    "clamping. Records beyond $cap will be evicted."
+            )
+        }
         outputModel.maxElementsCount = limit
     }
 
