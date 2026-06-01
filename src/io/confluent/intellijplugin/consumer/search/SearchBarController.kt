@@ -159,6 +159,8 @@ class SearchBarController(
         lastApplied = parsed
 
         // One-time rescan when the term changes; the index keeps the bits live as records stream in.
+        // The rescan runs on the EDT (debounced via [alarm]); steady-state streaming never rescans,
+        // so this is the only term-bound EDT work — acceptable at the current record cap.
         freeTextIndex.setTerm(parsed.freeText)
         assembleAndApply(sorter, parsed)
     }
