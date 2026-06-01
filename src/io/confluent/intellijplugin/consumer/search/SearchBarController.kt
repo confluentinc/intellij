@@ -191,9 +191,8 @@ class SearchBarController(
     private fun slotBitSetFilter(bits: BitSet): RowFilter<TableModel, Int> =
         object : RowFilter<TableModel, Int>() {
             override fun include(entry: Entry<out TableModel, out Int>): Boolean {
-                val row = entry.identifier as? Int ?: return true
-                val slot = slotForRow(table.model, row)
-                return bits.get(slot)
+                val slot = slotForRow(table.model, entry.identifier)
+                return bits[slot]
             }
         }
 
