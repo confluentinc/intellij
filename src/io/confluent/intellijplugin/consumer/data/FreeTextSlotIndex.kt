@@ -47,6 +47,9 @@ class FreeTextSlotIndex<T : Any>(
         }
         this.term = term
         val rebuilt = BitSet(capacity)
+        // The rescan covers only flushed elements. Records still in the model's pending-add queue are
+        // intentionally skipped here — they set their own bit via [onAppend] when they flush, so a
+        // term change racing an in-flight batch loses nothing.
         for ((slot, element) in slotElements()) {
             if (matcher(element, term)) rebuilt.set(slot)
         }
