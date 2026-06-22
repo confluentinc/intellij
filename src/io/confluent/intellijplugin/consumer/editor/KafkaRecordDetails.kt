@@ -51,6 +51,7 @@ internal class KafkaRecordDetails(project: Project, parentDisposable: Disposable
     private val valueTypeLabel = SelectableLabel("")
 
     private val error = AtomicProperty<String?>(null)
+    private val hasError = AtomicProperty(false)
 
     private val errorConsole = ConsoleViewUtil.setupConsoleEditor(project, false, false).apply {
 
@@ -80,21 +81,19 @@ internal class KafkaRecordDetails(project: Project, parentDisposable: Disposable
 
     @Suppress("DialogTitleCapitalization")
     private val detailsPanel = JBScrollPane(panel {
-        error.get()?.let { errorString ->
-            row(KafkaMessagesBundle.message("consumer.record.error")) {
-                link(IdeBundle.message("unscramble.dialog.title")) {
-                    AnalyzeStacktraceUtil.addConsole(
-                        project,
-                        null,
-                        IdeBundle.message("tab.title.stacktrace"),
-                        errorString
-                    )
-                }
+        row(KafkaMessagesBundle.message("consumer.record.error")) {
+            link(IdeBundle.message("unscramble.dialog.title")) {
+                AnalyzeStacktraceUtil.addConsole(
+                    project,
+                    null,
+                    IdeBundle.message("tab.title.stacktrace"),
+                    error.get() ?: ""
+                )
             }
-            row {
-                cell(errorPanel).align(AlignX.FILL)
-            }
-        }
+        }.visibleIf(hasError)
+        row {
+            cell(errorPanel).align(AlignX.FILL)
+        }.visibleIf(hasError)
 
         val keyGroup = collapsibleGroup(title = KafkaMessagesBundle.message("consumer.record.key"), indent = false) {
             row {
@@ -191,7 +190,9 @@ internal class KafkaRecordDetails(project: Project, parentDisposable: Disposable
     }
 
     fun update(row: KafkaRecord?) {
-        error.set(row?.error?.stackTraceToString()?.replace("\r\n", "\n"))
+        val errorText = row?.error?.stackTraceToString()?.replace("\r\n", "\n")
+        error.set(errorText)
+        hasError.set(errorText != null)
 
         (component.layout as? CardLayout)?.show(component, if (row == null) "emptyState" else "details")
 

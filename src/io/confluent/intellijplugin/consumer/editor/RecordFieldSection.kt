@@ -14,14 +14,12 @@ import io.confluent.intellijplugin.common.models.KafkaFieldType
 import io.confluent.intellijplugin.core.ui.ComponentColoredBorder
 import io.confluent.intellijplugin.core.ui.CustomListCellRenderer
 import io.confluent.intellijplugin.core.ui.DarculaTextAreaBorder
+import io.confluent.intellijplugin.core.ui.ResizableHeightPanel
 import io.confluent.intellijplugin.core.ui.chooser.FileChooserUtil
 import io.confluent.intellijplugin.registry.ui.KafkaRegistrySchemaEditor
-import java.awt.BorderLayout
-import java.awt.Dimension
 import java.util.*
 import javax.swing.BorderFactory
 import javax.swing.JComponent
-import javax.swing.JPanel
 
 /**
  * A single Key/Value field shown in the Message Details panel: a viewer-type combo box, a read-only editor, and
@@ -41,8 +39,11 @@ internal class RecordFieldSection(
 ) {
 
     companion object {
+        /** Minimum editor height so a single-line key stays visible above its horizontal scrollbar. */
         const val MIN_EDITOR_HEIGHT = 50
-        const val MAX_EDITOR_HEIGHT = 350
+
+        /** Editors auto-fit content up to this height before the user resizes them or scrolling kicks in. */
+        const val MAX_AUTO_EDITOR_HEIGHT = 350
     }
 
     /** Consumer field type of the currently displayed value; drives auto-detection. */
@@ -58,8 +59,16 @@ internal class RecordFieldSection(
             BorderFactory.createCompoundBorder(DarculaTextAreaBorder(), ComponentColoredBorder(3, 5, 3, 5))
     }
 
-    /** The editor wrapped in a height-constrained panel (see [createContentSizingPanel]). */
-    val editorComponent: JComponent = createContentSizingPanel(editor.component)
+    /**
+     * The editor wrapped so its height auto-fits the content and can be resized independently via a bottom grip.
+     * The chosen height is remembered per field across sessions.
+     */
+    val editorComponent: JComponent = ResizableHeightPanel(
+        content = editor.component,
+        minHeight = MIN_EDITOR_HEIGHT,
+        maxAutoHeight = MAX_AUTO_EDITOR_HEIGHT,
+        persistKey = "ConfluentKafka.RecordDetails.${fieldName}EditorHeight"
+    )
 
     /** Effective viewer type, resolving [FieldViewerType.AUTO] against the current field type and text. */
     fun resolvedViewerType(): FieldViewerType =
@@ -96,28 +105,6 @@ internal class RecordFieldSection(
         val virtualFile = FileChooserUtil.selectFolderAndCreateFile(project, fieldName) ?: return
         runWriteAction {
             virtualFile.writeBytes(Base64.getDecoder().decode(editor.text))
-        }
-    }
-
-    /**
-     * Wraps [child] in a panel whose preferred height is clamped to [[MIN_EDITOR_HEIGHT], [MAX_EDITOR_HEIGHT]].
-     *
-     * The minimum guarantees a single-line key stays visible above its horizontal scrollbar (which would
-     * otherwise occlude the only text line). The maximum keeps a large value from growing unbounded.
-     */
-    private fun createContentSizingPanel(child: JComponent): JPanel {
-        return object : JPanel(BorderLayout()) {
-            init {
-                add(child, BorderLayout.CENTER)
-            }
-
-            override fun getPreferredSize(): Dimension {
-                val childPref = child.preferredSize
-                return Dimension(
-                    childPref.width,
-                    childPref.height.coerceIn(MIN_EDITOR_HEIGHT, MAX_EDITOR_HEIGHT)
-                )
-            }
         }
     }
 }
