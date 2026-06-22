@@ -2,71 +2,41 @@ package io.confluent.intellijplugin.consumer.editor
 
 import com.intellij.execution.impl.ConsoleViewUtil
 import com.intellij.ide.IdeBundle
-import com.intellij.json.JsonLanguage
 import com.intellij.openapi.Disposable
-import com.intellij.openapi.application.runWriteAction
-import com.intellij.openapi.fileTypes.PlainTextLanguage
 import com.intellij.openapi.observable.properties.AtomicProperty
 import com.intellij.openapi.observable.util.isNull
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.ui.ComboBox
-import com.intellij.openapi.vfs.writeBytes
 import com.intellij.ui.IdeBorderFactory
 import com.intellij.ui.SideBorder
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.dsl.builder.*
 import com.intellij.ui.layout.enteredTextSatisfies
 import com.intellij.unscramble.AnalyzeStacktraceUtil
-import io.confluent.intellijplugin.common.editor.FieldViewerType
-import io.confluent.intellijplugin.common.editor.KafkaEditorUtils
 import io.confluent.intellijplugin.common.editor.PropertiesTable
 import io.confluent.intellijplugin.common.models.KafkaFieldType
 import io.confluent.intellijplugin.core.rfs.driver.metainfo.components.SelectableLabel
 import io.confluent.intellijplugin.core.rfs.util.RfsNotificationUtils
 import io.confluent.intellijplugin.core.ui.ComponentColoredBorder
-import io.confluent.intellijplugin.core.ui.CustomListCellRenderer
 import io.confluent.intellijplugin.core.ui.DarculaTextAreaBorder
-import io.confluent.intellijplugin.core.ui.chooser.FileChooserUtil
 import io.confluent.intellijplugin.core.util.SizeUtils
 import io.confluent.intellijplugin.core.util.TimeUtils
-import io.confluent.intellijplugin.registry.ui.KafkaRegistrySchemaEditor
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
 import java.awt.BorderLayout
 import java.awt.CardLayout
 import java.awt.Dimension
 import java.awt.Toolkit
-import java.util.*
 import javax.swing.*
 import kotlin.math.max
 
 internal class KafkaRecordDetails(project: Project, parentDisposable: Disposable) {
 
-    companion object {
-        private const val MIN_EDITOR_HEIGHT = 50
-        private const val MAX_EDITOR_HEIGHT = 350
-    }
     private val topicField = SelectableLabel("")
 
     private lateinit var keyLoadFileLinkRow: Row
     private lateinit var valueLoadFileLinkRow: Row
 
-    private val keyViewerType = ComboBox(FieldViewerType.entries.toTypedArray()).apply {
-        renderer = CustomListCellRenderer<FieldViewerType> { it.title }
-    }
-    private val keyFieldJson = KafkaRegistrySchemaEditor(project, parentDisposable, isEditable = false).apply {
-        component.border =
-            BorderFactory.createCompoundBorder(DarculaTextAreaBorder(), ComponentColoredBorder(3, 5, 3, 5))
-    }
-    private val keyEditorPanel = createContentSizingPanel(keyFieldJson.component)
-
-    private val valueViewerType = ComboBox(FieldViewerType.entries.toTypedArray()).apply {
-        renderer = CustomListCellRenderer<FieldViewerType> { it.title }
-    }
-    private val valueFieldJson = KafkaRegistrySchemaEditor(project, parentDisposable, isEditable = false).apply {
-        component.border =
-            BorderFactory.createCompoundBorder(DarculaTextAreaBorder(), ComponentColoredBorder(3, 5, 3, 5))
-    }
-    private val valueEditorPanel = createContentSizingPanel(valueFieldJson.component)
+    private val keySection = RecordFieldSection(project, parentDisposable, "key", KafkaFieldType.STRING)
+    private val valueSection = RecordFieldSection(project, parentDisposable, "value", KafkaFieldType.JSON)
 
     private val headers = PropertiesTable(emptyList(), isEditable = false)
     private val partition = SelectableLabel("")
@@ -96,9 +66,6 @@ internal class KafkaRecordDetails(project: Project, parentDisposable: Disposable
             max(300, Toolkit.getDefaultToolkit().screenSize.height / 5)
         )
     }
-
-    private var keyType = KafkaFieldType.JSON
-    private var valueType = KafkaFieldType.JSON
 
     private val emptyStatePanel = JPanel(BorderLayout()).apply {
         border = BorderFactory.createEmptyBorder(0, 5, 0, 5)
@@ -131,19 +98,19 @@ internal class KafkaRecordDetails(project: Project, parentDisposable: Disposable
 
         val keyGroup = collapsibleGroup(title = KafkaMessagesBundle.message("consumer.record.key"), indent = false) {
             row {
-                cell(keyViewerType).align(AlignX.RIGHT)
+                cell(keySection.viewerTypeCombo).align(AlignX.RIGHT)
             }
             keyLoadFileLinkRow = row {
                 link(KafkaMessagesBundle.message("producer.config.link.load.file")) {
                     try {
-                        loadBinaryFile(project, "key", keyFieldJson)
+                        keySection.loadBinaryFile()
                     } catch (t: Throwable) {
                         RfsNotificationUtils.showExceptionMessage(project, t)
                     }
                 }
             }
             row {
-                cell(keyEditorPanel).resizableColumn().align(AlignX.FILL)
+                cell(keySection.editorComponent).resizableColumn().align(AlignX.FILL)
             }
         }
         keyGroup.expanded = true
@@ -152,15 +119,15 @@ internal class KafkaRecordDetails(project: Project, parentDisposable: Disposable
 
         val valueGroup = collapsibleGroup(title = KafkaMessagesBundle.message("consumer.record.value"), indent = false) {
             row {
-                cell(valueViewerType).align(AlignX.RIGHT)
+                cell(valueSection.viewerTypeCombo).align(AlignX.RIGHT)
             }
             valueLoadFileLinkRow = row {
                 link(KafkaMessagesBundle.message("producer.config.link.load.file")) {
-                    loadBinaryFile(project, "value", valueFieldJson)
+                    valueSection.loadBinaryFile()
                 }
             }
             row {
-                cell(valueEditorPanel).resizableColumn().align(AlignX.FILL)
+                cell(valueSection.editorComponent).resizableColumn().align(AlignX.FILL)
             }
         }
         valueGroup.expanded = true
@@ -202,15 +169,15 @@ internal class KafkaRecordDetails(project: Project, parentDisposable: Disposable
     }
 
     init {
-        keyViewerType.addActionListener {
-            updateViewerVisible(keyViewerType, keyType, keyFieldJson)
-            updateLinkRow(keyViewerType, keyType, keyFieldJson, keyLoadFileLinkRow)
+        keySection.viewerTypeCombo.addActionListener {
+            keySection.updateEditorLanguage()
+            keyLoadFileLinkRow.visible(keySection.isLoadFileLinkVisible())
             emptyStatePanel.revalidate()
         }
 
-        valueViewerType.addActionListener {
-            updateViewerVisible(valueViewerType, valueType, valueFieldJson)
-            updateLinkRow(valueViewerType, valueType, valueFieldJson, valueLoadFileLinkRow)
+        valueSection.viewerTypeCombo.addActionListener {
+            valueSection.updateEditorLanguage()
+            valueLoadFileLinkRow.visible(valueSection.isLoadFileLinkVisible())
             emptyStatePanel.revalidate()
         }
 
@@ -219,130 +186,36 @@ internal class KafkaRecordDetails(project: Project, parentDisposable: Disposable
 
         update(null)
 
-        updateLinkRow(keyViewerType, keyType, keyFieldJson, keyLoadFileLinkRow)
-        updateLinkRow(valueViewerType, valueType, valueFieldJson, valueLoadFileLinkRow)
-    }
-
-    private fun setKeyText(text: String, fieldType: KafkaFieldType) {
-        setFieldValue(keyViewerType, fieldType, keyFieldJson, text)
-    }
-
-    private fun setValueText(text: String, fieldType: KafkaFieldType) {
-        setFieldValue(valueViewerType, fieldType, valueFieldJson, text)
+        keyLoadFileLinkRow.visible(keySection.isLoadFileLinkVisible())
+        valueLoadFileLinkRow.visible(valueSection.isLoadFileLinkVisible())
     }
 
     fun update(row: KafkaRecord?) {
-        keyType = row?.keyType ?: KafkaFieldType.STRING
-        valueType = row?.valueType ?: KafkaFieldType.JSON
         error.set(row?.error?.stackTraceToString()?.replace("\r\n", "\n"))
 
         (component.layout as? CardLayout)?.show(component, if (row == null) "emptyState" else "details")
 
-        if (row != null) {
-            setKeyText(row.keyText ?: "", row.keyType)
-            setValueText(row.valueText ?: "", row.valueType)
-
-            topicField.text = row.topic
-            partition.text = if (row.partition >= 0) row.partition.toString() else ""
-            offset.text = if (row.offset >= 0) row.offset.toString() else ""
-            timestamp.text = TimeUtils.unixTimeToString(row.timestamp)
-            keySize.text = SizeUtils.toString(maxOf(row.keySize, 0))
-            valueSize.text = SizeUtils.toString(maxOf(row.valueSize, 0))
-            keyTypeLabel.text = keyType.title
-            valueTypeLabel.text = valueType.title
-
-            headers.properties = row.headers.toMutableList()
-
-            // Key and value Fields could contain multiline JSON
-            detailsPanel.revalidate()
-        }
-    }
-
-    private fun updateLinkRow(
-        viewerType: ComboBox<FieldViewerType>,
-        fieldType: KafkaFieldType,
-        jsonField: KafkaRegistrySchemaEditor,
-        linkRow: Row
-    ) {
-        val visibleFieldType = if (viewerType.item === FieldViewerType.AUTO) {
-            detectAutoType(fieldType, jsonField.text)
-        } else {
-            viewerType.item
+        if (row == null) {
+            keySection.resetType()
+            valueSection.resetType()
+            return
         }
 
-        linkRow.visible(visibleFieldType == FieldViewerType.DECODED_BASE64)
-    }
+        keySection.setText(row.keyText ?: "", row.keyType)
+        valueSection.setText(row.valueText ?: "", row.valueType)
 
-    private fun setFieldValue(
-        viewerType: ComboBox<FieldViewerType>,
-        fieldType: KafkaFieldType,
-        jsonField: KafkaRegistrySchemaEditor,
-        value: String
-    ) {
-        val visibleFieldType = getFieldType(viewerType, fieldType, jsonField)
-        if (visibleFieldType == FieldViewerType.JSON) {
-            jsonField.setText(KafkaEditorUtils.tryFormatJson(value), JsonLanguage.INSTANCE)
-        } else {
-            jsonField.setText(value, PlainTextLanguage.INSTANCE)
-        }
-    }
+        topicField.text = row.topic
+        partition.text = if (row.partition >= 0) row.partition.toString() else ""
+        offset.text = if (row.offset >= 0) row.offset.toString() else ""
+        timestamp.text = TimeUtils.unixTimeToString(row.timestamp)
+        keySize.text = SizeUtils.toString(maxOf(row.keySize, 0))
+        valueSize.text = SizeUtils.toString(maxOf(row.valueSize, 0))
+        keyTypeLabel.text = row.keyType.title
+        valueTypeLabel.text = row.valueType.title
 
-    // Real field type depends on original consumer field type and additional Details field type which can override consumer values.
-    private fun getFieldType(
-        viewerType: ComboBox<FieldViewerType>,
-        fieldType: KafkaFieldType,
-        jsonField: KafkaRegistrySchemaEditor
-    ): FieldViewerType {
-        return if (viewerType.item === FieldViewerType.AUTO) {
-            detectAutoType(fieldType, jsonField.text)
-        } else {
-            viewerType.item
-        }
-    }
+        headers.properties = row.headers.toMutableList()
 
-    private fun updateViewerVisible(
-        viewerType: ComboBox<FieldViewerType>,
-        fieldType: KafkaFieldType,
-        jsonField: KafkaRegistrySchemaEditor
-    ) {
-        val visibleFieldType = getFieldType(viewerType, fieldType, jsonField)
-        jsonField.setLanguage(if (visibleFieldType == FieldViewerType.JSON) JsonLanguage.INSTANCE else PlainTextLanguage.INSTANCE)
-    }
-
-    private fun detectAutoType(fieldType: KafkaFieldType, text: String): FieldViewerType = when (fieldType) {
-        KafkaFieldType.STRING -> if (KafkaEditorUtils.isJsonString(text)) FieldViewerType.JSON else FieldViewerType.TEXT
-        KafkaFieldType.JSON -> FieldViewerType.JSON
-        KafkaFieldType.LONG -> FieldViewerType.TEXT
-        KafkaFieldType.INTEGER -> FieldViewerType.TEXT
-        KafkaFieldType.DOUBLE -> FieldViewerType.TEXT
-        KafkaFieldType.FLOAT -> FieldViewerType.TEXT
-        KafkaFieldType.BASE64 -> FieldViewerType.DECODED_BASE64
-        KafkaFieldType.NULL -> FieldViewerType.TEXT
-        KafkaFieldType.SCHEMA_REGISTRY -> FieldViewerType.JSON
-        KafkaFieldType.PROTOBUF_CUSTOM -> FieldViewerType.JSON
-        KafkaFieldType.AVRO_CUSTOM -> FieldViewerType.JSON
-    }
-
-    private fun createContentSizingPanel(child: JComponent): JPanel {
-        return object : JPanel(BorderLayout()) {
-            init {
-                add(child, BorderLayout.CENTER)
-            }
-
-            override fun getPreferredSize(): Dimension {
-                val childPref = child.preferredSize
-                return Dimension(
-                    childPref.width,
-                    childPref.height.coerceIn(MIN_EDITOR_HEIGHT, MAX_EDITOR_HEIGHT)
-                )
-            }
-        }
-    }
-
-    private fun loadBinaryFile(project: Project, defaultFileName: String, fieldText: KafkaRegistrySchemaEditor) {
-        val virtualFile = FileChooserUtil.selectFolderAndCreateFile(project, defaultFileName) ?: return
-        runWriteAction {
-            virtualFile.writeBytes(Base64.getDecoder().decode(fieldText.text))
-        }
+        // Key and value Fields could contain multiline JSON
+        detailsPanel.revalidate()
     }
 }
