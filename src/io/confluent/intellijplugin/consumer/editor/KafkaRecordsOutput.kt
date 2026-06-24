@@ -21,7 +21,6 @@ import io.confluent.intellijplugin.consumer.data.ConsumerRecordIndex
 import io.confluent.intellijplugin.consumer.search.SearchBarController
 import io.confluent.intellijplugin.core.table.MaterialTable
 import io.confluent.intellijplugin.core.table.MaterialTableUtils
-import io.confluent.intellijplugin.core.table.extension.TableCellPreview
 import io.confluent.intellijplugin.core.table.extension.TableFirstRowAdded
 import io.confluent.intellijplugin.core.table.extension.TableLoadingDecorator
 import io.confluent.intellijplugin.core.table.extension.TableResizeController
@@ -127,7 +126,6 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
         }
 
         setupTablePopupMenu(table)
-        TableCellPreview.installOn(table, listOf(KEY_COLUMN, VALUE_COLUMN))
 
         table to header
     }
