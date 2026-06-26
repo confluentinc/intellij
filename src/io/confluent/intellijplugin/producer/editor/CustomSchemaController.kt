@@ -143,11 +143,18 @@ class CustomSchemaController(
         }
     }
 
-    internal fun getSchemaConfig(): CustomSchemaData = CustomSchemaData(
-        customFile = customSchemaFile.component.text,
-        customSchemaSource = customSchemaSource.selectedItem,
-        customSchemaImplicit = customSchema.text
-    )
+    internal fun getSchemaConfig(): CustomSchemaData? {
+        // The UI cells are lateinit and only assigned in initComponent(panel). A run-config can be
+        // serialized before its panel is built (e.g. file-editor reopen via BackAction), in which
+        // case reading these cells throws UninitializedPropertyAccessException. Guard against that
+        // and report "no schema selected" (null) which callers already handle.
+        if (!::customSchemaFile.isInitialized || !::customSchemaSource.isInitialized) return null
+        return CustomSchemaData(
+            customFile = customSchemaFile.component.text,
+            customSchemaSource = customSchemaSource.selectedItem,
+            customSchemaImplicit = customSchema.text
+        )
+    }
 
     private fun setConfig(schemaData: CustomSchemaData?) {
         customSchemaSource.selectedItem = schemaData?.customSchemaSource ?: KafkaCustomSchemaSource.FILE
