@@ -331,9 +331,12 @@ internal class KafkaRecordDetails(project: Project, parentDisposable: Disposable
 
             override fun getPreferredSize(): Dimension {
                 val childPref = child.preferredSize
+                // Auto-size to the content so large values are not cramped, but keep a generous upper bound
+                // (at least MAX_EDITOR_HEIGHT, up to half the screen) so a huge value doesn't grow unbounded.
+                val maxHeight = max(MAX_EDITOR_HEIGHT, Toolkit.getDefaultToolkit().screenSize.height / 2)
                 return Dimension(
                     childPref.width,
-                    childPref.height.coerceIn(MIN_EDITOR_HEIGHT, MAX_EDITOR_HEIGHT)
+                    childPref.height.coerceIn(MIN_EDITOR_HEIGHT, maxHeight)
                 )
             }
         }
