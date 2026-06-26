@@ -147,7 +147,18 @@ abstract class ConnectionSettingsBase : PersistentStateComponent<ConnectionPersi
                 for (prop in (currentClazz as? Class<ConnectionData>)?.kotlin?.declaredMemberProperties
                     ?: emptyList()) {
                     if (shouldSerialize(prop)) prop.get(conn)?.let {
-                        ext.extended[prop.name] = encode64(it)
+                        try {
+                            ext.extended[prop.name] = encode64(it)
+                        } catch (t: Throwable) {
+                            // A single value may reference a class that is not loadable in this
+                            // IDE flavor (e.g. com.intellij.ssh.config.unified.SshConfig when the
+                            // SSH module is absent), making ObjectOutputStream introspection throw
+                            // NoClassDefFoundError/LinkageError. Skip that property instead of
+                            // aborting the entire getState(). Mirrors the defensive read path
+                            // (PluginObjectInputStream). Scoped to this single property only so
+                            // unrelated serialization bugs are not hidden.
+                            logger.warn("Skipping unserializable property '${prop.name}' on ${clazz.name}", t)
+                        }
                     }
                 }
                 currentClazz = currentClazz.superclass
