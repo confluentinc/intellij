@@ -31,12 +31,15 @@ object SshModuleAvailability {
             Class.forName(PROBE_CLASS, false, SshModuleAvailability::class.java.classLoader)
             true
         } catch (e: ClassNotFoundException) {
-            logger.info("SSH/Remote module not available; SSH tunnel UI will be disabled.", e)
+            // Expected and common (e.g. WebStorm) — log without the stack trace; details at DEBUG.
+            logger.info("SSH/Remote module not available; SSH tunnel UI will be disabled.")
+            logger.debug("SSH/Remote module probe failed", e)
             false
         } catch (e: LinkageError) {
             // NoClassDefFoundError and friends: the class resolved partially but its
             // dependencies are missing. Treat as unavailable.
-            logger.info("SSH/Remote module only partially available; SSH tunnel UI will be disabled.", e)
+            logger.info("SSH/Remote module only partially available; SSH tunnel UI will be disabled.")
+            logger.debug("SSH/Remote module probe failed", e)
             false
         }
     }

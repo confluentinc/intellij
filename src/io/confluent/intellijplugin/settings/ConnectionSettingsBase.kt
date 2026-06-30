@@ -446,11 +446,13 @@ abstract class ConnectionSettingsBase : PersistentStateComponent<ConnectionPersi
                 Class.forName(fqn, false, loader)
             } catch (_: ClassNotFoundException) {
                 null
-            } catch (e: LinkageError) {
+            } catch (e: NoClassDefFoundError) {
                 // The class itself resolved but references types that are absent in this IDE
                 // flavor (e.g. com.intellij.ssh.* when the Remote/SSH module is not present).
                 // Treat as not-loadable so deserialization degrades gracefully instead of
-                // throwing NoClassDefFoundError up through loadState at startup.
+                // throwing up through loadState at startup. Caught narrowly (not LinkageError)
+                // so genuine binary-incompatibility errors (VerifyError, UnsupportedClassVersionError,
+                // IncompatibleClassChangeError) still surface instead of being silently swallowed.
                 logger.warn("Could not link class '$fqn' (missing optional module?), skipping.", e)
                 null
             }
@@ -472,7 +474,9 @@ abstract class ConnectionSettingsBase : PersistentStateComponent<ConnectionPersi
             // gracefully (falls back to the serialized descriptor) instead of crashing.
             val localDescriptor = try {
                 ObjectStreamClass.lookup(actualClass)
-            } catch (e: LinkageError) {
+            } catch (e: NoClassDefFoundError) {
+                // Member signatures reference types absent in this IDE flavor (e.g. com.intellij.ssh.*).
+                // Caught narrowly so genuine binary-incompatibility LinkageErrors still surface.
                 logger.warn("Could not introspect class '${actualClass.name}' (missing optional module?), using serialized descriptor.", e)
                 return baseDescriptor
             } ?: return baseDescriptor
