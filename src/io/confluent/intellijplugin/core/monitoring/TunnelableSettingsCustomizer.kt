@@ -43,6 +43,4 @@ abstract class TunnelableSettingsCustomizer<D>(
             SshTunnelComponent(project, uiDisposable, connectionData, hostAndPortProvider)
         else
             null
-
-    val enableTunnelField by lazy { tunnelField?.isEnabledCheckBox }
 }

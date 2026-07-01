@@ -146,13 +146,9 @@ class KafkaSettingsCustomizer(
         brokerSettings.setPanelComponent(this)
         registrySettings.setPanelComponent(this).visibleIf(brokerSettings.isRegistryVisible)
 
-        tunnelField?.let {
-            block(it.getComponent()).topGap(TopGap.SMALL).visibleIf(brokerSettings.isRegistryVisible)
-        } ?: run {
-            row {
-                comment(KafkaMessagesBundle.message("ssh.tunnel.unavailable"))
-            }.topGap(TopGap.SMALL).visibleIf(brokerSettings.isRegistryVisible)
-        }
+        val tunnelRow = tunnelField?.let { block(it.getComponent()) }
+            ?: row { comment(KafkaMessagesBundle.message("ssh.tunnel.unavailable")) }
+        tunnelRow.topGap(TopGap.SMALL).visibleIf(brokerSettings.isRegistryVisible)
         initFields()
     }
 
