@@ -390,7 +390,20 @@ abstract class ConnectionSettingsBase : PersistentStateComponent<ConnectionPersi
         migrationNotificationShown = state.migrationNotificationShown
 
         val errorHandler = BufferingErrorHandler()
-        val connectionData = state.connections.filter { it.connType != null }.map { unpackData(it, errorHandler) }
+        val connectionData = state.connections.filter { it.connType != null }.map {
+            try {
+                unpackData(it, errorHandler)
+            } catch (t: Throwable) {
+                // Last-resort boundary: any deserialization failure must not escape loadState and
+                // crash startup. Notably the JDK raises NoClassDefFoundError for com.intellij.ssh.*
+                // from ObjectStreamClass.lookup inside its own initNonProxy — a path outside our
+                // PluginObjectInputStream overrides and the per-property guards in unpackData. Keep
+                // the raw connection so its persisted form is preserved (and re-saved intact) rather
+                // than dropped; the failure is still recorded via errorHandler for diagnosis.
+                errorHandler.handleError(t, it)
+                it
+            }
+        }
 
         connectionData.forEach {
             try {
