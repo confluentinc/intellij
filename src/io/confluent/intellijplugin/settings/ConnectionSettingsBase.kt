@@ -226,6 +226,14 @@ abstract class ConnectionSettingsBase : PersistentStateComponent<ConnectionPersi
                     //probably we shouldn't show this one to the user
                     logger.error("Can't deserialize unhandled props", e)
                     null
+                } catch (e: NoClassDefFoundError) {
+                    // A serialized value references a type absent in this IDE flavor
+                    // (e.g. com.intellij.ssh.*). This linkage error is an Error, not an
+                    // Exception, so it must be caught explicitly or it escapes loadState
+                    // and crashes startup. Caught narrowly so genuine binary-incompatibility
+                    // errors (VerifyError, UnsupportedClassVersionError) still surface.
+                    logger.error("Can't deserialize unhandled props", e)
+                    null
                 }
             }?.let { HashMap(it) } ?: hashMapOf()
             extendedMap.remove(UNHANDLED_MARKER)
@@ -254,6 +262,17 @@ abstract class ConnectionSettingsBase : PersistentStateComponent<ConnectionPersi
                             iter.remove()
                         }
                     } catch (e: Exception) {
+                        errorHandler.handleError(e, conn)
+                    } catch (e: NoClassDefFoundError) {
+                        // A serialized property value references a type absent in this IDE
+                        // flavor (e.g. com.intellij.ssh.config.unified.SshConfig, pulled in
+                        // reflectively by ObjectStreamClass.lookup inside the JDK's
+                        // initNonProxy). That happens outside our ObjectInputStream overrides,
+                        // so it can only be backstopped here. NoClassDefFoundError is an Error,
+                        // not an Exception, so it must be caught explicitly or it escapes
+                        // loadState and crashes startup. Skip the offending property and keep
+                        // loading the rest. Caught narrowly so genuine binary-incompatibility
+                        // errors (VerifyError, UnsupportedClassVersionError) still surface.
                         errorHandler.handleError(e, conn)
                     }
                 }
