@@ -17,8 +17,6 @@ data class ConnectionSshTunnelDataLegacy(
     @Deprecated("Write remote host:port in uri section") val remotePort: Int,
     val localPort: Int? = null,
 ) : Serializable {
-    fun getSshConfig(project: Project?) = SshConfigManager.getInstance(project).findConfigById(configId)
-
     companion object {
         val DEFAULT: ConnectionSshTunnelDataLegacy = ConnectionSshTunnelDataLegacy(
             isEnabled = false,
@@ -30,6 +28,12 @@ data class ConnectionSshTunnelDataLegacy(
         const val serialVersionUID: Long = -8632095507356038549
     }
 }
+
+// An extension (not a member) so the persisted data class carries no com.intellij.ssh.* in its own
+// method signatures — otherwise ObjectStreamClass.lookup fails on serialize/deserialize in IDEs
+// where the Remote/SSH module isn't reachable. Only invoked at connect/migrate time.
+fun ConnectionSshTunnelDataLegacy.getSshConfig(project: Project?): SshConfig? =
+    SshConfigManager.getInstance(project).findConfigById(configId)
 
 /**
  * Represents configurable from UI tunnel data. Config id is displayed and stored even for disabled connection for UX purposes.
