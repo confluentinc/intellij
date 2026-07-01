@@ -33,10 +33,8 @@ abstract class TunnelableSettingsCustomizer<D>(
     }
 
     /**
-     * The SSH tunnel UI component, or `null` when the IntelliJ SSH/Remote module is not present
-     * in the running IDE (e.g. WebStorm). Constructing [SshTunnelComponent] hard-references
-     * `com.intellij.ssh.*` classes, so it must only be created when those classes are loadable.
-     * See [SshModuleAvailability].
+     * SSH tunnel UI, or `null` when the Remote/SSH module is absent (e.g. WebStorm) — constructing
+     * [SshTunnelComponent] hard-references `com.intellij.ssh.*`. See [SshModuleAvailability].
      */
     open val tunnelField: SshTunnelComponent<D>? =
         if (SshModuleAvailability.isAvailable)

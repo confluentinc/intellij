@@ -44,11 +44,8 @@ object BdtSshTunnelService {
     ): UriTunnelHandler? {
         if (!tunnelData.isEnabled) return null
 
-        // The IntelliJ SSH/Remote module (com.intellij.ssh.*) is not bundled in every IDE flavor
-        // (e.g. WebStorm). A tunnel can only be enabled here if the config was synced in from an
-        // IDE that had the module; constructing ConnectionSshTunnelInfo below hard-references
-        // com.intellij.ssh.config.unified.SshConfig and would throw NoClassDefFoundError. Degrade
-        // like a disabled tunnel instead of crashing the connect. See SshModuleAvailability.
+        // Constructing ConnectionSshTunnelInfo below hard-references com.intellij.ssh.*, absent in
+        // some IDE flavors (e.g. WebStorm). Degrade like a disabled tunnel instead of crashing.
         if (!SshModuleAvailability.isAvailable) {
             logger.warn("SSH tunnel is enabled but the Remote/SSH module is not available; skipping tunnel.")
             return null

@@ -227,11 +227,7 @@ abstract class ConnectionSettingsBase : PersistentStateComponent<ConnectionPersi
                     logger.error("Can't deserialize unhandled props", e)
                     null
                 } catch (e: NoClassDefFoundError) {
-                    // A serialized value references a type absent in this IDE flavor
-                    // (e.g. com.intellij.ssh.*). This linkage error is an Error, not an
-                    // Exception, so it must be caught explicitly or it escapes loadState
-                    // and crashes startup. Caught narrowly so genuine binary-incompatibility
-                    // errors (VerifyError, UnsupportedClassVersionError) still surface.
+                    // Missing optional module (e.g. com.intellij.ssh.*) — drop these props.
                     logger.error("Can't deserialize unhandled props", e)
                     null
                 }
@@ -264,15 +260,7 @@ abstract class ConnectionSettingsBase : PersistentStateComponent<ConnectionPersi
                     } catch (e: Exception) {
                         errorHandler.handleError(e, conn)
                     } catch (e: NoClassDefFoundError) {
-                        // A serialized property value references a type absent in this IDE
-                        // flavor (e.g. com.intellij.ssh.config.unified.SshConfig, pulled in
-                        // reflectively by ObjectStreamClass.lookup inside the JDK's
-                        // initNonProxy). That happens outside our ObjectInputStream overrides,
-                        // so it can only be backstopped here. NoClassDefFoundError is an Error,
-                        // not an Exception, so it must be caught explicitly or it escapes
-                        // loadState and crashes startup. Skip the offending property and keep
-                        // loading the rest. Caught narrowly so genuine binary-incompatibility
-                        // errors (VerifyError, UnsupportedClassVersionError) still surface.
+                        // Missing optional module (e.g. com.intellij.ssh.*): skip this property, keep the rest.
                         errorHandler.handleError(e, conn)
                     }
                 }
@@ -394,12 +382,8 @@ abstract class ConnectionSettingsBase : PersistentStateComponent<ConnectionPersi
             try {
                 unpackData(it, errorHandler)
             } catch (t: Throwable) {
-                // Last-resort boundary: any deserialization failure must not escape loadState and
-                // crash startup. Notably the JDK raises NoClassDefFoundError for com.intellij.ssh.*
-                // from ObjectStreamClass.lookup inside its own initNonProxy — a path outside our
-                // PluginObjectInputStream overrides and the per-property guards in unpackData. Keep
-                // the raw connection so its persisted form is preserved (and re-saved intact) rather
-                // than dropped; the failure is still recorded via errorHandler for diagnosis.
+                // Backstop for failures the per-property guards miss (e.g. the JDK's own
+                // ObjectStreamClass.lookup in initNonProxy): keep the raw connection, never crash startup.
                 errorHandler.handleError(t, it)
                 it
             }
@@ -479,12 +463,8 @@ abstract class ConnectionSettingsBase : PersistentStateComponent<ConnectionPersi
             } catch (_: ClassNotFoundException) {
                 null
             } catch (e: NoClassDefFoundError) {
-                // The class itself resolved but references types that are absent in this IDE
-                // flavor (e.g. com.intellij.ssh.* when the Remote/SSH module is not present).
-                // Treat as not-loadable so deserialization degrades gracefully instead of
-                // throwing up through loadState at startup. Caught narrowly (not LinkageError)
-                // so genuine binary-incompatibility errors (VerifyError, UnsupportedClassVersionError,
-                // IncompatibleClassChangeError) still surface instead of being silently swallowed.
+                // Class resolved but references a type absent in this IDE flavor (e.g. com.intellij.ssh.*).
+                // Narrow (not LinkageError) so real binary incompat (VerifyError, etc.) still surfaces.
                 logger.warn("Could not link class '$fqn' (missing optional module?), skipping.", e)
                 null
             }
@@ -500,15 +480,11 @@ abstract class ConnectionSettingsBase : PersistentStateComponent<ConnectionPersi
             val baseDescriptor = super.readClassDescriptor()
             val newName = tryRename(baseDescriptor.name) ?: baseDescriptor.name
             val actualClass = loadClassInner(findPluginLoader(), newName) ?: return baseDescriptor
-            // ObjectStreamClass.lookup() reflects over the class's declared members. If those
-            // member signatures reference types absent in this IDE flavor (e.g. com.intellij.ssh.*),
-            // the JDK throws NoClassDefFoundError here. Swallow it so startup loadState degrades
-            // gracefully (falls back to the serialized descriptor) instead of crashing.
+            // lookup() reflects the class's members; an absent type in a signature (e.g.
+            // com.intellij.ssh.*) throws here. Fall back to the serialized descriptor.
             val localDescriptor = try {
                 ObjectStreamClass.lookup(actualClass)
             } catch (e: NoClassDefFoundError) {
-                // Member signatures reference types absent in this IDE flavor (e.g. com.intellij.ssh.*).
-                // Caught narrowly so genuine binary-incompatibility LinkageErrors still surface.
                 logger.warn("Could not introspect class '${actualClass.name}' (missing optional module?), using serialized descriptor.", e)
                 return baseDescriptor
             } ?: return baseDescriptor
