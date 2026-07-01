@@ -3,6 +3,7 @@ package io.confluent.intellijplugin.core.monitoring
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.project.Project
 import io.confluent.intellijplugin.core.connection.tunnel.model.TunnelableData
+import io.confluent.intellijplugin.core.connection.tunnel.ui.SshModuleAvailability
 import io.confluent.intellijplugin.core.connection.tunnel.ui.SshTunnelComponent
 import io.confluent.intellijplugin.core.settings.CommonSettingsKeys
 import io.confluent.intellijplugin.core.settings.connections.ConnectionData
@@ -31,7 +32,15 @@ abstract class TunnelableSettingsCustomizer<D>(
             registerOnTextComponent(url.getTextComponent(), listener)
     }
 
-    open val tunnelField: SshTunnelComponent<D> =
-        SshTunnelComponent(project, uiDisposable, connectionData, hostAndPortProvider)
-    val enableTunnelField by lazy { tunnelField.isEnabledCheckBox }
+    /**
+     * The SSH tunnel UI component, or `null` when the IntelliJ SSH/Remote module is not present
+     * in the running IDE (e.g. WebStorm). Constructing [SshTunnelComponent] hard-references
+     * `com.intellij.ssh.*` classes, so it must only be created when those classes are loadable.
+     * See [SshModuleAvailability].
+     */
+    open val tunnelField: SshTunnelComponent<D>? =
+        if (SshModuleAvailability.isAvailable)
+            SshTunnelComponent(project, uiDisposable, connectionData, hostAndPortProvider)
+        else
+            null
 }
