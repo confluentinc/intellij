@@ -462,11 +462,6 @@ abstract class ConnectionSettingsBase : PersistentStateComponent<ConnectionPersi
                 Class.forName(fqn, false, loader)
             } catch (_: ClassNotFoundException) {
                 null
-            } catch (e: NoClassDefFoundError) {
-                // Class resolved but references a type absent in this IDE flavor (e.g. com.intellij.ssh.*).
-                // Narrow (not LinkageError) so real binary incompat (VerifyError, etc.) still surfaces.
-                logger.warn("Could not link class '$fqn' (missing optional module?), skipping.", e)
-                null
             }
         }
 
@@ -480,14 +475,7 @@ abstract class ConnectionSettingsBase : PersistentStateComponent<ConnectionPersi
             val baseDescriptor = super.readClassDescriptor()
             val newName = tryRename(baseDescriptor.name) ?: baseDescriptor.name
             val actualClass = loadClassInner(findPluginLoader(), newName) ?: return baseDescriptor
-            // lookup() reflects the class's members; an absent type in a signature (e.g.
-            // com.intellij.ssh.*) throws here. Fall back to the serialized descriptor.
-            val localDescriptor = try {
-                ObjectStreamClass.lookup(actualClass)
-            } catch (e: NoClassDefFoundError) {
-                logger.warn("Could not introspect class '${actualClass.name}' (missing optional module?), using serialized descriptor.", e)
-                return baseDescriptor
-            } ?: return baseDescriptor
+            val localDescriptor = ObjectStreamClass.lookup(actualClass) ?: return baseDescriptor
 
             if (baseDescriptor.serialVersionUID != localDescriptor.serialVersionUID) {
                 val clazz = ObjectStreamClass::class.java
