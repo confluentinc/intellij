@@ -226,6 +226,10 @@ abstract class ConnectionSettingsBase : PersistentStateComponent<ConnectionPersi
                     //probably we shouldn't show this one to the user
                     logger.error("Can't deserialize unhandled props", e)
                     null
+                } catch (e: NoClassDefFoundError) {
+                    // Missing optional module (e.g. com.intellij.ssh.*) — drop these props.
+                    logger.error("Can't deserialize unhandled props", e)
+                    null
                 }
             }?.let { HashMap(it) } ?: hashMapOf()
             extendedMap.remove(UNHANDLED_MARKER)
@@ -254,6 +258,9 @@ abstract class ConnectionSettingsBase : PersistentStateComponent<ConnectionPersi
                             iter.remove()
                         }
                     } catch (e: Exception) {
+                        errorHandler.handleError(e, conn)
+                    } catch (e: NoClassDefFoundError) {
+                        // Missing optional module (e.g. com.intellij.ssh.*): skip this property, keep the rest.
                         errorHandler.handleError(e, conn)
                     }
                 }
@@ -371,7 +378,16 @@ abstract class ConnectionSettingsBase : PersistentStateComponent<ConnectionPersi
         migrationNotificationShown = state.migrationNotificationShown
 
         val errorHandler = BufferingErrorHandler()
-        val connectionData = state.connections.filter { it.connType != null }.map { unpackData(it, errorHandler) }
+        val connectionData = state.connections.filter { it.connType != null }.map {
+            try {
+                unpackData(it, errorHandler)
+            } catch (t: Throwable) {
+                // Backstop for failures the per-property guards miss (e.g. the JDK's own
+                // ObjectStreamClass.lookup in initNonProxy): keep the raw connection, never crash startup.
+                errorHandler.handleError(t, it)
+                it
+            }
+        }
 
         connectionData.forEach {
             try {
