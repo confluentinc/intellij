@@ -187,24 +187,4 @@ class ConsumerRecordIndex(private val capacity: Int) {
     }
 }
 
-/**
- * Build a BitSet flagging buffer slots whose value matches [matcher].
- *
- * Reads [CircularBuffer.head] / `size` / `capacity` non-atomically; callers must serialize this
- * with buffer mutation. The production search path takes an EDT-side snapshot before handing off
- * to a worker thread — this helper is intended for that single-threaded code path and for tests.
- */
-fun <T : Any> buildSearchBitSet(buffer: CircularBuffer<T>, matcher: (T) -> Boolean): BitSet {
-    val result = BitSet(buffer.capacity)
-    val head = buffer.head
-    val capacity = buffer.capacity
-    val size = buffer.size
-    for (i in 0 until size) {
-        val slot = (head + i) % capacity
-        val value = buffer.get(slot) ?: continue
-        if (matcher(value)) result.set(slot)
-    }
-    return result
-}
-
 private typealias NavigableMapView = java.util.NavigableMap<Long, IntArrayList>
