@@ -3,10 +3,10 @@
     "deny": [
       "Read(**/.env)",
       "Read(**/.env.*)",
-      "Write(**/.env)",
-      "Write(**/.env.*)",
+      "Edit(**/.env)",
+      "Edit(**/.env.*)",
       "Read(**/gradle.properties)",
-      "Write(**/gradle.properties)"
+      "Edit(**/gradle.properties)"
     ]
   }
 }
