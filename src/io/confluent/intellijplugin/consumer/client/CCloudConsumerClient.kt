@@ -7,6 +7,7 @@ import io.confluent.intellijplugin.ccloud.model.response.ConsumeRecordsResponse
 import io.confluent.intellijplugin.ccloud.model.response.PartitionConsumeRecord
 import io.confluent.intellijplugin.ccloud.model.response.PartitionOffset
 import io.confluent.intellijplugin.ccloud.model.response.SchemaByIdResponse
+import io.confluent.intellijplugin.ccloud.model.response.toSchemaReferences
 import io.confluent.intellijplugin.ccloud.model.response.TimestampType as ApiTimestampType
 import io.confluent.intellijplugin.common.models.BdtKafkaCustomAvroDeserializer
 import io.confluent.intellijplugin.common.models.BdtKafkaCustomProtobufDeserializer
@@ -16,6 +17,7 @@ import io.confluent.intellijplugin.consumer.editor.ConsumerEditorUtils
 import io.confluent.intellijplugin.consumer.models.ConsumerProducerFieldConfig
 import io.confluent.intellijplugin.consumer.models.ConsumerStartType
 import io.confluent.intellijplugin.data.CCloudClusterDataManager
+import io.confluent.intellijplugin.data.fetchResolvedReferences
 import io.confluent.intellijplugin.registry.KafkaRegistryFormat
 import io.confluent.intellijplugin.registry.KafkaRegistryUtil
 import io.confluent.intellijplugin.util.KafkaOffsetUtils
@@ -728,7 +730,7 @@ class CCloudConsumerClient(
                 ?: throw IllegalStateException("Schema Registry ID is required for schema deserialization")
         )
         val cacheKey = if (schemaGuid != null) SchemaCacheKey.ByGuid(schemaGuid) else SchemaCacheKey.ById(schemaId!!)
-        val parsedSchema = fetchAndParseSchema(registryId, cacheKey) {
+        val parsedSchema = fetchAndParseSchema(registryId, cacheKey, fetcher) {
             if (schemaGuid != null) {
                 fetcher.getSchemaByGuid(schemaGuid.toString())
             } else {
@@ -749,13 +751,21 @@ class CCloudConsumerClient(
     private suspend fun fetchAndParseSchema(
         registryId: SchemaRegistryClusterId,
         key: SchemaCacheKey,
+        fetcher: DataPlaneFetcher,
         fetch: suspend () -> SchemaByIdResponse
     ): ParsedSchema {
         val registryCache = schemaCache.getOrPut(registryId) { ConcurrentHashMap() }
         return registryCache.getOrPut(key) {
             val response = fetch()
             val schemaType = KafkaRegistryFormat.fromSchemaType(response.schemaType)
-            KafkaRegistryUtil.parseSchema(schemaType, response.schema).getOrThrow()
+            val references = response.references.toSchemaReferences()
+            val resolvedRefs = fetchResolvedReferences(fetcher, references)
+            KafkaRegistryUtil.parseSchema(
+                schemaType,
+                response.schema,
+                references,
+                resolvedRefs
+            ).getOrThrow()
         }
     }
 
