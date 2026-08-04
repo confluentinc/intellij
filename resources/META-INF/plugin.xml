@@ -2,7 +2,7 @@
     <id>com.intellij.bigdatatools.kafka</id>
     <name>Confluent</name>
     <vendor>Confluent</vendor>
-    <version>253.25910.1-pre</version>
+    <version>253.25910.2-pre</version>
     <idea-version since-build="253.28294"/>
 
     <description>Work with Confluent and Apache Kafka to design, build and run data streaming applications.</description>
@@ -194,11 +194,11 @@
     </actions>
 
     <change-notes><![CDATA[
-<h2 style="padding:0;margin:0;line-height:0px">Changes in 253.25910.1</h2>
+<h2 style="padding:0;margin:0;line-height:0px">Changes in 253.25910.2</h2>
 <h4 style="padding:0;margin:0;line-height:0px">Fixed</h4>
 <ul>
-<li>Value & Key fields in Consumer details panel too small to read (<a href="https://github.com/confluentinc/intellij/issues/601">#601</a>)</li>
-<li>Viewing schemas that reference other schemas throws an error (<a href="https://github.com/confluentinc/intellij/issues/591">#591</a>)</li>
+<li>Plugin failed to load with a NoClassDefFoundError in IDEs without the Remote/SSH module, such as WebStorm (<a href="https://github.com/confluentinc/intellij/issues/628">#628</a>)</li>
+<li>Key & Value fields in the Consumer details panel stayed cramped for large values on tall displays (<a href="https://github.com/confluentinc/intellij/issues/588">#588</a>)</li>
 </ul>
 ]]></change-notes>
 </idea-plugin>
