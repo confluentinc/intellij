@@ -13,10 +13,13 @@ All noteworthy changes to this plugin will be documented in this file.
 - Plugin failed to load with a `NoClassDefFoundError` in IDEs without the Remote/SSH module, such as WebStorm (https://github.com/confluentinc/intellij/issues/628)
 - Key & Value fields in the Consumer details panel stayed cramped for large values on tall displays (https://github.com/confluentinc/intellij/issues/588)
 
-## 253.25910.2
+## 253.25910.1
+### Changed
+- Adjust error reporting filter to remove non-Confluent errors
+
 ### Fixed
-- Plugin failed to load with a `NoClassDefFoundError` in IDEs without the Remote/SSH module, such as WebStorm (https://github.com/confluentinc/intellij/issues/628)
-- Key & Value fields in the Consumer details panel stayed cramped for large values on tall displays (https://github.com/confluentinc/intellij/issues/588)
+- Value & Key fields in Consumer details panel too small to read (https://github.com/confluentinc/intellij/issues/601)
+- Viewing schemas that reference other schemas throws an error (https://github.com/confluentinc/intellij/issues/591)
 
 ## 253.25910.0
 ### Changed
