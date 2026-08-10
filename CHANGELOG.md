@@ -7,6 +7,9 @@ All noteworthy changes to this plugin will be documented in this file.
 ### Added
 ### Removed
 ### Fixed
+
+## 253.25910.2
+### Fixed
 - Plugin failed to load with a `NoClassDefFoundError` in IDEs without the Remote/SSH module, such as WebStorm (https://github.com/confluentinc/intellij/issues/628)
 
 ## 253.25910.0
