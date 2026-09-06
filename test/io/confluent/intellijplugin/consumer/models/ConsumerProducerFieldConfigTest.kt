@@ -53,6 +53,13 @@ class ConsumerProducerFieldConfigTest {
         }
 
         @Test
+        fun `should return raw string for MESSAGEPACK type`() {
+            val json = """{"key": "value"}"""
+            val result = config(KafkaFieldType.MESSAGEPACK, json).getValueObj()
+            assertEquals(json, result)
+        }
+
+        @Test
         fun `should return Long for LONG type`() {
             val result = config(KafkaFieldType.LONG, "9876543210").getValueObj()
             assertEquals(9876543210L, result)

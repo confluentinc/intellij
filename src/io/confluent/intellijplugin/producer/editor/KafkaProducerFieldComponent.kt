@@ -1,5 +1,6 @@
 package io.confluent.intellijplugin.producer.editor
 
+import com.fasterxml.jackson.databind.ObjectMapper
 import com.google.gson.JsonParser
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.Disposable
@@ -65,6 +66,8 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
 
     private val customSchemaController =
         CustomSchemaController(project, isKey).also { Disposer.register(this, it) }
+
+    private val jsonMapper = ObjectMapper()
 
     val fieldTypeComboBox =
         KafkaEditorUtils.createFieldTypeComboBox(producedEditor.topicComboBox, kafkaManager, isKey, this) {
@@ -174,7 +177,8 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
 
         val schema = when (fieldType) {
             null, KafkaFieldType.STRING, KafkaFieldType.JSON, KafkaFieldType.LONG, KafkaFieldType.INTEGER,
-            KafkaFieldType.DOUBLE, KafkaFieldType.FLOAT, KafkaFieldType.BASE64, KafkaFieldType.NULL -> null
+            KafkaFieldType.DOUBLE, KafkaFieldType.FLOAT, KafkaFieldType.BASE64, KafkaFieldType.MESSAGEPACK,
+            KafkaFieldType.NULL -> null
 
             KafkaFieldType.SCHEMA_REGISTRY -> KafkaRegistryUtil.loadSchema(schemaName, fieldType, kafkaManager)
             KafkaFieldType.AVRO_CUSTOM, KafkaFieldType.PROTOBUF_CUSTOM -> customSchemaController.getSchema()
@@ -295,7 +299,7 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
     }
 
     fun getValueText(): String = when (fieldTypeComboBox.item!!) {
-        KafkaFieldType.JSON -> jsonField.text
+        KafkaFieldType.JSON, KafkaFieldType.MESSAGEPACK -> jsonField.text
         KafkaFieldType.STRING, KafkaFieldType.INTEGER, KafkaFieldType.LONG, KafkaFieldType.DOUBLE, KafkaFieldType.FLOAT, KafkaFieldType.BASE64 -> textField.text
         KafkaFieldType.NULL -> ""
         KafkaFieldType.AVRO_CUSTOM, KafkaFieldType.PROTOBUF_CUSTOM, KafkaFieldType.SCHEMA_REGISTRY -> jsonField.text
@@ -316,6 +320,16 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
     }
 
     private fun validate(type: KafkaFieldType, value: String) = when (type) {
+        KafkaFieldType.MESSAGEPACK -> if (value.isBlank())
+            KafkaMessagesBundle.message("producer.field.messagepack.empty")
+        else
+            try {
+                jsonMapper.readTree(value)
+                null
+            } catch (iae: Exception) {
+                iae.cause?.message ?: iae.message
+            }
+
         KafkaFieldType.JSON -> try {
             JsonParser.parseString(value)
             null
@@ -374,7 +388,7 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
 
         fieldTypeComboBox.item = fieldType
         when (fieldType) {
-            KafkaFieldType.JSON -> jsonField.text = text
+            KafkaFieldType.JSON,  KafkaFieldType.MESSAGEPACK -> jsonField.text = text
             KafkaFieldType.STRING, KafkaFieldType.INTEGER, KafkaFieldType.LONG, KafkaFieldType.DOUBLE, KafkaFieldType.FLOAT, KafkaFieldType.BASE64 -> textField.text =
                 text
 
@@ -397,7 +411,7 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
     private fun updateJsonComment() {
         jsonCell.comment?.text = when (fieldTypeComboBox.item) {
             null, KafkaFieldType.STRING, KafkaFieldType.JSON, KafkaFieldType.INTEGER, KafkaFieldType.LONG, KafkaFieldType.DOUBLE, KafkaFieldType.FLOAT, KafkaFieldType.BASE64, KafkaFieldType.NULL -> ""
-            KafkaFieldType.AVRO_CUSTOM, KafkaFieldType.PROTOBUF_CUSTOM, KafkaFieldType.SCHEMA_REGISTRY -> KafkaMessagesBundle.message(
+            KafkaFieldType.AVRO_CUSTOM, KafkaFieldType.PROTOBUF_CUSTOM, KafkaFieldType.SCHEMA_REGISTRY, KafkaFieldType.MESSAGEPACK -> KafkaMessagesBundle.message(
                 "producer.json.value.comment"
             )
         }
@@ -459,6 +473,7 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
                 KafkaFieldType.DOUBLE,
                 KafkaFieldType.FLOAT,
                 KafkaFieldType.BASE64,
+                KafkaFieldType.MESSAGEPACK,
                 KafkaFieldType.JSON,
                 KafkaFieldType.SCHEMA_REGISTRY,
                 KafkaFieldType.AVRO_CUSTOM,
@@ -475,7 +490,7 @@ class KafkaProducerFieldComponent(private val producedEditor: KafkaProducerEdito
 
     companion object {
         private val jsonFieldTypes = setOf(
-            KafkaFieldType.JSON, KafkaFieldType.AVRO_CUSTOM,
+            KafkaFieldType.JSON, KafkaFieldType.MESSAGEPACK, KafkaFieldType.AVRO_CUSTOM,
             KafkaFieldType.PROTOBUF_CUSTOM
         ) + KafkaFieldType.registryValues
         private val textFieldTypes = setOf(
