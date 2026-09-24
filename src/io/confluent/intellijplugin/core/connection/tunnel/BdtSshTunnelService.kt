@@ -11,6 +11,7 @@ import com.intellij.util.net.NetUtils
 import io.confluent.intellijplugin.core.connection.exception.BdtConfigurationException
 import io.confluent.intellijplugin.core.connection.tunnel.model.ConnectionSshTunnelData
 import io.confluent.intellijplugin.core.connection.tunnel.model.ConnectionSshTunnelInfo
+import io.confluent.intellijplugin.core.connection.tunnel.ui.SshModuleAvailability
 import io.confluent.intellijplugin.core.util.BdIdeRegistryUtil.RFS_DEFAULT_TIMEOUT
 import io.confluent.intellijplugin.core.util.BdtUrlUtils
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
@@ -42,6 +43,13 @@ object BdtSshTunnelService {
         isTest: Boolean
     ): UriTunnelHandler? {
         if (!tunnelData.isEnabled) return null
+
+        // Constructing ConnectionSshTunnelInfo below hard-references com.intellij.ssh.*, absent in
+        // some IDE flavors (e.g. WebStorm). Degrade like a disabled tunnel instead of crashing.
+        if (!SshModuleAvailability.isAvailable) {
+            logger.warn("SSH tunnel is enabled but the Remote/SSH module is not available; skipping tunnel.")
+            return null
+        }
 
         if (uri.contains(",")) {
             throw BdtConfigurationException(

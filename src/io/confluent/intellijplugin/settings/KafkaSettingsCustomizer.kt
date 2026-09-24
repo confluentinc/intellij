@@ -12,6 +12,7 @@ import com.intellij.ui.dsl.builder.Cell
 import com.intellij.ui.dsl.builder.TopGap
 import com.intellij.ui.dsl.builder.panel
 import io.confluent.intellijplugin.aws.connection.auth.AuthenticationType
+import io.confluent.intellijplugin.core.connection.tunnel.ui.SshModuleAvailability
 import io.confluent.intellijplugin.core.connection.tunnel.ui.SshTunnelComponent
 import io.confluent.intellijplugin.core.monitoring.TunnelableSettingsCustomizer
 import io.confluent.intellijplugin.core.settings.ModificationKey
@@ -35,13 +36,17 @@ class KafkaSettingsCustomizer(
     coroutineScope: CoroutineScope
 ) :
     TunnelableSettingsCustomizer<KafkaConnectionData>(connectionData, project, uiDisposable) {
-    override val tunnelField: SshTunnelComponent<KafkaConnectionData> = SshTunnelComponent(
-        project, uiDisposable, connectionData,
-        hostAndPortProvider,
-        enabledNotification = KafkaMessagesBundle.message(
-            "ssh.tunnel.enable.notification"
-        )
-    )
+    override val tunnelField: SshTunnelComponent<KafkaConnectionData>? =
+        if (SshModuleAvailability.isAvailable)
+            SshTunnelComponent(
+                project, uiDisposable, connectionData,
+                hostAndPortProvider,
+                enabledNotification = KafkaMessagesBundle.message(
+                    "ssh.tunnel.enable.notification"
+                )
+            )
+        else
+            null
 
     override val url = StringNamedField(
         ConnectionData::uri,
@@ -127,7 +132,7 @@ class KafkaSettingsCustomizer(
     val schema = registrySettings.getDefaultFields()
 
     override fun getDefaultFields(): List<WrappedComponent<in KafkaConnectionData>> {
-        return listOf<WrappedComponent<in KafkaConnectionData>>(
+        return listOfNotNull<WrappedComponent<in KafkaConnectionData>>(
             nameField, url,
             tunnelField
         ) + brokerSettings.getDefaultFields() + registrySettings.getDefaultFields()
@@ -141,7 +146,9 @@ class KafkaSettingsCustomizer(
         brokerSettings.setPanelComponent(this)
         registrySettings.setPanelComponent(this).visibleIf(brokerSettings.isRegistryVisible)
 
-        block(tunnelField.getComponent()).topGap(TopGap.SMALL).visibleIf(brokerSettings.isRegistryVisible)
+        val tunnelRow = tunnelField?.let { block(it.getComponent()) }
+            ?: row { comment(KafkaMessagesBundle.message("ssh.tunnel.unavailable")) }
+        tunnelRow.topGap(TopGap.SMALL).visibleIf(brokerSettings.isRegistryVisible)
         initFields()
     }
 
