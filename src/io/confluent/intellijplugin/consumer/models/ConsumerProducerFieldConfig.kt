@@ -33,6 +33,7 @@ data class ConsumerProducerFieldConfig(
         KafkaFieldType.DOUBLE -> valueText.toDouble()
         KafkaFieldType.FLOAT -> valueText.toFloat()
         KafkaFieldType.BASE64 -> Base64.getDecoder().decode(valueText)
+        KafkaFieldType.MESSAGEPACK -> valueText
         KafkaFieldType.NULL -> null
         KafkaFieldType.SCHEMA_REGISTRY -> {
             if (valueText.isBlank())

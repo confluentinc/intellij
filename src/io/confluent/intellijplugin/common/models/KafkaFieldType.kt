@@ -25,6 +25,7 @@ enum class KafkaFieldType(@Nls val title: String) {
     DOUBLE(KafkaMessagesBundle.message("field.type.double")),
     FLOAT(KafkaMessagesBundle.message("field.type.float")),
     BASE64(KafkaMessagesBundle.message("field.type.base64")),
+    MESSAGEPACK(KafkaMessagesBundle.message("field.type.messagepack")),
     NULL(KafkaMessagesBundle.message("field.type.null")),
     PROTOBUF_CUSTOM(KafkaMessagesBundle.message("field.type.custom.protobuf")),
     AVRO_CUSTOM(KafkaMessagesBundle.message("field.type.custom.avro")),
@@ -38,6 +39,7 @@ enum class KafkaFieldType(@Nls val title: String) {
             INTEGER -> IntegerDeserializer()
             FLOAT -> FloatDeserializer()
             BASE64 -> ByteArrayDeserializer()
+            MESSAGEPACK -> MessagePackDeserializer()
             NULL -> VoidDeserializer()
             SCHEMA_REGISTRY -> {
                 val registryFormat = consumerField.schemaFormat
@@ -100,6 +102,7 @@ enum class KafkaFieldType(@Nls val title: String) {
         DOUBLE -> DoubleSerializer()
         FLOAT -> FloatSerializer()
         BASE64 -> ByteArraySerializer()
+        MESSAGEPACK -> MessagePackSerializer()
         NULL -> VoidSerializer()
         SCHEMA_REGISTRY -> {
             val registryFormat = producerField.schemaFormat
@@ -150,7 +153,7 @@ enum class KafkaFieldType(@Nls val title: String) {
 
     companion object {
         val defaultValues =
-            listOf(STRING, JSON, INTEGER, LONG, DOUBLE, FLOAT, BASE64, NULL, PROTOBUF_CUSTOM, AVRO_CUSTOM)
+            listOf(STRING, JSON, INTEGER, LONG, DOUBLE, FLOAT, BASE64, MESSAGEPACK, NULL, PROTOBUF_CUSTOM, AVRO_CUSTOM)
         val registryValues = listOf(SCHEMA_REGISTRY)
         val allValues = defaultValues + registryValues
     }

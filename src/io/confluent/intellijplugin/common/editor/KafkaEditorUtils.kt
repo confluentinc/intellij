@@ -83,6 +83,12 @@ object KafkaEditorUtils {
             value.toString()
         }
 
+        type == KafkaFieldType.MESSAGEPACK -> try {
+            tryFormatJson(if (value is ByteArray) String(value, Charsets.UTF_8) else value.toString())
+        } catch (e: Exception) {
+            value.toString()
+        }
+
         type == KafkaFieldType.JSON -> tryFormatJson(value.toString())
         type == KafkaFieldType.PROTOBUF_CUSTOM -> try {
             val message = value as Message
@@ -434,11 +440,13 @@ object KafkaEditorUtils {
         }
     }
 
-    fun tryFormatJson(text: String, shemaName: String? = null): String {
+    fun tryFormatJson(text: String, shemaName: String? = null, pretty: Boolean = false): String {
         if (!isJsonString(text))
             return text
         return try {
-            val gson = GsonBuilder().disableHtmlEscaping().setPrettyPrinting().serializeNulls().create()
+            val gsonBuilder = GsonBuilder().disableHtmlEscaping().serializeNulls()
+            if (pretty) gsonBuilder.setPrettyPrinting()
+            val gson = gsonBuilder.create()
             val parseString = JsonParser.parseString(text)
             try {
                 shemaName?.let {

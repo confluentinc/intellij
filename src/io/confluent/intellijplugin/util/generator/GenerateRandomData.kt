@@ -70,6 +70,7 @@ object GenerateRandomData {
             }
 
             KafkaFieldType.JSON -> GsonBuilder().setPrettyPrinting().create().toJson(JsonGenerator.generateJson())
+            KafkaFieldType.MESSAGEPACK -> GsonBuilder().setPrettyPrinting().create().toJson(JsonGenerator.generateJson())
             KafkaFieldType.NULL -> ""
             KafkaFieldType.PROTOBUF_CUSTOM -> ProtobufGenerator.generateProtobufMessage(project, parsedSchema)
             KafkaFieldType.AVRO_CUSTOM -> AvroGenerator.generateAvroMessage(project, parsedSchema)

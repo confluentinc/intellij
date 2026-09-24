@@ -281,7 +281,7 @@ internal class KafkaRecordDetails(project: Project, parentDisposable: Disposable
     ) {
         val visibleFieldType = getFieldType(viewerType, fieldType, jsonField)
         if (visibleFieldType == FieldViewerType.JSON) {
-            jsonField.setText(KafkaEditorUtils.tryFormatJson(value), JsonLanguage.INSTANCE)
+            jsonField.setText(KafkaEditorUtils.tryFormatJson(value, pretty = true), JsonLanguage.INSTANCE)
         } else {
             jsonField.setText(value, PlainTextLanguage.INSTANCE)
         }
@@ -317,6 +317,7 @@ internal class KafkaRecordDetails(project: Project, parentDisposable: Disposable
         KafkaFieldType.DOUBLE -> FieldViewerType.TEXT
         KafkaFieldType.FLOAT -> FieldViewerType.TEXT
         KafkaFieldType.BASE64 -> FieldViewerType.DECODED_BASE64
+        KafkaFieldType.MESSAGEPACK -> FieldViewerType.JSON
         KafkaFieldType.NULL -> FieldViewerType.TEXT
         KafkaFieldType.SCHEMA_REGISTRY -> FieldViewerType.JSON
         KafkaFieldType.PROTOBUF_CUSTOM -> FieldViewerType.JSON
