@@ -8,6 +8,11 @@ All noteworthy changes to this plugin will be documented in this file.
 ### Removed
 ### Fixed
 
+## 253.25910.2
+### Fixed
+- Plugin failed to load with a `NoClassDefFoundError` in IDEs without the Remote/SSH module, such as WebStorm (https://github.com/confluentinc/intellij/issues/628)
+- Key & Value fields in the Consumer details panel stayed cramped for large values on tall displays (https://github.com/confluentinc/intellij/issues/588)
+
 ## 253.25910.0
 ### Changed
 - Rebrand plugin from "Kafka" to "Confluent" and publish under Apache 2 license
