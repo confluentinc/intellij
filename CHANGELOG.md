@@ -5,6 +5,7 @@ All noteworthy changes to this plugin will be documented in this file.
 ### Changed
 - Consumer and producer record tables now retain up to 50,000 records per session. Previously, leaving the "Consumer records limit" field empty (or set to 0) allowed unbounded growth.
 ### Added
+- MessagePack serialization support for consumer and producer records
 ### Removed
 ### Fixed
 
@@ -12,6 +13,14 @@ All noteworthy changes to this plugin will be documented in this file.
 ### Fixed
 - Plugin failed to load with a `NoClassDefFoundError` in IDEs without the Remote/SSH module, such as WebStorm (https://github.com/confluentinc/intellij/issues/628)
 - Key & Value fields in the Consumer details panel stayed cramped for large values on tall displays (https://github.com/confluentinc/intellij/issues/588)
+
+## 253.25910.1
+### Changed
+- Adjust error reporting filter to remove non-Confluent errors
+
+### Fixed
+- Value & Key fields in Consumer details panel too small to read (https://github.com/confluentinc/intellij/issues/601)
+- Viewing schemas that reference other schemas throws an error (https://github.com/confluentinc/intellij/issues/591)
 
 ## 253.25910.0
 ### Changed
