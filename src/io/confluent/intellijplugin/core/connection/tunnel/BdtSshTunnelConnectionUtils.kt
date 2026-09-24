@@ -1,6 +1,7 @@
 package io.confluent.intellijplugin.core.connection.tunnel
 
 import io.confluent.intellijplugin.core.connection.tunnel.model.ConnectionSshTunnelDataLegacy
+import io.confluent.intellijplugin.core.connection.tunnel.model.getSshConfig
 import io.confluent.intellijplugin.core.util.BdtUrlUtils
 import org.jetbrains.annotations.ApiStatus
 import java.net.URL
