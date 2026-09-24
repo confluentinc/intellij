@@ -5,6 +5,7 @@ All noteworthy changes to this plugin will be documented in this file.
 ### Changed
 - Consumer and producer record tables now retain up to 50,000 records per session. Previously, leaving the "Consumer records limit" field empty (or set to 0) allowed unbounded growth.
 ### Added
+- MessagePack serialization support for consumer and producer records
 ### Removed
 ### Fixed
 
