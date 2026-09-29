@@ -527,6 +527,111 @@ class CCloudAuthServiceTest {
         }
     }
 
+    @Nested
+    @DisplayName("signIn idempotency / port-in-use handling")
+    inner class SignInIdempotency {
+
+        private lateinit var spyService: CCloudAuthService
+
+        @BeforeEach
+        fun setUpSpy() {
+            spyService = spy(CCloudAuthService(CoroutineScope(SupervisorJob())))
+            // Avoid opening a real browser / showing notifications during the test.
+            doNothing().whenever(spyService).showSignInFailureNotification(any())
+        }
+
+        @AfterEach
+        fun tearDownSpy() {
+            spyService.dispose()
+        }
+
+        @Test
+        fun `should stop a previous in-flight callback server before starting a new one`() {
+            val firstServer = mock<CCloudOAuthCallbackServer> {
+                on { isRunning() } doReturn true
+            }
+            val secondServer = mock<CCloudOAuthCallbackServer>()
+            val servers = ArrayDeque(listOf(firstServer, secondServer))
+            spyService.callbackServerFactory = { _, _, _ -> servers.removeFirst() }
+            // Browser launch is irrelevant; the context's sign-in URI is harmless to compute.
+
+            spyService.signIn()
+            spyService.signIn()
+
+            // The first server must be torn down so the second can bind the fixed port.
+            verify(firstServer).stop()
+            verify(secondServer).start()
+            assertEquals(secondServer, spyService.activeCallbackServer)
+        }
+
+        @Test
+        fun `should not stop a previous server that is no longer running`() {
+            val firstServer = mock<CCloudOAuthCallbackServer> {
+                on { isRunning() } doReturn false
+            }
+            val secondServer = mock<CCloudOAuthCallbackServer>()
+            val servers = ArrayDeque(listOf(firstServer, secondServer))
+            spyService.callbackServerFactory = { _, _, _ -> servers.removeFirst() }
+
+            spyService.signIn()
+            spyService.signIn()
+
+            verify(firstServer, never()).stop()
+            verify(secondServer).start()
+        }
+
+        @Test
+        fun `should clear active server and warn (not error) on port-in-use failure`() {
+            val server = mock<CCloudOAuthCallbackServer>()
+            spyService.callbackServerFactory = { _, _, onError ->
+                // Simulate start() synchronously reporting the port-in-use condition.
+                whenever(server.start()).then {
+                    onError("${CCloudOAuthCallbackServer.PORT_IN_USE_ERROR_PREFIX} Address already in use: bind")
+                    null
+                }
+                server
+            }
+
+            spyService.signIn()
+
+            // In-flight tracking cleared once the (failed) flow ends.
+            assertNull(spyService.activeCallbackServer)
+        }
+    }
+
+    @Nested
+    @DisplayName("handleSignInError")
+    inner class HandleSignInError {
+
+        private lateinit var spyService: CCloudAuthService
+
+        @BeforeEach
+        fun setUpSpy() {
+            spyService = spy(CCloudAuthService(CoroutineScope(SupervisorJob())))
+            doNothing().whenever(spyService).showSignInFailureNotification(any())
+        }
+
+        @AfterEach
+        fun tearDownSpy() {
+            spyService.dispose()
+        }
+
+        @Test
+        fun `should show actionable port-in-use notification mentioning the callback port`() {
+            // A port-in-use failure is logged at warn (not error), so it does not trip the
+            // test logger and would not be reported as a Sentry crash.
+            spyService.handleSignInError(
+                "${CCloudOAuthCallbackServer.PORT_IN_USE_ERROR_PREFIX} Address already in use: bind",
+                null
+            )
+            SwingUtilities.invokeAndWait {}
+
+            verify(spyService).showSignInFailureNotification(
+                org.mockito.kotlin.argThat { contains(CCloudOAuthConfig.CALLBACK_PORT.toString()) }
+            )
+        }
+    }
+
     // Helper
 
     private fun createMockAuthenticatedContext(): CCloudOAuthContext {
