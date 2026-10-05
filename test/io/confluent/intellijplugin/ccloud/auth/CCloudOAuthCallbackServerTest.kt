@@ -11,6 +11,8 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.assertThrows
 import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.mock
+import java.io.IOException
+import java.net.BindException
 import java.net.HttpURLConnection
 import java.net.URI
 import java.util.concurrent.CountDownLatch
@@ -293,6 +295,29 @@ class CCloudOAuthCallbackServerTest {
     }
 
     @Nested
+    @DisplayName("isPortInUse")
+    inner class IsPortInUseTests {
+
+        @Test
+        fun `true for a BindException`() {
+            assertTrue(CCloudOAuthCallbackServer.isPortInUse(BindException("Address already in use")))
+        }
+
+        @Test
+        fun `true when a BindException is nested in the cause chain`() {
+            val wrapped = RuntimeException("wrapper", IOException("io", BindException("Address already in use")))
+
+            assertTrue(CCloudOAuthCallbackServer.isPortInUse(wrapped))
+        }
+
+        @Test
+        fun `false for unrelated exceptions and null`() {
+            assertFalse(CCloudOAuthCallbackServer.isPortInUse(IOException("boom", RuntimeException("cause"))))
+            assertFalse(CCloudOAuthCallbackServer.isPortInUse(null))
+        }
+    }
+
+    @Nested
     @DisplayName("server lifecycle")
     inner class ServerLifecycleTests {
 
@@ -345,6 +370,35 @@ class CCloudOAuthCallbackServerTest {
             server.start()
             server.stop()
             server.stop() // Should not throw
+        }
+
+        @Test
+        fun `isRunning reflects start and stop`() {
+            assertFalse(server.isRunning())
+
+            server.start()
+            assertTrue(server.isRunning())
+
+            server.stop()
+            assertFalse(server.isRunning())
+        }
+
+        @Test
+        fun `start reports port-in-use with prefixed error when the port is already bound`() {
+            server.start()
+            var capturedError: String? = null
+            val contender = CCloudOAuthCallbackServer(
+                oauthContext = CCloudOAuthContext(),
+                onSuccess = {},
+                onError = { msg -> capturedError = msg }
+            )
+
+            contender.start()
+
+            assertNotNull(capturedError)
+            assertTrue(capturedError!!.startsWith(CCloudOAuthCallbackServer.PORT_IN_USE_ERROR_PREFIX))
+            assertFalse(contender.isRunning())
+            assertTrue(server.isRunning(), "the original server must be unaffected")
         }
 
         @Test

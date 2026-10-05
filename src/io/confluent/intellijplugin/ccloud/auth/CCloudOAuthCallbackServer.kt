@@ -7,6 +7,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import java.net.BindException
 import java.net.InetAddress
 import java.net.InetSocketAddress
 import java.net.URLDecoder
@@ -28,9 +29,29 @@ class CCloudOAuthCallbackServer(
 ) {
     private var server: HttpServer? = null
 
+    /** True while the callback server is bound and listening for the OAuth redirect. */
+    fun isRunning(): Boolean = server != null
+
     companion object {
         private val logger = thisLogger()
         private const val CONFLUENT_CLOUD_HOMEPAGE = "https://confluent.cloud"
+
+        /**
+         * Prefix used on the [onError] message when the callback server could not bind because the
+         * port is already in use. Lets callers recognize this expected, user-recoverable condition
+         * (e.g. another in-flight sign-in attempt) and avoid reporting it as a crash.
+         */
+        const val PORT_IN_USE_ERROR_PREFIX = "PORT_IN_USE:"
+
+        /** True if [throwable] or any of its causes is a [BindException] (port already in use). */
+        internal fun isPortInUse(throwable: Throwable?): Boolean {
+            var current = throwable
+            while (current != null) {
+                if (current is BindException) return true
+                current = current.cause
+            }
+            return false
+        }
 
         private const val TLS_HANDSHAKE_ERROR_MESSAGE =
             "Failed to perform the SSL/TLS handshake."
@@ -94,8 +115,16 @@ class CCloudOAuthCallbackServer(
             }
             logger.info("OAuth callback server started on port ${CCloudOAuthConfig.CALLBACK_PORT}")
         } catch (e: Exception) {
-            logger.error("Failed to start OAuth callback server", e)
-            onError("Failed to start callback server: ${e.message}")
+            if (isPortInUse(e)) {
+                // Expected, user-recoverable condition (e.g. another in-flight sign-in already holds
+                // the fixed callback port). Log at warn so it is not reported as a Sentry crash, and
+                // signal the port-in-use case to the caller via the message prefix.
+                logger.warn("OAuth callback port ${CCloudOAuthConfig.CALLBACK_PORT} already in use", e)
+                onError("$PORT_IN_USE_ERROR_PREFIX ${e.message}")
+            } else {
+                logger.error("Failed to start OAuth callback server", e)
+                onError("Failed to start callback server: ${e.message}")
+            }
         }
     }
 
