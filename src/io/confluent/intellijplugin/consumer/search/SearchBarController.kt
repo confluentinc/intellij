@@ -165,10 +165,7 @@ class SearchBarController(
         // The rescan runs on the EDT (debounced via [alarm]); steady-state streaming never rescans,
         // so this is the only term-bound EDT work — acceptable at the current record cap.
         freeTextIndex.setTerm(parsed.freeText)
-        assembleAndApply(sorter, parsed)
-    }
 
-    private fun assembleAndApply(sorter: TableRowSorter<TableModel>, parsed: SearchQueryParser.ParsedSearch) {
         val filters = mutableListOf<RowFilter<TableModel, Int>>()
         for ((modelIndex, value) in parsed.columnFilters) {
             if (value.isNotEmpty()) {
