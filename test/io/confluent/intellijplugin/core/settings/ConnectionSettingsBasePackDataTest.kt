@@ -41,8 +41,10 @@ class UnserializableValue : Serializable {
 }
 
 class PackDataTestConnectionData : ConnectionData() {
+    // Good properties sit before ("a...") and after ("z...") the bad ones in both alphabetical and
+    // declaration order, so the tests prove packing continues past a failure.
     @Suppress("unused")
-    var goodValue: String = "keep-me"
+    var aGoodValue: String = "keep-me"
 
     @Suppress("unused")
     var unloadableValue: UnloadableValue? = null
@@ -52,6 +54,9 @@ class PackDataTestConnectionData : ConnectionData() {
 
     @Suppress("unused")
     var cancellingValue: CancellingValue? = null
+
+    @Suppress("unused")
+    var zGoodValue: String = "keep-me-too"
 
     override fun createDriver(project: Project?, isTest: Boolean): Driver =
         throw UnsupportedOperationException("not needed for this test")
@@ -84,7 +89,8 @@ class ConnectionSettingsBasePackDataTest {
         val ext = ConnectionSettingsBase.packData(conn)
 
         assertFalse(ext.extended.containsKey("unloadableValue"), "unloadable property should be skipped")
-        assertTrue(ext.extended.containsKey("goodValue"), "serializable property should be retained")
+        assertTrue(ext.extended.containsKey("aGoodValue"), "property before the failure should be retained")
+        assertTrue(ext.extended.containsKey("zGoodValue"), "property after the failure should be retained")
         assertEquals("my-conn", ext.name)
         assertEquals("localhost:9092", ext.uri)
     }
@@ -99,7 +105,8 @@ class ConnectionSettingsBasePackDataTest {
         val ext = ConnectionSettingsBase.packData(conn)
 
         assertFalse(ext.extended.containsKey("unserializableValue"), "unserializable property should be skipped")
-        assertTrue(ext.extended.containsKey("goodValue"), "serializable property should be retained")
+        assertTrue(ext.extended.containsKey("aGoodValue"), "property before the failure should be retained")
+        assertTrue(ext.extended.containsKey("zGoodValue"), "property after the failure should be retained")
     }
 
     @Test
@@ -108,7 +115,8 @@ class ConnectionSettingsBasePackDataTest {
 
         val ext = ConnectionSettingsBase.packData(conn)
 
-        assertTrue(ext.extended.containsKey("goodValue"), "serializable property should be retained")
+        assertTrue(ext.extended.containsKey("aGoodValue"), "property before the failure should be retained")
+        assertTrue(ext.extended.containsKey("zGoodValue"), "property after the failure should be retained")
         assertFalse(ext.extended.containsKey("unloadableValue"), "null property should not be packed")
         assertFalse(ext.extended.containsKey("unserializableValue"), "null property should not be packed")
     }
@@ -130,7 +138,8 @@ class ConnectionSettingsBasePackDataTest {
         val ext = ConnectionSettingsBase.packData(conn)
 
         assertFalse(ext.extended.containsKey(UNHANDLED_KEY), "unhandled marker should be skipped")
-        assertTrue(ext.extended.containsKey("goodValue"), "serializable property should be retained")
+        assertTrue(ext.extended.containsKey("aGoodValue"), "property before the failure should be retained")
+        assertTrue(ext.extended.containsKey("zGoodValue"), "property after the failure should be retained")
     }
 
     @Test
