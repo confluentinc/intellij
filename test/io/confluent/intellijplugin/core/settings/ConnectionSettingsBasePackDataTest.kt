@@ -1,5 +1,6 @@
 package io.confluent.intellijplugin.core.settings
 
+import com.intellij.openapi.progress.ProcessCanceledException
 import com.intellij.openapi.project.Project
 import com.intellij.testFramework.junit5.TestApplication
 import io.confluent.intellijplugin.core.rfs.driver.Driver
@@ -8,6 +9,7 @@ import io.confluent.intellijplugin.core.settings.connections.ConnectionData
 import io.confluent.intellijplugin.core.settings.connections.ConnectionGroup
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import java.io.NotSerializableException
@@ -19,6 +21,14 @@ class UnloadableValue : Serializable {
     @Suppress("UNUSED_PARAMETER", "unused")
     private fun writeObject(out: ObjectOutputStream) {
         throw NoClassDefFoundError("com/example/AbsentModuleClass")
+    }
+}
+
+/** Value whose writeObject throws a cancellation, which must propagate rather than be skipped. */
+class CancellingValue : Serializable {
+    @Suppress("UNUSED_PARAMETER", "unused")
+    private fun writeObject(out: ObjectOutputStream) {
+        throw ProcessCanceledException()
     }
 }
 
@@ -40,6 +50,9 @@ class PackDataTestConnectionData : ConnectionData() {
     @Suppress("unused")
     var unserializableValue: UnserializableValue? = null
 
+    @Suppress("unused")
+    var cancellingValue: CancellingValue? = null
+
     override fun createDriver(project: Project?, isTest: Boolean): Driver =
         throw UnsupportedOperationException("not needed for this test")
 
@@ -54,6 +67,11 @@ class PackDataTestConnectionData : ConnectionData() {
  */
 @TestApplication
 class ConnectionSettingsBasePackDataTest {
+
+    private companion object {
+        /** Mirrors the private `UNHANDLED_MARKER` in [ConnectionSettingsBase]. */
+        const val UNHANDLED_KEY = "1unhandled"
+    }
 
     @Test
     fun `should skip a property that throws a LinkageError and keep the rest`() {
@@ -93,5 +111,34 @@ class ConnectionSettingsBasePackDataTest {
         assertTrue(ext.extended.containsKey("goodValue"), "serializable property should be retained")
         assertFalse(ext.extended.containsKey("unloadableValue"), "null property should not be packed")
         assertFalse(ext.extended.containsKey("unserializableValue"), "null property should not be packed")
+    }
+
+    @Test
+    fun `should rethrow cancellation instead of skipping the property`() {
+        val conn = PackDataTestConnectionData().apply { cancellingValue = CancellingValue() }
+
+        assertThrows(ProcessCanceledException::class.java) { ConnectionSettingsBase.packData(conn) }
+    }
+
+    @Test
+    fun `should skip unserializable unhandled props without aborting the save`() {
+        val conn = PackDataTestConnectionData().apply {
+            name = "my-conn"
+            unhandledProps["bad"] = UnloadableValue()
+        }
+
+        val ext = ConnectionSettingsBase.packData(conn)
+
+        assertFalse(ext.extended.containsKey(UNHANDLED_KEY), "unhandled marker should be skipped")
+        assertTrue(ext.extended.containsKey("goodValue"), "serializable property should be retained")
+    }
+
+    @Test
+    fun `should pack serializable unhandled props`() {
+        val conn = PackDataTestConnectionData().apply { unhandledProps["legacy"] = "value" }
+
+        val ext = ConnectionSettingsBase.packData(conn)
+
+        assertTrue(ext.extended.containsKey(UNHANDLED_KEY), "unhandled marker should be packed")
     }
 }

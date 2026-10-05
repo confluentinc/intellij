@@ -6,6 +6,7 @@ import com.intellij.openapi.Disposable
 import com.intellij.openapi.components.PersistentStateComponent
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.extensions.PluginId
+import com.intellij.openapi.progress.ProcessCanceledException
 import io.confluent.intellijplugin.core.constants.BdtConnectionType
 import io.confluent.intellijplugin.core.constants.BdtPlugins.isSupportedByPlugin
 import com.intellij.util.xmlb.XmlSerializer
@@ -29,6 +30,7 @@ import kotlin.String
 import kotlin.Suppress
 import kotlin.Throwable
 import kotlin.let
+import kotlin.coroutines.cancellation.CancellationException
 import kotlin.reflect.KClass
 import kotlin.reflect.KMutableProperty
 import kotlin.reflect.KProperty1
@@ -128,6 +130,22 @@ abstract class ConnectionSettingsBase : PersistentStateComponent<ConnectionPersi
             return Base64.getEncoder().encodeToString(stream.toByteArray())
         }
 
+        /**
+         * Scoped to one value so a single unserializable entry cannot abort the whole getState().
+         * Catches [Throwable] because a value's class graph may reference types absent in this IDE
+         * flavor, making ObjectOutputStream introspection throw [LinkageError]. Cancellation is rethrown.
+         */
+        private fun encode64OrNull(name: String, owner: Class<*>, obj: Any): String? = try {
+            encode64(obj)
+        } catch (e: ProcessCanceledException) {
+            throw e
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Throwable) {
+            logger.warn("Skipping unserializable property '$name' on ${owner.name}", e)
+            null
+        }
+
         private fun decode64(s: String, conn: ExtendedConnectionData): Any =
             PluginObjectInputStream(ByteArrayInputStream(Base64.getDecoder().decode(s)), conn).readObject()
 
@@ -147,24 +165,16 @@ abstract class ConnectionSettingsBase : PersistentStateComponent<ConnectionPersi
                 for (prop in (currentClazz as? Class<ConnectionData>)?.kotlin?.declaredMemberProperties
                     ?: emptyList()) {
                     if (shouldSerialize(prop)) prop.get(conn)?.let {
-                        try {
-                            ext.extended[prop.name] = encode64(it)
-                        } catch (e: Exception) {
-                            // Scoped to one property so a single unserializable value cannot abort
-                            // the whole getState(). Mirrors the defensive read path in unpackData.
-                            logger.warn("Skipping unserializable property '${prop.name}' on ${clazz.name}", e)
-                        } catch (e: LinkageError) {
-                            // A value's class graph may reference types absent in this IDE flavor,
-                            // making ObjectOutputStream introspection throw NoClassDefFoundError.
-                            logger.warn("Skipping unserializable property '${prop.name}' on ${clazz.name}", e)
-                        }
+                        encode64OrNull(prop.name, clazz, it)?.let { encoded -> ext.extended[prop.name] = encoded }
                     }
                 }
                 currentClazz = currentClazz.superclass
             }
 
             if (conn.unhandledProps.isNotEmpty()) {
-                ext.extended[UNHANDLED_MARKER] = encode64(conn.unhandledProps.toMutableMap())
+                encode64OrNull(UNHANDLED_MARKER, clazz, conn.unhandledProps.toMutableMap())?.let {
+                    ext.extended[UNHANDLED_MARKER] = it
+                }
             }
 
             return ext
