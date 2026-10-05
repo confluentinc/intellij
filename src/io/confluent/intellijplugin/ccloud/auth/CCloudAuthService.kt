@@ -18,6 +18,7 @@ import io.confluent.intellijplugin.util.KafkaMessagesBundle
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import java.net.BindException
 import java.time.Instant
 import java.util.concurrent.CopyOnWriteArrayList
 
@@ -62,23 +63,9 @@ class CCloudAuthService(private val scope: CoroutineScope) : Disposable {
     internal var context: CCloudOAuthContext? = null
     internal var refreshBean: CCloudTokenRefreshBean? = null
 
-    /**
-     * The callback server for an in-flight sign-in, if any. A new [signIn] stops this before starting
-     * a fresh server so a double-click does not create a second server that fails to bind the fixed
-     * callback port. Cleared when the flow ends (success or error).
-     */
+    /** Callback server for the in-flight sign-in, if any; cleared when that flow ends. */
     @Volatile
     internal var activeCallbackServer: CCloudOAuthCallbackServer? = null
-
-    /**
-     * Factory for the callback server. Overridable in tests so the idempotency guard can be exercised
-     * without binding a real socket.
-     */
-    internal var callbackServerFactory: (CCloudOAuthContext, (CCloudOAuthContext) -> Unit, (String) -> Unit) -> CCloudOAuthCallbackServer =
-        { ctx, onSuccess, onError -> CCloudOAuthCallbackServer(ctx, onSuccess, onError) }
-
-    /** Opens the sign-in URL in the browser. Overridable in tests so they never launch a real browser. */
-    internal var browserLauncher: (String) -> Unit = { BrowserUtil.browse(it) }
 
     internal val authStateListeners = CopyOnWriteArrayList<AuthStateListener>()
 
@@ -108,15 +95,14 @@ class CCloudAuthService(private val scope: CoroutineScope) : Disposable {
     fun signIn(invokedPlace: InvokedPlace? = null) {
         logger.info("Starting OAuth sign-in flow")
 
-        // Sign-in is idempotent: a previous attempt may still hold the fixed callback port (e.g. the
-        // user clicked "Sign In" twice). Stop the prior callback server before starting a new one so
-        // the new server can bind, rather than producing a port-in-use failure.
+        // A previous attempt (e.g. a double-click) may still hold the fixed callback port; release it
+        // so this attempt can bind.
         stopActiveCallbackServer()
 
         val oauthContext = CCloudOAuthContext()
 
         lateinit var server: CCloudOAuthCallbackServer
-        server = callbackServerFactory(
+        server = createCallbackServer(
             oauthContext,
             { authenticatedContext ->
                 clearActiveCallbackServer(server)
@@ -139,30 +125,45 @@ class CCloudAuthService(private val scope: CoroutineScope) : Disposable {
             },
             { error ->
                 clearActiveCallbackServer(server)
-                handleSignInError(error, invokedPlace)
+                logger.error("Sign-in failed: $error")
+                reportSignInFailure(error, error, invokedPlace)
             }
         )
 
+        try {
+            server.start()
+        } catch (e: BindException) {
+            // Expected and user-recoverable (something else holds the port), so warn rather than
+            // error to keep it out of Sentry.
+            logger.warn("OAuth callback port ${CCloudOAuthConfig.CALLBACK_PORT} already in use", e)
+            reportSignInFailure(
+                errorType = "Callback port in use: ${e.message}",
+                notificationText = KafkaMessagesBundle.message(
+                    "confluent.cloud.notification.sign.in.failure.port.in.use",
+                    CCloudOAuthConfig.CALLBACK_PORT.toString()
+                ),
+                invokedPlace = invokedPlace
+            )
+            return
+        }
         activeCallbackServer = server
-        server.start()
-        browserLauncher(oauthContext.getSignInUri())
+        openBrowser(oauthContext.getSignInUri())
     }
 
-    /** Stop the in-flight callback server, if one is still running, and stop tracking it. */
+    internal fun createCallbackServer(
+        oauthContext: CCloudOAuthContext,
+        onSuccess: (CCloudOAuthContext) -> Unit,
+        onError: (String) -> Unit
+    ): CCloudOAuthCallbackServer = CCloudOAuthCallbackServer(oauthContext, onSuccess, onError)
+
+    internal fun openBrowser(url: String) = BrowserUtil.browse(url)
+
     private fun stopActiveCallbackServer() {
-        activeCallbackServer?.let { previous ->
-            if (previous.isRunning()) {
-                logger.info("Stopping in-flight sign-in callback server")
-                previous.stop()
-            }
-        }
+        activeCallbackServer?.stop()
         activeCallbackServer = null
     }
 
-    /**
-     * Clear [activeCallbackServer] only if it is still [finished]. A superseded server's late callback
-     * must not wipe the tracking of the newer server that replaced it.
-     */
+    /** Clear [activeCallbackServer] only if it is still [finished], so a superseded server's late callback is ignored. */
     @Synchronized
     private fun clearActiveCallbackServer(finished: CCloudOAuthCallbackServer) {
         if (activeCallbackServer === finished) {
@@ -170,33 +171,8 @@ class CCloudAuthService(private val scope: CoroutineScope) : Disposable {
         }
     }
 
-    /**
-     * Handle a sign-in failure: record telemetry and show a user-facing notification.
-     *
-     * A port-in-use failure (the fixed OAuth callback port is occupied, e.g. by another in-flight
-     * sign-in) is an expected, user-recoverable condition, so it is logged at warn — not error — to
-     * avoid a Sentry crash report, and shows an actionable notification. Genuinely unexpected
-     * failures are still logged at error.
-     */
-    internal fun handleSignInError(error: String, invokedPlace: InvokedPlace?) {
-        val portInUse = error.startsWith(CCloudOAuthCallbackServer.PORT_IN_USE_ERROR_PREFIX)
-        if (portInUse) {
-            logger.warn("Sign-in failed (callback port in use): $error")
-        } else {
-            logger.error("Sign-in failed: $error")
-        }
-
-        logUsage(CCloudAuthenticationEvent.AuthenticationFailed(errorType = error, invokedPlace = invokedPlace?.value))
-
-        val notificationText = if (portInUse) {
-            KafkaMessagesBundle.message(
-                "confluent.cloud.notification.sign.in.failure.port.in.use",
-                CCloudOAuthConfig.CALLBACK_PORT.toString()
-            )
-        } else {
-            error
-        }
-
+    private fun reportSignInFailure(errorType: String, notificationText: String, invokedPlace: InvokedPlace?) {
+        logUsage(CCloudAuthenticationEvent.AuthenticationFailed(errorType = errorType, invokedPlace = invokedPlace?.value))
         ApplicationManager.getApplication().invokeLater({
             showSignInFailureNotification(notificationText)
         }, ModalityState.any())
