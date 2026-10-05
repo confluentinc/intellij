@@ -1,6 +1,5 @@
 package io.confluent.intellijplugin.consumer.data
 
-import com.intellij.openapi.application.ApplicationManager
 import com.intellij.testFramework.junit5.TestApplication
 import io.confluent.intellijplugin.common.editor.ListTableModel
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -30,6 +29,9 @@ class FreeTextSlotIndexTest {
     // setTerm/onAppend/onEvict/onClear assert they run on the EDT, so every mutating call below is
     // driven through the real Swing dispatch thread rather than the test's own thread.
     private fun onEdt(block: () -> Unit) = SwingUtilities.invokeAndWait(block)
+
+    /** Block until every EDT event queued so far (e.g. the model's invokeLater flush) has run. */
+    private fun drainEdt() = SwingUtilities.invokeAndWait { }
 
     @Test
     fun `no active term yields null bitSet`() {
@@ -156,9 +158,9 @@ class FreeTextSlotIndexTest {
 
             // Two batches so the buffer actually wraps (a single oversized batch is trimmed instead).
             model.addBatch(listOf("beta", "gamma", "alpha"))
-            ApplicationManager.getApplication().invokeAndWait { }
+            drainEdt()
             model.addBatch(listOf("foo"))
-            ApplicationManager.getApplication().invokeAndWait { }
+            drainEdt()
 
             SwingUtilities.invokeAndWait { index.setTerm("foo") }
 
@@ -172,14 +174,14 @@ class FreeTextSlotIndexTest {
             val (model, index) = wire(capacity = 3)
 
             model.addBatch(listOf("beta", "gamma", "alpha"))
-            ApplicationManager.getApplication().invokeAndWait { }
+            drainEdt()
             SwingUtilities.invokeAndWait { index.setTerm("foo") }
             assertTrue(index.bitSet().setBits().isEmpty())
 
             // Wrap: appending "foo" evicts "beta" (the head) and reuses its slot via the live
             // onAppend hook (flushPendingAdds suppresses the pure-eviction event on slot reuse).
             model.addBatch(listOf("foo"))
-            ApplicationManager.getApplication().invokeAndWait { }
+            drainEdt()
 
             assertEquals(setOf(0), index.bitSet().setBits())
         }

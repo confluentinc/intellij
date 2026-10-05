@@ -15,6 +15,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertSame
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
@@ -87,8 +88,9 @@ class SearchBarControllerTest {
                     rowSorter = TableRowSorter(model)
                 }
                 filterHeader = TableFilterHeader(table).apply { externalFilterMode = true }
-                controller =
-                    SearchBarController(disposable, table, filterHeader, isProducer = false, output.freeTextIndex)
+                controller = SearchBarController(
+                    disposable, table, filterHeader, isProducer = false, freeTextIndex = output.freeTextIndex,
+                )
             }
         }
 
@@ -127,12 +129,14 @@ class SearchBarControllerTest {
             SwingUtilities.invokeAndWait { output.replace(records) }
         }
 
+        /** Block until every EDT event queued so far (e.g. the model's invokeLater flush) has run. */
+        private fun drainEdt() = SwingUtilities.invokeAndWait { }
+
         /** Stream a record through the live append path and drain the model's scheduled flush. */
         private fun appendAndFlush(record: KafkaRecord) {
             SwingUtilities.invokeAndWait { output.outputModel.addBatch(listOf(record)) }
-            // addBatch schedules the flush via invokeLater; drain the EDT so it runs and the
-            // RowSorter re-evaluates the inserted row against the active filter.
-            SwingUtilities.invokeAndWait { }
+            // Drain so the flush runs and the RowSorter re-evaluates the inserted row against the filter.
+            drainEdt()
         }
 
         private fun setSearchAndFlush(text: String) {
@@ -266,18 +270,21 @@ class SearchBarControllerTest {
         }
 
         @Test
-        fun `free-text search produces a BitSet-backed RowFilter`() {
+        fun `clearing the search text drops the free-text index and shows all rows`() {
             loadRows(
                 listOf(
                     record("topicA", "k1", "value1", 0, 100L),
-                    record("topicB", "k2", "{\"nested\":\"value\"}", 1, 200L),
-                    record("topicA", "k3", "plain text", 0, 300L),
+                    record("topicB", "k2", "plain text", 1, 200L),
                 )
             )
             setSearchAndFlush("plain")
             assertEquals(1, visibleRowCount())
-            // An active term produces a (non-null) slot-keyed BitSet backing the row filter.
             assertNotNull(output.freeTextIndex.bitSet())
+
+            setSearchAndFlush("")
+
+            assertNull(output.freeTextIndex.bitSet(), "A blank term must deactivate the index")
+            assertEquals(2, visibleRowCount())
         }
 
         @Test
@@ -313,16 +320,32 @@ class SearchBarControllerTest {
         }
 
         @Test
-        fun `column filter still applies when free-text BitSet is also active`() {
+        fun `column filter is ANDed with the free-text BitSet`() {
             loadRows(
                 listOf(
-                    record("topicA", "k1", "value1", 0, 100L),
-                    record("topicA", "k2", "value2", 0, 200L),
-                    record("topicB", "k3", "value1", 0, 300L),
+                    record("topicA", "k1", "plain text", 0, 100L), // matches both
+                    record("topicB", "k2", "plain", 0, 200L), // free-text only
+                    record("topicA", "k3", "other", 0, 300L), // column filter only
                 )
             )
-            setSearchAndFlush("topic:topicA value:value1")
-            assertEquals(1, visibleRowCount(), "Only row matching both column filters should remain")
+            setSearchAndFlush("topic:topicA plain")
+            assertEquals(1, visibleRowCount(), "Only the row satisfying both filters should remain")
+        }
+
+        @Test
+        fun `clearing the buffer empties the free-text bits but keeps the term active`() {
+            loadRows(listOf(record("topicA", "k1", "plain text", 0, 100L)))
+            setSearchAndFlush("plain")
+            assertEquals(1, visibleRowCount())
+
+            SwingUtilities.invokeAndWait { output.outputModel.clear() }
+
+            val bits = output.freeTextIndex.bitSet()
+            assertNotNull(bits, "Term is still active after a buffer clear")
+            assertTrue(bits!!.isEmpty, "Stale bits from cleared rows must be dropped")
+
+            appendAndFlush(record("topicB", "k2", "plain again", 1, 200L))
+            assertEquals(1, visibleRowCount(), "Rows streamed after a clear still match the active term")
         }
 
         @Test
@@ -344,6 +367,7 @@ class SearchBarControllerTest {
             val secondBits = output.freeTextIndex.bitSet()
 
             assertSame(firstBits, secondBits, "Unchanged term must reuse the live BitSet instance")
+            assertEquals(1, visibleRowCount(), "The new column filter must still narrow the rows")
         }
 
         @Test
