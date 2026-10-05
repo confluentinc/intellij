@@ -1,5 +1,7 @@
 package io.confluent.intellijplugin.consumer.data
 
+import com.intellij.util.concurrency.ThreadingAssertions
+import com.intellij.util.concurrency.annotations.RequiresEdt
 import java.util.BitSet
 
 /**
@@ -36,7 +38,9 @@ class FreeTextSlotIndex<T : Any>(
      * Set the active term and rebuild the bitset from the current elements. A blank term clears the
      * index (subsequent [bitSet] returns `null`).
      */
+    @RequiresEdt
     fun setTerm(term: String) {
+        ThreadingAssertions.assertEventDispatchThread()
         // Unchanged term: the bits are already current (rebuilt once, then maintained incrementally),
         // so a column-filter-only change must not trigger a wasteful rescan.
         if (term == this.term) return
@@ -57,18 +61,24 @@ class FreeTextSlotIndex<T : Any>(
     }
 
     /** Update [slot]'s bit for a freshly appended (or wrap-reused) element. No-op when inactive. */
+    @RequiresEdt
     fun onAppend(slot: Int, element: T) {
+        ThreadingAssertions.assertEventDispatchThread()
         val current = bits ?: return
         if (matcher(element, term)) current.set(slot) else current.clear(slot)
     }
 
     /** Clear the bit for a slot that has been freed for good. */
+    @RequiresEdt
     fun onEvict(slot: Int) {
+        ThreadingAssertions.assertEventDispatchThread()
         bits?.clear(slot)
     }
 
     /** Drop all live bits (the buffer was cleared) while keeping the term active. */
+    @RequiresEdt
     fun onClear() {
+        ThreadingAssertions.assertEventDispatchThread()
         bits?.clear()
     }
 }
