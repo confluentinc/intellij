@@ -1,6 +1,7 @@
 package io.confluent.intellijplugin.ccloud.auth
 
 import com.intellij.openapi.diagnostic.thisLogger
+import com.intellij.util.concurrency.AppExecutorUtil
 import com.sun.net.httpserver.HttpExchange
 import com.sun.net.httpserver.HttpServer
 import kotlinx.coroutines.CoroutineScope
@@ -28,6 +29,10 @@ class CCloudOAuthCallbackServer(
     private val onError: (String) -> Unit
 ) {
     private var server: HttpServer? = null
+
+    // Run handlers off the server's dispatcher thread: HttpServer.stop() joins the dispatcher, so a handler
+    // blocked in the token exchange would otherwise make stop() (and a re-sign-in on the EDT) wait on the network.
+    private val handlerExecutor = AppExecutorUtil.createBoundedApplicationPoolExecutor("CCloud OAuth Callback", 1)
 
     companion object {
         private val logger = thisLogger()
@@ -93,6 +98,7 @@ class CCloudOAuthCallbackServer(
                 createContext(CCloudOAuthConfig.CALLBACK_PATH) { exchange ->
                     handleCallback(exchange)
                 }
+                executor = handlerExecutor
                 start()
             }
             logger.info("OAuth callback server started on port ${CCloudOAuthConfig.CALLBACK_PORT}")
