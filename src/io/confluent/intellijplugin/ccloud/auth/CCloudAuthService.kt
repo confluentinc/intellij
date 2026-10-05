@@ -67,6 +67,7 @@ class CCloudAuthService(private val scope: CoroutineScope) : Disposable {
      * a fresh server so a double-click does not create a second server that fails to bind the fixed
      * callback port. Cleared when the flow ends (success or error).
      */
+    @Volatile
     internal var activeCallbackServer: CCloudOAuthCallbackServer? = null
 
     /**
@@ -75,6 +76,9 @@ class CCloudAuthService(private val scope: CoroutineScope) : Disposable {
      */
     internal var callbackServerFactory: (CCloudOAuthContext, (CCloudOAuthContext) -> Unit, (String) -> Unit) -> CCloudOAuthCallbackServer =
         { ctx, onSuccess, onError -> CCloudOAuthCallbackServer(ctx, onSuccess, onError) }
+
+    /** Opens the sign-in URL in the browser. Overridable in tests so they never launch a real browser. */
+    internal var browserLauncher: (String) -> Unit = { BrowserUtil.browse(it) }
 
     internal val authStateListeners = CopyOnWriteArrayList<AuthStateListener>()
 
@@ -107,20 +111,15 @@ class CCloudAuthService(private val scope: CoroutineScope) : Disposable {
         // Sign-in is idempotent: a previous attempt may still hold the fixed callback port (e.g. the
         // user clicked "Sign In" twice). Stop the prior callback server before starting a new one so
         // the new server can bind, rather than producing a port-in-use failure.
-        activeCallbackServer?.let { previous ->
-            if (previous.isRunning()) {
-                logger.info("Existing sign-in already in flight; stopping its callback server before retrying")
-                previous.stop()
-            }
-        }
-        activeCallbackServer = null
+        stopActiveCallbackServer()
 
         val oauthContext = CCloudOAuthContext()
 
-        val server = callbackServerFactory(
+        lateinit var server: CCloudOAuthCallbackServer
+        server = callbackServerFactory(
             oauthContext,
             { authenticatedContext ->
-                activeCallbackServer = null
+                clearActiveCallbackServer(server)
                 completeSignIn(authenticatedContext)
 
                 // Telemetry: identify user and track sign-in
@@ -139,14 +138,36 @@ class CCloudAuthService(private val scope: CoroutineScope) : Disposable {
                 notifySignedIn(authenticatedContext.getUserEmail())
             },
             { error ->
-                activeCallbackServer = null
+                clearActiveCallbackServer(server)
                 handleSignInError(error, invokedPlace)
             }
         )
 
         activeCallbackServer = server
         server.start()
-        BrowserUtil.browse(oauthContext.getSignInUri())
+        browserLauncher(oauthContext.getSignInUri())
+    }
+
+    /** Stop the in-flight callback server, if one is still running, and stop tracking it. */
+    private fun stopActiveCallbackServer() {
+        activeCallbackServer?.let { previous ->
+            if (previous.isRunning()) {
+                logger.info("Stopping in-flight sign-in callback server")
+                previous.stop()
+            }
+        }
+        activeCallbackServer = null
+    }
+
+    /**
+     * Clear [activeCallbackServer] only if it is still [finished]. A superseded server's late callback
+     * must not wipe the tracking of the newer server that replaced it.
+     */
+    @Synchronized
+    private fun clearActiveCallbackServer(finished: CCloudOAuthCallbackServer) {
+        if (activeCallbackServer === finished) {
+            activeCallbackServer = null
+        }
     }
 
     /**
@@ -315,8 +336,7 @@ class CCloudAuthService(private val scope: CoroutineScope) : Disposable {
     fun getContext(): CCloudOAuthContext? = context
 
     override fun dispose() {
-        activeCallbackServer?.stop()
-        activeCallbackServer = null
+        stopActiveCallbackServer()
         refreshBean?.stop()
         refreshBean = null
         context = null
