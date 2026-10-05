@@ -9,13 +9,17 @@ import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.assertThrows
+import org.mockito.kotlin.doAnswer
 import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.mock
+import java.net.BindException
 import java.net.HttpURLConnection
 import java.net.URI
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import javax.net.ssl.SSLHandshakeException
+import kotlin.concurrent.thread
+import kotlin.system.measureTimeMillis
 
 @TestApplication
 class CCloudOAuthCallbackServerTest {
@@ -348,6 +352,21 @@ class CCloudOAuthCallbackServerTest {
         }
 
         @Test
+        fun `start throws BindException when the port is already bound`() {
+            server.start()
+            var capturedError: String? = null
+            val contender = CCloudOAuthCallbackServer(
+                oauthContext = CCloudOAuthContext(),
+                onSuccess = {},
+                onError = { msg -> capturedError = msg }
+            )
+
+            assertThrows<BindException> { contender.start() }
+            assertNull(capturedError, "port-in-use is thrown, not reported via onError")
+            assertEquals(400, httpGet("error=test").first, "the original server must be unaffected")
+        }
+
+        @Test
         fun `onError callback is invoked when error parameter is present`() {
             var capturedError: String? = null
             val latch = CountDownLatch(1)
@@ -389,6 +408,32 @@ class CCloudOAuthCallbackServerTest {
                 assertTrue(successInvoked)
             } finally {
                 successServer.stop()
+            }
+        }
+
+        @Test
+        fun `stop does not wait for an in-flight token exchange`() {
+            val exchangeStarted = CountDownLatch(1)
+            val releaseExchange = CountDownLatch(1)
+            val mockContext = mock<CCloudOAuthContext> {
+                on { oauthState } doReturn "test-state"
+                onBlocking { createTokensFromAuthorizationCode("slow-code") } doAnswer {
+                    exchangeStarted.countDown()
+                    releaseExchange.await(10, TimeUnit.SECONDS)
+                    Result.failure<CCloudOAuthContext>(RuntimeException("released"))
+                }
+            }
+            val slowServer = CCloudOAuthCallbackServer(oauthContext = mockContext, onSuccess = {}, onError = {})
+            slowServer.start()
+            val request = thread { runCatching { httpGet("code=slow-code&state=test-state") } }
+
+            try {
+                assertTrue(exchangeStarted.await(5, TimeUnit.SECONDS), "token exchange should start")
+                val stopMillis = measureTimeMillis { slowServer.stop() }
+                assertTrue(stopMillis < 1_000, "stop() took ${stopMillis}ms; it must not wait for the exchange")
+            } finally {
+                releaseExchange.countDown()
+                request.join()
             }
         }
 
