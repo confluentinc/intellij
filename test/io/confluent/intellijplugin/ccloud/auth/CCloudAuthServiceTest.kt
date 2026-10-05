@@ -17,6 +17,7 @@ import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.any
+import org.mockito.kotlin.argThat
 import org.mockito.kotlin.doNothing
 import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.mock
@@ -524,6 +525,131 @@ class CCloudAuthServiceTest {
 
             verify(spyService).showSignOutNotification()
             verify(spyService, never()).showSessionExpiredNotification()
+        }
+    }
+
+    @Nested
+    @DisplayName("signIn idempotency / failure handling")
+    inner class SignInIdempotencyAndFailureHandling {
+
+        private lateinit var spyService: CCloudAuthService
+
+        @BeforeEach
+        fun setUpSpy() {
+            spyService = spy(CCloudAuthService(CoroutineScope(SupervisorJob())))
+            // Avoid opening a real browser / showing notifications during the test.
+            spyService.browserLauncher = {}
+            doNothing().whenever(spyService).showSignInFailureNotification(any())
+        }
+
+        @AfterEach
+        fun tearDownSpy() {
+            spyService.dispose()
+        }
+
+        @Test
+        fun `should stop a previous in-flight callback server before starting a new one`() {
+            val firstServer = mock<CCloudOAuthCallbackServer> {
+                on { isRunning() } doReturn true
+            }
+            val secondServer = mock<CCloudOAuthCallbackServer>()
+            val servers = mutableListOf(firstServer, secondServer)
+            spyService.callbackServerFactory = { _, _, _ -> servers.removeAt(0) }
+
+            spyService.signIn()
+            spyService.signIn()
+
+            // The first server must be torn down so the second can bind the fixed port.
+            verify(firstServer).stop()
+            verify(secondServer).start()
+            assertEquals(secondServer, spyService.activeCallbackServer)
+        }
+
+        @Test
+        fun `should not stop a previous server that is no longer running`() {
+            val firstServer = mock<CCloudOAuthCallbackServer> {
+                on { isRunning() } doReturn false
+            }
+            val secondServer = mock<CCloudOAuthCallbackServer>()
+            val servers = mutableListOf(firstServer, secondServer)
+            spyService.callbackServerFactory = { _, _, _ -> servers.removeAt(0) }
+
+            spyService.signIn()
+            spyService.signIn()
+
+            verify(firstServer, never()).stop()
+            verify(secondServer).start()
+        }
+
+        @Test
+        fun `should open the sign-in URL in the browser after starting the server`() {
+            val server = mock<CCloudOAuthCallbackServer>()
+            spyService.callbackServerFactory = { _, _, _ -> server }
+            val openedUrls = mutableListOf<String>()
+            spyService.browserLauncher = { openedUrls.add(it) }
+
+            spyService.signIn()
+
+            assertEquals(1, openedUrls.size)
+            assertTrue(openedUrls.single().startsWith(CCloudOAuthConfig.CCLOUD_OAUTH_AUTHORIZE_URI))
+        }
+
+        @Test
+        fun `should clear active server and show port-in-use notification on port-in-use failure`() {
+            val server = mock<CCloudOAuthCallbackServer>()
+            spyService.callbackServerFactory = { _, _, onError ->
+                // Simulate start() synchronously reporting the port-in-use condition.
+                whenever(server.start()).then {
+                    onError("${CCloudOAuthCallbackServer.PORT_IN_USE_ERROR_PREFIX} Address already in use: bind")
+                    null
+                }
+                server
+            }
+
+            spyService.signIn()
+            SwingUtilities.invokeAndWait {}
+
+            // In-flight tracking cleared once the (failed) flow ends.
+            assertNull(spyService.activeCallbackServer)
+            verify(spyService).showSignInFailureNotification(
+                argThat { contains(CCloudOAuthConfig.CALLBACK_PORT.toString()) }
+            )
+        }
+
+        @Test
+        fun `should not clear the active server when a superseded server reports a late failure`() {
+            val firstServer = mock<CCloudOAuthCallbackServer> {
+                on { isRunning() } doReturn true
+            }
+            val secondServer = mock<CCloudOAuthCallbackServer>()
+            val servers = mutableListOf(firstServer, secondServer)
+            val errorCallbacks = mutableListOf<(String) -> Unit>()
+            spyService.callbackServerFactory = { _, _, onError ->
+                errorCallbacks.add(onError)
+                servers.removeAt(0)
+            }
+
+            spyService.signIn()
+            spyService.signIn()
+            // The first (superseded) server's callback fires after the second sign-in began.
+            errorCallbacks.first()("${CCloudOAuthCallbackServer.PORT_IN_USE_ERROR_PREFIX} late")
+
+            assertEquals(secondServer, spyService.activeCallbackServer)
+        }
+
+        @Test
+        fun `should show actionable port-in-use notification mentioning the callback port`() {
+            // A port-in-use failure is logged at warn (not error), so it does not trip the
+            // test logger and would not be reported as a Sentry crash.
+            spyService.handleSignInError(
+                "${CCloudOAuthCallbackServer.PORT_IN_USE_ERROR_PREFIX} Address already in use: bind",
+                null
+            )
+            SwingUtilities.invokeAndWait {}
+
+            verify(spyService).showSignInFailureNotification(
+                argThat { contains(CCloudOAuthConfig.CALLBACK_PORT.toString()) }
+            )
         }
     }
 
