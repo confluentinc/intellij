@@ -147,7 +147,17 @@ abstract class ConnectionSettingsBase : PersistentStateComponent<ConnectionPersi
                 for (prop in (currentClazz as? Class<ConnectionData>)?.kotlin?.declaredMemberProperties
                     ?: emptyList()) {
                     if (shouldSerialize(prop)) prop.get(conn)?.let {
-                        ext.extended[prop.name] = encode64(it)
+                        try {
+                            ext.extended[prop.name] = encode64(it)
+                        } catch (e: Exception) {
+                            // Scoped to one property so a single unserializable value cannot abort
+                            // the whole getState(). Mirrors the defensive read path in unpackData.
+                            logger.warn("Skipping unserializable property '${prop.name}' on ${clazz.name}", e)
+                        } catch (e: LinkageError) {
+                            // A value's class graph may reference types absent in this IDE flavor,
+                            // making ObjectOutputStream introspection throw NoClassDefFoundError.
+                            logger.warn("Skipping unserializable property '${prop.name}' on ${clazz.name}", e)
+                        }
                     }
                 }
                 currentClazz = currentClazz.superclass
