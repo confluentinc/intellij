@@ -1,11 +1,16 @@
 package io.confluent.intellijplugin.consumer.data
 
+import com.intellij.openapi.application.ApplicationManager
+import com.intellij.testFramework.junit5.TestApplication
+import io.confluent.intellijplugin.common.editor.ListTableModel
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertSame
 import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import java.util.BitSet
+import javax.swing.SwingUtilities
 
 class FreeTextSlotIndexTest {
 
@@ -106,5 +111,69 @@ class FreeTextSlotIndexTest {
         assertEquals(setOf(0), index.bitSet().setBits())
         index.setTerm("beta")
         assertEquals(setOf(1), index.bitSet().setBits())
+    }
+
+    @Nested
+    @TestApplication
+    inner class WrapIntegration {
+        // Restores the coverage the deleted SearchBitSetBuilderTest's "bits use slot indices not
+        // insertion order after wrap" test gave against a real CircularBuffer, now through the
+        // production wiring (ListTableModel.slotForRow + flushPendingAdds' slot-reuse handling)
+        // that replaced it, so a regression in that plumbing fails a small, fast test instead of
+        // only showing up once a live buffer actually wraps at scale.
+        private fun wire(capacity: Int): Pair<ListTableModel<String>, FreeTextSlotIndex<String>> {
+            lateinit var index: FreeTextSlotIndex<String>
+            val model = ListTableModel(
+                capacity = capacity,
+                columnNames = listOf("c"),
+                onSlotChange = { slot, next ->
+                    if (next != null) index.onAppend(slot, next) else index.onEvict(slot)
+                },
+                columnMapper = { v: String, _: Int -> v },
+            )
+            index = FreeTextSlotIndex(
+                capacity = capacity,
+                matcher = ::matcher,
+                slotElements = {
+                    (0 until model.rowCount).asSequence()
+                        .mapNotNull { row -> model.getValueAt(row)?.let { model.slotForRow(row) to it } }
+                },
+            )
+            return model to index
+        }
+
+        @Test
+        fun `rescan after a real buffer wrap reports the match at its live slot, not insertion order`() {
+            val (model, index) = wire(capacity = 3)
+
+            // Two batches so the buffer actually wraps (a single oversized batch is trimmed instead).
+            model.addBatch(listOf("beta", "gamma", "alpha"))
+            ApplicationManager.getApplication().invokeAndWait { }
+            model.addBatch(listOf("foo"))
+            ApplicationManager.getApplication().invokeAndWait { }
+
+            SwingUtilities.invokeAndWait { index.setTerm("foo") }
+
+            // "foo" evicts "beta" (the head) and reuses its slot (0). The match must be reported at
+            // that live slot, not at row 2 (its insertion-order position among the live rows).
+            assertEquals(setOf(0), index.bitSet().setBits())
+        }
+
+        @Test
+        fun `live append through a wrap updates the correct slot without a rescan`() {
+            val (model, index) = wire(capacity = 3)
+
+            model.addBatch(listOf("beta", "gamma", "alpha"))
+            ApplicationManager.getApplication().invokeAndWait { }
+            SwingUtilities.invokeAndWait { index.setTerm("foo") }
+            assertTrue(index.bitSet().setBits().isEmpty())
+
+            // Wrap: appending "foo" evicts "beta" (the head) and reuses its slot via the live
+            // onAppend hook (flushPendingAdds suppresses the pure-eviction event on slot reuse).
+            model.addBatch(listOf("foo"))
+            ApplicationManager.getApplication().invokeAndWait { }
+
+            assertEquals(setOf(0), index.bitSet().setBits())
+        }
     }
 }
