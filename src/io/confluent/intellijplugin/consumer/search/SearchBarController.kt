@@ -25,28 +25,24 @@ import javax.swing.table.TableRowSorter
 import org.jetbrains.annotations.TestOnly
 
 /**
- * Owns the global search bar and unifies its filter with the per-column filter editors.
+ * Owns the global search bar and keeps it in sync with the per-column filter editors.
  *
- * Debounces input via [Alarm] on the Swing thread (200ms) and applies a composed [RowFilter]
- * to the table's [TableRowSorter]. Free-text matching is delegated to [freeTextIndex], an
- * incrementally-maintained slot-keyed [BitSet]: the term-change rescan is one-time, and the bits
- * stay live as records stream in, so per-row visibility is O(1) at repaint time. Per-column filters
- * use case-insensitive [String.contains] on the cell's string value (matched against the rendered
- * form via [cellAsDisplayedString], so e.g. typing `timestamp:2026-05` hits the formatted date).
+ * Input is debounced (200ms) and applied as a composed [RowFilter] on the table's [TableRowSorter].
+ * Free-text matching uses [freeTextIndex], so each row check is a single bit lookup.
+ * Per-column filters do a case-insensitive substring match on the cell text as displayed,
+ * so `timestamp:2026-05` matches the formatted date.
  *
- * Sync is bidirectional:
- *  - typing `key:foo` in the search bar populates the Key column editor
- *  - typing in a column editor rebuilds the search bar text to reflect current state
- * A [syncing] flag prevents the two from triggering each other in a loop.
+ * Sync works both ways:
+ *  - typing `key:foo` in the search bar fills the Key column editor
+ *  - typing in a column editor rewrites the search bar text
+ * [syncing] stops the two updates from triggering each other.
  */
 class SearchBarController(
     parentDisposable: Disposable,
     private val table: JTable,
     private val filterHeader: TableFilterHeader,
     isProducer: Boolean,
-    // Star-projected: the controller only reads the live bitset and sets the term, never feeds
-    // elements in (the owning KafkaRecordsOutput drives onAppend/onEvict), so the element type T
-    // is irrelevant here.
+    // Star-projected: this class only sets the term and reads the bitset, so the element type is unused.
     private val freeTextIndex: FreeTextSlotIndex<*>,
 ) : Disposable {
 
@@ -68,14 +64,13 @@ class SearchBarController(
     private val unsubscribeRecreated: () -> Unit
 
     init {
+        require(table.model is ListTableModel<*>) { "SearchBarController requires a ListTableModel" }
         Disposer.register(parentDisposable, this)
         searchField.addDocumentListener(searchFieldListener)
         attachEditorListeners()
         unsubscribeRecreated = filterHeader.addControllerRecreatedListener {
             attachEditorListeners()
-            // New editors start blank; repopulate from the current search text so they
-            // reflect active `col:value` tokens instead of appearing empty until the user
-            // types again.
+            // Re-populate fresh editors from existing search text; for edge cases e.g. theme change
             if (searchField.text.isNotEmpty()) onSearchBarChanged()
         }
     }
@@ -104,8 +99,7 @@ class SearchBarController(
 
     @TestOnly
     internal fun waitForPendingInTest() {
-        // The debounce alarm runs the filter rebuild synchronously on the EDT, so once its queued
-        // request has executed the composed RowFilter is fully applied — no further round-trip.
+        // The alarm runs the filter rebuild on the EDT, so the filter is applied once its request has run.
         alarm.waitForAllExecuted(1, TimeUnit.SECONDS)
     }
 
@@ -161,9 +155,7 @@ class SearchBarController(
         if (parsed == lastApplied) return
         lastApplied = parsed
 
-        // One-time rescan when the term changes; the index keeps the bits live as records stream in.
-        // The rescan runs on the EDT (debounced via [alarm]); steady-state streaming never rescans,
-        // so this is the only term-bound EDT work — acceptable at the current record cap.
+        // Rescans the buffer on the EDT, but only when the term changes. Streaming never rescans.
         freeTextIndex.setTerm(parsed.freeText)
 
         val filters = mutableListOf<RowFilter<TableModel, Int>>()
@@ -184,16 +176,11 @@ class SearchBarController(
         table.parent?.repaint()
     }
 
-    /**
-     * Slot-keyed RowFilter: translates the row-typed entry identifier to its current buffer slot
-     * and consults [freeTextIndex]'s live BitSet. The translation comes from the table model — when
-     * the model is a `ListTableModel`, it surfaces `slotForRow`; otherwise we fall back to the row
-     * index (correct for non-circular models like `DefaultTableModel`).
-     */
+    // Includes a row if its buffer slot (from `ListTableModel.slotForRow`) is set in [bits].
     private fun slotBitSetFilter(bits: BitSet): RowFilter<TableModel, Int> =
         object : RowFilter<TableModel, Int>() {
             override fun include(entry: Entry<out TableModel, out Int>): Boolean {
-                val slot = slotForRow(table.model, entry.identifier)
+                val slot = (table.model as ListTableModel<*>).slotForRow(entry.identifier)
                 return bits[slot]
             }
         }
@@ -219,16 +206,9 @@ class SearchBarController(
             put("partition", 4)
             put(if (isProducer) "duration" else "offset", 5)
         }
-
-        private fun slotForRow(model: TableModel, row: Int): Int =
-            (model as? ListTableModel<*>)?.slotForRow(row) ?: row
     }
 }
 
-// Renders a cell as the user sees it, not Object.toString(). The Timestamp column is the
-// load-bearing case: Date.toString() is "Fri May 01 ... 2026" but the renderer shows
-// "2026-05-01 14:23:45", so without this, typing "-" or "05" against the visible date drops every
-// row. Shared by the per-column RowFilter and the free-text matcher in `KafkaRecordsOutput` so both
-// match the same rendered surface.
+// Renders a cell as displayed. Shared by the per-column filter and the free-text matcher in `KafkaRecordsOutput`.
 internal fun cellDisplayString(columnClass: Class<*>, value: Any?): String =
     if (columnClass == Date::class.java && value is Date) DateRenderer.df.format(value) else value?.toString() ?: ""

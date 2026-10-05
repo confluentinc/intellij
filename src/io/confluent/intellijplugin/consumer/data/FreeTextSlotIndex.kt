@@ -5,23 +5,16 @@ import com.intellij.util.concurrency.annotations.RequiresEdt
 import java.util.BitSet
 
 /**
- * Incrementally-maintained, slot-keyed free-text search index.
+ * Free-text search index: one bit per buffer slot, set when that record matches the search term.
  *
- * Mirrors the Confluent Extension for VS Code's `Stream` search design: a single full scan when the
- * search term changes, then O(1) per-record maintenance as the stream grows. [onAppend] / [onEvict]
- * flip a single slot bit so the active filter stays live during consumption instead of going stale
- * between term changes.
+ * The whole buffer is scanned only when the term changes; after that, [onAppend] and [onEvict]
+ * update a single bit per record. Bits are keyed by slot rather than row so they stay valid when
+ * the [CircularBuffer] wraps.
  *
- * Slot-keyed (not row-keyed) so the bits survive [CircularBuffer] wrap: a record's match state is
- * tied to its physical buffer slot, which is stable until the slot is overwritten.
+ * **Threading:** EDT only, like [ConsumerRecordIndex].
  *
- * **Threading:** all access must be serialized on a single thread (the EDT, in the message-viewer
- * wiring), matching [ConsumerRecordIndex]. The append/evict hooks run inside the table model's
- * slot-change dispatch, which is already EDT-confined.
- *
- * @param matcher decides whether an element matches the active term; called once per record on
- *   append and once per live record on [setTerm].
- * @param slotElements supplies the current `(slot, element)` pairs for a full rescan on [setTerm].
+ * @param matcher whether an element matches the term.
+ * @param slotElements the current `(slot, element)` pairs, used to rescan in [setTerm].
  */
 class FreeTextSlotIndex<T : Any>(
     private val capacity: Int,
@@ -41,8 +34,7 @@ class FreeTextSlotIndex<T : Any>(
     @RequiresEdt
     fun setTerm(term: String) {
         ThreadingAssertions.assertEventDispatchThread()
-        // Unchanged term: the bits are already current (rebuilt once, then maintained incrementally),
-        // so a column-filter-only change must not trigger a wasteful rescan.
+        // Unchanged term: the bits are already current
         if (term == this.term) return
         if (term.isEmpty()) {
             this.term = ""
@@ -52,8 +44,7 @@ class FreeTextSlotIndex<T : Any>(
         this.term = term
         val rebuilt = BitSet(capacity)
         // The rescan covers only flushed elements. Records still in the model's pending-add queue are
-        // intentionally skipped here — they set their own bit via [onAppend] when they flush, so a
-        // term change racing an in-flight batch loses nothing.
+        // intentionally skipped since they set their own bit via [onAppend] when they flush
         for ((slot, element) in slotElements()) {
             if (matcher(element, term)) rebuilt.set(slot)
         }
