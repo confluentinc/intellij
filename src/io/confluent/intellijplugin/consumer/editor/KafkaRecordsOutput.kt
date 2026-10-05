@@ -51,10 +51,8 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
 
     internal val recordIndex: ConsumerRecordIndex = ConsumerRecordIndex(capacity = BUFFER_CAPACITY)
 
-    // recordMatchesTerm iterates this list's indices to drive free-text search across every column,
-    // so it must stay in lockstep with outputModel's columnNames/columnMapper (added/removed/reordered
-    // columns need a matching entry here too) or free-text search will silently stop covering a column
-    // while column-specific search (which reads the live column count via entry.model) keeps working.
+    // Maintainers: keep this list in sync with outputModel's columns.
+    // A column missing here is silently skipped by free-text search.
     private val columnClassList: List<Class<*>> = listOf(
         String::class.java,
         Date::class.java,
@@ -79,9 +77,9 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
     }
 
     /**
-     * Free-text search bits, kept live as records stream in via [onSlotChange] (mirrors the VS Code
-     * extension's per-insert `Stream` search). The one-time rescan on term change walks the model's
-     * current rows; steady-state cost is one match per appended record.
+     * Free-text search bits, kept live as records stream in via [onSlotChange]
+     * The one-time rescan on term change walks the model's current rows;
+     * steady-state cost is one match per appended record.
      */
     internal val freeTextIndex: FreeTextSlotIndex<KafkaRecord> = FreeTextSlotIndex(
         capacity = BUFFER_CAPACITY,
@@ -94,7 +92,7 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
     )
 
     /** Column value as shown to the user; shared by the table model and free-text matching. */
-    private fun columnValue(data: KafkaRecord, index: Int): Any? = when (index) {
+    private fun columnValue(data: KafkaRecord, index: Int): Any = when (index) {
         0 -> data.topic
         1 -> Date(data.timestamp)
         2 -> data.keyText ?: KafkaMessagesBundle.message("error.output.row.key")
@@ -104,8 +102,7 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
         else -> ""
     }
 
-    // Free-text matches any column's rendered string (same surface as the per-column filter), so a
-    // search hits the formatted timestamp the user sees rather than Date.toString().
+    // Free-text matches any column's rendered string, i.e. formatted timestamp not Date.toString().
     private fun recordMatchesTerm(record: KafkaRecord, term: String): Boolean =
         columnClassList.indices.any { index ->
             cellDisplayString(columnClassList[index], columnValue(record, index)).contains(term, ignoreCase = true)
