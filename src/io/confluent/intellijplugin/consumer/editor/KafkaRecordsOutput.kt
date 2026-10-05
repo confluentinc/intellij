@@ -51,6 +51,10 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
 
     internal val recordIndex: ConsumerRecordIndex = ConsumerRecordIndex(capacity = BUFFER_CAPACITY)
 
+    // recordMatchesTerm iterates this list's indices to drive free-text search across every column,
+    // so it must stay in lockstep with outputModel's columnNames/columnMapper (added/removed/reordered
+    // columns need a matching entry here too) or free-text search will silently stop covering a column
+    // while column-specific search (which reads the live column count via entry.model) keeps working.
     private val columnClassList: List<Class<*>> = listOf(
         String::class.java,
         Date::class.java,
