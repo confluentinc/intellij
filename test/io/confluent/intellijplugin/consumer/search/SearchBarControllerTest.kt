@@ -129,13 +129,13 @@ class SearchBarControllerTest {
             SwingUtilities.invokeAndWait { output.replace(records) }
         }
 
-        /** Block until every EDT event queued so far (e.g. the model's invokeLater flush) has run. */
+        /** Block until queued EDT events (e.g. the model's flush) have run. */
         private fun drainEdt() = SwingUtilities.invokeAndWait { }
 
-        /** Stream a record through the live append path and drain the model's scheduled flush. */
+        /** Stream a record through the live append path and wait for the flush. */
         private fun appendAndFlush(record: KafkaRecord) {
             SwingUtilities.invokeAndWait { output.outputModel.addBatch(listOf(record)) }
-            // Drain so the flush runs and the RowSorter re-evaluates the inserted row against the filter.
+            // The sorter re-evaluates the inserted row only after the flush runs.
             drainEdt()
         }
 
@@ -298,7 +298,7 @@ class SearchBarControllerTest {
             setSearchAndFlush("plain")
             assertEquals(0, visibleRowCount(), "Nothing matches the term yet")
 
-            // A record matching the active term arrives during consumption (not a term change).
+            // The term is unchanged; only a new row arrives.
             appendAndFlush(record("topicB", "k3", "plain text", 1, 300L))
 
             assertEquals(
@@ -310,8 +310,7 @@ class SearchBarControllerTest {
 
         @Test
         fun `free-text does not match across a column boundary`() {
-            // key="foo", value="bar": a needle spanning the two columns ("oo b") must not match,
-            // because free-text is tested per rendered column, never against a concatenation.
+            // Free-text is matched per column, so "oo b" must not span key="foo" and value="bar".
             loadRows(listOf(record("topicA", "foo", "bar", 0, 100L)))
             setSearchAndFlush("oo b")
             assertEquals(0, visibleRowCount(), "Needle spanning two columns must not match")
@@ -356,13 +355,11 @@ class SearchBarControllerTest {
                     record("topicB", "k2", "plain", 0, 200L),
                 )
             )
-            // First search builds the BitSet for "plain".
             setSearchAndFlush("plain")
             val firstBits = output.freeTextIndex.bitSet()
             assertNotNull(firstBits)
 
-            // Same free-text plus a new column filter — parsed != lastApplied so applyUnifiedFilter
-            // runs again, but the unchanged term must not trigger a rescan (same BitSet instance).
+            // Same free-text plus a column filter: the filter reruns but the term is unchanged, so no rescan.
             setSearchAndFlush("topic:topicA plain")
             val secondBits = output.freeTextIndex.bitSet()
 

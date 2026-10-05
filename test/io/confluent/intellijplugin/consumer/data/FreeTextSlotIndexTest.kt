@@ -13,10 +13,10 @@ import javax.swing.SwingUtilities
 
 class FreeTextSlotIndexTest {
 
-    /** Case-insensitive substring matcher, mirroring the production free-text contains check. */
+    /** Case-insensitive substring match. */
     private fun matcher(element: String, term: String): Boolean = element.contains(term, ignoreCase = true)
 
-    /** Builds an index whose rescan source is the supplied mutable (slot -> element) map. */
+    /** Builds an index that rescans from [source] (slot -> element). */
     private fun indexOver(source: Map<Int, String>): FreeTextSlotIndex<String> =
         FreeTextSlotIndex(
             capacity = 8,
@@ -26,11 +26,10 @@ class FreeTextSlotIndexTest {
 
     private fun BitSet?.setBits(): Set<Int> = this?.stream()?.toArray()?.toSet() ?: emptySet()
 
-    // setTerm/onAppend/onEvict/onClear assert they run on the EDT, so every mutating call below is
-    // driven through the real Swing dispatch thread rather than the test's own thread.
+    // The index's mutating methods assert EDT access.
     private fun onEdt(block: () -> Unit) = SwingUtilities.invokeAndWait(block)
 
-    /** Block until every EDT event queued so far (e.g. the model's invokeLater flush) has run. */
+    /** Block until queued EDT events (e.g. the model's flush) have run. */
     private fun drainEdt() = SwingUtilities.invokeAndWait { }
 
     @Test
@@ -67,7 +66,7 @@ class FreeTextSlotIndexTest {
 
     @Test
     fun `onAppend clears a reused slot when the new element no longer matches`() {
-        // Slot 3 matched under the old occupant; after wrap a non-matching record reuses it.
+        // A non-matching record reuses slot 3, which matched under its previous occupant.
         val index = indexOver(mapOf(3 to "foobar"))
         onEdt { index.setTerm("foo") }
         assertEquals(setOf(3), index.bitSet().setBits())
@@ -99,7 +98,7 @@ class FreeTextSlotIndexTest {
             index.onClear()
         }
         assertTrue(index.bitSet().setBits().isEmpty())
-        // Term still active: a fresh matching append after clear is reflected.
+        // The term is still active, so a matching append after clear is reflected.
         onEdt { index.onAppend(slot = 1, element = "foo") }
         assertEquals(setOf(1), index.bitSet().setBits())
     }
@@ -109,7 +108,7 @@ class FreeTextSlotIndexTest {
         val index = indexOver(mapOf(0 to "foo"))
         onEdt { index.setTerm("foo") }
         val first = index.bitSet()
-        // A column-filter-only change re-invokes setTerm with the same term; it must not rebuild.
+        // Same term again: must not rebuild.
         onEdt { index.setTerm("foo") }
         assertSame(first, index.bitSet(), "Same term must reuse the incrementally-maintained bitset")
     }
@@ -126,11 +125,7 @@ class FreeTextSlotIndexTest {
     @Nested
     @TestApplication
     inner class WrapIntegration {
-        // Restores the coverage the deleted SearchBitSetBuilderTest's "bits use slot indices not
-        // insertion order after wrap" test gave against a real CircularBuffer, now through the
-        // production wiring (ListTableModel.slotForRow + flushPendingAdds' slot-reuse handling)
-        // that replaced it, so a regression in that plumbing fails a small, fast test instead of
-        // only showing up once a live buffer actually wraps at scale.
+        // Wires the index to a real ListTableModel, as KafkaRecordsOutput does.
         private fun wire(capacity: Int): Pair<ListTableModel<String>, FreeTextSlotIndex<String>> {
             lateinit var index: FreeTextSlotIndex<String>
             val model = ListTableModel(
@@ -156,7 +151,7 @@ class FreeTextSlotIndexTest {
         fun `rescan after a real buffer wrap reports the match at its live slot, not insertion order`() {
             val (model, index) = wire(capacity = 3)
 
-            // Two batches so the buffer actually wraps (a single oversized batch is trimmed instead).
+            // Two batches: a single oversized batch is trimmed instead of wrapping.
             model.addBatch(listOf("beta", "gamma", "alpha"))
             drainEdt()
             model.addBatch(listOf("foo"))
@@ -164,8 +159,7 @@ class FreeTextSlotIndexTest {
 
             SwingUtilities.invokeAndWait { index.setTerm("foo") }
 
-            // "foo" evicts "beta" (the head) and reuses its slot (0). The match must be reported at
-            // that live slot, not at row 2 (its insertion-order position among the live rows).
+            // "foo" reuses the evicted head's slot (0), not its row position (2).
             assertEquals(setOf(0), index.bitSet().setBits())
         }
 
@@ -178,8 +172,7 @@ class FreeTextSlotIndexTest {
             SwingUtilities.invokeAndWait { index.setTerm("foo") }
             assertTrue(index.bitSet().setBits().isEmpty())
 
-            // Wrap: appending "foo" evicts "beta" (the head) and reuses its slot via the live
-            // onAppend hook (flushPendingAdds suppresses the pure-eviction event on slot reuse).
+            // Appending "foo" evicts "beta" and reuses slot 0 via onAppend.
             model.addBatch(listOf("foo"))
             drainEdt()
 
