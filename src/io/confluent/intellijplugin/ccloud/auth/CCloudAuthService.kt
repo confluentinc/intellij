@@ -105,7 +105,7 @@ class CCloudAuthService(private val scope: CoroutineScope) : Disposable {
         server = createCallbackServer(
             oauthContext,
             { authenticatedContext ->
-                clearActiveCallbackServer(server)
+                if (!finishIfActive(server)) return@createCallbackServer
                 completeSignIn(authenticatedContext)
 
                 // Telemetry: identify user and track sign-in
@@ -124,7 +124,7 @@ class CCloudAuthService(private val scope: CoroutineScope) : Disposable {
                 notifySignedIn(authenticatedContext.getUserEmail())
             },
             { error ->
-                clearActiveCallbackServer(server)
+                if (!finishIfActive(server)) return@createCallbackServer
                 logger.error("Sign-in failed: $error")
                 reportSignInFailure(error, error, invokedPlace)
             }
@@ -145,6 +145,11 @@ class CCloudAuthService(private val scope: CoroutineScope) : Disposable {
                 invokedPlace = invokedPlace
             )
             return
+        } catch (e: Exception) {
+            val error = "Failed to start callback server: ${e.message}"
+            logger.error(error, e)
+            reportSignInFailure(error, error, invokedPlace)
+            return
         }
         activeCallbackServer = server
         openBrowser(oauthContext.getSignInUri())
@@ -163,12 +168,18 @@ class CCloudAuthService(private val scope: CoroutineScope) : Disposable {
         activeCallbackServer = null
     }
 
-    /** Clear [activeCallbackServer] only if it is still [finished], so a superseded server's late callback is ignored. */
+    /**
+     * Stop tracking [server] if it is still the active attempt. Returns false for a superseded server, whose
+     * late result must be ignored so it can't sign in (leaking a second refresh loop) or report a stale failure.
+     */
     @Synchronized
-    private fun clearActiveCallbackServer(finished: CCloudOAuthCallbackServer) {
-        if (activeCallbackServer === finished) {
-            activeCallbackServer = null
+    private fun finishIfActive(server: CCloudOAuthCallbackServer): Boolean {
+        if (activeCallbackServer !== server) {
+            logger.info("Ignoring result from superseded sign-in attempt")
+            return false
         }
+        activeCallbackServer = null
+        return true
     }
 
     private fun reportSignInFailure(errorType: String, notificationText: String, invokedPlace: InvokedPlace?) {

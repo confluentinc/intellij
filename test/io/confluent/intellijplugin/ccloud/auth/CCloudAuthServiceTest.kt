@@ -537,6 +537,7 @@ class CCloudAuthServiceTest {
     inner class SignInIdempotencyAndFailureHandling {
 
         private lateinit var spyService: CCloudAuthService
+        private val successCallbacks = mutableListOf<(CCloudOAuthContext) -> Unit>()
         private val errorCallbacks = mutableListOf<(String) -> Unit>()
 
         @BeforeEach
@@ -551,10 +552,11 @@ class CCloudAuthServiceTest {
             spyService.dispose()
         }
 
-        /** Make successive [CCloudAuthService.signIn] calls create [servers] in order, capturing each onError. */
+        /** Make successive [CCloudAuthService.signIn] calls create [servers] in order, capturing their callbacks. */
         private fun stubServers(vararg servers: CCloudOAuthCallbackServer) {
             val queue = servers.toMutableList()
             doAnswer {
+                successCallbacks.add(it.getArgument(1))
                 errorCallbacks.add(it.getArgument(2))
                 queue.removeAt(0)
             }.whenever(spyService).createCallbackServer(any(), any(), any())
@@ -603,16 +605,47 @@ class CCloudAuthServiceTest {
         }
 
         @Test
-        fun `should not clear the active server when a superseded server reports a late failure`() {
+        fun `should ignore a late failure from a superseded server`() {
             val secondServer = mock<CCloudOAuthCallbackServer>()
             stubServers(mock(), secondServer)
 
             spyService.signIn()
             spyService.signIn()
-            // The late error is logged at error level; swallow it so the test logger doesn't fail the test.
-            LoggedErrorProcessor.executeAndReturnLoggedError { errorCallbacks.first()("late") }
+            errorCallbacks.first()("late")
+            SwingUtilities.invokeAndWait {}
 
             assertEquals(secondServer, spyService.activeCallbackServer)
+            verify(spyService, never()).showSignInFailureNotification(any())
+        }
+
+        @Test
+        fun `should ignore a late success from a superseded server`() {
+            val secondServer = mock<CCloudOAuthCallbackServer>()
+            stubServers(mock(), secondServer)
+
+            spyService.signIn()
+            spyService.signIn()
+            successCallbacks.first()(createMockAuthenticatedContext())
+
+            assertNull(spyService.getContext(), "a superseded attempt must not sign in")
+            assertNull(spyService.refreshBean)
+            assertEquals(secondServer, spyService.activeCallbackServer)
+        }
+
+        @Test
+        fun `should report failure and not open the browser when the server fails to start`() {
+            val server = mock<CCloudOAuthCallbackServer> {
+                on { start() } doThrow IllegalStateException("boom")
+            }
+            stubServers(server)
+
+            // Unexpected startup failures are logged at error; swallow it so the test logger doesn't fail the test.
+            LoggedErrorProcessor.executeAndReturnLoggedError { spyService.signIn() }
+            SwingUtilities.invokeAndWait {}
+
+            assertNull(spyService.activeCallbackServer)
+            verify(spyService, never()).openBrowser(any())
+            verify(spyService).showSignInFailureNotification(argThat { contains("boom") })
         }
     }
 

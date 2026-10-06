@@ -82,6 +82,8 @@ class CCloudOAuthCallbackServer(
      * Start the callback server on the configured port.
      * Server will automatically stop after handling one callback.
      *
+     * Startup failures are thrown to the caller, not reported via `onError`.
+     *
      * @throws BindException if the callback port is already in use
      */
     fun start() {
@@ -90,24 +92,17 @@ class CCloudOAuthCallbackServer(
             return
         }
 
-        try {
-            server = HttpServer.create(
-                InetSocketAddress(InetAddress.getLoopbackAddress(), CCloudOAuthConfig.CALLBACK_PORT),
-                0
-            ).apply {
-                createContext(CCloudOAuthConfig.CALLBACK_PATH) { exchange ->
-                    handleCallback(exchange)
-                }
-                executor = handlerExecutor
-                start()
+        server = HttpServer.create(
+            InetSocketAddress(InetAddress.getLoopbackAddress(), CCloudOAuthConfig.CALLBACK_PORT),
+            0
+        ).apply {
+            createContext(CCloudOAuthConfig.CALLBACK_PATH) { exchange ->
+                handleCallback(exchange)
             }
-            logger.info("OAuth callback server started on port ${CCloudOAuthConfig.CALLBACK_PORT}")
-        } catch (e: BindException) {
-            throw e
-        } catch (e: Exception) {
-            logger.error("Failed to start OAuth callback server", e)
-            onError("Failed to start callback server: ${e.message}")
+            executor = handlerExecutor
+            start()
         }
+        logger.info("OAuth callback server started on port ${CCloudOAuthConfig.CALLBACK_PORT}")
     }
 
     /**
