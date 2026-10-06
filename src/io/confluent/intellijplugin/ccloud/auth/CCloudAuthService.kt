@@ -18,6 +18,7 @@ import io.confluent.intellijplugin.util.KafkaMessagesBundle
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import java.net.BindException
 import java.time.Instant
 import java.util.concurrent.CopyOnWriteArrayList
 
@@ -62,6 +63,10 @@ class CCloudAuthService(private val scope: CoroutineScope) : Disposable {
     internal var context: CCloudOAuthContext? = null
     internal var refreshBean: CCloudTokenRefreshBean? = null
 
+    /** Callback server for the in-flight sign-in, if any; cleared when that flow ends. */
+    @Volatile
+    internal var activeCallbackServer: CCloudOAuthCallbackServer? = null
+
     internal val authStateListeners = CopyOnWriteArrayList<AuthStateListener>()
 
     /**
@@ -86,14 +91,21 @@ class CCloudAuthService(private val scope: CoroutineScope) : Disposable {
      *
      * @param invokedPlace telemetry identifier for where sign-in was triggered from
      */
+    @Synchronized
     fun signIn(invokedPlace: InvokedPlace? = null) {
         logger.info("Starting OAuth sign-in flow")
 
+        // A previous attempt (e.g. a double-click) may still hold the fixed callback port; release it
+        // so this attempt can bind.
+        stopActiveCallbackServer()
+
         val oauthContext = CCloudOAuthContext()
 
-        val server = CCloudOAuthCallbackServer(
-            oauthContext = oauthContext,
-            onSuccess = { authenticatedContext ->
+        lateinit var server: CCloudOAuthCallbackServer
+        server = createCallbackServer(
+            oauthContext,
+            { authenticatedContext ->
+                if (!finishIfActive(server)) return@createCallbackServer
                 completeSignIn(authenticatedContext)
 
                 // Telemetry: identify user and track sign-in
@@ -111,18 +123,70 @@ class CCloudAuthService(private val scope: CoroutineScope) : Disposable {
 
                 notifySignedIn(authenticatedContext.getUserEmail())
             },
-            onError = { error ->
+            { error ->
+                if (!finishIfActive(server)) return@createCallbackServer
                 logger.error("Sign-in failed: $error")
-                logUsage(CCloudAuthenticationEvent.AuthenticationFailed(errorType = error, invokedPlace = invokedPlace?.value))
-
-                ApplicationManager.getApplication().invokeLater({
-                    showSignInFailureNotification(error)
-                }, ModalityState.any())
+                reportSignInFailure(error, error, invokedPlace)
             }
         )
 
-        server.start()
-        BrowserUtil.browse(oauthContext.getSignInUri())
+        try {
+            server.start()
+        } catch (e: BindException) {
+            // Expected and user-recoverable (something else holds the port), so warn rather than
+            // error to keep it out of Sentry.
+            logger.warn("OAuth callback port ${CCloudOAuthConfig.CALLBACK_PORT} already in use", e)
+            reportSignInFailure(
+                errorType = "Callback port in use: ${e.message}",
+                notificationText = KafkaMessagesBundle.message(
+                    "confluent.cloud.notification.sign.in.failure.port.in.use",
+                    CCloudOAuthConfig.CALLBACK_PORT.toString()
+                ),
+                invokedPlace = invokedPlace
+            )
+            return
+        } catch (e: Exception) {
+            val error = "Failed to start callback server: ${e.message}"
+            logger.error(error, e)
+            reportSignInFailure(error, error, invokedPlace)
+            return
+        }
+        activeCallbackServer = server
+        openBrowser(oauthContext.getSignInUri())
+    }
+
+    internal fun createCallbackServer(
+        oauthContext: CCloudOAuthContext,
+        onSuccess: (CCloudOAuthContext) -> Unit,
+        onError: (String) -> Unit
+    ): CCloudOAuthCallbackServer = CCloudOAuthCallbackServer(oauthContext, onSuccess, onError)
+
+    internal fun openBrowser(url: String) = BrowserUtil.browse(url)
+
+    private fun stopActiveCallbackServer() {
+        activeCallbackServer?.stop()
+        activeCallbackServer = null
+    }
+
+    /**
+     * Stop tracking [server] if it is still the active attempt. Returns false for a superseded server, whose
+     * late result must be ignored so it can't sign in (leaking a second refresh loop) or report a stale failure.
+     */
+    @Synchronized
+    private fun finishIfActive(server: CCloudOAuthCallbackServer): Boolean {
+        if (activeCallbackServer !== server) {
+            logger.info("Ignoring result from superseded sign-in attempt")
+            return false
+        }
+        activeCallbackServer = null
+        return true
+    }
+
+    private fun reportSignInFailure(errorType: String, notificationText: String, invokedPlace: InvokedPlace?) {
+        logUsage(CCloudAuthenticationEvent.AuthenticationFailed(errorType = errorType, invokedPlace = invokedPlace?.value))
+        ApplicationManager.getApplication().invokeLater({
+            showSignInFailureNotification(notificationText)
+        }, ModalityState.any())
     }
 
     /**
@@ -259,6 +323,7 @@ class CCloudAuthService(private val scope: CoroutineScope) : Disposable {
     fun getContext(): CCloudOAuthContext? = context
 
     override fun dispose() {
+        stopActiveCallbackServer()
         refreshBean?.stop()
         refreshBean = null
         context = null

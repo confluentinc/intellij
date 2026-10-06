@@ -1,12 +1,14 @@
 package io.confluent.intellijplugin.ccloud.auth
 
 import com.intellij.openapi.diagnostic.thisLogger
+import com.intellij.util.concurrency.AppExecutorUtil
 import com.sun.net.httpserver.HttpExchange
 import com.sun.net.httpserver.HttpServer
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import java.net.BindException
 import java.net.InetAddress
 import java.net.InetSocketAddress
 import java.net.URLDecoder
@@ -27,6 +29,10 @@ class CCloudOAuthCallbackServer(
     private val onError: (String) -> Unit
 ) {
     private var server: HttpServer? = null
+
+    // Run handlers off the server's dispatcher thread: HttpServer.stop() joins the dispatcher, so a handler
+    // blocked in the token exchange would otherwise make stop() (and a re-sign-in on the EDT) wait on the network.
+    private val handlerExecutor = AppExecutorUtil.createBoundedApplicationPoolExecutor("CCloud OAuth Callback", 1)
 
     companion object {
         private val logger = thisLogger()
@@ -75,6 +81,10 @@ class CCloudOAuthCallbackServer(
     /**
      * Start the callback server on the configured port.
      * Server will automatically stop after handling one callback.
+     *
+     * Startup failures are thrown to the caller, not reported via `onError`.
+     *
+     * @throws BindException if the callback port is already in use
      */
     fun start() {
         if (server != null) {
@@ -82,21 +92,17 @@ class CCloudOAuthCallbackServer(
             return
         }
 
-        try {
-            server = HttpServer.create(
-                InetSocketAddress(InetAddress.getLoopbackAddress(), CCloudOAuthConfig.CALLBACK_PORT),
-                0
-            ).apply {
-                createContext(CCloudOAuthConfig.CALLBACK_PATH) { exchange ->
-                    handleCallback(exchange)
-                }
-                start()
+        server = HttpServer.create(
+            InetSocketAddress(InetAddress.getLoopbackAddress(), CCloudOAuthConfig.CALLBACK_PORT),
+            0
+        ).apply {
+            createContext(CCloudOAuthConfig.CALLBACK_PATH) { exchange ->
+                handleCallback(exchange)
             }
-            logger.info("OAuth callback server started on port ${CCloudOAuthConfig.CALLBACK_PORT}")
-        } catch (e: Exception) {
-            logger.error("Failed to start OAuth callback server", e)
-            onError("Failed to start callback server: ${e.message}")
+            executor = handlerExecutor
+            start()
         }
+        logger.info("OAuth callback server started on port ${CCloudOAuthConfig.CALLBACK_PORT}")
     }
 
     /**
