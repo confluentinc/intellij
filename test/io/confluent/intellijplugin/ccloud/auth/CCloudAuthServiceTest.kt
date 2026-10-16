@@ -27,11 +27,14 @@ import org.mockito.kotlin.doThrow
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.never
 import org.mockito.kotlin.spy
+import org.mockito.kotlin.timeout
 import org.mockito.kotlin.times
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 import java.net.BindException
 import java.time.Instant
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.minutes
 
 @TestApplication
 class CCloudAuthServiceTest {
@@ -662,6 +665,77 @@ class CCloudAuthServiceTest {
             assertNull(spyService.activeCallbackServer)
             verify(spyService, never()).openBrowser(any())
             verify(spyService).showSignInFailureNotification(argThat { contains("boom") })
+        }
+    }
+
+    @Nested
+    @DisplayName("signIn timeout")
+    inner class SignInTimeout {
+
+        private lateinit var spyService: CCloudAuthService
+        private val successCallbacks = mutableListOf<(CCloudOAuthContext) -> Unit>()
+
+        @BeforeEach
+        fun setUpSpy() {
+            spyService = spy(CCloudAuthService(CoroutineScope(SupervisorJob())))
+            spyService.signInTimeout = 100.milliseconds
+            doNothing().whenever(spyService).openBrowser(any())
+            doNothing().whenever(spyService).showSignInFailureNotification(any())
+        }
+
+        @AfterEach
+        fun tearDownSpy() {
+            Disposer.dispose(spyService)
+        }
+
+        private fun stubServers(vararg servers: CCloudOAuthCallbackServer) {
+            val queue = servers.toMutableList()
+            doAnswer {
+                successCallbacks.add(it.getArgument(1))
+                queue.removeAt(0)
+            }.whenever(spyService).createCallbackServer(any(), any(), any())
+        }
+
+        @Test
+        fun `should stop the callback server and show a timed-out notification when sign-in is not completed`() {
+            val server = mock<CCloudOAuthCallbackServer>()
+            stubServers(server)
+
+            spyService.signIn()
+
+            verify(spyService, timeout(5_000)).showSignInFailureNotification(argThat { contains("timed out") })
+            verify(server).stop()
+            assertNull(spyService.activeCallbackServer)
+        }
+
+        @Test
+        fun `should not time out after sign-in completes`() {
+            val server = mock<CCloudOAuthCallbackServer>()
+            stubServers(server)
+
+            spyService.signIn()
+            successCallbacks.first()(createMockAuthenticatedContext())
+            Thread.sleep(400)
+
+            verify(spyService, never()).showSignInFailureNotification(any())
+            verify(server, never()).stop()
+        }
+
+        @Test
+        fun `should cancel the previous attempt's timeout when sign-in is started again`() {
+            val firstServer = mock<CCloudOAuthCallbackServer>()
+            val secondServer = mock<CCloudOAuthCallbackServer>()
+            stubServers(firstServer, secondServer)
+
+            spyService.signIn()
+            spyService.signInTimeout = 10.minutes
+            spyService.signIn()
+            Thread.sleep(400)
+
+            verify(spyService, never()).showSignInFailureNotification(any())
+            verify(firstServer, times(1)).stop() // only from being superseded, not from its timeout
+            verify(secondServer, never()).stop()
+            assertEquals(secondServer, spyService.activeCallbackServer)
         }
     }
 
