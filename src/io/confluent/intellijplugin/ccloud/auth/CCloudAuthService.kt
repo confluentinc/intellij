@@ -17,10 +17,14 @@ import io.confluent.intellijplugin.telemetry.logUser
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.net.BindException
 import java.time.Instant
 import java.util.concurrent.CopyOnWriteArrayList
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.minutes
 
 /** Why the session ended, used for notification routing and telemetry. */
 enum class SignOutReason(val value: String) {
@@ -72,6 +76,13 @@ class CCloudAuthService(private val scope: CoroutineScope) : Disposable {
 
     /** The visible "sign-in already in progress" notification, so repeat clicks don't stack copies of it. */
     private var inProgressNotification: Notification? = null
+
+    /** Fires if the in-flight sign-in isn't completed in the browser within [signInTimeout]. */
+    @Volatile
+    private var signInTimeoutJob: Job? = null
+
+    /** Max time to wait for the user to finish signing in via the browser. */
+    internal var signInTimeout: Duration = SIGN_IN_TIMEOUT
 
     internal val authStateListeners = CopyOnWriteArrayList<AuthStateListener>()
 
@@ -164,7 +175,25 @@ class CCloudAuthService(private val scope: CoroutineScope) : Disposable {
         }
         activeCallbackServer = server
         activeSignInContext = oauthContext
+
+        signInTimeoutJob = scope.launch {
+            delay(signInTimeout)
+            onSignInTimeout(server, invokedPlace)
+        }
         openBrowser(oauthContext.getSignInUri())
+    }
+
+    /** The user abandoned the browser flow: release the callback port and tell them. */
+    private fun onSignInTimeout(server: CCloudOAuthCallbackServer, invokedPlace: InvokedPlace?) {
+        if (!finishIfActive(server)) return
+        // Expected and user-recoverable, so warn rather than error to keep it out of Sentry.
+        logger.warn("Sign-in timed out after $signInTimeout; stopping callback server")
+        server.stop()
+        reportSignInFailure(
+            errorType = "Sign-in timed out",
+            notificationText = KafkaMessagesBundle.message("confluent.cloud.notification.sign.in.failure.timed.out"),
+            invokedPlace = invokedPlace
+        )
     }
 
     internal fun createCallbackServer(
@@ -177,10 +206,16 @@ class CCloudAuthService(private val scope: CoroutineScope) : Disposable {
 
     @Synchronized
     private fun stopActiveCallbackServer() {
+        cancelSignInTimeout()
         activeCallbackServer?.stop()
         activeCallbackServer = null
         activeSignInContext = null
         expireInProgressNotification()
+    }
+
+    private fun cancelSignInTimeout() {
+        signInTimeoutJob?.cancel()
+        signInTimeoutJob = null
     }
 
     /**
@@ -197,6 +232,7 @@ class CCloudAuthService(private val scope: CoroutineScope) : Disposable {
         activeCallbackServer = null
         activeSignInContext = null
         expireInProgressNotification()
+        cancelSignInTimeout()
         // Release the port in the same step that stops tracking the attempt. Otherwise a sign-in started
         // while the result is still being handled (e.g. while the session is saved) finds no active attempt
         // but the old server still bound, and fails with "port in use".
@@ -393,6 +429,8 @@ class CCloudAuthService(private val scope: CoroutineScope) : Disposable {
     }
 
     companion object {
+        private val SIGN_IN_TIMEOUT = 10.minutes
+
         fun getInstance(): CCloudAuthService = service()
     }
 }
