@@ -19,8 +19,13 @@ import io.confluent.kafka.schemaregistry.client.rest.entities.SchemaReference
 import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchema
 import java.util.logging.Level
 import java.util.logging.Logger
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.seconds
 
 object KafkaRegistryUtil {
+    /** Upper bound for a Schema Registry call awaited by the caller (client timeouts alone can add up across retries). */
+    val CALL_TIMEOUT: Duration = 180.seconds
+
     fun getRegistrySchemaProviders(): List<AbstractSchemaProvider> =
         listOf(BdtAvroSchemaProvider(), BdtProtobufSchemaProvider(), BdtJsonSchemaProvider())
 
