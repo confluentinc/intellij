@@ -45,7 +45,6 @@ import org.jetbrains.concurrency.asPromise
 import org.jetbrains.concurrency.await
 import software.amazon.awssdk.services.glue.model.Compatibility
 import java.util.concurrent.ConcurrentSkipListMap
-import kotlin.time.Duration
 
 /**
  * Data manager for Kafka connections using AdminClient protocol.
@@ -255,7 +254,7 @@ class KafkaDataManager(
 
     override fun updateSchema(versionInfo: SchemaVersionInfo, newSchema: String) = SafeExecutor.instance.asyncSuspend(
         taskName = null,
-        timeout = Duration.INFINITE
+        timeout = KafkaRegistryUtil.CALL_TIMEOUT
     ) {
         runInterruptible(Dispatchers.IO) {
             client.confluentRegistryClient?.updateSchema(versionInfo, newSchema)

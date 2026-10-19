@@ -48,7 +48,6 @@ import io.confluent.kafka.schemaregistry.client.rest.entities.SchemaReference
 import io.confluent.intellijplugin.registry.common.KafkaSchemaInfo
 import io.confluent.intellijplugin.rfs.ConfluentConnectionData
 import io.confluent.intellijplugin.toolwindow.config.KafkaToolWindowSettings
-import kotlin.time.Duration
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -599,7 +598,7 @@ class CCloudClusterDataManager(
     override fun updateSchema(versionInfo: SchemaVersionInfo, newSchema: String): Promise<Unit> =
         SafeExecutor.instance.asyncSuspend(
             taskName = null,
-            timeout = Duration.INFINITE
+            timeout = KafkaRegistryUtil.CALL_TIMEOUT
         ) {
             if (!dataPlaneCache.hasSchemaRegistry()) {
                 error(KafkaMessagesBundle.message("error.schema.registry.not.configured.for.cluster"))
