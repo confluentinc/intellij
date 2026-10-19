@@ -181,10 +181,14 @@ class CCloudAuthService(private val scope: CoroutineScope) : Disposable {
 
     /** The user abandoned the browser flow: release the callback port and tell them. */
     private fun onSignInTimeout(server: CCloudOAuthCallbackServer, invokedPlace: InvokedPlace?) {
-        if (!finishIfActive(server)) return
+        // Claim and stop under the same lock as signIn(), so a retry can't slip in between and find the
+        // expired listener still holding the callback port.
+        synchronized(this) {
+            if (!finishIfActive(server)) return
+            server.stop()
+        }
         // Expected and user-recoverable, so warn rather than error to keep it out of Sentry.
-        logger.warn("Sign-in timed out after $signInTimeout; stopping callback server")
-        server.stop()
+        logger.warn("Sign-in timed out after $signInTimeout; callback server stopped")
         reportSignInFailure(
             errorType = "Sign-in timed out",
             notificationText = KafkaMessagesBundle.message("confluent.cloud.notification.sign.in.failure.timed.out"),
