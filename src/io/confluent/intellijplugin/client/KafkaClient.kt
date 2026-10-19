@@ -6,7 +6,6 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.util.io.await
-import com.intellij.util.net.NetUtils
 import io.confluent.intellijplugin.aws.ui.external.AwsSettingsComponentForKafka
 import io.confluent.intellijplugin.core.connection.exception.BdtConnectionException
 import io.confluent.intellijplugin.core.connection.exception.BdtHostUnavailableException
@@ -16,7 +15,6 @@ import io.confluent.intellijplugin.core.monitoring.connection.MonitoringClient
 import io.confluent.intellijplugin.core.settings.components.BdtPropertyComponent
 import io.confluent.intellijplugin.core.settings.connections.Property
 import io.confluent.intellijplugin.core.util.BdIdeRegistryUtil
-import io.confluent.intellijplugin.core.util.BdtUrlUtils
 import io.confluent.intellijplugin.core.util.withPluginClassLoader
 import io.confluent.intellijplugin.model.*
 import io.confluent.intellijplugin.registry.KafkaRegistryType
@@ -409,13 +407,7 @@ class KafkaClient(
     }
 
     private fun checkUrlAvailability(url: String) {
-        val urls = url.split(",").map { it.trim() }
-        val canConnect = urls.any {
-            val urlObject = BdtUrlUtils.convertToUrlObject(it)
-            NetUtils.canConnectToRemoteSocket(urlObject.host, urlObject.port)
-        }
-
-        if (!canConnect) {
+        if (!TcpProbe.anyReachable(url)) {
             throw BdtHostUnavailableException(url)
         }
     }
