@@ -31,7 +31,6 @@ import io.confluent.intellijplugin.core.monitoring.data.storage.RootDataModelSto
 import io.confluent.intellijplugin.core.rfs.driver.RfsPath
 import io.confluent.intellijplugin.core.rfs.driver.SafeExecutor
 import io.confluent.intellijplugin.core.rfs.util.RfsNotificationUtils
-import io.confluent.intellijplugin.core.util.asSilent
 import io.confluent.intellijplugin.core.util.runAsyncSuspend
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
 import io.confluent.intellijplugin.model.BdtTopicPartition
@@ -42,6 +41,7 @@ import io.confluent.intellijplugin.model.TopicPresentable
 import io.confluent.intellijplugin.registry.KafkaRegistryFormat
 import io.confluent.intellijplugin.registry.KafkaRegistryType
 import io.confluent.intellijplugin.registry.KafkaRegistryUtil
+import io.confluent.intellijplugin.registry.KafkaRegistryUtil.asSchemaWritePromise
 import io.confluent.intellijplugin.registry.SchemaVersionInfo
 import io.confluent.kafka.schemaregistry.ParsedSchema
 import io.confluent.kafka.schemaregistry.client.rest.entities.SchemaReference
@@ -51,13 +51,11 @@ import io.confluent.intellijplugin.toolwindow.config.KafkaToolWindowSettings
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.future.asCompletableFuture
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.TopicPartition
 import org.jetbrains.concurrency.Promise
-import org.jetbrains.concurrency.asPromise
 import java.util.concurrent.ConcurrentHashMap
 
 /**
@@ -632,7 +630,7 @@ class CCloudClusterDataManager(
             updateSingleSchemaInList(versionInfo.schemaName)
             updater.invokeRefreshModel(schemaVersionModels[versionInfo.schemaName])
             Unit
-        }.deferred.asCompletableFuture().asPromise().asSilent()
+        }.deferred.asSchemaWritePromise()
 
     override fun deleteRegistrySchemaVersion(versionInfo: SchemaVersionInfo) {
         driver.coroutineScope.launch {

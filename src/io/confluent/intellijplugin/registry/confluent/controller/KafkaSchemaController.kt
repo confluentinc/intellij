@@ -313,13 +313,14 @@ class KafkaSchemaController(
                     versionInfo
                 ) { newText ->
                     val versionModel = dataManager.getSchemaVersionsModel(versionInfo.schemaName)
-                    versionModel.addListener(object : DataModelListener {
+                    val listener = object : DataModelListener {
                         override fun onChanged() {
                             invokeLater { selectedVersion.component.item = versionModel.originObject?.firstOrNull() }
                             versionModel.removeListener(this)
                         }
-                    })
-                    dataManager.updateSchema(versionInfo, newText)
+                    }
+                    versionModel.addListener(listener)
+                    dataManager.updateSchema(versionInfo, newText).onError { versionModel.removeListener(listener) }
                 }
             }
 

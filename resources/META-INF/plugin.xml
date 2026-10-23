@@ -85,6 +85,9 @@
                            key="notification.group.kafka"/>
         <contentTabActionProvider
                 implementation="io.confluent.intellijplugin.core.monitoring.toolwindow.MonitoringTabActionProvider"/>
+
+        <registryKey key="bdide.kafka.schema.registry.call.timeout.ms" defaultValue="180000"
+                     description="Upper bound in milliseconds for a Schema Registry schema update awaited by the UI. Minimum 1000."/>
     </extensions>
 
     <actions resource-bundle="messages.KafkaBundle">

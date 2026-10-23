@@ -48,6 +48,10 @@ object BdIdeRegistryUtil {
     fun minimalRefreshDriverTime(): Duration =
         getInt("bdide.driver.minimal.refresh.time.ms", default = 1000, testValue = 0).milliseconds
 
+    /** Upper bound for a Schema Registry write awaited by the caller. Declared in plugin.xml so it can be changed from the Registry. */
+    val SCHEMA_REGISTRY_CALL_TIMEOUT_MS: Int
+        get() = getInt("bdide.kafka.schema.registry.call.timeout.ms", 180_000).coerceAtLeast(1_000)
+
     private fun getInt(key: String, default: Int, testValue: Int = default) =
         if (ApplicationManager.getApplication() == null || ApplicationManager.getApplication().isUnitTestMode)
             testValue
