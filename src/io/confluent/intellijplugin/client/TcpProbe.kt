@@ -1,5 +1,6 @@
 package io.confluent.intellijplugin.client
 
+import io.confluent.intellijplugin.core.util.BdIdeRegistryUtil
 import io.confluent.intellijplugin.core.util.BdtUrlUtils
 import java.io.IOException
 import java.net.InetSocketAddress
@@ -11,6 +12,7 @@ import java.util.concurrent.TimeUnit
  * (firewall, VPN down) can't block for the OS connect timeout (~75s on macOS) per URL.
  */
 internal object TcpProbe {
+    /** Defaults; the effective values come from the Registry (see [BdIdeRegistryUtil]) so they can be changed without a release. */
     const val CONNECT_TIMEOUT_MS = 20_000
     const val TOTAL_TIMEOUT_MS = 30_000
 
@@ -44,8 +46,8 @@ internal object TcpProbe {
      */
     fun anyReachable(
         endpoints: List<Pair<String, Int>>,
-        connectTimeoutMs: Int = CONNECT_TIMEOUT_MS,
-        totalTimeoutMs: Int = TOTAL_TIMEOUT_MS,
+        connectTimeoutMs: Int = BdIdeRegistryUtil.KAFKA_TCP_PROBE_CONNECT_TIMEOUT_MS,
+        totalTimeoutMs: Int = BdIdeRegistryUtil.KAFKA_TCP_PROBE_TOTAL_TIMEOUT_MS,
         nanoTime: () -> Long = System::nanoTime,
         connector: Connector = socketConnector,
     ): Boolean {

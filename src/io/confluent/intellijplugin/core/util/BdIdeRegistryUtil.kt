@@ -17,6 +17,14 @@ object BdIdeRegistryUtil {
     val RFS_DEFAULT_TIMEOUT: Int
         get() = getInt("bdide.rfs.operation.default.timeout", 15_000)
 
+    /** Per-bootstrap-URL timeout of the Kafka TCP reachability probe. Declared in plugin.xml so it can be changed from the Registry. */
+    val KAFKA_TCP_PROBE_CONNECT_TIMEOUT_MS: Int
+        get() = getInt("bdide.kafka.tcp.probe.connect.timeout.ms", 20_000).coerceAtLeast(1_000)
+
+    /** Total budget of the Kafka TCP reachability probe across all bootstrap URLs. */
+    val KAFKA_TCP_PROBE_TOTAL_TIMEOUT_MS: Int
+        get() = getInt("bdide.kafka.tcp.probe.total.timeout.ms", 30_000).coerceAtLeast(1_000)
+
     val DRIVER_AUTO_FILES_RELOAD_ENABLED: Boolean
         get() = if (!ApplicationManager.getApplication().isUnitTestMode) {
             val javaPropValue =
