@@ -83,16 +83,15 @@ object CCloudOAuthConfig {
     const val MAX_TOKEN_REFRESH_ATTEMPTS = 10
 
     /**
-     * Wait between failed token refreshes: 5s doubling to a 5 min cap, plus up to 20% jitter.
-     * Before jitter the 9 waits are 5, 10, 20, 40, 80, 160, 300, 300, 300s, so a transient
-     * outage is ridden out for about 20 min (up to ~24 min with jitter) in 10 requests. With a
-     * smaller multiplier such as 1.6 the computed backoff would peak at ~215s and the 5 min cap
-     * would never apply. A 429's Retry-After (up to 5 min) is used as the floor for the next wait.
+     * Wait between failed token refreshes: 5s growing by the policy's default 1.6x, capped at
+     * 5 min, plus up to 20% jitter. Before jitter the 9 waits are about 5, 8, 12.8, 20.5, 32.8,
+     * 52.4, 83.9, 134.2 and 214.7s, so a transient outage is ridden out for about 9.4 min (up to
+     * ~11.3 min with jitter) in 10 requests before sign-out. Computed backoff peaks at ~215s, so
+     * the 5 min cap only applies to a 429's Retry-After, which is used as the floor for the next wait.
      */
     val TOKEN_REFRESH_RETRY_POLICY = CCloudRetryPolicy(
         maxAttempts = MAX_TOKEN_REFRESH_ATTEMPTS,
         initialBackoff = 5.seconds,
-        multiplier = 2.0,
         maxBackoff = 5.minutes,
         jitter = 0.2,
         maxRetryAfter = 5.minutes,
