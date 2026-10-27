@@ -12,12 +12,16 @@ class KafkaProducerConsumerProgressComponent {
     private val dateFormat = SimpleDateFormat("HH:mm:ss")
 
     var timestamp = 0L
+
+    /** True when the most recent event was an error, so [onStop] keeps showing it instead of resetting. */
+    private var lastEventWasError = false
     private val timestampLabel = JBLabel()
     fun initCell(row: Row, bottomWidthGroup: String) {
         row.cell(timestampLabel).widthGroup(bottomWidthGroup)
     }
 
     fun onUpdate() {
+        lastEventWasError = false
         timestamp = System.currentTimeMillis()
         timestampLabel.text =
             KafkaMessagesBundle.message("consumer.last.update.label.comment", dateFormat.format(Date(timestamp)))
@@ -29,11 +33,17 @@ class KafkaProducerConsumerProgressComponent {
     }
 
     fun onError() {
+        lastEventWasError = true
         timestampLabel.icon = null
         timestampLabel.text = KafkaMessagesBundle.message("consumer.last.update.label.error")
     }
 
     fun onStop() {
+        if (lastEventWasError) {
+            timestampLabel.icon = AllIcons.General.Error
+            timestampLabel.text = KafkaMessagesBundle.message("consumer.last.update.label.error")
+            return
+        }
         timestampLabel.icon = null
         if (timestamp <= 0) {
             timestampLabel.text = KafkaMessagesBundle.message("consumer.last.update.label.canceled")
@@ -42,6 +52,7 @@ class KafkaProducerConsumerProgressComponent {
 
     fun onStart() {
         timestamp = 0
+        lastEventWasError = false
         timestampLabel.icon = AnimatedIcon.Default.INSTANCE
         timestampLabel.text = KafkaMessagesBundle.message("consumer.last.update.label.initializing")
     }
