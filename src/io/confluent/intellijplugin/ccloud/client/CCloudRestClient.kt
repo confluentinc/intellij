@@ -14,7 +14,11 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import org.json.JSONObject
+import java.net.ConnectException
 import java.net.HttpURLConnection
+import java.net.NoRouteToHostException
+import java.net.UnknownHostException
+import kotlin.time.Duration
 
 /**
  * HTTP client for Confluent Cloud REST APIs (control plane and data plane).
@@ -23,12 +27,14 @@ import java.net.HttpURLConnection
  * @param authType Authentication mode (control plane vs data plane token)
  * @param additionalHeaders Extra headers required for specific APIs (e.g., "target-sr-cluster" for Schema Registry)
  * @param authService Optional auth service (for testing purposes)
+ * @param retryPolicy Retry timing policy; also clamps parsed `Retry-After` values
  */
 class CCloudRestClient(
     private val baseUrl: String,
     private val authType: AuthType,
     private val additionalHeaders: Map<String, String> = emptyMap(),
-    private val authService: CCloudAuthService? = null
+    private val authService: CCloudAuthService? = null,
+    private val retryPolicy: CCloudRetryPolicy = CCloudRetryPolicy.DEFAULT
 ) {
     companion object {
         private const val CONNECT_TIMEOUT_MS = 10_000 // 10 seconds
@@ -191,9 +197,11 @@ class CCloudRestClient(
         path: String,
         parser: (String) -> T
     ): T {
-        return withRateLimit {
-            fetchItem(getAuthHeaders(), path, parser)
+        val response = withRateLimit {
+            send(resolveUrl(path), "GET", getAuthHeaders()).requireSuccess()
         }
+        // Parse outside the transport/retry path so parse errors keep their own type
+        return withContext(Dispatchers.Default) { parser(response.body) }
     }
 
     /**
@@ -230,33 +238,8 @@ class CCloudRestClient(
         body: String? = null
     ): String {
         return withRateLimit {
-            executeRequestInternal(getAuthHeaders(), uri, method, body)
-        }
-    }
-
-    private suspend fun <T> fetchItem(
-        headers: Map<String, String>,
-        uri: String,
-        parser: (String) -> T
-    ): T = runInterruptible(Dispatchers.IO) {
-        val url = if (uri.startsWith("http")) uri else "$baseUrl$uri"
-
-        try {
-            HttpRequests.request(url)
-                .connectTimeout(CONNECT_TIMEOUT_MS)
-                .readTimeout(READ_TIMEOUT_MS)
-                .tuner { connection ->
-                    headers.forEach { (key, value) ->
-                        connection.setRequestProperty(key, value)
-                    }
-                }
-                .readString()
-                .let(parser)
-        } catch (e: HttpRequests.HttpStatusException) {
-            throw CCloudApiException("HTTP ${e.statusCode}: ${e.message ?: "Unknown error"}", e.statusCode)
-        } catch (e: Exception) {
-            throw CCloudApiException("Request failed: ${e.message ?: "Unknown error"}", 0)
-        }
+            send(resolveUrl(uri), method, getAuthHeaders(), body).requireSuccess()
+        }.body
     }
 
     private suspend fun <T> listItems(
@@ -264,9 +247,9 @@ class CCloudRestClient(
         uri: String,
         limits: PageLimits = PageLimits.DEFAULT,
         parser: (String) -> Pair<List<T>, String?>
-    ): List<T> = withContext(Dispatchers.IO) {
+    ): List<T> = withContext(Dispatchers.Default) {
         val allItems = mutableListOf<T>()
-        val firstUrl = if (uri.startsWith("http")) uri else "$baseUrl$uri"
+        val firstUrl = resolveUrl(uri)
         val state = PaginationState(initialUrl = firstUrl, limits = limits)
         val visitedUrls = mutableSetOf<String>()
 
@@ -279,37 +262,9 @@ class CCloudRestClient(
             }
 
             // Apply rate limiting to each pagination request
-            val (statusCode, body) = withRateLimit {
-                try {
-                    HttpRequests.request(url)
-                        .connectTimeout(CONNECT_TIMEOUT_MS)
-                        .readTimeout(READ_TIMEOUT_MS)
-                        .tuner { conn ->
-                            headers.forEach { (key, value) ->
-                                conn.setRequestProperty(key, value)
-                            }
-                        }
-                        .connect { request ->
-                            val conn = request.connection as HttpURLConnection
-                            val statusCode = conn.responseCode
-                            val responseBody = if (statusCode in 200..299) {
-                                request.inputStream.bufferedReader().use { it.readText() }
-                            } else {
-                                conn.errorStream?.bufferedReader()?.use { it.readText() } ?: ""
-                            }
-                            statusCode to responseBody
-                        }
-                } catch (e: HttpRequests.HttpStatusException) {
-                    throw CCloudApiException("HTTP ${e.statusCode}: ${e.message ?: "Unknown error"}", e.statusCode)
-                } catch (e: Exception) {
-                    throw CCloudApiException("Request failed: ${e.message ?: "Unknown error"}", 0)
-                }
-            }
-
-            if (statusCode !in 200..299) {
-                val errorMessage = extractErrorMessage(body, statusCode)
-                throw CCloudApiException(errorMessage, statusCode)
-            }
+            val body = withRateLimit {
+                send(url, "GET", headers).requireSuccess()
+            }.body
 
             val (items, nextPageUrl) = parser(body)
             val page = state.createPage(items, nextPageUrl)
@@ -323,15 +278,30 @@ class CCloudRestClient(
         allItems
     }
 
-    private suspend fun executeRequestInternal(
-        headers: Map<String, String>,
-        uri: String,
-        method: String,
-        body: String? = null
-    ): String = runInterruptible(Dispatchers.IO) {
-        val url = if (uri.startsWith("http")) uri else "$baseUrl$uri"
+    private fun resolveUrl(uri: String): String = if (uri.startsWith("http")) uri else "$baseUrl$uri"
 
-        val (statusCode, responseBody) = try {
+    /** Raw HTTP result. [retryAfter] is the parsed `Retry-After` header, if present and valid. */
+    private class RawResponse(val statusCode: Int, val body: String, val retryAfter: Duration?)
+
+    private fun RawResponse.requireSuccess(): RawResponse {
+        if (statusCode !in 200..299) {
+            throw CCloudApiException(extractErrorMessage(body, statusCode), statusCode, retryAfter)
+        }
+        return this
+    }
+
+    /**
+     * Single HTTP exchange shared by every public entry point. Never throws for HTTP status codes;
+     * the caller decides what a non-2xx means. Transport failures become [CCloudApiException] with
+     * status 0, or [CCloudConnectException] when the request never reached the server.
+     */
+    private suspend fun send(
+        url: String,
+        method: String,
+        headers: Map<String, String>,
+        body: String? = null
+    ): RawResponse = runInterruptible(Dispatchers.IO) {
+        try {
             HttpRequests.request(url)
                 .connectTimeout(CONNECT_TIMEOUT_MS)
                 .readTimeout(READ_TIMEOUT_MS)
@@ -349,26 +319,28 @@ class CCloudRestClient(
                     }
 
                     val statusCode = conn.responseCode
-                    val responseBody = if (statusCode in 200..299) {
-                        request.inputStream.bufferedReader().use { it.readText() }
+                    if (statusCode in 200..299) {
+                        RawResponse(statusCode, request.readString(), retryAfter = null)
                     } else {
-                        conn.errorStream?.bufferedReader()?.use { it.readText() } ?: ""
+                        val errorBody = conn.errorStream?.bufferedReader()?.use { it.readText() } ?: ""
+                        val retryAfter = retryPolicy.parseRetryAfter(
+                            conn.getHeaderField(CCloudRetryPolicy.RETRY_AFTER_HEADER)
+                        )
+                        RawResponse(statusCode, errorBody, retryAfter)
                     }
-
-                    statusCode to responseBody
                 }
+        } catch (e: HttpRequests.HttpStatusException) {
+            throw CCloudApiException("HTTP ${e.statusCode}: ${e.message ?: "Unknown error"}", e.statusCode)
+        } catch (e: ConnectException) {
+            throw CCloudConnectException("Request failed: ${e.message ?: "Connection failed"}", e)
+        } catch (e: UnknownHostException) {
+            throw CCloudConnectException("Request failed: unknown host ${e.message ?: ""}".trimEnd(), e)
+        } catch (e: NoRouteToHostException) {
+            throw CCloudConnectException("Request failed: ${e.message ?: "No route to host"}", e)
         } catch (e: Exception) {
-            val statusCode = (e as? HttpRequests.HttpStatusException)?.statusCode ?: 0
-            val message = e.message ?: "Unknown error"
-            throw CCloudApiException("HTTP $statusCode: $message", statusCode)
+            // Includes timeouts (SocketTimeoutException) - those are deliberately not connect errors
+            throw CCloudApiException("Request failed: ${e.message ?: "Unknown error"}", 0, cause = e)
         }
-
-        if (statusCode !in 200..299) {
-            val errorMessage = extractErrorMessage(responseBody, statusCode)
-            throw CCloudApiException(errorMessage, statusCode)
-        }
-
-        responseBody
     }
 
     private fun extractErrorMessage(responseBody: String, statusCode: Int): String {
@@ -393,7 +365,26 @@ class CCloudRestClient(
     }
 }
 
-class CCloudApiException(message: String, val statusCode: Int) : Exception(message)
+/**
+ * Failure of a Confluent Cloud REST call.
+ *
+ * @param statusCode HTTP status, or 0 when no HTTP response was received
+ * @param retryAfter Server-requested delay from the `Retry-After` header, if any
+ */
+open class CCloudApiException(
+    message: String,
+    val statusCode: Int,
+    val retryAfter: Duration? = null,
+    cause: Throwable? = null
+) : Exception(message, cause)
+
+/**
+ * The request could not be delivered because no connection was established (connection refused,
+ * unknown host, no route). The server never saw the request, so retrying cannot duplicate side
+ * effects. Timeouts are NOT reported this way: a timed-out request may have reached the server.
+ */
+class CCloudConnectException(message: String, cause: Throwable) :
+    CCloudApiException(message, statusCode = 0, cause = cause)
 
 /**
  * Token bucket rate limiter. Refills tokens at constant rate, suspends when empty.
