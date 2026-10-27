@@ -1,5 +1,8 @@
 package io.confluent.intellijplugin.ccloud.auth
 
+import com.intellij.util.io.HttpRequests
+import io.confluent.intellijplugin.ccloud.auth.CCloudOAuthHttpClient.HttpResponseWithHeaders
+import io.confluent.intellijplugin.ccloud.client.CCloudRetryPolicy
 import kotlinx.serialization.json.JsonNull
 import java.net.URLEncoder
 import java.security.MessageDigest
@@ -124,8 +127,7 @@ class CCloudOAuthContext {
                     )
                 }
 
-                val (statusCode, idTokenResponse) = exchangeAuthorizationCode(authorizationCode)
-                processTokenExchangeResponse(statusCode, idTokenResponse, organizationId)
+                processTokenExchangeResponse(exchangeAuthorizationCode(authorizationCode), organizationId)
             }.onSuccess {
                 // Reset any existing errors
                 tokens.updateAndGet { oldTokens ->
@@ -159,8 +161,7 @@ class CCloudOAuthContext {
         writeLock.lock()
         try {
             return runCatching {
-                val (statusCode, idTokenResponse) = createTokensFromRefreshToken()
-                processTokenExchangeResponse(statusCode, idTokenResponse, organizationId)
+                processTokenExchangeResponse(createTokensFromRefreshToken(), organizationId)
             }.onSuccess {
                 // Reset failed attempts counter on success
                 tokens.updateAndGet { it.withSuccessfulTokenRefreshAttempt() }
@@ -188,8 +189,7 @@ class CCloudOAuthContext {
         writeLock.lock()
         try {
             return runCatching {
-                val (statusCode, idTokenResponse) = createTokensFromRefreshToken()
-                processTokenExchangeResponse(statusCode, idTokenResponse, organizationId)
+                processTokenExchangeResponse(createTokensFromRefreshToken(), organizationId)
             }.onSuccess {
                 tokens.updateAndGet { it.withSuccessfulTokenRefreshAttempt() }
             }.map { this }
@@ -248,9 +248,9 @@ class CCloudOAuthContext {
     /**
      * Exchanges the authorization code for an ID token.
      * @param authorizationCode The authorization code received from Confluent Cloud
-     * @return Pair of (HTTP status code, ID token exchange response)
+     * @return The raw `oauth/token` response
      */
-    private suspend fun exchangeAuthorizationCode(authorizationCode: String): Pair<Int, IdTokenExchangeResponse> {
+    private suspend fun exchangeAuthorizationCode(authorizationCode: String): HttpResponseWithHeaders {
         val formData = mapOf(
             "grant_type" to "authorization_code",
             "client_id" to CCloudOAuthConfig.CCLOUD_OAUTH_CLIENT_ID,
@@ -259,16 +259,18 @@ class CCloudOAuthContext {
             "redirect_uri" to CCloudOAuthConfig.CCLOUD_OAUTH_REDIRECT_URI
         )
 
-        return CCloudOAuthHttpClient.postFormWithStatus(
-            url = CCloudOAuthConfig.CCLOUD_OAUTH_TOKEN_URI,
-            formData = formData
-        )
+        return withServerErrorsTyped(TokenEndpoint.OAUTH_TOKEN) {
+            CCloudOAuthHttpClient.postFormWithHeaders(
+                url = CCloudOAuthConfig.CCLOUD_OAUTH_TOKEN_URI,
+                formData = formData
+            )
+        }
     }
 
-    private suspend fun createTokensFromRefreshToken(): Pair<Int, IdTokenExchangeResponse> {
+    private suspend fun createTokensFromRefreshToken(): HttpResponseWithHeaders {
         val refreshToken = tokens.get().refreshToken
         if (isTokenMissing(refreshToken)) {
-            throw IllegalStateException("Refresh token is missing.")
+            throw MissingRefreshTokenException()
         }
 
         val formData = mapOf(
@@ -278,35 +280,30 @@ class CCloudOAuthContext {
             "redirect_uri" to CCloudOAuthConfig.CCLOUD_OAUTH_REDIRECT_URI
         )
 
-        return CCloudOAuthHttpClient.postFormWithStatus(
-            url = CCloudOAuthConfig.CCLOUD_OAUTH_TOKEN_URI,
-            formData = formData
-        )
+        return withServerErrorsTyped(TokenEndpoint.OAUTH_TOKEN) {
+            CCloudOAuthHttpClient.postFormWithHeaders(
+                url = CCloudOAuthConfig.CCLOUD_OAUTH_TOKEN_URI,
+                formData = formData
+            )
+        }
     }
 
 
     /**
      * Processes the response of Confluent Cloud's oauth/token endpoint, which includes the ID
      * token, exchanges the ID token for a control plane token, and exchanges the control plane for a data plane token.
-     * @param httpStatusCode The HTTP status code from the token endpoint
-     * @param idTokenResponse The response of CCloud's /oauth/token endpoint holding the ID token
+     * @param oauthTokenResponse The raw response of the oauth/token endpoint holding the ID token
      * @param organizationId The Confluent Cloud organization ID
      * @return If successful, updates the CCloudOAuthContext with up-to-date refresh, control plane,
-     * and data plane tokens. If not successful, throws an OAuthErrorException at the first point of failure.
+     * and data plane tokens. If not successful, throws at the first point of failure; endpoint errors
+     * are a [TokenEndpointException] (an [OAuthErrorException] for oauth/token errors).
      */
     private suspend fun processTokenExchangeResponse(
-        httpStatusCode: Int,
-        idTokenResponse: IdTokenExchangeResponse,
+        oauthTokenResponse: HttpResponseWithHeaders,
         organizationId: String?
     ) {
         // Part 1 - Validate and store refresh token
-        if (idTokenResponse.error != null) {
-            throw OAuthErrorException(
-                errorCode = idTokenResponse.error,
-                errorDescription = idTokenResponse.errorDescription?.toString(),
-                httpStatusCode = httpStatusCode
-            )
-        }
+        val idTokenResponse = parseIdTokenResponse(oauthTokenResponse)
 
         val now = Instant.now()
 
@@ -325,10 +322,6 @@ class CCloudOAuthContext {
             organizationId
         )
 
-        if (cpResponse.error != null && cpResponse.error !is JsonNull) {
-            throw IllegalStateException("Retrieving control plane token failed: ${cpResponse.error}")
-        }
-
         tokens.updateAndGet { oldTokens ->
             oldTokens
                 .withControlPlaneToken(
@@ -343,10 +336,6 @@ class CCloudOAuthContext {
 
         // Part 3 - Exchange control plane token for data plane token
         val dpResponse = exchangeDataPlaneToken(cpResponse.token!!)
-
-        if (dpResponse.error != null && dpResponse.error !is JsonNull) {
-            throw IllegalStateException("Retrieving data plane token failed: ${dpResponse.error}")
-        }
 
         tokens.updateAndGet { oldTokens ->
             oldTokens.withDataPlaneToken(
@@ -374,13 +363,24 @@ class CCloudOAuthContext {
         )
         val jsonBody = CCloudOAuthHttpClient.json.encodeToString(request)
 
-        val response = CCloudOAuthHttpClient.postJsonWithHeaders(
-            url = CCloudOAuthConfig.CCLOUD_CONTROL_PLANE_TOKEN_EXCHANGE_URI,
-            jsonBody = jsonBody
-        )
+        val response = withServerErrorsTyped(TokenEndpoint.CONTROL_PLANE) {
+            CCloudOAuthHttpClient.postJsonWithHeaders(
+                url = CCloudOAuthConfig.CCLOUD_CONTROL_PLANE_TOKEN_EXCHANGE_URI,
+                jsonBody = jsonBody
+            )
+        }
 
-        // Parse response body
-        val cpResponse = CCloudOAuthHttpClient.json.decodeFromString<ControlPlaneTokenExchangeResponse>(response.body)
+        val cpResponse = decodeTokenEndpointResponse<ControlPlaneTokenExchangeResponse>(
+            TokenEndpoint.CONTROL_PLANE, response, "Retrieving control plane token failed"
+        )
+        if (cpResponse.error != null && cpResponse.error !is JsonNull) {
+            throw TokenEndpointException(
+                endpoint = TokenEndpoint.CONTROL_PLANE,
+                httpStatusCode = response.statusCode,
+                retryAfterHeader = response.header(CCloudRetryPolicy.RETRY_AFTER_HEADER),
+                message = "Retrieving control plane token failed: ${cpResponse.error}"
+            )
+        }
 
         // Extract token from Set-Cookie header
         val authToken = CCloudOAuthHttpClient.extractCookie(response.headers, "auth_token")
@@ -397,11 +397,93 @@ class CCloudOAuthContext {
     private suspend fun exchangeDataPlaneToken(
         controlPlaneToken: String
     ): DataPlaneTokenExchangeResponse {
-        return CCloudOAuthHttpClient.postJson(
-            url = CCloudOAuthConfig.CCLOUD_DATA_PLANE_TOKEN_EXCHANGE_URI,
-            jsonBody = "{}",
-            bearerToken = controlPlaneToken
+        val response = withServerErrorsTyped(TokenEndpoint.DATA_PLANE) {
+            CCloudOAuthHttpClient.postJsonWithHeaders(
+                url = CCloudOAuthConfig.CCLOUD_DATA_PLANE_TOKEN_EXCHANGE_URI,
+                jsonBody = "{}",
+                bearerToken = controlPlaneToken
+            )
+        }
+
+        val dpResponse = decodeTokenEndpointResponse<DataPlaneTokenExchangeResponse>(
+            TokenEndpoint.DATA_PLANE, response, "Retrieving data plane token failed"
         )
+        if (dpResponse.error != null && dpResponse.error !is JsonNull) {
+            throw TokenEndpointException(
+                endpoint = TokenEndpoint.DATA_PLANE,
+                httpStatusCode = response.statusCode,
+                retryAfterHeader = response.header(CCloudRetryPolicy.RETRY_AFTER_HEADER),
+                message = "Retrieving data plane token failed: ${dpResponse.error}"
+            )
+        }
+        return dpResponse
+    }
+
+    /**
+     * [CCloudOAuthHttpClient.readResponseBody] throws [HttpRequests.HttpStatusException] for 5xx
+     * before the caller sees the response. Re-throw it as a [TokenEndpointException] so every
+     * endpoint failure carries its step and status (the message is unchanged).
+     */
+    private inline fun <T> withServerErrorsTyped(endpoint: TokenEndpoint, block: () -> T): T =
+        try {
+            block()
+        } catch (e: HttpRequests.HttpStatusException) {
+            throw TokenEndpointException(
+                endpoint = endpoint,
+                httpStatusCode = e.statusCode,
+                message = e.message ?: "Server error",
+                cause = e
+            )
+        }
+
+    /**
+     * Parse the oauth/token response. An OAuth error body becomes an [OAuthErrorException]; any
+     * other non-2xx response becomes a [TokenEndpointException]. Both keep the HTTP status.
+     */
+    private fun parseIdTokenResponse(response: HttpResponseWithHeaders): IdTokenExchangeResponse {
+        val retryAfter = response.header(CCloudRetryPolicy.RETRY_AFTER_HEADER)
+        val parsed = runCatching {
+            CCloudOAuthHttpClient.json.decodeFromString<IdTokenExchangeResponse>(response.body)
+        }
+
+        parsed.getOrNull()?.error?.let { errorCode ->
+            throw OAuthErrorException(
+                errorCode = errorCode,
+                errorDescription = parsed.getOrNull()?.errorDescription?.toString(),
+                httpStatusCode = response.statusCode,
+                retryAfterHeader = retryAfter
+            )
+        }
+        if (!response.isSuccessful) {
+            throw TokenEndpointException(
+                endpoint = TokenEndpoint.OAUTH_TOKEN,
+                httpStatusCode = response.statusCode,
+                retryAfterHeader = retryAfter,
+                message = "Retrieving ID token failed: HTTP ${response.statusCode}"
+            )
+        }
+        return parsed.getOrThrow()
+    }
+
+    /**
+     * Decode a CCloud token endpoint body, throwing a [TokenEndpointException] that carries the
+     * status if the response is not 2xx (whether or not the body parses).
+     */
+    private inline fun <reified T> decodeTokenEndpointResponse(
+        endpoint: TokenEndpoint,
+        response: HttpResponseWithHeaders,
+        failurePrefix: String
+    ): T {
+        if (!response.isSuccessful) {
+            throw TokenEndpointException(
+                endpoint = endpoint,
+                httpStatusCode = response.statusCode,
+                retryAfterHeader = response.header(CCloudRetryPolicy.RETRY_AFTER_HEADER),
+                // Body left out on purpose: the message reaches logs and telemetry
+                message = "$failurePrefix: HTTP ${response.statusCode}"
+            )
+        }
+        return CCloudOAuthHttpClient.json.decodeFromString<T>(response.body)
     }
 
     // Helpers

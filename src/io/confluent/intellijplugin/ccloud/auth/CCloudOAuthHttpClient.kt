@@ -88,6 +88,40 @@ object CCloudOAuthHttpClient {
     }
 
     /**
+     * POST with form-urlencoded body, returning status, raw body and headers.
+     * Use this when the caller needs response headers (e.g. `Retry-After`) as well as the status.
+     * @param url The URL to post to
+     * @param formData The form data to post
+     * @return The response status, body and headers
+     */
+    suspend fun postFormWithHeaders(
+        url: String,
+        formData: Map<String, String>
+    ): HttpResponseWithHeaders = withContext(Dispatchers.IO) {
+        val body = formData.entries.joinToString("&") { (k, v) ->
+            "${encode(k)}=${encode(v)}"
+        }
+
+        HttpRequests.post(url, "application/x-www-form-urlencoded")
+            .connectTimeout(CONNECT_TIMEOUT_MS)
+            .readTimeout(READ_TIMEOUT_MS)
+            .throwStatusCodeException(false)
+            .tuner { conn ->
+                conn.setRequestProperty(CCloudUserAgent.HEADER_NAME, CCloudUserAgent.headerValue())
+            }
+            .connect { request ->
+                request.write(body)
+                val conn = request.connection as HttpURLConnection
+                val responseBody = readResponseBody(request)
+                HttpResponseWithHeaders(
+                    statusCode = conn.responseCode,
+                    body = responseBody,
+                    headers = conn.headerFields.filterKeys { it != null }
+                )
+            }
+    }
+
+    /**
      * POST with JSON body and optional Bearer auth.
      * @param url The URL to post to
      * @param jsonBody The JSON body to post
@@ -219,5 +253,11 @@ object CCloudOAuthHttpClient {
         val statusCode: Int,
         val body: String,
         val headers: Map<String, List<String>>
-    )
+    ) {
+        val isSuccessful: Boolean get() = statusCode in 200..299
+
+        /** First value of header [name], matched case-insensitively. */
+        fun header(name: String): String? =
+            headers.entries.firstOrNull { it.key.equals(name, ignoreCase = true) }?.value?.firstOrNull()
+    }
 }

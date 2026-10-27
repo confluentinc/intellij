@@ -1,0 +1,4 @@
+{
+  "error": "too_many_requests",
+  "error_description": "Global limit has been reached"
+}

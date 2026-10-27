@@ -4,6 +4,7 @@ import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.WireMock
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig
 import com.intellij.testFramework.junit5.TestApplication
+import io.confluent.intellijplugin.ccloud.util.ResourceLoader
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.AfterEach
@@ -542,6 +543,143 @@ class CCloudOAuthContextTest {
 
             assertTrue(result.isSuccess)
             assertEquals(0, context.getFailedTokenRefreshAttempts())
+        }
+    }
+
+    @Nested
+    @DisplayName("refresh endpoint errors")
+    inner class RefreshEndpointErrors {
+
+        @BeforeEach
+        fun setUpRefresh() {
+            runBlocking {
+                context.createTokensFromAuthorizationCode(MOCK_AUTH_CODE, MOCK_ORG_ID)
+            }
+        }
+
+        private fun stubFailure(path: String, status: Int, fixture: String? = null, retryAfter: String? = null) {
+            val response = WireMock.aResponse()
+                .withStatus(status)
+                .withHeader("Content-Type", "application/json")
+            fixture?.let { response.withBody(ResourceLoader.loadResource("fixtures/ccloud-auth/$it")) }
+            retryAfter?.let { response.withHeader("Retry-After", it) }
+            wireMockServer.stubFor(WireMock.post(path).willReturn(response).atPriority(1))
+        }
+
+        private fun refreshFailure(): Throwable =
+            runBlocking { context.refresh(MOCK_ORG_ID) }.exceptionOrNull()
+                ?: error("Expected refresh to fail")
+
+        @Test
+        fun `invalid refresh token on oauth token keeps status and is terminal`() {
+            stubFailure("/oauth/token", 403, "oauth-token-invalid-refresh-token.json")
+
+            val error = refreshFailure()
+
+            assertTrue(error is OAuthErrorException)
+            error as OAuthErrorException
+            assertEquals(403, error.httpStatusCode)
+            assertEquals("invalid_grant", error.errorCode)
+            assertEquals(TokenEndpoint.OAUTH_TOKEN, error.endpoint)
+            assertTrue(context.hasNonTransientError())
+            assertEquals(1, context.getFailedTokenRefreshAttempts())
+        }
+
+        @Test
+        fun `4xx with a non-JSON body on oauth token is typed and terminal`() {
+            wireMockServer.stubFor(
+                WireMock.post("/oauth/token")
+                    .willReturn(WireMock.aResponse().withStatus(401).withBody("Unauthorized"))
+                    .atPriority(1)
+            )
+
+            val error = refreshFailure()
+
+            assertTrue(error is TokenEndpointException)
+            assertEquals(401, (error as TokenEndpointException).httpStatusCode)
+            assertTrue(context.hasNonTransientError())
+        }
+
+        @Test
+        fun `401 from control plane is typed and terminal`() {
+            stubFailure("/api/sessions", 401, "control-plane-unauthorized.json")
+
+            val error = refreshFailure()
+
+            assertTrue(error is TokenEndpointException)
+            error as TokenEndpointException
+            assertEquals(TokenEndpoint.CONTROL_PLANE, error.endpoint)
+            assertEquals(401, error.httpStatusCode)
+            assertTrue(context.hasNonTransientError())
+        }
+
+        @Test
+        fun `403 from data plane is typed and terminal`() {
+            stubFailure("/api/access_tokens", 403, "data-plane-forbidden.json")
+
+            val error = refreshFailure()
+
+            assertTrue(error is TokenEndpointException)
+            error as TokenEndpointException
+            assertEquals(TokenEndpoint.DATA_PLANE, error.endpoint)
+            assertEquals(403, error.httpStatusCode)
+            assertTrue(context.hasNonTransientError())
+        }
+
+        @Test
+        fun `429 keeps the Retry-After header and stays transient`() {
+            stubFailure("/oauth/token", 429, "oauth-token-rate-limited.json", retryAfter = "30")
+
+            val error = refreshFailure()
+
+            assertTrue(error is OAuthErrorException)
+            error as OAuthErrorException
+            assertEquals(429, error.httpStatusCode)
+            assertEquals("30", error.retryAfterHeader)
+            assertFalse(context.hasNonTransientError())
+        }
+
+        @Test
+        fun `429 from data plane keeps the Retry-After header`() {
+            stubFailure("/api/access_tokens", 429, retryAfter = "12")
+
+            val error = refreshFailure()
+
+            assertTrue(error is TokenEndpointException)
+            assertEquals("12", (error as TokenEndpointException).retryAfterHeader)
+            assertFalse(context.hasNonTransientError())
+        }
+
+        @Test
+        fun `408 from control plane stays transient`() {
+            stubFailure("/api/sessions", 408)
+
+            refreshFailure()
+
+            assertFalse(context.hasNonTransientError())
+        }
+
+        @Test
+        fun `5xx is typed with its step and status and stays transient`() {
+            stubFailure("/api/sessions", 503)
+
+            val error = refreshFailure()
+
+            assertTrue(error is TokenEndpointException)
+            error as TokenEndpointException
+            assertEquals(TokenEndpoint.CONTROL_PLANE, error.endpoint)
+            assertEquals(503, error.httpStatusCode)
+            assertFalse(context.hasNonTransientError())
+        }
+
+        @Test
+        fun `missing refresh token is terminal`() {
+            context.reset()
+
+            val error = refreshFailure()
+
+            assertTrue(error is MissingRefreshTokenException)
+            assertTrue(context.hasNonTransientError())
         }
     }
 
