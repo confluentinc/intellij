@@ -1,5 +1,6 @@
 package io.confluent.intellijplugin.core.monitoring.data.updater
 
+import io.confluent.intellijplugin.core.monitoring.data.updater.BdtMonitoringUpdater.Companion.backoffInterval
 import io.confluent.intellijplugin.core.monitoring.data.updater.BdtMonitoringUpdater.Companion.jitteredInterval
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -54,6 +55,38 @@ class BdtMonitoringUpdaterJitterTest {
         @Test
         fun `should never return less than one millisecond`() {
             assertEquals(1, jitteredInterval(1, FixedRandom(0.0)))
+        }
+    }
+
+    @Nested
+    inner class BackoffInterval {
+
+        @Test
+        fun `should return base interval when there are no failures`() {
+            assertEquals(10_000, backoffInterval(10_000, 0))
+        }
+
+        @Test
+        fun `should double per consecutive failure`() {
+            assertEquals(20_000, backoffInterval(10_000, 1))
+            assertEquals(40_000, backoffInterval(10_000, 2))
+            assertEquals(80_000, backoffInterval(10_000, 3))
+        }
+
+        @Test
+        fun `should cap at max doublings`() {
+            assertEquals(80_000, backoffInterval(10_000, 4))
+            assertEquals(80_000, backoffInterval(10_000, 1_000))
+        }
+
+        @Test
+        fun `should not overflow for large intervals`() {
+            assertEquals(Int.MAX_VALUE, backoffInterval(Int.MAX_VALUE / 2, 3))
+        }
+
+        @Test
+        fun `should treat negative failure count as zero`() {
+            assertEquals(10_000, backoffInterval(10_000, -1))
         }
     }
 }

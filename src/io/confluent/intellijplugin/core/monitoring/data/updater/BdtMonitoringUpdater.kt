@@ -19,6 +19,7 @@ import io.confluent.intellijplugin.core.util.invokeLater
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
 import java.util.concurrent.ConcurrentSkipListSet
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicInteger
 import kotlin.random.Random
 
 class BdtMonitoringUpdater(val dataManager: MonitoringDataManager) : Disposable {
@@ -34,6 +35,9 @@ class BdtMonitoringUpdater(val dataManager: MonitoringDataManager) : Disposable 
     private val registeredStorages = mutableListOf<DataModelStorage>()
 
     private val executingTask = ConcurrentSkipListSet<UpdateTask>()
+
+    /** Consecutive auto-refresh cycles that ended in error; stretches the next delay via [backoffInterval]. */
+    private val consecutiveFailures = AtomicInteger(0)
 
     val models
         get() = registeredStorages.sortedBy { it !is RootDataModelStorage }.flatMap { it.getModelsForRefresh() }
@@ -81,7 +85,11 @@ class BdtMonitoringUpdater(val dataManager: MonitoringDataManager) : Disposable 
 
         stopAll()
 
-        executeTask(UpdateTask { innerRefresh(models, it, withConnectionCheck = checkConnection) })
+        var failed = false
+        executeTask(UpdateTask {
+            innerRefresh(models, it, withConnectionCheck = checkConnection, onFailure = { failed = true })
+        })
+        if (failed) consecutiveFailures.incrementAndGet() else consecutiveFailures.set(0)
         rescheduleAll()
     }
 
@@ -103,7 +111,7 @@ class BdtMonitoringUpdater(val dataManager: MonitoringDataManager) : Disposable 
         if (interval > 0)
             alarm.addRequest(
                 { runBlockingMaybeCancellable { reloadAll() } },
-                jitteredInterval(interval),
+                jitteredInterval(backoffInterval(interval, consecutiveFailures.get())),
                 true
             )
     }
@@ -112,7 +120,8 @@ class BdtMonitoringUpdater(val dataManager: MonitoringDataManager) : Disposable 
     private fun innerRefresh(
         models: List<DataModel<*>>,
         isCurrentCanceled: AtomicBooleanProperty,
-        withConnectionCheck: Boolean = false
+        withConnectionCheck: Boolean = false,
+        onFailure: () -> Unit = {}
     ) {
         val toUpdate = models.filter { it.isRequireToUpdate() }
 
@@ -127,6 +136,7 @@ class BdtMonitoringUpdater(val dataManager: MonitoringDataManager) : Disposable 
 
         if (client.connectionError != null) {
             models.forEach { it.setError(client.connectionError) }
+            onFailure()
             return
         }
 
@@ -155,6 +165,7 @@ class BdtMonitoringUpdater(val dataManager: MonitoringDataManager) : Disposable 
 
                 if (!client.isConnected()) {
                     models.forEach { it.setError(connectionError) }
+                    onFailure()
                     return
                 }
             }
@@ -207,6 +218,7 @@ class BdtMonitoringUpdater(val dataManager: MonitoringDataManager) : Disposable 
             models.forEach {
                 it.setError(t, msg = KafkaMessagesBundle.message("monitoring.updater.driver.error"))
             }
+            onFailure()
         } finally {
             notify { it.onEnd(id) }
         }
@@ -274,6 +286,18 @@ class BdtMonitoringUpdater(val dataManager: MonitoringDataManager) : Disposable 
         internal fun jitteredInterval(intervalMillis: Int, random: Random = Random.Default): Int {
             val factor = 1 + random.nextDouble(-JITTER_FRACTION, JITTER_FRACTION)
             return (intervalMillis * factor).toInt().coerceAtLeast(1)
+        }
+
+        /** Max number of doublings applied by [backoffInterval], i.e. failed refreshes wait at most 8x the interval. */
+        internal const val MAX_BACKOFF_DOUBLINGS = 3
+
+        /**
+         * Returns [intervalMillis] doubled once per consecutive failure, capped at [MAX_BACKOFF_DOUBLINGS] doublings,
+         * so a broken connection isn't hammered at the normal refresh cadence.
+         */
+        internal fun backoffInterval(intervalMillis: Int, consecutiveFailures: Int): Int {
+            val doublings = consecutiveFailures.coerceIn(0, MAX_BACKOFF_DOUBLINGS)
+            return (intervalMillis.toLong() shl doublings).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
         }
     }
 
