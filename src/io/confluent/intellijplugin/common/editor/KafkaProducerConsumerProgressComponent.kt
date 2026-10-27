@@ -34,16 +34,12 @@ class KafkaProducerConsumerProgressComponent {
 
     fun onError() {
         lastEventWasError = true
-        timestampLabel.icon = null
+        timestampLabel.icon = AllIcons.General.Error
         timestampLabel.text = KafkaMessagesBundle.message("consumer.last.update.label.error")
     }
 
     fun onStop() {
-        if (lastEventWasError) {
-            timestampLabel.icon = AllIcons.General.Error
-            timestampLabel.text = KafkaMessagesBundle.message("consumer.last.update.label.error")
-            return
-        }
+        if (lastEventWasError) return
         timestampLabel.icon = null
         if (timestamp <= 0) {
             timestampLabel.text = KafkaMessagesBundle.message("consumer.last.update.label.canceled")
