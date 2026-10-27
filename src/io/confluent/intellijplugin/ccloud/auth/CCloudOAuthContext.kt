@@ -3,6 +3,7 @@ package io.confluent.intellijplugin.ccloud.auth
 import com.intellij.util.io.HttpRequests
 import io.confluent.intellijplugin.ccloud.auth.CCloudOAuthHttpClient.HttpResponseWithHeaders
 import io.confluent.intellijplugin.ccloud.client.CCloudRetryPolicy
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.JsonNull
@@ -114,7 +115,7 @@ class CCloudOAuthContext {
         authorizationCode: String,
         organizationId: String? = null
     ): Result<CCloudOAuthContext> = exchangeMutex.withLock {
-        runCatching {
+        runCatchingNonCancellation {
             // Set absolute lifetime on fresh sign-in
             tokens.updateAndGet { oldTokens ->
                 oldTokens.withEndOfLifetime(
@@ -148,7 +149,7 @@ class CCloudOAuthContext {
      * and data plane tokens. If not successful, returns a failed Result holding the cause of the failure.
      */
     suspend fun refresh(organizationId: String? = null): Result<CCloudOAuthContext> = exchangeMutex.withLock {
-        runCatching {
+        runCatchingNonCancellation {
             processTokenExchangeResponse(createTokensFromRefreshToken(), organizationId)
         }.onSuccess {
             // Reset failed attempts counter on success
@@ -172,7 +173,7 @@ class CCloudOAuthContext {
      */
     suspend fun refreshIgnoreFailures(organizationId: String? = null): Result<CCloudOAuthContext> = exchangeMutex.withLock {
         // Note: failures are NOT tracked
-        runCatching {
+        runCatchingNonCancellation {
             processTokenExchangeResponse(createTokensFromRefreshToken(), organizationId)
         }.onSuccess {
             tokens.updateAndGet { it.withSuccessfulTokenRefreshAttempt() }
@@ -193,7 +194,7 @@ class CCloudOAuthContext {
                 return@run Result.failure(IllegalStateException(errorMessage))
             }
 
-            runCatching {
+            runCatchingNonCancellation {
                 val response = CCloudOAuthHttpClient.get<CheckJwtResponse>(
                     url = CCloudOAuthConfig.CCLOUD_CONTROL_PLANE_CHECK_JWT_URI,
                     bearerToken = controlPlaneToken!!.token
@@ -464,6 +465,14 @@ class CCloudOAuthContext {
     }
 
     // Helpers
+
+    /**
+     * [runCatching] that lets [CancellationException] through, so a cancelled sign-in or refresh
+     * (e.g. the refresh loop stopped, or a sign-in that timed out) propagates as cancellation
+     * instead of being recorded as a failed attempt or a sign-in error.
+     */
+    private inline fun <T> runCatchingNonCancellation(block: () -> T): Result<T> =
+        runCatching(block).onFailure { if (it is CancellationException) throw it }
 
     private fun isTokenMissing(token: Token?): Boolean =
         token == null || token.token.isEmpty()
