@@ -345,6 +345,39 @@ class CCloudTokenRefreshBackoffTest {
     }
 
     @Nested
+    @DisplayName("cancellation")
+    inner class Cancellation {
+
+        @Test
+        fun `stopping the bean mid-refresh does not count a failed attempt`() {
+            val slowMs = 300
+            wireMockServer.stubFor(
+                WireMock.post("/oauth/token").willReturn(
+                    WireMock.aResponse().withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withFixedDelay(slowMs)
+                        .withBody(fixture("oauth-token-success.json"))
+                ).atPriority(1)
+            )
+            val sleeper = RecordingSleeper()
+            val bean = startBean(sleeper)
+
+            runBlocking {
+                withTimeout(TEST_TIMEOUT) { while (refreshRequests() == 0) delay(5) }
+                bean.stop()
+                // Let the in-flight (blocking) HTTP call return so the cancelled refresh unwinds
+                delay(slowMs * 3L)
+            }
+
+            assertEquals(0, context.getFailedTokenRefreshAttempts())
+            assertEquals(null, context.getErrors().tokenRefresh)
+            assertFalse(context.hasNonTransientError())
+            assertEquals(1, sleeper.delays.size, "no backoff wait after cancellation: ${sleeper.delays}")
+            assertTrue(terminalReasons.isEmpty())
+        }
+    }
+
+    @Nested
     @DisplayName("new sign-in")
     inner class NewSignIn {
 
