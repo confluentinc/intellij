@@ -11,6 +11,7 @@ All noteworthy changes to this plugin will be documented in this file.
 ### Removed
 ### Fixed
 - Deleting a consumer group that the broker rejects (for example, one that still has active members) now shows an error instead of appearing to succeed.
+- Producer send timeouts now show as error rows in the results table instead of silently ending the batch. Auto mode stops after 3 consecutive timeouts, and timed-out sends no longer count toward the request total.
 
 ## 253.25910.2
 ### Fixed
