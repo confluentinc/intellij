@@ -924,6 +924,23 @@ class CCloudProducerClientTest {
         }
 
         @Test
+        fun `should mark exhaustion as rate limited when body error code 429 persists`() {
+            runBlocking {
+                whenever(mockFetcher.produceRecord(any(), any()))
+                    .thenReturn(ProduceRecordResponse(errorCode = 429, message = "Too Many Requests"))
+            }
+
+            val exception = assertThrows(CCloudProduceRetriesExhaustedException::class.java) {
+                runBlocking { client.produceWithRetry(mockFetcher, "test-topic", request) }
+            }
+
+            assertEquals(3, exception.attempts)
+            assertEquals(429, exception.cause.statusCode)
+            assertTrue(exception.rateLimited)
+            runBlocking { verify(mockFetcher, times(3)).produceRecord(any(), any()) }
+        }
+
+        @Test
         fun `should not retry HTTP 429 and throw rate limited exhausted`() {
             val rateLimited = CCloudApiException("Rate limited (HTTP 429)", 429)
             runBlocking {
