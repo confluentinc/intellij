@@ -59,6 +59,7 @@ import org.apache.kafka.common.errors.SerializationException
 import org.apache.kafka.common.serialization.*
 import org.jetbrains.annotations.VisibleForTesting
 import java.io.IOException
+import javax.net.ssl.SSLException
 import java.nio.ByteBuffer
 import java.util.Base64
 import java.util.UUID
@@ -327,13 +328,17 @@ class CCloudConsumerClient(
      * Retryable: [CCloudApiException] (including connect failures) with status 0 (transport error /
      * timeout), 401 (token about to be refreshed), 408, 429 or 5xx, plus raw [IOException]s.
      * Everything else is terminal, notably the [IllegalStateException] thrown when the user is no
-     * longer signed in, and response parse errors.
+     * longer signed in, response parse errors, and TLS failures ([SSLException] anywhere in the
+     * cause chain), which won't fix themselves between polls.
      */
     @VisibleForTesting
-    internal fun isRetryable(e: Throwable): Boolean = when (e) {
-        is CCloudApiException -> e.statusCode in RETRYABLE_STATUSES || e.statusCode in 500..599
-        is IOException -> true
-        else -> false
+    internal fun isRetryable(e: Throwable): Boolean {
+        if (generateSequence(e) { it.cause }.any { it is SSLException }) return false
+        return when (e) {
+            is CCloudApiException -> e.statusCode in RETRYABLE_STATUSES || e.statusCode in 500..599
+            is IOException -> true
+            else -> false
+        }
     }
 
     /**

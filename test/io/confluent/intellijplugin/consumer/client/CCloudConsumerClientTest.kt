@@ -64,6 +64,7 @@ import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
+import javax.net.ssl.SSLHandshakeException
 import kotlin.random.Random
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
@@ -966,6 +967,14 @@ class CCloudConsumerClientTest {
         fun `raw IO exceptions should be retryable`() {
             assertTrue(client.isRetryable(SocketTimeoutException("read timed out")))
             assertTrue(client.isRetryable(IOException("connection reset")))
+        }
+
+        @Test
+        fun `TLS failures should not be retryable`() {
+            assertFalse(client.isRetryable(SSLHandshakeException("PKIX path building failed")))
+            assertFalse(
+                client.isRetryable(CCloudApiException("Request failed", 0, cause = SSLHandshakeException("bad cert")))
+            )
         }
 
         @Test
