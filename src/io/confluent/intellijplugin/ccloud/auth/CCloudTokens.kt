@@ -83,7 +83,7 @@ data class Tokens(
 
     fun withFailedTokenRefreshAttempt(error: Throwable, maxAttempts: Int): Tokens {
         val isTransient = failedTokenRefreshAttempts < maxAttempts
-                && !error.message.orEmpty().contains("Unknown or invalid refresh token.")
+                && !TokenRefreshErrorClassifier.isTerminal(error)
         return copy(
             errors = errors.withTokenRefresh(error.message ?: "Unknown error", isTransient),
             failedTokenRefreshAttempts = failedTokenRefreshAttempts + 1
