@@ -5,7 +5,15 @@ import com.github.tomakehurst.wiremock.client.WireMock
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig
 import com.intellij.testFramework.junit5.TestApplication
 import io.confluent.intellijplugin.ccloud.util.ResourceLoader
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
+import kotlin.time.Duration.Companion.seconds
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -680,6 +688,98 @@ class CCloudOAuthContextTest {
 
             assertTrue(error is MissingRefreshTokenException)
             assertTrue(context.hasNonTransientError())
+        }
+    }
+
+    @Nested
+    @DisplayName("concurrency")
+    inner class Concurrency {
+
+        private val concurrentCalls = 8
+        private val oauthDelayMs = 50
+
+        @BeforeEach
+        fun setUpSignedIn() {
+            runBlocking {
+                context.createTokensFromAuthorizationCode(MOCK_AUTH_CODE, MOCK_ORG_ID)
+            }
+            // Slow oauth/token so concurrent callers really overlap while one holds the lock
+            wireMockServer.stubFor(
+                WireMock.post("/oauth/token")
+                    .willReturn(
+                        WireMock.aResponse()
+                            .withStatus(200)
+                            .withHeader("Content-Type", "application/json")
+                            .withFixedDelay(oauthDelayMs)
+                            .withBody(ResourceLoader.loadResource("fixtures/ccloud-auth/oauth-token-success.json"))
+                    ).atPriority(1)
+            )
+        }
+
+        @Test
+        fun `concurrent refreshes from different threads all complete without lock errors`() {
+            // The HTTP calls hop to Dispatchers.IO, so each refresh resumes on a different thread
+            // than it started on. A thread-owned lock fails here (IllegalMonitorStateException on unlock).
+            val results = runBlocking {
+                withTimeout(30.seconds) {
+                    (1..concurrentCalls).map { i ->
+                        val dispatcher = if (i % 2 == 0) Dispatchers.Default else Dispatchers.IO
+                        async(dispatcher) { runCatching { context.refresh(MOCK_ORG_ID) } }
+                    }.awaitAll()
+                }
+            }
+
+            results.forEach { outer ->
+                assertTrue(outer.isSuccess, "refresh threw: ${outer.exceptionOrNull()}")
+                assertTrue(outer.getOrThrow().isSuccess, "refresh failed: ${outer.getOrThrow().exceptionOrNull()}")
+            }
+            assertEquals(0, context.getFailedTokenRefreshAttempts())
+        }
+
+        @Test
+        fun `concurrent refreshes run one at a time`() {
+            val elapsedMs = runBlocking {
+                val start = System.nanoTime()
+                (1..concurrentCalls).map {
+                    async(Dispatchers.Default) { context.refresh(MOCK_ORG_ID) }
+                }.awaitAll()
+                (System.nanoTime() - start) / 1_000_000
+            }
+
+            // Serialized: every refresh waits for the previous one's slow oauth/token call
+            assertTrue(
+                elapsedMs >= concurrentCalls * oauthDelayMs,
+                "expected >= ${concurrentCalls * oauthDelayMs}ms, took ${elapsedMs}ms"
+            )
+        }
+
+        @Test
+        fun `cancelled sign-in releases the lock for the next caller`() {
+            val result = runBlocking {
+                val signIn = launch(Dispatchers.Default) {
+                    context.createTokensFromAuthorizationCode(MOCK_AUTH_CODE, MOCK_ORG_ID)
+                }
+                delay(oauthDelayMs / 2L) // sign-in is now inside its slow oauth/token call
+                signIn.cancelAndJoin()
+                assertTrue(signIn.isCancelled)
+
+                withTimeout(10.seconds) { context.refresh(MOCK_ORG_ID) }
+            }
+
+            assertTrue(result.isSuccess, "refresh after cancelled sign-in failed: ${result.exceptionOrNull()}")
+        }
+
+        @Test
+        fun `sign-in and refresh do not interleave`() {
+            val results = runBlocking {
+                listOf(
+                    async(Dispatchers.Default) { context.createTokensFromAuthorizationCode(MOCK_AUTH_CODE, MOCK_ORG_ID) },
+                    async(Dispatchers.IO) { context.refresh(MOCK_ORG_ID) },
+                    async(Dispatchers.Default) { context.checkAuthenticationStatus() },
+                ).awaitAll()
+            }
+
+            results.forEach { assertTrue(it.isSuccess, "call failed: ${it.exceptionOrNull()}") }
         }
     }
 
