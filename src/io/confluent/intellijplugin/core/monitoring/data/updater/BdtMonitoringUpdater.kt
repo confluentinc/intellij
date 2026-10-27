@@ -291,13 +291,18 @@ class BdtMonitoringUpdater(val dataManager: MonitoringDataManager) : Disposable 
         /** Max number of doublings applied by [backoffInterval], i.e. failed refreshes wait at most 8x the interval. */
         internal const val MAX_BACKOFF_DOUBLINGS = 3
 
+        /** Absolute ceiling on a backed-off delay; never shortens a configured interval that is already longer. */
+        internal const val MAX_BACKOFF_MILLIS = 5 * 60_000
+
         /**
-         * Returns [intervalMillis] doubled once per consecutive failure, capped at [MAX_BACKOFF_DOUBLINGS] doublings,
-         * so a broken connection isn't hammered at the normal refresh cadence.
+         * Returns [intervalMillis] doubled once per consecutive failure, capped at [MAX_BACKOFF_DOUBLINGS] doublings
+         * and at [MAX_BACKOFF_MILLIS] (or the interval itself, if longer), so a broken connection isn't hammered at
+         * the normal refresh cadence.
          */
         internal fun backoffInterval(intervalMillis: Int, consecutiveFailures: Int): Int {
             val doublings = consecutiveFailures.coerceIn(0, MAX_BACKOFF_DOUBLINGS)
-            return (intervalMillis.toLong() shl doublings).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
+            val ceiling = maxOf(intervalMillis, MAX_BACKOFF_MILLIS).toLong()
+            return (intervalMillis.toLong() shl doublings).coerceAtMost(ceiling).toInt()
         }
     }
 

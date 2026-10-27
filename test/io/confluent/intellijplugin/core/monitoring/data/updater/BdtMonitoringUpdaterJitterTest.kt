@@ -1,5 +1,6 @@
 package io.confluent.intellijplugin.core.monitoring.data.updater
 
+import io.confluent.intellijplugin.core.monitoring.data.updater.BdtMonitoringUpdater.Companion.MAX_BACKOFF_MILLIS
 import io.confluent.intellijplugin.core.monitoring.data.updater.BdtMonitoringUpdater.Companion.backoffInterval
 import io.confluent.intellijplugin.core.monitoring.data.updater.BdtMonitoringUpdater.Companion.jitteredInterval
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -80,8 +81,20 @@ class BdtMonitoringUpdaterJitterTest {
         }
 
         @Test
+        fun `should cap at five minutes before max doublings are reached`() {
+            assertEquals(120_000, backoffInterval(60_000, 1))
+            assertEquals(240_000, backoffInterval(60_000, 2))
+            assertEquals(MAX_BACKOFF_MILLIS, backoffInterval(60_000, 3))
+        }
+
+        @Test
+        fun `should never shorten an interval already longer than the cap`() {
+            assertEquals(10 * 60_000, backoffInterval(10 * 60_000, 3))
+        }
+
+        @Test
         fun `should not overflow for large intervals`() {
-            assertEquals(Int.MAX_VALUE, backoffInterval(Int.MAX_VALUE / 2, 3))
+            assertEquals(Int.MAX_VALUE / 2, backoffInterval(Int.MAX_VALUE / 2, 3))
         }
 
         @Test
