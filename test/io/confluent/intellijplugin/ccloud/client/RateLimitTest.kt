@@ -20,7 +20,8 @@ class RateLimitTest {
 
     @BeforeEach
     fun setup() {
-        client = testClient(wireMock.baseUrl())
+        // Millisecond delays keep the retry tests fast; timing is covered by CCloudRetryPolicyTest
+        client = testClient(wireMock.baseUrl(), retryPolicy = CCloudRetryPolicy.immediate())
     }
 
     @Nested
