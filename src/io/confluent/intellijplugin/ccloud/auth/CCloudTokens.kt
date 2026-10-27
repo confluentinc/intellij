@@ -81,12 +81,17 @@ data class Tokens(
         failedTokenRefreshAttempts = 0
     )
 
+    /**
+     * Record a failed refresh. The failure is non-transient (stop refreshing, sign out) when the
+     * error is terminal or when this was attempt number [maxAttempts], so at most [maxAttempts]
+     * refreshes are tried in a row.
+     */
     fun withFailedTokenRefreshAttempt(error: Throwable, maxAttempts: Int): Tokens {
-        val isTransient = failedTokenRefreshAttempts < maxAttempts
-                && !error.message.orEmpty().contains("Unknown or invalid refresh token.")
+        val attempts = failedTokenRefreshAttempts + 1
+        val isTransient = attempts < maxAttempts && !TokenRefreshErrorClassifier.isTerminal(error)
         return copy(
             errors = errors.withTokenRefresh(error.message ?: "Unknown error", isTransient),
-            failedTokenRefreshAttempts = failedTokenRefreshAttempts + 1
+            failedTokenRefreshAttempts = attempts
         )
     }
 }
