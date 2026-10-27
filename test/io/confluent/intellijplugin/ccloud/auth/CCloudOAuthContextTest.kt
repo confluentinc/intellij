@@ -754,19 +754,47 @@ class CCloudOAuthContextTest {
         }
 
         @Test
-        fun `cancelled sign-in releases the lock for the next caller`() {
+        fun `cancelled sign-in records no sign-in error and releases the lock`() {
+            wireMockServer.resetRequests()
             val result = runBlocking {
                 val signIn = launch(Dispatchers.Default) {
                     context.createTokensFromAuthorizationCode(MOCK_AUTH_CODE, MOCK_ORG_ID)
                 }
-                delay(oauthDelayMs / 2L) // sign-in is now inside its slow oauth/token call
+                awaitOAuthTokenRequest() // sign-in is now inside its slow oauth/token call
                 signIn.cancelAndJoin()
                 assertTrue(signIn.isCancelled)
 
-                withTimeout(10.seconds) { context.refresh(MOCK_ORG_ID) }
+                // Cancellation is not a sign-in failure
+                assertNull(context.getErrors().signIn)
+                assertFalse(context.hasNonTransientError())
+
+                // The Mutex was released: the next caller gets in
+                withTimeout(10.seconds) { context.createTokensFromAuthorizationCode(MOCK_AUTH_CODE, MOCK_ORG_ID) }
             }
 
-            assertTrue(result.isSuccess, "refresh after cancelled sign-in failed: ${result.exceptionOrNull()}")
+            assertTrue(result.isSuccess, "sign-in after cancelled sign-in failed: ${result.exceptionOrNull()}")
+        }
+
+        @Test
+        fun `cancelled refresh does not count as a failed attempt`() {
+            wireMockServer.resetRequests()
+            runBlocking {
+                val refresh = launch(Dispatchers.Default) { context.refresh(MOCK_ORG_ID) }
+                awaitOAuthTokenRequest()
+                refresh.cancelAndJoin()
+            }
+
+            assertEquals(0, context.getFailedTokenRefreshAttempts())
+            assertNull(context.getErrors().tokenRefresh)
+        }
+
+        private suspend fun awaitOAuthTokenRequest() = withTimeout(10.seconds) {
+            while (wireMockServer.countRequestsMatching(
+                    WireMock.postRequestedFor(WireMock.urlEqualTo("/oauth/token")).build()
+                ).count == 0
+            ) {
+                delay(5)
+            }
         }
 
         @Test
