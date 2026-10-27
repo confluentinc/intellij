@@ -163,6 +163,8 @@ class CCloudProducerClient(
                         schemaCache = schemaCache,
                         onUpdate = onUpdate
                     )
+                    // Stopped by the user or by an exhausted produce; don't wait out the interval
+                    if (!running.get()) break
                     produced += flowParams.flowRecordsCountPerRequest
                     delay(flowParams.requestInterval.toLong())
                 }
@@ -219,6 +221,12 @@ class CCloudProducerClient(
             } catch (_: CancellationException) {
                 // Job cancelled during retry backoff; no record sent, safe to stop
                 break
+            } catch (e: CCloudProduceRetriesExhaustedException) {
+                // Show it in the results table and stop (including AUTO mode); other errors keep the balloon
+                thisLogger().info("CCloud produce to $topic gave up after ${e.attempts} attempt(s)", e)
+                onUpdate(0, listOf(createErrorRecord(recordKey, recordValue, topic, forcePartition, e)))
+                running.set(false)
+                return
             }
 
             val record = KafkaRecord(
@@ -241,6 +249,18 @@ class CCloudProducerClient(
             onUpdate(record.duration, listOf(record))
         }
     }
+
+    private fun createErrorRecord(
+        key: ConsumerProducerFieldConfig,
+        value: ConsumerProducerFieldConfig,
+        topic: String,
+        forcePartition: Int,
+        error: Throwable
+    ): KafkaRecord = KafkaRecord.createFor(
+        key.type, value.type, key.schemaFormat, value.schemaFormat,
+        Result.failure(error),
+        errorPartition = forcePartition.takeIf { it >= 0 }
+    ).copy(topic = topic, duration = 0)
 
     private fun resolveFieldValue(
         field: ConsumerProducerFieldConfig,
