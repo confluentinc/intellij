@@ -3,6 +3,8 @@ package io.confluent.intellijplugin.ccloud.auth
 import com.intellij.util.io.HttpRequests
 import io.confluent.intellijplugin.ccloud.auth.CCloudOAuthHttpClient.HttpResponseWithHeaders
 import io.confluent.intellijplugin.ccloud.client.CCloudRetryPolicy
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.JsonNull
 import java.net.URLEncoder
 import java.security.MessageDigest
@@ -10,7 +12,6 @@ import java.security.SecureRandom
 import java.time.Instant
 import java.util.Base64
 import java.util.concurrent.atomic.AtomicReference
-import java.util.concurrent.locks.ReentrantReadWriteLock
 
 /**
  * OAuth-based authentication flow with Confluent Cloud API.
@@ -39,10 +40,17 @@ class CCloudOAuthContext {
                 .let { base64Encoder.encodeToString(it) }
     }
 
+    /** Immutable snapshot; readers take one `get()` and need no lock. */
     private val tokens = AtomicReference(Tokens())
-    private val readWriteLock = ReentrantReadWriteLock()
-    private val writeLock = readWriteLock.writeLock()
-    private val readLock = readWriteLock.readLock()
+
+    /**
+     * Serializes the suspend operations that talk to the token endpoints (sign-in, refresh,
+     * auth-status check), so a refresh token is never used by two exchanges at once. A coroutine
+     * [Mutex] rather than a thread-owned lock because these calls suspend into `Dispatchers.IO` and
+     * may resume on another thread. Not reentrant: a guarded method must not call another one.
+     * [withLock] releases it if the caller is cancelled (e.g. a sign-in that times out).
+     */
+    private val exchangeMutex = Mutex()
 
     // Public accessors
     fun getRefreshToken(): Token? = tokens.get().refreshToken
@@ -60,14 +68,7 @@ class CCloudOAuthContext {
      * Earliest token expiry, used to schedule refresh
      * @return The earliest token expiry time, or null if no tokens are present.
      */
-    fun expiresAt(): Instant? {
-        readLock.lock()
-        try {
-            return tokens.get().expiresAt()
-        } finally {
-            readLock.unlock()
-        }
-    }
+    fun expiresAt(): Instant? = tokens.get().expiresAt()
 
     fun hasReachedEndOfLifetime(): Boolean {
         val endOfLifetime = getEndOfLifetime() ?: return false
@@ -77,19 +78,16 @@ class CCloudOAuthContext {
     fun hasNonTransientError(): Boolean = tokens.get().errors.hasNonTransientErrors()
 
     fun shouldAttemptTokenRefresh(): Boolean {
-        readLock.lock()
-        try {
-            val now = Instant.now()
-            val expiresAt = expiresAt() ?: return false
-            val nextExecution = now.plusSeconds(CCloudOAuthConfig.CHECK_TOKEN_EXPIRATION_INTERVAL.inWholeSeconds)
-            val atLeastOneTokenWillExpireBeforeNextRun = expiresAt < nextExecution
+        val snapshot = tokens.get()
+        val now = Instant.now()
+        val expiresAt = snapshot.expiresAt() ?: return false
+        val nextExecution = now.plusSeconds(CCloudOAuthConfig.CHECK_TOKEN_EXPIRATION_INTERVAL.inWholeSeconds)
+        val atLeastOneTokenWillExpireBeforeNextRun = expiresAt < nextExecution
+        val reachedEndOfLifetime = snapshot.endOfLifetime?.let { now >= it } ?: false
 
-            return !hasReachedEndOfLifetime()
-                    && !hasNonTransientError()
-                    && atLeastOneTokenWillExpireBeforeNextRun
-        } finally {
-            readLock.unlock()
-        }
+        return !reachedEndOfLifetime
+                && !snapshot.errors.hasNonTransientErrors()
+                && atLeastOneTokenWillExpireBeforeNextRun
     }
 
     fun getSignInUri(): String = buildString {
@@ -115,34 +113,29 @@ class CCloudOAuthContext {
     suspend fun createTokensFromAuthorizationCode(
         authorizationCode: String,
         organizationId: String? = null
-    ): Result<CCloudOAuthContext> {
-        writeLock.lock()
-        try {
-            return runCatching {
-                // Set absolute lifetime on fresh sign-in
-                tokens.updateAndGet { oldTokens ->
-                    oldTokens.withEndOfLifetime(
-                        Instant.now()
-                            .plusSeconds(CCloudOAuthConfig.CCLOUD_REFRESH_TOKEN_ABSOLUTE_LIFETIME.inWholeSeconds)
-                    )
-                }
+    ): Result<CCloudOAuthContext> = exchangeMutex.withLock {
+        runCatching {
+            // Set absolute lifetime on fresh sign-in
+            tokens.updateAndGet { oldTokens ->
+                oldTokens.withEndOfLifetime(
+                    Instant.now()
+                        .plusSeconds(CCloudOAuthConfig.CCLOUD_REFRESH_TOKEN_ABSOLUTE_LIFETIME.inWholeSeconds)
+                )
+            }
 
-                processTokenExchangeResponse(exchangeAuthorizationCode(authorizationCode), organizationId)
-            }.onSuccess {
-                // Reset any existing errors and the refresh failure count (and so the backoff)
-                tokens.updateAndGet { oldTokens ->
-                    oldTokens.withSuccessfulTokenRefreshAttempt().let {
-                        it.withErrors(it.errors.withoutSignIn().withoutAuthStatusCheck())
-                    }
+            processTokenExchangeResponse(exchangeAuthorizationCode(authorizationCode), organizationId)
+        }.onSuccess {
+            // Reset any existing errors and the refresh failure count (and so the backoff)
+            tokens.updateAndGet { oldTokens ->
+                oldTokens.withSuccessfulTokenRefreshAttempt().let {
+                    it.withErrors(it.errors.withoutSignIn().withoutAuthStatusCheck())
                 }
-            }.onFailure { failure ->
-                tokens.updateAndGet { oldTokens ->
-                    oldTokens.withErrors(oldTokens.errors.withSignIn(failure.message ?: "Unknown error"))
-                }
-            }.map { this }
-        } finally {
-            writeLock.unlock()
-        }
+            }
+        }.onFailure { failure ->
+            tokens.updateAndGet { oldTokens ->
+                oldTokens.withErrors(oldTokens.errors.withSignIn(failure.message ?: "Unknown error"))
+            }
+        }.map { this }
     }
 
     /**
@@ -154,26 +147,21 @@ class CCloudOAuthContext {
      * @return If successful, returns a CCloudOAuthContext with up-to-date refresh, control plane,
      * and data plane tokens. If not successful, returns a failed Result holding the cause of the failure.
      */
-    suspend fun refresh(organizationId: String? = null): Result<CCloudOAuthContext> {
-        writeLock.lock()
-        try {
-            return runCatching {
-                processTokenExchangeResponse(createTokensFromRefreshToken(), organizationId)
-            }.onSuccess {
-                // Reset failed attempts counter on success
-                tokens.updateAndGet { it.withSuccessfulTokenRefreshAttempt() }
-            }.onFailure { failure ->
-                // Track failed attempt - becomes non-transient after MAX_TOKEN_REFRESH_ATTEMPTS
-                tokens.updateAndGet {
-                    it.withFailedTokenRefreshAttempt(
-                        failure,
-                        CCloudOAuthConfig.MAX_TOKEN_REFRESH_ATTEMPTS
-                    )
-                }
-            }.map { this }
-        } finally {
-            writeLock.unlock()
-        }
+    suspend fun refresh(organizationId: String? = null): Result<CCloudOAuthContext> = exchangeMutex.withLock {
+        runCatching {
+            processTokenExchangeResponse(createTokensFromRefreshToken(), organizationId)
+        }.onSuccess {
+            // Reset failed attempts counter on success
+            tokens.updateAndGet { it.withSuccessfulTokenRefreshAttempt() }
+        }.onFailure { failure ->
+            // Track failed attempt - becomes non-transient after MAX_TOKEN_REFRESH_ATTEMPTS
+            tokens.updateAndGet {
+                it.withFailedTokenRefreshAttempt(
+                    failure,
+                    CCloudOAuthConfig.MAX_TOKEN_REFRESH_ATTEMPTS
+                )
+            }
+        }.map { this }
     }
 
     /**
@@ -182,18 +170,13 @@ class CCloudOAuthContext {
      * @return If successful, returns a CCloudOAuthContext with up-to-date refresh, control plane,
      * and data plane tokens. If not successful, returns a failed Result holding the cause of the failure.
      */
-    suspend fun refreshIgnoreFailures(organizationId: String? = null): Result<CCloudOAuthContext> {
-        writeLock.lock()
-        try {
-            return runCatching {
-                processTokenExchangeResponse(createTokensFromRefreshToken(), organizationId)
-            }.onSuccess {
-                tokens.updateAndGet { it.withSuccessfulTokenRefreshAttempt() }
-            }.map { this }
-            // Note: failures are NOT tracked
-        } finally {
-            writeLock.unlock()
-        }
+    suspend fun refreshIgnoreFailures(organizationId: String? = null): Result<CCloudOAuthContext> = exchangeMutex.withLock {
+        // Note: failures are NOT tracked
+        runCatching {
+            processTokenExchangeResponse(createTokensFromRefreshToken(), organizationId)
+        }.onSuccess {
+            tokens.updateAndGet { it.withSuccessfulTokenRefreshAttempt() }
+        }.map { this }
     }
 
     /**
@@ -201,17 +184,16 @@ class CCloudOAuthContext {
      * @return If successful, returns a Result holding the boolean value true if the token is valid.
      * If not successful, returns a failed Result holding the cause of the failure.
      */
-    suspend fun checkAuthenticationStatus(): Result<Boolean> {
-        writeLock.lock()
-        try {
+    suspend fun checkAuthenticationStatus(): Result<Boolean> = exchangeMutex.withLock {
+        run {
             val controlPlaneToken = tokens.get().controlPlaneToken
             if (isTokenMissing(controlPlaneToken)) {
                 val errorMessage = "Cannot verify authentication status: no control plane token available."
                 tokens.updateAndGet { it.withErrors(it.errors.withAuthStatusCheck(errorMessage)) }
-                return Result.failure(IllegalStateException(errorMessage))
+                return@run Result.failure(IllegalStateException(errorMessage))
             }
 
-            return runCatching {
+            runCatching {
                 val response = CCloudOAuthHttpClient.get<CheckJwtResponse>(
                     url = CCloudOAuthConfig.CCLOUD_CONTROL_PLANE_CHECK_JWT_URI,
                     bearerToken = controlPlaneToken!!.token
@@ -226,18 +208,16 @@ class CCloudOAuthContext {
             }.onFailure { failure ->
                 tokens.updateAndGet { it.withErrors(it.errors.withAuthStatusCheck(failure.message ?: "Unknown error")) }
             }
-        } finally {
-            writeLock.unlock()
         }
     }
 
+    /**
+     * Clear all tokens and errors. Not guarded by [exchangeMutex] (it is not a suspend function);
+     * a refresh still in flight could write tokens back afterwards. Only tests call it today:
+     * sign-out drops the whole context instead.
+     */
     fun reset() {
-        writeLock.lock()
-        try {
-            tokens.set(Tokens())
-        } finally {
-            writeLock.unlock()
-        }
+        tokens.set(Tokens())
     }
 
     // Internal Exchange Methods
