@@ -29,6 +29,7 @@ import org.junit.jupiter.api.Test
 import java.util.concurrent.CopyOnWriteArrayList
 import kotlin.random.Random
 import kotlin.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 
@@ -43,6 +44,17 @@ class CCloudTokenRefreshBackoffTest {
         private lateinit var wireMockServer: WireMockServer
         private const val FIXTURES = "fixtures/ccloud-auth"
         private val TEST_TIMEOUT = 20.seconds
+
+        /** Production waits before jitter: 5s * 1.6^n for n = 0..8 (all below the 5 min cap). */
+        private val PRODUCTION_BASES = listOf(5_000.0, 8_000.0, 12_800.0, 20_480.0, 32_768.0, 52_428.8, 83_886.08, 134_217.728, 214_748.3648)
+            .map { it.milliseconds }
+
+        private fun assertDurationsClose(expected: List<Duration>, actual: List<Duration>) {
+            assertEquals(expected.size, actual.size, "number of waits: $actual")
+            expected.zip(actual).forEachIndexed { i, (e, a) ->
+                assertTrue((e - a).absoluteValue < 1.milliseconds, "wait $i: expected $e, was $a")
+            }
+        }
 
         /** The production policy without jitter, so delays are exact. */
         private val NO_JITTER_POLICY = CCloudOAuthConfig.TOKEN_REFRESH_RETRY_POLICY.copy(jitter = 0.0)
@@ -188,16 +200,30 @@ class CCloudTokenRefreshBackoffTest {
     inner class Backoff {
 
         @Test
-        fun `waits grow from 5s and are capped at 5 minutes`() {
+        fun `waits grow 1_6x from 5s and total about 10 minutes before sign-out`() {
             stubFailure("/oauth/token", 503)
             val sleeper = RecordingSleeper()
             startBean(sleeper)
 
             awaitTerminal()
 
-            val expectedBackoffs = listOf(5, 10, 20, 40, 80, 160, 300, 300, 300).map { it.seconds }
             // First entry is the idle tick before the first try; then one wait between each of the 10 tries
-            assertEquals(listOf(CCloudOAuthConfig.CHECK_TOKEN_EXPIRATION_INTERVAL) + expectedBackoffs, sleeper.delays)
+            assertEquals(CCloudOAuthConfig.CHECK_TOKEN_EXPIRATION_INTERVAL, sleeper.delays.first())
+            assertDurationsClose(PRODUCTION_BASES, sleeper.delays.drop(1))
+            val total = sleeper.delays.drop(1).fold(Duration.ZERO, Duration::plus)
+            assertTrue(total > 9.minutes && total < 10.minutes, "total backoff was $total")
+        }
+
+        @Test
+        fun `computed waits stop growing at maxBackoff`() {
+            stubFailure("/oauth/token", 503)
+            val sleeper = RecordingSleeper()
+            startBean(sleeper, NO_JITTER_POLICY.copy(maxBackoff = 30.seconds))
+
+            awaitTerminal()
+
+            val expected = PRODUCTION_BASES.map { minOf(it, 30.seconds) }
+            assertDurationsClose(expected, sleeper.delays.drop(1))
         }
 
         @Test
@@ -208,7 +234,7 @@ class CCloudTokenRefreshBackoffTest {
 
             awaitTerminal()
 
-            val bases = listOf(5, 10, 20, 40, 80, 160, 300, 300, 300).map { it.seconds }
+            val bases = PRODUCTION_BASES
             val backoffs = sleeper.delays.drop(1)
             assertEquals(bases.size, backoffs.size)
             bases.zip(backoffs).forEach { (base, actual) ->
