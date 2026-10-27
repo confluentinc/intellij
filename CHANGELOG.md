@@ -13,6 +13,7 @@ All noteworthy changes to this plugin will be documented in this file.
 - The Topics table no longer shows "Create a topic" mixed into the connection error message when an auto-refresh fails.
 - Producer send timeouts now show as error rows in the results table instead of silently ending the batch. Auto mode stops after 3 consecutive timeouts, and timed-out sends no longer count toward the request total.
 - The producer and consumer status label now shows an error icon when an error occurs and keeps it after stopping. An error that happens before any record arrives no longer changes to "Canceled" when stopped.
+- Confluent Cloud sessions whose refresh token is rejected now sign out right away instead of retrying for several minutes. Temporary token refresh failures back off between tries and sign out after 10 failed attempts.
 
 ## 253.25910.2
 ### Fixed
