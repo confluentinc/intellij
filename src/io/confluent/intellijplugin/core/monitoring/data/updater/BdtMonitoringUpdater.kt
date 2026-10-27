@@ -99,10 +99,11 @@ class BdtMonitoringUpdater(val dataManager: MonitoringDataManager) : Disposable 
         if (isDisposed.get())
             return@invokeLater
 
-        if (dataManager.settings.dataUpdateIntervalMillis > 0)
+        val interval = dataManager.settings.dataUpdateIntervalMillis
+        if (interval > 0)
             alarm.addRequest(
                 { runBlockingMaybeCancellable { reloadAll() } },
-                dataManager.settings.dataUpdateIntervalMillis,
+                jitteredInterval(interval),
                 true
             )
     }
@@ -259,6 +260,20 @@ class BdtMonitoringUpdater(val dataManager: MonitoringDataManager) : Disposable 
             notify {
                 it.onEnd(null)
             }
+        }
+    }
+
+    companion object {
+        /** Max fraction by which each auto-refresh delay is randomly stretched or shrunk. */
+        internal const val JITTER_FRACTION = 0.2
+
+        /**
+         * Returns [intervalMillis] scaled by a random factor in `[1 - JITTER_FRACTION, 1 + JITTER_FRACTION)`, so
+         * many open connections sharing the same refresh interval don't all hit their clusters in lockstep.
+         */
+        internal fun jitteredInterval(intervalMillis: Int, random: Random = Random.Default): Int {
+            val factor = 1 + random.nextDouble(-JITTER_FRACTION, JITTER_FRACTION)
+            return (intervalMillis * factor).toInt().coerceAtLeast(1)
         }
     }
 
