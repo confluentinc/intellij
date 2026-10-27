@@ -64,6 +64,7 @@ import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
+import kotlin.random.Random
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
@@ -1152,6 +1153,30 @@ class CCloudConsumerClientTest {
 
             assertEquals(5, callTimesNanos.size)
             assertEquals(listOf<Throwable>(terminal), errors.toList())
+        }
+
+        @Test
+        fun `idle poll delay should be jittered within policy bounds`() {
+            val consumer = CCloudConsumerClient(
+                clusterDataManager = mockDataManager,
+                onStart = {},
+                onStop = {},
+                retryPolicy = CCloudRetryPolicy(jitter = 0.2, random = Random(42)),
+                idlePollDelay = 1.seconds
+            )
+
+            val delays = List(1_000) { consumer.nextIdlePollDelay() }
+
+            val outOfBounds = delays.filter { it < 1.seconds || it >= 1.2.seconds }
+            assertTrue(outOfBounds.isEmpty(), "out of bounds: $outOfBounds")
+            assertTrue(delays.distinct().size > 1, "delays should vary")
+        }
+
+        @Test
+        fun `default idle poll delay should be one second plus jitter`() {
+            val delay = client.nextIdlePollDelay()
+
+            assertTrue(delay >= 1.seconds && delay < 1.2.seconds, "was $delay")
         }
     }
 

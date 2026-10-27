@@ -228,7 +228,7 @@ class CCloudConsumerClient(
 
                 if (allRecords.isEmpty()) {
                     // No new records, back off before next poll
-                    delay(idlePollDelay)
+                    delay(nextIdlePollDelay())
                     continue
                 }
 
@@ -313,6 +313,13 @@ class CCloudConsumerClient(
             }
         }
     }
+
+    /**
+     * Wait before polling again after an empty poll: [idlePollDelay] plus the policy's one-sided
+     * jitter, so many idle consumers don't poll in lockstep.
+     */
+    @VisibleForTesting
+    internal fun nextIdlePollDelay(): Duration = retryPolicy.jittered(idlePollDelay)
 
     /**
      * Whether a failed poll is worth repeating.
