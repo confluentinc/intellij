@@ -2,6 +2,9 @@ package io.confluent.intellijplugin.consumer.client
 
 import com.intellij.testFramework.junit5.TestApplication
 import io.confluent.intellijplugin.ccloud.cache.DataPlaneCache
+import io.confluent.intellijplugin.ccloud.client.CCloudApiException
+import io.confluent.intellijplugin.ccloud.client.CCloudConnectException
+import io.confluent.intellijplugin.ccloud.client.CCloudRetryPolicy
 import io.confluent.intellijplugin.ccloud.fetcher.DataPlaneFetcher
 import io.confluent.intellijplugin.ccloud.fetcher.DataPlaneFetcherImpl
 import io.confluent.intellijplugin.ccloud.model.response.ConsumeRecordsRequest
@@ -30,6 +33,7 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.SerializationException as KotlinxSerializationException
 import org.apache.avro.Schema
 import org.apache.avro.generic.GenericData
 import org.apache.avro.generic.GenericDatumWriter
@@ -49,10 +53,22 @@ import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.*
 import java.io.ByteArrayOutputStream
+import java.io.IOException
+import java.net.ConnectException
+import java.net.SocketTimeoutException
 import java.util.concurrent.ConcurrentHashMap
 import java.nio.ByteBuffer
 import java.util.Base64
 import java.util.UUID
+import java.util.concurrent.CopyOnWriteArrayList
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicInteger
+import javax.net.ssl.SSLHandshakeException
+import kotlin.random.Random
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.seconds
 
 @TestApplication
 class CCloudConsumerClientTest {
@@ -913,37 +929,263 @@ class CCloudConsumerClientTest {
     // ── Utilities ───────────────────────────────────────────────────────
 
     @Nested
-    @DisplayName("isRetryableStatus")
-    inner class IsRetryableStatus {
+    @DisplayName("isRetryable")
+    inner class IsRetryable {
 
         @Test
-        fun `401 should be retryable`() {
-            assertTrue(client.isRetryableStatus(401))
+        fun `transport errors with status 0 should be retryable`() {
+            assertTrue(client.isRetryable(CCloudApiException("timeout", 0)))
         }
 
         @Test
-        fun `429 should be retryable`() {
-            assertTrue(client.isRetryableStatus(429))
+        fun `connect errors should be retryable`() {
+            assertTrue(client.isRetryable(CCloudConnectException("refused", ConnectException())))
         }
 
         @Test
-        fun `500 should be retryable`() {
-            assertTrue(client.isRetryableStatus(500))
+        fun `401 408 and 429 should be retryable`() {
+            listOf(401, 408, 429).forEach { status ->
+                assertTrue(client.isRetryable(CCloudApiException("HTTP $status", status)), "status $status")
+            }
         }
 
         @Test
-        fun `503 should be retryable`() {
-            assertTrue(client.isRetryableStatus(503))
+        fun `5xx should be retryable`() {
+            listOf(500, 502, 503, 504, 599).forEach { status ->
+                assertTrue(client.isRetryable(CCloudApiException("HTTP $status", status)), "status $status")
+            }
         }
 
         @Test
-        fun `400 should not be retryable`() {
-            assertFalse(client.isRetryableStatus(400))
+        fun `other 4xx should not be retryable`() {
+            listOf(400, 403, 404, 409).forEach { status ->
+                assertFalse(client.isRetryable(CCloudApiException("HTTP $status", status)), "status $status")
+            }
         }
 
         @Test
-        fun `404 should not be retryable`() {
-            assertFalse(client.isRetryableStatus(404))
+        fun `raw IO exceptions should be retryable`() {
+            assertTrue(client.isRetryable(SocketTimeoutException("read timed out")))
+            assertTrue(client.isRetryable(IOException("connection reset")))
+        }
+
+        @Test
+        fun `TLS failures should not be retryable`() {
+            assertFalse(client.isRetryable(SSLHandshakeException("PKIX path building failed")))
+            assertFalse(
+                client.isRetryable(CCloudApiException("Request failed", 0, cause = SSLHandshakeException("bad cert")))
+            )
+        }
+
+        @Test
+        fun `not signed in IllegalStateException should not be retryable`() {
+            assertFalse(client.isRetryable(IllegalStateException("Not signed in to Confluent Cloud")))
+        }
+
+        @Test
+        fun `response parse errors should not be retryable`() {
+            assertFalse(client.isRetryable(KotlinxSerializationException("bad json")))
+        }
+
+        @Test
+        fun `unknown exceptions should not be retryable`() {
+            assertFalse(client.isRetryable(RuntimeException("boom")))
+        }
+    }
+
+    @Nested
+    @DisplayName("poll loop retry")
+    inner class PollLoopRetry {
+
+        private val emptyResponse: ConsumeRecordsResponse = Json { ignoreUnknownKeys = true }
+            .decodeFromString<ConsumeRecordsResponse>(
+                javaClass.getResourceAsStream("/fixtures/consumer/empty-consume-response.json")!!
+                    .readBytes().toString(Charsets.UTF_8)
+            )
+
+        private val stopped = CountDownLatch(1)
+        private val errors = CopyOnWriteArrayList<Throwable>()
+        private val callTimesNanos = CopyOnWriteArrayList<Long>()
+        private var pollClient: CCloudConsumerClient? = null
+
+        @AfterEach
+        fun tearDown() {
+            pollClient?.stop()
+        }
+
+        private fun http(status: Int, retryAfter: Duration? = null) =
+            CCloudApiException("HTTP $status", status, retryAfter)
+
+        /**
+         * Start a consumer whose consumeRecords() calls play back [outcomes] in order (a Throwable is
+         * thrown, a response is returned), then wait for the poll loop to stop on its own.
+         * Running past the end of [outcomes] throws a terminal error so a broken loop cannot spin.
+         */
+        private fun runPolls(
+            outcomes: List<Any>,
+            policy: CCloudRetryPolicy = CCloudRetryPolicy.immediate(10)
+        ) {
+            val calls = AtomicInteger()
+            val fetcher = mock<DataPlaneFetcherImpl>()
+            fetcher.stub {
+                onBlocking { consumeRecords(any(), any()) } doAnswer {
+                    callTimesNanos.add(System.nanoTime())
+                    when (val outcome = outcomes.getOrNull(calls.getAndIncrement())) {
+                        is Throwable -> throw outcome
+                        is ConsumeRecordsResponse -> outcome
+                        else -> throw IllegalStateException("scripted outcomes exhausted")
+                    }
+                }
+            }
+            val dataPlaneCache = mock<DataPlaneCache> {
+                on { getSchemaRegistryId() } doReturn TEST_SR_CLUSTER_ID
+                on { getFetcher() } doReturn fetcher
+            }
+            val dataManager = mock<CCloudClusterDataManager> {
+                on { getDataPlaneCache() } doReturn dataPlaneCache
+            }
+            val consumer = CCloudConsumerClient(
+                clusterDataManager = dataManager,
+                onStart = {},
+                onStop = { stopped.countDown() },
+                retryPolicy = policy,
+                idlePollDelay = 1.milliseconds
+            )
+            pollClient = consumer
+            consumer.start(
+                buildConfig(),
+                fieldConfig(KafkaFieldType.STRING),
+                fieldConfig(KafkaFieldType.STRING, isKey = true),
+                consume = { _, _ -> },
+                timestampUpdate = {},
+                consumeError = { e, _, _ -> errors.add(e) }
+            )
+            assertTrue(stopped.await(10, TimeUnit.SECONDS), "poll loop should stop on its own")
+            assertFalse(consumer.isRunning())
+        }
+
+        private fun gapMillis(fromCall: Int): Long =
+            (callTimesNanos[fromCall + 1] - callTimesNanos[fromCall]) / 1_000_000
+
+        @Test
+        fun `should stop with one exhausted error after 10 consecutive 503s`() {
+            val last = http(503)
+            runPolls(List(9) { http(503) } + last)
+
+            assertEquals(10, callTimesNanos.size)
+            assertEquals(1, errors.size)
+            val error = errors.single()
+            assertInstanceOf(CCloudConsumeRetriesExhaustedException::class.java, error)
+            assertEquals(10, (error as CCloudConsumeRetriesExhaustedException).attempts)
+            assertSame(last, error.cause)
+        }
+
+        @Test
+        fun `should reset the failure counter after a successful poll`() {
+            val terminal = http(404)
+            runPolls(List(9) { http(503) } + emptyResponse + List(9) { http(503) } + terminal)
+
+            assertEquals(20, callTimesNanos.size)
+            assertEquals(listOf<Throwable>(terminal), errors.toList())
+        }
+
+        @Test
+        fun `should retry connect errors, status 0 and socket timeouts`() {
+            val terminal = http(404)
+            runPolls(
+                listOf(
+                    CCloudConnectException("refused", ConnectException()),
+                    CCloudApiException("Request failed: timeout", 0),
+                    SocketTimeoutException("read timed out"),
+                    terminal
+                )
+            )
+
+            assertEquals(4, callTimesNanos.size)
+            assertEquals(listOf<Throwable>(terminal), errors.toList())
+        }
+
+        @Test
+        fun `should wait the policy delay after a 401 instead of a fixed 5s`() {
+            val policy = CCloudRetryPolicy(
+                maxAttempts = 10,
+                initialBackoff = 100.milliseconds,
+                maxBackoff = 100.milliseconds,
+                jitter = 0.0
+            )
+            runPolls(listOf(http(401), http(404)), policy)
+
+            assertEquals(2, callTimesNanos.size)
+            val gap = gapMillis(0)
+            assertTrue(gap >= 100, "should wait at least initialBackoff, waited ${gap}ms")
+            assertTrue(gap < 5_000, "should not use the old fixed 5s token refresh wait, waited ${gap}ms")
+        }
+
+        @Test
+        fun `should honor Retry-After on 429`() {
+            val policy = CCloudRetryPolicy(
+                maxAttempts = 10,
+                initialBackoff = 1.milliseconds,
+                maxBackoff = 1.milliseconds,
+                jitter = 0.0,
+                maxRetryAfter = 1.seconds
+            )
+            runPolls(listOf(http(429, retryAfter = 300.milliseconds), http(404)), policy)
+
+            assertEquals(2, callTimesNanos.size)
+            val gap = gapMillis(0)
+            assertTrue(gap >= 300, "should wait at least Retry-After, waited ${gap}ms")
+        }
+
+        @Test
+        fun `should stop immediately on 404`() {
+            val terminal = http(404)
+            runPolls(listOf(terminal))
+
+            assertEquals(1, callTimesNanos.size)
+            assertEquals(listOf<Throwable>(terminal), errors.toList())
+        }
+
+        @Test
+        fun `should stop immediately when no longer signed in`() {
+            val notSignedIn = IllegalStateException("Not signed in to Confluent Cloud")
+            runPolls(listOf(notSignedIn))
+
+            assertEquals(1, callTimesNanos.size)
+            assertEquals(listOf<Throwable>(notSignedIn), errors.toList())
+        }
+
+        @Test
+        fun `should not report intermediate failures`() {
+            val terminal = http(400)
+            runPolls(listOf(http(503), http(429), http(401), http(502), terminal))
+
+            assertEquals(5, callTimesNanos.size)
+            assertEquals(listOf<Throwable>(terminal), errors.toList())
+        }
+
+        @Test
+        fun `idle poll delay should be jittered within policy bounds`() {
+            val consumer = CCloudConsumerClient(
+                clusterDataManager = mockDataManager,
+                onStart = {},
+                onStop = {},
+                retryPolicy = CCloudRetryPolicy(jitter = 0.2, random = Random(42)),
+                idlePollDelay = 1.seconds
+            )
+
+            val delays = List(1_000) { consumer.nextIdlePollDelay() }
+
+            val outOfBounds = delays.filter { it < 1.seconds || it >= 1.2.seconds }
+            assertTrue(outOfBounds.isEmpty(), "out of bounds: $outOfBounds")
+            assertTrue(delays.distinct().size > 1, "delays should vary")
+        }
+
+        @Test
+        fun `default idle poll delay should be one second plus jitter`() {
+            val delay = client.nextIdlePollDelay()
+
+            assertTrue(delay >= 1.seconds && delay < 1.2.seconds, "was $delay")
         }
     }
 
