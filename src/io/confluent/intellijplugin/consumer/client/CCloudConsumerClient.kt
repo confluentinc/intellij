@@ -1,6 +1,8 @@
 package io.confluent.intellijplugin.consumer.client
 
+import com.intellij.openapi.diagnostic.thisLogger
 import io.confluent.intellijplugin.ccloud.client.CCloudApiException
+import io.confluent.intellijplugin.ccloud.client.CCloudRetryPolicy
 import io.confluent.intellijplugin.ccloud.fetcher.DataPlaneFetcher
 import io.confluent.intellijplugin.ccloud.model.response.ConsumeRecordsRequest
 import io.confluent.intellijplugin.ccloud.model.response.ConsumeRecordsResponse
@@ -56,13 +58,15 @@ import io.confluent.kafka.serializers.schema.id.SchemaId
 import org.apache.kafka.common.errors.SerializationException
 import org.apache.kafka.common.serialization.*
 import org.jetbrains.annotations.VisibleForTesting
+import java.io.IOException
 import java.nio.ByteBuffer
 import java.util.Base64
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.math.max
-import kotlin.math.min
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.seconds
 
 /**
  * REST-based consumer client for Confluent Cloud.
@@ -73,11 +77,17 @@ import kotlin.math.min
  * @param clusterDataManager The cluster data manager for CCloud connection
  * @param onStart Callback invoked when consumption starts
  * @param onStop Callback invoked when consumption stops
+ * @param retryPolicy Caps consecutive poll failures and spaces the retries between them
+ * @param idlePollDelay Wait before the next poll when a poll returned no records
  */
 class CCloudConsumerClient(
     private val clusterDataManager: CCloudClusterDataManager,
     val onStart: () -> Unit,
     val onStop: () -> Unit,
+    @VisibleForTesting
+    internal val retryPolicy: CCloudRetryPolicy = CONSUMER_RETRY_POLICY,
+    @VisibleForTesting
+    internal val idlePollDelay: Duration = 1.seconds,
 ) : ConsumerClient {
 
     private val running = AtomicBoolean(false)
@@ -218,7 +228,7 @@ class CCloudConsumerClient(
 
                 if (allRecords.isEmpty()) {
                     // No new records, back off before next poll
-                    delay(EMPTY_POLL_DELAY_MS)
+                    delay(idlePollDelay)
                     continue
                 }
 
@@ -281,33 +291,43 @@ class CCloudConsumerClient(
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                consumeError(e, null, null)
-
-                val statusCode = (e as? CCloudApiException)?.statusCode
-                if (statusCode != null && !isRetryableStatus(statusCode)) {
+                if (!isRetryable(e)) {
+                    consumeError(e, null, null)
                     break
                 }
 
                 consecutiveErrors++
-
-                if (statusCode == 401) {
-                    // Token may have expired - wait for token refresh service
-                    delay(TOKEN_REFRESH_DELAY_MS)
-                } else {
-                    // Apply exponential backoff for retryable errors
-                    val backoffMs = min(
-                        BASE_BACKOFF_MS * (1L shl min(consecutiveErrors, 5)),
-                        MAX_BACKOFF_MS
-                    )
-                    delay(backoffMs)
+                if (consecutiveErrors >= retryPolicy.maxAttempts) {
+                    consumeError(CCloudConsumeRetriesExhaustedException(consecutiveErrors, e), null, null)
+                    break
                 }
+
+                // Intermediate failures are only logged; the user sees a single error if retries run out.
+                // A 401 takes the same path: the token refresh runs independently and the next poll picks it up.
+                val wait = retryPolicy.delayFor(consecutiveErrors - 1, (e as? CCloudApiException)?.retryAfter)
+                thisLogger().warn(
+                    "CCloud consume poll failed (attempt $consecutiveErrors/${retryPolicy.maxAttempts}), " +
+                        "retrying in ${wait.inWholeMilliseconds}ms: ${e.message}"
+                )
+                delay(wait)
             }
         }
     }
 
+    /**
+     * Whether a failed poll is worth repeating.
+     *
+     * Retryable: [CCloudApiException] (including connect failures) with status 0 (transport error /
+     * timeout), 401 (token about to be refreshed), 408, 429 or 5xx, plus raw [IOException]s.
+     * Everything else is terminal, notably the [IllegalStateException] thrown when the user is no
+     * longer signed in, and response parse errors.
+     */
     @VisibleForTesting
-    internal fun isRetryableStatus(statusCode: Int): Boolean =
-        statusCode == 401 || statusCode == 429 || statusCode in 500..599
+    internal fun isRetryable(e: Throwable): Boolean = when (e) {
+        is CCloudApiException -> e.statusCode in RETRYABLE_STATUSES || e.statusCode in 500..599
+        is IOException -> true
+        else -> false
+    }
 
     /**
      * Calculate the approximate size of a record in bytes.
@@ -846,17 +866,22 @@ class CCloudConsumerClient(
     }
 
     companion object {
-        /** Base delay for exponential backoff on errors. */
-        private const val BASE_BACKOFF_MS = 1_000L
+        /**
+         * Poll-loop retry policy: up to 10 consecutive failed polls, backing off 1s, 1.6s, 2.56s, ...
+         * capped at 30s (plus jitter). Each poll may itself be retried inside CCloudRestClient.
+         */
+        @VisibleForTesting
+        internal val CONSUMER_RETRY_POLICY = CCloudRetryPolicy(maxAttempts = 10, maxBackoff = 30.seconds)
 
-        /** Maximum delay for exponential backoff. */
-        private const val MAX_BACKOFF_MS = 30_000L
-
-        /** Delay when no records are available. */
-        private const val EMPTY_POLL_DELAY_MS = 1_000L
-
-        /** Delay when waiting for token refresh after 401. */
-        private const val TOKEN_REFRESH_DELAY_MS = 5_000L
-
+        /** Statuses (besides 5xx) worth retrying; 0 means no HTTP response was received. */
+        private val RETRYABLE_STATUSES = setOf(0, 401, 408, 429)
     }
 }
+
+/**
+ * The consumer gave up after [attempts] consecutive failed polls; [cause] is the last failure.
+ */
+class CCloudConsumeRetriesExhaustedException(val attempts: Int, cause: Throwable) : Exception(
+    KafkaMessagesBundle.message("consumer.ccloud.retries.exhausted", attempts, cause.message ?: cause.javaClass.simpleName),
+    cause
+)
