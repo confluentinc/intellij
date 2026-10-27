@@ -91,7 +91,8 @@ class DataPlaneFetcherImpl(
     ): ConsumeRecordsResponse {
         val path = String.format(CloudConfig.DataPlane.Kafka.CCLOUD_SIMPLE_CONSUME_API_PATH, clusterId, topicName)
         val requestBody = json.encodeToString(request)
-        val responseBody = kafkaClient.executeRequest(path, "POST", requestBody)
+        // Read-only POST: safe to retry on transient failures
+        val responseBody = kafkaClient.executeRequest(path, "POST", requestBody, idempotent = true)
         return json.decodeFromString<ConsumeRecordsResponse>(responseBody)
     }
 
@@ -257,7 +258,8 @@ class DataPlaneFetcherImpl(
         val encodedSubject = encodeUrlPathSegment(schemaName)
         val path = String.format(CloudConfig.DataPlane.SchemaRegistry.CHECK_SCHEMA_URI, encodedSubject)
         val requestBody = json.encodeToString(RegisterSchemaRequest.serializer(), request)
-        val responseBody = schemaRegistryClient!!.executeRequest(path, "POST", requestBody)
+        // Lookup-only POST: safe to retry on transient failures
+        val responseBody = schemaRegistryClient!!.executeRequest(path, "POST", requestBody, idempotent = true)
         return json.decodeFromString<CheckSchemaExistsResponse>(responseBody)
     }
 

@@ -67,8 +67,15 @@ data class CCloudRetryPolicy(
         val backoff = backoffNanos.roundToLong().nanoseconds
 
         val serverDelay = retryAfter?.coerceIn(Duration.ZERO, maxRetryAfter) ?: Duration.ZERO
-        val base = maxOf(backoff, serverDelay)
+        return jittered(maxOf(backoff, serverDelay))
+    }
 
+    /**
+     * Apply this policy's one-sided jitter to [base]: `base * (1 + U[0, jitter))`.
+     * Never returns less than [base]. Useful for callers that pace their own waits (e.g. poll loops).
+     */
+    fun jittered(base: Duration): Duration {
+        require(!base.isNegative()) { "base must be >= 0, was $base" }
         val factor = 1.0 + random.nextDouble() * jitter
         return base * factor
     }

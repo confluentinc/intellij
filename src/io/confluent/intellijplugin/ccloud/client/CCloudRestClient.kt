@@ -39,9 +39,22 @@ class CCloudRestClient(
     companion object {
         private const val CONNECT_TIMEOUT_MS = 10_000 // 10 seconds
         private const val READ_TIMEOUT_MS = 60_000    // 1 minute
-        private const val MAX_RETRY_ATTEMPTS = 4
-        private const val INITIAL_BACKOFF_MS = 1000L
-        private const val MAX_BACKOFF_MS = 10_000L
+
+        /** Gateway/availability errors: the request may or may not have been applied. */
+        private val TRANSIENT_SERVER_STATUSES = setOf(502, 503, 504)
+
+        /**
+         * Whether [e] is worth retrying. 429 is always safe (the server rejected the request
+         * outright). 502/503/504 and connect failures are only retried for [idempotent] calls.
+         * Timeouts (status 0, not a connect error) are never retried: the server may have
+         * processed the request.
+         */
+        internal fun isRetryable(e: CCloudApiException, idempotent: Boolean): Boolean = when {
+            e is CCloudConnectException -> idempotent
+            e.statusCode == 429 -> true
+            e.statusCode in TRANSIENT_SERVER_STATUSES -> idempotent
+            else -> false
+        }
 
         // Shared token bucket rate limiter across all client instances
         private val rateLimiter = TokenBucketRateLimiter(CloudConfig.API_RATE_LIMIT)
@@ -146,48 +159,46 @@ class CCloudRestClient(
     }
 
     /**
-     * Execute operation with rate limiting and retry on 429 errors.
-     * Uses token bucket to throttle requests, exponential backoff as fallback.
+     * Run [operation] under the shared rate limiter, retrying per [retryPolicy].
+     *
+     * A rate-limit token is acquired before every attempt. Retries happen only for failures
+     * [isRetryable] deems safe; the wait comes from [CCloudRetryPolicy.delayFor] and honors the
+     * server's `Retry-After`. When attempts run out, the last exception is rethrown unchanged
+     * (status code and retryAfter intact).
+     *
+     * @param idempotent true when repeating the call cannot cause duplicate side effects
      */
-    private suspend fun <T> withRateLimit(operation: suspend () -> T): T {
-        var attempt = 0
-        var lastException: CCloudApiException? = null
-
-        while (attempt < MAX_RETRY_ATTEMPTS) {
+    private suspend fun <T> withRetry(idempotent: Boolean, operation: suspend () -> T): T {
+        var retryIndex = 0
+        while (true) {
+            rateLimiter.acquire()
             try {
-                // Acquire rate limit token before making request
-                rateLimiter.acquire()
                 return operation()
             } catch (e: CCloudApiException) {
-                // Retry only on 429 (rate limit) errors, and only if attempts remain
-                if (e.statusCode == 429 && attempt < MAX_RETRY_ATTEMPTS - 1) {
-                    val delayMs = calculateExponentialBackoff(attempt)
-                    thisLogger().warn(
-                        "Rate limit exceeded (HTTP 429). Retrying in ${delayMs}ms (attempt ${attempt + 1}/${MAX_RETRY_ATTEMPTS - 1})"
-                    )
-                    delay(delayMs)
-                    attempt++
-                    lastException = e
-                } else {
-                    // Non-429 error or max retries reached - propagate exception
+                val attemptsMade = retryIndex + 1
+                if (attemptsMade >= retryPolicy.maxAttempts || !isRetryable(e, idempotent)) {
                     throw e
                 }
+                val wait = retryPolicy.delayFor(retryIndex, e.retryAfter)
+                thisLogger().warn(
+                    "CCloud request failed (${describe(e)}). Retrying in ${wait.inWholeMilliseconds}ms " +
+                        "(retry $attemptsMade/${retryPolicy.maxAttempts - 1})"
+                )
+                delay(wait)
+                retryIndex++
             }
         }
-
-        // Max retries exceeded - throw last exception
-        throw lastException ?: CCloudApiException("Max retry attempts exceeded", 429)
     }
 
-    /** Calculate exponential backoff: 1s -> 2s -> 4s -> 8s (max 10s). */
-    private fun calculateExponentialBackoff(attempt: Int): Long {
-        return (INITIAL_BACKOFF_MS * (1 shl attempt)).coerceAtMost(MAX_BACKOFF_MS)
+    private fun describe(e: CCloudApiException): String = when (e) {
+        is CCloudConnectException -> "connection failed"
+        else -> "HTTP ${e.statusCode}" + (e.retryAfter?.let { ", Retry-After ${it.inWholeSeconds}s" } ?: "")
     }
 
     /**
      * Fetch a single item from a non-paginated endpoint.
      *
-     * Automatically applies rate limiting and retries on 429 errors.
+     * Applies rate limiting; retried as an idempotent GET (429, 502/503/504, connect failures).
      *
      * @param path Endpoint path (relative or absolute URL)
      * @param parser Parses response JSON
@@ -197,7 +208,7 @@ class CCloudRestClient(
         path: String,
         parser: (String) -> T
     ): T {
-        val response = withRateLimit {
+        val response = withRetry(idempotent = true) {
             send(resolveUrl(path), "GET", getAuthHeaders()).requireSuccess()
         }
         // Parse outside the transport/retry path so parse errors keep their own type
@@ -207,7 +218,7 @@ class CCloudRestClient(
     /**
      * Fetch paginated list of items from a Confluent API endpoint.
      *
-     * Automatically applies rate limiting and retries on 429 errors for each page.
+     * Applies rate limiting and idempotent-GET retries to each page independently.
      *
      * @param path Endpoint path (relative or absolute URL)
      * @param limits Pagination limits (default: fetch all)
@@ -225,19 +236,23 @@ class CCloudRestClient(
     /**
      * Execute HTTP request with any method (POST, DELETE, PATCH, PUT).
      *
-     * Automatically applies rate limiting and retries on 429 errors.
+     * Applies rate limiting. 429 is always retried; 502/503/504 and connect failures are retried
+     * only when [idempotent] is true.
      *
      * @param uri Endpoint path (relative or absolute URL)
      * @param method HTTP method
      * @param body Optional request body
+     * @param idempotent Whether repeating the request is safe. Defaults to true only for GET; pass
+     *   true explicitly for read-only POSTs (e.g. consume, schema lookup).
      * @return Response body as string
      */
     suspend fun executeRequest(
         uri: String,
         method: String,
-        body: String? = null
+        body: String? = null,
+        idempotent: Boolean = method.equals("GET", ignoreCase = true)
     ): String {
-        return withRateLimit {
+        return withRetry(idempotent) {
             send(resolveUrl(uri), method, getAuthHeaders(), body).requireSuccess()
         }.body
     }
@@ -262,7 +277,7 @@ class CCloudRestClient(
             }
 
             // Apply rate limiting to each pagination request
-            val body = withRateLimit {
+            val body = withRetry(idempotent = true) {
                 send(url, "GET", headers).requireSuccess()
             }.body
 
@@ -388,12 +403,18 @@ class CCloudConnectException(message: String, cause: Throwable) :
 
 /**
  * Token bucket rate limiter. Refills tokens at constant rate, suspends when empty.
+ *
+ * @param nanoTime Monotonic clock (injectable for tests). Wall-clock time is not used, so system
+ *   clock adjustments cannot stall or burst the bucket.
  */
-private class TokenBucketRateLimiter(tokensPerSecond: Int) {
+internal class TokenBucketRateLimiter(
+    tokensPerSecond: Int,
+    private val nanoTime: () -> Long = System::nanoTime
+) {
     private val mutex = Mutex()
     private val tokensPerSecond: Double = tokensPerSecond.toDouble()
     private var tokens: Double = this.tokensPerSecond
-    private var lastRefillTime: Long = System.currentTimeMillis()
+    private var lastRefillNanos: Long = nanoTime()
 
     suspend fun acquire() {
         while (true) {
@@ -405,8 +426,8 @@ private class TokenBucketRateLimiter(tokensPerSecond: Int) {
                     return  // Token acquired
                 }
 
-                // Calculate wait time for next token
-                ((1.0 - tokens) / tokensPerSecond * 1000).toLong()
+                // Calculate wait time for next token (at least 1ms so we never busy-spin)
+                ((1.0 - tokens) / tokensPerSecond * 1000).toLong().coerceAtLeast(1L)
             }
 
             // Delay outside mutex to avoid blocking other coroutines
@@ -415,11 +436,17 @@ private class TokenBucketRateLimiter(tokensPerSecond: Int) {
     }
 
     private fun refillTokens() {
-        val now = System.currentTimeMillis()
-        val elapsedMs = now - lastRefillTime
-        val tokensToAdd = (elapsedMs / 1000.0) * tokensPerSecond
+        val now = nanoTime()
+        val elapsedNanos = (now - lastRefillNanos).coerceAtLeast(0L)
+        val tokensToAdd = (elapsedNanos / 1_000_000_000.0) * tokensPerSecond
 
         tokens = (tokens + tokensToAdd).coerceAtMost(tokensPerSecond)
-        lastRefillTime = now
+        lastRefillNanos = now
+    }
+
+    /** Tokens currently available after refilling; for tests. */
+    internal suspend fun availableTokens(): Double = mutex.withLock {
+        refillTokens()
+        tokens
     }
 }
