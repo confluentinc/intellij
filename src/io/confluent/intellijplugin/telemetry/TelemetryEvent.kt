@@ -151,8 +151,10 @@ sealed class CCloudAuthenticationEvent : TelemetryEvent {
 
 
     /**
-     * Tracks when background token refresh exhausts all retry attempts.
-     * Fired once when the refresh loop gives up (after MAX_TOKEN_REFRESH_ATTEMPTS consecutive failures).
+     * Tracks a background token refresh failure.
+     * Fired once, on the first of a run of consecutive failures. If the refresh loop then gives up
+     * (a terminal 4xx, or MAX_TOKEN_REFRESH_ATTEMPTS failures in a row) a SignedOut event with
+     * reason "refresh_failed" follows.
      *
      * @param errorType The error type or message from the last failed attempt
      */

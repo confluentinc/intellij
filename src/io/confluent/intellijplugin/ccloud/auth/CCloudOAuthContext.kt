@@ -129,14 +129,11 @@ class CCloudOAuthContext {
 
                 processTokenExchangeResponse(exchangeAuthorizationCode(authorizationCode), organizationId)
             }.onSuccess {
-                // Reset any existing errors
+                // Reset any existing errors and the refresh failure count (and so the backoff)
                 tokens.updateAndGet { oldTokens ->
-                    oldTokens.withErrors(
-                        oldTokens.errors
-                            .withoutSignIn()
-                            .withoutTokenRefresh()
-                            .withoutAuthStatusCheck()
-                    )
+                    oldTokens.withSuccessfulTokenRefreshAttempt().let {
+                        it.withErrors(it.errors.withoutSignIn().withoutAuthStatusCheck())
+                    }
                 }
             }.onFailure { failure ->
                 tokens.updateAndGet { oldTokens ->
