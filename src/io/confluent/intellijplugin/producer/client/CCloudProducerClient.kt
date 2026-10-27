@@ -544,7 +544,9 @@ class CCloudProducerClient(
             delay(retryDelay)
         }
 
-        throw CCloudProduceRetriesExhaustedException(maxAttempts, checkNotNull(lastException))
+        val last = checkNotNull(lastException)
+        // HTTP 429 throws above, so a 429 here came from the response body
+        throw CCloudProduceRetriesExhaustedException(maxAttempts, last, rateLimited = last.statusCode == 429)
     }
 
     /** Error codes in a 200 produce response body that are worth retrying. */
