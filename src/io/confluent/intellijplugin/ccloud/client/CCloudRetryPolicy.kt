@@ -13,6 +13,7 @@ import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.nanoseconds
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.toKotlinDuration
+import org.jetbrains.annotations.VisibleForTesting
 
 /**
  * Retry timing policy shared by Confluent Cloud REST callers.
@@ -114,6 +115,7 @@ data class CCloudRetryPolicy(
         const val RETRY_AFTER_HEADER = "Retry-After"
 
         /** Near-instant policy (1ms waits, no jitter) intended for tests. */
+        @VisibleForTesting
         internal fun immediate(maxAttempts: Int = 4) = CCloudRetryPolicy(
             maxAttempts = maxAttempts,
             initialBackoff = 1.milliseconds,
