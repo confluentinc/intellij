@@ -1,5 +1,6 @@
 package io.confluent.intellijplugin.ccloud.auth
 
+import io.confluent.intellijplugin.ccloud.client.CCloudRetryPolicy
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.minutes
@@ -77,7 +78,25 @@ object CCloudOAuthConfig {
         get() = System.getProperty("ccloud.refresh-token.absolute-lifetime-seconds")
             ?.toLongOrNull()?.seconds ?: 8.hours
     val CHECK_TOKEN_EXPIRATION_INTERVAL: Duration = 5.seconds
-    const val MAX_TOKEN_REFRESH_ATTEMPTS = 50
+
+    /** Consecutive failed refreshes (including the first) before the session is signed out. */
+    const val MAX_TOKEN_REFRESH_ATTEMPTS = 10
+
+    /**
+     * Wait between failed token refreshes: 5s doubling to a 5 min cap, plus up to 20% jitter.
+     * Before jitter the 9 waits are 5, 10, 20, 40, 80, 160, 300, 300, 300s, so a transient
+     * outage is ridden out for about 20 min (up to ~24 min with jitter) in 10 requests. With a
+     * smaller multiplier such as 1.6 the computed backoff would peak at ~215s and the 5 min cap
+     * would never apply. A 429's Retry-After (up to 5 min) is used as the floor for the next wait.
+     */
+    val TOKEN_REFRESH_RETRY_POLICY = CCloudRetryPolicy(
+        maxAttempts = MAX_TOKEN_REFRESH_ATTEMPTS,
+        initialBackoff = 5.seconds,
+        multiplier = 2.0,
+        maxBackoff = 5.minutes,
+        jitter = 0.2,
+        maxRetryAfter = 5.minutes,
+    )
 
     val CALLBACK_PORT: Int = System.getProperty("ccloud.callback-port")?.toIntOrNull() ?: 26638
     const val CALLBACK_PATH: String = "/gateway/v1/callback-intellij-docs"
