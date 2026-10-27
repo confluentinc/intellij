@@ -34,9 +34,19 @@ import org.mockito.kotlin.never
 import org.mockito.kotlin.times
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
+import io.confluent.intellijplugin.ccloud.cache.DataPlaneCache
+import io.confluent.intellijplugin.ccloud.fetcher.DataPlaneFetcherImpl
+import io.confluent.intellijplugin.consumer.editor.KafkaRecord
+import io.confluent.intellijplugin.producer.models.AcksType
+import io.confluent.intellijplugin.producer.models.Mode
+import io.confluent.intellijplugin.producer.models.ProducerFlowParams
+import io.confluent.intellijplugin.producer.models.RecordCompression
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.ValueSource
 import java.util.Base64
+import java.util.concurrent.CopyOnWriteArrayList
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.measureTime
@@ -741,6 +751,77 @@ class CCloudProducerClientTest {
         @ValueSource(ints = [400, 401, 403, 404, 422])
         fun `should not retry HTTP client error`(status: Int) {
             assertFalse(client.isRetryableHttpError(status))
+        }
+    }
+
+    @Nested
+    @DisplayName("start() when produce retries are exhausted")
+    inner class StartRetriesExhausted {
+
+        private val fetcherImpl = mock<DataPlaneFetcherImpl>()
+        private val records = CopyOnWriteArrayList<KafkaRecord>()
+        private val stopped = CountDownLatch(1)
+
+        private val dataPlaneCache = mock<DataPlaneCache> {
+            on { getFetcher() } doReturn fetcherImpl
+        }
+
+        private val startClient = CCloudProducerClient(
+            clusterDataManager = mock<CCloudClusterDataManager> {
+                on { getDataPlaneCache() } doReturn dataPlaneCache
+            },
+            onStart = {},
+            onStop = { stopped.countDown() },
+            retryPolicy = CCloudRetryPolicy.immediate(maxAttempts = 3),
+        )
+
+        private fun startProducing(mode: Mode) {
+            startClient.start(
+                topic = "test-topic",
+                key = createFieldConfig(KafkaFieldType.STRING, "k", isKey = true),
+                value = createFieldConfig(KafkaFieldType.STRING, "v"),
+                headers = emptyList(),
+                recordCompression = RecordCompression.NONE,
+                acks = AcksType.ALL,
+                enableIdempotence = false,
+                forcePartition = -1,
+                flowParams = ProducerFlowParams(mode = mode, requestInterval = 10),
+            ) { _, batch -> records.addAll(batch) }
+            assertTrue(stopped.await(10, TimeUnit.SECONDS), "Producer should stop after retries are exhausted")
+        }
+
+        @Test
+        fun `should report an error row and stop when HTTP 429 persists`() {
+            runBlocking {
+                whenever(fetcherImpl.produceRecord(any(), any())).thenAnswer {
+                    throw CCloudApiException("Rate limited (HTTP 429)", 429)
+                }
+            }
+
+            startProducing(Mode.MANUAL)
+
+            assertEquals(1, records.size)
+            val error = records.single().error
+            assertInstanceOf(CCloudProduceRetriesExhaustedException::class.java, error)
+            assertTrue((error as CCloudProduceRetriesExhaustedException).rateLimited)
+            assertEquals("test-topic", records.single().topic)
+            assertFalse(startClient.isRunning())
+        }
+
+        @Test
+        fun `should stop AUTO mode after an error row when server errors persist`() {
+            runBlocking {
+                whenever(fetcherImpl.produceRecord(any(), any()))
+                    .thenReturn(ProduceRecordResponse(errorCode = 503, message = "Service Unavailable"))
+            }
+
+            startProducing(Mode.AUTO)
+
+            assertEquals(1, records.size)
+            val error = records.single().error as CCloudProduceRetriesExhaustedException
+            assertEquals(3, error.attempts)
+            assertFalse(startClient.isRunning())
+            runBlocking { verify(fetcherImpl, times(3)).produceRecord(any(), any()) }
         }
     }
 
