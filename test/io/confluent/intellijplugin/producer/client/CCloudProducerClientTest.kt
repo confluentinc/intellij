@@ -2,6 +2,8 @@ package io.confluent.intellijplugin.producer.client
 
 import com.intellij.testFramework.junit5.TestApplication
 import io.confluent.intellijplugin.ccloud.client.CCloudApiException
+import io.confluent.intellijplugin.ccloud.client.CCloudConnectException
+import io.confluent.intellijplugin.ccloud.client.CCloudRetryPolicy
 import io.confluent.intellijplugin.ccloud.fetcher.DataPlaneFetcher
 import io.confluent.intellijplugin.ccloud.model.response.ProduceRecordRequest
 import io.confluent.intellijplugin.ccloud.model.response.ProduceRecordResponse
@@ -32,7 +34,22 @@ import org.mockito.kotlin.never
 import org.mockito.kotlin.times
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
+import io.confluent.intellijplugin.ccloud.cache.DataPlaneCache
+import io.confluent.intellijplugin.ccloud.fetcher.DataPlaneFetcherImpl
+import io.confluent.intellijplugin.consumer.editor.KafkaRecord
+import io.confluent.intellijplugin.producer.models.AcksType
+import io.confluent.intellijplugin.producer.models.Mode
+import io.confluent.intellijplugin.producer.models.ProducerFlowParams
+import io.confluent.intellijplugin.producer.models.RecordCompression
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.ValueSource
 import java.util.Base64
+import java.util.concurrent.CopyOnWriteArrayList
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.seconds
+import kotlin.time.measureTime
 
 @TestApplication
 class CCloudProducerClientTest {
@@ -46,8 +63,7 @@ class CCloudProducerClientTest {
             clusterDataManager = mock<CCloudClusterDataManager>(),
             onStart = {},
             onStop = {},
-            baseBackoffMs = 1L,
-            maxBackoffMs = 1L,
+            retryPolicy = CCloudRetryPolicy.immediate(maxAttempts = 3),
         )
         mockFetcher = mock<DataPlaneFetcher> {
             onBlocking { getLatestVersionInfo(any()) } doReturn SchemaVersionResponse(
@@ -695,52 +711,117 @@ class CCloudProducerClientTest {
     }
 
     @Nested
-    @DisplayName("isRetryableStatus")
-    inner class IsRetryableStatus {
+    @DisplayName("isRetryableBodyError")
+    inner class IsRetryableBodyError {
 
-        @Test
-        fun `should retry on 429 rate limit`() {
-            assertTrue(client.isRetryableStatus(429))
+        @ParameterizedTest
+        @ValueSource(ints = [429, 500, 502, 503, 599])
+        fun `should retry body error code`(code: Int) {
+            assertTrue(client.isRetryableBodyError(code))
+        }
+
+        @ParameterizedTest
+        @ValueSource(ints = [400, 401, 403, 404, 422])
+        fun `should not retry body error code`(code: Int) {
+            assertFalse(client.isRetryableBodyError(code))
+        }
+    }
+
+    @Nested
+    @DisplayName("isRetryableHttpError")
+    inner class IsRetryableHttpError {
+
+        @ParameterizedTest
+        @ValueSource(ints = [500, 502, 503, 599])
+        fun `should retry HTTP server error`(status: Int) {
+            assertTrue(client.isRetryableHttpError(status))
         }
 
         @Test
-        fun `should retry on 500 server error`() {
-            assertTrue(client.isRetryableStatus(500))
+        fun `should not retry HTTP 429 because the REST client already retried it`() {
+            assertFalse(client.isRetryableHttpError(429))
         }
 
         @Test
-        fun `should retry on 502 bad gateway`() {
-            assertTrue(client.isRetryableStatus(502))
+        fun `should not retry status 0 because produce is not idempotent`() {
+            assertFalse(client.isRetryableHttpError(0))
+        }
+
+        @ParameterizedTest
+        @ValueSource(ints = [400, 401, 403, 404, 422])
+        fun `should not retry HTTP client error`(status: Int) {
+            assertFalse(client.isRetryableHttpError(status))
+        }
+    }
+
+    @Nested
+    @DisplayName("start() when produce retries are exhausted")
+    inner class StartRetriesExhausted {
+
+        private val fetcherImpl = mock<DataPlaneFetcherImpl>()
+        private val records = CopyOnWriteArrayList<KafkaRecord>()
+        private val stopped = CountDownLatch(1)
+
+        private val dataPlaneCache = mock<DataPlaneCache> {
+            on { getFetcher() } doReturn fetcherImpl
+        }
+
+        private val startClient = CCloudProducerClient(
+            clusterDataManager = mock<CCloudClusterDataManager> {
+                on { getDataPlaneCache() } doReturn dataPlaneCache
+            },
+            onStart = {},
+            onStop = { stopped.countDown() },
+            retryPolicy = CCloudRetryPolicy.immediate(maxAttempts = 3),
+        )
+
+        private fun startProducing(mode: Mode) {
+            startClient.start(
+                topic = "test-topic",
+                key = createFieldConfig(KafkaFieldType.STRING, "k", isKey = true),
+                value = createFieldConfig(KafkaFieldType.STRING, "v"),
+                headers = emptyList(),
+                recordCompression = RecordCompression.NONE,
+                acks = AcksType.ALL,
+                enableIdempotence = false,
+                forcePartition = -1,
+                flowParams = ProducerFlowParams(mode = mode, requestInterval = 10),
+            ) { _, batch -> records.addAll(batch) }
+            assertTrue(stopped.await(10, TimeUnit.SECONDS), "Producer should stop after retries are exhausted")
         }
 
         @Test
-        fun `should retry on 503 service unavailable`() {
-            assertTrue(client.isRetryableStatus(503))
+        fun `should report an error row and stop when HTTP 429 persists`() {
+            runBlocking {
+                whenever(fetcherImpl.produceRecord(any(), any())).thenAnswer {
+                    throw CCloudApiException("Rate limited (HTTP 429)", 429)
+                }
+            }
+
+            startProducing(Mode.MANUAL)
+
+            assertEquals(1, records.size)
+            val error = records.single().error
+            assertInstanceOf(CCloudProduceRetriesExhaustedException::class.java, error)
+            assertTrue((error as CCloudProduceRetriesExhaustedException).rateLimited)
+            assertEquals("test-topic", records.single().topic)
+            assertFalse(startClient.isRunning())
         }
 
         @Test
-        fun `should not retry on 400 bad request`() {
-            assertFalse(client.isRetryableStatus(400))
-        }
+        fun `should stop AUTO mode after an error row when server errors persist`() {
+            runBlocking {
+                whenever(fetcherImpl.produceRecord(any(), any()))
+                    .thenReturn(ProduceRecordResponse(errorCode = 503, message = "Service Unavailable"))
+            }
 
-        @Test
-        fun `should not retry on 401 unauthorized`() {
-            assertFalse(client.isRetryableStatus(401))
-        }
+            startProducing(Mode.AUTO)
 
-        @Test
-        fun `should not retry on 403 forbidden`() {
-            assertFalse(client.isRetryableStatus(403))
-        }
-
-        @Test
-        fun `should not retry on 404 not found`() {
-            assertFalse(client.isRetryableStatus(404))
-        }
-
-        @Test
-        fun `should not retry on 422 unprocessable`() {
-            assertFalse(client.isRetryableStatus(422))
+            assertEquals(1, records.size)
+            val error = records.single().error as CCloudProduceRetriesExhaustedException
+            assertEquals(3, error.attempts)
+            assertFalse(startClient.isRunning())
+            runBlocking { verify(fetcherImpl, times(3)).produceRecord(any(), any()) }
         }
     }
 
@@ -813,11 +894,74 @@ class CCloudProducerClientTest {
         }
 
         @Test
-        fun `should retry on HTTP-level CCloudApiException and succeed`() = runBlocking {
+        fun `should retry on body error code 429 and succeed`() = runBlocking {
+            whenever(mockFetcher.produceRecord(any(), any()))
+                .thenReturn(ProduceRecordResponse(errorCode = 429, message = "Too Many Requests"))
+                .thenReturn(successResponse())
+
+            val (response, _) = client.produceWithRetry(mockFetcher, "test-topic", request)!!
+
+            assertEquals(200, response.errorCode)
+            verify(mockFetcher, times(2)).produceRecord(any(), any())
+            Unit
+        }
+
+        @Test
+        fun `should throw exhausted after body error code 503 on every attempt`() {
+            runBlocking {
+                whenever(mockFetcher.produceRecord(any(), any()))
+                    .thenReturn(ProduceRecordResponse(errorCode = 503, message = "Service Unavailable"))
+            }
+
+            val exception = assertThrows(CCloudProduceRetriesExhaustedException::class.java) {
+                runBlocking { client.produceWithRetry(mockFetcher, "test-topic", request) }
+            }
+
+            assertEquals(3, exception.attempts)
+            assertEquals(503, exception.cause.statusCode)
+            assertFalse(exception.rateLimited)
+            runBlocking { verify(mockFetcher, times(3)).produceRecord(any(), any()) }
+        }
+
+        @Test
+        fun `should mark exhaustion as rate limited when body error code 429 persists`() {
+            runBlocking {
+                whenever(mockFetcher.produceRecord(any(), any()))
+                    .thenReturn(ProduceRecordResponse(errorCode = 429, message = "Too Many Requests"))
+            }
+
+            val exception = assertThrows(CCloudProduceRetriesExhaustedException::class.java) {
+                runBlocking { client.produceWithRetry(mockFetcher, "test-topic", request) }
+            }
+
+            assertEquals(3, exception.attempts)
+            assertEquals(429, exception.cause.statusCode)
+            assertTrue(exception.rateLimited)
+            runBlocking { verify(mockFetcher, times(3)).produceRecord(any(), any()) }
+        }
+
+        @Test
+        fun `should not retry HTTP 429 and throw rate limited exhausted`() {
+            val rateLimited = CCloudApiException("Rate limited (HTTP 429)", 429)
+            runBlocking {
+                whenever(mockFetcher.produceRecord(any(), any())).thenAnswer { throw rateLimited }
+            }
+
+            val exception = assertThrows(CCloudProduceRetriesExhaustedException::class.java) {
+                runBlocking { client.produceWithRetry(mockFetcher, "test-topic", request) }
+            }
+
+            assertTrue(exception.rateLimited)
+            assertSame(rateLimited, exception.cause)
+            runBlocking { verify(mockFetcher, times(1)).produceRecord(any(), any()) }
+        }
+
+        @Test
+        fun `should retry on HTTP 503 and succeed`() = runBlocking {
             var callCount = 0
             whenever(mockFetcher.produceRecord(any(), any())).thenAnswer {
                 callCount++
-                if (callCount == 1) throw CCloudApiException("Rate limited", 429)
+                if (callCount == 1) throw CCloudApiException("Service Unavailable", 503)
                 successResponse()
             }
 
@@ -826,6 +970,68 @@ class CCloudProducerClientTest {
             assertEquals(200, response.errorCode)
             verify(mockFetcher, times(2)).produceRecord(any(), any())
             Unit
+        }
+
+        @Test
+        fun `should wait at least Retry-After before retrying HTTP 503`() = runBlocking {
+            val retryAfterClient = CCloudProducerClient(
+                clusterDataManager = mock<CCloudClusterDataManager>(),
+                onStart = {},
+                onStop = {},
+                retryPolicy = CCloudRetryPolicy(
+                    maxAttempts = 2,
+                    initialBackoff = 1.milliseconds,
+                    maxBackoff = 1.milliseconds,
+                    jitter = 0.0,
+                    maxRetryAfter = 1.seconds
+                ),
+            )
+            retryAfterClient.running.set(true)
+            var callCount = 0
+            whenever(mockFetcher.produceRecord(any(), any())).thenAnswer {
+                callCount++
+                if (callCount == 1) throw CCloudApiException("Service Unavailable", 503, retryAfter = 200.milliseconds)
+                successResponse()
+            }
+
+            val elapsed = measureTime {
+                retryAfterClient.produceWithRetry(mockFetcher, "test-topic", request)
+            }
+
+            assertTrue(elapsed >= 200.milliseconds, "Expected to wait at least Retry-After, waited $elapsed")
+            verify(mockFetcher, times(2)).produceRecord(any(), any())
+            Unit
+        }
+
+        @Test
+        fun `should rethrow connect failure unchanged without retrying`() {
+            val connectFailure = CCloudConnectException("Connection refused", java.net.ConnectException("refused"))
+            runBlocking {
+                whenever(mockFetcher.produceRecord(any(), any())).thenAnswer { throw connectFailure }
+            }
+
+            val exception = assertThrows(CCloudConnectException::class.java) {
+                runBlocking { client.produceWithRetry(mockFetcher, "test-topic", request) }
+            }
+
+            assertSame(connectFailure, exception)
+            runBlocking { verify(mockFetcher, times(1)).produceRecord(any(), any()) }
+        }
+
+        @Test
+        fun `should rethrow status 0 failure unchanged without retrying`() {
+            runBlocking {
+                whenever(mockFetcher.produceRecord(any(), any())).thenAnswer {
+                    throw CCloudApiException("Request timed out", 0)
+                }
+            }
+
+            val exception = assertThrows(CCloudApiException::class.java) {
+                runBlocking { client.produceWithRetry(mockFetcher, "test-topic", request) }
+            }
+
+            assertEquals(0, exception.statusCode)
+            runBlocking { verify(mockFetcher, times(1)).produceRecord(any(), any()) }
         }
 
         @Test
@@ -856,29 +1062,29 @@ class CCloudProducerClientTest {
         }
 
         @Test
-        fun `should throw after exhausting all retries`() {
+        fun `should throw exhausted after HTTP 500 on every attempt`() {
             runBlocking {
                 whenever(mockFetcher.produceRecord(any(), any())).thenAnswer {
                     throw CCloudApiException("Server Error", 500)
                 }
             }
 
-            val exception = assertThrows(CCloudApiException::class.java) {
+            val exception = assertThrows(CCloudProduceRetriesExhaustedException::class.java) {
                 runBlocking { client.produceWithRetry(mockFetcher, "test-topic", request) }
             }
-            assertEquals(500, exception.statusCode)
-            // Should have attempted MAX_RETRIES (5) times
-            runBlocking { verify(mockFetcher, times(5)).produceRecord(any(), any()) }
+            assertEquals(3, exception.attempts)
+            assertEquals(500, exception.cause.statusCode)
+            runBlocking { verify(mockFetcher, times(3)).produceRecord(any(), any()) }
         }
 
         @Test
-        fun `should retry on 429 HTTP exception then fail on 400 application error`() {
+        fun `should retry on body error code 429 then fail on 400 application error`() {
             var callCount = 0
             runBlocking {
                 whenever(mockFetcher.produceRecord(any(), any())).thenAnswer {
                     callCount++
-                    if (callCount == 1) throw CCloudApiException("Rate limited", 429)
-                    ProduceRecordResponse(errorCode = 400, message = "Bad Request")
+                    if (callCount == 1) ProduceRecordResponse(errorCode = 429, message = "Too Many Requests")
+                    else ProduceRecordResponse(errorCode = 400, message = "Bad Request")
                 }
             }
 
