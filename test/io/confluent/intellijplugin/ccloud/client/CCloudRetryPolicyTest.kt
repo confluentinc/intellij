@@ -142,6 +142,35 @@ class CCloudRetryPolicyTest {
     }
 
     @Nested
+    inner class Jittered {
+
+        @Test
+        fun `should add jitter fraction on top of base`() {
+            assertEquals(5500.milliseconds, CCloudRetryPolicy(random = FixedRandom(0.5)).jittered(5.seconds))
+        }
+
+        @Test
+        fun `should never go below base`() {
+            assertEquals(5.seconds, noJitter.jittered(5.seconds))
+            val policy = CCloudRetryPolicy(random = Random(7))
+            repeat(500) {
+                val value = policy.jittered(2.seconds)
+                assertTrue(value >= 2.seconds && value <= 2400.milliseconds, "value $value out of bounds")
+            }
+        }
+
+        @Test
+        fun `should return base unchanged when jitter is disabled`() {
+            assertEquals(3.seconds, CCloudRetryPolicy(jitter = 0.0).jittered(3.seconds))
+        }
+
+        @Test
+        fun `should reject negative base`() {
+            assertThrows<IllegalArgumentException> { noJitter.jittered((-1).seconds) }
+        }
+    }
+
+    @Nested
     inner class ParseRetryAfter {
 
         @Test
