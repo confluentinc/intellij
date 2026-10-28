@@ -70,6 +70,9 @@ class CCloudAuthService(private val scope: CoroutineScope) : Disposable {
     /** OAuth context of the in-flight sign-in, so a repeated request can reopen the same sign-in URL. */
     private var activeSignInContext: CCloudOAuthContext? = null
 
+    /** The visible "sign-in already in progress" notification, so repeat clicks don't stack copies of it. */
+    private var inProgressNotification: Notification? = null
+
     internal val authStateListeners = CopyOnWriteArrayList<AuthStateListener>()
 
     /**
@@ -177,6 +180,7 @@ class CCloudAuthService(private val scope: CoroutineScope) : Disposable {
         activeCallbackServer?.stop()
         activeCallbackServer = null
         activeSignInContext = null
+        expireInProgressNotification()
     }
 
     /**
@@ -192,6 +196,7 @@ class CCloudAuthService(private val scope: CoroutineScope) : Disposable {
         }
         activeCallbackServer = null
         activeSignInContext = null
+        expireInProgressNotification()
         return true
     }
 
@@ -284,7 +289,9 @@ class CCloudAuthService(private val scope: CoroutineScope) : Disposable {
         ))
     }
 
+    @Synchronized
     internal fun showSignInInProgressNotification() {
+        inProgressNotification?.expire()
         val notification = Notification(
             "Kafka Notification",
             KafkaMessagesBundle.message("confluent.cloud.notification.sign.in.in.progress"),
@@ -299,7 +306,14 @@ class CCloudAuthService(private val scope: CoroutineScope) : Disposable {
                 reopenSignInBrowser()
             }
         )
+        inProgressNotification = notification
         Notifications.Bus.notify(notification)
+    }
+
+    /** The attempt it referred to is over, so its notification (and Reopen browser action) is stale. */
+    private fun expireInProgressNotification() {
+        inProgressNotification?.expire()
+        inProgressNotification = null
     }
 
     /**

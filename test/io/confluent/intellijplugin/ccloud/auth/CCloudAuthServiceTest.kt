@@ -656,6 +656,36 @@ class CCloudAuthServiceTest {
         }
 
         @Test
+        fun `should show a single in-progress notification and expire it when the attempt ends`() {
+            stubServers(mock())
+            doNothing().whenever(spyService).notifySignedIn(any())
+            doCallRealMethod().whenever(spyService).showSignInInProgressNotification()
+            val posted = mutableListOf<Notification>()
+            val connection = ApplicationManager.getApplication().messageBus.connect()
+            connection.subscribe(Notifications.TOPIC, object : Notifications {
+                override fun notify(notification: Notification) {
+                    posted.add(notification)
+                }
+            })
+
+            try {
+                spyService.signIn()
+                spyService.signIn()
+                spyService.signIn()
+                val inProgress = posted.filter { it.content.contains("browser window") }
+                assertEquals(2, inProgress.size)
+                assertTrue(inProgress.first().isExpired, "a repeat click must replace the earlier notification")
+                assertFalse(inProgress.last().isExpired)
+
+                successCallbacks.first()(createMockAuthenticatedContext())
+
+                assertTrue(inProgress.last().isExpired, "ending the attempt must expire the notification")
+            } finally {
+                connection.disconnect()
+            }
+        }
+
+        @Test
         fun `should start a fresh attempt when asked to reopen after the attempt has ended`() {
             val secondServer = mock<CCloudOAuthCallbackServer>()
             stubServers(mock(), secondServer)
