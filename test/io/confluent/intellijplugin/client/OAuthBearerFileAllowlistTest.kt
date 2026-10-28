@@ -190,14 +190,38 @@ class OAuthBearerFileAllowlistTest {
         }
 
         @Test
-        fun `should reject paths that are not exact absolute normalized paths`() {
+        fun `should throw a clear error for paths that are not exact absolute normalized paths`() {
             val approver = RecordingApprover(true)
-            val bad = listOf("relative/key.pem", "/keys/../etc/passwd", "/keys/./k.pem", "/keys/a,/etc/passwd", "", "  ")
+            val bad = listOf("relative/key.pem", "/keys/../etc/passwd", "/keys/./k.pem", "/keys/a,/etc/passwd")
 
-            bad.forEach { allow(mapOf("sasl.oauthbearer.assertion.file" to it), approver) }
+            bad.forEach {
+                val e = assertThrows(BdtConfigurationException::class.java) {
+                    allow(mapOf("sasl.oauthbearer.assertion.file" to it), approver)
+                }
+                assertTrue(e.message!!.contains(it), "message should name the path: ${e.message}")
+            }
 
             assertTrue(approver.asked.isEmpty())
             assertNull(allowed())
+        }
+
+        @Test
+        fun `should ignore blank paths`() {
+            val approver = RecordingApprover(true)
+
+            listOf("", "  ").forEach { allow(mapOf("sasl.oauthbearer.assertion.file" to it), approver) }
+
+            assertTrue(approver.asked.isEmpty())
+            assertNull(allowed())
+        }
+
+        @Test
+        fun `should not flag a non-normalized path the user already allowed`() {
+            System.setProperty(property, "relative/key.pem")
+
+            allow(mapOf("sasl.oauthbearer.assertion.file" to "relative/key.pem"), RecordingApprover(false))
+
+            assertEquals("relative/key.pem", allowed())
         }
     }
 
