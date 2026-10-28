@@ -2,6 +2,7 @@ package io.confluent.intellijplugin.ccloud.auth
 
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.util.Disposer
+import com.intellij.testFramework.LoggedErrorProcessor
 import com.intellij.testFramework.junit5.TestApplication
 import javax.swing.SwingUtilities
 import kotlinx.coroutines.CoroutineScope
@@ -17,14 +18,19 @@ import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.any
+import org.mockito.kotlin.argThat
+import org.mockito.kotlin.argumentCaptor
+import org.mockito.kotlin.doAnswer
 import org.mockito.kotlin.doNothing
 import org.mockito.kotlin.doReturn
+import org.mockito.kotlin.doThrow
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.never
 import org.mockito.kotlin.spy
 import org.mockito.kotlin.times
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
+import java.net.BindException
 import java.time.Instant
 
 @TestApplication
@@ -524,6 +530,138 @@ class CCloudAuthServiceTest {
 
             verify(spyService).showSignOutNotification()
             verify(spyService, never()).showSessionExpiredNotification()
+        }
+    }
+
+    @Nested
+    @DisplayName("signIn idempotency / failure handling")
+    inner class SignInIdempotencyAndFailureHandling {
+
+        private lateinit var spyService: CCloudAuthService
+        private val successCallbacks = mutableListOf<(CCloudOAuthContext) -> Unit>()
+        private val errorCallbacks = mutableListOf<(String) -> Unit>()
+
+        @BeforeEach
+        fun setUpSpy() {
+            spyService = spy(CCloudAuthService(CoroutineScope(SupervisorJob())))
+            doNothing().whenever(spyService).openBrowser(any())
+            doNothing().whenever(spyService).showSignInFailureNotification(any())
+        }
+
+        @AfterEach
+        fun tearDownSpy() {
+            spyService.dispose()
+        }
+
+        /** Make successive [CCloudAuthService.signIn] calls create [servers] in order, capturing their callbacks. */
+        private fun stubServers(vararg servers: CCloudOAuthCallbackServer) {
+            val queue = servers.toMutableList()
+            doAnswer {
+                successCallbacks.add(it.getArgument(1))
+                errorCallbacks.add(it.getArgument(2))
+                queue.removeAt(0)
+            }.whenever(spyService).createCallbackServer(any(), any(), any())
+        }
+
+        @Test
+        fun `should reuse the in-flight attempt and reopen the same sign-in URL on a repeated sign-in`() {
+            val firstServer = mock<CCloudOAuthCallbackServer>()
+            stubServers(firstServer, mock())
+
+            spyService.signIn()
+            spyService.signIn()
+
+            // Replacing the server would invalidate the state of the tab opened by the first click.
+            verify(spyService, times(1)).createCallbackServer(any(), any(), any())
+            verify(firstServer, never()).stop()
+            assertEquals(firstServer, spyService.activeCallbackServer)
+            val urls = argumentCaptor<String>()
+            verify(spyService, times(2)).openBrowser(urls.capture())
+            assertEquals(urls.firstValue, urls.secondValue)
+        }
+
+        @Test
+        fun `should start a new attempt once the previous one has finished`() {
+            val secondServer = mock<CCloudOAuthCallbackServer>()
+            stubServers(mock(), secondServer)
+
+            spyService.signIn()
+            LoggedErrorProcessor.executeAndReturnLoggedError { errorCallbacks.first()("denied") }
+            SwingUtilities.invokeAndWait {}
+            spyService.signIn()
+
+            assertEquals(secondServer, spyService.activeCallbackServer)
+            verify(secondServer).start()
+        }
+
+        @Test
+        fun `should open the sign-in URL in the browser after starting the server`() {
+            stubServers(mock())
+
+            spyService.signIn()
+
+            verify(spyService).openBrowser(argThat { startsWith(CCloudOAuthConfig.CCLOUD_OAUTH_AUTHORIZE_URI) })
+        }
+
+        @Test
+        fun `should show port-in-use notification and not open the browser when the port is taken`() {
+            val server = mock<CCloudOAuthCallbackServer> {
+                on { start() } doThrow BindException("Address already in use")
+            }
+            stubServers(server)
+
+            // Logged at warn (not error), so this does not trip the test logger / Sentry.
+            spyService.signIn()
+            SwingUtilities.invokeAndWait {}
+
+            assertNull(spyService.activeCallbackServer)
+            verify(spyService, never()).openBrowser(any())
+            verify(spyService).showSignInFailureNotification(
+                argThat { contains(CCloudOAuthConfig.CALLBACK_PORT.toString()) }
+            )
+        }
+
+        @Test
+        fun `should ignore a late failure after the service is disposed`() {
+            val server = mock<CCloudOAuthCallbackServer>()
+            stubServers(server)
+
+            spyService.signIn()
+            spyService.dispose()
+            errorCallbacks.first()("late")
+            SwingUtilities.invokeAndWait {}
+
+            verify(server).stop()
+            assertNull(spyService.activeCallbackServer)
+            verify(spyService, never()).showSignInFailureNotification(any())
+        }
+
+        @Test
+        fun `should ignore a late success after the service is disposed`() {
+            stubServers(mock())
+
+            spyService.signIn()
+            spyService.dispose()
+            successCallbacks.first()(createMockAuthenticatedContext())
+
+            assertNull(spyService.getContext(), "a stopped attempt must not sign in")
+            assertNull(spyService.refreshBean)
+        }
+
+        @Test
+        fun `should report failure and not open the browser when the server fails to start`() {
+            val server = mock<CCloudOAuthCallbackServer> {
+                on { start() } doThrow IllegalStateException("boom")
+            }
+            stubServers(server)
+
+            // Unexpected startup failures are logged at error; swallow it so the test logger doesn't fail the test.
+            LoggedErrorProcessor.executeAndReturnLoggedError { spyService.signIn() }
+            SwingUtilities.invokeAndWait {}
+
+            assertNull(spyService.activeCallbackServer)
+            verify(spyService, never()).openBrowser(any())
+            verify(spyService).showSignInFailureNotification(argThat { contains("boom") })
         }
     }
 
