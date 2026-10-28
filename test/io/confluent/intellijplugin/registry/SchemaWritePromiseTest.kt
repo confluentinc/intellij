@@ -13,6 +13,7 @@ import org.junit.jupiter.api.Assertions.assertInstanceOf
 import org.junit.jupiter.api.Assertions.assertSame
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Nested
+import org.jetbrains.concurrency.CancellablePromise
 import org.jetbrains.concurrency.Promise
 import org.junit.jupiter.api.Test
 import java.util.concurrent.CountDownLatch
@@ -44,6 +45,15 @@ class SchemaWritePromiseTest {
             assertInstanceOf(SchemaWriteTimeoutException::class.java, error)
             assertTrue(error.message!!.contains("may have been registered"), error.message)
             assertTrue(error.message!!.contains("${KafkaRegistryUtil.CALL_TIMEOUT.inWholeSeconds} seconds"), error.message)
+        }
+
+        @Test
+        fun `should cancel the write when the promise is cancelled`() {
+            val deferred = CompletableDeferred<Unit>()
+
+            (deferred.asSchemaWritePromise() as CancellablePromise<*>).cancel()
+
+            assertTrue(deferred.isCancelled)
         }
 
         @Test

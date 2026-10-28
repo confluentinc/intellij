@@ -39,6 +39,8 @@ object KafkaRegistryUtil {
      */
     fun Deferred<Unit>.asSchemaWritePromise(): Promise<Unit> {
         val promise = AsyncPromise<Unit>().asSilent()
+        // Cancelling the promise (e.g. the user closing the dialog) aborts the underlying write.
+        promise.onError { cancel() }
         invokeOnCompletion { cause ->
             when (cause) {
                 null -> promise.setResult(Unit)
