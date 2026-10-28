@@ -6,6 +6,7 @@ All noteworthy changes to this plugin will be documented in this file.
 - Consumer and producer record tables now retain up to 50,000 records per session. Previously, leaving the "Consumer records limit" field empty (or set to 0) allowed unbounded growth.
 ### Added
 - MessagePack serialization support for consumer and producer records
+- OAuth private-key JWT authentication (assertion/private key/template files) now asks for confirmation before Kafka may read the configured local files
 ### Removed
 ### Fixed
 
