@@ -825,19 +825,19 @@ class CCloudAuthServiceTest {
         }
 
         @Test
-        fun `should cancel the previous attempt's timeout when sign-in is started again`() {
+        fun `should start a fresh attempt when sign-in is retried after a timeout`() {
             val firstServer = mock<CCloudOAuthCallbackServer>()
             val secondServer = mock<CCloudOAuthCallbackServer>()
             stubServers(firstServer, secondServer)
 
             spyService.signIn()
+            verify(spyService, timeout(5_000)).showSignInFailureNotification(argThat { contains("timed out") })
             spyService.signInTimeout = 10.minutes
             spyService.signIn()
-            Thread.sleep(400)
 
-            verify(spyService, never()).showSignInFailureNotification(any())
-            verify(firstServer, times(1)).stop() // only from being superseded, not from its timeout
-            verify(secondServer, never()).stop()
+            // The expired attempt must not be reused: its server is stopped and the port is free for a new one.
+            verify(firstServer).stop()
+            verify(secondServer).start()
             assertEquals(secondServer, spyService.activeCallbackServer)
         }
     }
