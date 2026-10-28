@@ -1,8 +1,13 @@
 package io.confluent.intellijplugin.ccloud.auth
 
+import com.intellij.notification.Notification
+import com.intellij.notification.NotificationAction
+import com.intellij.notification.Notifications
 import com.intellij.openapi.Disposable
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.util.Disposer
 import com.intellij.testFramework.LoggedErrorProcessor
+import com.intellij.testFramework.TestActionEvent
 import com.intellij.testFramework.junit5.TestApplication
 import javax.swing.SwingUtilities
 import kotlinx.coroutines.CoroutineScope
@@ -21,6 +26,7 @@ import org.mockito.kotlin.any
 import org.mockito.kotlin.argThat
 import org.mockito.kotlin.argumentCaptor
 import org.mockito.kotlin.doAnswer
+import org.mockito.kotlin.doCallRealMethod
 import org.mockito.kotlin.doNothing
 import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.doThrow
@@ -551,7 +557,7 @@ class CCloudAuthServiceTest {
 
         @AfterEach
         fun tearDownSpy() {
-            spyService.dispose()
+            Disposer.dispose(spyService)
         }
 
         /** Make successive [CCloudAuthService.signIn] calls create [servers] in order, capturing their callbacks. */
@@ -592,6 +598,61 @@ class CCloudAuthServiceTest {
             val urls = argumentCaptor<String>()
             verify(spyService, times(2)).openBrowser(urls.capture())
             assertEquals(urls.firstValue, urls.secondValue)
+        }
+
+        @Test
+        fun `should sign in and clear the attempt when the active server reports success`() {
+            stubServers(mock())
+            doNothing().whenever(spyService).notifySignedIn(any())
+            val authenticated = createMockAuthenticatedContext()
+            whenever(authenticated.getUser()).thenReturn(
+                UserDetails(id = "u-1", email = "test@example.com", resourceId = "u-abc", socialConnection = "google-oauth2")
+            )
+
+            spyService.signIn()
+            successCallbacks.first()(authenticated)
+
+            assertEquals(authenticated, spyService.getContext())
+            assertNotNull(spyService.refreshBean)
+            assertNull(spyService.activeCallbackServer)
+            verify(spyService).notifySignedIn("test@example.com")
+        }
+
+        @Test
+        fun `should report the failure and clear the attempt when the active server reports an error`() {
+            stubServers(mock())
+
+            spyService.signIn()
+            LoggedErrorProcessor.executeAndReturnLoggedError { errorCallbacks.first()("access_denied") }
+            SwingUtilities.invokeAndWait {}
+
+            assertNull(spyService.activeCallbackServer)
+            verify(spyService).showSignInFailureNotification("access_denied")
+        }
+
+        @Test
+        fun `should post an in-progress notification whose action reopens the sign-in URL`() {
+            stubServers(mock())
+            doCallRealMethod().whenever(spyService).showSignInInProgressNotification()
+            val posted = mutableListOf<Notification>()
+            val connection = ApplicationManager.getApplication().messageBus.connect()
+            connection.subscribe(Notifications.TOPIC, object : Notifications {
+                override fun notify(notification: Notification) {
+                    posted.add(notification)
+                }
+            })
+
+            try {
+                spyService.signIn()
+                spyService.signIn()
+                val notification = posted.single { it.content.contains("browser window") }
+                val action = notification.actions.single() as NotificationAction
+                action.actionPerformed(TestActionEvent.createTestEvent(), notification)
+            } finally {
+                connection.disconnect()
+            }
+
+            verify(spyService, times(2)).openBrowser(any())
         }
 
         @Test
