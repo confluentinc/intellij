@@ -16,6 +16,7 @@ import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertNotSame
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
@@ -33,11 +34,14 @@ import org.mockito.kotlin.doThrow
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.never
 import org.mockito.kotlin.spy
+import org.mockito.kotlin.timeout
 import org.mockito.kotlin.times
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 import java.net.BindException
 import java.time.Instant
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.minutes
 
 @TestApplication
 class CCloudAuthServiceTest {
@@ -798,6 +802,142 @@ class CCloudAuthServiceTest {
             assertNull(spyService.activeCallbackServer)
             verify(spyService, never()).openBrowser(any())
             verify(spyService).showSignInFailureNotification(argThat { contains("boom") })
+        }
+    }
+
+    @Nested
+    @DisplayName("signIn timeout")
+    inner class SignInTimeout {
+
+        private lateinit var spyService: CCloudAuthService
+        private val successCallbacks = mutableListOf<(CCloudOAuthContext) -> Unit>()
+
+        // The real 10-minute timer stays armed in these tests; the expiry is driven through onSignInTimeout so
+        // nothing depends on wall-clock timing.
+        @BeforeEach
+        fun setUpSpy() {
+            spyService = spy(CCloudAuthService(CoroutineScope(SupervisorJob())))
+            doNothing().whenever(spyService).openBrowser(any())
+            doNothing().whenever(spyService).showSignInFailureNotification(any())
+            doNothing().whenever(spyService).showSignInInProgressNotification()
+        }
+
+        @AfterEach
+        fun tearDownSpy() {
+            Disposer.dispose(spyService)
+        }
+
+        private fun stubServers(vararg servers: CCloudOAuthCallbackServer) {
+            val queue = servers.toMutableList()
+            doAnswer {
+                successCallbacks.add(it.getArgument(1))
+                queue.removeAt(0)
+            }.whenever(spyService).createCallbackServer(any(), any(), any())
+        }
+
+        @Test
+        fun `should arm the real timeout when sign-in starts`() {
+            stubServers(mock())
+
+            spyService.signIn()
+
+            assertTrue(spyService.signInTimeoutJob?.isActive == true)
+        }
+
+        @Test
+        fun `should fire the timeout after the configured delay`() {
+            val server = mock<CCloudOAuthCallbackServer>()
+            stubServers(server)
+            spyService.signInTimeout = 50.milliseconds
+
+            spyService.signIn()
+
+            // Only waits for the timer to fire, so a slow runner can't make this fail.
+            verify(spyService, timeout(5_000)).showSignInFailureNotification(argThat { contains("timed out") })
+            verify(server).stop()
+            assertNull(spyService.activeCallbackServer)
+        }
+
+        @Test
+        fun `should stop the callback server once and show a timed-out notification on expiry`() {
+            val server = mock<CCloudOAuthCallbackServer>()
+            stubServers(server)
+            spyService.signIn()
+
+            spyService.onSignInTimeout(server, null)
+            SwingUtilities.invokeAndWait {}
+
+            verify(server, times(1)).stop()
+            assertNull(spyService.activeCallbackServer)
+            verify(spyService).showSignInFailureNotification(argThat { contains("timed out") })
+        }
+
+        @Test
+        fun `should cancel the timeout when sign-in completes`() {
+            stubServers(mock())
+            doNothing().whenever(spyService).notifySignedIn(any())
+
+            spyService.signIn()
+            val job = spyService.signInTimeoutJob!!
+            successCallbacks.first()(createMockAuthenticatedContext())
+
+            assertTrue(job.isCancelled, "a finished attempt must not time out later")
+            assertNull(spyService.signInTimeoutJob)
+        }
+
+        @Test
+        fun `should restart the timeout when sign-in is requested again while in progress`() {
+            stubServers(mock())
+
+            spyService.signIn()
+            val first = spyService.signInTimeoutJob!!
+            spyService.signIn()
+
+            assertTrue(first.isCancelled)
+            assertTrue(spyService.signInTimeoutJob!!.isActive)
+            assertNotSame(first, spyService.signInTimeoutJob)
+        }
+
+        @Test
+        fun `should restart the timeout when the browser is reopened`() {
+            stubServers(mock())
+
+            spyService.signIn()
+            val first = spyService.signInTimeoutJob!!
+            spyService.reopenSignInBrowser()
+
+            assertTrue(first.isCancelled)
+            assertTrue(spyService.signInTimeoutJob!!.isActive)
+        }
+
+        @Test
+        fun `should ignore a stale timeout from an attempt that already finished`() {
+            val server = mock<CCloudOAuthCallbackServer>()
+            stubServers(server)
+            doNothing().whenever(spyService).notifySignedIn(any())
+            spyService.signIn()
+            successCallbacks.first()(createMockAuthenticatedContext())
+
+            spyService.onSignInTimeout(server, null)
+            SwingUtilities.invokeAndWait {}
+
+            verify(spyService, never()).showSignInFailureNotification(any())
+        }
+
+        @Test
+        fun `should start a fresh attempt when sign-in is retried after a timeout`() {
+            val firstServer = mock<CCloudOAuthCallbackServer>()
+            val secondServer = mock<CCloudOAuthCallbackServer>()
+            stubServers(firstServer, secondServer)
+
+            spyService.signIn()
+            spyService.onSignInTimeout(firstServer, null)
+            spyService.signIn()
+
+            // The expired attempt must not be reused: its server is stopped and the port is free for a new one.
+            verify(firstServer).stop()
+            verify(secondServer).start()
+            assertEquals(secondServer, spyService.activeCallbackServer)
         }
     }
 
