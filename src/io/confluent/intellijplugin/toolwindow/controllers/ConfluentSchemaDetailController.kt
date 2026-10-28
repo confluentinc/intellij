@@ -324,7 +324,10 @@ internal class ConfluentSchemaDetailController(
                         }
                     }
                     versionModel.addListener(listener)
-                    dataManager.updateSchema(versionInfo, newText).onError { versionModel.removeListener(listener) }
+                    // Return the write promise itself: onError returns a dependent promise, and cancelling that wouldn't cancel the write.
+                    dataManager.updateSchema(versionInfo, newText).also {
+                        it.onError { versionModel.removeListener(listener) }
+                    }
                 }
             }
 

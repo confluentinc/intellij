@@ -57,6 +57,19 @@ class SchemaWritePromiseTest {
         }
 
         @Test
+        fun `should cancel the write and run attached error handlers when the original promise is cancelled`() {
+            val deferred = CompletableDeferred<Unit>()
+            val promise = deferred.asSchemaWritePromise()
+            var handled = false
+            promise.also { it.onError { handled = true } }
+
+            (promise as CancellablePromise<*>).cancel()
+
+            assertTrue(deferred.isCancelled)
+            assertTrue(handled)
+        }
+
+        @Test
         fun `should pass other failures through unchanged`() {
             val failure = IllegalStateException("boom")
             val deferred = CompletableDeferred<Unit>().apply { completeExceptionally(failure) }
