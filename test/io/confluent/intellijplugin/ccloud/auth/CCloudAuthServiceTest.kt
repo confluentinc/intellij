@@ -19,6 +19,7 @@ import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.any
 import org.mockito.kotlin.argThat
+import org.mockito.kotlin.argumentCaptor
 import org.mockito.kotlin.doAnswer
 import org.mockito.kotlin.doNothing
 import org.mockito.kotlin.doReturn
@@ -563,18 +564,34 @@ class CCloudAuthServiceTest {
         }
 
         @Test
-        fun `should stop a previous in-flight callback server before starting a new one`() {
+        fun `should reuse the in-flight attempt and reopen the same sign-in URL on a repeated sign-in`() {
             val firstServer = mock<CCloudOAuthCallbackServer>()
+            stubServers(firstServer, mock())
+
+            spyService.signIn()
+            spyService.signIn()
+
+            // Replacing the server would invalidate the state of the tab opened by the first click.
+            verify(spyService, times(1)).createCallbackServer(any(), any(), any())
+            verify(firstServer, never()).stop()
+            assertEquals(firstServer, spyService.activeCallbackServer)
+            val urls = argumentCaptor<String>()
+            verify(spyService, times(2)).openBrowser(urls.capture())
+            assertEquals(urls.firstValue, urls.secondValue)
+        }
+
+        @Test
+        fun `should start a new attempt once the previous one has finished`() {
             val secondServer = mock<CCloudOAuthCallbackServer>()
-            stubServers(firstServer, secondServer)
+            stubServers(mock(), secondServer)
 
             spyService.signIn()
+            LoggedErrorProcessor.executeAndReturnLoggedError { errorCallbacks.first()("denied") }
+            SwingUtilities.invokeAndWait {}
             spyService.signIn()
 
-            // The first server must be torn down so the second can bind the fixed port.
-            verify(firstServer).stop()
-            verify(secondServer).start()
             assertEquals(secondServer, spyService.activeCallbackServer)
+            verify(secondServer).start()
         }
 
         @Test
@@ -605,31 +622,30 @@ class CCloudAuthServiceTest {
         }
 
         @Test
-        fun `should ignore a late failure from a superseded server`() {
-            val secondServer = mock<CCloudOAuthCallbackServer>()
-            stubServers(mock(), secondServer)
+        fun `should ignore a late failure after the service is disposed`() {
+            val server = mock<CCloudOAuthCallbackServer>()
+            stubServers(server)
 
             spyService.signIn()
-            spyService.signIn()
+            spyService.dispose()
             errorCallbacks.first()("late")
             SwingUtilities.invokeAndWait {}
 
-            assertEquals(secondServer, spyService.activeCallbackServer)
+            verify(server).stop()
+            assertNull(spyService.activeCallbackServer)
             verify(spyService, never()).showSignInFailureNotification(any())
         }
 
         @Test
-        fun `should ignore a late success from a superseded server`() {
-            val secondServer = mock<CCloudOAuthCallbackServer>()
-            stubServers(mock(), secondServer)
+        fun `should ignore a late success after the service is disposed`() {
+            stubServers(mock())
 
             spyService.signIn()
-            spyService.signIn()
+            spyService.dispose()
             successCallbacks.first()(createMockAuthenticatedContext())
 
-            assertNull(spyService.getContext(), "a superseded attempt must not sign in")
+            assertNull(spyService.getContext(), "a stopped attempt must not sign in")
             assertNull(spyService.refreshBean)
-            assertEquals(secondServer, spyService.activeCallbackServer)
         }
 
         @Test

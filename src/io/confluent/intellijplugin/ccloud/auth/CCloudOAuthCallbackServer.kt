@@ -28,6 +28,8 @@ class CCloudOAuthCallbackServer(
     private val onSuccess: (CCloudOAuthContext) -> Unit,
     private val onError: (String) -> Unit
 ) {
+    // Written by start()/stop() from different threads (EDT on re-sign-in/dispose, IO after a callback).
+    @Volatile
     private var server: HttpServer? = null
 
     // Run handlers off the server's dispatcher thread: HttpServer.stop() joins the dispatcher, so a handler
@@ -116,12 +118,16 @@ class CCloudOAuthCallbackServer(
 
     /**
      * Result of processing an OAuth callback. On success, the success context is passed to continue token exchange. On error, the OAuth error message is displayed to the user.
+     *
+     * @param endsFlow false for a request that doesn't belong to this sign-in (wrong state): the error page is
+     * shown but the flow isn't failed and the server keeps listening for the expected callback.
      */
     internal data class CallbackResult(
         val statusCode: Int,
         val html: String,
         val successContext: CCloudOAuthContext? = null,
-        val errorMessage: String? = null
+        val errorMessage: String? = null,
+        val endsFlow: Boolean = true
     )
 
     /**
@@ -159,7 +165,7 @@ class CCloudOAuthCallbackServer(
             state != oauthContext.oauthState -> {
                 val message = "Invalid state parameter"
                 logger.warn("OAuth state mismatch")
-                CallbackResult(400, errorHtml(message), errorMessage = message)
+                CallbackResult(400, errorHtml(message), errorMessage = message, endsFlow = false)
             }
 
             code == null -> {
@@ -206,6 +212,8 @@ class CCloudOAuthCallbackServer(
         } catch (e: Exception) {
             logger.warn("Failed to send OAuth callback response", e)
         }
+
+        if (!result.endsFlow) return
 
         CoroutineScope(Dispatchers.IO).launch {
             try {

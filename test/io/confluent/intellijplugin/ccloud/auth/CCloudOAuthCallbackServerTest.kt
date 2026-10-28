@@ -103,6 +103,7 @@ class CCloudOAuthCallbackServerTest {
 
             assertEquals(400, result.statusCode)
             assertEquals("Invalid state parameter", result.errorMessage)
+            assertFalse(result.endsFlow, "a stray request must not end the sign-in")
             assertNull(result.successContext)
         }
 
@@ -434,6 +435,32 @@ class CCloudOAuthCallbackServerTest {
             } finally {
                 releaseExchange.countDown()
                 request.join()
+            }
+        }
+
+        @Test
+        fun `wrong-state callback shows an error but keeps the server listening for the real one`() {
+            val errors = mutableListOf<String>()
+            val successLatch = CountDownLatch(1)
+            val mockContext = mock<CCloudOAuthContext> {
+                on { oauthState } doReturn "test-state"
+                on { getUserEmail() } doReturn "user@test.com"
+                onBlocking { createTokensFromAuthorizationCode("valid-code") } doReturn Result.success(mock)
+            }
+            val activeServer = CCloudOAuthCallbackServer(
+                oauthContext = mockContext,
+                onSuccess = { successLatch.countDown() },
+                onError = { errors.add(it) }
+            )
+            activeServer.start()
+
+            try {
+                assertEquals(400, httpGet("code=stale-code&state=stale-state").first)
+                assertEquals(200, httpGet("code=valid-code&state=test-state").first)
+                assertTrue(successLatch.await(5, TimeUnit.SECONDS), "the real callback should still complete")
+                assertTrue(errors.isEmpty(), "a wrong-state request must not report a sign-in failure")
+            } finally {
+                activeServer.stop()
             }
         }
 

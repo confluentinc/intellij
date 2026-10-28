@@ -67,6 +67,9 @@ class CCloudAuthService(private val scope: CoroutineScope) : Disposable {
     @Volatile
     internal var activeCallbackServer: CCloudOAuthCallbackServer? = null
 
+    /** OAuth context of the in-flight sign-in, so a repeated request can reopen the same sign-in URL. */
+    private var activeSignInContext: CCloudOAuthContext? = null
+
     internal val authStateListeners = CopyOnWriteArrayList<AuthStateListener>()
 
     /**
@@ -93,11 +96,15 @@ class CCloudAuthService(private val scope: CoroutineScope) : Disposable {
      */
     @Synchronized
     fun signIn(invokedPlace: InvokedPlace? = null) {
-        logger.info("Starting OAuth sign-in flow")
+        // First attempt wins: replacing the server would invalidate the state of the tab already opened by
+        // an earlier click (e.g. a double-click), so reopen that attempt's URL and let either tab complete it.
+        activeSignInContext?.takeIf { activeCallbackServer != null }?.let {
+            logger.info("Sign-in already in progress, reopening the browser")
+            openBrowser(it.getSignInUri())
+            return
+        }
 
-        // A previous attempt (e.g. a double-click) may still hold the fixed callback port; release it
-        // so this attempt can bind.
-        stopActiveCallbackServer()
+        logger.info("Starting OAuth sign-in flow")
 
         val oauthContext = CCloudOAuthContext()
 
@@ -152,6 +159,7 @@ class CCloudAuthService(private val scope: CoroutineScope) : Disposable {
             return
         }
         activeCallbackServer = server
+        activeSignInContext = oauthContext
         openBrowser(oauthContext.getSignInUri())
     }
 
@@ -163,22 +171,26 @@ class CCloudAuthService(private val scope: CoroutineScope) : Disposable {
 
     internal fun openBrowser(url: String) = BrowserUtil.browse(url)
 
+    @Synchronized
     private fun stopActiveCallbackServer() {
         activeCallbackServer?.stop()
         activeCallbackServer = null
+        activeSignInContext = null
     }
 
     /**
-     * Stop tracking [server] if it is still the active attempt. Returns false for a superseded server, whose
-     * late result must be ignored so it can't sign in (leaking a second refresh loop) or report a stale failure.
+     * Stop tracking [server] if it is still the active attempt. Returns false for a server that was stopped
+     * (e.g. on dispose), whose late result must be ignored so it can't sign in (leaking a refresh loop) or
+     * report a stale failure.
      */
     @Synchronized
     private fun finishIfActive(server: CCloudOAuthCallbackServer): Boolean {
         if (activeCallbackServer !== server) {
-            logger.info("Ignoring result from superseded sign-in attempt")
+            logger.info("Ignoring result from inactive sign-in attempt")
             return false
         }
         activeCallbackServer = null
+        activeSignInContext = null
         return true
     }
 
