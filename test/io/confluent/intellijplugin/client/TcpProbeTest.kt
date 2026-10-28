@@ -141,6 +141,13 @@ class TcpProbeTest {
             }
             assertFalse(TcpProbe.anyReachable("127.0.0.1:$closedPort"))
         }
+
+        @Test
+        fun `should not parse entries after the first reachable endpoint`() {
+            ServerSocket(0).use { server ->
+                assertTrue(TcpProbe.anyReachable("127.0.0.1:${server.localPort},"))
+            }
+        }
     }
 
     @Nested

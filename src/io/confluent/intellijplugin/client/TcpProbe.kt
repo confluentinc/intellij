@@ -31,21 +31,34 @@ internal object TcpProbe {
         }
     }
 
-    /** Parses a comma-separated `bootstrap.servers` value and probes it with the default timeouts. */
-    fun anyReachable(bootstrapServers: String): Boolean = anyReachable(parseEndpoints(bootstrapServers))
+    /**
+     * Parses a comma-separated `bootstrap.servers` value and probes it with the default timeouts.
+     * Entries are parsed lazily, so ones after the first reachable endpoint are never touched.
+     */
+    fun anyReachable(bootstrapServers: String): Boolean = anyReachable(lazyEndpoints(bootstrapServers))
 
-    fun parseEndpoints(bootstrapServers: String): List<Pair<String, Int>> =
-        bootstrapServers.split(",").map {
+    fun parseEndpoints(bootstrapServers: String): List<Pair<String, Int>> = lazyEndpoints(bootstrapServers).toList()
+
+    private fun lazyEndpoints(bootstrapServers: String): Sequence<Pair<String, Int>> =
+        bootstrapServers.splitToSequence(",").map {
             val urlObject = BdtUrlUtils.convertToUrlObject(it.trim())
             urlObject.host to urlObject.port
         }
+
+    fun anyReachable(
+        endpoints: List<Pair<String, Int>>,
+        connectTimeoutMs: Int = BdIdeRegistryUtil.KAFKA_TCP_PROBE_CONNECT_TIMEOUT_MS,
+        totalTimeoutMs: Int = BdIdeRegistryUtil.KAFKA_TCP_PROBE_TOTAL_TIMEOUT_MS,
+        nanoTime: () -> Long = System::nanoTime,
+        connector: Connector = socketConnector,
+    ): Boolean = anyReachable(endpoints.asSequence(), connectTimeoutMs, totalTimeoutMs, nanoTime, connector)
 
     /**
      * Returns true as soon as one endpoint accepts a connection. Each attempt gets at most [connectTimeoutMs],
      * further clipped to what is left of [totalTimeoutMs]; once the budget is spent the remaining endpoints are skipped.
      */
     fun anyReachable(
-        endpoints: List<Pair<String, Int>>,
+        endpoints: Sequence<Pair<String, Int>>,
         connectTimeoutMs: Int = BdIdeRegistryUtil.KAFKA_TCP_PROBE_CONNECT_TIMEOUT_MS,
         totalTimeoutMs: Int = BdIdeRegistryUtil.KAFKA_TCP_PROBE_TOTAL_TIMEOUT_MS,
         nanoTime: () -> Long = System::nanoTime,
