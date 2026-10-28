@@ -602,7 +602,8 @@ class CCloudAuthServiceTest {
 
         @Test
         fun `should sign in and clear the attempt when the active server reports success`() {
-            stubServers(mock())
+            val server = mock<CCloudOAuthCallbackServer>()
+            stubServers(server)
             doNothing().whenever(spyService).notifySignedIn(any())
             val authenticated = createMockAuthenticatedContext()
             whenever(authenticated.getUser()).thenReturn(
@@ -615,6 +616,8 @@ class CCloudAuthServiceTest {
             assertEquals(authenticated, spyService.getContext())
             assertNotNull(spyService.refreshBean)
             assertNull(spyService.activeCallbackServer)
+            // The port must be released as soon as the attempt is claimed, not after the result is handled.
+            verify(server).stop()
             verify(spyService).notifySignedIn("test@example.com")
         }
 

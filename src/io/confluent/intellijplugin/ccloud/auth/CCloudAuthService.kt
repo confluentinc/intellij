@@ -184,7 +184,7 @@ class CCloudAuthService(private val scope: CoroutineScope) : Disposable {
     }
 
     /**
-     * Stop tracking [server] if it is still the active attempt. Returns false for a server that was stopped
+     * Stop tracking [server] and release its port if it is still the active attempt. Returns false for a server that was stopped
      * (e.g. on dispose), whose late result must be ignored so it can't sign in (leaking a refresh loop) or
      * report a stale failure.
      */
@@ -197,6 +197,10 @@ class CCloudAuthService(private val scope: CoroutineScope) : Disposable {
         activeCallbackServer = null
         activeSignInContext = null
         expireInProgressNotification()
+        // Release the port in the same step that stops tracking the attempt. Otherwise a sign-in started
+        // while the result is still being handled (e.g. while the session is saved) finds no active attempt
+        // but the old server still bound, and fails with "port in use".
+        server.stop()
         return true
     }
 
