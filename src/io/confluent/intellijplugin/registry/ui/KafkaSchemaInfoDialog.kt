@@ -14,8 +14,10 @@ import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.NlsContexts
 import com.intellij.ui.LightColors
+import com.intellij.util.ui.AsyncProcessIcon
 import com.intellij.ui.ScreenUtil
 import com.intellij.ui.dsl.builder.Align
+import com.intellij.ui.dsl.builder.Row
 import com.intellij.ui.dsl.builder.panel
 import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.UIUtil
@@ -26,9 +28,11 @@ import io.confluent.intellijplugin.registry.KafkaRegistryUtil
 import io.confluent.intellijplugin.registry.SchemaVersionInfo
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
 import org.jetbrains.annotations.Nls
+import org.jetbrains.concurrency.CancellablePromise
 import org.jetbrains.concurrency.Promise
 import java.awt.Dimension
 import javax.swing.JEditorPane
+import java.util.concurrent.CancellationException
 import kotlin.math.min
 
 object KafkaSchemaInfoDialog {
@@ -117,6 +121,8 @@ object KafkaSchemaInfoDialog {
         val processor = CacheDiffRequestChainProcessor(project, requests)
 
         var errorLabel: JEditorPane? = null
+        var busyRow: Row? = null
+        var pendingWrite: Promise<Unit>? = null
 
         val panel = panel {
             row { cell(processor.component).align(Align.FILL).resizableColumn() }.resizableRow()
@@ -125,6 +131,10 @@ object KafkaSchemaInfoDialog {
                     isVisible = false
                 }
             }
+            busyRow = row {
+                cell(AsyncProcessIcon("schema-update"))
+                label(KafkaMessagesBundle.message("diff.dialog.updating"))
+            }.visible(false)
         }
 
         val dialogWrapper = DialogBuilder(project)
@@ -132,17 +142,33 @@ object KafkaSchemaInfoDialog {
         dialogWrapper.setTitle(title)
 
         dialogWrapper.setCenterPanel(panel)
+        fun setBusy(busy: Boolean) = invokeAndWaitSwing {
+            dialogWrapper.dialogWrapper.isOKActionEnabled = !busy
+            busyRow?.visible(busy)
+        }
+
         dialogWrapper.addOkAction().setText(
             if (onApply == null) CommonBundle.getOkButtonText() else KafkaMessagesBundle.message("diff.dialog.button.update")
         )
         if (onApply != null) {
             dialogWrapper.addCancelAction()
+            // Closing the dialog while a write is pending aborts it; the registry may still have applied it.
+            dialogWrapper.setCancelOperation {
+                (pendingWrite as? CancellablePromise<*>)?.cancel()
+                dialogWrapper.dialogWrapper.close(DialogWrapper.CANCEL_EXIT_CODE)
+            }
 
             dialogWrapper.setOkOperation {
                 errorLabel?.isVisible = false
                 val newText = new.document.text
                 if (prev.document.text != newText) {
-                    onApply.invoke(newText).onError {
+                    // The write can take minutes against a slow registry; keep the dialog from being submitted twice.
+                    setBusy(true)
+                    val write = onApply.invoke(newText)
+                    pendingWrite = write
+                    write.onError {
+                        setBusy(false)
+                        if (it is CancellationException) return@onError
                         errorLabel?.apply {
                             isOpaque = true
                             foreground = UIUtil.getLabelForeground()
