@@ -14,11 +14,11 @@ import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.NlsContexts
 import com.intellij.ui.LightColors
-import com.intellij.util.ui.AsyncProcessIcon
 import com.intellij.ui.ScreenUtil
 import com.intellij.ui.dsl.builder.Align
 import com.intellij.ui.dsl.builder.Row
 import com.intellij.ui.dsl.builder.panel
+import com.intellij.util.ui.AsyncProcessIcon
 import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.UIUtil
 import io.confluent.intellijplugin.core.util.invokeAndWaitSwing
@@ -120,6 +120,7 @@ object KafkaSchemaInfoDialog {
         val requests = SimpleDiffRequestChain(diffData)
         val processor = CacheDiffRequestChainProcessor(project, requests)
 
+        val busyIcon = AsyncProcessIcon("schema-update")
         var errorLabel: JEditorPane? = null
         var busyRow: Row? = null
         var pendingWrite: Promise<Unit>? = null
@@ -132,13 +133,14 @@ object KafkaSchemaInfoDialog {
                 }
             }
             busyRow = row {
-                cell(AsyncProcessIcon("schema-update"))
+                cell(busyIcon)
                 label(KafkaMessagesBundle.message("diff.dialog.updating"))
             }.visible(false)
         }
 
         val dialogWrapper = DialogBuilder(project)
         Disposer.register(dialogWrapper, processor)
+        Disposer.register(dialogWrapper, busyIcon)
         dialogWrapper.setTitle(title)
 
         dialogWrapper.setCenterPanel(panel)
@@ -164,7 +166,12 @@ object KafkaSchemaInfoDialog {
                 if (prev.document.text != newText) {
                     // The write can take minutes against a slow registry; keep the dialog from being submitted twice.
                     setBusy(true)
-                    val write = onApply.invoke(newText)
+                    val write = try {
+                        onApply.invoke(newText)
+                    } catch (t: Throwable) {
+                        setBusy(false)
+                        throw t
+                    }
                     pendingWrite = write
                     write.onError {
                         setBusy(false)

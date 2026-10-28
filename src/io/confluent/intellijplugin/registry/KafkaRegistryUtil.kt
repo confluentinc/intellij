@@ -23,6 +23,7 @@ import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.TimeoutCancellationException
 import org.jetbrains.concurrency.AsyncPromise
 import org.jetbrains.concurrency.Promise
+import java.util.concurrent.CancellationException
 import java.util.logging.Level
 import java.util.logging.Logger
 import kotlin.time.Duration
@@ -36,15 +37,26 @@ object KafkaRegistryUtil {
     /**
      * Exposes a schema write as a [Promise]. A timeout is reported as [SchemaWriteTimeoutException], because the
      * request may already have reached the registry when the caller stopped waiting.
+     *
+     * @param timeout the limit the write was started with, reported in the timeout message.
+     * @param onAbandoned runs when the caller stopped waiting (cancel or timeout), so the registry state can be re-read.
      */
-    fun Deferred<Unit>.asSchemaWritePromise(): Promise<Unit> {
+    fun Deferred<Unit>.asSchemaWritePromise(timeout: Duration, onAbandoned: () -> Unit = {}): Promise<Unit> {
         val promise = AsyncPromise<Unit>().asSilent()
-        // Cancelling the promise (e.g. the user closing the dialog) aborts the underlying write.
-        promise.onError { cancel() }
+        promise.onError {
+            when (it) {
+                // Cancelling the promise (e.g. the user closing the dialog) aborts the underlying write.
+                is CancellationException -> {
+                    cancel()
+                    onAbandoned()
+                }
+                is SchemaWriteTimeoutException -> onAbandoned()
+            }
+        }
         invokeOnCompletion { cause ->
             when (cause) {
                 null -> promise.setResult(Unit)
-                is TimeoutCancellationException -> promise.setError(SchemaWriteTimeoutException(CALL_TIMEOUT, cause))
+                is TimeoutCancellationException -> promise.setError(SchemaWriteTimeoutException(timeout, cause))
                 else -> promise.setError(cause)
             }
         }

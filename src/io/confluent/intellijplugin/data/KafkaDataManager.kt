@@ -250,18 +250,20 @@ class KafkaDataManager(
         }
     }
 
-    override fun updateSchema(versionInfo: SchemaVersionInfo, newSchema: String) = SafeExecutor.instance.asyncSuspend(
-        taskName = null,
-        timeout = KafkaRegistryUtil.CALL_TIMEOUT
-    ) {
-        runInterruptible(Dispatchers.IO) {
-            client.confluentRegistryClient?.updateSchema(versionInfo, newSchema)
-                ?: client.glueRegistryClient?.updateSchema(versionInfo, newSchema)
-                ?: error(KafkaMessagesBundle.message("error.schema.registry.not.configured"))
-            schemaRegistryModel?.let { updater.invokeRefreshModel(it) }
+    override fun updateSchema(versionInfo: SchemaVersionInfo, newSchema: String): Promise<Unit> {
+        val timeout = KafkaRegistryUtil.CALL_TIMEOUT
+        return SafeExecutor.instance.asyncSuspend(taskName = null, timeout = timeout) {
+            runInterruptible(Dispatchers.IO) {
+                client.confluentRegistryClient?.updateSchema(versionInfo, newSchema)
+                    ?: client.glueRegistryClient?.updateSchema(versionInfo, newSchema)
+                    ?: error(KafkaMessagesBundle.message("error.schema.registry.not.configured"))
+                schemaRegistryModel?.let { updater.invokeRefreshModel(it) }
+            }
+            updater.invokeRefreshModel(schemaVersionModels[versionInfo.schemaName])
+        }.deferred.asSchemaWritePromise(timeout) {
+            updater.invokeRefreshModel(schemaVersionModels[versionInfo.schemaName])
         }
-        updater.invokeRefreshModel(schemaVersionModels[versionInfo.schemaName])
-    }.deferred.asSchemaWritePromise()
+    }
 
     fun deleteSchema(schemaName: String) {
         driver.coroutineScope.launch {

@@ -593,11 +593,9 @@ class CCloudClusterDataManager(
 
     // Schema write operations
 
-    override fun updateSchema(versionInfo: SchemaVersionInfo, newSchema: String): Promise<Unit> =
-        SafeExecutor.instance.asyncSuspend(
-            taskName = null,
-            timeout = KafkaRegistryUtil.CALL_TIMEOUT
-        ) {
+    override fun updateSchema(versionInfo: SchemaVersionInfo, newSchema: String): Promise<Unit> {
+        val timeout = KafkaRegistryUtil.CALL_TIMEOUT
+        return SafeExecutor.instance.asyncSuspend(taskName = null, timeout = timeout) {
             if (!dataPlaneCache.hasSchemaRegistry()) {
                 error(KafkaMessagesBundle.message("error.schema.registry.not.configured.for.cluster"))
             }
@@ -630,7 +628,12 @@ class CCloudClusterDataManager(
             updateSingleSchemaInList(versionInfo.schemaName)
             updater.invokeRefreshModel(schemaVersionModels[versionInfo.schemaName])
             Unit
-        }.deferred.asSchemaWritePromise()
+        }.deferred.asSchemaWritePromise(timeout) {
+            // The write may have landed after we stopped waiting; drop the cached versions and re-read.
+            invalidateSchemaVersionCache(versionInfo.schemaName)
+            updater.invokeRefreshModel(schemaVersionModels[versionInfo.schemaName])
+        }
+    }
 
     override fun deleteRegistrySchemaVersion(versionInfo: SchemaVersionInfo) {
         driver.coroutineScope.launch {
