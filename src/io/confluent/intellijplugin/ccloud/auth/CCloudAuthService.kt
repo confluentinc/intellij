@@ -97,10 +97,11 @@ class CCloudAuthService(private val scope: CoroutineScope) : Disposable {
     @Synchronized
     fun signIn(invokedPlace: InvokedPlace? = null) {
         // First attempt wins: replacing the server would invalidate the state of the tab already opened by
-        // an earlier click (e.g. a double-click), so reopen that attempt's URL and let either tab complete it.
-        activeSignInContext?.takeIf { activeCallbackServer != null }?.let {
-            logger.info("Sign-in already in progress, reopening the browser")
-            openBrowser(it.getSignInUri())
+        // an earlier click (e.g. a double-click). Don't open another tab either: each visit to the sign-in URL
+        // starts a new login transaction that invalidates the older tabs ("Invalid state" on the login page).
+        if (activeCallbackServer != null && activeSignInContext != null) {
+            logger.info("Sign-in already in progress")
+            showSignInInProgressNotification()
             return
         }
 
@@ -281,6 +282,30 @@ class CCloudAuthService(private val scope: CoroutineScope) : Disposable {
             error,
             NotificationType.ERROR
         ))
+    }
+
+    internal fun showSignInInProgressNotification() {
+        val notification = Notification(
+            "Kafka Notification",
+            KafkaMessagesBundle.message("confluent.cloud.notification.sign.in.in.progress"),
+            KafkaMessagesBundle.message("confluent.cloud.notification.sign.in.in.progress.text"),
+            NotificationType.INFORMATION
+        )
+        notification.addAction(
+            NotificationAction.create(
+                KafkaMessagesBundle.message("confluent.cloud.notification.sign.in.in.progress.action")
+            ) { _, n ->
+                n.expire()
+                reopenSignInBrowser()
+            }
+        )
+        Notifications.Bus.notify(notification)
+    }
+
+    /** Open the in-flight sign-in URL again, for a user who lost the original tab. */
+    @Synchronized
+    internal fun reopenSignInBrowser() {
+        activeSignInContext?.let { openBrowser(it.getSignInUri()) }
     }
 
     internal fun showSignOutNotification() {

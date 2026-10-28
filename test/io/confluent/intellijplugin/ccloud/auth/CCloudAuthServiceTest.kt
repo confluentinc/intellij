@@ -546,6 +546,7 @@ class CCloudAuthServiceTest {
             spyService = spy(CCloudAuthService(CoroutineScope(SupervisorJob())))
             doNothing().whenever(spyService).openBrowser(any())
             doNothing().whenever(spyService).showSignInFailureNotification(any())
+            doNothing().whenever(spyService).showSignInInProgressNotification()
         }
 
         @AfterEach
@@ -564,17 +565,30 @@ class CCloudAuthServiceTest {
         }
 
         @Test
-        fun `should reuse the in-flight attempt and reopen the same sign-in URL on a repeated sign-in`() {
+        fun `should reuse the in-flight attempt without opening another browser tab on a repeated sign-in`() {
             val firstServer = mock<CCloudOAuthCallbackServer>()
             stubServers(firstServer, mock())
 
             spyService.signIn()
             spyService.signIn()
+            spyService.signIn()
 
-            // Replacing the server would invalidate the state of the tab opened by the first click.
+            // Replacing the server would invalidate the state of the first tab, and a second tab would
+            // invalidate the first one's login transaction on the identity provider.
             verify(spyService, times(1)).createCallbackServer(any(), any(), any())
             verify(firstServer, never()).stop()
             assertEquals(firstServer, spyService.activeCallbackServer)
+            verify(spyService, times(1)).openBrowser(any())
+            verify(spyService, times(2)).showSignInInProgressNotification()
+        }
+
+        @Test
+        fun `should reopen the original sign-in URL when asked to`() {
+            stubServers(mock())
+
+            spyService.signIn()
+            spyService.reopenSignInBrowser()
+
             val urls = argumentCaptor<String>()
             verify(spyService, times(2)).openBrowser(urls.capture())
             assertEquals(urls.firstValue, urls.secondValue)
