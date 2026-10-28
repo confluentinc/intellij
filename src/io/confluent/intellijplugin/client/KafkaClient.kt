@@ -85,6 +85,7 @@ class KafkaClient(
 
         withPluginClassLoader {
             setSystemPropertiesForAwsIam()
+            OAuthBearerAllowlist.allowUrls(kafkaProps)
             try {
                 kafkaAdmin = KafkaClientBuilder.createAdminClient(kafkaProps)
                 kafkaAdmin?.let { Disposer.register(this, it) }

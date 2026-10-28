@@ -5,6 +5,7 @@ import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.NlsSafe
+import io.confluent.intellijplugin.client.OAuthBearerAllowlist
 import io.confluent.intellijplugin.core.connection.exception.BdtConfigurationException
 import io.confluent.intellijplugin.core.connection.tunnel.BdtSshTunnelService
 import io.confluent.intellijplugin.core.rfs.driver.runBlockingInterruptible
@@ -158,6 +159,7 @@ class ConfluentRegistryClient(restService: RestService, props: Map<String, Strin
 
             val restService = RestService(tunneledUrl)
 
+            OAuthBearerAllowlist.allowUrls(props)
             restService.configure(props)
             val registryClient = ConfluentRegistryClient(restService, props)
             if (tunnel != null) {
