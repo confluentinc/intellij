@@ -74,12 +74,16 @@ class CCloudAuthService(private val scope: CoroutineScope) : Disposable {
     /** OAuth context of the in-flight sign-in, so a repeated request can reopen the same sign-in URL. */
     private var activeSignInContext: CCloudOAuthContext? = null
 
+    /** Where the in-flight sign-in was triggered from, for the timeout's telemetry. */
+    private var activeInvokedPlace: InvokedPlace? = null
+
     /** The visible "sign-in already in progress" notification, so repeat clicks don't stack copies of it. */
     private var inProgressNotification: Notification? = null
 
     /** Fires if the in-flight sign-in isn't completed in the browser within [signInTimeout]. */
     @Volatile
-    private var signInTimeoutJob: Job? = null
+    internal var signInTimeoutJob: Job? = null
+        private set
 
     /** Max time to wait for the user to finish signing in via the browser. */
     internal var signInTimeout: Duration = SIGN_IN_TIMEOUT
@@ -115,6 +119,8 @@ class CCloudAuthService(private val scope: CoroutineScope) : Disposable {
         // starts a new login transaction that invalidates the older tabs ("Invalid state" on the login page).
         if (activeCallbackServer != null && activeSignInContext != null) {
             logger.info("Sign-in already in progress")
+            // The user is clearly still trying, so give them a fresh window to finish in the browser.
+            restartSignInTimeout()
             showSignInInProgressNotification()
             return
         }
@@ -175,22 +181,28 @@ class CCloudAuthService(private val scope: CoroutineScope) : Disposable {
         }
         activeCallbackServer = server
         activeSignInContext = oauthContext
+        activeInvokedPlace = invokedPlace
+        restartSignInTimeout()
+        openBrowser(oauthContext.getSignInUri())
+    }
 
+    /** (Re)start the timer for the in-flight attempt; a no-op when there isn't one. */
+    @Synchronized
+    private fun restartSignInTimeout() {
+        val server = activeCallbackServer ?: return
+        val invokedPlace = activeInvokedPlace
+        cancelSignInTimeout()
         signInTimeoutJob = scope.launch {
             delay(signInTimeout)
             onSignInTimeout(server, invokedPlace)
         }
-        openBrowser(oauthContext.getSignInUri())
     }
 
     /** The user abandoned the browser flow: release the callback port and tell them. */
-    private fun onSignInTimeout(server: CCloudOAuthCallbackServer, invokedPlace: InvokedPlace?) {
-        // Claim and stop under the same lock as signIn(), so a retry can't slip in between and find the
-        // expired listener still holding the callback port.
-        synchronized(this) {
-            if (!finishIfActive(server)) return
-            server.stop()
-        }
+    internal fun onSignInTimeout(server: CCloudOAuthCallbackServer, invokedPlace: InvokedPlace?) {
+        // Claiming the attempt also stops the server, under the same lock as signIn(), so a retry can't slip
+        // in between and find the expired listener still holding the callback port.
+        if (!finishIfActive(server, fromTimeout = true)) return
         // Expected and user-recoverable, so warn rather than error to keep it out of Sentry.
         logger.warn("Sign-in timed out after $signInTimeout; callback server stopped")
         reportSignInFailure(
@@ -214,6 +226,7 @@ class CCloudAuthService(private val scope: CoroutineScope) : Disposable {
         activeCallbackServer?.stop()
         activeCallbackServer = null
         activeSignInContext = null
+        activeInvokedPlace = null
         expireInProgressNotification()
     }
 
@@ -226,17 +239,21 @@ class CCloudAuthService(private val scope: CoroutineScope) : Disposable {
      * Stop tracking [server] and release its port if it is still the active attempt. Returns false for a server that was stopped
      * (e.g. on dispose), whose late result must be ignored so it can't sign in (leaking a refresh loop) or
      * report a stale failure.
+     *
+     * @param fromTimeout true when called by the timeout job itself: it only drops its reference, since
+     * cancelling the job that is running this code would make any later suspension throw.
      */
     @Synchronized
-    private fun finishIfActive(server: CCloudOAuthCallbackServer): Boolean {
+    private fun finishIfActive(server: CCloudOAuthCallbackServer, fromTimeout: Boolean = false): Boolean {
         if (activeCallbackServer !== server) {
             logger.info("Ignoring result from inactive sign-in attempt")
             return false
         }
         activeCallbackServer = null
         activeSignInContext = null
+        activeInvokedPlace = null
         expireInProgressNotification()
-        cancelSignInTimeout()
+        if (fromTimeout) signInTimeoutJob = null else cancelSignInTimeout()
         // Release the port in the same step that stops tracking the attempt. Otherwise a sign-in started
         // while the result is still being handled (e.g. while the session is saved) finds no active attempt
         // but the old server still bound, and fails with "port in use".
@@ -363,10 +380,13 @@ class CCloudAuthService(private val scope: CoroutineScope) : Disposable {
     /**
      * Open the in-flight sign-in URL again, for a user who lost the original tab. If that attempt has since
      * ended there is nothing to reopen: do nothing if it completed (already signed in), otherwise start a
-     * fresh one (it failed or timed out).
+     * fresh one (it failed or timed out). Reopening restarts the timeout, since the user is still signing in.
      */
     internal fun reopenSignInBrowser() {
-        val inFlight = synchronized(this) { activeSignInContext }
+        val inFlight = synchronized(this) {
+            restartSignInTimeout()
+            activeSignInContext
+        }
         when {
             inFlight != null -> openBrowser(inFlight.getSignInUri())
             !isSignedIn() -> signIn()
