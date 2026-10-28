@@ -157,15 +157,17 @@ class CCloudOAuthCallbackServer(
      */
     internal suspend fun processCallback(code: String?, state: String?, error: String?): CallbackResult {
         return when {
-            error != null -> {
-                logger.warn("OAuth callback error: $error")
-                CallbackResult(400, errorHtml(error), errorMessage = error)
-            }
-
+            // Checked before `error`: error responses carry `state` too, and a stale tab's cancel/deny redirect
+            // must not fail the current attempt.
             state != oauthContext.oauthState -> {
                 val message = "Invalid state parameter"
                 logger.warn("OAuth state mismatch")
                 CallbackResult(400, errorHtml(message), errorMessage = message, endsFlow = false)
+            }
+
+            error != null -> {
+                logger.warn("OAuth callback error: $error")
+                CallbackResult(400, errorHtml(error), errorMessage = error)
             }
 
             code == null -> {

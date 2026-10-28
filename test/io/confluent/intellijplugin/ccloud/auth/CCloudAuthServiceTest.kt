@@ -656,6 +656,34 @@ class CCloudAuthServiceTest {
         }
 
         @Test
+        fun `should start a fresh attempt when asked to reopen after the attempt has ended`() {
+            val secondServer = mock<CCloudOAuthCallbackServer>()
+            stubServers(mock(), secondServer)
+
+            spyService.signIn()
+            LoggedErrorProcessor.executeAndReturnLoggedError { errorCallbacks.first()("denied") }
+            SwingUtilities.invokeAndWait {}
+            spyService.reopenSignInBrowser()
+
+            assertEquals(secondServer, spyService.activeCallbackServer)
+            verify(secondServer).start()
+            verify(spyService, times(2)).openBrowser(any())
+        }
+
+        @Test
+        fun `should do nothing when asked to reopen after sign-in has completed`() {
+            stubServers(mock())
+            doNothing().whenever(spyService).notifySignedIn(any())
+
+            spyService.signIn()
+            successCallbacks.first()(createMockAuthenticatedContext())
+            spyService.reopenSignInBrowser()
+
+            verify(spyService, times(1)).createCallbackServer(any(), any(), any())
+            verify(spyService, times(1)).openBrowser(any())
+        }
+
+        @Test
         fun `should start a new attempt once the previous one has finished`() {
             val secondServer = mock<CCloudOAuthCallbackServer>()
             stubServers(mock(), secondServer)

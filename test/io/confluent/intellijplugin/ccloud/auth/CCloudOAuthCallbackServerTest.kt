@@ -89,12 +89,21 @@ class CCloudOAuthCallbackServerTest {
 
         @Test
         fun `error parameter returns 400 with error message`() = runBlocking {
-            val result = server.processCallback(code = null, state = null, error = "access_denied")
+            val result = server.processCallback(code = null, state = context.oauthState, error = "access_denied")
 
             assertEquals(400, result.statusCode)
             assertEquals("access_denied", result.errorMessage)
             assertNull(result.successContext)
             assertTrue(result.html.contains("access_denied"))
+        }
+
+        @Test
+        fun `error with a wrong state is ignored rather than ending the flow`() = runBlocking {
+            val result = server.processCallback(code = null, state = "stale-state", error = "access_denied")
+
+            assertEquals(400, result.statusCode)
+            assertEquals("Invalid state parameter", result.errorMessage)
+            assertFalse(result.endsFlow, "a stale tab's access_denied must not fail the current attempt")
         }
 
         @Test
@@ -371,15 +380,16 @@ class CCloudOAuthCallbackServerTest {
         fun `onError callback is invoked when error parameter is present`() {
             var capturedError: String? = null
             val latch = CountDownLatch(1)
+            val errorContext = CCloudOAuthContext()
             val errorServer = CCloudOAuthCallbackServer(
-                oauthContext = CCloudOAuthContext(),
+                oauthContext = errorContext,
                 onSuccess = {},
                 onError = { msg -> capturedError = msg; latch.countDown() }
             )
             errorServer.start()
 
             try {
-                httpGet("error=access_denied")
+                httpGet("error=access_denied&state=${errorContext.oauthState}")
                 assertTrue(latch.await(5, TimeUnit.SECONDS), "onError callback should be invoked")
                 assertEquals("access_denied", capturedError)
             } finally {
@@ -465,17 +475,39 @@ class CCloudOAuthCallbackServerTest {
         }
 
         @Test
+        fun `stale error redirect does not fail the active attempt`() {
+            val errors = mutableListOf<String>()
+            val activeContext = CCloudOAuthContext()
+            val activeServer = CCloudOAuthCallbackServer(
+                oauthContext = activeContext,
+                onSuccess = {},
+                onError = { errors.add(it) }
+            )
+            activeServer.start()
+
+            try {
+                assertEquals(400, httpGet("error=access_denied&state=stale-state").first)
+                Thread.sleep(300)
+                assertTrue(errors.isEmpty(), "a stale error must not report a sign-in failure")
+                assertEquals(400, httpGet("error=test&state=stale-state").first, "server should still be listening")
+            } finally {
+                activeServer.stop()
+            }
+        }
+
+        @Test
         fun `server stops after handling a callback`() {
             val latch = CountDownLatch(1)
+            val callbackContext = CCloudOAuthContext()
             val callbackServer = CCloudOAuthCallbackServer(
-                oauthContext = CCloudOAuthContext(),
+                oauthContext = callbackContext,
                 onSuccess = {},
                 onError = { latch.countDown() }
             )
             callbackServer.start()
 
             try {
-                httpGet("error=test")
+                httpGet("error=test&state=${callbackContext.oauthState}")
                 assertTrue(latch.await(5, TimeUnit.SECONDS), "callback should complete")
 
                 // Poll until the server stops accepting connections

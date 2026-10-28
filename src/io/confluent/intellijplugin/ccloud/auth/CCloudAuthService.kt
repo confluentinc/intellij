@@ -302,10 +302,17 @@ class CCloudAuthService(private val scope: CoroutineScope) : Disposable {
         Notifications.Bus.notify(notification)
     }
 
-    /** Open the in-flight sign-in URL again, for a user who lost the original tab. */
-    @Synchronized
+    /**
+     * Open the in-flight sign-in URL again, for a user who lost the original tab. If that attempt has since
+     * ended there is nothing to reopen: do nothing if it completed (already signed in), otherwise start a
+     * fresh one (it failed or timed out).
+     */
     internal fun reopenSignInBrowser() {
-        activeSignInContext?.let { openBrowser(it.getSignInUri()) }
+        val inFlight = synchronized(this) { activeSignInContext }
+        when {
+            inFlight != null -> openBrowser(inFlight.getSignInUri())
+            !isSignedIn() -> signIn()
+        }
     }
 
     internal fun showSignOutNotification() {
