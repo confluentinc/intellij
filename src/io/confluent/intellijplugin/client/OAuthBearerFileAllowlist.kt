@@ -65,7 +65,7 @@ object OAuthBearerFileAllowlist {
 
     /**
      * Allows the files named in [properties] once the user has approved them.
-     * @throws BdtConfigurationException if the user declines.
+     * @throws BdtConfigurationException if the user declines, or a configured path is not an absolute, normalized path.
      */
     fun allowFiles(
         properties: Map<*, *>,
@@ -73,8 +73,13 @@ object OAuthBearerFileAllowlist {
         approvals: OAuthBearerFileApprovals = OAuthBearerFileApprovals.getInstance(),
         approver: Approver = dialogApprover,
     ) {
-        val files = FILE_KEYS.mapNotNull { (properties[it] as? String)?.trim() }
-            .filter(::isAllowable).distinct()
+        val configured = FILE_KEYS.mapNotNull { (properties[it] as? String)?.trim()?.ifEmpty { null } }.distinct()
+        val (files, invalid) = configured.partition(::isAllowable)
+        // Kafka would reject these anyway, with a message that does not say why, so explain it here.
+        // A path the user already allowed with -D is left for Kafka to judge.
+        invalid.filter { it !in currentlyAllowed() }.takeIf { it.isNotEmpty() }?.let {
+            throw BdtConfigurationException(KafkaMessagesBundle.message("oauth.files.invalid.path", it.joinToString(", ")))
+        }
         if (files.isEmpty()) return
 
         val endpoint = (properties[SaslConfigs.SASL_OAUTHBEARER_TOKEN_ENDPOINT_URL] as? String)?.trim()
