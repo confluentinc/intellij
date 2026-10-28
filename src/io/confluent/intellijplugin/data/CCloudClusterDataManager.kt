@@ -31,7 +31,6 @@ import io.confluent.intellijplugin.core.monitoring.data.storage.RootDataModelSto
 import io.confluent.intellijplugin.core.rfs.driver.RfsPath
 import io.confluent.intellijplugin.core.rfs.driver.SafeExecutor
 import io.confluent.intellijplugin.core.rfs.util.RfsNotificationUtils
-import io.confluent.intellijplugin.core.util.asSilent
 import io.confluent.intellijplugin.core.util.runAsyncSuspend
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
 import io.confluent.intellijplugin.model.BdtTopicPartition
@@ -42,23 +41,21 @@ import io.confluent.intellijplugin.model.TopicPresentable
 import io.confluent.intellijplugin.registry.KafkaRegistryFormat
 import io.confluent.intellijplugin.registry.KafkaRegistryType
 import io.confluent.intellijplugin.registry.KafkaRegistryUtil
+import io.confluent.intellijplugin.registry.KafkaRegistryUtil.asSchemaWritePromise
 import io.confluent.intellijplugin.registry.SchemaVersionInfo
 import io.confluent.kafka.schemaregistry.ParsedSchema
 import io.confluent.kafka.schemaregistry.client.rest.entities.SchemaReference
 import io.confluent.intellijplugin.registry.common.KafkaSchemaInfo
 import io.confluent.intellijplugin.rfs.ConfluentConnectionData
 import io.confluent.intellijplugin.toolwindow.config.KafkaToolWindowSettings
-import kotlin.time.Duration
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.future.asCompletableFuture
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.TopicPartition
 import org.jetbrains.concurrency.Promise
-import org.jetbrains.concurrency.asPromise
 import java.util.concurrent.ConcurrentHashMap
 
 /**
@@ -596,11 +593,9 @@ class CCloudClusterDataManager(
 
     // Schema write operations
 
-    override fun updateSchema(versionInfo: SchemaVersionInfo, newSchema: String): Promise<Unit> =
-        SafeExecutor.instance.asyncSuspend(
-            taskName = null,
-            timeout = Duration.INFINITE
-        ) {
+    override fun updateSchema(versionInfo: SchemaVersionInfo, newSchema: String): Promise<Unit> {
+        val timeout = KafkaRegistryUtil.CALL_TIMEOUT
+        return SafeExecutor.instance.asyncSuspend(taskName = null, timeout = timeout) {
             if (!dataPlaneCache.hasSchemaRegistry()) {
                 error(KafkaMessagesBundle.message("error.schema.registry.not.configured.for.cluster"))
             }
@@ -633,7 +628,12 @@ class CCloudClusterDataManager(
             updateSingleSchemaInList(versionInfo.schemaName)
             updater.invokeRefreshModel(schemaVersionModels[versionInfo.schemaName])
             Unit
-        }.deferred.asCompletableFuture().asPromise().asSilent()
+        }.deferred.asSchemaWritePromise(timeout) {
+            // The write may have landed after we stopped waiting; drop the cached versions and re-read.
+            invalidateSchemaVersionCache(versionInfo.schemaName)
+            updater.invokeRefreshModel(schemaVersionModels[versionInfo.schemaName])
+        }
+    }
 
     override fun deleteRegistrySchemaVersion(versionInfo: SchemaVersionInfo) {
         driver.coroutineScope.launch {

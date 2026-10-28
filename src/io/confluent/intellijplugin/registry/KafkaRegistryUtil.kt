@@ -7,6 +7,8 @@ import com.intellij.openapi.fileTypes.PlainTextLanguage
 import com.intellij.openapi.util.NlsSafe
 import com.intellij.util.concurrency.annotations.RequiresBackgroundThread
 import io.confluent.intellijplugin.common.models.KafkaFieldType
+import io.confluent.intellijplugin.core.util.BdIdeRegistryUtil
+import io.confluent.intellijplugin.core.util.asSilent
 import io.confluent.intellijplugin.data.BaseClusterDataManager
 import io.confluent.intellijplugin.registry.confluent.ConfluentRegistryClient
 import io.confluent.intellijplugin.registry.serde.BdtAvroSchemaProvider
@@ -17,10 +19,50 @@ import io.confluent.kafka.schemaregistry.ParsedSchema
 import io.confluent.kafka.schemaregistry.client.rest.entities.Schema
 import io.confluent.kafka.schemaregistry.client.rest.entities.SchemaReference
 import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchema
+import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.TimeoutCancellationException
+import org.jetbrains.concurrency.AsyncPromise
+import org.jetbrains.concurrency.Promise
+import java.util.concurrent.CancellationException
 import java.util.logging.Level
 import java.util.logging.Logger
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
 
 object KafkaRegistryUtil {
+    /** Upper bound for a Schema Registry call awaited by the caller (client timeouts alone can add up across retries). */
+    val CALL_TIMEOUT: Duration
+        get() = BdIdeRegistryUtil.SCHEMA_REGISTRY_CALL_TIMEOUT_MS.milliseconds
+
+    /**
+     * Exposes a schema write as a [Promise]. A timeout is reported as [SchemaWriteTimeoutException], because the
+     * request may already have reached the registry when the caller stopped waiting.
+     *
+     * @param timeout the limit the write was started with, reported in the timeout message.
+     * @param onAbandoned runs when the caller stopped waiting (cancel or timeout), so the registry state can be re-read.
+     */
+    fun Deferred<Unit>.asSchemaWritePromise(timeout: Duration, onAbandoned: () -> Unit = {}): Promise<Unit> {
+        val promise = AsyncPromise<Unit>().asSilent()
+        promise.onError {
+            when (it) {
+                // Cancelling the promise (e.g. the user closing the dialog) aborts the underlying write.
+                is CancellationException -> {
+                    cancel()
+                    onAbandoned()
+                }
+                is SchemaWriteTimeoutException -> onAbandoned()
+            }
+        }
+        invokeOnCompletion { cause ->
+            when (cause) {
+                null -> promise.setResult(Unit)
+                is TimeoutCancellationException -> promise.setError(SchemaWriteTimeoutException(timeout, cause))
+                else -> promise.setError(cause)
+            }
+        }
+        return promise
+    }
+
     fun getRegistrySchemaProviders(): List<AbstractSchemaProvider> =
         listOf(BdtAvroSchemaProvider(), BdtProtobufSchemaProvider(), BdtJsonSchemaProvider())
 

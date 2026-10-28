@@ -19,12 +19,12 @@ import io.confluent.intellijplugin.core.rfs.driver.RfsPath
 import io.confluent.intellijplugin.core.rfs.driver.SafeExecutor
 import io.confluent.intellijplugin.core.rfs.driver.manager.DriverManager
 import io.confluent.intellijplugin.core.rfs.util.RfsNotificationUtils
-import io.confluent.intellijplugin.core.util.asSilent
 import io.confluent.intellijplugin.core.util.runAsync
 import io.confluent.intellijplugin.core.util.runAsyncSuspend
 import io.confluent.intellijplugin.model.*
 import io.confluent.intellijplugin.registry.KafkaRegistryFormat
 import io.confluent.intellijplugin.registry.KafkaRegistryUtil
+import io.confluent.intellijplugin.registry.KafkaRegistryUtil.asSchemaWritePromise
 import io.confluent.intellijplugin.registry.SchemaVersionInfo
 import io.confluent.intellijplugin.registry.common.KafkaSchemaInfo
 import io.confluent.intellijplugin.rfs.KafkaConnectionData
@@ -34,18 +34,15 @@ import io.confluent.intellijplugin.util.KafkaMessagesBundle
 import io.confluent.kafka.schemaregistry.ParsedSchema
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.future.asCompletableFuture
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runInterruptible
 import kotlinx.coroutines.withContext
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.TopicPartition
 import org.jetbrains.concurrency.Promise
-import org.jetbrains.concurrency.asPromise
 import org.jetbrains.concurrency.await
 import software.amazon.awssdk.services.glue.model.Compatibility
 import java.util.concurrent.ConcurrentSkipListMap
-import kotlin.time.Duration
 
 /**
  * Data manager for Kafka connections using AdminClient protocol.
@@ -253,18 +250,20 @@ class KafkaDataManager(
         }
     }
 
-    override fun updateSchema(versionInfo: SchemaVersionInfo, newSchema: String) = SafeExecutor.instance.asyncSuspend(
-        taskName = null,
-        timeout = Duration.INFINITE
-    ) {
-        runInterruptible(Dispatchers.IO) {
-            client.confluentRegistryClient?.updateSchema(versionInfo, newSchema)
-                ?: client.glueRegistryClient?.updateSchema(versionInfo, newSchema)
-                ?: error(KafkaMessagesBundle.message("error.schema.registry.not.configured"))
-            schemaRegistryModel?.let { updater.invokeRefreshModel(it) }
+    override fun updateSchema(versionInfo: SchemaVersionInfo, newSchema: String): Promise<Unit> {
+        val timeout = KafkaRegistryUtil.CALL_TIMEOUT
+        return SafeExecutor.instance.asyncSuspend(taskName = null, timeout = timeout) {
+            runInterruptible(Dispatchers.IO) {
+                client.confluentRegistryClient?.updateSchema(versionInfo, newSchema)
+                    ?: client.glueRegistryClient?.updateSchema(versionInfo, newSchema)
+                    ?: error(KafkaMessagesBundle.message("error.schema.registry.not.configured"))
+                schemaRegistryModel?.let { updater.invokeRefreshModel(it) }
+            }
+            updater.invokeRefreshModel(schemaVersionModels[versionInfo.schemaName])
+        }.deferred.asSchemaWritePromise(timeout) {
+            updater.invokeRefreshModel(schemaVersionModels[versionInfo.schemaName])
         }
-        updater.invokeRefreshModel(schemaVersionModels[versionInfo.schemaName])
-    }.deferred.asCompletableFuture().asPromise().asSilent()
+    }
 
     fun deleteSchema(schemaName: String) {
         driver.coroutineScope.launch {
