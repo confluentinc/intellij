@@ -1,12 +1,14 @@
 package io.confluent.intellijplugin.ccloud.auth
 
 import com.intellij.openapi.diagnostic.thisLogger
+import com.intellij.util.concurrency.AppExecutorUtil
 import com.sun.net.httpserver.HttpExchange
 import com.sun.net.httpserver.HttpServer
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import java.net.BindException
 import java.net.InetAddress
 import java.net.InetSocketAddress
 import java.net.URLDecoder
@@ -26,7 +28,13 @@ class CCloudOAuthCallbackServer(
     private val onSuccess: (CCloudOAuthContext) -> Unit,
     private val onError: (String) -> Unit
 ) {
+    // Written by start()/stop() from different threads (EDT on re-sign-in/dispose, IO after a callback).
+    @Volatile
     private var server: HttpServer? = null
+
+    // Run handlers off the server's dispatcher thread: HttpServer.stop() joins the dispatcher, so a handler
+    // blocked in the token exchange would otherwise make stop() (and a re-sign-in on the EDT) wait on the network.
+    private val handlerExecutor = AppExecutorUtil.createBoundedApplicationPoolExecutor("CCloud OAuth Callback", 1)
 
     companion object {
         private val logger = thisLogger()
@@ -75,6 +83,10 @@ class CCloudOAuthCallbackServer(
     /**
      * Start the callback server on the configured port.
      * Server will automatically stop after handling one callback.
+     *
+     * Startup failures are thrown to the caller, not reported via `onError`.
+     *
+     * @throws BindException if the callback port is already in use
      */
     fun start() {
         if (server != null) {
@@ -82,21 +94,17 @@ class CCloudOAuthCallbackServer(
             return
         }
 
-        try {
-            server = HttpServer.create(
-                InetSocketAddress(InetAddress.getLoopbackAddress(), CCloudOAuthConfig.CALLBACK_PORT),
-                0
-            ).apply {
-                createContext(CCloudOAuthConfig.CALLBACK_PATH) { exchange ->
-                    handleCallback(exchange)
-                }
-                start()
+        server = HttpServer.create(
+            InetSocketAddress(InetAddress.getLoopbackAddress(), CCloudOAuthConfig.CALLBACK_PORT),
+            0
+        ).apply {
+            createContext(CCloudOAuthConfig.CALLBACK_PATH) { exchange ->
+                handleCallback(exchange)
             }
-            logger.info("OAuth callback server started on port ${CCloudOAuthConfig.CALLBACK_PORT}")
-        } catch (e: Exception) {
-            logger.error("Failed to start OAuth callback server", e)
-            onError("Failed to start callback server: ${e.message}")
+            executor = handlerExecutor
+            start()
         }
+        logger.info("OAuth callback server started on port ${CCloudOAuthConfig.CALLBACK_PORT}")
     }
 
     /**
@@ -110,12 +118,16 @@ class CCloudOAuthCallbackServer(
 
     /**
      * Result of processing an OAuth callback. On success, the success context is passed to continue token exchange. On error, the OAuth error message is displayed to the user.
+     *
+     * @param endsFlow false for a request that doesn't belong to this sign-in (wrong state): the error page is
+     * shown but the flow isn't failed and the server keeps listening for the expected callback.
      */
     internal data class CallbackResult(
         val statusCode: Int,
         val html: String,
         val successContext: CCloudOAuthContext? = null,
-        val errorMessage: String? = null
+        val errorMessage: String? = null,
+        val endsFlow: Boolean = true
     )
 
     /**
@@ -145,15 +157,17 @@ class CCloudOAuthCallbackServer(
      */
     internal suspend fun processCallback(code: String?, state: String?, error: String?): CallbackResult {
         return when {
-            error != null -> {
-                logger.warn("OAuth callback error: $error")
-                CallbackResult(400, errorHtml(error), errorMessage = error)
-            }
-
+            // Checked before `error`: error responses carry `state` too, and a stale tab's cancel/deny redirect
+            // must not fail the current attempt.
             state != oauthContext.oauthState -> {
                 val message = "Invalid state parameter"
                 logger.warn("OAuth state mismatch")
-                CallbackResult(400, errorHtml(message), errorMessage = message)
+                CallbackResult(400, errorHtml(message), errorMessage = message, endsFlow = false)
+            }
+
+            error != null -> {
+                logger.warn("OAuth callback error: $error")
+                CallbackResult(400, errorHtml(error), errorMessage = error)
             }
 
             code == null -> {
@@ -200,6 +214,8 @@ class CCloudOAuthCallbackServer(
         } catch (e: Exception) {
             logger.warn("Failed to send OAuth callback response", e)
         }
+
+        if (!result.endsFlow) return
 
         CoroutineScope(Dispatchers.IO).launch {
             try {

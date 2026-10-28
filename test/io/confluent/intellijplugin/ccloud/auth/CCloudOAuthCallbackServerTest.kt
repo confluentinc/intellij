@@ -9,13 +9,17 @@ import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.assertThrows
+import org.mockito.kotlin.doAnswer
 import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.mock
+import java.net.BindException
 import java.net.HttpURLConnection
 import java.net.URI
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import javax.net.ssl.SSLHandshakeException
+import kotlin.concurrent.thread
+import kotlin.system.measureTimeMillis
 
 @TestApplication
 class CCloudOAuthCallbackServerTest {
@@ -85,7 +89,7 @@ class CCloudOAuthCallbackServerTest {
 
         @Test
         fun `error parameter returns 400 with error message`() = runBlocking {
-            val result = server.processCallback(code = null, state = null, error = "access_denied")
+            val result = server.processCallback(code = null, state = context.oauthState, error = "access_denied")
 
             assertEquals(400, result.statusCode)
             assertEquals("access_denied", result.errorMessage)
@@ -94,11 +98,21 @@ class CCloudOAuthCallbackServerTest {
         }
 
         @Test
+        fun `error with a wrong state is ignored rather than ending the flow`() = runBlocking {
+            val result = server.processCallback(code = null, state = "stale-state", error = "access_denied")
+
+            assertEquals(400, result.statusCode)
+            assertEquals("Invalid state parameter", result.errorMessage)
+            assertFalse(result.endsFlow, "a stale tab's access_denied must not fail the current attempt")
+        }
+
+        @Test
         fun `invalid state returns 400`() = runBlocking {
             val result = server.processCallback(code = "some-code", state = "wrong-state", error = null)
 
             assertEquals(400, result.statusCode)
             assertEquals("Invalid state parameter", result.errorMessage)
+            assertFalse(result.endsFlow, "a stray request must not end the sign-in")
             assertNull(result.successContext)
         }
 
@@ -348,18 +362,34 @@ class CCloudOAuthCallbackServerTest {
         }
 
         @Test
+        fun `start throws BindException when the port is already bound`() {
+            server.start()
+            var capturedError: String? = null
+            val contender = CCloudOAuthCallbackServer(
+                oauthContext = CCloudOAuthContext(),
+                onSuccess = {},
+                onError = { msg -> capturedError = msg }
+            )
+
+            assertThrows<BindException> { contender.start() }
+            assertNull(capturedError, "port-in-use is thrown, not reported via onError")
+            assertEquals(400, httpGet("error=test").first, "the original server must be unaffected")
+        }
+
+        @Test
         fun `onError callback is invoked when error parameter is present`() {
             var capturedError: String? = null
             val latch = CountDownLatch(1)
+            val errorContext = CCloudOAuthContext()
             val errorServer = CCloudOAuthCallbackServer(
-                oauthContext = CCloudOAuthContext(),
+                oauthContext = errorContext,
                 onSuccess = {},
                 onError = { msg -> capturedError = msg; latch.countDown() }
             )
             errorServer.start()
 
             try {
-                httpGet("error=access_denied")
+                httpGet("error=access_denied&state=${errorContext.oauthState}")
                 assertTrue(latch.await(5, TimeUnit.SECONDS), "onError callback should be invoked")
                 assertEquals("access_denied", capturedError)
             } finally {
@@ -393,17 +423,91 @@ class CCloudOAuthCallbackServerTest {
         }
 
         @Test
+        fun `stop does not wait for an in-flight token exchange`() {
+            val exchangeStarted = CountDownLatch(1)
+            val releaseExchange = CountDownLatch(1)
+            val mockContext = mock<CCloudOAuthContext> {
+                on { oauthState } doReturn "test-state"
+                onBlocking { createTokensFromAuthorizationCode("slow-code") } doAnswer {
+                    exchangeStarted.countDown()
+                    releaseExchange.await(10, TimeUnit.SECONDS)
+                    Result.failure<CCloudOAuthContext>(RuntimeException("released"))
+                }
+            }
+            val slowServer = CCloudOAuthCallbackServer(oauthContext = mockContext, onSuccess = {}, onError = {})
+            slowServer.start()
+            val request = thread { runCatching { httpGet("code=slow-code&state=test-state") } }
+
+            try {
+                assertTrue(exchangeStarted.await(5, TimeUnit.SECONDS), "token exchange should start")
+                val stopMillis = measureTimeMillis { slowServer.stop() }
+                assertTrue(stopMillis < 1_000, "stop() took ${stopMillis}ms; it must not wait for the exchange")
+            } finally {
+                releaseExchange.countDown()
+                request.join()
+            }
+        }
+
+        @Test
+        fun `wrong-state callback shows an error but keeps the server listening for the real one`() {
+            val errors = mutableListOf<String>()
+            val successLatch = CountDownLatch(1)
+            val mockContext = mock<CCloudOAuthContext> {
+                on { oauthState } doReturn "test-state"
+                on { getUserEmail() } doReturn "user@test.com"
+                onBlocking { createTokensFromAuthorizationCode("valid-code") } doReturn Result.success(mock)
+            }
+            val activeServer = CCloudOAuthCallbackServer(
+                oauthContext = mockContext,
+                onSuccess = { successLatch.countDown() },
+                onError = { errors.add(it) }
+            )
+            activeServer.start()
+
+            try {
+                assertEquals(400, httpGet("code=stale-code&state=stale-state").first)
+                assertEquals(200, httpGet("code=valid-code&state=test-state").first)
+                assertTrue(successLatch.await(5, TimeUnit.SECONDS), "the real callback should still complete")
+                assertTrue(errors.isEmpty(), "a wrong-state request must not report a sign-in failure")
+            } finally {
+                activeServer.stop()
+            }
+        }
+
+        @Test
+        fun `stale error redirect does not fail the active attempt`() {
+            val errors = mutableListOf<String>()
+            val activeContext = CCloudOAuthContext()
+            val activeServer = CCloudOAuthCallbackServer(
+                oauthContext = activeContext,
+                onSuccess = {},
+                onError = { errors.add(it) }
+            )
+            activeServer.start()
+
+            try {
+                assertEquals(400, httpGet("error=access_denied&state=stale-state").first)
+                Thread.sleep(300)
+                assertTrue(errors.isEmpty(), "a stale error must not report a sign-in failure")
+                assertEquals(400, httpGet("error=test&state=stale-state").first, "server should still be listening")
+            } finally {
+                activeServer.stop()
+            }
+        }
+
+        @Test
         fun `server stops after handling a callback`() {
             val latch = CountDownLatch(1)
+            val callbackContext = CCloudOAuthContext()
             val callbackServer = CCloudOAuthCallbackServer(
-                oauthContext = CCloudOAuthContext(),
+                oauthContext = callbackContext,
                 onSuccess = {},
                 onError = { latch.countDown() }
             )
             callbackServer.start()
 
             try {
-                httpGet("error=test")
+                httpGet("error=test&state=${callbackContext.oauthState}")
                 assertTrue(latch.await(5, TimeUnit.SECONDS), "callback should complete")
 
                 // Poll until the server stops accepting connections
