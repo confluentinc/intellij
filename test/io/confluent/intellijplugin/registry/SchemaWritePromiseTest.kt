@@ -1,6 +1,8 @@
 package io.confluent.intellijplugin.registry
 
 import com.intellij.testFramework.junit5.TestApplication
+import io.confluent.intellijplugin.core.monitoring.data.listener.DataModelListener
+import io.confluent.intellijplugin.core.monitoring.data.model.DataModel
 import io.confluent.intellijplugin.registry.KafkaRegistryUtil.asSchemaWritePromise
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineStart
@@ -13,7 +15,12 @@ import org.junit.jupiter.api.Assertions.assertInstanceOf
 import org.junit.jupiter.api.Assertions.assertSame
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Nested
+import org.jetbrains.concurrency.AsyncPromise
 import org.jetbrains.concurrency.Promise
+import org.mockito.kotlin.argumentCaptor
+import org.mockito.kotlin.mock
+import org.mockito.kotlin.never
+import org.mockito.kotlin.verify
 import org.junit.jupiter.api.Test
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
@@ -61,6 +68,53 @@ class SchemaWritePromiseTest {
         @Test
         fun `should default to 180 seconds`() {
             assertEquals(180, KafkaRegistryUtil.CALL_TIMEOUT.inWholeSeconds)
+        }
+    }
+
+    @Nested
+    inner class `updateSchemaAwaitingNewVersion` {
+
+        private val model = mock<DataModel<List<Long>>>()
+
+        private fun attachedListener(): DataModelListener {
+            val captor = argumentCaptor<DataModelListener>()
+            verify(model).addListener(captor.capture())
+            return captor.firstValue
+        }
+
+        @Test
+        fun `should call back and detach the listener once the versions change`() {
+            var changes = 0
+            val update = AsyncPromise<Unit>()
+
+            KafkaRegistryUtil.updateSchemaAwaitingNewVersion(model, { changes++ }) { update }
+            val listener = attachedListener()
+            listener.onChanged()
+
+            assertEquals(1, changes)
+            verify(model).removeListener(listener)
+        }
+
+        @Test
+        fun `should keep the listener while the update is pending or succeeds`() {
+            val update = AsyncPromise<Unit>()
+
+            KafkaRegistryUtil.updateSchemaAwaitingNewVersion(model, {}) { update }
+            update.setResult(Unit)
+
+            val listener = attachedListener()
+            verify(model, never()).removeListener(listener)
+        }
+
+        @Test
+        fun `should detach the listener when the update fails`() {
+            val update = AsyncPromise<Unit>()
+
+            KafkaRegistryUtil.updateSchemaAwaitingNewVersion(model, {}) { update }
+            update.setError(IllegalStateException("boom"))
+
+            val listener = attachedListener()
+            verify(model).removeListener(listener)
         }
     }
 
