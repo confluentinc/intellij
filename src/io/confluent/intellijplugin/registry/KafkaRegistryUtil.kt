@@ -7,8 +7,6 @@ import com.intellij.openapi.fileTypes.PlainTextLanguage
 import com.intellij.openapi.util.NlsSafe
 import com.intellij.util.concurrency.annotations.RequiresBackgroundThread
 import io.confluent.intellijplugin.common.models.KafkaFieldType
-import io.confluent.intellijplugin.core.monitoring.data.listener.DataModelListener
-import io.confluent.intellijplugin.core.monitoring.data.model.DataModel
 import io.confluent.intellijplugin.core.util.BdIdeRegistryUtil
 import io.confluent.intellijplugin.core.util.asSilent
 import io.confluent.intellijplugin.data.BaseClusterDataManager
@@ -49,25 +47,6 @@ object KafkaRegistryUtil {
             }
         }
         return promise
-    }
-
-    /**
-     * Runs [update] with a one-shot listener on [versionModel] that calls [onVersionsChanged]. The listener is dropped
-     * again if the write fails, so a failed or timed out update doesn't leave it attached.
-     */
-    fun updateSchemaAwaitingNewVersion(
-        versionModel: DataModel<*>,
-        onVersionsChanged: () -> Unit,
-        update: () -> Promise<Unit>,
-    ): Promise<Unit> {
-        val listener = object : DataModelListener {
-            override fun onChanged() {
-                onVersionsChanged()
-                versionModel.removeListener(this)
-            }
-        }
-        versionModel.addListener(listener)
-        return update().onError { versionModel.removeListener(listener) }
     }
 
     fun getRegistrySchemaProviders(): List<AbstractSchemaProvider> =

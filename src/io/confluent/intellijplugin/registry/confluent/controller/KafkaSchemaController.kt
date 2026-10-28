@@ -31,6 +31,7 @@ import com.intellij.ui.layout.migLayout.createLayoutConstraints
 import com.intellij.ui.layout.migLayout.patched.MigLayout
 import io.confluent.intellijplugin.common.editor.SchemaVersionDiffController
 import io.confluent.intellijplugin.common.editor.SchemaVersionsComboboxController
+import io.confluent.intellijplugin.core.monitoring.data.listener.DataModelListener
 import io.confluent.intellijplugin.core.monitoring.toolwindow.ComponentController
 import io.confluent.intellijplugin.core.monitoring.toolwindow.DetailsMonitoringController
 import io.confluent.intellijplugin.core.ui.CustomComponentActionImpl
@@ -312,13 +313,14 @@ class KafkaSchemaController(
                     versionInfo
                 ) { newText ->
                     val versionModel = dataManager.getSchemaVersionsModel(versionInfo.schemaName)
-                    KafkaRegistryUtil.updateSchemaAwaitingNewVersion(
-                        versionModel,
-                        onVersionsChanged = {
+                    val listener = object : DataModelListener {
+                        override fun onChanged() {
                             invokeLater { selectedVersion.component.item = versionModel.originObject?.firstOrNull() }
-                        },
-                        update = { dataManager.updateSchema(versionInfo, newText) }
-                    )
+                            versionModel.removeListener(this)
+                        }
+                    }
+                    versionModel.addListener(listener)
+                    dataManager.updateSchema(versionInfo, newText).onError { versionModel.removeListener(listener) }
                 }
             }
 
