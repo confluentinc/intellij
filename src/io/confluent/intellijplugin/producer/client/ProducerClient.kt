@@ -19,6 +19,10 @@ import io.confluent.intellijplugin.producer.models.RecordCompression
  */
 interface ProducerClient : Disposable {
 
+    /**
+     * Produces records until done or [stop] is called. [onUpdate] also receives failed sends as
+     * records with a non-null [KafkaRecord.error], which the editor shows as error rows.
+     */
     fun start(
         topic: String,
         key: ConsumerProducerFieldConfig,
