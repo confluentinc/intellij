@@ -9,6 +9,7 @@ All noteworthy changes to this plugin will be documented in this file.
 - MessagePack serialization support for consumer and producer records
 ### Removed
 ### Fixed
+- The Confluent Cloud consumer no longer retries server errors forever, or keeps polling after you sign out. It now retries network errors and timeouts, and stops with an error after 10 consecutive failures.
 
 ## 253.25910.2
 ### Fixed
