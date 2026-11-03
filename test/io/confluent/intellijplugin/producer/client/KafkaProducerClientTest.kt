@@ -136,7 +136,7 @@ class KafkaProducerClientTest {
         private fun runProduce(
             producer: KafkaProducer<Any, Any>,
             flowParams: ProducerFlowParams
-        ): Pair<KafkaProducerClient, List<KafkaRecord>> {
+        ): List<KafkaRecord> {
             val client = createClient().apply {
                 sendTimeoutMs = 10
                 running.set(true)
@@ -147,7 +147,7 @@ class KafkaProducerClientTest {
                 key = field("k", isKey = true), value = field("v", isKey = false),
                 headers = emptyList(), flowParams = flowParams, csvDf = null
             ) { _, records -> updates += records }
-            return client to updates
+            return updates
         }
 
         private fun autoParams(totalRequests: Int = 0) = ProducerFlowParams(
@@ -157,24 +157,24 @@ class KafkaProducerClientTest {
         )
 
         @Test
-        fun `should report a timed out send as an error row that says the record may still be delivered`() {
-            val (_, updates) = runProduce(producerReturning(hanging()), ProducerFlowParams(mode = Mode.MANUAL))
+        fun `should report a timed out send as an error row that says the outcome is unknown`() {
+            val updates = runProduce(producerReturning(hanging()), ProducerFlowParams(mode = Mode.MANUAL))
 
             val row = updates.single()
             assertNotNull(row.error)
             assertEquals(topic, row.topic)
             assertTrue(row.errorText.contains("timed out"), row.errorText)
-            assertTrue(row.errorText.contains("may still be delivered"), row.errorText)
+            assertTrue(row.errorText.contains("may or may not have been written"), row.errorText)
         }
 
         @Test
         fun `should stop auto mode after consecutive send timeouts`() {
             val producer = producerReturning(hanging())
 
-            val (client, updates) = runProduce(producer, autoParams())
+            // produce() returning at all (with an unlimited auto run) is the stop.
+            val updates = runProduce(producer, autoParams())
 
             verify(producer, times(KafkaProducerClient.MAX_CONSECUTIVE_SEND_TIMEOUTS)).send(any<ProducerRecord<Any, Any>>())
-            assertFalse(client.isRunning(), "auto mode should stop itself")
             assertTrue(updates.all { it.error != null })
             assertTrue(updates.last().errorText.contains("Auto mode stopped"), updates.last().errorText)
         }
@@ -184,7 +184,7 @@ class KafkaProducerClientTest {
             // Two timeouts, a success, two timeouts, a success: never three in a row.
             val producer = producerReturning(hanging(), hanging(), acked(), hanging(), hanging(), acked())
 
-            val (_, updates) = runProduce(producer, autoParams(totalRequests = 2))
+            val updates = runProduce(producer, autoParams(totalRequests = 2))
 
             verify(producer, times(6)).send(any<ProducerRecord<Any, Any>>())
             assertEquals(2, updates.count { it.error == null })
@@ -195,7 +195,7 @@ class KafkaProducerClientTest {
         fun `should not count timed out sends toward total requests`() {
             val producer = producerReturning(acked(), hanging(), acked(), acked())
 
-            val (_, updates) = runProduce(producer, autoParams(totalRequests = 3))
+            val updates = runProduce(producer, autoParams(totalRequests = 3))
 
             verify(producer, times(4)).send(any<ProducerRecord<Any, Any>>())
             assertEquals(3, updates.count { it.error == null })

@@ -84,9 +84,8 @@ class KafkaProducerClient(
 
                 produce(producer, topic, partition, key, value, headers, flowParams, csvDataFrame, onUpdate)
             } finally {
-                if (isRunning()) {
-                    producer.flush()
-                }
+                // No flush: each send is awaited, so only timed-out records are still pending, and
+                // flushing would block for up to delivery.timeout.ms on them.
                 producer.close(Duration.ZERO)
             }
         } catch (t: Throwable) {
@@ -157,8 +156,6 @@ class KafkaProducerClient(
                             )
                         )
                         onUpdate(0, listOf(createErrorRecord(key, value, topic, partition, error, duration = 0)))
-                        // Skip the final flush: it would block on the unacknowledged records.
-                        running.set(false)
                         return
                     }
                     Thread.sleep(flowParams.requestInterval.toLong())
@@ -301,12 +298,12 @@ class KafkaProducerClient(
 
         @Suppress("UNCHECKED_CAST")
         val metadataFuture = producer.send(record as ProducerRecord<Any, Any>)
-        // Always wait for the in-flight send to complete — stop only prevents new sends
+        // Wait (bounded by sendTimeoutMs) for the in-flight send even if stopped — stop only prevents new sends
         val metaInfo = try {
             metadataFuture.get(sendTimeoutMs, TimeUnit.MILLISECONDS)
         } catch (_: TimeoutException) {
-            // The producer keeps retrying in the background (cancelling the future does not stop it),
-            // so the record can still land up to delivery.timeout.ms later — say so instead of failing silently.
+            // The request may already have reached the broker, so the outcome is unknown —
+            // say so instead of failing silently.
             thisLogger().info("Producer send to $topic timed out after $sendTimeoutMs ms")
             val error = TimeoutException(
                 KafkaMessagesBundle.message("producer.send.timeout.error", sendTimeoutMs.toString())
