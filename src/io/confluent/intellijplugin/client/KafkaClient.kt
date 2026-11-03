@@ -38,8 +38,6 @@ import org.apache.kafka.common.config.ConfigResource
 import org.apache.kafka.common.config.SaslConfigs
 import java.io.File
 import java.util.*
-import java.util.concurrent.CompletionException
-import java.util.concurrent.ExecutionException
 import kotlin.jvm.optionals.getOrNull
 
 
@@ -511,16 +509,12 @@ class KafkaClient(
         /**
          * Deletes [name] and waits for the broker's answer, so a failed delete (e.g. a non-empty group,
          * missing ACLs, or a timeout) surfaces to the caller instead of silently looking successful.
+         * The platform `await()` already rethrows the `ExecutionException`'s cause, so callers see
+         * the broker error (e.g. `GroupNotEmptyException`) directly.
          */
         internal suspend fun deleteConsumerGroupAndAwait(admin: Admin, name: String, timeoutMs: Int) {
             val options = DeleteConsumerGroupsOptions().timeoutMs(timeoutMs)
-            try {
-                admin.deleteConsumerGroups(listOf(name), options).all().await()
-            } catch (e: ExecutionException) {
-                throw e.cause ?: e
-            } catch (e: CompletionException) {
-                throw e.cause ?: e
-            }
+            admin.deleteConsumerGroups(listOf(name), options).all().await()
         }
 
         fun loadPropertyFile(propertyFilePath: String): String {
