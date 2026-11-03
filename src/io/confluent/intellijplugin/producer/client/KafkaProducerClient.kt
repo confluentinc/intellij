@@ -117,7 +117,7 @@ class KafkaProducerClient(
                 flowParams, partition, producer, topic, key, value, headers,
                 alreadyProducedCount = 0,
                 csvDf = csvDf,
-                onUpdate
+                onUpdate = onUpdate
             )
 
             Mode.AUTO -> {
@@ -137,11 +137,14 @@ class KafkaProducerClient(
                     if (totalElapsedTime != 0 && (System.currentTimeMillis() - start) >= totalElapsedTime)
                         return
 
+                    // Cap the batch so the count stop condition is never overshot.
+                    val remaining = if (totalRequests != 0) totalRequests - produced else Int.MAX_VALUE
                     val batch = sentSeveralMessage(
                         flowParams, partition, producer, topic, key, value, headers,
                         alreadyProducedCount = attempted,
                         csvDf = csvDf,
-                        onUpdate
+                        recordCount = minOf(flowParams.flowRecordsCountPerRequest, remaining),
+                        onUpdate = onUpdate
                     )
                     produced += batch.sent
                     attempted += batch.attempted
@@ -178,10 +181,11 @@ class KafkaProducerClient(
         headers: List<Property>,
         alreadyProducedCount: Int,
         csvDf: DataFrame?,
+        recordCount: Int = flowParams.flowRecordsCountPerRequest,
         onUpdate: (Long, List<KafkaRecord>) -> Unit
     ): BatchResult {
         var sent = 0
-        for (i in 0 until flowParams.flowRecordsCountPerRequest) {
+        for (i in 0 until recordCount) {
             if (!isRunning()) break
             val record = sentMessage(
                 flowParams, partition, producer, topic, key, value, headers.map { it.copy() },

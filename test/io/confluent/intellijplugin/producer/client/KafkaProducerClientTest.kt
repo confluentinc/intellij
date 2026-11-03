@@ -150,10 +150,11 @@ class KafkaProducerClientTest {
             return updates
         }
 
-        private fun autoParams(totalRequests: Int = 0) = ProducerFlowParams(
+        private fun autoParams(totalRequests: Int = 0, recordsPerRequest: Int = 1) = ProducerFlowParams(
             mode = Mode.AUTO,
             requestInterval = 0,
-            totalRequests = totalRequests
+            totalRequests = totalRequests,
+            flowRecordsCountPerRequest = recordsPerRequest
         )
 
         @Test
@@ -200,6 +201,17 @@ class KafkaProducerClientTest {
             verify(producer, times(4)).send(any<ProducerRecord<Any, Any>>())
             assertEquals(3, updates.count { it.error == null })
             assertEquals(1, updates.count { it.error != null })
+        }
+
+        @Test
+        fun `should not overshoot total requests when a timeout leaves a partial batch`() {
+            // Batch 1: ack, timeout (1 produced). Batch 2 must be capped at the 2 remaining records.
+            val producer = producerReturning(acked(), hanging(), acked())
+
+            val updates = runProduce(producer, autoParams(totalRequests = 3, recordsPerRequest = 3))
+
+            verify(producer, times(4)).send(any<ProducerRecord<Any, Any>>())
+            assertEquals(3, updates.count { it.error == null })
         }
     }
 }
