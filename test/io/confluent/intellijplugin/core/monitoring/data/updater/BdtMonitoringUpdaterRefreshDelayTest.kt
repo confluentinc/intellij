@@ -9,7 +9,7 @@ import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import kotlin.random.Random
 
-class BdtMonitoringUpdaterJitterTest {
+class BdtMonitoringUpdaterRefreshDelayTest {
 
     /** Random whose [nextDouble] always returns [value], to pin the jitter factor deterministically. */
     private class FixedRandom(private val value: Double) : Random() {

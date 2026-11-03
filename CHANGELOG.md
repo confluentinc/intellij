@@ -4,7 +4,7 @@ All noteworthy changes to this plugin will be documented in this file.
 ## Unreleased
 ### Changed
 - Consumer and producer record tables now retain up to 50,000 records per session. Previously, leaving the "Consumer records limit" field empty (or set to 0) allowed unbounded growth.
-- Tool window auto-refresh now varies each interval by up to ±20%, and waits progressively longer (up to 5 minutes) while a connection keeps failing.
+- Tool window auto-refresh now varies each interval by up to ±20%, and waits progressively longer (up to about 5 minutes) while a connection keeps failing.
 ### Added
 - MessagePack serialization support for consumer and producer records
 ### Removed

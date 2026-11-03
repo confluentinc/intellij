@@ -144,11 +144,6 @@ class BdtMonitoringUpdater(val dataManager: MonitoringDataManager) : Disposable 
         isCurrentCanceled.set(false)
 
         try {
-            val connectionError = client.connectionError
-            if (connectionError != null) {
-                models.forEach { it.setError(connectionError) }
-            }
-
             notify {
                 it.onStartRefreshModels(id, toUpdate)
             }
@@ -164,7 +159,7 @@ class BdtMonitoringUpdater(val dataManager: MonitoringDataManager) : Disposable 
                 client.checkConnection()
 
                 if (!client.isConnected()) {
-                    models.forEach { it.setError(connectionError) }
+                    models.forEach { it.setError(client.connectionError) }
                     onFailure()
                     return
                 }
@@ -214,6 +209,9 @@ class BdtMonitoringUpdater(val dataManager: MonitoringDataManager) : Disposable 
                 }
                 jobs.forEach { it.join() }
             }
+
+            // DataModel.update() and launchAdditionalUpdate() swallow their own exceptions into `error`.
+            if (toUpdate.any { it.error != null }) onFailure()
         } catch (t: Throwable) {
             models.forEach {
                 it.setError(t, msg = KafkaMessagesBundle.message("monitoring.updater.driver.error"))
@@ -277,7 +275,7 @@ class BdtMonitoringUpdater(val dataManager: MonitoringDataManager) : Disposable 
 
     companion object {
         /** Max fraction by which each auto-refresh delay is randomly stretched or shrunk. */
-        internal const val JITTER_FRACTION = 0.2
+        private const val JITTER_FRACTION = 0.2
 
         /**
          * Returns [intervalMillis] scaled by a random factor in `[1 - JITTER_FRACTION, 1 + JITTER_FRACTION)`, so
@@ -289,9 +287,13 @@ class BdtMonitoringUpdater(val dataManager: MonitoringDataManager) : Disposable 
         }
 
         /** Max number of doublings applied by [backoffInterval], i.e. failed refreshes wait at most 8x the interval. */
-        internal const val MAX_BACKOFF_DOUBLINGS = 3
+        private const val MAX_BACKOFF_DOUBLINGS = 3
 
-        /** Absolute ceiling on a backed-off delay; never shortens a configured interval that is already longer. */
+        /**
+         * Ceiling on a backed-off delay, applied before jitter so failing connections don't all re-sync on the cap
+         * (the scheduled delay can land up to [JITTER_FRACTION] above it). Never shortens a configured interval
+         * that is already longer.
+         */
         internal const val MAX_BACKOFF_MILLIS = 5 * 60_000
 
         /**
