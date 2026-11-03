@@ -21,6 +21,7 @@ import java.util.concurrent.ConcurrentSkipListSet
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.random.Random
+import org.jetbrains.annotations.VisibleForTesting
 
 class BdtMonitoringUpdater(val dataManager: MonitoringDataManager) : Disposable {
     private var listeners = listOf<MonitoringUpdateListener>()
@@ -38,6 +39,9 @@ class BdtMonitoringUpdater(val dataManager: MonitoringDataManager) : Disposable 
 
     /** Consecutive auto-refresh cycles that ended in error; stretches the next delay via [backoffInterval]. */
     private val consecutiveFailures = AtomicInteger(0)
+
+    internal val consecutiveFailureCount: Int
+        @VisibleForTesting get() = consecutiveFailures.get()
 
     val models
         get() = registeredStorages.sortedBy { it !is RootDataModelStorage }.flatMap { it.getModelsForRefresh() }
@@ -156,13 +160,8 @@ class BdtMonitoringUpdater(val dataManager: MonitoringDataManager) : Disposable 
                     it.setText(id, KafkaMessagesBundle.message("monitoring.progress.check.connection"))
                 }
 
+                // Throws (caught below) unless the connection is healthy.
                 client.checkConnection()
-
-                if (!client.isConnected()) {
-                    models.forEach { it.setError(client.connectionError) }
-                    onFailure()
-                    return
-                }
             }
 
             if (isCurrentCanceled.get()) {
