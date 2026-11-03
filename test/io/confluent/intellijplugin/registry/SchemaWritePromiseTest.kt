@@ -45,7 +45,7 @@ class SchemaWritePromiseTest {
             val error = rejectionOf(deferred.asSchemaWritePromise(TIMEOUT))
 
             assertInstanceOf(SchemaWriteTimeoutException::class.java, error)
-            assertTrue(error.message!!.contains("may have been registered"), error.message)
+            assertTrue(error.message!!.contains("may still be registered"), error.message)
             assertTrue(error.message!!.contains("${TIMEOUT.inWholeSeconds} seconds"), error.message)
         }
 
@@ -120,6 +120,20 @@ class SchemaWritePromiseTest {
                     .asSchemaWritePromise(TIMEOUT) { abandoned++ }
             )
 
+            assertEquals(0, abandoned)
+        }
+
+        @Test
+        fun `should report a cancellation from the write side as an error without running onAbandoned`() {
+            val deferred = CompletableDeferred<Unit>()
+            var abandoned = 0
+            val promise = deferred.asSchemaWritePromise(TIMEOUT) { abandoned++ }
+
+            deferred.cancel()
+
+            val error = rejectionOf(promise)
+            assertInstanceOf(IllegalStateException::class.java, error)
+            assertTrue(error.message!!.contains("connection was closed"), error.message)
             assertEquals(0, abandoned)
         }
 

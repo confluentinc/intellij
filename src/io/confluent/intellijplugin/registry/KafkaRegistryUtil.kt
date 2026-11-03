@@ -14,6 +14,7 @@ import io.confluent.intellijplugin.registry.confluent.ConfluentRegistryClient
 import io.confluent.intellijplugin.registry.serde.BdtAvroSchemaProvider
 import io.confluent.intellijplugin.registry.serde.BdtJsonSchemaProvider
 import io.confluent.intellijplugin.registry.serde.BdtProtobufSchemaProvider
+import io.confluent.intellijplugin.util.KafkaMessagesBundle
 import io.confluent.kafka.schemaregistry.AbstractSchemaProvider
 import io.confluent.kafka.schemaregistry.ParsedSchema
 import io.confluent.kafka.schemaregistry.client.rest.entities.Schema
@@ -30,7 +31,11 @@ import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 
 object KafkaRegistryUtil {
-    /** Upper bound for a Schema Registry call awaited by the caller (client timeouts alone can add up across retries). */
+    /**
+     * Upper bound for a Schema Registry call awaited by the caller. The client retries I/O failures, including read
+     * timeouts, up to `max.retries` times, so with default settings a hung registry can keep it busy for several minutes
+     * (4 attempts x 60s connect + 60s read). Hitting this bound only stops waiting; a retry may still reach the registry.
+     */
     val CALL_TIMEOUT: Duration
         get() = BdIdeRegistryUtil.SCHEMA_REGISTRY_CALL_TIMEOUT_MS.milliseconds
 
@@ -45,7 +50,8 @@ object KafkaRegistryUtil {
         val promise = AsyncPromise<Unit>().asSilent()
         promise.onError {
             when (it) {
-                // Cancelling the promise (e.g. the user closing the dialog) aborts the underlying write.
+                // Cancelling the promise (e.g. the user closing the dialog) stops waiting and cancels the coroutine;
+                // a request already sent may still be applied by the registry.
                 is CancellationException -> {
                     cancel()
                     onAbandoned()
@@ -57,6 +63,12 @@ object KafkaRegistryUtil {
             when (cause) {
                 null -> promise.setResult(Unit)
                 is TimeoutCancellationException -> promise.setError(SchemaWriteTimeoutException(timeout, cause))
+                // Cancelled from the deferred's side (e.g. its scope shut down with the connection), not by the caller
+                // (a caller cancel has already rejected the promise, so this is a no-op then). Report it as an error
+                // so the UI shows a message, and skip onAbandoned since the data manager may already be disposed.
+                is CancellationException -> promise.setError(
+                    IllegalStateException(KafkaMessagesBundle.message("error.schema.registry.write.interrupted"), cause)
+                )
                 else -> promise.setError(cause)
             }
         }

@@ -154,7 +154,7 @@ object KafkaSchemaInfoDialog {
         )
         if (onApply != null) {
             dialogWrapper.addCancelAction()
-            // Closing the dialog while a write is pending aborts it; the registry may still have applied it.
+            // Closing the dialog while a write is pending stops waiting for it; the registry may still apply it.
             dialogWrapper.setCancelOperation {
                 (pendingWrite as? CancellablePromise<*>)?.cancel()
                 dialogWrapper.dialogWrapper.close(DialogWrapper.CANCEL_EXIT_CODE)
