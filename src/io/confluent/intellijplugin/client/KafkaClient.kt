@@ -483,8 +483,8 @@ class KafkaClient(
 
     fun getTopicConfig(topicName: String): List<TopicConfig> = loadTopicConfigs(listOf(topicName)).values.first()
 
-    fun deleteConsumerGroup(name: String) {
-        kafkaAdminNotNull.deleteConsumerGroups(listOf(name))
+    suspend fun deleteConsumerGroup(name: String) {
+        deleteConsumerGroupAndAwait(kafkaAdminNotNull, name, BdIdeRegistryUtil.RFS_DEFAULT_TIMEOUT)
     }
 
     suspend fun getOffsetsForDate(partitions: List<TopicPartition>, timestamp: Long): Map<TopicPartition, Long> {
@@ -498,6 +498,17 @@ class KafkaClient(
     }
 
     companion object {
+        /**
+         * Deletes [name] and waits for the broker's answer, so a failed delete (e.g. a non-empty group,
+         * missing ACLs, or a timeout) surfaces to the caller instead of silently looking successful.
+         * The platform `await()` already rethrows the `ExecutionException`'s cause, so callers see
+         * the broker error (e.g. `GroupNotEmptyException`) directly.
+         */
+        internal suspend fun deleteConsumerGroupAndAwait(admin: Admin, name: String, timeoutMs: Int) {
+            val options = DeleteConsumerGroupsOptions().timeoutMs(timeoutMs)
+            admin.deleteConsumerGroups(listOf(name), options).all().await()
+        }
+
         fun loadPropertyFile(propertyFilePath: String): String {
             val filePath = File(propertyFilePath).toPath()
             val vf = VirtualFileManager.getInstance().findFileByNioPath(filePath) ?: error(

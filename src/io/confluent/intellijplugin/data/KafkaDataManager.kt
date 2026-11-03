@@ -439,6 +439,8 @@ class KafkaDataManager(
 
                 client.deleteConsumerGroup(name)
                 updater.invokeRefreshModel(consumerGroupsModel)
+            } catch (e: CancellationException) {
+                throw e
             } catch (t: Throwable) {
                 RfsNotificationUtils.showExceptionMessage(project, t)
             }
