@@ -8,6 +8,7 @@ All noteworthy changes to this plugin will be documented in this file.
 - MessagePack serialization support for consumer and producer records
 ### Removed
 ### Fixed
+- Confluent Cloud sessions whose refresh token is rejected now sign out right away instead of retrying for several minutes. Temporary token refresh failures back off between tries and sign out after 10 failed attempts.
 
 ## 253.25910.2
 ### Fixed
