@@ -8,6 +8,7 @@ All noteworthy changes to this plugin will be documented in this file.
 - MessagePack serialization support for consumer and producer records
 ### Removed
 ### Fixed
+- The Topics table no longer shows "Create a topic" mixed into the connection error message when an auto-refresh fails.
 
 ## 253.25910.2
 ### Fixed
