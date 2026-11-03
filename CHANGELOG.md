@@ -8,6 +8,7 @@ All noteworthy changes to this plugin will be documented in this file.
 - MessagePack serialization support for consumer and producer records
 ### Removed
 ### Fixed
+- Producer and consumer connections now report their own client IDs (`… - Producer`, `… - Consumer`) to the broker instead of the admin client's `… - Admin` ID.
 
 ## 253.25910.2
 ### Fixed
