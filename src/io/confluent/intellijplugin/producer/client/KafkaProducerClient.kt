@@ -1,6 +1,7 @@
 package io.confluent.intellijplugin.producer.client
 
 import com.intellij.charts.dataframe.DataFrame
+import com.intellij.openapi.diagnostic.thisLogger
 import io.confluent.intellijplugin.consumer.editor.KafkaRecord
 import io.confluent.intellijplugin.consumer.models.ConsumerProducerFieldConfig
 import io.confluent.intellijplugin.core.rfs.util.RfsNotificationUtils
@@ -41,6 +42,10 @@ class KafkaProducerClient(
     @VisibleForTesting
     internal val running = AtomicBoolean(false)
 
+    /** How long to wait for a broker acknowledgement before reporting the send as timed out. */
+    @VisibleForTesting
+    internal var sendTimeoutMs: Long = DEFAULT_SEND_TIMEOUT_MS
+
     override fun isRunning(): Boolean = running.get()
 
     override fun start(
@@ -77,42 +82,10 @@ class KafkaProducerClient(
                 if (!isRunning())
                     return
 
-                var produced = 0
-                when (flowParams.mode) {
-                    Mode.MANUAL -> sentSeveralMessage(
-                        flowParams, partition, producer, topic, key, value, headers,
-                        alreadyProducedCount = produced,
-                        csvDf = csvDataFrame,
-                        onUpdate
-                    )
-
-                    Mode.AUTO -> {
-                        val start = System.currentTimeMillis()
-                        val totalElapsedTime = flowParams.totalElapsedTime
-                        val totalRequests = flowParams.totalRequests
-                        while (true) {
-                            if (!isRunning())
-                                return
-                            if (totalRequests != 0 && produced >= totalRequests)
-                                return
-                            if (totalElapsedTime != 0 && (System.currentTimeMillis() - start) >= totalElapsedTime)
-                                return
-
-                            sentSeveralMessage(
-                                flowParams, partition, producer, topic, key, value, headers,
-                                alreadyProducedCount = produced,
-                                csvDf = csvDataFrame,
-                                onUpdate
-                            )
-                            produced += flowParams.flowRecordsCountPerRequest
-                            Thread.sleep(flowParams.requestInterval.toLong())
-                        }
-                    }
-                }
+                produce(producer, topic, partition, key, value, headers, flowParams, csvDataFrame, onUpdate)
             } finally {
-                if (isRunning()) {
-                    producer.flush()
-                }
+                // No flush: each send is awaited, so only timed-out records are still pending, and
+                // flushing would block for up to delivery.timeout.ms on them.
                 producer.close(Duration.ZERO)
             }
         } catch (t: Throwable) {
@@ -127,6 +100,77 @@ class KafkaProducerClient(
         }
     }
 
+    @VisibleForTesting
+    internal fun produce(
+        producer: KafkaProducer<Any, Any>,
+        topic: String,
+        partition: Int?,
+        key: ConsumerProducerFieldConfig,
+        value: ConsumerProducerFieldConfig,
+        headers: List<Property>,
+        flowParams: ProducerFlowParams,
+        csvDf: DataFrame?,
+        onUpdate: (Long, List<KafkaRecord>) -> Unit
+    ) {
+        when (flowParams.mode) {
+            Mode.MANUAL -> sentSeveralMessage(
+                flowParams, partition, producer, topic, key, value, headers,
+                alreadyProducedCount = 0,
+                csvDf = csvDf,
+                onUpdate = onUpdate
+            )
+
+            Mode.AUTO -> {
+                val start = System.currentTimeMillis()
+                val totalElapsedTime = flowParams.totalElapsedTime
+                val totalRequests = flowParams.totalRequests
+                // Only acknowledged sends count toward the "Records produced" stop condition.
+                var produced = 0
+                // Every attempted send advances the CSV row, so a timed-out row is not re-sent.
+                var attempted = 0
+                var consecutiveTimeouts = 0
+                while (true) {
+                    if (!isRunning())
+                        return
+                    if (totalRequests != 0 && produced >= totalRequests)
+                        return
+                    if (totalElapsedTime != 0 && (System.currentTimeMillis() - start) >= totalElapsedTime)
+                        return
+
+                    // Cap the batch so the count stop condition is never overshot.
+                    val remaining = if (totalRequests != 0) totalRequests - produced else Int.MAX_VALUE
+                    val batch = sentSeveralMessage(
+                        flowParams, partition, producer, topic, key, value, headers,
+                        alreadyProducedCount = attempted,
+                        csvDf = csvDf,
+                        recordCount = minOf(flowParams.flowRecordsCountPerRequest, remaining),
+                        onUpdate = onUpdate
+                    )
+                    produced += batch.sent
+                    attempted += batch.attempted
+                    if (batch.sent > 0) consecutiveTimeouts = 0
+                    if (batch.timedOut) consecutiveTimeouts++
+
+                    if (consecutiveTimeouts >= MAX_CONSECUTIVE_SEND_TIMEOUTS) {
+                        val error = TimeoutException(
+                            KafkaMessagesBundle.message(
+                                "producer.auto.stopped.consecutive.timeouts",
+                                MAX_CONSECUTIVE_SEND_TIMEOUTS
+                            )
+                        )
+                        onUpdate(0, listOf(createErrorRecord(key, value, topic, partition, error, duration = 0)))
+                        return
+                    }
+                    Thread.sleep(flowParams.requestInterval.toLong())
+                }
+            }
+        }
+    }
+
+    private class BatchResult(val sent: Int, val timedOut: Boolean) {
+        val attempted: Int get() = sent + if (timedOut) 1 else 0
+    }
+
     private fun sentSeveralMessage(
         flowParams: ProducerFlowParams,
         partition: Int?,
@@ -137,17 +181,22 @@ class KafkaProducerClient(
         headers: List<Property>,
         alreadyProducedCount: Int,
         csvDf: DataFrame?,
+        recordCount: Int = flowParams.flowRecordsCountPerRequest,
         onUpdate: (Long, List<KafkaRecord>) -> Unit
-    ) {
-        for (i in 0 until flowParams.flowRecordsCountPerRequest) {
+    ): BatchResult {
+        var sent = 0
+        for (i in 0 until recordCount) {
             if (!isRunning()) break
             val record = sentMessage(
                 flowParams, partition, producer, topic, key, value, headers.map { it.copy() },
                 alreadyProducedCount = alreadyProducedCount + i,
                 csvDf = csvDf
-            ) ?: break
+            )
             onUpdate(record.duration, listOf(record))
+            if (record.error != null) return BatchResult(sent, timedOut = true)
+            sent++
         }
+        return BatchResult(sent, timedOut = false)
     }
 
     private fun setupPartitions(
@@ -216,7 +265,7 @@ class KafkaProducerClient(
         headers: List<Property>,
         csvDf: DataFrame?,
         alreadyProducedCount: Int,
-    ): KafkaRecord? {
+    ): KafkaRecord {
         val correctKey = when {
             csvDf != null -> key.copy(valueText = KafkaCsvUtils.getKey(csvDf, alreadyProducedCount))
             flowParams.generateRandomKeys -> key.copy(valueText = GenerateRandomData.generate(client.project, key))
@@ -253,12 +302,20 @@ class KafkaProducerClient(
 
         @Suppress("UNCHECKED_CAST")
         val metadataFuture = producer.send(record as ProducerRecord<Any, Any>)
-        // Always wait for the in-flight send to complete — stop only prevents new sends
+        // Wait (bounded by sendTimeoutMs) for the in-flight send even if stopped — stop only prevents new sends
         val metaInfo = try {
-            metadataFuture.get(15, TimeUnit.SECONDS)
+            metadataFuture.get(sendTimeoutMs, TimeUnit.MILLISECONDS)
         } catch (_: TimeoutException) {
-            metadataFuture.cancel(true)
-            return null
+            // The request may already have reached the broker, so the outcome is unknown —
+            // say so instead of failing silently.
+            thisLogger().info("Producer send to $topic timed out after $sendTimeoutMs ms")
+            val error = TimeoutException(
+                KafkaMessagesBundle.message("producer.send.timeout.error", sendTimeoutMs.toString())
+            )
+            return createErrorRecord(
+                correctKey, correctValue, topic, partition, error,
+                duration = System.currentTimeMillis() - start
+            )
         }
         val end = System.currentTimeMillis()
         return KafkaRecord.createFor(
@@ -266,5 +323,25 @@ class KafkaProducerClient(
             metadata = metaInfo, duration = (end - start),
             headers = formedHeaders
         )
+    }
+
+    private fun createErrorRecord(
+        key: ConsumerProducerFieldConfig,
+        value: ConsumerProducerFieldConfig,
+        topic: String,
+        partition: Int?,
+        error: Throwable,
+        duration: Long
+    ): KafkaRecord = KafkaRecord.createFor(
+        key.type, value.type, key.schemaFormat, value.schemaFormat,
+        Result.failure(error),
+        errorPartition = partition
+    ).copy(topic = topic, duration = duration)
+
+    companion object {
+        private const val DEFAULT_SEND_TIMEOUT_MS = 15_000L
+
+        @VisibleForTesting
+        internal const val MAX_CONSECUTIVE_SEND_TIMEOUTS = 3
     }
 }
