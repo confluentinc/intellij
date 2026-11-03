@@ -46,7 +46,7 @@ data class CCloudRetryPolicy(
         require(!initialBackoff.isNegative()) { "initialBackoff must be >= 0, was $initialBackoff" }
         require(multiplier >= 1.0) { "multiplier must be >= 1.0, was $multiplier" }
         require(maxBackoff >= initialBackoff) { "maxBackoff ($maxBackoff) must be >= initialBackoff ($initialBackoff)" }
-        require(jitter >= 0.0) { "jitter must be >= 0, was $jitter" }
+        require(jitter.isFinite() && jitter >= 0.0) { "jitter must be finite and >= 0, was $jitter" }
         require(!maxRetryAfter.isNegative()) { "maxRetryAfter must be >= 0, was $maxRetryAfter" }
     }
 
@@ -61,10 +61,16 @@ data class CCloudRetryPolicy(
     fun delayFor(retryIndex: Int, retryAfter: Duration? = null): Duration {
         require(retryIndex >= 0) { "retryIndex must be >= 0, was $retryIndex" }
 
-        val maxBackoffNanos = maxBackoff.inWholeNanoseconds.toDouble()
-        val backoffNanos = (initialBackoff.inWholeNanoseconds * multiplier.pow(retryIndex))
-            .coerceAtMost(maxBackoffNanos)
-        val backoff = backoffNanos.roundToLong().nanoseconds
+        // Zero backoff short-circuits: 0 * multiplier^n is NaN once the power overflows to Infinity.
+        val backoff = if (initialBackoff == Duration.ZERO) {
+            Duration.ZERO
+        } else {
+            val maxBackoffNanos = maxBackoff.inWholeNanoseconds.toDouble()
+            (initialBackoff.inWholeNanoseconds * multiplier.pow(retryIndex))
+                .coerceAtMost(maxBackoffNanos)
+                .roundToLong()
+                .nanoseconds
+        }
 
         val serverDelay = retryAfter?.coerceIn(Duration.ZERO, maxRetryAfter) ?: Duration.ZERO
         val base = maxOf(backoff, serverDelay)
@@ -107,7 +113,7 @@ data class CCloudRetryPolicy(
         /** Header name for the server-requested retry delay. */
         const val RETRY_AFTER_HEADER = "Retry-After"
 
-        /** Zero-delay policy intended for tests. */
+        /** Near-instant policy (1ms waits, no jitter) intended for tests. */
         internal fun immediate(maxAttempts: Int = 4) = CCloudRetryPolicy(
             maxAttempts = maxAttempts,
             initialBackoff = 1.milliseconds,

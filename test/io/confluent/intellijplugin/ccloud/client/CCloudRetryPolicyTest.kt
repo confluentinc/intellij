@@ -44,6 +44,8 @@ class CCloudRetryPolicyTest {
             assertThrows<IllegalArgumentException> { CCloudRetryPolicy(maxAttempts = 0) }
             assertThrows<IllegalArgumentException> { CCloudRetryPolicy(multiplier = 0.5) }
             assertThrows<IllegalArgumentException> { CCloudRetryPolicy(jitter = -0.1) }
+            assertThrows<IllegalArgumentException> { CCloudRetryPolicy(jitter = Double.POSITIVE_INFINITY) }
+            assertThrows<IllegalArgumentException> { CCloudRetryPolicy(jitter = Double.NaN) }
             assertThrows<IllegalArgumentException> {
                 CCloudRetryPolicy(initialBackoff = 5.seconds, maxBackoff = 1.seconds)
             }
@@ -133,6 +135,12 @@ class CCloudRetryPolicyTest {
         fun `should return zero delay when backoff is zero and jitter disabled`() {
             val policy = CCloudRetryPolicy(initialBackoff = Duration.ZERO, jitter = 0.0)
             assertEquals(Duration.ZERO, policy.delayFor(3))
+        }
+
+        @Test
+        fun `should return zero delay when backoff is zero and multiplier power overflows`() {
+            val policy = CCloudRetryPolicy(initialBackoff = Duration.ZERO, multiplier = 1e200, jitter = 0.0)
+            assertEquals(Duration.ZERO, policy.delayFor(2))
         }
 
         @Test
