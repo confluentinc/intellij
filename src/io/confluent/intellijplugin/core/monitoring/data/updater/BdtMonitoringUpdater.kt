@@ -19,7 +19,9 @@ import io.confluent.intellijplugin.core.util.invokeLater
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
 import java.util.concurrent.ConcurrentSkipListSet
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicInteger
 import kotlin.random.Random
+import org.jetbrains.annotations.VisibleForTesting
 
 class BdtMonitoringUpdater(val dataManager: MonitoringDataManager) : Disposable {
     private var listeners = listOf<MonitoringUpdateListener>()
@@ -34,6 +36,12 @@ class BdtMonitoringUpdater(val dataManager: MonitoringDataManager) : Disposable 
     private val registeredStorages = mutableListOf<DataModelStorage>()
 
     private val executingTask = ConcurrentSkipListSet<UpdateTask>()
+
+    /** Consecutive auto-refresh cycles that ended in error; stretches the next delay via [backoffInterval]. */
+    private val consecutiveFailures = AtomicInteger(0)
+
+    internal val consecutiveFailureCount: Int
+        @VisibleForTesting get() = consecutiveFailures.get()
 
     val models
         get() = registeredStorages.sortedBy { it !is RootDataModelStorage }.flatMap { it.getModelsForRefresh() }
@@ -81,7 +89,11 @@ class BdtMonitoringUpdater(val dataManager: MonitoringDataManager) : Disposable 
 
         stopAll()
 
-        executeTask(UpdateTask { innerRefresh(models, it, withConnectionCheck = checkConnection) })
+        var failed = false
+        executeTask(UpdateTask {
+            innerRefresh(models, it, withConnectionCheck = checkConnection, onFailure = { failed = true })
+        })
+        if (failed) consecutiveFailures.incrementAndGet() else consecutiveFailures.set(0)
         rescheduleAll()
     }
 
@@ -99,10 +111,11 @@ class BdtMonitoringUpdater(val dataManager: MonitoringDataManager) : Disposable 
         if (isDisposed.get())
             return@invokeLater
 
-        if (dataManager.settings.dataUpdateIntervalMillis > 0)
+        val interval = dataManager.settings.dataUpdateIntervalMillis
+        if (interval > 0)
             alarm.addRequest(
                 { runBlockingMaybeCancellable { reloadAll() } },
-                dataManager.settings.dataUpdateIntervalMillis,
+                jitteredInterval(backoffInterval(interval, consecutiveFailures.get())),
                 true
             )
     }
@@ -111,7 +124,8 @@ class BdtMonitoringUpdater(val dataManager: MonitoringDataManager) : Disposable 
     private fun innerRefresh(
         models: List<DataModel<*>>,
         isCurrentCanceled: AtomicBooleanProperty,
-        withConnectionCheck: Boolean = false
+        withConnectionCheck: Boolean = false,
+        onFailure: () -> Unit = {}
     ) {
         val toUpdate = models.filter { it.isRequireToUpdate() }
 
@@ -126,6 +140,7 @@ class BdtMonitoringUpdater(val dataManager: MonitoringDataManager) : Disposable 
 
         if (client.connectionError != null) {
             models.forEach { it.setError(client.connectionError) }
+            onFailure()
             return
         }
 
@@ -133,11 +148,6 @@ class BdtMonitoringUpdater(val dataManager: MonitoringDataManager) : Disposable 
         isCurrentCanceled.set(false)
 
         try {
-            val connectionError = client.connectionError
-            if (connectionError != null) {
-                models.forEach { it.setError(connectionError) }
-            }
-
             notify {
                 it.onStartRefreshModels(id, toUpdate)
             }
@@ -150,12 +160,8 @@ class BdtMonitoringUpdater(val dataManager: MonitoringDataManager) : Disposable 
                     it.setText(id, KafkaMessagesBundle.message("monitoring.progress.check.connection"))
                 }
 
+                // Throws (caught below) unless the connection is healthy.
                 client.checkConnection()
-
-                if (!client.isConnected()) {
-                    models.forEach { it.setError(connectionError) }
-                    return
-                }
             }
 
             if (isCurrentCanceled.get()) {
@@ -202,10 +208,14 @@ class BdtMonitoringUpdater(val dataManager: MonitoringDataManager) : Disposable 
                 }
                 jobs.forEach { it.join() }
             }
+
+            // DataModel.update() and launchAdditionalUpdate() swallow their own exceptions into `error`.
+            if (toUpdate.any { it.error != null }) onFailure()
         } catch (t: Throwable) {
             models.forEach {
                 it.setError(t, msg = KafkaMessagesBundle.message("monitoring.updater.driver.error"))
             }
+            onFailure()
         } finally {
             notify { it.onEnd(id) }
         }
@@ -259,6 +269,41 @@ class BdtMonitoringUpdater(val dataManager: MonitoringDataManager) : Disposable 
             notify {
                 it.onEnd(null)
             }
+        }
+    }
+
+    companion object {
+        /** Max fraction by which each auto-refresh delay is randomly stretched or shrunk. */
+        private const val JITTER_FRACTION = 0.2
+
+        /**
+         * Returns [intervalMillis] scaled by a random factor in `[1 - JITTER_FRACTION, 1 + JITTER_FRACTION)`, so
+         * many open connections sharing the same refresh interval don't all hit their clusters in lockstep.
+         */
+        internal fun jitteredInterval(intervalMillis: Int, random: Random = Random.Default): Int {
+            val factor = 1 + random.nextDouble(-JITTER_FRACTION, JITTER_FRACTION)
+            return (intervalMillis * factor).toInt().coerceAtLeast(1)
+        }
+
+        /** Max number of doublings applied by [backoffInterval], i.e. failed refreshes wait at most 8x the interval. */
+        private const val MAX_BACKOFF_DOUBLINGS = 3
+
+        /**
+         * Ceiling on a backed-off delay, applied before jitter so failing connections don't all re-sync on the cap
+         * (the scheduled delay can land up to [JITTER_FRACTION] above it). Never shortens a configured interval
+         * that is already longer.
+         */
+        internal const val MAX_BACKOFF_MILLIS = 5 * 60_000
+
+        /**
+         * Returns [intervalMillis] doubled once per consecutive failure, capped at [MAX_BACKOFF_DOUBLINGS] doublings
+         * and at [MAX_BACKOFF_MILLIS] (or the interval itself, if longer), so a broken connection isn't hammered at
+         * the normal refresh cadence.
+         */
+        internal fun backoffInterval(intervalMillis: Int, consecutiveFailures: Int): Int {
+            val doublings = consecutiveFailures.coerceIn(0, MAX_BACKOFF_DOUBLINGS)
+            val ceiling = maxOf(intervalMillis, MAX_BACKOFF_MILLIS).toLong()
+            return (intervalMillis.toLong() shl doublings).coerceAtMost(ceiling).toInt()
         }
     }
 
