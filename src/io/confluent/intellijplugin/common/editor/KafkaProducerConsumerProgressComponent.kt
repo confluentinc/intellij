@@ -5,6 +5,7 @@ import com.intellij.ui.AnimatedIcon
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.dsl.builder.Row
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
+import org.jetbrains.annotations.VisibleForTesting
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -15,12 +16,14 @@ class KafkaProducerConsumerProgressComponent {
 
     /** True when the most recent event was an error, so [onStop] keeps showing it instead of resetting. */
     private var lastEventWasError = false
-    private val timestampLabel = JBLabel()
+    @VisibleForTesting
+    internal val timestampLabel = JBLabel()
     fun initCell(row: Row, bottomWidthGroup: String) {
         row.cell(timestampLabel).widthGroup(bottomWidthGroup)
     }
 
     fun onUpdate() {
+        if (lastEventWasError) timestampLabel.icon = AnimatedIcon.Default.INSTANCE
         lastEventWasError = false
         timestamp = System.currentTimeMillis()
         timestampLabel.text =
