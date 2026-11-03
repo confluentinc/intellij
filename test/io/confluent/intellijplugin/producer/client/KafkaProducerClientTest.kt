@@ -6,22 +6,30 @@ import io.confluent.intellijplugin.common.models.KafkaFieldType
 import io.confluent.intellijplugin.consumer.editor.KafkaRecord
 import io.confluent.intellijplugin.consumer.models.ConsumerProducerFieldConfig
 import io.confluent.intellijplugin.data.KafkaDataManager
+import io.confluent.intellijplugin.producer.models.AcksType
 import io.confluent.intellijplugin.producer.models.Mode
 import io.confluent.intellijplugin.producer.models.ProducerFlowParams
+import io.confluent.intellijplugin.producer.models.RecordCompression
 import io.confluent.intellijplugin.registry.KafkaRegistryFormat
 import io.confluent.intellijplugin.registry.KafkaRegistryType
 import io.confluent.intellijplugin.rfs.KafkaConnectionData
 import org.apache.kafka.clients.producer.KafkaProducer
+import org.apache.kafka.clients.producer.ProducerConfig
 import org.apache.kafka.clients.producer.ProducerRecord
 import org.apache.kafka.clients.producer.RecordMetadata
 import org.apache.kafka.common.TopicPartition
+import org.apache.kafka.common.errors.RecordTooLargeException
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 import org.mockito.kotlin.*
+import java.util.Properties
 import java.util.concurrent.CompletableFuture
+import java.util.concurrent.ExecutionException
 import java.util.concurrent.Future
+import org.apache.kafka.common.errors.TimeoutException as KafkaTimeoutException
 
 @TestApplication
 class KafkaProducerClientTest {
@@ -102,6 +110,41 @@ class KafkaProducerClientTest {
             client.running.set(true)
             client.dispose()
             assertFalse(client.isRunning())
+        }
+    }
+
+    @Nested
+    @DisplayName("createProducerProperties()")
+    inner class ProducerPropertiesTests {
+
+        private fun clientWithProps(props: Properties): KafkaProducerClient {
+            // A client.id keeps createProducerProperties from looking up the plugin version.
+            props[ProducerConfig.CLIENT_ID_CONFIG] = "test"
+            val connectionData = mock<KafkaConnectionData> {
+                on { registryType } doReturn KafkaRegistryType.NONE
+            }
+            val kafkaClient = mock<KafkaClient> {
+                on { this.connectionData } doReturn connectionData
+                on { kafkaProps } doReturn props
+            }
+            return createClient(mock { on { client } doReturn kafkaClient })
+        }
+
+        private fun KafkaProducerClient.props() =
+            createProducerProperties(RecordCompression.NONE, enableIdempotence = false, AcksType.ALL)
+
+        @Test
+        fun `should bound how long send blocks by the send timeout`() {
+            val client = clientWithProps(Properties())
+
+            assertEquals(client.sendTimeoutMs.toString(), client.props()[ProducerConfig.MAX_BLOCK_MS_CONFIG])
+        }
+
+        @Test
+        fun `should keep a max block time set on the connection`() {
+            val client = clientWithProps(Properties().apply { this[ProducerConfig.MAX_BLOCK_MS_CONFIG] = "90000" })
+
+            assertEquals("90000", client.props()[ProducerConfig.MAX_BLOCK_MS_CONFIG])
         }
     }
 
@@ -201,6 +244,39 @@ class KafkaProducerClientTest {
             verify(producer, times(4)).send(any<ProducerRecord<Any, Any>>())
             assertEquals(3, updates.count { it.error == null })
             assertEquals(1, updates.count { it.error != null })
+        }
+
+        @Test
+        fun `should report a Kafka timeout from send as an error row`() {
+            // e.g. no metadata for the topic within max.block.ms because the broker is down
+            val failed = CompletableFuture.failedFuture<RecordMetadata>(
+                KafkaTimeoutException("Topic $topic not present in metadata after 10 ms.")
+            )
+
+            val updates = runProduce(producerReturning(failed), ProducerFlowParams(mode = Mode.MANUAL))
+
+            val row = updates.single()
+            assertEquals(topic, row.topic)
+            assertTrue(row.errorText.contains("not present in metadata"), row.errorText)
+        }
+
+        @Test
+        fun `should count Kafka timeouts from send toward the consecutive timeout stop`() {
+            val failed = CompletableFuture.failedFuture<RecordMetadata>(KafkaTimeoutException("metadata"))
+
+            val updates = runProduce(producerReturning(failed), autoParams())
+
+            assertEquals(KafkaProducerClient.MAX_CONSECUTIVE_SEND_TIMEOUTS + 1, updates.size)
+            assertTrue(updates.last().errorText.contains("Auto mode stopped"), updates.last().errorText)
+        }
+
+        @Test
+        fun `should still propagate send failures that are not timeouts`() {
+            val failed = CompletableFuture.failedFuture<RecordMetadata>(RecordTooLargeException("too large"))
+
+            assertThrows<ExecutionException> {
+                runProduce(producerReturning(failed), ProducerFlowParams(mode = Mode.MANUAL))
+            }
         }
 
         @Test

@@ -27,9 +27,11 @@ import org.apache.kafka.common.serialization.Serializer
 import org.jetbrains.annotations.VisibleForTesting
 import java.time.Duration
 import java.util.*
+import java.util.concurrent.ExecutionException
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
 import java.util.concurrent.atomic.AtomicBoolean
+import org.apache.kafka.common.errors.TimeoutException as KafkaTimeoutException
 
 class KafkaProducerClient(
     val dataManager: KafkaDataManager,
@@ -215,7 +217,8 @@ class KafkaProducerClient(
         return partition
     }
 
-    private fun createProducerProperties(
+    @VisibleForTesting
+    internal fun createProducerProperties(
         recordCompression: RecordCompression,
         enableIdempotence: Boolean,
         acks: AcksType
@@ -226,6 +229,9 @@ class KafkaProducerClient(
         props[ProducerConfig.COMPRESSION_TYPE_CONFIG] = recordCompression.name.lowercase()
         props[AbstractKafkaSchemaSerDeConfig.CONTEXT_NAME_STRATEGY] = NullContextNameStrategy::class.java
         props[AbstractKafkaSchemaSerDeConfig.AUTO_REGISTER_SCHEMAS] = false
+        // A fresh producer has no topic metadata, so send() itself blocks for max.block.ms (60s by default)
+        // when the broker is unreachable. Keep that in line with the send timeout unless the user set it.
+        props.putIfAbsent(ProducerConfig.MAX_BLOCK_MS_CONFIG, sendTimeoutMs.toString())
         if (!props.containsKey(ProducerConfig.CLIENT_ID_CONFIG)) {
             props[ProducerConfig.CLIENT_ID_CONFIG] = "Confluent for IntelliJ ${TelemetryUtils.getPluginVersion()} - Producer"
         }
@@ -314,6 +320,15 @@ class KafkaProducerClient(
             )
             return createErrorRecord(
                 correctKey, correctValue, topic, partition, error,
+                duration = System.currentTimeMillis() - start
+            )
+        } catch (e: ExecutionException) {
+            // Kafka's own timeouts (e.g. no topic metadata within max.block.ms while the broker is down)
+            // are reported like ours; any other send failure still ends the run.
+            val cause = e.cause as? KafkaTimeoutException ?: throw e
+            thisLogger().info("Producer send to $topic failed: ${cause.message}")
+            return createErrorRecord(
+                correctKey, correctValue, topic, partition, cause,
                 duration = System.currentTimeMillis() - start
             )
         }
