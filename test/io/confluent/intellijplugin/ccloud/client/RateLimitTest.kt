@@ -44,7 +44,9 @@ class RateLimitTest {
         client = CCloudRestClient(
             baseUrl = "http://localhost:${wireMockServer.port()}",
             authType = CCloudRestClient.AuthType.DATA_PLANE,
-            authService = authService
+            authService = authService,
+            // Millisecond delays keep the retry tests fast; timing is covered by CCloudRetryPolicyTest
+            retryPolicy = CCloudRetryPolicy.immediate()
         )
     }
 
