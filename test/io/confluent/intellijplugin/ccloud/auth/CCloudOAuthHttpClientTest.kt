@@ -1,9 +1,8 @@
 package io.confluent.intellijplugin.ccloud.auth
 
-import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.WireMock
-import com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig
 import com.intellij.testFramework.junit5.TestApplication
+import io.confluent.intellijplugin.testutil.wireMockExtension
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.*
 import com.intellij.util.io.HttpRequests
@@ -12,33 +11,18 @@ import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Assertions.assertThrows
+import org.junit.jupiter.api.extension.RegisterExtension
 
 @TestApplication
 class CCloudOAuthHttpClientTest {
 
     companion object {
-        private lateinit var wireMockServer: WireMockServer
-
-        @JvmStatic
-        @BeforeAll
-        fun setUpAll() {
-            wireMockServer = WireMockServer(wireMockConfig().dynamicPort())
-            wireMockServer.start()
-        }
-
-        @JvmStatic
-        @AfterAll
-        fun tearDownAll() {
-            wireMockServer.stop()
-        }
+        @JvmField
+        @RegisterExtension
+        val wireMock = wireMockExtension()
     }
 
-    @AfterEach
-    fun cleanUp() {
-        wireMockServer.resetAll()
-    }
-
-    private fun baseUrl(): String = "http://localhost:${wireMockServer.port()}"
+    private fun baseUrl(): String = wireMock.baseUrl()
 
     @Nested
     @DisplayName("extractCookie")
@@ -102,7 +86,7 @@ class CCloudOAuthHttpClientTest {
 
         @Test
         fun `includes User-Agent header in postForm requests`() {
-            wireMockServer.stubFor(
+            wireMock.stubFor(
                 WireMock.post("/oauth/token")
                     .willReturn(
                         WireMock.aResponse()
@@ -119,13 +103,13 @@ class CCloudOAuthHttpClientTest {
                 )
             }
 
-            wireMockServer.verify(WireMock.postRequestedFor(WireMock.urlEqualTo("/oauth/token"))
+            wireMock.verify(WireMock.postRequestedFor(WireMock.urlEqualTo("/oauth/token"))
                 .withHeader("User-Agent", WireMock.matching("confluent-for-intellij/v.+ \\(https://confluent\\.io; support@confluent\\.io\\)")))
         }
 
         @Test
         fun `includes User-Agent header in get requests`() {
-            wireMockServer.stubFor(
+            wireMock.stubFor(
                 WireMock.get("/api/check_jwt")
                     .willReturn(
                         WireMock.aResponse()
@@ -142,7 +126,7 @@ class CCloudOAuthHttpClientTest {
                 )
             }
 
-            wireMockServer.verify(WireMock.getRequestedFor(WireMock.urlEqualTo("/api/check_jwt"))
+            wireMock.verify(WireMock.getRequestedFor(WireMock.urlEqualTo("/api/check_jwt"))
                 .withHeader("User-Agent", WireMock.matching("confluent-for-intellij/v.+ \\(https://confluent\\.io; support@confluent\\.io\\)")))
         }
     }
@@ -153,7 +137,7 @@ class CCloudOAuthHttpClientTest {
 
         @Test
         fun `parses successful token response`() {
-            wireMockServer.stubFor(
+            wireMock.stubFor(
                 WireMock.post("/oauth/token")
                     .withRequestBody(WireMock.containing("grant_type=authorization_code"))
                     .willReturn(
@@ -187,7 +171,7 @@ class CCloudOAuthHttpClientTest {
 
         @Test
         fun `parses error response`() {
-            wireMockServer.stubFor(
+            wireMock.stubFor(
                 WireMock.post("/oauth/token")
                     .willReturn(
                         WireMock.aResponse()
@@ -210,7 +194,7 @@ class CCloudOAuthHttpClientTest {
 
         @Test
         fun `url-encodes special characters`() {
-            wireMockServer.stubFor(
+            wireMock.stubFor(
                 WireMock.post("/oauth/token")
                     .withRequestBody(WireMock.containing("redirect_uri=http%3A%2F%2Flocalhost"))
                     .willReturn(
@@ -233,7 +217,7 @@ class CCloudOAuthHttpClientTest {
 
         @Test
         fun `throws HttpStatusException on 500 server error`() {
-            wireMockServer.stubFor(
+            wireMock.stubFor(
                 WireMock.post("/oauth/token")
                     .willReturn(
                         WireMock.aResponse()
@@ -263,7 +247,7 @@ class CCloudOAuthHttpClientTest {
 
         @Test
         fun `returns status code and extracts auth token from cookie`() {
-            wireMockServer.stubFor(
+            wireMock.stubFor(
                 WireMock.post("/api/sessions")
                     .withRequestBody(WireMock.matchingJsonPath("$.id_token"))
                     .willReturn(
@@ -294,7 +278,7 @@ class CCloudOAuthHttpClientTest {
         fun `handles error response with status code`() {
             // Use 400 instead of 401 - Java's HttpURLConnection has special auth handling for 401
             // that can interfere with reading the error body
-            wireMockServer.stubFor(
+            wireMock.stubFor(
                 WireMock.post("/api/sessions")
                     .willReturn(
                         WireMock.aResponse()
@@ -322,7 +306,7 @@ class CCloudOAuthHttpClientTest {
 
         @Test
         fun `throws HttpStatusException on 500 server error`() {
-            wireMockServer.stubFor(
+            wireMock.stubFor(
                 WireMock.post("/api/sessions")
                     .willReturn(
                         WireMock.aResponse()
@@ -351,7 +335,7 @@ class CCloudOAuthHttpClientTest {
 
         @Test
         fun `parses data plane token response`() {
-            wireMockServer.stubFor(
+            wireMock.stubFor(
                 WireMock.post("/api/access_tokens")
                     .withHeader("Authorization", WireMock.equalTo("Bearer cp_token"))
                     .withRequestBody(WireMock.equalTo("{}"))
@@ -377,7 +361,7 @@ class CCloudOAuthHttpClientTest {
 
         @Test
         fun `parses error response`() {
-            wireMockServer.stubFor(
+            wireMock.stubFor(
                 WireMock.post("/api/access_tokens")
                     .willReturn(
                         WireMock.aResponse()
@@ -402,7 +386,7 @@ class CCloudOAuthHttpClientTest {
 
         @Test
         fun `parses 400 error response from errorStream`() {
-            wireMockServer.stubFor(
+            wireMock.stubFor(
                 WireMock.post("/api/access_tokens")
                     .willReturn(
                         WireMock.aResponse()
@@ -427,7 +411,7 @@ class CCloudOAuthHttpClientTest {
 
         @Test
         fun `throws HttpStatusException on 500 server error`() {
-            wireMockServer.stubFor(
+            wireMock.stubFor(
                 WireMock.post("/api/access_tokens")
                     .willReturn(
                         WireMock.aResponse()
@@ -457,7 +441,7 @@ class CCloudOAuthHttpClientTest {
 
         @Test
         fun `sends get with bearer token`() {
-            wireMockServer.stubFor(
+            wireMock.stubFor(
                 WireMock.get("/api/check_jwt")
                     .withHeader("Authorization", WireMock.equalTo("Bearer valid_token"))
                     .willReturn(
@@ -482,7 +466,7 @@ class CCloudOAuthHttpClientTest {
 
         @Test
         fun `parses error response`() {
-            wireMockServer.stubFor(
+            wireMock.stubFor(
                 WireMock.get("/api/check_jwt")
                     .willReturn(
                         WireMock.aResponse()
@@ -506,7 +490,7 @@ class CCloudOAuthHttpClientTest {
 
         @Test
         fun `parses 400 error response from errorStream`() {
-            wireMockServer.stubFor(
+            wireMock.stubFor(
                 WireMock.get("/api/check_jwt")
                     .willReturn(
                         WireMock.aResponse()
@@ -530,7 +514,7 @@ class CCloudOAuthHttpClientTest {
 
         @Test
         fun `throws HttpStatusException on 500 server error`() {
-            wireMockServer.stubFor(
+            wireMock.stubFor(
                 WireMock.get("/api/check_jwt")
                     .willReturn(
                         WireMock.aResponse()
