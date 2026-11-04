@@ -2,6 +2,7 @@ package io.confluent.intellijplugin.toolwindow.controllers
 
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.actionSystem.*
+import com.intellij.openapi.application.runInEdt
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.DumbAwareToggleAction
 import com.intellij.openapi.project.Project
@@ -125,7 +126,8 @@ internal class TopicsController(
                 infoPanel.text = TopicStatisticInfo.createFor(dataManager.getTopics()).toString()
             }
 
-            override fun onError(msg: String, e: Throwable?) {
+            // onError is called from a pooled thread; TableErrorHandler owns the error empty text.
+            override fun onError(msg: String, e: Throwable?) = runInEdt {
                 updateUIForEmptyState()
                 infoPanel.text = TopicStatisticInfo.createFor(dataManager.getTopics()).toString()
             }
@@ -152,7 +154,7 @@ internal class TopicsController(
 
         infoPanel.isVisible = hasTopics
 
-        if (!hasTopics) {
+        if (!hasTopics && dataManager.topicModel.error == null) {
             updateEmptyText()
         }
     }
