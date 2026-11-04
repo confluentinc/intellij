@@ -11,7 +11,7 @@ All noteworthy changes to this plugin will be documented in this file.
 ### Removed
 ### Fixed
 - Deleting a consumer group that the broker rejects (for example, one that still has active members) now shows an error instead of appearing to succeed.
-- The Confluent Cloud consumer no longer retries server errors forever, or keeps polling after you sign out. It now retries network errors and timeouts, and stops with an error after 10 consecutive failures.
+- The Confluent Cloud consumer no longer retries server errors forever, or keeps polling after you sign out. It now retries network errors, timeouts, rate limiting and server errors, and stops with an error after 10 consecutive failed polls (about 2 minutes for most errors).
 
 ## 253.25910.2
 ### Fixed
