@@ -28,17 +28,21 @@ import kotlin.time.Duration
  * @param additionalHeaders Extra headers required for specific APIs (e.g., "target-sr-cluster" for Schema Registry)
  * @param authService Optional auth service (for testing purposes)
  * @param retryPolicy Retry timing policy; also clamps parsed `Retry-After` values
+ * @param connectTimeoutMs Connect timeout per request
+ * @param readTimeoutMs Read timeout per request
  */
 class CCloudRestClient(
     private val baseUrl: String,
     private val authType: AuthType,
     private val additionalHeaders: Map<String, String> = emptyMap(),
     private val authService: CCloudAuthService? = null,
-    private val retryPolicy: CCloudRetryPolicy = CCloudRetryPolicy.DEFAULT
+    private val retryPolicy: CCloudRetryPolicy = CCloudRetryPolicy.DEFAULT,
+    private val connectTimeoutMs: Int = CONNECT_TIMEOUT_MS,
+    private val readTimeoutMs: Int = READ_TIMEOUT_MS
 ) {
     companion object {
-        private const val CONNECT_TIMEOUT_MS = 10_000 // 10 seconds
-        private const val READ_TIMEOUT_MS = 60_000    // 1 minute
+        internal const val CONNECT_TIMEOUT_MS = 10_000 // 10 seconds
+        internal const val READ_TIMEOUT_MS = 60_000    // 1 minute
         private const val MAX_RETRY_ATTEMPTS = 4
         private const val INITIAL_BACKOFF_MS = 1000L
         private const val MAX_BACKOFF_MS = 10_000L
@@ -301,8 +305,8 @@ class CCloudRestClient(
     ): RawResponse = runInterruptible(Dispatchers.IO) {
         try {
             HttpRequests.request(url)
-                .connectTimeout(CONNECT_TIMEOUT_MS)
-                .readTimeout(READ_TIMEOUT_MS)
+                .connectTimeout(connectTimeoutMs)
+                .readTimeout(readTimeoutMs)
                 .throwStatusCodeException(false)
                 .tuner { conn ->
                     (conn as? HttpURLConnection)?.requestMethod = method
