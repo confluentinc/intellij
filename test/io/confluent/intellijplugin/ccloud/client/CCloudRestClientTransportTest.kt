@@ -7,6 +7,7 @@ import com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor
 import com.github.tomakehurst.wiremock.client.WireMock.post
 import com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor
 import com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo
+import com.github.tomakehurst.wiremock.stubbing.Scenario
 import com.intellij.testFramework.junit5.TestApplication
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -23,6 +24,7 @@ import java.net.ConnectException
 import java.net.ServerSocket
 import java.net.SocketTimeoutException
 import java.util.zip.GZIPOutputStream
+import kotlin.concurrent.thread
 import kotlin.time.Duration.Companion.seconds
 
 /** Tests for the shared HTTP transport behind fetch / fetchList / executeRequest. */
@@ -116,6 +118,80 @@ class CCloudRestClientTransportTest {
 
             assertEquals(404, exception.statusCode)
             assertEquals("Subject 'orders-value' not found. (HTTP 404)", exception.message)
+        }
+    }
+
+    /** A failure while reading an error body must not erase the HTTP status or Retry-After. */
+    @Nested
+    inner class UnreadableErrorBody {
+
+        @Test
+        fun `invalid gzip error body should keep status and Retry-After`() = runBlocking {
+            wireMock.stubFor(
+                get(urlEqualTo("/test")).willReturn(
+                    aResponse().withStatus(503)
+                        .withHeader("Retry-After", "7")
+                        .withHeader("Content-Encoding", "gzip")
+                        .withBody("definitely not gzip")
+                )
+            )
+
+            val exception = assertThrows<CCloudApiException> { client.fetch("/test") { it } }
+
+            assertEquals(503, exception.statusCode)
+            assertEquals(7.seconds, exception.retryAfter)
+        }
+
+        @Test
+        fun `error body read timeout should keep status and Retry-After`() = runBlocking {
+            // WireMock can't send headers and then stall the body (its dribble delays the headers too),
+            // so use a raw socket: full status line and headers, a partial body, then silence.
+            ServerSocket(0).use { server ->
+                val responder = thread(isDaemon = true) {
+                    runCatching {
+                        server.accept().use { socket ->
+                            socket.getInputStream().read(ByteArray(8192)) // consume the request
+                            socket.getOutputStream().apply {
+                                write(
+                                    ("HTTP/1.1 503 Service Unavailable\r\nRetry-After: 7\r\n" +
+                                        "Content-Length: 100\r\n\r\n{\"message\":").toByteArray()
+                                )
+                                flush()
+                            }
+                            Thread.sleep(2_000)
+                        }
+                    }
+                }
+                val slow = testClient("http://localhost:${server.localPort}", readTimeoutMs = 200)
+
+                val exception = assertThrows<CCloudApiException> { slow.fetch("/test") { it } }
+
+                assertEquals(503, exception.statusCode)
+                assertEquals(7.seconds, exception.retryAfter)
+                responder.interrupt()
+            }
+        }
+
+        @Test
+        fun `429 with unreadable error body should still be retried`() = runBlocking {
+            wireMock.stubFor(
+                get(urlEqualTo("/test")).inScenario("unreadable-429")
+                    .whenScenarioStateIs(Scenario.STARTED)
+                    .willReturn(
+                        aResponse().withStatus(429)
+                            .withHeader("Content-Encoding", "gzip")
+                            .withBody("definitely not gzip")
+                    )
+                    .willSetStateTo("recovered")
+            )
+            wireMock.stubFor(
+                get(urlEqualTo("/test")).inScenario("unreadable-429")
+                    .whenScenarioStateIs("recovered")
+                    .willReturn(aResponse().withStatus(200).withBody(fixture("simple-ok.json")))
+            )
+
+            assertEquals(fixture("simple-ok.json"), client.fetch("/test") { it })
+            wireMock.verify(2, getRequestedFor(urlEqualTo("/test")))
         }
     }
 

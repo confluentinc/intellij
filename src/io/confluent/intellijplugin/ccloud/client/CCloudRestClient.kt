@@ -14,6 +14,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import org.json.JSONObject
+import java.io.IOException
 import java.net.ConnectException
 import java.net.HttpURLConnection
 import java.net.NoRouteToHostException
@@ -324,12 +325,11 @@ class CCloudRestClient(
                     if (statusCode in 200..299) {
                         RawResponse(statusCode, request.readString(), retryAfter = null)
                     } else {
-                        // readError() decompresses gzip (HttpRequests sends Accept-Encoding: gzip) and honors the charset
-                        val errorBody = request.readError() ?: ""
+                        // Read headers before the body: a body failure must not lose the status or Retry-After
                         val retryAfter = retryPolicy.parseRetryAfter(
                             conn.getHeaderField(CCloudRetryPolicy.RETRY_AFTER_HEADER)
                         )
-                        RawResponse(statusCode, errorBody, retryAfter)
+                        RawResponse(statusCode, readErrorBody(request, statusCode), retryAfter)
                     }
                 }
         } catch (e: ConnectException) {
@@ -342,6 +342,19 @@ class CCloudRestClient(
             // Includes timeouts (SocketTimeoutException) - those are deliberately not connect errors
             throw CCloudApiException("Request failed: ${e.message ?: "Unknown error"}", 0, cause = e)
         }
+    }
+
+    /**
+     * Error body via `readError()`, which decompresses gzip (HttpRequests sends `Accept-Encoding: gzip`)
+     * and honors the charset. An unreadable body (bad gzip, timeout mid-body) becomes empty so the
+     * caller still sees the real status, unless the thread was interrupted by coroutine cancellation.
+     */
+    private fun readErrorBody(request: HttpRequests.Request, statusCode: Int): String = try {
+        request.readError() ?: ""
+    } catch (e: IOException) {
+        if (Thread.currentThread().isInterrupted) throw e
+        thisLogger().info("Could not read HTTP $statusCode error body: ${e.message}")
+        ""
     }
 
     private fun extractErrorMessage(responseBody: String, statusCode: Int): String {
