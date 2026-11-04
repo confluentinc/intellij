@@ -1,6 +1,7 @@
 package io.confluent.intellijplugin.ccloud.client
 
 import com.github.tomakehurst.wiremock.client.MappingBuilder
+import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder
 import com.github.tomakehurst.wiremock.client.WireMock.aResponse
 import com.github.tomakehurst.wiremock.client.WireMock.get
 import com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor
@@ -83,6 +84,15 @@ class CCloudRestClientRetryTest {
     ) {
         val failure = aResponse().withStatus(status).withBody(fixture(errorFixture))
         retryAfter?.let { failure.withHeader("Retry-After", it) }
+        stubFailThenSucceed(request, failure, okBody)
+    }
+
+    /** First call returns [failure], subsequent calls return 200 with [okBody]. */
+    private fun stubFailThenSucceed(
+        request: () -> MappingBuilder,
+        failure: ResponseDefinitionBuilder,
+        okBody: String = fixture("simple-ok.json")
+    ) {
         wireMock.stubFor(
             request().inScenario("retry").whenScenarioStateIs(Scenario.STARTED)
                 .willReturn(failure).willSetStateTo("recovered")
@@ -133,20 +143,11 @@ class CCloudRestClientRetryTest {
 
         @Test
         fun `429 with unreadable error body should still be retried`() = runBlocking {
-            wireMock.stubFor(
-                get(urlEqualTo("/test")).inScenario("unreadable-429")
-                    .whenScenarioStateIs(Scenario.STARTED)
-                    .willReturn(
-                        aResponse().withStatus(429)
-                            .withHeader("Content-Encoding", "gzip")
-                            .withBody("definitely not gzip")
-                    )
-                    .willSetStateTo("recovered")
-            )
-            wireMock.stubFor(
-                get(urlEqualTo("/test")).inScenario("unreadable-429")
-                    .whenScenarioStateIs("recovered")
-                    .willReturn(aResponse().withStatus(200).withBody(fixture("simple-ok.json")))
+            stubFailThenSucceed(
+                { get(urlEqualTo("/test")) },
+                aResponse().withStatus(429)
+                    .withHeader("Content-Encoding", "gzip")
+                    .withBody("definitely not gzip")
             )
 
             assertEquals(fixture("simple-ok.json"), client.fetch("/test") { it })
