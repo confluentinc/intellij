@@ -203,7 +203,7 @@ class CCloudRestClient(
 
     private fun describe(e: CCloudApiException): String = when (e) {
         is CCloudConnectException -> "connection failed"
-        else -> "HTTP ${e.statusCode}" + (e.retryAfter?.let { ", Retry-After ${it.inWholeSeconds}s" } ?: "")
+        else -> "HTTP ${e.statusCode}" + (e.retryAfter?.let { ", Retry-After $it" } ?: "")
     }
 
     /**
