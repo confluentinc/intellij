@@ -1,56 +1,26 @@
 package io.confluent.intellijplugin.ccloud.client
 
-import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.WireMock.*
-import com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig
 import com.intellij.testFramework.junit5.TestApplication
-import io.confluent.intellijplugin.ccloud.auth.CCloudAuthService
 import kotlinx.coroutines.*
 import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.*
-import org.mockito.kotlin.mock
-import org.mockito.kotlin.whenever
+import org.junit.jupiter.api.extension.RegisterExtension
 
 @TestApplication
 class RateLimitTest {
 
     companion object {
-        private lateinit var wireMockServer: WireMockServer
-        private const val TEST_TOKEN = "test-token"
-
-        @JvmStatic
-        @BeforeAll
-        fun setUpAll() {
-            wireMockServer = WireMockServer(wireMockConfig().dynamicPort())
-            wireMockServer.start()
-        }
-
-        @JvmStatic
-        @AfterAll
-        fun tearDownAll() {
-            wireMockServer.stop()
-        }
+        @JvmField
+        @RegisterExtension
+        val wireMock = wireMockExtension()
     }
 
     private lateinit var client: CCloudRestClient
-    private lateinit var authService: CCloudAuthService
 
     @BeforeEach
     fun setup() {
-        authService = mock()
-        whenever(authService.isSignedIn()).thenReturn(true)
-        whenever(authService.getDataPlaneToken()).thenReturn(TEST_TOKEN)
-
-        client = CCloudRestClient(
-            baseUrl = "http://localhost:${wireMockServer.port()}",
-            authType = CCloudRestClient.AuthType.DATA_PLANE,
-            authService = authService
-        )
-    }
-
-    @AfterEach
-    fun cleanUp() {
-        wireMockServer.resetAll()
+        client = testClient(wireMock.baseUrl())
     }
 
     @Nested
@@ -60,7 +30,7 @@ class RateLimitTest {
         @Test
         fun `retries on 429 error and succeeds on second attempt`() = runBlocking {
             // First request: 429
-            wireMockServer.stubFor(
+            wireMock.stubFor(
                 get(urlEqualTo("/test"))
                     .inScenario("Retry")
                     .whenScenarioStateIs("Started")
@@ -69,7 +39,7 @@ class RateLimitTest {
             )
 
             // Second request: 200 OK
-            wireMockServer.stubFor(
+            wireMock.stubFor(
                 get(urlEqualTo("/test"))
                     .inScenario("Retry")
                     .whenScenarioStateIs("FirstAttempt")
@@ -79,13 +49,13 @@ class RateLimitTest {
             val result = client.fetch("/test") { it }
 
             assertEquals("Success", result)
-            wireMockServer.verify(2, getRequestedFor(urlEqualTo("/test")))
+            wireMock.verify(2, getRequestedFor(urlEqualTo("/test")))
         }
 
         @Test
         fun `throws exception after max retries`() = runBlocking {
             // Always return 429
-            wireMockServer.stubFor(
+            wireMock.stubFor(
                 get(urlEqualTo("/test"))
                     .willReturn(aResponse().withStatus(429).withBody("Rate limit exceeded"))
             )
@@ -96,12 +66,12 @@ class RateLimitTest {
 
             assertEquals(429, exception.statusCode)
             // Should try 4 times (initial + 3 retries)
-            wireMockServer.verify(4, getRequestedFor(urlEqualTo("/test")))
+            wireMock.verify(4, getRequestedFor(urlEqualTo("/test")))
         }
 
         @Test
         fun `does not retry on non-429 errors`() = runBlocking {
-            wireMockServer.stubFor(
+            wireMock.stubFor(
                 get(urlEqualTo("/test"))
                     .willReturn(aResponse().withStatus(500).withBody("Internal Server Error"))
             )
@@ -112,7 +82,7 @@ class RateLimitTest {
 
             assertEquals(500, exception.statusCode)
             // Should only try once (no retries for non-429)
-            wireMockServer.verify(1, getRequestedFor(urlEqualTo("/test")))
+            wireMock.verify(1, getRequestedFor(urlEqualTo("/test")))
         }
     }
 
