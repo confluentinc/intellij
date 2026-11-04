@@ -5,10 +5,15 @@ import com.github.tomakehurst.wiremock.client.WireMock.*
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig
 import com.intellij.testFramework.junit5.TestApplication
 import io.confluent.intellijplugin.ccloud.auth.CCloudAuthService
+import io.confluent.intellijplugin.ccloud.client.CCloudApiException
 import io.confluent.intellijplugin.ccloud.client.CCloudRestClient
+import io.confluent.intellijplugin.ccloud.client.CCloudRetryPolicy
+import io.confluent.intellijplugin.ccloud.model.response.ConsumeRecordsRequest
 import io.confluent.intellijplugin.ccloud.util.ResourceLoader
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.*
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.ValueSource
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotNull
@@ -372,6 +377,89 @@ class DataPlaneFetcherImplTest {
             val result = fetcher.getSchemaCompatibility("user-schema")
 
             assertEquals("BACKWARD", result.compatibilityLevel)
+        }
+    }
+
+    /**
+     * Consume calls make a single attempt: the consumer poll loop is the only retry layer.
+     * Uses a near-instant retry policy so a regression shows up as extra requests, not a slow test.
+     */
+    @Nested
+    @DisplayName("consume retries")
+    inner class ConsumeRetryTests {
+
+        private val consumePath =
+            "/kafka/v3/clusters/$TEST_CLUSTER_ID/internal/topics/orders/partitions/-/records:consume_guarantee_progress"
+        private val partitionConsumePath = "/kafka/v3/clusters/$TEST_CLUSTER_ID/internal/topics/orders/partitions/0/records"
+        private val partitionsPath = "/kafka/v3/clusters/$TEST_CLUSTER_ID/topics/orders/partitions"
+
+        private lateinit var fastFetcher: DataPlaneFetcherImpl
+
+        @BeforeEach
+        fun setupFastFetcher() {
+            val kafkaClient = CCloudRestClient(
+                baseUrl = "http://localhost:${wireMockServer.port()}",
+                authType = CCloudRestClient.AuthType.DATA_PLANE,
+                authService = authService,
+                retryPolicy = CCloudRetryPolicy.immediate()
+            )
+            fastFetcher = DataPlaneFetcherImpl(kafkaClient, null, TEST_CLUSTER_ID, null)
+        }
+
+        private fun fixture(path: String): String =
+            javaClass.getResourceAsStream("/fixtures/$path")!!.bufferedReader().use { it.readText() }
+
+        private fun errorFixtureFor(status: Int) =
+            if (status == 429) "ccloud/error-rate-limited.json" else "ccloud/error-service-unavailable.json"
+
+        private fun failing(status: Int) = aResponse().withStatus(status).withBody(fixture(errorFixtureFor(status)))
+
+        @ParameterizedTest
+        @ValueSource(ints = [429, 503])
+        fun `consumeRecords should not retry in the client`(status: Int) = runBlocking<Unit> {
+            wireMockServer.stubFor(post(urlPathEqualTo(consumePath)).willReturn(failing(status)))
+
+            val exception = assertThrows<CCloudApiException> {
+                fastFetcher.consumeRecords("orders", ConsumeRecordsRequest())
+            }
+
+            assertEquals(status, exception.statusCode)
+            wireMockServer.verify(1, postRequestedFor(urlPathEqualTo(consumePath)))
+        }
+
+        @Test
+        fun `consumeRecords should parse a successful response`() = runBlocking<Unit> {
+            wireMockServer.stubFor(
+                post(urlPathEqualTo(consumePath))
+                    .willReturn(aResponse().withStatus(200).withBody(fixture("consumer/empty-consume-response.json")))
+            )
+
+            val response = fastFetcher.consumeRecords("orders", ConsumeRecordsRequest())
+
+            assertTrue(response.partitionDataList.isEmpty())
+            wireMockServer.verify(1, postRequestedFor(urlPathEqualTo(consumePath)))
+        }
+
+        @ParameterizedTest
+        @ValueSource(ints = [429, 503])
+        fun `consumePartitionRecords should not retry in the client`(status: Int) = runBlocking<Unit> {
+            wireMockServer.stubFor(get(urlPathEqualTo(partitionConsumePath)).willReturn(failing(status)))
+
+            val exception = assertThrows<CCloudApiException> {
+                fastFetcher.consumePartitionRecords("orders", 0, timestamp = 1L)
+            }
+
+            assertEquals(status, exception.statusCode)
+            wireMockServer.verify(1, getRequestedFor(urlPathEqualTo(partitionConsumePath)))
+        }
+
+        @Test
+        fun `non-consume GETs should keep client retries`() = runBlocking<Unit> {
+            wireMockServer.stubFor(get(urlPathEqualTo(partitionsPath)).willReturn(failing(503)))
+
+            assertThrows<CCloudApiException> { fastFetcher.describeTopicPartitions("orders") }
+
+            wireMockServer.verify(CCloudRetryPolicy.immediate().maxAttempts, getRequestedFor(urlPathEqualTo(partitionsPath)))
         }
     }
 }
