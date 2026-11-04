@@ -1,8 +1,0 @@
-{
-  "errors": [
-    {
-      "status": "429",
-      "message": "Too many requests"
-    }
-  ]
-}

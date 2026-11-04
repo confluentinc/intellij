@@ -60,10 +60,14 @@ class CCloudRestClientTransportTest {
     private lateinit var authService: CCloudAuthService
     private lateinit var client: CCloudRestClient
 
-    private fun clientFor(baseUrl: String) = CCloudRestClient(
+    private fun clientFor(
+        baseUrl: String,
+        retryPolicy: CCloudRetryPolicy = CCloudRetryPolicy.DEFAULT
+    ) = CCloudRestClient(
         baseUrl = baseUrl,
         authType = CCloudRestClient.AuthType.DATA_PLANE,
-        authService = authService
+        authService = authService,
+        retryPolicy = retryPolicy
     )
 
     @BeforeEach
@@ -172,9 +176,14 @@ class CCloudRestClientTransportTest {
                     .willReturn(aResponse().withStatus(503).withHeader("Retry-After", "3600"))
             )
 
-            val exception = assertThrows<CCloudApiException> { client.fetch("/test") { it } }
+            val clamped = clientFor(
+                "http://localhost:${wireMockServer.port()}",
+                CCloudRetryPolicy(maxRetryAfter = 5.seconds)
+            )
 
-            assertEquals(60.seconds, exception.retryAfter)
+            val exception = assertThrows<CCloudApiException> { clamped.fetch("/test") { it } }
+
+            assertEquals(5.seconds, exception.retryAfter)
         }
 
         @Test
@@ -241,7 +250,7 @@ class CCloudRestClientTransportTest {
     inner class ConnectFailures {
 
         @Test
-        fun `connection refused should raise CCloudConnectException with status 0`() = runBlocking {
+        fun `connection refused should raise CCloudConnectException with status 0`() = runBlocking<Unit> {
             val refused = clientFor("http://localhost:${closedPort()}")
 
             val exception = assertThrows<CCloudApiException> { refused.fetch("/test") { it } }
@@ -252,7 +261,7 @@ class CCloudRestClientTransportTest {
         }
 
         @Test
-        fun `connection refused on executeRequest should raise CCloudConnectException`() = runBlocking {
+        fun `connection refused on executeRequest should raise CCloudConnectException`() = runBlocking<Unit> {
             val refused = clientFor("http://localhost:${closedPort()}")
 
             val exception = assertThrows<CCloudApiException> { refused.executeRequest("/records", "POST", "{}") }

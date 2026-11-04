@@ -219,7 +219,7 @@ class CCloudRestClient(
         limits: PageLimits = PageLimits.DEFAULT,
         parser: (String) -> Pair<List<T>, String?>
     ): List<T> {
-        return listItems(getAuthHeaders(), path, limits, parser)
+        return listItems(path, limits, parser)
     }
 
     /**
@@ -243,7 +243,6 @@ class CCloudRestClient(
     }
 
     private suspend fun <T> listItems(
-        headers: Map<String, String>,
         uri: String,
         limits: PageLimits = PageLimits.DEFAULT,
         parser: (String) -> Pair<List<T>, String?>
@@ -256,14 +255,13 @@ class CCloudRestClient(
         while (state.nextUrl != null) {
             val url = state.nextUrl!!
 
-            // Prevent infinite loops from API bugs
-            if (!visitedUrls.add(url)) {
-                throw CCloudApiException("Pagination loop detected: duplicate URL encountered", 0)
-            }
+            // Prevent infinite loops from API bugs. Not a CCloudApiException: the server answered,
+            // and retrying would hit the same loop.
+            check(visitedUrls.add(url)) { "Pagination loop detected: duplicate URL encountered" }
 
             // Apply rate limiting to each pagination request
             val body = withRateLimit {
-                send(url, "GET", headers).requireSuccess()
+                send(url, "GET", getAuthHeaders()).requireSuccess()
             }.body
 
             val (items, nextPageUrl) = parser(body)
@@ -329,8 +327,6 @@ class CCloudRestClient(
                         RawResponse(statusCode, errorBody, retryAfter)
                     }
                 }
-        } catch (e: HttpRequests.HttpStatusException) {
-            throw CCloudApiException("HTTP ${e.statusCode}: ${e.message ?: "Unknown error"}", e.statusCode)
         } catch (e: ConnectException) {
             throw CCloudConnectException("Request failed: ${e.message ?: "Connection failed"}", e)
         } catch (e: UnknownHostException) {

@@ -188,7 +188,7 @@ class CCloudRestClientTest {
             // API returns same URL as next, creating infinite loop
             stubEnvironmentsPage(listOf("env-abc123"), "http://localhost:${wireMockServer.port()}/org/v2/environments")
 
-            val exception = assertThrows<CCloudApiException> { fetchEnvironments() }
+            val exception = assertThrows<IllegalStateException> { fetchEnvironments() }
 
             assertTrue(exception.message!!.contains("loop detected"))
         }
