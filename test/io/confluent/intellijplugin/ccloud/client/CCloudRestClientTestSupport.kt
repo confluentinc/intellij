@@ -1,6 +1,7 @@
 package io.confluent.intellijplugin.ccloud.client
 
 import io.confluent.intellijplugin.ccloud.auth.CCloudAuthService
+import io.confluent.intellijplugin.testutil.fixture
 import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.mock
 
@@ -30,3 +31,6 @@ internal fun testClient(
     retryPolicy = retryPolicy,
     readTimeoutMs = readTimeoutMs
 )
+
+/** Reads `/fixtures/ccloud/<name>` as text. */
+internal fun ccloudFixture(name: String): String = fixture("ccloud", name)
