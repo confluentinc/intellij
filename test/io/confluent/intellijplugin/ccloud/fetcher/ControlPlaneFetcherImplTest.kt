@@ -1,65 +1,45 @@
 package io.confluent.intellijplugin.ccloud.fetcher
 
-import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.WireMock.*
-import com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig
 import com.intellij.testFramework.junit5.TestApplication
-import io.confluent.intellijplugin.ccloud.auth.CCloudAuthService
 import io.confluent.intellijplugin.ccloud.client.CCloudRestClient
+import io.confluent.intellijplugin.ccloud.client.TEST_CONTROL_PLANE_TOKEN
+import io.confluent.intellijplugin.ccloud.client.testClient
 import io.confluent.intellijplugin.ccloud.util.ResourceLoader
+import io.confluent.intellijplugin.testutil.wireMockExtension
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.*
-import org.mockito.kotlin.mock
-import org.mockito.kotlin.whenever
+import org.junit.jupiter.api.extension.RegisterExtension
 
 @TestApplication
 class ControlPlaneFetcherImplTest {
 
     companion object {
-        private lateinit var wireMockServer: WireMockServer
-        private const val TEST_CONTROL_PLANE_TOKEN = "test-control-plane-token"
-
-        @JvmStatic
-        @BeforeAll
-        fun setUpAll() {
-            wireMockServer = WireMockServer(wireMockConfig().dynamicPort())
-            wireMockServer.start()
-            System.setProperty("ccloud.control-plane.base-url", "http://localhost:${wireMockServer.port()}")
-        }
+        @JvmField
+        @RegisterExtension
+        val wireMock = wireMockExtension()
 
         @JvmStatic
         @AfterAll
         fun tearDownAll() {
-            wireMockServer.stop()
             System.clearProperty("ccloud.control-plane.base-url")
         }
     }
 
     private lateinit var fetcher: ControlPlaneFetcherImpl
-    private lateinit var authService: CCloudAuthService
 
     @BeforeEach
     fun setup() {
-        authService = mock()
-        whenever(authService.isSignedIn()).thenReturn(true)
-        whenever(authService.getControlPlaneToken()).thenReturn(TEST_CONTROL_PLANE_TOKEN)
-
-        val client = CCloudRestClient(
-            baseUrl = "http://localhost:${wireMockServer.port()}",
-            authType = CCloudRestClient.AuthType.CONTROL_PLANE,
-            authService = authService
+        // The extension may restart on a new port per @Nested class, so point the property at it per test.
+        System.setProperty("ccloud.control-plane.base-url", wireMock.baseUrl())
+        fetcher = ControlPlaneFetcherImpl(
+            testClient(wireMock.baseUrl(), authType = CCloudRestClient.AuthType.CONTROL_PLANE)
         )
-        fetcher = ControlPlaneFetcherImpl(client)
-    }
-
-    @AfterEach
-    fun cleanUp() {
-        wireMockServer.resetAll()
     }
 
     private fun stubGetRequest(path: String, responseBody: String) {
-        wireMockServer.stubFor(
+        wireMock.stubFor(
             get(path)
                 .withHeader("Authorization", equalTo("Bearer $TEST_CONTROL_PLANE_TOKEN"))
                 .willReturn(

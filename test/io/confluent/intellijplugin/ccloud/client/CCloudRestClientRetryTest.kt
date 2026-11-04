@@ -11,6 +11,8 @@ import com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo
 import com.github.tomakehurst.wiremock.http.Fault
 import com.github.tomakehurst.wiremock.stubbing.Scenario
 import com.intellij.testFramework.junit5.TestApplication
+import io.confluent.intellijplugin.testutil.closedPort
+import io.confluent.intellijplugin.testutil.wireMockExtension
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -24,7 +26,6 @@ import org.junit.jupiter.api.extension.RegisterExtension
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.ValueSource
 import java.net.ConnectException
-import java.net.ServerSocket
 import kotlin.random.Random
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
@@ -39,12 +40,6 @@ class CCloudRestClientRetryTest {
         @JvmField
         @RegisterExtension
         val wireMock = wireMockExtension()
-
-        private fun fixture(name: String): String =
-            CCloudRestClientRetryTest::class.java.getResourceAsStream("/fixtures/ccloud/$name")!!
-                .bufferedReader().use { it.readText() }
-
-        private fun closedPort(): Int = ServerSocket(0).use { it.localPort }
     }
 
     /**
@@ -80,9 +75,9 @@ class CCloudRestClientRetryTest {
         status: Int,
         errorFixture: String,
         retryAfter: String? = null,
-        okBody: String = fixture("simple-ok.json")
+        okBody: String = ccloudFixture("simple-ok.json")
     ) {
-        val failure = aResponse().withStatus(status).withBody(fixture(errorFixture))
+        val failure = aResponse().withStatus(status).withBody(ccloudFixture(errorFixture))
         retryAfter?.let { failure.withHeader("Retry-After", it) }
         stubFailThenSucceed(request, failure, okBody)
     }
@@ -91,7 +86,7 @@ class CCloudRestClientRetryTest {
     private fun stubFailThenSucceed(
         request: () -> MappingBuilder,
         failure: ResponseDefinitionBuilder,
-        okBody: String = fixture("simple-ok.json")
+        okBody: String = ccloudFixture("simple-ok.json")
     ) {
         wireMock.stubFor(
             request().inScenario("retry").whenScenarioStateIs(Scenario.STARTED)
@@ -107,42 +102,42 @@ class CCloudRestClientRetryTest {
     inner class IdempotentGets {
 
         @Test
-        fun `fetch should retry 503 and succeed`() = runBlocking {
+        fun `fetch should retry 503 and succeed`() = runBlocking<Unit> {
             stubFailThenSucceed({ get(urlEqualTo("/test")) }, 503, "error-service-unavailable.json")
 
-            assertEquals(fixture("simple-ok.json"), client.fetch("/test") { it })
+            assertEquals(ccloudFixture("simple-ok.json"), client.fetch("/test") { it })
             wireMock.verify(2, getRequestedFor(urlEqualTo("/test")))
         }
 
         @ParameterizedTest
         @ValueSource(ints = [502, 504])
-        fun `fetch should retry other gateway errors`(status: Int) = runBlocking {
+        fun `fetch should retry other gateway errors`(status: Int) = runBlocking<Unit> {
             stubFailThenSucceed({ get(urlEqualTo("/test")) }, status, "error-service-unavailable.json")
 
-            assertEquals(fixture("simple-ok.json"), client.fetch("/test") { it })
+            assertEquals(ccloudFixture("simple-ok.json"), client.fetch("/test") { it })
             wireMock.verify(2, getRequestedFor(urlEqualTo("/test")))
         }
 
         @Test
-        fun `fetchList should retry 503 on a page`() = runBlocking {
+        fun `fetchList should retry 503 on a page`() = runBlocking<Unit> {
             stubFailThenSucceed({ get(urlEqualTo("/topics")) }, 503, "error-service-unavailable.json")
 
             val items = client.fetchList("/topics") { body -> listOf(body) to null }
 
-            assertEquals(listOf(fixture("simple-ok.json")), items)
+            assertEquals(listOf(ccloudFixture("simple-ok.json")), items)
             wireMock.verify(2, getRequestedFor(urlEqualTo("/topics")))
         }
 
         @Test
-        fun `executeRequest GET should retry 503 by default`() = runBlocking {
+        fun `executeRequest GET should retry 503 by default`() = runBlocking<Unit> {
             stubFailThenSucceed({ get(urlEqualTo("/config")) }, 503, "error-service-unavailable.json")
 
-            assertEquals(fixture("simple-ok.json"), client.executeRequest("/config", "GET"))
+            assertEquals(ccloudFixture("simple-ok.json"), client.executeRequest("/config", "GET"))
             wireMock.verify(2, getRequestedFor(urlEqualTo("/config")))
         }
 
         @Test
-        fun `429 with unreadable error body should still be retried`() = runBlocking {
+        fun `429 with unreadable error body should still be retried`() = runBlocking<Unit> {
             stubFailThenSucceed(
                 { get(urlEqualTo("/test")) },
                 aResponse().withStatus(429)
@@ -150,7 +145,7 @@ class CCloudRestClientRetryTest {
                     .withBody("definitely not gzip")
             )
 
-            assertEquals(fixture("simple-ok.json"), client.fetch("/test") { it })
+            assertEquals(ccloudFixture("simple-ok.json"), client.fetch("/test") { it })
             wireMock.verify(2, getRequestedFor(urlEqualTo("/test")))
         }
     }
@@ -159,10 +154,10 @@ class CCloudRestClientRetryTest {
     inner class NonIdempotentRequests {
 
         @Test
-        fun `produce POST should not retry 503`() = runBlocking {
+        fun `produce POST should not retry 503`() = runBlocking<Unit> {
             wireMock.stubFor(
                 post(urlEqualTo("/records"))
-                    .willReturn(aResponse().withStatus(503).withBody(fixture("error-service-unavailable.json")))
+                    .willReturn(aResponse().withStatus(503).withBody(ccloudFixture("error-service-unavailable.json")))
             )
 
             val exception = assertThrows<CCloudApiException> { client.executeRequest("/records", "POST", "{}") }
@@ -172,10 +167,10 @@ class CCloudRestClientRetryTest {
         }
 
         @Test
-        fun `POST should retry 429 since the server rejected it outright`() = runBlocking {
+        fun `POST should retry 429 since the server rejected it outright`() = runBlocking<Unit> {
             stubFailThenSucceed({ post(urlEqualTo("/records")) }, 429, "error-rate-limited.json")
 
-            assertEquals(fixture("simple-ok.json"), client.executeRequest("/records", "POST", "{}"))
+            assertEquals(ccloudFixture("simple-ok.json"), client.executeRequest("/records", "POST", "{}"))
             wireMock.verify(2, postRequestedFor(urlEqualTo("/records")))
         }
     }
@@ -184,12 +179,12 @@ class CCloudRestClientRetryTest {
     inner class IdempotentPosts {
 
         @Test
-        fun `consume POST marked idempotent should retry 503`() = runBlocking {
+        fun `consume POST marked idempotent should retry 503`() = runBlocking<Unit> {
             stubFailThenSucceed({ post(urlEqualTo("/records:consume")) }, 503, "error-service-unavailable.json")
 
             val response = client.executeRequest("/records:consume", "POST", "{}", idempotent = true)
 
-            assertEquals(fixture("simple-ok.json"), response)
+            assertEquals(ccloudFixture("simple-ok.json"), response)
             wireMock.verify(2, postRequestedFor(urlEqualTo("/records:consume")))
         }
     }
@@ -198,11 +193,11 @@ class CCloudRestClientRetryTest {
     inner class RetryAfter {
 
         @Test
-        fun `should wait at least Retry-After before retrying 429`() = runBlocking {
+        fun `should wait at least Retry-After before retrying 429`() = runBlocking<Unit> {
             stubFailThenSucceed({ get(urlEqualTo("/test")) }, 429, "error-rate-limited.json", retryAfter = "1")
 
             val start = TimeSource.Monotonic.markNow()
-            assertEquals(fixture("simple-ok.json"), client.fetch("/test") { it })
+            assertEquals(ccloudFixture("simple-ok.json"), client.fetch("/test") { it })
             val elapsed = start.elapsedNow()
 
             assertTrue(elapsed >= 1.seconds, "expected to wait >= 1s for Retry-After, waited $elapsed")
@@ -215,10 +210,10 @@ class CCloudRestClientRetryTest {
 
         @ParameterizedTest
         @ValueSource(ints = [400, 401, 403, 404, 409, 500])
-        fun `client and non-transient server errors should not be retried`(status: Int) = runBlocking {
+        fun `client and non-transient server errors should not be retried`(status: Int) = runBlocking<Unit> {
             wireMock.stubFor(
                 get(urlEqualTo("/test"))
-                    .willReturn(aResponse().withStatus(status).withBody(fixture("error-subject-not-found.json")))
+                    .willReturn(aResponse().withStatus(status).withBody(ccloudFixture("error-subject-not-found.json")))
             )
 
             val exception = assertThrows<CCloudApiException> { client.fetch("/test") { it } }
@@ -228,9 +223,10 @@ class CCloudRestClientRetryTest {
         }
 
         @Test
-        fun `parse errors should not be retried`() = runBlocking {
+        fun `parse errors should not be retried`() = runBlocking<Unit> {
             wireMock.stubFor(
-                get(urlEqualTo("/test")).willReturn(aResponse().withStatus(200).withBody(fixture("simple-ok.json")))
+                get(urlEqualTo("/test"))
+                    .willReturn(aResponse().withStatus(200).withBody(ccloudFixture("simple-ok.json")))
             )
 
             assertThrows<IllegalStateException> {
@@ -240,7 +236,7 @@ class CCloudRestClientRetryTest {
         }
 
         @Test
-        fun `connection reset should not be retried even for GET`() = runBlocking {
+        fun `connection reset should not be retried even for GET`() = runBlocking<Unit> {
             wireMock.stubFor(
                 get(urlEqualTo("/test")).willReturn(aResponse().withFault(Fault.CONNECTION_RESET_BY_PEER))
             )
@@ -261,13 +257,13 @@ class CCloudRestClientRetryTest {
     inner class Exhaustion {
 
         @Test
-        fun `should rethrow last exception with status and retryAfter after maxAttempts`() = runBlocking {
+        fun `should rethrow last exception with status and retryAfter after maxAttempts`() = runBlocking<Unit> {
             wireMock.stubFor(
                 get(urlEqualTo("/test"))
                     .willReturn(
                         aResponse().withStatus(503)
                             .withHeader("Retry-After", "5")
-                            .withBody(fixture("error-service-unavailable.json"))
+                            .withBody(ccloudFixture("error-service-unavailable.json"))
                     )
             )
             // Clamp Retry-After to 2ms so the test stays fast; the clamped value is what the exception carries
@@ -282,7 +278,7 @@ class CCloudRestClientRetryTest {
         }
 
         @Test
-        fun `should honor custom maxAttempts`() = runBlocking {
+        fun `should honor custom maxAttempts`() = runBlocking<Unit> {
             wireMock.stubFor(get(urlEqualTo("/test")).willReturn(aResponse().withStatus(429)))
             val twoAttempts = clientFor(wireMock.baseUrl(), fastPolicy().copy(maxAttempts = 2))
 
@@ -296,7 +292,7 @@ class CCloudRestClientRetryTest {
     inner class ConnectFailures {
 
         @Test
-        fun `connection refused should be retried on GET`() = runBlocking {
+        fun `connection refused should be retried on GET`() = runBlocking<Unit> {
             val random = CountingRandom()
             val refused = clientFor("http://localhost:${closedPort()}", fastPolicy(random))
 
@@ -308,7 +304,7 @@ class CCloudRestClientRetryTest {
         }
 
         @Test
-        fun `connection refused should not be retried on produce POST`() = runBlocking {
+        fun `connection refused should not be retried on produce POST`() = runBlocking<Unit> {
             val random = CountingRandom()
             val refused = clientFor("http://localhost:${closedPort()}", fastPolicy(random))
 
