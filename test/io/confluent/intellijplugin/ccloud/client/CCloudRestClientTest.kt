@@ -65,7 +65,7 @@ class CCloudRestClientTest {
     inner class SinglePageTests {
 
         @Test
-        fun `fetches single page successfully`() = runBlocking {
+        fun `fetches single page successfully`() = runBlocking<Unit> {
             stubEnvironmentsPage(listOf("env-abc123", "env-def456", "env-ghi789"))
 
             val result = fetchEnvironments()
@@ -81,7 +81,7 @@ class CCloudRestClientTest {
     inner class MultiplePageTests {
 
         @Test
-        fun `fetches multiple pages until next is null`() = runBlocking {
+        fun `fetches multiple pages until next is null`() = runBlocking<Unit> {
             // Page 1
             wireMock.stubFor(
                 get("/org/v2/environments")
@@ -145,7 +145,7 @@ class CCloudRestClientTest {
         }
 
         @Test
-        fun `detects and prevents pagination loops`() = runBlocking {
+        fun `detects and prevents pagination loops`() = runBlocking<Unit> {
             // API returns same URL as next, creating infinite loop
             stubEnvironmentsPage(listOf("env-abc123"), "${wireMock.baseUrl()}/org/v2/environments")
 
@@ -160,7 +160,7 @@ class CCloudRestClientTest {
     inner class PaginationLimitsTests {
 
         @Test
-        fun `respects page limit`() = runBlocking {
+        fun `respects page limit`() = runBlocking<Unit> {
             // Page 1
             wireMock.stubFor(
                 get("/org/v2/environments")
@@ -208,7 +208,7 @@ class CCloudRestClientTest {
         }
 
         @Test
-        fun `respects item limit`() = runBlocking {
+        fun `respects item limit`() = runBlocking<Unit> {
             // Page 1
             wireMock.stubFor(
                 get("/org/v2/environments")
@@ -259,7 +259,7 @@ class CCloudRestClientTest {
     inner class UserAgentTests {
 
         @Test
-        fun `includes User-Agent header in requests`() = runBlocking {
+        fun `includes User-Agent header in requests`() = runBlocking<Unit> {
             stubEnvironmentsPage(listOf("env-abc123"))
 
             fetchEnvironments()
@@ -274,7 +274,7 @@ class CCloudRestClientTest {
     inner class DataPlaneTests {
 
         @Test
-        fun `uses data plane token for authentication`() = runBlocking {
+        fun `uses data plane token for authentication`() = runBlocking<Unit> {
             val kafkaClient = testClient(wireMock.baseUrl())
 
             wireMock.stubFor(
@@ -292,7 +292,7 @@ class CCloudRestClientTest {
         }
 
         @Test
-        fun `includes additional headers for schema registry`() = runBlocking {
+        fun `includes additional headers for schema registry`() = runBlocking<Unit> {
             val srClient = testClient(
                 wireMock.baseUrl(),
                 additionalHeaders = mapOf("target-sr-cluster" to "lsrc-abc123")
