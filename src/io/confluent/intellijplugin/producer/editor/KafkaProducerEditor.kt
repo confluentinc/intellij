@@ -273,9 +273,16 @@ class KafkaProducerEditor(
                         forcePartitionField.value,
                         flowParams = flowController.getParams()
                     ) { time, records ->
+                        val (errors, produced) = records.partition { it.error != null }
                         invokeLater {
-                            progress.onUpdate()
-                            output.addBatchRows(time, records)
+                            if (produced.isNotEmpty()) {
+                                progress.onUpdate()
+                                output.addBatchRows(time, produced)
+                            }
+                            if (errors.isNotEmpty()) {
+                                progress.onError()
+                                errors.forEach { output.addError(it) }
+                            }
                         }
                     }
                 }

@@ -5,6 +5,7 @@ import com.intellij.ui.AnimatedIcon
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.dsl.builder.Row
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
+import org.jetbrains.annotations.VisibleForTesting
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -12,12 +13,18 @@ class KafkaProducerConsumerProgressComponent {
     private val dateFormat = SimpleDateFormat("HH:mm:ss")
 
     var timestamp = 0L
-    private val timestampLabel = JBLabel()
+
+    /** True when the most recent event was an error, so [onStop] keeps showing it instead of resetting. */
+    private var lastEventWasError = false
+    @VisibleForTesting
+    internal val timestampLabel = JBLabel()
     fun initCell(row: Row, bottomWidthGroup: String) {
         row.cell(timestampLabel).widthGroup(bottomWidthGroup)
     }
 
     fun onUpdate() {
+        if (lastEventWasError) timestampLabel.icon = AnimatedIcon.Default.INSTANCE
+        lastEventWasError = false
         timestamp = System.currentTimeMillis()
         timestampLabel.text =
             KafkaMessagesBundle.message("consumer.last.update.label.comment", dateFormat.format(Date(timestamp)))
@@ -29,11 +36,13 @@ class KafkaProducerConsumerProgressComponent {
     }
 
     fun onError() {
-        timestampLabel.icon = null
+        lastEventWasError = true
+        timestampLabel.icon = AllIcons.General.Error
         timestampLabel.text = KafkaMessagesBundle.message("consumer.last.update.label.error")
     }
 
     fun onStop() {
+        if (lastEventWasError) return
         timestampLabel.icon = null
         if (timestamp <= 0) {
             timestampLabel.text = KafkaMessagesBundle.message("consumer.last.update.label.canceled")
@@ -42,6 +51,7 @@ class KafkaProducerConsumerProgressComponent {
 
     fun onStart() {
         timestamp = 0
+        lastEventWasError = false
         timestampLabel.icon = AnimatedIcon.Default.INSTANCE
         timestampLabel.text = KafkaMessagesBundle.message("consumer.last.update.label.initializing")
     }
