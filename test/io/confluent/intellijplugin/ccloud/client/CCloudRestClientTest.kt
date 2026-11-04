@@ -3,6 +3,7 @@ package io.confluent.intellijplugin.ccloud.client
 import com.github.tomakehurst.wiremock.client.WireMock.*
 import com.intellij.testFramework.junit5.TestApplication
 import io.confluent.intellijplugin.ccloud.client.CCloudRestClient.PageLimits
+import io.confluent.intellijplugin.testutil.wireMockExtension
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.*
