@@ -10,6 +10,7 @@ All noteworthy changes to this plugin will be documented in this file.
 ### Removed
 ### Fixed
 - Deleting a consumer group that the broker rejects (for example, one that still has active members) now shows an error instead of appearing to succeed.
+- The Topics table no longer shows "Create a topic" mixed into the connection error message when an auto-refresh fails.
 
 ## 253.25910.2
 ### Fixed
