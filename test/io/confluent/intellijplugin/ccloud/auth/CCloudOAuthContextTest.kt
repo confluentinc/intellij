@@ -1,29 +1,30 @@
 package io.confluent.intellijplugin.ccloud.auth
 
-import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.WireMock
-import com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig
 import com.intellij.testFramework.junit5.TestApplication
+import io.confluent.intellijplugin.testutil.wireMockExtension
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.AfterAll
-import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
-import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.extension.RegisterExtension
 
 @TestApplication
 class CCloudOAuthContextTest {
 
     companion object {
-        private lateinit var wireMockServer: WireMockServer
+        @JvmField
+        @RegisterExtension
+        val wireMock = wireMockExtension()
+
         private const val MOCK_AUTH_CODE = "test_authorization_code"
         private const val MOCK_REFRESH_TOKEN = "test_refresh_token"
         private const val MOCK_ID_TOKEN = "test_id_token"
@@ -32,22 +33,8 @@ class CCloudOAuthContextTest {
         private const val MOCK_ORG_ID = "org-123"
 
         @JvmStatic
-        @BeforeAll
-        fun setUpAll() {
-            wireMockServer = WireMockServer(wireMockConfig().dynamicPort())
-            wireMockServer.start()
-
-            val baseUrl = "http://localhost:${wireMockServer.port()}"
-            System.setProperty("ccloud.oauth.token-uri", "$baseUrl/oauth/token")
-            System.setProperty("ccloud.control-plane.token-exchange-uri", "$baseUrl/api/sessions")
-            System.setProperty("ccloud.control-plane.check-jwt-uri", "$baseUrl/api/check_jwt")
-            System.setProperty("ccloud.data-plane.token-exchange-uri", "$baseUrl/api/access_tokens")
-        }
-
-        @JvmStatic
         @AfterAll
         fun tearDownAll() {
-            wireMockServer.stop()
             System.clearProperty("ccloud.oauth.token-uri")
             System.clearProperty("ccloud.control-plane.token-exchange-uri")
             System.clearProperty("ccloud.control-plane.check-jwt-uri")
@@ -59,18 +46,20 @@ class CCloudOAuthContextTest {
 
     @BeforeEach
     fun setUp() {
+        // The extension may restart on a new port per @Nested class, so point the properties at it per test.
+        val baseUrl = wireMock.baseUrl()
+        System.setProperty("ccloud.oauth.token-uri", "$baseUrl/oauth/token")
+        System.setProperty("ccloud.control-plane.token-exchange-uri", "$baseUrl/api/sessions")
+        System.setProperty("ccloud.control-plane.check-jwt-uri", "$baseUrl/api/check_jwt")
+        System.setProperty("ccloud.data-plane.token-exchange-uri", "$baseUrl/api/access_tokens")
+
         context = CCloudOAuthContext()
         registerWireMockRoutesForCCloudOAuth()
     }
 
-    @AfterEach
-    fun cleanUp() {
-        wireMockServer.resetAll()
-    }
-
     private fun registerWireMockRoutesForCCloudOAuth() {
         // ID token exchange (authorization code -> ID token)
-        wireMockServer.stubFor(
+        wireMock.stubFor(
             WireMock.post("/oauth/token")
                 .willReturn(
                     WireMock.aResponse()
@@ -91,7 +80,7 @@ class CCloudOAuthContextTest {
         )
 
         // Control plane token exchange
-        wireMockServer.stubFor(
+        wireMock.stubFor(
             WireMock.post("/api/sessions")
                 .willReturn(
                     WireMock.aResponse()
@@ -124,7 +113,7 @@ class CCloudOAuthContextTest {
         )
 
         // Data plane token exchange
-        wireMockServer.stubFor(
+        wireMock.stubFor(
             WireMock.post("/api/access_tokens")
                 .willReturn(
                     WireMock.aResponse()
@@ -135,7 +124,7 @@ class CCloudOAuthContextTest {
         )
 
         // Check JWT endpoint
-        wireMockServer.stubFor(
+        wireMock.stubFor(
             WireMock.get("/api/check_jwt")
                 .willReturn(
                     WireMock.aResponse()
@@ -344,7 +333,7 @@ class CCloudOAuthContextTest {
 
         @Test
         fun `should return failed result if token exchange returns error`() {
-            wireMockServer.stubFor(
+            wireMock.stubFor(
                 WireMock.post("/oauth/token")
                     .willReturn(
                         WireMock.aResponse()
@@ -365,7 +354,7 @@ class CCloudOAuthContextTest {
 
         @Test
         fun `should return failed result if control plane token exchange fails`() {
-            wireMockServer.stubFor(
+            wireMock.stubFor(
                 WireMock.post("/api/sessions")
                     .willReturn(
                         WireMock.aResponse()
@@ -387,7 +376,7 @@ class CCloudOAuthContextTest {
 
         @Test
         fun `should return failed result if cookie header is not present`() {
-            wireMockServer.stubFor(
+            wireMock.stubFor(
                 WireMock.post("/api/sessions")
                     .willReturn(
                         WireMock.aResponse()
@@ -407,7 +396,7 @@ class CCloudOAuthContextTest {
 
         @Test
         fun `should return failed result if data plane token exchange fails`() {
-            wireMockServer.stubFor(
+            wireMock.stubFor(
                 WireMock.post("/api/access_tokens")
                     .willReturn(
                         WireMock.aResponse()
@@ -474,7 +463,7 @@ class CCloudOAuthContextTest {
 
         @Test
         fun `should track failed attempts on failure`() {
-            wireMockServer.stubFor(
+            wireMock.stubFor(
                 WireMock.post("/oauth/token")
                     .willReturn(
                         WireMock.aResponse()
@@ -493,7 +482,7 @@ class CCloudOAuthContextTest {
 
         @Test
         fun `should increment failed attempts on consecutive failures`() {
-            wireMockServer.stubFor(
+            wireMock.stubFor(
                 WireMock.post("/oauth/token")
                     .willReturn(
                         WireMock.aResponse()
@@ -515,7 +504,7 @@ class CCloudOAuthContextTest {
         @Test
         fun `should reset failed attempts counter on success`() {
             // Cause some failed attempts
-            wireMockServer.stubFor(
+            wireMock.stubFor(
                 WireMock.post("/oauth/token")
                     .willReturn(
                         WireMock.aResponse()
@@ -533,7 +522,7 @@ class CCloudOAuthContextTest {
             assertEquals(2, context.getFailedTokenRefreshAttempts())
 
             // Restore the successful stub and verify counter resets
-            wireMockServer.resetAll()
+            wireMock.resetAll()
             registerWireMockRoutesForCCloudOAuth()
 
             val result = runBlocking {
@@ -558,7 +547,7 @@ class CCloudOAuthContextTest {
 
         @Test
         fun `should not track failures`() {
-            wireMockServer.stubFor(
+            wireMock.stubFor(
                 WireMock.post("/oauth/token")
                     .willReturn(
                         WireMock.aResponse()
@@ -625,7 +614,7 @@ class CCloudOAuthContextTest {
                 context.createTokensFromAuthorizationCode(MOCK_AUTH_CODE, MOCK_ORG_ID)
             }
 
-            wireMockServer.stubFor(
+            wireMock.stubFor(
                 WireMock.get("/api/check_jwt")
                     .willReturn(
                         WireMock.aResponse()
