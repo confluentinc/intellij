@@ -135,8 +135,9 @@ class KafkaProducerClient(
                 val totalRequests = flowParams.totalRequests
                 // Only acknowledged sends count toward the "Records produced" stop condition.
                 var produced = 0
-                // Every attempted send advances the CSV row, so a timed-out row is not re-sent.
-                var attempted = 0
+                // CSV row to send next. A row whose record may have reached the broker is not re-sent (it could
+                // duplicate); a row whose record never left the client is retried rather than lost.
+                var rowIndex = 0
                 var consecutiveTimeouts = 0
                 while (true) {
                     if (!isRunning())
@@ -150,13 +151,13 @@ class KafkaProducerClient(
                     val remaining = if (totalRequests != 0) totalRequests - produced else Int.MAX_VALUE
                     val batch = sentSeveralMessage(
                         flowParams, partition, producer, topic, key, value, headers,
-                        alreadyProducedCount = attempted,
+                        alreadyProducedCount = rowIndex,
                         csvDf = csvDf,
                         recordCount = minOf(flowParams.flowRecordsCountPerRequest, remaining),
                         onUpdate = onUpdate
                     )
                     produced += batch.sent
-                    attempted += batch.attempted
+                    rowIndex += batch.rowsUsed
                     if (batch.sent > 0) consecutiveTimeouts = 0
                     if (batch.timedOut) consecutiveTimeouts++
 
@@ -176,8 +177,9 @@ class KafkaProducerClient(
         }
     }
 
-    private class BatchResult(val sent: Int, val timedOut: Boolean) {
-        val attempted: Int get() = sent + if (timedOut) 1 else 0
+    /** [failedRecordMayHaveLanded] is false when the failed record never left the client, e.g. a metadata timeout. */
+    private class BatchResult(val sent: Int, val timedOut: Boolean, val failedRecordMayHaveLanded: Boolean = false) {
+        val rowsUsed: Int get() = sent + if (failedRecordMayHaveLanded) 1 else 0
     }
 
     private fun sentSeveralMessage(
@@ -202,7 +204,11 @@ class KafkaProducerClient(
                 csvDf = csvDf
             )
             onUpdate(record.duration, listOf(record))
-            if (record.error != null) return BatchResult(sent, timedOut = true)
+            if (record.error != null) {
+                // sentMessage reports an acknowledgement timeout as java.util.concurrent.TimeoutException, and
+                // Kafka's own TimeoutException only before the record is sent (no metadata within max.block.ms).
+                return BatchResult(sent, timedOut = true, failedRecordMayHaveLanded = record.error !is KafkaTimeoutException)
+            }
             sent++
         }
         return BatchResult(sent, timedOut = false)

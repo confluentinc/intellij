@@ -1,5 +1,6 @@
 package io.confluent.intellijplugin.producer.client
 
+import com.intellij.charts.dataframe.DataFrame
 import com.intellij.testFramework.junit5.TestApplication
 import io.confluent.intellijplugin.client.KafkaClient
 import io.confluent.intellijplugin.common.models.KafkaFieldType
@@ -13,6 +14,7 @@ import io.confluent.intellijplugin.producer.models.RecordCompression
 import io.confluent.intellijplugin.registry.KafkaRegistryFormat
 import io.confluent.intellijplugin.registry.KafkaRegistryType
 import io.confluent.intellijplugin.rfs.KafkaConnectionData
+import io.confluent.intellijplugin.util.csv.KafkaCsvUtils
 import org.apache.kafka.clients.producer.KafkaProducer
 import org.apache.kafka.clients.producer.ProducerConfig
 import org.apache.kafka.clients.producer.ProducerRecord
@@ -25,6 +27,7 @@ import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.mockito.kotlin.*
+import java.io.File
 import java.util.Properties
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ExecutionException
@@ -179,7 +182,8 @@ class KafkaProducerClientTest {
         private fun runProduce(
             producer: KafkaProducer<Any, Any>,
             flowParams: ProducerFlowParams,
-            forcePartition: Int = -1
+            forcePartition: Int = -1,
+            csvDf: DataFrame? = null
         ): List<KafkaRecord> {
             val client = createClient().apply {
                 sendTimeoutMs = 10
@@ -189,11 +193,20 @@ class KafkaProducerClientTest {
             client.produce(
                 producer, topic, forcePartition,
                 key = field("k", isKey = true), value = field("v", isKey = false),
-                headers = emptyList(), flowParams = flowParams, csvDf = null
+                headers = emptyList(), flowParams = flowParams, csvDf = csvDf
             ) { _, records -> updates += records }
             return updates
         }
 
+        /** Rows k0..k2 from `fixtures/producer/csv-records.csv`. */
+        private fun csvRecords(): DataFrame =
+            KafkaCsvUtils.readDataFrame(File(javaClass.getResource("/fixtures/producer/csv-records.csv")!!.toURI()).path)
+
+        private fun sentKeys(producer: KafkaProducer<Any, Any>, times: Int): List<Any?> {
+            val captor = argumentCaptor<ProducerRecord<Any, Any>>()
+            verify(producer, times(times)).send(captor.capture())
+            return captor.allValues.map { it.key() }
+        }
 
         private fun autoParams(totalRequests: Int = 0, recordsPerRequest: Int = 1) = ProducerFlowParams(
             mode = Mode.AUTO,
@@ -295,7 +308,26 @@ class KafkaProducerClientTest {
             verify(producer, never()).send(any<ProducerRecord<Any, Any>>())
         }
 
+        @Test
+        fun `should move to the next CSV row after an acknowledgement timeout`() {
+            // The timed-out record may still land, so re-sending its row could duplicate it.
+            val producer = producerReturning(hanging(), acked())
 
+            runProduce(producer, autoParams(totalRequests = 2), csvDf = csvRecords())
+
+            assertEquals(listOf("k0", "k1", "k2"), sentKeys(producer, times = 3))
+        }
+
+        @Test
+        fun `should retry the same CSV row after a metadata timeout`() {
+            // The record never left the client, so skipping its row would lose it.
+            val unsent = CompletableFuture.failedFuture<RecordMetadata>(KafkaTimeoutException("metadata"))
+            val producer = producerReturning(unsent, acked())
+
+            runProduce(producer, autoParams(totalRequests = 2), csvDf = csvRecords())
+
+            assertEquals(listOf("k0", "k0", "k1"), sentKeys(producer, times = 3))
+        }
 
         @Test
         fun `should not overshoot total requests when a timeout leaves a partial batch`() {
