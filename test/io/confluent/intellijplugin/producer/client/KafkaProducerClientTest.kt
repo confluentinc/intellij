@@ -21,6 +21,7 @@ import org.apache.kafka.clients.producer.ProducerRecord
 import org.apache.kafka.clients.producer.RecordMetadata
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.errors.RecordTooLargeException
+import org.apache.kafka.common.errors.TimeoutException as KafkaTimeoutException
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Nested
@@ -32,7 +33,6 @@ import java.util.Properties
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ExecutionException
 import java.util.concurrent.Future
-import org.apache.kafka.common.errors.TimeoutException as KafkaTimeoutException
 
 @TestApplication
 class KafkaProducerClientTest {

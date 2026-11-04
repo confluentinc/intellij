@@ -23,6 +23,7 @@ import io.confluent.kafka.serializers.context.NullContextNameStrategy
 import org.apache.kafka.clients.producer.KafkaProducer
 import org.apache.kafka.clients.producer.ProducerConfig
 import org.apache.kafka.clients.producer.ProducerRecord
+import org.apache.kafka.common.errors.TimeoutException as KafkaTimeoutException
 import org.apache.kafka.common.serialization.Serializer
 import org.jetbrains.annotations.VisibleForTesting
 import java.time.Duration
@@ -31,7 +32,6 @@ import java.util.concurrent.ExecutionException
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
 import java.util.concurrent.atomic.AtomicBoolean
-import org.apache.kafka.common.errors.TimeoutException as KafkaTimeoutException
 
 class KafkaProducerClient(
     val dataManager: KafkaDataManager,
