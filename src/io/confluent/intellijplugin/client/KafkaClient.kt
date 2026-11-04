@@ -6,7 +6,6 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.util.io.await
-import com.intellij.util.net.NetUtils
 import io.confluent.intellijplugin.aws.ui.external.AwsSettingsComponentForKafka
 import io.confluent.intellijplugin.core.connection.exception.BdtConnectionException
 import io.confluent.intellijplugin.core.connection.exception.BdtHostUnavailableException
@@ -16,7 +15,6 @@ import io.confluent.intellijplugin.core.monitoring.connection.MonitoringClient
 import io.confluent.intellijplugin.core.settings.components.BdtPropertyComponent
 import io.confluent.intellijplugin.core.settings.connections.Property
 import io.confluent.intellijplugin.core.util.BdIdeRegistryUtil
-import io.confluent.intellijplugin.core.util.BdtUrlUtils
 import io.confluent.intellijplugin.core.util.withPluginClassLoader
 import io.confluent.intellijplugin.model.*
 import io.confluent.intellijplugin.registry.KafkaRegistryType
@@ -409,13 +407,7 @@ class KafkaClient(
     }
 
     private fun checkUrlAvailability(url: String) {
-        val urls = url.split(",").map { it.trim() }
-        val canConnect = urls.any {
-            val urlObject = BdtUrlUtils.convertToUrlObject(it)
-            NetUtils.canConnectToRemoteSocket(urlObject.host, urlObject.port)
-        }
-
-        if (!canConnect) {
+        if (!TcpProbe.anyReachable(url)) {
             throw BdtHostUnavailableException(url)
         }
     }
@@ -491,8 +483,8 @@ class KafkaClient(
 
     fun getTopicConfig(topicName: String): List<TopicConfig> = loadTopicConfigs(listOf(topicName)).values.first()
 
-    fun deleteConsumerGroup(name: String) {
-        kafkaAdminNotNull.deleteConsumerGroups(listOf(name))
+    suspend fun deleteConsumerGroup(name: String) {
+        deleteConsumerGroupAndAwait(kafkaAdminNotNull, name, BdIdeRegistryUtil.RFS_DEFAULT_TIMEOUT)
     }
 
     suspend fun getOffsetsForDate(partitions: List<TopicPartition>, timestamp: Long): Map<TopicPartition, Long> {
@@ -506,6 +498,17 @@ class KafkaClient(
     }
 
     companion object {
+        /**
+         * Deletes [name] and waits for the broker's answer, so a failed delete (e.g. a non-empty group,
+         * missing ACLs, or a timeout) surfaces to the caller instead of silently looking successful.
+         * The platform `await()` already rethrows the `ExecutionException`'s cause, so callers see
+         * the broker error (e.g. `GroupNotEmptyException`) directly.
+         */
+        internal suspend fun deleteConsumerGroupAndAwait(admin: Admin, name: String, timeoutMs: Int) {
+            val options = DeleteConsumerGroupsOptions().timeoutMs(timeoutMs)
+            admin.deleteConsumerGroups(listOf(name), options).all().await()
+        }
+
         fun loadPropertyFile(propertyFilePath: String): String {
             val filePath = File(propertyFilePath).toPath()
             val vf = VirtualFileManager.getInstance().findFileByNioPath(filePath) ?: error(

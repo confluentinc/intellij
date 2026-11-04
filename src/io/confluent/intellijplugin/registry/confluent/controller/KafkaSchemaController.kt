@@ -313,13 +313,17 @@ class KafkaSchemaController(
                     versionInfo
                 ) { newText ->
                     val versionModel = dataManager.getSchemaVersionsModel(versionInfo.schemaName)
-                    versionModel.addListener(object : DataModelListener {
+                    val listener = object : DataModelListener {
                         override fun onChanged() {
                             invokeLater { selectedVersion.component.item = versionModel.originObject?.firstOrNull() }
                             versionModel.removeListener(this)
                         }
-                    })
-                    dataManager.updateSchema(versionInfo, newText)
+                    }
+                    versionModel.addListener(listener)
+                    // Return the write promise itself: onError returns a dependent promise, and cancelling that wouldn't cancel the write.
+                    dataManager.updateSchema(versionInfo, newText).also {
+                        it.onError { versionModel.removeListener(listener) }
+                    }
                 }
             }
 

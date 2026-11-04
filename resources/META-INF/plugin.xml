@@ -28,6 +28,11 @@
         <backgroundPostStartupActivity
                 implementation="io.confluent.intellijplugin.updater.RebrandNotificationActivity"/>
         <errorHandler implementation="io.confluent.intellijplugin.telemetry.KafkaErrorReportSubmitter"/>
+
+        <registryKey key="bdide.kafka.tcp.probe.connect.timeout.ms" defaultValue="20000"
+                     description="Timeout in milliseconds for each bootstrap server in the Kafka TCP reachability probe. Minimum 1000."/>
+        <registryKey key="bdide.kafka.tcp.probe.total.timeout.ms" defaultValue="30000"
+                     description="Total time budget in milliseconds for the Kafka TCP reachability probe across all bootstrap servers. Minimum 1000."/>
         <notificationGroup id="kafka" displayType="STICKY_BALLOON"
                            bundle="messages.KafkaBundle"
                            key="kafka.plugin.installed"/>
@@ -85,6 +90,9 @@
                            key="notification.group.kafka"/>
         <contentTabActionProvider
                 implementation="io.confluent.intellijplugin.core.monitoring.toolwindow.MonitoringTabActionProvider"/>
+
+        <registryKey key="bdide.kafka.schema.registry.call.timeout.ms" defaultValue="180000"
+                     description="Upper bound in milliseconds for a Schema Registry schema update awaited by the UI. Minimum 1000."/>
     </extensions>
 
     <actions resource-bundle="messages.KafkaBundle">
