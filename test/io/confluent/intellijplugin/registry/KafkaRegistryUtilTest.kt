@@ -8,6 +8,7 @@ import io.confluent.intellijplugin.common.models.KafkaFieldType
 import io.confluent.intellijplugin.data.BaseClusterDataManager
 import io.confluent.intellijplugin.registry.confluent.ConfluentRegistryClient
 import io.confluent.kafka.schemaregistry.client.rest.RestService
+import io.confluent.intellijplugin.testutil.fixture
 import io.confluent.intellijplugin.testutil.wireMockExtension
 import io.confluent.kafka.schemaregistry.client.rest.entities.SchemaReference
 import kotlinx.coroutines.runBlocking
@@ -35,7 +36,7 @@ class KafkaRegistryUtilTest {
     }
 
     private fun loadFixture(name: String): String =
-        javaClass.getResourceAsStream("/fixtures/schemas/$name")!!.bufferedReader().use { it.readText() }.trim()
+        fixture("schemas", name).trim()
 
     private val addressSchemaJson = loadFixture("address-avro.json")
     private val userSchemaWithRefJson = loadFixture("user-avro-with-ref.json")

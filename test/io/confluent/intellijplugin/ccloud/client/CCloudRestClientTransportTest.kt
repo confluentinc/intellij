@@ -8,6 +8,7 @@ import com.github.tomakehurst.wiremock.client.WireMock.post
 import com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor
 import com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo
 import com.intellij.testFramework.junit5.TestApplication
+import io.confluent.intellijplugin.testutil.closedPort
 import io.confluent.intellijplugin.testutil.wireMockExtension
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -36,16 +37,9 @@ class CCloudRestClientTransportTest {
         @RegisterExtension
         val wireMock = wireMockExtension()
 
-        private fun fixture(name: String): String =
-            CCloudRestClientTransportTest::class.java.getResourceAsStream("/fixtures/ccloud/$name")!!
-                .bufferedReader().use { it.readText() }
-
         private fun gzip(text: String): ByteArray =
             ByteArrayOutputStream().also { out -> GZIPOutputStream(out).use { it.write(text.toByteArray()) } }
                 .toByteArray()
-
-        /** A localhost port with nothing listening on it. */
-        private fun closedPort(): Int = ServerSocket(0).use { it.localPort }
     }
 
     private lateinit var client: CCloudRestClient
@@ -72,7 +66,7 @@ class CCloudRestClientTransportTest {
                 get(urlEqualTo("/test")).willReturn(
                     aResponse().withStatus(503)
                         .withHeader("Content-Encoding", "gzip")
-                        .withBody(gzip(fixture("error-service-unavailable.json")))
+                        .withBody(gzip(ccloudFixture("error-service-unavailable.json")))
                 )
             )
 
@@ -86,7 +80,7 @@ class CCloudRestClientTransportTest {
         fun `fetch should surface error body message and status`() = runBlocking {
             wireMock.stubFor(
                 get(urlEqualTo("/subjects/orders-value/versions/latest"))
-                    .willReturn(aResponse().withStatus(404).withBody(fixture("error-subject-not-found.json")))
+                    .willReturn(aResponse().withStatus(404).withBody(ccloudFixture("error-subject-not-found.json")))
             )
 
             val exception = assertThrows<CCloudApiException> {
@@ -102,7 +96,7 @@ class CCloudRestClientTransportTest {
         fun `fetchList should surface error body message and status`() = runBlocking {
             wireMock.stubFor(
                 get(urlEqualTo("/topics"))
-                    .willReturn(aResponse().withStatus(503).withBody(fixture("error-service-unavailable.json")))
+                    .willReturn(aResponse().withStatus(503).withBody(ccloudFixture("error-service-unavailable.json")))
             )
 
             val exception = assertThrows<CCloudApiException> {
@@ -117,7 +111,7 @@ class CCloudRestClientTransportTest {
         fun `executeRequest should surface error body message and status`() = runBlocking {
             wireMock.stubFor(
                 post(urlEqualTo("/records"))
-                    .willReturn(aResponse().withStatus(404).withBody(fixture("error-subject-not-found.json")))
+                    .willReturn(aResponse().withStatus(404).withBody(ccloudFixture("error-subject-not-found.json")))
             )
 
             val exception = assertThrows<CCloudApiException> {
@@ -191,7 +185,7 @@ class CCloudRestClientTransportTest {
                     .willReturn(
                         aResponse().withStatus(503)
                             .withHeader("Retry-After", "7")
-                            .withBody(fixture("error-service-unavailable.json"))
+                            .withBody(ccloudFixture("error-service-unavailable.json"))
                     )
             )
 
@@ -208,7 +202,7 @@ class CCloudRestClientTransportTest {
                     .willReturn(
                         aResponse().withStatus(503)
                             .withHeader("Retry-After", "3")
-                            .withBody(fixture("error-service-unavailable.json"))
+                            .withBody(ccloudFixture("error-service-unavailable.json"))
                     )
             )
 
@@ -248,7 +242,8 @@ class CCloudRestClientTransportTest {
         @Test
         fun `fetch parse failure should propagate parser exception rather than status 0`() = runBlocking {
             wireMock.stubFor(
-                get(urlEqualTo("/test")).willReturn(aResponse().withStatus(200).withBody(fixture("simple-ok.json")))
+                get(urlEqualTo("/test"))
+                    .willReturn(aResponse().withStatus(200).withBody(ccloudFixture("simple-ok.json")))
             )
 
             val exception = assertThrows<IllegalStateException> {
@@ -266,12 +261,13 @@ class CCloudRestClientTransportTest {
         @Test
         fun `executeRequest should send method, body and auth header`() = runBlocking {
             wireMock.stubFor(
-                post(urlEqualTo("/records")).willReturn(aResponse().withStatus(200).withBody(fixture("simple-ok.json")))
+                post(urlEqualTo("/records"))
+                    .willReturn(aResponse().withStatus(200).withBody(ccloudFixture("simple-ok.json")))
             )
 
             val response = client.executeRequest("/records", "POST", """{"k":"v"}""")
 
-            assertEquals(fixture("simple-ok.json"), response)
+            assertEquals(ccloudFixture("simple-ok.json"), response)
             wireMock.verify(
                 postRequestedFor(urlEqualTo("/records"))
                     .withHeader("Authorization", equalTo("Bearer $TEST_DATA_PLANE_TOKEN"))
@@ -282,10 +278,11 @@ class CCloudRestClientTransportTest {
         @Test
         fun `fetch should return success body`() = runBlocking {
             wireMock.stubFor(
-                get(urlEqualTo("/test")).willReturn(aResponse().withStatus(200).withBody(fixture("simple-ok.json")))
+                get(urlEqualTo("/test"))
+                    .willReturn(aResponse().withStatus(200).withBody(ccloudFixture("simple-ok.json")))
             )
 
-            assertEquals(fixture("simple-ok.json"), client.fetch("/test") { it })
+            assertEquals(ccloudFixture("simple-ok.json"), client.fetch("/test") { it })
         }
     }
 
