@@ -78,8 +78,8 @@ class CCloudRestClientRetryTest {
         request: () -> MappingBuilder,
         status: Int,
         errorFixture: String,
-        okBody: String,
-        retryAfter: String? = null
+        retryAfter: String? = null,
+        okBody: String = fixture("simple-ok.json")
     ) {
         val failure = aResponse().withStatus(status).withBody(fixture(errorFixture))
         retryAfter?.let { failure.withHeader("Retry-After", it) }
@@ -98,7 +98,7 @@ class CCloudRestClientRetryTest {
 
         @Test
         fun `fetch should retry 503 and succeed`() = runBlocking {
-            stubFailThenSucceed({ get(urlEqualTo("/test")) }, 503, "error-service-unavailable.json", fixture("simple-ok.json"))
+            stubFailThenSucceed({ get(urlEqualTo("/test")) }, 503, "error-service-unavailable.json")
 
             assertEquals(fixture("simple-ok.json"), client.fetch("/test") { it })
             wireMock.verify(2, getRequestedFor(urlEqualTo("/test")))
@@ -107,7 +107,7 @@ class CCloudRestClientRetryTest {
         @ParameterizedTest
         @ValueSource(ints = [502, 504])
         fun `fetch should retry other gateway errors`(status: Int) = runBlocking {
-            stubFailThenSucceed({ get(urlEqualTo("/test")) }, status, "error-service-unavailable.json", fixture("simple-ok.json"))
+            stubFailThenSucceed({ get(urlEqualTo("/test")) }, status, "error-service-unavailable.json")
 
             assertEquals(fixture("simple-ok.json"), client.fetch("/test") { it })
             wireMock.verify(2, getRequestedFor(urlEqualTo("/test")))
@@ -115,7 +115,7 @@ class CCloudRestClientRetryTest {
 
         @Test
         fun `fetchList should retry 503 on a page`() = runBlocking {
-            stubFailThenSucceed({ get(urlEqualTo("/topics")) }, 503, "error-service-unavailable.json", fixture("simple-ok.json"))
+            stubFailThenSucceed({ get(urlEqualTo("/topics")) }, 503, "error-service-unavailable.json")
 
             val items = client.fetchList("/topics") { body -> listOf(body) to null }
 
@@ -125,7 +125,7 @@ class CCloudRestClientRetryTest {
 
         @Test
         fun `executeRequest GET should retry 503 by default`() = runBlocking {
-            stubFailThenSucceed({ get(urlEqualTo("/config")) }, 503, "error-service-unavailable.json", fixture("simple-ok.json"))
+            stubFailThenSucceed({ get(urlEqualTo("/config")) }, 503, "error-service-unavailable.json")
 
             assertEquals(fixture("simple-ok.json"), client.executeRequest("/config", "GET"))
             wireMock.verify(2, getRequestedFor(urlEqualTo("/config")))
@@ -172,7 +172,7 @@ class CCloudRestClientRetryTest {
 
         @Test
         fun `POST should retry 429 since the server rejected it outright`() = runBlocking {
-            stubFailThenSucceed({ post(urlEqualTo("/records")) }, 429, "error-rate-limited.json", fixture("simple-ok.json"))
+            stubFailThenSucceed({ post(urlEqualTo("/records")) }, 429, "error-rate-limited.json")
 
             assertEquals(fixture("simple-ok.json"), client.executeRequest("/records", "POST", "{}"))
             wireMock.verify(2, postRequestedFor(urlEqualTo("/records")))
@@ -201,7 +201,7 @@ class CCloudRestClientRetryTest {
 
         @Test
         fun `consume POST marked idempotent should retry 503`() = runBlocking {
-            stubFailThenSucceed({ post(urlEqualTo("/records:consume")) }, 503, "error-service-unavailable.json", fixture("simple-ok.json"))
+            stubFailThenSucceed({ post(urlEqualTo("/records:consume")) }, 503, "error-service-unavailable.json")
 
             val response = client.executeRequest("/records:consume", "POST", "{}", idempotent = true)
 
@@ -215,8 +215,7 @@ class CCloudRestClientRetryTest {
 
         @Test
         fun `should wait at least Retry-After before retrying 429`() = runBlocking {
-            stubFailThenSucceed({ get(urlEqualTo("/test")) }, 429, "error-rate-limited.json", fixture("simple-ok.json"), retryAfter = "1"
-            )
+            stubFailThenSucceed({ get(urlEqualTo("/test")) }, 429, "error-rate-limited.json", retryAfter = "1")
 
             val start = TimeSource.Monotonic.markNow()
             assertEquals(fixture("simple-ok.json"), client.fetch("/test") { it })
