@@ -4,10 +4,12 @@ All noteworthy changes to this plugin will be documented in this file.
 ## Unreleased
 ### Changed
 - Consumer and producer record tables now retain up to 50,000 records per session. Previously, leaving the "Consumer records limit" field empty (or set to 0) allowed unbounded growth.
+- Schema updates now time out after 3 minutes instead of waiting indefinitely; Cancel stops waiting for a pending update (the registry may still apply it), and the limit can be changed with the Registry key `bdide.kafka.schema.registry.call.timeout.ms`.
 ### Added
 - MessagePack serialization support for consumer and producer records
 ### Removed
 ### Fixed
+- Deleting a consumer group that the broker rejects (for example, one that still has active members) now shows an error instead of appearing to succeed.
 - The Topics table no longer shows "Create a topic" mixed into the connection error message when an auto-refresh fails.
 
 ## 253.25910.2

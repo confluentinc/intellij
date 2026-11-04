@@ -119,6 +119,19 @@ class ConfluentRegistryClient(restService: RestService, props: Map<String, Strin
     }
 
     companion object {
+        // Same values as the library defaults, made explicit; user-supplied registry properties override these.
+        internal val DEFAULT_HTTP_PROPS = mapOf(
+            SchemaRegistryClientConfig.HTTP_CONNECT_TIMEOUT_MS to SchemaRegistryClientConfig.HTTP_CONNECT_TIMEOUT_MS_DEFAULT.toString(),
+            SchemaRegistryClientConfig.HTTP_READ_TIMEOUT_MS to SchemaRegistryClientConfig.HTTP_READ_TIMEOUT_MS_DEFAULT.toString(),
+            SchemaRegistryClientConfig.MAX_RETRIES_CONFIG to SchemaRegistryClientConfig.MAX_RETRIES_DEFAULT.toString(),
+        )
+
+        internal fun mergeProps(
+            brokerSettings: Map<String, String>,
+            brokerSsl: Map<String, String>,
+            registryProps: Map<String, String>,
+        ): Map<String, String> = DEFAULT_HTTP_PROPS + brokerSettings + brokerSsl + registryProps
+
         fun createFor(project: Project?, connectionData: KafkaConnectionData, testConnection: Boolean) =
             createConfluentClient(connectionData, project, testConnection)
 
@@ -143,7 +156,7 @@ class ConfluentRegistryClient(restService: RestService, props: Map<String, Strin
                 BdtPropertyComponent.parseProperties(connectionData.secretRegistryProperties).associate {
                     (it.name ?: "") to (it.value ?: "")
                 }
-            val props = brokerSettings + brokerSsl + registryProps
+            val props = mergeProps(brokerSettings, brokerSsl, registryProps)
 
             val url = props[AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG]?.ifBlank { null }
                 ?: connectionData.registryUrl?.ifBlank { null }
