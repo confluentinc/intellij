@@ -52,8 +52,12 @@ class CCloudRestClient(
         /**
          * Whether [e] is worth retrying. 429 is always safe (the server rejected the request
          * outright). 502/503/504 and connect failures are only retried for [idempotent] calls.
-         * Timeouts (status 0, not a connect error) are never retried: the server may have
-         * processed the request.
+         *
+         * Timeouts (status 0, not a connect error) are never retried, even for idempotent calls: a
+         * timed-out attempt has already cost up to the read timeout (60s), so retrying would multiply
+         * the wait (4 x 60s with the default policy). Callers that want to keep trying (e.g. the
+         * consumer poll loop) do so at their own layer. For non-idempotent calls there is the added
+         * risk that the server applied the request before the timeout.
          */
         @VisibleForTesting
         internal fun isRetryable(e: CCloudApiException, idempotent: Boolean): Boolean = when {
@@ -250,7 +254,10 @@ class CCloudRestClient(
      * @param method HTTP method
      * @param body Optional request body
      * @param idempotent Whether repeating the request is safe. Defaults to true only for GET; pass
-     *   true explicitly for read-only POSTs (e.g. consume, schema lookup).
+     *   true explicitly for read-only POSTs (e.g. consume, schema lookup). DELETE, PUT and PATCH
+     *   are deliberately treated as non-idempotent by default even though HTTP defines DELETE and
+     *   PUT as idempotent: a retried DELETE whose first attempt was applied before a 503 would
+     *   surface a misleading 404. Callers opt in with `idempotent = true`.
      * @return Response body as string
      */
     suspend fun executeRequest(
