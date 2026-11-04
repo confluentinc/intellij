@@ -178,23 +178,6 @@ class CCloudRestClientRetryTest {
             assertEquals(fixture("simple-ok.json"), client.executeRequest("/records", "POST", "{}"))
             wireMock.verify(2, postRequestedFor(urlEqualTo("/records")))
         }
-
-        @Test
-        fun `connection reset should not be retried even for GET`() = runBlocking {
-            wireMock.stubFor(
-                get(urlEqualTo("/test")).willReturn(aResponse().withFault(Fault.CONNECTION_RESET_BY_PEER))
-            )
-            val random = CountingRandom()
-            val resetClient = clientFor(wireMock.baseUrl(), fastPolicy(random))
-
-            val exception = assertThrows<CCloudApiException> { resetClient.fetch("/test") { it } }
-
-            assertEquals(0, exception.statusCode)
-            assertFalse(exception is CCloudConnectException)
-            // No retry scheduled by our policy. (WireMock may still see 2 requests: HttpURLConnection
-            // transparently resends once on a reset connection, which is JDK behavior, not ours.)
-            assertEquals(0, random.draws, "expected no policy retries")
-        }
     }
 
     @Nested
@@ -254,6 +237,23 @@ class CCloudRestClientRetryTest {
                 client.fetch<String>("/test") { throw IllegalStateException("bad payload") }
             }
             wireMock.verify(1, getRequestedFor(urlEqualTo("/test")))
+        }
+
+        @Test
+        fun `connection reset should not be retried even for GET`() = runBlocking {
+            wireMock.stubFor(
+                get(urlEqualTo("/test")).willReturn(aResponse().withFault(Fault.CONNECTION_RESET_BY_PEER))
+            )
+            val random = CountingRandom()
+            val resetClient = clientFor(wireMock.baseUrl(), fastPolicy(random))
+
+            val exception = assertThrows<CCloudApiException> { resetClient.fetch("/test") { it } }
+
+            assertEquals(0, exception.statusCode)
+            assertFalse(exception is CCloudConnectException)
+            // No retry scheduled by our policy. (WireMock may still see 2 requests: HttpURLConnection
+            // transparently resends once on a reset connection, which is JDK behavior, not ours.)
+            assertEquals(0, random.draws, "expected no policy retries")
         }
     }
 
