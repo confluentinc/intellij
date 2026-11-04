@@ -42,9 +42,17 @@ class CCloudRestClientTransportTest {
 
     private lateinit var client: CCloudRestClient
 
+    // Single attempt: these tests cover the transport, retries are covered by CCloudRestClientRetryTest.
+    // Default Retry-After clamp (60s) is kept so header parsing is exercised as in production.
+    private fun clientFor(
+        baseUrl: String,
+        retryPolicy: CCloudRetryPolicy = CCloudRetryPolicy(maxAttempts = 1),
+        readTimeoutMs: Int = CCloudRestClient.READ_TIMEOUT_MS
+    ) = testClient(baseUrl, retryPolicy = retryPolicy, readTimeoutMs = readTimeoutMs)
+
     @BeforeEach
     fun setup() {
-        client = testClient(wireMock.baseUrl())
+        client = clientFor(wireMock.baseUrl())
     }
 
     @Nested
@@ -140,7 +148,7 @@ class CCloudRestClientTransportTest {
                     .willReturn(aResponse().withStatus(503).withHeader("Retry-After", "3600"))
             )
 
-            val clamped = testClient(wireMock.baseUrl(), retryPolicy = CCloudRetryPolicy(maxRetryAfter = 5.seconds))
+            val clamped = clientFor(wireMock.baseUrl(), retryPolicy = CCloudRetryPolicy(maxAttempts = 1, maxRetryAfter = 5.seconds))
 
             val exception = assertThrows<CCloudApiException> { clamped.fetch("/test") { it } }
 
@@ -212,7 +220,7 @@ class CCloudRestClientTransportTest {
 
         @Test
         fun `connection refused should raise CCloudConnectException with status 0`() = runBlocking<Unit> {
-            val refused = testClient("http://localhost:${closedPort()}")
+            val refused = clientFor("http://localhost:${closedPort()}")
 
             val exception = assertThrows<CCloudApiException> { refused.fetch("/test") { it } }
 
@@ -223,7 +231,7 @@ class CCloudRestClientTransportTest {
 
         @Test
         fun `connection refused on executeRequest should raise CCloudConnectException`() = runBlocking<Unit> {
-            val refused = testClient("http://localhost:${closedPort()}")
+            val refused = clientFor("http://localhost:${closedPort()}")
 
             val exception = assertThrows<CCloudApiException> { refused.executeRequest("/records", "POST", "{}") }
 
@@ -232,7 +240,7 @@ class CCloudRestClientTransportTest {
 
         @Test
         fun `unknown host should raise CCloudConnectException`() = runBlocking {
-            val unknown = testClient("http://does-not-exist.invalid")
+            val unknown = clientFor("http://does-not-exist.invalid")
 
             val exception = assertThrows<CCloudApiException> { unknown.fetch("/test") { it } }
 
@@ -245,7 +253,7 @@ class CCloudRestClientTransportTest {
             wireMock.stubFor(
                 get(urlEqualTo("/test")).willReturn(aResponse().withStatus(200).withFixedDelay(2_000))
             )
-            val slow = testClient(wireMock.baseUrl(), readTimeoutMs = 200)
+            val slow = clientFor(wireMock.baseUrl(), readTimeoutMs = 200)
 
             val exception = assertThrows<CCloudApiException> { slow.fetch("/test") { it } }
 
