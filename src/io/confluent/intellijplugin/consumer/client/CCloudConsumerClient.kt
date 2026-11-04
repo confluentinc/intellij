@@ -880,7 +880,12 @@ class CCloudConsumerClient(
     companion object {
         /**
          * Poll-loop retry policy: up to 10 consecutive failed polls, backing off 1s, 1.6s, 2.56s, ...
-         * capped at 30s (plus jitter). Each poll may itself be retried inside CCloudRestClient.
+         * capped at 30s (plus jitter), and never less than the server's `Retry-After`.
+         *
+         * This is the only retry layer for consume requests: `DataPlaneFetcher.consumeRecords` and
+         * `consumePartitionRecords` make a single attempt, so a failed poll is never retried
+         * underneath this loop. (The offset and partition lookups used to build the first poll
+         * are ordinary GETs and keep CCloudRestClient's own retries.)
          */
         @VisibleForTesting
         internal val CONSUMER_RETRY_POLICY = CCloudRetryPolicy(maxAttempts = 10, maxBackoff = 30.seconds)
