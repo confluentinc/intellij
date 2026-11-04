@@ -17,6 +17,7 @@ import io.confluent.intellijplugin.core.monitoring.data.storage.RootDataModelSto
 import io.confluent.intellijplugin.core.util.executeOnPooledThread
 import io.confluent.intellijplugin.core.util.invokeLater
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
+import java.util.concurrent.CancellationException
 import java.util.concurrent.ConcurrentSkipListSet
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
@@ -37,7 +38,10 @@ class BdtMonitoringUpdater(val dataManager: MonitoringDataManager) : Disposable 
 
     private val executingTask = ConcurrentSkipListSet<UpdateTask>()
 
-    /** Consecutive auto-refresh cycles that ended in error; stretches the next delay via [backoffInterval]. */
+    /**
+     * Consecutive refresh cycles whose connection was unreachable; stretches the next delay via [backoffInterval].
+     * Cancelled cycles leave it unchanged.
+     */
     private val consecutiveFailures = AtomicInteger(0)
 
     internal val consecutiveFailureCount: Int
@@ -89,11 +93,15 @@ class BdtMonitoringUpdater(val dataManager: MonitoringDataManager) : Disposable 
 
         stopAll()
 
-        var failed = false
+        var outcome = RefreshOutcome.SKIPPED
         executeTask(UpdateTask {
-            innerRefresh(models, it, withConnectionCheck = checkConnection, onFailure = { failed = true })
+            outcome = innerRefresh(models, it, withConnectionCheck = checkConnection)
         })
-        if (failed) consecutiveFailures.incrementAndGet() else consecutiveFailures.set(0)
+        when (outcome) {
+            RefreshOutcome.SUCCEEDED -> consecutiveFailures.set(0)
+            RefreshOutcome.FAILED -> consecutiveFailures.incrementAndGet()
+            RefreshOutcome.SKIPPED -> Unit // cancelled or not run: say nothing about the connection's health
+        }
         rescheduleAll()
     }
 
@@ -124,24 +132,24 @@ class BdtMonitoringUpdater(val dataManager: MonitoringDataManager) : Disposable 
     private fun innerRefresh(
         models: List<DataModel<*>>,
         isCurrentCanceled: AtomicBooleanProperty,
-        withConnectionCheck: Boolean = false,
-        onFailure: () -> Unit = {}
-    ) {
+        withConnectionCheck: Boolean = false
+    ): RefreshOutcome {
         val toUpdate = models.filter { it.isRequireToUpdate() }
 
         if (toUpdate.isEmpty() && !withConnectionCheck)
-            return
+            return RefreshOutcome.SUCCEEDED
 
         if (!client.isInited())
-            return
+            return RefreshOutcome.SKIPPED
 
         if (client.isConnecting())
-            return
+            return RefreshOutcome.SKIPPED
 
-        if (client.connectionError != null) {
-            models.forEach { it.setError(client.connectionError) }
-            onFailure()
-            return
+        // With a connection check, fall through and re-probe a failed connection so auto-refresh can recover it.
+        val connectionError = client.connectionError
+        if (connectionError != null && !withConnectionCheck) {
+            models.forEach { it.setError(connectionError) }
+            return RefreshOutcome.FAILED
         }
 
         val id = System.identityHashCode(toUpdate)
@@ -165,7 +173,7 @@ class BdtMonitoringUpdater(val dataManager: MonitoringDataManager) : Disposable 
             }
 
             if (isCurrentCanceled.get()) {
-                return
+                return RefreshOutcome.SKIPPED
             }
             notify {
                 it.setIntermediate(id, false)
@@ -184,7 +192,7 @@ class BdtMonitoringUpdater(val dataManager: MonitoringDataManager) : Disposable 
                 }
                 indexedValue.value.update()
                 if (isCurrentCanceled.get()) {
-                    return
+                    return RefreshOutcome.SKIPPED
                 }
             }
 
@@ -209,13 +217,15 @@ class BdtMonitoringUpdater(val dataManager: MonitoringDataManager) : Disposable 
                 jobs.forEach { it.join() }
             }
 
-            // DataModel.update() and launchAdditionalUpdate() swallow their own exceptions into `error`.
-            if (toUpdate.any { it.error != null }) onFailure()
+            // Per-model errors (ACLs, an unreachable Schema Registry, ...) are deliberately not counted: backoff is
+            // per connection, so one permanently failing model would otherwise slow every healthy view with it.
+            return if (isCurrentCanceled.get()) RefreshOutcome.SKIPPED else RefreshOutcome.SUCCEEDED
         } catch (t: Throwable) {
             models.forEach {
                 it.setError(t, msg = KafkaMessagesBundle.message("monitoring.updater.driver.error"))
             }
-            onFailure()
+            return if (t is CancellationException || isCurrentCanceled.get()) RefreshOutcome.SKIPPED
+            else RefreshOutcome.FAILED
         } finally {
             notify { it.onEnd(id) }
         }
@@ -306,6 +316,9 @@ class BdtMonitoringUpdater(val dataManager: MonitoringDataManager) : Disposable 
             return (intervalMillis.toLong() shl doublings).coerceAtMost(ceiling).toInt()
         }
     }
+
+    /** How a refresh cycle ended, for [consecutiveFailures]: only [FAILED] and [SUCCEEDED] change the counter. */
+    private enum class RefreshOutcome { SUCCEEDED, FAILED, SKIPPED }
 
     class UpdateTask(val id: Int = Random.nextInt(), val update: (AtomicBooleanProperty) -> Unit) :
         Comparable<UpdateTask> {
