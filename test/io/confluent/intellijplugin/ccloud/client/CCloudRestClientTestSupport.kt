@@ -1,23 +1,11 @@
 package io.confluent.intellijplugin.ccloud.client
 
-import com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig
-import com.github.tomakehurst.wiremock.junit5.WireMockExtension
 import io.confluent.intellijplugin.ccloud.auth.CCloudAuthService
 import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.mock
 
 internal const val TEST_CONTROL_PLANE_TOKEN = "test-control-plane-token"
 internal const val TEST_DATA_PLANE_TOKEN = "test-data-plane-token"
-
-/**
- * WireMock server on a dynamic port, reset before each test. Register it from a companion object with
- * `@JvmField @RegisterExtension`. The port can change between `@Nested` classes, so read
- * [WireMockExtension.baseUrl] per test rather than caching it.
- */
-internal fun wireMockExtension(): WireMockExtension =
-    WireMockExtension.newInstance()
-        .options(wireMockConfig().dynamicPort())
-        .build()
 
 /** Auth service that is signed in and returns [TEST_CONTROL_PLANE_TOKEN] / [TEST_DATA_PLANE_TOKEN]. */
 internal fun signedInAuthService(): CCloudAuthService = mock {
