@@ -80,11 +80,7 @@ class KafkaProducerClient(
                 val csvDataFrame = flowParams.csvFile?.let {
                     KafkaCsvUtils.readDataFrame(it)
                 }
-                val partition = setupPartitions(forcePartition, producer, topic)
-                if (!isRunning())
-                    return
-
-                produce(producer, topic, partition, key, value, headers, flowParams, csvDataFrame, onUpdate)
+                produce(producer, topic, forcePartition, key, value, headers, flowParams, csvDataFrame, onUpdate)
             } finally {
                 // No flush: each send is awaited, so only timed-out records are still pending, and
                 // flushing would block for up to delivery.timeout.ms on them.
@@ -106,7 +102,7 @@ class KafkaProducerClient(
     internal fun produce(
         producer: KafkaProducer<Any, Any>,
         topic: String,
-        partition: Int?,
+        forcePartition: Int,
         key: ConsumerProducerFieldConfig,
         value: ConsumerProducerFieldConfig,
         headers: List<Property>,
@@ -114,6 +110,17 @@ class KafkaProducerClient(
         csvDf: DataFrame?,
         onUpdate: (Long, List<KafkaRecord>) -> Unit
     ) {
+        val partition = try {
+            setupPartitions(forcePartition, producer, topic)
+        } catch (e: KafkaTimeoutException) {
+            // Broker unreachable while checking the forced partition: report it like a send timeout.
+            // Retrying would only wait for the same metadata again, so stop here.
+            onUpdate(0, listOf(createErrorRecord(key, value, topic, forcePartition, e, duration = 0)))
+            return
+        }
+        if (!isRunning())
+            return
+
         when (flowParams.mode) {
             Mode.MANUAL -> sentSeveralMessage(
                 flowParams, partition, producer, topic, key, value, headers,

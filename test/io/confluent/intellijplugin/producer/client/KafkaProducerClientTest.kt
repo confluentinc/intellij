@@ -178,7 +178,8 @@ class KafkaProducerClientTest {
 
         private fun runProduce(
             producer: KafkaProducer<Any, Any>,
-            flowParams: ProducerFlowParams
+            flowParams: ProducerFlowParams,
+            forcePartition: Int = -1
         ): List<KafkaRecord> {
             val client = createClient().apply {
                 sendTimeoutMs = 10
@@ -186,12 +187,13 @@ class KafkaProducerClientTest {
             }
             val updates = mutableListOf<KafkaRecord>()
             client.produce(
-                producer, topic, partition = null,
+                producer, topic, forcePartition,
                 key = field("k", isKey = true), value = field("v", isKey = false),
                 headers = emptyList(), flowParams = flowParams, csvDf = null
             ) { _, records -> updates += records }
             return updates
         }
+
 
         private fun autoParams(totalRequests: Int = 0, recordsPerRequest: Int = 1) = ProducerFlowParams(
             mode = Mode.AUTO,
@@ -278,6 +280,22 @@ class KafkaProducerClientTest {
                 runProduce(producerReturning(failed), ProducerFlowParams(mode = Mode.MANUAL))
             }
         }
+
+        @Test
+        fun `should report a forced partition lookup timeout as an error row without sending`() {
+            val producer = mock<KafkaProducer<Any, Any>> {
+                on { partitionsFor(topic) } doThrow KafkaTimeoutException("Topic $topic not present in metadata after 10 ms.")
+            }
+
+            val updates = runProduce(producer, autoParams(totalRequests = 1), forcePartition = 0)
+
+            val row = updates.single()
+            assertEquals(0, row.partition)
+            assertTrue(row.errorText.contains("not present in metadata"), row.errorText)
+            verify(producer, never()).send(any<ProducerRecord<Any, Any>>())
+        }
+
+
 
         @Test
         fun `should not overshoot total requests when a timeout leaves a partial batch`() {
