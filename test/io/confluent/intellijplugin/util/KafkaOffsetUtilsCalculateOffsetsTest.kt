@@ -146,7 +146,7 @@ class KafkaOffsetUtilsCalculateOffsetsTest {
     inner class TimestampBasedStartTypes {
 
         @Test
-        fun `should use dataManager getOffsetsForData for timestamp-based types`() = runBlocking {
+        fun `should use dataManager getOffsetsForData for timestamp-based types`() = runBlocking<Unit> {
             val partition = createPartition(startOffset = 0L, endOffset = 100L)
             val startWith = ConsumerStartWith(
                 type = ConsumerStartType.LAST_HOUR, time = null, offset = null, consumerGroup = null
