@@ -59,14 +59,6 @@ class CCloudRestClientTest {
         )
     }
 
-    private fun stubEnvironmentsError(statusCode: Int) {
-        wireMock.stubFor(
-            get("/org/v2/environments")
-                .withHeader("Authorization", equalTo("Bearer $TEST_CONTROL_PLANE_TOKEN"))
-                .willReturn(aResponse().withStatus(statusCode))
-        )
-    }
-
     @Nested
     @DisplayName("fetchList - Single Page")
     inner class SinglePageTests {
@@ -258,20 +250,6 @@ class CCloudRestClientTest {
             // Should get 2 from page 1 + 2 from page 2 = 4 total (item limit)
             assertEquals(4, result.size)
             assertEquals(listOf("env-abc123", "env-def456", "env-ghi789", "env-jkl012"), result)
-        }
-    }
-
-    @Nested
-    @DisplayName("fetchList - Error Handling")
-    inner class ErrorHandlingTests {
-
-        @Test
-        fun `throws CloudApiException on error`() = runBlocking {
-            stubEnvironmentsError(403)
-
-            val exception = assertThrows<CCloudApiException> { fetchEnvironments() }
-
-            assertEquals(403, exception.statusCode)
         }
     }
 

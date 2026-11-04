@@ -348,6 +348,11 @@ class CCloudRestClient(
      * Error body via `readError()`, which decompresses gzip (HttpRequests sends `Accept-Encoding: gzip`)
      * and honors the charset. An unreadable body (bad gzip, timeout mid-body) becomes empty so the
      * caller still sees the real status, unless the thread was interrupted by coroutine cancellation.
+     *
+     * On interrupt the IOException is rethrown so we don't fabricate a status-coded response for a
+     * cancelled call. Note it is still caught by [send]'s catch-all and surfaces as
+     * `CCloudApiException(0)`, not as a `CancellationException`; cancellation itself is observed at
+     * the caller's next suspension point.
      */
     private fun readErrorBody(request: HttpRequests.Request, statusCode: Int): String = try {
         request.readError() ?: ""
