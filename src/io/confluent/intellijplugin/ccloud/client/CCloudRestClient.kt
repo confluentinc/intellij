@@ -324,7 +324,8 @@ class CCloudRestClient(
                     if (statusCode in 200..299) {
                         RawResponse(statusCode, request.readString(), retryAfter = null)
                     } else {
-                        val errorBody = conn.errorStream?.bufferedReader()?.use { it.readText() } ?: ""
+                        // readError() decompresses gzip (HttpRequests sends Accept-Encoding: gzip) and honors the charset
+                        val errorBody = request.readError() ?: ""
                         val retryAfter = retryPolicy.parseRetryAfter(
                             conn.getHeaderField(CCloudRetryPolicy.RETRY_AFTER_HEADER)
                         )

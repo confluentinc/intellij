@@ -18,9 +18,11 @@ import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.extension.RegisterExtension
+import java.io.ByteArrayOutputStream
 import java.net.ConnectException
 import java.net.ServerSocket
 import java.net.SocketTimeoutException
+import java.util.zip.GZIPOutputStream
 import kotlin.time.Duration.Companion.seconds
 
 /** Tests for the shared HTTP transport behind fetch / fetchList / executeRequest. */
@@ -36,6 +38,10 @@ class CCloudRestClientTransportTest {
             CCloudRestClientTransportTest::class.java.getResourceAsStream("/fixtures/ccloud/$name")!!
                 .bufferedReader().use { it.readText() }
 
+        private fun gzip(text: String): ByteArray =
+            ByteArrayOutputStream().also { out -> GZIPOutputStream(out).use { it.write(text.toByteArray()) } }
+                .toByteArray()
+
         /** A localhost port with nothing listening on it. */
         private fun closedPort(): Int = ServerSocket(0).use { it.localPort }
     }
@@ -49,6 +55,22 @@ class CCloudRestClientTransportTest {
 
     @Nested
     inner class ErrorResponses {
+
+        @Test
+        fun `should decompress gzip-encoded error body`() = runBlocking {
+            wireMock.stubFor(
+                get(urlEqualTo("/test")).willReturn(
+                    aResponse().withStatus(503)
+                        .withHeader("Content-Encoding", "gzip")
+                        .withBody(gzip(fixture("error-service-unavailable.json")))
+                )
+            )
+
+            val exception = assertThrows<CCloudApiException> { client.fetch("/test") { it } }
+
+            assertEquals(503, exception.statusCode)
+            assertEquals("Service temporarily unavailable (HTTP 503)", exception.message)
+        }
 
         @Test
         fun `fetch should surface error body message and status`() = runBlocking {
