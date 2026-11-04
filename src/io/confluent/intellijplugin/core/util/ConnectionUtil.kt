@@ -9,6 +9,7 @@ import com.intellij.openapi.wm.ToolWindowManager
 import com.intellij.openapi.wm.impl.ToolWindowManagerImpl
 import com.intellij.platform.ide.progress.runWithModalProgressBlocking
 import com.intellij.util.concurrency.annotations.RequiresEdt
+import io.confluent.intellijplugin.ccloud.client.CCloudApiException
 import io.confluent.intellijplugin.core.monitoring.rfs.MonitoringDriver
 import io.confluent.intellijplugin.core.rfs.driver.ActivitySource
 import io.confluent.intellijplugin.core.rfs.driver.Driver
@@ -207,7 +208,7 @@ fun Throwable.toPresentableText(): @Nls String {
     val source = realSource()
 
     // CCloudApiException already has well-formatted messages, return as-is
-    if (source.javaClass.simpleName == "CCloudApiException") {
+    if (source is CCloudApiException) {
         return source.message ?: "Unknown error"
     }
 
