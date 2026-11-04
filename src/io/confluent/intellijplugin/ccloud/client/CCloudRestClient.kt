@@ -179,8 +179,10 @@ class CCloudRestClient(
      * exception is rethrown unchanged (status code and the server's retryAfter intact).
      *
      * @param idempotent true when repeating the call cannot cause duplicate side effects
+     * @param retry false for a single attempt (still rate limited), for callers that retry at their own layer
      */
-    private suspend fun <T> withRetry(idempotent: Boolean, operation: suspend () -> T): T {
+    private suspend fun <T> withRetry(idempotent: Boolean, retry: Boolean = true, operation: suspend () -> T): T {
+        val maxAttempts = if (retry) retryPolicy.maxAttempts else 1
         var retryIndex = 0
         while (true) {
             rateLimiter.acquire()
@@ -188,7 +190,7 @@ class CCloudRestClient(
                 return operation()
             } catch (e: CCloudApiException) {
                 val attemptsMade = retryIndex + 1
-                if (attemptsMade >= retryPolicy.maxAttempts ||
+                if (attemptsMade >= maxAttempts ||
                     !isRetryable(e, idempotent) ||
                     retryPolicy.exceedsMaxRetryAfter(e.retryAfter)
                 ) {
@@ -197,7 +199,7 @@ class CCloudRestClient(
                 val wait = retryPolicy.delayFor(retryIndex, e.retryAfter)
                 thisLogger().warn(
                     "CCloud request failed (${describe(e)}). Retrying in ${wait.inWholeMilliseconds}ms " +
-                        "(retry $attemptsMade/${retryPolicy.maxAttempts - 1})"
+                        "(retry $attemptsMade/${maxAttempts - 1})"
                 )
                 delay(wait)
                 retryIndex++
@@ -213,17 +215,21 @@ class CCloudRestClient(
     /**
      * Fetch a single item from a non-paginated endpoint.
      *
-     * Applies rate limiting; retried as an idempotent GET (429, 502/503/504, connect failures).
+     * Applies rate limiting; retried as an idempotent GET (429, 502/503/504, connect failures)
+     * unless [retry] is false.
      *
      * @param path Endpoint path (relative or absolute URL)
+     * @param retry false to make a single attempt, for callers that retry at their own layer
+     *   (e.g. the consumer poll loop)
      * @param parser Parses response JSON
      * @return Parsed response
      */
     suspend fun <T> fetch(
         path: String,
+        retry: Boolean = true,
         parser: (String) -> T
     ): T {
-        val response = withRetry(idempotent = true) {
+        val response = withRetry(idempotent = true, retry = retry) {
             send(resolveUrl(path), "GET", getAuthHeaders()).requireSuccess()
         }
         // Parse outside the transport/retry path so parse errors keep their own type
@@ -251,26 +257,30 @@ class CCloudRestClient(
     /**
      * Execute HTTP request with any method (POST, DELETE, PATCH, PUT).
      *
-     * Applies rate limiting. 429 is always retried; 502/503/504 and connect failures are retried
-     * only when [idempotent] is true.
+     * Applies rate limiting. Unless [retry] is false, 429 is always retried; 502/503/504 and
+     * connect failures are retried only when [idempotent] is true.
      *
      * @param uri Endpoint path (relative or absolute URL)
      * @param method HTTP method
      * @param body Optional request body
      * @param idempotent Whether repeating the request is safe. Defaults to true only for GET; pass
-     *   true explicitly for read-only POSTs (e.g. consume, schema lookup). DELETE, PUT and PATCH
+     *   true explicitly for read-only POSTs (e.g. schema lookup). DELETE, PUT and PATCH
      *   are deliberately treated as non-idempotent by default even though HTTP defines DELETE and
      *   PUT as idempotent: a retried DELETE whose first attempt was applied before a 503 would
      *   surface a misleading 404. Callers opt in with `idempotent = true`.
+     * @param retry false to make a single attempt for every failure, including 429, for callers
+     *   that retry at their own layer (e.g. consume, which the consumer poll loop retries). The
+     *   call still waits for a rate-limit token.
      * @return Response body as string
      */
     suspend fun executeRequest(
         uri: String,
         method: String,
         body: String? = null,
-        idempotent: Boolean = method.equals("GET", ignoreCase = true)
+        idempotent: Boolean = method.equals("GET", ignoreCase = true),
+        retry: Boolean = true
     ): String {
-        return withRetry(idempotent) {
+        return withRetry(idempotent, retry) {
             send(resolveUrl(uri), method, getAuthHeaders(), body).requireSuccess()
         }.body
     }
