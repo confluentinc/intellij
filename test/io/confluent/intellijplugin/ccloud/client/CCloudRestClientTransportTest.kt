@@ -60,10 +60,13 @@ class CCloudRestClientTransportTest {
     private lateinit var authService: CCloudAuthService
     private lateinit var client: CCloudRestClient
 
+    // Single attempt: these tests cover the transport, retries are covered by CCloudRestClientRetryTest.
+    // Default Retry-After clamp (60s) is kept so header parsing is exercised as in production.
     private fun clientFor(baseUrl: String) = CCloudRestClient(
         baseUrl = baseUrl,
         authType = CCloudRestClient.AuthType.DATA_PLANE,
-        authService = authService
+        authService = authService,
+        retryPolicy = CCloudRetryPolicy(maxAttempts = 1)
     )
 
     @BeforeEach
