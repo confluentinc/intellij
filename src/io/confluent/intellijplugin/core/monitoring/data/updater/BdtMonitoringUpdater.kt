@@ -168,8 +168,10 @@ class BdtMonitoringUpdater(val dataManager: MonitoringDataManager) : Disposable 
                     it.setText(id, KafkaMessagesBundle.message("monitoring.progress.check.connection"))
                 }
 
-                // Throws (caught below) unless the connection is healthy.
-                client.checkConnection()
+                // Throws (caught below) unless the connection is healthy. A failed client may have torn down state
+                // that only connect() rebuilds (e.g. KafkaClient's admin client), so reconnect instead of re-checking,
+                // as checkConnectionOrRefresh does.
+                if (client.isConnected()) client.checkConnection() else client.connect(calledByUser = false)
             }
 
             if (isCurrentCanceled.get()) {

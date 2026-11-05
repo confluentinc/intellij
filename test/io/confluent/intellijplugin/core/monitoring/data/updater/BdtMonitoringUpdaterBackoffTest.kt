@@ -24,13 +24,29 @@ import org.mockito.kotlin.mock
 @TestApplication
 class BdtMonitoringUpdaterBackoffTest {
 
-    /** Real connection-state machine; [failing] makes connect/checkConnection throw. */
+    /**
+     * Real connection-state machine; [failing] makes connect/checkConnection throw. Like KafkaClient's admin client,
+     * [hasSession] is created only by connect() and torn down by a failed check, so a bare re-check can't restore it.
+     */
     private class FakeClient : MonitoringClient(null) {
         var failing = false
+        var hasSession = false
+            private set
 
         override fun getRealUri() = "fake://cluster"
-        override fun checkConnectionInner() = failIfNeeded()
-        override fun connectInner(calledByUser: Boolean) = failIfNeeded()
+
+        override fun checkConnectionInner() = try {
+            failIfNeeded()
+        } catch (t: Throwable) {
+            hasSession = false
+            throw t
+        }
+
+        override fun connectInner(calledByUser: Boolean) {
+            failIfNeeded()
+            hasSession = true
+        }
+
         override fun dispose() {}
 
         private fun failIfNeeded() {
@@ -38,14 +54,18 @@ class BdtMonitoringUpdaterBackoffTest {
         }
     }
 
-    /** Model that always requires an update (it has a listener) and fails while [failing] is set. */
-    private class FakeModel : DataModel<String>() {
+    /**
+     * Model that always requires an update (it has a listener) and fails while [failing] is set or [client] has no
+     * session.
+     */
+    private class FakeModel(private val client: FakeClient) : DataModel<String>() {
         var failing = false
         var onUpdate: () -> Unit = {}
 
         override val updater: (DataModel<*>) -> Pair<String, Boolean> = {
             onUpdate()
             if (failing) throw IllegalStateException("fetch failed")
+            check(client.hasSession) { "session not initialized" }
             "data" to false
         }
 
@@ -55,7 +75,7 @@ class BdtMonitoringUpdaterBackoffTest {
     }
 
     private val client = FakeClient()
-    private val model = FakeModel()
+    private val model = FakeModel(client)
     private var refreshedModels: List<DataModel<*>> = emptyList()
 
     private val settings = mock<IntervalUpdateSettings> {
@@ -173,6 +193,23 @@ class BdtMonitoringUpdaterBackoffTest {
 
             assertEquals(0, updater.consecutiveFailureCount)
             assertTrue(client.isConnected())
+            assertNull(model.error)
+            assertEquals("data", model.data)
+        }
+
+        @Test
+        fun `when auto-refresh reconnects a connection whose check failed after it was connected`() {
+            connect(failing = false)
+            client.failing = true
+            updater.reloadAll(checkConnection = true)
+            assertFalse(client.hasSession)
+
+            client.failing = false
+            updater.reloadAll(checkConnection = true)
+
+            assertEquals(0, updater.consecutiveFailureCount)
+            assertTrue(client.isConnected())
+            assertTrue(client.hasSession)
             assertNull(model.error)
             assertEquals("data", model.data)
         }
