@@ -8,6 +8,8 @@ import com.github.tomakehurst.wiremock.client.WireMock.post
 import com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor
 import com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo
 import com.intellij.testFramework.junit5.TestApplication
+import io.confluent.intellijplugin.testutil.closedPort
+import io.confluent.intellijplugin.testutil.wireMockExtension
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -35,16 +37,9 @@ class CCloudRestClientTransportTest {
         @RegisterExtension
         val wireMock = wireMockExtension()
 
-        private fun fixture(name: String): String =
-            CCloudRestClientTransportTest::class.java.getResourceAsStream("/fixtures/ccloud/$name")!!
-                .bufferedReader().use { it.readText() }
-
         private fun gzip(text: String): ByteArray =
             ByteArrayOutputStream().also { out -> GZIPOutputStream(out).use { it.write(text.toByteArray()) } }
                 .toByteArray()
-
-        /** A localhost port with nothing listening on it. */
-        private fun closedPort(): Int = ServerSocket(0).use { it.localPort }
     }
 
     private lateinit var client: CCloudRestClient
@@ -66,12 +61,12 @@ class CCloudRestClientTransportTest {
     inner class ErrorResponses {
 
         @Test
-        fun `should decompress gzip-encoded error body`() = runBlocking {
+        fun `should decompress gzip-encoded error body`() = runBlocking<Unit> {
             wireMock.stubFor(
                 get(urlEqualTo("/test")).willReturn(
                     aResponse().withStatus(503)
                         .withHeader("Content-Encoding", "gzip")
-                        .withBody(gzip(fixture("error-service-unavailable.json")))
+                        .withBody(gzip(ccloudFixture("error-service-unavailable.json")))
                 )
             )
 
@@ -82,10 +77,10 @@ class CCloudRestClientTransportTest {
         }
 
         @Test
-        fun `fetch should surface error body message and status`() = runBlocking {
+        fun `fetch should surface error body message and status`() = runBlocking<Unit> {
             wireMock.stubFor(
                 get(urlEqualTo("/subjects/orders-value/versions/latest"))
-                    .willReturn(aResponse().withStatus(404).withBody(fixture("error-subject-not-found.json")))
+                    .willReturn(aResponse().withStatus(404).withBody(ccloudFixture("error-subject-not-found.json")))
             )
 
             val exception = assertThrows<CCloudApiException> {
@@ -98,10 +93,10 @@ class CCloudRestClientTransportTest {
         }
 
         @Test
-        fun `fetchList should surface error body message and status`() = runBlocking {
+        fun `fetchList should surface error body message and status`() = runBlocking<Unit> {
             wireMock.stubFor(
                 get(urlEqualTo("/topics"))
-                    .willReturn(aResponse().withStatus(503).withBody(fixture("error-service-unavailable.json")))
+                    .willReturn(aResponse().withStatus(503).withBody(ccloudFixture("error-service-unavailable.json")))
             )
 
             val exception = assertThrows<CCloudApiException> {
@@ -113,10 +108,10 @@ class CCloudRestClientTransportTest {
         }
 
         @Test
-        fun `executeRequest should surface error body message and status`() = runBlocking {
+        fun `executeRequest should surface error body message and status`() = runBlocking<Unit> {
             wireMock.stubFor(
                 post(urlEqualTo("/records"))
-                    .willReturn(aResponse().withStatus(404).withBody(fixture("error-subject-not-found.json")))
+                    .willReturn(aResponse().withStatus(404).withBody(ccloudFixture("error-subject-not-found.json")))
             )
 
             val exception = assertThrows<CCloudApiException> {
@@ -133,7 +128,7 @@ class CCloudRestClientTransportTest {
     inner class UnreadableErrorBody {
 
         @Test
-        fun `invalid gzip error body should keep status and Retry-After`() = runBlocking {
+        fun `invalid gzip error body should keep status and Retry-After`() = runBlocking<Unit> {
             wireMock.stubFor(
                 get(urlEqualTo("/test")).willReturn(
                     aResponse().withStatus(503)
@@ -150,7 +145,7 @@ class CCloudRestClientTransportTest {
         }
 
         @Test
-        fun `error body read timeout should keep status and Retry-After`() = runBlocking {
+        fun `error body read timeout should keep status and Retry-After`() = runBlocking<Unit> {
             // WireMock can't send headers and then stall the body (its dribble delays the headers too),
             // so use a raw socket: full status line and headers, a partial body, then silence.
             ServerSocket(0).use { server ->
@@ -184,13 +179,13 @@ class CCloudRestClientTransportTest {
     inner class RetryAfterHeader {
 
         @Test
-        fun `should expose Retry-After delta-seconds on fetch errors`() = runBlocking {
+        fun `should expose Retry-After delta-seconds on fetch errors`() = runBlocking<Unit> {
             wireMock.stubFor(
                 get(urlEqualTo("/test"))
                     .willReturn(
                         aResponse().withStatus(503)
                             .withHeader("Retry-After", "7")
-                            .withBody(fixture("error-service-unavailable.json"))
+                            .withBody(ccloudFixture("error-service-unavailable.json"))
                     )
             )
 
@@ -201,13 +196,13 @@ class CCloudRestClientTransportTest {
         }
 
         @Test
-        fun `should expose Retry-After on executeRequest errors`() = runBlocking {
+        fun `should expose Retry-After on executeRequest errors`() = runBlocking<Unit> {
             wireMock.stubFor(
                 post(urlEqualTo("/records"))
                     .willReturn(
                         aResponse().withStatus(503)
                             .withHeader("Retry-After", "3")
-                            .withBody(fixture("error-service-unavailable.json"))
+                            .withBody(ccloudFixture("error-service-unavailable.json"))
                     )
             )
 
@@ -217,7 +212,7 @@ class CCloudRestClientTransportTest {
         }
 
         @Test
-        fun `should clamp Retry-After to policy maximum`() = runBlocking {
+        fun `should clamp Retry-After to policy maximum`() = runBlocking<Unit> {
             wireMock.stubFor(
                 get(urlEqualTo("/test"))
                     .willReturn(aResponse().withStatus(503).withHeader("Retry-After", "3600"))
@@ -231,7 +226,7 @@ class CCloudRestClientTransportTest {
         }
 
         @Test
-        fun `should ignore unparseable Retry-After`() = runBlocking {
+        fun `should ignore unparseable Retry-After`() = runBlocking<Unit> {
             wireMock.stubFor(
                 get(urlEqualTo("/test"))
                     .willReturn(aResponse().withStatus(503).withHeader("Retry-After", "soon"))
@@ -247,9 +242,10 @@ class CCloudRestClientTransportTest {
     inner class ParseErrors {
 
         @Test
-        fun `fetch parse failure should propagate parser exception rather than status 0`() = runBlocking {
+        fun `fetch parse failure should propagate parser exception rather than status 0`() = runBlocking<Unit> {
             wireMock.stubFor(
-                get(urlEqualTo("/test")).willReturn(aResponse().withStatus(200).withBody(fixture("simple-ok.json")))
+                get(urlEqualTo("/test"))
+                    .willReturn(aResponse().withStatus(200).withBody(ccloudFixture("simple-ok.json")))
             )
 
             val exception = assertThrows<IllegalStateException> {
@@ -265,14 +261,15 @@ class CCloudRestClientTransportTest {
     inner class Requests {
 
         @Test
-        fun `executeRequest should send method, body and auth header`() = runBlocking {
+        fun `executeRequest should send method, body and auth header`() = runBlocking<Unit> {
             wireMock.stubFor(
-                post(urlEqualTo("/records")).willReturn(aResponse().withStatus(200).withBody(fixture("simple-ok.json")))
+                post(urlEqualTo("/records"))
+                    .willReturn(aResponse().withStatus(200).withBody(ccloudFixture("simple-ok.json")))
             )
 
             val response = client.executeRequest("/records", "POST", """{"k":"v"}""")
 
-            assertEquals(fixture("simple-ok.json"), response)
+            assertEquals(ccloudFixture("simple-ok.json"), response)
             wireMock.verify(
                 postRequestedFor(urlEqualTo("/records"))
                     .withHeader("Authorization", equalTo("Bearer $TEST_DATA_PLANE_TOKEN"))
@@ -281,12 +278,13 @@ class CCloudRestClientTransportTest {
         }
 
         @Test
-        fun `fetch should return success body`() = runBlocking {
+        fun `fetch should return success body`() = runBlocking<Unit> {
             wireMock.stubFor(
-                get(urlEqualTo("/test")).willReturn(aResponse().withStatus(200).withBody(fixture("simple-ok.json")))
+                get(urlEqualTo("/test"))
+                    .willReturn(aResponse().withStatus(200).withBody(ccloudFixture("simple-ok.json")))
             )
 
-            assertEquals(fixture("simple-ok.json"), client.fetch("/test") { it })
+            assertEquals(ccloudFixture("simple-ok.json"), client.fetch("/test") { it })
         }
     }
 
@@ -314,7 +312,7 @@ class CCloudRestClientTransportTest {
         }
 
         @Test
-        fun `unknown host should raise CCloudConnectException`() = runBlocking {
+        fun `unknown host should raise CCloudConnectException`() = runBlocking<Unit> {
             val unknown = clientFor("http://does-not-exist.invalid")
 
             val exception = assertThrows<CCloudApiException> { unknown.fetch("/test") { it } }
@@ -339,7 +337,7 @@ class CCloudRestClientTransportTest {
         }
 
         @Test
-        fun `HTTP errors should not be CCloudConnectException`() = runBlocking {
+        fun `HTTP errors should not be CCloudConnectException`() = runBlocking<Unit> {
             wireMock.stubFor(get(urlEqualTo("/test")).willReturn(aResponse().withStatus(500)))
 
             val exception = assertThrows<CCloudApiException> { client.fetch("/test") { it } }
