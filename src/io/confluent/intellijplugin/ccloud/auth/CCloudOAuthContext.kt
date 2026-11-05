@@ -2,10 +2,12 @@ package io.confluent.intellijplugin.ccloud.auth
 
 import com.intellij.util.io.HttpRequests
 import io.confluent.intellijplugin.ccloud.auth.CCloudOAuthHttpClient.HttpResponseWithHeaders
-import io.confluent.intellijplugin.ccloud.client.CCloudRetryPolicy
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNull
 import java.net.URLEncoder
 import java.security.MessageDigest
@@ -71,10 +73,7 @@ class CCloudOAuthContext {
      */
     fun expiresAt(): Instant? = tokens.get().expiresAt()
 
-    fun hasReachedEndOfLifetime(): Boolean {
-        val endOfLifetime = getEndOfLifetime() ?: return false
-        return Instant.now() >= endOfLifetime
-    }
+    fun hasReachedEndOfLifetime(): Boolean = tokens.get().hasReachedEndOfLifetime()
 
     fun hasNonTransientError(): Boolean = tokens.get().errors.hasNonTransientErrors()
 
@@ -84,9 +83,8 @@ class CCloudOAuthContext {
         val expiresAt = snapshot.expiresAt() ?: return false
         val nextExecution = now.plusSeconds(CCloudOAuthConfig.CHECK_TOKEN_EXPIRATION_INTERVAL.inWholeSeconds)
         val atLeastOneTokenWillExpireBeforeNextRun = expiresAt < nextExecution
-        val reachedEndOfLifetime = snapshot.endOfLifetime?.let { now >= it } ?: false
 
-        return !reachedEndOfLifetime
+        return !snapshot.hasReachedEndOfLifetime(now)
                 && !snapshot.errors.hasNonTransientErrors()
                 && atLeastOneTokenWillExpireBeforeNextRun
     }
@@ -186,14 +184,12 @@ class CCloudOAuthContext {
      * If not successful, returns a failed Result holding the cause of the failure.
      */
     suspend fun checkAuthenticationStatus(): Result<Boolean> = exchangeMutex.withLock {
-        run {
-            val controlPlaneToken = tokens.get().controlPlaneToken
-            if (isTokenMissing(controlPlaneToken)) {
-                val errorMessage = "Cannot verify authentication status: no control plane token available."
-                tokens.updateAndGet { it.withErrors(it.errors.withAuthStatusCheck(errorMessage)) }
-                return@run Result.failure(IllegalStateException(errorMessage))
-            }
-
+        val controlPlaneToken = tokens.get().controlPlaneToken
+        if (isTokenMissing(controlPlaneToken)) {
+            val errorMessage = "Cannot verify authentication status: no control plane token available."
+            tokens.updateAndGet { it.withErrors(it.errors.withAuthStatusCheck(errorMessage)) }
+            Result.failure(IllegalStateException(errorMessage))
+        } else {
             runCatchingNonCancellation {
                 val response = CCloudOAuthHttpClient.get<CheckJwtResponse>(
                     url = CCloudOAuthConfig.CCLOUD_CONTROL_PLANE_CHECK_JWT_URI,
@@ -350,15 +346,7 @@ class CCloudOAuthContext {
 
         val cpResponse = decodeTokenEndpointResponse<ControlPlaneTokenExchangeResponse>(
             TokenEndpoint.CONTROL_PLANE, response, "Retrieving control plane token failed"
-        )
-        if (cpResponse.error != null && cpResponse.error !is JsonNull) {
-            throw TokenEndpointException(
-                endpoint = TokenEndpoint.CONTROL_PLANE,
-                httpStatusCode = response.statusCode,
-                retryAfterHeader = response.header(CCloudRetryPolicy.RETRY_AFTER_HEADER),
-                message = "Retrieving control plane token failed: ${cpResponse.error}"
-            )
-        }
+        ) { it.error }
 
         // Extract token from Set-Cookie header
         val authToken = CCloudOAuthHttpClient.extractCookie(response.headers, "auth_token")
@@ -383,18 +371,9 @@ class CCloudOAuthContext {
             )
         }
 
-        val dpResponse = decodeTokenEndpointResponse<DataPlaneTokenExchangeResponse>(
+        return decodeTokenEndpointResponse<DataPlaneTokenExchangeResponse>(
             TokenEndpoint.DATA_PLANE, response, "Retrieving data plane token failed"
-        )
-        if (dpResponse.error != null && dpResponse.error !is JsonNull) {
-            throw TokenEndpointException(
-                endpoint = TokenEndpoint.DATA_PLANE,
-                httpStatusCode = response.statusCode,
-                retryAfterHeader = response.header(CCloudRetryPolicy.RETRY_AFTER_HEADER),
-                message = "Retrieving data plane token failed: ${dpResponse.error}"
-            )
-        }
-        return dpResponse
+        ) { it.error }
     }
 
     /**
@@ -419,7 +398,6 @@ class CCloudOAuthContext {
      * other non-2xx response becomes a [TokenEndpointException]. Both keep the HTTP status.
      */
     private fun parseIdTokenResponse(response: HttpResponseWithHeaders): IdTokenExchangeResponse {
-        val retryAfter = response.header(CCloudRetryPolicy.RETRY_AFTER_HEADER)
         val parsed = runCatching {
             CCloudOAuthHttpClient.json.decodeFromString<IdTokenExchangeResponse>(response.body)
         }
@@ -429,14 +407,14 @@ class CCloudOAuthContext {
                 errorCode = errorCode,
                 errorDescription = parsed.getOrNull()?.errorDescription?.toString(),
                 httpStatusCode = response.statusCode,
-                retryAfterHeader = retryAfter
+                retryAfterHeader = response.retryAfterHeader
             )
         }
         if (!response.isSuccessful) {
             throw TokenEndpointException(
                 endpoint = TokenEndpoint.OAUTH_TOKEN,
                 httpStatusCode = response.statusCode,
-                retryAfterHeader = retryAfter,
+                retryAfterHeader = response.retryAfterHeader,
                 message = "Retrieving ID token failed: HTTP ${response.statusCode}"
             )
         }
@@ -445,34 +423,51 @@ class CCloudOAuthContext {
 
     /**
      * Decode a CCloud token endpoint body, throwing a [TokenEndpointException] that carries the
-     * status if the response is not 2xx (whether or not the body parses).
+     * status if the response is not 2xx (whether or not the body parses), or if it is 2xx but
+     * [bodyError] finds an error in the decoded body.
      */
     private inline fun <reified T> decodeTokenEndpointResponse(
         endpoint: TokenEndpoint,
         response: HttpResponseWithHeaders,
-        failurePrefix: String
+        failurePrefix: String,
+        bodyError: (T) -> JsonElement?
     ): T {
         if (!response.isSuccessful) {
             throw TokenEndpointException(
                 endpoint = endpoint,
                 httpStatusCode = response.statusCode,
-                retryAfterHeader = response.header(CCloudRetryPolicy.RETRY_AFTER_HEADER),
+                retryAfterHeader = response.retryAfterHeader,
                 // Body left out on purpose: the message reaches logs and telemetry
                 message = "$failurePrefix: HTTP ${response.statusCode}"
             )
         }
-        return CCloudOAuthHttpClient.json.decodeFromString<T>(response.body)
+        val decoded = CCloudOAuthHttpClient.json.decodeFromString<T>(response.body)
+        bodyError(decoded)?.takeIf { it !is JsonNull }?.let { error ->
+            throw TokenEndpointException(
+                endpoint = endpoint,
+                httpStatusCode = response.statusCode,
+                message = "$failurePrefix: $error"
+            )
+        }
+        return decoded
     }
 
     // Helpers
 
     /**
-     * [runCatching] that lets [CancellationException] through, so a cancelled sign-in or refresh
-     * (e.g. the refresh loop stopped, or a sign-in that timed out) propagates as cancellation
-     * instead of being recorded as a failed attempt or a sign-in error.
+     * [runCatching] that lets cancellation through, so a cancelled sign-in or refresh (e.g. the
+     * refresh loop stopped, or a sign-in that timed out) propagates as cancellation instead of
+     * being recorded as a failed attempt or a sign-in error.
+     *
+     * Checking for [CancellationException] alone is not enough: if the blocking HTTP call inside
+     * `withContext(Dispatchers.IO)` throws its own exception (a 5xx, an I/O error) after the caller
+     * was cancelled, that exception wins over the cancellation, and on the same-dispatcher path
+     * (the refresh bean runs on IO) nothing re-checks on resume. So check the job here too.
      */
-    private inline fun <T> runCatchingNonCancellation(block: () -> T): Result<T> =
-        runCatching(block).onFailure { if (it is CancellationException) throw it }
+    private suspend inline fun <T> runCatchingNonCancellation(block: () -> T): Result<T> =
+        runCatching(block)
+            .onFailure { if (it is CancellationException) throw it }
+            .also { currentCoroutineContext().ensureActive() }
 
     private fun isTokenMissing(token: Token?): Boolean =
         token == null || token.token.isEmpty()

@@ -67,6 +67,9 @@ data class Tokens(
         dataPlaneToken?.expiresAt
     ).minOrNull()
 
+    fun hasReachedEndOfLifetime(now: Instant = Instant.now()): Boolean =
+        endOfLifetime?.let { now >= it } ?: false
+
     // Immutable update methods
     fun withRefreshToken(token: Token) = copy(refreshToken = token)
     fun withControlPlaneToken(token: Token) = copy(controlPlaneToken = token)
