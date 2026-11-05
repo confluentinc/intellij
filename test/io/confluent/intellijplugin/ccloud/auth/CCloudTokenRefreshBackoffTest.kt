@@ -20,6 +20,7 @@ import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.BeforeEach
@@ -43,6 +44,7 @@ class CCloudTokenRefreshBackoffTest {
     companion object {
         private lateinit var wireMockServer: WireMockServer
         private const val FIXTURES = "fixtures/ccloud-auth"
+        private const val SLOW_MS = 300
         private val TEST_TIMEOUT = 20.seconds
 
         /** Production waits before jitter: 5s * 1.6^n for n = 0..8 (all below the 5 min cap). */
@@ -146,10 +148,17 @@ class CCloudTokenRefreshBackoffTest {
         )
     }
 
-    private fun stubFailure(path: String, status: Int, fixture: String? = null, retryAfter: String? = null) {
+    private fun stubFailure(
+        path: String,
+        status: Int,
+        fixture: String? = null,
+        retryAfter: String? = null,
+        delayMs: Int = 0,
+    ) {
         val response = WireMock.aResponse().withStatus(status).withHeader("Content-Type", "application/json")
         fixture?.let { response.withBody(fixture(it)) }
         retryAfter?.let { response.withHeader("Retry-After", it) }
+        if (delayMs > 0) response.withFixedDelay(delayMs)
         wireMockServer.stubFor(WireMock.post(path).willReturn(response).atPriority(1))
     }
 
@@ -165,8 +174,10 @@ class CCloudTokenRefreshBackoffTest {
             sleep = sleeper::sleep,
         ).also { it.start() }
 
-    private fun refreshRequests() = wireMockServer.countRequestsMatching(
-        postRequestedFor(urlEqualTo("/oauth/token")).build()
+    private fun refreshRequests() = requestsTo("/oauth/token")
+
+    private fun requestsTo(path: String) = wireMockServer.countRequestsMatching(
+        postRequestedFor(urlEqualTo(path)).build()
     ).count
 
     private fun awaitTerminal(): SignOutReason = runBlocking { withTimeout(TEST_TIMEOUT) { terminal.await() } }
@@ -348,29 +359,61 @@ class CCloudTokenRefreshBackoffTest {
     @DisplayName("cancellation")
     inner class Cancellation {
 
+        // The bean's scope runs on Dispatchers.IO, so these cover the same-dispatcher withContext
+        // path: a blocking HTTP call that returns after stop() must still surface as cancellation.
+
         @Test
         fun `stopping the bean mid-refresh does not count a failed attempt`() {
-            val slowMs = 300
+            stubFailure("/oauth/token", 503, delayMs = SLOW_MS)
+
+            val sleeper = stopDuringRequestTo("/oauth/token")
+
+            assertNoFailureRecorded(sleeper)
+        }
+
+        @Test
+        fun `stopping the bean during a failing final exchange does not count a failed attempt`() {
+            stubFailure("/api/access_tokens", 503, delayMs = SLOW_MS)
+
+            val sleeper = stopDuringRequestTo("/api/access_tokens")
+
+            assertNoFailureRecorded(sleeper)
+        }
+
+        @Test
+        fun `stopping the bean during a successful final exchange does not save the session`() {
             wireMockServer.stubFor(
-                WireMock.post("/oauth/token").willReturn(
+                WireMock.post("/api/access_tokens").willReturn(
                     WireMock.aResponse().withStatus(200)
                         .withHeader("Content-Type", "application/json")
-                        .withFixedDelay(slowMs)
-                        .withBody(fixture("oauth-token-success.json"))
+                        .withFixedDelay(SLOW_MS)
+                        .withBody(fixture("data-plane-token-success.json"))
                 ).atPriority(1)
             )
+            CCloudTokenStorage.clearSession()
+
+            val sleeper = stopDuringRequestTo("/api/access_tokens")
+
+            assertNull(CCloudTokenStorage.loadSession(), "session saved after the bean was stopped")
+            assertNoFailureRecorded(sleeper)
+        }
+
+        /** Start the bean, stop it once a request to [path] is in flight, and let that request return. */
+        private fun stopDuringRequestTo(path: String): RecordingSleeper {
             val sleeper = RecordingSleeper()
             val bean = startBean(sleeper)
-
             runBlocking {
-                withTimeout(TEST_TIMEOUT) { while (refreshRequests() == 0) delay(5) }
+                withTimeout(TEST_TIMEOUT) { while (requestsTo(path) == 0) delay(5) }
                 bean.stop()
                 // Let the in-flight (blocking) HTTP call return so the cancelled refresh unwinds
-                delay(slowMs * 3L)
+                delay(SLOW_MS * 3L)
             }
+            return sleeper
+        }
 
+        private fun assertNoFailureRecorded(sleeper: RecordingSleeper) {
             assertEquals(0, context.getFailedTokenRefreshAttempts())
-            assertEquals(null, context.getErrors().tokenRefresh)
+            assertNull(context.getErrors().tokenRefresh)
             assertFalse(context.hasNonTransientError())
             assertEquals(1, sleeper.delays.size, "no backoff wait after cancellation: ${sleeper.delays}")
             assertTrue(terminalReasons.isEmpty())
