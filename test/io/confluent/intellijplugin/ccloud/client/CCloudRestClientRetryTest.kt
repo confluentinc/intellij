@@ -183,13 +183,80 @@ class CCloudRestClientRetryTest {
     inner class IdempotentPosts {
 
         @Test
-        fun `consume POST marked idempotent should retry 503`() = runBlocking {
-            stubFailThenSucceed({ post(urlEqualTo("/records:consume")) }, 503, "error-service-unavailable.json")
+        fun `read-only POST marked idempotent should retry 503`() = runBlocking {
+            stubFailThenSucceed({ post(urlEqualTo("/subjects/s")) }, 503, "error-service-unavailable.json")
 
-            val response = client.executeRequest("/records:consume", "POST", "{}", idempotent = true)
+            val response = client.executeRequest("/subjects/s", "POST", "{}", idempotent = true)
 
             assertEquals(fixture("simple-ok.json"), response)
-            wireMock.verify(2, postRequestedFor(urlEqualTo("/records:consume")))
+            wireMock.verify(2, postRequestedFor(urlEqualTo("/subjects/s")))
+        }
+    }
+
+    /** `retry = false`: callers that retry at their own layer (consume) get exactly one attempt. */
+    @Nested
+    inner class RetryOptOut {
+
+        private fun errorFixtureFor(status: Int) =
+            if (status == 429) "error-rate-limited.json" else "error-service-unavailable.json"
+
+        @ParameterizedTest
+        @ValueSource(ints = [429, 503])
+        fun `executeRequest with retry false should make exactly one attempt`(status: Int) = runBlocking<Unit> {
+            wireMock.stubFor(
+                post(urlEqualTo("/records:consume")).willReturn(
+                    aResponse().withStatus(status).withHeader("Retry-After", "1").withBody(fixture(errorFixtureFor(status)))
+                )
+            )
+
+            val exception = assertThrows<CCloudApiException> {
+                client.executeRequest("/records:consume", "POST", "{}", idempotent = true, retry = false)
+            }
+
+            assertEquals(status, exception.statusCode)
+            // Retry-After is still surfaced so the caller's own retry layer can honor it
+            assertEquals(1.seconds, exception.retryAfter)
+            wireMock.verify(1, postRequestedFor(urlEqualTo("/records:consume")))
+        }
+
+        @ParameterizedTest
+        @ValueSource(ints = [429, 503])
+        fun `fetch with retry false should make exactly one attempt`(status: Int) = runBlocking<Unit> {
+            wireMock.stubFor(
+                get(urlEqualTo("/records")).willReturn(
+                    aResponse().withStatus(status).withBody(fixture(errorFixtureFor(status)))
+                )
+            )
+
+            val exception = assertThrows<CCloudApiException> { client.fetch("/records", retry = false) { it } }
+
+            assertEquals(status, exception.statusCode)
+            wireMock.verify(1, getRequestedFor(urlEqualTo("/records")))
+        }
+
+        @Test
+        fun `connection refused with retry false should not be retried`() = runBlocking<Unit> {
+            val random = CountingRandom()
+            val refused = clientFor("http://localhost:${closedPort()}", fastPolicy(random))
+
+            assertThrows<CCloudConnectException> {
+                refused.executeRequest("/records:consume", "POST", "{}", idempotent = true, retry = false)
+            }
+
+            assertEquals(0, random.draws, "expected no retries")
+        }
+
+        @Test
+        fun `retry false should still succeed on the first attempt`() = runBlocking<Unit> {
+            wireMock.stubFor(
+                post(urlEqualTo("/records:consume"))
+                    .willReturn(aResponse().withStatus(200).withBody(fixture("simple-ok.json")))
+            )
+
+            val response = client.executeRequest("/records:consume", "POST", "{}", retry = false)
+
+            assertEquals(fixture("simple-ok.json"), response)
+            wireMock.verify(1, postRequestedFor(urlEqualTo("/records:consume")))
         }
     }
 

@@ -91,8 +91,9 @@ class DataPlaneFetcherImpl(
     ): ConsumeRecordsResponse {
         val path = String.format(CloudConfig.DataPlane.Kafka.CCLOUD_SIMPLE_CONSUME_API_PATH, clusterId, topicName)
         val requestBody = json.encodeToString(request)
-        // Read-only POST: safe to retry on transient failures
-        val responseBody = kafkaClient.executeRequest(path, "POST", requestBody, idempotent = true)
+        // Single attempt for every failure (429 included): CCloudConsumerClient's poll loop is the
+        // only retry layer for consume, so client retries would stack under its backoff.
+        val responseBody = kafkaClient.executeRequest(path, "POST", requestBody, retry = false)
         return json.decodeFromString<ConsumeRecordsResponse>(responseBody)
     }
 
@@ -114,7 +115,8 @@ class DataPlaneFetcherImpl(
             maxPollRecords?.let { add("max_poll_records=$it") }
         }
         val path = "$basePath?${params.joinToString("&")}"
-        return kafkaClient.fetch(path) { body ->
+        // Single attempt, like consumeRecords: the consumer poll loop retries
+        return kafkaClient.fetch(path, retry = false) { body ->
             json.decodeFromString<SinglePartitionConsumeResponse>(body).partitionData
         }
     }
