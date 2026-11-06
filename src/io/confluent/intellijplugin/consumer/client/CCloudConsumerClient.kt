@@ -329,13 +329,16 @@ class CCloudConsumerClient(
      * timeout), 401 (token about to be refreshed), 408, 429 or 5xx, plus raw [IOException]s.
      * Everything else is terminal, notably the [IllegalStateException] thrown when the user is no
      * longer signed in, response parse errors, and TLS failures ([SSLException] anywhere in the
-     * cause chain), which won't fix themselves between polls.
+     * cause chain), which won't fix themselves between polls. So is a `Retry-After` above the
+     * policy's [CCloudRetryPolicy.maxRetryAfter]: polling again sooner than the server asked would
+     * most likely just get the same error.
      */
     @VisibleForTesting
     internal fun isRetryable(e: Throwable): Boolean {
         if (generateSequence(e) { it.cause }.any { it is SSLException }) return false
         return when (e) {
-            is CCloudApiException -> e.statusCode in RETRYABLE_STATUSES || e.statusCode in 500..599
+            is CCloudApiException -> !retryPolicy.exceedsMaxRetryAfter(e.retryAfter) &&
+                (e.statusCode in RETRYABLE_STATUSES || e.statusCode in 500..599)
             is IOException -> true
             else -> false
         }

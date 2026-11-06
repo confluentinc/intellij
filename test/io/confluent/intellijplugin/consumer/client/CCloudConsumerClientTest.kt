@@ -966,6 +966,21 @@ class CCloudConsumerClientTest {
         }
 
         @Test
+        fun `Retry-After within maxRetryAfter should stay retryable`() {
+            assertTrue(client.isRetryable(CCloudApiException("HTTP 429", 429, retryAfter = 60.seconds)))
+        }
+
+        @Test
+        fun `Retry-After above maxRetryAfter should not be retryable`() {
+            listOf(429, 503).forEach { status ->
+                assertFalse(
+                    client.isRetryable(CCloudApiException("HTTP $status", status, retryAfter = 300.seconds)),
+                    "status $status"
+                )
+            }
+        }
+
+        @Test
         fun `other 4xx should not be retryable`() {
             listOf(400, 403, 404, 409).forEach { status ->
                 assertFalse(client.isRetryable(CCloudApiException("HTTP $status", status)), "status $status")
@@ -1178,6 +1193,15 @@ class CCloudConsumerClientTest {
             assertEquals(2, callTimesNanos.size)
             val gap = gapMillis(0)
             assertTrue(gap >= 300, "should wait at least Retry-After, waited ${gap}ms")
+        }
+
+        @Test
+        fun `should stop with the server's error when Retry-After exceeds maxRetryAfter`() {
+            val rateLimited = http(429, retryAfter = 300.milliseconds)
+            runPolls(listOf(rateLimited), CCloudRetryPolicy.immediate(10).copy(maxRetryAfter = 100.milliseconds))
+
+            assertEquals(1, callTimesNanos.size, "should not retry sooner than the server asked")
+            assertEquals(listOf<Throwable>(rateLimited), errors.toList())
         }
 
         @Test
