@@ -476,6 +476,7 @@ class CCloudProducerClient(
      * - HTTP 429: not retried here, because the REST client already retried it (honoring
      *   `Retry-After`). Throws [CCloudProduceRetriesExhaustedException] with `rateLimited = true`.
      * - HTTP 5xx ([isRetryableHttpError]): retried with policy backoff, never shorter than `Retry-After`.
+     *   A `Retry-After` above [CCloudRetryPolicy.maxRetryAfter] is rethrown unchanged instead.
      * - Anything else, including connect failures and timeouts (status 0): rethrown unchanged.
      *
      * @throws CCloudProduceRetriesExhaustedException when every attempt failed with a retryable error
@@ -508,6 +509,10 @@ class CCloudProducerClient(
                 }
                 if (!isRetryableHttpError(e.statusCode)) {
                     thisLogger().debug("Non-retryable HTTP error during produce: ${e.statusCode} ${e.message}")
+                    throw e
+                }
+                if (retryPolicy.exceedsMaxRetryAfter(e.retryAfter)) {
+                    thisLogger().debug("Produce Retry-After ${e.retryAfter} exceeds ${retryPolicy.maxRetryAfter}, not retrying")
                     throw e
                 }
                 lastException = e
