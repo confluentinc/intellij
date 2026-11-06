@@ -45,6 +45,12 @@ abstract class MonitoringClient(val project: Project?) : Disposable {
     fun isConnected() = state == ConnectedConnectionStatus
     fun isInited() = state == ConnectedConnectionStatus || state is FailedConnectionStatus
 
+    /**
+     * Whether auto-refresh may call [connect] again to recover a failed connection. Clients whose [connectInner]
+     * can't safely run twice return false; they stay failed until the user refreshes manually.
+     */
+    open fun supportsAutoReconnect(): Boolean = true
+
     abstract fun getRealUri(): String
     protected abstract fun checkConnectionInner()
     protected abstract fun connectInner(calledByUser: Boolean)

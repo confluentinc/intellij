@@ -61,6 +61,10 @@ class KafkaClient(
 
     override fun dispose() {}
 
+    // connectInner overwrites kafkaProps' bootstrap servers with the tunnel's local address and never disposes the
+    // previous tunnel, so a second connect() through an SSH tunnel targets the wrong host and leaks an SSH session.
+    override fun supportsAutoReconnect() = !connectionData.getTunnelData().isEnabled
+
     override fun connectInner(calledByUser: Boolean) {
         disposeKafkaAdminClient()
 
