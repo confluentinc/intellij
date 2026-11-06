@@ -60,10 +60,23 @@ object CCloudOAuthConfig {
 
     const val CCLOUD_OAUTH_SCOPE: String = "email openid offline_access"
 
-    // Control Plane Configurations
-    val CCLOUD_CONTROL_PLANE_TOKEN_LIFETIME: Duration
+    /**
+     * Lifetime assumed for a control- or data-plane token whose JWT has no usable `exp`/`iat`
+     * (see [CCloudJwt.lifetime]). Normally the lifetime comes from the token: a prod check in
+     * Nov 2026 (APIE-1920) measured 300s for the control-plane token and 900s for the data-plane token.
+     */
+    val CCLOUD_TOKEN_FALLBACK_LIFETIME: Duration
         get() = System.getProperty("ccloud.control-plane.token-lifetime-seconds")
             ?.toIntOrNull()?.seconds ?: 5.minutes
+
+    /**
+     * When to start refreshing a token, as a fraction of its lifetime. Each token gets a random point
+     * in this range, drawn once (3.5 to 4.5 min for a 300s token). That leaves room to retry a slow or
+     * failed refresh before the token expires, and keeps signed-in IDEs from refreshing in lockstep.
+     */
+    val TOKEN_REFRESH_WINDOW: OpenEndRange<Double> = 0.7..<0.9
+
+    // Control Plane Configurations
     val CCLOUD_CONTROL_PLANE_TOKEN_EXCHANGE_URI: String
         get() = System.getProperty("ccloud.control-plane.token-exchange-uri") ?: "https://$basePath/api/sessions"
     val CCLOUD_CONTROL_PLANE_CHECK_JWT_URI: String
