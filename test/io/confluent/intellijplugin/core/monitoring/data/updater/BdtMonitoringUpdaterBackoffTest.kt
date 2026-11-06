@@ -27,11 +27,17 @@ class BdtMonitoringUpdaterBackoffTest {
     /**
      * Real connection-state machine; [failing] makes connect/checkConnection throw. Like KafkaClient's admin client,
      * [hasSession] is created only by connect() and torn down by a failed check, so a bare re-check can't restore it.
+     * [autoReconnect] mimics KafkaClient over an SSH tunnel, which must not be reconnected by auto-refresh.
      */
     private class FakeClient : MonitoringClient(null) {
         var failing = false
+        var autoReconnect = true
         var hasSession = false
             private set
+        var connectCount = 0
+            private set
+
+        override fun supportsAutoReconnect() = autoReconnect
 
         override fun getRealUri() = "fake://cluster"
 
@@ -43,6 +49,7 @@ class BdtMonitoringUpdaterBackoffTest {
         }
 
         override fun connectInner(calledByUser: Boolean) {
+            connectCount++
             failIfNeeded()
             hasSession = true
         }
@@ -149,6 +156,24 @@ class BdtMonitoringUpdaterBackoffTest {
             repeat(3) { updater.reloadAll(checkConnection = true) }
 
             assertEquals(3, updater.consecutiveFailureCount)
+        }
+    }
+
+    @Nested
+    inner class `does not reconnect` {
+
+        @Test
+        fun `a failed connection whose client does not support auto-reconnect`() {
+            connect(failing = true)
+            client.autoReconnect = false
+            client.failing = false
+
+            repeat(2) { updater.reloadAll(checkConnection = true) }
+
+            assertEquals(1, client.connectCount)
+            assertFalse(client.isConnected())
+            assertEquals(2, updater.consecutiveFailureCount)
+            assertNotNull(model.error)
         }
     }
 

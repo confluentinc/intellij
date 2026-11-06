@@ -145,9 +145,10 @@ class BdtMonitoringUpdater(val dataManager: MonitoringDataManager) : Disposable 
         if (client.isConnecting())
             return RefreshOutcome.SKIPPED
 
-        // With a connection check, fall through and re-probe a failed connection so auto-refresh can recover it.
+        // With a connection check, fall through and re-probe a failed connection so auto-refresh can recover it,
+        // unless the client can't safely reconnect on its own.
         val connectionError = client.connectionError
-        if (connectionError != null && !withConnectionCheck) {
+        if (connectionError != null && !(withConnectionCheck && client.supportsAutoReconnect())) {
             models.forEach { it.setError(connectionError) }
             return RefreshOutcome.FAILED
         }
