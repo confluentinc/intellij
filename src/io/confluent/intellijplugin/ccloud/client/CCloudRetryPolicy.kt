@@ -13,6 +13,7 @@ import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.nanoseconds
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.toKotlinDuration
+import org.jetbrains.annotations.VisibleForTesting
 
 /**
  * Retry timing policy shared by Confluent Cloud REST callers.
@@ -22,14 +23,15 @@ import kotlin.time.toKotlinDuration
  * retryable is the caller's job; this class only answers *how many* attempts and *how long* to wait.
  *
  * There is intentionally no total delay budget: the only caps are per-attempt ([maxBackoff] for
- * computed backoff, [maxRetryAfter] for server-supplied delays).
+ * computed backoff, [maxRetryAfter] for server-supplied delays). A server delay above
+ * [maxRetryAfter] means the caller should give up, not retry early (see [exceedsMaxRetryAfter]).
  *
  * @param maxAttempts Total attempts including the first one (so `maxAttempts - 1` retries)
  * @param initialBackoff Backoff before the first retry, before jitter
  * @param multiplier Growth factor applied to the backoff for each subsequent retry
  * @param maxBackoff Upper bound for the computed (exponential) backoff, before jitter
  * @param jitter Maximum extra fraction added to the delay; actual factor is uniform in `[1, 1 + jitter)`
- * @param maxRetryAfter Upper bound applied to server-supplied `Retry-After` values
+ * @param maxRetryAfter Longest server-supplied `Retry-After` worth waiting for before a retry
  * @param random Source of randomness for jitter (injectable for tests)
  */
 data class CCloudRetryPolicy(
@@ -56,7 +58,8 @@ data class CCloudRetryPolicy(
      * `max(min(initialBackoff * multiplier^retryIndex, maxBackoff), retryAfter) * (1 + U[0, jitter))`
      *
      * Jitter only ever adds time, so the result is never below [retryAfter] (after clamping it to
-     * [maxRetryAfter]).
+     * [maxRetryAfter]). The clamp is a safety net: callers should check [exceedsMaxRetryAfter]
+     * first and stop retrying instead.
      */
     fun delayFor(retryIndex: Int, retryAfter: Duration? = null): Duration {
         require(retryIndex >= 0) { "retryIndex must be >= 0, was $retryIndex" }
@@ -83,8 +86,10 @@ data class CCloudRetryPolicy(
      * Parse a `Retry-After` header value (RFC 9110 §10.2.3).
      *
      * Accepts delta-seconds (`"120"`) or an IMF-fixdate HTTP-date
-     * (`"Wed, 21 Oct 2015 07:28:00 GMT"`). Results are clamped to [maxRetryAfter]; an HTTP-date in
-     * the past yields [Duration.ZERO].
+     * (`"Wed, 21 Oct 2015 07:28:00 GMT"`). The server's value is returned as is, not capped at
+     * [maxRetryAfter], so callers can tell when it asked for more (see [exceedsMaxRetryAfter]). An
+     * HTTP-date in the past yields [Duration.ZERO]; delta-seconds too large for a Long yield
+     * [Duration.INFINITE].
      *
      * @return the delay, or `null` if the header is absent, blank, negative or unparseable
      */
@@ -92,9 +97,8 @@ data class CCloudRetryPolicy(
         val value = header?.trim()?.takeIf { it.isNotEmpty() } ?: return null
 
         if (value.all { it in '0'..'9' }) {
-            // Digits only, so a null here means overflow - treat as "very long" and clamp.
-            val seconds = value.toLongOrNull() ?: return maxRetryAfter
-            return seconds.seconds.coerceAtMost(maxRetryAfter)
+            // Digits only, so a null here means overflow: the server asked for a very long wait.
+            return value.toLongOrNull()?.seconds ?: Duration.INFINITE
         }
 
         val date = try {
@@ -103,9 +107,15 @@ data class CCloudRetryPolicy(
             return null
         }
 
-        val until = JavaDuration.between(now, date).toKotlinDuration()
-        return until.coerceIn(Duration.ZERO, maxRetryAfter)
+        return JavaDuration.between(now, date).toKotlinDuration().coerceAtLeast(Duration.ZERO)
     }
+
+    /**
+     * Whether the server asked to wait longer than [maxRetryAfter]. If so, the caller should stop
+     * retrying and surface the error: retrying sooner than the server asked would most likely just
+     * get the same error again.
+     */
+    fun exceedsMaxRetryAfter(retryAfter: Duration?): Boolean = retryAfter != null && retryAfter > maxRetryAfter
 
     companion object {
         val DEFAULT = CCloudRetryPolicy()
@@ -113,7 +123,12 @@ data class CCloudRetryPolicy(
         /** Header name for the server-requested retry delay. */
         const val RETRY_AFTER_HEADER = "Retry-After"
 
-        /** Near-instant policy (1ms waits, no jitter) intended for tests. */
+        /**
+         * Near-instant policy (1ms waits, no jitter) intended for tests. Its 1ms [maxRetryAfter]
+         * means any non-zero `Retry-After` exceeds it, so tests that need to retry past a
+         * `Retry-After` should raise [maxRetryAfter].
+         */
+        @VisibleForTesting
         internal fun immediate(maxAttempts: Int = 4) = CCloudRetryPolicy(
             maxAttempts = maxAttempts,
             initialBackoff = 1.milliseconds,
