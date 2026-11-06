@@ -29,7 +29,7 @@ import kotlin.time.Duration
  * @param authType Authentication mode (control plane vs data plane token)
  * @param additionalHeaders Extra headers required for specific APIs (e.g., "target-sr-cluster" for Schema Registry)
  * @param authService Optional auth service (for testing purposes)
- * @param retryPolicy Retry timing policy; also clamps parsed `Retry-After` values
+ * @param retryPolicy Retry timing policy; also parses `Retry-After` and sets the longest one worth waiting for
  * @param connectTimeoutMs Connect timeout per request
  * @param readTimeoutMs Read timeout per request
  */
@@ -174,8 +174,9 @@ class CCloudRestClient(
      *
      * A rate-limit token is acquired before every attempt. Retries happen only for failures
      * [isRetryable] deems safe; the wait comes from [CCloudRetryPolicy.delayFor] and honors the
-     * server's `Retry-After`. When attempts run out, the last exception is rethrown unchanged
-     * (status code and retryAfter intact).
+     * server's `Retry-After`. A `Retry-After` above [CCloudRetryPolicy.maxRetryAfter] stops retrying
+     * right away instead of retrying sooner than the server asked. When retrying stops, the last
+     * exception is rethrown unchanged (status code and the server's retryAfter intact).
      *
      * @param idempotent true when repeating the call cannot cause duplicate side effects
      */
@@ -187,7 +188,10 @@ class CCloudRestClient(
                 return operation()
             } catch (e: CCloudApiException) {
                 val attemptsMade = retryIndex + 1
-                if (attemptsMade >= retryPolicy.maxAttempts || !isRetryable(e, idempotent)) {
+                if (attemptsMade >= retryPolicy.maxAttempts ||
+                    !isRetryable(e, idempotent) ||
+                    retryPolicy.exceedsMaxRetryAfter(e.retryAfter)
+                ) {
                     throw e
                 }
                 val wait = retryPolicy.delayFor(retryIndex, e.retryAfter)

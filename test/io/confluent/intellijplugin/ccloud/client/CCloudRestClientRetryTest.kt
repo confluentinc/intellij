@@ -27,7 +27,6 @@ import java.net.ConnectException
 import java.net.ServerSocket
 import kotlin.random.Random
 import kotlin.time.Duration
-import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.TimeSource
 
@@ -62,9 +61,9 @@ class CCloudRestClientRetryTest {
 
     private lateinit var client: CCloudRestClient
 
-    // Millisecond waits, but the production Retry-After clamp so the RetryAfter test sees a real delay
-    private fun fastPolicy(random: Random = Random.Default, maxRetryAfter: Duration = 60.seconds) =
-        CCloudRetryPolicy.immediate().copy(maxRetryAfter = maxRetryAfter, random = random)
+    // Millisecond backoff, but the production Retry-After limit (60s) so Retry-After behaves as in production
+    private fun fastPolicy(random: Random = Random.Default) =
+        CCloudRetryPolicy.immediate().copy(maxRetryAfter = CCloudRetryPolicy.DEFAULT.maxRetryAfter, random = random)
 
     private fun clientFor(baseUrl: String, policy: CCloudRetryPolicy = fastPolicy()) =
         testClient(baseUrl, retryPolicy = policy)
@@ -208,6 +207,20 @@ class CCloudRestClientRetryTest {
             assertTrue(elapsed >= 1.seconds, "expected to wait >= 1s for Retry-After, waited $elapsed")
             wireMock.verify(2, getRequestedFor(urlEqualTo("/test")))
         }
+
+        @ParameterizedTest
+        @ValueSource(ints = [429, 503])
+        fun `should not retry when Retry-After exceeds maxRetryAfter`(status: Int) = runBlocking {
+            wireMock.stubFor(
+                get(urlEqualTo("/test")).willReturn(aResponse().withStatus(status).withHeader("Retry-After", "300"))
+            )
+
+            val exception = assertThrows<CCloudApiException> { client.fetch("/test") { it } }
+
+            assertEquals(status, exception.statusCode)
+            assertEquals(300.seconds, exception.retryAfter, "should keep the server's Retry-After")
+            wireMock.verify(1, getRequestedFor(urlEqualTo("/test")))
+        }
     }
 
     @Nested
@@ -266,17 +279,16 @@ class CCloudRestClientRetryTest {
                 get(urlEqualTo("/test"))
                     .willReturn(
                         aResponse().withStatus(503)
-                            .withHeader("Retry-After", "5")
+                            // 0 keeps the test fast while still checking the header survives exhaustion
+                            .withHeader("Retry-After", "0")
                             .withBody(fixture("error-service-unavailable.json"))
                     )
             )
-            // Clamp Retry-After to 2ms so the test stays fast; the clamped value is what the exception carries
-            val clamped = clientFor(wireMock.baseUrl(), fastPolicy(maxRetryAfter = 2.milliseconds))
 
-            val exception = assertThrows<CCloudApiException> { clamped.fetch("/test") { it } }
+            val exception = assertThrows<CCloudApiException> { client.fetch("/test") { it } }
 
             assertEquals(503, exception.statusCode)
-            assertEquals(2.milliseconds, exception.retryAfter)
+            assertEquals(Duration.ZERO, exception.retryAfter)
             assertEquals("Service temporarily unavailable (HTTP 503)", exception.message)
             wireMock.verify(4, getRequestedFor(urlEqualTo("/test")))
         }

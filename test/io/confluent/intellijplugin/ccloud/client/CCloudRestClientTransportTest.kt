@@ -50,7 +50,7 @@ class CCloudRestClientTransportTest {
     private lateinit var client: CCloudRestClient
 
     // Single attempt: these tests cover the transport, retries are covered by CCloudRestClientRetryTest.
-    // Default Retry-After clamp (60s) is kept so header parsing is exercised as in production.
+    // Otherwise the default policy, so Retry-After parsing is exercised as in production.
     private fun clientFor(
         baseUrl: String,
         retryPolicy: CCloudRetryPolicy = CCloudRetryPolicy(maxAttempts = 1),
@@ -217,17 +217,15 @@ class CCloudRestClientTransportTest {
         }
 
         @Test
-        fun `should clamp Retry-After to policy maximum`() = runBlocking {
+        fun `should expose Retry-After above the policy maximum unchanged`() = runBlocking {
             wireMock.stubFor(
                 get(urlEqualTo("/test"))
                     .willReturn(aResponse().withStatus(503).withHeader("Retry-After", "3600"))
             )
 
-            val clamped = clientFor(wireMock.baseUrl(), retryPolicy = CCloudRetryPolicy(maxAttempts = 1, maxRetryAfter = 5.seconds))
+            val exception = assertThrows<CCloudApiException> { client.fetch("/test") { it } }
 
-            val exception = assertThrows<CCloudApiException> { clamped.fetch("/test") { it } }
-
-            assertEquals(5.seconds, exception.retryAfter)
+            assertEquals(3600.seconds, exception.retryAfter)
         }
 
         @Test
