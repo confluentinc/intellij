@@ -1004,6 +1004,21 @@ class CCloudProducerClientTest {
         }
 
         @Test
+        fun `should rethrow HTTP 503 unchanged when Retry-After exceeds maxRetryAfter`() {
+            val unavailable = CCloudApiException("Service Unavailable", 503, retryAfter = 300.seconds)
+            runBlocking {
+                whenever(mockFetcher.produceRecord(any(), any())).thenAnswer { throw unavailable }
+            }
+
+            val exception = assertThrows(CCloudApiException::class.java) {
+                runBlocking { client.produceWithRetry(mockFetcher, "test-topic", request) }
+            }
+
+            assertSame(unavailable, exception)
+            runBlocking { verify(mockFetcher, times(1)).produceRecord(any(), any()) }
+        }
+
+        @Test
         fun `should rethrow connect failure unchanged without retrying`() {
             val connectFailure = CCloudConnectException("Connection refused", java.net.ConnectException("refused"))
             runBlocking {
