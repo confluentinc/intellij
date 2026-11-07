@@ -177,6 +177,9 @@ class KafkaProducerClient(
         }
     }
 
+    /** [mayHaveLanded] is false when the failed record never left the client, e.g. a metadata timeout. */
+    private class SendResult(val record: KafkaRecord, val mayHaveLanded: Boolean = true)
+
     /** [failedRecordMayHaveLanded] is false when the failed record never left the client, e.g. a metadata timeout. */
     private class BatchResult(val sent: Int, val timedOut: Boolean, val failedRecordMayHaveLanded: Boolean = false) {
         val rowsUsed: Int get() = sent + if (failedRecordMayHaveLanded) 1 else 0
@@ -198,16 +201,15 @@ class KafkaProducerClient(
         var sent = 0
         for (i in 0 until recordCount) {
             if (!isRunning()) break
-            val record = sentMessage(
+            val result = sentMessage(
                 flowParams, partition, producer, topic, key, value, headers.map { it.copy() },
                 alreadyProducedCount = alreadyProducedCount + i,
                 csvDf = csvDf
             )
+            val record = result.record
             onUpdate(record.duration, listOf(record))
             if (record.error != null) {
-                // sentMessage reports an acknowledgement timeout as java.util.concurrent.TimeoutException, and
-                // Kafka's own TimeoutException only before the record is sent (no metadata within max.block.ms).
-                return BatchResult(sent, timedOut = true, failedRecordMayHaveLanded = record.error !is KafkaTimeoutException)
+                return BatchResult(sent, timedOut = true, failedRecordMayHaveLanded = result.mayHaveLanded)
             }
             sent++
         }
@@ -284,7 +286,7 @@ class KafkaProducerClient(
         headers: List<Property>,
         csvDf: DataFrame?,
         alreadyProducedCount: Int,
-    ): KafkaRecord {
+    ): SendResult {
         val correctKey = when {
             csvDf != null -> key.copy(valueText = KafkaCsvUtils.getKey(csvDf, alreadyProducedCount))
             flowParams.generateRandomKeys -> key.copy(valueText = GenerateRandomData.generate(client.project, key))
@@ -321,6 +323,10 @@ class KafkaProducerClient(
 
         @Suppress("UNCHECKED_CAST")
         val metadataFuture = producer.send(record as ProducerRecord<Any, Any>)
+        // send() returns an already-failed future when it fails before appending the record (e.g. no metadata
+        // within max.block.ms). A later failure, such as an in-flight batch expiring after delivery.timeout.ms,
+        // means the record may have reached the broker.
+        val failedBeforeAppend = metadataFuture.isDone
         // Wait (bounded by sendTimeoutMs) for the in-flight send even if stopped — stop only prevents new sends
         val metaInfo = try {
             metadataFuture.get(sendTimeoutMs, TimeUnit.MILLISECONDS)
@@ -331,25 +337,32 @@ class KafkaProducerClient(
             val error = TimeoutException(
                 KafkaMessagesBundle.message("producer.send.timeout.error", sendTimeoutMs.toString())
             )
-            return createErrorRecord(
-                correctKey, correctValue, topic, partition, error,
-                duration = System.currentTimeMillis() - start
+            return SendResult(
+                createErrorRecord(
+                    correctKey, correctValue, topic, partition, error,
+                    duration = System.currentTimeMillis() - start
+                )
             )
         } catch (e: ExecutionException) {
             // Kafka's own timeouts (e.g. no topic metadata within max.block.ms while the broker is down)
             // are reported like ours; any other send failure still ends the run.
             val cause = e.cause as? KafkaTimeoutException ?: throw e
             thisLogger().info("Producer send to $topic failed: ${cause.message}")
-            return createErrorRecord(
-                correctKey, correctValue, topic, partition, cause,
-                duration = System.currentTimeMillis() - start
+            return SendResult(
+                createErrorRecord(
+                    correctKey, correctValue, topic, partition, cause,
+                    duration = System.currentTimeMillis() - start
+                ),
+                mayHaveLanded = !failedBeforeAppend
             )
         }
         val end = System.currentTimeMillis()
-        return KafkaRecord.createFor(
-            keyConfig = correctKey, valueConfig = correctValue,
-            metadata = metaInfo, duration = (end - start),
-            headers = formedHeaders
+        return SendResult(
+            KafkaRecord.createFor(
+                keyConfig = correctKey, valueConfig = correctValue,
+                metadata = metaInfo, duration = (end - start),
+                headers = formedHeaders
+            )
         )
     }
 

@@ -330,6 +330,21 @@ class KafkaProducerClientTest {
         }
 
         @Test
+        fun `should move to the next CSV row after an in-flight batch expires`() {
+            // A batch that expires after delivery.timeout.ms (set below the send timeout) also fails with Kafka's
+            // TimeoutException, but its record may already have been written, so re-sending its row could duplicate it.
+            val expiring = mock<Future<RecordMetadata>> {
+                on { isDone } doReturn false
+                on { get(any(), any()) } doThrow ExecutionException(KafkaTimeoutException("Expiring 1 record(s) for $topic-0"))
+            }
+            val producer = producerReturning(expiring, acked(), acked())
+
+            runProduce(producer, autoParams(totalRequests = 2), csvDf = csvRecords())
+
+            assertEquals(listOf("k0", "k1", "k2"), sentKeys(producer, times = 3))
+        }
+
+        @Test
         fun `should not overshoot total requests when a timeout leaves a partial batch`() {
             // Batch 1: ack, timeout (1 produced). Batch 2 must be capped at the 2 remaining records.
             val producer = producerReturning(acked(), hanging(), acked())
