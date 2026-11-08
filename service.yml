@@ -9,27 +9,25 @@ make:
   enable: false
 renovatebot:
   enable: true
-  automerge:
-    enable: false
 semaphore:
   enable: true
   pipeline_enable: false
   tasks:
     - name: release-version
       branch: main
-      pipeline_file: ".semaphore/release-version.yml"
+      pipeline_file: .semaphore/release-version.yml
       parameters:
         - name: IS_PRERELEASE
           required: true
           options:
-            - "true"
-            - "false"
-          default_value: "true"
+            - 'true'
+            - 'false'
+          default_value: 'true'
           description: |
             Whether the release is a pre-release (true/false)
         - name: TARGET_BRANCH
           required: true
-          default_value: "main"
+          default_value: main
           description: The target branch to create the release from, must be a valid branch.
         - name: RELEASE_NAME
           required: true
@@ -54,7 +52,10 @@ sonarqube:
     - java
     - kotlin
   coverage_reports:
-    - "**/jacocoTestReport.xml"
+    - '**/jacocoTestReport.xml'
   coverage_sources:
-    - "src"
+    - src
   main_branch: main
+automerge:
+  renovate:
+    enable: false
