@@ -13,12 +13,17 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import java.time.Instant
 import kotlin.time.Duration
+import kotlin.time.toKotlinDuration
+import java.time.Duration as JavaDuration
 
 /**
  * Background token refresh scheduler using coroutines.
  * Checks token expiration every [checkInterval] and refreshes when needed. After a failed refresh
  * it waits [retryPolicy]'s backoff (floored by a 429's `Retry-After`) instead of the next tick.
+ * A `Retry-After` above [CCloudRetryPolicy.maxRetryAfter] is waited in full (up to the session's
+ * end of lifetime) rather than clamped, since retrying early would most likely just get another 429.
  *
  * Backoff state is derived from [CCloudOAuthContext.getFailedTokenRefreshAttempts], so a new
  * sign-in (new context, new bean) always starts from the first delay.
@@ -133,10 +138,28 @@ class CCloudTokenRefreshBean(
                 }
 
                 val retryAfter = retryPolicy.parseRetryAfter(TokenRefreshErrorClassifier.retryAfterHeader(error))
-                val backoff = retryPolicy.delayFor(retryIndex = (attempts - 1).coerceAtLeast(0), retryAfter = retryAfter)
+                val backoff = if (retryPolicy.exceedsMaxRetryAfter(retryAfter)) {
+                    // Unlike CCloudRestClient, don't give up on a Retry-After above the cap: here
+                    // giving up means signing the user out, and signing in again would hit the same
+                    // rate limit. Retrying early would too, so wait the server's full value instead.
+                    waitUntilAtMostEndOfLifetime(retryAfter!!)
+                } else {
+                    retryPolicy.delayFor(retryIndex = (attempts - 1).coerceAtLeast(0), retryAfter = retryAfter)
+                }
                 logger.warn("Token refresh failed ($attempts/${CCloudOAuthConfig.MAX_TOKEN_REFRESH_ATTEMPTS}), retrying in ${backoff.inWholeMilliseconds}ms: ${error.message}")
                 backoff
             }
         )
+    }
+
+    /**
+     * [retryAfter], but no later than the session's end of lifetime, so the wait never postpones
+     * the SESSION_EXPIRED sign-out the loop checks for after it.
+     */
+    private fun waitUntilAtMostEndOfLifetime(retryAfter: Duration): Duration {
+        val untilEndOfLifetime = context.getEndOfLifetime()
+            ?.let { JavaDuration.between(Instant.now(), it).toKotlinDuration().coerceAtLeast(Duration.ZERO) }
+            ?: CCloudOAuthConfig.CCLOUD_REFRESH_TOKEN_ABSOLUTE_LIFETIME
+        return minOf(retryAfter, untilEndOfLifetime)
     }
 }

@@ -1,5 +1,6 @@
 package io.confluent.intellijplugin.ccloud.auth
 
+import io.confluent.intellijplugin.ccloud.client.CCloudRestClient
 import io.confluent.intellijplugin.ccloud.client.CCloudRetryPolicy
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.hours
@@ -66,8 +67,6 @@ object CCloudOAuthConfig {
             ?.toIntOrNull()?.seconds ?: 5.minutes
     val CCLOUD_CONTROL_PLANE_TOKEN_EXCHANGE_URI: String
         get() = System.getProperty("ccloud.control-plane.token-exchange-uri") ?: "https://$basePath/api/sessions"
-    val CCLOUD_CONTROL_PLANE_CHECK_JWT_URI: String
-        get() = System.getProperty("ccloud.control-plane.check-jwt-uri") ?: "https://$basePath/api/check_jwt"
 
     // Data Plane Configurations
     val CCLOUD_DATA_PLANE_TOKEN_EXCHANGE_URI: String
@@ -87,7 +86,13 @@ object CCloudOAuthConfig {
      * 5 min, plus up to 20% jitter. Before jitter the 9 waits are about 5, 8, 12.8, 20.5, 32.8,
      * 52.4, 83.9, 134.2 and 214.7s, so a transient outage is ridden out for about 9.4 min (up to
      * ~11.3 min with jitter) in 10 requests before sign-out. Computed backoff peaks at ~215s, so
-     * the 5 min cap only applies to a 429's Retry-After, which is used as the floor for the next wait.
+     * the 5 min `maxBackoff` never applies. A 429's Retry-After up to the 5 min `maxRetryAfter` is
+     * the floor for the next wait.
+     *
+     * A Retry-After above `maxRetryAfter` is handled differently from [CCloudRestClient], which
+     * gives up: giving up here
+     * means signing the user out. [CCloudTokenRefreshBean] instead waits the server's full value,
+     * capped at the session's end of lifetime, so it neither retries early nor signs out early.
      *
      * Only the timing is used: the attempt cap is [MAX_TOKEN_REFRESH_ATTEMPTS], enforced by
      * [CCloudOAuthContext.refresh], so the policy's `maxAttempts` is left at its (unused) default.

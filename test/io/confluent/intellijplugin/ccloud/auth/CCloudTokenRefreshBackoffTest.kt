@@ -29,6 +29,7 @@ import org.junit.jupiter.api.Test
 import java.util.concurrent.CopyOnWriteArrayList
 import kotlin.random.Random
 import kotlin.time.Duration
+import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
@@ -261,14 +262,35 @@ class CCloudTokenRefreshBackoffTest {
         }
 
         @Test
-        fun `Retry-After is clamped to 5 minutes`() {
+        fun `Retry-After above the 5 minute cap is waited in full instead of retrying early`() {
             wireMockServer.stubTokenEndpointFailure("/oauth/token", 429, "oauth-token-rate-limited.json", retryAfter = "3600")
             val sleeper = RecordingSleeper(stopAfter = 2)
             startBean(sleeper)
 
             awaitWaits(sleeper)
 
-            assertEquals(5.minutes, sleeper.delays[1])
+            // No jitter on the server's value, and a long Retry-After doesn't sign out
+            assertEquals(1.hours, sleeper.delays[1])
+            assertTrue(terminalReasons.isEmpty())
+        }
+
+        @Test
+        fun `Retry-After past the end of the session lifetime only waits until the end of lifetime`() {
+            System.setProperty("ccloud.refresh-token.absolute-lifetime-seconds", "1800")
+            try {
+                // Sign in again so the session ends in 30 minutes
+                assertTrue(runBlocking { context.createTokensFromAuthorizationCode("code") }.isSuccess)
+            } finally {
+                System.clearProperty("ccloud.refresh-token.absolute-lifetime-seconds")
+            }
+            wireMockServer.stubTokenEndpointFailure("/oauth/token", 429, "oauth-token-rate-limited.json", retryAfter = "3600")
+            val sleeper = RecordingSleeper(stopAfter = 2)
+            startBean(sleeper)
+
+            awaitWaits(sleeper)
+
+            val wait = sleeper.delays[1]
+            assertTrue(wait > 29.minutes && wait <= 30.minutes, "wait was $wait")
         }
     }
 
