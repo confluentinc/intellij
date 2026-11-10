@@ -3,6 +3,7 @@ package io.confluent.intellijplugin.producer.client
 import com.intellij.charts.dataframe.DataFrame
 import com.intellij.openapi.diagnostic.thisLogger
 import io.confluent.intellijplugin.ccloud.client.CCloudApiException
+import io.confluent.intellijplugin.ccloud.client.CCloudRestClient
 import io.confluent.intellijplugin.ccloud.client.CCloudRetryPolicy
 import io.confluent.intellijplugin.core.rfs.util.RfsNotificationUtils
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
@@ -464,7 +465,7 @@ class CCloudProducerClient(
      * - Error code in a 200 response body ([isRetryableBodyError]): retried with policy backoff.
      * - HTTP 429: not retried here, because the REST client already retried it (honoring
      *   `Retry-After`). Throws [CCloudProduceRetriesExhaustedException] with `rateLimited = true`.
-     * - HTTP 5xx ([isRetryableHttpError]): retried with policy backoff, never shorter than `Retry-After`.
+     * - HTTP 502/503/504 ([isRetryableHttpError]): retried with policy backoff, never shorter than `Retry-After`.
      * - HTTP 429 or 5xx with a `Retry-After` above [CCloudRetryPolicy.maxRetryAfter]: not retried,
      *   since retrying sooner than the server asked defeats `Retry-After` (as in [CCloudRestClient]).
      *   Throws [CCloudProduceRetryAfterTooLongException] carrying the server's value.
@@ -516,7 +517,7 @@ class CCloudProducerClient(
                 e
             }
 
-            // HTTP failures that reach here are 5xx, which are also retryable body codes
+            // HTTP failures that reach here are 502/503/504, which are also retryable body codes
             if (!isRetryableBodyError(failure.statusCode)) {
                 thisLogger().debug("Non-retryable produce error: ${failure.statusCode} ${failure.message}")
                 throw failure
@@ -536,18 +537,23 @@ class CCloudProducerClient(
         }
     }
 
-    /** Error codes in a 200 produce response body that are worth retrying. */
+    /**
+     * Error codes in a 200 produce response body that are worth retrying: 429 and the REST client's
+     * transient server statuses. Other 5xx (500, 501, 505, ...) won't succeed on a retry.
+     */
     @VisibleForTesting
     internal fun isRetryableBodyError(errorCode: Int): Boolean =
-        errorCode == 429 || errorCode in 500..599
+        errorCode == 429 || errorCode in CCloudRestClient.TRANSIENT_SERVER_STATUSES
 
     /**
-     * HTTP statuses the producer retries itself. 429 is excluded because the REST client already
-     * retries it; status 0 (connect failure / timeout) is excluded because a produce is not idempotent.
+     * HTTP statuses the producer retries itself: the REST client's transient server statuses
+     * (502/503/504), which it doesn't retry for a non-idempotent POST. 429 is excluded because the
+     * REST client already retries it; status 0 (connect failure / timeout) is excluded because a
+     * produce is not idempotent; other 5xx won't succeed on a retry.
      */
     @VisibleForTesting
     internal fun isRetryableHttpError(statusCode: Int): Boolean =
-        statusCode in 500..599
+        statusCode in CCloudRestClient.TRANSIENT_SERVER_STATUSES
 
     /**
      * Serialize a primitive value to bytes using the appropriate Kafka serializer.
