@@ -4,7 +4,6 @@ import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.WireMock
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig
 import com.intellij.testFramework.junit5.TestApplication
-import io.confluent.intellijplugin.ccloud.util.ResourceLoader
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -34,10 +33,6 @@ class CCloudOAuthContextTest {
     companion object {
         private lateinit var wireMockServer: WireMockServer
         private const val MOCK_AUTH_CODE = "test_authorization_code"
-        private const val MOCK_REFRESH_TOKEN = "test_refresh_token"
-        private const val MOCK_ID_TOKEN = "test_id_token"
-        private const val MOCK_CONTROL_PLANE_TOKEN = "test_cp_token"
-        private const val MOCK_DATA_PLANE_TOKEN = "test_dp_token"
         private const val MOCK_ORG_ID = "org-123"
 
         @JvmStatic
@@ -78,70 +73,8 @@ class CCloudOAuthContextTest {
     }
 
     private fun registerWireMockRoutesForCCloudOAuth() {
-        // ID token exchange (authorization code -> ID token)
-        wireMockServer.stubFor(
-            WireMock.post("/oauth/token")
-                .willReturn(
-                    WireMock.aResponse()
-                        .withStatus(200)
-                        .withHeader("Content-Type", "application/json")
-                        .withBody(
-                            """
-                            {
-                                "access_token": "test_access_token",
-                                "refresh_token": "$MOCK_REFRESH_TOKEN",
-                                "id_token": "$MOCK_ID_TOKEN",
-                                "token_type": "Bearer",
-                                "expires_in": 86400
-                            }
-                            """.trimIndent()
-                        )
-                )
-        )
-
-        // Control plane token exchange
-        wireMockServer.stubFor(
-            WireMock.post("/api/sessions")
-                .willReturn(
-                    WireMock.aResponse()
-                        .withStatus(200)
-                        .withHeader("Content-Type", "application/json")
-                        .withHeader("Set-Cookie", "auth_token=$MOCK_CONTROL_PLANE_TOKEN; Path=/; HttpOnly")
-                        .withBody(
-                            """
-                            {
-                                "user": {
-                                    "id": "user-123",
-                                    "email": "test@example.com",
-                                    "first_name": "Test",
-                                    "last_name": "User"
-                                },
-                                "organization": {
-                                    "id": "org-123",
-                                    "name": "Test Org",
-                                    "resource_id": "org-res-123",
-                                    "sso": {
-                                        "enabled": false,
-                                        "mode": "none",
-                                        "vendor": "none"
-                                    }
-                                }
-                            }
-                            """.trimIndent()
-                        )
-                )
-        )
-
-        // Data plane token exchange
-        wireMockServer.stubFor(
-            WireMock.post("/api/access_tokens")
-                .willReturn(
-                    WireMock.aResponse()
-                        .withStatus(200)
-                        .withHeader("Content-Type", "application/json")
-                        .withBody("""{"token": "$MOCK_DATA_PLANE_TOKEN"}""")
-                )
-        )
+        // oauth/token, api/sessions and api/access_tokens, from the ccloud-auth fixtures
+        wireMockServer.stubTokenEndpointsSuccess()
 
         // Check JWT endpoint
         wireMockServer.stubFor(
@@ -565,22 +498,13 @@ class CCloudOAuthContextTest {
             }
         }
 
-        private fun stubFailure(path: String, status: Int, fixture: String? = null, retryAfter: String? = null) {
-            val response = WireMock.aResponse()
-                .withStatus(status)
-                .withHeader("Content-Type", "application/json")
-            fixture?.let { response.withBody(ResourceLoader.loadResource("fixtures/ccloud-auth/$it")) }
-            retryAfter?.let { response.withHeader("Retry-After", it) }
-            wireMockServer.stubFor(WireMock.post(path).willReturn(response).atPriority(1))
-        }
-
         private fun refreshFailure(): Throwable =
             runBlocking { context.refresh(MOCK_ORG_ID) }.exceptionOrNull()
                 ?: error("Expected refresh to fail")
 
         @Test
         fun `invalid refresh token on oauth token keeps status and is terminal`() {
-            stubFailure("/oauth/token", 403, "oauth-token-invalid-refresh-token.json")
+            wireMockServer.stubTokenEndpointFailure("/oauth/token", 403, "oauth-token-invalid-refresh-token.json")
 
             val error = refreshFailure()
 
@@ -610,7 +534,7 @@ class CCloudOAuthContextTest {
 
         @Test
         fun `401 from control plane is typed and terminal`() {
-            stubFailure("/api/sessions", 401, "control-plane-unauthorized.json")
+            wireMockServer.stubTokenEndpointFailure("/api/sessions", 401, "control-plane-unauthorized.json")
 
             val error = refreshFailure()
 
@@ -623,7 +547,7 @@ class CCloudOAuthContextTest {
 
         @Test
         fun `403 from data plane is typed and terminal`() {
-            stubFailure("/api/access_tokens", 403, "data-plane-forbidden.json")
+            wireMockServer.stubTokenEndpointFailure("/api/access_tokens", 403, "data-plane-forbidden.json")
 
             val error = refreshFailure()
 
@@ -636,7 +560,7 @@ class CCloudOAuthContextTest {
 
         @Test
         fun `429 keeps the Retry-After header and stays transient`() {
-            stubFailure("/oauth/token", 429, "oauth-token-rate-limited.json", retryAfter = "30")
+            wireMockServer.stubTokenEndpointFailure("/oauth/token", 429, "oauth-token-rate-limited.json", retryAfter = "30")
 
             val error = refreshFailure()
 
@@ -649,7 +573,7 @@ class CCloudOAuthContextTest {
 
         @Test
         fun `429 from data plane keeps the Retry-After header`() {
-            stubFailure("/api/access_tokens", 429, retryAfter = "12")
+            wireMockServer.stubTokenEndpointFailure("/api/access_tokens", 429, retryAfter = "12")
 
             val error = refreshFailure()
 
@@ -660,7 +584,7 @@ class CCloudOAuthContextTest {
 
         @Test
         fun `408 from control plane stays transient`() {
-            stubFailure("/api/sessions", 408)
+            wireMockServer.stubTokenEndpointFailure("/api/sessions", 408)
 
             refreshFailure()
 
@@ -669,7 +593,7 @@ class CCloudOAuthContextTest {
 
         @Test
         fun `5xx is typed with its step and status and stays transient`() {
-            stubFailure("/api/sessions", 503)
+            wireMockServer.stubTokenEndpointFailure("/api/sessions", 503)
 
             val error = refreshFailure()
 
@@ -711,7 +635,7 @@ class CCloudOAuthContextTest {
                             .withStatus(200)
                             .withHeader("Content-Type", "application/json")
                             .withFixedDelay(oauthDelayMs)
-                            .withBody(ResourceLoader.loadResource("fixtures/ccloud-auth/oauth-token-success.json"))
+                            .withBody(ccloudAuthFixture("oauth-token-success.json"))
                     ).atPriority(1)
             )
         }

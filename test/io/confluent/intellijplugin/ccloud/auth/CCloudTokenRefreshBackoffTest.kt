@@ -10,7 +10,6 @@ import com.intellij.openapi.Disposable
 import com.intellij.openapi.util.Disposer
 import com.intellij.testFramework.junit5.TestApplication
 import io.confluent.intellijplugin.ccloud.client.CCloudRetryPolicy
-import io.confluent.intellijplugin.ccloud.util.ResourceLoader
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.delay
@@ -43,7 +42,6 @@ class CCloudTokenRefreshBackoffTest {
 
     companion object {
         private lateinit var wireMockServer: WireMockServer
-        private const val FIXTURES = "fixtures/ccloud-auth"
         private const val SLOW_MS = 300
         private val TEST_TIMEOUT = 20.seconds
 
@@ -108,7 +106,7 @@ class CCloudTokenRefreshBackoffTest {
     @BeforeEach
     fun setUp() {
         parentDisposable = Disposer.newDisposable("test")
-        stubSuccessfulEndpoints()
+        wireMockServer.stubTokenEndpointsSuccess()
         context = CCloudOAuthContext()
         val signIn = runBlocking { context.createTokensFromAuthorizationCode("code") }
         assertTrue(signIn.isSuccess, "sign-in should succeed: ${signIn.exceptionOrNull()}")
@@ -119,47 +117,6 @@ class CCloudTokenRefreshBackoffTest {
     fun tearDown() {
         Disposer.dispose(parentDisposable)
         wireMockServer.resetAll()
-    }
-
-    private fun fixture(name: String) = ResourceLoader.loadResource("$FIXTURES/$name")
-
-    private fun stubSuccessfulEndpoints() {
-        wireMockServer.stubFor(
-            WireMock.post("/oauth/token").willReturn(
-                WireMock.aResponse().withStatus(200)
-                    .withHeader("Content-Type", "application/json")
-                    .withBody(fixture("oauth-token-success.json"))
-            )
-        )
-        wireMockServer.stubFor(
-            WireMock.post("/api/sessions").willReturn(
-                WireMock.aResponse().withStatus(200)
-                    .withHeader("Content-Type", "application/json")
-                    .withHeader("Set-Cookie", "auth_token=test_cp_token; Path=/; HttpOnly")
-                    .withBody(fixture("control-plane-session-success.json"))
-            )
-        )
-        wireMockServer.stubFor(
-            WireMock.post("/api/access_tokens").willReturn(
-                WireMock.aResponse().withStatus(200)
-                    .withHeader("Content-Type", "application/json")
-                    .withBody(fixture("data-plane-token-success.json"))
-            )
-        )
-    }
-
-    private fun stubFailure(
-        path: String,
-        status: Int,
-        fixture: String? = null,
-        retryAfter: String? = null,
-        delayMs: Int = 0,
-    ) {
-        val response = WireMock.aResponse().withStatus(status).withHeader("Content-Type", "application/json")
-        fixture?.let { response.withBody(fixture(it)) }
-        retryAfter?.let { response.withHeader("Retry-After", it) }
-        if (delayMs > 0) response.withFixedDelay(delayMs)
-        wireMockServer.stubFor(WireMock.post(path).willReturn(response).atPriority(1))
     }
 
     private fun startBean(sleeper: RecordingSleeper, policy: CCloudRetryPolicy = NO_JITTER_POLICY) =
@@ -192,7 +149,7 @@ class CCloudTokenRefreshBackoffTest {
 
         @Test
         fun `tries exactly 10 times on persistent 5xx then signs out`() {
-            stubFailure("/oauth/token", 503)
+            wireMockServer.stubTokenEndpointFailure("/oauth/token", 503)
             val sleeper = RecordingSleeper()
             val bean = startBean(sleeper)
 
@@ -212,7 +169,7 @@ class CCloudTokenRefreshBackoffTest {
 
         @Test
         fun `waits grow 1_6x from 5s and total about 10 minutes before sign-out`() {
-            stubFailure("/oauth/token", 503)
+            wireMockServer.stubTokenEndpointFailure("/oauth/token", 503)
             val sleeper = RecordingSleeper()
             startBean(sleeper)
 
@@ -227,7 +184,7 @@ class CCloudTokenRefreshBackoffTest {
 
         @Test
         fun `computed waits stop growing at maxBackoff`() {
-            stubFailure("/oauth/token", 503)
+            wireMockServer.stubTokenEndpointFailure("/oauth/token", 503)
             val sleeper = RecordingSleeper()
             startBean(sleeper, NO_JITTER_POLICY.copy(maxBackoff = 30.seconds))
 
@@ -239,7 +196,7 @@ class CCloudTokenRefreshBackoffTest {
 
         @Test
         fun `jitter only adds up to 20 percent on top of each wait`() {
-            stubFailure("/oauth/token", 503)
+            wireMockServer.stubTokenEndpointFailure("/oauth/token", 503)
             val sleeper = RecordingSleeper()
             startBean(sleeper, CCloudOAuthConfig.TOKEN_REFRESH_RETRY_POLICY.copy(random = Random(42)))
 
@@ -281,7 +238,7 @@ class CCloudTokenRefreshBackoffTest {
 
         @Test
         fun `429 Retry-After is the floor for the next wait`() {
-            stubFailure("/oauth/token", 429, "oauth-token-rate-limited.json", retryAfter = "120")
+            wireMockServer.stubTokenEndpointFailure("/oauth/token", 429, "oauth-token-rate-limited.json", retryAfter = "120")
             val sleeper = RecordingSleeper(stopAfter = 2)
             startBean(sleeper)
 
@@ -294,7 +251,7 @@ class CCloudTokenRefreshBackoffTest {
 
         @Test
         fun `Retry-After shorter than the backoff does not shorten it`() {
-            stubFailure("/api/access_tokens", 429, retryAfter = "1")
+            wireMockServer.stubTokenEndpointFailure("/api/access_tokens", 429, retryAfter = "1")
             val sleeper = RecordingSleeper(stopAfter = 2)
             startBean(sleeper)
 
@@ -305,7 +262,7 @@ class CCloudTokenRefreshBackoffTest {
 
         @Test
         fun `Retry-After is clamped to 5 minutes`() {
-            stubFailure("/oauth/token", 429, "oauth-token-rate-limited.json", retryAfter = "3600")
+            wireMockServer.stubTokenEndpointFailure("/oauth/token", 429, "oauth-token-rate-limited.json", retryAfter = "3600")
             val sleeper = RecordingSleeper(stopAfter = 2)
             startBean(sleeper)
 
@@ -321,7 +278,7 @@ class CCloudTokenRefreshBackoffTest {
 
         @Test
         fun `invalid refresh token signs out after one try without waiting`() {
-            stubFailure("/oauth/token", 403, "oauth-token-invalid-refresh-token.json")
+            wireMockServer.stubTokenEndpointFailure("/oauth/token", 403, "oauth-token-invalid-refresh-token.json")
             val sleeper = RecordingSleeper()
             startBean(sleeper)
 
@@ -333,7 +290,7 @@ class CCloudTokenRefreshBackoffTest {
 
         @Test
         fun `401 from control plane signs out after one try`() {
-            stubFailure("/api/sessions", 401, "control-plane-unauthorized.json")
+            wireMockServer.stubTokenEndpointFailure("/api/sessions", 401, "control-plane-unauthorized.json")
             val sleeper = RecordingSleeper()
             startBean(sleeper)
 
@@ -345,7 +302,7 @@ class CCloudTokenRefreshBackoffTest {
 
         @Test
         fun `403 from data plane signs out after one try`() {
-            stubFailure("/api/access_tokens", 403, "data-plane-forbidden.json")
+            wireMockServer.stubTokenEndpointFailure("/api/access_tokens", 403, "data-plane-forbidden.json")
             val sleeper = RecordingSleeper()
             startBean(sleeper)
 
@@ -364,7 +321,7 @@ class CCloudTokenRefreshBackoffTest {
 
         @Test
         fun `stopping the bean mid-refresh does not count a failed attempt`() {
-            stubFailure("/oauth/token", 503, delayMs = SLOW_MS)
+            wireMockServer.stubTokenEndpointFailure("/oauth/token", 503, delayMs = SLOW_MS)
 
             val sleeper = stopDuringRequestTo("/oauth/token")
 
@@ -373,7 +330,7 @@ class CCloudTokenRefreshBackoffTest {
 
         @Test
         fun `stopping the bean during a failing final exchange does not count a failed attempt`() {
-            stubFailure("/api/access_tokens", 503, delayMs = SLOW_MS)
+            wireMockServer.stubTokenEndpointFailure("/api/access_tokens", 503, delayMs = SLOW_MS)
 
             val sleeper = stopDuringRequestTo("/api/access_tokens")
 
@@ -387,7 +344,7 @@ class CCloudTokenRefreshBackoffTest {
                     WireMock.aResponse().withStatus(200)
                         .withHeader("Content-Type", "application/json")
                         .withFixedDelay(SLOW_MS)
-                        .withBody(fixture("data-plane-token-success.json"))
+                        .withBody(ccloudAuthFixture("data-plane-token-success.json"))
                 ).atPriority(1)
             )
             CCloudTokenStorage.clearSession()
@@ -426,20 +383,20 @@ class CCloudTokenRefreshBackoffTest {
 
         @Test
         fun `failure counter and backoff start from zero after signing in again`() {
-            stubFailure("/oauth/token", 503)
+            wireMockServer.stubTokenEndpointFailure("/oauth/token", 503)
             runBlocking { repeat(3) { context.refresh() } }
             assertEquals(3, context.getFailedTokenRefreshAttempts())
 
             // Sign in again with working endpoints
             wireMockServer.resetAll()
-            stubSuccessfulEndpoints()
+            wireMockServer.stubTokenEndpointsSuccess()
             val signIn = runBlocking { context.createTokensFromAuthorizationCode("code") }
             assertTrue(signIn.isSuccess)
             assertEquals(0, context.getFailedTokenRefreshAttempts())
             assertFalse(context.hasNonTransientError())
 
             // The next failure waits the first backoff, not the fourth
-            stubFailure("/oauth/token", 503)
+            wireMockServer.stubTokenEndpointFailure("/oauth/token", 503)
             val sleeper = RecordingSleeper(stopAfter = 2)
             startBean(sleeper)
             awaitWaits(sleeper)
