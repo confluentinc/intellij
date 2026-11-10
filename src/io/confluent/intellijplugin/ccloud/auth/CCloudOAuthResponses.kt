@@ -63,17 +63,6 @@ data class DataPlaneTokenExchangeResponse(
 )
 
 /**
- * Check JWT /api/check_jwt response
- * @see CCloudOAuthContext
- */
-@Serializable
-@JsonIgnoreUnknownKeys
-data class CheckJwtResponse(
-    val error: JsonElement? = null,
-    val claims: JsonElement? = null,
-)
-
-/**
  * Generic error response format used by Auth0 and CCloud APIs.
  * @see CCloudOAuthHttpClient
  */
