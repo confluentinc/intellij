@@ -6,7 +6,12 @@ import com.github.tomakehurst.wiremock.client.WireMock.post
 import com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor
 import com.github.tomakehurst.wiremock.client.WireMock.urlPathMatching
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig
+import com.intellij.notification.Notification
+import com.intellij.notification.NotificationType
+import com.intellij.notification.Notifications
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.testFramework.junit5.TestApplication
+import com.intellij.util.messages.MessageBusConnection
 import io.confluent.intellijplugin.ccloud.cache.DataPlaneCache
 import io.confluent.intellijplugin.ccloud.client.CCloudApiException
 import io.confluent.intellijplugin.ccloud.client.CCloudConnectException
@@ -1031,10 +1036,29 @@ class CCloudConsumerClientTest {
         private val errors = CopyOnWriteArrayList<Throwable>()
         private val callTimesNanos = CopyOnWriteArrayList<Long>()
         private var pollClient: CCloudConsumerClient? = null
+        private val notifications = CopyOnWriteArrayList<Notification>()
+        private lateinit var notificationsConnection: MessageBusConnection
+
+        @BeforeEach
+        fun subscribeToNotifications() {
+            notificationsConnection = ApplicationManager.getApplication().messageBus.connect()
+            notificationsConnection.subscribe(Notifications.TOPIC, object : Notifications {
+                override fun notify(notification: Notification) {
+                    notifications.add(notification)
+                }
+            })
+        }
 
         @AfterEach
         fun tearDown() {
             pollClient?.stop()
+            notificationsConnection.disconnect()
+        }
+
+        private fun assertSingleStopNotification(error: Throwable) {
+            val notification = notifications.single()
+            assertEquals(NotificationType.ERROR, notification.type)
+            assertEquals(error.message, notification.content)
         }
 
         private fun http(status: Int, retryAfter: Duration? = null) =
@@ -1107,6 +1131,7 @@ class CCloudConsumerClientTest {
             assertInstanceOf(CCloudConsumeRetriesExhaustedException::class.java, error)
             assertEquals(10, (error as CCloudConsumeRetriesExhaustedException).attempts)
             assertSame(last, error.cause)
+            assertSingleStopNotification(error)
         }
 
         @ParameterizedTest
@@ -1211,6 +1236,7 @@ class CCloudConsumerClientTest {
 
             assertEquals(1, callTimesNanos.size)
             assertEquals(listOf<Throwable>(terminal), errors.toList())
+            assertSingleStopNotification(terminal)
         }
 
         @Test
@@ -1229,6 +1255,7 @@ class CCloudConsumerClientTest {
 
             assertEquals(5, callTimesNanos.size)
             assertEquals(listOf<Throwable>(terminal), errors.toList())
+            assertSingleStopNotification(terminal)
         }
 
         @Test

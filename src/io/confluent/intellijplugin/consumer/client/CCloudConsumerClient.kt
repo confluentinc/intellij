@@ -1,6 +1,10 @@
 package io.confluent.intellijplugin.consumer.client
 
+import com.intellij.notification.Notification
+import com.intellij.notification.NotificationType
+import com.intellij.notification.Notifications
 import com.intellij.openapi.diagnostic.thisLogger
+import com.intellij.openapi.util.text.StringUtil
 import io.confluent.intellijplugin.ccloud.client.CCloudApiException
 import io.confluent.intellijplugin.ccloud.client.CCloudRetryPolicy
 import io.confluent.intellijplugin.ccloud.fetcher.DataPlaneFetcher
@@ -316,11 +320,19 @@ class CCloudConsumerClient(
     }
 
     /**
-     * Report a failure that stops the poll loop: logged (intermediate failures are only WARNed, so
-     * the final one must be too), then added to the output as an error row.
+     * Report a failure that stops the poll loop. Besides the error row (which lands at the bottom of
+     * the output and is easy to miss), it is logged and shown as an error balloon.
      */
     private fun reportStop(e: Throwable, consumeError: (Throwable, Int?, Long?) -> Unit) {
         thisLogger().warn("CCloud consumer stopped: ${e.message}", e)
+        Notifications.Bus.notify(
+            Notification(
+                NOTIFICATION_GROUP_ID,
+                KafkaMessagesBundle.message("consumer.ccloud.stopped.notification.title"),
+                StringUtil.escapeXmlEntities(e.message ?: e.javaClass.simpleName),
+                NotificationType.ERROR
+            )
+        )
         consumeError(e, null, null)
     }
 
@@ -901,6 +913,9 @@ class CCloudConsumerClient(
          */
         @VisibleForTesting
         internal val CONSUMER_RETRY_POLICY = CCloudRetryPolicy(maxAttempts = 10, maxBackoff = 30.seconds)
+
+        /** Registered in plugin.xml. */
+        private const val NOTIFICATION_GROUP_ID = "Kafka Notification"
 
         /** Statuses (besides 5xx) worth retrying; 0 means no HTTP response was received. */
         private val RETRYABLE_STATUSES = setOf(0, 401, 408, 429)
