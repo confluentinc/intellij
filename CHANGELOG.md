@@ -17,7 +17,7 @@ All noteworthy changes to this plugin will be documented in this file.
 - When producing from a CSV file in auto mode, a row whose send times out after reaching the producer's queue (for example, its batch expires after `delivery.timeout.ms`) is no longer sent again, since it may already have been written. Only rows that never left the client are retried.
 - The producer and consumer status label now shows an error icon when an error occurs and keeps it after stopping. An error that happens before any record arrives no longer changes to "Canceled" when stopped.
 - The Confluent Cloud consumer no longer retries server errors forever, or keeps polling after you sign out. It now retries network errors, timeouts, rate limiting and server errors, and stops with an error after 10 consecutive failed polls (about 2 minutes for most errors).
-- The Confluent Cloud producer still retries produce requests on temporary server errors (5xx), and now shows an error row and stops when those retries run out, instead of only showing a notification. It no longer repeats rate-limited (429) requests that were already retried.
+- The Confluent Cloud producer still retries produce requests on temporary server errors (5xx), and now shows an error row and stops when those retries run out, or when the server asks to wait more than a minute, instead of only showing a notification. It no longer repeats rate-limited (429) requests that were already retried.
 
 ## 253.25910.2
 ### Fixed

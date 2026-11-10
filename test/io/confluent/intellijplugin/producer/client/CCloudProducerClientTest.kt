@@ -816,6 +816,23 @@ class CCloudProducerClientTest {
         }
 
         @Test
+        fun `should report an error row with the server's wait when Retry-After exceeds maxRetryAfter`() {
+            runBlocking {
+                whenever(fetcherImpl.produceRecord(any(), any())).thenAnswer {
+                    throw CCloudApiException("Service Unavailable", 503, retryAfter = 300.seconds)
+                }
+            }
+
+            startProducing(Mode.AUTO)
+
+            assertEquals(1, records.size)
+            val error = records.single().error as CCloudProduceRetryAfterTooLongException
+            assertEquals(300.seconds, error.retryAfter)
+            assertFalse(startClient.isRunning())
+            runBlocking { verify(fetcherImpl, times(1)).produceRecord(any(), any()) }
+        }
+
+        @Test
         fun `should stop AUTO mode after an error row when server errors persist`() {
             runBlocking {
                 whenever(fetcherImpl.produceRecord(any(), any()))
@@ -1011,33 +1028,36 @@ class CCloudProducerClientTest {
         }
 
         @Test
-        fun `should rethrow HTTP 503 unchanged when Retry-After exceeds maxRetryAfter`() {
+        fun `should stop without retrying when HTTP 503 Retry-After exceeds maxRetryAfter`() {
             val unavailable = CCloudApiException("Service Unavailable", 503, retryAfter = 300.seconds)
             runBlocking {
                 whenever(mockFetcher.produceRecord(any(), any())).thenAnswer { throw unavailable }
             }
 
-            val exception = assertThrows(CCloudApiException::class.java) {
+            val exception = assertThrows(CCloudProduceRetryAfterTooLongException::class.java) {
                 runBlocking { client.produceWithRetry(mockFetcher, "test-topic", request) }
             }
 
-            assertSame(unavailable, exception)
+            assertSame(unavailable, exception.cause)
+            assertEquals(300.seconds, exception.retryAfter)
             runBlocking { verify(mockFetcher, times(1)).produceRecord(any(), any()) }
         }
 
         @Test
-        fun `should rethrow HTTP 429 unchanged when Retry-After exceeds maxRetryAfter`() {
+        fun `should stop without retrying when HTTP 429 Retry-After exceeds maxRetryAfter`() {
             // The REST client does not retry a 429 whose Retry-After is too long, so it is not "still rejected after retrying"
             val rateLimited = CCloudApiException("Rate limited (HTTP 429)", 429, retryAfter = 300.seconds)
             runBlocking {
                 whenever(mockFetcher.produceRecord(any(), any())).thenAnswer { throw rateLimited }
             }
 
-            val exception = assertThrows(CCloudApiException::class.java) {
+            val exception = assertThrows(CCloudProduceRetryAfterTooLongException::class.java) {
                 runBlocking { client.produceWithRetry(mockFetcher, "test-topic", request) }
             }
 
-            assertSame(rateLimited, exception)
+            assertSame(rateLimited, exception.cause)
+            assertEquals(300.seconds, exception.retryAfter)
+            assertTrue(exception.message!!.contains("5m"), "Message should show the server's wait: ${exception.message}")
             runBlocking { verify(mockFetcher, times(1)).produceRecord(any(), any()) }
         }
 
