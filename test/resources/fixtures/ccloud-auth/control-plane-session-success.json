@@ -1,0 +1,18 @@
+{
+  "user": {
+    "id": "user-123",
+    "email": "test@example.com",
+    "first_name": "Test",
+    "last_name": "User"
+  },
+  "organization": {
+    "id": "org-123",
+    "name": "Test Org",
+    "resource_id": "org-res-123",
+    "sso": {
+      "enabled": false,
+      "mode": "none",
+      "vendor": "none"
+    }
+  }
+}

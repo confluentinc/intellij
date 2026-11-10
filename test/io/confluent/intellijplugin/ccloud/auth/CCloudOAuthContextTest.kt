@@ -4,7 +4,15 @@ import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.WireMock
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig
 import com.intellij.testFramework.junit5.TestApplication
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
+import kotlin.time.Duration.Companion.seconds
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -25,10 +33,6 @@ class CCloudOAuthContextTest {
     companion object {
         private lateinit var wireMockServer: WireMockServer
         private const val MOCK_AUTH_CODE = "test_authorization_code"
-        private const val MOCK_REFRESH_TOKEN = "test_refresh_token"
-        private const val MOCK_ID_TOKEN = "test_id_token"
-        private const val MOCK_CONTROL_PLANE_TOKEN = "test_cp_token"
-        private const val MOCK_DATA_PLANE_TOKEN = "test_dp_token"
         private const val MOCK_ORG_ID = "org-123"
 
         @JvmStatic
@@ -69,70 +73,8 @@ class CCloudOAuthContextTest {
     }
 
     private fun registerWireMockRoutesForCCloudOAuth() {
-        // ID token exchange (authorization code -> ID token)
-        wireMockServer.stubFor(
-            WireMock.post("/oauth/token")
-                .willReturn(
-                    WireMock.aResponse()
-                        .withStatus(200)
-                        .withHeader("Content-Type", "application/json")
-                        .withBody(
-                            """
-                            {
-                                "access_token": "test_access_token",
-                                "refresh_token": "$MOCK_REFRESH_TOKEN",
-                                "id_token": "$MOCK_ID_TOKEN",
-                                "token_type": "Bearer",
-                                "expires_in": 86400
-                            }
-                            """.trimIndent()
-                        )
-                )
-        )
-
-        // Control plane token exchange
-        wireMockServer.stubFor(
-            WireMock.post("/api/sessions")
-                .willReturn(
-                    WireMock.aResponse()
-                        .withStatus(200)
-                        .withHeader("Content-Type", "application/json")
-                        .withHeader("Set-Cookie", "auth_token=$MOCK_CONTROL_PLANE_TOKEN; Path=/; HttpOnly")
-                        .withBody(
-                            """
-                            {
-                                "user": {
-                                    "id": "user-123",
-                                    "email": "test@example.com",
-                                    "first_name": "Test",
-                                    "last_name": "User"
-                                },
-                                "organization": {
-                                    "id": "org-123",
-                                    "name": "Test Org",
-                                    "resource_id": "org-res-123",
-                                    "sso": {
-                                        "enabled": false,
-                                        "mode": "none",
-                                        "vendor": "none"
-                                    }
-                                }
-                            }
-                            """.trimIndent()
-                        )
-                )
-        )
-
-        // Data plane token exchange
-        wireMockServer.stubFor(
-            WireMock.post("/api/access_tokens")
-                .willReturn(
-                    WireMock.aResponse()
-                        .withStatus(200)
-                        .withHeader("Content-Type", "application/json")
-                        .withBody("""{"token": "$MOCK_DATA_PLANE_TOKEN"}""")
-                )
-        )
+        // oauth/token, api/sessions and api/access_tokens, from the ccloud-auth fixtures
+        wireMockServer.stubTokenEndpointsSuccess()
 
         // Check JWT endpoint
         wireMockServer.stubFor(
@@ -542,6 +484,254 @@ class CCloudOAuthContextTest {
 
             assertTrue(result.isSuccess)
             assertEquals(0, context.getFailedTokenRefreshAttempts())
+        }
+    }
+
+    @Nested
+    @DisplayName("refresh endpoint errors")
+    inner class RefreshEndpointErrors {
+
+        @BeforeEach
+        fun setUpRefresh() {
+            runBlocking {
+                context.createTokensFromAuthorizationCode(MOCK_AUTH_CODE, MOCK_ORG_ID)
+            }
+        }
+
+        private fun refreshFailure(): Throwable =
+            runBlocking { context.refresh(MOCK_ORG_ID) }.exceptionOrNull()
+                ?: error("Expected refresh to fail")
+
+        @Test
+        fun `invalid refresh token on oauth token keeps status and is terminal`() {
+            wireMockServer.stubTokenEndpointFailure("/oauth/token", 403, "oauth-token-invalid-refresh-token.json")
+
+            val error = refreshFailure()
+
+            assertTrue(error is OAuthErrorException)
+            error as OAuthErrorException
+            assertEquals(403, error.httpStatusCode)
+            assertEquals("invalid_grant", error.errorCode)
+            assertEquals(TokenEndpoint.OAUTH_TOKEN, error.endpoint)
+            assertTrue(context.hasNonTransientError())
+            assertEquals(1, context.getFailedTokenRefreshAttempts())
+        }
+
+        @Test
+        fun `4xx with a non-JSON body on oauth token is typed and terminal`() {
+            wireMockServer.stubFor(
+                WireMock.post("/oauth/token")
+                    .willReturn(WireMock.aResponse().withStatus(401).withBody("Unauthorized"))
+                    .atPriority(1)
+            )
+
+            val error = refreshFailure()
+
+            assertTrue(error is TokenEndpointException)
+            assertEquals(401, (error as TokenEndpointException).httpStatusCode)
+            assertTrue(context.hasNonTransientError())
+        }
+
+        @Test
+        fun `401 from control plane is typed and terminal`() {
+            wireMockServer.stubTokenEndpointFailure("/api/sessions", 401, "control-plane-unauthorized.json")
+
+            val error = refreshFailure()
+
+            assertTrue(error is TokenEndpointException)
+            error as TokenEndpointException
+            assertEquals(TokenEndpoint.CONTROL_PLANE, error.endpoint)
+            assertEquals(401, error.httpStatusCode)
+            assertTrue(context.hasNonTransientError())
+        }
+
+        @Test
+        fun `403 from data plane is typed and terminal`() {
+            wireMockServer.stubTokenEndpointFailure("/api/access_tokens", 403, "data-plane-forbidden.json")
+
+            val error = refreshFailure()
+
+            assertTrue(error is TokenEndpointException)
+            error as TokenEndpointException
+            assertEquals(TokenEndpoint.DATA_PLANE, error.endpoint)
+            assertEquals(403, error.httpStatusCode)
+            assertTrue(context.hasNonTransientError())
+        }
+
+        @Test
+        fun `429 keeps the Retry-After header and stays transient`() {
+            wireMockServer.stubTokenEndpointFailure("/oauth/token", 429, "oauth-token-rate-limited.json", retryAfter = "30")
+
+            val error = refreshFailure()
+
+            assertTrue(error is OAuthErrorException)
+            error as OAuthErrorException
+            assertEquals(429, error.httpStatusCode)
+            assertEquals("30", error.retryAfterHeader)
+            assertFalse(context.hasNonTransientError())
+        }
+
+        @Test
+        fun `429 from data plane keeps the Retry-After header`() {
+            wireMockServer.stubTokenEndpointFailure("/api/access_tokens", 429, retryAfter = "12")
+
+            val error = refreshFailure()
+
+            assertTrue(error is TokenEndpointException)
+            assertEquals("12", (error as TokenEndpointException).retryAfterHeader)
+            assertFalse(context.hasNonTransientError())
+        }
+
+        @Test
+        fun `408 from control plane stays transient`() {
+            wireMockServer.stubTokenEndpointFailure("/api/sessions", 408)
+
+            refreshFailure()
+
+            assertFalse(context.hasNonTransientError())
+        }
+
+        @Test
+        fun `5xx is typed with its step and status and stays transient`() {
+            wireMockServer.stubTokenEndpointFailure("/api/sessions", 503)
+
+            val error = refreshFailure()
+
+            assertTrue(error is TokenEndpointException)
+            error as TokenEndpointException
+            assertEquals(TokenEndpoint.CONTROL_PLANE, error.endpoint)
+            assertEquals(503, error.httpStatusCode)
+            assertFalse(context.hasNonTransientError())
+        }
+
+        @Test
+        fun `missing refresh token is terminal`() {
+            context.reset()
+
+            val error = refreshFailure()
+
+            assertTrue(error is MissingRefreshTokenException)
+            assertTrue(context.hasNonTransientError())
+        }
+    }
+
+    @Nested
+    @DisplayName("concurrency")
+    inner class Concurrency {
+
+        private val concurrentCalls = 8
+        private val oauthDelayMs = 50
+
+        @BeforeEach
+        fun setUpSignedIn() {
+            runBlocking {
+                context.createTokensFromAuthorizationCode(MOCK_AUTH_CODE, MOCK_ORG_ID)
+            }
+            // Slow oauth/token so concurrent callers really overlap while one holds the lock
+            wireMockServer.stubFor(
+                WireMock.post("/oauth/token")
+                    .willReturn(
+                        WireMock.aResponse()
+                            .withStatus(200)
+                            .withHeader("Content-Type", "application/json")
+                            .withFixedDelay(oauthDelayMs)
+                            .withBody(ccloudAuthFixture("oauth-token-success.json"))
+                    ).atPriority(1)
+            )
+        }
+
+        @Test
+        fun `concurrent refreshes from different threads all complete without lock errors`() {
+            // The HTTP calls hop to Dispatchers.IO, so each refresh resumes on a different thread
+            // than it started on. A thread-owned lock fails here (IllegalMonitorStateException on unlock).
+            val results = runBlocking {
+                withTimeout(30.seconds) {
+                    (1..concurrentCalls).map { i ->
+                        val dispatcher = if (i % 2 == 0) Dispatchers.Default else Dispatchers.IO
+                        async(dispatcher) { runCatching { context.refresh(MOCK_ORG_ID) } }
+                    }.awaitAll()
+                }
+            }
+
+            results.forEach { outer ->
+                assertTrue(outer.isSuccess, "refresh threw: ${outer.exceptionOrNull()}")
+                assertTrue(outer.getOrThrow().isSuccess, "refresh failed: ${outer.getOrThrow().exceptionOrNull()}")
+            }
+            assertEquals(0, context.getFailedTokenRefreshAttempts())
+        }
+
+        @Test
+        fun `concurrent refreshes run one at a time`() {
+            val elapsedMs = runBlocking {
+                val start = System.nanoTime()
+                (1..concurrentCalls).map {
+                    async(Dispatchers.Default) { context.refresh(MOCK_ORG_ID) }
+                }.awaitAll()
+                (System.nanoTime() - start) / 1_000_000
+            }
+
+            // Serialized: every refresh waits for the previous one's slow oauth/token call
+            assertTrue(
+                elapsedMs >= concurrentCalls * oauthDelayMs,
+                "expected >= ${concurrentCalls * oauthDelayMs}ms, took ${elapsedMs}ms"
+            )
+        }
+
+        @Test
+        fun `cancelled sign-in records no sign-in error and releases the lock`() {
+            wireMockServer.resetRequests()
+            val result = runBlocking {
+                val signIn = launch(Dispatchers.Default) {
+                    context.createTokensFromAuthorizationCode(MOCK_AUTH_CODE, MOCK_ORG_ID)
+                }
+                awaitOAuthTokenRequest() // sign-in is now inside its slow oauth/token call
+                signIn.cancelAndJoin()
+                assertTrue(signIn.isCancelled)
+
+                // Cancellation is not a sign-in failure
+                assertNull(context.getErrors().signIn)
+                assertFalse(context.hasNonTransientError())
+
+                // The Mutex was released: the next caller gets in
+                withTimeout(10.seconds) { context.createTokensFromAuthorizationCode(MOCK_AUTH_CODE, MOCK_ORG_ID) }
+            }
+
+            assertTrue(result.isSuccess, "sign-in after cancelled sign-in failed: ${result.exceptionOrNull()}")
+        }
+
+        @Test
+        fun `cancelled refresh does not count as a failed attempt`() {
+            wireMockServer.resetRequests()
+            runBlocking {
+                val refresh = launch(Dispatchers.Default) { context.refresh(MOCK_ORG_ID) }
+                awaitOAuthTokenRequest()
+                refresh.cancelAndJoin()
+            }
+
+            assertEquals(0, context.getFailedTokenRefreshAttempts())
+            assertNull(context.getErrors().tokenRefresh)
+        }
+
+        private suspend fun awaitOAuthTokenRequest() = withTimeout(10.seconds) {
+            while (wireMockServer.countRequestsMatching(
+                    WireMock.postRequestedFor(WireMock.urlEqualTo("/oauth/token")).build()
+                ).count == 0
+            ) {
+                delay(5)
+            }
+        }
+
+        @Test
+        fun `sign-in and refresh do not interleave`() {
+            val results = runBlocking {
+                listOf(
+                    async(Dispatchers.Default) { context.createTokensFromAuthorizationCode(MOCK_AUTH_CODE, MOCK_ORG_ID) },
+                    async(Dispatchers.IO) { context.refresh(MOCK_ORG_ID) },
+                    async(Dispatchers.Default) { context.checkAuthenticationStatus() },
+                ).awaitAll()
+            }
+
+            results.forEach { assertTrue(it.isSuccess, "call failed: ${it.exceptionOrNull()}") }
         }
     }
 
