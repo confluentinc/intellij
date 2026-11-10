@@ -1,78 +1,64 @@
 package io.confluent.intellijplugin.aws.settings.models
 
-import com.intellij.openapi.diagnostic.thisLogger
 import io.confluent.intellijplugin.core.settings.components.RenderableEntity
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
 import software.amazon.awssdk.regions.Region
 
-enum class AwsRegionGroup(override val id: String, override val title: String) : RenderableEntity {
-    GLOBAL("GLOBAL", KafkaMessagesBundle.message("settings.s3.region.group.global")),
-    CHINA("CHINA", KafkaMessagesBundle.message("settings.s3.region.group.china")),
-    US_GOV("US_GOV", KafkaMessagesBundle.message("settings.s3.region.group.us.gov"));
+/**
+ * Groups the AWS regions known to the bundled AWS SDK for display in region pickers.
+ *
+ * Regions are derived from [Region.regions] and classified by their SDK partition, so new regions
+ * appear automatically when the SDK is upgraded instead of requiring a hand-maintained list.
+ * Pseudo-regions (e.g. `aws-global`) and isolated/sovereign partitions (ISO, EUSC) are not shown.
+ */
+enum class AwsRegionGroup(
+    override val id: String,
+    override val title: String,
+    internal val partitionId: String,
+) : RenderableEntity {
+    GLOBAL("GLOBAL", KafkaMessagesBundle.message("settings.s3.region.group.global"), "aws"),
+    CHINA("CHINA", KafkaMessagesBundle.message("settings.s3.region.group.china"), "aws-cn"),
+    US_GOV("US_GOV", KafkaMessagesBundle.message("settings.s3.region.group.us.gov"), "aws-us-gov");
 
     companion object {
-        private val chinaRegions = listOf(Region.CN_NORTH_1, Region.CN_NORTHWEST_1)
-        private val usGovRegions = listOf(Region.US_GOV_EAST_1, Region.US_GOV_WEST_1)
-
-        //Global
-        private val usRegions = listOf(Region.US_EAST_1, Region.US_EAST_2, Region.US_WEST_1, Region.US_WEST_2)
-
-        private val africaRegions = listOf(Region.AF_SOUTH_1)
-
-        private val middleEast = listOf(Region.ME_SOUTH_1, Region.ME_CENTRAL_1, Region.IL_CENTRAL_1)
-
-        private val southAmerica = listOf(Region.SA_EAST_1)
-
-        private val asiaRegions = listOf(
-            Region.AP_EAST_1,
-            Region.AP_NORTHEAST_1, Region.AP_NORTHEAST_2, Region.AP_NORTHEAST_3,
-            Region.AP_SOUTH_1, Region.AP_SOUTH_2,
-            Region.AP_SOUTHEAST_1, Region.AP_SOUTHEAST_2, Region.AP_SOUTHEAST_3, Region.AP_SOUTHEAST_4,
+        /**
+         * Display order of the commercial-partition subgroups, keyed by region id prefix
+         * (e.g. `ap` in `ap-southeast-6`). Regions with an unlisted prefix go into a trailing subgroup.
+         */
+        private val globalSubgroupPrefixes = listOf(
+            setOf("us", "ca", "mx"), // North America
+            setOf("sa"),             // South America
+            setOf("eu"),             // Europe
+            setOf("me", "il"),       // Middle East
+            setOf("af"),             // Africa
+            setOf("ap"),             // Asia Pacific
         )
 
-        private val canadaRegions = listOf(Region.CA_CENTRAL_1, Region.CA_WEST_1)
-
-        private val europeRegions = listOf(
-            Region.EU_CENTRAL_1, Region.EU_CENTRAL_2,
-            Region.EU_WEST_1, Region.EU_WEST_2, Region.EU_WEST_3,
-            Region.EU_SOUTH_1, Region.EU_SOUTH_2,
-            Region.EU_NORTH_1,
-        )
-
-        //Do not show in UI!
-        private val specialGlobalRegion = listOf(
-            Region.AWS_GLOBAL, Region.AWS_CN_GLOBAL,
-            Region.AWS_ISO_GLOBAL, Region.AWS_US_GOV_GLOBAL,
-            Region.AWS_ISO_B_GLOBAL, Region.US_ISO_EAST_1, Region.US_ISOB_EAST_1, Region.US_ISO_WEST_1
-        )
-
-        private val globalRegions =
-            usRegions + asiaRegions + europeRegions + canadaRegions + southAmerica + africaRegions + middleEast
-
-        init {
-            val otherRegions =
-                Region.regions() - globalRegions - usGovRegions - chinaRegions - globalRegions - specialGlobalRegion
-            if (otherRegions.isNotEmpty()) {
-                thisLogger().warn("We have not classified AWS Regions $otherRegions")
-            }
+        private val regionsByPartition: Map<String, List<Region>> by lazy {
+            Region.regions()
+                .filterNot { it.isGlobalRegion }
+                .mapNotNull { region -> region.metadata()?.partition()?.id()?.let { it to region } }
+                .groupBy({ it.first }, { it.second })
+                .mapValues { (_, regions) -> regions.sortedBy { it.id() } }
         }
 
-        fun getRegionSubgroupsForGroup(group: AwsRegionGroup?): List<List<Region>> = when (group) {
-            GLOBAL -> listOf(
-                usRegions,
-                africaRegions,
-                asiaRegions,
-                canadaRegions,
-                europeRegions,
-                middleEast,
-                southAmerica
-            )
+        private fun regionsFor(group: AwsRegionGroup): List<Region> =
+            regionsByPartition[group.partitionId].orEmpty()
 
-            CHINA -> listOf(chinaRegions)
-            US_GOV -> listOf(usGovRegions)
-            null -> getRegionSubgroupsForGroup(GLOBAL) + getRegionSubgroupsForGroup(CHINA) + getRegionSubgroupsForGroup(
-                US_GOV
-            )
+        private fun prefixOf(region: Region): String = region.id().substringBefore('-')
+
+        fun getRegionSubgroupsForGroup(group: AwsRegionGroup?): List<List<Region>> = when (group) {
+            GLOBAL -> {
+                val regions = regionsFor(GLOBAL)
+                val known = globalSubgroupPrefixes.flatten().toSet()
+                val subgroups = globalSubgroupPrefixes.map { prefixes -> regions.filter { prefixOf(it) in prefixes } }
+                val other = regions.filter { prefixOf(it) !in known }
+                (subgroups + listOf(other)).filter { it.isNotEmpty() }
+            }
+
+            CHINA, US_GOV -> listOf(regionsFor(group)).filter { it.isNotEmpty() }
+
+            null -> entries.flatMap { getRegionSubgroupsForGroup(it) }
         }
     }
 }
