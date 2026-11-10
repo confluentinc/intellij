@@ -38,10 +38,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import org.apache.avro.generic.GenericDatumWriter
 import org.apache.avro.io.EncoderFactory
 import org.apache.kafka.common.serialization.*
@@ -508,11 +506,10 @@ class CCloudProducerClient(
 
             val startTime = System.currentTimeMillis()
             val failure = try {
-                // NonCancellable ensures the REST call completes even if the job is cancelled,
-                // so we can report the record and avoid ghost records
-                val response = withContext(NonCancellable) {
-                    fetcher.produceRecord(topic, request)
-                }
+                // produceRecord finishes an HTTP exchange that has started even if the job is
+                // cancelled, so we can report the record and avoid ghost records; its rate-limit
+                // and 429 waits stay cancellable so Stop takes effect right away
+                val response = fetcher.produceRecord(topic, request)
                 val errorCode = response.errorCode
                 if (errorCode == null || errorCode == 200) {
                     return Pair(response, System.currentTimeMillis() - startTime)
