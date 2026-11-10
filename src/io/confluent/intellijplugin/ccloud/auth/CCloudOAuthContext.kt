@@ -233,12 +233,7 @@ class CCloudOAuthContext {
             "redirect_uri" to CCloudOAuthConfig.CCLOUD_OAUTH_REDIRECT_URI
         )
 
-        return withServerErrorsTyped(TokenEndpoint.OAUTH_TOKEN) {
-            CCloudOAuthHttpClient.postFormWithHeaders(
-                url = CCloudOAuthConfig.CCLOUD_OAUTH_TOKEN_URI,
-                formData = formData
-            )
-        }
+        return postOAuthToken(formData)
     }
 
     private suspend fun createTokensFromRefreshToken(): HttpResponseWithHeaders {
@@ -254,13 +249,17 @@ class CCloudOAuthContext {
             "redirect_uri" to CCloudOAuthConfig.CCLOUD_OAUTH_REDIRECT_URI
         )
 
-        return withServerErrorsTyped(TokenEndpoint.OAUTH_TOKEN) {
+        return postOAuthToken(formData)
+    }
+
+    /** POST [formData] to `oauth/token`, with 5xx typed as a [TokenEndpointException]. */
+    private suspend fun postOAuthToken(formData: Map<String, String>): HttpResponseWithHeaders =
+        withServerErrorsTyped(TokenEndpoint.OAUTH_TOKEN) {
             CCloudOAuthHttpClient.postFormWithHeaders(
                 url = CCloudOAuthConfig.CCLOUD_OAUTH_TOKEN_URI,
                 formData = formData
             )
         }
-    }
 
 
     /**

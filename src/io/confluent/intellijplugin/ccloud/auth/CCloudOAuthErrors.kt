@@ -5,13 +5,13 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonIgnoreUnknownKeys
 
 /** The three HTTP calls that make up a sign-in or a token refresh, in the order they run. */
-enum class TokenEndpoint(val path: String) {
+enum class TokenEndpoint {
     /** Auth0 `oauth/token`: authorization code or refresh token -> ID token + new refresh token. */
-    OAUTH_TOKEN("oauth/token"),
+    OAUTH_TOKEN,
     /** CCloud `api/sessions`: ID token -> control plane token. */
-    CONTROL_PLANE("api/sessions"),
+    CONTROL_PLANE,
     /** CCloud `api/access_tokens`: control plane token -> data plane token. */
-    DATA_PLANE("api/access_tokens"),
+    DATA_PLANE,
 }
 
 /**
@@ -67,8 +67,11 @@ class OAuthErrorException(
  * (5xx, 408, 429, I/O errors, unparseable bodies, anything untyped) is treated as transient.
  */
 internal object TokenRefreshErrorClassifier {
-    const val HTTP_REQUEST_TIMEOUT = 408
-    const val HTTP_TOO_MANY_REQUESTS = 429
+    private const val HTTP_REQUEST_TIMEOUT = 408
+    private const val HTTP_TOO_MANY_REQUESTS = 429
+
+    /** 4xx statuses that mean "try again later" rather than "this request is rejected". */
+    private val RETRYABLE_4XX = setOf(HTTP_REQUEST_TIMEOUT, HTTP_TOO_MANY_REQUESTS)
 
     /**
      * RFC 6749 §5.2 error codes. None of them can succeed on a retry of the same request. Checked
@@ -84,16 +87,12 @@ internal object TokenRefreshErrorClassifier {
         "invalid_scope",
     )
 
-    fun isTerminalStatus(httpStatusCode: Int): Boolean =
-        httpStatusCode in 400..499 &&
-            httpStatusCode != HTTP_REQUEST_TIMEOUT &&
-            httpStatusCode != HTTP_TOO_MANY_REQUESTS
+    private fun isTerminalStatus(httpStatusCode: Int): Boolean =
+        httpStatusCode in 400..499 && httpStatusCode !in RETRYABLE_4XX
 
     fun isTerminal(error: Throwable): Boolean = when (error) {
-        is OAuthErrorException -> when (error.httpStatusCode) {
-            HTTP_REQUEST_TIMEOUT, HTTP_TOO_MANY_REQUESTS -> false
-            else -> isTerminalStatus(error.httpStatusCode) || error.errorCode in TERMINAL_OAUTH_ERROR_CODES
-        }
+        is OAuthErrorException -> isTerminalStatus(error.httpStatusCode) ||
+            (error.httpStatusCode !in RETRYABLE_4XX && error.errorCode in TERMINAL_OAUTH_ERROR_CODES)
         is TokenEndpointException -> isTerminalStatus(error.httpStatusCode)
         is MissingRefreshTokenException -> true
         else -> false
