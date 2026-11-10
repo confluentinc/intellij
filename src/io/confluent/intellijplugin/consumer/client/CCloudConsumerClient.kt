@@ -293,13 +293,13 @@ class CCloudConsumerClient(
                 throw e
             } catch (e: Exception) {
                 if (!isRetryable(e)) {
-                    consumeError(e, null, null)
+                    reportStop(e, consumeError)
                     break
                 }
 
                 consecutiveErrors++
                 if (consecutiveErrors >= retryPolicy.maxAttempts) {
-                    consumeError(CCloudConsumeRetriesExhaustedException(consecutiveErrors, e), null, null)
+                    reportStop(CCloudConsumeRetriesExhaustedException(consecutiveErrors, e), consumeError)
                     break
                 }
 
@@ -313,6 +313,15 @@ class CCloudConsumerClient(
                 delay(wait)
             }
         }
+    }
+
+    /**
+     * Report a failure that stops the poll loop: logged (intermediate failures are only WARNed, so
+     * the final one must be too), then added to the output as an error row.
+     */
+    private fun reportStop(e: Throwable, consumeError: (Throwable, Int?, Long?) -> Unit) {
+        thisLogger().warn("CCloud consumer stopped: ${e.message}", e)
+        consumeError(e, null, null)
     }
 
     /**
