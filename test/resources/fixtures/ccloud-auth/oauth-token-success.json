@@ -1,0 +1,7 @@
+{
+  "access_token": "test_access_token",
+  "refresh_token": "test_refresh_token",
+  "id_token": "test_id_token",
+  "token_type": "Bearer",
+  "expires_in": 86400
+}

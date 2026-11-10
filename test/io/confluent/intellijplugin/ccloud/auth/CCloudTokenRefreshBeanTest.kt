@@ -18,9 +18,15 @@ import org.mockito.kotlin.mock
 import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
 import java.time.Instant
+import kotlin.time.Duration.Companion.milliseconds
 
 @TestApplication
 class CCloudTokenRefreshBeanTest {
+
+    companion object {
+        /** Short idle tick so tests don't wait the real 5s interval. */
+        private val TEST_CHECK_INTERVAL = 20.milliseconds
+    }
 
     private lateinit var parentDisposable: Disposable
 
@@ -44,7 +50,7 @@ class CCloudTokenRefreshBeanTest {
                 on { hasNonTransientError() } doReturn false
                 on { hasReachedEndOfLifetime() } doReturn false
             }
-            val bean = CCloudTokenRefreshBean(context, parentDisposable)
+            val bean = CCloudTokenRefreshBean(context, parentDisposable, checkInterval = TEST_CHECK_INTERVAL)
 
             bean.start()
 
@@ -57,7 +63,7 @@ class CCloudTokenRefreshBeanTest {
                 on { hasNonTransientError() } doReturn false
                 on { hasReachedEndOfLifetime() } doReturn false
             }
-            val bean = CCloudTokenRefreshBean(context, parentDisposable)
+            val bean = CCloudTokenRefreshBean(context, parentDisposable, checkInterval = TEST_CHECK_INTERVAL)
             bean.start()
 
             bean.stop()
@@ -71,7 +77,7 @@ class CCloudTokenRefreshBeanTest {
                 on { hasNonTransientError() } doReturn false
                 on { hasReachedEndOfLifetime() } doReturn false
             }
-            val bean = CCloudTokenRefreshBean(context, parentDisposable)
+            val bean = CCloudTokenRefreshBean(context, parentDisposable, checkInterval = TEST_CHECK_INTERVAL)
 
             bean.start()
             bean.start()
@@ -87,7 +93,7 @@ class CCloudTokenRefreshBeanTest {
                 on { hasNonTransientError() } doReturn false
                 on { hasReachedEndOfLifetime() } doReturn false
             }
-            val bean = CCloudTokenRefreshBean(context, parentDisposable)
+            val bean = CCloudTokenRefreshBean(context, parentDisposable, checkInterval = TEST_CHECK_INTERVAL)
             bean.start()
 
             bean.dispose()
@@ -110,11 +116,11 @@ class CCloudTokenRefreshBeanTest {
                 on { getFailedTokenRefreshAttempts() } doReturn 0
                 onBlocking { refresh(null) } doReturn Result.success(mock)
             }
-            val bean = CCloudTokenRefreshBean(context, parentDisposable)
+            val bean = CCloudTokenRefreshBean(context, parentDisposable, checkInterval = TEST_CHECK_INTERVAL)
             bean.start()
 
             // Wait to ensure the scheduler has had time to run at least one check cycle
-            delay(CCloudOAuthConfig.CHECK_TOKEN_EXPIRATION_INTERVAL.inWholeMilliseconds + 500)
+            delay(TEST_CHECK_INTERVAL * 10)
 
             verify(context, atLeastOnce()).refresh(null)
             bean.stop()
@@ -129,11 +135,11 @@ class CCloudTokenRefreshBeanTest {
                 on { expiresAt() } doReturn Instant.now().plusSeconds(3600)
                 on { getFailedTokenRefreshAttempts() } doReturn 0
             }
-            val bean = CCloudTokenRefreshBean(context, parentDisposable)
+            val bean = CCloudTokenRefreshBean(context, parentDisposable, checkInterval = TEST_CHECK_INTERVAL)
             bean.start()
 
             // Wait to ensure the scheduler has had time to run at least one check cycle
-            delay(CCloudOAuthConfig.CHECK_TOKEN_EXPIRATION_INTERVAL.inWholeMilliseconds + 500)
+            delay(TEST_CHECK_INTERVAL * 10)
 
             verify(context, never()).refresh(null)
             bean.stop()
@@ -150,7 +156,7 @@ class CCloudTokenRefreshBeanTest {
                 on { hasNonTransientError() } doReturn true
                 on { getFailedTokenRefreshAttempts() } doReturn CCloudOAuthConfig.MAX_TOKEN_REFRESH_ATTEMPTS
             }
-            val bean = CCloudTokenRefreshBean(context, parentDisposable)
+            val bean = CCloudTokenRefreshBean(context, parentDisposable, checkInterval = TEST_CHECK_INTERVAL)
             bean.start()
 
             // Wait to ensure a gap between the start and the stop condition is checked
@@ -165,7 +171,7 @@ class CCloudTokenRefreshBeanTest {
                 on { hasNonTransientError() } doReturn false
                 on { hasReachedEndOfLifetime() } doReturn true
             }
-            val bean = CCloudTokenRefreshBean(context, parentDisposable)
+            val bean = CCloudTokenRefreshBean(context, parentDisposable, checkInterval = TEST_CHECK_INTERVAL)
             bean.start()
 
             // Wait to ensure a gap between the start and the stop condition is checked
@@ -184,10 +190,10 @@ class CCloudTokenRefreshBeanTest {
                 on { getFailedTokenRefreshAttempts() } doReturn 1
                 onBlocking { refresh(null) } doReturn Result.failure(RuntimeException("Transient error"))
             }
-            val bean = CCloudTokenRefreshBean(context, parentDisposable)
+            val bean = CCloudTokenRefreshBean(context, parentDisposable, checkInterval = TEST_CHECK_INTERVAL)
             bean.start()
 
-            delay(CCloudOAuthConfig.CHECK_TOKEN_EXPIRATION_INTERVAL.inWholeMilliseconds + 500)
+            delay(TEST_CHECK_INTERVAL * 10)
 
             assertTrue(bean.isRunning())
             bean.stop()
@@ -200,7 +206,7 @@ class CCloudTokenRefreshBeanTest {
                 on { hasReachedEndOfLifetime() } doReturn false
                 on { getFailedTokenRefreshAttempts() } doReturn CCloudOAuthConfig.MAX_TOKEN_REFRESH_ATTEMPTS
             }
-            val bean = CCloudTokenRefreshBean(context, parentDisposable)
+            val bean = CCloudTokenRefreshBean(context, parentDisposable, checkInterval = TEST_CHECK_INTERVAL)
             bean.start()
 
             // Wait to ensure a gap between the start and the stop condition is checked
