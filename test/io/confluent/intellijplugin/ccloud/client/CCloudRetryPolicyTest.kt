@@ -1,6 +1,7 @@
 package io.confluent.intellijplugin.ccloud.client
 
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Nested
@@ -11,6 +12,7 @@ import org.junit.jupiter.params.provider.ValueSource
 import java.time.Instant
 import kotlin.random.Random
 import kotlin.time.Duration
+import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 
@@ -160,15 +162,13 @@ class CCloudRetryPolicyTest {
         }
 
         @Test
-        fun `should clamp delta-seconds to maxRetryAfter`() {
-            assertEquals(60.seconds, noJitter.parseRetryAfter("3600", now))
-            assertEquals(60.seconds, noJitter.parseRetryAfter("99999999999999999999999", now))
+        fun `should keep delta-seconds above maxRetryAfter unchanged`() {
+            assertEquals(3600.seconds, noJitter.parseRetryAfter("3600", now))
         }
 
         @Test
-        fun `should respect custom maxRetryAfter`() {
-            val policy = CCloudRetryPolicy(maxRetryAfter = 5.seconds)
-            assertEquals(5.seconds, policy.parseRetryAfter("30", now))
+        fun `should treat delta-seconds too large for a Long as infinite`() {
+            assertEquals(Duration.INFINITE, noJitter.parseRetryAfter("99999999999999999999999", now))
         }
 
         @Test
@@ -177,8 +177,8 @@ class CCloudRetryPolicyTest {
         }
 
         @Test
-        fun `should clamp far-future HTTP-date to maxRetryAfter`() {
-            assertEquals(60.seconds, noJitter.parseRetryAfter("Thu, 22 Oct 2015 07:28:00 GMT", now))
+        fun `should keep far-future HTTP-date unchanged`() {
+            assertEquals(24.hours, noJitter.parseRetryAfter("Thu, 22 Oct 2015 07:28:00 GMT", now))
         }
 
         @Test
@@ -195,6 +195,34 @@ class CCloudRetryPolicyTest {
         @ValueSource(strings = ["", "   ", "-5", "1.5", "soon", "12abc", "Wed, 99 Oct 2015 07:28:00 GMT"])
         fun `should return null for invalid values`(header: String) {
             assertNull(noJitter.parseRetryAfter(header, now))
+        }
+    }
+
+    @Nested
+    inner class ExceedsMaxRetryAfter {
+
+        @Test
+        fun `should not exceed when there is no Retry-After`() {
+            assertFalse(noJitter.exceedsMaxRetryAfter(null))
+        }
+
+        @Test
+        fun `should not exceed at or below maxRetryAfter`() {
+            assertFalse(noJitter.exceedsMaxRetryAfter(Duration.ZERO))
+            assertFalse(noJitter.exceedsMaxRetryAfter(60.seconds))
+        }
+
+        @Test
+        fun `should exceed above maxRetryAfter`() {
+            assertTrue(noJitter.exceedsMaxRetryAfter(61.seconds))
+            assertTrue(noJitter.exceedsMaxRetryAfter(Duration.INFINITE))
+        }
+
+        @Test
+        fun `should respect custom maxRetryAfter`() {
+            val policy = CCloudRetryPolicy(maxRetryAfter = 5.seconds)
+            assertFalse(policy.exceedsMaxRetryAfter(5.seconds))
+            assertTrue(policy.exceedsMaxRetryAfter(6.seconds))
         }
     }
 }
