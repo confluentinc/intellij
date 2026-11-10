@@ -15,14 +15,11 @@ import java.net.URLEncoder
  */
 object CCloudOAuthHttpClient {
 
-    @PublishedApi
     internal const val CONNECT_TIMEOUT_MS = 10_000 // 10 seconds
 
-    @PublishedApi
     internal const val READ_TIMEOUT_MS = 60_000 // 1 minute
 
     // JSON serializer/deserializer
-    @PublishedApi
     internal val json = Json {
         // Removes JSON specification restriction
         isLenient = true
@@ -82,29 +79,6 @@ object CCloudOAuthHttpClient {
             }
     }
 
-    /**
-     * GET with Bearer auth.
-     * @param url The URL to get
-     * @param bearerToken The Bearer token to use for authentication
-     * @return The response body
-     */
-    suspend inline fun <reified T> get(
-        url: String,
-        bearerToken: String? = null
-    ): T = withContext(Dispatchers.IO) {
-        val response = HttpRequests.request(url)
-            .connectTimeout(CONNECT_TIMEOUT_MS)
-            .readTimeout(READ_TIMEOUT_MS)
-            .throwStatusCodeException(false)
-            .tuner { conn ->
-                conn.setRequestProperty(CCloudUserAgent.HEADER_NAME, CCloudUserAgent.headerValue())
-                bearerToken?.let { conn.setRequestProperty("Authorization", "Bearer $it") }
-            }
-            .connect { readResponseBody(it) }
-
-        json.decodeFromString<T>(response)
-    }
-
     private fun encode(s: String): String = URLEncoder.encode(s, Charsets.UTF_8)
 
     /**
@@ -112,7 +86,6 @@ object CCloudOAuthHttpClient {
      * @param request The request to read the response body from
      * @return The response body as a string
      */
-    @PublishedApi
     internal fun readResponseBody(request: HttpRequests.Request): String {
         val conn = request.connection as HttpURLConnection
         val statusCode = conn.responseCode

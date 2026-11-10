@@ -127,7 +127,7 @@ class CCloudOAuthContext {
             // Reset any existing errors and the refresh failure count (and so the backoff)
             tokens.updateAndGet { oldTokens ->
                 oldTokens.withSuccessfulTokenRefreshAttempt().let {
-                    it.withErrors(it.errors.withoutSignIn().withoutAuthStatusCheck())
+                    it.withErrors(it.errors.withoutSignIn())
                 }
             }
         }.onFailure { failure ->
@@ -161,51 +161,6 @@ class CCloudOAuthContext {
                 )
             }
         }.map { this }
-    }
-
-    /**
-     * Refresh tokens without tracking failures.
-     * @param organizationId The Confluent Cloud organization ID
-     * @return If successful, returns a CCloudOAuthContext with up-to-date refresh, control plane,
-     * and data plane tokens. If not successful, returns a failed Result holding the cause of the failure.
-     */
-    suspend fun refreshIgnoreFailures(organizationId: String? = null): Result<CCloudOAuthContext> = exchangeMutex.withLock {
-        // Note: failures are NOT tracked
-        runCatchingNonCancellation {
-            processTokenExchangeResponse(createTokensFromRefreshToken(), organizationId)
-        }.onSuccess {
-            tokens.updateAndGet { it.withSuccessfulTokenRefreshAttempt() }
-        }.map { this }
-    }
-
-    /**
-     * Verify control plane token is valid by performing an API call against Confluent Cloud's api/check_jwt endpoint.
-     * @return If successful, returns a Result holding the boolean value true if the token is valid.
-     * If not successful, returns a failed Result holding the cause of the failure.
-     */
-    suspend fun checkAuthenticationStatus(): Result<Boolean> = exchangeMutex.withLock {
-        val controlPlaneToken = tokens.get().controlPlaneToken
-        if (isTokenMissing(controlPlaneToken)) {
-            val errorMessage = "Cannot verify authentication status: no control plane token available."
-            tokens.updateAndGet { it.withErrors(it.errors.withAuthStatusCheck(errorMessage)) }
-            Result.failure(IllegalStateException(errorMessage))
-        } else {
-            runCatchingNonCancellation {
-                val response = CCloudOAuthHttpClient.get<CheckJwtResponse>(
-                    url = CCloudOAuthConfig.CCLOUD_CONTROL_PLANE_CHECK_JWT_URI,
-                    bearerToken = controlPlaneToken!!.token
-                )
-
-                if (response.error != null && response.error !is JsonNull) {
-                    throw IllegalStateException("JWT validation failed: ${response.error}")
-                }
-                true
-            }.onSuccess {
-                tokens.updateAndGet { it.withErrors(it.errors.withoutAuthStatusCheck()) }
-            }.onFailure { failure ->
-                tokens.updateAndGet { it.withErrors(it.errors.withAuthStatusCheck(failure.message ?: "Unknown error")) }
-            }
-        }
     }
 
     /**

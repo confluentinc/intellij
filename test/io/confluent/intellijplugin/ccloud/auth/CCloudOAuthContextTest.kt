@@ -44,7 +44,6 @@ class CCloudOAuthContextTest {
             val baseUrl = "http://localhost:${wireMockServer.port()}"
             System.setProperty("ccloud.oauth.token-uri", "$baseUrl/oauth/token")
             System.setProperty("ccloud.control-plane.token-exchange-uri", "$baseUrl/api/sessions")
-            System.setProperty("ccloud.control-plane.check-jwt-uri", "$baseUrl/api/check_jwt")
             System.setProperty("ccloud.data-plane.token-exchange-uri", "$baseUrl/api/access_tokens")
         }
 
@@ -54,7 +53,6 @@ class CCloudOAuthContextTest {
             wireMockServer.stop()
             System.clearProperty("ccloud.oauth.token-uri")
             System.clearProperty("ccloud.control-plane.token-exchange-uri")
-            System.clearProperty("ccloud.control-plane.check-jwt-uri")
             System.clearProperty("ccloud.data-plane.token-exchange-uri")
         }
     }
@@ -75,17 +73,6 @@ class CCloudOAuthContextTest {
     private fun registerWireMockRoutesForCCloudOAuth() {
         // oauth/token, api/sessions and api/access_tokens, from the ccloud-auth fixtures
         wireMockServer.stubTokenEndpointsSuccess()
-
-        // Check JWT endpoint
-        wireMockServer.stubFor(
-            WireMock.get("/api/check_jwt")
-                .willReturn(
-                    WireMock.aResponse()
-                        .withStatus(200)
-                        .withHeader("Content-Type", "application/json")
-                        .withBody("""{"claims": {"sub": "user-123"}}""")
-                )
-        )
     }
 
     @Nested
@@ -727,110 +714,11 @@ class CCloudOAuthContextTest {
                 listOf(
                     async(Dispatchers.Default) { context.createTokensFromAuthorizationCode(MOCK_AUTH_CODE, MOCK_ORG_ID) },
                     async(Dispatchers.IO) { context.refresh(MOCK_ORG_ID) },
-                    async(Dispatchers.Default) { context.checkAuthenticationStatus() },
+                    async(Dispatchers.Default) { context.refresh(MOCK_ORG_ID) },
                 ).awaitAll()
             }
 
             results.forEach { assertTrue(it.isSuccess, "call failed: ${it.exceptionOrNull()}") }
-        }
-    }
-
-    @Nested
-    @DisplayName("refreshIgnoreFailures")
-    inner class RefreshIgnoreFailures {
-
-        @BeforeEach
-        fun setUpRefresh() {
-            runBlocking {
-                context.createTokensFromAuthorizationCode(MOCK_AUTH_CODE, MOCK_ORG_ID)
-            }
-        }
-
-        @Test
-        fun `should not track failures`() {
-            wireMockServer.stubFor(
-                WireMock.post("/oauth/token")
-                    .willReturn(
-                        WireMock.aResponse()
-                            .withStatus(200)
-                            .withHeader("Content-Type", "application/json")
-                            .withBody("""{"error": "invalid_grant", "error_description": "Refresh token expired"}""")
-                    ).atPriority(1)
-            )
-
-            runBlocking {
-                context.refreshIgnoreFailures(MOCK_ORG_ID)
-                context.refreshIgnoreFailures(MOCK_ORG_ID)
-            }
-
-            // Should not track failures
-            assertNull(context.getErrors().tokenRefresh)
-        }
-
-        @Test
-        fun `should reset counter on success`() {
-            val result = runBlocking {
-                context.refreshIgnoreFailures(MOCK_ORG_ID)
-            }
-
-            assertTrue(result.isSuccess)
-            assertEquals(0, context.getFailedTokenRefreshAttempts())
-        }
-    }
-
-    @Nested
-    @DisplayName("checkAuthenticationStatus")
-    inner class CheckAuthenticationStatus {
-
-        @Test
-        fun `should return false if the control plane token is absent`() {
-            val result = runBlocking {
-                context.checkAuthenticationStatus()
-            }
-
-            assertTrue(result.isFailure)
-            // Error related to auth status check should be present
-            assertNotNull(context.getErrors().authStatusCheck)
-        }
-
-        @Test
-        fun `should return true if the control plane token is valid`() {
-            runBlocking {
-                context.createTokensFromAuthorizationCode(MOCK_AUTH_CODE, MOCK_ORG_ID)
-            }
-
-            val result = runBlocking {
-                context.checkAuthenticationStatus()
-            }
-
-            assertTrue(result.isSuccess)
-            assertTrue(result.getOrThrow())
-            // Error related to auth status check should not be present
-            assertNull(context.getErrors().authStatusCheck)
-        }
-
-        @Test
-        fun `should return failure if CCloud returns an error`() {
-            runBlocking {
-                context.createTokensFromAuthorizationCode(MOCK_AUTH_CODE, MOCK_ORG_ID)
-            }
-
-            wireMockServer.stubFor(
-                WireMock.get("/api/check_jwt")
-                    .willReturn(
-                        WireMock.aResponse()
-                            .withStatus(200)
-                            .withHeader("Content-Type", "application/json")
-                            .withBody("""{"error":{"code":401,"message":"Unauthorized"}}""")
-                    ).atPriority(1)
-            )
-
-            val result = runBlocking {
-                context.checkAuthenticationStatus()
-            }
-
-            assertTrue(result.isFailure)
-            assertNotNull(context.getErrors().authStatusCheck)
         }
     }
 
