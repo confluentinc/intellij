@@ -12,6 +12,7 @@ All noteworthy changes to this plugin will be documented in this file.
 - Deleting a consumer group that the broker rejects (for example, one that still has active members) now shows an error instead of appearing to succeed.
 - The Topics table no longer shows "Create a topic" mixed into the connection error message when an auto-refresh fails.
 - Producer send timeouts now show as error rows in the results table instead of silently ending the batch. Auto mode stops after 3 consecutive timeouts, and timed-out sends no longer count toward the request total.
+- When producing from a CSV file in auto mode, a row whose send times out after reaching the producer's queue (for example, its batch expires after `delivery.timeout.ms`) is no longer sent again, since it may already have been written. Only rows that never left the client are retried.
 - The producer and consumer status label now shows an error icon when an error occurs and keeps it after stopping. An error that happens before any record arrives no longer changes to "Canceled" when stopped.
 
 ## 253.25910.2

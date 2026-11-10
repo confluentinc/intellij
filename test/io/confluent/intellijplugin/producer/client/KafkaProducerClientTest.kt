@@ -19,9 +19,13 @@ import org.apache.kafka.clients.producer.KafkaProducer
 import org.apache.kafka.clients.producer.ProducerConfig
 import org.apache.kafka.clients.producer.ProducerRecord
 import org.apache.kafka.clients.producer.RecordMetadata
+import org.apache.kafka.clients.producer.internals.FutureRecordMetadata
+import org.apache.kafka.clients.producer.internals.ProduceRequestResult
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.errors.RecordTooLargeException
 import org.apache.kafka.common.errors.TimeoutException as KafkaTimeoutException
+import org.apache.kafka.common.record.RecordBatch
+import org.apache.kafka.common.utils.Time
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Nested
@@ -170,6 +174,16 @@ class KafkaProducerClientTest {
 
         private fun acked(): Future<RecordMetadata> =
             CompletableFuture.completedFuture(RecordMetadata(TopicPartition(topic, 0), 0L, 0, 0L, 1, 1))
+
+        /** A record KafkaProducer queued in a batch that then expired after delivery.timeout.ms. */
+        private fun expiredBatch(): Future<RecordMetadata> {
+            val batch = ProduceRequestResult(TopicPartition(topic, 0))
+            batch.set(-1L, RecordBatch.NO_TIMESTAMP) {
+                KafkaTimeoutException("Expiring 1 record(s) for $topic-0:120000 ms has passed since batch creation")
+            }
+            batch.done()
+            return FutureRecordMetadata(batch, 0, RecordBatch.NO_TIMESTAMP, 1, 1, Time.SYSTEM)
+        }
 
         /** A send the broker never acknowledges. */
         private fun hanging(): Future<RecordMetadata> = CompletableFuture()
@@ -330,14 +344,11 @@ class KafkaProducerClientTest {
         }
 
         @Test
-        fun `should move to the next CSV row after an in-flight batch expires`() {
-            // A batch that expires after delivery.timeout.ms (set below the send timeout) also fails with Kafka's
-            // TimeoutException, but its record may already have been written, so re-sending its row could duplicate it.
-            val expiring = mock<Future<RecordMetadata>> {
-                on { isDone } doReturn false
-                on { get(any(), any()) } doThrow ExecutionException(KafkaTimeoutException("Expiring 1 record(s) for $topic-0"))
-            }
-            val producer = producerReturning(expiring, acked(), acked())
+        fun `should move to the next CSV row after a queued batch expires`() {
+            // Kafka fails queued, in-flight and retried batches alike once delivery.timeout.ms passes, and a retried
+            // batch may already be written, so re-sending its row could duplicate it. The future is already failed
+            // when send() returns, as when the sender thread expires the batch first.
+            val producer = producerReturning(expiredBatch(), acked(), acked())
 
             runProduce(producer, autoParams(totalRequests = 2), csvDf = csvRecords())
 
