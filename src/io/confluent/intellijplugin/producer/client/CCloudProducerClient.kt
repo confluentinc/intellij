@@ -46,6 +46,7 @@ import org.apache.kafka.common.serialization.*
 import org.jetbrains.annotations.VisibleForTesting
 import java.nio.ByteBuffer
 import java.time.Instant
+import kotlin.time.Duration
 import java.util.Base64
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicBoolean
@@ -221,9 +222,9 @@ class CCloudProducerClient(
             } catch (_: CancellationException) {
                 // Job cancelled during retry backoff; no record sent, safe to stop
                 break
-            } catch (e: CCloudProduceRetriesExhaustedException) {
+            } catch (e: CCloudProduceGaveUpException) {
                 // Show it in the results table and stop (including AUTO mode); other errors keep the balloon
-                thisLogger().info("CCloud produce to $topic gave up after ${e.attempts} attempt(s)", e)
+                thisLogger().info("CCloud produce to $topic gave up: ${e.message}", e)
                 onUpdate(0, listOf(createErrorRecord(recordKey, recordValue, topic, forcePartition.takeIf { it >= 0 }, e, duration = 0)))
                 return false
             }
@@ -464,11 +465,13 @@ class CCloudProducerClient(
      * - HTTP 429: not retried here, because the REST client already retried it (honoring
      *   `Retry-After`). Throws [CCloudProduceRetriesExhaustedException] with `rateLimited = true`.
      * - HTTP 5xx ([isRetryableHttpError]): retried with policy backoff, never shorter than `Retry-After`.
-     * - HTTP 429 or 5xx with a `Retry-After` above [CCloudRetryPolicy.maxRetryAfter]: rethrown
-     *   unchanged (the REST client did not retry such a 429 either).
+     * - HTTP 429 or 5xx with a `Retry-After` above [CCloudRetryPolicy.maxRetryAfter]: not retried,
+     *   since retrying sooner than the server asked defeats `Retry-After` (as in [CCloudRestClient]).
+     *   Throws [CCloudProduceRetryAfterTooLongException] carrying the server's value.
      * - Anything else, including connect failures and timeouts (status 0): rethrown unchanged.
      *
      * @throws CCloudProduceRetriesExhaustedException when every attempt failed with a retryable error
+     * @throws CCloudProduceRetryAfterTooLongException when the server asked to wait too long to retry
      */
     @VisibleForTesting
     internal suspend fun produceWithRetry(
@@ -500,7 +503,7 @@ class CCloudProducerClient(
                 // HTTP-level errors thrown by the REST client
                 if (retryPolicy.exceedsMaxRetryAfter(e.retryAfter)) {
                     thisLogger().debug("Produce Retry-After ${e.retryAfter} exceeds ${retryPolicy.maxRetryAfter}, not retrying")
-                    throw e
+                    throw CCloudProduceRetryAfterTooLongException(e, checkNotNull(e.retryAfter))
                 }
                 if (e.statusCode == 429) {
                     thisLogger().debug("Produce rate limited after REST client retries: ${e.message}")
@@ -573,6 +576,12 @@ class CCloudProducerClient(
     }
 }
 
+/** The producer gave up on a record; shown as an error row in the results table. */
+sealed class CCloudProduceGaveUpException(
+    message: String,
+    override val cause: CCloudApiException
+) : Exception(message, cause)
+
 /**
  * A produce request failed with a transient error and the producer gave up retrying it.
  *
@@ -583,10 +592,24 @@ class CCloudProducerClient(
  */
 class CCloudProduceRetriesExhaustedException(
     val attempts: Int,
-    override val cause: CCloudApiException,
+    cause: CCloudApiException,
     val rateLimited: Boolean = false
-) : Exception(
+) : CCloudProduceGaveUpException(
     if (rateLimited) KafkaMessagesBundle.message("producer.ccloud.rate.limited", cause.message.orEmpty())
     else KafkaMessagesBundle.message("producer.ccloud.retries.exhausted", attempts, cause.message.orEmpty()),
+    cause
+)
+
+/**
+ * Confluent Cloud asked to wait longer than [CCloudRetryPolicy.maxRetryAfter] before retrying,
+ * so the producer stopped instead of retrying sooner than asked.
+ *
+ * @param retryAfter The server's `Retry-After`, unclamped
+ */
+class CCloudProduceRetryAfterTooLongException(
+    cause: CCloudApiException,
+    val retryAfter: Duration
+) : CCloudProduceGaveUpException(
+    KafkaMessagesBundle.message("producer.ccloud.retry.after.too.long", cause.statusCode, retryAfter, cause.message.orEmpty()),
     cause
 )
