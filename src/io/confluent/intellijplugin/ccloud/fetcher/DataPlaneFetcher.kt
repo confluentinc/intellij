@@ -17,11 +17,16 @@ interface DataPlaneFetcher {
     /** Get beginning or end offset for a single partition. */
     suspend fun getPartitionOffset(topicName: String, partitionId: Int, fromBeginning: Boolean): Long
 
+    /**
+     * Consume records across partitions (POST). Makes a single attempt with no client-level retries;
+     * callers own the retry policy (see `CCloudConsumerClient`).
+     */
     suspend fun consumeRecords(topicName: String, request: ConsumeRecordsRequest): ConsumeRecordsResponse
 
     /**
      * Consume records from a single partition using the GET endpoint.
      * Supports timestamp-based seeking which the multi-partition POST endpoint does not.
+     * Like [consumeRecords], makes a single attempt with no client-level retries.
      */
     suspend fun consumePartitionRecords(
         topicName: String,
