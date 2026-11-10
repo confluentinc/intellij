@@ -150,7 +150,7 @@ class CCloudProducerClient(
                         (System.currentTimeMillis() - startTime) >= flowParams.totalElapsedTime
                     ) break
 
-                    produceBatch(
+                    val keepGoing = produceBatch(
                         fetcher = fetcher,
                         topic = topic,
                         key = key,
@@ -164,7 +164,7 @@ class CCloudProducerClient(
                         onUpdate = onUpdate
                     )
                     // Stopped by the user or by an exhausted produce; don't wait out the interval
-                    if (!running.get()) break
+                    if (!keepGoing || !running.get()) break
                     produced += flowParams.flowRecordsCountPerRequest
                     delay(flowParams.requestInterval.toLong())
                 }
@@ -199,7 +199,7 @@ class CCloudProducerClient(
         csvDataFrame: DataFrame?,
         schemaCache: Map<String, SchemaVersionResponse>,
         onUpdate: (Long, List<KafkaRecord>) -> Unit
-    ) {
+    ): Boolean {
         for (i in 0 until flowParams.flowRecordsCountPerRequest) {
             if (!running.get()) break
 
@@ -224,9 +224,8 @@ class CCloudProducerClient(
             } catch (e: CCloudProduceRetriesExhaustedException) {
                 // Show it in the results table and stop (including AUTO mode); other errors keep the balloon
                 thisLogger().info("CCloud produce to $topic gave up after ${e.attempts} attempt(s)", e)
-                onUpdate(0, listOf(createErrorRecord(recordKey, recordValue, topic, forcePartition, e)))
-                running.set(false)
-                return
+                onUpdate(0, listOf(createErrorRecord(recordKey, recordValue, topic, forcePartition.takeIf { it >= 0 }, e, duration = 0)))
+                return false
             }
 
             val record = KafkaRecord(
@@ -248,19 +247,8 @@ class CCloudProducerClient(
             )
             onUpdate(record.duration, listOf(record))
         }
+        return true
     }
-
-    private fun createErrorRecord(
-        key: ConsumerProducerFieldConfig,
-        value: ConsumerProducerFieldConfig,
-        topic: String,
-        forcePartition: Int,
-        error: Throwable
-    ): KafkaRecord = KafkaRecord.createFor(
-        key.type, value.type, key.schemaFormat, value.schemaFormat,
-        Result.failure(error),
-        errorPartition = forcePartition.takeIf { it >= 0 }
-    ).copy(topic = topic, duration = 0)
 
     private fun resolveFieldValue(
         field: ConsumerProducerFieldConfig,
@@ -476,7 +464,8 @@ class CCloudProducerClient(
      * - HTTP 429: not retried here, because the REST client already retried it (honoring
      *   `Retry-After`). Throws [CCloudProduceRetriesExhaustedException] with `rateLimited = true`.
      * - HTTP 5xx ([isRetryableHttpError]): retried with policy backoff, never shorter than `Retry-After`.
-     *   A `Retry-After` above [CCloudRetryPolicy.maxRetryAfter] is rethrown unchanged instead.
+     * - HTTP 429 or 5xx with a `Retry-After` above [CCloudRetryPolicy.maxRetryAfter]: rethrown
+     *   unchanged (the REST client did not retry such a 429 either).
      * - Anything else, including connect failures and timeouts (status 0): rethrown unchanged.
      *
      * @throws CCloudProduceRetriesExhaustedException when every attempt failed with a retryable error
@@ -488,21 +477,31 @@ class CCloudProducerClient(
         request: ProduceRecordRequest
     ): Pair<ProduceRecordResponse, Long>? {
         val maxAttempts = retryPolicy.maxAttempts
-        var lastException: CCloudApiException? = null
+        var retryIndex = 0
 
-        for (retryIndex in 0 until maxAttempts) {
+        while (true) {
             // Stopped — return null so the batch loop reports partial results
             if (!running.get()) return null
 
             val startTime = System.currentTimeMillis()
-            val response = try {
+            val failure = try {
                 // NonCancellable ensures the REST call completes even if the job is cancelled,
                 // so we can report the record and avoid ghost records
-                withContext(NonCancellable) {
+                val response = withContext(NonCancellable) {
                     fetcher.produceRecord(topic, request)
                 }
+                val errorCode = response.errorCode
+                if (errorCode == null || errorCode == 200) {
+                    return Pair(response, System.currentTimeMillis() - startTime)
+                }
+                // Application-level error in a 200 response body; classified below, outside this try
+                CCloudApiException(response.message ?: "Produce failed with error code $errorCode", errorCode)
             } catch (e: CCloudApiException) {
                 // HTTP-level errors thrown by the REST client
+                if (retryPolicy.exceedsMaxRetryAfter(e.retryAfter)) {
+                    thisLogger().debug("Produce Retry-After ${e.retryAfter} exceeds ${retryPolicy.maxRetryAfter}, not retrying")
+                    throw e
+                }
                 if (e.statusCode == 429) {
                     thisLogger().debug("Produce rate limited after REST client retries: ${e.message}")
                     throw CCloudProduceRetriesExhaustedException(retryIndex + 1, e, rateLimited = true)
@@ -511,47 +510,27 @@ class CCloudProducerClient(
                     thisLogger().debug("Non-retryable HTTP error during produce: ${e.statusCode} ${e.message}")
                     throw e
                 }
-                if (retryPolicy.exceedsMaxRetryAfter(e.retryAfter)) {
-                    thisLogger().debug("Produce Retry-After ${e.retryAfter} exceeds ${retryPolicy.maxRetryAfter}, not retrying")
-                    throw e
-                }
-                lastException = e
-                null
+                e
             }
 
-            val retryDelay = if (response == null) {
-                retryPolicy.delayFor(retryIndex, checkNotNull(lastException).retryAfter)
-            } else {
-                val duration = System.currentTimeMillis() - startTime
-                val errorCode = response.errorCode
-                if (errorCode == null || errorCode == 200) {
-                    return Pair(response, duration)
-                }
-
-                // Application-level error in a 200 response body
-                val exception = CCloudApiException(
-                    response.message ?: "Produce failed with error code $errorCode",
-                    errorCode
-                )
-                if (!isRetryableBodyError(errorCode)) {
-                    thisLogger().debug("Non-retryable produce error: $errorCode ${response.message}")
-                    throw exception
-                }
-                lastException = exception
-                retryPolicy.delayFor(retryIndex)
+            // HTTP failures that reach here are 5xx, which are also retryable body codes
+            if (!isRetryableBodyError(failure.statusCode)) {
+                thisLogger().debug("Non-retryable produce error: ${failure.statusCode} ${failure.message}")
+                throw failure
+            }
+            if (retryIndex == maxAttempts - 1) {
+                // HTTP 429 throws above, so a 429 here came from the response body
+                throw CCloudProduceRetriesExhaustedException(maxAttempts, failure, rateLimited = failure.statusCode == 429)
             }
 
-            if (retryIndex == maxAttempts - 1) break
+            val retryDelay = retryPolicy.delayFor(retryIndex, failure.retryAfter)
             thisLogger().debug(
                 "Retryable produce error (attempt ${retryIndex + 1}/$maxAttempts): " +
-                    "${lastException?.statusCode}, retrying in $retryDelay"
+                    "${failure.statusCode}, retrying in $retryDelay"
             )
             delay(retryDelay)
+            retryIndex++
         }
-
-        val last = checkNotNull(lastException)
-        // HTTP 429 throws above, so a 429 here came from the response body
-        throw CCloudProduceRetriesExhaustedException(maxAttempts, last, rateLimited = last.statusCode == 429)
     }
 
     /** Error codes in a 200 produce response body that are worth retrying. */
