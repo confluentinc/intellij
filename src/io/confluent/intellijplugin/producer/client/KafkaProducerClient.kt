@@ -374,19 +374,6 @@ class KafkaProducerClient(
         )
     }
 
-    private fun createErrorRecord(
-        key: ConsumerProducerFieldConfig,
-        value: ConsumerProducerFieldConfig,
-        topic: String,
-        partition: Int?,
-        error: Throwable,
-        duration: Long
-    ): KafkaRecord = KafkaRecord.createFor(
-        key.type, value.type, key.schemaFormat, value.schemaFormat,
-        Result.failure(error),
-        errorPartition = partition
-    ).copy(topic = topic, duration = duration)
-
     companion object {
         private const val DEFAULT_SEND_TIMEOUT_MS = 15_000L
 
