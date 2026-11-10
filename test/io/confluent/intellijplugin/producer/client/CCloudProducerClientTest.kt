@@ -23,6 +23,7 @@ import io.confluent.kafka.schemaregistry.protobuf.MessageIndexes
 import io.confluent.intellijplugin.ccloud.model.response.PartitionData
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Nested
@@ -775,6 +776,12 @@ class CCloudProducerClientTest {
             retryPolicy = CCloudRetryPolicy.immediate(maxAttempts = 3),
         )
 
+        @AfterEach
+        fun stopClient() {
+            // Don't leak a running AUTO producer into other tests if an assertion failed before it stopped
+            startClient.stop()
+        }
+
         private fun startProducing(mode: Mode) {
             startClient.start(
                 topic = "test-topic",
@@ -1015,6 +1022,22 @@ class CCloudProducerClientTest {
             }
 
             assertSame(unavailable, exception)
+            runBlocking { verify(mockFetcher, times(1)).produceRecord(any(), any()) }
+        }
+
+        @Test
+        fun `should rethrow HTTP 429 unchanged when Retry-After exceeds maxRetryAfter`() {
+            // The REST client does not retry a 429 whose Retry-After is too long, so it is not "still rejected after retrying"
+            val rateLimited = CCloudApiException("Rate limited (HTTP 429)", 429, retryAfter = 300.seconds)
+            runBlocking {
+                whenever(mockFetcher.produceRecord(any(), any())).thenAnswer { throw rateLimited }
+            }
+
+            val exception = assertThrows(CCloudApiException::class.java) {
+                runBlocking { client.produceWithRetry(mockFetcher, "test-topic", request) }
+            }
+
+            assertSame(rateLimited, exception)
             runBlocking { verify(mockFetcher, times(1)).produceRecord(any(), any()) }
         }
 
