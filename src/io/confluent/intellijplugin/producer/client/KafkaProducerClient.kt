@@ -23,6 +23,7 @@ import io.confluent.kafka.serializers.context.NullContextNameStrategy
 import org.apache.kafka.clients.producer.KafkaProducer
 import org.apache.kafka.clients.producer.ProducerConfig
 import org.apache.kafka.clients.producer.ProducerRecord
+import org.apache.kafka.clients.producer.internals.FutureRecordMetadata
 import org.apache.kafka.common.errors.TimeoutException as KafkaTimeoutException
 import org.apache.kafka.common.serialization.Serializer
 import org.jetbrains.annotations.VisibleForTesting
@@ -177,10 +178,14 @@ class KafkaProducerClient(
         }
     }
 
-    /** [failedRecordMayHaveLanded] is false when the failed record never left the client, e.g. a metadata timeout. */
-    private class BatchResult(val sent: Int, val timedOut: Boolean, val failedRecordMayHaveLanded: Boolean = false) {
-        val rowsUsed: Int get() = sent + if (failedRecordMayHaveLanded) 1 else 0
-    }
+    /**
+     * [rowUsed] is false only when the record never left the client (send() failed before queueing it), so its
+     * CSV row should be sent again. Any other outcome, including a failure we can't rule out having reached the
+     * broker, uses the row up so it is never duplicated.
+     */
+    private class SendResult(val record: KafkaRecord, val rowUsed: Boolean)
+
+    private class BatchResult(val sent: Int, val rowsUsed: Int, val timedOut: Boolean)
 
     private fun sentSeveralMessage(
         flowParams: ProducerFlowParams,
@@ -196,22 +201,23 @@ class KafkaProducerClient(
         onUpdate: (Long, List<KafkaRecord>) -> Unit
     ): BatchResult {
         var sent = 0
+        var rowsUsed = 0
         for (i in 0 until recordCount) {
             if (!isRunning()) break
-            val record = sentMessage(
+            val result = sentMessage(
                 flowParams, partition, producer, topic, key, value, headers.map { it.copy() },
                 alreadyProducedCount = alreadyProducedCount + i,
                 csvDf = csvDf
             )
+            val record = result.record
             onUpdate(record.duration, listOf(record))
+            if (result.rowUsed) rowsUsed++
             if (record.error != null) {
-                // sentMessage reports an acknowledgement timeout as java.util.concurrent.TimeoutException, and
-                // Kafka's own TimeoutException only before the record is sent (no metadata within max.block.ms).
-                return BatchResult(sent, timedOut = true, failedRecordMayHaveLanded = record.error !is KafkaTimeoutException)
+                return BatchResult(sent, rowsUsed, timedOut = true)
             }
             sent++
         }
-        return BatchResult(sent, timedOut = false)
+        return BatchResult(sent, rowsUsed, timedOut = false)
     }
 
     private fun setupPartitions(
@@ -284,7 +290,7 @@ class KafkaProducerClient(
         headers: List<Property>,
         csvDf: DataFrame?,
         alreadyProducedCount: Int,
-    ): KafkaRecord {
+    ): SendResult {
         val correctKey = when {
             csvDf != null -> key.copy(valueText = KafkaCsvUtils.getKey(csvDf, alreadyProducedCount))
             flowParams.generateRandomKeys -> key.copy(valueText = GenerateRandomData.generate(client.project, key))
@@ -321,6 +327,11 @@ class KafkaProducerClient(
 
         @Suppress("UNCHECKED_CAST")
         val metadataFuture = producer.send(record as ProducerRecord<Any, Any>)
+        // KafkaProducer returns a FutureRecordMetadata only once the record is queued in a batch; a failure
+        // before that (e.g. no metadata within max.block.ms) comes back as a different, already-failed future.
+        // Once queued, a later failure can't be traced to "never sent": Kafka expires queued, in-flight and
+        // retried batches the same way after delivery.timeout.ms, and a retried batch may already be written.
+        val queued = metadataFuture is FutureRecordMetadata
         // Wait (bounded by sendTimeoutMs) for the in-flight send even if stopped — stop only prevents new sends
         val metaInfo = try {
             metadataFuture.get(sendTimeoutMs, TimeUnit.MILLISECONDS)
@@ -331,25 +342,35 @@ class KafkaProducerClient(
             val error = TimeoutException(
                 KafkaMessagesBundle.message("producer.send.timeout.error", sendTimeoutMs.toString())
             )
-            return createErrorRecord(
-                correctKey, correctValue, topic, partition, error,
-                duration = System.currentTimeMillis() - start
+            return SendResult(
+                createErrorRecord(
+                    correctKey, correctValue, topic, partition, error,
+                    duration = System.currentTimeMillis() - start
+                ),
+                rowUsed = true
             )
         } catch (e: ExecutionException) {
-            // Kafka's own timeouts (e.g. no topic metadata within max.block.ms while the broker is down)
-            // are reported like ours; any other send failure still ends the run.
+            // Kafka's own timeouts are reported like ours: either before the record was queued (no topic
+            // metadata within max.block.ms while the broker is down) or after (the batch expired after
+            // delivery.timeout.ms, possibly once already written). Any other send failure still ends the run.
             val cause = e.cause as? KafkaTimeoutException ?: throw e
             thisLogger().info("Producer send to $topic failed: ${cause.message}")
-            return createErrorRecord(
-                correctKey, correctValue, topic, partition, cause,
-                duration = System.currentTimeMillis() - start
+            return SendResult(
+                createErrorRecord(
+                    correctKey, correctValue, topic, partition, cause,
+                    duration = System.currentTimeMillis() - start
+                ),
+                rowUsed = queued
             )
         }
         val end = System.currentTimeMillis()
-        return KafkaRecord.createFor(
-            keyConfig = correctKey, valueConfig = correctValue,
-            metadata = metaInfo, duration = (end - start),
-            headers = formedHeaders
+        return SendResult(
+            KafkaRecord.createFor(
+                keyConfig = correctKey, valueConfig = correctValue,
+                metadata = metaInfo, duration = (end - start),
+                headers = formedHeaders
+            ),
+            rowUsed = true
         )
     }
 
