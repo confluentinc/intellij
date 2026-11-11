@@ -219,8 +219,8 @@ class CCloudRestClientRetryTest {
             val job = launch(Dispatchers.Default) {
                 result = client.executeRequest("/records", "POST", "{}", completeOnceSent = true)
             }
-            // Cancel while WireMock is still holding the response
-            delay(300)
+            // Cancel once the request reached WireMock, while it is still holding the response
+            withTimeout(5.seconds) { while (produceRequestCount() == 0) delay(10) }
             job.cancelAndJoin()
 
             assertEquals(fixture("simple-ok.json"), result, "the exchange should finish so its outcome isn't lost")

@@ -127,8 +127,7 @@ class DataPlaneFetcherImpl(
     ): ProduceRecordResponse {
         val path = String.format(CloudConfig.DataPlane.Kafka.PRODUCE_RECORDS_URI, clusterId, topicName)
         val requestBody = json.encodeToString(request)
-        // Once sent, finish the exchange even if the producer is stopped, so the record is reported
-        // rather than written silently; rate-limit and 429 waits before it stay cancellable
+        // A sent produce may already be written, so let it finish and be reported (avoids ghost records)
         val responseBody = kafkaClient.executeRequest(path, "POST", requestBody, completeOnceSent = true)
         return json.decodeFromString<ProduceRecordResponse>(responseBody)
     }
