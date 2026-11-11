@@ -7,7 +7,9 @@ import com.intellij.testFramework.junit5.TestApplication
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.*
 import com.intellij.util.io.HttpRequests
+import io.confluent.intellijplugin.ccloud.util.ResourceLoader
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -101,7 +103,7 @@ class CCloudOAuthHttpClientTest {
     inner class UserAgentTests {
 
         @Test
-        fun `includes User-Agent header in postForm requests`() {
+        fun `includes User-Agent header in post requests`() {
             wireMockServer.stubFor(
                 WireMock.post("/oauth/token")
                     .willReturn(
@@ -113,7 +115,7 @@ class CCloudOAuthHttpClientTest {
             )
 
             runBlocking {
-                CCloudOAuthHttpClient.postForm<IdTokenExchangeResponse>(
+                CCloudOAuthHttpClient.postFormWithHeaders(
                     url = "${baseUrl()}/oauth/token",
                     formData = mapOf("grant_type" to "authorization_code")
                 )
@@ -122,34 +124,11 @@ class CCloudOAuthHttpClientTest {
             wireMockServer.verify(WireMock.postRequestedFor(WireMock.urlEqualTo("/oauth/token"))
                 .withHeader("User-Agent", WireMock.matching("confluent-for-intellij/v.+ \\(https://confluent\\.io; support@confluent\\.io\\)")))
         }
-
-        @Test
-        fun `includes User-Agent header in get requests`() {
-            wireMockServer.stubFor(
-                WireMock.get("/api/check_jwt")
-                    .willReturn(
-                        WireMock.aResponse()
-                            .withStatus(200)
-                            .withHeader("Content-Type", "application/json")
-                            .withBody("""{"claims": {"prop": "user-123"}}""")
-                    )
-            )
-
-            runBlocking {
-                CCloudOAuthHttpClient.get<CheckJwtResponse>(
-                    url = "${baseUrl()}/api/check_jwt",
-                    bearerToken = "token"
-                )
-            }
-
-            wireMockServer.verify(WireMock.getRequestedFor(WireMock.urlEqualTo("/api/check_jwt"))
-                .withHeader("User-Agent", WireMock.matching("confluent-for-intellij/v.+ \\(https://confluent\\.io; support@confluent\\.io\\)")))
-        }
     }
 
     @Nested
-    @DisplayName("postForm")
-    inner class PostForm {
+    @DisplayName("postFormWithHeaders")
+    inner class PostFormWithHeaders {
 
         @Test
         fun `parses successful token response`() {
@@ -172,11 +151,11 @@ class CCloudOAuthHttpClientTest {
             )
 
             val result = runBlocking {
-                CCloudOAuthHttpClient.postForm<IdTokenExchangeResponse>(
+                CCloudOAuthHttpClient.postFormWithHeaders(
                     url = "${baseUrl()}/oauth/token",
                     formData = mapOf("grant_type" to "authorization_code", "code" to "test_code")
                 )
-            }
+            }.let { CCloudOAuthHttpClient.json.decodeFromString<IdTokenExchangeResponse>(it.body) }
 
             assertEquals("access_123", result.accessToken)
             assertEquals("refresh_456", result.refreshToken)
@@ -197,13 +176,15 @@ class CCloudOAuthHttpClientTest {
                     )
             )
 
-            val result = runBlocking {
-                CCloudOAuthHttpClient.postForm<IdTokenExchangeResponse>(
+            val response = runBlocking {
+                CCloudOAuthHttpClient.postFormWithHeaders(
                     url = "${baseUrl()}/oauth/token",
                     formData = mapOf("grant_type" to "authorization_code", "code" to "bad_code")
                 )
             }
+            val result = CCloudOAuthHttpClient.json.decodeFromString<IdTokenExchangeResponse>(response.body)
 
+            assertEquals(400, response.statusCode)
             assertEquals("invalid_grant", result.error)
             assertTrue(result.errorDescription.toString().contains("Bad authorization code"))
         }
@@ -222,13 +203,13 @@ class CCloudOAuthHttpClientTest {
             )
 
             val result = runBlocking {
-                CCloudOAuthHttpClient.postForm<IdTokenExchangeResponse>(
+                CCloudOAuthHttpClient.postFormWithHeaders(
                     url = "${baseUrl()}/oauth/token",
                     formData = mapOf("redirect_uri" to "http://localhost")
                 )
             }
 
-            assertEquals("token", result.accessToken)
+            assertEquals(200, result.statusCode)
         }
 
         @Test
@@ -245,7 +226,7 @@ class CCloudOAuthHttpClientTest {
 
             val exception = assertThrows(HttpRequests.HttpStatusException::class.java) {
                 runBlocking {
-                    CCloudOAuthHttpClient.postForm<IdTokenExchangeResponse>(
+                    CCloudOAuthHttpClient.postFormWithHeaders(
                         url = "${baseUrl()}/oauth/token",
                         formData = mapOf("grant_type" to "authorization_code")
                     )
@@ -343,14 +324,9 @@ class CCloudOAuthHttpClientTest {
             assertEquals(500, exception.statusCode)
             assertTrue(exception.message!!.contains("Server error"))
         }
-    }
-
-    @Nested
-    @DisplayName("postJson")
-    inner class PostJson {
 
         @Test
-        fun `parses data plane token response`() {
+        fun `sends bearer token when given`() {
             wireMockServer.stubFor(
                 WireMock.post("/api/access_tokens")
                     .withHeader("Authorization", WireMock.equalTo("Bearer cp_token"))
@@ -359,197 +335,36 @@ class CCloudOAuthHttpClientTest {
                         WireMock.aResponse()
                             .withStatus(200)
                             .withHeader("Content-Type", "application/json")
-                            .withBody("""{"token": "dp_token_xyz"}""")
+                            .withBody(ResourceLoader.loadResource("fixtures/ccloud-auth/data-plane-token-success.json"))
                     )
             )
 
             val result = runBlocking {
-                CCloudOAuthHttpClient.postJson<DataPlaneTokenExchangeResponse>(
+                CCloudOAuthHttpClient.postJsonWithHeaders(
                     url = "${baseUrl()}/api/access_tokens",
                     jsonBody = "{}",
                     bearerToken = "cp_token"
                 )
             }
 
-            assertEquals("dp_token_xyz", result.token)
-            assertNull(result.error)
-        }
-
-        @Test
-        fun `parses error response`() {
-            wireMockServer.stubFor(
-                WireMock.post("/api/access_tokens")
-                    .willReturn(
-                        WireMock.aResponse()
-                            .withStatus(200)
-                            .withHeader("Content-Type", "application/json")
-                            .withBody("""{"error": {"code": 401, "message": "Unauthorized"}}""")
-                    )
-            )
-
-            val result = runBlocking {
-                CCloudOAuthHttpClient.postJson<DataPlaneTokenExchangeResponse>(
-                    url = "${baseUrl()}/api/access_tokens",
-                    jsonBody = "{}",
-                    bearerToken = "invalid_token"
-                )
-            }
-
-            assertNull(result.token)
-            assertTrue(result.error.toString().contains("401"))
-            assertTrue(result.error.toString().contains("Unauthorized"))
-        }
-
-        @Test
-        fun `parses 400 error response from errorStream`() {
-            wireMockServer.stubFor(
-                WireMock.post("/api/access_tokens")
-                    .willReturn(
-                        WireMock.aResponse()
-                            .withStatus(400)
-                            .withHeader("Content-Type", "application/json")
-                            .withBody("""{"error": {"code": 400, "message": "Invalid request"}}""")
-                    )
-            )
-
-            val result = runBlocking {
-                CCloudOAuthHttpClient.postJson<DataPlaneTokenExchangeResponse>(
-                    url = "${baseUrl()}/api/access_tokens",
-                    jsonBody = "{}",
-                    bearerToken = "token"
-                )
-            }
-
-            assertNull(result.token)
-            assertTrue(result.error.toString().contains("400"))
-            assertTrue(result.error.toString().contains("Invalid request"))
-        }
-
-        @Test
-        fun `throws HttpStatusException on 500 server error`() {
-            wireMockServer.stubFor(
-                WireMock.post("/api/access_tokens")
-                    .willReturn(
-                        WireMock.aResponse()
-                            .withStatus(503)
-                            .withBody("Service Unavailable")
-                    )
-            )
-
-            val exception = assertThrows(HttpRequests.HttpStatusException::class.java) {
-                runBlocking {
-                    CCloudOAuthHttpClient.postJson<DataPlaneTokenExchangeResponse>(
-                        url = "${baseUrl()}/api/access_tokens",
-                        jsonBody = "{}",
-                        bearerToken = "token"
-                    )
-                }
-            }
-
-            assertEquals(503, exception.statusCode)
-            assertTrue(exception.message!!.contains("Service Unavailable"))
+            assertEquals(200, result.statusCode)
         }
     }
 
     @Nested
-    @DisplayName("get")
-    inner class Get {
+    @DisplayName("HttpResponseWithHeaders")
+    inner class ResponseWithHeaders {
 
         @Test
-        fun `sends get with bearer token`() {
-            wireMockServer.stubFor(
-                WireMock.get("/api/check_jwt")
-                    .withHeader("Authorization", WireMock.equalTo("Bearer valid_token"))
-                    .willReturn(
-                        WireMock.aResponse()
-                            .withStatus(200)
-                            .withHeader("Content-Type", "application/json")
-                            .withBody("""{"claims": {"prop": "user-123", "email": "test@example.com"}}""")
-                    )
+        fun `reads Retry-After case-insensitively`() {
+            val response = CCloudOAuthHttpClient.HttpResponseWithHeaders(
+                statusCode = 429,
+                body = "",
+                headers = mapOf("retry-after" to listOf("30"))
             )
 
-            val result = runBlocking {
-                CCloudOAuthHttpClient.get<CheckJwtResponse>(
-                    url = "${baseUrl()}/api/check_jwt",
-                    bearerToken = "valid_token"
-                )
-            }
-
-            assertNull(result.error)
-            assertTrue(result.claims.toString().contains("user-123"))
-            assertTrue(result.claims.toString().contains("test@example.com"))
-        }
-
-        @Test
-        fun `parses error response`() {
-            wireMockServer.stubFor(
-                WireMock.get("/api/check_jwt")
-                    .willReturn(
-                        WireMock.aResponse()
-                            .withStatus(200)
-                            .withHeader("Content-Type", "application/json")
-                            .withBody("""{"error": {"code": 401, "message": "Token expired"}}""")
-                    )
-            )
-
-            val result = runBlocking {
-                CCloudOAuthHttpClient.get<CheckJwtResponse>(
-                    url = "${baseUrl()}/api/check_jwt",
-                    bearerToken = "expired_token"
-                )
-            }
-
-            assertTrue(result.error.toString().contains("401"))
-            assertTrue(result.error.toString().contains("Token expired"))
-            assertNull(result.claims)
-        }
-
-        @Test
-        fun `parses 400 error response from errorStream`() {
-            wireMockServer.stubFor(
-                WireMock.get("/api/check_jwt")
-                    .willReturn(
-                        WireMock.aResponse()
-                            .withStatus(400)
-                            .withHeader("Content-Type", "application/json")
-                            .withBody("""{"error": {"code": 400, "message": "Missing token"}}""")
-                    )
-            )
-
-            val result = runBlocking {
-                CCloudOAuthHttpClient.get<CheckJwtResponse>(
-                    url = "${baseUrl()}/api/check_jwt",
-                    bearerToken = null
-                )
-            }
-
-            assertTrue(result.error.toString().contains("400"))
-            assertTrue(result.error.toString().contains("Missing token"))
-            assertNull(result.claims)
-        }
-
-        @Test
-        fun `throws HttpStatusException on 500 server error`() {
-            wireMockServer.stubFor(
-                WireMock.get("/api/check_jwt")
-                    .willReturn(
-                        WireMock.aResponse()
-                            .withStatus(502)
-                            .withBody("Bad Gateway")
-                    )
-            )
-
-            val exception = assertThrows(HttpRequests.HttpStatusException::class.java) {
-                runBlocking {
-                    CCloudOAuthHttpClient.get<CheckJwtResponse>(
-                        url = "${baseUrl()}/api/check_jwt",
-                        bearerToken = "token"
-                    )
-                }
-            }
-
-            assertEquals(502, exception.statusCode)
-            assertTrue(exception.message!!.contains("Bad Gateway"))
+            assertEquals("30", response.retryAfterHeader)
+            assertFalse(response.isSuccessful)
         }
     }
 }
