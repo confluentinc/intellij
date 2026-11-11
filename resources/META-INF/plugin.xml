@@ -9,6 +9,10 @@
 
     <depends config-file="spring-boot.xml" optional="true">com.intellij.spring.boot</depends>
     <depends>com.intellij.modules.json</depends>
+    <dependencies>
+        <!-- DataFrame / DataFrameCSVAdapter for CSV producer input; not on the plugin classpath otherwise -->
+        <module name="intellij.charts"/>
+    </dependencies>
 
     <resource-bundle>messages.KafkaBundle</resource-bundle>
     <extensionPoints>
