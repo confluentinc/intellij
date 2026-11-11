@@ -12,7 +12,9 @@ import org.apache.kafka.common.security.auth.SecurityProtocol
 import java.util.*
 
 object KafkaClientBuilder {
-    fun createAdminClient(properties: Properties): BdtKafkaAdminClient {
+    fun createAdminClient(connectionProperties: Properties): BdtKafkaAdminClient {
+        // Copy: the connection's properties are shared with the producer and consumer, which set their own client.id.
+        val properties = connectionProperties.clone() as Properties
         if (!properties.containsKey(AdminClientConfig.CLIENT_ID_CONFIG)) {
             properties[AdminClientConfig.CLIENT_ID_CONFIG] = "Confluent for IntelliJ ${TelemetryUtils.getPluginVersion()} - Admin"
         }
