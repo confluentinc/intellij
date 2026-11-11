@@ -76,6 +76,12 @@ class CCloudOAuthContext {
      */
     fun expiresAt(): Instant? = tokens.get().expiresAt()
 
+    /**
+     * Earliest token refresh point (70 to 90% of its lifetime, see [Token.issued]).
+     * @return The earliest refresh point, or null if no tokens are present.
+     */
+    fun refreshAt(): Instant? = tokens.get().refreshAt()
+
     fun hasReachedEndOfLifetime(): Boolean = tokens.get().hasReachedEndOfLifetime()
 
     fun hasNonTransientError(): Boolean = tokens.get().errors.hasNonTransientErrors()

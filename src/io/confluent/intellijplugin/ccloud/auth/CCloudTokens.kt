@@ -84,18 +84,15 @@ data class Tokens(
     val errors: AuthErrors = AuthErrors(),
     val failedTokenRefreshAttempts: Int = 0
 ) {
-    fun expiresAt(): Instant? = listOfNotNull(
-        refreshToken?.expiresAt,
-        controlPlaneToken?.expiresAt,
-        dataPlaneToken?.expiresAt
-    ).minOrNull()
+    private fun allTokens(): List<Token> = listOfNotNull(refreshToken, controlPlaneToken, dataPlaneToken)
+
+    fun expiresAt(): Instant? = allTokens().minOfOrNull { it.expiresAt }
+
+    /** The earliest [Token.refreshAt] of the tokens, or null if there are none. */
+    fun refreshAt(): Instant? = allTokens().minOfOrNull { it.refreshAt }
 
     /** Whether the earliest [Token.refreshAt] of the tokens falls before [deadline]. */
-    fun isRefreshDueBefore(deadline: Instant): Boolean =
-        listOfNotNull(refreshToken?.refreshAt, controlPlaneToken?.refreshAt, dataPlaneToken?.refreshAt)
-            .minOrNull()
-            ?.let { it < deadline }
-            ?: false
+    fun isRefreshDueBefore(deadline: Instant): Boolean = refreshAt()?.let { it < deadline } ?: false
 
     fun hasReachedEndOfLifetime(now: Instant = Instant.now()): Boolean =
         endOfLifetime?.let { now >= it } ?: false
