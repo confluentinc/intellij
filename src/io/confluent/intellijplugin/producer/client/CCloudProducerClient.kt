@@ -3,6 +3,8 @@ package io.confluent.intellijplugin.producer.client
 import com.intellij.charts.dataframe.DataFrame
 import com.intellij.openapi.diagnostic.thisLogger
 import io.confluent.intellijplugin.ccloud.client.CCloudApiException
+import io.confluent.intellijplugin.ccloud.client.CCloudRestClient
+import io.confluent.intellijplugin.ccloud.client.CCloudRetryPolicy
 import io.confluent.intellijplugin.core.rfs.util.RfsNotificationUtils
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
 import io.confluent.intellijplugin.ccloud.model.response.ProduceRecordData
@@ -33,6 +35,7 @@ import io.confluent.intellijplugin.util.generator.GenerateRandomData
 import io.confluent.intellijplugin.util.csv.KafkaCsvUtils
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
@@ -45,11 +48,11 @@ import org.apache.kafka.common.serialization.*
 import org.jetbrains.annotations.VisibleForTesting
 import java.nio.ByteBuffer
 import java.time.Instant
+import kotlin.time.Duration
 import java.util.Base64
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicBoolean
-import kotlin.math.min
-import kotlin.math.pow
+import java.util.concurrent.atomic.AtomicReference
 
 /**
  * REST-based producer client for Confluent Cloud.
@@ -61,16 +64,22 @@ class CCloudProducerClient(
     private val clusterDataManager: CCloudClusterDataManager,
     val onStart: () -> Unit,
     val onStop: () -> Unit,
-    @VisibleForTesting internal val baseBackoffMs: Long = BASE_BACKOFF_MS,
-    @VisibleForTesting internal val maxBackoffMs: Long = MAX_BACKOFF_MS,
-    @VisibleForTesting internal val maxRetries: Int = MAX_RETRIES,
+    @VisibleForTesting internal val retryPolicy: CCloudRetryPolicy = CCloudRetryPolicy.DEFAULT,
 ) : ProducerClient {
 
-    @VisibleForTesting
-    internal val running = AtomicBoolean(false)
-    private var produceJob: Job? = null
+    /**
+     * One run, from [start] until its job finishes. Each run checks its own [active] flag, and its
+     * `finally` clears [currentRun] only if it still owns it, so a stopped run that is still
+     * finishing an in-flight produce can't stop a run started after it.
+     */
+    private class ProduceRun {
+        val active = AtomicBoolean(true)
+        lateinit var job: Job
+    }
 
-    override fun isRunning(): Boolean = running.get()
+    private val currentRun = AtomicReference<ProduceRun?>(null)
+
+    override fun isRunning(): Boolean = currentRun.get()?.active?.get() == true
 
     override fun start(
         topic: String,
@@ -84,14 +93,17 @@ class CCloudProducerClient(
         flowParams: ProducerFlowParams,
         onUpdate: (Long, List<KafkaRecord>) -> Unit
     ) {
-        if (running.getAndSet(true)) {
-            error("Producer is already running")
+        val run = ProduceRun()
+        val previous = currentRun.get()
+        check(previous?.active?.get() != true && currentRun.compareAndSet(previous, run)) {
+            "Producer is already running"
         }
         onStart()
 
-        produceJob = CoroutineScope(Dispatchers.IO).launch {
+        // LAZY so run.job is set before the job can reach its finally
+        run.job = CoroutineScope(Dispatchers.IO).launch(start = CoroutineStart.LAZY) {
             try {
-                produceLoop(topic, key, value, headers, forcePartition, flowParams, onUpdate)
+                produceLoop(run.active, topic, key, value, headers, forcePartition, flowParams, onUpdate)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
@@ -102,14 +114,16 @@ class CCloudProducerClient(
                     KafkaMessagesBundle.message("error.producer.title")
                 )
             } finally {
-                running.set(false)
-                produceJob = null
-                onStop()
+                run.active.set(false)
+                // A newer run owns the client state and the editor's progress; leave both to it
+                if (currentRun.compareAndSet(run, null)) onStop()
             }
         }
+        run.job.start()
     }
 
     private suspend fun produceLoop(
+        active: AtomicBoolean,
         topic: String,
         key: ConsumerProducerFieldConfig,
         value: ConsumerProducerFieldConfig,
@@ -131,6 +145,7 @@ class CCloudProducerClient(
         when (flowParams.mode) {
             Mode.MANUAL -> {
                 produceBatch(
+                    active = active,
                     fetcher = fetcher,
                     topic = topic,
                     key = key,
@@ -147,13 +162,14 @@ class CCloudProducerClient(
 
             Mode.AUTO -> {
                 val startTime = System.currentTimeMillis()
-                while (running.get()) {
+                while (active.get()) {
                     if (flowParams.totalRequests != 0 && produced >= flowParams.totalRequests) break
                     if (flowParams.totalElapsedTime != 0 &&
                         (System.currentTimeMillis() - startTime) >= flowParams.totalElapsedTime
                     ) break
 
-                    produceBatch(
+                    val keepGoing = produceBatch(
+                        active = active,
                         fetcher = fetcher,
                         topic = topic,
                         key = key,
@@ -166,6 +182,8 @@ class CCloudProducerClient(
                         schemaCache = schemaCache,
                         onUpdate = onUpdate
                     )
+                    // Stopped by the user or by an exhausted produce; don't wait out the interval
+                    if (!keepGoing || !active.get()) break
                     produced += flowParams.flowRecordsCountPerRequest
                     delay(flowParams.requestInterval.toLong())
                 }
@@ -189,6 +207,7 @@ class CCloudProducerClient(
     }
 
     private suspend fun produceBatch(
+        active: AtomicBoolean,
         fetcher: DataPlaneFetcher,
         topic: String,
         key: ConsumerProducerFieldConfig,
@@ -200,9 +219,9 @@ class CCloudProducerClient(
         csvDataFrame: DataFrame?,
         schemaCache: Map<String, SchemaVersionResponse>,
         onUpdate: (Long, List<KafkaRecord>) -> Unit
-    ) {
+    ): Boolean {
         for (i in 0 until flowParams.flowRecordsCountPerRequest) {
-            if (!running.get()) break
+            if (!active.get()) break
 
             val recordKey = resolveFieldValue(key, flowParams.generateRandomKeys, csvDataFrame, alreadyProducedCount + i, isKey = true)
             val recordValue = resolveFieldValue(value, flowParams.generateRandomValues, csvDataFrame, alreadyProducedCount + i, isKey = false)
@@ -218,10 +237,15 @@ class CCloudProducerClient(
             )
 
             val (response, duration) = try {
-                produceWithRetry(fetcher, topic, request) ?: break
+                produceWithRetry(active, fetcher, topic, request) ?: break
             } catch (_: CancellationException) {
                 // Job cancelled during retry backoff; no record sent, safe to stop
                 break
+            } catch (e: CCloudProduceGaveUpException) {
+                // Show it in the results table and stop (including AUTO mode); other errors keep the balloon
+                thisLogger().info("CCloud produce to $topic gave up: ${e.message}", e)
+                onUpdate(0, listOf(createErrorRecord(recordKey, recordValue, topic, forcePartition.takeIf { it >= 0 }, e, duration = 0)))
+                return false
             }
 
             val record = KafkaRecord(
@@ -243,6 +267,7 @@ class CCloudProducerClient(
             )
             onUpdate(record.duration, listOf(record))
         }
+        return true
     }
 
     private fun resolveFieldValue(
@@ -452,74 +477,102 @@ class CCloudProducerClient(
     }
 
     /**
-     * Produce a single record with retry and exponential backoff for transient errors.
-     * Returns null if the producer is stopped, allowing the caller to report partial results.
-     * Retries on 429 (rate limit) and 5xx (server errors). Throws immediately on 4xx client errors.
+     * Produce a single record, retrying transient errors per [retryPolicy].
+     * Returns null once [active] is false (this run was stopped), allowing the caller to report partial results.
      *
-     * Handles both HTTP-level errors (thrown as [CCloudApiException] by the REST client)
-     * and application-level errors (returned in the response body with an errorCode).
+     * - Error code in a 200 response body ([isRetryableBodyError]): retried with policy backoff.
+     * - HTTP 429: not retried here, because the REST client already retried it (honoring
+     *   `Retry-After`). Throws [CCloudProduceRetriesExhaustedException] with `rateLimited = true`.
+     * - HTTP 502/503/504 ([isRetryableHttpError]): retried with policy backoff, never shorter than `Retry-After`.
+     * - HTTP 429 or 5xx with a `Retry-After` above [CCloudRetryPolicy.maxRetryAfter]: not retried,
+     *   since retrying sooner than the server asked defeats `Retry-After` (as in [CCloudRestClient]).
+     *   Throws [CCloudProduceRetryAfterTooLongException] carrying the server's value.
+     * - Anything else, including connect failures and timeouts (status 0): rethrown unchanged.
+     *
+     * @throws CCloudProduceRetriesExhaustedException when every attempt failed with a retryable error
+     * @throws CCloudProduceRetryAfterTooLongException when the server asked to wait too long to retry
      */
     @VisibleForTesting
     internal suspend fun produceWithRetry(
+        active: AtomicBoolean,
         fetcher: DataPlaneFetcher,
         topic: String,
         request: ProduceRecordRequest
     ): Pair<ProduceRecordResponse, Long>? {
-        var lastException: CCloudApiException? = null
+        val maxAttempts = retryPolicy.maxAttempts
+        var retryIndex = 0
 
-        repeat(maxRetries) { attempt ->
+        while (true) {
             // Stopped — return null so the batch loop reports partial results
-            if (!running.get()) return null
+            if (!active.get()) return null
 
             val startTime = System.currentTimeMillis()
-            try {
+            val failure = try {
                 // NonCancellable ensures the REST call completes even if the job is cancelled,
                 // so we can report the record and avoid ghost records
                 val response = withContext(NonCancellable) {
                     fetcher.produceRecord(topic, request)
                 }
-                val duration = System.currentTimeMillis() - startTime
-
-                if (response.errorCode == null || response.errorCode == 200) {
-                    return Pair(response, duration)
+                val errorCode = response.errorCode
+                if (errorCode == null || errorCode == 200) {
+                    return Pair(response, System.currentTimeMillis() - startTime)
                 }
-
-                // Application-level error in response body
-                val exception = CCloudApiException(
-                    response.message ?: "Produce failed with error code ${response.errorCode}",
-                    response.errorCode
-                )
-
-                if (!isRetryableStatus(response.errorCode)) {
-                    thisLogger().debug("Non-retryable produce error: ${response.errorCode} ${response.message}")
-                    throw exception
-                }
-
-                lastException = exception
+                // Application-level error in a 200 response body; classified below, outside this try
+                CCloudApiException(response.message ?: "Produce failed with error code $errorCode", errorCode)
             } catch (e: CCloudApiException) {
-                // HTTP-level errors thrown by the REST client (e.g. 429, 5xx)
-                if (!isRetryableStatus(e.statusCode)) {
+                // HTTP-level errors thrown by the REST client
+                if (retryPolicy.exceedsMaxRetryAfter(e.retryAfter)) {
+                    thisLogger().debug("Produce Retry-After ${e.retryAfter} exceeds ${retryPolicy.maxRetryAfter}, not retrying")
+                    throw CCloudProduceRetryAfterTooLongException(e, checkNotNull(e.retryAfter))
+                }
+                if (e.statusCode == 429) {
+                    thisLogger().debug("Produce rate limited after REST client retries: ${e.message}")
+                    throw CCloudProduceRetriesExhaustedException(retryIndex + 1, e, rateLimited = true)
+                }
+                if (!isRetryableHttpError(e.statusCode)) {
                     thisLogger().debug("Non-retryable HTTP error during produce: ${e.statusCode} ${e.message}")
                     throw e
                 }
-                lastException = e
+                e
             }
 
-            thisLogger().debug("Retryable produce error (attempt ${attempt + 1}/$maxRetries): ${lastException?.statusCode}")
+            // HTTP failures that reach here are 502/503/504, which are also retryable body codes
+            if (!isRetryableBodyError(failure.statusCode)) {
+                thisLogger().debug("Non-retryable produce error: ${failure.statusCode} ${failure.message}")
+                throw failure
+            }
+            if (retryIndex == maxAttempts - 1) {
+                // HTTP 429 throws above, so a 429 here came from the response body
+                throw CCloudProduceRetriesExhaustedException(maxAttempts, failure, rateLimited = failure.statusCode == 429)
+            }
 
-            val backoffMs = min(
-                baseBackoffMs * 2.0.pow(attempt).toLong(),
-                maxBackoffMs
+            val retryDelay = retryPolicy.delayFor(retryIndex, failure.retryAfter)
+            thisLogger().debug(
+                "Retryable produce error (attempt ${retryIndex + 1}/$maxAttempts): " +
+                    "${failure.statusCode}, retrying in $retryDelay"
             )
-            delay(backoffMs)
+            delay(retryDelay)
+            retryIndex++
         }
-
-        throw lastException ?: CCloudApiException("Produce failed after $maxRetries retries", 0)
     }
 
+    /**
+     * Error codes in a 200 produce response body that are worth retrying: 429 and the REST client's
+     * transient server statuses. Other 5xx (500, 501, 505, ...) won't succeed on a retry.
+     */
     @VisibleForTesting
-    internal fun isRetryableStatus(statusCode: Int): Boolean =
-        statusCode == 429 || statusCode in 500..599
+    internal fun isRetryableBodyError(errorCode: Int): Boolean =
+        errorCode == 429 || errorCode in CCloudRestClient.TRANSIENT_SERVER_STATUSES
+
+    /**
+     * HTTP statuses the producer retries itself: the REST client's transient server statuses
+     * (502/503/504), which it doesn't retry for a non-idempotent POST. 429 is excluded because the
+     * REST client already retries it; status 0 (connect failure / timeout) is excluded because a
+     * produce is not idempotent; other 5xx won't succeed on a retry.
+     */
+    @VisibleForTesting
+    internal fun isRetryableHttpError(statusCode: Int): Boolean =
+        statusCode in CCloudRestClient.TRANSIENT_SERVER_STATUSES
 
     /**
      * Serialize a primitive value to bytes using the appropriate Kafka serializer.
@@ -539,17 +592,51 @@ class CCloudProducerClient(
     }
 
     override fun stop() {
-        running.set(false)
-        produceJob?.cancel()
+        currentRun.get()?.let { run ->
+            run.active.set(false)
+            run.job.cancel()
+        }
     }
 
     override fun dispose() {
         stop()
     }
-
-    companion object {
-        private const val BASE_BACKOFF_MS = 1_000L
-        private const val MAX_BACKOFF_MS = 30_000L
-        private const val MAX_RETRIES = 5
-    }
 }
+
+/** The producer gave up on a record; shown as an error row in the results table. */
+sealed class CCloudProduceGaveUpException(
+    message: String,
+    override val cause: CCloudApiException
+) : Exception(message, cause)
+
+/**
+ * A produce request failed with a transient error and the producer gave up retrying it.
+ *
+ * @param attempts Produce attempts made by [CCloudProducerClient] (the REST client may have made
+ *   more HTTP calls underneath, e.g. when it retried a 429)
+ * @param cause The last failure
+ * @param rateLimited True when Confluent Cloud kept rejecting the request with HTTP 429
+ */
+class CCloudProduceRetriesExhaustedException(
+    val attempts: Int,
+    cause: CCloudApiException,
+    val rateLimited: Boolean = false
+) : CCloudProduceGaveUpException(
+    if (rateLimited) KafkaMessagesBundle.message("producer.ccloud.rate.limited", cause.message.orEmpty())
+    else KafkaMessagesBundle.message("producer.ccloud.retries.exhausted", attempts, cause.message.orEmpty()),
+    cause
+)
+
+/**
+ * Confluent Cloud asked to wait longer than [CCloudRetryPolicy.maxRetryAfter] before retrying,
+ * so the producer stopped instead of retrying sooner than asked.
+ *
+ * @param retryAfter The server's `Retry-After`, unclamped
+ */
+class CCloudProduceRetryAfterTooLongException(
+    cause: CCloudApiException,
+    val retryAfter: Duration
+) : CCloudProduceGaveUpException(
+    KafkaMessagesBundle.message("producer.ccloud.retry.after.too.long", cause.statusCode, retryAfter, cause.message.orEmpty()),
+    cause
+)
