@@ -21,6 +21,7 @@ import java.net.ConnectException
 import java.net.HttpURLConnection
 import java.net.NoRouteToHostException
 import java.net.UnknownHostException
+import kotlin.coroutines.EmptyCoroutineContext
 import kotlin.time.Duration
 
 /**
@@ -289,12 +290,9 @@ class CCloudRestClient(
         return withRetry(idempotent, retry) {
             val url = resolveUrl(uri)
             val headers = getAuthHeaders()
-            val response = if (completeOnceSent) {
-                withContext(NonCancellable) { send(url, method, headers, body) }
-            } else {
+            withContext(if (completeOnceSent) NonCancellable else EmptyCoroutineContext) {
                 send(url, method, headers, body)
-            }
-            response.requireSuccess()
+            }.requireSuccess()
         }.body
     }
 
