@@ -47,7 +47,7 @@ class CCloudRestClient(
         internal const val READ_TIMEOUT_MS = 60_000    // 1 minute
 
         /** Gateway/availability errors: the request may or may not have been applied. */
-        private val TRANSIENT_SERVER_STATUSES = setOf(502, 503, 504)
+        internal val TRANSIENT_SERVER_STATUSES = setOf(502, 503, 504)
 
         /**
          * Whether [e] is worth retrying. 429 is always safe (the server rejected the request
