@@ -237,7 +237,7 @@ class CCloudProducerClient(
             val (response, duration) = try {
                 produceWithRetry(active, fetcher, topic, request) ?: break
             } catch (_: CancellationException) {
-                // Job cancelled during retry backoff; no record sent, safe to stop
+                // Job cancelled while waiting (rate limit, 429 or retry backoff); no record sent, safe to stop
                 break
             } catch (e: CCloudProduceGaveUpException) {
                 // Show it in the results table and stop (including AUTO mode); other errors keep the balloon
@@ -506,9 +506,6 @@ class CCloudProducerClient(
 
             val startTime = System.currentTimeMillis()
             val failure = try {
-                // produceRecord finishes an HTTP exchange that has started even if the job is
-                // cancelled, so we can report the record and avoid ghost records; its rate-limit
-                // and 429 waits stay cancellable so Stop takes effect right away
                 val response = fetcher.produceRecord(topic, request)
                 val errorCode = response.errorCode
                 if (errorCode == null || errorCode == 200) {
