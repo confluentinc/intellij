@@ -35,6 +35,7 @@ import io.confluent.intellijplugin.util.generator.GenerateRandomData
 import io.confluent.intellijplugin.util.csv.KafkaCsvUtils
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
@@ -51,6 +52,7 @@ import kotlin.time.Duration
 import java.util.Base64
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicReference
 
 /**
  * REST-based producer client for Confluent Cloud.
@@ -65,11 +67,19 @@ class CCloudProducerClient(
     @VisibleForTesting internal val retryPolicy: CCloudRetryPolicy = CCloudRetryPolicy.DEFAULT,
 ) : ProducerClient {
 
-    @VisibleForTesting
-    internal val running = AtomicBoolean(false)
-    private var produceJob: Job? = null
+    /**
+     * One run, from [start] until its job finishes. Each run checks its own [active] flag, and its
+     * `finally` clears [currentRun] only if it still owns it, so a stopped run that is still
+     * finishing an in-flight produce can't stop a run started after it.
+     */
+    private class ProduceRun {
+        val active = AtomicBoolean(true)
+        lateinit var job: Job
+    }
 
-    override fun isRunning(): Boolean = running.get()
+    private val currentRun = AtomicReference<ProduceRun?>(null)
+
+    override fun isRunning(): Boolean = currentRun.get()?.active?.get() == true
 
     override fun start(
         topic: String,
@@ -83,14 +93,17 @@ class CCloudProducerClient(
         flowParams: ProducerFlowParams,
         onUpdate: (Long, List<KafkaRecord>) -> Unit
     ) {
-        if (running.getAndSet(true)) {
-            error("Producer is already running")
+        val run = ProduceRun()
+        val previous = currentRun.get()
+        check(previous?.active?.get() != true && currentRun.compareAndSet(previous, run)) {
+            "Producer is already running"
         }
         onStart()
 
-        produceJob = CoroutineScope(Dispatchers.IO).launch {
+        // LAZY so run.job is set before the job can reach its finally
+        run.job = CoroutineScope(Dispatchers.IO).launch(start = CoroutineStart.LAZY) {
             try {
-                produceLoop(topic, key, value, headers, forcePartition, flowParams, onUpdate)
+                produceLoop(run.active, topic, key, value, headers, forcePartition, flowParams, onUpdate)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
@@ -101,14 +114,16 @@ class CCloudProducerClient(
                     KafkaMessagesBundle.message("error.producer.title")
                 )
             } finally {
-                running.set(false)
-                produceJob = null
-                onStop()
+                run.active.set(false)
+                // A newer run owns the client state and the editor's progress; leave both to it
+                if (currentRun.compareAndSet(run, null)) onStop()
             }
         }
+        run.job.start()
     }
 
     private suspend fun produceLoop(
+        active: AtomicBoolean,
         topic: String,
         key: ConsumerProducerFieldConfig,
         value: ConsumerProducerFieldConfig,
@@ -130,6 +145,7 @@ class CCloudProducerClient(
         when (flowParams.mode) {
             Mode.MANUAL -> {
                 produceBatch(
+                    active = active,
                     fetcher = fetcher,
                     topic = topic,
                     key = key,
@@ -146,13 +162,14 @@ class CCloudProducerClient(
 
             Mode.AUTO -> {
                 val startTime = System.currentTimeMillis()
-                while (running.get()) {
+                while (active.get()) {
                     if (flowParams.totalRequests != 0 && produced >= flowParams.totalRequests) break
                     if (flowParams.totalElapsedTime != 0 &&
                         (System.currentTimeMillis() - startTime) >= flowParams.totalElapsedTime
                     ) break
 
                     val keepGoing = produceBatch(
+                        active = active,
                         fetcher = fetcher,
                         topic = topic,
                         key = key,
@@ -166,7 +183,7 @@ class CCloudProducerClient(
                         onUpdate = onUpdate
                     )
                     // Stopped by the user or by an exhausted produce; don't wait out the interval
-                    if (!keepGoing || !running.get()) break
+                    if (!keepGoing || !active.get()) break
                     produced += flowParams.flowRecordsCountPerRequest
                     delay(flowParams.requestInterval.toLong())
                 }
@@ -190,6 +207,7 @@ class CCloudProducerClient(
     }
 
     private suspend fun produceBatch(
+        active: AtomicBoolean,
         fetcher: DataPlaneFetcher,
         topic: String,
         key: ConsumerProducerFieldConfig,
@@ -203,7 +221,7 @@ class CCloudProducerClient(
         onUpdate: (Long, List<KafkaRecord>) -> Unit
     ): Boolean {
         for (i in 0 until flowParams.flowRecordsCountPerRequest) {
-            if (!running.get()) break
+            if (!active.get()) break
 
             val recordKey = resolveFieldValue(key, flowParams.generateRandomKeys, csvDataFrame, alreadyProducedCount + i, isKey = true)
             val recordValue = resolveFieldValue(value, flowParams.generateRandomValues, csvDataFrame, alreadyProducedCount + i, isKey = false)
@@ -219,7 +237,7 @@ class CCloudProducerClient(
             )
 
             val (response, duration) = try {
-                produceWithRetry(fetcher, topic, request) ?: break
+                produceWithRetry(active, fetcher, topic, request) ?: break
             } catch (_: CancellationException) {
                 // Job cancelled during retry backoff; no record sent, safe to stop
                 break
@@ -460,7 +478,7 @@ class CCloudProducerClient(
 
     /**
      * Produce a single record, retrying transient errors per [retryPolicy].
-     * Returns null if the producer is stopped, allowing the caller to report partial results.
+     * Returns null once [active] is false (this run was stopped), allowing the caller to report partial results.
      *
      * - Error code in a 200 response body ([isRetryableBodyError]): retried with policy backoff.
      * - HTTP 429: not retried here, because the REST client already retried it (honoring
@@ -476,6 +494,7 @@ class CCloudProducerClient(
      */
     @VisibleForTesting
     internal suspend fun produceWithRetry(
+        active: AtomicBoolean,
         fetcher: DataPlaneFetcher,
         topic: String,
         request: ProduceRecordRequest
@@ -485,7 +504,7 @@ class CCloudProducerClient(
 
         while (true) {
             // Stopped — return null so the batch loop reports partial results
-            if (!running.get()) return null
+            if (!active.get()) return null
 
             val startTime = System.currentTimeMillis()
             val failure = try {
@@ -573,8 +592,10 @@ class CCloudProducerClient(
     }
 
     override fun stop() {
-        running.set(false)
-        produceJob?.cancel()
+        currentRun.get()?.let { run ->
+            run.active.set(false)
+            run.job.cancel()
+        }
     }
 
     override fun dispose() {
