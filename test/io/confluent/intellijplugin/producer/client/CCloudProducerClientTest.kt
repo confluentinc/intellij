@@ -48,6 +48,8 @@ import java.util.Base64
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicInteger
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.measureTime
@@ -702,13 +704,6 @@ class CCloudProducerClientTest {
             client.stop()
             assertFalse(client.isRunning())
         }
-
-        @Test
-        fun `should set running to false`() {
-            client.running.set(true)
-            client.stop()
-            assertFalse(client.isRunning())
-        }
     }
 
     @Nested
@@ -850,6 +845,92 @@ class CCloudProducerClientTest {
     }
 
     @Nested
+    @DisplayName("start() after stop() while a produce is still in flight")
+    inner class RestartWhileStopping {
+
+        private val fetcherImpl = mock<DataPlaneFetcherImpl>()
+        private val records = CopyOnWriteArrayList<KafkaRecord>()
+        private val stopCount = AtomicInteger()
+        private val produceCalls = AtomicInteger()
+        private val firstProduceEntered = CountDownLatch(1)
+        private val releaseFirstProduce = CountDownLatch(1)
+
+        private val dataPlaneCache = mock<DataPlaneCache> {
+            on { getFetcher() } doReturn fetcherImpl
+        }
+
+        private val restartClient = CCloudProducerClient(
+            clusterDataManager = mock<CCloudClusterDataManager> {
+                on { getDataPlaneCache() } doReturn dataPlaneCache
+            },
+            onStart = {},
+            onStop = { stopCount.incrementAndGet() },
+            retryPolicy = CCloudRetryPolicy.immediate(maxAttempts = 3),
+        )
+
+        @AfterEach
+        fun stopClient() {
+            releaseFirstProduce.countDown()
+            restartClient.stop()
+        }
+
+        private fun startAuto() = restartClient.start(
+            topic = "test-topic",
+            key = createFieldConfig(KafkaFieldType.STRING, "k", isKey = true),
+            value = createFieldConfig(KafkaFieldType.STRING, "v"),
+            headers = emptyList(),
+            recordCompression = RecordCompression.NONE,
+            acks = AcksType.ALL,
+            enableIdempotence = false,
+            forcePartition = -1,
+            flowParams = ProducerFlowParams(mode = Mode.AUTO, requestInterval = 10),
+        ) { _, batch -> records.addAll(batch) }
+
+        private fun awaitCondition(what: String, condition: () -> Boolean) {
+            val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5)
+            while (!condition()) {
+                assertTrue(System.nanoTime() < deadline, "Timed out waiting for $what")
+                Thread.sleep(10)
+            }
+        }
+
+        @Test
+        fun `the stopped run finishing late should not stop the new run`() {
+            runBlocking {
+                whenever(fetcherImpl.produceRecord(any(), any())).thenAnswer {
+                    // The first produce is held in flight (like a slow HTTP exchange) until released
+                    val first = produceCalls.incrementAndGet() == 1
+                    if (first) {
+                        firstProduceEntered.countDown()
+                        releaseFirstProduce.await(5, TimeUnit.SECONDS)
+                    }
+                    ProduceRecordResponse(errorCode = 200, topicName = "test-topic", partitionId = 0, offset = if (first) 1 else 2)
+                }
+            }
+            startAuto()
+            assertTrue(firstProduceEntered.await(5, TimeUnit.SECONDS))
+
+            restartClient.stop()
+            assertFalse(restartClient.isRunning(), "Stop takes effect for the UI right away")
+            startAuto()
+            awaitCondition("the new run to produce") { produceCalls.get() > 1 }
+
+            // Let the old run finish: it reports its record, then exits
+            releaseFirstProduce.countDown()
+            awaitCondition("the old run's record") { records.any { it.offset == 1L } }
+            val callsAfterOldRunFinished = produceCalls.get()
+            awaitCondition("the new run to keep producing") { produceCalls.get() > callsAfterOldRunFinished + 3 }
+
+            assertTrue(restartClient.isRunning(), "The old run must not clear the new run's state")
+            assertEquals(0, stopCount.get(), "onStop belongs to the run the editor is showing")
+
+            restartClient.stop()
+            awaitCondition("the new run to stop") { stopCount.get() == 1 }
+            assertFalse(restartClient.isRunning())
+        }
+    }
+
+    @Nested
     @DisplayName("dispose()")
     inner class DisposeTests {
 
@@ -876,16 +957,13 @@ class CCloudProducerClientTest {
             offset = 1
         )
 
-        @BeforeEach
-        fun setUpRunning() {
-            client.running.set(true)
-        }
+        private val active = AtomicBoolean(true)
 
         @Test
         fun `should return response on first successful attempt`() = runBlocking {
             whenever(mockFetcher.produceRecord(any(), any())).thenReturn(successResponse())
 
-            val (response, _) = client.produceWithRetry(mockFetcher, "test-topic", request)!!
+            val (response, _) = client.produceWithRetry(active, mockFetcher, "test-topic", request)!!
 
             assertEquals(200, response.errorCode)
             verify(mockFetcher, times(1)).produceRecord(any(), any())
@@ -897,7 +975,7 @@ class CCloudProducerClientTest {
             whenever(mockFetcher.produceRecord(any(), any()))
                 .thenReturn(ProduceRecordResponse(errorCode = null, topicName = "test-topic"))
 
-            val (response, _) = client.produceWithRetry(mockFetcher, "test-topic", request)!!
+            val (response, _) = client.produceWithRetry(active, mockFetcher, "test-topic", request)!!
 
             assertNull(response.errorCode)
             verify(mockFetcher, times(1)).produceRecord(any(), any())
@@ -910,7 +988,7 @@ class CCloudProducerClientTest {
                 .thenReturn(ProduceRecordResponse(errorCode = 503, message = "Service Unavailable"))
                 .thenReturn(successResponse())
 
-            val (response, _) = client.produceWithRetry(mockFetcher, "test-topic", request)!!
+            val (response, _) = client.produceWithRetry(active, mockFetcher, "test-topic", request)!!
 
             assertEquals(200, response.errorCode)
             verify(mockFetcher, times(2)).produceRecord(any(), any())
@@ -923,7 +1001,7 @@ class CCloudProducerClientTest {
                 .thenReturn(ProduceRecordResponse(errorCode = 429, message = "Too Many Requests"))
                 .thenReturn(successResponse())
 
-            val (response, _) = client.produceWithRetry(mockFetcher, "test-topic", request)!!
+            val (response, _) = client.produceWithRetry(active, mockFetcher, "test-topic", request)!!
 
             assertEquals(200, response.errorCode)
             verify(mockFetcher, times(2)).produceRecord(any(), any())
@@ -938,7 +1016,7 @@ class CCloudProducerClientTest {
             }
 
             val exception = assertThrows(CCloudProduceRetriesExhaustedException::class.java) {
-                runBlocking { client.produceWithRetry(mockFetcher, "test-topic", request) }
+                runBlocking { client.produceWithRetry(active, mockFetcher, "test-topic", request) }
             }
 
             assertEquals(3, exception.attempts)
@@ -955,7 +1033,7 @@ class CCloudProducerClientTest {
             }
 
             val exception = assertThrows(CCloudProduceRetriesExhaustedException::class.java) {
-                runBlocking { client.produceWithRetry(mockFetcher, "test-topic", request) }
+                runBlocking { client.produceWithRetry(active, mockFetcher, "test-topic", request) }
             }
 
             assertEquals(3, exception.attempts)
@@ -972,7 +1050,7 @@ class CCloudProducerClientTest {
             }
 
             val exception = assertThrows(CCloudProduceRetriesExhaustedException::class.java) {
-                runBlocking { client.produceWithRetry(mockFetcher, "test-topic", request) }
+                runBlocking { client.produceWithRetry(active, mockFetcher, "test-topic", request) }
             }
 
             assertTrue(exception.rateLimited)
@@ -989,7 +1067,7 @@ class CCloudProducerClientTest {
                 successResponse()
             }
 
-            val (response, _) = client.produceWithRetry(mockFetcher, "test-topic", request)!!
+            val (response, _) = client.produceWithRetry(active, mockFetcher, "test-topic", request)!!
 
             assertEquals(200, response.errorCode)
             verify(mockFetcher, times(2)).produceRecord(any(), any())
@@ -1010,7 +1088,6 @@ class CCloudProducerClientTest {
                     maxRetryAfter = 1.seconds
                 ),
             )
-            retryAfterClient.running.set(true)
             var callCount = 0
             whenever(mockFetcher.produceRecord(any(), any())).thenAnswer {
                 callCount++
@@ -1019,7 +1096,7 @@ class CCloudProducerClientTest {
             }
 
             val elapsed = measureTime {
-                retryAfterClient.produceWithRetry(mockFetcher, "test-topic", request)
+                retryAfterClient.produceWithRetry(active, mockFetcher, "test-topic", request)
             }
 
             assertTrue(elapsed >= 200.milliseconds, "Expected to wait at least Retry-After, waited $elapsed")
@@ -1035,7 +1112,7 @@ class CCloudProducerClientTest {
             }
 
             val exception = assertThrows(CCloudProduceRetryAfterTooLongException::class.java) {
-                runBlocking { client.produceWithRetry(mockFetcher, "test-topic", request) }
+                runBlocking { client.produceWithRetry(active, mockFetcher, "test-topic", request) }
             }
 
             assertSame(unavailable, exception.cause)
@@ -1052,7 +1129,7 @@ class CCloudProducerClientTest {
             }
 
             val exception = assertThrows(CCloudProduceRetryAfterTooLongException::class.java) {
-                runBlocking { client.produceWithRetry(mockFetcher, "test-topic", request) }
+                runBlocking { client.produceWithRetry(active, mockFetcher, "test-topic", request) }
             }
 
             assertSame(rateLimited, exception.cause)
@@ -1069,7 +1146,7 @@ class CCloudProducerClientTest {
             }
 
             val exception = assertThrows(CCloudConnectException::class.java) {
-                runBlocking { client.produceWithRetry(mockFetcher, "test-topic", request) }
+                runBlocking { client.produceWithRetry(active, mockFetcher, "test-topic", request) }
             }
 
             assertSame(connectFailure, exception)
@@ -1085,7 +1162,7 @@ class CCloudProducerClientTest {
             }
 
             val exception = assertThrows(CCloudApiException::class.java) {
-                runBlocking { client.produceWithRetry(mockFetcher, "test-topic", request) }
+                runBlocking { client.produceWithRetry(active, mockFetcher, "test-topic", request) }
             }
 
             assertEquals(0, exception.statusCode)
@@ -1100,7 +1177,7 @@ class CCloudProducerClientTest {
             }
 
             val exception = assertThrows(CCloudApiException::class.java) {
-                runBlocking { client.produceWithRetry(mockFetcher, "test-topic", request) }
+                runBlocking { client.produceWithRetry(active, mockFetcher, "test-topic", request) }
             }
             assertEquals(400, exception.statusCode)
         }
@@ -1114,7 +1191,7 @@ class CCloudProducerClientTest {
             }
 
             val exception = assertThrows(CCloudApiException::class.java) {
-                runBlocking { client.produceWithRetry(mockFetcher, "test-topic", request) }
+                runBlocking { client.produceWithRetry(active, mockFetcher, "test-topic", request) }
             }
             assertEquals(403, exception.statusCode)
         }
@@ -1128,7 +1205,7 @@ class CCloudProducerClientTest {
             }
 
             val exception = assertThrows(CCloudProduceRetriesExhaustedException::class.java) {
-                runBlocking { client.produceWithRetry(mockFetcher, "test-topic", request) }
+                runBlocking { client.produceWithRetry(active, mockFetcher, "test-topic", request) }
             }
             assertEquals(3, exception.attempts)
             assertEquals(504, exception.cause.statusCode)
@@ -1143,7 +1220,7 @@ class CCloudProducerClientTest {
             }
 
             val exception = assertThrows(CCloudApiException::class.java) {
-                runBlocking { client.produceWithRetry(mockFetcher, "test-topic", request) }
+                runBlocking { client.produceWithRetry(active, mockFetcher, "test-topic", request) }
             }
             assertSame(serverError, exception)
             runBlocking { verify(mockFetcher, times(1)).produceRecord(any(), any()) }
@@ -1161,7 +1238,7 @@ class CCloudProducerClientTest {
             }
 
             val exception = assertThrows(CCloudApiException::class.java) {
-                runBlocking { client.produceWithRetry(mockFetcher, "test-topic", request) }
+                runBlocking { client.produceWithRetry(active, mockFetcher, "test-topic", request) }
             }
             assertEquals(400, exception.statusCode)
             runBlocking { verify(mockFetcher, times(2)).produceRecord(any(), any()) }
@@ -1169,9 +1246,9 @@ class CCloudProducerClientTest {
 
         @Test
         fun `should return null when stopped before first attempt`() = runBlocking {
-            client.running.set(false)
+            active.set(false)
 
-            val result = client.produceWithRetry(mockFetcher, "test-topic", request)
+            val result = client.produceWithRetry(active, mockFetcher, "test-topic", request)
 
             assertNull(result, "Should return null when stopped")
             verify(mockFetcher, never()).produceRecord(any(), any())
@@ -1184,13 +1261,13 @@ class CCloudProducerClientTest {
             whenever(mockFetcher.produceRecord(any(), any())).thenAnswer {
                 callCount++
                 if (callCount == 1) {
-                    client.running.set(false)
+                    active.set(false)
                     throw CCloudApiException("Service Unavailable", 503)
                 }
                 successResponse()
             }
 
-            val result = client.produceWithRetry(mockFetcher, "test-topic", request)
+            val result = client.produceWithRetry(active, mockFetcher, "test-topic", request)
 
             assertNull(result, "Should return null after stop between retries")
             verify(mockFetcher, times(1)).produceRecord(any(), any())
@@ -1200,7 +1277,7 @@ class CCloudProducerClientTest {
         @Test
         fun `should return result when stop happens during successful REST call`() = runBlocking {
             whenever(mockFetcher.produceRecord(any(), any())).thenAnswer {
-                client.running.set(false)
+                active.set(false)
                 ProduceRecordResponse(
                     errorCode = 200,
                     topicName = "test-topic",
@@ -1209,7 +1286,7 @@ class CCloudProducerClientTest {
                 )
             }
 
-            val result = client.produceWithRetry(mockFetcher, "test-topic", request)
+            val result = client.produceWithRetry(active, mockFetcher, "test-topic", request)
 
             assertNotNull(result, "Completed REST call should return result even after stop")
             val (response, _) = result!!
