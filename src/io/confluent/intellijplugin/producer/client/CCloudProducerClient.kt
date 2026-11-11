@@ -38,10 +38,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import org.apache.avro.generic.GenericDatumWriter
 import org.apache.avro.io.EncoderFactory
 import org.apache.kafka.common.serialization.*
@@ -239,7 +237,7 @@ class CCloudProducerClient(
             val (response, duration) = try {
                 produceWithRetry(active, fetcher, topic, request) ?: break
             } catch (_: CancellationException) {
-                // Job cancelled during retry backoff; no record sent, safe to stop
+                // Job cancelled while waiting (rate limit, 429 or retry backoff); no record sent, safe to stop
                 break
             } catch (e: CCloudProduceGaveUpException) {
                 // Show it in the results table and stop (including AUTO mode); other errors keep the balloon
@@ -508,11 +506,7 @@ class CCloudProducerClient(
 
             val startTime = System.currentTimeMillis()
             val failure = try {
-                // NonCancellable ensures the REST call completes even if the job is cancelled,
-                // so we can report the record and avoid ghost records
-                val response = withContext(NonCancellable) {
-                    fetcher.produceRecord(topic, request)
-                }
+                val response = fetcher.produceRecord(topic, request)
                 val errorCode = response.errorCode
                 if (errorCode == null || errorCode == 200) {
                     return Pair(response, System.currentTimeMillis() - startTime)

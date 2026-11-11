@@ -11,7 +11,12 @@ import com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo
 import com.github.tomakehurst.wiremock.http.Fault
 import com.github.tomakehurst.wiremock.stubbing.Scenario
 import com.intellij.testFramework.junit5.TestApplication
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertInstanceOf
@@ -176,6 +181,50 @@ class CCloudRestClientRetryTest {
 
             assertEquals(fixture("simple-ok.json"), client.executeRequest("/records", "POST", "{}"))
             wireMock.verify(2, postRequestedFor(urlEqualTo("/records")))
+        }
+    }
+
+    @Nested
+    inner class CompleteOnceSent {
+
+        private fun produceRequestCount() = wireMock.findAll(postRequestedFor(urlEqualTo("/records"))).size
+
+        @Test
+        fun `cancelling during a 429 backoff should stop without waiting out Retry-After`() = runBlocking<Unit> {
+            wireMock.stubFor(
+                post(urlEqualTo("/records")).willReturn(
+                    aResponse().withStatus(429).withHeader("Retry-After", "30").withBody(fixture("error-rate-limited.json"))
+                )
+            )
+            val job = launch(Dispatchers.Default) {
+                client.executeRequest("/records", "POST", "{}", completeOnceSent = true)
+            }
+            withTimeout(5.seconds) { while (produceRequestCount() == 0) delay(10) }
+
+            val start = TimeSource.Monotonic.markNow()
+            job.cancelAndJoin()
+
+            assertTrue(job.isCancelled)
+            assertTrue(start.elapsedNow() < 5.seconds, "cancel should not wait out the 30s Retry-After, took ${start.elapsedNow()}")
+            wireMock.verify(1, postRequestedFor(urlEqualTo("/records")))
+        }
+
+        @Test
+        fun `cancelling while the request is in flight should still return its response`() = runBlocking<Unit> {
+            wireMock.stubFor(
+                post(urlEqualTo("/records"))
+                    .willReturn(aResponse().withStatus(200).withBody(fixture("simple-ok.json")).withFixedDelay(1_500))
+            )
+            var result: String? = null
+            val job = launch(Dispatchers.Default) {
+                result = client.executeRequest("/records", "POST", "{}", completeOnceSent = true)
+            }
+            // Cancel once the request reached WireMock, while it is still holding the response
+            withTimeout(5.seconds) { while (produceRequestCount() == 0) delay(10) }
+            job.cancelAndJoin()
+
+            assertEquals(fixture("simple-ok.json"), result, "the exchange should finish so its outcome isn't lost")
+            wireMock.verify(1, postRequestedFor(urlEqualTo("/records")))
         }
     }
 
