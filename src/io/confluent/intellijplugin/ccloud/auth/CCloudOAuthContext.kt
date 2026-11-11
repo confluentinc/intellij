@@ -1,5 +1,6 @@
 package io.confluent.intellijplugin.ccloud.auth
 
+import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.util.io.HttpRequests
 import io.confluent.intellijplugin.ccloud.auth.CCloudOAuthHttpClient.HttpResponseWithHeaders
 import kotlinx.coroutines.CancellationException
@@ -55,6 +56,8 @@ class CCloudOAuthContext {
      */
     private val exchangeMutex = Mutex()
 
+    private val logger = thisLogger()
+
     // Public accessors
     fun getRefreshToken(): Token? = tokens.get().refreshToken
     fun getControlPlaneToken(): Token? = tokens.get().controlPlaneToken
@@ -68,25 +71,41 @@ class CCloudOAuthContext {
     fun getUserEmail(): String = getUser()?.email ?: UNKNOWN_EMAIL
 
     /**
-     * Earliest token expiry, used to schedule refresh
+     * Earliest token expiry. Refreshes are scheduled from each token's earlier [Token.refreshAt].
      * @return The earliest token expiry time, or null if no tokens are present.
      */
     fun expiresAt(): Instant? = tokens.get().expiresAt()
+
+    /**
+     * Earliest token refresh point (70 to 90% of its lifetime, see [Token.issued]).
+     * @return The earliest refresh point, or null if no tokens are present.
+     */
+    fun refreshAt(): Instant? = tokens.get().refreshAt()
 
     fun hasReachedEndOfLifetime(): Boolean = tokens.get().hasReachedEndOfLifetime()
 
     fun hasNonTransientError(): Boolean = tokens.get().errors.hasNonTransientErrors()
 
-    fun shouldAttemptTokenRefresh(): Boolean {
-        val snapshot = tokens.get()
-        val now = Instant.now()
-        val expiresAt = snapshot.expiresAt() ?: return false
-        val nextExecution = now.plusSeconds(CCloudOAuthConfig.CHECK_TOKEN_EXPIRATION_INTERVAL.inWholeSeconds)
-        val atLeastOneTokenWillExpireBeforeNextRun = expiresAt < nextExecution
+    /**
+     * True when the last refresh failed, or when a token's refresh point (70 to 90% of its lifetime,
+     * see [Token.issued]) falls before the next scheduled check, unless the session has ended or hit a
+     * non-transient error.
+     *
+     * A failed refresh stays due on its own, because a refresh can fail partway: after the control-plane
+     * token is replaced and the data-plane exchange fails, no refresh point may be near, and the retry
+     * would otherwise wait minutes instead of following the backoff. Refreshing on the check before a
+     * refresh point, not the one after, means a refresh never starts later than 90% of the lifetime.
+     */
+    fun shouldAttemptTokenRefresh(): Boolean = shouldAttemptTokenRefresh(Instant.now())
 
-        return !snapshot.hasReachedEndOfLifetime(now)
+    /** [shouldAttemptTokenRefresh] as of [now] (visible for tests). */
+    internal fun shouldAttemptTokenRefresh(now: Instant): Boolean {
+        val snapshot = tokens.get()
+        val nextExecution = now.plusSeconds(CCloudOAuthConfig.CHECK_TOKEN_EXPIRATION_INTERVAL.inWholeSeconds)
+
+        return (snapshot.failedTokenRefreshAttempts > 0 || snapshot.isRefreshDueBefore(nextExecution))
+                && !snapshot.hasReachedEndOfLifetime(now)
                 && !snapshot.errors.hasNonTransientErrors()
-                && atLeastOneTokenWillExpireBeforeNextRun
     }
 
     fun getSignInUri(): String = buildString {
@@ -250,29 +269,38 @@ class CCloudOAuthContext {
             organizationId
         )
 
+        // Built outside updateAndGet, which may re-run its function: the refresh point is drawn once
+        val controlPlaneToken = issuedToken(
+            cpResponse.token ?: throw IllegalStateException("No control plane token"), now, "control-plane"
+        )
         tokens.updateAndGet { oldTokens ->
             oldTokens
-                .withControlPlaneToken(
-                    Token(
-                        cpResponse.token ?: throw IllegalStateException("No control plane token"),
-                        now.plusSeconds(CCloudOAuthConfig.CCLOUD_CONTROL_PLANE_TOKEN_LIFETIME.inWholeSeconds)
-                    )
-                )
+                .withControlPlaneToken(controlPlaneToken)
                 .let { if (cpResponse.user != null) it.withUser(cpResponse.user) else it }
                 .let { if (cpResponse.organization != null) it.withOrganization(cpResponse.organization) else it }
         }
 
         // Part 3 - Exchange control plane token for data plane token
-        val dpResponse = exchangeDataPlaneToken(cpResponse.token!!)
+        val dpResponse = exchangeDataPlaneToken(cpResponse.token)
 
-        tokens.updateAndGet { oldTokens ->
-            oldTokens.withDataPlaneToken(
-                Token(
-                    dpResponse.token ?: throw IllegalStateException("No data plane token"),
-                    now.plusSeconds(CCloudOAuthConfig.CCLOUD_CONTROL_PLANE_TOKEN_LIFETIME.inWholeSeconds)
-                )
-            )
-        }
+        val dataPlaneToken = issuedToken(
+            dpResponse.token ?: throw IllegalStateException("No data plane token"), now, "data-plane"
+        )
+        tokens.updateAndGet { it.withDataPlaneToken(dataPlaneToken) }
+    }
+
+    /**
+     * A control- or data-plane token issued at [issuedAt]. Its lifetime comes from the JWT's
+     * `exp`/`iat`, or from [CCloudOAuthConfig.CCLOUD_TOKEN_FALLBACK_LIFETIME] (with a warning) when
+     * the token has no usable claims. [issuedAt] is taken before the exchange calls, so the
+     * computed expiry is slightly early, never late.
+     */
+    private fun issuedToken(token: String, issuedAt: Instant, name: String): Token {
+        val lifetime = CCloudJwt.lifetime(token)
+            ?: CCloudOAuthConfig.CCLOUD_TOKEN_FALLBACK_LIFETIME.also {
+                logger.warn("CCloud $name token has no usable exp/iat claims; assuming a ${it.inWholeSeconds}s lifetime")
+            }
+        return Token.issued(token, issuedAt, lifetime)
     }
 
     /**

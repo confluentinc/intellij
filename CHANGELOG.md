@@ -19,6 +19,7 @@ All noteworthy changes to this plugin will be documented in this file.
 - The Confluent Cloud consumer no longer retries server errors forever, or keeps polling after you sign out. It now retries network errors, timeouts, rate limiting and server errors, and stops with an error after 10 consecutive failed polls (about 2 minutes for most errors).
 - Confluent Cloud sessions whose refresh token is rejected now sign out right away instead of retrying for several minutes. Temporary token refresh failures back off between tries and sign out after 10 failed attempts.
 - Producer and consumer connections now report their own client IDs (`… - Producer`, `… - Consumer`) to the broker instead of the admin client's `… - Admin` ID.
+- Confluent Cloud tokens now refresh well before they expire, at a random point between 70% and 90% of the lifetime stated in each token, instead of a few seconds before. A slow refresh no longer leaves requests going out with an expired token.
 
 ## 253.25910.2
 ### Fixed

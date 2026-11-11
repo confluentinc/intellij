@@ -12,6 +12,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
+import java.time.Instant
 import kotlin.time.Duration.Companion.seconds
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.AfterEach
@@ -224,8 +225,8 @@ class CCloudOAuthContextTest {
 
         @Test
         fun `should return false when tokens are fresh`() {
-            // Fresh tokens expire in 5 minutes, check interval is 5 seconds
-            // Since 5 min >> 5 sec, no refresh needed
+            // The stubbed tokens aren't JWTs, so they get the 5-minute fallback lifetime and a
+            // refresh point at least 3.5 min away, well past the next check in 5 seconds
             runBlocking {
                 context.createTokensFromAuthorizationCode(MOCK_AUTH_CODE, MOCK_ORG_ID)
             }
@@ -235,19 +236,154 @@ class CCloudOAuthContextTest {
 
         @Test
         fun `should return true when token expires before next check interval`() {
-            // Set control plane token lifetime to 1 second (less than 5 second check interval)
+            // The stubbed tokens aren't JWTs: set their fallback lifetime to 1 second (less than the
+            // 5 second check interval)
             System.setProperty("ccloud.control-plane.token-lifetime-seconds", "1")
             try {
                 runBlocking {
                     context.createTokensFromAuthorizationCode(MOCK_AUTH_CODE, MOCK_ORG_ID)
                 }
 
-                // Token expires in 1 second, check interval is 5 seconds
-                // Since 1 sec < 5 sec, refresh IS needed
+                // The refresh point is under 1 second away, before the next check in 5 seconds
                 assertTrue(context.shouldAttemptTokenRefresh())
             } finally {
                 System.clearProperty("ccloud.control-plane.token-lifetime-seconds")
             }
+        }
+    }
+
+    @Nested
+    @DisplayName("token lifetimes")
+    inner class TokenLifetimes {
+
+        /** Distinct from every fixture's lifetime, so only a value read from `exp` can be 300s or 900s. */
+        private val fallbackSeconds = 120L
+
+        @BeforeEach
+        fun setFallbackLifetime() {
+            System.setProperty("ccloud.control-plane.token-lifetime-seconds", fallbackSeconds.toString())
+        }
+
+        @AfterEach
+        fun clearFallbackLifetime() {
+            System.clearProperty("ccloud.control-plane.token-lifetime-seconds")
+        }
+
+        /** Serve JWT tokens: the given control-plane cookie (with prod's cookie attributes) and a 900s data-plane token. */
+        private fun stubJwtTokens(controlPlaneFixture: String) {
+            val authToken = ccloudAuthFixture(controlPlaneFixture).trim()
+            wireMockServer.stubFor(
+                WireMock.post("/api/sessions").atPriority(1).willReturn(
+                    WireMock.aResponse().withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withHeader("Set-Cookie", "auth_token=$authToken; Path=/; SameSite=strict; secure; Max-Age=86400; HttpOnly; Secure")
+                        .withBody(ccloudAuthFixture("control-plane-session-success.json"))
+                )
+            )
+            wireMockServer.stubFor(
+                WireMock.post("/api/access_tokens").atPriority(1).willReturn(
+                    WireMock.aResponse().withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody(ccloudAuthFixture("data-plane-token-900s.json"))
+                )
+            )
+        }
+
+        /** Sign in and return the window in which the tokens were issued. */
+        private fun signIn(): Pair<Instant, Instant> {
+            val before = Instant.now()
+            val result = runBlocking { context.createTokensFromAuthorizationCode(MOCK_AUTH_CODE, MOCK_ORG_ID) }
+            assertTrue(result.isSuccess, "sign-in should succeed: ${result.exceptionOrNull()}")
+            return before to Instant.now()
+        }
+
+        private fun assertWithin(window: Pair<Instant, Instant>, fromSeconds: Long, toSeconds: Long, actual: Instant?) {
+            val earliest = window.first.plusSeconds(fromSeconds)
+            val latest = window.second.plusSeconds(toSeconds)
+            assertNotNull(actual)
+            assertTrue(actual!! >= earliest && actual <= latest, "expected $actual in [$earliest, $latest]")
+        }
+
+        @Test
+        fun `control-plane token expires after its exp lifetime, not the cookie's Max-Age`() {
+            stubJwtTokens("control-plane-auth-token-300s.jwt")
+
+            val window = signIn()
+
+            assertWithin(window, 300, 300, context.getControlPlaneToken()?.expiresAt)
+        }
+
+        @Test
+        fun `data-plane token expires after its own 900s exp lifetime`() {
+            stubJwtTokens("control-plane-auth-token-300s.jwt")
+
+            val window = signIn()
+
+            assertWithin(window, 900, 900, context.getDataPlaneToken()?.expiresAt)
+        }
+
+        @Test
+        fun `each token's refresh point falls between 70 and 90 percent of its lifetime`() {
+            stubJwtTokens("control-plane-auth-token-300s.jwt")
+
+            val window = signIn()
+
+            assertWithin(window, 210, 270, context.getControlPlaneToken()?.refreshAt)
+            assertWithin(window, 630, 810, context.getDataPlaneToken()?.refreshAt)
+        }
+
+        @Test
+        fun `falls back to the configured lifetime for a token without exp, per token`() {
+            stubJwtTokens("control-plane-auth-token-no-exp.jwt")
+
+            val window = signIn()
+
+            assertWithin(window, fallbackSeconds, fallbackSeconds, context.getControlPlaneToken()?.expiresAt)
+            assertWithin(window, 900, 900, context.getDataPlaneToken()?.expiresAt)
+        }
+
+        @Test
+        fun `refresh is due when a token's refresh point, not its expiry, is before the next check`() {
+            // 5.5s lifetime: refresh point 3.85-4.95s (before the 5s check), expiry 5.5s (after it)
+            stubJwtTokens("control-plane-auth-token-5500ms.jwt")
+
+            signIn()
+            // Check at the issue instant, so the time sign-in takes doesn't move the 5s boundary
+            val issuedAt = context.getControlPlaneToken()!!.expiresAt.minusMillis(5500)
+
+            assertTrue(context.expiresAt()!! > issuedAt.plusSeconds(5), "no token should expire before the next check")
+            assertTrue(context.shouldAttemptTokenRefresh(issuedAt))
+        }
+
+        @Test
+        fun `a refresh that fails after replacing the control-plane token is still due`() {
+            stubJwtTokens("control-plane-auth-token-300s.jwt")
+            signIn()
+            // The refresh replaces the refresh and control-plane tokens, then the data-plane exchange
+            // fails, so no token's refresh point is near
+            wireMockServer.stubFor(
+                WireMock.post("/api/access_tokens").atPriority(0).willReturn(WireMock.aResponse().withStatus(503))
+            )
+
+            val result = runBlocking { context.refresh(MOCK_ORG_ID) }
+
+            assertTrue(result.isFailure, "the data-plane exchange should fail")
+            assertFalse(context.hasNonTransientError(), "a 503 is transient")
+            assertFalse(
+                context.getControlPlaneToken()!!.refreshAt < Instant.now().plusSeconds(5) ||
+                    context.getDataPlaneToken()!!.refreshAt < Instant.now().plusSeconds(5),
+                "no refresh point should be near",
+            )
+            assertTrue(context.shouldAttemptTokenRefresh())
+        }
+
+        @Test
+        fun `tokens are not due for refresh right after sign-in`() {
+            stubJwtTokens("control-plane-auth-token-300s.jwt")
+
+            signIn()
+
+            assertFalse(context.shouldAttemptTokenRefresh())
         }
     }
 
