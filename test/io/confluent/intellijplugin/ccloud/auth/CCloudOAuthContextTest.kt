@@ -225,8 +225,8 @@ class CCloudOAuthContextTest {
 
         @Test
         fun `should return false when tokens are fresh`() {
-            // Fresh tokens expire in 5 minutes, check interval is 5 seconds
-            // Since 5 min >> 5 sec, no refresh needed
+            // The stubbed tokens aren't JWTs, so they get the 5-minute fallback lifetime and a
+            // refresh point at least 3.5 min away, well past the next check in 5 seconds
             runBlocking {
                 context.createTokensFromAuthorizationCode(MOCK_AUTH_CODE, MOCK_ORG_ID)
             }
@@ -236,15 +236,15 @@ class CCloudOAuthContextTest {
 
         @Test
         fun `should return true when token expires before next check interval`() {
-            // Set control plane token lifetime to 1 second (less than 5 second check interval)
+            // The stubbed tokens aren't JWTs: set their fallback lifetime to 1 second (less than the
+            // 5 second check interval)
             System.setProperty("ccloud.control-plane.token-lifetime-seconds", "1")
             try {
                 runBlocking {
                     context.createTokensFromAuthorizationCode(MOCK_AUTH_CODE, MOCK_ORG_ID)
                 }
 
-                // Token expires in 1 second, check interval is 5 seconds
-                // Since 1 sec < 5 sec, refresh IS needed
+                // The refresh point is under 1 second away, before the next check in 5 seconds
                 assertTrue(context.shouldAttemptTokenRefresh())
             } finally {
                 System.clearProperty("ccloud.control-plane.token-lifetime-seconds")
