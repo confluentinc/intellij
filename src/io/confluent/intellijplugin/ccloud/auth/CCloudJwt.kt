@@ -21,7 +21,8 @@ internal object CCloudJwt {
      * The token's lifetime, `exp − iat` ([RFC 7519 section 4.1.4](https://www.rfc-editor.org/rfc/rfc7519#section-4.1.4)).
      * Taken from the claims rather than `exp − local now`, so a skewed local clock doesn't change it.
      *
-     * @return null if [token] isn't a JWT, `exp` or `iat` is missing or not a number, or `exp` isn't after `iat`
+     * @return null if [token] isn't a JWT, `exp` or `iat` is missing or not a number, `exp` isn't after
+     * `iat`, or the difference is too large to be a finite [Duration] (such as `exp: 1e309`)
      */
     fun lifetime(token: String): Duration? {
         val payload = token.split('.').takeIf { it.size == 3 }?.get(1) ?: return null
@@ -31,7 +32,7 @@ internal object CCloudJwt {
 
         val exp = claims.numericDate("exp") ?: return null
         val iat = claims.numericDate("iat") ?: return null
-        return (exp - iat).takeIf { it > 0 }?.seconds
+        return (exp - iat).takeIf { it > 0 }?.seconds?.takeIf { it.isFinite() }
     }
 
     /** A NumericDate is a JSON number of seconds, possibly fractional; a quoted string isn't one. */

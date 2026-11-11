@@ -348,8 +348,32 @@ class CCloudOAuthContextTest {
             stubJwtTokens("control-plane-auth-token-5500ms.jwt")
 
             signIn()
+            // Check at the issue instant, so the time sign-in takes doesn't move the 5s boundary
+            val issuedAt = context.getControlPlaneToken()!!.expiresAt.minusMillis(5500)
 
-            assertTrue(context.expiresAt()!! > Instant.now().plusSeconds(5), "no token should expire before the next check")
+            assertTrue(context.expiresAt()!! > issuedAt.plusSeconds(5), "no token should expire before the next check")
+            assertTrue(context.shouldAttemptTokenRefresh(issuedAt))
+        }
+
+        @Test
+        fun `a refresh that fails after replacing the control-plane token is still due`() {
+            stubJwtTokens("control-plane-auth-token-300s.jwt")
+            signIn()
+            // The refresh replaces the refresh and control-plane tokens, then the data-plane exchange
+            // fails, so no token's refresh point is near
+            wireMockServer.stubFor(
+                WireMock.post("/api/access_tokens").atPriority(0).willReturn(WireMock.aResponse().withStatus(503))
+            )
+
+            val result = runBlocking { context.refresh(MOCK_ORG_ID) }
+
+            assertTrue(result.isFailure, "the data-plane exchange should fail")
+            assertFalse(context.hasNonTransientError(), "a 503 is transient")
+            assertFalse(
+                context.getControlPlaneToken()!!.refreshAt < Instant.now().plusSeconds(5) ||
+                    context.getDataPlaneToken()!!.refreshAt < Instant.now().plusSeconds(5),
+                "no refresh point should be near",
+            )
             assertTrue(context.shouldAttemptTokenRefresh())
         }
 

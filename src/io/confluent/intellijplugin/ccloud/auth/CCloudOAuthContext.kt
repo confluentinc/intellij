@@ -87,16 +87,23 @@ class CCloudOAuthContext {
     fun hasNonTransientError(): Boolean = tokens.get().errors.hasNonTransientErrors()
 
     /**
-     * True when a token's refresh point (70 to 90% of its lifetime, see [Token.issued]) falls before
-     * the next scheduled check. Refreshing on the check before that point, not the one after, means a
-     * refresh never starts later than 90% of the lifetime.
+     * True when the last refresh failed, or when a token's refresh point (70 to 90% of its lifetime,
+     * see [Token.issued]) falls before the next scheduled check, unless the session has ended or hit a
+     * non-transient error.
+     *
+     * A failed refresh stays due on its own, because a refresh can fail partway: after the control-plane
+     * token is replaced and the data-plane exchange fails, no refresh point may be near, and the retry
+     * would otherwise wait minutes instead of following the backoff. Refreshing on the check before a
+     * refresh point, not the one after, means a refresh never starts later than 90% of the lifetime.
      */
-    fun shouldAttemptTokenRefresh(): Boolean {
+    fun shouldAttemptTokenRefresh(): Boolean = shouldAttemptTokenRefresh(Instant.now())
+
+    /** [shouldAttemptTokenRefresh] as of [now] (visible for tests). */
+    internal fun shouldAttemptTokenRefresh(now: Instant): Boolean {
         val snapshot = tokens.get()
-        val now = Instant.now()
         val nextExecution = now.plusSeconds(CCloudOAuthConfig.CHECK_TOKEN_EXPIRATION_INTERVAL.inWholeSeconds)
 
-        return snapshot.isRefreshDueBefore(nextExecution)
+        return (snapshot.failedTokenRefreshAttempts > 0 || snapshot.isRefreshDueBefore(nextExecution))
                 && !snapshot.hasReachedEndOfLifetime(now)
                 && !snapshot.errors.hasNonTransientErrors()
     }

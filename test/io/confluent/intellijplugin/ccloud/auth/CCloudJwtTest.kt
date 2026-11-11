@@ -34,6 +34,8 @@ class CCloudJwtTest {
             Arguments.of("exp is not a number", jwt("""{"iat":1000,"exp":"soon"}""")),
             Arguments.of("exp is before iat", jwt("""{"iat":1300,"exp":1000}""")),
             Arguments.of("exp equals iat", jwt("""{"iat":1000,"exp":1000}""")),
+            Arguments.of("exp is infinite", jwt("""{"iat":1000,"exp":1e309}""")),
+            Arguments.of("exp - iat overflows a Duration", jwt("""{"iat":0,"exp":1e300}""")),
         )
     }
 
