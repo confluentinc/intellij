@@ -7,7 +7,9 @@ import io.confluent.intellijplugin.ccloud.config.CloudConfig
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.runInterruptible
@@ -290,6 +292,9 @@ class CCloudRestClient(
         return withRetry(idempotent, retry) {
             val url = resolveUrl(uri)
             val headers = getAuthHeaders()
+            // withContext(NonCancellable) never checks for cancellation, so check here: a Stop
+            // that lands before the exchange starts skips the send.
+            currentCoroutineContext().ensureActive()
             withContext(if (completeOnceSent) NonCancellable else EmptyCoroutineContext) {
                 send(url, method, headers, body)
             }.requireSuccess()
