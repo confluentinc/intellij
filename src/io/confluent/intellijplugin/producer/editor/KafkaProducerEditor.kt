@@ -225,6 +225,10 @@ class KafkaProducerEditor(
     }
 
     private fun stopProduce() {
+        // isRunning() turns false right away, but the run ends only when its in-flight request
+        // returns; until onStop() resets the button, a click would start another run
+        produceButton.isEnabled = false
+        produceButton.text = KafkaMessagesBundle.message("action.produce.stopping")
         producerClient.stop()
     }
 

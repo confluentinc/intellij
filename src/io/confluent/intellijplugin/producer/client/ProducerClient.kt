@@ -40,3 +40,17 @@ interface ProducerClient : Disposable {
 
     fun isRunning(): Boolean
 }
+
+/** A failed send as a [KafkaRecord] with a non-null [KafkaRecord.error], shown by the editor as an error row. */
+internal fun createErrorRecord(
+    key: ConsumerProducerFieldConfig,
+    value: ConsumerProducerFieldConfig,
+    topic: String,
+    partition: Int?,
+    error: Throwable,
+    duration: Long
+): KafkaRecord = KafkaRecord.createFor(
+    key.type, value.type, key.schemaFormat, value.schemaFormat,
+    Result.failure(error),
+    errorPartition = partition
+).copy(topic = topic, duration = duration)
