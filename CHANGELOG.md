@@ -21,6 +21,7 @@ All noteworthy changes to this plugin will be documented in this file.
 - Producer and consumer connections now report their own client IDs (`… - Producer`, `… - Consumer`) to the broker instead of the admin client's `… - Admin` ID.
 - The Confluent Cloud producer still retries produce requests on temporary server errors (502/503/504), and now shows an error row and stops when those retries run out, or when the server asks to wait more than a minute, instead of only showing a notification. It no longer repeats rate-limited (429) requests that were already retried.
 - Restarting the Confluent Cloud producer right after stopping it no longer lets the stopped run, still finishing its last produce request, stop the new run. While a producer is stopping, its button shows "Stopping..." and is disabled until that request finishes, so a second click no longer starts a new run.
+- Confluent Cloud tokens now refresh well before they expire, at a random point between 70% and 90% of the lifetime stated in each token, instead of a few seconds before. A slow refresh no longer leaves requests going out with an expired token.
 
 ## 253.25910.2
 ### Fixed

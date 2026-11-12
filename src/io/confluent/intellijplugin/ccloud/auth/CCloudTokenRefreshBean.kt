@@ -98,15 +98,17 @@ class CCloudTokenRefreshBean(
     fun isRunning(): Boolean = refreshJob?.isActive == true
 
     /**
-     * Refresh the tokens if one expires before the next tick.
+     * Refresh the tokens if one reaches its refresh point (see [CCloudOAuthContext.shouldAttemptTokenRefresh])
+     * before the next tick.
      * @return how long to wait before the next check
      */
     private suspend fun refreshIfNeeded(): Duration {
         val shouldRefresh = context.shouldAttemptTokenRefresh()
+        val refreshAt = context.refreshAt()
         val expiresAt = context.expiresAt()
         val failedAttempts = context.getFailedTokenRefreshAttempts()
 
-        logger.debug("Scheduler check: shouldRefresh=$shouldRefresh, expiresAt=$expiresAt, failedAttempts=$failedAttempts/${CCloudOAuthConfig.MAX_TOKEN_REFRESH_ATTEMPTS}")
+        logger.debug("Scheduler check: shouldRefresh=$shouldRefresh, refreshAt=$refreshAt, expiresAt=$expiresAt, failedAttempts=$failedAttempts/${CCloudOAuthConfig.MAX_TOKEN_REFRESH_ATTEMPTS}")
 
         if (!shouldRefresh) {
             return checkInterval
@@ -118,7 +120,7 @@ class CCloudTokenRefreshBean(
         // failures, makes hasNonTransientError() true and the loop stops before waiting again
         return context.refresh().fold(
             onSuccess = {
-                logger.info("Token refresh successful - new expiresAt: ${context.expiresAt()}")
+                logger.info("Token refresh successful - next refreshAt: ${context.refreshAt()}, expiresAt: ${context.expiresAt()}")
                 CCloudTokenStorage.saveSession(context)
                 checkInterval
             },
