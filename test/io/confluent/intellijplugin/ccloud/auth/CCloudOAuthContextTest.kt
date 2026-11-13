@@ -14,6 +14,7 @@ import kotlinx.coroutines.withTimeout
 import java.time.Instant
 import kotlin.time.Duration.Companion.seconds
 import org.junit.jupiter.api.AfterAll
+import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotEquals
@@ -255,7 +256,7 @@ class CCloudOAuthContextTest {
         /** Serve JWT tokens: the given control-plane cookie (with prod's cookie attributes) and a 900s data-plane token. */
         private fun stubJwtTokens(controlPlaneFixture: String) {
             val authToken = ccloudAuthFixture(controlPlaneFixture).trim()
-            wireMockServer.stubFor(
+            wireMock.stubFor(
                 WireMock.post("/api/sessions").atPriority(1).willReturn(
                     WireMock.aResponse().withStatus(200)
                         .withHeader("Content-Type", "application/json")
@@ -263,7 +264,7 @@ class CCloudOAuthContextTest {
                         .withBody(ccloudAuthFixture("control-plane-session-success.json"))
                 )
             )
-            wireMockServer.stubFor(
+            wireMock.stubFor(
                 WireMock.post("/api/access_tokens").atPriority(1).willReturn(
                     WireMock.aResponse().withStatus(200)
                         .withHeader("Content-Type", "application/json")
@@ -344,7 +345,7 @@ class CCloudOAuthContextTest {
             signIn()
             // The refresh replaces the refresh and control-plane tokens, then the data-plane exchange
             // fails, so no token's refresh point is near
-            wireMockServer.stubFor(
+            wireMock.stubFor(
                 WireMock.post("/api/access_tokens").atPriority(0).willReturn(WireMock.aResponse().withStatus(503))
             )
 
