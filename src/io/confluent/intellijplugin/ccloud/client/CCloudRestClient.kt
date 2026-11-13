@@ -6,7 +6,10 @@ import io.confluent.intellijplugin.ccloud.auth.CCloudAuthService
 import io.confluent.intellijplugin.ccloud.config.CloudConfig
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.runInterruptible
@@ -20,6 +23,7 @@ import java.net.ConnectException
 import java.net.HttpURLConnection
 import java.net.NoRouteToHostException
 import java.net.UnknownHostException
+import kotlin.coroutines.EmptyCoroutineContext
 import kotlin.time.Duration
 
 /**
@@ -271,6 +275,10 @@ class CCloudRestClient(
      * @param retry false to make a single attempt for every failure, including 429, for callers
      *   that retry at their own layer (e.g. consume, which the consumer poll loop retries). The
      *   call still waits for a rate-limit token.
+     * @param completeOnceSent true to let an HTTP exchange that has started finish even if the caller
+     *   is cancelled, so its outcome isn't lost (e.g. a produce the broker may already have written).
+     *   Only the exchange itself is protected: waiting for a rate-limit token and retry backoff stay
+     *   cancellable, so cancelling during a 429 backoff takes effect right away.
      * @return Response body as string
      */
     suspend fun executeRequest(
@@ -278,10 +286,18 @@ class CCloudRestClient(
         method: String,
         body: String? = null,
         idempotent: Boolean = method.equals("GET", ignoreCase = true),
-        retry: Boolean = true
+        retry: Boolean = true,
+        completeOnceSent: Boolean = false
     ): String {
         return withRetry(idempotent, retry) {
-            send(resolveUrl(uri), method, getAuthHeaders(), body).requireSuccess()
+            val url = resolveUrl(uri)
+            val headers = getAuthHeaders()
+            // withContext(NonCancellable) never checks for cancellation, so check here: a Stop
+            // that lands before the exchange starts skips the send.
+            currentCoroutineContext().ensureActive()
+            withContext(if (completeOnceSent) NonCancellable else EmptyCoroutineContext) {
+                send(url, method, headers, body)
+            }.requireSuccess()
         }.body
     }
 
