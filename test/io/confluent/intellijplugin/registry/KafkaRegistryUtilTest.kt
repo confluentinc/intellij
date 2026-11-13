@@ -7,9 +7,9 @@ import com.intellij.testFramework.junit5.TestApplication
 import io.confluent.intellijplugin.common.models.KafkaFieldType
 import io.confluent.intellijplugin.data.BaseClusterDataManager
 import io.confluent.intellijplugin.registry.confluent.ConfluentRegistryClient
-import io.confluent.kafka.schemaregistry.client.rest.RestService
 import io.confluent.intellijplugin.testutil.fixture
 import io.confluent.intellijplugin.testutil.wireMockExtension
+import io.confluent.kafka.schemaregistry.client.rest.RestService
 import io.confluent.kafka.schemaregistry.client.rest.entities.SchemaReference
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.assertEquals

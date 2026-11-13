@@ -5,10 +5,12 @@ import com.intellij.testFramework.junit5.TestApplication
 import io.confluent.intellijplugin.ccloud.client.CCloudApiException
 import io.confluent.intellijplugin.ccloud.client.CCloudRetryPolicy
 import io.confluent.intellijplugin.ccloud.client.TEST_DATA_PLANE_TOKEN
+import io.confluent.intellijplugin.ccloud.client.ccloudFixture
 import io.confluent.intellijplugin.ccloud.client.signedInAuthService
 import io.confluent.intellijplugin.ccloud.client.testClient
 import io.confluent.intellijplugin.ccloud.model.response.ConsumeRecordsRequest
 import io.confluent.intellijplugin.ccloud.util.ResourceLoader
+import io.confluent.intellijplugin.testutil.fixture
 import io.confluent.intellijplugin.testutil.wireMockExtension
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.*
@@ -372,13 +374,10 @@ class DataPlaneFetcherImplTest {
             fastFetcher = DataPlaneFetcherImpl(kafkaClient, null, TEST_CLUSTER_ID, null)
         }
 
-        private fun fixture(path: String): String =
-            javaClass.getResourceAsStream("/fixtures/$path")!!.bufferedReader().use { it.readText() }
-
         private fun errorFixtureFor(status: Int) =
-            if (status == 429) "ccloud/error-rate-limited.json" else "ccloud/error-service-unavailable.json"
+            if (status == 429) "error-rate-limited.json" else "error-service-unavailable.json"
 
-        private fun failing(status: Int) = aResponse().withStatus(status).withBody(fixture(errorFixtureFor(status)))
+        private fun failing(status: Int) = aResponse().withStatus(status).withBody(ccloudFixture(errorFixtureFor(status)))
 
         @ParameterizedTest
         @ValueSource(ints = [429, 503])
@@ -397,7 +396,7 @@ class DataPlaneFetcherImplTest {
         fun `consumeRecords should parse a successful response`() = runBlocking<Unit> {
             wireMock.stubFor(
                 post(urlPathEqualTo(consumePath))
-                    .willReturn(aResponse().withStatus(200).withBody(fixture("consumer/empty-consume-response.json")))
+                    .willReturn(aResponse().withStatus(200).withBody(fixture("consumer", "empty-consume-response.json")))
             )
 
             val response = fastFetcher.consumeRecords("orders", ConsumeRecordsRequest())

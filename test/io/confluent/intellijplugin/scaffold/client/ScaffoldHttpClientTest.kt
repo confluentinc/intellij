@@ -4,6 +4,7 @@ import com.github.tomakehurst.wiremock.client.WireMock
 import com.intellij.testFramework.junit5.TestApplication
 import com.intellij.util.io.HttpRequests
 import com.squareup.moshi.JsonEncodingException
+import io.confluent.intellijplugin.testutil.fixture
 import io.confluent.intellijplugin.testutil.wireMockExtension
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.*
@@ -14,8 +15,6 @@ import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.extension.RegisterExtension
 import java.net.SocketTimeoutException
-import java.nio.file.Files
-import java.nio.file.Paths
 
 @TestApplication
 class ScaffoldHttpClientTest {
@@ -24,12 +23,6 @@ class ScaffoldHttpClientTest {
         @JvmField
         @RegisterExtension
         val wireMock = wireMockExtension()
-
-        // Helper to load fixture files
-        private fun loadFixture(filename: String): String {
-            val path = Paths.get("test/resources/scaffold-mock-responses/$filename")
-            return Files.readString(path)
-        }
     }
 
     private fun baseUrl(): String = wireMock.baseUrl()
@@ -46,7 +39,7 @@ class ScaffoldHttpClientTest {
                         WireMock.aResponse()
                             .withStatus(200)
                             .withHeader("Content-Type", "application/json")
-                            .withBody(loadFixture("template-list-success.json"))
+                            .withBody(fixture("scaffold", "template-list-success.json"))
                     )
             )
 
@@ -161,7 +154,7 @@ class ScaffoldHttpClientTest {
                         WireMock.aResponse()
                             .withStatus(200)
                             .withHeader("Content-Type", "application/json")
-                            .withBody(loadFixture("template-list-empty.json"))
+                            .withBody(fixture("scaffold", "template-list-empty.json"))
                     )
             )
 
@@ -181,7 +174,7 @@ class ScaffoldHttpClientTest {
                         WireMock.aResponse()
                             .withStatus(200)
                             .withHeader("Content-Type", "application/json")
-                            .withBody(loadFixture("template-list-minimal.json"))
+                            .withBody(fixture("scaffold", "template-list-minimal.json"))
                     )
             )
 
@@ -362,7 +355,7 @@ class ScaffoldHttpClientTest {
                         WireMock.aResponse()
                             .withStatus(200)
                             .withHeader("Content-Type", "application/json")
-                            .withBody(loadFixture("template-list-with-options.json"))
+                            .withBody(fixture("scaffold", "template-list-with-options.json"))
                     )
             )
 
@@ -389,7 +382,7 @@ class ScaffoldHttpClientTest {
                         WireMock.aResponse()
                             .withStatus(200)
                             .withHeader("Content-Type", "application/json")
-                            .withBody(loadFixture("template-list-with-timestamps.json"))
+                            .withBody(fixture("scaffold", "template-list-with-timestamps.json"))
                     )
             )
 
