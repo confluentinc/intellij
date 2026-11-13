@@ -1,11 +1,11 @@
 package io.confluent.intellijplugin.scaffold.client
 
-import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.WireMock
-import com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig
 import com.intellij.testFramework.junit5.TestApplication
 import com.intellij.util.io.HttpRequests
 import com.squareup.moshi.JsonEncodingException
+import io.confluent.intellijplugin.testutil.fixture
+import io.confluent.intellijplugin.testutil.wireMockExtension
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -13,42 +13,19 @@ import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.extension.RegisterExtension
 import java.net.SocketTimeoutException
-import java.nio.file.Files
-import java.nio.file.Paths
 
 @TestApplication
 class ScaffoldHttpClientTest {
 
     companion object {
-        private lateinit var wireMockServer: WireMockServer
-
-        @JvmStatic
-        @BeforeAll
-        fun setUpAll() {
-            wireMockServer = WireMockServer(wireMockConfig().dynamicPort())
-            wireMockServer.start()
-        }
-
-        @JvmStatic
-        @AfterAll
-        fun tearDownAll() {
-            wireMockServer.stop()
-        }
-
-        // Helper to load fixture files
-        private fun loadFixture(filename: String): String {
-            val path = Paths.get("test/resources/scaffold-mock-responses/$filename")
-            return Files.readString(path)
-        }
+        @JvmField
+        @RegisterExtension
+        val wireMock = wireMockExtension()
     }
 
-    @AfterEach
-    fun cleanUp() {
-        wireMockServer.resetAll()
-    }
-
-    private fun baseUrl(): String = "http://localhost:${wireMockServer.port()}"
+    private fun baseUrl(): String = wireMock.baseUrl()
 
     @Nested
     @DisplayName("fetchTemplates")
@@ -56,13 +33,13 @@ class ScaffoldHttpClientTest {
 
         @Test
         fun `successfully fetches templates for intellij collection`() {
-            wireMockServer.stubFor(
+            wireMock.stubFor(
                 WireMock.get("/scaffold/v1/template-collections/intellij/templates")
                     .willReturn(
                         WireMock.aResponse()
                             .withStatus(200)
                             .withHeader("Content-Type", "application/json")
-                            .withBody(loadFixture("template-list-success.json"))
+                            .withBody(fixture("scaffold", "template-list-success.json"))
                     )
             )
 
@@ -86,7 +63,7 @@ class ScaffoldHttpClientTest {
 
         @Test
         fun `handles 500 server errors`() {
-            wireMockServer.stubFor(
+            wireMock.stubFor(
                 WireMock.get("/scaffold/v1/template-collections/intellij/templates")
                     .willReturn(
                         WireMock.aResponse()
@@ -107,7 +84,7 @@ class ScaffoldHttpClientTest {
 
         @Test
         fun `handles network timeouts`() {
-            wireMockServer.stubFor(
+            wireMock.stubFor(
                 WireMock.get("/scaffold/v1/template-collections/intellij/templates")
                     .willReturn(
                         WireMock.aResponse()
@@ -130,7 +107,7 @@ class ScaffoldHttpClientTest {
 
         @Test
         fun `handles malformed JSON responses`() {
-            wireMockServer.stubFor(
+            wireMock.stubFor(
                 WireMock.get("/scaffold/v1/template-collections/intellij/templates")
                     .willReturn(
                         WireMock.aResponse()
@@ -150,7 +127,7 @@ class ScaffoldHttpClientTest {
 
         @Test
         fun `handles 404 for nonexistent collection`() {
-            wireMockServer.stubFor(
+            wireMock.stubFor(
                 WireMock.get("/scaffold/v1/template-collections/nonexistent/templates")
                     .willReturn(
                         WireMock.aResponse()
@@ -171,13 +148,13 @@ class ScaffoldHttpClientTest {
 
         @Test
         fun `handles empty template list`() {
-            wireMockServer.stubFor(
+            wireMock.stubFor(
                 WireMock.get("/scaffold/v1/template-collections/intellij/templates")
                     .willReturn(
                         WireMock.aResponse()
                             .withStatus(200)
                             .withHeader("Content-Type", "application/json")
-                            .withBody(loadFixture("template-list-empty.json"))
+                            .withBody(fixture("scaffold", "template-list-empty.json"))
                     )
             )
 
@@ -191,13 +168,13 @@ class ScaffoldHttpClientTest {
 
         @Test
         fun `handles templates with null metadata fields`() {
-            wireMockServer.stubFor(
+            wireMock.stubFor(
                 WireMock.get("/scaffold/v1/template-collections/intellij/templates")
                     .willReturn(
                         WireMock.aResponse()
                             .withStatus(200)
                             .withHeader("Content-Type", "application/json")
-                            .withBody(loadFixture("template-list-minimal.json"))
+                            .withBody(fixture("scaffold", "template-list-minimal.json"))
                     )
             )
 
@@ -219,7 +196,7 @@ class ScaffoldHttpClientTest {
 
         @Test
         fun `handles 400 bad request`() {
-            wireMockServer.stubFor(
+            wireMock.stubFor(
                 WireMock.get("/scaffold/v1/template-collections/intellij/templates")
                     .willReturn(
                         WireMock.aResponse()
@@ -241,7 +218,7 @@ class ScaffoldHttpClientTest {
 
         @Test
         fun `handles 401 unauthorized`() {
-            wireMockServer.stubFor(
+            wireMock.stubFor(
                 WireMock.get("/scaffold/v1/template-collections/intellij/templates")
                     .willReturn(
                         WireMock.aResponse()
@@ -263,7 +240,7 @@ class ScaffoldHttpClientTest {
 
         @Test
         fun `handles 403 forbidden`() {
-            wireMockServer.stubFor(
+            wireMock.stubFor(
                 WireMock.get("/scaffold/v1/template-collections/intellij/templates")
                     .willReturn(
                         WireMock.aResponse()
@@ -285,7 +262,7 @@ class ScaffoldHttpClientTest {
 
         @Test
         fun `handles 500 error with empty body`() {
-            wireMockServer.stubFor(
+            wireMock.stubFor(
                 WireMock.get("/scaffold/v1/template-collections/intellij/templates")
                     .willReturn(
                         WireMock.aResponse()
@@ -307,7 +284,7 @@ class ScaffoldHttpClientTest {
 
         @Test
         fun `handles 500 error with detailed error body`() {
-            wireMockServer.stubFor(
+            wireMock.stubFor(
                 WireMock.get("/scaffold/v1/template-collections/intellij/templates")
                     .willReturn(
                         WireMock.aResponse()
@@ -329,7 +306,7 @@ class ScaffoldHttpClientTest {
 
         @Test
         fun `handles 502 bad gateway`() {
-            wireMockServer.stubFor(
+            wireMock.stubFor(
                 WireMock.get("/scaffold/v1/template-collections/intellij/templates")
                     .willReturn(
                         WireMock.aResponse()
@@ -351,7 +328,7 @@ class ScaffoldHttpClientTest {
 
         @Test
         fun `handles 503 service unavailable`() {
-            wireMockServer.stubFor(
+            wireMock.stubFor(
                 WireMock.get("/scaffold/v1/template-collections/intellij/templates")
                     .willReturn(
                         WireMock.aResponse()
@@ -372,13 +349,13 @@ class ScaffoldHttpClientTest {
 
         @Test
         fun `handles templates with options`() {
-            wireMockServer.stubFor(
+            wireMock.stubFor(
                 WireMock.get("/scaffold/v1/template-collections/intellij/templates")
                     .willReturn(
                         WireMock.aResponse()
                             .withStatus(200)
                             .withHeader("Content-Type", "application/json")
-                            .withBody(loadFixture("template-list-with-options.json"))
+                            .withBody(fixture("scaffold", "template-list-with-options.json"))
                     )
             )
 
@@ -399,13 +376,13 @@ class ScaffoldHttpClientTest {
 
         @Test
         fun `parses datetime and URI fields correctly`() {
-            wireMockServer.stubFor(
+            wireMock.stubFor(
                 WireMock.get("/scaffold/v1/template-collections/intellij/templates")
                     .willReturn(
                         WireMock.aResponse()
                             .withStatus(200)
                             .withHeader("Content-Type", "application/json")
-                            .withBody(loadFixture("template-list-with-timestamps.json"))
+                            .withBody(fixture("scaffold", "template-list-with-timestamps.json"))
                     )
             )
 
@@ -448,7 +425,7 @@ class ScaffoldHttpClientTest {
         @Test
         fun `successfully applies template and returns ZIP bytes`() {
             val zipContent = byteArrayOf(0x50, 0x4B, 0x03, 0x04, 0x01, 0x02, 0x03)
-            wireMockServer.stubFor(
+            wireMock.stubFor(
                 WireMock.post("/scaffold/v1/template-collections/intellij/templates/my-template/apply")
                     .willReturn(
                         WireMock.aResponse()
@@ -469,7 +446,7 @@ class ScaffoldHttpClientTest {
 
         @Test
         fun `sends correct JSON request body`() {
-            wireMockServer.stubFor(
+            wireMock.stubFor(
                 WireMock.post("/scaffold/v1/template-collections/intellij/templates/test-template/apply")
                     .willReturn(
                         WireMock.aResponse()
@@ -483,7 +460,7 @@ class ScaffoldHttpClientTest {
                 client.applyTemplate("test-template", options = mapOf("name" to "my-project", "lang" to "Java"))
             }
 
-            wireMockServer.verify(
+            wireMock.verify(
                 WireMock.postRequestedFor(
                     WireMock.urlEqualTo("/scaffold/v1/template-collections/intellij/templates/test-template/apply")
                 ).withRequestBody(WireMock.matchingJsonPath("$.options.name", WireMock.equalTo("my-project")))
@@ -493,7 +470,7 @@ class ScaffoldHttpClientTest {
 
         @Test
         fun `handles 400 bad request`() {
-            wireMockServer.stubFor(
+            wireMock.stubFor(
                 WireMock.post("/scaffold/v1/template-collections/intellij/templates/bad-template/apply")
                     .willReturn(
                         WireMock.aResponse()
@@ -514,7 +491,7 @@ class ScaffoldHttpClientTest {
 
         @Test
         fun `handles 500 server error`() {
-            wireMockServer.stubFor(
+            wireMock.stubFor(
                 WireMock.post("/scaffold/v1/template-collections/intellij/templates/error-template/apply")
                     .willReturn(
                         WireMock.aResponse()

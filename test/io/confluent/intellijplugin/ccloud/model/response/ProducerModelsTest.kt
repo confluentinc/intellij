@@ -1,5 +1,6 @@
 package io.confluent.intellijplugin.ccloud.model.response
 
+import io.confluent.intellijplugin.testutil.fixture
 import kotlinx.serialization.json.Json
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.DisplayName
@@ -30,7 +31,7 @@ class ProducerModelsTest {
             )
 
             val serialized = json.encodeToString(request)
-            val expected = loadFixture("/fixtures/producer/produce-record-request.json")
+            val expected = fixture("producer", "produce-record-request.json")
             assertEquals(json.parseToJsonElement(expected), json.parseToJsonElement(serialized))
         }
 
@@ -42,7 +43,7 @@ class ProducerModelsTest {
             )
 
             val serialized = json.encodeToString(request)
-            val expected = loadFixture("/fixtures/producer/produce-record-request-binary.json")
+            val expected = fixture("producer", "produce-record-request-binary.json")
             assertEquals(json.parseToJsonElement(expected), json.parseToJsonElement(serialized))
         }
 
@@ -182,7 +183,7 @@ class ProducerModelsTest {
 
         @Test
         fun `should deserialize success response`() {
-            val responseJson = loadFixture("/fixtures/producer/produce-record-response.json")
+            val responseJson = fixture("producer", "produce-record-response.json")
             val response = json.decodeFromString<ProduceRecordResponse>(responseJson)
 
             assertEquals(200, response.errorCode)
@@ -199,7 +200,7 @@ class ProducerModelsTest {
 
         @Test
         fun `should deserialize error response`() {
-            val responseJson = loadFixture("/fixtures/producer/produce-record-response-error.json")
+            val responseJson = fixture("producer", "produce-record-response-error.json")
             val response = json.decodeFromString<ProduceRecordResponse>(responseJson)
 
             assertEquals(404, response.errorCode)
@@ -246,9 +247,5 @@ class ProducerModelsTest {
 
             assertEquals(response, deserialized)
         }
-    }
-
-    private fun loadFixture(path: String): String {
-        return javaClass.getResourceAsStream(path)!!.readBytes().toString(Charsets.UTF_8)
     }
 }

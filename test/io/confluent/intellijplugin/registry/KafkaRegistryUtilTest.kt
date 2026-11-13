@@ -1,27 +1,25 @@
 package io.confluent.intellijplugin.registry
 
-import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.WireMock.aResponse
 import com.github.tomakehurst.wiremock.client.WireMock.get
 import com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo
-import com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig
 import com.intellij.testFramework.junit5.TestApplication
 import io.confluent.intellijplugin.common.models.KafkaFieldType
 import io.confluent.intellijplugin.data.BaseClusterDataManager
 import io.confluent.intellijplugin.registry.confluent.ConfluentRegistryClient
+import io.confluent.intellijplugin.testutil.fixture
+import io.confluent.intellijplugin.testutil.wireMockExtension
 import io.confluent.kafka.schemaregistry.client.rest.RestService
 import io.confluent.kafka.schemaregistry.client.rest.entities.SchemaReference
 import kotlinx.coroutines.runBlocking
-import org.junit.jupiter.api.AfterAll
-import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
-import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.extension.RegisterExtension
 import org.mockito.kotlin.any
 import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.mock
@@ -32,24 +30,13 @@ import org.mockito.kotlin.verify
 class KafkaRegistryUtilTest {
 
     companion object {
-        private lateinit var wireMockServer: WireMockServer
-
-        @JvmStatic
-        @BeforeAll
-        fun setUpAll() {
-            wireMockServer = WireMockServer(wireMockConfig().dynamicPort())
-            wireMockServer.start()
-        }
-
-        @JvmStatic
-        @AfterAll
-        fun tearDownAll() {
-            wireMockServer.stop()
-        }
+        @JvmField
+        @RegisterExtension
+        val wireMock = wireMockExtension()
     }
 
     private fun loadFixture(name: String): String =
-        javaClass.getResourceAsStream("/fixtures/schemas/$name")!!.bufferedReader().use { it.readText() }.trim()
+        fixture("schemas", name).trim()
 
     private val addressSchemaJson = loadFixture("address-avro.json")
     private val userSchemaWithRefJson = loadFixture("user-avro-with-ref.json")
@@ -58,11 +45,6 @@ class KafkaRegistryUtilTest {
     private val userProtoWithRef = loadFixture("user-proto-with-ref.proto")
     private val addressJsonSchema = loadFixture("address-json-schema.json")
     private val userJsonSchemaWithRef = loadFixture("user-json-schema-with-ref.json")
-
-    @AfterEach
-    fun cleanUp() {
-        wireMockServer.resetAll()
-    }
 
     @Nested
     @DisplayName("loadSchema")
@@ -254,13 +236,13 @@ class KafkaRegistryUtilTest {
     }
 
     private fun createRegistryClient(): ConfluentRegistryClient {
-        val restService = RestService("http://localhost:${wireMockServer.port()}")
+        val restService = RestService(wireMock.baseUrl())
         return ConfluentRegistryClient(restService, emptyMap())
     }
 
     private fun stubSchemaVersionLookup(subject: String, version: Int, schemaJson: String) {
         val escapedJson = schemaJson.replace("\"", "\\\"")
-        wireMockServer.stubFor(
+        wireMock.stubFor(
             get(urlPathEqualTo("/subjects/$subject/versions/$version"))
                 .willReturn(
                     aResponse()
