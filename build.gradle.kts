@@ -114,6 +114,8 @@ dependencies {
     implementation(libs.msgpack.jackson)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.kafka.clients)
+    // kafka-clients 4.1+ needs jose4j for OAUTHBEARER login (DefaultJwtValidator) but does not declare it (#637)
+    implementation(libs.jose4j)
 
     listOf(
         libs.kafka.avro.serializer,
