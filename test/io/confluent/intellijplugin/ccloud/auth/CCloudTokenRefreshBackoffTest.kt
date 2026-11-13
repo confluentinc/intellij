@@ -70,7 +70,8 @@ class CCloudTokenRefreshBackoffTest {
             System.setProperty("ccloud.oauth.token-uri", "$baseUrl/oauth/token")
             System.setProperty("ccloud.control-plane.token-exchange-uri", "$baseUrl/api/sessions")
             System.setProperty("ccloud.data-plane.token-exchange-uri", "$baseUrl/api/access_tokens")
-            // Tokens expire before the next check, so every tick attempts a refresh
+            // The stubbed tokens aren't JWTs, so they get this fallback lifetime: they expire before
+            // the next check, so every tick attempts a refresh
             System.setProperty("ccloud.control-plane.token-lifetime-seconds", "1")
         }
 
