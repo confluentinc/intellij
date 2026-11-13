@@ -1,6 +1,5 @@
 package io.confluent.intellijplugin.ccloud.auth
 
-import io.confluent.intellijplugin.ccloud.util.ResourceLoader
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.DisplayName
@@ -55,9 +54,9 @@ class CCloudJwtTest {
 
         @Test
         fun `reads the real-shaped control-plane and data-plane fixtures`() {
-            val controlPlane = ResourceLoader.loadResource("fixtures/ccloud-auth/control-plane-auth-token-300s.jwt").trim()
+            val controlPlane = ccloudAuthFixture("control-plane-auth-token-300s.jwt").trim()
             val dataPlane = CCloudOAuthHttpClient.json.decodeFromString<DataPlaneTokenExchangeResponse>(
-                ResourceLoader.loadResource("fixtures/ccloud-auth/data-plane-token-900s.json")
+                ccloudAuthFixture("data-plane-token-900s.json")
             ).token!!
 
             assertEquals(300.seconds, CCloudJwt.lifetime(controlPlane))

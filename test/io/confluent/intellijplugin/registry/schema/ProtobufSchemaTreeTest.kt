@@ -1,6 +1,7 @@
 package io.confluent.intellijplugin.registry.schema
 
 import io.confluent.intellijplugin.model.SchemaRegistryFieldsInfo
+import io.confluent.intellijplugin.testutil.fixture
 import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchema
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Nested
@@ -13,11 +14,8 @@ import javax.swing.tree.TreePath
 
 class ProtobufSchemaTreeTest {
 
-    private fun loadFixture(name: String): String =
-        javaClass.getResourceAsStream("/fixtures/registry/schema/protobuf/$name")!!.bufferedReader().use { it.readText() }
-
-    private fun buildTreeFor(fixture: String): Triple<DefaultMutableTreeNode, ProtobufSchemaTree, JTree> {
-        val schema = ProtobufSchema(loadFixture(fixture))
+    private fun buildTreeFor(name: String): Triple<DefaultMutableTreeNode, ProtobufSchemaTree, JTree> {
+        val schema = ProtobufSchema(fixture("registry/schema/protobuf", name))
         val root = DefaultMutableTreeNode("root")
         val model = DefaultTreeModel(root)
         val tree = ProtobufSchemaTree(model, schema)

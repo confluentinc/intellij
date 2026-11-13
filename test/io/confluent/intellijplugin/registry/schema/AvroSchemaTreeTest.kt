@@ -1,6 +1,7 @@
 package io.confluent.intellijplugin.registry.schema
 
 import io.confluent.intellijplugin.model.SchemaRegistryFieldsInfo
+import io.confluent.intellijplugin.testutil.fixture
 import io.confluent.kafka.schemaregistry.avro.AvroSchema
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Nested
@@ -13,11 +14,8 @@ import javax.swing.tree.TreePath
 
 class AvroSchemaTreeTest {
 
-    private fun loadFixture(name: String): String =
-        javaClass.getResourceAsStream("/fixtures/registry/schema/avro/$name")!!.bufferedReader().use { it.readText() }
-
-    private fun buildTreeFor(fixture: String): Triple<DefaultMutableTreeNode, AvroSchemaTree, JTree> {
-        val schema = AvroSchema(loadFixture(fixture))
+    private fun buildTreeFor(name: String): Triple<DefaultMutableTreeNode, AvroSchemaTree, JTree> {
+        val schema = AvroSchema(fixture("registry/schema/avro", name))
         val root = DefaultMutableTreeNode("root")
         val model = DefaultTreeModel(root)
         val tree = AvroSchemaTree(model, schema)

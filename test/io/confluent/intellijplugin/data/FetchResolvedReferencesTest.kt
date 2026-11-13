@@ -75,7 +75,7 @@ class FetchResolvedReferencesTest {
     }
 
     @Test
-    fun `should fetch each subject and version only once`() = runBlocking {
+    fun `should fetch each subject and version only once`() = runBlocking<Unit> {
         val fetcher = mock<DataPlaneFetcher> {
             onBlocking { getSchemaVersionInfo("Address", 1L) } doReturn schemaResponse(
                 subject = "Address",
@@ -94,7 +94,7 @@ class FetchResolvedReferencesTest {
     }
 
     @Test
-    fun `should terminate on a cycle`() = runBlocking {
+    fun `should terminate on a cycle`() = runBlocking<Unit> {
         val fetcher = mock<DataPlaneFetcher> {
             onBlocking { getSchemaVersionInfo("A", 1L) } doReturn schemaResponse(
                 subject = "A",

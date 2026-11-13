@@ -14,6 +14,7 @@ import io.confluent.intellijplugin.core.settings.connections.Property
 import io.confluent.intellijplugin.data.CCloudClusterDataManager
 import io.confluent.intellijplugin.registry.KafkaRegistryFormat
 import io.confluent.intellijplugin.registry.KafkaRegistryType
+import io.confluent.intellijplugin.testutil.fixture
 import io.confluent.kafka.schemaregistry.avro.AvroSchema
 import io.confluent.kafka.schemaregistry.avro.AvroSchemaUtils
 import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchema
@@ -100,9 +101,7 @@ class CCloudProducerClientTest {
     inner class BuildRecordData {
 
         private val avroSchemaJson = """{"type": "record", "name": "Test", "fields": [{"name": "name", "type": "string"}]}"""
-        private val protoSchemaText = javaClass.getResourceAsStream(
-            "/fixtures/schemas/user-proto-schema.proto"
-        )!!.readBytes().toString(Charsets.UTF_8)
+        private val protoSchemaText = fixture("schemas", "user-proto-schema.proto")
 
         @Nested
         @DisplayName("primitive and simple types")
@@ -654,9 +653,7 @@ class CCloudProducerClientTest {
     @DisplayName("serializeProtobuf")
     inner class SerializeProtobufTest {
 
-        private val protoSchemaText = javaClass.getResourceAsStream(
-            "/fixtures/schemas/user-proto-schema.proto"
-        )!!.readBytes().toString(Charsets.UTF_8)
+        private val protoSchemaText = fixture("schemas", "user-proto-schema.proto")
 
         @Test
         fun `should serialize with message indexes and be deserializable`() {
