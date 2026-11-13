@@ -233,15 +233,11 @@ assertThat(captor.firstValue).isEqualTo("expected")
 **Never use inline JSON strings for mocked API responses.** Use fixture files:
 
 ```kotlin
-// Load from test/resources/fixtures/
-val json = javaClass.getResourceAsStream("/fixtures/sample-response.json")!!.readText()
-
-// Or use the project's ResourceLoader utility:
-val json = ResourceLoader.loadResource("ccloud-resources-mock-responses/list-clusters.json")
+// Reads test/resources/fixtures/ccloud-resources/list-clusters.json
+val json = fixture("ccloud-resources", "list-clusters.json") // io.confluent.intellijplugin.testutil.fixture
 ```
 
-Fixture files go in `test/resources/` (or subdirectories like `test/resources/fixtures/`,
-`test/resources/ccloud-resources-mock-responses/`).
+Fixture files go in a subdirectory of `test/resources/fixtures/`.
 
 ### 5. Run Tests
 

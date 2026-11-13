@@ -34,3 +34,6 @@ internal fun testClient(
 
 /** Reads `/fixtures/ccloud/<name>` as text. */
 internal fun ccloudFixture(name: String): String = fixture("ccloud", name)
+
+/** Reads `/fixtures/ccloud-resources/<name>` (CCloud REST resource responses) as text. */
+internal fun ccloudResourceFixture(name: String): String = fixture("ccloud-resources", name)

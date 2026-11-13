@@ -9,7 +9,7 @@ import io.confluent.intellijplugin.ccloud.client.ccloudFixture
 import io.confluent.intellijplugin.ccloud.client.signedInAuthService
 import io.confluent.intellijplugin.ccloud.client.testClient
 import io.confluent.intellijplugin.ccloud.model.response.ConsumeRecordsRequest
-import io.confluent.intellijplugin.ccloud.util.ResourceLoader
+import io.confluent.intellijplugin.ccloud.client.ccloudResourceFixture
 import io.confluent.intellijplugin.testutil.fixture
 import io.confluent.intellijplugin.testutil.wireMockExtension
 import kotlinx.coroutines.runBlocking
@@ -80,17 +80,13 @@ class DataPlaneFetcherImplTest {
         )
     }
 
-    private fun loadMockResponse(filename: String): String {
-        return ResourceLoader.loadResource("ccloud-resources-mock-responses/$filename")
-    }
-
     @Nested
     @DisplayName("getTopics")
     inner class GetTopicsTests {
 
         @Test
         fun `fetches topics successfully`() = runBlocking {
-            stubKafkaGet("/kafka/v3/clusters/$TEST_CLUSTER_ID/topics", loadMockResponse("list-topics.json"))
+            stubKafkaGet("/kafka/v3/clusters/$TEST_CLUSTER_ID/topics", ccloudResourceFixture("list-topics.json"))
 
             val result = fetcher.getTopics()
 
@@ -131,7 +127,7 @@ class DataPlaneFetcherImplTest {
         fun `fetches topic partitions successfully`() = runBlocking {
             stubKafkaGet(
                 "/kafka/v3/clusters/$TEST_CLUSTER_ID/topics/orders/partitions",
-                loadMockResponse("describe-topic-partitions.json")
+                ccloudResourceFixture("describe-topic-partitions.json")
             )
 
             val result = fetcher.describeTopicPartitions("orders")
@@ -163,7 +159,7 @@ class DataPlaneFetcherImplTest {
         fun `fetches topic message count successfully`() = runBlocking {
             stubKafkaGet(
                 "/kafka/v3/clusters/$TEST_CLUSTER_ID/internal/topics/orders/partitions/-/records:offsets",
-                loadMockResponse("topic-message-count.json")
+                ccloudResourceFixture("topic-message-count.json")
             )
 
             val result = fetcher.getTopicMessageCount("orders")
@@ -190,7 +186,7 @@ class DataPlaneFetcherImplTest {
 
         @Test
         fun `fetches all subjects successfully`() = runBlocking {
-            stubSchemaRegistryGet("/subjects", loadMockResponse("list-all-subjects.json"))
+            stubSchemaRegistryGet("/subjects", ccloudResourceFixture("list-all-subjects.json"))
 
             val result = fetcher.getAllSubjects()
 
@@ -216,7 +212,7 @@ class DataPlaneFetcherImplTest {
 
         @Test
         fun `fetches schema versions successfully`() = runBlocking {
-            stubSchemaRegistryGet("/subjects/user-schema/versions", loadMockResponse("schema-versions-list.json"))
+            stubSchemaRegistryGet("/subjects/user-schema/versions", ccloudResourceFixture("schema-versions-list.json"))
 
             val result = fetcher.listSchemaVersions("user-schema")
 
@@ -242,7 +238,7 @@ class DataPlaneFetcherImplTest {
 
         @Test
         fun `fetches specific schema version successfully`(): Unit = runBlocking {
-            stubSchemaRegistryGet("/subjects/user-schema/versions/2", loadMockResponse("schema-version-specific.json"))
+            stubSchemaRegistryGet("/subjects/user-schema/versions/2", ccloudResourceFixture("schema-version-specific.json"))
 
             val result = fetcher.getSchemaVersionInfo("user-schema", 2)
 
@@ -255,7 +251,7 @@ class DataPlaneFetcherImplTest {
 
         @Test
         fun `handles schema with references`() = runBlocking {
-            stubSchemaRegistryGet("/subjects/user-schema/versions/2", loadMockResponse("schema-version-specific.json"))
+            stubSchemaRegistryGet("/subjects/user-schema/versions/2", ccloudResourceFixture("schema-version-specific.json"))
 
             val result = fetcher.getSchemaVersionInfo("user-schema", 2)
 
@@ -272,7 +268,7 @@ class DataPlaneFetcherImplTest {
         fun `fetches latest schema version successfully`(): Unit = runBlocking {
             stubSchemaRegistryGet(
                 "/subjects/user-schema/versions/latest",
-                loadMockResponse("schema-version-latest.json")
+                ccloudResourceFixture("schema-version-latest.json")
             )
 
             val result = fetcher.getLatestVersionInfo("user-schema")
@@ -291,7 +287,7 @@ class DataPlaneFetcherImplTest {
 
         @Test
         fun `fetches schema by ID successfully`() = runBlocking {
-            stubSchemaRegistryGet("/schemas/ids/100001", loadMockResponse("schema-by-id.json"))
+            stubSchemaRegistryGet("/schemas/ids/100001", ccloudResourceFixture("schema-by-id.json"))
 
             val result = fetcher.getSchemaIdInfo(100001)
 
@@ -309,7 +305,7 @@ class DataPlaneFetcherImplTest {
         fun `loads schema info without compatibility for performance`() = runBlocking {
             stubSchemaRegistryGet(
                 "/subjects/user-schema/versions/latest",
-                loadMockResponse("schema-version-latest.json")
+                ccloudResourceFixture("schema-version-latest.json")
             )
 
             val result = fetcher.loadSchemaInfo("user-schema")
@@ -345,7 +341,7 @@ class DataPlaneFetcherImplTest {
 
         @Test
         fun `fetches schema compatibility successfully`() = runBlocking {
-            stubSchemaRegistryGet("/config/user-schema", loadMockResponse("schema-compatibility.json"))
+            stubSchemaRegistryGet("/config/user-schema", ccloudResourceFixture("schema-compatibility.json"))
 
             val result = fetcher.getSchemaCompatibility("user-schema")
 

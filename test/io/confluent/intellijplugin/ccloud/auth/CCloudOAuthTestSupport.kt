@@ -2,18 +2,18 @@ package io.confluent.intellijplugin.ccloud.auth
 
 import com.github.tomakehurst.wiremock.client.WireMock
 import com.github.tomakehurst.wiremock.junit.Stubbing
-import io.confluent.intellijplugin.ccloud.util.ResourceLoader
+import io.confluent.intellijplugin.testutil.fixture
 
 /*
  * WireMock stubs for the three token endpoints (oauth/token, api/sessions, api/access_tokens).
- * They extend [Stubbing], so they work on both a WireMockServer and a WireMockExtension.
+ * They extend [Stubbing], so they can be called on a WireMockExtension.
  */
 
 /** Control plane token the success stub sets in the `auth_token` cookie. */
 internal const val TEST_AUTH_CONTROL_PLANE_TOKEN = "test_cp_token"
 
 /** Reads `fixtures/ccloud-auth/<name>` as text. */
-internal fun ccloudAuthFixture(name: String): String = ResourceLoader.loadResource("fixtures/ccloud-auth/$name")
+internal fun ccloudAuthFixture(name: String): String = fixture("ccloud-auth", name)
 
 /** Stub a successful sign-in or refresh: every token endpoint answers 200 from the fixtures. */
 internal fun Stubbing.stubTokenEndpointsSuccess() {

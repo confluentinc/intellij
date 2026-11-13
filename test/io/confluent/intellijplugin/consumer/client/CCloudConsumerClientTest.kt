@@ -1115,7 +1115,7 @@ class CCloudConsumerClientTest {
 
             @ParameterizedTest
             @ValueSource(ints = [429, 503])
-            fun `poll loop should be the only retry layer over a real REST client`(status: Int) {
+            fun `poll loop should be the only retry layer`(status: Int) {
                 val errorFixture = if (status == 429) "error-rate-limited.json" else "error-service-unavailable.json"
                 wireMock.stubFor(
                     post(urlPathMatching(".*/records:consume_guarantee_progress"))

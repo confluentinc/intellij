@@ -5,7 +5,7 @@ import com.intellij.testFramework.junit5.TestApplication
 import io.confluent.intellijplugin.ccloud.client.CCloudRestClient
 import io.confluent.intellijplugin.ccloud.client.TEST_CONTROL_PLANE_TOKEN
 import io.confluent.intellijplugin.ccloud.client.testClient
-import io.confluent.intellijplugin.ccloud.util.ResourceLoader
+import io.confluent.intellijplugin.ccloud.client.ccloudResourceFixture
 import io.confluent.intellijplugin.testutil.wireMockExtension
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.*
@@ -19,20 +19,12 @@ class ControlPlaneFetcherImplTest {
         @JvmField
         @RegisterExtension
         val wireMock = wireMockExtension()
-
-        @JvmStatic
-        @AfterAll
-        fun tearDownAll() {
-            System.clearProperty("ccloud.control-plane.base-url")
-        }
     }
 
     private lateinit var fetcher: ControlPlaneFetcherImpl
 
     @BeforeEach
     fun setup() {
-        // The extension may restart on a new port per @Nested class, so point the property at it per test.
-        System.setProperty("ccloud.control-plane.base-url", wireMock.baseUrl())
         fetcher = ControlPlaneFetcherImpl(
             testClient(wireMock.baseUrl(), authType = CCloudRestClient.AuthType.CONTROL_PLANE)
         )
@@ -51,17 +43,13 @@ class ControlPlaneFetcherImplTest {
         )
     }
 
-    private fun loadMockResponse(filename: String): String {
-        return ResourceLoader.loadResource("ccloud-resources-mock-responses/$filename")
-    }
-
     @Nested
     @DisplayName("getEnvironments")
     inner class GetEnvironmentsTests {
 
         @Test
         fun `fetches environments successfully`() = runBlocking {
-            stubGetRequest("/org/v2/environments", loadMockResponse("list-environments.json"))
+            stubGetRequest("/org/v2/environments", ccloudResourceFixture("list-environments.json"))
 
             val result = fetcher.getEnvironments()
 
@@ -74,7 +62,7 @@ class ControlPlaneFetcherImplTest {
 
         @Test
         fun `handles missing display_name`() = runBlocking {
-            stubGetRequest("/org/v2/environments", loadMockResponse("list-environments-with-missing-fields.json"))
+            stubGetRequest("/org/v2/environments", ccloudResourceFixture("list-environments-with-missing-fields.json"))
 
             val result = fetcher.getEnvironments()
 
@@ -91,7 +79,7 @@ class ControlPlaneFetcherImplTest {
 
         @Test
         fun `fetches kafka clusters successfully`() = runBlocking {
-            stubGetRequest("/cmk/v2/clusters?environment=env-123", loadMockResponse("list-clusters.json"))
+            stubGetRequest("/cmk/v2/clusters?environment=env-123", ccloudResourceFixture("list-clusters.json"))
 
             val result = fetcher.getKafkaClusters("env-123")
 
@@ -106,7 +94,7 @@ class ControlPlaneFetcherImplTest {
 
         @Test
         fun `handles missing spec fields`() = runBlocking {
-            stubGetRequest("/cmk/v2/clusters?environment=env-123", loadMockResponse("list-clusters-with-missing-fields.json"))
+            stubGetRequest("/cmk/v2/clusters?environment=env-123", ccloudResourceFixture("list-clusters-with-missing-fields.json"))
 
             val result = fetcher.getKafkaClusters("env-123")
 
@@ -124,7 +112,7 @@ class ControlPlaneFetcherImplTest {
 
         @Test
         fun `fetches schema registry successfully`() = runBlocking {
-            stubGetRequest("/srcm/v3/clusters?environment=env-123", loadMockResponse("list-schema-registry.json"))
+            stubGetRequest("/srcm/v3/clusters?environment=env-123", ccloudResourceFixture("list-schema-registry.json"))
 
             val result = fetcher.getSchemaRegistry("env-123")
 
@@ -138,7 +126,7 @@ class ControlPlaneFetcherImplTest {
 
         @Test
         fun `handles missing spec fields in schema registry`() = runBlocking {
-            stubGetRequest("/srcm/v3/clusters?environment=env-123", loadMockResponse("list-schema-registry-with-missing-fields.json"))
+            stubGetRequest("/srcm/v3/clusters?environment=env-123", ccloudResourceFixture("list-schema-registry-with-missing-fields.json"))
 
             val result = fetcher.getSchemaRegistry("env-123")
 

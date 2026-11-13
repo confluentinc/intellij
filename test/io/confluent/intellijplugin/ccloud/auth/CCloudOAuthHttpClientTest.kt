@@ -5,7 +5,6 @@ import com.intellij.testFramework.junit5.TestApplication
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.*
 import com.intellij.util.io.HttpRequests
-import io.confluent.intellijplugin.ccloud.util.ResourceLoader
 import io.confluent.intellijplugin.testutil.wireMockExtension
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -319,7 +318,7 @@ class CCloudOAuthHttpClientTest {
                         WireMock.aResponse()
                             .withStatus(200)
                             .withHeader("Content-Type", "application/json")
-                            .withBody(ResourceLoader.loadResource("fixtures/ccloud-auth/data-plane-token-success.json"))
+                            .withBody(ccloudAuthFixture("data-plane-token-success.json"))
                     )
             )
 
