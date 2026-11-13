@@ -1,15 +1,15 @@
 package io.confluent.intellijplugin.ccloud.fetcher
 
-import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.WireMock.*
-import com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig
 import com.intellij.testFramework.junit5.TestApplication
-import io.confluent.intellijplugin.ccloud.auth.CCloudAuthService
 import io.confluent.intellijplugin.ccloud.client.CCloudApiException
-import io.confluent.intellijplugin.ccloud.client.CCloudRestClient
 import io.confluent.intellijplugin.ccloud.client.CCloudRetryPolicy
+import io.confluent.intellijplugin.ccloud.client.TEST_DATA_PLANE_TOKEN
+import io.confluent.intellijplugin.ccloud.client.signedInAuthService
+import io.confluent.intellijplugin.ccloud.client.testClient
 import io.confluent.intellijplugin.ccloud.model.response.ConsumeRecordsRequest
 import io.confluent.intellijplugin.ccloud.util.ResourceLoader
+import io.confluent.intellijplugin.testutil.wireMockExtension
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.*
 import org.junit.jupiter.params.ParameterizedTest
@@ -19,69 +19,40 @@ import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
-import org.mockito.kotlin.mock
-import org.mockito.kotlin.whenever
+import org.junit.jupiter.api.extension.RegisterExtension
 
 @TestApplication
 class DataPlaneFetcherImplTest {
 
     companion object {
-        private lateinit var wireMockServer: WireMockServer
-        private const val TEST_DATA_PLANE_TOKEN = "test-data-plane-token"
+        @JvmField
+        @RegisterExtension
+        val wireMock = wireMockExtension()
+
         private const val TEST_CLUSTER_ID = "lkc-abc123"
         private const val TEST_SR_ID = "lsrc-xyz789"
-
-        @JvmStatic
-        @BeforeAll
-        fun setUpAll() {
-            wireMockServer = WireMockServer(wireMockConfig().dynamicPort())
-            wireMockServer.start()
-        }
-
-        @JvmStatic
-        @AfterAll
-        fun tearDownAll() {
-            wireMockServer.stop()
-        }
     }
 
     private lateinit var fetcher: DataPlaneFetcherImpl
-    private lateinit var authService: CCloudAuthService
 
     @BeforeEach
     fun setup() {
-        authService = mock()
-        whenever(authService.isSignedIn()).thenReturn(true)
-        whenever(authService.getDataPlaneToken()).thenReturn(TEST_DATA_PLANE_TOKEN)
-
-        val kafkaClient = CCloudRestClient(
-            baseUrl = "http://localhost:${wireMockServer.port()}",
-            authType = CCloudRestClient.AuthType.DATA_PLANE,
-            authService = authService
-        )
-
-        val schemaRegistryClient = CCloudRestClient(
-            baseUrl = "http://localhost:${wireMockServer.port()}",
-            authType = CCloudRestClient.AuthType.DATA_PLANE,
-            additionalHeaders = mapOf("target-sr-cluster" to TEST_SR_ID),
-            authService = authService
-        )
+        val authService = signedInAuthService()
 
         fetcher = DataPlaneFetcherImpl(
-            kafkaClient = kafkaClient,
-            schemaRegistryClient = schemaRegistryClient,
+            kafkaClient = testClient(wireMock.baseUrl(), authService = authService),
+            schemaRegistryClient = testClient(
+                wireMock.baseUrl(),
+                authService = authService,
+                additionalHeaders = mapOf("target-sr-cluster" to TEST_SR_ID)
+            ),
             clusterId = TEST_CLUSTER_ID,
             schemaRegistryId = TEST_SR_ID
         )
     }
 
-    @AfterEach
-    fun cleanUp() {
-        wireMockServer.resetAll()
-    }
-
     private fun stubKafkaGet(path: String, responseBody: String) {
-        wireMockServer.stubFor(
+        wireMock.stubFor(
             get(path)
                 .withHeader("Authorization", equalTo("Bearer $TEST_DATA_PLANE_TOKEN"))
                 .willReturn(
@@ -94,7 +65,7 @@ class DataPlaneFetcherImplTest {
     }
 
     private fun stubSchemaRegistryGet(path: String, responseBody: String) {
-        wireMockServer.stubFor(
+        wireMock.stubFor(
             get(path)
                 .withHeader("Authorization", equalTo("Bearer $TEST_DATA_PLANE_TOKEN"))
                 .withHeader("target-sr-cluster", equalTo(TEST_SR_ID))
@@ -350,7 +321,7 @@ class DataPlaneFetcherImplTest {
         @Test
         fun `handles errors gracefully and returns minimal schema data`() = runBlocking {
             // Latest version endpoint returns error
-            wireMockServer.stubFor(
+            wireMock.stubFor(
                 get("/subjects/missing-schema/versions/latest")
                     .withHeader("Authorization", equalTo("Bearer $TEST_DATA_PLANE_TOKEN"))
                     .withHeader("target-sr-cluster", equalTo(TEST_SR_ID))
@@ -397,12 +368,7 @@ class DataPlaneFetcherImplTest {
 
         @BeforeEach
         fun setupFastFetcher() {
-            val kafkaClient = CCloudRestClient(
-                baseUrl = "http://localhost:${wireMockServer.port()}",
-                authType = CCloudRestClient.AuthType.DATA_PLANE,
-                authService = authService,
-                retryPolicy = CCloudRetryPolicy.immediate()
-            )
+            val kafkaClient = testClient(wireMock.baseUrl(), retryPolicy = CCloudRetryPolicy.immediate())
             fastFetcher = DataPlaneFetcherImpl(kafkaClient, null, TEST_CLUSTER_ID, null)
         }
 
@@ -417,19 +383,19 @@ class DataPlaneFetcherImplTest {
         @ParameterizedTest
         @ValueSource(ints = [429, 503])
         fun `consumeRecords should not retry in the client`(status: Int) = runBlocking<Unit> {
-            wireMockServer.stubFor(post(urlPathEqualTo(consumePath)).willReturn(failing(status)))
+            wireMock.stubFor(post(urlPathEqualTo(consumePath)).willReturn(failing(status)))
 
             val exception = assertThrows<CCloudApiException> {
                 fastFetcher.consumeRecords("orders", ConsumeRecordsRequest())
             }
 
             assertEquals(status, exception.statusCode)
-            wireMockServer.verify(1, postRequestedFor(urlPathEqualTo(consumePath)))
+            wireMock.verify(1, postRequestedFor(urlPathEqualTo(consumePath)))
         }
 
         @Test
         fun `consumeRecords should parse a successful response`() = runBlocking<Unit> {
-            wireMockServer.stubFor(
+            wireMock.stubFor(
                 post(urlPathEqualTo(consumePath))
                     .willReturn(aResponse().withStatus(200).withBody(fixture("consumer/empty-consume-response.json")))
             )
@@ -437,29 +403,29 @@ class DataPlaneFetcherImplTest {
             val response = fastFetcher.consumeRecords("orders", ConsumeRecordsRequest())
 
             assertTrue(response.partitionDataList.isEmpty())
-            wireMockServer.verify(1, postRequestedFor(urlPathEqualTo(consumePath)))
+            wireMock.verify(1, postRequestedFor(urlPathEqualTo(consumePath)))
         }
 
         @ParameterizedTest
         @ValueSource(ints = [429, 503])
         fun `consumePartitionRecords should not retry in the client`(status: Int) = runBlocking<Unit> {
-            wireMockServer.stubFor(get(urlPathEqualTo(partitionConsumePath)).willReturn(failing(status)))
+            wireMock.stubFor(get(urlPathEqualTo(partitionConsumePath)).willReturn(failing(status)))
 
             val exception = assertThrows<CCloudApiException> {
                 fastFetcher.consumePartitionRecords("orders", 0, timestamp = 1L)
             }
 
             assertEquals(status, exception.statusCode)
-            wireMockServer.verify(1, getRequestedFor(urlPathEqualTo(partitionConsumePath)))
+            wireMock.verify(1, getRequestedFor(urlPathEqualTo(partitionConsumePath)))
         }
 
         @Test
         fun `non-consume GETs should keep client retries`() = runBlocking<Unit> {
-            wireMockServer.stubFor(get(urlPathEqualTo(partitionsPath)).willReturn(failing(503)))
+            wireMock.stubFor(get(urlPathEqualTo(partitionsPath)).willReturn(failing(503)))
 
             assertThrows<CCloudApiException> { fastFetcher.describeTopicPartitions("orders") }
 
-            wireMockServer.verify(CCloudRetryPolicy.immediate().maxAttempts, getRequestedFor(urlPathEqualTo(partitionsPath)))
+            wireMock.verify(CCloudRetryPolicy.immediate().maxAttempts, getRequestedFor(urlPathEqualTo(partitionsPath)))
         }
     }
 }
