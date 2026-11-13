@@ -60,3 +60,22 @@ internal fun Stubbing.stubTokenEndpointFailure(
     if (delayMs > 0) response.withFixedDelay(delayMs)
     stubFor(WireMock.post(path).willReturn(response).atPriority(1))
 }
+
+private val TOKEN_ENDPOINT_PROPERTIES = mapOf(
+    "ccloud.oauth.token-uri" to "/oauth/token",
+    "ccloud.control-plane.token-exchange-uri" to "/api/sessions",
+    "ccloud.data-plane.token-exchange-uri" to "/api/access_tokens",
+)
+
+/**
+ * Point the three token endpoint system properties at [baseUrl]. Call it per test (from `@BeforeEach`),
+ * since a WireMock extension can move to a new port for each `@Nested` class.
+ */
+internal fun pointTokenEndpointsAt(baseUrl: String) {
+    TOKEN_ENDPOINT_PROPERTIES.forEach { (property, path) -> System.setProperty(property, "$baseUrl$path") }
+}
+
+/** Clear the properties set by [pointTokenEndpointsAt]. */
+internal fun clearTokenEndpointProperties() {
+    TOKEN_ENDPOINT_PROPERTIES.keys.forEach(System::clearProperty)
+}

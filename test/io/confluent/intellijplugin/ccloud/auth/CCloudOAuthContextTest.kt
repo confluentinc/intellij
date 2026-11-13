@@ -40,9 +40,7 @@ class CCloudOAuthContextTest {
         @JvmStatic
         @AfterAll
         fun tearDownAll() {
-            System.clearProperty("ccloud.oauth.token-uri")
-            System.clearProperty("ccloud.control-plane.token-exchange-uri")
-            System.clearProperty("ccloud.data-plane.token-exchange-uri")
+            clearTokenEndpointProperties()
         }
     }
 
@@ -50,11 +48,7 @@ class CCloudOAuthContextTest {
 
     @BeforeEach
     fun setUp() {
-        // The extension may restart on a new port per @Nested class, so point the properties at it per test.
-        val baseUrl = wireMock.baseUrl()
-        System.setProperty("ccloud.oauth.token-uri", "$baseUrl/oauth/token")
-        System.setProperty("ccloud.control-plane.token-exchange-uri", "$baseUrl/api/sessions")
-        System.setProperty("ccloud.data-plane.token-exchange-uri", "$baseUrl/api/access_tokens")
+        pointTokenEndpointsAt(wireMock.baseUrl())
 
         context = CCloudOAuthContext()
         registerWireMockRoutesForCCloudOAuth()

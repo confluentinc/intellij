@@ -1,16 +1,15 @@
 package io.confluent.intellijplugin.consumer.client
 
-import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.WireMock.aResponse
 import com.github.tomakehurst.wiremock.client.WireMock.post
 import com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor
 import com.github.tomakehurst.wiremock.client.WireMock.urlPathMatching
-import com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig
 import com.intellij.testFramework.junit5.TestApplication
 import io.confluent.intellijplugin.ccloud.cache.DataPlaneCache
 import io.confluent.intellijplugin.ccloud.client.CCloudApiException
 import io.confluent.intellijplugin.ccloud.client.CCloudConnectException
 import io.confluent.intellijplugin.ccloud.client.CCloudRetryPolicy
+import io.confluent.intellijplugin.ccloud.client.ccloudFixture
 import io.confluent.intellijplugin.ccloud.client.testClient
 import io.confluent.intellijplugin.ccloud.fetcher.DataPlaneFetcher
 import io.confluent.intellijplugin.ccloud.fetcher.DataPlaneFetcherImpl
@@ -27,6 +26,7 @@ import io.confluent.intellijplugin.common.settings.StorageConsumerConfig
 import io.confluent.intellijplugin.consumer.models.ConsumerProducerFieldConfig
 import io.confluent.intellijplugin.consumer.models.ConsumerStartType
 import io.confluent.intellijplugin.data.CCloudClusterDataManager
+import io.confluent.intellijplugin.testutil.wireMockExtension
 import io.confluent.intellijplugin.ccloud.model.response.PartitionData
 import io.confluent.intellijplugin.registry.KafkaRegistryFormat
 import io.confluent.intellijplugin.registry.KafkaRegistryType
@@ -58,6 +58,7 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.extension.RegisterExtension
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.ValueSource
 import org.mockito.kotlin.*
@@ -1109,32 +1110,33 @@ class CCloudConsumerClientTest {
             assertSame(last, error.cause)
         }
 
-        @ParameterizedTest
-        @ValueSource(ints = [429, 503])
-        fun `poll loop should be the only retry layer over a real REST client`(status: Int) {
-            val server = WireMockServer(wireMockConfig().dynamicPort()).apply { start() }
-            try {
+        @Nested
+        @DisplayName("over a real REST client")
+        inner class OverRealRestClient {
+
+            // Instance-level, so the server only runs for the tests in this class
+            @JvmField
+            @RegisterExtension
+            val wireMock = wireMockExtension()
+
+            @ParameterizedTest
+            @ValueSource(ints = [429, 503])
+            fun `poll loop should be the only retry layer over a real REST client`(status: Int) {
                 val errorFixture = if (status == 429) "error-rate-limited.json" else "error-service-unavailable.json"
-                server.stubFor(
-                    post(urlPathMatching(".*/records:consume_guarantee_progress")).willReturn(
-                        aResponse().withStatus(status).withBody(
-                            javaClass.getResourceAsStream("/fixtures/ccloud/$errorFixture")!!
-                                .readBytes().toString(Charsets.UTF_8)
-                        )
-                    )
+                wireMock.stubFor(
+                    post(urlPathMatching(".*/records:consume_guarantee_progress"))
+                        .willReturn(aResponse().withStatus(status).withBody(ccloudFixture(errorFixture)))
                 )
                 // The REST client would retry 4x per poll if consume didn't opt out
-                val restClient = testClient(server.baseUrl(), retryPolicy = CCloudRetryPolicy.immediate(maxAttempts = 4))
+                val restClient = testClient(wireMock.baseUrl(), retryPolicy = CCloudRetryPolicy.immediate(maxAttempts = 4))
                 val fetcher = DataPlaneFetcherImpl(restClient, null, "lkc-test123", null)
 
                 runPollsAgainst(fetcher, CCloudRetryPolicy.immediate(maxAttempts = 3))
 
-                server.verify(3, postRequestedFor(urlPathMatching(".*/records:consume_guarantee_progress")))
+                wireMock.verify(3, postRequestedFor(urlPathMatching(".*/records:consume_guarantee_progress")))
                 val error = errors.single()
                 assertInstanceOf(CCloudConsumeRetriesExhaustedException::class.java, error)
                 assertEquals(status, (error.cause as CCloudApiException).statusCode)
-            } finally {
-                server.stop()
             }
         }
 
