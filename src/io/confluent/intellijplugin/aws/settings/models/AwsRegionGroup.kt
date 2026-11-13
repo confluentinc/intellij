@@ -33,6 +33,7 @@ enum class AwsRegionGroup(
             setOf("af"),             // Africa
             setOf("ap"),             // Asia Pacific
         )
+        private val knownPrefixes = globalSubgroupPrefixes.flatten().toSet()
 
         private val regionsByPartition: Map<String, List<Region>> by lazy {
             Region.regions()
@@ -49,10 +50,11 @@ enum class AwsRegionGroup(
 
         fun getRegionSubgroupsForGroup(group: AwsRegionGroup?): List<List<Region>> = when (group) {
             GLOBAL -> {
-                val regions = regionsFor(GLOBAL)
-                val known = globalSubgroupPrefixes.flatten().toSet()
-                val subgroups = globalSubgroupPrefixes.map { prefixes -> regions.filter { prefixOf(it) in prefixes } }
-                val other = regions.filter { prefixOf(it) !in known }
+                val regionsByPrefix = regionsFor(GLOBAL).groupBy(::prefixOf)
+                val subgroups = globalSubgroupPrefixes.map { prefixes ->
+                    prefixes.flatMap { regionsByPrefix[it].orEmpty() }.sortedBy { it.id() }
+                }
+                val other = regionsByPrefix.filterKeys { it !in knownPrefixes }.values.flatten().sortedBy { it.id() }
                 (subgroups + listOf(other)).filter { it.isNotEmpty() }
             }
 

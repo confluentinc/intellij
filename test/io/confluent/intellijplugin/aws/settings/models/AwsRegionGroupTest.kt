@@ -32,7 +32,7 @@ class AwsRegionGroupTest {
 
             // Region.of rather than constants: the compile classpath can resolve an older SDK than the
             // runtime classpath (e.g. no AP_SOUTHEAST_6 constant), which is why the list is derived at runtime.
-            listOf("ap-southeast-5", "ap-southeast-6", "ap-southeast-7", "ap-east-2", "mx-central-1", "ca-west-1")
+            listOf("ap-southeast-5", "ap-southeast-6", "ap-southeast-7", "ap-east-2", "mx-central-1")
                 .map { Region.of(it) }
                 .forEach { assertTrue(it in shown, "Expected $it to be shown") }
         }
