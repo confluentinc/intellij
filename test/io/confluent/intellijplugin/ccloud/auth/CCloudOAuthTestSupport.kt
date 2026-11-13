@@ -15,8 +15,16 @@ internal const val TEST_AUTH_CONTROL_PLANE_TOKEN = "test_cp_token"
 /** Reads `fixtures/ccloud-auth/<name>` as text. */
 internal fun ccloudAuthFixture(name: String): String = fixture("ccloud-auth", name)
 
-/** Stub a successful sign-in or refresh: every token endpoint answers 200 from the fixtures. */
-internal fun Stubbing.stubTokenEndpointsSuccess() {
+/**
+ * Stub a successful sign-in or refresh: every token endpoint answers 200 from the fixtures.
+ * Calling it again replaces the earlier success stubs, since WireMock prefers the newest stub.
+ * @param controlPlaneToken Value of the `auth_token` cookie, set with prod's cookie attributes
+ * @param dataPlaneFixture Data plane token response under `fixtures/ccloud-auth/`
+ */
+internal fun Stubbing.stubTokenEndpointsSuccess(
+    controlPlaneToken: String = TEST_AUTH_CONTROL_PLANE_TOKEN,
+    dataPlaneFixture: String = "data-plane-token-success.json",
+) {
     stubFor(
         WireMock.post("/oauth/token").willReturn(
             WireMock.aResponse().withStatus(200)
@@ -28,7 +36,10 @@ internal fun Stubbing.stubTokenEndpointsSuccess() {
         WireMock.post("/api/sessions").willReturn(
             WireMock.aResponse().withStatus(200)
                 .withHeader("Content-Type", "application/json")
-                .withHeader("Set-Cookie", "auth_token=$TEST_AUTH_CONTROL_PLANE_TOKEN; Path=/; HttpOnly")
+                .withHeader(
+                    "Set-Cookie",
+                    "auth_token=$controlPlaneToken; Path=/; SameSite=strict; secure; Max-Age=86400; HttpOnly; Secure"
+                )
                 .withBody(ccloudAuthFixture("control-plane-session-success.json"))
         )
     )
@@ -36,7 +47,7 @@ internal fun Stubbing.stubTokenEndpointsSuccess() {
         WireMock.post("/api/access_tokens").willReturn(
             WireMock.aResponse().withStatus(200)
                 .withHeader("Content-Type", "application/json")
-                .withBody(ccloudAuthFixture("data-plane-token-success.json"))
+                .withBody(ccloudAuthFixture(dataPlaneFixture))
         )
     )
 }
@@ -78,4 +89,16 @@ internal fun pointTokenEndpointsAt(baseUrl: String) {
 /** Clear the properties set by [pointTokenEndpointsAt]. */
 internal fun clearTokenEndpointProperties() {
     TOKEN_ENDPOINT_PROPERTIES.keys.forEach(System::clearProperty)
+}
+
+private const val FALLBACK_TOKEN_LIFETIME_PROPERTY = "ccloud.control-plane.token-lifetime-seconds"
+
+/** Set the lifetime given to tokens that aren't JWTs, such as the default stubbed tokens. */
+internal fun setFallbackTokenLifetime(seconds: Long) {
+    System.setProperty(FALLBACK_TOKEN_LIFETIME_PROPERTY, seconds.toString())
+}
+
+/** Clear the property set by [setFallbackTokenLifetime]. */
+internal fun clearFallbackTokenLifetime() {
+    System.clearProperty(FALLBACK_TOKEN_LIFETIME_PROPERTY)
 }

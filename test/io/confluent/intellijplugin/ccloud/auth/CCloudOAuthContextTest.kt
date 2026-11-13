@@ -222,7 +222,7 @@ class CCloudOAuthContextTest {
         fun `should return true when token expires before next check interval`() {
             // The stubbed tokens aren't JWTs: set their fallback lifetime to 1 second (less than the
             // 5 second check interval)
-            System.setProperty("ccloud.control-plane.token-lifetime-seconds", "1")
+            setFallbackTokenLifetime(1)
             try {
                 runBlocking {
                     context.createTokensFromAuthorizationCode(MOCK_AUTH_CODE, MOCK_ORG_ID)
@@ -231,7 +231,7 @@ class CCloudOAuthContextTest {
                 // The refresh point is under 1 second away, before the next check in 5 seconds
                 assertTrue(context.shouldAttemptTokenRefresh())
             } finally {
-                System.clearProperty("ccloud.control-plane.token-lifetime-seconds")
+                clearFallbackTokenLifetime()
             }
         }
     }
@@ -245,33 +245,19 @@ class CCloudOAuthContextTest {
 
         @BeforeEach
         fun setFallbackLifetime() {
-            System.setProperty("ccloud.control-plane.token-lifetime-seconds", fallbackSeconds.toString())
+            setFallbackTokenLifetime(fallbackSeconds)
         }
 
         @AfterEach
         fun clearFallbackLifetime() {
-            System.clearProperty("ccloud.control-plane.token-lifetime-seconds")
+            clearFallbackTokenLifetime()
         }
 
         /** Serve JWT tokens: the given control-plane cookie (with prod's cookie attributes) and a 900s data-plane token. */
-        private fun stubJwtTokens(controlPlaneFixture: String) {
-            val authToken = ccloudAuthFixture(controlPlaneFixture).trim()
-            wireMock.stubFor(
-                WireMock.post("/api/sessions").atPriority(1).willReturn(
-                    WireMock.aResponse().withStatus(200)
-                        .withHeader("Content-Type", "application/json")
-                        .withHeader("Set-Cookie", "auth_token=$authToken; Path=/; SameSite=strict; secure; Max-Age=86400; HttpOnly; Secure")
-                        .withBody(ccloudAuthFixture("control-plane-session-success.json"))
-                )
-            )
-            wireMock.stubFor(
-                WireMock.post("/api/access_tokens").atPriority(1).willReturn(
-                    WireMock.aResponse().withStatus(200)
-                        .withHeader("Content-Type", "application/json")
-                        .withBody(ccloudAuthFixture("data-plane-token-900s.json"))
-                )
-            )
-        }
+        private fun stubJwtTokens(controlPlaneFixture: String) = wireMock.stubTokenEndpointsSuccess(
+            controlPlaneToken = ccloudAuthFixture(controlPlaneFixture).trim(),
+            dataPlaneFixture = "data-plane-token-900s.json",
+        )
 
         /** Sign in and return the window in which the tokens were issued. */
         private fun signIn(): Pair<Instant, Instant> {

@@ -68,14 +68,14 @@ class CCloudTokenRefreshBackoffTest {
         fun setUpAll() {
             // The stubbed tokens aren't JWTs, so they get this fallback lifetime: they expire before
             // the next check, so every tick attempts a refresh
-            System.setProperty("ccloud.control-plane.token-lifetime-seconds", "1")
+            setFallbackTokenLifetime(1)
         }
 
         @JvmStatic
         @AfterAll
         fun tearDownAll() {
             clearTokenEndpointProperties()
-            System.clearProperty("ccloud.control-plane.token-lifetime-seconds")
+            clearFallbackTokenLifetime()
         }
     }
 
