@@ -1,15 +1,38 @@
 package io.confluent.intellijplugin.ccloud.auth
 
 import java.time.Instant
+import kotlin.random.Random
+import kotlin.time.Duration
+import kotlin.time.toJavaDuration
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonIgnoreUnknownKeys
 
 /**
  * Token and state types for Confluent Cloud OAuth
+ * @property expiresAt when the server stops accepting the token
+ * @property refreshAt when to start replacing it; defaults to [expiresAt]
  * @see CCloudOAuthContext
  */
-data class Token(val token: String, val expiresAt: Instant)
+data class Token(val token: String, val expiresAt: Instant, val refreshAt: Instant = expiresAt) {
+    companion object {
+        /**
+         * A token issued at [issuedAt] that lives for [lifetime]. Its refresh point is a random point in
+         * [CCloudOAuthConfig.TOKEN_REFRESH_WINDOW] of the lifetime, drawn once: early enough that a slow
+         * or failed refresh can be retried before the token expires, and spread out so signed-in IDEs
+         * don't all refresh at the same moment.
+         */
+        fun issued(token: String, issuedAt: Instant, lifetime: Duration, random: Random = Random.Default): Token {
+            val window = CCloudOAuthConfig.TOKEN_REFRESH_WINDOW
+            val fraction = random.nextDouble(window.start, window.endExclusive)
+            return Token(
+                token = token,
+                expiresAt = issuedAt.plus(lifetime.toJavaDuration()),
+                refreshAt = issuedAt.plus((lifetime * fraction).toJavaDuration()),
+            )
+        }
+    }
+}
 
 @Serializable
 @JsonIgnoreUnknownKeys
@@ -61,11 +84,15 @@ data class Tokens(
     val errors: AuthErrors = AuthErrors(),
     val failedTokenRefreshAttempts: Int = 0
 ) {
-    fun expiresAt(): Instant? = listOfNotNull(
-        refreshToken?.expiresAt,
-        controlPlaneToken?.expiresAt,
-        dataPlaneToken?.expiresAt
-    ).minOrNull()
+    private fun allTokens(): List<Token> = listOfNotNull(refreshToken, controlPlaneToken, dataPlaneToken)
+
+    fun expiresAt(): Instant? = allTokens().minOfOrNull { it.expiresAt }
+
+    /** The earliest [Token.refreshAt] of the tokens, or null if there are none. */
+    fun refreshAt(): Instant? = allTokens().minOfOrNull { it.refreshAt }
+
+    /** Whether the earliest [Token.refreshAt] of the tokens falls before [deadline]. */
+    fun isRefreshDueBefore(deadline: Instant): Boolean = refreshAt()?.let { it < deadline } ?: false
 
     fun hasReachedEndOfLifetime(now: Instant = Instant.now()): Boolean =
         endOfLifetime?.let { now >= it } ?: false
