@@ -1,5 +1,6 @@
 package io.confluent.intellijplugin.client
 
+import io.confluent.intellijplugin.testutil.closedPort
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -135,11 +136,11 @@ class TcpProbeTest {
 
         @Test
         fun `should probe a bootstrap string`() {
-            val closedPort = ServerSocket(0).use { it.localPort }
+            val deadPort = closedPort()
             ServerSocket(0).use { server ->
-                assertTrue(TcpProbe.anyReachable("127.0.0.1:$closedPort,127.0.0.1:${server.localPort}"))
+                assertTrue(TcpProbe.anyReachable("127.0.0.1:$deadPort,127.0.0.1:${server.localPort}"))
             }
-            assertFalse(TcpProbe.anyReachable("127.0.0.1:$closedPort"))
+            assertFalse(TcpProbe.anyReachable("127.0.0.1:$deadPort"))
         }
 
         @Test
@@ -162,16 +163,16 @@ class TcpProbeTest {
 
         @Test
         fun `should not be reachable when nothing is listening`() {
-            val closedPort = ServerSocket(0).use { it.localPort }
+            val deadPort = closedPort()
 
-            assertFalse(TcpProbe.anyReachable(listOf("127.0.0.1" to closedPort)))
+            assertFalse(TcpProbe.anyReachable(listOf("127.0.0.1" to deadPort)))
         }
 
         @Test
         fun `should fall through a dead endpoint to a live one`() {
-            val closedPort = ServerSocket(0).use { it.localPort }
+            val deadPort = closedPort()
             ServerSocket(0).use { server ->
-                val endpoints = listOf("127.0.0.1" to closedPort, "127.0.0.1" to server.localPort)
+                val endpoints = listOf("127.0.0.1" to deadPort, "127.0.0.1" to server.localPort)
 
                 assertTrue(TcpProbe.anyReachable(endpoints))
             }

@@ -26,6 +26,7 @@ import io.confluent.intellijplugin.common.settings.StorageConsumerConfig
 import io.confluent.intellijplugin.consumer.models.ConsumerProducerFieldConfig
 import io.confluent.intellijplugin.consumer.models.ConsumerStartType
 import io.confluent.intellijplugin.data.CCloudClusterDataManager
+import io.confluent.intellijplugin.testutil.fixture
 import io.confluent.intellijplugin.testutil.wireMockExtension
 import io.confluent.intellijplugin.ccloud.model.response.PartitionData
 import io.confluent.intellijplugin.registry.KafkaRegistryFormat
@@ -93,17 +94,11 @@ class CCloudConsumerClientTest {
 
     // Fixtures
 
-    private val avroSchemaJson = javaClass.getResourceAsStream(
-        "/fixtures/schemas/user-avro-schema.json"
-    )!!.readBytes().toString(Charsets.UTF_8)
+    private val avroSchemaJson = fixture("schemas", "user-avro-schema.json")
 
-    private val jsonSchemaText = javaClass.getResourceAsStream(
-        "/fixtures/schemas/user-json-schema.json"
-    )!!.readBytes().toString(Charsets.UTF_8)
+    private val jsonSchemaText = fixture("schemas", "user-json-schema.json")
 
-    private val protoSchemaText = javaClass.getResourceAsStream(
-        "/fixtures/schemas/user-proto-schema.proto"
-    )!!.readBytes().toString(Charsets.UTF_8)
+    private val protoSchemaText = fixture("schemas", "user-proto-schema.proto")
 
     @BeforeEach
     fun setUp() {
@@ -1024,8 +1019,7 @@ class CCloudConsumerClientTest {
 
         private val emptyResponse: ConsumeRecordsResponse = Json { ignoreUnknownKeys = true }
             .decodeFromString<ConsumeRecordsResponse>(
-                javaClass.getResourceAsStream("/fixtures/consumer/empty-consume-response.json")!!
-                    .readBytes().toString(Charsets.UTF_8)
+                fixture("consumer", "empty-consume-response.json")
             )
 
         private val stopped = CountDownLatch(1)
@@ -1979,9 +1973,7 @@ class CCloudConsumerClientTest {
             // Base64 decoded values in fixture:
             //   Record 0: key="test-key", value="test-value"
             //   Record 1: key="key-2", value="value-2", header trace-id="abc123"
-            val jsonText = javaClass.getResourceAsStream(
-                "/fixtures/consumer/single-partition-consume-response.json"
-            )!!.readBytes().toString(Charsets.UTF_8)
+            val jsonText = fixture("consumer", "single-partition-consume-response.json")
 
             val response = json.decodeFromString<SinglePartitionConsumeResponse>(jsonText)
 
