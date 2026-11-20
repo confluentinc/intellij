@@ -46,6 +46,18 @@ class OAuthBearerAllowlistTest {
         }
 
         @Test
+        fun `should allow fully prefixed schema registry oauth urls`() {
+            OAuthBearerAllowlist.allowUrls(
+                mapOf(
+                    "schema.registry.bearer.auth.issuer.endpoint.url" to "https://idp.example.com/token",
+                    "schema.registry.sasl.oauthbearer.jwks.endpoint.url" to "https://idp.example.com/jwks",
+                )
+            )
+
+            assertEquals("https://idp.example.com/token,https://idp.example.com/jwks", allowed())
+        }
+
+        @Test
         fun `should trim whitespace around the url`() {
             OAuthBearerAllowlist.allowUrls(mapOf("bearer.auth.issuer.endpoint.url" to "  https://idp.example.com/token \n"))
 
