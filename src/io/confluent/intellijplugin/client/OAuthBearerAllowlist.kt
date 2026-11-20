@@ -25,7 +25,10 @@ object OAuthBearerAllowlist {
         SchemaRegistryClientConfig.BEARER_AUTH_UAMI_ENDPOINT_URL,
         SaslConfigs.SASL_OAUTHBEARER_TOKEN_ENDPOINT_URL,
         SaslConfigs.SASL_OAUTHBEARER_JWKS_ENDPOINT_URL,
-    )
+    ).flatMap {
+        // CachedSchemaRegistryClient strips "schema.registry." before configuring OAuth, so both forms reach it.
+        listOf(it, SchemaRegistryClientConfig.CLIENT_NAMESPACE + it)
+    }
     private val ALLOWED_SCHEMES = setOf("http", "https")
 
     private val lock = Any()
