@@ -9,6 +9,7 @@ All noteworthy changes to this plugin will be documented in this file.
 - Tool window auto-refresh now varies each interval by up to ±20%. While a connection is unreachable, auto-refresh keeps re-checking it, waiting progressively longer (up to about 5 minutes), and resumes the normal interval once the connection recovers. Connections that use an SSH tunnel are not re-checked automatically; use Refresh to reconnect them.
 ### Added
 - MessagePack serialization support for consumer and producer records
+- OAuth private-key JWT authentication (assertion/private key/template files) now asks for confirmation before Kafka may read the configured local files
 ### Removed
 ### Fixed
 - Deleting a consumer group that the broker rejects (for example, one that still has active members) now shows an error instead of appearing to succeed.
