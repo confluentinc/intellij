@@ -89,7 +89,7 @@ class SearchBarControllerTest {
                 }
                 filterHeader = TableFilterHeader(table).apply { externalFilterMode = true }
                 controller = SearchBarController(
-                    disposable, table, filterHeader, isProducer = false, freeTextIndex = output.freeTextIndex,
+                    disposable, table, output.outputModel, filterHeader, isProducer = false, freeTextIndex = output.freeTextIndex,
                 )
             }
         }

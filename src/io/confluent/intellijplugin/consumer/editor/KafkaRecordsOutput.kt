@@ -170,7 +170,7 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
     private val filterHeader: TableFilterHeader get() = outputTableDelegate.value.second
 
     private val searchController: SearchBarController by lazy {
-        SearchBarController(this, outputTable, filterHeader, isProducer, freeTextIndex)
+        SearchBarController(this, outputTable, outputModel, filterHeader, isProducer, freeTextIndex)
     }
 
     private val searchField get() = searchController.searchField

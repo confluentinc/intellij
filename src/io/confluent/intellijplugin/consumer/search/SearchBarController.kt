@@ -40,6 +40,8 @@ import org.jetbrains.annotations.TestOnly
 class SearchBarController(
     parentDisposable: Disposable,
     private val table: JTable,
+    // Must be [table]'s model; used to map view rows to buffer slots.
+    private val model: ListTableModel<*>,
     private val filterHeader: TableFilterHeader,
     isProducer: Boolean,
     private val freeTextIndex: FreeTextSlotIndex<*>,
@@ -49,7 +51,6 @@ class SearchBarController(
         textEditor.emptyText.text = KafkaMessagesBundle.message("consumer.search.placeholder")
     }
 
-    private val model = table.model as ListTableModel<*>
     private val parser =SearchQueryParser(searchKeyMap(isProducer))
     private val alarm = Alarm(Alarm.ThreadToUse.SWING_THREAD, this)
     private var syncing = false
