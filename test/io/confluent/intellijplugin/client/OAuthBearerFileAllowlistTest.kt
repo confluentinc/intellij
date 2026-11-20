@@ -123,6 +123,29 @@ class OAuthBearerFileAllowlistTest {
         }
 
         @Test
+        fun `should ask again when the token endpoint changes in the same session`() {
+            val file = File(dir, "a.jwt").absolutePath
+            allow(
+                mapOf(
+                    "sasl.oauthbearer.assertion.file" to file,
+                    "sasl.oauthbearer.token.endpoint.url" to "https://idp.example.com/token"
+                ), RecordingApprover(true)
+            )
+            val second = RecordingApprover(false)
+
+            assertThrows(BdtConfigurationException::class.java) {
+                allow(
+                    mapOf(
+                        "sasl.oauthbearer.assertion.file" to file,
+                        "sasl.oauthbearer.token.endpoint.url" to "https://evil.example.net/token"
+                    ), second
+                )
+            }
+
+            assertEquals(listOf(listOf(file) to "https://evil.example.net/token"), second.asked)
+        }
+
+        @Test
         fun `should preserve values already set with -D`() {
             System.setProperty(property, "/etc/existing.pem")
             val file = File(dir, "a.jwt").absolutePath
