@@ -51,17 +51,6 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
 
     internal val recordIndex: ConsumerRecordIndex = ConsumerRecordIndex(capacity = BUFFER_CAPACITY)
 
-    // Maintainers: keep this list in sync with outputModel's columns.
-    // A column missing here is silently skipped by free-text search.
-    private val columnClassList: List<Class<*>> = listOf(
-        String::class.java,
-        Date::class.java,
-        String::class.java,
-        String::class.java,
-        Int::class.java,
-        Long::class.java
-    )
-
     internal val outputModel = ListTableModel<KafkaRecord>(
         capacity = BUFFER_CAPACITY,
         columnNames = listOf(TOPIC_FIELD, TIMESTAMP_FIELD, KEY_COLUMN, VALUE_COLUMN, PARTITION_COLUMN) +
@@ -69,7 +58,14 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
         onSlotChange = ::onSlotChange,
         columnMapper = ::columnValue,
     ).apply {
-        columnClasses = columnClassList
+        columnClasses = listOf(
+            String::class.java,
+            Date::class.java,
+            String::class.java,
+            String::class.java,
+            Int::class.java,
+            Long::class.java
+        )
         addClearListener {
             recordIndex.onClear()
             freeTextIndex.onClear()
@@ -102,10 +98,14 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
         else -> ""
     }
 
-    // Free-text matches any column's rendered string, i.e. formatted timestamp not Date.toString().
+    // Free-text matches each column's display string (formatted timestamp, not Date.toString()).
+    // Producer Duration matches the raw millis, not the renderer's "12 ms".
     private fun recordMatchesTerm(record: KafkaRecord, term: String): Boolean =
-        columnClassList.indices.any { index ->
-            cellDisplayString(columnClassList[index], columnValue(record, index)).contains(term, ignoreCase = true)
+        (0 until outputModel.columnCount).any { index ->
+            val value = runCatching { columnValue(record, index) }
+                .onFailure { thisLogger().warn(it) }
+                .getOrNull()
+            cellDisplayString(outputModel.getColumnClass(index), value).contains(term, ignoreCase = true)
         }
 
     private fun onSlotChange(slot: Int, next: KafkaRecord?) {

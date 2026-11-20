@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Test
 import java.util.BitSet
 import javax.swing.SwingUtilities
 
+@TestApplication
 class FreeTextSlotIndexTest {
 
     /** Case-insensitive substring match. */
@@ -123,7 +124,6 @@ class FreeTextSlotIndexTest {
     }
 
     @Nested
-    @TestApplication
     inner class WrapIntegration {
         // Wires the index to a real ListTableModel, as KafkaRecordsOutput does.
         private fun wire(capacity: Int): Pair<ListTableModel<String>, FreeTextSlotIndex<String>> {

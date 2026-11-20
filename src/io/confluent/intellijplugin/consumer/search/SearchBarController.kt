@@ -51,7 +51,7 @@ class SearchBarController(
         textEditor.emptyText.text = KafkaMessagesBundle.message("consumer.search.placeholder")
     }
 
-    private val parser =SearchQueryParser(searchKeyMap(isProducer))
+    private val parser = SearchQueryParser(searchKeyMap(isProducer))
     private val alarm = Alarm(Alarm.ThreadToUse.SWING_THREAD, this)
     private var syncing = false
     private var lastApplied: SearchQueryParser.ParsedSearch? = null
@@ -156,17 +156,16 @@ class SearchBarController(
         lastApplied = parsed
 
         // Rescans the buffer on the EDT, but only when the term changes. Streaming never rescans.
-        freeTextIndex.setTerm(parsed.freeText)
+        // Lowercased so a case-only edit skips the rescan; matching is case-insensitive anyway.
+        freeTextIndex.setTerm(parsed.freeText.lowercase())
 
+        // Cheap bitset check first: andFilter short-circuits before the string-building column filters.
         val filters = mutableListOf<RowFilter<TableModel, Int>>()
+        freeTextIndex.bitSet?.let { filters.add(slotBitSetFilter(it)) }
         for ((modelIndex, value) in parsed.columnFilters) {
             if (value.isNotEmpty()) {
                 filters.add(columnContainsFilter(value, modelIndex))
             }
-        }
-        val bits = freeTextIndex.bitSet
-        if (bits != null) {
-            filters.add(slotBitSetFilter(bits))
         }
         sorter.rowFilter = when {
             filters.isEmpty() -> null
