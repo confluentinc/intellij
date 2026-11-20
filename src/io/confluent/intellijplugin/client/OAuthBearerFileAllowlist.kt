@@ -5,6 +5,7 @@ import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.Messages
+import com.intellij.openapi.util.text.StringUtil
 import io.confluent.intellijplugin.core.connection.exception.BdtConfigurationException
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
 import org.apache.kafka.common.config.SaslConfigs
@@ -12,6 +13,7 @@ import org.apache.kafka.common.config.internals.BrokerSecurityConfigs
 import java.nio.file.InvalidPathException
 import java.nio.file.Path
 import java.nio.file.Paths
+import java.util.concurrent.ConcurrentHashMap
 
 /**
  * Kafka rejects local files (JWT assertion, private key, assertion template) that are not listed in the JVM
@@ -36,6 +38,10 @@ object OAuthBearerFileAllowlist {
 
     private val lock = Any()
 
+    // Files this plugin put on the JVM allowlist. Being listed only exempts a file from confirmation when the
+    // user listed it with -D; otherwise one approval for endpoint A would silently cover endpoint B.
+    private val addedByPlugin: MutableSet<String> = ConcurrentHashMap.newKeySet()
+
     fun interface Approver {
         /** Returns true if the user agrees to let Kafka read [files] and authenticate to [endpoint] with them. */
         fun confirm(project: Project?, files: List<String>, endpoint: String?): Boolean
@@ -49,8 +55,10 @@ object OAuthBearerFileAllowlist {
                 project,
                 KafkaMessagesBundle.message(
                     "oauth.files.confirm.message",
-                    files.joinToString("<br>"),
-                    endpoint ?: KafkaMessagesBundle.message("oauth.files.confirm.no.endpoint")
+                    // Both come from free-form connection properties: show them literally, never as markup.
+                    files.joinToString("<br>") { StringUtil.escapeXmlEntities(it) },
+                    endpoint?.let { StringUtil.escapeXmlEntities(it) }
+                        ?: KafkaMessagesBundle.message("oauth.files.confirm.no.endpoint")
                 ),
                 KafkaMessagesBundle.message("oauth.files.confirm.title"),
                 KafkaMessagesBundle.message("oauth.files.confirm.allow"),
@@ -85,8 +93,8 @@ object OAuthBearerFileAllowlist {
         val endpoint = (properties[SaslConfigs.SASL_OAUTHBEARER_TOKEN_ENDPOINT_URL] as? String)?.trim()
             ?.ifEmpty { null }
 
-        val alreadyAllowed = currentlyAllowed()
-        val pending = files.filter { it !in alreadyAllowed && !approvals.isApproved(it, endpoint) }
+        val allowedWithD = currentlyAllowed() - addedByPlugin
+        val pending = files.filter { it !in allowedWithD && !approvals.isApproved(it, endpoint) }
         if (pending.isNotEmpty()) {
             if (!approver.confirm(project, pending, endpoint)) {
                 throw BdtConfigurationException(
@@ -101,6 +109,7 @@ object OAuthBearerFileAllowlist {
             val added = files.filter { it !in current }
             if (added.isEmpty()) return
 
+            addedByPlugin += added
             System.setProperty(ALLOWED_FILES_PROPERTY, (current + added).joinToString(SEPARATOR))
             thisLogger().debug("Allowed OAuth files: $added")
         }
