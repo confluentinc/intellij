@@ -5,41 +5,46 @@ import com.intellij.openapi.util.Disposer
 import com.intellij.ui.DocumentAdapter
 import com.intellij.ui.SearchTextField
 import com.intellij.util.Alarm
+import io.confluent.intellijplugin.common.editor.ListTableModel
+import io.confluent.intellijplugin.consumer.data.FreeTextSlotIndex
 import io.confluent.intellijplugin.core.table.filters.FilerEditorChangeListener
 import io.confluent.intellijplugin.core.table.filters.FilterEditor
 import io.confluent.intellijplugin.core.table.filters.SearchQueryParser
 import io.confluent.intellijplugin.core.table.filters.TableFilterHeader
 import io.confluent.intellijplugin.core.table.renderers.DateRenderer
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
+import java.util.BitSet
 import java.util.Date
+import java.util.concurrent.TimeUnit
 import javax.swing.JTable
 import javax.swing.RowFilter
 import javax.swing.event.DocumentEvent
 import javax.swing.event.DocumentListener
 import javax.swing.table.TableModel
 import javax.swing.table.TableRowSorter
-import java.util.concurrent.TimeUnit
 import org.jetbrains.annotations.TestOnly
 
 /**
- * Owns the global search bar and unifies its filter with the per-column filter editors.
+ * Owns the global search bar and keeps it in sync with the per-column filter editors.
  *
- * Debounces input via [Alarm] on the Swing thread (200ms) and applies a composed
- * [RowFilter] to the table's [TableRowSorter]. Filters use case-insensitive
- * [String.contains] on each cell's string value. Debounce matters for large
- * tables (thousands of rows), where re-running the sort+filter on every keystroke causes
- * EDT jank.
+ * Input is debounced (200ms) and applied as a composed [RowFilter] on the table's [TableRowSorter].
+ * Free-text matching uses [freeTextIndex], so each row check is a single bit lookup.
+ * Per-column filters do a case-insensitive substring match on the cell text as displayed,
+ * so `timestamp:2026-05` matches the formatted date.
  *
- * Sync is bidirectional:
- *  - typing `key:foo` in the search bar populates the Key column editor
- *  - typing in a column editor rebuilds the search bar text to reflect current state
- * A [syncing] flag prevents the two from triggering each other in a loop.
+ * Sync works both ways:
+ *  - typing `key:foo` in the search bar fills the Key column editor
+ *  - typing in a column editor rewrites the search bar text
+ * [syncing] stops the two updates from triggering each other.
  */
 class SearchBarController(
     parentDisposable: Disposable,
     private val table: JTable,
+    // Must be [table]'s model; used to map view rows to buffer slots.
+    private val model: ListTableModel<*>,
     private val filterHeader: TableFilterHeader,
     isProducer: Boolean,
+    private val freeTextIndex: FreeTextSlotIndex<*>,
 ) : Disposable {
 
     val searchField: SearchTextField = SearchTextField(false).apply {
@@ -65,9 +70,7 @@ class SearchBarController(
         attachEditorListeners()
         unsubscribeRecreated = filterHeader.addControllerRecreatedListener {
             attachEditorListeners()
-            // New editors start blank; repopulate from the current search text so they
-            // reflect active `col:value` tokens instead of appearing empty until the user
-            // types again.
+            // Re-populate fresh editors from existing search text; for edge cases e.g. theme change
             if (searchField.text.isNotEmpty()) onSearchBarChanged()
         }
     }
@@ -96,6 +99,7 @@ class SearchBarController(
 
     @TestOnly
     internal fun waitForPendingInTest() {
+        // The alarm runs the filter rebuild on the EDT, so the filter is applied once its request has run.
         alarm.waitForAllExecuted(1, TimeUnit.SECONDS)
     }
 
@@ -151,14 +155,17 @@ class SearchBarController(
         if (parsed == lastApplied) return
         lastApplied = parsed
 
+        // Rescans the buffer on the EDT, but only when the term changes. Streaming never rescans.
+        // Lowercased so a case-only edit skips the rescan; matching is case-insensitive anyway.
+        freeTextIndex.setTerm(parsed.freeText.lowercase())
+
+        // Cheap bitset check first: andFilter short-circuits before the string-building column filters.
         val filters = mutableListOf<RowFilter<TableModel, Int>>()
+        freeTextIndex.bitSet?.let { filters.add(slotBitSetFilter(it)) }
         for ((modelIndex, value) in parsed.columnFilters) {
             if (value.isNotEmpty()) {
-                filters.add(containsFilter(value, modelIndex))
+                filters.add(columnContainsFilter(value, modelIndex))
             }
-        }
-        if (parsed.freeText.isNotEmpty()) {
-            filters.add(containsFilter(parsed.freeText, null))
         }
         sorter.rowFilter = when {
             filters.isEmpty() -> null
@@ -168,35 +175,20 @@ class SearchBarController(
         table.parent?.repaint()
     }
 
-    /**
-     * Literal case-insensitive substring filter.
-     * Passing `null` for [modelIndex] matches across every column.
-     */
-    private fun containsFilter(needle: String, modelIndex: Int?): RowFilter<TableModel, Int> =
+    // Includes a row if its buffer slot (from `ListTableModel.slotForRow`) is set in [bits].
+    private fun slotBitSetFilter(bits: BitSet): RowFilter<TableModel, Int> =
         object : RowFilter<TableModel, Int>() {
-            override fun include(entry: Entry<out TableModel, out Int>): Boolean {
-                if (modelIndex != null) {
-                    return cellAsDisplayedString(entry, modelIndex).contains(needle, ignoreCase = true)
-                }
-                for (i in 0 until entry.valueCount) {
-                    if (cellAsDisplayedString(entry, i).contains(needle, ignoreCase = true)) return true
-                }
-                return false
-            }
+            override fun include(entry: Entry<out TableModel, out Int>): Boolean =
+                bits[model.slotForRow(entry.identifier)]
         }
 
-    // Match against what the user sees in the cell, not Object.toString(). The Timestamp column
-    // is the load-bearing case: Date.toString() is "Fri May 01 ... 2026" but the renderer shows
-    // "2026-05-01 14:23:45", so without this typing "-" or "05" against the visible date drops
-    // every row.
-    private fun cellAsDisplayedString(entry: RowFilter.Entry<out TableModel, out Int>, columnIndex: Int): String {
-        val value = entry.getValue(columnIndex) ?: return ""
-        return if (entry.model.getColumnClass(columnIndex) == Date::class.java && value is Date) {
-            DateRenderer.df.format(value)
-        } else {
-            value.toString()
+    // Match against what the user sees in the cell, not Object.toString() — see [cellDisplayString].
+    private fun columnContainsFilter(needle: String, modelIndex: Int): RowFilter<TableModel, Int> =
+        object : RowFilter<TableModel, Int>() {
+            override fun include(entry: Entry<out TableModel, out Int>): Boolean =
+                cellDisplayString(entry.model.getColumnClass(modelIndex), entry.getValue(modelIndex))
+                    .contains(needle, ignoreCase = true)
         }
-    }
 
     companion object {
         private const val DEBOUNCE_MS = 200
@@ -211,3 +203,7 @@ class SearchBarController(
         }
     }
 }
+
+// Renders a cell as displayed. Shared by the per-column filter and the free-text matcher in `KafkaRecordsOutput`.
+internal fun cellDisplayString(columnClass: Class<*>, value: Any?): String =
+    if (columnClass == Date::class.java && value is Date) DateRenderer.df.format(value) else value?.toString() ?: ""
