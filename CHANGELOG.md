@@ -10,6 +10,7 @@ All noteworthy changes to this plugin will be documented in this file.
 - Upgraded the Kafka client to 4.3.2 and the Schema Registry client to 8.3.2. Kafka brokers older than 2.1 are no longer supported.
 ### Added
 - MessagePack serialization support for consumer and producer records
+- OAuth private-key JWT authentication (assertion/private key/template files) now asks for confirmation before Kafka may read the configured local files
 ### Removed
 ### Fixed
 - Deleting a consumer group that the broker rejects (for example, one that still has active members) now shows an error instead of appearing to succeed.
