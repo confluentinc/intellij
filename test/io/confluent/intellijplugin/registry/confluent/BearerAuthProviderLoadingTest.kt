@@ -1,6 +1,8 @@
 package io.confluent.intellijplugin.registry.confluent
 
 import io.confluent.intellijplugin.client.OAuthBearerAllowlist
+import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient
+import io.confluent.kafka.schemaregistry.client.rest.RestService
 import io.confluent.kafka.schemaregistry.client.security.bearerauth.BearerAuthCredentialProviderFactory
 import org.apache.kafka.common.config.internals.BrokerSecurityConfigs
 import org.junit.jupiter.api.AfterEach
@@ -42,5 +44,21 @@ class BearerAuthProviderLoadingTest {
         val provider = BearerAuthCredentialProviderFactory.getBearerAuthCredentialProvider("OAUTHBEARER", config)
 
         assertNotNull(provider)
+    }
+
+    @Test
+    fun `should configure a registry client with fully prefixed OAuth settings`() {
+        val config = mapOf(
+            "schema.registry.bearer.auth.credentials.source" to "OAUTHBEARER",
+            "schema.registry.bearer.auth.issuer.endpoint.url" to "https://localhost/oauth2/token",
+            "schema.registry.bearer.auth.client.id" to "client",
+            "schema.registry.bearer.auth.client.secret" to "secret",
+            "schema.registry.bearer.auth.scope" to "scope",
+            "schema.registry.bearer.auth.identity.pool.id" to "pool",
+        )
+
+        OAuthBearerAllowlist.allowUrls(config)
+
+        assertNotNull(CachedSchemaRegistryClient(RestService("https://localhost:8081"), 10, config, emptyMap()))
     }
 }
