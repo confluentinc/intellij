@@ -12,7 +12,10 @@ import io.confluent.intellijplugin.core.table.renderers.DateRenderer
 import io.confluent.intellijplugin.registry.KafkaRegistryFormat
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Assertions.assertSame
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
@@ -85,7 +88,9 @@ class SearchBarControllerTest {
                     rowSorter = TableRowSorter(model)
                 }
                 filterHeader = TableFilterHeader(table).apply { externalFilterMode = true }
-                controller = SearchBarController(disposable, table, filterHeader, isProducer = false)
+                controller = SearchBarController(
+                    disposable, table, filterHeader, isProducer = false, freeTextIndex = output.freeTextIndex,
+                )
             }
         }
 
@@ -122,6 +127,16 @@ class SearchBarControllerTest {
         private fun loadRows(records: List<KafkaRecord>) {
             // replace() is synchronous, so the model reflects these rows by the time it returns.
             SwingUtilities.invokeAndWait { output.replace(records) }
+        }
+
+        /** Block until queued EDT events (e.g. the model's flush) have run. */
+        private fun drainEdt() = SwingUtilities.invokeAndWait { }
+
+        /** Stream a record through the live append path and wait for the flush. */
+        private fun appendAndFlush(record: KafkaRecord) {
+            SwingUtilities.invokeAndWait { output.outputModel.addBatch(listOf(record)) }
+            // The sorter re-evaluates the inserted row only after the flush runs.
+            drainEdt()
         }
 
         private fun setSearchAndFlush(text: String) {
@@ -252,6 +267,104 @@ class SearchBarControllerTest {
 
             setSearchAndFlush("timestamp:2026-05")
             assertEquals(1, visibleRowCount())
+        }
+
+        @Test
+        fun `clearing the search text drops the free-text index and shows all rows`() {
+            loadRows(
+                listOf(
+                    record("topicA", "k1", "value1", 0, 100L),
+                    record("topicB", "k2", "plain text", 1, 200L),
+                )
+            )
+            setSearchAndFlush("plain")
+            assertEquals(1, visibleRowCount())
+            assertNotNull(output.freeTextIndex.bitSet())
+
+            setSearchAndFlush("")
+
+            assertNull(output.freeTextIndex.bitSet(), "A blank term must deactivate the index")
+            assertEquals(2, visibleRowCount())
+        }
+
+        @Test
+        fun `free-text filter stays live as a new matching row streams in`() {
+            loadRows(
+                listOf(
+                    record("topicA", "k1", "value1", 0, 100L),
+                    record("topicA", "k2", "other", 0, 200L),
+                )
+            )
+            setSearchAndFlush("plain")
+            assertEquals(0, visibleRowCount(), "Nothing matches the term yet")
+
+            // The term is unchanged; only a new row arrives.
+            appendAndFlush(record("topicB", "k3", "plain text", 1, 300L))
+
+            assertEquals(
+                1,
+                visibleRowCount(),
+                "Newly streamed matching row must appear under the active search without retyping",
+            )
+        }
+
+        @Test
+        fun `free-text does not match across a column boundary`() {
+            // Free-text is matched per column, so "oo b" must not span key="foo" and value="bar".
+            loadRows(listOf(record("topicA", "foo", "bar", 0, 100L)))
+            setSearchAndFlush("oo b")
+            assertEquals(0, visibleRowCount(), "Needle spanning two columns must not match")
+            setSearchAndFlush("foo")
+            assertEquals(1, visibleRowCount(), "Needle within a single column matches")
+        }
+
+        @Test
+        fun `column filter is ANDed with the free-text BitSet`() {
+            loadRows(
+                listOf(
+                    record("topicA", "k1", "plain text", 0, 100L), // matches both
+                    record("topicB", "k2", "plain", 0, 200L), // free-text only
+                    record("topicA", "k3", "other", 0, 300L), // column filter only
+                )
+            )
+            setSearchAndFlush("topic:topicA plain")
+            assertEquals(1, visibleRowCount(), "Only the row satisfying both filters should remain")
+        }
+
+        @Test
+        fun `clearing the buffer empties the free-text bits but keeps the term active`() {
+            loadRows(listOf(record("topicA", "k1", "plain text", 0, 100L)))
+            setSearchAndFlush("plain")
+            assertEquals(1, visibleRowCount())
+
+            SwingUtilities.invokeAndWait { output.outputModel.clear() }
+
+            val bits = output.freeTextIndex.bitSet()
+            assertNotNull(bits, "Term is still active after a buffer clear")
+            assertTrue(bits!!.isEmpty, "Stale bits from cleared rows must be dropped")
+
+            appendAndFlush(record("topicB", "k2", "plain again", 1, 200L))
+            assertEquals(1, visibleRowCount(), "Rows streamed after a clear still match the active term")
+        }
+
+        @Test
+        fun `cached BitSet is reused when only column filters change`() {
+            loadRows(
+                listOf(
+                    record("topicA", "k1", "plain text", 0, 100L),
+                    record("topicB", "k2", "plain", 0, 200L),
+                )
+            )
+            setSearchAndFlush("plain")
+            val firstBits = output.freeTextIndex.bitSet()
+            assertNotNull(firstBits)
+
+            // Same free-text plus a column filter: the filter reruns but the term is unchanged, so no rescan.
+            setSearchAndFlush("topic:topicA plain")
+            val secondBits = output.freeTextIndex.bitSet()
+
+            assertSame(firstBits, secondBits, "Unchanged term must reuse the live BitSet instance")
+            assertEquals(1, visibleRowCount(), "The new column filter must still narrow the rows")
         }
 
         @Test
