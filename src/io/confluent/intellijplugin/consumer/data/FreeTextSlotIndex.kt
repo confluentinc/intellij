@@ -1,6 +1,5 @@
 package io.confluent.intellijplugin.consumer.data
 
-import com.intellij.util.concurrency.ThreadingAssertions
 import com.intellij.util.concurrency.annotations.RequiresEdt
 import java.util.BitSet
 
@@ -22,54 +21,43 @@ class FreeTextSlotIndex<T : Any>(
     private val slotElements: () -> Sequence<Pair<Int, T>>,
 ) {
     private var term: String = ""
-    private var bits: BitSet? = null
 
     /** Slot-keyed BitSet for the active term, or `null` when no term is active. */
-    fun bitSet(): BitSet? = bits
+    var bitSet: BitSet? = null
+        private set
 
     /**
      * Set the active term and rebuild the bitset from the current elements. A blank term clears the
-     * index (subsequent [bitSet] returns `null`).
+     * index ([bitSet] becomes `null`).
      */
     @RequiresEdt
     fun setTerm(term: String) {
-        ThreadingAssertions.assertEventDispatchThread()
         // Unchanged term: the bits are already current
         if (term == this.term) return
-        if (term.isEmpty()) {
-            this.term = ""
-            bits = null
-            return
-        }
         this.term = term
-        val rebuilt = BitSet(capacity)
         // The rescan covers only flushed elements. Records still in the model's pending-add queue are
         // intentionally skipped since they set their own bit via [onAppend] when they flush
-        for ((slot, element) in slotElements()) {
-            if (matcher(element, term)) rebuilt.set(slot)
+        bitSet = if (term.isEmpty()) null else BitSet(capacity).apply {
+            for ((slot, element) in slotElements()) if (matcher(element, term)) set(slot)
         }
-        bits = rebuilt
     }
 
     /** Update [slot]'s bit for a freshly appended (or wrap-reused) element. No-op when inactive. */
     @RequiresEdt
     fun onAppend(slot: Int, element: T) {
-        ThreadingAssertions.assertEventDispatchThread()
-        val current = bits ?: return
+        val current = bitSet ?: return
         if (matcher(element, term)) current.set(slot) else current.clear(slot)
     }
 
     /** Clear the bit for a slot that has been freed for good. */
     @RequiresEdt
     fun onEvict(slot: Int) {
-        ThreadingAssertions.assertEventDispatchThread()
-        bits?.clear(slot)
+        bitSet?.clear(slot)
     }
 
     /** Drop all live bits (the buffer was cleared) while keeping the term active. */
     @RequiresEdt
     fun onClear() {
-        ThreadingAssertions.assertEventDispatchThread()
-        bits?.clear()
+        bitSet?.clear()
     }
 }

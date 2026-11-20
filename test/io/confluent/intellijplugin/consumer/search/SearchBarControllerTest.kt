@@ -279,11 +279,11 @@ class SearchBarControllerTest {
             )
             setSearchAndFlush("plain")
             assertEquals(1, visibleRowCount())
-            assertNotNull(output.freeTextIndex.bitSet())
+            assertNotNull(output.freeTextIndex.bitSet)
 
             setSearchAndFlush("")
 
-            assertNull(output.freeTextIndex.bitSet(), "A blank term must deactivate the index")
+            assertNull(output.freeTextIndex.bitSet, "A blank term must deactivate the index")
             assertEquals(2, visibleRowCount())
         }
 
@@ -339,7 +339,7 @@ class SearchBarControllerTest {
 
             SwingUtilities.invokeAndWait { output.outputModel.clear() }
 
-            val bits = output.freeTextIndex.bitSet()
+            val bits = output.freeTextIndex.bitSet
             assertNotNull(bits, "Term is still active after a buffer clear")
             assertTrue(bits!!.isEmpty, "Stale bits from cleared rows must be dropped")
 
@@ -356,12 +356,12 @@ class SearchBarControllerTest {
                 )
             )
             setSearchAndFlush("plain")
-            val firstBits = output.freeTextIndex.bitSet()
+            val firstBits = output.freeTextIndex.bitSet
             assertNotNull(firstBits)
 
             // Same free-text plus a column filter: the filter reruns but the term is unchanged, so no rescan.
             setSearchAndFlush("topic:topicA plain")
-            val secondBits = output.freeTextIndex.bitSet()
+            val secondBits = output.freeTextIndex.bitSet
 
             assertSame(firstBits, secondBits, "Unchanged term must reuse the live BitSet instance")
             assertEquals(1, visibleRowCount(), "The new column filter must still narrow the rows")

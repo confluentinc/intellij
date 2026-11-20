@@ -35,23 +35,23 @@ class FreeTextSlotIndexTest {
     @Test
     fun `no active term yields null bitSet`() {
         val index = indexOver(emptyMap())
-        assertNull(index.bitSet())
+        assertNull(index.bitSet)
     }
 
     @Test
     fun `setTerm rescans current elements into slot-keyed bits`() {
         val index = indexOver(mapOf(0 to "alpha", 1 to "foobar", 2 to "gamma", 5 to "foo"))
         onEdt { index.setTerm("foo") }
-        assertEquals(setOf(1, 5), index.bitSet().setBits())
+        assertEquals(setOf(1, 5), index.bitSet.setBits())
     }
 
     @Test
     fun `blank term clears the index back to null`() {
         val index = indexOver(mapOf(0 to "foo"))
         onEdt { index.setTerm("foo") }
-        assertEquals(setOf(0), index.bitSet().setBits())
+        assertEquals(setOf(0), index.bitSet.setBits())
         onEdt { index.setTerm("") }
-        assertNull(index.bitSet())
+        assertNull(index.bitSet)
     }
 
     @Test
@@ -61,7 +61,7 @@ class FreeTextSlotIndexTest {
             index.setTerm("foo")
             index.onAppend(slot = 3, element = "foobar")
         }
-        assertEquals(setOf(3), index.bitSet().setBits())
+        assertEquals(setOf(3), index.bitSet.setBits())
     }
 
     @Test
@@ -69,25 +69,25 @@ class FreeTextSlotIndexTest {
         // A non-matching record reuses slot 3, which matched under its previous occupant.
         val index = indexOver(mapOf(3 to "foobar"))
         onEdt { index.setTerm("foo") }
-        assertEquals(setOf(3), index.bitSet().setBits())
+        assertEquals(setOf(3), index.bitSet.setBits())
         onEdt { index.onAppend(slot = 3, element = "bar") }
-        assertTrue(index.bitSet().setBits().isEmpty())
+        assertTrue(index.bitSet.setBits().isEmpty())
     }
 
     @Test
     fun `onAppend is a no-op when no term is active`() {
         val index = indexOver(emptyMap())
         onEdt { index.onAppend(slot = 1, element = "foo") }
-        assertNull(index.bitSet())
+        assertNull(index.bitSet)
     }
 
     @Test
     fun `onEvict clears the freed slot bit`() {
         val index = indexOver(mapOf(2 to "foo", 4 to "foo"))
         onEdt { index.setTerm("foo") }
-        assertEquals(setOf(2, 4), index.bitSet().setBits())
+        assertEquals(setOf(2, 4), index.bitSet.setBits())
         onEdt { index.onEvict(slot = 2) }
-        assertEquals(setOf(4), index.bitSet().setBits())
+        assertEquals(setOf(4), index.bitSet.setBits())
     }
 
     @Test
@@ -97,29 +97,29 @@ class FreeTextSlotIndexTest {
             index.setTerm("foo")
             index.onClear()
         }
-        assertTrue(index.bitSet().setBits().isEmpty())
+        assertTrue(index.bitSet.setBits().isEmpty())
         // The term is still active, so a matching append after clear is reflected.
         onEdt { index.onAppend(slot = 1, element = "foo") }
-        assertEquals(setOf(1), index.bitSet().setBits())
+        assertEquals(setOf(1), index.bitSet.setBits())
     }
 
     @Test
     fun `setTerm with the unchanged term keeps the live bitset instead of rescanning`() {
         val index = indexOver(mapOf(0 to "foo"))
         onEdt { index.setTerm("foo") }
-        val first = index.bitSet()
+        val first = index.bitSet
         // Same term again: must not rebuild.
         onEdt { index.setTerm("foo") }
-        assertSame(first, index.bitSet(), "Same term must reuse the incrementally-maintained bitset")
+        assertSame(first, index.bitSet, "Same term must reuse the incrementally-maintained bitset")
     }
 
     @Test
     fun `setTerm to a new term rescans and replaces prior bits`() {
         val index = indexOver(mapOf(0 to "alpha", 1 to "beta"))
         onEdt { index.setTerm("alpha") }
-        assertEquals(setOf(0), index.bitSet().setBits())
+        assertEquals(setOf(0), index.bitSet.setBits())
         onEdt { index.setTerm("beta") }
-        assertEquals(setOf(1), index.bitSet().setBits())
+        assertEquals(setOf(1), index.bitSet.setBits())
     }
 
     @Nested
@@ -160,7 +160,7 @@ class FreeTextSlotIndexTest {
             SwingUtilities.invokeAndWait { index.setTerm("foo") }
 
             // "foo" reuses the evicted head's slot (0), not its row position (2).
-            assertEquals(setOf(0), index.bitSet().setBits())
+            assertEquals(setOf(0), index.bitSet.setBits())
         }
 
         @Test
@@ -170,13 +170,13 @@ class FreeTextSlotIndexTest {
             model.addBatch(listOf("beta", "gamma", "alpha"))
             drainEdt()
             SwingUtilities.invokeAndWait { index.setTerm("foo") }
-            assertTrue(index.bitSet().setBits().isEmpty())
+            assertTrue(index.bitSet.setBits().isEmpty())
 
             // Appending "foo" evicts "beta" and reuses slot 0 via onAppend.
             model.addBatch(listOf("foo"))
             drainEdt()
 
-            assertEquals(setOf(0), index.bitSet().setBits())
+            assertEquals(setOf(0), index.bitSet.setBits())
         }
     }
 }

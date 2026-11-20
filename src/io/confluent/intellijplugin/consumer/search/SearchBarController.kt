@@ -42,7 +42,6 @@ class SearchBarController(
     private val table: JTable,
     private val filterHeader: TableFilterHeader,
     isProducer: Boolean,
-    // Star-projected: this class only sets the term and reads the bitset, so the element type is unused.
     private val freeTextIndex: FreeTextSlotIndex<*>,
 ) : Disposable {
 
@@ -50,7 +49,8 @@ class SearchBarController(
         textEditor.emptyText.text = KafkaMessagesBundle.message("consumer.search.placeholder")
     }
 
-    private val parser = SearchQueryParser(searchKeyMap(isProducer))
+    private val model = table.model as ListTableModel<*>
+    private val parser =SearchQueryParser(searchKeyMap(isProducer))
     private val alarm = Alarm(Alarm.ThreadToUse.SWING_THREAD, this)
     private var syncing = false
     private var lastApplied: SearchQueryParser.ParsedSearch? = null
@@ -64,7 +64,6 @@ class SearchBarController(
     private val unsubscribeRecreated: () -> Unit
 
     init {
-        require(table.model is ListTableModel<*>) { "SearchBarController requires a ListTableModel" }
         Disposer.register(parentDisposable, this)
         searchField.addDocumentListener(searchFieldListener)
         attachEditorListeners()
@@ -164,7 +163,7 @@ class SearchBarController(
                 filters.add(columnContainsFilter(value, modelIndex))
             }
         }
-        val bits = freeTextIndex.bitSet()
+        val bits = freeTextIndex.bitSet
         if (bits != null) {
             filters.add(slotBitSetFilter(bits))
         }
@@ -179,21 +178,17 @@ class SearchBarController(
     // Includes a row if its buffer slot (from `ListTableModel.slotForRow`) is set in [bits].
     private fun slotBitSetFilter(bits: BitSet): RowFilter<TableModel, Int> =
         object : RowFilter<TableModel, Int>() {
-            override fun include(entry: Entry<out TableModel, out Int>): Boolean {
-                val slot = (table.model as ListTableModel<*>).slotForRow(entry.identifier)
-                return bits[slot]
-            }
-        }
-
-    private fun columnContainsFilter(needle: String, modelIndex: Int): RowFilter<TableModel, Int> =
-        object : RowFilter<TableModel, Int>() {
             override fun include(entry: Entry<out TableModel, out Int>): Boolean =
-                cellAsDisplayedString(entry, modelIndex).contains(needle, ignoreCase = true)
+                bits[model.slotForRow(entry.identifier)]
         }
 
     // Match against what the user sees in the cell, not Object.toString() — see [cellDisplayString].
-    private fun cellAsDisplayedString(entry: RowFilter.Entry<out TableModel, out Int>, columnIndex: Int): String =
-        cellDisplayString(entry.model.getColumnClass(columnIndex), entry.getValue(columnIndex))
+    private fun columnContainsFilter(needle: String, modelIndex: Int): RowFilter<TableModel, Int> =
+        object : RowFilter<TableModel, Int>() {
+            override fun include(entry: Entry<out TableModel, out Int>): Boolean =
+                cellDisplayString(entry.model.getColumnClass(modelIndex), entry.getValue(modelIndex))
+                    .contains(needle, ignoreCase = true)
+        }
 
     companion object {
         private const val DEBOUNCE_MS = 200
