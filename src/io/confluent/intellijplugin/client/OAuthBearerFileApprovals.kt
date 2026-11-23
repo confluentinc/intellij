@@ -38,6 +38,15 @@ class OAuthBearerFileApprovals : PersistentStateComponent<OAuthBearerFileApprova
     }
 
     @Synchronized
+    fun hasApprovals(): Boolean = approved.isNotEmpty()
+
+    /** Revokes every approval; each file is confirmed again on its next user-initiated connect. */
+    @Synchronized
+    fun clear() {
+        approved.clear()
+    }
+
+    @Synchronized
     override fun getState() = ApprovalState().also { it.approved = LinkedHashSet(approved) }
 
     @Synchronized

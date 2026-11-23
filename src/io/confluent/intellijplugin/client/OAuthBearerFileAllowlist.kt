@@ -10,6 +10,7 @@ import io.confluent.intellijplugin.core.connection.exception.BdtConfigurationExc
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
 import org.apache.kafka.common.config.SaslConfigs
 import org.apache.kafka.common.config.internals.BrokerSecurityConfigs
+import java.io.File
 import java.nio.file.InvalidPathException
 import java.nio.file.Path
 import java.nio.file.Paths
@@ -22,9 +23,9 @@ import java.util.concurrent.ConcurrentHashMap
  * file (for example an SSH key) and a token endpoint of the attacker's choosing, which would then receive it.
  *
  * Instead, the user must confirm each exact (file, token endpoint) pair once on this machine. Approvals are kept
- * in [OAuthBearerFileApprovals], never in the connection settings. Only exact, absolute, normalized file paths
- * for the keys in [FILE_KEYS] are ever added; no directories or wildcards. Entries are only added, so values set
- * with `-D` are preserved.
+ * in [OAuthBearerFileApprovals], never in the connection settings. Only exact absolute file paths for the keys in
+ * [FILE_KEYS] are ever added, in the `File.absolutePath` form Kafka compares; no directories or wildcards.
+ * Entries are only added, so values set with `-D` are preserved.
  */
 object OAuthBearerFileAllowlist {
     private const val ALLOWED_FILES_PROPERTY = BrokerSecurityConfigs.ALLOWED_SASL_OAUTHBEARER_FILES_CONFIG
@@ -72,22 +73,26 @@ object OAuthBearerFileAllowlist {
     }
 
     /**
-     * Allows the files named in [properties] once the user has approved them.
-     * @throws BdtConfigurationException if the user declines, or a configured path is not an absolute, normalized path.
+     * Allows the files named in [properties] once the user has approved them. Only asks when [calledByUser]:
+     * background reconnects must never pop a dialog, so they fail until the user connects explicitly.
+     * @throws BdtConfigurationException if the files are not approved, or a configured path is not absolute.
      */
     fun allowFiles(
         properties: Map<*, *>,
         project: Project?,
+        calledByUser: Boolean,
         approvals: OAuthBearerFileApprovals = OAuthBearerFileApprovals.getInstance(),
         approver: Approver = dialogApprover,
     ) {
         val configured = FILE_KEYS.mapNotNull { (properties[it] as? String)?.trim()?.ifEmpty { null } }.distinct()
-        val (files, invalid) = configured.partition(::isAllowable)
+        val (valid, invalid) = configured.partition(::isAllowable)
         // Kafka would reject these anyway, with a message that does not say why, so explain it here.
         // A path the user already allowed with -D is left for Kafka to judge.
         invalid.filter { it !in currentlyAllowed() }.takeIf { it.isNotEmpty() }?.let {
             throw BdtConfigurationException(KafkaMessagesBundle.message("oauth.files.invalid.path", it.joinToString(", ")))
         }
+        // The exact string Kafka checks: on Windows C:/k.pem becomes C:\k.pem; doubled or trailing slashes go away.
+        val files = valid.map { File(it).absolutePath }.distinct()
         if (files.isEmpty()) return
 
         val endpoint = (properties[SaslConfigs.SASL_OAUTHBEARER_TOKEN_ENDPOINT_URL] as? String)?.trim()
@@ -96,6 +101,11 @@ object OAuthBearerFileAllowlist {
         val allowedWithD = currentlyAllowed() - addedByPlugin
         val pending = files.filter { it !in allowedWithD && !approvals.isApproved(it, endpoint) }
         if (pending.isNotEmpty()) {
+            if (!calledByUser) {
+                throw BdtConfigurationException(
+                    KafkaMessagesBundle.message("oauth.files.not.approved", pending.joinToString(", "))
+                )
+            }
             if (!approver.confirm(project, pending, endpoint)) {
                 throw BdtConfigurationException(
                     KafkaMessagesBundle.message("oauth.files.declined", pending.joinToString(", "))
@@ -118,8 +128,8 @@ object OAuthBearerFileAllowlist {
     private fun currentlyAllowed(): List<String> =
         System.getProperty(ALLOWED_FILES_PROPERTY, "").split(SEPARATOR).map { it.trim() }.filter { it.isNotEmpty() }
 
-    // Kafka compares File(path).absolutePath, so only absolute paths that are already normalized are exact.
-    // A comma cannot be represented in the comma-separated list.
+    // Relative paths resolve against the IDE working directory, and `.`/`..` would make the approved path differ
+    // from the file actually read. A comma cannot be represented in the comma-separated list.
     private fun isAllowable(path: String): Boolean {
         if (path.isEmpty() || SEPARATOR in path) return false
         val parsed: Path = try {
@@ -127,6 +137,6 @@ object OAuthBearerFileAllowlist {
         } catch (_: InvalidPathException) {
             return false
         }
-        return parsed.isAbsolute && parsed.normalize().toString() == path
+        return parsed.isAbsolute && parsed.none { it.toString() == "." || it.toString() == ".." }
     }
 }
