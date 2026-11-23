@@ -6,6 +6,7 @@ import com.intellij.openapi.project.ProjectManager
 import com.intellij.openapi.ui.DialogPanel
 import com.intellij.ui.dsl.builder.bindSelected
 import com.intellij.ui.dsl.builder.panel
+import io.confluent.intellijplugin.client.OAuthBearerFileApprovals
 import io.confluent.intellijplugin.toolwindow.KafkaMonitoringToolWindowController
 import io.confluent.intellijplugin.util.KafkaMessagesBundle
 import javax.swing.JComponent
@@ -43,6 +44,18 @@ class KafkaPluginSettingsConfigurable : SearchableConfigurable, Configurable.NoS
                 row {
                     checkBox(KafkaMessagesBundle.message("plugin.settings.usage.data.checkbox.label"))
                         .bindSelected(settings::enableUsageData)
+                }
+            }
+            group(KafkaMessagesBundle.message("plugin.settings.security.group.label")) {
+                row {
+                    text(KafkaMessagesBundle.message("plugin.settings.oauth.files.forget.description"))
+                }
+                row {
+                    val approvals = OAuthBearerFileApprovals.getInstance()
+                    button(KafkaMessagesBundle.message("plugin.settings.oauth.files.forget.button")) { event ->
+                        approvals.clear()
+                        (event.source as? JComponent)?.isEnabled = false
+                    }.enabled(approvals.hasApprovals())
                 }
             }
         }
