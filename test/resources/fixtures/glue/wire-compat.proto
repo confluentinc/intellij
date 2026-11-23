@@ -1,0 +1,29 @@
+syntax = "proto3";
+package demo.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option java_package = "demo.v1";
+
+enum Status {
+  STATUS_UNSPECIFIED = 0;
+  STATUS_ACTIVE = 1;
+}
+
+message Order {
+  string id = 1;
+  Status status = 2;
+  map<string, int64> quantities = 3;
+  google.protobuf.Timestamp created_at = 4;
+  repeated Line lines = 5;
+  oneof payment {
+    string card = 6;
+    string invoice = 7;
+  }
+  reserved 10;
+
+  message Line {
+    string sku = 1;
+    double price = 2;
+  }
+}
