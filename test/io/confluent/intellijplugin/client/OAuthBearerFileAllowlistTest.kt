@@ -45,8 +45,8 @@ class OAuthBearerFileAllowlistTest {
 
     private fun allowed(): String? = System.getProperty(property)
 
-    private fun allow(props: Map<String, String>, approver: Approver) =
-        OAuthBearerFileAllowlist.allowFiles(props, null, approvals, approver)
+    private fun allow(props: Map<String, String>, approver: Approver, calledByUser: Boolean = true) =
+        OAuthBearerFileAllowlist.allowFiles(props, null, calledByUser, approvals, approver)
 
     @Nested
     inner class `with user approval` {
@@ -170,6 +170,9 @@ class OAuthBearerFileAllowlistTest {
 
     @Nested
     inner class `without user approval` {
+        @TempDir
+        lateinit var dir: File
+
         @Test
         fun `should throw and allow nothing when the user declines`() {
             val approver = RecordingApprover(false)
@@ -229,6 +232,36 @@ class OAuthBearerFileAllowlistTest {
         }
 
         @Test
+        fun `should fail without asking on a background connect until approved`() {
+            val key = File(dir, "key.pem").absolutePath
+            val props = mapOf("sasl.oauthbearer.assertion.private.key.file" to key)
+            val approver = RecordingApprover(true)
+
+            val e = assertThrows(BdtConfigurationException::class.java) { allow(props, approver, calledByUser = false) }
+
+            assertTrue(e.message!!.contains(key), "message should name the file: ${e.message}")
+            assertTrue(approver.asked.isEmpty())
+            assertNull(allowed())
+
+            allow(props, approver)
+            allow(props, RecordingApprover(false), calledByUser = false)
+            assertEquals(key, allowed())
+        }
+
+        @Test
+        fun `should ask again after approvals are cleared`() {
+            val props = mapOf("sasl.oauthbearer.assertion.file" to File(dir, "a.jwt").absolutePath)
+            allow(props, RecordingApprover(true))
+            assertTrue(approvals.hasApprovals())
+
+            approvals.clear()
+            val approver = RecordingApprover(true)
+            allow(props, approver)
+
+            assertEquals(1, approver.asked.size)
+        }
+
+        @Test
         fun `should ignore blank paths`() {
             val approver = RecordingApprover(true)
 
@@ -266,6 +299,22 @@ class OAuthBearerFileAllowlistTest {
             allow(props, RecordingApprover(true))
 
             assertEquals(key.absoluteFile, utils.validateFile("sasl.oauthbearer.assertion.private.key.file"))
+        }
+
+        @Test
+        fun `should accept forward and doubled slashes in the form kafka compares`() {
+            // On Windows this is C:/.../key.pem, which Kafka checks as C:\...\key.pem.
+            val key = File(dir, "key.pem").also { it.writeText("x") }
+            val written = dir.absolutePath.replace('\\', '/') + "//key.pem"
+            val props = mapOf("sasl.oauthbearer.assertion.private.key.file" to written)
+
+            allow(props, RecordingApprover(true))
+
+            assertEquals(key.absolutePath, allowed())
+            assertEquals(
+                key.absoluteFile,
+                ConfigurationUtils(props).validateFile("sasl.oauthbearer.assertion.private.key.file")
+            )
         }
 
         @Test
