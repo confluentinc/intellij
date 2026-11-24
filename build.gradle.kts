@@ -114,6 +114,8 @@ dependencies {
     implementation(libs.msgpack.jackson)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.kafka.clients)
+    // kafka-clients 4.1+ needs jose4j for OAUTHBEARER login (DefaultJwtValidator) but does not declare it (#637)
+    implementation(libs.jose4j)
 
     listOf(
         libs.kafka.avro.serializer,
@@ -151,6 +153,9 @@ dependencies {
 }
 
 configurations.all { exclude(group = "org.slf4j", module = "slf4j-api") }
+// The IDE provides kotlin-stdlib; a bundled copy newer than the oldest supported IDE's breaks
+// classes split across both loaders (e.g. kotlin.time.Duration on 2025.3) (#637)
+configurations.runtimeClasspath { exclude(group = "org.jetbrains.kotlin", module = "kotlin-stdlib") }
 
 sourceSets {
     main {
