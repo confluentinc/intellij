@@ -18,7 +18,9 @@ import com.intellij.ui.ScrollPaneFactory
 import com.intellij.util.ui.JBUI
 import io.confluent.intellijplugin.common.editor.ListTableModel
 import io.confluent.intellijplugin.consumer.data.ConsumerRecordIndex
+import io.confluent.intellijplugin.consumer.data.FreeTextSlotIndex
 import io.confluent.intellijplugin.consumer.search.SearchBarController
+import io.confluent.intellijplugin.consumer.search.cellDisplayString
 import io.confluent.intellijplugin.core.table.MaterialTable
 import io.confluent.intellijplugin.core.table.MaterialTableUtils
 import io.confluent.intellijplugin.core.table.extension.TableCellPreview
@@ -54,17 +56,8 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
         columnNames = listOf(TOPIC_FIELD, TIMESTAMP_FIELD, KEY_COLUMN, VALUE_COLUMN, PARTITION_COLUMN) +
                 if (isProducer) listOf(DURATION_COLUMN) else listOf(OFFSET_COLUMN),
         onSlotChange = ::onSlotChange,
-    ) { data, index ->
-        when (index) {
-            0 -> data.topic
-            1 -> Date(data.timestamp)
-            2 -> data.keyText ?: KafkaMessagesBundle.message("error.output.row.key")
-            3 -> data.valueText ?: data.errorText
-            4 -> data.partition
-            5 -> if (isProducer) data.duration else data.offset
-            else -> ""
-        }
-    }.apply {
+        columnMapper = ::columnValue,
+    ).apply {
         columnClasses = listOf(
             String::class.java,
             Date::class.java,
@@ -73,14 +66,55 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
             Int::class.java,
             Long::class.java
         )
-        addClearListener { recordIndex.onClear() }
+        addClearListener {
+            recordIndex.onClear()
+            freeTextIndex.onClear()
+        }
     }
+
+    /**
+     * Free-text search bits, kept live as records stream in via [onSlotChange]
+     * The one-time rescan on term change walks the model's current rows;
+     * steady-state cost is one match per appended record.
+     */
+    internal val freeTextIndex: FreeTextSlotIndex<KafkaRecord> = FreeTextSlotIndex(
+        capacity = BUFFER_CAPACITY,
+        matcher = ::recordMatchesTerm,
+        slotElements = {
+            (0 until outputModel.rowCount).asSequence().mapNotNull { row ->
+                outputModel.getValueAt(row)?.let { outputModel.slotForRow(row) to it }
+            }
+        },
+    )
+
+    /** Column value as shown to the user; shared by the table model and free-text matching. */
+    private fun columnValue(data: KafkaRecord, index: Int): Any = when (index) {
+        0 -> data.topic
+        1 -> Date(data.timestamp)
+        2 -> data.keyText ?: KafkaMessagesBundle.message("error.output.row.key")
+        3 -> data.valueText ?: data.errorText
+        4 -> data.partition
+        5 -> if (isProducer) data.duration else data.offset
+        else -> ""
+    }
+
+    // Free-text matches each column's display string (formatted timestamp, not Date.toString()).
+    // Producer Duration matches the raw millis, not the renderer's "12 ms".
+    private fun recordMatchesTerm(record: KafkaRecord, term: String): Boolean =
+        (0 until outputModel.columnCount).any { index ->
+            val value = runCatching { columnValue(record, index) }
+                .onFailure { thisLogger().warn(it) }
+                .getOrNull()
+            cellDisplayString(outputModel.getColumnClass(index), value).contains(term, ignoreCase = true)
+        }
 
     private fun onSlotChange(slot: Int, next: KafkaRecord?) {
         if (next != null) {
             recordIndex.onAppend(slot, next.timestamp, next.partition)
+            freeTextIndex.onAppend(slot, next)
         } else {
             recordIndex.onEvict(slot)
+            freeTextIndex.onEvict(slot)
         }
     }
 
@@ -136,7 +170,7 @@ class KafkaRecordsOutput(val project: Project, val isProducer: Boolean) : Dispos
     private val filterHeader: TableFilterHeader get() = outputTableDelegate.value.second
 
     private val searchController: SearchBarController by lazy {
-        SearchBarController(this, outputTable, filterHeader, isProducer)
+        SearchBarController(this, outputTable, outputModel, filterHeader, isProducer, freeTextIndex)
     }
 
     private val searchField get() = searchController.searchField
